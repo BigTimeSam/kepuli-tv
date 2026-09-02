@@ -688,14 +688,14 @@ out of `brand/screenshots/`.
 The release package:
 
 ```
-rm -f kepuli-tv-1.0.1.zip
-zip -rq kepuli-tv-1.0.1.zip . \
-  -x "*.DS_Store" -x "*.git*" -x "README.md" -x "FIREFOX.md" -x "LICENSE" \
+rm -f kepuli-tv-1.0.2.zip
+zip -rq kepuli-tv-1.0.2.zip . \
+  -x "*.DS_Store" -x "*.git*" -x "README.md" -x "FIREFOX.md" -x "CHROMECAST.md" -x "LICENSE" \
   -x "store-listing.txt" -x "brand/*" -x "dev/*" -x "docs/*" \
   -x ".impeccable/*" -x "*.zip"
 ```
 
-The result is 43 entries and around 682 kB. `*.zip` is in `.gitignore`, so the
+The result is 44 entries and around 700 kB. `*.zip` is in `.gitignore`, so the
 package can be built in the project root.
 
 `dev/` and `docs/` have to be excluded: `dev/wasm/media/` is tens of megabytes

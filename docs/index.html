@@ -173,7 +173,7 @@
 
 <main>
 <h1>Kepuli-TV</h1>
-<p class="meta">The README of the Kepuli-TV browser extension · Version 1.0.1 · <a href="https://github.com/BigTimeSam/kepuli-tv">Source on GitHub</a></p>
+<p class="meta">The README of the Kepuli-TV browser extension · Version 1.0.2 · <a href="https://github.com/BigTimeSam/kepuli-tv">Source on GitHub</a></p>
 
 <p>A Chrome extension (Manifest V3) that plays Xtream Codes IPTV straight in the
 browser. Data is fetched from the <code>player_api.php</code> API lazily: only what you
@@ -917,13 +917,13 @@ out of <code>brand/screenshots/</code>.</p>
 
 <p>The release package:</p>
 
-<pre><code>rm -f kepuli-tv-1.0.1.zip
-zip -rq kepuli-tv-1.0.1.zip . \
-  -x "*.DS_Store" -x "*.git*" -x "README.md" -x "FIREFOX.md" -x "LICENSE" \
+<pre><code>rm -f kepuli-tv-1.0.2.zip
+zip -rq kepuli-tv-1.0.2.zip . \
+  -x "*.DS_Store" -x "*.git*" -x "README.md" -x "FIREFOX.md" -x "CHROMECAST.md" -x "LICENSE" \
   -x "store-listing.txt" -x "brand/*" -x "dev/*" -x "docs/*" \
   -x ".impeccable/*" -x "*.zip"</code></pre>
 
-<p>The result is 43 entries and around 682 kB. <code>*.zip</code> is in <code>.gitignore</code>, so the
+<p>The result is 44 entries and around 700 kB. <code>*.zip</code> is in <code>.gitignore</code>, so the
 package can be built in the project root.</p>
 
 <p><code>dev/</code> and <code>docs/</code> have to be excluded: <code>dev/wasm/media/</code> is tens of megabytes
