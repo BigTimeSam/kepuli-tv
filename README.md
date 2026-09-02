@@ -86,8 +86,8 @@ with the same path.
 
 `docs/` is the GitHub Pages site at
 [bigtimesam.github.io/kepuli-tv](https://bigtimesam.github.io/kepuli-tv/). The
-privacy policy and the terms of use are hand-written HTML in `docs/tietosuoja/`
-and `docs/kayttoehdot/`. The front page is this README, rendered into
+privacy policy and the terms of use are hand-written HTML in `docs/privacy/`
+and `docs/terms/`. The front page is this README, rendered into
 `docs/index.html` in the same style:
 
 ```

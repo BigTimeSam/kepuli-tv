@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 // The GitHub Pages front page: README.md rendered as docs/index.html, in the
 // same style as the privacy policy and the terms of use, which are
-// hand-written HTML in docs/tietosuoja/ and docs/kayttoehdot/.
+// hand-written HTML in docs/privacy/ and docs/terms/.
 //
 // The converter covers what the README uses — headings, paragraphs, lists,
 // tables, fenced code, inline code, bold, italics and links — and nothing
@@ -375,8 +375,8 @@ function page({ title, description, main }, version) {
     Kepuli-TV
   </a>
   <nav class="langs">
-    <a href="tietosuoja/">Privacy Policy</a>
-    <a href="kayttoehdot/">Terms of Use</a>
+    <a href="privacy/">Privacy Policy</a>
+    <a href="terms/">Terms of Use</a>
     <a href="${REPO}">GitHub</a>
   </nav>
 </header>
@@ -389,7 +389,7 @@ ${main}
 </main>
 
 <footer>
-  <p>Kepuli-TV · © 2026 Samuli Vainio · MIT licence · <a href="tietosuoja/">Privacy Policy</a> · <a href="kayttoehdot/">Terms of Use</a></p>
+  <p>Kepuli-TV · © 2026 Samuli Vainio · MIT licence · <a href="privacy/">Privacy Policy</a> · <a href="terms/">Terms of Use</a></p>
   <p>This page is the repository's README.md, rendered by dev/site.mjs.</p>
 </footer>
 

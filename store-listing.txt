@@ -271,10 +271,10 @@ Certifications: tick all three.
 
 PRIVACY POLICY URL
 ------------------
-https://bigtimesam.github.io/kepuli-tv/tietosuoja/
+https://bigtimesam.github.io/kepuli-tv/privacy/
 
 Terms of use (not a mandatory field; it can be linked from the description):
-https://bigtimesam.github.io/kepuli-tv/kayttoehdot/
+https://bigtimesam.github.io/kepuli-tv/terms/
 
 
 HOMEPAGE URL AND SUPPORT URL (Store listing → Additional fields)
@@ -283,8 +283,8 @@ Homepage URL:  https://bigtimesam.github.io/kepuli-tv/
 Support URL:   https://github.com/BigTimeSam/kepuli-tv/issues
 
 The homepage is README.md rendered as a page by node dev/site.mjs; the
-privacy policy and the terms of use are under it at /tietosuoja/ and
-/kayttoehdot/.
+privacy policy and the terms of use are under it at /privacy/ and
+/terms/.
 
-The source of the page is in this repository: docs/tietosuoja/index.html (one
+The source of the page is in this repository: docs/privacy/index.html (one
 file, no dependencies). The address has to be public and require no sign-in.
