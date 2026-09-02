@@ -160,6 +160,29 @@ Third-party code and licences:
   text ships in the package (vendor/ffaudio/COPYING.LGPLv2.1).
 
 
+--- IMAGES (Store listing → Graphic assets) ---------------------------------
+All of them live in brand/ and are regenerated with
+  uv run --with pillow python3 brand/promo.py
+
+Store icon:            brand/store-icon-128.png
+  128x128 PNG with a transparent background. The artwork fits a 96x96 box,
+  leaving 16 px of transparent padding on every side, which is what Google
+  asks for so the icon does not look bigger than its neighbours.
+
+Small promo tile:      brand/promo-small-440x280.png   (required)
+  440x280, 24-bit PNG without alpha. The television, the name and a two-line
+  tagline on the dark brand background.
+
+Marquee promo tile:    brand/promo-marquee-1400x560.png   (optional)
+  1400x560, 24-bit PNG without alpha. Same composition, one-line tagline.
+  Only shown if the store features the extension; harmless to upload.
+
+Screenshots:           none in the repository yet   (at least one required)
+  1280x800 (or 640x400), JPEG or 24-bit PNG, up to five. Take them from the
+  player tab: the channel list with programme data, the programme guide,
+  a series page, and the player with subtitles are the obvious four.
+
+
 --- THE PRIVACY PRACTICES TAB ----------------------------------------------
 The fields below are written for the reviewer. The character limits are 1,000
 per field; all of them fit.
@@ -252,6 +275,16 @@ https://bigtimesam.github.io/kepuli-tv/tietosuoja/
 
 Terms of use (not a mandatory field; it can be linked from the description):
 https://bigtimesam.github.io/kepuli-tv/kayttoehdot/
+
+
+HOMEPAGE URL AND SUPPORT URL (Store listing → Additional fields)
+----------------------------------------------------------------
+Homepage URL:  https://bigtimesam.github.io/kepuli-tv/
+Support URL:   https://github.com/BigTimeSam/kepuli-tv/issues
+
+The homepage is README.md rendered as a page by node dev/site.mjs; the
+privacy policy and the terms of use are under it at /tietosuoja/ and
+/kayttoehdot/.
 
 The source of the page is in this repository: docs/tietosuoja/index.html (one
 file, no dependencies). The address has to be public and require no sign-in.

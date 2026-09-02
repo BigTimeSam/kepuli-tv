@@ -1,4 +1,7 @@
-"""Kauppasivun promokuvat: Codexin generoima televisio + oikealla fontilla ladottu teksti."""
+"""Store promo tiles: the Codex-generated television plus text set in the real font.
+
+Run:  uv run --with pillow python3 brand/promo.py
+"""
 import math
 import os
 from PIL import Image, ImageDraw, ImageFont
@@ -11,8 +14,8 @@ def font(size, weight='Regular'):
     f = ImageFont.truetype(SF, size); f.set_variation_by_name(weight); return f
 
 def glow(size, center, radius, color, strength):
-    """Pehmeä radiaalinen hehku. Apuruudukko seuraa kuvasuhdetta, muuten
-       ympyrä venyisi soikioksi leveissä kuvissa."""
+    """Soft radial glow. The helper grid follows the aspect ratio; otherwise
+       the circle would stretch into an ellipse on wide images."""
     w, h = size
     gw = 128; gh = max(8, round(gw*h/w))
     g = Image.new('RGB', (gw, gh), BG); px = g.load()
@@ -26,7 +29,7 @@ def glow(size, center, radius, color, strength):
     return g.resize(size, Image.BICUBIC)
 
 def tile(w, h, tv_frac, title_px, tag_px, gap, pad, lines, out):
-    tv = Image.open(f'{BRAND}/master-full.png')
+    tv = Image.open(f'{BRAND}/tv-full.png')
     th = int(h*tv_frac); tv = tv.resize((th, th), Image.LANCZOS)
 
     d0 = ImageDraw.Draw(Image.new('RGB', (1,1)))
@@ -34,14 +37,19 @@ def tile(w, h, tv_frac, title_px, tag_px, gap, pad, lines, out):
     ft = font(size, 'Semibold'); fg = font(tag_px, 'Regular')
     text_w = max([d0.textlength('Kepuli-TV', font=ft)] +
                  [d0.textlength(l, font=fg) for l in lines])
-    # otsikko kutistetaan jos ryhmä ei mahdu reunusten väliin
-    while size > 12 and th + gap + text_w > w - 2*pad:
-        size -= 2; ft = font(size, 'Semibold')
+    # shrink whichever line is widest until the group fits between the margins
+    while (size > 12 or tag_px > 10) and th + gap + text_w > w - 2*pad:
+        title_w = d0.textlength('Kepuli-TV', font=ft)
+        tag_w = max(d0.textlength(l, font=fg) for l in lines)
+        if title_w >= tag_w and size > 12:
+            size -= 2; ft = font(size, 'Semibold')
+        else:
+            tag_px -= 1; fg = font(tag_px, 'Regular')
         text_w = max([d0.textlength('Kepuli-TV', font=ft)] +
                      [d0.textlength(l, font=fg) for l in lines])
 
     group_w = th + gap + text_w
-    x0 = (w - group_w)/2                      # koko ryhmä optisesti keskelle
+    x0 = (w - group_w)/2                      # the whole group optically centred
     tv_x, tv_y = int(x0), (h-th)//2
     cx = tv_x + th/2
 
@@ -60,11 +68,23 @@ def tile(w, h, tv_frac, title_px, tag_px, gap, pad, lines, out):
         d.text((x, y), ln, font=fg, fill=MUTED); y += line_h
 
     img.convert('RGB').save(out, optimize=True)
-    print(f'{out.split("/")[-1]}  {w}x{h}  otsikko {size}px  ryhmä {int(group_w)}px / {w-2*pad}px')
+    print(f'{out.split("/")[-1]}  {w}x{h}  title {size}px  tagline {tag_px}px  group {int(group_w)}px / {w-2*pad}px')
 
+def store_icon(out, art=96, canvas=128):
+    """Chrome Web Store icon: the artwork fits a 96x96 box, centred on a
+       128x128 transparent canvas (16 px of padding on every side)."""
+    tv = Image.open(f'{BRAND}/tv-full.png').convert('RGBA')
+    tv = tv.crop(tv.split()[3].getbbox())
+    tv.thumbnail((art, art), Image.LANCZOS)
+    img = Image.new('RGBA', (canvas, canvas), (0,0,0,0))
+    img.alpha_composite(tv, ((canvas-tv.width)//2, (canvas-tv.height)//2))
+    img.save(out, optimize=True)
+    print(f'{out.split("/")[-1]}  {canvas}x{canvas}  artwork {tv.width}x{tv.height}')
+
+store_icon(f'{BRAND}/store-icon-128.png')
 tile(440, 280,  0.74, 46, 17, 22, 26,
-     ['Xtream Codes -IPTV', 'suoraan selaimessa'],
+     ['Xtream Codes IPTV', 'straight in the browser'],
      f'{BRAND}/promo-small-440x280.png')
 tile(1400, 560, 0.80, 128, 42, 64, 80,
-     ['Xtream Codes -IPTV suoraan selaimessa'],
+     ['Xtream Codes IPTV straight in the browser'],
      f'{BRAND}/promo-marquee-1400x560.png')

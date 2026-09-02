@@ -82,6 +82,23 @@ with the same path.
 - Clearing the cache (IndexedDB): **Settings → Clear cache**; removing
   everything, credentials included: **Settings → Reset everything**
 
+### The Pages site
+
+`docs/` is the GitHub Pages site at
+[bigtimesam.github.io/kepuli-tv](https://bigtimesam.github.io/kepuli-tv/). The
+privacy policy and the terms of use are hand-written HTML in `docs/tietosuoja/`
+and `docs/kayttoehdot/`. The front page is this README, rendered into
+`docs/index.html` in the same style:
+
+```
+node dev/site.mjs
+```
+
+Run it after editing the README and commit the result; `--check` exits
+non-zero if the page is out of date. The converter knows only what the README
+uses — headings, lists, tables, fenced code, inline code, bold, italics and
+links — and warns about anything else. No dependencies.
+
 ## How the data is fetched
 
 A large playlist is a poor starting point: the test server's `get.php` returns
@@ -442,6 +459,8 @@ icons/              16, 32, 48, 128 px extension icons
 brand/              the sources of the brand graphics, not part of the package
 dev/dev.mjs         the development loop: reloads the extension and the page
 dev/wasm/           building ffaudio and comparing it with ffmpeg
+dev/site.mjs        renders README.md into docs/index.html, the Pages front page
+docs/               the GitHub Pages site: front page, privacy policy, terms of use
 vendor/             mpegts.js 1.8.0, hls.js 1.6.5 (local: MV3's CSP does not
                     allow remote scripts)
 vendor/ffaudio/     FFmpeg 7.1.1's ac3, eac3 and dca decoders as wasm

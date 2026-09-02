@@ -1,0 +1,806 @@
+<!doctype html>
+<!-- Generated from README.md by dev/site.mjs. Edit the README, not this file. -->
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Kepuli-TV</title>
+<meta name="description" content="A Chrome extension (Manifest V3) that plays Xtream Codes IPTV straight in the browser. Data is fetched from the player_api.php API lazily: only what you browse, when you browse it.">
+<meta name="robots" content="index,follow">
+<style>
+  :root {
+    --bg: #0a0c11;
+    --panel: #11141c;
+    --panel-2: #161a24;
+    --border: #232838;
+    --text: #e7eaf2;
+    --muted: #9aa2b6;
+    --dim: #6d7488;
+    --accent: #8f74ff;
+    --accent-2: #22d3ee;
+  }
+
+  * { box-sizing: border-box; }
+
+  html { -webkit-text-size-adjust: 100%; scroll-behavior: smooth; }
+
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--text);
+    font: 16px/1.65 -apple-system, BlinkMacSystemFont, "Segoe UI", Inter, system-ui, sans-serif;
+    font-synthesis-weight: none;
+  }
+
+  .wrap { max-width: 760px; margin: 0 auto; padding: 48px 22px 96px; }
+
+  /* ---------------------------------------------------------- header */
+
+  header { border-bottom: 1px solid var(--border); padding-bottom: 28px; margin-bottom: 36px; }
+
+  .brand {
+    display: inline-flex; align-items: center; gap: 9px;
+    font-weight: 650; letter-spacing: -0.01em; font-size: 15px;
+    color: var(--text); text-decoration: none;
+  }
+  .brand-mark {
+    width: 22px; height: 22px; border-radius: 5px; flex: none;
+    background: linear-gradient(150deg, var(--accent), #5b3fd6);
+    display: grid; place-items: center;
+  }
+  .brand-mark svg { width: 13px; height: 13px; stroke: #fff; fill: none; stroke-width: 1.9; stroke-linejoin: round; }
+
+  h1 { font-size: 30px; line-height: 1.2; letter-spacing: -0.02em; margin: 22px 0 10px; }
+
+  .meta { color: var(--dim); font-size: 13.5px; margin: 0 0 28px; }
+  .meta a { color: var(--muted); }
+
+  .langs { margin-top: 20px; display: flex; flex-wrap: wrap; gap: 8px; font-size: 13.5px; }
+  .langs a {
+    color: var(--muted); text-decoration: none;
+    border: 1px solid var(--border); background: var(--panel);
+    padding: 4px 11px; border-radius: 999px;
+  }
+  .langs a:hover { color: var(--text); border-color: var(--accent); }
+
+  /* --------------------------------------------------------- contents */
+
+  .toc {
+    background: var(--panel); border: 1px solid var(--border);
+    border-left: 3px solid var(--accent);
+    border-radius: 10px; padding: 16px 20px; margin: 4px 0 8px;
+    font-size: 14px;
+  }
+  .toc ul { list-style: none; margin: 0; padding: 0; columns: 2; column-gap: 28px; }
+  .toc li { margin: 0 0 6px; break-inside: avoid; color: var(--muted); }
+  .toc a { color: var(--muted); text-decoration: none; }
+  .toc a:hover { color: var(--text); }
+  @media (max-width: 560px) { .toc ul { columns: 1; } }
+
+  /* ---------------------------------------------------------- content */
+
+  h2 {
+    font-size: 19px; letter-spacing: -0.01em; margin: 44px 0 12px;
+    padding-top: 10px; scroll-margin-top: 16px;
+  }
+
+  h3 { font-size: 15.5px; margin: 26px 0 8px; color: var(--text); scroll-margin-top: 16px; }
+
+  p, li { color: #cfd5e4; }
+  p { margin: 0 0 14px; }
+
+  ul, ol { margin: 0 0 14px; padding-left: 22px; }
+  li { margin-bottom: 7px; }
+  li::marker { color: var(--dim); }
+
+  a { color: var(--accent-2); text-decoration-thickness: 1px; text-underline-offset: 2px; }
+
+  strong { color: var(--text); font-weight: 620; }
+  em { color: var(--text); }
+
+  code {
+    font: 500 13.5px/1.4 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+    background: var(--panel-2); border: 1px solid var(--border);
+    border-radius: 5px; padding: 1px 5px; color: #d7ccff;
+  }
+  h1 code, h2 code, h3 code { font-size: 0.85em; }
+
+  pre {
+    background: var(--panel); border: 1px solid var(--border);
+    border-radius: 10px; padding: 14px 18px; margin: 0 0 18px;
+    overflow-x: auto; color: #cfd5e4;
+    font: 500 13px/1.55 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  }
+  pre code { font: inherit; color: inherit; background: none; border: 0; padding: 0; }
+
+  /* ------------------------------------------------------------ table */
+
+  .table-scroll { overflow-x: auto; margin: 0 0 18px; }
+  table { border-collapse: collapse; width: 100%; min-width: 420px; font-size: 14.5px; }
+  th, td { text-align: left; vertical-align: top; padding: 10px 14px; border-bottom: 1px solid var(--border); }
+  th { color: var(--muted); font-weight: 600; font-size: 12.5px; text-transform: uppercase; letter-spacing: 0.05em; background: var(--panel); }
+  td:first-child { color: var(--text); font-weight: 560; }
+  tr:last-child td { border-bottom: 0; }
+
+  /* ----------------------------------------------------------- footer */
+
+  footer {
+    margin-top: 56px; padding-top: 24px;
+    border-top: 1px solid var(--border);
+    color: var(--dim); font-size: 13.5px;
+  }
+  footer p { color: var(--dim); margin: 0 0 6px; }
+  footer a { color: var(--muted); }
+
+  /* ------------------------------------------------------------ light */
+
+  @media (prefers-color-scheme: light) {
+    :root {
+      --bg: #ffffff; --panel: #f6f7fa; --panel-2: #f0f2f7; --border: #dfe3ec;
+      --text: #14171f; --muted: #5b6377; --dim: #767e91; --accent: #5b3fd6; --accent-2: #0f7c8c;
+    }
+    p, li, pre { color: #333a49; }
+    code { color: #4a32b8; }
+  }
+
+  @media print {
+    body { background: #fff; color: #000; font-size: 11pt; }
+    .wrap { max-width: none; padding: 0; }
+    .langs, .toc { display: none; }
+    p, li, pre, footer p { color: #000; }
+    a { color: #000; }
+    pre, .toc { border: 1px solid #999; }
+    h2, h3 { page-break-after: avoid; }
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<header>
+  <a class="brand" href="./">
+    <span class="brand-mark" aria-hidden="true">
+      <svg viewBox="0 0 24 24"><rect x="2.5" y="6.5" width="19" height="13" rx="2"/><path d="M8 3l4 3.5L16 3"/></svg>
+    </span>
+    Kepuli-TV
+  </a>
+  <nav class="langs">
+    <a href="tietosuoja/">Privacy Policy</a>
+    <a href="kayttoehdot/">Terms of Use</a>
+    <a href="https://github.com/BigTimeSam/kepuli-tv">GitHub</a>
+  </nav>
+</header>
+
+<main>
+<h1>Kepuli-TV</h1>
+<p class="meta">The README of the Kepuli-TV browser extension · Version 1.0.0 · <a href="https://github.com/BigTimeSam/kepuli-tv">Source on GitHub</a></p>
+
+<p>A Chrome extension (Manifest V3) that plays Xtream Codes IPTV straight in the
+browser. Data is fetched from the <code>player_api.php</code> API lazily: only what you
+browse, when you browse it.</p>
+
+<nav class="toc" aria-label="Contents">
+<ul>
+  <li><a href="#intended-use">Intended use</a></li>
+  <li><a href="#installation">Installation</a></li>
+  <li><a href="#development">Development</a></li>
+  <li><a href="#how-the-data-is-fetched">How the data is fetched</a></li>
+  <li><a href="#categories-on-two-levels">Categories on two levels</a></li>
+  <li><a href="#features">Features</a></li>
+  <li><a href="#the-programme-guide">The programme guide</a></li>
+  <li><a href="#playback-routes">Playback routes</a></li>
+  <li><a href="#structure">Structure</a></li>
+  <li><a href="#things-worth-knowing">Things worth knowing</a></li>
+  <li><a href="#language">Language</a></li>
+  <li><a href="#connection-mode">Connection mode</a></li>
+  <li><a href="#brand-graphics">Brand graphics</a></li>
+  <li><a href="#licence">Licence</a></li>
+</ul>
+</nav>
+
+<h2 id="intended-use">Intended use</h2>
+
+<p>Kepuli-TV is a player. It contains, distributes, hosts and indexes no media,
+channels, playlists or providers, and ships no address to any service. It does
+nothing without credentials the user brings.</p>
+
+<p>It is intended solely for viewing content the user has the right to view: their
+own paid subscription, their own media, or other material they are permitted to
+watch. Users are responsible for ensuring that the service they use, and its
+content, are lawful in their country.</p>
+
+<p>The author does not provide, sell, recommend or advise on obtaining IPTV
+subscriptions, and does not answer questions about them. Such issues are closed.</p>
+
+<p>The software is provided as is, without warranty; see LICENSE.</p>
+
+<h2 id="installation">Installation</h2>
+
+<ol>
+  <li>Open <code>chrome://extensions</code></li>
+  <li>Turn on <strong>Developer mode</strong></li>
+  <li><strong>Load unpacked</strong> → pick this folder</li>
+  <li>Click the extension icon → the player opens in a tab of its own</li>
+  <li>Choose the connection mode: <strong>Xtream Codes</strong> (server, port, username,
+password) or <strong>M3U address</strong> (a single field for the playlist URL your
+provider gave you). Both end up in the same place, see below</li>
+</ol>
+
+<h2 id="development">Development</h2>
+
+<p>There is no build step: the files are, as they are, what the browser runs — so
+edit and reload.</p>
+
+<h3 id="automatic-loop">Automatic loop</h3>
+
+<pre><code>node dev/dev.mjs</code></pre>
+
+<p>Opens a Chrome profile of its own, loads the extension, opens the player and
+reloads it whenever <code>js/</code>, <code>css/</code> or <code>player.html</code> changes. <code>manifest.json</code> and
+<code>background.js</code> require the whole extension to be reloaded, and the script does
+that too. No dependencies; Node 22+ is enough.</p>
+
+<p>The profile is <code>~/.cache/kepuli-tv-dev</code>, i.e. separate from your own browser:
+credentials are entered into it once and then persist. The port and the profile
+can be changed with the environment variables <code>KEPULI_DEV_PORT</code> and
+<code>KEPULI_DEV_PROFILE</code>.</p>
+
+<h3 id="by-hand-in-your-own-browser">By hand in your own browser</h3>
+
+<ol>
+  <li><code>chrome://extensions</code> → <strong>Developer mode</strong> → <strong>Load unpacked</strong></li>
+  <li>Click the icon → the player opens in a tab</li>
+  <li>After a change:</li>
+</ol>
+
+<div class="table-scroll">
+<table>
+  <thead><tr><th>Changed</th><th>Enough</th></tr></thead>
+  <tbody>
+    <tr><td><code>js/*.js</code>, <code>css/player.css</code>, <code>player.html</code></td><td>reload the player tab (<code>⌘R</code>)</td></tr>
+    <tr><td><code>manifest.json</code>, <code>background.js</code></td><td>the extension's ↻ on the <code>chrome://extensions</code> page</td></tr>
+  </tbody>
+</table>
+</div>
+
+<p>A page reload reads the files from disk again — ES modules included — so the
+extension does not need reloading in ordinary work.</p>
+
+<h3 id="note-load-extension-no-longer-works">Note: <code>--load-extension</code> no longer works</h3>
+
+<p>Chrome rejects the flag silently (152 gives <code>ERR_BLOCKED_BY_CLIENT</code> on the
+extension page). <code>dev/dev.mjs</code> therefore uses the DevTools protocol's
+<code>Extensions.loadUnpacked</code> command, which also works as a reload when called
+with the same path.</p>
+
+<h3 id="troubleshooting">Troubleshooting</h3>
+
+<ul>
+  <li>The player's console: right-click the tab → <strong>Inspect</strong></li>
+  <li>The service worker: <code>chrome://extensions</code> → the extension's <strong>Service worker</strong></li>
+  <li>Network requests show in the player's own DevTools window; the
+<code>player_api.php</code> calls are the easiest way to see what the lazy loading
+really fetches</li>
+  <li>Clearing the cache (IndexedDB): <strong>Settings → Clear cache</strong>; removing
+everything, credentials included: <strong>Settings → Reset everything</strong></li>
+</ul>
+
+<h3 id="the-pages-site">The Pages site</h3>
+
+<p><code>docs/</code> is the GitHub Pages site at
+<a href="https://bigtimesam.github.io/kepuli-tv/">bigtimesam.github.io/kepuli-tv</a>. The
+privacy policy and the terms of use are hand-written HTML in <code>docs/tietosuoja/</code>
+and <code>docs/kayttoehdot/</code>. The front page is this README, rendered into
+<code>docs/index.html</code> in the same style:</p>
+
+<pre><code>node dev/site.mjs</code></pre>
+
+<p>Run it after editing the README and commit the result; <code>--check</code> exits
+non-zero if the page is out of date. The converter knows only what the README
+uses — headings, lists, tables, fenced code, inline code, bold, italics and
+links — and warns about anything else. No dependencies.</p>
+
+<h2 id="how-the-data-is-fetched">How the data is fetched</h2>
+
+<p>A large playlist is a poor starting point: the test server's <code>get.php</code> returns
+75 megabytes and 272,000 lines, with no category identifiers and no information
+about file formats. <code>player_api.php</code> gives the same thing structured and in
+pieces, so the app loads in stages:</p>
+
+<div class="table-scroll">
+<table>
+  <thead><tr><th>Stage</th><th>What is fetched</th><th>Size</th><th>When</th></tr></thead>
+  <tbody>
+    <tr><td>1</td><td>Categories (live + movies + series)</td><td>43 kB</td><td>opening the connection</td></tr>
+    <tr><td>2</td><td>The chosen country's channels</td><td>2–60 kB</td><td>on clicking a country</td></tr>
+    <tr><td>3</td><td>A type's whole list</td><td>0.6–2.9 MB</td><td>only on search or the "All" selection</td></tr>
+    <tr><td>4</td><td>A series' episodes, a movie's details</td><td>1–20 kB</td><td>on opening an item</td></tr>
+    <tr><td>5</td><td>Programme data for a channel</td><td>1.6 kB</td><td>for visible rows</td></tr>
+    <tr><td>6</td><td>A channel's whole programme table</td><td>50–150 kB</td><td>only when browsing into the past in the guide</td></tr>
+  </tbody>
+</table>
+</div>
+
+<p>Measured times on the test server: Albania (3 topics) 0.27 s, Sweden (31 topics)
+1.1 s, USA (48 topics) 1.6 s. Everything loaded is stored in IndexedDB, so the
+next open is instant.</p>
+
+<h2 id="categories-on-two-levels">Categories on two levels</h2>
+
+<p>The provider encodes two levels into a single string: <code>Sweden - Sport</code>,
+<code>Sweden - Nyheter</code>, <code>Albania - Movies Club</code>. The app splits them, which
+condenses 519 live categories into <strong>81 countries</strong> down the left-hand side in
+alphabetical order. Choosing a country shows all of its channels, and the topic
+buttons along the top narrow it to a subject. The buttons are in alphabetical
+order, except for the country's own general category, which sits right after
+the <em>All</em> button.</p>
+
+<p>The same splitting removes the <code>Movies:</code> and <code>Series:</code> prefixes from movies and
+series, which only repeat the name of the tab.</p>
+
+<p>Lists are always sorted alphabetically — channels, movies and series, within a
+category, within a group and in the <em>All</em> list. The provider's own order varies
+from one category to the next and carries no meaning across the list.
+Punctuation at the start of a name (<code>|FI| Alien</code>) is ignored, and numbers are
+compared as numbers, so <em>Rocky 2</em> comes before <em>Rocky 10</em>. When a repeating
+prefix has been stripped from a row (below), the order follows the visible
+name. Search still ranks matches by relevance, but equally ranked matches fall
+into alphabetical order.</p>
+
+<p>The sidebar filter matches sub-categories too: the query <em>sport</em> brings up the
+countries that have sports channels even when the country's name lacks the
+word.</p>
+
+<h3 id="a-category-as-a-favourite">A category as a favourite</h3>
+
+<p>Starring a single channel is not enough when the interesting thing is a whole
+category: <em>Finland ▸ MTV Liiga</em> is eight channels today and some other number
+next season. That is why there is a star on the sidebar country row and on
+every topic chip as well — the first picks the whole group, the second one
+category.</p>
+
+<p>The <em>Favourites</em> tab lists them as a group of their own above the channels and
+the movies, and tapping a row opens the category's contents on the spot: the
+same list as in the browsing view, the same row names and programme data, but
+returning to the favourites is one tap. The contents are always fetched fresh,
+so channels that have appeared in the category show up without the favourite
+needing an update.</p>
+
+<p>Only an identifier is stored — the type, the <code>category_id</code> and the visible
+name — not the category's contents. A group favourite (<em>Finland</em>) stores the
+group name and gathers its sub-categories only when opened, so it follows a
+changing offering too.</p>
+
+<p>The search in the header covers the whole list (the category filter is cleared
+visibly) and ranks matches by relevance: a match at the start of a word beats
+one found mid-word, so that <em>yle</em> raises the Yle channels rather than "KYLE
+COLLECTION".</p>
+
+<h2 id="features">Features</h2>
+
+<ul>
+  <li><strong>Programme data</strong> for visible channels: the programme on air and a progress
+bar on the list row, a description and the next programme below the player</li>
+  <li><strong>An interactive programme guide</strong> (<code>g</code>): channels as rows, time on the
+horizontal axis and a moving now line — see below</li>
+  <li><strong>Catch-up</strong> for channels that have an archive: a past programme can be
+started straight from the guide</li>
+  <li><strong>Series</strong> by season, with cover art and plots from TMDB</li>
+  <li><strong>Movie details</strong>: plot, running time, rating, codec</li>
+  <li><strong>MKV plays</strong> without an external player: the container is unpacked on the
+fly into fMP4, seeking included. If the audio track is AC-3 or DTS, <strong>Play
+without sound</strong> is on offer</li>
+  <li><strong>Subtitles</strong> from MKV files: a language and size selector below the player,
+and the chosen language carries over to the following episodes — see below</li>
+  <li><strong>Unplayable files are marked in the list</strong> before you click; once a file has
+been examined the mark sharpens according to its codecs</li>
+  <li><strong>Hand-off to an external player</strong> (<code>↗</code> or <code>x</code>) for what the browser cannot
+do — see below</li>
+  <li><strong>Resume positions remembered</strong> for movies and episodes, with a progress bar
+on the row</li>
+  <li><strong>Favourites</strong> and <strong>history</strong> as tabs of their own — a whole category can be
+a favourite too, see below</li>
+  <li><strong>Two languages</strong>: English and Finnish, switched in the settings without a
+page reload</li>
+  <li><strong>Automatic reconnection</strong> when a live stream drops — the death of a source
+is recognised in three ways: the server cuts the connection, the buffer is
+played out, or the picture freezes while the connection stays open. The
+viewer's own pause is told apart from these and is never overridden</li>
+  <li><strong>Technical details</strong> over the picture: resolution, bitrate, engine</li>
+</ul>
+
+<h3 id="keyboard-shortcuts">Keyboard shortcuts</h3>
+
+<div class="table-scroll">
+<table>
+  <thead><tr><th>Key</th><th>Action</th></tr></thead>
+  <tbody>
+    <tr><td><code>/</code></td><td>go to the search box</td></tr>
+    <tr><td><code>↑</code> <code>↓</code> <code>PgUp</code> <code>PgDn</code></td><td>move in the list</td></tr>
+    <tr><td><code>Enter</code></td><td>play / open a series</td></tr>
+    <tr><td><code>Backspace</code></td><td>back to the series list</td></tr>
+    <tr><td><code>space</code></td><td>pause</td></tr>
+    <tr><td><code>f</code></td><td>full screen</td></tr>
+    <tr><td><code>m</code></td><td>mute</td></tr>
+    <tr><td><code>n</code> <code>p</code></td><td>next / previous</td></tr>
+    <tr><td><code>g</code></td><td>open and close the programme guide</td></tr>
+    <tr><td><code>x</code></td><td>hand over to an external player</td></tr>
+  </tbody>
+</table>
+</div>
+
+<p>In the guide the arrows move between channels and programmes, <code>Home</code> returns to
+the present, <code>+</code> and <code>−</code> adjust the timeline's scale, <code>Enter</code> starts playback
+and <code>Esc</code> closes.</p>
+
+<h2 id="the-programme-guide">The programme guide</h2>
+
+<p><code>Guide</code> (or <code>g</code>) turns the whole window into a grid view: channels as rows,
+time on the horizontal axis and a moving now line. The video continues in the
+top right corner and the selected programme shows on the left with its
+description. The grid shows the same set of channels as the list, so the group
+selection and the search narrow the guide as well.</p>
+
+<p>The timeline runs from two days back to five days forward. Past programmes are
+dimmed; those the channel's archive reaches get a <strong>Watch the recording</strong>
+button. A programme continuing past the left edge is marked with <code>‹</code> and its
+name is nudged into view.</p>
+
+<p>Programme data is fetched at three levels of detail into the same cache: a list
+row needs four programmes, looking ahead in the guide needs 40, and the whole
+programme table is fetched only when the grid is scrolled past the known
+programmes. A coarser level is never fetched over a finer one, so a channel
+visited in the guide does not fall back to four programmes as the list is
+browsed.</p>
+
+<h2 id="playback-routes">Playback routes</h2>
+
+<div class="table-scroll">
+<table>
+  <thead><tr><th>Source</th><th>Engine</th></tr></thead>
+  <tbody>
+    <tr><td>Live (MPEG-TS)</td><td>mpegts.js → MediaSource</td></tr>
+    <tr><td>Live (<code>.m3u8</code>), or the fallback from TS</td><td>hls.js</td></tr>
+    <tr><td>VOD <code>.mp4</code> <code>.m4v</code> <code>.mov</code> <code>.webm</code></td><td>the browser's own player</td></tr>
+    <tr><td>VOD <code>.ts</code> <code>.flv</code></td><td>the header decides — the extension does not hold</td></tr>
+    <tr><td>VOD <code>.mkv</code></td><td>Matroska unpacked into fMP4 → MediaSource</td></tr>
+    <tr><td>VOD <code>.avi</code></td><td>not supported</td></tr>
+  </tbody>
+</table>
+</div>
+
+<p><code>Auto</code> tries TS first on live channels (lower latency) and moves to HLS if TS
+does not start within 20 seconds. On the test server HLS often starts faster
+but trails the live edge by a segment length.</p>
+
+<p>In the test material 54% of the movies are <code>.mp4</code> and 44% <code>.mkv</code>. For
+unplayable ones, <strong>Copy address</strong> and <strong>Open in an external player</strong> are
+offered.</p>
+
+<h3 id="external-player">External player</h3>
+
+<p>Unpacking and wasm audio cover most of the library, but not all of it: the AVI
+container, VC-1, 10-bit H.264 and bitmap subtitles (PGS, VOBSUB) stay out of
+the browser's reach. A desktop player handles them natively and takes the
+Xtream stream URL as it is. The hand-off is always manual — from the <code>↗</code> button
+below the player, the <code>x</code> key, or a button in an error message — and never
+happens by itself.</p>
+
+<p>There were two routes, one is left: a one-item <code>.m3u</code> is downloaded from a
+blob, and the operating system opens it with whichever player is registered for
+<code>.m3u</code> — for VLC that is <code>public.m3u-playlist</code> in its Info.plist. Two clicks,
+no new manifest permissions and no bridge between the extension and the
+operating system.</p>
+
+<p>Player-specific URL schemes (<code>iina://</code>, <code>mpv://</code>) used to be selectable and were
+dropped: they saved one click but required a choice from the user and knowledge
+of what they had installed. <strong>VLC does not register a <code>vlc://</code> scheme on
+macOS</strong> — its Info.plist lists only <code>http https ftp mms mmsh rtmp rtmpe rtmps
+rtmpt rtp rtsp sftp smb udp</code> — so for the most common player the file route was
+the only one anyway.</p>
+
+<p>The resume position travels along: <code>#EXTVLCOPT:start-time=</code> is written into the
+playlist at the point the browser had reached. Playback is stopped before the
+hand-off, because the account allows one concurrent connection — otherwise a
+stream the browser keeps open would leave the external player silent.</p>
+
+<p>The URL carries the credentials, so a downloaded <code>.m3u</code> is as sensitive as the
+account itself.</p>
+
+<h3 id="unpacking-matroska">Unpacking Matroska</h3>
+
+<p>Chrome will not take Matroska, but the H.264 or HEVC inside it is fine as it
+is. <code>js/mkv.js</code> demuxes the clusters from the stream, <code>js/mp4.js</code> packs the
+frames into fMP4 segments and <code>js/remux.js</code> feeds them to MediaSource. The
+picture is neither decoded nor re-encoded — only the container changes.</p>
+
+<p>Three points needed care:</p>
+
+<ul>
+  <li><strong>Decode time.</strong> Matroska stores only the presentation time. Because of
+B-frames the two differ — in a measured episode 740 of 1569 frames had a PTS
+that went backwards from the previous one. The DTS is obtained by sorting a
+segment's timestamps ascending and handing them out in decode order.</li>
+  <li><strong>Time units.</strong> For video, 90,000 ticks per second divides evenly at every
+common frame rate. For audio the sample rate is used and frames are chained
+back to back, because Matroska's millisecond resolution would round an AAC
+frame's 21.333 ms duration and the error would accumulate into seconds over
+an hour.</li>
+  <li><strong>One connection.</strong> The account allows one concurrent download, so the header
+is read from the same stream playback continues from. Seeking cuts the stream
+and opens a new one at the offset the Cues table points to; the table is at
+the end of the file, so it is fetched only if a seek happens.</li>
+</ul>
+
+<p>An interrupted download resumes from the start of the last complete cluster. If
+the file is broken instead — the library held an episode followed by three
+megabytes of zeros and no cluster at all — playback ends at the intact point
+and the viewer is told how far the picture went.</p>
+
+<h3 id="subtitles">Subtitles</h3>
+
+<p>The unpacking picks up the subtitle tracks along the way (<code>js/subs.js</code>). A
+block's text is handed to the browser as a <code>VTTCue</code> rather than to an overlay of
+our own: that way the subtitles show in full-screen mode and in Chrome's own
+subtitle menu. The choice is made from the selector below the player, and the
+language — not the track number — is remembered, so the next episode of a series
+opens in the same language. The default is Finnish when the file has a Finnish
+track.</p>
+
+<p>The selector is in alphabetical order for the interface language: the file's own
+order is arbitrary, and in a list of thirty tracks the right language cannot be
+found unless its place can be guessed. Beside it is the size (small, medium,
+large), which scales relative to the browser's own measure — a fixed pixel size
+would shrink to nothing in full-screen mode.</p>
+
+<p>The cues of every text track are collected as the file is unpacked, even though
+one is visible. The alternative would be reading the file again when the track
+changes, which would take the single allowed connection and interrupt the
+picture. After a seek the same blocks arrive again, so a cue that has already
+been added is recognised and skipped.</p>
+
+<p>Limits:</p>
+
+<ul>
+  <li><strong>SRT, ASS/SSA and WebVTT</strong> are accepted. Bitmap formats (PGS, VOBSUB,
+DVBSUB) are images and cannot be handed to a <code>VTTCue</code>, so they are left out of
+the selector — the list row's "34 subtitles" counts them in.</li>
+  <li>ASS style codes (<code>{\an8}</code>, <code>{\pos}</code>) are stripped and italics survive;
+backgrounds and effects made with drawing commands are not rendered.</li>
+  <li>Only the unpacking route knows about subtitles. The <code>mov_text</code> of a natively
+played MP4 is still left out, because Chrome does not render it.</li>
+</ul>
+
+<h3 id="what-unpacking-opens-up">What unpacking opens up</h3>
+
+<p>Measured on a sample of 1,500 series (23,628 episodes):</p>
+
+<div class="table-scroll">
+<table>
+  <thead><tr><th></th><th>Share of episodes</th></tr></thead>
+  <tbody>
+    <tr><td>Played before unpacking</td><td>44.6%</td></tr>
+    <tr><td>Unpacked, audio as it is</td><td>+21.6% → <strong>66.2%</strong></td></tr>
+    <tr><td>Unpacked, audio decoded (AC-3/E-AC-3/DTS)</td><td>+27.5% → <strong>93.7%</strong></td></tr>
+  </tbody>
+</table>
+</div>
+
+<p>The last row needs a decoder of its own, because Chrome has neither AC-3,
+E-AC-3 nor DTS. An alternative audio track is not worth waiting for: of 45
+ac3/eac3 episodes not one had a second track Chrome supports, and 43 had a
+single audio track. <strong>Play without sound</strong> therefore remains only for the few
+tracks that are not decoded (TrueHD, or MP3 in MKV, for instance).</p>
+
+<h3 id="decoding-the-audio-track">Decoding the audio track</h3>
+
+<p>The decoder is FFmpeg's own, built as wasm (<code>vendor/ffaudio</code>, LGPL 2.1+,
+628 kB). A hand-written AC-3 decoder would cover only part of it: E-AC-3 is not
+the same bitstream but adds AHT, spectral extension and substreams, and DTS is a
+third separate one. The build is <code>dev/wasm/build.sh</code>, and <code>--test</code> compares the
+output with ffmpeg's own from the same bitstream — in every case the difference
+is float rounding (~1e-7), including the 5.1 downmix and the 32 kHz conversion.</p>
+
+<p>MediaSource will not take PCM, so the decoded audio is re-encoded to AAC with
+the browser's own <code>AudioEncoder</code> (<code>js/transcode.js</code>). Two measured constraints
+set the format:</p>
+
+<ul>
+  <li><strong>The encoder accepts only 44,100 and 48,000 Hz</strong>, and it does not tolerate
+the channel count changing mid-track. AC-3 allows 32,000 Hz, and the library
+holds files where mono turns into stereo. That is why the wasm decoder brings
+everything down to a fixed format (stereo, 48 kHz) before the encoder. The
+downmix is asked of the decoder itself, which uses the stream's own
+cmixlev/surmixlev levels; swresample's generic matrix gave a different,
+clipping result when measured.</li>
+  <li><strong>The encoder has a priming delay that it neither reports nor corrects</strong> —
+2112 samples, or 44 ms, when measured, which is macOS's AudioToolbox figure
+and therefore not portable. Without correction the audio would lag the picture
+by that much throughout. The figure is therefore measured at run time: a known
+impulse is encoded and decoded back with the browser's own decoder. Measured,
+the chain lands sample-accurate and does not creep at all over 60 seconds.</li>
+</ul>
+
+<p>Back pressure is handled by waiting rather than flushing: <code>flush()</code> forces the
+encoder to emit a partial frame padded with silence, and the frame chain would
+stretch every time — measured, 60 seconds of picture came out as 69 seconds of
+audio.</p>
+
+<h3 id="reading-the-file-header">Reading the file header</h3>
+
+<p>The extension is not enough to decide on, and the API's metadata cannot be
+trusted. Measured from the test server (1,500 series, 23,628 episodes):</p>
+
+<ul>
+  <li><code>get_vod_info</code> returns no codecs at all — so nothing is known about a movie
+beyond its extension</li>
+  <li><code>get_series_info</code> reports <code>png</code> or <code>mjpeg</code> as the video codec for 4.7% of
+episodes: that is the cover image, which ffprobe sees as the first track</li>
+  <li>VOD files with a <code>.ts</code> extension were Matroska without exception in the sample
+(10/10) — <code>.mp4</code> and <code>.mkv</code>, on the other hand, held true (8/8 each)</li>
+  <li>the audio decides more often than the container: of the mkv episodes around
+42% are <code>aac</code> and 53% <code>ac3</code>/<code>eac3</code>/<code>dts</code>, which Chrome will not decode by any
+route</li>
+</ul>
+
+<p><code>js/probe.js</code> therefore reads the first 256 kB of the file with a single Range
+request and parses Matroska's <code>Tracks</code> element: the container, the codecs with
+their profiles, the audio tracks and the subtitles with their languages. The
+profile is needed because Chrome does not decode 10-bit H.264 — a bare <code>avc1</code>
+would give too hopeful an answer. The result is stored in IndexedDB and shows on
+the list row without a new request.</p>
+
+<p>The header is not read up front: the account allows one concurrent connection,
+so the read happens only when the extension does not promise playback, when the
+container is known to be unreliable (<code>.ts</code>), or when every engine has failed.
+Then the error message states the reason: <em>"The audio track is MP3, which Chrome
+does not decode. The picture would play, the sound would not."</em> rather than
+merely the extension.</p>
+
+<h2 id="structure">Structure</h2>
+
+<pre><code>manifest.json       MV3 manifest
+background.js       a click on the icon opens the player
+player.html         the whole interface on one page
+css/player.css
+js/api.js           player_api.php client, base64 EPG, time zones
+js/library.js       the lazy data layer: grouping, cache, search
+js/epg.js           programme data on a queue, 4 concurrent requests
+js/epggrid.js       the guide grid, virtualised in both directions
+js/db.js            IndexedDB: a TTL cache
+js/config.js        settings, favourites, history, resume points
+js/i18n.js          the interface language: dictionaries, t() and static HTML
+js/playback.js      engine selection, fallbacks, watchdog
+js/probe.js         reading the file header: container, codecs, subtitles
+js/ebml.js          EBML primitives and the Matroska header
+js/mkv.js           Matroska clusters from a stream into frames
+js/mp4.js           fMP4 segments for MediaSource
+js/remux.js         the unpacking engine: downloading, seeking, buffers
+js/ffaudio.js       AC-3, E-AC-3 and DTS decoding with wasm
+js/transcode.js     decoded audio back to AAC for MediaSource
+js/subs.js          subtitle tracks from MKV into the video element's own tracks
+js/vlist.js         the virtualised list
+js/rows.js          painting the list rows
+js/format.js        formatters
+js/app.js           views, search, keyboard
+js/permissions.js   requesting and checking optional host permissions
+js/external.js      hand-off to an external player: a one-item .m3u
+icons/              16, 32, 48, 128 px extension icons
+brand/              the sources of the brand graphics, not part of the package
+dev/dev.mjs         the development loop: reloads the extension and the page
+dev/wasm/           building ffaudio and comparing it with ffmpeg
+dev/site.mjs        renders README.md into docs/index.html, the Pages front page
+docs/               the GitHub Pages site: front page, privacy policy, terms of use
+vendor/             mpegts.js 1.8.0, hls.js 1.6.5 (local: MV3's CSP does not
+                    allow remote scripts)
+vendor/ffaudio/     FFmpeg 7.1.1's ac3, eac3 and dca decoders as wasm</code></pre>
+
+<h2 id="things-worth-knowing">Things worth knowing</h2>
+
+<ul>
+  <li>Credentials are stored in the clear in <code>chrome.storage.local</code> on this machine.
+In Xtream the credentials are also part of every stream URL.</li>
+  <li><strong>Settings → Reset everything</strong> removes it all: credentials, settings,
+favourites, history, resume points and the entire IndexedDB database. The
+button asks for confirmation itself — a second dialog opened on top of the
+settings dialog would end up beneath it — and reloads the page at the end,
+because the state in memory would correspond to nothing after the wipe.</li>
+  <li>The host permissions are in the <code>optional_host_permissions</code> list, so
+installation asks for access to nothing. Access is asked for only when the
+server address is saved, and only for that server's origin. A missing
+permission shows up as a network error, alongside which there is a button for
+granting it. There are no content scripts.</li>
+  <li>Access is needed only for fetch/XHR requests: <code>player_api.php</code> and the segment
+requests of hls.js and mpegts.js. Natively played VOD (<code>&lt;video src&gt;</code>) and
+channel logos (<code>&lt;img&gt;</code>) work without it.</li>
+  <li><strong>The concurrent connection limit</strong> shows in the settings. On the test account
+it is 1, which leaves a second simultaneous stream silent. The app tears down
+the previous stream before opening a new one, but if playback does not start,
+check that the same account is not in use elsewhere.</li>
+  <li>Programme data exists only for the channels the provider has defined it for —
+on the test server, around 8,800 channels out of 29,600.</li>
+  <li>Some channel logos are broken at the server's end (the URLs point at a deleted
+GitHub repository). They are hidden automatically.</li>
+</ul>
+
+<h2 id="language">Language</h2>
+
+<p>The interface is in English and Finnish; English is the default and the choice
+is made in the settings. The dictionaries live in one file (<code>js/i18n.js</code>), and
+English is at the same time the list missing keys fall back to — a Finnish
+string left undone shows as English text rather than as a key name.</p>
+
+<p>The language changes without a page reload. That works because the app repaints
+its views from state anyway: the switch needs only a pass over the texts written
+into the markup (<code>data-i18n</code>), a rebuild of the <code>Intl</code> formatters, and the same
+paint calls that produce the views normally.</p>
+
+<p>The choice steers the formatting too: the clock, the date, the thousands
+separator and the alphabetical order of lists come from the <code>en-GB</code> or <code>fi-FI</code>
+tag. <code>en-GB</code> rather than <code>en</code>, because in this app the time is 21:30 and not
+9:30 PM.</p>
+
+<h2 id="connection-mode">Connection mode</h2>
+
+<p>The settings hold two ways of saying the same thing. <strong>Xtream Codes</strong> asks for
+the server, the port, the username and the password separately. <strong>M3U address</strong>
+takes a single field for the playlist URL the provider gave you — it carries the
+same credentials as query parameters, so they are parsed into fields and the
+connection is made in exactly the same way. The choice changes only the form;
+behind it lie the same API and the same details either way.</p>
+
+<h2 id="brand-graphics">Brand graphics</h2>
+
+<p>The icon is a retro CRT television in the app's own palette (purple <code>#7c5cff</code>,
+screen <code>#22d3ee</code>, knobs <code>#ffc857</code>). The sources are in the <code>brand/</code> folder,
+which is excluded from the release package.</p>
+
+<pre><code>brand/tv-master-1024.png        the generated master image, 1024 px, transparent
+brand/tv-master-prompt.txt      the prompt the master image came from
+brand/tv-full.png               with aerials, used for sizes 128 and 48
+brand/tv-compact.png            without aerials, for sizes 32 and 16
+brand/store-icon-128.png        the store listing icon, 96 px of art on a 128 px canvas
+brand/promo-small-440x280.png   the store's small promo image
+brand/promo-marquee-1400x560.png  the store's marquee promo image
+brand/promo.py                  typesetting the promo images (Pillow + SF)</code></pre>
+
+<p>The aerial-free version is used at small sizes: at 16 pixels the aerials melt
+into a dark smudge and eat space from the screen. The text in the promo images
+is typeset with <code>promo.py</code> in the right font, because image models write letters
+unreliably.</p>
+
+<p>The release package:</p>
+
+<pre><code>rm -f kepuli-tv-1.0.0.zip
+zip -rq kepuli-tv-1.0.0.zip . \
+  -x "*.DS_Store" -x "*.git*" -x "README.md" -x "FIREFOX.md" -x "LICENSE" \
+  -x "store-listing.txt" -x "brand/*" -x "dev/*" -x "docs/*" \
+  -x ".impeccable/*" -x "*.zip"</code></pre>
+
+<p>The result is 43 entries and around 684 kB. <code>*.zip</code> is in <code>.gitignore</code>, so the
+package can be built in the project root.</p>
+
+<p><code>dev/</code> and <code>docs/</code> have to be excluded: <code>dev/wasm/media/</code> is tens of megabytes
+of test material made by <code>build.sh --test</code>, and <code>docs/</code> is the Pages site, not
+part of the extension. <code>.impeccable/</code> is tool configuration and is ignored as
+well.</p>
+
+<h2 id="licence">Licence</h2>
+
+<p>The project's own code is MIT licensed, see <a href="https://github.com/BigTimeSam/kepuli-tv/blob/main/LICENSE">LICENSE</a>. The <code>vendor/</code>
+directory holds third-party code on its own terms: <code>hls.js</code> and <code>mpegts.js</code>
+under Apache-2.0, and <code>vendor/ffaudio/</code> built from FFmpeg under LGPL-2.1+. The
+build commands are in <code>dev/wasm/build.sh</code>, so that the relinking required by
+LGPL 2.1 §6 is possible.</p>
+
+<p>Copyright (c) 2026 Samuli Vainio</p>
+</main>
+
+<footer>
+  <p>Kepuli-TV · © 2026 Samuli Vainio · MIT licence · <a href="tietosuoja/">Privacy Policy</a> · <a href="kayttoehdot/">Terms of Use</a></p>
+  <p>This page is the repository's README.md, rendered by dev/site.mjs.</p>
+</footer>
+
+</div>
+</body>
+</html>
