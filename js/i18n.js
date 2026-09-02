@@ -32,9 +32,8 @@ const STRINGS = {
     'btn.refresh': 'Refresh',
     'btn.refresh.title': 'Fetch the lists again from the server',
     'btn.settings': 'Settings',
-    'account.connections': '{active}/{max} connections',
-    'account.expiring': 'ends in {days} d',
-    'account.valid': 'valid until {date}',
+    'account.expiring': 'Valid until {date} — {days} d left',
+    'account.valid': 'Valid until {date}',
 
     /* ---------------------------------------------------------- sidebar */
     'groups.filter.placeholder': 'Filter countries and topics…',
@@ -299,9 +298,8 @@ const STRINGS = {
     'btn.refresh': 'Päivitä',
     'btn.refresh.title': 'Hae listat uudelleen palvelimelta',
     'btn.settings': 'Asetukset',
-    'account.connections': '{active}/{max} yhteyttä',
-    'account.expiring': 'päättyy {days} pv',
-    'account.valid': 'voimassa {date}',
+    'account.expiring': 'Voimassa {date} asti — {days} pv jäljellä',
+    'account.valid': 'Voimassa {date} asti',
 
     /* ---------------------------------------------------------- sidebar */
     'groups.filter.placeholder': 'Suodata maat ja aiheet…',

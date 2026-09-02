@@ -20,7 +20,7 @@ const el = {
   tabs: $('tabs'), search: $('search'), groups: $('groups'), groupsCol: $('groups-col'),
   categoryFilter: $('category-filter'), groupsFilter: $('groups-filter'),
   list: $('list'), crumbs: $('crumbs'), detail: $('detail'),
-  listinfo: $('listinfo'), main: $('main'), accountMeta: $('account-meta'), subcats: $('subcats'),
+  listinfo: $('listinfo'), main: $('main'), accountMeta: $('account-meta'), accountExpiry: $('account-expiry'), subcats: $('subcats'),
   video: $('video'), overlay: $('overlay'), overlayTitle: $('overlay-title'),
   overlayText: $('overlay-text'), overlayActions: $('overlay-actions'), statbadge: $('statbadge'),
   infostrip: $('infostrip'), nowTitle: $('now-title'), nowSub: $('now-sub'), mode: $('mode'),
@@ -154,19 +154,20 @@ function grantAction(url, onGranted) {
   };
 }
 
+/**
+ * The top bar has room for one fact about the account, and the only one
+ * that ever calls for action is the expiry date. The connection count and
+ * the rest of the details live in the settings dialog.
+ */
 function renderAccount() {
   const a = state.account;
-  if (!a) { el.accountMeta.textContent = ''; return; }
-  const bits = [];
-  if (a.maxConnections) bits.push(t('account.connections', { active: a.activeConnections, max: a.maxConnections }));
-  if (a.expiresAt) {
-    const days = Math.round((a.expiresAt - Date.now()) / 86400e3);
-    bits.push(days < 14
-      ? t('account.expiring', { days })
-      : t('account.valid', { date: dateFmt.format(new Date(a.expiresAt)) }));
-  }
-  el.accountMeta.textContent = bits.join(' · ');
-  el.accountMeta.classList.toggle('warn', a.status !== 'Active');
+  if (!a?.expiresAt) { el.accountMeta.hidden = true; el.accountExpiry.textContent = ''; return; }
+  const date = dateFmt.format(new Date(a.expiresAt));
+  const days = Math.round((a.expiresAt - Date.now()) / 86400e3);
+  el.accountExpiry.textContent = date;
+  el.accountMeta.title = days < 14 ? t('account.expiring', { date, days }) : t('account.valid', { date });
+  el.accountMeta.classList.toggle('warn', a.status !== 'Active' || days < 14);
+  el.accountMeta.hidden = false;
 }
 
 /* ================================================================= views */
