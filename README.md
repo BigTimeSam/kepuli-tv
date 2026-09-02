@@ -281,6 +281,12 @@ time zone, the size of the cache and the lists loaded so far — and the two
 buttons that empty things: **Clear cache** leaves the credentials and the
 favourites in place, **Reset everything** does not.
 
+The cache belongs to the server and the account. Saving a connection whose
+server, port, protocol or username differs from the previous one empties it
+first, so another server's listing — or another account's on the same server
+— never shows under the new one. The password is not part of the comparison,
+so correcting it costs nothing.
+
 ## The programme guide
 
 `Guide` (or `g`) turns the whole window into a grid view: channels as rows,
