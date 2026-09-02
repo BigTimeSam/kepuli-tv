@@ -571,8 +571,8 @@ password `demo`, port 8790.
 The release package:
 
 ```
-rm -f kepuli-tv-1.0.0.zip
-zip -rq kepuli-tv-1.0.0.zip . \
+rm -f kepuli-tv-1.0.1.zip
+zip -rq kepuli-tv-1.0.1.zip . \
   -x "*.DS_Store" -x "*.git*" -x "README.md" -x "FIREFOX.md" -x "LICENSE" \
   -x "store-listing.txt" -x "brand/*" -x "dev/*" -x "docs/*" \
   -x ".impeccable/*" -x "*.zip"
