@@ -728,8 +728,8 @@ out of `brand/screenshots/`.
 The release package:
 
 ```
-rm -f kepuli-tv-1.0.3.zip
-zip -rq kepuli-tv-1.0.3.zip . \
+rm -f kepuli-tv-1.0.4.zip
+zip -rq kepuli-tv-1.0.4.zip . \
   -x "*.DS_Store" -x "*.git*" -x "README.md" -x "FIREFOX.md" -x "CHROMECAST.md" -x "LICENSE" \
   -x "store-listing.txt" -x "brand/*" -x "dev/*" -x "docs/*" -x "firefox/*" \
   -x ".impeccable/*" -x "*.zip"
