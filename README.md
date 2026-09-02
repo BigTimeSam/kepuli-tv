@@ -461,6 +461,8 @@ dev/dev.mjs         the development loop: reloads the extension and the page
 dev/wasm/           building ffaudio and comparing it with ffmpeg
 dev/site.mjs        renders README.md into docs/index.html, the Pages front page
 dev/screenshot.mjs  a 1280x800 store screenshot of the player, over the DevTools protocol
+dev/store-screenshots.mjs  the five store screenshots, from the mock server's content
+dev/mock/           a fake Xtream Codes server with invented content, and its media
 docs/               the GitHub Pages site: front page, privacy policy, terms of use
 vendor/             mpegts.js 1.8.0, hls.js 1.6.5 (local: MV3's CSP does not
                     allow remote scripts)
@@ -534,12 +536,37 @@ brand/store-icon-128.png        the store listing icon, 96 px of art on a 128 px
 brand/promo-small-440x280.png   the store's small promo image
 brand/promo-marquee-1400x560.png  the store's marquee promo image
 brand/promo.py                  typesetting the promo images (Pillow + SF)
+brand/screenshots/              the five store screenshots, 1280x800
 ```
 
 The aerial-free version is used at small sizes: at 16 pixels the aerials melt
 into a dark smudge and eat space from the screen. The text in the promo images
 is typeset with `promo.py` in the right font, because image models write letters
 unreliably.
+
+### Store screenshots
+
+The screenshots show dummy content, because a real account's channels and
+covers are somebody's property and no screenshot should carry them. `dev/mock/`
+holds a fake Xtream Codes server with an invented catalogue — countries and
+topics, channels with a programme guide, movies, series with episodes — and
+the media are gradients that `dev/mock/media.sh` renders with ffmpeg: a live
+channel at a constant 3 Mbit/s, an MP4 movie and an MKV episode with English
+and Finnish subtitle tracks.
+
+```
+sh dev/mock/media.sh              once: renders the media
+node dev/store-screenshots.mjs
+```
+
+The second command starts the mock server, points the development profile's
+copy of the extension at it, walks through five views and captures each into
+`brand/screenshots/` at 1280x800, as 24-bit PNG without alpha. A single view,
+set up by hand in the development Chrome, is captured with
+`node dev/screenshot.mjs out.png`. Both capture at 2x and scale down, which
+needs uv for Pillow. The mock server also serves on its own,
+`node dev/mock/server.mjs`, for developing without an account: user `demo`,
+password `demo`, port 8790.
 
 The release package:
 

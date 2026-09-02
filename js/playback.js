@@ -55,7 +55,10 @@ const HLS_CONFIG = {
 // when the account's concurrent-connection limit is full — in which case no
 // error event ever arrives.
 const TIMEOUT_MS = { mpegts: 20000, hls: 20000, native: 30000, remux: 30000 };
-const ENGINE_LABEL = { mpegts: 'mpegts.js', hls: 'hls.js', native: 'natiivi', remux: 'MKV-purku' };
+// The library engines are named as they are; the browser's own player and
+// the MKV unpacking get a translated label, resolved when read so that a
+// language switch mid-playback shows in the badge too.
+const engineLabel = (name) => ({ mpegts: 'mpegts.js', hls: 'hls.js' })[name] || t(`engine.${name}`);
 
 const STALL_CHECK_MS = 4000;
 const STALL_LIMIT_MS = 14000;
@@ -77,7 +80,7 @@ export class Playback {
     this.video = video;
     this.onState = onState || (() => {});
     this.engine = null;
-    this.engineName = null;
+    this.engineKey = null;
     this.token = 0;
     this.cleanup = null;
     this.spec = null;
@@ -91,6 +94,9 @@ export class Playback {
     this.stableTimer = null;
   }
 
+  /** The label of the engine in use, in the interface language. */
+  get engineName() { return this.engineKey ? engineLabel(this.engineKey) : null; }
+
   stop() {
     this.token++;
     this.stopWatchdog();
@@ -101,7 +107,7 @@ export class Playback {
     if (this.cleanup) { this.cleanup(); this.cleanup = null; }
     const engine = this.engine;
     this.engine = null;
-    this.engineName = null;
+    this.engineKey = null;
     this.spec = null;
     this.reconnects = 0;
     if (engine) {
@@ -183,7 +189,7 @@ export class Playback {
       if (token !== this.token) return;
       if (i >= chain.length) return void this.explain(spec, token);
       const name = chain[i];
-      this.onState({ status: 'loading', engine: ENGINE_LABEL[name], attempt: i });
+      this.onState({ status: 'loading', engine: engineLabel(name), attempt: i });
       this.runAttempt(name, spec, token, () => attempt(i + 1));
     };
     attempt(0);
@@ -238,7 +244,7 @@ export class Playback {
       settled = true;
       drop();
       if (ok) {
-        this.engineName = ENGINE_LABEL[name];
+        this.engineKey = name;
         this.wantPlaying = true;
         // The attempt counter resets only once playback has really held:
         // reset immediately, a flaky source would never reach the limit.

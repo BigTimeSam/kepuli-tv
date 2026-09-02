@@ -7,6 +7,8 @@
 // size. It is rendered at 2x and scaled down, which gives crisper text than a
 // 1x capture. Set the view up in that window first — the list, the guide, a
 // series page — and then run this; it captures whatever the player shows.
+// dev/store-screenshots.mjs uses the same pieces to take the whole set from
+// dummy content.
 //
 //   node dev/screenshot.mjs [out.png]     default brand/screenshot.png
 //
@@ -19,11 +21,10 @@ import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '..');
-const PORT = Number(process.env.KEPULI_DEV_PORT || 9222);
-const PROFILE = process.env.KEPULI_DEV_PROFILE || join(homedir(), '.cache', 'kepuli-tv-dev');
+export const PORT = Number(process.env.KEPULI_DEV_PORT || 9222);
+export const PROFILE = process.env.KEPULI_DEV_PROFILE || join(homedir(), '.cache', 'kepuli-tv-dev');
 const PAGE = 'player.html';
-const WIDTH = 1280, HEIGHT = 800, SCALE = 2;
-const OUT = resolve(process.argv[2] || join(ROOT, 'brand', 'screenshot.png'));
+export const WIDTH = 1280, HEIGHT = 800, SCALE = 2;
 
 const CHROMES = [
   '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome',
@@ -33,13 +34,13 @@ const CHROMES = [
   '/usr/bin/chromium',
 ];
 
-const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+export const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 const http = async (path, init) => (await fetch(`http://127.0.0.1:${PORT}${path}`, init)).json();
 
 /* ------------------------------------------------------ DevTools protocol */
 
 /** One connection, many commands. */
-function session(wsUrl) {
+export function session(wsUrl) {
   const ws = new WebSocket(wsUrl);
   const pending = new Map();
   let next = 1;
@@ -53,7 +54,11 @@ function session(wsUrl) {
   const open = new Promise((resolve, reject) => {
     ws.onopen = resolve;
     ws.onerror = () => reject(new Error('DevTools connection failed'));
-    ws.onclose = (e) => { reject(new Error(`DevTools connection closed (${e.code})`)); for (const p of pending.values()) p.reject(new Error(`${p.method}: connection closed`)); pending.clear(); };
+    ws.onclose = (e) => {
+      reject(new Error(`DevTools connection closed (${e.code})`));
+      for (const p of pending.values()) p.reject(new Error(`${p.method}: connection closed`));
+      pending.clear();
+    };
   });
   open.catch(() => {});
   return {
@@ -72,26 +77,28 @@ function session(wsUrl) {
 
 /* ------------------------------------------------------------------ Chrome */
 
-async function isRunning() {
+export async function isRunning() {
   try { await http('/json/version'); return true; } catch { return false; }
 }
 
-async function ensureChrome() {
-  if (await isRunning()) return;
+/** Starts the development Chrome unless one already answers on the port. */
+export async function ensureChrome(extraArgs = []) {
+  if (await isRunning()) return false;
   const binary = CHROMES.find(existsSync);
   if (!binary) throw new Error('Chrome not found; start node dev/dev.mjs by hand first.');
-  spawn(binary, [`--user-data-dir=${PROFILE}`, `--remote-debugging-port=${PORT}`, '--no-first-run', '--no-default-browser-check', 'about:blank'],
+  spawn(binary, [`--user-data-dir=${PROFILE}`, `--remote-debugging-port=${PORT}`, '--no-first-run', '--no-default-browser-check', ...extraArgs, 'about:blank'],
     { detached: true, stdio: 'ignore' }).unref();
-  for (let i = 0; i < 60; i++) { if (await isRunning()) return; await sleep(250); }
+  for (let i = 0; i < 60; i++) { if (await isRunning()) return true; await sleep(250); }
   throw new Error('Chrome did not answer within 15 seconds.');
 }
 
-async function playerTarget() {
+export async function playerTarget() {
   const list = await http('/json/list');
   return list.find((t) => t.type === 'page' && /^chrome-extension:\/\/[a-p]{32}\/player\.html/.test(t.url)) || null;
 }
 
-async function openPlayer() {
+/** The player tab: loads the extension from this folder and opens it if needed. */
+export async function openPlayer() {
   const existing = await playerTarget();
   if (existing) return existing;
   const { webSocketDebuggerUrl } = await http('/json/version');
@@ -105,29 +112,53 @@ async function openPlayer() {
 
 /* ----------------------------------------------------------------- capture */
 
-await ensureChrome();
-const target = await openPlayer();
-const page = session(target.webSocketDebuggerUrl);
-try {
-  await page.call('Emulation.setDeviceMetricsOverride', { width: WIDTH, height: HEIGHT, deviceScaleFactor: SCALE, mobile: false });
-  // Let the layout settle and the fonts and images land.
-  await page.call('Runtime.evaluate', { expression: 'document.fonts.ready.then(() => new Promise(r => setTimeout(r, 800)))', awaitPromise: true });
-  const { data } = await page.call('Page.captureScreenshot', { format: 'png', captureBeyondViewport: false });
-  await page.call('Emulation.clearDeviceMetricsOverride');
-  const raw = `${OUT}.2x.png`;
-  writeFileSync(raw, Buffer.from(data, 'base64'));
+export const setViewport = (page) => page.call('Emulation.setDeviceMetricsOverride', { width: WIDTH, height: HEIGHT, deviceScaleFactor: SCALE, mobile: false });
+export const clearViewport = (page) => page.call('Emulation.clearDeviceMetricsOverride');
 
-  // Scale down and drop the alpha channel: Chrome writes RGBA, the store wants 24-bit.
-  const py = `
-from PIL import Image
+/** Captures the viewport at 2x and writes a 1280x800 24-bit PNG to out. */
+export async function capture(page, out) {
+  for (let attempt = 1; ; attempt++) {
+    // Let the layout settle and the fonts and images land.
+    await page.call('Runtime.evaluate', { expression: 'document.fonts.ready.then(() => new Promise(r => setTimeout(r, 800)))', awaitPromise: true });
+    const { data } = await page.call('Page.captureScreenshot', { format: 'png', captureBeyondViewport: false });
+    const raw = `${out}.2x.png`;
+    writeFileSync(raw, Buffer.from(data, 'base64'));
+
+    // Scale down and drop the alpha channel: Chrome writes RGBA, the store
+    // wants 24-bit. A capture taken while the compositor is still adopting
+    // the 2x viewport comes out as four half-size copies of the page; the
+    // quadrants are then identical, and the capture is taken again.
+    const py = `
+import sys
+from PIL import Image, ImageChops
 im = Image.open(${JSON.stringify(raw)}).convert('RGB')
 assert im.size == (${WIDTH * SCALE}, ${HEIGHT * SCALE}), im.size
-im.resize((${WIDTH}, ${HEIGHT}), Image.LANCZOS).save(${JSON.stringify(OUT)}, optimize=True)
+w, h = im.size
+if ImageChops.difference(im.crop((0, 0, w // 2, h // 2)), im.crop((w // 2, 0, w, h // 2))).getbbox() is None:
+    sys.exit(3)
+im.resize((${WIDTH}, ${HEIGHT}), Image.LANCZOS).save(${JSON.stringify(out)}, optimize=True)
 `;
-  const r = spawnSync('uv', ['run', '--quiet', '--with', 'pillow', 'python3', '-c', py], { stdio: 'inherit' });
-  if (r.error || r.status !== 0) throw new Error(`downscale failed (is uv installed?); the 2x capture is at ${raw}`);
-  unlinkSync(raw);
-  console.log(`${OUT}  ${WIDTH}x${HEIGHT}  ${(readFileSync(OUT).length / 1024).toFixed(0)} kB  from ${target.url}`);
-} finally {
-  page.close();
+    const r = spawnSync('uv', ['run', '--quiet', '--with', 'pillow', 'python3', '-c', py], { stdio: 'inherit' });
+    if (r.status === 3 && attempt < 4) { unlinkSync(raw); await sleep(1000); continue; }
+    if (r.error || r.status !== 0) throw new Error(`downscale failed (is uv installed?); the 2x capture is at ${raw}`);
+    unlinkSync(raw);
+    console.log(`${out}  ${WIDTH}x${HEIGHT}  ${(readFileSync(out).length / 1024).toFixed(0)} kB`);
+    return;
+  }
+}
+
+/* -------------------------------------------------------------------- main */
+
+if (process.argv[1] && fileURLToPath(import.meta.url) === process.argv[1]) {
+  const out = resolve(process.argv[2] || join(ROOT, 'brand', 'screenshot.png'));
+  await ensureChrome();
+  const target = await openPlayer();
+  const page = session(target.webSocketDebuggerUrl);
+  try {
+    await setViewport(page);
+    await capture(page, out);
+    await clearViewport(page);
+  } finally {
+    page.close();
+  }
 }

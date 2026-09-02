@@ -15,3 +15,6 @@ dev/wasm/media/
 
 # Local tool configuration, not part of the project.
 .impeccable/
+
+# dev/mock/media.sh makes these with ffmpeg; dummy media for the mock server.
+dev/mock/media/

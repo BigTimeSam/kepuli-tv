@@ -164,6 +164,8 @@ const STRINGS = {
     'playback.reason.frozen': 'the picture froze',
     'playback.reason.media': 'media error {code}',
     'playback.reason.demux': 'demuxing failed',
+    'engine.native': 'native',
+    'engine.remux': 'MKV remux',
 
     /* ---------------------------------------------------------- detail */
     'info.next': 'Next {time} · {title}',
@@ -429,6 +431,8 @@ const STRINGS = {
     'playback.reason.frozen': 'kuva pysähtyi',
     'playback.reason.media': 'media error {code}',
     'playback.reason.demux': 'purku epäonnistui',
+    'engine.native': 'natiivi',
+    'engine.remux': 'MKV-purku',
 
     /* ---------------------------------------------------------- detail */
     'info.next': 'Seuraavaksi {time} · {title}',

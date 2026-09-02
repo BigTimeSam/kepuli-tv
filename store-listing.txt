@@ -177,10 +177,15 @@ Marquee promo tile:    brand/promo-marquee-1400x560.png   (optional)
   1400x560, 24-bit PNG without alpha. Same composition, one-line tagline.
   Only shown if the store features the extension; harmless to upload.
 
-Screenshots:           none in the repository yet   (at least one required)
-  1280x800 (or 640x400), JPEG or 24-bit PNG, up to five. Take them from the
-  player tab: the channel list with programme data, the programme guide,
-  a series page, and the player with subtitles are the obvious four.
+Screenshots:           brand/screenshots/01-channels.png … 05-movie.png
+  1280x800, 24-bit PNG without alpha, five of them, in this order:
+    01  a country's channels with programme data, a channel playing
+    02  the programme guide
+    03  a series: cover, plot, seasons, episodes
+    04  an MKV episode with English subtitles on screen
+    05  a movie with its details below the player
+  All content on them is invented: they come from the mock server in
+  dev/mock/, via node dev/store-screenshots.mjs (see the README).
 
 
 --- THE PRIVACY PRACTICES TAB ----------------------------------------------
