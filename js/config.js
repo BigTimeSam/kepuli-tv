@@ -1,26 +1,26 @@
-// Asetukset, suosikit, historia ja katselukohdat chrome.storage.localissa.
-// Huom: salasana tallentuu selkokielisenä laajennuksen omaan tallennustilaan.
+// Settings, favourites, history and resume points in chrome.storage.local.
+// Note: the password is stored in the clear in the extension's own storage.
 //
-// Suosikit ja historia tallennetaan kokonaisina kohteina eikä pelkkinä
-// tunnisteina, jotta ne voi näyttää ilman että mitään listaa on ladattu.
-// Poikkeus on suosikkikategoria (k = 'c'), jonka sisältö on nimenomaan se
-// mikä saa muuttua: siitä talteen menee vain tunniste, ks. app.js.
+// Favourites and history are stored as whole items rather than bare ids,
+// so that they can be shown without any list having been loaded. The
+// exception is a favourite category (k = 'c'), whose contents are exactly
+// what is allowed to change: only its identifier is kept, see app.js.
 
 const CONNECTION_DEFAULTS = {
   scheme: 'http', host: '', port: '8080', username: '', password: '',
   streamMode: 'auto',
-  // Kumpi lomake asetuksissa avataan. Ei vaikuta yhteyteen: kummastakin
-  // syntyy sama palvelin ja samat tunnukset.
+  // Which form the settings dialog opens. Does not affect the connection:
+  // both produce the same server and the same credentials.
   sourceMode: 'xtream',     // xtream | m3u
 };
 
 const SETTINGS_DEFAULTS = {
-  // Käyttöliittymän kieli, ks. js/i18n.js. Oletus on englanti.
+  // Interface language, see js/i18n.js. English by default.
   lang: 'en',
   epgEnabled: true,
   resumeEnabled: true,
-  // Tekstityskieli valitaan kerran ja se pätee seuraaviin jaksoihin.
-  // 'off' = ei tekstitystä; muuten kaksikirjaiminen koodi.
+  // The subtitle language is chosen once and applies to later episodes.
+  // 'off' = no subtitles; otherwise a two-letter code.
   subtitleLang: 'fi',
   subtitleSize: 'small',    // small | medium | large
 };
@@ -62,7 +62,7 @@ export async function saveUiState(patch) {
   await chrome.storage.local.set({ ui });
 }
 
-/* ------------------------------------------------------------ suosikit */
+/* ---------------------------------------------------------- favourites */
 
 export async function loadFavorites() {
   const list = await read('favorites', []);
@@ -73,7 +73,7 @@ export async function saveFavorites(map) {
   await chrome.storage.local.set({ favorites: [...map.values()] });
 }
 
-/* ------------------------------------------------------------- historia */
+/* ------------------------------------------------------------- history */
 
 export async function loadRecents() { return read('recents', []); }
 
@@ -96,14 +96,14 @@ export async function clearRecents() {
   await chrome.storage.local.set({ recents: [] });
 }
 
-/* -------------------------------------------------------- katselukohdat */
+/* ------------------------------------------------------- resume points */
 
 export async function loadResume() {
   return new Map(Object.entries(await read('resume', {})));
 }
 
 export async function saveResume(map) {
-  // Vanhimmat karsitaan, jottei tallennustila kasva rajatta.
+  // The oldest are dropped so that storage does not grow without bound.
   const entries = [...map.entries()].sort((a, b) => b[1].at - a[1].at).slice(0, MAX_RESUME);
   await chrome.storage.local.set({ resume: Object.fromEntries(entries) });
 }

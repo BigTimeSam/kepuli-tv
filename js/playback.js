@@ -1,15 +1,16 @@
-// Toistomoottorin valinta, elinkaari ja itsekorjaus.
+// Choosing the playback engine, its life cycle and self-repair.
 //
-// Xtream tarjoilee live-kanavat MPEG-TS-virtana, jota <video> ei osaa
-// natiivisti — mpegts.js purkaa sen fMP4:ksi MediaSourcelle. Jos TS ei lähde
-// käyntiin, kokeillaan saman kanavan HLS-muunnosta hls.js:llä. VOD toistetaan
-// natiivisti; Chrome ei tue Matroskaa (.mkv) eikä .avi:ta.
+// Xtream serves live channels as an MPEG-TS stream, which <video> cannot
+// play natively — mpegts.js demuxes it into fMP4 for MediaSource. If TS
+// does not start, the same channel's HLS conversion is tried with hls.js.
+// VOD plays natively; Chrome supports neither Matroska (.mkv) nor .avi.
 //
-// Kun pääte ei lupaa toistoa — tai kun kaikki moottorit ovat epäonnistuneet —
-// luetaan tiedoston otsikko (probe.js) ja kerrotaan tarkka syy. Otsikko myös
-// paljastaa, jos kontti on todellisuudessa eri kuin pääte väittää: silloin
-// toisto onnistuu, vaikka pääte olisi torjuttu. Otsikkoa ei lueta etukäteen,
-// koska tili sallii vain yhden yhtäaikaisen yhteyden.
+// When the file extension does not promise playback — or when every engine
+// has failed — the file header is read (probe.js) and the exact reason is
+// reported. The header also reveals when the container is in fact something
+// other than the extension claims: then playback succeeds even though the
+// extension would have been rejected. The header is not read up front,
+// because the account allows only one concurrent connection.
 
 import { isPlayableExtension } from './xtream.js';
 import { t } from './i18n.js';
@@ -17,22 +18,24 @@ import { probe, verdict } from './probe.js';
 import { Remuxer } from './remux.js';
 
 const MPEGTS_CONFIG = {
-  enableWorker: false,        // laajennussivun CSP estää blob:-workerit
+  enableWorker: false,        // the extension page's CSP blocks blob: workers
   enableWorkerForMSE: false,
 
-  // Pieni syötepuskuri tasaa verkon nykimistä. Vastineeksi tulee sen
-  // verran viivettä kuin puskuri kestää — sekunnin murto-osia HD-virralla.
+  // A small input buffer smooths out network jitter. The price is as much
+  // latency as the buffer holds — fractions of a second on an HD stream.
   enableStashBuffer: true,
   stashInitialSize: 256 * 1024,
 
-  // Ilman tätä MSE:n puskuri kasvaa rajatta ja Chromen kiintiö täyttyy:
-  // pitkä katselu päättyy QuotaExceededed-virheeseen tunnin parin jälkeen.
+  // Without this the MSE buffer grows without bound and Chrome's quota
+  // fills: a long viewing ends in a QuotaExceeded error after an hour or
+  // two.
   autoCleanupSourceBuffer: true,
   autoCleanupMaxBackwardDuration: 60,
   autoCleanupMinBackwardDuration: 30,
 
-  // Viiveen jahtaaminen hyppää eteenpäin heti kun puskuria kertyy — ja
-  // juuri se puskuri kantaisi katkoksen yli. Sallitaan reilummin.
+  // Latency chasing jumps forward as soon as buffer accumulates — and that
+  // very buffer is what would carry the stream over a drop-out. Be more
+  // generous.
   liveBufferLatencyChasing: true,
   liveBufferLatencyMaxLatency: 15,
   liveBufferLatencyMinRemain: 3,
@@ -40,7 +43,7 @@ const MPEGTS_CONFIG = {
 };
 
 const HLS_CONFIG = {
-  enableWorker: false,        // sama syy kuin yllä
+  enableWorker: false,        // same reason as above
   lowLatencyMode: false,
   backBufferLength: 30,
   manifestLoadingMaxRetry: 2,
@@ -48,8 +51,9 @@ const HLS_CONFIG = {
   fragLoadingMaxRetry: 3,
 };
 
-// Palvelin voi hyväksyä yhteyden ja jäädä hiljaiseksi — esimerkiksi kun tilin
-// yhtäaikaisten yhteyksien raja on täynnä — jolloin virhetapahtumaa ei tule.
+// The server may accept the connection and then go quiet — for instance
+// when the account's concurrent-connection limit is full — in which case no
+// error event ever arrives.
 const TIMEOUT_MS = { mpegts: 20000, hls: 20000, native: 30000, remux: 30000 };
 const ENGINE_LABEL = { mpegts: 'mpegts.js', hls: 'hls.js', native: 'natiivi', remux: 'MKV-purku' };
 
@@ -59,9 +63,9 @@ const MAX_RECONNECTS = 4;
 const RECONNECT_STEP_MS = 1000;
 const RECONNECT_MAX_MS = 8000;
 
-// Kuinka kauan toiston on kuljettava ennen kuin yritykset nollataan.
-// Ilman tätä 48 sekunnin välein kuoleva virta yrittäisi ikuisesti eikä
-// katsoja saisi koskaan tietää, että vika on lähteessä.
+// How long playback has to run before the attempt counter is reset.
+// Without this, a stream that dies every 48 seconds would retry forever and
+// the viewer would never learn that the fault is in the source.
 const STABLE_MS = 30000;
 
 export class Playback {
@@ -81,7 +85,7 @@ export class Playback {
     this.watchdog = null;
     this.lastProgressAt = 0;
     this.lastTime = -1;
-    this.wantPlaying = false;   // katsojan tahto, ei elementin tila
+    this.wantPlaying = false;   // the viewer's intent, not the element's state
     this.guards = null;
     this.recovering = false;
     this.stableTimer = null;
@@ -104,7 +108,7 @@ export class Playback {
       try {
         if (engine.destroy) engine.destroy();
         if (engine.detachMediaElement) engine.detachMediaElement();
-      } catch { /* moottori oli jo purettu */ }
+      } catch { /* the engine had already been torn down */ }
     }
     this.video.removeAttribute('src');
     this.video.load();
@@ -115,18 +119,18 @@ export class Playback {
    *          startAt?:number, mode?:'auto'|'ts'|'hls'}} spec
    */
   play(spec) {
-    this.stop();          // kasvattaa tokenin ja mitätöi edellisen yrityksen
+    this.stop();          // bumps the token and invalidates the previous attempt
     this.spec = spec;
     this.begin(spec, this.token);
   }
 
-  /** Sama lähde uudelleen ilman että laskurit nollautuvat. */
+  /** The same source again without resetting the counters. */
   restart() {
     if (!this.spec) return;
     const spec = this.spec;
     this.stopWatchdog();
-    // Vartijat irti ennen kuin videoelementtiin kosketaan: load() laukaisee
-    // pause-tapahtuman, joka näyttäisi katsojan tauolta.
+    // Detach the watchdogs before touching the video element: load() fires
+    // a pause event that would look like the viewer pausing.
     this.detachGuards();
     clearTimeout(this.stableTimer);
     if (this.cleanup) { this.cleanup(); this.cleanup = null; }
@@ -140,38 +144,40 @@ export class Playback {
     this.begin(spec, this.token);
   }
 
-  /** start() ilman että kutsujan tarvitsee huolehtia paluulupauksesta. */
+  /** start() without the caller having to mind the returned promise. */
   begin(spec, token) {
     this.start(spec, token).catch((err) => {
       if (token !== this.token) return;
-      console.error('[iptv] toiston aloitus epäonnistui', err);
+      console.error('[iptv] starting playback failed', err);
       this.onState({ status: 'error', message: t('playback.startfailed') });
     });
   }
 
   async start(spec, token) {
     let chain = buildChain(spec);
-    // Pääte ei ole todiste kontista. Kirjaston .ts-tiedostot ovat mittauksen
-    // mukaan poikkeuksetta Matroskaa (10/10 otoksessa), jolloin mpegts.js
-    // jäisi odottamaan 20 sekunnin aikakatkaisua ennen kuin syy selviäisi —
-    // otsikko luetaan siksi jo ennen ensimmäistä yritystä. Päätteet .mp4 ja
-    // .mkv taas pitivät otoksessa aina paikkansa, eikä niitä hidasteta.
+    // An extension is no proof of the container. Measured, the library's
+    // .ts files are Matroska without exception (10/10 in the sample), which
+    // would leave mpegts.js waiting out a 20-second timeout before the
+    // reason emerged — so the header is read before the first attempt. The
+    // extensions .mp4 and .mkv, on the other hand, always held true in the
+    // sample, and they are not slowed down.
     if (chain.length === 0 || (!spec.live && chain[0] === 'mpegts')) {
       const known = await this.inspect(spec, token);
       if (!known) return;
       if (known.path === 'native') chain = ['native'];
       else if (known.path === 'mpegts') chain = ['mpegts'];
       else if (known.path === 'remux') chain = ['remux'];
-      // Ääniraita on AC3:a tai DTS:ää: kuva kelpaisi, mutta mykkä toisto on
-      // katsojan valinta eikä oletus.
+      // The audio track is AC-3 or DTS: the picture would do, but silent
+      // playback is the viewer's choice, not the default.
       else if (known.path === 'silent') {
         if (!spec.allowSilent) return this.refuse(known, { canSilent: true });
         chain = ['remux'];
       }
       else if (known.path !== 'unknown') return this.refuse(known);
       else if (!chain.length) return this.refuse(known);
-      // Tuntematon tulos ei estä yrittämästä: otsikon luku on voinut kaatua
-      // varattuun yhteyteen, mikä ei kerro tiedostosta mitään.
+      // An unknown result does not stop us trying: reading the header may
+      // have failed on the busy connection, which says nothing about the
+      // file.
     }
     const attempt = (i) => {
       if (token !== this.token) return;
@@ -184,8 +190,8 @@ export class Playback {
   }
 
   /**
-   * Lukee tiedoston otsikon ja tallettaa tuloksen spekkiin. Palauttaa
-   * päätelmän, tai null jos yritys ehti vanhentua.
+   * Reads the file header and stores the result in the spec. Returns the
+   * verdict, or null if the attempt went stale in the meantime.
    */
   async inspect(spec, token) {
     this.onState({ status: 'probing' });
@@ -208,10 +214,10 @@ export class Playback {
   }
 
   /**
-   * Kaikki moottorit epäonnistuivat. Otsikosta selviää, oliko syy muodossa
-   * vai lähteessä — pelkkä "ei onnistunut" jättäisi käyttäjän arvailemaan.
-   * Live-virtaa ei tutkita: sen lukeminen veisi ainoan sallitun yhteyden
-   * eikä kertoisi mitään päätteestä poikkeavaa.
+   * Every engine failed. The header says whether the fault was in the
+   * format or in the source — a bare "it did not work" would leave the user
+   * guessing. A live stream is not probed: reading it would take the single
+   * allowed connection and would say nothing the extension does not.
    */
   async explain(spec, token) {
     const generic = t('playback.nosource');
@@ -234,8 +240,8 @@ export class Playback {
       if (ok) {
         this.engineName = ENGINE_LABEL[name];
         this.wantPlaying = true;
-        // Yrityslaskuri nollautuu vasta kun toisto on oikeasti kantanut:
-        // heti nollattuna katkeileva lähde ei koskaan saavuttaisi rajaa.
+        // The attempt counter resets only once playback has really held:
+        // reset immediately, a flaky source would never reach the limit.
         clearTimeout(this.stableTimer);
         this.stableTimer = setTimeout(() => { this.reconnects = 0; }, STABLE_MS);
         this.onState({ status: 'playing', engine: this.engineName });
@@ -243,7 +249,7 @@ export class Playback {
         this.startWatchdog(token);
         return;
       }
-      console.warn('[iptv] moottori %s ei käynnistynyt: %s', name, why);
+      console.warn('[iptv] engine %s did not start: %s', name, why);
       const engine = this.engine;
       this.engine = null;
       if (engine) { try { engine.destroy(); } catch { /* purettu */ } }
@@ -252,14 +258,14 @@ export class Playback {
 
     const onPlaying = () => finish(true);
     const onError = () => finish(false, t('playback.reason.media', { code: video.error ? video.error.code : '?' }));
-    // Elementti voi jäädä tauolle kesken käynnistyksen: mpegts kiinnittää
-    // MediaSourcen vasta load():ssa, ja elementin latausalgoritmi lähettää
-    // pause-tapahtuman vielä loadedmetadatan jälkeen — sitä ennen kutsuttu
-    // play() peruuntuu hiljaa. Mihinkään yksittäiseen tapahtumaan ei siis
-    // voi luottaa, joten yritetään uudelleen kunnes toisto lähtee tai
-    // aikakatkaisu täyttyy.
-    // Ehto currentTime === 0 rajaa tämän käynnistykseen: sen jälkeen tauko
-    // on katsojan oma eikä sitä sovi ohittaa.
+    // The element can end up paused during start-up: mpegts attaches the
+    // MediaSource only in load(), and the element's resource-selection
+    // algorithm still fires a pause event after loadedmetadata — a play()
+    // called before that is cancelled silently. No single event can be
+    // trusted, then, so we retry until playback starts or the timeout is
+    // reached.
+    // The currentTime === 0 condition confines this to start-up: after that
+    // a pause is the viewer's own and must not be overridden.
     const nudge = setInterval(() => {
       if (video.paused && video.currentTime === 0) this.tryPlay();
     }, 500);
@@ -286,15 +292,16 @@ export class Playback {
   }
 
   startMpegts(url, isLive, finish) {
-    if (typeof mpegts === 'undefined' || !mpegts.isSupported()) return finish(false, 'mpegts.js ei tuettu');
+    if (typeof mpegts === 'undefined' || !mpegts.isSupported()) return finish(false, 'mpegts.js not supported');
     const player = mpegts.createPlayer({ type: 'mpegts', isLive, url }, MPEGTS_CONFIG);
     this.engine = player;
     player.on(mpegts.Events.ERROR, (type, detail) => finish(false, `${type}/${detail}`));
-    // Live-lähde ei lopu itsestään: tämä tarkoittaa että palvelin katkaisi
-    // yhteyden. Puskuri soitetaan vielä loppuun, ja ended-vartija hoitaa
-    // uudelleenyhdistämisen — näin katsoja näkee kaiken saapuneen kuvan.
+    // A live source does not end by itself: this means the server cut the
+    // connection. The buffer is still played to the end, and the ended
+    // watchdog handles the reconnect — that way the viewer sees all the
+    // picture that arrived.
     player.on(mpegts.Events.LOADING_COMPLETE, () => {
-      if (isLive) console.info('[iptv] lähde päättyi kesken live-virran');
+      if (isLive) console.info('[iptv] source ended mid-live-stream');
     });
     player.attachMediaElement(this.video);
     player.load();
@@ -302,7 +309,7 @@ export class Playback {
   }
 
   startHls(url, finish) {
-    if (typeof Hls === 'undefined' || !Hls.isSupported()) return finish(false, 'hls.js ei tuettu');
+    if (typeof Hls === 'undefined' || !Hls.isSupported()) return finish(false, 'hls.js not supported');
     const hls = new Hls(HLS_CONFIG);
     this.engine = hls;
     let recovered = 0;
@@ -317,8 +324,9 @@ export class Playback {
   }
 
   /**
-   * Matroska MediaSourcen kautta. Remuxer hoitaa lataamisen, purun ja
-   * palojen syötön; tänne riittää elinkaari ja virheiden välitys.
+   * Matroska through MediaSource. The remuxer handles the downloading, the
+   * demuxing and feeding the segments; life cycle and error forwarding are
+   * enough here.
    */
   startRemux(spec, finish) {
     const remuxer = new Remuxer(this.video, spec.url, {
@@ -339,7 +347,7 @@ export class Playback {
       const seek = () => {
         video.removeEventListener('loadedmetadata', seek);
         if (Number.isFinite(video.duration) && spec.startAt < video.duration - 5) {
-          try { video.currentTime = spec.startAt; } catch { /* selain kieltäytyi */ }
+          try { video.currentTime = spec.startAt; } catch { /* the browser refused */ }
         }
       };
       video.addEventListener('loadedmetadata', seek);
@@ -349,8 +357,8 @@ export class Playback {
   }
 
   /**
-   * Tekstitysraidan vaihto. Vain MKV-purku tuntee tekstitykset: muissa
-   * moottoreissa raitoja ei ole, joten kutsu ei tee mitään.
+   * Changing the subtitle track. Only the MKV path knows about subtitles:
+   * the other engines have no tracks, so the call does nothing.
    */
   selectSubtitle(number) {
     const engine = this.engine;
@@ -370,15 +378,15 @@ export class Playback {
   /* --------------------------------------------------------- itsekorjaus */
 
   /**
-   * Live-lähteen kuolema näkyy kolmena eri tilana, ja kaikki on
-   * tunnistettava erikseen:
+   * The death of a live source shows up as three different states, and each
+   * has to be recognised separately:
    *
-   *   1. palvelin katkaisee     mpegts: LOADING_COMPLETE
-   *   2. puskuri soitetaan loppuun   <video>: ended (ja samalla paused)
-   *   3. yhteys jää auki, data loppuu   currentTime ei etene
+   *   1. the server cuts the connection   mpegts: LOADING_COMPLETE
+   *   2. the buffer is played out         <video>: ended (and paused)
+   *   3. the connection stays open, data stops   currentTime does not advance
    *
-   * Kohta 2 näyttää elementin tasolla täsmälleen samalta kuin katsojan
-   * painama tauko. Ero on tahdossa, ei tilassa — siksi wantPlaying.
+   * At element level case 2 looks exactly like the viewer pressing pause.
+   * The difference is in the intent, not the state — hence wantPlaying.
    */
   bindGuards(token) {
     this.detachGuards();
@@ -401,7 +409,7 @@ export class Playback {
     if (this.guards) { this.guards(); this.guards = null; }
   }
 
-  /** Yksi ovi uudelleenyhdistämiseen, tuli syy mistä tahansa. */
+  /** A single door to reconnecting, whatever the reason. */
   recover(reason) {
     if (!this.spec || !this.spec.live || this.recovering) return;
     this.recovering = true;
@@ -418,8 +426,9 @@ export class Playback {
     }
     this.reconnects++;
     this.onState({ status: 'reconnecting', attempt: this.reconnects, max: MAX_RECONNECTS, reason });
-    // Porrastus antaa palvelimen vapauttaa edellisen yhteyden: tili sallii
-    // vain muutaman yhtäaikaisen, ja heti uusittu pyyntö torjutaan.
+    // Backing off lets the server release the previous connection: the
+    // account allows only a few at a time, and a request repeated at once
+    // is refused.
     const delay = Math.min(RECONNECT_MAX_MS, RECONNECT_STEP_MS * this.reconnects);
     setTimeout(() => {
       this.recovering = false;
@@ -427,7 +436,7 @@ export class Playback {
     }, delay);
   }
 
-  /** Kuvan jähmettyminen — kohta 3 yllä. */
+  /** The picture freezing — case 3 above. */
   startWatchdog(token) {
     this.stopWatchdog();
     if (!this.spec || !this.spec.live) return;
@@ -440,7 +449,7 @@ export class Playback {
       if (video.ended) return this.recover(t('playback.reason.buffer'));
 
       if (video.paused) {
-        // Katsojan oma tauko on ainoa tauko jota ei korjata.
+        // The viewer's own pause is the one pause that is not repaired.
         if (!this.wantPlaying) { this.lastProgressAt = Date.now(); return; }
         this.tryPlay();
         return;
@@ -460,7 +469,7 @@ export class Playback {
     if (this.watchdog) { clearInterval(this.watchdog); this.watchdog = null; }
   }
 
-  /** Tekniset tiedot näytettäväksi: resoluutio, moottori, bittinopeus. */
+  /** Technical details to display: resolution, engine, bitrate. */
   stats() {
     const video = this.video;
     if (!video.videoWidth) return null;

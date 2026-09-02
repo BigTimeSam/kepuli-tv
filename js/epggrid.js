@@ -1,27 +1,29 @@
-// Interaktiivinen ohjelmaopas: kanavat riveinä, aika vaaka-akselilla.
+// The interactive programme guide: channels as rows, time on the
+// horizontal axis.
 //
-// Molemmat akselit virtualisoidaan. 500 kanavaa × 7 vuorokautta olisi
-// satojatuhansia elementtejä, joten piirretään vain se ruudullinen joka
-// oikeasti näkyy — samasta syystä kuin listakin (vlist.js). Ruudukon
-// viivat tulevat taustakuviosta eivätkä DOM:sta, jolloin 46 000 pikselin
-// levyinen kangas ei maksa mitään.
+// Both axes are virtualised. 500 channels × 7 days would be hundreds of
+// thousands of elements, so only the screenful that is really visible gets
+// painted — for the same reason as the list (vlist.js). The grid lines come
+// from a background pattern rather than from the DOM, which makes a canvas
+// 46,000 pixels wide cost nothing.
 //
-// Aika-akselin nollakohta on keskiyö: silloin puolen tunnin ruudukko ja
-// vuorokausirajat osuvat taustakuvion kanssa kohdalleen ilman siirtoa.
+// The time axis has its zero at midnight: that way the half-hour grid and
+// the day boundaries line up with the background pattern without an
+// offset.
 
 import { clock, shortDay, stampFmt, progressOf } from './format.js';
 import { t } from './i18n.js';
 
-const ROW_H = 48;              // pidettävä samana kuin --epg-row CSS:ssä
-const ZOOMS = [2, 3, 5, 8];    // pikseliä per minuutti
+const ROW_H = 48;              // keep in step with --epg-row in the CSS
+const ZOOMS = [2, 3, 5, 8];    // pixels per minute
 const PAST_DAYS = 2;
 const FUTURE_DAYS = 5;
 const SLOT_MIN = 30;
-const MARGIN_MIN = 90;         // näkyvän alueen ulkopuolelle piirrettävä puskuri
-const LEAD_MIN = 15;           // kuinka paljon mennyttä näkyy "Nyt"-kohdassa
+const MARGIN_MIN = 90;         // buffer painted outside the visible area
+const LEAD_MIN = 15;           // how much of the past shows at the "Now" position
 const TICK_MS = 20e3;
 
-/** Onko ohjelma katsottavissa kanavan catchup-ikkunasta? */
+/** Is the programme watchable from the channel's catch-up window? */
 export function catchupAvailable(channel, programme, now = Date.now()) {
   if (!channel || !programme || !channel.archive) return false;
   if (programme.stop > now) return false;
@@ -35,7 +37,7 @@ export class EpgGrid {
    */
   constructor(refs, opts = {}) {
     this.el = refs;
-    this.epg = null;               // asetetaan yhteyden auettua
+    this.epg = null;               // set once the connection is open
     this.channels = [];
     this.playingId = null;
     this.zoomIndex = 2;
@@ -82,9 +84,10 @@ export class EpgGrid {
   timeAt(px) { return this.origin + (px / this.zoom) * 60000; }
 
   /**
-   * Aikajanan mitat ja kiinteät osat. Ei piirrä: piirto pyytää samalla
-   * näkyvien kanavien ohjelmatiedot, joten se on tehtävä vasta kun
-   * vieritys on oikeassa kohdassa — muuten haetaan väärän ikkunan tiedot.
+   * The timeline's dimensions and fixed parts. Does not paint: painting
+   * also requests programme data for the visible channels, so it must wait
+   * until the scroll is in the right place — otherwise the wrong window's
+   * data gets fetched.
    */
   layout() {
     const midnight = new Date().setHours(0, 0, 0, 0);
@@ -137,7 +140,7 @@ export class EpgGrid {
     this.el.days.replaceChildren(frag);
   }
 
-  /* -------------------------------------------------------------- piirto */
+  /* ------------------------------------------------------------ painting */
 
   schedule() {
     if (this.ticking) return;
@@ -149,8 +152,8 @@ export class EpgGrid {
     if (!this.open || !this.width) return;
     const { scrollLeft, scrollTop, clientWidth, clientHeight } = this.el.scroll;
 
-    // Otsikkorivi ja kanavasarake seuraavat vieritystä siirtymällä; omat
-    // vierityspalkit näyttäisivät kolme päällekkäistä palkkia.
+    // The header row and the channel column follow the scroll by
+    // translating; their own scrollbars would show three overlapping bars.
     this.el.timesInner.style.transform = `translateX(${-scrollLeft}px)`;
     this.el.chansInner.style.transform = `translateY(${-scrollTop}px)`;
 
@@ -267,9 +270,10 @@ export class EpgGrid {
 
     const label = document.createElement('div');
     label.className = 'epg-prog-label';
-    // Ruudun reunan yli jatkuva ohjelma: nimi ja jatkumismerkki siirretään
-    // näkyviin sen sijaan että ne jäisivät vierityksen taakse. Kokonaan
-    // reunan ulkopuolelle jäävää lohkoa ei siirretä — se ei näy muutenkaan.
+    // A programme running past the edge of the screen: the name and the
+    // continuation mark are nudged into view instead of being left behind
+    // the scroll. A block entirely outside the edge is not nudged — it is
+    // not visible anyway.
     const clip = scrollLeft - left;
     if (clip > 0 && clip < width - 40) {
       node.style.setProperty('--clip', `${clip}px`);
@@ -326,9 +330,9 @@ export class EpgGrid {
   }
 
   /**
-   * Vaihtaa vain korostukset. Koko kankaan uudelleenpiirto irrottaisi
-   * elementit hiiren alta kesken klikkauksen, jolloin klikkauksen ja
-   * kaksoisklikkauksen väliin jäävä lohko katoaisi.
+   * Changes only the highlights. Repainting the whole canvas would pull the
+   * elements out from under the mouse mid-click, which would lose the block
+   * between a click and a double-click.
    */
   mark() {
     for (const node of this.el.canvas.querySelectorAll('.epg-prog.sel')) node.classList.remove('sel');
@@ -342,7 +346,7 @@ export class EpgGrid {
     }
   }
 
-  /** Valitsee kanavalta sen ohjelman joka on menossa annettuun aikaan. */
+  /** Selects the programme on air at the given time on that channel. */
   selectAt(row, time) {
     const ch = this.channels[row];
     if (!ch) return;
@@ -380,13 +384,13 @@ export class EpgGrid {
     if (activate) this.onActivate(ch, programme);
   }
 
-  /* ------------------------------------------------------------ liikkuminen */
+  /* ------------------------------------------------------------ movement */
 
   /**
-   * align 'lead' jättää hetken menneisyyttä näkyviin, jottei menossa oleva
-   * ohjelma ala heti ruudun reunasta. Lyhyt lead on tarkoituksellinen:
-   * jokainen näkyvä menneisyyden minuutti tarkoittaa että epg.js joutuu
-   * hakemaan kanavan koko ohjelmataulun lyhyen listan sijaan.
+   * align 'lead' leaves a moment of the past in view, so that the programme
+   * on air does not start right at the edge of the screen. The short lead
+   * is deliberate: every visible minute of the past means epg.js has to
+   * fetch the channel's whole programme table instead of the short list.
    */
   scrollToTime(ms, { align = 'left' } = {}) {
     const view = this.el.scroll.clientWidth;
@@ -422,9 +426,9 @@ export class EpgGrid {
   }
 
   /**
-   * Vierittää päivän alkuun — tai kellonaikaan, jos päivä on tänään.
-   * Vuorokausirajalle mennään ilman leadia, muuten "huomenna" pysähtyisi
-   * vartin verran tämän päivän puolelle.
+   * Scrolls to the start of a day — or to the current time when the day is
+   * today. A day boundary is approached without the lead, otherwise
+   * "tomorrow" would stop a quarter of an hour inside today.
    */
   goDay(at) {
     const now = Date.now();
@@ -449,7 +453,7 @@ export class EpgGrid {
     this.paint();
   }
 
-  /** Siirtää valinnan viereiseen ohjelmaan samalla kanavalla. */
+  /** Moves the selection to the neighbouring programme on the same channel. */
   step(delta) {
     const ch = this.channels[this.cursorRow];
     const listings = ch && this.epg ? this.epg.listings(ch.id) : null;
@@ -480,7 +484,7 @@ export class EpgGrid {
     if (ch) this.onActivate(ch, this.selection ? this.selection.programme : null);
   }
 
-  /** @returns {boolean} käsiteltiinkö näppäin */
+  /** @returns {boolean} whether the key was handled */
   handleKey(e) {
     switch (e.key) {
       case 'ArrowDown': this.moveRow(1); return true;
@@ -526,7 +530,7 @@ export class EpgGrid {
     return true;
   }
 
-  /** Ohjelmatietoja saapui: valinta yritetään täydentää jos se jäi tyhjäksi. */
+  /** Programme data arrived: the selection is completed if it was left empty. */
   invalidate() {
     if (!this.open) return;
     if (this.selection && !this.selection.programme) this.selectAt(this.selection.row, this.focusTime);
@@ -547,10 +551,10 @@ export class EpgGrid {
     this.timer = null;
   }
 
-  /** Kello käy, joten "nyt"-viiva ja menossa olevat ohjelmat vanhenevat. */
+  /** The clock runs, so the "now" line and the programmes on air go stale. */
   tick() {
-    // Opas voi olla auki vuorokauden vaihtuessa, jolloin aikajanan
-    // nollakohta ja päivänimet ("tänään") osoittavat eiliseen.
+    // The guide can be open when the day turns over, at which point the
+    // timeline's zero and the day names ("today") point at yesterday.
     if (startOfDay(Date.now()) !== startOfDay(this.origin, PAST_DAYS)) {
       const anchor = this.timeAt(this.el.scroll.scrollLeft);
       this.layout();
@@ -560,7 +564,8 @@ export class EpgGrid {
   }
 }
 
-/** Vuorokauden alku n päivän päästä. Kesäajassa vuorokausi ei ole 24 h. */
+/** The start of the day n days from now. Under daylight saving a day is
+ *  not 24 h. */
 function startOfDay(ms, offsetDays = 0) {
   const d = new Date(ms);
   d.setHours(0, 0, 0, 0);

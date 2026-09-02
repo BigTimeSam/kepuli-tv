@@ -1,10 +1,10 @@
-// IndexedDB: välimuisti API-datalle.
+// IndexedDB: a cache for API data.
 //
-// 'cache'  avain → { value, at }   yleinen TTL-välimuisti
+// 'cache'  key → { value, at }   general TTL cache
 //
-// Versio 3 pudotti M3U-varareitin taulut 'chunks' ja 'meta'. Vanhoilla
-// asennuksilla niissä on kymmeniä megatavuja toistolistaa, jota mikään ei
-// enää lue, joten ne poistetaan päivityksessä.
+// Version 3 dropped the stores 'chunks' and 'meta' that belonged to the
+// M3U fallback. On older installations they hold tens of megabytes of
+// playlist that nothing reads any more, so they are deleted on upgrade.
 
 const DB_NAME = 'kepuli-tv';
 const DB_VERSION = 3;
@@ -45,9 +45,9 @@ const request = (req) => new Promise((resolve, reject) => {
   req.onerror = () => reject(req.error);
 });
 
-/* ------------------------------------------------------------ välimuisti */
+/* --------------------------------------------------------------- cache */
 
-/** Palauttaa arvon jos se on tuoreempi kuin maxAgeMs, muuten undefined. */
+/** Returns the value if it is fresher than maxAgeMs, otherwise undefined. */
 export async function cacheGet(key, maxAgeMs = Infinity) {
   try {
     const db = await openDB();
@@ -57,7 +57,7 @@ export async function cacheGet(key, maxAgeMs = Infinity) {
     if (maxAgeMs !== Infinity && Date.now() - row.at > maxAgeMs) return undefined;
     return row.value;
   } catch (err) {
-    console.warn('[iptv] välimuistin luku epäonnistui', key, err);
+    console.warn('[iptv] cache read failed', key, err);
     return undefined;
   }
 }
@@ -69,11 +69,11 @@ export async function cachePut(key, value) {
     t.objectStore('cache').put({ value, at: Date.now() }, key);
     await done;
   } catch (err) {
-    console.warn('[iptv] välimuistin kirjoitus epäonnistui', key, err);
+    console.warn('[iptv] cache write failed', key, err);
   }
 }
 
-/** Kaikki avain–arvo-parit prefixillä. Välimuistin lämmitykseen. */
+/** Every key–value pair with the prefix. For warming the cache. */
 export async function cacheGetAll(prefix) {
   try {
     const db = await openDB();
@@ -87,7 +87,7 @@ export async function cacheGetAll(prefix) {
     }
     return out;
   } catch (err) {
-    console.warn('[iptv] välimuistin joukkoluku epäonnistui', prefix, err);
+    console.warn('[iptv] bulk cache read failed', prefix, err);
     return [];
   }
 }
@@ -99,7 +99,7 @@ export async function cacheAge(key) {
   return row ? row.at : null;
 }
 
-/** Poistaa avaimet joiden alku täsmää; ilman prefixiä koko välimuistin. */
+/** Deletes keys that start with the prefix; without one, the whole cache. */
 export async function cacheClear(prefix) {
   const db = await openDB();
   const { t, done } = tx(db, ['cache'], 'readwrite');
@@ -120,24 +120,24 @@ export async function cacheSummary() {
 }
 
 /**
- * Poistaa koko tietokannan. Palautusnappia varten: yksittäisten taulujen
- * tyhjennys jättäisi tiedoston ja sen varaaman tilan paikalleen.
+ * Deletes the whole database. For the reset button: emptying the
+ * individual stores would leave the file and the space it holds behind.
  */
 export async function wipeStorage() {
   try {
     const db = await openDB();
     db.close();
-  } catch { /* yhteyttä ei ollut */ }
+  } catch { /* there was no connection */ }
   dbPromise = null;
   await new Promise((resolve) => {
     const req = indexedDB.deleteDatabase(DB_NAME);
-    // blocked = jokin muu välilehti pitää yhteyttä auki. Poisto tapahtuu
-    // silti kun se sulkeutuu, eikä kutsujan kannata jäädä odottamaan.
+    // blocked = another tab is holding a connection open. The deletion
+    // still happens once it closes, and the caller should not wait.
     req.onsuccess = req.onerror = req.onblocked = () => resolve();
   });
 }
 
-/** Selaimen myöntämä ja käytetty tallennustila. */
+/** Storage granted by the browser, and how much of it is used. */
 export async function storageEstimate() {
   if (!navigator.storage || !navigator.storage.estimate) return null;
   try { return await navigator.storage.estimate(); } catch { return null; }

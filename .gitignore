@@ -1,13 +1,17 @@
 .DS_Store
 
-# dev/dev.mjs käyttää oletuksena ~/.cache/kepuli-tv-dev, mutta
-# KEPULI_DEV_PROFILE voi osoittaa projektin sisälle.
+# dev/dev.mjs defaults to ~/.cache/kepuli-tv-dev, but KEPULI_DEV_PROFILE can
+# point inside the project.
 .dev-profile/
 
 node_modules/
 
-# dev/wasm/build.sh --test tekee nämä ffmpegillä; ne eivät kuulu versionhallintaan.
+# dev/wasm/build.sh --test makes these with ffmpeg; they do not belong in
+# version control.
 dev/wasm/media/
 
-# Kauppaan ladattava paketti rakennetaan tarvittaessa uudelleen.
+# The package uploaded to the store is rebuilt when needed.
 *.zip
+
+# Local tool configuration, not part of the project.
+.impeccable/

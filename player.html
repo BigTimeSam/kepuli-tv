@@ -92,9 +92,9 @@
 
   <section class="epgview" id="epg-preview" hidden>
     <div class="epgv-head">
-      <!-- Lähde asetetaan vasta kanavaa valittaessa, ks. renderGuidePreview.
-           blank piilottaa varatun tilan siihen asti ja aina kun logoa ei ole
-           tai sen lataus epäonnistuu. -->
+      <!-- The source is set only when a channel is chosen, see
+           renderGuidePreview. Until then, and whenever there is no logo or
+           it fails to load, blank hides the reserved space. -->
       <img class="epgv-logo blank" id="epgv-logo" alt="">
       <div class="epgv-chan">
         <div class="epgv-name" id="epgv-name">—</div>
@@ -136,9 +136,9 @@
   <form method="dialog" class="setup">
     <h2 data-i18n="setup.title">Settings</h2>
 
-    <!-- Kaksi tapaa sanoa sama asia: erilliset kentät tai yksi osoite, josta
-         tunnukset puretaan. Valinta ohjaa vain lomaketta — taustalla on
-         kummassakin sama palvelin ja samat tunnukset. -->
+    <!-- Two ways of saying the same thing: separate fields, or one address
+         the credentials are parsed from. The choice steers only the form —
+         behind it lie the same server and the same credentials either way. -->
     <div class="field">
       <span data-i18n="setup.source">Connection</span>
       <div class="radios">

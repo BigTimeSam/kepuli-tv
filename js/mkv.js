@@ -1,24 +1,26 @@
-// Matroskan klustereiden purku virrasta.
+// Demuxing Matroska clusters from a stream.
 //
-// Tiedostoa ei ladata muistiin: tavut tulevat verkosta pala kerrallaan ja
-// jäsennin odottaa niitä tarvitessaan. Vetävä malli (need/read) on tässä
-// selvästi työntävää tilakonetta yksinkertaisempi, koska EBML-elementin koko
-// tiedetään vasta kun sen otsikko on luettu.
+// The file is not loaded into memory: the bytes arrive from the network a
+// chunk at a time and the parser waits for them when it needs them. A pull
+// model (need/read) is clearly simpler here than a push state machine,
+// because the size of an EBML element is known only once its header has
+// been read.
 //
-// Klusterin lohko sisältää yhden tai useamman kehyksen. Useampi tulee
-// "lacingilla", jota käytetään lähes aina äänelle: AAC-kehys on 1024 näytettä
-// eli noin 21 ms, joten niitä niputetaan samaan lohkoon. Kaikki kolme
-// lacing-muotoa on toteutettava, muuten ääni katkeaa satunnaisesti.
+// A cluster's block holds one or more frames. More than one comes from
+// "lacing", which is used for audio almost always: an AAC frame is 1024
+// samples, around 21 ms, so several are bundled into the same block. All
+// three lacing forms have to be implemented, or the audio breaks up at
+// random.
 
 import { ID, Reader } from './ebml.js';
 
-/** Puskuri, joka odottaa tavuja kunnes niitä on tarpeeksi. */
+/** A buffer that waits for bytes until there are enough of them. */
 export class BufferedBytes {
   constructor() {
     this.chunks = [];
-    this.offset = 0;          // luettu kohta ensimmäisen palan sisällä
+    this.offset = 0;          // how far into the first chunk we have read
     this.available = 0;
-    this.position = 0;        // tavuja alusta, kelauksen kirjanpitoon
+    this.position = 0;        // bytes from the start, for seek bookkeeping
     this.done = false;
     this.waiter = null;
     this.failure = null;
@@ -41,15 +43,15 @@ export class BufferedBytes {
     if (waiter) waiter();
   }
 
-  /** Odottaa kunnes n tavua on saatavilla. False = virta loppui kesken. */
+  /** Waits until n bytes are available. False = the stream ended early. */
   async need(n) {
     while (this.available < n && !this.done) {
       await new Promise((resolve) => { this.waiter = resolve; });
     }
-    // Jo saapuneet tavut käytetään loppuun ennen kuin virhe kerrotaan: ne
-    // ovat kelvollisia riippumatta siitä miten yhteys päättyi, ja jäsennin
-    // on aina lukijaa jäljessä. Ilman tätä katkos hylkää senkin osan
-    // puskurista jota se ei ollut vielä ehtinyt lukea.
+    // The bytes that already arrived are consumed before the error is
+    // reported: they are valid however the connection ended, and the parser
+    // always trails the reader. Without this, a drop would discard even the
+    // part of the buffer it had not yet got to.
     if (this.available >= n) return true;
     if (this.failure) throw this.failure;
     return false;
@@ -120,31 +122,31 @@ async function readElement(bytes) {
   return { id: id.value, size: size.value, unknown: size.unknown };
 }
 
-// Elementit joiden sisään mennään: niiden lapset käsitellään samassa
-// silmukassa. Kaikki muu ohitetaan koon perusteella.
+// The elements we descend into: their children are handled in the same
+// loop. Everything else is skipped by its size.
 const DESCEND = new Set([ID.Segment, ID.Cluster]);
 
 /**
- * Kehykset klustereista. Lopettaa kun virta loppuu.
+ * Frames from the clusters. Stops when the stream ends.
  *
  * @param {BufferedBytes} bytes
  * @param {{timestampScale:number, tracks:Map<number,object>, onCluster?:Function,
  *          onStop?:(reason:string, position:number)=>void}} opts
  * @yields {{track:number, pts:number, duration:number|null, keyframe:boolean, data:Uint8Array}}
- *         pts ja duration nanosekunteina tiedoston alusta
+ *         pts and duration in nanoseconds from the start of the file
  */
 export async function* frames(bytes, { timestampScale, tracks, onCluster, onStop }) {
-  // Purkaja voi loppua kesken monesta syystä, ja ne on erotettava: virran
-  // loppuminen on normaalia, epäkelpo tunnus taas kertoo että jäsennin on
-  // eksynyt eikä jatkaminen samasta kohdasta auta.
+  // Demuxing can end early for several reasons, and they must be told
+  // apart: the stream running out is normal, whereas an invalid id says the
+  // parser has lost its place and resuming from there will not help.
   const stop = (reason) => { if (onStop) onStop(reason, bytes.position); };
   let clusterTs = 0;
   for (;;) {
-    // Klusterin alkukohta talteen ennen otsikon lukua: katkennut lataus
-    // jatketaan elementin rajalta, ei keskeltä.
+    // Record where the cluster starts before reading the header: an
+    // interrupted download resumes at an element boundary, not mid-element.
     const at = bytes.position;
     const el = await readElement(bytes);
-    if (!el) { stop(bytes.done ? 'virta loppui' : 'kelvoton tunnus tai koko'); return; }
+    if (!el) { stop(bytes.done ? 'stream ended' : 'invalid id or size'); return; }
 
     if (DESCEND.has(el.id)) {
       if (el.id === ID.Cluster && onCluster) onCluster(at);
@@ -152,14 +154,14 @@ export async function* frames(bytes, { timestampScale, tracks, onCluster, onStop
     }
 
     if (el.id === ID.Timestamp) {
-      if (!await bytes.need(el.size)) { stop('virta loppui kesken aikaleiman'); return; }
+      if (!await bytes.need(el.size)) { stop('stream ended mid-timestamp'); return; }
       clusterTs = new Reader(bytes.read(el.size)).uint(el.size);
       continue;
     }
 
     if (el.id === ID.SimpleBlock || el.id === ID.BlockGroup) {
-      if (el.size > MAX_BLOCK) { stop(`kohtuuton lohko ${el.size} tavua`); return; }
-      if (!await bytes.need(el.size)) { stop('virta loppui kesken lohkon'); return; }
+      if (el.size > MAX_BLOCK) { stop(`unreasonable block of ${el.size} bytes`); return; }
+      if (!await bytes.need(el.size)) { stop('stream ended mid-block'); return; }
       const raw = bytes.read(el.size);
       const parsed = el.id === ID.SimpleBlock
         ? block(raw, { simple: true })
@@ -168,18 +170,18 @@ export async function* frames(bytes, { timestampScale, tracks, onCluster, onStop
       continue;
     }
 
-    if (el.unknown) continue;                 // tuntematon koko: ei voi ohittaa
-    if (!await bytes.need(el.size)) { stop(`virta loppui ohitettaessa ${el.size} tavua`); return; }
+    if (el.unknown) continue;                 // unknown size: cannot be skipped
+    if (!await bytes.need(el.size)) { stop(`stream ended while skipping ${el.size} bytes`); return; }
     bytes.skip(el.size);
   }
 }
 
-// Yksittäinen lohko on käytännössä korkeintaan muutamia megatavuja. Tätä
-// suurempi luku tarkoittaa että jäsennin on eksynyt väärään kohtaan, eikä
-// puskuria kannata kasvattaa loputtomiin sen varassa.
+// In practice a single block is at most a few megabytes. A number larger
+// than this means the parser has landed in the wrong place, and the buffer
+// should not be grown without limit on the strength of it.
 const MAX_BLOCK = 32 * 1024 * 1024;
 
-/** SimpleBlock tai BlockGroupin Block. */
+/** A SimpleBlock, or the Block inside a BlockGroup. */
 function block(raw, { simple, keyframe = null, duration = null }) {
   const r = new Reader(raw);
   const track = r.vint(false);
@@ -217,12 +219,12 @@ function blockGroup(raw) {
     r.p = start + size.value;
   }
   if (!inner) return null;
-  // BlockGroupissa ei ole avainkuvalippua: kehys on avainkuva jos se ei
-  // viittaa mihinkään muuhun.
+  // A BlockGroup has no keyframe flag: a frame is a keyframe when it
+  // references nothing else.
   return block(inner, { simple: false, keyframe: !referenced, duration });
 }
 
-/** Lohkon sisältö kehyksiksi. Kolme lacing-muotoa, ks. Matroska-spec. */
+/** A block's contents as frames. Three lacing forms, see the Matroska spec. */
 function lace(payload, mode) {
   if (mode === 0) return [payload];
   if (!payload.length) return [];
@@ -252,7 +254,7 @@ function lace(payload, mode) {
     for (let i = 1; i < count - 1; i++) {
       const delta = r.vint(false);
       if (!delta) return [];
-      // Etumerkillinen: puolet vintin arvoalueesta on negatiivista.
+      // Signed: half of the vint's value range is negative.
       const bias = Math.pow(2, 7 * delta.len - 1) - 1;
       sizes.push(sizes[i - 1] + (delta.value - bias));
     }
@@ -265,7 +267,7 @@ function lace(payload, mode) {
     out.push(payload.subarray(p, p + size));
     p += size;
   }
-  if (mode !== 2) out.push(payload.subarray(p));        // viimeisen koko on loput
+  if (mode !== 2) out.push(payload.subarray(p));        // the last one takes the rest
   return out.filter((f) => f.length);
 }
 
@@ -274,8 +276,8 @@ function* expand(parsed, clusterTs, timestampScale, tracks) {
   const track = tracks.get(parsed.track);
   if (!track) return;
   const base = (clusterTs + parsed.relative) * timestampScale;
-  // Nipussa kehykset jakavat lohkon aikaleiman: ne erotetaan raidan
-  // oletuskestolla, jotta ääni ei kasaudu yhteen hetkeen.
+  // Laced frames share the block's timestamp: they are spread apart by the
+  // track's default duration, so the audio does not pile up in one instant.
   const step = track.defaultDuration
     || (parsed.duration ? (parsed.duration * timestampScale) / parsed.frames.length : 0);
   let index = 0;

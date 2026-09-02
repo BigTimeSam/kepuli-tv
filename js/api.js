@@ -1,18 +1,19 @@
-// Xtream Codes player_api.php -asiakas.
+// Xtream Codes player_api.php client.
 //
-// Rajapinnan kummallisuudet joihin on varauduttu:
-//  - väärä salasana vastaa HTTP 512:lla, ei 401:llä
-//  - tuntematon action palauttaa tilitiedot eikä virhettä, joten vastauksen
-//    muoto on tarkistettava eikä statuskoodiin voi luottaa
-//  - EPG:n title ja description ovat base64:ää, joka on purettava UTF-8:na
-//  - aikaleimoista vain *_timestamp on yksiselitteinen; start/end ovat
-//    palvelimen aikavyöhykkeessä (tässä Europe/Ljubljana)
+// Quirks of the API that are accounted for here:
+//  - a wrong password answers with HTTP 512, not 401
+//  - an unknown action returns the account details rather than an error, so
+//    the shape of the answer must be checked and the status code cannot be
+//    trusted
+//  - the EPG title and description are base64 that must be decoded as UTF-8
+//  - of the timestamps only *_timestamp is unambiguous; start/end are in
+//    the server's time zone (here Europe/Ljubljana)
 
 import { t } from './i18n.js';
 
 const TEXT_DECODER = new TextDecoder();
 
-/** base64 → UTF-8. Pelkkä atob() rikkoisi ääkköset. */
+/** base64 → UTF-8. A bare atob() would mangle non-ASCII letters. */
 export function decodeField(value) {
   if (!value) return '';
   try {
@@ -57,7 +58,7 @@ export class XtreamApi {
     }
   }
 
-  /** Tilin ja palvelimen tiedot. Toimii myös yhteyden testinä. */
+  /** Account and server details. Doubles as a connection test. */
   async account({ signal } = {}) {
     const data = await this.call('', null, { signal });
     if (!data || !data.user_info) throw new ApiError('muoto', t('api.nouserinfo'));
@@ -74,8 +75,8 @@ export class XtreamApi {
       outputFormats: Array.isArray(u.allowed_output_formats) ? u.allowed_output_formats : [],
       serverTimezone: s.timezone || null,
       serverTimeOffsetMs: s.timestamp_now ? Number(s.timestamp_now) * 1000 - Date.now() : 0,
-      // Catchup-osoitteen aikaleima on palvelimen paikallista aikaa; offset
-      // saadaan vertaamalla time_now-merkkijonoa unix-aikaleimaan.
+      // The catch-up URL's timestamp is the server's local time; the offset
+      // comes from comparing the time_now string with the unix timestamp.
       serverUtcOffsetMs: serverUtcOffset(s),
     };
   }
@@ -88,9 +89,9 @@ export class XtreamApi {
   }
 
   /**
-   * Striimit tyypeittäin; categoryId rajaa haun yhteen kategoriaan.
-   * onProgress saa ladatut tavut — koko listan haku on megatavuluokkaa,
-   * joten edistyminen on näytettävä käyttäjälle.
+   * Streams by type; categoryId narrows the fetch to one category.
+   * onProgress receives the bytes loaded — fetching the whole list is in
+   * the megabyte class, so progress has to be shown to the user.
    */
   async streams(type, categoryId, { signal, onProgress } = {}) {
     const action = { live: 'get_live_streams', movie: 'get_vod_streams', series: 'get_series' }[type];
@@ -102,7 +103,7 @@ export class XtreamApi {
     return raw.map(type === 'series' ? normalizeSeries : type === 'movie' ? normalizeMovie : normalizeLive);
   }
 
-  /** Kuten call(), mutta raportoi latauksen edistymisen. */
+  /** Like call(), but reports download progress. */
   async callStreaming(action, params, { signal, onProgress }) {
     let res;
     try {
@@ -198,13 +199,13 @@ export class XtreamApi {
     };
   }
 
-  /** Seuraavat ohjelmat yhdelle kanavalle. */
+  /** The upcoming programmes for one channel. */
   async shortEpg(streamId, limit = 4, { signal } = {}) {
     const data = await this.call('get_short_epg', { stream_id: streamId, limit }, { signal });
     return (data.epg_listings || []).map(normalizeProgramme);
   }
 
-  /** Kanavan koko EPG-ikkuna, myös menneet ohjelmat (catchupia varten). */
+  /** A channel's whole EPG window, past programmes included (for catch-up). */
   async fullEpg(streamId, { signal } = {}) {
     const data = await this.call('get_simple_data_table', { stream_id: streamId }, { signal });
     return (data.epg_listings || []).map(normalizeProgramme);
@@ -219,13 +220,13 @@ export class ApiError extends Error {
   }
 }
 
-// Palveluntarjoaja osoittaa logoissa GitHubin HTML-sivuille
-// (github.com/…/blob/…?raw=true). Ne uudelleenohjaavat raw-palvelimelle ja
-// GitHub kuristaa rinnakkaiset pyynnöt, jolloin suurin osa logoista jää
-// lataamatta. Osoite kirjoitetaan suoraan lopulliseen muotoon.
+// The provider points channel logos at GitHub HTML pages
+// (github.com/…/blob/…?raw=true). Those redirect to the raw server, and
+// GitHub throttles concurrent requests, which leaves most logos unloaded.
+// The URL is rewritten straight to its final form.
 const RE_GITHUB_BLOB = /^https?:\/\/github\.com\/([^/]+)\/([^/]+)\/blob\/(.+?)(?:\?.*)?$/i;
 
-/** Osa palvelimen stream_icon-arvoista on roskaa ("[", "[\"\"]"). */
+/** Some of the server's stream_icon values are junk ("[", "[\"\"]"). */
 function safeUrl(value) {
   if (typeof value !== 'string') return null;
   const trimmed = value.trim();
@@ -235,7 +236,7 @@ function safeUrl(value) {
   return trimmed;
 }
 
-/** Palvelin palauttaa koko ffprobe-dumpin; talteen vain oleellinen. */
+/** The server returns the whole ffprobe dump; only the essentials are kept. */
 function codecInfo(track) {
   if (!track || !track.codec_name) return null;
   const out = { codec: track.codec_name };

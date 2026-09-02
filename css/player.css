@@ -11,10 +11,10 @@
   --accent-2: #22d3ee;
   --warn: #e0a458;
   --danger: #ff5c7a;
-  --row-h: 50px;          /* sama luku kuin ROW_H app.js:ssä */
-  --sep-h: 26px;          /* sama luku kuin SEP_H app.js:ssä */
+  --row-h: 50px;          /* the same number as ROW_H in app.js */
+  --sep-h: 26px;          /* the same number as SEP_H in app.js */
   --topbar-h: 52px;
-  --epg-row: 48px;         /* sama luku kuin ROW_H epggrid.js:ssä */
+  --epg-row: 48px;         /* the same number as ROW_H in epggrid.js */
   --epg-chan-w: 210px;
   --epg-line: #1b2030;
   font-synthesis-weight: none;
@@ -34,7 +34,7 @@ html, body {
 button, input, select { font: inherit; color: inherit; }
 h2, h3 { font-weight: 600; }
 
-/* ---------------------------------------------------------- yläpalkki */
+/* ------------------------------------------------------------ top bar */
 
 .topbar {
   display: flex; align-items: center; gap: 14px;
@@ -43,8 +43,8 @@ h2, h3 { font-weight: 600; }
 }
 
 .brand { display: flex; align-items: center; gap: 8px; font-weight: 650; letter-spacing: -0.01em; white-space: nowrap; }
-/* Sama televisio kuin laajennuksen kuvakkeessa. 48px lähde, jotta
-   tunnus pysyy terävänä myös tarkkapikselinäytöllä. */
+/* The same television as in the extension icon. A 48px source, so the mark
+   stays sharp on a high-density display too. */
 .brand-mark { width: 18px; height: 18px; background: url("../icons/icon48.png") center / contain no-repeat; }
 
 .tabs { display: flex; gap: 2px; background: var(--panel-2); padding: 3px; border-radius: 9px; }
@@ -82,9 +82,9 @@ main {
   height: calc(100vh - var(--topbar-h));
 }
 .groups, .listcol, .stage { min-height: 0; }
-/* Sarakkeet nimetään erikseen, koska automaattinen sijoittelu siirtäisi
-   loput vasemmalle heti kun jokin lapsi piilotetaan — silloin lista
-   valuisi nollan levyiseen sarakkeeseen ja katoaisi näkyvistä. */
+/* The columns are named explicitly, because automatic placement would move
+   the rest to the left the moment a child is hidden — the list would then
+   slide into a zero-width column and vanish. */
 main > .groups { grid-column: 1; }
 main > .listcol { grid-column: 2; }
 main > .stage { grid-column: 3; }
@@ -97,8 +97,8 @@ main.guide > .groups, main.guide > .listcol { display: none; }
 main.guide > .epgview { grid-area: 1 / 1; }
 main.guide > .stage { grid-area: 1 / 2; }
 main.guide > .epg { grid-area: 2 / 1 / 3 / 3; }
-/* Ohjelmatiedot näkyvät oppaan omassa paneelissa, eikä kapeaan
-   soitinlaatikkoon mahdu kuutta painiketta. */
+/* The programme data shows in the guide's own panel, and six buttons do not
+   fit in the narrow player box. */
 main.guide .infostrip,
 main.guide #mode,
 main.guide #btn-pip,
@@ -118,22 +118,23 @@ main.guide #btn-copy { display: none; }
 .group-name { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .group-count { font-size: 11px; color: var(--dim); font-variant-numeric: tabular-nums; }
 .group.all { color: var(--text); font-weight: 550; }
-/* Sama korostus kuin välilehdillä ja tarkennesiruilla: valinta on koko rivi,
-   ei reunaviiva. Viimeisenä, jotta se voittaa myös .all-rivin värin. */
+/* The same highlight as on the tabs and the topic chips: the selection is
+   the whole row, not an outline. Last, so that it also beats the colour of
+   the .all row. */
 .group.active, .group.active:hover { background: var(--accent); color: #fff; }
 .group.active .group-count { color: #fff; opacity: .65; }
 
-/* Ryhmän tähti näkyy vasta osoitettaessa tai kun se on päällä: sivupalkissa
-   on kymmeniä rivejä eikä yhdelläkään ole tähteä valtaosan ajasta. Tila on
-   silti aina varattu, jottei nimi hyppää osoittimen alla. */
+/* A group's star appears only on hover or when it is on: the sidebar holds
+   dozens of rows and none of them has a star most of the time. The space is
+   reserved all the same, so the name does not jump under the pointer. */
 .group-star {
   width: 18px; height: 18px; flex: none; display: grid; place-items: center;
   border: 0; background: transparent; color: #4b5368; cursor: pointer;
   border-radius: 5px; font-size: 12px; line-height: 1; opacity: 0;
 }
 .group:hover .group-star, .group-star.on, .group-star:focus-visible { opacity: 1; }
-/* Vain painike reagoi: tähdettömän rivin varaus on tyhjä div, eikä siihen
-   saa syttyä korostusta jonka takana ei ole nappia. */
+/* Only the button reacts: the reservation on a starless row is an empty
+   div, and no highlight may light up behind which there is no button. */
 button.group-star:hover { color: var(--text); background: #262c3d; }
 .group-star.on { color: #ffc857; }
 .group.active .group-star { color: rgba(255, 255, 255, .6); }
@@ -143,8 +144,9 @@ button.group-star:hover { color: var(--text); background: #262c3d; }
 .listcol { display: flex; flex-direction: column; border-right: 1px solid var(--border); min-width: 0; background: #0d1016; }
 
 .crumbs { display: flex; align-items: center; gap: 8px; padding: 8px 10px; border-bottom: 1px solid var(--border); color: var(--muted); }
-/* Oma display voittaa selaimen [hidden]-säännön, joten se on kumottava
-   erikseen — muuten piilotettu murupolku jättää listan päälle raidan. */
+/* An explicit display beats the browser's [hidden] rule, so it has to be
+   overridden separately — otherwise a hidden breadcrumb leaves a band above
+   the list. */
 .crumbs[hidden] { display: none; }
 .crumbs button { background: var(--panel-2); border: 1px solid var(--border); border-radius: 6px; padding: 3px 8px; cursor: pointer; }
 .crumbs span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--text); }
@@ -154,17 +156,18 @@ button.group-star:hover { color: var(--text); background: #262c3d; }
 .subcats {
   display: flex; gap: 5px; flex-wrap: wrap;
   padding: 8px 10px; border-bottom: 1px solid var(--border); background: var(--panel);
-  /* Korkeus tulee sisällöstä: harvat tarkenteet vievät yhden rivin eikä
-     tyhjää varata. Katto on mitoitettu neljään täyteen siruriviin (rivin
-     nousu 30,6 px + 16 px pehmusteet = 133 px) plus kymmenisen pikseliä,
-     jotta viidennen rivin reuna näkyy ja kertoo vieritettävästä. Matalassa
-     ikkunassa vh-raja pitää listan pääosassa. */
+  /* The height comes from the content: a handful of topics take one row and
+     no empty space is reserved. The ceiling is sized for four full chip rows
+     (a row's advance of 30.6 px + 16 px of padding = 133 px) plus ten-odd
+     pixels, so that the edge of a fifth row shows and says there is more to
+     scroll. In a short window the vh limit keeps the list in the lead. */
   max-height: min(144px, 20vh); overflow-y: auto;
 }
 .subcats[hidden] { display: none; }
-/* Siru on säiliö kahdelle painikkeelle: valinta ja tähti. Ulkoasu — pohja,
-   reuna, korostus — pysyy säiliöllä, jotta kumpikin nappi näyttää osalta
-   samaa sirua eikä omalta painikkeeltaan. */
+/* A chip is a container for two buttons: the selection and the star. The
+   appearance — background, border, highlight — stays on the container, so
+   that both buttons look like parts of the same chip rather than buttons of
+   their own. */
 .chip {
   display: inline-flex; align-items: center;
   background: var(--panel-2); border: 1px solid var(--border); border-radius: 99px;
@@ -178,8 +181,8 @@ button.group-star:hover { color: var(--text); background: #262c3d; }
 }
 .chip.plain .chip-main { padding-right: 11px; }
 .chip .n { opacity: .6; margin-left: 5px; font-variant-numeric: tabular-nums; }
-/* Ahtaasti: sirupalkki rivittyy kapeaan sarakkeeseen, joten jokainen
-   tähden viemä pikseli maksaa rivin korkeuden verran koko palkissa. */
+/* Tight: the chip bar wraps in a narrow column, so every pixel the star
+   takes costs a row's height across the whole bar. */
 .chip-star {
   border: 0; background: none; padding: 0 7px 0 0;
   color: #4b5368; cursor: pointer; font-size: 10.5px; line-height: 1;
@@ -204,7 +207,7 @@ button.group-star:hover { color: var(--text); background: #262c3d; }
 .season:hover { color: var(--text); }
 .season.active { background: var(--accent); border-color: var(--accent); color: #fff; }
 
-/* ------------------------------------------------------------ lista */
+/* ------------------------------------------------------------- list */
 
 .list { flex: 1; overflow-y: auto; outline: none; position: relative; }
 .vlist-spacer { position: relative; width: 100%; }
@@ -224,8 +227,9 @@ button.group-star:hover { color: var(--text); background: #262c3d; }
 .row-star:hover { color: var(--text); background: #262c3d; }
 .row-star.on { color: #ffc857; }
 
-/* Suosikkikategoria ei ole toistettava kohde vaan portti listaan: logon
-   paikalla on pinottu lista ja rivin lopussa chevron kuten sarjalla. */
+/* A favourite category is not a playable item but a door into a list: in
+   the logo's place there are stacked lines, and at the end of the row a
+   chevron as on a series. */
 .row-cat-icon {
   width: 30px; height: 24px; flex: none; display: grid; place-items: center;
   border-radius: 4px; background: var(--panel-2);
@@ -257,8 +261,8 @@ button.group-star:hover { color: var(--text); background: #262c3d; }
 .row-resume { flex: none; width: 34px; height: 3px; border-radius: 2px; background: #262c3d; overflow: hidden; }
 .row-resume i { display: block; height: 100%; background: var(--accent-2); }
 
-/* Poisto näkyy vasta osoitettaessa: se on kokoelmien harvinaisin ele
-   eikä saa kilpailla tähden kanssa jokaisella rivillä. */
+/* Removal shows only on hover: it is the rarest gesture in the collections
+   and must not compete with the star on every row. */
 .row-x {
   width: 20px; height: 20px; flex: none; display: grid; place-items: center;
   border: 0; background: transparent; color: #394052; cursor: pointer;
@@ -267,7 +271,7 @@ button.group-star:hover { color: var(--text); background: #262c3d; }
 .row:hover .row-x, .row-x:focus-visible { opacity: 1; }
 .row-x:hover { color: var(--danger); background: #2b2230; }
 
-/* Päivä- ja tyyppiotsikot suosikeissa ja historiassa. */
+/* Day and type headings in the favourites and the history. */
 .rowgroup { display: flow-root; }
 .daysep {
   height: var(--sep-h); display: flex; align-items: center; gap: 8px;
@@ -285,22 +289,23 @@ button.group-star:hover { color: var(--text); background: #262c3d; }
 .empty strong { display: block; color: var(--text); margin-bottom: 6px; font-weight: 600; }
 .empty button { margin-top: 12px; }
 
-/* ----------------------------------------------------------- soitin */
+/* ----------------------------------------------------------- player */
 
 .stage { display: flex; flex-direction: column; min-width: 0; background: #06070a; }
 .videowrap { flex: 1; position: relative; background: #000; min-height: 0; }
 video { width: 100%; height: 100%; display: block; background: #000; }
 
-/* Selaimen oletustekstitys on läpinäkyvällä pohjalla ja katoaa vaaleaan
-   kuvaan. Laatikko on tummennettu ja rivinväli väljennetty, koska
-   kaksirivinen repliikki on tavallisin tapaus. */
+/* The browser's default subtitles sit on a transparent background and
+   disappear into a bright picture. The box is darkened and the line spacing
+   loosened, because a two-line line of dialogue is the common case. */
 video::cue { background: rgba(0, 0, 0, .72); color: #fff; line-height: 1.35; }
 
-/* Koko suhteessa selaimen omaan mittaan, joka johdetaan videon korkeudesta:
-   kiinteä pikselikoko kutistuisi olemattomiin koko näytön tilassa. Selaimen
-   oma mitta on tarkoitettu television katseluetäisyydelle ja on työpöydällä
-   turhan iso, joten koko asteikko on kerrottu 0,75:llä — myös "iso" on nyt
-   lähellä oletusta. Sovelluksen oletus on "pieni" (ks. config.js). */
+/* The size is relative to the browser's own measure, which is derived from
+   the video height: a fixed pixel size would shrink to nothing in
+   full-screen mode. The browser's measure is meant for television viewing
+   distance and is needlessly large on a desktop, so the whole scale is
+   multiplied by 0.75 — even "large" is now close to the default. The app's
+   own default is "small" (see config.js). */
 body[data-subsize="small"] video::cue { font-size: 55%; }
 body[data-subsize="medium"] video::cue { font-size: 75%; }
 body[data-subsize="large"] video::cue { font-size: 105%; }
@@ -345,8 +350,8 @@ body[data-subsize="large"] video::cue { font-size: 105%; }
 .now-sub { color: var(--muted); font-size: 11.5px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .now-actions { display: flex; gap: 6px; align-items: center; flex: none; }
 .now-actions select { background: var(--panel-2); border: 1px solid var(--border); border-radius: 8px; padding: 6px 8px; }
-/* Raidan nimi voi olla pitkä ("Ruotsi · Forced Narrative"): valitsin ei saa
-   työntää muita painikkeita ulos riviltä. */
+/* A track name can be long ("Swedish · Forced Narrative"): the selector
+   must not push the other buttons off the row. */
 .now-actions .subs { max-width: 190px; }
 .now-actions .subs[hidden], .now-actions .subsize[hidden] { display: none; }
 
@@ -363,21 +368,21 @@ dialog::backdrop { background: rgba(5, 6, 10, .66); backdrop-filter: blur(2px); 
 .hint.warn { color: var(--warn); margin: 14px 0 0; }
 
 .field { display: flex; flex-direction: column; gap: 4px; margin-bottom: 10px; }
-.field[hidden] { display: none; }        /* oma display voittaa [hidden]:n, ks. .crumbs */
+.field[hidden] { display: none; }        /* an explicit display beats [hidden], see .crumbs */
 .field span code { background: var(--panel-2); padding: 1px 4px; border-radius: 4px; }
 .field span { color: var(--muted); font-size: 11.5px; }
 .field input, .field select { background: var(--panel-2); border: 1px solid var(--border); border-radius: 8px; padding: 7px 9px; outline: none; width: 100%; }
 .field input:focus, .field select:focus { border-color: var(--accent); }
 .grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 0 10px; }
-.grid[hidden] { display: none; }         /* oma display voittaa [hidden]:n, ks. .crumbs */
+.grid[hidden] { display: none; }         /* an explicit display beats [hidden], see .crumbs */
 .grid .w-scheme { grid-column: span 1; }
 .grid .w-host { grid-column: span 2; }
 .grid .w-port { grid-column: span 1; }
 .grid .w-lang { grid-column: span 2; }
 .grid .field:nth-child(n+4) { grid-column: span 2; }
 
-/* Yhteystavan valinta. Sirut olisivat tässä liian kevyitä: valinta muuttaa
-   koko lomakkeen, joten se saa näyttää siltä miltä valinta näyttää. */
+/* Choosing the connection mode. Chips would be too light here: the choice
+   changes the whole form, so it may look like a choice. */
 .radios { display: flex; gap: 8px; margin-top: 3px; }
 .radio {
   display: flex; align-items: center; gap: 7px; cursor: pointer;
@@ -398,24 +403,26 @@ dialog::backdrop { background: rgba(5, 6, 10, .66); backdrop-filter: blur(2px); 
 .account-box .cols { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px 12px; margin-top: 6px; }
 
 .setup-actions { display: flex; align-items: center; gap: 8px; margin-top: 16px; flex-wrap: wrap; }
-/* Peruuttamattomat toiminnot omaan reunaansa, vastapäätä Yhdistä-nappia:
-   erotinviivaa tarvittiin vain niin kauan kuin ne olivat samassa nipussa
-   sen kanssa jota katsoja oikeasti hakee. */
+/* The irreversible actions to an edge of their own, opposite the Connect
+   button: the separator line was needed only for as long as they sat in the
+   same cluster as the one the viewer is actually after. */
 .setup-actions .spacer { flex: 1; }
 .setup-actions .armed { color: #fff; background: var(--danger); border-color: var(--danger); }
 
 .progress { padding: 20px 22px; width: min(420px, 90vw); }
 .progress-title { font-weight: 600; margin-bottom: 12px; }
 .bar { height: 6px; background: var(--panel-2); border-radius: 99px; overflow: hidden; }
-/* Palkki skaalataan, ei levennetä: leveyden ja marginaalin muutos pakottaisi
-   asettelun uusiksi joka ruudulla, ja määrittelemätön lataus pyörii minuutteja.
-   Liukuväri puristuu näkyvään osaan sen sijaan että siitä näkyisi vain alkupää
-   — kuuden pikselin palkissa ero ei erotu. Täyttö tulee JS:stä: scaleX(0…1). */
+/* The bar is scaled rather than widened: changing width and margin would
+   force a re-layout on every frame, and an indeterminate load spins for
+   minutes. The gradient is squeezed into the visible part instead of only
+   its head showing — in a six-pixel bar the difference does not register.
+   The fill comes from JS: scaleX(0…1). */
 .bar-fill { height: 100%; width: 100%; transform: scaleX(0); transform-origin: 0 50%; background: linear-gradient(90deg, var(--accent), var(--accent-2)); transition: transform .15s ease; }
 .bar.indeterminate .bar-fill { animation: slide 1.1s ease-in-out infinite; transition: none; }
-/* scaleX(.35) vastaa vanhaa 35 %:n leveyttä, ja koska translateX laskee
-   prosentit skaalaamattomasta leveydestä, siirtymän luvut ovat samat kuin
-   ennen margin-leftissä: reunan takaa reunan taakse. */
+/* scaleX(.35) matches the old width of 35%, and because translateX computes
+   percentages from the unscaled width, the numbers for the movement are the
+   same as they were in margin-left: from behind one edge to behind the
+   other. */
 @keyframes slide {
   0% { transform: translateX(-35%) scaleX(.35); }
   100% { transform: translateX(100%) scaleX(.35); }
@@ -480,8 +487,8 @@ dialog::backdrop { background: rgba(5, 6, 10, .66); backdrop-filter: blur(2px); 
   overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
 }
 
-/* Otsikkorivi ja kanavasarake vierivät ruudukon mukana translatella:
-   omat vierityspalkit näkyisivät kolmena päällekkäisenä palkkina. */
+/* The header row and the channel column scroll with the grid by translating:
+   scrollbars of their own would show as three overlapping bars. */
 .epg-times { grid-area: 1 / 2; overflow: hidden; position: relative; background: var(--panel); border-bottom: 1px solid var(--border); }
 .epg-times-inner { position: relative; height: 100%; will-change: transform; }
 .epg-tick {
@@ -533,7 +540,8 @@ dialog::backdrop { background: rgba(5, 6, 10, .66); backdrop-filter: blur(2px); 
 .epg-prog.sel { outline: 2px solid var(--accent); outline-offset: -2px; background: #2a2350; color: var(--text); }
 .epg-prog.empty { background: transparent; border-style: dashed; color: var(--dim); cursor: default; }
 .epg-prog.empty:hover { background: transparent; border-color: var(--border); }
-/* Menossa olevan ohjelman eteneminen — sama tieto kuin listarivin palkki. */
+/* The progress of the programme on air — the same information as the bar on
+   a list row. */
 .epg-prog.live i { position: absolute; left: 0; bottom: 0; height: 2px; background: linear-gradient(90deg, var(--accent), var(--accent-2)); }
 
 .epg-nowline { position: absolute; top: 0; width: 2px; background: var(--accent-2); pointer-events: none; z-index: 2; }

@@ -1,23 +1,24 @@
-// Pirstottu MP4 (fMP4) MediaSourcelle.
+// Fragmented MP4 (fMP4) for MediaSource.
 //
-// MSE ei ota vastaan Matroskaa, mutta sen sisällä oleva H.264 tai HEVC kelpaa
-// sellaisenaan — kehyksiä ei pureta eikä koodata uudelleen, vain kontti
-// vaihdetaan. Alkupala (ftyp+moov) kuvaa raidat, ja jokainen mediapala
-// (moof+mdat) tuo lisää näytteitä.
+// MSE will not take Matroska, but the H.264 or HEVC inside it is fine as it
+// is — frames are neither decoded nor re-encoded, only the container is
+// swapped. The init segment (ftyp+moov) describes the tracks, and every
+// media segment (moof+mdat) brings more samples.
 //
-// Kaksi asiaa vaatii tarkkuutta:
+// Two things need care:
 //
-// 1. Matroska tallettaa vain esitysajan (PTS). MP4 tarvitsee myös
-//    dekoodausajan (DTS), ja B-kuvien takia ne eroavat — mitatussa
-//    tiedostossa 1569 kehyksestä 740:n PTS meni edellistä taaksepäin.
-//    DTS saadaan järjestämällä palan PTS:t nousevaan järjestykseen ja
-//    antamalla ne dekoodausjärjestyksessä; erotus menee ctts-kenttään.
+// 1. Matroska stores only the presentation time (PTS). MP4 also needs the
+//    decode time (DTS), and because of B-frames they differ — in a measured
+//    file 740 of 1569 frames had a PTS that went backwards from the
+//    previous one. The DTS is obtained by sorting the segment's PTS values
+//    ascending and handing them out in decode order; the difference goes
+//    into the ctts field.
 //
-// 2. Aikayksiköt. Videolla 90 000 tikkiä sekunnissa jakautuu tasan kaikilla
-//    tavallisilla kuvataajuuksilla (24 → 3750, 25 → 3600, 30000/1001 → 3003).
-//    Äänellä käytetään näytetaajuutta ja kehykset ketjutetaan peräkkäin, koska
-//    Matroskan millisekunnin tarkkuus pyöristäisi AAC-kehyksen 21,333 ms:n
-//    keston ja virhe kertyisi tunnissa sekunneiksi.
+// 2. Time units. For video, 90,000 ticks per second divides evenly at every
+//    common frame rate (24 → 3750, 25 → 3600, 30000/1001 → 3003). For audio
+//    the sample rate is used and frames are chained back to back, because
+//    Matroska's millisecond resolution would round an AAC frame's 21.333 ms
+//    duration and the error would accumulate into seconds over an hour.
 
 export const VIDEO_TIMESCALE = 90000;
 
@@ -70,7 +71,7 @@ const join = (parts) => {
   return out;
 };
 
-// Yksikkömatriisi 16.16-kiintopisteinä.
+// The identity matrix in 16.16 fixed point.
 const MATRIX = u32(0x10000, 0, 0, 0, 0x10000, 0, 0, 0, 0x40000000);
 
 /* --------------------------------------------------------- alkupala */
@@ -187,13 +188,14 @@ function sampleEntry(track) {
 }
 
 function compressorName() {
-  const out = new Uint8Array(32);   // pituustavu + 31 merkkiä, nollattu
+  const out = new Uint8Array(32);   // length byte + 31 characters, zeroed
   return out;
 }
 
 /**
- * AAC:n esds. AudioSpecificConfig tulee Matroskan CodecPrivatesta
- * sellaisenaan; pituudet mahtuvat yhteen tavuun, koska ASC on 2–5 tavua.
+ * The esds for AAC. The AudioSpecificConfig comes from Matroska's
+ * CodecPrivate as it is; the lengths fit in one byte, because an ASC is
+ * 2–5 bytes.
  */
 function esds(asc) {
   const config = asc && asc.byteLength ? asc : bytes(0x11, 0x90);
@@ -213,9 +215,9 @@ function esds(asc) {
 /* --------------------------------------------------------- mediapala */
 
 /**
- * Yksi moof+mdat. Näytteet ovat dekoodausjärjestyksessä.
+ * One moof+mdat. The samples are in decode order.
  *
- * @param {number} sequence juokseva numero
+ * @param {number} sequence running number
  * @param {number} trackId
  * @param {{data:Uint8Array, dts:number, cts:number, duration:number, keyframe:boolean}[]} samples
  */
@@ -229,14 +231,15 @@ export function mediaSegment(sequence, trackId, samples) {
   ]));
   const tfdt = box('tfdt', join([u32(0x01000000), u64(baseTime)]));
 
-  // trun: kesto, koko, liput ja esitysajan poikkeama joka näytteelle.
-  // Versio 1 sallii negatiivisen poikkeaman, jota B-kuvat toisinaan vaativat.
+  // trun: duration, size, flags and the presentation-time offset for every
+  // sample. Version 1 allows a negative offset, which B-frames sometimes
+  // need.
   const flags = 0x000f01;         // data-offset + duration + size + flags + cts
   const trunPayload = new Uint8Array(8 + 4 + samples.length * 16);
   const view = new DataView(trunPayload.buffer);
   view.setUint32(0, 0x01000000 | flags);
   view.setUint32(4, samples.length);
-  let at = 12;                    // data_offset täytetään kun koko tiedetään
+  let at = 12;                    // data_offset is filled in once the size is known
   for (const s of samples) {
     view.setUint32(at, s.duration);
     view.setUint32(at + 4, s.data.byteLength);
@@ -248,9 +251,9 @@ export function mediaSegment(sequence, trackId, samples) {
   const traf = box('traf', tfhd, tfdt, box('trun', trunPayload));
   const moof = box('moof', mfhd, traf);
 
-  // data_offset osoittaa mdatin sisältöön moofin alusta laskien. Kenttä on
-  // trunin hyötykuorman tavuissa 8–11, joten sen paikka lasketaan laatikko
-  // kerrallaan moofin alusta.
+  // data_offset points into the mdat contents, counted from the start of
+  // the moof. The field is at bytes 8–11 of the trun payload, so its
+  // position is worked out one box at a time from the start of the moof.
   const dataOffsetAt = 8 + mfhd.byteLength + 8 + tfhd.byteLength + tfdt.byteLength + 8 + 8;
   new DataView(moof.buffer).setUint32(dataOffsetAt, moof.byteLength + 8);
 
@@ -261,12 +264,12 @@ export function mediaSegment(sequence, trackId, samples) {
 /* ------------------------------------------------------- ajoitus */
 
 /**
- * DTS ja ctts kehyksille joilla on vain PTS.
+ * DTS and ctts for frames that only carry a PTS.
  *
- * Palan PTS:t nousevaan järjestykseen ja jaettuna dekoodausjärjestyksessä
- * antavat kelvollisen, kasvavan DTS-sarjan. Poikkeamasta tulee ctts.
+ * The segment's PTS values sorted ascending and handed out in decode order
+ * give a valid, increasing DTS series. The difference becomes the ctts.
  *
- * @param {number[]} pts esitysajat tikkeinä, dekoodausjärjestyksessä
+ * @param {number[]} pts presentation times in ticks, in decode order
  * @returns {{dts:number[], cts:number[]}}
  */
 export function decodeTimes(pts) {
@@ -276,7 +279,8 @@ export function decodeTimes(pts) {
   return { dts, cts };
 }
 
-/** Näytteen kesto seuraavan alusta; viimeiselle jää edellisen kesto. */
+/** A sample's duration from the next one's start; the last keeps the
+ *  previous duration. */
 export function durations(dts, fallback) {
   const out = new Array(dts.length);
   for (let i = 0; i < dts.length - 1; i++) out[i] = Math.max(1, dts[i + 1] - dts[i]);

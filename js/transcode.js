@@ -1,25 +1,27 @@
-// Purettu ääni takaisin AAC:ksi MediaSourcea varten.
+// Decoded audio back to AAC for MediaSource.
 //
-// Chrome ei pura AC-3:a, E-AC-3:a eikä DTS:ää, ja mitatussa kirjastossa 53 %
-// mkv-jaksojen ääniraidoista on niitä. MediaSource ei ota vastaan PCM:ää,
-// joten purettu ääni on koodattava uudelleen johonkin mitä se ottaa —
-// WebCodecsin AAC-koodain on selaimessa valmiina ja mitattuna riittävän
-// nopea (purku 150–1300x, koodaus samaa luokkaa).
+// Chrome decodes neither AC-3, E-AC-3 nor DTS, and in the measured library
+// 53% of the audio tracks in mkv episodes are one of those. MediaSource
+// will not take PCM, so decoded audio has to be re-encoded into something
+// it will take — the WebCodecs AAC encoder is already in the browser and,
+// measured, fast enough (decoding 150–1300x, encoding in the same class).
 //
-// Kaksi mitattua rajoitetta määrää muodon:
+// Two measured constraints set the format:
 //
-//   - Koodain hyväksyy vain 44 100 ja 48 000 Hz. AC-3 sallii myös 32 000, ja
-//     kanavamäärä saa vaihtua kesken raidan. Siksi wasm-purkaja laskee kaiken
-//     kiinteään muotoon (stereo, 48 kHz) ennen koodainta.
-//   - Koodaimessa on esitäyte, jota se ei kerro eikä korjaa: mitattuna 2112
-//     näytettä eli 44 ms. Ilman korjausta ääni olisi kauttaaltaan sen verran
-//     kuvaa jäljessä. Luku on alustakohtainen (2112 on macOS:n AudioToolbox),
-//     joten se mitataan ajossa: koodataan tunnettu heräte ja puretaan se
-//     takaisin selaimen omalla purkajalla.
+//   - The encoder accepts only 44,100 and 48,000 Hz. AC-3 also allows
+//     32,000, and the channel count may change mid-track. That is why the
+//     wasm decoder brings everything down to a fixed format (stereo,
+//     48 kHz) before the encoder.
+//   - The encoder has a priming delay that it neither reports nor corrects:
+//     2112 samples, or 44 ms, when measured. Without correction the audio
+//     would lag the picture by that much throughout. The figure is
+//     platform-specific (2112 is macOS's AudioToolbox), so it is measured
+//     at run time: a known impulse is encoded and decoded back with the
+//     browser's own decoder.
 //
-// Aikaleimat ketjutetaan kuten muutenkin äänessä: MediaSourcen puolella
-// AAC-kehys on tasan 1024 näytettä, ja ketju aloitetaan ensimmäisen
-// lohkon PTS:stä miinus esitäyte.
+// The timestamps are chained as they are for audio elsewhere: on the
+// MediaSource side an AAC frame is exactly 1024 samples, and the chain
+// starts from the first block's PTS minus the priming delay.
 
 import { PcmDecoder, decodable } from './ffaudio.js';
 
@@ -29,23 +31,23 @@ const AAC_FRAME = 1024;
 const CODEC = 'mp4a.40.2';
 const BITRATE = 192000;
 
-// Tätä suurempi hyppy aikaleimoissa ei ole jitteriä vaan aukko tai jatko
-// katkenneesta latauksesta: ketju aloitetaan alusta.
+// A jump in timestamps larger than this is not jitter but a gap, or a
+// resume after an interrupted download: the chain restarts.
 const GAP_NS = 250e6;
 
-// Koodaimen jono pidetään lyhyenä. Purku on niin nopeaa, että ilman tätä
-// koko puskuroitava minuutti työnnettäisiin koodaimelle kerralla.
+// The encoder's queue is kept short. Decoding is so fast that without this
+// the whole buffered minute would be pushed at the encoder in one go.
 const MAX_QUEUE = 32;
 const QUEUE_POLL_MS = 4;
 
 /**
- * Koodaimen esitäyte ja AudioSpecificConfig. Kumpikin riippuu vain
- * kokoonpanosta, joten mittaus tehdään kerran sivua kohti.
+ * The encoder's priming delay and the AudioSpecificConfig. Both depend only
+ * on the configuration, so the measurement is made once per page.
  */
 let setup = null;
 export function encoderSetup() {
   if (!setup) setup = measure().catch((err) => {
-    console.warn('[iptv] koodaimen mittaus epäonnistui', err);
+    console.warn('[iptv] encoder measurement failed', err);
     setup = null;
     throw err;
   });
@@ -53,8 +55,9 @@ export function encoderSetup() {
 }
 
 /**
- * Koodaa herätteen ja purkaa sen takaisin. Ero herätteen tunnetun paikan ja
- * puretun paikan välillä on koodaimen esitäyte.
+ * Encodes an impulse and decodes it back. The difference between the
+ * impulse's known position and the decoded one is the encoder's priming
+ * delay.
  */
 async function measure() {
   const ONSET = 4 * AAC_FRAME;
@@ -69,15 +72,16 @@ async function measure() {
       chunk.copyTo(data);
       packets.push({ timestamp: chunk.timestamp, data });
     },
-    error: (err) => console.warn('[iptv] koodainmittaus', err),
+    error: (err) => console.warn('[iptv] encoder measurement', err),
   });
   encoder.configure({ codec: CODEC, sampleRate: RATE, numberOfChannels: CHANNELS, bitrate: BITRATE });
 
   for (let at = 0; at < TOTAL; at += AAC_FRAME) {
     const data = new Float32Array(AAC_FRAME * CHANNELS);
     for (let i = 0; i < AAC_FRAME; i++) {
-      // Kosini alkaa huipulta, joten herätteen ensimmäinen näyte ylittää
-      // kynnyksen heti — siniaalto alkaisi nollasta ja mittaus myöhästyisi.
+      // A cosine starts at its peak, so the impulse's first sample crosses
+      // the threshold at once — a sine would start from zero and the
+      // measurement would come out late.
       const s = at + i;
       const value = s < ONSET ? 0 : 0.5 * Math.cos((2 * Math.PI * 1000 * (s - ONSET)) / RATE);
       data[i * CHANNELS] = value;
@@ -90,7 +94,7 @@ async function measure() {
   }
   await encoder.flush();
   encoder.close();
-  if (!config) throw new Error('koodain ei kertonut kokoonpanoaan');
+  if (!config) throw new Error('the encoder did not report its configuration');
 
   const frames = [];
   const decoder = new AudioDecoder({
@@ -100,7 +104,7 @@ async function measure() {
       frames.push({ data, channels: frame.numberOfChannels, length: frame.numberOfFrames });
       frame.close();
     },
-    error: (err) => console.warn('[iptv] mittauspurku', err),
+    error: (err) => console.warn('[iptv] measurement decode', err),
   });
   decoder.configure({
     codec: config.codec, sampleRate: config.sampleRate,
@@ -116,14 +120,14 @@ async function measure() {
   let onset = -1;
   for (const frame of frames) {
     for (let i = 0; i < frame.length && onset < 0; i++) {
-      // Puolet herätteen amplitudista: MDCT levittää alkua molempiin
-      // suuntiin, eikä kaiku ylitä tätä.
+      // Half the impulse amplitude: the MDCT spreads the onset in both
+      // directions, and the ringing does not exceed this.
       if (Math.abs(frame.data[i * frame.channels]) > 0.25) onset = at + i;
     }
     at += frame.length;
   }
-  // Mittaamatta jäänyt viive on parempi jättää nollaksi kuin arvata: ääni on
-  // silloin 44 ms jäljessä, mikä on kuultavissa mutta ei rikki.
+  // A delay that could not be measured is better left at zero than
+  // guessed: the audio is then 44 ms late, which is audible but not broken.
   const delay = onset < 0 ? 0 : Math.max(0, onset - ONSET);
   const description = config.description
     ? new Uint8Array(config.description.buffer ? config.description.buffer : config.description).slice()
@@ -132,12 +136,12 @@ async function measure() {
 }
 
 /**
- * Yksi ääniraita purettuna ja koodattuna uudelleen. Elinkaari:
- * open() → push() jokaiselle lohkolle → take() valmiit kehykset →
- * finish() raidan lopussa → close().
+ * One audio track decoded and re-encoded. Life cycle:
+ * open() → push() for every block → take() the finished frames →
+ * finish() at the end of the track → close().
  */
 export class AudioTranscoder {
-  /** Onko purku ja koodaus tässä selaimessa mahdollista. */
+  /** Whether decoding and encoding are possible in this browser. */
   static async available(codecId) {
     if (!decodable(codecId)) return false;
     if (typeof AudioEncoder === 'undefined' || typeof AudioDecoder === 'undefined') return false;
@@ -163,9 +167,9 @@ export class AudioTranscoder {
     this.description = description;
     this.onError = onError || (() => {});
     this.chunks = [];
-    this.chainPts = null;     // ketjun ensimmäisen lohkon PTS
-    this.chainSamples = 0;    // ketjuun syötetyt näytteet
-    this.fed = 0;             // koko elinkaaren syötetyt näytteet
+    this.chainPts = null;     // the PTS of the chain's first block
+    this.chainSamples = 0;    // samples fed into the chain
+    this.fed = 0;             // samples fed over the whole life cycle
     this.nextDts = 0;
     this.closed = false;
 
@@ -179,8 +183,8 @@ export class AudioTranscoder {
   collect(chunk) {
     const dts = this.nextDts;
     this.nextDts += AAC_FRAME;
-    // Negatiivinen aika on koodaimen esitäytettä tiedoston alussa: siinä ei
-    // ole vielä ääntä, ja MediaSource ei ottaisi sitä vastaan.
+    // A negative time is the encoder's priming at the start of the file:
+    // there is no audio in it yet, and MediaSource would not take it.
     if (dts < 0) return;
     const data = new Uint8Array(chunk.byteLength);
     chunk.copyTo(data);
@@ -193,15 +197,15 @@ export class AudioTranscoder {
     this.nextDts = Math.round((ptsNs * RATE) / 1e9) - this.delay;
   }
 
-  /** Ketjun seuraavaksi odottama PTS nanosekunteina. */
+  /** The PTS the chain expects next, in nanoseconds. */
   expectedPts() {
     return this.chainPts + (this.chainSamples * 1e9) / RATE;
   }
 
   /**
-   * Yksi Matroskan lohko sisään. Aikaleiman hyppy aloittaa uuden ketjun:
-   * koodain tyhjennetään ensin, jotta vanhat kehykset saavat vielä vanhan
-   * ketjun ajat.
+   * One Matroska block in. A jump in the timestamp starts a new chain: the
+   * encoder is drained first, so that the old frames still get the old
+   * chain's times.
    */
   async push(frame) {
     if (this.closed) return;
@@ -216,11 +220,12 @@ export class AudioTranscoder {
   }
 
   /**
-   * Odottaa että jono lyhenee. Nimenomaan odottaa eikä huuhtele: flush()
-   * pakottaa koodaimen antamaan ulos myös vajaan kehyksen, jonka se täyttää
-   * hiljaisuudella. Kehysketju venyisi jokaisella huuhtelulla, ja ääni
-   * karkaisi kuvasta — mitattuna 60 sekunnin kuvaa vastasi 69 sekuntia
-   * ääntä. Huuhtelu kuuluu siis vain ketjun vaihtoon ja raidan loppuun.
+   * Waits for the queue to drain. Waits, specifically, rather than
+   * flushing: flush() forces the encoder to emit a partial frame too, which
+   * it pads with silence. The frame chain would stretch on every flush and
+   * the audio would drift away from the picture — measured, 60 seconds of
+   * picture came out as 69 seconds of audio. Flushing therefore belongs
+   * only to a chain change and to the end of a track.
    */
   async waitForQueue() {
     while (!this.closed && this.encoder.encodeQueueSize > MAX_QUEUE) {
@@ -233,8 +238,9 @@ export class AudioTranscoder {
     if (!length) return;
     this.encoder.encode(new AudioData({
       format: 'f32', sampleRate: RATE, numberOfFrames: length, numberOfChannels: CHANNELS,
-      // Koodain vaatii kasvavan aikaleiman. Se lasketaan syötetyistä
-      // näytteistä eikä lohkon PTS:stä, joka ei ole tasan jatkuva.
+      // The encoder requires an increasing timestamp. It is computed from
+      // the samples fed rather than from the block PTS, which is not
+      // exactly continuous.
       timestamp: Math.round((this.fed * 1e6) / RATE),
       data: pcm,
     }));
@@ -242,13 +248,13 @@ export class AudioTranscoder {
     this.chainSamples += length;
   }
 
-  /** Odottaa että koodain on antanut kaiken syötetyn ulos. */
+  /** Waits until the encoder has emitted everything that was fed in. */
   async drain() {
     if (this.closed) return;
     try { await this.encoder.flush(); } catch (err) { if (!this.closed) this.onError(err); }
   }
 
-  /** Raidan loppu: purkajan häntä koodaimelle ja koodain tyhjäksi. */
+  /** End of track: the decoder's tail to the encoder, then drain it. */
   async finish() {
     if (this.closed) return;
     const tail = this.decoder.flush();
@@ -257,8 +263,8 @@ export class AudioTranscoder {
   }
 
   /**
-   * Aloittaa alusta kelauksen tai uudelleenyrityksen jälkeen. Vanhat
-   * kehykset heitetään pois: ne kuuluvat aikaan josta siirryttiin pois.
+   * Starts over after a seek or a retry. The old frames are thrown away:
+   * they belong to a time that has been left behind.
    */
   async restart() {
     await this.drain();
@@ -266,7 +272,7 @@ export class AudioTranscoder {
     this.chainPts = null;
   }
 
-  /** Valmiit AAC-kehykset ja niiden ajat. Tyhjentää jonon. */
+  /** The finished AAC frames and their times. Empties the queue. */
   take() {
     return this.chunks.splice(0, this.chunks.length);
   }

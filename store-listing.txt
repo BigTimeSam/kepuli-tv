@@ -1,164 +1,172 @@
-Kepuli-TV — Chrome Web Store -kauppasivun tekstit
-=================================================
-Kauppasivu ei tue Markdownia. Tekstit ovat tarkoituksella pelkkää tekstiä ja
-kopioitavissa sellaisenaan. Oletuskieleksi kannattaa valita suomi, koska
-käyttöliittymä on suomenkielinen.
+Kepuli-TV — Chrome Web Store listing copy
+=========================================
+The store page does not support Markdown. These texts are deliberately plain
+and can be copied as they are. English is the language to choose, because the
+interface is in English by default.
 
 
---- LYHYT KUVAUS (kenttä "Description", max 132 merkkiä) --------------------
-Sama teksti on manifest.json:issa, josta kauppa lukee sen automaattisesti.
-Pituus 105 merkkiä.
+--- SHORT DESCRIPTION (field "Description", max 132 characters) ------------
+The same text is in manifest.json, from which the store reads it
+automatically. Length 117 characters.
 
-Xtream Codes -IPTV-soitin selaimeen: kanavat, ohjelmaopas, elokuvat ja sarjat — myös MKV tekstityksineen.
-
-
---- PITKÄ KUVAUS (kenttä "Detailed description", max 16 000 merkkiä) -------
-
-Kepuli-TV toistaa oman Xtream Codes -IPTV-tilisi sisällön suoraan Chromessa.
-Ei erillistä sovellusta eikä mediapalvelinta: annat palvelimen osoitteen ja
-tunnukset, ja kanavat, elokuvat ja sarjat ovat listassa.
-
-HUOMAA: Laajennus ei sisällä, jaa eikä välitä mitään sisältöä, kanavia eikä
-palveluntarjoajia. Tarvitset oman Xtream Codes -IPTV-tilin, jonka olet itse
-hankkinut. Kepuli-TV on pelkkä soitin, ja se on tarkoitettu vain sellaisen
-sisällön katseluun johon sinulla on oikeus. Vastaat itse siitä, että
-käyttämäsi palvelu on laillinen omassa maassasi.
+Xtream Codes IPTV player for the browser: channels, programme guide, movies and series — MKV with subtitles included.
 
 
-TOISTAA MYÖS SEN MITÄ SELAIN EI OSAA
+--- LONG DESCRIPTION (field "Detailed description", max 16,000 characters) --
 
-Chrome ei ota Matroskaa vastaan, vaikka sen sisällä oleva kuva kelpaisi.
-Kepuli-TV purkaa MKV-kontin lennossa fMP4:ksi ja syöttää sen selaimen omalle
-toistimelle — kuvaa ei pureta eikä koodata uudelleen, joten työ on kevyttä ja
-kelaus toimii normaalisti.
+Kepuli-TV plays the contents of your own Xtream Codes IPTV account straight in
+Chrome. No separate application and no media server: you give the server
+address and your credentials, and the channels, movies and series are in the
+list.
 
-Ääni ratkaisee useammin kuin kontti: yli puolet jaksoista käyttää AC-3:a,
-E-AC-3:a tai DTS:ää, joita Chromessa ei ole. Ne puretaan wasm-purkajalla ja
-koodataan takaisin AAC:ksi selaimen omalla koodaimella.
-
-Mitattuna 23 628 jakson otoksella: ilman näitä toistuisi 44,6 %, purun kanssa
-93,7 %.
-
-
-TEKSTITYKSET
-
-MKV-tiedostojen tekstitysraidat poimitaan purun yhteydessä ja annetaan
-selaimelle, joten ne näkyvät myös koko näytön tilassa. Soittimen alla on
-kielivalitsin aakkosjärjestyksessä ja kolme kokoa. Valittu kieli jää muistiin
-ja tarttuu sarjan seuraavaan jaksoon.
-
-Tuetut muodot ovat SRT, ASS/SSA ja WebVTT. Bittikarttatekstitykset (PGS,
-VOBSUB) ovat kuvia eivätkä näy selaimessa.
+PLEASE NOTE: The extension contains, distributes and relays no content, no
+channels and no providers. You need your own Xtream Codes IPTV account, which
+you have obtained yourself. Kepuli-TV is a player and nothing else, and it is
+intended solely for viewing content you have the right to view. You are
+responsible for ensuring that the service you use is lawful in your own
+country.
 
 
-NOPEA MYÖS VALTAVILLA LISTOILLA
+IT PLAYS WHAT THE BROWSER CANNOT
 
-Tyypillinen toistolista on kymmeniä megatavuja ja satojatuhansia rivejä.
-Kepuli-TV ei lataa sitä kerralla. Se hakee player_api.php-rajapinnasta vain
-sen mitä kulloinkin selaat: kategoriat yhteyttä avatessa, valitun maan
-kanavat vasta maata klikatessa, koko lista vasta jos haet siitä. Maan kanavat
-aukeavat tyypillisesti sekunnin parin kuluessa.
+Chrome will not take Matroska, even when the picture inside it would be fine.
+Kepuli-TV unpacks the MKV container on the fly into fMP4 and feeds it to the
+browser's own player — the picture is neither decoded nor re-encoded, so the
+work is light and seeking behaves normally.
 
-Kaikki kertaalleen ladattu jää IndexedDB-välimuistiin, joten seuraava avaus
-on välitön. Välimuistin voi tyhjentää asetuksista.
+The audio decides more often than the container: more than half of the
+episodes use AC-3, E-AC-3 or DTS, none of which exist in Chrome. Those are
+decoded with a wasm decoder and encoded back to AAC with the browser's own
+encoder.
 
-
-KATEGORIAT JÄRKEVÄSSÄ MUODOSSA
-
-Palveluntarjoajat pakkaavat kaksi tasoa yhteen merkkijonoon: "Sweden - Sport",
-"Albania - Movies Club". Kepuli-TV purkaa ne, jolloin sadat sekavat kategoriat
-tiivistyvät kymmeniksi maiksi sivupalkkiin ja aiheet siirtyvät yläreunan
-tarkennepainikkeiksi.
-
-Listat aakkostetaan aina, myös numerot lukuina: Rocky 2 on ennen Rocky 10:tä.
-Sivupalkin haku osuu myös alakategorioihin: sanalla "sport" löydät maat
-joilla on urheilukanavia, vaikka maan nimessä ei sitä lue.
+Measured on a sample of 23,628 episodes: without these, 44.6% would play; with
+the unpacking, 93.7%.
 
 
-OHJELMAOPAS JA ARKISTO
+SUBTITLES
 
-Opas (näppäin g) vaihtaa koko ikkunan ruudukoksi: kanavat riveinä, aika
-vaaka-akselilla ja liikkuva nyt-viiva. Video jatkuu nurkassa. Aikajana
-ulottuu kahdesta vuorokaudesta taaksepäin viiteen eteenpäin, ja niillä
-kanavilla joilla on arkisto menneen ohjelman voi käynnistää suoraan
-oppaasta.
+The subtitle tracks of MKV files are picked up during the unpacking and handed
+to the browser, so they show in full-screen mode too. Below the player there is
+a language selector in alphabetical order and three sizes. The chosen language
+is remembered and carries over to the next episode of a series.
 
-
-OMINAISUUDET
-
-• Ohjelmatiedot listariveillä: käynnissä oleva ohjelma ja edistymispalkki
-• Ohjelmaopas koko ikkunalle ja catchup arkiston kattavilta kanavilta
-• MKV-toisto ja tekstitykset ilman ulkoista soitinta
-• Sarjat kausittain, kansikuvat ja jaksokuvaukset
-• Elokuvien tiedot: juoni, kesto, arvosana, koodekki
-• Toistokelvottomat merkitään listalla jo ennen klikkausta
-• Luovutus työpöytäsoittimelle (VLC, IINA, mpv) katselukohta mukanaan
-• Katselukohdan muistaminen elokuville ja jaksoille
-• Käyttöliittymä englanniksi ja suomeksi
-• Suosikit ja katseluhistoria omina välilehtinään
-• Kokonainen kategoria suosikiksi: sen kanavat aukeavat suoraan
-  suosikkilistalta, aina tuoreena
-• Automaattinen uudelleenyhdistäminen kun live-virta katkeaa
-• Tekniset tiedot kuvan päällä: resoluutio, bittinopeus, toistomoottori
-• Tilin tiedot näkyvissä: voimassaolo ja yhtäaikaisten yhteyksien määrä
-• Näppäimistöohjaus: / haku, nuolinäppäimet listalla, väli tauko,
-  f koko näyttö, m mykistys, n ja p seuraava ja edellinen, g ohjelmaopas,
-  x luovutus ulkoiselle soittimelle
+The supported formats are SRT, ASS/SSA and WebVTT. Bitmap subtitles (PGS,
+VOBSUB) are images and do not show in the browser.
 
 
-MITÄ SELAIN TOISTAA
+FAST EVEN WITH ENORMOUS LISTS
 
-Live-kanavat toistetaan MPEG-TS-virtana ja tarvittaessa HLS:nä.
-Automaattitilassa kokeillaan ensin TS:ää pienemmän viiveen vuoksi ja
-siirrytään HLS:ään jos se ei käynnisty.
+A typical playlist is tens of megabytes and hundreds of thousands of lines.
+Kepuli-TV does not load it in one go. It fetches from the player_api.php API
+only what you are browsing at the time: the categories when the connection
+opens, a country's channels only when you click the country, the whole list
+only if you search it. A country's channels typically open within a second or
+two.
 
-Elokuvista ja jaksoista toistuvat .mp4, .m4v, .mov, .webm, .ts, .flv ja .mkv.
-Ulkopuolelle jäävät AVI-kontti, VC-1 ja 10-bittinen H.264. Ne on merkitty
-listalla jo ennen klikkausta, ja niiden osoitteen saa yhdellä painikkeella
-työpöytäsoittimeen tai leikepöydälle.
-
-
-TIETOSUOJA JA OIKEUDET
-
-• Kaikki data pysyy omalla koneellasi. Laajennus ei lähetä tietojasi
-  minnekään: verkkopyynnöt menevät vain sinun omalle palvelimellesi.
-  Poikkeus ovat kanava- ja kansikuvat, jotka selain hakee niistä osoitteista
-  jotka palveluntarjoajasi on listaan merkinnyt — ne voivat osoittaa muualle.
-• Ei seurantaa, ei analytiikkaa, ei mainoksia, ei käyttäjätilejä.
-• Asennus ei pyydä pääsyä yhteenkään sivustoon. Chrome kysyy oikeutta vasta
-  kun syötät oman palvelimesi osoitteen, ja vain sille osoitteelle.
-• Sisältöskriptejä ei ole: laajennus ei kosketa selaamiisi sivuihin.
-• Tunnukset tallentuvat laajennuksen omaan tallennustilaan tällä koneella.
-
-Käyttöliittymä on suomenkielinen.
+Everything loaded once stays in the IndexedDB cache, so the next open is
+instant. The cache can be cleared from the settings.
 
 
---- KAUPAN LOMAKKEEN MUUT KENTÄT -------------------------------------------
+CATEGORIES IN A SENSIBLE SHAPE
 
-Kategoria (Store listing → Product details → Category):
-Entertainment (ryhmässä Lifestyle). Videon toisto kuuluu sinne; Productivity-
-ryhmän vaihtoehdot (Workflow & Planning, Tools, Developer Tools) eivät sovi.
+Providers pack two levels into a single string: "Sweden - Sport", "Albania -
+Movies Club". Kepuli-TV splits them, which condenses hundreds of muddled
+categories into dozens of countries in the sidebar and moves the subjects into
+topic buttons along the top.
 
-Kieli (Language):
-suomi — käyttöliittymässä ei ole muita kieliä.
+Lists are always sorted alphabetically, numbers as numbers included: Rocky 2
+comes before Rocky 10. The sidebar search matches sub-categories too: with the
+word "sport" you find the countries that have sports channels even when the
+country's name lacks it.
 
-Yksi käyttötarkoitus, oikeudet, etäkoodi ja tietojen käyttö:
-Omana osionaan tiedoston lopussa — kentät kopioitavassa muodossa.
 
-Kolmannen osapuolen koodi ja lisenssit:
+PROGRAMME GUIDE AND ARCHIVE
+
+The guide (the g key) turns the whole window into a grid: channels as rows,
+time on the horizontal axis and a moving now line. The video continues in the
+corner. The timeline runs from two days back to five days forward, and on
+channels that have an archive a past programme can be started straight from the
+guide.
+
+
+FEATURES
+
+• Programme data on the list rows: the programme on air and a progress bar
+• A full-window programme guide, and catch-up on channels with an archive
+• MKV playback and subtitles without an external player
+• Series by season, with cover art and episode descriptions
+• Movie details: plot, running time, rating, codec
+• Unplayable files are marked in the list before you click
+• Hand-off to a desktop player (VLC and the like) with the resume position
+• Resume positions remembered for movies and episodes
+• The interface in English and Finnish
+• Favourites and viewing history as tabs of their own
+• A whole category as a favourite: its channels open straight from the
+  favourites list, always fresh
+• Automatic reconnection when a live stream drops
+• Technical details over the picture: resolution, bitrate, playback engine
+• Account details in view: validity and the number of concurrent connections
+• Keyboard control: / search, arrow keys in the list, space pause,
+  f full screen, m mute, n and p next and previous, g programme guide,
+  x hand over to an external player
+
+
+WHAT THE BROWSER PLAYS
+
+Live channels are played as an MPEG-TS stream and, when needed, as HLS. In
+automatic mode TS is tried first for its lower latency, and HLS takes over if
+it does not start.
+
+Of movies and episodes, .mp4, .m4v, .mov, .webm, .ts, .flv and .mkv play. Left
+out are the AVI container, VC-1 and 10-bit H.264. Those are marked in the list
+before you click, and their address goes to a desktop player or to the
+clipboard with a single button.
+
+
+PRIVACY AND PERMISSIONS
+
+• All data stays on your own machine. The extension sends your details
+  nowhere: network requests go only to your own server. The exception is
+  channel logos and cover art, which the browser fetches from the addresses
+  your provider put in the listing — those may point elsewhere.
+• No tracking, no analytics, no advertising, no user accounts.
+• Installation asks for access to no site at all. Chrome asks for the
+  permission only when you enter your own server address, and only for that
+  address.
+• There are no content scripts: the extension does not touch the pages you
+  browse.
+• Credentials are stored in the extension's own storage on this machine.
+
+The interface is in English, with Finnish available in the settings.
+
+
+--- THE OTHER FIELDS ON THE STORE FORM -------------------------------------
+
+Category (Store listing → Product details → Category):
+Entertainment (in the Lifestyle group). Video playback belongs there; the
+options in the Productivity group (Workflow & Planning, Tools, Developer
+Tools) do not fit.
+
+Language:
+English — Finnish is available in the settings, but English is the default.
+
+Single purpose, permissions, remote code and data usage:
+In a section of their own at the end of this file — the fields in copyable
+form.
+
+Third-party code and licences:
 • mpegts.js (Apache-2.0), hls.js (Apache-2.0)
-• vendor/ffaudio — FFmpegistä käännetty äänipurkaja, LGPL-2.1+; lisenssiteksti
-  on mukana paketissa (vendor/ffaudio/COPYING.LGPLv2.1).
+• vendor/ffaudio — an audio decoder built from FFmpeg, LGPL-2.1+; the licence
+  text ships in the package (vendor/ffaudio/COPYING.LGPLv2.1).
 
 
---- PRIVACY PRACTICES -VÄLILEHTI -------------------------------------------
-Kentät ovat englanniksi, koska kauppa tarkistaa ne ihmisvoimin englanniksi.
-Kauppasivun julkinen teksti (yllä) on suomeksi; nämä kentät eivät näy
-käyttäjälle sitä kautta. Merkkirajat 1 000 / kenttä, kaikki mahtuvat.
+--- THE PRIVACY PRACTICES TAB ----------------------------------------------
+The fields below are written for the reviewer. The character limits are 1,000
+per field; all of them fit.
 
 
-SINGLE PURPOSE DESCRIPTION (815 merkkiä)
-----------------------------------------
+SINGLE PURPOSE DESCRIPTION (815 characters)
+-------------------------------------------
 Kepuli-TV does one thing: it plays back the user's own IPTV subscription in the browser.
 
 The user enters the address and credentials of an Xtream Codes server they already pay for. The extension lists that account's live channels, movies and series and plays them in its own tab, together with the programme guide the server provides.
@@ -166,8 +174,8 @@ The user enters the address and credentials of an Xtream Codes server they alrea
 The extension ships no content, no channel list and no account of its own; it is useless without an account the user brings. It has no content scripts and never touches the pages the user browses - clicking the toolbar icon opens the extension's own tab and nothing else. Every feature serves that single purpose: fetching the account's catalogue, remuxing MKV to fMP4 so Chrome can play it, decoding AC-3/E-AC-3/DTS audio, showing subtitles, and remembering playback positions.
 
 
-STORAGE JUSTIFICATION (855 merkkiä)
------------------------------------
+STORAGE JUSTIFICATION (855 characters)
+--------------------------------------
 chrome.storage.local holds only what the player cannot work without:
 
 1) The connection the user configures - their own IPTV server address, port, username and password - so the credentials are not retyped every time the player tab is opened.
@@ -177,18 +185,18 @@ chrome.storage.local holds only what the player cannot work without:
 All of it is written by the user's own actions inside the extension's own tab, stays on the device, and is never transmitted anywhere - the extension has no backend and no analytics. Without this permission the user would have to re-enter their server address and credentials on every launch, and no favourite, history entry or resume position could survive a page reload.
 
 
-UNLIMITEDSTORAGE JUSTIFICATION (688 merkkiä)
---------------------------------------------
+UNLIMITEDSTORAGE JUSTIFICATION (688 characters)
+-----------------------------------------------
 The catalogue returned by the user's own IPTV server is cached in IndexedDB so it is not re-downloaded on every launch. These catalogues are large: tens of megabytes of JSON for channels, movies and series, and programme guide data per channel. That routinely exceeds the default quota Chrome grants an extension. When the quota is hit, cache writes fail and the user waits through a full re-download of a multi-megabyte listing on every navigation, which makes the extension unusable on normal IPTV accounts.
 
 No personal data is stored under this permission - only a copy of the listing the user's own server returned. The cache can be cleared from the extension's settings at any time.
 
 
-HOST PERMISSION JUSTIFICATION (686 merkkiä)
--------------------------------------------
-Kenttä ilmestyy vain jos kauppa kysyy host-oikeuksista. Manifestissa on
-optional_host_permissions eikä host_permissions, joten kenttää ei
-välttämättä näy lainkaan.
+HOST PERMISSION JUSTIFICATION (686 characters)
+----------------------------------------------
+This field appears only if the store asks about host permissions. The manifest
+declares optional_host_permissions rather than host_permissions, so the field
+may not appear at all.
 
 The extension does not request host access at install time. http://*/* and https://*/* are declared under optional_host_permissions only, and Chrome asks for the permission at runtime - for the single origin the user typed - the first time they save their own server address.
 
@@ -197,53 +205,53 @@ The permission is needed because an IPTV server can be at any address and that a
 
 ARE YOU USING REMOTE CODE?
 --------------------------
-Valinta: "No, I am not using Remote code".
+The choice: "No, I am not using Remote code".
 
-Justification (706 merkkiä), jos kenttä on auki:
+Justification (706 characters), if the field is open:
 
 No remote code is used. Every script and binary the extension executes ships inside the package: mpegts.js and hls.js under vendor/, and an audio decoder compiled from FFmpeg to WebAssembly at vendor/ffaudio/, loaded with fetch() from the extension's own chrome-extension:// path. There are no <script> tags referencing external files, no remote module imports, no eval() and no new Function().
 
 The manifest CSP is "script-src 'self' 'wasm-unsafe-eval'; object-src 'self'". The 'wasm-unsafe-eval' keyword is required only to instantiate that packaged .wasm file; no remote origin appears in script-src. Network requests fetch media and catalogue data from the IPTV server the user configures - never code.
 
 
-DATA USAGE — RASTIT
--------------------
-Rastita:
+DATA USAGE — THE CHECKBOXES
+---------------------------
+Tick:
   [x] Authentication information
 
-Kaikki muut jätetään rastittamatta:
-  [ ] Personally identifiable information — ei kysytä nimeä, sähköpostia
-      eikä tunnistenumeroa
+Leave every other box unticked:
+  [ ] Personally identifiable information — no name, e-mail address or
+      identity number is asked for
   [ ] Health information
-  [ ] Financial and payment information — laajennus ei käsittele maksuja
+  [ ] Financial and payment information — the extension handles no payments
   [ ] Personal communications
-  [ ] Location — ei paikannusta; oma palvelin näkee IP:n, mutta se on
-      palveluntarjoajan liikennettä eikä laajennuksen keräämää
-  [ ] Web history — ei sisältöskriptejä, ei pääsyä selaushistoriaan
-  [ ] User activity — suosikit, historia ja katselukohdat jäävät laitteelle
-      eikä niitä lähetetä minnekään
-  [ ] Website content — laajennus ei lue selattavien sivujen sisältöä
+  [ ] Location — no geolocation; the user's own server sees their IP, but that
+      is the provider's traffic and not something the extension collects
+  [ ] Web history — no content scripts, no access to browsing history
+  [ ] User activity — favourites, history and resume positions stay on the
+      device and are sent nowhere
+  [ ] Website content — the extension does not read the contents of the pages
+      being browsed
 
-Miksi Authentication information rastitetaan vaikka mitään ei lähetetä
-kehittäjälle: käyttäjä syöttää IPTV-tunnuksensa laajennukseen ja ne
-välitetään Xtream Codes -rajapinnan tapaan pyynnön osoitteessa käyttäjän
-omalle palvelimelle. Kaupan määritelmä "user data" kattaa käyttäjältä
-saadun tiedon, ja tunnusten pyytäminen ilman rastia on tunnettu
-hylkäyssyy ("incomplete data disclosure"). Rasti ei ole ongelma: kolme
-sertifiointia (ei myydä, ei käytetä käyttötarkoituksen ulkopuolella, ei
-luottokelpoisuuteen) pitävät paikkansa, ja tietosuojaseloste kertoo että
-tunnukset pysyvät laitteella ja kulkevat vain käyttäjän omalle
-palvelimelle.
+Why Authentication information is ticked even though nothing is sent to the
+developer: the user enters their IPTV credentials into the extension, and in
+the manner of the Xtream Codes API those are passed in the request URL to the
+user's own server. The store's definition of "user data" covers data received
+from the user, and asking for credentials without the tick is a known
+rejection reason ("incomplete data disclosure"). The tick is not a problem: all
+three certifications (not sold, not used outside the single purpose, not used
+for creditworthiness) hold true, and the privacy policy states that the
+credentials stay on the device and travel only to the user's own server.
 
-Sertifioinnit: rastita kaikki kolme.
+Certifications: tick all three.
 
 
 PRIVACY POLICY URL
 ------------------
 https://bigtimesam.github.io/kepuli-tv/tietosuoja/
 
-Käyttöehdot (ei pakollinen kenttä, voi linkittää kuvauksesta):
+Terms of use (not a mandatory field; it can be linked from the description):
 https://bigtimesam.github.io/kepuli-tv/kayttoehdot/
 
-Sivun lähde on tässä repossa: docs/tietosuoja/index.html (yksi tiedosto,
-ei riippuvuuksia). Osoitteen on oltava julkinen ja ilman kirjautumista.
+The source of the page is in this repository: docs/tietosuoja/index.html (one
+file, no dependencies). The address has to be public and require no sign-in.

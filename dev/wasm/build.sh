@@ -1,15 +1,16 @@
 #!/bin/sh
-# Kääntää vendor/ffaudio/:n: FFmpegin AC-3-, E-AC-3- ja DTS-purkajat wasmiksi.
+# Builds vendor/ffaudio/: FFmpeg's AC-3, E-AC-3 and DTS decoders as wasm.
 #
-# Käännös ei ole osa tavallista kehityssilmukkaa — tulos on versioitu
-# vendor/ffaudio/:iin, ja tätä ajetaan vain kun FFmpegiä päivitetään tai
-# ffaudio.c muuttuu. Työkalut ja lähteet menevät $BUILD-hakemistoon (oletus
-# ~/.cache/kepuli-tv-build), eivät projektiin; ne vievät noin 2,5 Gt.
+# The build is not part of the ordinary development loop — the result is
+# committed to vendor/ffaudio/, and this is run only when FFmpeg is updated
+# or ffaudio.c changes. The tools and sources go into the $BUILD directory
+# (~/.cache/kepuli-tv-build by default), not into the project; they take
+# about 2.5 GB.
 #
-#   sh dev/wasm/build.sh          käännä
-#   sh dev/wasm/build.sh --test   käännä, tee testiaineisto ja vertaa ffmpegiin
+#   sh dev/wasm/build.sh          build
+#   sh dev/wasm/build.sh --test   build, make test material and compare with ffmpeg
 #
-# Vaatii: git, make, (--test myös ffmpeg ja node)
+# Requires: git, make, (--test also ffmpeg and node)
 
 set -e
 
@@ -36,9 +37,9 @@ if [ ! -d "$BUILD/ffmpeg" ]; then
 fi
 FF=$BUILD/ffmpeg
 
-# --disable-all riisuu kaiken; mukaan otetaan vain kolme purkajaa, niiden
-# jäsentimet ja swresample. Ei muxereita eikä protokollia. Ei GPL-osia:
-# tulos on LGPL 2.1+.
+# --disable-all strips everything; only the three decoders, their parsers
+# and swresample are taken in. No muxers, no protocols. No GPL parts: the
+# result is LGPL 2.1+.
 echo "--> configure"
 ( cd "$FF" && ./configure \
     --cc=emcc --cxx=em++ --ar=emar --ranlib=emranlib --nm=emnm --objcc=emcc --dep-cc=emcc \
@@ -54,8 +55,8 @@ echo "--> configure"
 echo "--> make"
 ( cd "$FF" && emmake make -j"$(sysctl -n hw.ncpu 2>/dev/null || nproc)" >/dev/null )
 
-# -Oz säästäisi 15 kt mutta maksaa nopeudessa; purku on jo 150–900x
-# reaaliaikaa, joten koko ei ole se mistä tässä tingitään.
+# -Oz would save 15 kB but costs speed; decoding already runs at 150–900x
+# real time, so size is not what is traded away here.
 echo "--> emcc"
 mkdir -p "$OUT"
 emcc "$ROOT/dev/wasm/ffaudio.c" -I"$FF" \
@@ -74,8 +75,8 @@ ls -l "$OUT"
 
 echo "--> testiaineisto"
 mkdir -p "$MEDIA"
-# Eri taajuus joka kanavalle: kanavakartan virhe näkyy heti, samanlainen
-# siniaalto kaikkialla ei paljastaisi sitä.
+# A different frequency for every channel: an error in the channel map shows
+# up at once, whereas an identical sine everywhere would hide it.
 SRC="aevalsrc=0.5*sin(2*PI*200*t)|0.5*sin(2*PI*300*t)|0.5*sin(2*PI*400*t)|0.5*sin(2*PI*500*t)|0.5*sin(2*PI*600*t)|0.3*sin(2*PI*80*t):c=5.1:d=5:s=48000"
 STEREO="aevalsrc=0.5*sin(2*PI*440*t)|0.5*sin(2*PI*660*t):c=stereo:d=5:s=48000"
 ffmpeg -v error -y -f lavfi -i "$SRC"    -c:a ac3  -b:a 640k "$MEDIA/t51.ac3"
@@ -83,23 +84,24 @@ ffmpeg -v error -y -f lavfi -i "$SRC"    -c:a eac3 -b:a 640k "$MEDIA/t51.eac3"
 ffmpeg -v error -y -f lavfi -i "$SRC"    -c:a eac3 -b:a 192k "$MEDIA/t51_192.eac3"
 ffmpeg -v error -y -f lavfi -i "$STEREO" -c:a eac3 -b:a 128k "$MEDIA/t2.eac3"
 ffmpeg -v error -y -f lavfi -i "$SRC"    -c:a dca -strict -2 -b:a 1509k "$MEDIA/t51.dts"
-# 32 kHz on AC-3:lla laillinen mutta selaimen AAC-koodaimelle kelpaamaton,
-# joten se on näytetaajuusmuunnoksen ainoa pakollinen tapaus.
+# 32 kHz is legal for AC-3 but unacceptable to the browser's AAC encoder, so
+# it is the one case where resampling is mandatory.
 SRC32="aevalsrc=0.5*sin(2*PI*200*t)|0.5*sin(2*PI*300*t)|0.5*sin(2*PI*400*t)|0.5*sin(2*PI*500*t)|0.5*sin(2*PI*600*t)|0.3*sin(2*PI*80*t):c=5.1:d=5:s=32000"
 ffmpeg -v error -y -f lavfi -i "$SRC32"  -c:a ac3 -b:a 448k "$MEDIA/t32.ac3"
 
-# Kanavamäärän vaihtuminen kesken virran: mono ja stereo peräkkäin samassa
-# tiedostossa. Kirjastossa on tällaisia, ja kääreen ulostulopuskuri osaa
-# pitää vain yhtä muotoa kerrallaan — tämä koettelee sen rajakohdan.
+# The channel count changing mid-stream: mono and stereo back to back in the
+# same file. The library holds files like this, and the wrapper's output
+# buffer can hold only one format at a time — this exercises that boundary.
 MONO="aevalsrc=0.5*sin(2*PI*440*t):c=mono:d=2:s=48000"
 DUO="aevalsrc=0.5*sin(2*PI*440*t)|0.5*sin(2*PI*660*t):c=stereo:d=2:s=48000"
 ffmpeg -v error -y -f lavfi -i "$MONO" -c:a ac3 -b:a  96k "$MEDIA/mono.ac3"
 ffmpeg -v error -y -f lavfi -i "$DUO"  -c:a ac3 -b:a 192k "$MEDIA/st.ac3"
 cat "$MEDIA/mono.ac3" "$MEDIA/st.ac3" > "$MEDIA/mix.ac3"
 
-# Vertailu-PCM samalla ketjulla jota kääre käyttää: purkajan oma alaslaskenta
-# ensin (-downmix), sitten swresample stereoksi (-ac 2). DTS:llä ensimmäinen
-# ei tee mitään ja jälkimmäinen tekee kaiken; AC-3:lla toisin päin.
+# The reference PCM through the same chain the wrapper uses: the decoder's
+# own downmix first (-downmix), then swresample to stereo (-ac 2). With DTS
+# the first does nothing and the second does everything; with AC-3 the other
+# way round.
 for f in "$MEDIA"/t51.ac3 "$MEDIA"/t51.eac3 "$MEDIA"/t51_192.eac3 "$MEDIA"/t2.eac3 \
          "$MEDIA"/t51.dts "$MEDIA"/mix.ac3 "$MEDIA"/t32.ac3; do
     ffmpeg -v error -y -downmix stereo -i "$f" -ac 2 -ar 48000 -f f32le -acodec pcm_f32le "$f.dref"

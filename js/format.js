@@ -1,9 +1,10 @@
-// Muotoilijat. Yksi Intl-instanssi per muoto: uuden luominen jokaiselle
-// riville olisi virtualisoidussa listassa mitattavaa kuormaa.
+// Formatters. One Intl instance per format: creating a new one for every
+// row would be measurable load in a virtualised list.
 //
-// Instanssit ovat let-sidoksia eivätkä vakioita, koska kieli voi vaihtua
-// kesken istunnon. ES-moduulin tuonti on elävä sidos, joten setLocale
-// riittää: kaikki tuojat näkevät uuden muotoilijan ilman omaa toimenpidettä.
+// The instances are let bindings rather than constants, because the
+// language can change mid-session. An ES module import is a live binding,
+// so setLocale is enough: every importer sees the new formatter without
+// doing anything itself.
 
 import { t, localeTag } from './i18n.js';
 
@@ -47,14 +48,14 @@ export function clockDuration(seconds) {
   return `${h > 0 ? h + ':' : ''}${mm}:${String(s).padStart(2, '0')}`;
 }
 
-/** Ohjelman eteneminen 0–1, tai null jos ei käynnissä. */
+/** Programme progress 0–1, or null when it is not on air. */
 export function progressOf(programme, now = Date.now()) {
   if (!programme || !programme.start || !programme.stop) return null;
   if (now < programme.start || now >= programme.stop) return null;
   return (now - programme.start) / (programme.stop - programme.start);
 }
 
-/** "tänään", "eilen", "pe 5.9." — lyhyt muoto mahtuu oppaan aikajanalle. */
+/** "today", "yesterday", "Fri 5/9" — the short form fits the guide timeline. */
 export function shortDay(ms) {
   const diff = dayOffset(ms);
   if (diff === 0) return t('day.short.today');
@@ -64,9 +65,9 @@ export function shortDay(ms) {
 }
 
 /**
- * Historian väliotsikko: "Tänään", "Eilen", "Maanantai", "12.8.2025".
- * Viikonpäivä riittää nimeksi vain kuluvan viikon ajan — sen jälkeen
- * "maanantai" olisi kahdeksan päivän päässä yhtä hyvin kuin eilen.
+ * History section heading: "Today", "Yesterday", "Monday", "12 Aug 2025".
+ * A weekday name identifies a day only within the current week — after
+ * that "Monday" could be eight days ago just as well as yesterday.
  */
 export function dayLabel(ms) {
   if (!ms) return t('day.earlier');
@@ -81,8 +82,8 @@ export function dayLabel(ms) {
   return dateFmt.format(date);
 }
 
-/** Vuorokausia tästä päivästä. Kesäaika tekee päivistä 23 ja 25 tunnin
- *  mittaisia, joten ero lasketaan kalenteripäivinä eikä jakolaskuna. */
+/** Days from today. Daylight saving makes days 23 and 25 hours long, so
+ *  the difference is counted in calendar days rather than by division. */
 function dayOffset(ms) {
   const a = new Date(ms); a.setHours(0, 0, 0, 0);
   const b = new Date(); b.setHours(0, 0, 0, 0);

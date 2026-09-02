@@ -1,27 +1,10 @@
 # Kepuli-TV
 
-Chrome-laajennus (Manifest V3), joka toistaa Xtream Codes -IPTV:tä suoraan
-selaimessa. Data haetaan `player_api.php`-rajapinnasta laiskasti: vain se mitä
-selaat, silloin kun selaat.
+A Chrome extension (Manifest V3) that plays Xtream Codes IPTV straight in the
+browser. Data is fetched from the `player_api.php` API lazily: only what you
+browse, when you browse it.
 
-## Käyttötarkoitus
-
-Kepuli-TV on soitin. Se ei sisällä, jaa, isännöi eikä indeksoi mitään
-mediasisältöä, kanavia, toistolistoja eikä palveluntarjoajia, eikä sen mukana
-toimiteta yhtään osoitetta mihinkään palveluun. Ilman tunnuksia, jotka
-käyttäjä tuo itse, se ei tee mitään.
-
-Ohjelma on tarkoitettu vain sellaisen sisällön katseluun, johon käyttäjällä on
-oikeus: omaan maksettuun tilaukseen, omaan mediaan tai muuhun aineistoon jonka
-katseluun hänellä on lupa. Käyttäjä vastaa itse siitä, että hänen käyttämänsä
-palvelu ja sen sisältö ovat laillisia hänen maassaan.
-
-Tekijä ei tarjoa, myy, suosittele eikä neuvo IPTV-tilausten hankinnassa eikä
-vastaa niitä koskeviin kysymyksiin. Tällaiset issuet suljetaan.
-
-Ohjelmisto toimitetaan sellaisenaan ilman takuuta; ks. LICENSE.
-
-### Intended use
+## Intended use
 
 Kepuli-TV is a player. It contains, distributes, hosts and indexes no media,
 channels, playlists or providers, and ships no address to any service. It does
@@ -37,491 +20,508 @@ subscriptions, and does not answer questions about them. Such issues are closed.
 
 The software is provided as is, without warranty; see LICENSE.
 
-## Asennus
+## Installation
 
-1. Avaa `chrome://extensions`
-2. Kytke **Kehittäjätila** päälle
-3. **Lataa pakkaamaton laajennus** → valitse tämä kansio
-4. Klikkaa laajennuksen kuvaketta → soitin avautuu omaan välilehteen
-5. Valitse yhteystapa: **Xtream Codes** (palvelin, portti, tunnus, salasana)
-   tai **M3U-osoite** (yksi kenttä, johon liitetään palveluntarjoajan antama
-   soittolistaosoite). Kumpikin päätyy samaan paikkaan, ks. alla
+1. Open `chrome://extensions`
+2. Turn on **Developer mode**
+3. **Load unpacked** → pick this folder
+4. Click the extension icon → the player opens in a tab of its own
+5. Choose the connection mode: **Xtream Codes** (server, port, username,
+   password) or **M3U address** (a single field for the playlist URL your
+   provider gave you). Both end up in the same place, see below
 
-## Kehitys
+## Development
 
-Käännösvaihetta ei ole: tiedostot ovat sellaisenaan sitä mitä selain ajaa,
-joten muokkaa ja lataa uudelleen.
+There is no build step: the files are, as they are, what the browser runs — so
+edit and reload.
 
-### Automaattinen silmukka
+### Automatic loop
 
 ```
 node dev/dev.mjs
 ```
 
-Avaa oman Chrome-profiilin, lataa laajennuksen, avaa soittimen ja lataa sen
-uudelleen aina kun `js/`, `css/` tai `player.html` muuttuu. `manifest.json`
-ja `background.js` vaativat koko laajennuksen uudelleenlatauksen, ja skripti
-tekee senkin itse. Riippuvuuksia ei ole, Node 22+ riittää.
+Opens a Chrome profile of its own, loads the extension, opens the player and
+reloads it whenever `js/`, `css/` or `player.html` changes. `manifest.json` and
+`background.js` require the whole extension to be reloaded, and the script does
+that too. No dependencies; Node 22+ is enough.
 
-Profiili on `~/.cache/kepuli-tv-dev` eli erillään omasta selaimestasi:
-tunnukset annetaan siihen kerran, minkä jälkeen ne säilyvät. Portin ja
-profiilin voi vaihtaa ympäristömuuttujilla `KEPULI_DEV_PORT` ja
+The profile is `~/.cache/kepuli-tv-dev`, i.e. separate from your own browser:
+credentials are entered into it once and then persist. The port and the profile
+can be changed with the environment variables `KEPULI_DEV_PORT` and
 `KEPULI_DEV_PROFILE`.
 
-### Käsin omassa selaimessa
+### By hand in your own browser
 
-1. `chrome://extensions` → **Kehittäjätila** → **Lataa pakkaamaton laajennus**
-2. Klikkaa kuvaketta → soitin avautuu välilehteen
-3. Muutosten jälkeen:
+1. `chrome://extensions` → **Developer mode** → **Load unpacked**
+2. Click the icon → the player opens in a tab
+3. After a change:
 
-| Muuttunut | Riittää |
+| Changed | Enough |
 | --- | --- |
-| `js/*.js`, `css/player.css`, `player.html` | soitinvälilehden lataus (`⌘R`) |
-| `manifest.json`, `background.js` | laajennuksen ↻ `chrome://extensions`-sivulla |
+| `js/*.js`, `css/player.css`, `player.html` | reload the player tab (`⌘R`) |
+| `manifest.json`, `background.js` | the extension's ↻ on the `chrome://extensions` page |
 
-Sivunlataus lukee tiedostot levyltä uudelleen — ES-moduulit mukaan lukien —
-joten laajennusta ei tarvitse ladata uudelleen tavallisessa työssä.
+A page reload reads the files from disk again — ES modules included — so the
+extension does not need reloading in ordinary work.
 
-### Huomaa: `--load-extension` ei enää toimi
+### Note: `--load-extension` no longer works
 
-Chrome hylkää lipun hiljaa (152 antaa `ERR_BLOCKED_BY_CLIENT` laajennuksen
-sivulle). `dev/dev.mjs` käyttää siksi DevTools-protokollan
-`Extensions.loadUnpacked`-komentoa, joka toimii myös uudelleenlatauksena
-samaan polkuun kutsuttaessa.
+Chrome rejects the flag silently (152 gives `ERR_BLOCKED_BY_CLIENT` on the
+extension page). `dev/dev.mjs` therefore uses the DevTools protocol's
+`Extensions.loadUnpacked` command, which also works as a reload when called
+with the same path.
 
-### Vianetsintä
+### Troubleshooting
 
-- Soittimen konsoli: oikea klikkaus välilehdellä → **Tarkasta**
-- Service worker: `chrome://extensions` → laajennuksen **Service worker**
-- Verkkopyynnöt näkyvät soittimen omassa DevTools-ikkunassa; `player_api.php`
-  -kutsut ovat helpoin tapa nähdä mitä laiska lataus oikeasti hakee
-- Välimuistin (IndexedDB) tyhjennys: **Asetukset → Tyhjennä välimuisti**;
-  kaiken poisto tunnuksineen: **Asetukset → Palauta alkutilaan**
+- The player's console: right-click the tab → **Inspect**
+- The service worker: `chrome://extensions` → the extension's **Service worker**
+- Network requests show in the player's own DevTools window; the
+  `player_api.php` calls are the easiest way to see what the lazy loading
+  really fetches
+- Clearing the cache (IndexedDB): **Settings → Clear cache**; removing
+  everything, credentials included: **Settings → Reset everything**
 
-## Miten data haetaan
+## How the data is fetched
 
-Iso toistolista ei ole hyvä lähtökohta: testipalvelimen `get.php` palauttaa
-75 megatavua ja 272 000 riviä, joissa ei ole kategoriatunnisteita eikä tietoa
-tiedostomuodoista. `player_api.php` antaa saman jäsenneltynä ja paloiteltuna,
-joten sovellus lataa portaittain:
+A large playlist is a poor starting point: the test server's `get.php` returns
+75 megabytes and 272,000 lines, with no category identifiers and no information
+about file formats. `player_api.php` gives the same thing structured and in
+pieces, so the app loads in stages:
 
-| Vaihe | Mitä haetaan | Koko | Milloin |
+| Stage | What is fetched | Size | When |
 | --- | --- | --- | --- |
-| 1 | Kategoriat (live + elokuvat + sarjat) | 43 kt | yhteyden avaus |
-| 2 | Valitun maan kanavat | 2–60 kt | maata klikatessa |
-| 3 | Koko tyypin lista | 0,6–2,9 Mt | vasta haussa tai "Kaikki"-valinnassa |
-| 4 | Sarjan jaksot, elokuvan tiedot | 1–20 kt | kohdetta avatessa |
-| 5 | Ohjelmatiedot kanavalle | 1,6 kt | näkyville riveille |
-| 6 | Kanavan koko ohjelmataulu | 50–150 kt | vasta kun oppaassa selataan menneisyyteen |
+| 1 | Categories (live + movies + series) | 43 kB | opening the connection |
+| 2 | The chosen country's channels | 2–60 kB | on clicking a country |
+| 3 | A type's whole list | 0.6–2.9 MB | only on search or the "All" selection |
+| 4 | A series' episodes, a movie's details | 1–20 kB | on opening an item |
+| 5 | Programme data for a channel | 1.6 kB | for visible rows |
+| 6 | A channel's whole programme table | 50–150 kB | only when browsing into the past in the guide |
 
-Mitatut ajat testipalvelimella: Albania (3 aihetta) 0,27 s, Sweden (31 aihetta)
-1,1 s, USA (48 aihetta) 1,6 s. Kaikki ladattu tallentuu IndexedDB:hen, joten
-seuraava avaus on välitön.
+Measured times on the test server: Albania (3 topics) 0.27 s, Sweden (31 topics)
+1.1 s, USA (48 topics) 1.6 s. Everything loaded is stored in IndexedDB, so the
+next open is instant.
 
-## Kategoriat kahdessa tasossa
+## Categories on two levels
 
-Palveluntarjoaja koodaa kaksi tasoa yhteen merkkijonoon: `Sweden - Sport`,
-`Sweden - Nyheter`, `Albania - Movies Club`. Sovellus purkaa ne, jolloin 519
-live-kategoriaa tiivistyy **81 maaksi** vasempaan laitaan aakkosjärjestyksessä.
-Maan valinta näyttää kaikki sen kanavat, ja yläreunan tarkennepainikkeista voi
-rajata aiheeseen. Painikkeet ovat aakkosjärjestyksessä, paitsi maan oma
-yleiskategoria joka on heti *Kaikki*-painikkeen perässä.
+The provider encodes two levels into a single string: `Sweden - Sport`,
+`Sweden - Nyheter`, `Albania - Movies Club`. The app splits them, which
+condenses 519 live categories into **81 countries** down the left-hand side in
+alphabetical order. Choosing a country shows all of its channels, and the topic
+buttons along the top narrow it to a subject. The buttons are in alphabetical
+order, except for the country's own general category, which sits right after
+the *All* button.
 
-Sama purku poistaa elokuvien ja sarjojen `Movies:`- ja `Series:`-etuliitteet,
-jotka toistavat vain välilehden nimeä.
+The same splitting removes the `Movies:` and `Series:` prefixes from movies and
+series, which only repeat the name of the tab.
 
-Listat aakkostetaan aina — kanavat, elokuvat ja sarjat, kategoriassa,
-ryhmässä ja *Kaikki*-listassa. Palveluntarjoajan oma järjestys vaihtelee
-kategoriasta toiseen eikä kanna mitään merkitystä läpi listan. Nimen alun
-välimerkit (`|FI| Alien`) ohitetaan, ja numerot vertaillaan lukuina, joten
-*Rocky 2* on ennen *Rocky 10*:tä. Kun riviltä on karsittu toistuva etuliite
-(alla), järjestys määräytyy näkyvän nimen mukaan. Haku järjestää osumat
-edelleen osuvuuden mukaan, mutta samanarvoiset osumat aakkosjärjestykseen.
+Lists are always sorted alphabetically — channels, movies and series, within a
+category, within a group and in the *All* list. The provider's own order varies
+from one category to the next and carries no meaning across the list.
+Punctuation at the start of a name (`|FI| Alien`) is ignored, and numbers are
+compared as numbers, so *Rocky 2* comes before *Rocky 10*. When a repeating
+prefix has been stripped from a row (below), the order follows the visible
+name. Search still ranks matches by relevance, but equally ranked matches fall
+into alphabetical order.
 
-Sivupalkin suodatin osuu myös alakategorioihin: hakusana *sport* nostaa esiin
-maat joilla on urheilukanavia, vaikka maan nimessä ei lue sanaa.
+The sidebar filter matches sub-categories too: the query *sport* brings up the
+countries that have sports channels even when the country's name lacks the
+word.
 
-### Kategoria suosikkina
+### A category as a favourite
 
-Yksittäisen kanavan merkitseminen ei riitä silloin kun kiinnostava asia on
-koko kategoria: *Finland ▸ MTV Liiga* on kahdeksan kanavaa tänään ja jokin
-muu määrä ensi kaudella. Siksi tähti on myös sivupalkin maarivillä ja
-jokaisessa tarkennesirussa — ensimmäinen poimii koko ryhmän, jälkimmäinen
-yhden kategorian.
+Starring a single channel is not enough when the interesting thing is a whole
+category: *Finland ▸ MTV Liiga* is eight channels today and some other number
+next season. That is why there is a star on the sidebar country row and on
+every topic chip as well — the first picks the whole group, the second one
+category.
 
-*Suosikit*-välilehti listaa ne omana ryhmänään kanavien ja elokuvien
-yläpuolella, ja rivin napauttaminen avaa kategorian sisällön paikan päällä:
-sama lista kuin selausnäkymässä, samat rivinimet ja ohjelmatiedot, mutta
-paluu suosikkeihin on yksi napautus. Sisältö haetaan aina tuoreena, joten
-kategoriaan ilmestyneet kanavat näkyvät ilman että suosikkia tarvitsee
-päivittää.
+The *Favourites* tab lists them as a group of their own above the channels and
+the movies, and tapping a row opens the category's contents on the spot: the
+same list as in the browsing view, the same row names and programme data, but
+returning to the favourites is one tap. The contents are always fetched fresh,
+so channels that have appeared in the category show up without the favourite
+needing an update.
 
-Talteen menee vain tunniste — tyyppi, `category_id` ja näkyvä nimi — ei
-kategorian sisältö. Ryhmäsuosikki (*Finland*) tallentaa ryhmän nimen ja
-kokoaa alakategoriansa vasta avattaessa, joten sekin seuraa muuttuvaa
-tarjontaa.
+Only an identifier is stored — the type, the `category_id` and the visible
+name — not the category's contents. A group favourite (*Finland*) stores the
+group name and gathers its sub-categories only when opened, so it follows a
+changing offering too.
 
-Ylätunnisteen haku kohdistuu koko listaan (kategoriarajaus poistuu näkyvästi)
-ja järjestää osumat osuvuuden mukaan: sanan alusta alkava osuma menee keskeltä
-löytyvän edelle, jotta *yle* nostaa Yle-kanavat eikä "KYLE COLLECTIONia".
+The search in the header covers the whole list (the category filter is cleared
+visibly) and ranks matches by relevance: a match at the start of a word beats
+one found mid-word, so that *yle* raises the Yle channels rather than "KYLE
+COLLECTION".
 
-## Ominaisuudet
+## Features
 
-- **Ohjelmatiedot** näkyville kanaville: käynnissä oleva ohjelma ja
-  edistymispalkki listarivillä, kuvaus ja seuraava ohjelma soittimen alla
-- **Interaktiivinen ohjelmaopas** (`g`): kanavat riveinä, aika vaaka-akselilla
-  ja liikkuva nyt-viiva — ks. alla
-- **Catchup** niille kanaville joilla on arkisto: menneen ohjelman voi
-  käynnistää suoraan oppaasta
-- **Sarjat** kausittain, kansikuvat ja juonet TMDB:stä
-- **Elokuvien tiedot**: juoni, kesto, arvosana, koodekki
-- **MKV toistuu** ilman ulkoista soitinta: kontti puretaan lennossa fMP4:ksi,
-  kelaus mukaan lukien. Jos ääniraita on AC-3:a tai DTS:ää, tarjolla on
-  **Toista ilman ääntä**
-- **Tekstitykset** MKV-tiedostoista: kieli- ja kokovalitsin soittimen alla, ja
-  valittu kieli tarttuu seuraaviin jaksoihin — ks. alla
-- **Toistokelvottomat merkitään listalla** ennen klikkausta; kerran tutkitusta
-  tiedostosta merkintä tarkentuu koodekkien mukaan
-- **Luovutus ulkoiselle soittimelle** (`↗` tai `x`) sille mitä selain ei osaa
-  — ks. alla
-- **Katselukohdan muistaminen** elokuville ja jaksoille, edistymispalkki rivillä
-- **Suosikit** ja **historia** omina välilehtinään — suosikiksi käy myös
-  kokonainen kategoria, ks. alla
-- **Kaksi kieltä**: englanti ja suomi, vaihto asetuksista ilman sivun latausta
-- **Automaattinen uudelleenyhdistäminen** jos live-virta katkeaa — lähteen
-  kuolema tunnistetaan kolmella tavalla: palvelin katkaisee, puskuri soitetaan
-  loppuun, tai kuva jähmettyy yhteyden jäädessä auki. Katsojan oma tauko
-  erotetaan näistä eikä sitä ohiteta
-- **Tekniset tiedot** kuvan päällä: resoluutio, bittinopeus, moottori
+- **Programme data** for visible channels: the programme on air and a progress
+  bar on the list row, a description and the next programme below the player
+- **An interactive programme guide** (`g`): channels as rows, time on the
+  horizontal axis and a moving now line — see below
+- **Catch-up** for channels that have an archive: a past programme can be
+  started straight from the guide
+- **Series** by season, with cover art and plots from TMDB
+- **Movie details**: plot, running time, rating, codec
+- **MKV plays** without an external player: the container is unpacked on the
+  fly into fMP4, seeking included. If the audio track is AC-3 or DTS, **Play
+  without sound** is on offer
+- **Subtitles** from MKV files: a language and size selector below the player,
+  and the chosen language carries over to the following episodes — see below
+- **Unplayable files are marked in the list** before you click; once a file has
+  been examined the mark sharpens according to its codecs
+- **Hand-off to an external player** (`↗` or `x`) for what the browser cannot
+  do — see below
+- **Resume positions remembered** for movies and episodes, with a progress bar
+  on the row
+- **Favourites** and **history** as tabs of their own — a whole category can be
+  a favourite too, see below
+- **Two languages**: English and Finnish, switched in the settings without a
+  page reload
+- **Automatic reconnection** when a live stream drops — the death of a source
+  is recognised in three ways: the server cuts the connection, the buffer is
+  played out, or the picture freezes while the connection stays open. The
+  viewer's own pause is told apart from these and is never overridden
+- **Technical details** over the picture: resolution, bitrate, engine
 
-### Pikanäppäimet
+### Keyboard shortcuts
 
-| Näppäin | Toiminto |
+| Key | Action |
 | --- | --- |
-| `/` | siirry hakuun |
-| `↑` `↓` `PgUp` `PgDn` | liiku listalla |
-| `Enter` | toista / avaa sarja |
-| `Backspace` | takaisin sarjalistaan |
-| `väli` | tauko |
-| `f` | koko näyttö |
-| `m` | mykistys |
-| `n` `p` | seuraava / edellinen |
-| `g` | avaa ja sulje ohjelmaopas |
-| `x` | luovuta ulkoiselle soittimelle |
+| `/` | go to the search box |
+| `↑` `↓` `PgUp` `PgDn` | move in the list |
+| `Enter` | play / open a series |
+| `Backspace` | back to the series list |
+| `space` | pause |
+| `f` | full screen |
+| `m` | mute |
+| `n` `p` | next / previous |
+| `g` | open and close the programme guide |
+| `x` | hand over to an external player |
 
-Oppaassa nuolet liikkuvat kanavien ja ohjelmien välillä, `Home` palaa
-nykyhetkeen, `+` ja `−` säätävät aikajanan mittakaavaa, `Enter` käynnistää
-ja `Esc` sulkee.
+In the guide the arrows move between channels and programmes, `Home` returns to
+the present, `+` and `−` adjust the timeline's scale, `Enter` starts playback
+and `Esc` closes.
 
-## Ohjelmaopas
+## The programme guide
 
-`Opas` (tai `g`) vaihtaa koko ikkunan ruudukkonäkymään: kanavat riveinä, aika
-vaaka-akselilla ja liikkuva nyt-viiva. Video jatkuu oikeassa ylänurkassa ja
-valittu ohjelma näkyy vasemmalla kuvauksineen. Ruudukko näyttää saman
-kanavajoukon kuin lista, joten ryhmävalinta ja haku rajaavat myös opasta.
+`Guide` (or `g`) turns the whole window into a grid view: channels as rows,
+time on the horizontal axis and a moving now line. The video continues in the
+top right corner and the selected programme shows on the left with its
+description. The grid shows the same set of channels as the list, so the group
+selection and the search narrow the guide as well.
 
-Aikajana ulottuu kahdesta vuorokaudesta taaksepäin viiteen eteenpäin.
-Menneet ohjelmat ovat himmeitä; niistä joihin kanavan arkisto yltää saa
-**Katso tallenne** -painikkeen. Vasemmasta reunasta jatkuva ohjelma merkitään
-`‹`-merkillä ja sen nimi siirretään näkyviin.
+The timeline runs from two days back to five days forward. Past programmes are
+dimmed; those the channel's archive reaches get a **Watch the recording**
+button. A programme continuing past the left edge is marked with `‹` and its
+name is nudged into view.
 
-Ohjelmatiedot haetaan kolmella tarkkuudella samaan välimuistiin: listariville
-riittää neljä ohjelmaa, oppaan eteenpäin katsomiseen 40, ja koko ohjelmataulu
-haetaan vasta kun ruudukkoa vieritetään tunnettujen ohjelmien ohi. Karkeampaa
-ei haeta hienomman päälle, joten oppaassa käyty kanava ei putoa takaisin
-neljään ohjelmaan listaa selatessa.
+Programme data is fetched at three levels of detail into the same cache: a list
+row needs four programmes, looking ahead in the guide needs 40, and the whole
+programme table is fetched only when the grid is scrolled past the known
+programmes. A coarser level is never fetched over a finer one, so a channel
+visited in the guide does not fall back to four programmes as the list is
+browsed.
 
-## Toistotavat
+## Playback routes
 
-| Lähde | Moottori |
+| Source | Engine |
 | --- | --- |
 | Live (MPEG-TS) | mpegts.js → MediaSource |
-| Live (`.m3u8`) tai TS:n varareitti | hls.js |
-| VOD `.mp4` `.m4v` `.mov` `.webm` | selaimen oma toistin |
-| VOD `.ts` `.flv` | otsikon luku ratkaisee — pääte ei pidä paikkaansa |
-| VOD `.mkv` | Matroskan purku fMP4:ksi → MediaSource |
-| VOD `.avi` | ei tuettu |
+| Live (`.m3u8`), or the fallback from TS | hls.js |
+| VOD `.mp4` `.m4v` `.mov` `.webm` | the browser's own player |
+| VOD `.ts` `.flv` | the header decides — the extension does not hold |
+| VOD `.mkv` | Matroska unpacked into fMP4 → MediaSource |
+| VOD `.avi` | not supported |
 
-`Auto` kokeilee live-kanavilla ensin TS:ää (pienempi viive) ja siirtyy HLS:ään
-jos TS ei käynnisty 20 sekunnissa. Testipalvelimella HLS käynnistyy usein
-nopeammin mutta on segmenttipituuden verran jäljessä suorasta.
+`Auto` tries TS first on live channels (lower latency) and moves to HLS if TS
+does not start within 20 seconds. On the test server HLS often starts faster
+but trails the live edge by a segment length.
 
-Testiaineistossa elokuvista 54 % on `.mp4` ja 44 % `.mkv`. Toistokelvottomille
-tarjotaan **Kopioi osoite** ja **Avaa ulkoisessa soittimessa**.
+In the test material 54% of the movies are `.mp4` and 44% `.mkv`. For
+unplayable ones, **Copy address** and **Open in an external player** are
+offered.
 
-### Ulkoinen soitin
+### External player
 
-Purku ja wasm-ääni kattavat suurimman osan kirjastosta, mutta eivät kaikkea:
-AVI-kontti, VC-1, 10-bittinen H.264 ja bittikarttatekstitykset (PGS, VOBSUB)
-jäävät selaimen ulottumattomiin. Työpöytäsoitin osaa ne natiivisti ja ottaa
-Xtreamin stream-osoitteen vastaan sellaisenaan. Luovutus tapahtuu aina käsin —
-soittimen alla olevasta `↗`-napista, näppäimestä `x` tai virheilmoituksen
-painikkeesta — eikä koskaan itsestään.
+Unpacking and wasm audio cover most of the library, but not all of it: the AVI
+container, VC-1, 10-bit H.264 and bitmap subtitles (PGS, VOBSUB) stay out of
+the browser's reach. A desktop player handles them natively and takes the
+Xtream stream URL as it is. The hand-off is always manual — from the `↗` button
+below the player, the `x` key, or a button in an error message — and never
+happens by itself.
 
-Reittejä oli kaksi, jäljellä on yksi: yhden kohteen `.m3u` ladataan blobista,
-ja käyttöjärjestelmä avaa sen sillä soittimella joka on rekisteröity
-`.m3u`:lle — VLC:llä se on `public.m3u-playlist` sen Info.plistissä. Kaksi
-klikkausta, ei uusia manifest-oikeuksia eikä siltaa laajennuksen ja
-käyttöjärjestelmän väliin.
+There were two routes, one is left: a one-item `.m3u` is downloaded from a
+blob, and the operating system opens it with whichever player is registered for
+`.m3u` — for VLC that is `public.m3u-playlist` in its Info.plist. Two clicks,
+no new manifest permissions and no bridge between the extension and the
+operating system.
 
-Soitinkohtaiset URL-skeemat (`iina://`, `mpv://`) olivat aiemmin valittavissa
-ja jäivät pois: ne säästivät yhden klikkauksen mutta vaativat käyttäjältä
-valinnan ja tiedon siitä mikä hänelle on asennettu. **VLC ei macOS:ssä
-rekisteröi `vlc://`-skeemaa** — sen Info.plist listaa vain `http https ftp mms
-mmsh rtmp rtmpe rtmps rtmpt rtp rtsp sftp smb udp` — eli yleisimmälle
-soittimelle tiedostoreitti oli joka tapauksessa ainoa.
+Player-specific URL schemes (`iina://`, `mpv://`) used to be selectable and were
+dropped: they saved one click but required a choice from the user and knowledge
+of what they had installed. **VLC does not register a `vlc://` scheme on
+macOS** — its Info.plist lists only `http https ftp mms mmsh rtmp rtmpe rtmps
+rtmpt rtp rtsp sftp smb udp` — so for the most common player the file route was
+the only one anyway.
 
-Katselukohta seuraa mukana: soittolistaan kirjoitetaan `#EXTVLCOPT:start-time=`
-siitä kohdasta johon selain ehti. Toisto pysäytetään ennen luovutusta, koska
-tili sallii yhden yhtäaikaisen yhteyden — muuten selaimen auki pitämä virta
-jättäisi ulkoisen soittimen mykäksi.
+The resume position travels along: `#EXTVLCOPT:start-time=` is written into the
+playlist at the point the browser had reached. Playback is stopped before the
+hand-off, because the account allows one concurrent connection — otherwise a
+stream the browser keeps open would leave the external player silent.
 
-Osoitteessa ovat tunnukset, joten ladattu `.m3u` on yhtä arkaluontoinen kuin
-itse tili.
+The URL carries the credentials, so a downloaded `.m3u` is as sensitive as the
+account itself.
 
-### Matroskan purku
+### Unpacking Matroska
 
-Chrome ei ota Matroskaa vastaan, mutta sen sisällä oleva H.264 tai HEVC kelpaa
-sellaisenaan. `js/mkv.js` purkaa klusterit virrasta, `js/mp4.js` pakkaa
-kehykset fMP4-paloiksi ja `js/remux.js` syöttää ne MediaSourcelle. Kuvaa ei
-pureta eikä koodata uudelleen — vain kontti vaihtuu.
+Chrome will not take Matroska, but the H.264 or HEVC inside it is fine as it
+is. `js/mkv.js` demuxes the clusters from the stream, `js/mp4.js` packs the
+frames into fMP4 segments and `js/remux.js` feeds them to MediaSource. The
+picture is neither decoded nor re-encoded — only the container changes.
 
-Kolme kohtaa vaati tarkkuutta:
+Three points needed care:
 
-- **Dekoodausaika.** Matroska tallettaa vain esitysajan. B-kuvien takia ne
-  eroavat — mitatussa jaksossa 1569 kehyksestä 740:n PTS meni edellistä
-  taaksepäin. DTS saadaan järjestämällä palan aikaleimat nousevaan
-  järjestykseen ja jakamalla ne dekoodausjärjestyksessä.
-- **Aikayksiköt.** Videolla 90 000 tikkiä sekunnissa jakautuu tasan kaikilla
-  tavallisilla kuvataajuuksilla. Äänellä käytetään näytetaajuutta ja kehykset
-  ketjutetaan peräkkäin, koska Matroskan millisekunnin tarkkuus pyöristäisi
-  AAC-kehyksen 21,333 ms:n keston ja virhe kertyisi tunnissa sekunneiksi.
-- **Yksi yhteys.** Tili sallii yhden yhtäaikaisen latauksen, joten otsikko
-  luetaan samasta virrasta josta toisto jatkuu. Kelaus katkaisee virran ja
-  avaa uuden Cues-taulun osoittamasta kohdasta; taulu on tiedoston lopussa,
-  joten se haetaan vain jos kelataan.
+- **Decode time.** Matroska stores only the presentation time. Because of
+  B-frames the two differ — in a measured episode 740 of 1569 frames had a PTS
+  that went backwards from the previous one. The DTS is obtained by sorting a
+  segment's timestamps ascending and handing them out in decode order.
+- **Time units.** For video, 90,000 ticks per second divides evenly at every
+  common frame rate. For audio the sample rate is used and frames are chained
+  back to back, because Matroska's millisecond resolution would round an AAC
+  frame's 21.333 ms duration and the error would accumulate into seconds over
+  an hour.
+- **One connection.** The account allows one concurrent download, so the header
+  is read from the same stream playback continues from. Seeking cuts the stream
+  and opens a new one at the offset the Cues table points to; the table is at
+  the end of the file, so it is fetched only if a seek happens.
 
-Katkennut lataus jatkuu viimeisen kokonaisen klusterin alusta. Jos tiedosto
-sen sijaan on rikki — kirjastosta löytyi jakso, jota seurasi kolme megatavua
-nollia eikä yhtään klusteria — toisto päättyy ehjään kohtaan ja katsojalle
-kerrotaan mihin asti kuvaa oli.
+An interrupted download resumes from the start of the last complete cluster. If
+the file is broken instead — the library held an episode followed by three
+megabytes of zeros and no cluster at all — playback ends at the intact point
+and the viewer is told how far the picture went.
 
-### Tekstitykset
+### Subtitles
 
-Purku poimii samalla tekstitysraidat (`js/subs.js`). Lohkon teksti annetaan
-selaimelle `VTTCue`na, ei omalle päällyskerrokselle: näin tekstitys näkyy myös
-koko näytön tilassa ja Chromen omassa tekstitysvalikossa. Valinta tehdään
-soittimen alla olevasta valitsimesta, ja kieli — ei raidan numero — jää
-muistiin, joten sarjan seuraava jakso avautuu samalla kielellä. Oletus on
-suomi, jos tiedostosta löytyy suomenkielinen raita.
+The unpacking picks up the subtitle tracks along the way (`js/subs.js`). A
+block's text is handed to the browser as a `VTTCue` rather than to an overlay of
+our own: that way the subtitles show in full-screen mode and in Chrome's own
+subtitle menu. The choice is made from the selector below the player, and the
+language — not the track number — is remembered, so the next episode of a series
+opens in the same language. The default is Finnish when the file has a Finnish
+track.
 
-Valitsin on aakkosjärjestyksessä suomen säännöillä: tiedoston oma järjestys on
-mielivaltainen, eikä kolmenkymmenen raidan listasta löydä oikeaa kieltä ellei
-sen paikkaa voi arvata. Vieressä on koko (pieni, keskikokoinen, iso), joka
-skaalautuu suhteessa selaimen omaan mittaan — kiinteä pikselikoko kutistuisi
-olemattomiin koko näytön tilassa.
+The selector is in alphabetical order for the interface language: the file's own
+order is arbitrary, and in a list of thirty tracks the right language cannot be
+found unless its place can be guessed. Beside it is the size (small, medium,
+large), which scales relative to the browser's own measure — a fixed pixel size
+would shrink to nothing in full-screen mode.
 
-Kaikkien tekstiraitojen cuet kerätään talteen sitä mukaa kuin tiedostoa
-puretaan, vaikka näkyvissä on yksi. Vaihtoehto olisi lukea tiedosto uudelleen
-raitaa vaihdettaessa, mikä veisi ainoan sallitun yhteyden ja keskeyttäisi
-kuvan. Kelauksen jälkeen samat lohkot tulevat toistamiseen, joten jo lisätty
-cue tunnistetaan ja ohitetaan.
+The cues of every text track are collected as the file is unpacked, even though
+one is visible. The alternative would be reading the file again when the track
+changes, which would take the single allowed connection and interrupt the
+picture. After a seek the same blocks arrive again, so a cue that has already
+been added is recognised and skipped.
 
-Rajat:
+Limits:
 
-- **SRT, ASS/SSA ja WebVTT** kelpaavat. Bittikarttamuodot (PGS, VOBSUB, DVBSUB)
-  ovat kuvia eikä niitä voi antaa `VTTCue`lle, joten ne jäävät valitsimesta
-  pois — listarivin "34 tekstitystä" laskee nekin mukaan.
-- ASS:n tyylikoodit (`{\an8}`, `{\pos}`) karsitaan ja kursiivi säilyy;
-  piirtokomennoilla tehdyt taustat ja tehosteet jäävät näyttämättä.
-- Vain purkupolku tuntee tekstitykset. Natiivisti toistuvan MP4:n `mov_text`
-  jää yhä pois, koska Chrome ei renderöi sitä.
+- **SRT, ASS/SSA and WebVTT** are accepted. Bitmap formats (PGS, VOBSUB,
+  DVBSUB) are images and cannot be handed to a `VTTCue`, so they are left out of
+  the selector — the list row's "34 subtitles" counts them in.
+- ASS style codes (`{\an8}`, `{\pos}`) are stripped and italics survive;
+  backgrounds and effects made with drawing commands are not rendered.
+- Only the unpacking route knows about subtitles. The `mov_text` of a natively
+  played MP4 is still left out, because Chrome does not render it.
 
-### Mitä purku avaa
+### What unpacking opens up
 
-Mitattuna 1 500 sarjan otoksella (23 628 jaksoa):
+Measured on a sample of 1,500 series (23,628 episodes):
 
-| | Osuus jaksoista |
+| | Share of episodes |
 | --- | --- |
-| Toistui ennen purkua | 44,6 % |
-| Purku, ääni sellaisenaan | +21,6 % → **66,2 %** |
-| Purku, ääni purettuna (AC-3/E-AC-3/DTS) | +27,5 % → **93,7 %** |
+| Played before unpacking | 44.6% |
+| Unpacked, audio as it is | +21.6% → **66.2%** |
+| Unpacked, audio decoded (AC-3/E-AC-3/DTS) | +27.5% → **93.7%** |
 
-Viimeinen rivi vaatii oman purkajansa, koska Chromessa ei ole AC-3:a,
-E-AC-3:a eikä DTS:ää. Vaihtoehtoista ääniraitaa ei kannata odottaa: 45:stä
-ac3/eac3-jaksosta yhdessäkään ei ollut toista, Chromen tukemaa raitaa, ja
-43:ssa oli vain yksi ääniraita. **Toista ilman ääntä** on siis jäljellä vain
-niille harvoille raidoille joita ei pureta (esim. TrueHD, MP3 MKV:ssä).
+The last row needs a decoder of its own, because Chrome has neither AC-3,
+E-AC-3 nor DTS. An alternative audio track is not worth waiting for: of 45
+ac3/eac3 episodes not one had a second track Chrome supports, and 43 had a
+single audio track. **Play without sound** therefore remains only for the few
+tracks that are not decoded (TrueHD, or MP3 in MKV, for instance).
 
-### Ääniraidan purku
+### Decoding the audio track
 
-Purkaja on FFmpegin oma, käännettynä wasmiksi (`vendor/ffaudio`, LGPL 2.1+,
-628 kt). Käsin kirjoitettu AC-3-purku kattaisi vain osan: E-AC-3 ei ole sama
-bittivirta vaan lisää AHT:n, spektrilaajennuksen ja osavirrat, ja DTS on kolmas
-erillinen. Käännös on `dev/wasm/build.sh`, ja `--test` vertaa ulostuloa
-ffmpegin omaan samasta bittivirrasta — ero on kaikissa tapauksissa float-
-pyöristystä (~1e-7), myös 5.1:n alaslaskennassa ja 32 kHz:n muunnoksessa.
+The decoder is FFmpeg's own, built as wasm (`vendor/ffaudio`, LGPL 2.1+,
+628 kB). A hand-written AC-3 decoder would cover only part of it: E-AC-3 is not
+the same bitstream but adds AHT, spectral extension and substreams, and DTS is a
+third separate one. The build is `dev/wasm/build.sh`, and `--test` compares the
+output with ffmpeg's own from the same bitstream — in every case the difference
+is float rounding (~1e-7), including the 5.1 downmix and the 32 kHz conversion.
 
-MediaSource ei ota vastaan PCM:ää, joten purettu ääni koodataan uudelleen
-AAC:ksi selaimen omalla `AudioEncoder`illa (`js/transcode.js`). Kaksi mitattua
-rajoitetta määrää muodon:
+MediaSource will not take PCM, so the decoded audio is re-encoded to AAC with
+the browser's own `AudioEncoder` (`js/transcode.js`). Two measured constraints
+set the format:
 
-- **Koodain hyväksyy vain 44 100 ja 48 000 Hz**, eikä se kestä kanavamäärän
-  vaihtumista kesken raidan. AC-3 sallii 32 000 Hz:n, ja kirjastossa on
-  tiedostoja joissa mono vaihtuu stereoksi. Siksi wasm-purkaja laskee kaiken
-  kiinteään muotoon (stereo, 48 kHz) ennen koodainta. Alaslaskenta pyydetään
-  purkajalta itseltään, joka käyttää virran omia cmixlev/surmixlev-tasoja;
-  swresamplen yleinen matriisi antoi mitattuna eri tuloksen ja leikkasi.
-- **Koodaimessa on esitäyte, jota se ei kerro eikä korjaa** — mitattuna 2112
-  näytettä eli 44 ms, joka on macOS:n AudioToolboxin luku eikä siis siirrettävä.
-  Ilman korjausta ääni olisi kauttaaltaan sen verran kuvaa jäljessä. Luku
-  mitataan siksi ajossa: koodataan tunnettu heräte ja puretaan se takaisin
-  selaimen omalla purkajalla. Mitattuna ketju osuu näytteen tarkkuudella, eikä
-  60 sekunnin aikana ryömi lainkaan.
+- **The encoder accepts only 44,100 and 48,000 Hz**, and it does not tolerate
+  the channel count changing mid-track. AC-3 allows 32,000 Hz, and the library
+  holds files where mono turns into stereo. That is why the wasm decoder brings
+  everything down to a fixed format (stereo, 48 kHz) before the encoder. The
+  downmix is asked of the decoder itself, which uses the stream's own
+  cmixlev/surmixlev levels; swresample's generic matrix gave a different,
+  clipping result when measured.
+- **The encoder has a priming delay that it neither reports nor corrects** —
+  2112 samples, or 44 ms, when measured, which is macOS's AudioToolbox figure
+  and therefore not portable. Without correction the audio would lag the picture
+  by that much throughout. The figure is therefore measured at run time: a known
+  impulse is encoded and decoded back with the browser's own decoder. Measured,
+  the chain lands sample-accurate and does not creep at all over 60 seconds.
 
-Vastapaine hoidetaan odottamalla eikä huuhtelemalla: `flush()` pakottaa
-koodaimen antamaan ulos myös vajaan kehyksen hiljaisuudella täytettynä, ja
-kehysketju venyisi joka kerta — mitattuna 60 sekunnin kuvaa vastasi 69
-sekuntia ääntä.
+Back pressure is handled by waiting rather than flushing: `flush()` forces the
+encoder to emit a partial frame padded with silence, and the frame chain would
+stretch every time — measured, 60 seconds of picture came out as 69 seconds of
+audio.
 
-### Tiedoston otsikon luku
+### Reading the file header
 
-Pääte ei riitä päätökseen eikä API:n metadataan voi luottaa. Mitattuna
-testipalvelimelta (1 500 sarjaa, 23 628 jaksoa):
+The extension is not enough to decide on, and the API's metadata cannot be
+trusted. Measured from the test server (1,500 series, 23,628 episodes):
 
-- `get_vod_info` ei palauta koodekkeja lainkaan — elokuvista ei siis tiedä
-  päätteen lisäksi mitään
-- `get_series_info` kertoo 4,7 %:lle jaksoista videokoodekiksi `png`:n tai
-  `mjpeg`:in: se on kansikuva, jonka ffprobe näkee ensimmäisenä raitana
-- `.ts`-päätteiset VOD-tiedostot olivat otoksessa poikkeuksetta Matroskaa
-  (10/10) — `.mp4` ja `.mkv` sen sijaan pitivät paikkansa (8/8 kumpikin)
-- ääni ratkaisee useammin kuin kontti: mkv-jaksoista noin 42 % on `aac` ja
-  53 % `ac3`/`eac3`/`dts`, joita Chrome ei pura millään
+- `get_vod_info` returns no codecs at all — so nothing is known about a movie
+  beyond its extension
+- `get_series_info` reports `png` or `mjpeg` as the video codec for 4.7% of
+  episodes: that is the cover image, which ffprobe sees as the first track
+- VOD files with a `.ts` extension were Matroska without exception in the sample
+  (10/10) — `.mp4` and `.mkv`, on the other hand, held true (8/8 each)
+- the audio decides more often than the container: of the mkv episodes around
+  42% are `aac` and 53% `ac3`/`eac3`/`dts`, which Chrome will not decode by any
+  route
 
-`js/probe.js` lukee siksi tiedoston ensimmäiset 256 kt yhdellä Range-pyynnöllä
-ja jäsentää Matroskan `Tracks`-elementin: kontti, koodekit profiileineen,
-ääniraidat ja tekstitykset kielineen. Profiili on tarpeen, koska Chrome ei pura
-10-bittistä H.264:ää — pelkkä `avc1` antaisi liian toiveikkaan vastauksen.
-Tulos tallentuu IndexedDB:hen ja näkyy listarivillä ilman uutta pyyntöä.
+`js/probe.js` therefore reads the first 256 kB of the file with a single Range
+request and parses Matroska's `Tracks` element: the container, the codecs with
+their profiles, the audio tracks and the subtitles with their languages. The
+profile is needed because Chrome does not decode 10-bit H.264 — a bare `avc1`
+would give too hopeful an answer. The result is stored in IndexedDB and shows on
+the list row without a new request.
 
-Otsikkoa ei lueta etukäteen: tili sallii yhden yhtäaikaisen yhteyden, joten
-luku tehdään vasta kun pääte ei lupaa toistoa, kun kontti on tunnetusti
-epäluotettava (`.ts`), tai kun kaikki moottorit ovat epäonnistuneet. Silloin
-virheilmoitus kertoo syyn: *"Ääniraita on MP3, jota Chrome ei pura. Kuva
-toistuisi, ääni ei."* eikä pelkkää päätettä.
+The header is not read up front: the account allows one concurrent connection,
+so the read happens only when the extension does not promise playback, when the
+container is known to be unreliable (`.ts`), or when every engine has failed.
+Then the error message states the reason: *"The audio track is MP3, which Chrome
+does not decode. The picture would play, the sound would not."* rather than
+merely the extension.
 
-## Rakenne
+## Structure
 
 ```
-manifest.json       MV3-manifesti
-background.js       kuvakkeen klikkaus avaa soittimen
-player.html         koko käyttöliittymä yhdellä sivulla
+manifest.json       MV3 manifest
+background.js       a click on the icon opens the player
+player.html         the whole interface on one page
 css/player.css
-js/api.js           player_api.php -asiakas, base64-EPG, aikavyöhykkeet
-js/library.js       laiska datakerros: ryhmittely, välimuisti, haku
-js/epg.js           ohjelmatiedot jonolla, 4 rinnakkaista pyyntöä
-js/epggrid.js       ohjelmaoppaan ruudukko, virtualisoitu molempiin suuntiin
-js/db.js            IndexedDB: TTL-välimuisti
-js/config.js        asetukset, suosikit, historia, katselukohdat
-js/i18n.js          käyttöliittymän kieli: sanakirjat, t() ja staattinen HTML
-js/playback.js      moottorin valinta, varareitit, vahtikoira
-js/probe.js         tiedoston otsikon luku: kontti, koodekit, tekstitykset
-js/ebml.js          EBML-primitiivit ja Matroskan otsikko
-js/mkv.js           Matroskan klusterit virrasta kehyksiksi
-js/mp4.js           fMP4-palat MediaSourcelle
-js/remux.js         purkumoottori: lataus, kelaus, puskurit
-js/ffaudio.js       AC-3-, E-AC-3- ja DTS-purku wasmilla
-js/transcode.js     purettu ääni takaisin AAC:ksi MediaSourcea varten
-js/subs.js          tekstitysraidat MKV:stä videoelementin omiksi raidoiksi
-js/vlist.js         virtualisoitu lista
-js/rows.js          listarivien piirto
-js/format.js        muotoilijat
-js/app.js           näkymät, haku, näppäimistö
-js/permissions.js   valinnaisten host-oikeuksien pyyntö ja tarkistus
-js/external.js      luovutus ulkoiselle soittimelle: yhden kohteen .m3u
-icons/              16, 32, 48, 128 px laajennuksen kuvakkeet
-brand/              tunnusgrafiikan lähteet, ei mukana paketissa
-dev/dev.mjs         kehityssilmukka: lataa laajennuksen ja sivun muutoksista
-dev/wasm/           ffaudion käännös ja vertailu ffmpegiin
-vendor/             mpegts.js 1.8.0, hls.js 1.6.5 (paikallisina: MV3:n CSP
-                    ei salli etäskriptejä)
-vendor/ffaudio/     FFmpeg 7.1.1:n ac3-, eac3- ja dca-purkajat wasmina
+js/api.js           player_api.php client, base64 EPG, time zones
+js/library.js       the lazy data layer: grouping, cache, search
+js/epg.js           programme data on a queue, 4 concurrent requests
+js/epggrid.js       the guide grid, virtualised in both directions
+js/db.js            IndexedDB: a TTL cache
+js/config.js        settings, favourites, history, resume points
+js/i18n.js          the interface language: dictionaries, t() and static HTML
+js/playback.js      engine selection, fallbacks, watchdog
+js/probe.js         reading the file header: container, codecs, subtitles
+js/ebml.js          EBML primitives and the Matroska header
+js/mkv.js           Matroska clusters from a stream into frames
+js/mp4.js           fMP4 segments for MediaSource
+js/remux.js         the unpacking engine: downloading, seeking, buffers
+js/ffaudio.js       AC-3, E-AC-3 and DTS decoding with wasm
+js/transcode.js     decoded audio back to AAC for MediaSource
+js/subs.js          subtitle tracks from MKV into the video element's own tracks
+js/vlist.js         the virtualised list
+js/rows.js          painting the list rows
+js/format.js        formatters
+js/app.js           views, search, keyboard
+js/permissions.js   requesting and checking optional host permissions
+js/external.js      hand-off to an external player: a one-item .m3u
+icons/              16, 32, 48, 128 px extension icons
+brand/              the sources of the brand graphics, not part of the package
+dev/dev.mjs         the development loop: reloads the extension and the page
+dev/wasm/           building ffaudio and comparing it with ffmpeg
+vendor/             mpegts.js 1.8.0, hls.js 1.6.5 (local: MV3's CSP does not
+                    allow remote scripts)
+vendor/ffaudio/     FFmpeg 7.1.1's ac3, eac3 and dca decoders as wasm
 ```
 
-## Huomioitavaa
+## Things worth knowing
 
-- Tunnukset tallentuvat selkokielisenä `chrome.storage.local`iin tällä koneella.
-  Xtreamissa tunnukset ovat myös osa jokaista stream-osoitetta.
-- **Asetukset → Palauta alkutilaan** poistaa kaiken: tunnukset, asetukset,
-  suosikit, historian, katselukohdat ja koko IndexedDB-tietokannan. Nappi
-  kysyy varmistuksen itse — asetusdialogin päälle avattu toinen dialog jäisi
-  sen alle — ja lataa sivun lopuksi uudelleen, koska muistissa oleva tila ei
-  tyhjennyksen jälkeen vastaisi mitään.
-- Host-oikeudet ovat `optional_host_permissions`-listassa, eli asennus ei
-  pyydä pääsyä mihinkään. Oikeus kysytään vasta kun palvelimen osoite
-  tallennetaan, ja vain sen palvelimen originille.
-  Puuttuva oikeus näkyy verkkovirheenä, jonka yhteydessä on painike sen
-  myöntämiseen. Sisältöskriptejä ei ole.
-- Oikeutta tarvitaan vain fetch/XHR-pyyntöihin: `player_api.php` sekä hls.js:n
-  ja mpegts.js:n segmenttihaut. Natiivisti toistuva VOD
-  (`<video src>`) ja kanavalogot (`<img>`) toimivat ilman.
-- **Yhtäaikaisten yhteyksien raja** näkyy asetuksissa. Testitilillä se on 1,
-  jolloin toinen samanaikainen virta jää mykäksi. Sovellus purkaa edellisen
-  virran ennen uuden avaamista, mutta jos toisto ei käynnisty, tarkista ettei
-  sama tili ole käytössä muualla.
-- Ohjelmatietoja on vain niille kanaville joille palveluntarjoaja on ne
-  määrittänyt — testipalvelimella noin 8 800 kanavalle 29 600:sta.
-- Osa kanavalogoista on rikki palvelimen päässä (osoitteet viittaavat
-  poistettuun GitHub-repositorioon). Ne piilotetaan automaattisesti.
+- Credentials are stored in the clear in `chrome.storage.local` on this machine.
+  In Xtream the credentials are also part of every stream URL.
+- **Settings → Reset everything** removes it all: credentials, settings,
+  favourites, history, resume points and the entire IndexedDB database. The
+  button asks for confirmation itself — a second dialog opened on top of the
+  settings dialog would end up beneath it — and reloads the page at the end,
+  because the state in memory would correspond to nothing after the wipe.
+- The host permissions are in the `optional_host_permissions` list, so
+  installation asks for access to nothing. Access is asked for only when the
+  server address is saved, and only for that server's origin. A missing
+  permission shows up as a network error, alongside which there is a button for
+  granting it. There are no content scripts.
+- Access is needed only for fetch/XHR requests: `player_api.php` and the segment
+  requests of hls.js and mpegts.js. Natively played VOD (`<video src>`) and
+  channel logos (`<img>`) work without it.
+- **The concurrent connection limit** shows in the settings. On the test account
+  it is 1, which leaves a second simultaneous stream silent. The app tears down
+  the previous stream before opening a new one, but if playback does not start,
+  check that the same account is not in use elsewhere.
+- Programme data exists only for the channels the provider has defined it for —
+  on the test server, around 8,800 channels out of 29,600.
+- Some channel logos are broken at the server's end (the URLs point at a deleted
+  GitHub repository). They are hidden automatically.
 
-## Kieli
+## Language
 
-Käyttöliittymä on englanniksi ja suomeksi; oletus on englanti ja valinta
-tehdään asetuksista. Sanakirjat ovat yhdessä tiedostossa (`js/i18n.js`), ja
-englanti on samalla se lista josta puuttuvat avaimet paikataan — kesken jäänyt
-suomennos näkyy englanninkielisenä tekstinä eikä avaimen nimenä.
+The interface is in English and Finnish; English is the default and the choice
+is made in the settings. The dictionaries live in one file (`js/i18n.js`), and
+English is at the same time the list missing keys fall back to — a Finnish
+string left undone shows as English text rather than as a key name.
 
-Kieli vaihtuu ilman sivun latausta. Se onnistuu koska sovellus piirtää
-näkymänsä muutenkin tilasta uudelleen: vaihto tarvitsee vain merkkaukseen
-kirjoitettujen tekstien läpikäynnin (`data-i18n`), `Intl`-muotoilijoiden
-uudelleenluonnin ja samat piirtokutsut joilla näkymät syntyvät normaalistikin.
+The language changes without a page reload. That works because the app repaints
+its views from state anyway: the switch needs only a pass over the texts written
+into the markup (`data-i18n`), a rebuild of the `Intl` formatters, and the same
+paint calls that produce the views normally.
 
-Valinta ohjaa myös muotoiluja: kello, päiväys, tuhaterotin ja listojen
-aakkosjärjestys tulevat `en-GB`- tai `fi-FI`-tunnisteesta. `en-GB` eikä `en`,
-koska tässä sovelluksessa kello on 21.30 eikä 9:30 PM.
+The choice steers the formatting too: the clock, the date, the thousands
+separator and the alphabetical order of lists come from the `en-GB` or `fi-FI`
+tag. `en-GB` rather than `en`, because in this app the time is 21:30 and not
+9:30 PM.
 
-## Yhteystapa
+## Connection mode
 
-Asetuksissa on kaksi tapaa sanoa sama asia. **Xtream Codes** kysyy palvelimen,
-portin, tunnuksen ja salasanan erikseen. **M3U-osoite** ottaa yhden kentän,
-johon liitetään palveluntarjoajan antama soittolistaosoite — siinä ovat samat
-tunnukset kyselyparametreina, joten ne puretaan kentiksi ja yhteys muodostuu
-täsmälleen samalla tavalla. Valinta vaihtaa vain lomakkeen; taustalla on
-kummassakin sama rajapinta ja samat tiedot.
+The settings hold two ways of saying the same thing. **Xtream Codes** asks for
+the server, the port, the username and the password separately. **M3U address**
+takes a single field for the playlist URL the provider gave you — it carries the
+same credentials as query parameters, so they are parsed into fields and the
+connection is made in exactly the same way. The choice changes only the form;
+behind it lie the same API and the same details either way.
 
-## Tunnusgrafiikka
+## Brand graphics
 
-Kuvake on retro-CRT-televisio sovelluksen omassa paletissa (violetti `#7c5cff`,
-kuvaruutu `#22d3ee`, nupit `#ffc857`). Lähteet ovat `brand/`-kansiossa, joka on
-rajattu pois julkaisupaketista.
+The icon is a retro CRT television in the app's own palette (purple `#7c5cff`,
+screen `#22d3ee`, knobs `#ffc857`). The sources are in the `brand/` folder,
+which is excluded from the release package.
 
 ```
-brand/tv-master-1024.png        generoitu pääkuva, 1024 px, läpinäkyvä tausta
-brand/tv-master-prompt.txt      kehote jolla pääkuva syntyi
-brand/tv-full.png               antenneineen, käytetään kokoihin 128 ja 48
-brand/tv-compact.png            ilman antenneja, kokoihin 32 ja 16
-brand/store-icon-128.png        kaupan listausikoni, 96 px grafiikkaa 128 px kankaalla
-brand/promo-small-440x280.png   kaupan pieni promokuva
-brand/promo-marquee-1400x560.png  kaupan marquee-promokuva
-brand/promo.py                  promokuvien ladonta (Pillow + SF)
+brand/tv-master-1024.png        the generated master image, 1024 px, transparent
+brand/tv-master-prompt.txt      the prompt the master image came from
+brand/tv-full.png               with aerials, used for sizes 128 and 48
+brand/tv-compact.png            without aerials, for sizes 32 and 16
+brand/store-icon-128.png        the store listing icon, 96 px of art on a 128 px canvas
+brand/promo-small-440x280.png   the store's small promo image
+brand/promo-marquee-1400x560.png  the store's marquee promo image
+brand/promo.py                  typesetting the promo images (Pillow + SF)
 ```
 
-Pienissä koissa käytetään antennitonta versiota: 16 pikselissä antennit
-sulavat tummaksi tahraksi ja syövät tilaa kuvaruudulta. Promokuvien teksti
-ladotaan `promo.py`:llä oikealla fontilla, koska kuvamallit kirjoittavat
-kirjaimia epäluotettavasti.
+The aerial-free version is used at small sizes: at 16 pixels the aerials melt
+into a dark smudge and eat space from the screen. The text in the promo images
+is typeset with `promo.py` in the right font, because image models write letters
+unreliably.
 
-Julkaisupaketti:
+The release package:
 
 ```
 rm -f kepuli-tv-1.0.0.zip
@@ -531,19 +531,20 @@ zip -rq kepuli-tv-1.0.0.zip . \
   -x ".impeccable/*" -x "*.zip"
 ```
 
-Tulos on 42 merkintää ja noin 677 kt. `*.zip` on `.gitignoressa`, joten
-paketin voi rakentaa projektin juureen.
+The result is 43 entries and around 684 kB. `*.zip` is in `.gitignore`, so the
+package can be built in the project root.
 
-`dev/` ja `docs/` on rajattava pois: `dev/wasm/media/` on kymmeniä megatavuja
-`build.sh --test`:n tekemää testiaineistoa, ja `docs/` on Pages-sivusto, ei
-osa laajennusta. `.impeccable/` on työkalun asetuksia eikä `*.git*` osu siihen.
+`dev/` and `docs/` have to be excluded: `dev/wasm/media/` is tens of megabytes
+of test material made by `build.sh --test`, and `docs/` is the Pages site, not
+part of the extension. `.impeccable/` is tool configuration and is ignored as
+well.
 
-## Lisenssi
+## Licence
 
-Oma koodi on MIT-lisensoitu, ks. [LICENSE](LICENSE). Hakemistossa `vendor/` on
-kolmannen osapuolen koodia omilla ehdoillaan: `hls.js` ja `mpegts.js`
-Apache-2.0, ja `vendor/ffaudio/` FFmpegistä käännettynä LGPL-2.1+ -ehdoin.
-Käännöskomennot ovat `dev/wasm/build.sh`:ssä, jotta LGPL 2.1 §6:n vaatima
-uudelleenlinkitys onnistuu.
+The project's own code is MIT licensed, see [LICENSE](LICENSE). The `vendor/`
+directory holds third-party code on its own terms: `hls.js` and `mpegts.js`
+under Apache-2.0, and `vendor/ffaudio/` built from FFmpeg under LGPL-2.1+. The
+build commands are in `dev/wasm/build.sh`, so that the relinking required by
+LGPL 2.1 §6 is possible.
 
 Copyright (c) 2026 Samuli Vainio

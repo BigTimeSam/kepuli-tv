@@ -1,34 +1,36 @@
-// Kanavanimen siistiminen suodatetussa näkymässä.
+// Tidying a channel name in a filtered view.
 //
-// Palveluntarjoajan nimessä toistuu sama tieto kuin sivupalkin valinnassa:
-// "US: NHL Ice Center Pass 3 FHD" löytyy maan "USA" ja aiheen "NHL" alta.
-// Kun kumpikin suodatin on päällä, etuliite ei erottele riviä yhdestäkään
-// muusta näkyvästä rivistä — se vie vain tilan kapeasta sarakkeesta.
+// The provider's name repeats what the sidebar selection already says:
+// "US: NHL Ice Center Pass 3 FHD" is found under the country "USA" and the
+// topic "NHL". With both filters on, the prefix distinguishes the row from
+// no other visible row — it only takes space from a narrow column.
 //
-// Poistettava osa päätellään näkyvästä joukosta, ei pelkästä nimestä:
-// etuliite karsitaan vain jos se toistuu rivien enemmistössä. Siksi
-// "USA Network HD" säilyy kokonaisena maan "USA" alla — nimen alku on osa
-// nimeä silloin kun se ei toistu muilla. Koko nimi on aina rivin
-// title-tekstissä, joten mitään ei häviä lopullisesti.
+// What to remove is inferred from the visible set, not from the name
+// alone: a prefix is stripped only when it repeats across a majority of
+// rows. That is why "USA Network HD" survives intact under the country
+// "USA" — the start of a name is part of the name when the others do not
+// repeat it. The full name is always in the row's title text, so nothing
+// is lost for good.
 
 const WORD = /[\p{L}\p{N}]/u;
 const LEADING_JUNK = /^[^\p{L}\p{N}]+/u;
 
-// Maakoodi nimen alussa: "US: ...", "|US| ...", "EX-YU | ...". Koodi on
-// harvoin kirjoitettu kuten kategorian maa ("US:" vs. "USA"), joten sitä ei
-// löydä nimivertailulla. Kova erotin (":" tai "|") on osa tunnistusta:
-// ilman sitä "US Open Tennis" menettäisi alkunsa.
+// A country code at the start of a name: "US: ...", "|US| ...",
+// "EX-YU | ...". The code is rarely spelled like the category's country
+// ("US:" vs. "USA"), so comparing names does not find it. A hard separator
+// (":" or "|") is part of the detection: without it "US Open Tennis" would
+// lose its beginning.
 const RE_CODE = /^\s*\|?\s*([\p{L}\p{N}]{2,6}(?:[-/][\p{L}\p{N}]{2,6})?)\s*[:|]/u;
 
 const wordsOf = (label) => (String(label || '').toLowerCase().match(/[\p{L}\p{N}]+/gu) || []);
 
 /**
- * Rakentaa siistijän näkyvälle joukolle kerran, ei riviä kohti: sama
- * päättely toistuisi virtualisoidussa listassa jokaisella vierityksellä.
+ * Builds the tidier once for the visible set rather than per row: in a
+ * virtualised list the same reasoning would repeat on every scroll.
  *
- * @param {string[]} labels aktiiviset suodattimet järjestyksessä, esim. ["USA", "NHL"]
- * @param {{n:string}[]} items näkyvä joukko
- * @returns {((name: string) => string)|null} null jos poistettavaa ei ole
+ * @param {string[]} labels active filters in order, e.g. ["USA", "NHL"]
+ * @param {{n:string}[]} items the visible set
+ * @returns {((name: string) => string)|null} null when there is nothing to strip
  */
 export function nameCleaner(labels, items) {
   if (!items || !items.length) return null;
@@ -52,7 +54,7 @@ export function nameCleaner(labels, items) {
       hits++;
       return rest;
     });
-    // Ehdoton enemmistö: harvinainen osuma on osa nimeä, ei etuliitettä.
+    // An absolute majority: a rare match is part of the name, not a prefix.
     if (hits * 2 <= names.length) continue;
     steps.push((name) => stripWords(name, tokens));
     names = stripped;
@@ -63,8 +65,8 @@ export function nameCleaner(labels, items) {
 }
 
 /**
- * Etuliitteet voivat esiintyä missä järjestyksessä tahansa ("US: NHL …",
- * "NHL US: …"), joten kierroksia ajetaan kunnes mikään ei enää osu.
+ * Prefixes can appear in any order ("US: NHL …", "NHL US: …"), so passes
+ * are run until nothing matches any more.
  */
 function clean(name, steps) {
   let rest = name;
@@ -79,7 +81,7 @@ function clean(name, steps) {
   return rest || name;
 }
 
-/** Joukon yleisin maakoodi, tai null jos yksikään ei ole enemmistössä. */
+/** The set's most common country code, or null if none has a majority. */
 function dominantCode(names) {
   const counts = new Map();
   for (const name of names) {
@@ -97,7 +99,8 @@ function dominantCode(names) {
   return top * 2 > names.length ? best : null;
 }
 
-/** Nimen alusta annettu koodi erottimineen, tai null jos se on jokin muu. */
+/** The given code and its separator from the start of the name, or null
+ *  if the name starts with some other code. */
 function stripCode(name, code) {
   const m = RE_CODE.exec(name);
   if (!m || m[1].toLowerCase() !== code) return null;
@@ -105,9 +108,9 @@ function stripCode(name, code) {
 }
 
 /**
- * Nimen alusta annetut sanat, välimerkeistä piittaamatta: "NHL" osuu yhtä
- * lailla muotoihin "NHL Ice Center" ja "- NHL | Ice Center". Sanan on
- * loputtava rajaan, jottei "US" katkaise nimeä "USA Network".
+ * The given words from the start of the name, ignoring punctuation: "NHL"
+ * matches "NHL Ice Center" and "- NHL | Ice Center" alike. A word must end
+ * at a boundary, so that "US" does not cut into "USA Network".
  */
 function stripWords(name, tokens) {
   const lower = name.toLowerCase();

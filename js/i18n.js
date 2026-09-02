@@ -1,26 +1,26 @@
-// Käyttöliittymän kieli.
+// The interface language.
 //
-// Kaksi kieltä, yksi sanakirja. Englanti on oletus ja samalla se lista josta
-// puuttuvat avaimet paikataan: jos suomennos jää tekemättä, ruudulle tulee
-// englanninkielinen teksti eikä avaimen nimi.
+// Two languages, one dictionary. English is the default and at the same
+// time the list that missing keys fall back to: if a Finnish string is left
+// undone, the screen shows English text rather than a key name.
 //
-// Kieli vaihtuu ilman sivun latausta. Se onnistuu koska sovellus piirtää
-// näkymänsä joka tapauksessa tilasta uudelleen — ainoa mitä tarvitaan lisää
-// on staattisen HTML:n läpikäynti, ks. applyStatic.
+// The language changes without reloading the page. That works because the
+// app repaints its views from state anyway — all that is needed on top is
+// a pass over the static HTML, see applyStatic.
 //
-// Muotoilijat (js/format.js) eivät ole täällä, mutta ne seuraavat samaa
-// valintaa: localeTag() antaa niille Intl-tunnisteen.
+// The formatters (js/format.js) do not live here, but they follow the same
+// choice: localeTag() gives them an Intl tag.
 
 export const LANGUAGES = { en: 'English', fi: 'Suomi' };
 export const DEFAULT_LANGUAGE = 'en';
 
-// en-GB eikä en: IPTV-sovelluksessa kello on 21.30, ei 9:30 PM, ja päivä
-// tulee ennen kuukautta.
+// en-GB rather than en: in an IPTV app the time is 21:30, not 9:30 PM, and
+// the day comes before the month.
 const LOCALE_TAG = { en: 'en-GB', fi: 'fi-FI' };
 
 const STRINGS = {
   en: {
-    /* ---------------------------------------------------------- yläpalkki */
+    /* ------------------------------------------------------------ top bar */
     'tab.live': 'Channels',
     'tab.movie': 'Movies',
     'tab.series': 'Series',
@@ -36,7 +36,7 @@ const STRINGS = {
     'account.expiring': 'ends in {days} d',
     'account.valid': 'valid until {date}',
 
-    /* ------------------------------------------------------- sivupalkki */
+    /* ---------------------------------------------------------- sidebar */
     'groups.filter.placeholder': 'Filter countries and topics…',
     'groups.all': 'All',
     'groups.all.title': 'Loads the whole list from the server',
@@ -45,7 +45,7 @@ const STRINGS = {
     'kind.1': 'Movies',
     'kind.2': 'Series',
 
-    /* ------------------------------------------------------------ lista */
+    /* ------------------------------------------------------------- list */
     'subcats.all': 'All',
     'subcats.general': 'General',
     'crumbs.back': '← Back',
@@ -68,7 +68,7 @@ const STRINGS = {
     'history.clear.confirm': 'Confirm clearing',
     'history.cleared': 'History cleared',
 
-    /* ------------------------------------------------------------ rivit */
+    /* ------------------------------------------------------------- rows */
     'row.fav.add': 'Add to favourites',
     'row.fav.remove': 'Remove from favourites',
     'row.remove.history': 'Remove from history',
@@ -79,7 +79,7 @@ const STRINGS = {
     'row.cat.count.title': 'Category size according to the last load',
     'row.cat.subtitle': '{kind} · {where}',
 
-    /* -------------------------------------------------------- tyhjätilat */
+    /* ------------------------------------------------------ empty states */
     'empty.browse': 'Browse channels',
     'empty.nohits': 'No matches',
     'empty.nohits.text': 'The search “{query}” returned nothing.',
@@ -92,7 +92,7 @@ const STRINGS = {
     'empty.plain': 'Empty category',
     'empty.plain.text': 'There is no content in this category.',
 
-    /* ---------------------------------------------------------- lataus */
+    /* --------------------------------------------------------- loading */
     'progress.loading': 'Loading…',
     'progress.connecting': 'Connecting…',
     'progress.list': 'Loading {what}…',
@@ -108,7 +108,7 @@ const STRINGS = {
     'progress.refresh': 'Refreshing lists…',
     'toast.refreshed': 'Lists refreshed',
 
-    /* ---------------------------------------------------------- yhteys */
+    /* ------------------------------------------------------ connection */
     'error.connect.title': 'Connection failed',
     'error.unexpected': 'Unexpected error: {message}',
     'error.grant': 'Allow access: {origin}',
@@ -125,7 +125,7 @@ const STRINGS = {
     'api.badjson': 'The answer was not valid JSON.',
     'api.episode': 'Episode {number}',
 
-    /* ---------------------------------------------------------- soitin */
+    /* ---------------------------------------------------------- player */
     'player.idle': 'Nothing playing',
     'player.idle.text': 'Pick a channel from the list.',
     'player.disconnected': 'Not connected',
@@ -165,7 +165,7 @@ const STRINGS = {
     'playback.reason.media': 'media error {code}',
     'playback.reason.demux': 'demuxing failed',
 
-    /* ---------------------------------------------------------- tiedot */
+    /* ---------------------------------------------------------- detail */
     'info.next': 'Next {time} · {title}',
     'info.unsupported': ' (not supported)',
     'info.subs.one': '{n} subtitle: {languages}',
@@ -173,8 +173,9 @@ const STRINGS = {
     'info.subs.count.one': '{n} subtitle',
     'info.subs.count.other': '{n} subtitles',
     'subs.unknown': 'Unknown language',
+    'subs.forced': 'forced',
 
-    /* ------------------------------------------------------------ opas */
+    /* ----------------------------------------------------------- guide */
     'guide.needserver': 'Connect to a server first',
     'guide.epgoff': 'Programme data is switched off in settings',
     'guide.needgroup': 'Pick a channel group first',
@@ -201,10 +202,10 @@ const STRINGS = {
     'guide.catchup': 'Catch-up {days} d',
     'guide.catchup.title': 'Catch-up from the past {days} days',
 
-    /* -------------------------------------------------------- suosikit */
+    /* ------------------------------------------------------ favourites */
     'fav.button.title': 'Add to favourites',
 
-    /* ------------------------------------------------- ulkoinen soitin */
+    /* ------------------------------------------------- external player */
     'ext.label': 'VLC or another default player for .m3u',
     'ext.title': 'Open in an external player',
     'ext.nothing': 'There is no playback to hand over',
@@ -212,7 +213,7 @@ const STRINGS = {
     'ext.handed.text': 'The playlist was downloaded — open it from the browser downloads.',
     'ext.continue': 'Continue in the browser',
 
-    /* -------------------------------------------------------- asetukset */
+    /* --------------------------------------------------------- settings */
     'setup.title': 'Settings',
     'setup.welcome': 'Welcome',
     'setup.welcome.text': 'Enter your details and the channels appear in the list.',
@@ -250,7 +251,7 @@ const STRINGS = {
     'account.lists': 'Loaded lists',
     'account.none': 'none',
 
-    /* -------------------------------------------------------- tiedosto */
+    /* ------------------------------------------------------------ file */
     'probe.unread': 'The header could not be read: {error}',
     'probe.untested': 'The file has not been examined.',
     'probe.mp4': 'MP4 — the browser’s own player.',
@@ -269,7 +270,7 @@ const STRINGS = {
     'remux.audiostopped': 'Audio decoding stopped; the picture continues without sound.',
     'remux.truncated': 'The file is incomplete on the server: there is intact picture up to {time}.',
 
-    /* ------------------------------------------------------------- aika */
+    /* ------------------------------------------------------------- time */
     'day.today': 'Today',
     'day.yesterday': 'Yesterday',
     'day.earlier': 'Earlier',
@@ -284,7 +285,7 @@ const STRINGS = {
   },
 
   fi: {
-    /* ---------------------------------------------------------- yläpalkki */
+    /* ------------------------------------------------------------ top bar */
     'tab.live': 'Kanavat',
     'tab.movie': 'Elokuvat',
     'tab.series': 'Sarjat',
@@ -300,7 +301,7 @@ const STRINGS = {
     'account.expiring': 'päättyy {days} pv',
     'account.valid': 'voimassa {date}',
 
-    /* ------------------------------------------------------- sivupalkki */
+    /* ---------------------------------------------------------- sidebar */
     'groups.filter.placeholder': 'Suodata maat ja aiheet…',
     'groups.all': 'Kaikki',
     'groups.all.title': 'Lataa koko listan palvelimelta',
@@ -309,7 +310,7 @@ const STRINGS = {
     'kind.1': 'Elokuvat',
     'kind.2': 'Sarjat',
 
-    /* ------------------------------------------------------------ lista */
+    /* ------------------------------------------------------------- list */
     'subcats.all': 'Kaikki',
     'subcats.general': 'Yleiset',
     'crumbs.back': '← Takaisin',
@@ -332,7 +333,7 @@ const STRINGS = {
     'history.clear.confirm': 'Varmista tyhjennys',
     'history.cleared': 'Historia tyhjennetty',
 
-    /* ------------------------------------------------------------ rivit */
+    /* ------------------------------------------------------------- rows */
     'row.fav.add': 'Lisää suosikkeihin',
     'row.fav.remove': 'Poista suosikeista',
     'row.remove.history': 'Poista historiasta',
@@ -343,7 +344,7 @@ const STRINGS = {
     'row.cat.count.title': 'Kategorian koko viime latauksen mukaan',
     'row.cat.subtitle': '{kind} · {where}',
 
-    /* -------------------------------------------------------- tyhjätilat */
+    /* ------------------------------------------------------ empty states */
     'empty.browse': 'Selaa kanavia',
     'empty.nohits': 'Ei osumia',
     'empty.nohits.text': 'Hakusana “{query}” ei tuottanut tuloksia.',
@@ -356,7 +357,7 @@ const STRINGS = {
     'empty.plain': 'Tyhjä kategoria',
     'empty.plain.text': 'Kategoriassa ei ole sisältöä.',
 
-    /* ---------------------------------------------------------- lataus */
+    /* --------------------------------------------------------- loading */
     'progress.loading': 'Ladataan…',
     'progress.connecting': 'Yhdistetään…',
     'progress.list': 'Ladataan {what}…',
@@ -372,7 +373,7 @@ const STRINGS = {
     'progress.refresh': 'Päivitetään listat…',
     'toast.refreshed': 'Listat päivitetty',
 
-    /* ---------------------------------------------------------- yhteys */
+    /* ------------------------------------------------------ connection */
     'error.connect.title': 'Yhteys epäonnistui',
     'error.unexpected': 'Odottamaton virhe: {message}',
     'error.grant': 'Salli pääsy: {origin}',
@@ -389,7 +390,7 @@ const STRINGS = {
     'api.badjson': 'Vastaus ei ollut kelvollista JSONia.',
     'api.episode': 'Jakso {number}',
 
-    /* ---------------------------------------------------------- soitin */
+    /* ---------------------------------------------------------- player */
     'player.idle': 'Ei toistoa',
     'player.idle.text': 'Valitse kanava listalta.',
     'player.disconnected': 'Ei yhteyttä',
@@ -429,7 +430,7 @@ const STRINGS = {
     'playback.reason.media': 'media error {code}',
     'playback.reason.demux': 'purku epäonnistui',
 
-    /* ---------------------------------------------------------- tiedot */
+    /* ---------------------------------------------------------- detail */
     'info.next': 'Seuraavaksi {time} · {title}',
     'info.unsupported': ' (ei tuettu)',
     'info.subs.one': '{n} tekstitys: {languages}',
@@ -437,8 +438,9 @@ const STRINGS = {
     'info.subs.count.one': '{n} tekstitys',
     'info.subs.count.other': '{n} tekstitystä',
     'subs.unknown': 'Tuntematon kieli',
+    'subs.forced': 'pakotettu',
 
-    /* ------------------------------------------------------------ opas */
+    /* ----------------------------------------------------------- guide */
     'guide.needserver': 'Yhdistä ensin palvelimeen',
     'guide.epgoff': 'Ohjelmatiedot on kytketty pois asetuksista',
     'guide.needgroup': 'Valitse ensin kanavaryhmä',
@@ -465,10 +467,10 @@ const STRINGS = {
     'guide.catchup': 'Catchup {days} vrk',
     'guide.catchup.title': 'Catchup {days} vuorokauden ajalta',
 
-    /* -------------------------------------------------------- suosikit */
+    /* ------------------------------------------------------ favourites */
     'fav.button.title': 'Lisää suosikkeihin',
 
-    /* ------------------------------------------------- ulkoinen soitin */
+    /* ------------------------------------------------- external player */
     'ext.label': 'VLC tai muu .m3u:n oletussoitin',
     'ext.title': 'Avaa ulkoisessa soittimessa',
     'ext.nothing': 'Ei toistoa, jonka voisi luovuttaa',
@@ -476,7 +478,7 @@ const STRINGS = {
     'ext.handed.text': 'Soittolista ladattiin — avaa se selaimen latauksista.',
     'ext.continue': 'Jatka selaimessa',
 
-    /* -------------------------------------------------------- asetukset */
+    /* --------------------------------------------------------- settings */
     'setup.title': 'Asetukset',
     'setup.welcome': 'Tervetuloa',
     'setup.welcome.text': 'Anna tietosi, niin kanavat ilmestyvät listaan.',
@@ -514,7 +516,7 @@ const STRINGS = {
     'account.lists': 'Ladatut listat',
     'account.none': 'ei yhtään',
 
-    /* -------------------------------------------------------- tiedosto */
+    /* ------------------------------------------------------------ file */
     'probe.unread': 'Otsikkoa ei saatu luettua: {error}',
     'probe.untested': 'Tiedostoa ei ole tutkittu.',
     'probe.mp4': 'MP4 — selaimen oma toistin.',
@@ -533,7 +535,7 @@ const STRINGS = {
     'remux.audiostopped': 'Äänen purku keskeytyi; kuva jatkuu ilman ääntä.',
     'remux.truncated': 'Tiedosto on vaillinainen palvelimella: ehjää kuvaa on {time} asti.',
 
-    /* ------------------------------------------------------------- aika */
+    /* ------------------------------------------------------------- time */
     'day.today': 'Tänään',
     'day.yesterday': 'Eilen',
     'day.earlier': 'Aiemmin',
@@ -560,12 +562,12 @@ export function language() { return current; }
 export function localeTag() { return LOCALE_TAG[current] || LOCALE_TAG[DEFAULT_LANGUAGE]; }
 
 /**
- * Käännös avaimelle.
+ * The translation for a key.
  *
- * Monikko valitaan params.countin mukaan, jos avaimelle on .one/.other-parit:
- * t('unit.live', { count: 1 }) → "1 channel". Suomen ja englannin
- * monikkosäännöt ovat tässä samat (1 vs. muu), joten kieltä ei tarvitse
- * kysyä erikseen.
+ * The plural is chosen by params.count when the key has .one/.other pairs:
+ * t('unit.live', { count: 1 }) → "1 channel". Finnish and English share the
+ * same plural rule here (1 vs. anything else), so the language does not
+ * have to be consulted separately.
  */
 export function t(key, params) {
   const dict = STRINGS[current];
@@ -581,9 +583,9 @@ export function t(key, params) {
 }
 
 /**
- * Staattiset tekstit HTML:stä. Kutsutaan kerran käynnistyksessä ja uudelleen
- * kun kieli vaihtuu — dynaamiset näkymät hoitavat itsensä piirtämällä
- * uudelleen, mutta merkkaukseen kirjoitettuja tekstejä ei kukaan muu koske.
+ * The static texts from the HTML. Called once at start-up and again when
+ * the language changes — dynamic views take care of themselves by
+ * repainting, but nothing else touches text written into the markup.
  */
 export function applyStatic(root = document) {
   for (const node of root.querySelectorAll('[data-i18n]')) node.textContent = t(node.dataset.i18n);

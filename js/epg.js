@@ -1,27 +1,29 @@
-// Ohjelmatiedot laiskasti, kanava kerrallaan.
+// Programme data lazily, one channel at a time.
 //
-// Koko XMLTV olisi 4,8 Mt gzipattuna ja vanhenisi vuorokaudessa, joten
-// haetaan get_short_epg:llä vain ne kanavat jotka ovat näkyvissä tai
-// toistossa — 1,6 kt ja ~150 ms per kanava. Kanavat joilla ei ole
-// epg_channel_id:tä (2/3 kaikista) ohitetaan kokonaan.
+// The whole XMLTV would be 4.8 MB gzipped and would go stale in a day, so
+// get_short_epg fetches only the channels that are visible or playing —
+// 1.6 kB and ~150 ms per channel. Channels without an epg_channel_id
+// (two thirds of them) are skipped entirely.
 //
-// Ohjelmaopas tarvitsee leveämmän ikkunan kuin listarivin "nyt ja
-// seuraavaksi", joten sama välimuisti palvelee kolmea tarkkuutta:
+// The programme guide needs a wider window than a list row's "now and
+// next", so the same cache serves three levels of detail:
 //
-//   short   4 ohjelmaa    listarivin alateksti           1,6 kt
-//   grid   40 ohjelmaa    opas eteenpäin (~12 h)          18 kt
-//   full   koko taulu     opas taaksepäin ja catchup   50–150 kt
+//   short   4 programmes    list row subtitle              1.6 kB
+//   grid   40 programmes    guide forwards (~12 h)          18 kB
+//   full   whole table      guide backwards and catch-up  50–150 kB
 //
-// Karkeampaa ei koskaan haeta hienomman päälle, joten oppaassa käyty
-// kanava ei putoa takaisin neljään ohjelmaan kun listaa vierittää.
+// A coarser level is never fetched over a finer one, so a channel visited
+// in the guide does not fall back to four programmes when the list is
+// scrolled.
 
 const CONCURRENCY = 4;
 const MAX_AGE_MS = 30 * 60e3;
 const RETRY_AFTER_MS = 5 * 60e3;
 const GRID_LIMIT = 40;
 
-// Vierityskohta on kokonaisia pikseleitä, joten ikkunan alku heittelee
-// sekunteja. Ilman pientä pelivaraa se poikisi turhia koko taulun hakuja.
+// The scroll offset is whole pixels, so the start of the window wobbles by
+// seconds. Without a little slack that would spawn needless full-table
+// fetches.
 const PAST_SLACK_MS = 60e3;
 
 const RANK = { short: 0, grid: 1, full: 2 };
@@ -41,7 +43,7 @@ export class Epg {
     this.enabled = true;
   }
 
-  /** Nyt menossa oleva ja seuraava ohjelma, tai null jos ei tiedossa. */
+  /** The programme on now and the next one, or null when not known. */
   nowNext(streamId) {
     const entry = this.cache.get(String(streamId));
     if (!entry) return null;
@@ -57,13 +59,14 @@ export class Epg {
 
   has(streamId) { return this.cache.has(String(streamId)); }
 
-  /** Kaikki tiedossa olevat ohjelmat, tai null jos kanavaa ei ole haettu. */
+  /** Every known programme, or null if the channel has not been fetched. */
   listings(streamId) {
     const entry = this.cache.get(String(streamId));
     return entry ? entry.listings : null;
   }
 
-  /** Aikaväliin osuvat ohjelmat, tai null jos kanavaa ei ole haettu. */
+  /** Programmes falling in the interval, or null if the channel has not
+   *  been fetched. */
   listingsIn(streamId, from, to) {
     const entry = this.cache.get(String(streamId));
     if (!entry) return null;
@@ -75,14 +78,14 @@ export class Epg {
     if (!entry) return true;
     if (RANK[entry.mode] < RANK[mode]) return true;
     if (Date.now() - entry.at > MAX_AGE_MS) return true;
-    // Tyhjä tulos on tulos: kanava jolla on epg_channel_id mutta ei
-    // ohjelmia pysyy tuoreena ikänsä, muuten se haettaisiin uudelleen
-    // joka vierityksellä.
+    // An empty result is a result: a channel that has an epg_channel_id
+    // but no programmes stays fresh for good, otherwise it would be
+    // fetched again on every scroll.
     const last = entry.listings[entry.listings.length - 1];
     return last ? last.stop <= Date.now() : false;
   }
 
-  /** Pyytää yhden kanavan tiedot; priority nostaa jonon kärkeen. */
+  /** Requests one channel's data; priority moves it to the head of the queue. */
   want(item, { priority = false, mode = 'short' } = {}) {
     if (!this.enabled || !item || item.k !== 0 || !item.epgId) return;
     const id = String(item.id);
@@ -111,8 +114,8 @@ export class Epg {
   }
 
   /**
-   * Näkyvissä olevat rivit. Vanha jono heitetään pois, koska käyttäjän
-   * vieritettyä eteenpäin edellisen ruudullisen tiedoilla ei tee mitään.
+   * The rows currently visible. The old queue is thrown away, because once
+   * the user has scrolled on, the previous screenful's data is of no use.
    */
   setVisible(items) {
     if (!this.enabled) return;
@@ -122,12 +125,12 @@ export class Epg {
   }
 
   /**
-   * Oppaassa näkyvät kanavat ja aikaikkuna.
+   * The channels and time window visible in the guide.
    *
-   * get_short_epg alkaa menossa olevasta ohjelmasta, joten se kattaa
-   * ikkunan aina sen alkuun asti. Tuntematon kanava haetaan siksi aina
-   * halvalla, ja koko taulu vasta kun tiedetään ikkunan ulottuvan
-   * tunnettujen ohjelmien ohi — kumpaan tahansa suuntaan.
+   * get_short_epg starts from the programme on now, so it always covers
+   * the window up to its start. An unknown channel is therefore always
+   * fetched cheaply, and the whole table only once the window is known to
+   * reach past the known programmes — in either direction.
    */
   setVisibleWindow(items, from, to) {
     if (!this.enabled) return;
@@ -160,8 +163,8 @@ export class Epg {
         : this.api.shortEpg(id, mode === 'grid' ? GRID_LIMIT : 4);
       request
         .then((listings) => {
-          // get_simple_data_table palauttaa rivit satunnaisessa
-          // järjestyksessä; opas nojaa siihen että ne ovat ajassa.
+          // get_simple_data_table returns the rows in arbitrary order;
+          // the guide relies on them being in time order.
           listings.sort((a, b) => a.start - b.start);
           this.cache.set(id, { listings, at: Date.now(), mode });
           this.failedUntil.delete(id);
@@ -174,7 +177,7 @@ export class Epg {
     }
   }
 
-  /** Päivitykset niputetaan yhteen ruudunpiirtoon. */
+  /** Updates are batched into a single frame. */
   markUpdated(id) {
     this.updated.add(id);
     if (this.flushHandle) return;

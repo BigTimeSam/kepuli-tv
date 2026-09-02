@@ -1,15 +1,15 @@
-// Kevyt virtualisoitu lista: piirtää vain näkyvissä olevat rivit, joten
-// 55 000 elokuvan lista rullaa yhtä sujuvasti kuin kymmenen rivin lista.
+// A light virtualised list: only the visible rows are painted, so a list
+// of 55,000 movies scrolls as smoothly as a list of ten.
 //
-// Rivit ovat oletuksena samankorkuisia, jolloin näkyvä väli lasketaan
-// jakolaskulla. Kokoelmanäkymät tarvitsevat väliotsikoita, joten rivi voi
-// halutessaan olla muita korkeampi: silloin korkeudet summataan kerran
-// etukäteen ja väli haetaan puolitushaulla.
+// Rows are the same height by default, which makes the visible range a
+// division. Collection views need section headings, so a row may be
+// taller than the others when it wants to: then the heights are summed
+// once up front and the range is found by binary search.
 
 export class VirtualList {
   /**
-   * @param {HTMLElement} viewport rullaava säiliö
-   * @param {number} rowHeight rivin oletuskorkeus pikseleinä
+   * @param {HTMLElement} viewport the scrolling container
+   * @param {number} rowHeight default row height in pixels
    * @param {(index:number)=>HTMLElement} renderRow
    * @param {{overscan?:number, onVisible?:(first:number,last:number)=>void}} [options]
    */
@@ -20,9 +20,9 @@ export class VirtualList {
     this.overscan = options.overscan ?? 6;
     this.onVisible = options.onVisible || null;
     this.count = 0;
-    this.offsets = null;      // null = kaikki rivit samankorkuisia
+    this.offsets = null;      // null = every row is the same height
     this.ticking = false;
-    this.nodes = new Map();   // index → elementti, uudelleenkäyttöä varten
+    this.nodes = new Map();   // index → element, kept for reuse
 
     this.spacer = document.createElement('div');
     this.spacer.className = 'vlist-spacer';
@@ -44,7 +44,7 @@ export class VirtualList {
   /**
    * @param {number} count
    * @param {{keepScroll?:boolean, heightAt?:(index:number)=>number}} [options]
-   *   heightAt annetaan vain jos rivit ovat eri korkuisia.
+   *   heightAt is given only when the rows differ in height.
    */
   setCount(count, { keepScroll = false, heightAt = null } = {}) {
     this.count = count;
@@ -56,7 +56,7 @@ export class VirtualList {
 
   refresh() { this.paint(); }
 
-  /** Piirtää yhden rivin uudelleen jos se on näkyvissä. */
+  /** Repaints one row if it is visible. */
   refreshRow(index) {
     if (!this.nodes.has(index)) return;
     const fresh = this.renderRow(index);
@@ -72,7 +72,7 @@ export class VirtualList {
     return this.offsets ? this.offsets[index + 1] - this.offsets[index] : this.rowHeight;
   }
 
-  /** Ensimmäinen rivi jonka alareuna ylittää annetun kohdan. */
+  /** The first row whose bottom edge passes the given offset. */
   indexAt(px) {
     if (!this.offsets) return Math.floor(px / this.rowHeight);
     let lo = 0;
@@ -116,7 +116,7 @@ export class VirtualList {
   }
 }
 
-/** Kumulatiiviset alkukohdat, offsets[count] = koko korkeus. */
+/** Cumulative start offsets; offsets[count] = total height. */
 function buildOffsets(count, heightAt) {
   const offsets = new Float64Array(count + 1);
   for (let i = 0; i < count; i++) offsets[i + 1] = offsets[i] + heightAt(i);

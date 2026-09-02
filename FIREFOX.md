@@ -1,58 +1,57 @@
-# Firefox-versio
+# A Firefox version
 
-Selvitys siitä mitä Kepuli-TV:n kääntäminen Firefox-laajennukseksi vaatisi ja
-kannattaako molempia ylläpitää yhdestä koodipohjasta.
+An assessment of what porting Kepuli-TV to a Firefox extension would take, and
+whether maintaining both from one codebase is worth it.
 
-**Lyhyt vastaus:** kannattaa, ja yhdellä koodipohjalla. Laajennuksen
-selainriippuvuus on 15 kutsua kolmessa tiedostossa. Kaikki muu — soitin,
-listat, opas, välimuisti, purku — on tavallista web-koodia joka ei tiedä
-mitään laajennusrajapinnoista.
+**Short answer:** it is, and from one codebase. The extension's dependency on
+the browser is 15 calls in three files. Everything else — the player, the
+lists, the guide, the cache, the unpacking — is ordinary web code that knows
+nothing about extension APIs.
 
-Ne MV3:n alueet joilla Chrome ja Firefox oikeasti eroavat ovat
-sisältöskriptit, `webRequest` ja `declarativeNetRequest`. Kepuli-TV ei käytä
-niistä yhtäkään.
+The areas of MV3 where Chrome and Firefox really differ are content scripts,
+`webRequest` and `declarativeNetRequest`. Kepuli-TV uses none of them.
 
-## Mitä koodissa on selainkohtaista
+## What in the code is browser-specific
 
-| Tiedosto | Kutsut | Firefoxissa |
+| File | Calls | In Firefox |
 | --- | --- | --- |
-| `js/config.js` | `storage.local.get/set` × 9 | toimii, ks. nimiavaruus |
-| `js/permissions.js` | `permissions.contains/request` × 3 | toimii (Fx 55+) |
-| `background.js` | `runtime.getURL`, `runtime.getContexts`, `tabs.update`, `tabs.create`, `windows.update`, `action.onClicked` | toimii (`getContexts` Fx 127+) |
+| `js/config.js` | `storage.local.get/set` × 9 | works, see the namespace |
+| `js/permissions.js` | `permissions.contains/request` × 3 | works (Fx 55+) |
+| `background.js` | `runtime.getURL`, `runtime.getContexts`, `tabs.update`, `tabs.create`, `windows.update`, `action.onClicked` | works (`getContexts` Fx 127+) |
 
-Ei sisältöskriptejä, ei `webRequest`iä, ei `declarativeNetRequest`iä, ei
-`scripting`ia, ei viestintää sivun ja taustan välillä. `player.html` on
-tavallinen sivu joka sattuu asumaan laajennuksen originissa.
+No content scripts, no `webRequest`, no `declarativeNetRequest`, no
+`scripting`, no messaging between the page and the background. `player.html` is
+an ordinary page that happens to live on the extension's origin.
 
-## Viisi muutosta
+## Five changes
 
-### 1. Nimiavaruuden shim
+### 1. A namespace shim
 
-Firefoxissa lupauksia palauttava nimiavaruus on `browser`. `chrome` on
-olemassa yhteensopivuusaliaksena, mutta callback-tyylisenä — eli
-`await chrome.storage.local.get(key)` palauttaisi `undefined`in eikä dataa.
-Vika olisi hiljainen: asetukset vain katoaisivat.
+In Firefox the promise-returning namespace is `browser`. `chrome` exists as a
+compatibility alias, but in callback style — so `await
+chrome.storage.local.get(key)` would return `undefined` rather than the data.
+The fault would be silent: the settings would simply vanish.
 
-Uusi `js/browser.js`:
+A new `js/browser.js`:
 
 ```js
-// Chrome tuntee vain chromen (browser tuli vasta 148:aan), Firefox
-// molemmat mutta lupaukset vain browserissa. Alias ratkaisee kummankin.
+// Chrome knows only chrome (browser arrived in 148); Firefox knows both, but
+// the promises live only on browser. The alias settles both.
 export const api = globalThis.browser ?? globalThis.chrome;
 ```
 
-Sitten `config.js`, `permissions.js` ja `background.js` käyttävät `api`a
-`chrome`n sijaan. `background.js` ei ole moduuli, joten sinne riittää sama
-rivi suoraan tiedoston alkuun.
+Then `config.js`, `permissions.js` and `background.js` use `api` instead of
+`chrome`. `background.js` is not a module, so the same line at the top of the
+file is enough there.
 
-Tämä on koko työn ainoa varsinainen koodimuutos.
+This is the only actual code change in the whole job.
 
-### 2. Taustaskripti manifestiin
+### 2. The background script in the manifest
 
-Firefox ei toteuta `background.service_worker`ia lainkaan. Se käyttää
-tapahtumasivua eli `background.scripts`-avainta. Sama manifest voi kantaa
-molemmat: Firefox jättää `service_worker`in huomiotta ja Chrome 121:stä
-alkaen `scripts`in.
+Firefox does not implement `background.service_worker` at all. It uses an event
+page, i.e. the `background.scripts` key. The same manifest can carry both:
+Firefox ignores `service_worker` and Chrome, from 121 onwards, ignores
+`scripts`.
 
 ```json
 "background": {
@@ -61,11 +60,11 @@ alkaen `scripts`in.
 }
 ```
 
-**Reunaehto:** Chrome 116–120 ei jätä `scripts`ia huomiotta vaan
-kieltäytyy lataamasta koko laajennusta. Manifestissa lukee nyt
-`"minimum_chrome_version": "116"`, joten se pitää nostaa 121:een — tai
-manifesteja tulee kaksi. Chrome 121 on tammikuulta 2024, joten nosto on
-halpa ja pitää projektin lupauksen käännösvaiheettomuudesta.
+**Caveat:** Chrome 116–120 does not ignore `scripts` but refuses to load the
+extension at all. The manifest currently says `"minimum_chrome_version": "116"`,
+so it would have to be raised to 121 — or there will be two manifests. Chrome
+121 is from January 2024, so raising it is cheap and keeps the project's
+promise of having no build step.
 
 ### 3. `browser_specific_settings`
 
@@ -78,131 +77,131 @@ halpa ja pitää projektin lupauksen käännösvaiheettomuudesta.
 }
 ```
 
-`id` on pakollinen AMO:ssa ja se sitoo tallennustilan laajennukseen.
-Vähimmäisversion 128 sanelee `optional_host_permissions`, joka tuli
-Firefoxiin vasta silloin. Muut käytetyt rajapinnat ovat vanhempia:
+The `id` is mandatory on AMO and it binds the storage to the extension. The
+minimum version of 128 is dictated by `optional_host_permissions`, which
+arrived in Firefox only then. The other APIs in use are older:
 `runtime.getContexts` 127, `action` 109, `unlimitedStorage` 56,
 `permissions.request` 55.
 
-Chrome ei tunne avainta mutta ei myöskään kaadu siihen — tuntemattomat
-manifest-avaimet ovat varoitus, eivät virhe. Sama pätee toisin päin
-`minimum_chrome_version`iin Firefoxissa.
+Chrome does not know the key but does not choke on it either — unknown manifest
+keys are a warning, not an error. The same holds the other way round for
+`minimum_chrome_version` in Firefox.
 
-### 4. Sanamuodot
+### 4. Wording
 
-Kymmenkunta virheilmoitusta ja työkaluvihjettä puhuu Chromesta nimeltä:
+A dozen error messages and tooltips name Chrome:
 
 ```
-js/probe.js    "Videokoodekkia %s ei voi purkaa Chromessa."
-               "Ääniraita on %s, jota Chrome ei pura."
-               "sisältö kelpaa Chromelle, mutta kontin purku puuttuu"
-js/rows.js     "Pääte ei lupaa toistoa Chromessa"
-js/xtream.js   kommentti natiivisti toistuvista päätteistä
-js/app.js      "Chrome ei myöntänyt oikeutta"
+js/probe.js    "The video codec %s cannot be decoded in Chrome."
+               "The audio track is %s, which Chrome does not decode."
+               "the content suits Chrome, but the container is not unpacked"
+js/rows.js     "does not promise playback in Chrome"
+js/xtream.js   the comment on natively played extensions
+js/app.js      "Chrome did not grant access"
 ```
 
-Päätöslogiikka itsessään on jo selainriippumaton: `probe.js` kysyy
-`MediaSource.isTypeSupported`ilta eikä oleta mitään. Vain tekstit
-muuttuvat, "Chrome" → "selain".
+The decision logic itself is already browser-independent: `probe.js` asks
+`MediaSource.isTypeSupported` and assumes nothing. Only the texts change,
+"Chrome" → "the browser".
 
-Yksi kova lista jää: `js/xtream.js:isNativelyPlayable` luettelee päätteet
-`mp4|m4v|mov|webm|ogv`. Firefox toistaa saman joukon. Sivuhuomio: `ogv` on
-listassa Chromen osalta vanhentunut, Chrome pudotti Theoran versiossa 123.
+One hard-coded list remains: `js/xtream.js:isNativelyPlayable` enumerates the
+extensions `mp4|m4v|mov|webm|ogv`. Firefox plays the same set. An aside: `ogv`
+is out of date on the Chrome side, as Chrome dropped Theora in version 123.
 
-### 5. Kehityssilmukka
+### 5. The development loop
 
-`dev/dev.mjs` puhuu Chromen DevTools-protokollaa, eikä sitä voi kääntää.
-Firefoxille vastaava on Mozillan oma `web-ext`:
+`dev/dev.mjs` speaks Chrome's DevTools protocol, and it cannot be ported. The
+equivalent for Firefox is Mozilla's own `web-ext`:
 
 ```
 npx web-ext run --source-dir=. --start-url=about:debugging
 ```
 
-Se lataa laajennuksen väliaikaisesti, avaa oman profiilin ja lataa
-muutoksista uudelleen — sama työnkulku, valmiina. Riippuvuus on `npx`in
-takana, ei projektissa. `dev.mjs` jää Chromelle.
+It loads the extension temporarily, opens a profile of its own and reloads on
+changes — the same workflow, ready made. The dependency sits behind `npx`, not
+in the project. `dev.mjs` stays with Chrome.
 
-## Mitä ei tarvitse muuttaa
+## What needs no change
 
-- **Toistomoottorit.** mpegts.js ilmoittaa tueksi Firefox 42+, hls.js toimii
-  Firefoxissa. Kumpikaan ei nojaa Chromen erikoisuuksiin: molemmat purkavat
-  virran fMP4:ksi ja syöttävät sen MediaSourcelle, mikä on juuri se reitti
-  jota Firefox tukee.
-- **CSP ja paikalliset vendor-tiedostot.** Firefoxin MV3-CSP kieltää
-  etäskriptit samoin kuin Chromen, ja kirjastot ovat jo paikallisina.
-  Ääniraidan purku vaatii manifestiin `'wasm-unsafe-eval'`-lähteen, jonka
-  Firefox hyväksyy samalla avaimella kuin Chrome — sama merkkijono siis
-  kelpaa molemmille.
-- **IndexedDB, `<video>`, MSE, Range-pyynnöt.** Samat rajapinnat.
-- **Valinnaiset host-oikeudet.** Firefoxin MV3:ssa host-oikeudet ovat
-  lähtökohtaisesti valinnaisia ja käyttäjän myönnettäviä, eli sovelluksen
-  nykyinen malli — kysy oikeus vasta kun käyttäjä antaa palvelimensa — on
-  siellä pikemminkin normi kuin poikkeus.
+- **The playback engines.** mpegts.js states support for Firefox 42+, and
+  hls.js works in Firefox. Neither leans on Chrome's peculiarities: both demux
+  the stream into fMP4 and feed it to MediaSource, which is exactly the route
+  Firefox supports.
+- **The CSP and the local vendor files.** Firefox's MV3 CSP forbids remote
+  scripts just as Chrome's does, and the libraries are local already. Decoding
+  the audio track requires the `'wasm-unsafe-eval'` source in the manifest,
+  which Firefox accepts under the same key as Chrome — the same string works
+  for both.
+- **IndexedDB, `<video>`, MSE, Range requests.** The same APIs.
+- **Optional host permissions.** In Firefox's MV3 host permissions are optional
+  and user-granted by default, so the app's current model — ask for the
+  permission only when the user gives their server — is the norm there rather
+  than the exception.
 
-## Ainoa oikea riski: `js/remux.js`
+## The one real risk: `js/remux.js`
 
-MKV:n purku fMP4:ksi on koko projektin selainherkin kohta. Chrome ja Firefox
-hyväksyvät `SourceBuffer`iin eri asioita: kummallakin on omat vaatimuksensa
-mm. `avcC`-parametrijoukkojen sijainnista, `moof`-otsikoiden
-aikaleimoista ja `changeType`in käytöstä. Koodi joka kelpaa toiselle voi
-kaatua toisessa `InvalidStateError`iin ilman muuta selitystä.
+Unpacking MKV into fMP4 is the most browser-sensitive part of the whole
+project. Chrome and Firefox accept different things into a `SourceBuffer`: each
+has its own requirements about where the `avcC` parameter sets sit, about the
+timestamps in `moof` headers, and about the use of `changeType`. Code that one
+accepts may fail in the other with an `InvalidStateError` and no further
+explanation.
 
-Tämä ei ole syy jättää Firefoxia tekemättä, mutta se on syy varata sille
-oma testikierros. Kaikki muu on käännettävissä sokkona; tämä ei.
+This is not a reason to leave Firefox undone, but it is a reason to set aside a
+test round of its own for it. Everything else can be ported blind; this cannot.
 
-## Julkaisu AMO:hon
+## Publishing on AMO
 
-- **Allekirjoitus on pakollinen.** Julkaisu-Firefox ei asenna
-  allekirjoittamatonta laajennusta pysyvästi. Allekirjoituksen saa AMO:sta
-  myös ilman julkista listausta (self-distribution).
-- **Minifioitu koodi.** AMO vaatii lähdekoodin toimittamisen silloin kun
-  *sinä* minifioit tai niputat. `vendor/hls.js` ja `vendor/mpegts.js` ovat
-  kirjastojen omia julkaisutiedostoja, joita koskee erillinen kolmannen
-  osapuolen kirjastojen politiikka: käytä virallista julkaisua
-  muuttamattomana ja kerro versio ja alkuperä, niin tarkastaja voi verrata
-  sen alkuperäiseen. Kannattaa lisätä `vendor/README` jossa lukee versio ja
-  latausosoite.
-- **`vendor/ffaudio` on eri tapaus.** Se ei ole kirjaston oma julkaisu vaan
-  meidän käännöksemme FFmpegistä, joten siihen pätee nimenomaan se kohta
-  joka vaatii lähdekoodin ja käännösohjeet. Ne ovat valmiina:
-  `dev/wasm/build.sh` sisältää koko komentosarjan, `dev/wasm/ffaudio.c` on
-  ainoa oma lähdetiedosto, ja `vendor/ffaudio/LICENSE` kertoo FFmpegin tagin
-  ja LGPL 2.1 §6:n edellyttämän vaihdettavuuden.
-- **Tarkistus on ihmisen tekemä** ja hitaampi kuin Chromen, mutta
-  laajennus ei pyydä asennuksessa mitään oikeuksia eikä koske selattaviin
-  sivuihin, joten se on tarkastajan kannalta helppo tapaus.
+- **Signing is mandatory.** Release Firefox will not install an unsigned
+  extension permanently. A signature can be had from AMO without a public
+  listing too (self-distribution).
+- **Minified code.** AMO requires the source to be submitted when *you* minify
+  or bundle. `vendor/hls.js` and `vendor/mpegts.js` are the libraries' own
+  release files, covered by the separate third-party library policy: use the
+  official release unmodified and state the version and origin, so the reviewer
+  can compare it with the original. It is worth adding a `vendor/README` stating
+  the version and the download URL.
+- **`vendor/ffaudio` is a different case.** It is not a library's own release
+  but our build of FFmpeg, so the clause requiring source and build
+  instructions applies to it precisely. They are in place: `dev/wasm/build.sh`
+  holds the whole command sequence, `dev/wasm/ffaudio.c` is the only source file
+  of our own, and `vendor/ffaudio/LICENSE` states FFmpeg's tag and the
+  replaceability LGPL 2.1 §6 requires.
+- **Review is done by a human** and is slower than Chrome's, but the extension
+  asks for no permissions at install time and does not touch the pages you
+  browse, so it is an easy case for a reviewer.
 
-## Rakenne-ehdotus
+## A proposed structure
 
-Yksi manifest, ei käännösvaihetta, ei ehtolauseita koodissa:
+One manifest, no build step, no conditionals in the code:
 
 ```
-manifest.json      molemmat taustaskriptiavaimet + browser_specific_settings
-js/browser.js      api = browser ?? chrome            ← uusi
-dev/dev.mjs        Chromen silmukka
-                   Firefoxille: npx web-ext run
+manifest.json      both background keys + browser_specific_settings
+js/browser.js      api = browser ?? chrome            ← new
+dev/dev.mjs        Chrome's loop
+                   for Firefox: npx web-ext run
 ```
 
-Vaihtoehto olisi kaksi manifestia ja pieni `build.mjs` joka valitsee
-oikean. Se olisi siistimpi mutta rikkoisi projektin lupauksen siitä, että
-tiedostot ovat sellaisenaan sitä mitä selain ajaa. Yhden manifestin haitta
-on kaksi kosmeettista varoitusta, yksi kummassakin selaimessa.
+The alternative would be two manifests and a small `build.mjs` that picks the
+right one. That would be tidier but would break the project's promise that the
+files are, as they are, what the browser runs. The cost of a single manifest is
+two cosmetic warnings, one in each browser.
 
-## Työmäärä
+## Effort
 
-| Vaihe | Arvio |
+| Stage | Estimate |
 | --- | --- |
-| Shim, manifest, sanamuodot | 1–2 h |
-| Läpikäynti Firefoxissa: listat, opas, EPG, live-toisto | 1–2 h |
-| `remux.js` Firefoxissa | tuntematon, 0 h – useita päiviä |
-| Ensimmäinen AMO-julkaisu | 2–3 h |
+| Shim, manifest, wording | 1–2 h |
+| A pass through Firefox: lists, guide, EPG, live playback | 1–2 h |
+| `remux.js` in Firefox | unknown, 0 h – several days |
+| The first AMO release | 2–3 h |
 
-Ylläpito sen jälkeen on käytännössä ilmaista: uudet ominaisuudet kirjoitetaan
-soittimeen, ei laajennuskuoreen, eikä kuori enää muutu.
+Maintenance after that is effectively free: new features are written into the
+player, not into the extension shell, and the shell does not change again.
 
-## Bonus: Firefox Androidille
+## Bonus: Firefox for Android
 
-Firefox on ainoa mobiiliselain joka ajaa laajennuksia. Sama paketti asentuu
-sinne, jos `browser_specific_settings.gecko_android`
-`strict_min_version`ineen lisätään. Käyttöliittymä on suunniteltu työpöydälle
-eikä kelpaisi sellaisenaan, mutta reitti on olemassa — Chromelle ei ole.
+Firefox is the only mobile browser that runs extensions. The same package
+installs there once `browser_specific_settings.gecko_android` and its
+`strict_min_version` are added. The interface is designed for the desktop and
+would not do as it is, but the route exists — for Chrome it does not.

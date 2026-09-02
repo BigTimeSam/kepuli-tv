@@ -1,11 +1,13 @@
 #!/usr/bin/env node
-// Vertaa wasm-purkajan ulostuloa ffmpegin omaan samasta bittivirrasta.
+// Compares the wasm decoder's output with ffmpeg's own from the same
+// bitstream.
 //
-// Aineisto tehdään ffmpegillä (dev/wasm/build.sh --test), ja vertailu-PCM
-// pyydetään samalla ketjulla jota kääre käyttää: `-downmix stereo -ac 2`.
-// Jos purku on oikein, ero on vain float-pyöristystä (~1e-7).
+// The material is produced with ffmpeg (dev/wasm/build.sh --test), and the
+// reference PCM is asked for with the same chain the wrapper uses:
+// `-downmix stereo -ac 2`. When the decoding is right, the difference is
+// only float rounding (~1e-7).
 //
-// Käyttö: node dev/wasm/verify.mjs [aineistohakemisto]
+// Usage: node dev/wasm/verify.mjs [material directory]
 
 import { readFileSync, existsSync } from 'node:fs';
 import { dirname, join, resolve } from 'node:path';
@@ -17,7 +19,8 @@ const RATE = 48000;
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '../..');
 const dir = process.argv[2] || join(ROOT, 'dev', 'wasm', 'media');
 
-// Tätä suurempi ero kertoo purkuvirheestä; float-pyöristys jää alle.
+// A difference larger than this means a decoding error; float rounding
+// stays below it.
 const TOLERANCE = 1e-5;
 
 async function decode(path, codec, chunkSize) {
@@ -74,8 +77,8 @@ function compare(a, b) {
   return { n, maxDiff, sameLength: a.length === b.length };
 }
 
-// Pieni pala osuu kehysrajan väliin ja koettelee jäsentimen tilan, iso pala
-// mittaa nopeuden.
+// A small chunk lands between frame boundaries and exercises the parser's
+// state; a large chunk measures the speed.
 const CHUNKS = [4096, 1 << 20];
 
 const cases = [
@@ -84,10 +87,11 @@ const cases = [
   ['t51_192.eac3', 'eac3', 'E-AC-3 5.1 192k'],
   ['t2.eac3', 'eac3', 'E-AC-3 stereo 128k'],
   ['t51.dts', 'dts', 'DTS 5.1 (swr laskee)'],
-  // Kanavamäärä vaihtuu kesken virran. Ulostulon muoto on kiinteä, joten
-  // vaihdos ei saa näkyä muuna kuin muuntimen uudelleenrakennuksena.
+  // The channel count changes mid-stream. The output format is fixed, so
+  // the change must show up as nothing but a rebuild of the resampler.
   ['mix.ac3', 'ac3', 'AC-3 mono→stereo'],
-  // 32 kHz ei kelpaa selaimen AAC-koodaimelle, joten se on muunnettava.
+  // 32 kHz is not acceptable to the browser's AAC encoder, so it has to be
+  // resampled.
   ['t32.ac3', 'ac3', 'AC-3 32 kHz → 48 kHz'],
 ];
 

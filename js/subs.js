@@ -1,33 +1,34 @@
-// Tekstitysraidat MKV:stä <video>-elementille.
+// Subtitle tracks from MKV to the <video> element.
 //
-// Kontin purku (remux.js) heittää tänne ne lohkot, jotka kuuluvat
-// tekstitysraidalle. Piirtämistä ei tehdä itse: lohkon teksti kaivetaan
-// esiin, ajoitetaan ja annetaan selaimelle VTTCue:na. Näin tekstitys näkyy
-// myös koko näytön tilassa ja Chromen omassa tekstitysvalikossa — oma
-// päällyskerros katoaisi heti kun katsoja painaa videon omaa
-// koko näytön painiketta.
+// The container demuxer (remux.js) throws the blocks that belong to a
+// subtitle track in here. The drawing is not done by hand: the block's text
+// is dug out, timed and handed to the browser as a VTTCue. That way the
+// subtitles show in full-screen mode and in Chrome's own subtitle menu too
+// — an overlay of our own would disappear the moment the viewer presses the
+// video's own full-screen button.
 //
-// Kaikkien tekstiraitojen cuet kerätään talteen samalla kertaa, vaikka vain
-// yksi on kerrallaan näkyvissä. Vaihtoehto olisi lukea tiedosto uudelleen
-// raitaa vaihdettaessa, mikä maksaisi ainoan sallitun yhteyden ja
-// keskeyttäisi kuvan. Teksti on kevyttä: 45 minuutin jaksossa on raitaa
-// kohti muutama sata cuea.
+// The cues of every text track are collected in one pass, even though only
+// one is visible at a time. The alternative would be reading the file again
+// when the track changes, which would cost the single allowed connection
+// and interrupt the picture. Text is light: a 45-minute episode has a few
+// hundred cues per track.
 //
-// Bittikarttatekstitykset (PGS, VOBSUB) jäävät ulkopuolelle: ne ovat kuvia,
-// eikä niitä voi antaa VTTCue:lle.
+// Bitmap subtitles (PGS, VOBSUB) are left out: they are images, and cannot
+// be handed to a VTTCue.
 
 import { shortLanguage } from './probe.js';
-import { t } from './i18n.js';
+import { t, localeTag } from './i18n.js';
 
 const SUBTITLE_TYPE = 17;
 
-// Muodot joiden hyötykuorma on tekstiä. Arvo näkyy valitsimen vihjeessä.
+// The formats whose payload is text. The value shows in the selector's tooltip.
 const FORMAT = {
   'S_TEXT/UTF8': 'SRT', 'S_TEXT/ASS': 'ASS', 'S_TEXT/SSA': 'ASS', 'S_TEXT/WEBVTT': 'VTT',
 };
 
-// Lohkossa ei aina ole BlockDurationia. Kesto arvataan, ja arvaus lyhenee
-// heti kun seuraava cue alkaa — pysyvä ylipitkä cue jäisi kuvaan roikkumaan.
+// A block does not always carry a BlockDuration. The duration is guessed,
+// and the guess is cut short as soon as the next cue starts — an
+// over-long cue left standing would hang around on screen.
 const FALLBACK_SECONDS = 4;
 const MIN_SECONDS = 0.2;
 
@@ -37,12 +38,12 @@ export const isTextSubtitle = (track) =>
 const DECODER = new TextDecoder();
 
 /**
- * Raita jolle valinta osuu, tai null. Pakotettu raita kääntää vain vieraat
- * repliikit, joten se ei kelpaa kielivalinnan vastineeksi jos täysi raita on
- * tarjolla.
+ * The track the selection lands on, or null. A forced track translates only
+ * foreign dialogue, so it does not answer a language choice when a full
+ * track is on offer.
  *
- * @param {object[]} entries setup():n palauttama lista
- * @param {string|null} language 'fi', 'off' tai null
+ * @param {object[]} entries the list returned by setup()
+ * @param {string|null} language 'fi', 'off' or null
  */
 export function preferred(entries, language) {
   if (!language || language === 'off') return null;
@@ -55,13 +56,13 @@ export function preferred(entries, language) {
 }
 
 /**
- * Videoelementin tekstitysraidat. Yksi ilmentymä yhtä toistoa kohti.
+ * The video element's subtitle tracks. One instance per playback.
  */
 export class SubtitleTracks {
   /**
    * @param {HTMLVideoElement} video
-   * @param {(active:number|null) => void} onChange kutsutaan myös kun katsoja
-   *        vaihtaa raitaa selaimen omasta valikosta
+   * @param {(active:number|null) => void} onChange also called when the
+   *        viewer changes track from the browser's own menu
    */
   constructor(video, onChange) {
     this.video = video;
@@ -74,19 +75,19 @@ export class SubtitleTracks {
   }
 
   /**
-   * Luo raidat otsikon TrackEntryistä ja palauttaa niistä valitsimen
-   * tarvitseman kuvauksen.
+   * Creates the tracks from the header's TrackEntry elements and returns
+   * the description the selector needs.
    *
-   * @param {object[]} tracks vain tekstimuotoiset raidat
+   * @param {object[]} tracks text-format tracks only
    */
   setup(tracks) {
     const claimed = new Set();
     for (const track of tracks) {
       const language = (track.langBcp || track.lang || 'und').toLowerCase();
       const text = label(track, language);
-      // Avain sitoo raidan uudelleenkäytettävään TextTrackiin. Nimi ja kieli
-      // ovat vain luettavia, joten sama TextTrack kelpaa vain jos molemmat
-      // täsmäävät — muuten selaimen valikko näyttäisi väärän nimen.
+      // The key ties the track to a reusable TextTrack. The label and the
+      // language are read-only, so the same TextTrack fits only when both
+      // match — otherwise the browser's menu would show the wrong name.
       let key = `${language}|${text}`;
       for (let n = 2; claimed.has(key); n++) key = `${language}|${text}#${n}`;
       claimed.add(key);
@@ -106,7 +107,8 @@ export class SubtitleTracks {
       this.entries.push(entry);
       this.byNumber.set(entry.number, entry);
     }
-    // Sama nimi kahdesti kertoisi katsojalle vain että valintoja on kaksi.
+    // The same name twice would tell the viewer only that there are two
+    // choices.
     const counts = new Map();
     for (const entry of this.entries) counts.set(entry.label, (counts.get(entry.label) || 0) + 1);
     const running = new Map();
@@ -116,30 +118,31 @@ export class SubtitleTracks {
       running.set(entry.label, n);
       entry.label = `${entry.label} (${n})`;
     }
-    // Valitsimeen aakkosjärjestyksessä: tiedoston oma järjestys on
-    // mielivaltainen, ja kolmenkymmenen raidan listasta oikea kieli löytyy
-    // vain jos sen paikan voi arvata. Sisäinen järjestys (this.entries) jää
-    // tiedoston mukaiseksi, koska samannimisten raitojen numerointi nojaa
-    // siihen. Vertailu suomen säännöillä, jotta ä ja ö päätyvät loppuun.
+    // Alphabetical in the selector: the file's own order is arbitrary, and
+    // in a list of thirty tracks the right language is found only if its
+    // place can be guessed. The internal order (this.entries) stays as in
+    // the file, because the numbering of same-named tracks relies on it.
+    // The comparison follows the interface language, so that the letters of
+    // that language sort where a reader expects them.
     return this.entries
       .map((e) => ({
         number: e.number, language: e.language, label: e.label,
         format: e.format, forced: e.forced, default: e.default,
       }))
-      .sort((a, b) => a.label.localeCompare(b.label, 'fi'));
+      .sort((a, b) => a.label.localeCompare(b.label, localeTag()));
   }
 
   has(number) { return this.byNumber.has(number); }
 
   /**
-   * Yksi tekstityslohko. Sama lohko voi tulla toistamiseen kelauksen
-   * jälkeen, koska lataus jatkuu klusterin alusta — jo lisätty cue
-   * tunnistetaan ja ohitetaan.
+   * One subtitle block. The same block can arrive twice after a seek,
+   * because the download resumes from the start of a cluster — a cue that
+   * has already been added is recognised and skipped.
    *
-   * @param {number} number raidan numero
-   * @param {number} pts alku nanosekunteina
-   * @param {number|null} duration kesto nanosekunteina
-   * @param {Uint8Array} data lohkon hyötykuorma
+   * @param {number} number the track number
+   * @param {number} pts start in nanoseconds
+   * @param {number|null} duration duration in nanoseconds
+   * @param {Uint8Array} data the block payload
    */
   push(number, pts, duration, data) {
     const entry = this.byNumber.get(number);
@@ -151,8 +154,8 @@ export class SubtitleTracks {
     if (entry.seen.has(key)) return;
     entry.seen.add(key);
 
-    // Edellinen arvattu kesto katkaistaan tähän: kaksi cuea ei saa olla
-    // kuvassa yhtä aikaa, jos tiedosto ei niin sanonut.
+    // The previous guessed duration is cut off here: two cues must not be
+    // on screen at once unless the file said so.
     if (entry.open && entry.open.endTime > start && entry.open.startTime < start) {
       entry.open.endTime = start;
     }
@@ -164,11 +167,11 @@ export class SubtitleTracks {
       entry.track.addCue(cue);
       if (!duration) entry.open = cue;
     } catch (err) {
-      console.warn('[iptv] tekstityscueta ei voitu lisätä', err);
+      console.warn('[iptv] subtitle cue could not be added', err);
     }
   }
 
-  /** Näyttää yhden raidan ja piilottaa muut. Palauttaa valitun numeron. */
+  /** Shows one track and hides the rest. Returns the chosen number. */
   select(number) {
     const wanted = this.byNumber.has(number) ? number : null;
     for (const entry of this.entries) {
@@ -179,7 +182,7 @@ export class SubtitleTracks {
     return wanted;
   }
 
-  /** Selaimen valikosta tehty vaihto takaisin sovellukselle. */
+  /** A change made from the browser's menu, reported back to the app. */
   report() {
     let active = null;
     for (const entry of this.entries) if (entry.track.mode === 'showing') active = entry.number;
@@ -199,10 +202,10 @@ export class SubtitleTracks {
 
 /* ------------------------------------------------------------- raitavarasto */
 
-// addTextTrack lisää raidan pysyvästi: elementistä ei ole rajapintaa sen
-// poistamiseen, eikä src:n vaihto takuulla vie sitä mennessään. Ilman
-// uudelleenkäyttöä selaimen tekstitysvalikko kasvaisi jakso jaksolta.
-// Nimi ja kieli ovat vain luettavia, joten avain sisältää molemmat.
+// addTextTrack adds a track for good: the element offers no interface for
+// removing one, and changing src does not reliably take it away either.
+// Without reuse the browser's subtitle menu would grow episode by episode.
+// The label and the language are read-only, so the key holds both.
 const POOL = new WeakMap();
 
 function acquire(video, key, label, language) {
@@ -223,20 +226,20 @@ function attached(video, track) {
   return false;
 }
 
-// cues on null kun raita on pois päältä, joten se on herätettävä poiston
-// ajaksi.
+// cues is null while a track is disabled, so it has to be woken up for the
+// removal.
 function clearTrack(track) {
   try {
     if (track.mode === 'disabled') track.mode = 'hidden';
     const cues = track.cues;
     if (cues) for (let i = cues.length - 1; i >= 0; i--) track.removeCue(cues[i]);
     track.mode = 'disabled';
-  } catch { /* selain ehti purkaa raidan */ }
+  } catch { /* the browser had already torn the track down */ }
 }
 
 /* ----------------------------------------------------------------- teksti */
 
-/** Lohkon hyötykuorma näytettäväksi tekstiksi, tai '' jos ei mitään. */
+/** The block payload as displayable text, or '' when there is none. */
 export function cueText(codecId, data) {
   let raw;
   try { raw = DECODER.decode(data); } catch { return ''; }
@@ -244,10 +247,10 @@ export function cueText(codecId, data) {
   return fromSrt(raw);
 }
 
-// ASS-rivi on Matroskassa ilman "Dialogue:"-etuliitettä ja ilman aikoja:
-// ReadOrder,Layer,Style,Name,MarginL,MarginR,MarginV,Effect,Text
-// Tekstissä itsessään voi olla pilkkuja, joten vain kahdeksan ensimmäistä
-// erotinta lasketaan.
+// In Matroska an ASS line comes without the "Dialogue:" prefix and without
+// times: ReadOrder,Layer,Style,Name,MarginL,MarginR,MarginV,Effect,Text
+// The text itself may contain commas, so only the first eight separators
+// are counted.
 function fromAss(raw) {
   let at = 0;
   for (let i = 0; i < 8; i++) {
@@ -256,8 +259,8 @@ function fromAss(raw) {
     at = comma + 1;
   }
   const body = raw.slice(at);
-  // Piirtotilassa (\p1) "teksti" on vektorikomentoja, joilla tehdään
-  // esimerkiksi tekstityksen tausta. Näytettynä se olisi pelkkää sotkua.
+  // In drawing mode (\p1) the "text" is vector commands that draw, for
+  // instance, a subtitle background. Shown as text it would be pure noise.
   if (/\{[^}]*\\p[1-9]/.test(body)) return '';
   const text = body
     .replace(/\{[^}]*\}/g, '')     // tyylikoodit: {\an8}, {\i1}, {\pos(…)}
@@ -266,47 +269,58 @@ function fromAss(raw) {
   return clean(text);
 }
 
-// WebVTT:n cue-teksti tuntee vain muutaman tunnisteen. Muut jätetään pois:
-// <font color="…"> jäisi selaimen jäsentimeltä huomiotta, mutta sen sisältö
-// on tekstiä jonka pitää näkyä.
+// WebVTT cue text knows only a few tags. The rest are dropped:
+// <font color="…"> would be ignored by the browser's parser, but its
+// contents are text that has to show.
 const KEEP_TAG = /^<\/?(i|b|u|ruby|rt)>$/i;
 
 function fromSrt(raw) {
   const text = raw
     .replace(/\r\n?/g, '\n')
-    .replace(/\{\\[^}]*\}/g, '')   // ASS-tyylikoodit eksyvät myös SRT-raidoille
+    .replace(/\{\\[^}]*\}/g, '')   // ASS style codes stray into SRT tracks too
     .replace(/<[^<>\n]+>/g, (tag) => (KEEP_TAG.test(tag) ? tag : ''));
   return clean(text);
 }
 
 const clean = (text) => text.replace(/[ \t]+\n/g, '\n').replace(/\n{3,}/g, '\n\n').trim();
 
-/* ------------------------------------------------------------------ nimet */
+/* ------------------------------------------------------------------ names */
 
-const NAMES = (() => {
-  try { return new Intl.DisplayNames(['fi'], { type: 'language' }); } catch { return null; }
-})();
+// Rebuilt per tag: the interface language can change mid-session, and a
+// language name belongs in the language the viewer reads.
+let namesTag = null;
+let namesInstance = null;
+function displayNames() {
+  if (namesTag !== localeTag()) {
+    namesTag = localeTag();
+    try { namesInstance = new Intl.DisplayNames([namesTag], { type: 'language' }); } catch { namesInstance = null; }
+  }
+  return namesInstance;
+}
 
 function languageName(code) {
   if (!code || code === 'und') return null;
   try {
-    const name = NAMES && NAMES.of(code);
+    const names = displayNames();
+    const name = names && names.of(code);
     return name && name !== code ? name : null;
   } catch { return null; }
 }
 
 const MAX_NAME = 26;
 
-/** Valitsimessa näkyvä nimi: "Suomi", "Suomi (pakotettu)", "Ruotsi · SDH". */
+/** The name shown in the selector: "Finnish", "Finnish · forced",
+ *  "Swedish · SDH". */
 function label(track, language) {
   const code = shortLanguage(language);
   const name = languageName(code);
   let base = name ? name.charAt(0).toUpperCase() + name.slice(1) : code.toUpperCase();
   if (code === 'und' && !track.name) base = t('subs.unknown');
   const extras = [];
-  // Raidan oma nimi kertoo usein sen mitä kieli ei: "SDH", "Full", "Songs".
+  // A track's own name often says what the language does not: "SDH",
+  // "Full", "Songs".
   if (track.name && !sameish(track.name, base)) extras.push(shorten(track.name));
-  if (track.forced) extras.push('pakotettu');
+  if (track.forced) extras.push(t('subs.forced'));
   return extras.length ? `${base} · ${extras.join(' · ')}` : base;
 }
 

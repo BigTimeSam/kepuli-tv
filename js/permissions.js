@@ -1,26 +1,27 @@
-// Valinnaiset host-oikeudet.
+// Optional host permissions.
 //
-// Manifest ei pyydä asennuksessa pääsyä kaikkiin osoitteisiin, koska
-// "lue ja muuta kaikkea dataa kaikilla sivustoilla" on Chrome Web Storen
-// tarkistuksen suurin yksittäinen hylkäyssyy. Oikeus kysytään vasta kun
-// käyttäjä itse osoittaa palvelimensa — silloin perustelu on ilmeinen.
+// The manifest does not ask for access to every address at install time,
+// because "read and change all your data on all websites" is the single
+// biggest reason Chrome Web Store review rejects an extension. Access is
+// asked for only once the user points at their own server — then the
+// justification is self-evident.
 //
-// Oikeutta tarvitaan vain sinne, mihin laajennus tekee fetch/XHR-pyynnön:
-// player_api.php, get.php sekä hls.js:n ja mpegts.js:n segmenttihaut.
-// Natiivi <video src> ja <img> logot toimivat ilman.
+// Access is needed only where the extension makes a fetch/XHR request:
+// player_api.php, get.php and the segment requests of hls.js and
+// mpegts.js. A native <video src> and <img> logos work without it.
 //
-// HUOM: chrome.permissions.request() vaatii käyttäjän eleen ja ele kuluu
-// ensimmäiseen awaitiin. Kutsu requestAccess() suoraan click-käsittelijän
-// alusta ennen mitään muuta awaitia. Jo myönnetylle originille kutsu
-// palaa heti true:na näyttämättä dialogia, joten erillistä hasAccess()-
-// tarkistusta ei saa tehdä ennen sitä.
+// NOTE: chrome.permissions.request() requires a user gesture, and the
+// gesture is spent by the first await. Call requestAccess() straight from
+// the top of the click handler, before any other await. For an origin
+// that is already granted the call returns true immediately without
+// showing a dialog, so a separate hasAccess() check must not precede it.
 
 /**
- * https://host:port/polku → "https://host/*", tai null jos ei verkko-osoite.
+ * https://host:port/path → "https://host/*", or null if not a web URL.
  *
- * Portti jätetään pois tarkoituksella: Chromen match pattern -syntaksissa
- * isäntänimi ei saa sisältää porttia, ja portillinen kuvio hylätään
- * virheellisenä. Portiton kuvio kattaa isännän kaikki portit.
+ * The port is dropped on purpose: in Chrome's match pattern syntax the
+ * host name may not contain a port, and a pattern with one is rejected as
+ * invalid. A portless pattern covers every port on the host.
  */
 export function originPattern(url) {
   let u;
@@ -34,9 +35,9 @@ export function originPattern(url) {
 }
 
 /**
- * Onko originiin jo myönnetty oikeus? Ei-verkko-osoitteille true, koska
- * niihin ei tarvita mitään. Käytä vain tilan näyttämiseen — älä ennen
- * requestAccessia (kuluttaa käyttäjän eleen).
+ * Has the origin already been granted? True for non-web URLs, because
+ * they need nothing. Use only for showing state — never before
+ * requestAccess (it would spend the user gesture).
  */
 export async function hasAccess(url) {
   const pattern = originPattern(url);
@@ -44,19 +45,19 @@ export async function hasAccess(url) {
   try {
     return await chrome.permissions.contains({ origins: [pattern] });
   } catch (err) {
-    console.warn('[iptv] oikeuden tarkistus epäonnistui', pattern, err);
+    console.warn('[iptv] permission check failed', pattern, err);
     return false;
   }
 }
 
-/** Pyytää oikeuden originiin. Kutsuttava suoraan käyttäjän eleestä. */
+/** Requests access to the origin. Must be called straight from a user gesture. */
 export async function requestAccess(url) {
   const pattern = originPattern(url);
   if (!pattern) return true;
   try {
     return await chrome.permissions.request({ origins: [pattern] });
   } catch (err) {
-    console.warn('[iptv] oikeuspyyntö epäonnistui', pattern, err);
+    console.warn('[iptv] permission request failed', pattern, err);
     return false;
   }
 }

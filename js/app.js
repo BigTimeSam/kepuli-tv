@@ -33,53 +33,55 @@ const el = {
 const TYPE_OF_TAB = { live: 'live', movie: 'movie', series: 'series' };
 const TYPE_KIND = { live: 0, movie: 1, series: 2 };
 
-/** "3 kanavaa" / "3 channels" — tyyppi valitsee avaimen, luku monikon. */
+/** "3 channels" — the type picks the key, the number picks the plural. */
 const unit = (type, count) => t(`unit.${type || 'generic'}`, { count, n: nf.format(count) });
 
-// Suosikit ja historia eivät ole palvelimen listoja vaan käyttäjän omia
-// kokoelmia: ne ovat aina muistissa, sekoittavat kaikkia neljää tyyppiä ja
-// jäsentyvät sivupalkissa tyypin — eivät maan — mukaan.
+// Favourites and history are not the server's lists but the user's own
+// collections: they are always in memory, mix all four types, and are
+// organised in the sidebar by type rather than by country.
 const COLLECTIONS = new Set(['fav', 'recent']);
-// 'c' = suosikkikategoria: ei toistettava kohde vaan portti listaan, ks.
-// favCategoryEntry. Se on kokoelmassa oma tyyppinsä ja ensimmäisenä, koska
-// yksi kategoriarivi kattaa kymmeniä kanavia.
+// 'c' = a favourite category: not a playable item but a door into a list,
+// see favCategoryEntry. In a collection it is a type of its own and comes
+// first, because one category row covers dozens of channels.
 const kindLabel = (kind) => t(`kind.${kind}`);
 const KIND_ORDER = ['c', 0, 1, 2];
 const KIND_INDEX = new Map(KIND_ORDER.map((kind, i) => [kind, i]));
-// Kokoelmissa jakso on vain sarjan osa, joten se lasketaan ja otsikoidaan
-// sarjaksi — muuten historia näyttäisi tyypin jota välilehdissä ei ole.
+// In a collection an episode is only part of a series, so it is counted and
+// labelled as a series — otherwise history would show a type that does not
+// exist among the tabs.
 const kindGroup = (k) => (k === 3 ? 2 : k);
-const ROW_H = 50;   // sama luku kuin --row-h player.css:ssä
-const SEP_H = 26;   // sama luku kuin --sep-h player.css:ssä
+const ROW_H = 50;   // the same number as --row-h in player.css
+const SEP_H = 26;   // the same number as --sep-h in player.css
 
 const state = {
   config: null, settings: null, account: null,
   source: null, lib: null, epg: null,
   tab: 'live',
-  group: null,            // valittu maa/aihe, null = kaikki
-  sub: null,              // tarkenne ryhmän sisällä (category_id)
-  groupItems: [],         // valitun ryhmän kaikki kohteet muistissa
+  group: null,            // the chosen country/subject, null = all
+  sub: null,              // a topic within the group (category_id)
+  groupItems: [],         // every item of the chosen group, in memory
   categoryFilter: '', query: '',
-  cleanName: null,        // rivinimen siistijä, null = nimi sellaisenaan
-  kind: null,             // kokoelmien tyyppisuodatin, null = kaikki
+  cleanName: null,        // the row-name tidier, null = the name as it is
+  kind: null,             // a collection's type filter, null = all
   rows: [], rowIndex: new Map(), sections: new Map(), cursor: -1,
-  // Poraus listan sisään. Sarjalla ja suosikkikategorialla on sama paikka
-  // ja sama paluunappi, joten ne ovat yksi tila kahdella muodolla:
+  // A drill-down into the list. A series and a favourite category share the
+  // same place and the same back button, so they are one state with two
+  // shapes:
   //   { view: 'series',   item, info, season, back }
   //   { view: 'category', entry, items, back }
-  // back kantaa edellisen porauksen: suosikkikategoriasta avattu sarja
-  // palaa kategoriaan, ei kokoelman juureen.
+  // back carries the previous drill-down: a series opened from a favourite
+  // category returns to the category, not to the collection's root.
   detail: null,
-  catCounts: null,        // suosikkikategorioiden koot, kun ne ovat tiedossa
+  catCounts: null,        // the sizes of favourite categories, when known
   playing: null, playingSpec: null, catchup: null,
-  subtitles: [],          // toistettavan tiedoston tekstitysraidat
+  subtitles: [],          // the subtitle tracks of the file being played
   favorites: new Map(), recents: [], resume: new Map(),
   lastGroup: {}, lastKind: {},
 };
 
 const isCollection = () => COLLECTIONS.has(state.tab);
 
-/* ================================================================ yhteys */
+/* ============================================================ connection */
 
 async function connect({ silent = false } = {}) {
   const config = state.config;
@@ -90,8 +92,8 @@ async function connect({ silent = false } = {}) {
     if (!silent) showProgress(t('progress.connecting'), config.host);
     state.account = await state.source.account();
     state.lib = new Library(state.source);
-    // Aiemmin luetut tiedosto-otsikot muistiin, jotta listarivit voivat
-    // näyttää tuloksen ilman verkkopyyntöä piirron aikana.
+    // File headers read earlier into memory, so that list rows can show the
+    // result without a network request while painting.
     await warmCache();
     state.epg = new Epg(state.source, onEpgUpdated);
     state.epg.enabled = state.settings.epgEnabled;
@@ -127,9 +129,9 @@ function showConnectionError(err) {
 }
 
 /**
- * Puuttuva host-oikeus näkyy samanlaisena verkkovirheenä kuin alhaalla oleva
- * palvelin, joten virheen syytä ei voi päätellä — tarkistetaan oikeus ja
- * tarjotaan sen myöntämistä vain jos se todella puuttuu.
+ * A missing host permission looks like the same network error as a server
+ * that is down, so the cause cannot be deduced — check the permission and
+ * offer to grant it only when it really is missing.
  */
 async function offerAccess(url, actions, onGranted) {
   if (!url || await hasAccess(url)) return;
@@ -137,14 +139,14 @@ async function offerAccess(url, actions, onGranted) {
   showOverlayActions([grantAction(url, onGranted), ...actions]);
 }
 
-/** Painike joka pyytää host-oikeuden ja jatkaa jos käyttäjä myöntää. */
+/** A button that asks for the host permission and continues if granted. */
 function grantAction(url, onGranted) {
   let origin = url;
-  try { origin = new URL(url).host; } catch { /* näytetään koko osoite */ }
+  try { origin = new URL(url).host; } catch { /* show the whole URL */ }
   return {
     label: t('error.grant', { origin }),
-    // requestAccess kutsutaan ennen ensimmäistä awaitia, muuten käyttäjän
-    // ele on kulunut eikä Chrome näytä oikeusdialogia lainkaan.
+    // requestAccess is called before the first await, otherwise the user
+    // gesture is spent and Chrome shows no permission dialog at all.
     onClick: async () => {
       if (await requestAccess(url)) await onGranted();
       else toast(t('error.grant.denied'));
@@ -167,7 +169,7 @@ function renderAccount() {
   el.accountMeta.classList.toggle('warn', a.status !== 'Active');
 }
 
-/* =============================================================== näkymät */
+/* ================================================================= views */
 
 function tabType() { return TYPE_OF_TAB[state.tab] || null; }
 
@@ -182,8 +184,8 @@ async function activateTab(tab, { restore = false } = {}) {
 
   const type = tabType();
 
-  // Ensimmäinen avaus: valitaan ryhmä, jotta lista täyttyy muutamalla
-  // kilotavulla sen sijaan että ladattaisiin koko tyypin lista heti.
+  // First open: pick a group, so the list fills from a few kilobytes rather
+  // than by loading the type's whole list straight away.
   if (type && state.group == null && !state.lib.isFull(type)) {
     const groups = state.lib.groups[type];
     if (groups.length) state.group = groups[0].name;
@@ -197,7 +199,7 @@ async function activateTab(tab, { restore = false } = {}) {
 async function refreshRows({ keepScroll = false } = {}) {
   const type = tabType();
   let rows = [];
-  renderDetail();   // sarjan tietopaneeli seuraa tilaa myös välilehteä vaihdettaessa
+  renderDetail();   // the detail panel follows the state on a tab change too
 
   try {
     if (state.detail) {
@@ -205,8 +207,8 @@ async function refreshRows({ keepScroll = false } = {}) {
     } else if (isCollection()) {
       rows = collectionItems();
       if (state.kind != null) rows = rows.filter((it) => kindGroup(it.k) === state.kind);
-      // Array.sort on vakaa, joten tyypeittäin ryhmittely ei sotke
-      // kokoelman omaa järjestystä tyypin sisällä.
+      // Array.sort is stable, so grouping by type does not disturb the
+      // collection's own order within a type.
       else if (state.tab === 'fav') rows = [...rows].sort((a, b) => kindIndex(a) - kindIndex(b));
     } else if (state.query) {
       if (!(await ensureFull(type, t('progress.reason.search')))) return;
@@ -231,8 +233,9 @@ async function refreshRows({ keepScroll = false } = {}) {
     rows = rows.filter((it) => it.n.toLowerCase().includes(q));
   }
 
-  // Näkyvä nimi ratkaisee järjestyksen: kun riviltä on karsittu etuliite,
-  // kirjaston aakkostus ei enää vastaa sitä mitä lista näyttää.
+  // The visible name decides the order: once a prefix has been stripped
+  // from a row, the library's sorting no longer matches what the list
+  // shows.
   state.cleanName = nameCleanerFor(rows);
   if (state.cleanName) rows = sortItems(rows, state.cleanName);
   state.rows = rows;
@@ -243,24 +246,24 @@ async function refreshRows({ keepScroll = false } = {}) {
     keepScroll,
     heightAt: state.sections.size ? (i) => ROW_H + (state.sections.has(i) ? SEP_H : 0) : null,
   });
-  // Opas näyttää saman joukon kuin lista, joten haku ja ryhmävalinta
-  // rajaavat sitä ilman omaa suodatinta.
+  // The guide shows the same set as the list, so search and group selection
+  // narrow it without a filter of its own.
   if (guideOpen && state.tab === 'live') grid.setChannels(rows.filter((it) => it.k === 0));
   renderSubcats();
   renderListInfo();
   renderEmptyState();
 }
 
-/* =========================================================== kokoelmat */
+/* ============================================================ collections */
 
-/** Suosikkien ja historian koko joukko ennen suodattimia. */
+/** The whole set of favourites or history, before any filters. */
 function collectionItems() {
   return state.tab === 'fav' ? favoritesNewestFirst() : state.recents;
 }
 
 /**
- * Suosikit tuoreusjärjestyksessä. Vanhoista merkinnöistä puuttuu addedAt,
- * joten ne pitävät tallennusjärjestyksensä uusien perässä.
+ * Favourites newest first. Older entries have no addedAt, so they keep
+ * their stored order behind the newer ones.
  */
 function favoritesNewestFirst() {
   return [...state.favorites.values()]
@@ -271,20 +274,21 @@ function favoritesNewestFirst() {
 
 const kindIndex = (item) => KIND_INDEX.get(kindGroup(item.k)) ?? KIND_ORDER.length;
 
-/* ------------------------------------------------- suosikkikategoriat */
+/* ------------------------------------------------ favourite categories */
 
 /**
- * Kategoriasuosikki mahtuu samaan säilöön kuin kohteet: se on kokoelmarivi
- * kuten muutkin, ja avain `${k}:${id}` erottaa sen omakseen. Siksi
- * config.js:n suosikkilista kelpaa sellaisenaan.
+ * A favourite category fits the same store as the items: it is a collection
+ * row like the rest, and the key `${k}:${id}` sets it apart. That is why
+ * config.js's favourites list serves as it is.
  *
- * Talteen menee tunniste, ei sisältö: "MTV Liiga" on suosikki nimenä ja
- * kategoriana, ja sen kanavat haetaan aina tuoreena — juuri siksi
- * kategoria on suosikkina eri asia kuin joukko yksittäisiä kanavia.
+ * What is kept is an identifier, not the contents: "MTV Liiga" is a
+ * favourite as a name and as a category, and its channels are always
+ * fetched fresh — which is exactly what makes a favourite category a
+ * different thing from a set of individual channels.
  *
- *   c   category_id, tai null jos suosikki on koko ryhmä ("Finland")
- *   g   ryhmän nimi, eli mistä sivupalkin kohdasta kategoria löytyy
- *   n   näkyvä nimi, full = palveluntarjoajan koko kategorianimi
+ *   c   category_id, or null when the favourite is a whole group ("Finland")
+ *   g   the group name, i.e. where in the sidebar the category is found
+ *   n   the visible name; full = the provider's complete category name
  */
 function favCategoryEntry(type, groupName, cat) {
   return cat
@@ -295,9 +299,9 @@ function favCategoryEntry(type, groupName, cat) {
 const isFavorite = (entry) => state.favorites.has(`${entry.k}:${entry.id}`);
 
 /**
- * Rivin alateksti: mitä ja mistä. Tyyppi on tarpeen, koska kokoelmassa on
- * sekaisin kanava-, elokuva- ja sarjakategorioita; ryhmä siksi, että sama
- * tarkenne ("Sport") toistuu maasta toiseen.
+ * A row's subtitle: what and from where. The type is needed because a
+ * collection mixes channel, movie and series categories; the group because
+ * the same topic ("Sport") repeats from one country to the next.
  */
 function favCategorySubtitle(entry) {
   const bits = [kindLabel(TYPE_KIND[entry.t])];
@@ -309,15 +313,16 @@ function favCategorySubtitle(entry) {
 }
 
 /**
- * Kategorioiden koot kerran per piirto, ei riviä kohti: laskenta käy koko
- * tyypin listan läpi ja rivit piirretään uudelleen joka vieritysruudulla.
- * Luku on tiedossa vain jos lista on jo ladattu — kategoriasuosikin idea on
- * juuri se, ettei sitä tarvitse ladata nähdäkseen suosikkinsa.
+ * The category sizes once per paint rather than per row: the count walks the
+ * type's whole list, and the rows are repainted on every scroll frame. The
+ * number is known only when the list has already been loaded — the point of
+ * a favourite category being precisely that it need not be loaded to see
+ * one's favourites.
  */
 function categoryCountsFor(rows) {
   if (!state.lib || !rows.some((it) => it.k === 'c')) return null;
-  // Kumpikin laskenta käy koko tyypin listan läpi, joten tulos otetaan
-  // talteen eikä sitä pyydetä kahdesti samalle tyypille.
+  // Either count walks the type's whole list, so the result is kept and not
+  // asked for twice for the same type.
   const cache = new Map();
   const source = (kind, type) => {
     const key = `${kind}:${type}`;
@@ -338,8 +343,8 @@ function categoryCountsFor(rows) {
 }
 
 /**
- * Avaa kategorian kokoelman sisällä: sama porautuminen kuin sarjaan, jotta
- * paluu suosikkeihin on yksi napautus eikä välilehden vaihto.
+ * Opens a category inside the collection: the same drill-down as a series,
+ * so that returning to the favourites is one tap rather than a tab change.
  */
 async function openFavCategory(entry) {
   if (!state.lib) { toast(t('error.noserver')); return; }
@@ -365,9 +370,9 @@ async function openFavCategory(entry) {
 }
 
 /**
- * Kategorian tähti selausnäkymissä. Suosikkilista on kokoelman oma näkymä,
- * joten sivupalkki ja tarkennesirut piirretään uusiksi vain kun ollaan
- * muualla — suosikeissa koko lista muuttuu.
+ * A category's star in the browsing views. The favourites list is the
+ * collection's own view, so the sidebar and the topic chips are repainted
+ * only when we are elsewhere — in the favourites the whole list changes.
  */
 function toggleFavCategory(entry) {
   const key = `${entry.k}:${entry.id}`;
@@ -379,9 +384,10 @@ function toggleFavCategory(entry) {
 }
 
 /**
- * Väliotsikot: rivin indeksi → otsikko sen yläpuolelle. Historia jakautuu
- * päiviin, suosikit tyyppeihin — kummassakin otsikko kertoo sen mitä rivit
- * eivät itse näytä. Tyyppisuodatin tekee suosikkien otsikoista turhia.
+ * Section headings: row index → the heading above it. History splits into
+ * days, favourites into types — in both, the heading says what the rows do
+ * not show themselves. A type filter makes the favourites' headings
+ * pointless.
  */
 function sectionsFor(rows) {
   const sections = new Map();
@@ -394,8 +400,9 @@ function sectionsFor(rows) {
     if (label && label !== previous) sections.set(i, label);
     previous = label;
   }
-  // Yksi tyyppiotsikko koko listan päällä ei jäsennä mitään, ja sivupalkki
-  // kertoo saman. Päiväotsikko sen sijaan kertoo myös milloin — se jää.
+  // A single type heading atop the whole list organises nothing, and the
+  // sidebar says the same. A day heading, on the other hand, also says
+  // when — that one stays.
   if (state.tab === 'fav' && sections.size < 2) return new Map();
   return sections;
 }
@@ -417,9 +424,10 @@ async function clearHistory() {
 }
 
 /**
- * Ryhmän sisältö haetaan alakategoria kerrallaan. Sweden = 31 kategoriaa
- * á ~2 kt on yhä murto-osa koko listan 634 kilotavusta, ja tämän jälkeen
- * tarkenteiden välillä vaihtaminen ei vaadi verkkoa lainkaan.
+ * A group's contents are fetched one sub-category at a time. Sweden = 31
+ * categories at ~2 kB each is still a fraction of the whole list's 634
+ * kilobytes, and after this, switching between topics needs no network at
+ * all.
  */
 async function loadGroupItems(type, groupName) {
   const group = state.lib.group(type, groupName);
@@ -439,7 +447,7 @@ async function loadGroupItems(type, groupName) {
   }
 }
 
-/** Tarkennesuodattimet valitun ryhmän sisällä. */
+/** The topic filters within the chosen group. */
 function renderSubcats() {
   const type = tabType();
   const group = type && state.group ? state.lib.group(type, state.group) : null;
@@ -452,17 +460,17 @@ function renderSubcats() {
   for (const item of state.groupItems) {
     for (const cat of item.cats) counts.set(cat, (counts.get(cat) || 0) + 1);
   }
-  // Painikkeet aakkosjärjestyksessä, mutta ryhmän oma yleiskategoria
-  // ("Sweden" ilman tarkennetta) heti Kaikki-painikkeen perään: se ei ole
-  // aihe muiden joukossa vaan maan pääkanavat.
+  // The buttons in alphabetical order, but the group's own general
+  // category ("Sweden" with no topic) right after the All button: it is not
+  // a topic among topics but the country's main channels.
   const ordered = [...group.cats].sort((a, b) => {
     if (!a.sub !== !b.sub) return a.sub ? 1 : -1;
     return (a.sub || '').localeCompare(b.sub || '', 'fi');
   });
 
   const frag = document.createDocumentFragment();
-  // "Kaikki" on koko ryhmä, ja sen tähti on sivupalkin rivillä — kaksi
-  // nappia samalle suosikille hämärtäisi kumpaakin.
+  // "All" is the whole group, and its star is on the sidebar row — two
+  // buttons for the same favourite would blur both.
   frag.appendChild(chipRow({
     label: t('subcats.all'), count: nf.format(state.groupItems.length), active: state.sub == null,
   }, () => selectSub(null)));
@@ -555,8 +563,8 @@ function renderListInfo() {
 }
 
 /**
- * Historian tyhjennys on peruuttamaton, joten se vaatii toisen
- * napautuksen. Erillinen dialogi olisi tälle painoarvolle liikaa.
+ * Clearing the history cannot be undone, so it takes a second tap. A dialog
+ * of its own would be too much for something of this weight.
  */
 function clearHistoryButton() {
   const button = document.createElement('button');
@@ -578,13 +586,13 @@ function clearHistoryButton() {
   return button;
 }
 
-/* ============================================================ sivupalkki */
+/* =============================================================== sidebar */
 
 /**
- * Sivupalkki on sama laatikko kaikilla välilehdillä, mutta sen sisältö
- * vaihtuu: listoilla maat ja aiheet, kokoelmissa tyypit. Näin suosikit ja
- * historia saavat saman rakenteen kuin muutkin näkymät sen sijaan että
- * palkki jäisi tyhjäksi.
+ * The sidebar is the same box on every tab, but its contents change: on the
+ * lists, countries and topics; in the collections, types. That way
+ * favourites and history get the same structure as the other views instead
+ * of leaving the column empty.
  */
 function renderSidebar() {
   if (isCollection()) renderKinds();
@@ -594,8 +602,8 @@ function renderSidebar() {
 function renderKinds() {
   el.groupsFilter.hidden = true;
   const items = collectionItems();
-  // Tyhjä kokoelma ei tarvitse suodatinta: tyhjätilan teksti kertoo enemmän
-  // kuin rivi "Kaikki 0".
+  // An empty collection needs no filter: the empty-state text says more
+  // than a row reading "All 0".
   if (!items.length) { el.groups.replaceChildren(); return; }
 
   const counts = new Map();
@@ -619,8 +627,8 @@ function renderKinds() {
 
 async function selectKind(kind) {
   state.kind = kind;
-  // Sivupalkin valinta koskee kokoelmaa, ei sen sisään porautunutta
-  // listaa — muuten napautus ei näyttäisi tekevän mitään.
+  // A sidebar choice concerns the collection, not the list drilled into
+  // from it — otherwise the tap would appear to do nothing.
   state.detail = null;
   state.cursor = -1;
   state.lastKind[state.tab] = kind;
@@ -635,8 +643,8 @@ function renderCategories() {
 
   const counts = state.lib.groupCounts(type);
   const filter = state.categoryFilter.trim().toLowerCase();
-  // Suodatin osuu myös alakategorioihin, jotta "sport" löytää maat joilla
-  // sellainen on, vaikka maan nimessä ei lue sanaa.
+  // The filter matches sub-categories too, so that "sport" finds the
+  // countries that have one even when the country's name lacks the word.
   const groups = state.lib.groups[type].filter((g) => !filter
     || g.name.toLowerCase().includes(filter)
     || g.cats.some((c) => c.name.toLowerCase().includes(filter)));
@@ -652,8 +660,8 @@ function renderCategories() {
     frag.appendChild(all);
   }
   for (const group of groups) {
-    // Ryhmäsuosikki kattaa kaikki alakategoriat: "Finland" tuo koko maan
-    // tarjonnan, myös sen mitä siihen ilmestyy vasta myöhemmin.
+    // A group favourite covers every sub-category: "Finland" brings the
+    // country's whole offering, including what appears in it later.
     const entry = favCategoryEntry(type, group.name, null);
     frag.appendChild(categoryRow({
       id: group.name, name: group.name,
@@ -676,12 +684,12 @@ async function selectGroup(name) {
   await refreshRows();
 }
 
-/* ================================================================ rivit */
+/* ================================================================== rows */
 
 const vlist = new VirtualList(el.list, ROW_H, renderRow, {
   onVisible: (first, last) => {
-    // Opastilassa lista on piilossa, ja sen näkymärivit veisivät
-    // ohjelmatietojen työjonon ruudukolta.
+    // In guide mode the list is hidden, and its visible rows would take the
+    // programme-data queue away from the grid.
     if (state.epg && !guideOpen) state.epg.setVisible(state.rows.slice(first, last));
   },
 });
@@ -712,8 +720,8 @@ function renderRow(index) {
 
   const label = state.sections.get(index);
   if (!label) return row;
-  // Otsikko kulkee rivin mukana samassa solmussa, jolloin virtualisointi
-  // pysyy indeksipohjaisena eikä state.rows tarvitse otsikkoalkioita.
+  // The heading travels with the row in the same node, which keeps the
+  // virtualisation index-based and spares state.rows any heading entries.
   const group = document.createElement('div');
   group.className = 'rowgroup';
   group.append(sectionHeader(label), row);
@@ -721,14 +729,14 @@ function renderRow(index) {
 }
 
 /**
- * Kun maa tai kategoria on valittu, sivupalkki kertoo saman minkä jokainen
- * rivinimi toistaa: "US: NHL Ice Center Pass 3 FHD" on NHL:n alla vain
- * "Ice Center Pass 3 FHD". Haussa ja kokoelmissa rivit tulevat eri
- * ryhmistä, joten siellä etuliite erottelee — ja jää paikalleen.
+ * Once a country or a category is chosen, the sidebar says what every row
+ * name repeats: "US: NHL Ice Center Pass 3 FHD" is, under NHL, merely "Ice
+ * Center Pass 3 FHD". In search and in the collections the rows come from
+ * different groups, so there the prefix distinguishes — and stays put.
  */
 function nameCleanerFor(rows) {
-  // Suosikkikategorian sisällä suodatin on tiedossa vaikka sivupalkki ei
-  // sitä näytä, joten rivinimet siistiytyvät kuten selausnäkymässä.
+  // Inside a favourite category the filter is known even though the sidebar
+  // does not show it, so the row names tidy up as in the browsing view.
   if (state.detail && state.detail.view === 'category') {
     const entry = state.detail.entry;
     return nameCleaner(entry.g && entry.g !== entry.n ? [entry.g, entry.n] : [entry.n], rows);
@@ -746,9 +754,10 @@ function nameCleanerFor(rows) {
 }
 
 /**
- * Historian rivi kertoo kellonajan; päivä tulee väliotsikosta. Suosikeissa
- * tyyppi näkyy jo otsikossa ja sivupalkissa, joten rivi jää siltä osin
- * rauhaan — kapeassa sarakkeessa jokainen merkki on tilaa nimeltä pois.
+ * A history row states the time of day; the day comes from the section
+ * heading. In the favourites the type already shows in the heading and in
+ * the sidebar, so the row is left alone on that count — in a narrow column
+ * every character is space taken from the name.
  */
 function tagFor(item) {
   if (state.tab !== 'recent' || !item.watchedAt) return null;
@@ -756,9 +765,9 @@ function tagFor(item) {
 }
 
 /**
- * Aiemmin luettu tiedosto-otsikko, jos sellainen on. Riviä piirrettäessä ei
- * tehdä verkkopyyntöjä: otsikko luetaan vasta toistoa yritettäessä, ja
- * seuraavalla kerralla tulos on jo tallessa.
+ * A file header that has been read earlier, if there is one. No network
+ * requests are made while painting a row: the header is read only when
+ * playback is attempted, and next time the result is already in hand.
  */
 function probeFor(item) {
   if (item.k !== 1 && item.k !== 3) return null;
@@ -786,13 +795,13 @@ function toggleFavorite(item) {
   renderFavButton();
 }
 
-/** Talteen vain kentät joita listan piirtoon tarvitaan. */
+/** Only the fields the list needs for painting are kept. */
 function stripItem(item) {
   const { id, k, n, logo, ext, season, episode, archive, epgId, direct, cats, durationSec } = item;
   return { id, k, n, logo, ext, season, episode, archive, epgId, direct, cats, durationSec };
 }
 
-/* =============================================================== sarjat */
+/* ================================================================ series */
 
 async function openItem(item) {
   if (item.k === 'c') return openFavCategory(item);
@@ -801,8 +810,8 @@ async function openItem(item) {
 }
 
 async function openSeries(item) {
-  // Suosikkikategoriasta avattu sarja jää kategorian sisään: paluu vie
-  // takaisin listaan josta se valittiin.
+  // A series opened from a favourite category stays inside the category:
+  // going back returns to the list it was chosen from.
   const back = state.detail && state.detail.view === 'category' ? state.detail : null;
   state.detail = { view: 'series', item, info: null, season: null, back };
   renderDetail();
@@ -833,18 +842,18 @@ function episodesOfSeason() {
   return detail.season == null ? eps : eps.filter((e) => e.season === detail.season);
 }
 
-// Läpinäkyvä 1×1 GIF. Chrome piirtää ohuen kehyksen ja rikkinäisen kuvan
-// merkin jokaiseen kuvaan jolla ei ole ladattua lähdettä — myös silloin kun
-// src on poistettu kokonaan, joten pelkkä poisto ei riitä. Pikselin jälkeen
-// näkyviin jää vain elementin oma pohja, joka on muutenkin puuttuvan kannen
-// paikanpitäjä.
+// A transparent 1×1 GIF. Chrome draws a thin border and a broken-image mark
+// on every image without a loaded source — including when src has been
+// removed altogether, so removing it is not enough. With the pixel in place
+// all that shows is the element's own background, which is the placeholder
+// for a missing cover anyway.
 const BLANK_PIXEL = 'data:image/gif;base64,R0lGODlhAQABAAAAACH5BAEKAAEALAAAAAABAAEAAAICTAEAOw==';
 
 /**
- * Kansikuva, joka ei jätä rikkinäistä kuvaa näkyviin: osa kirjaston kansi- ja
- * logo-osoitteista on kuolleita. Listariveillä (rows.js) sama tilanne
- * hoidetaan piilottamalla kuva kokonaan, koska siellä ei ole pohjaa jonka
- * varaan jäädä.
+ * A cover image that leaves no broken image on screen: some of the library's
+ * cover and logo URLs are dead. On list rows (rows.js) the same situation is
+ * handled by hiding the image entirely, because there is no background there
+ * to fall back on.
  */
 function coverImage(className, src) {
   const img = document.createElement('img');
@@ -857,8 +866,8 @@ function coverImage(className, src) {
 
 function renderDetail() {
   const detail = state.detail;
-  // Kategorialla ei ole juonta eikä kansikuvaa — sen sisältö on lista, ja
-  // murupolku riittää kertomaan missä ollaan.
+  // A category has neither a plot nor a cover — its contents are a list, and
+  // the breadcrumb is enough to say where we are.
   el.detail.hidden = !detail || detail.view === 'category';
   el.crumbs.hidden = !detail;
   if (!detail) { el.detail.replaceChildren(); el.crumbs.replaceChildren(); return; }
@@ -936,7 +945,8 @@ function renderDetail() {
   }
 }
 
-/** "Finland › MTV Liiga" — sama polku jolla kategoria selauksessa löytyy. */
+/** "Finland › MTV Liiga" — the same path by which the category is found
+ *  when browsing. */
 function crumbLabel(entry) {
   return entry.g && entry.g !== entry.n ? `${entry.g} › ${entry.n}` : entry.n;
 }
@@ -948,7 +958,7 @@ function closeDetail() {
   refreshRows();
 }
 
-/* =============================================================== toisto */
+/* ============================================================== playback */
 
 const playback = new Playback(el.video, onPlaybackState);
 
@@ -970,12 +980,13 @@ function onPlaybackState(s) {
     el.overlayTitle.textContent = t('player.dropped');
     el.overlayText.textContent = (s.reason ? `${s.reason} · ` : '') + t('player.retrying', { attempt: s.attempt, max: s.max });
   } else if (s.status === 'notice') {
-    // Toisto jatkuu, mutta katsojan on hyvä tietää miksi se päättyy kesken.
+    // Playback continues, but the viewer had better know why it will end
+    // early.
     toast(s.message);
   } else if (s.status === 'subtitles') {
     renderSubtitles(s.tracks, s.active);
-    // Vaihto tuli selaimen omasta tekstitysvalikosta: sama valinta kuin
-    // valitsimesta, joten kieli jää samalla tavalla muistiin.
+    // The change came from the browser's own subtitle menu: the same choice
+    // as from the selector, so the language is remembered the same way.
     if (s.external) rememberSubtitleLanguage(s.active);
   } else if (s.status === 'probing') {
     el.overlay.hidden = false;
@@ -993,13 +1004,15 @@ function onPlaybackState(s) {
     el.overlay.classList.remove('loading');
     el.overlayTitle.textContent = t('player.failed');
     el.overlayText.textContent = s.message;
-    // Juuri tässä ulkoinen soitin on eniten arvoinen: selain on jo luovuttanut.
+    // Right here an external player is worth the most: the browser has
+    // already given up.
     const actions = [
       { label: t('player.retry'), onClick: () => state.playing && playItem(state.playing) },
       { label: t('ext.title'), onClick: playExternal },
       { label: t('player.copyurl'), onClick: copyUrl },
     ];
-    // Kuva kelpaa mutta ääniraita ei: mykkä toisto on tarjolla, ei oletus.
+    // The picture will do but the audio track will not: silent playback is
+    // on offer, not the default.
     if (s.canSilent) {
       actions.unshift({
         label: t('player.silent'),
@@ -1007,8 +1020,8 @@ function onPlaybackState(s) {
       });
     }
     showOverlayActions(actions);
-    // Striimi voi osoittaa eri palvelimelle kuin rajapinta, joten oikeus
-    // tarkistetaan juuri tämän striimin originille.
+    // A stream may point at a different server from the API, so the
+    // permission is checked against this stream's own origin.
     if (state.playingSpec) {
       offerAccess(state.playingSpec.url, actions,
                   () => state.playing && playItem(state.playing));
@@ -1049,7 +1062,8 @@ async function playItem(item, { startAt, allowSilent } = {}) {
   state.playing = item;
   state.playingSpec = spec;
   state.catchup = null;
-  // Edellisen tiedoston raidat pois: uudet tulevat vasta kun otsikko on luettu.
+  // Clear the previous file's tracks: the new ones arrive only once the
+  // header has been read.
   renderSubtitles([], null);
   el.nowTitle.textContent = item.n;
   renderNowSub();
@@ -1079,25 +1093,25 @@ function renderNowSub(engine) {
   el.nowSub.textContent = bits.filter(Boolean).join(' · ') || '—';
 }
 
-/* --------------------------------------------------------- tekstitykset */
+/* ------------------------------------------------------------ subtitles */
 
 /**
- * Tekstitysvalitsin. Lista tulee purkajalta heti kun tiedoston otsikko on
- * luettu, ja sama kutsu palaa myös kun raita vaihtuu — myös silloin kun
- * vaihto tehtiin selaimen omasta tekstitysvalikosta.
+ * The subtitle selector. The list comes from the demuxer as soon as the file
+ * header has been read, and the same call returns when the track changes —
+ * including when the change was made from the browser's own subtitle menu.
  *
- * @param {object[]} tracks raidat, tyhjä jos tiedostossa ei ole tekstityksiä
- * @param {number|null} active näkyvissä olevan raidan numero
+ * @param {object[]} tracks the tracks, empty when the file has no subtitles
+ * @param {number|null} active the number of the visible track
  */
 function renderSubtitles(tracks, active) {
   const list = tracks || [];
   const select = el.subs;
-  // Sama lista tulee uudelleen pelkän valinnan muuttuessa: valikkoa ei
-  // rakenneta turhaan uudelleen katsojan nenän edessä.
+  // The same list arrives again when only the selection changed: the menu
+  // is not rebuilt needlessly under the viewer's nose.
   if (list !== state.subtitles) {
     state.subtitles = list;
     select.hidden = !list.length;
-    // Koko on tarpeeton valinta silloin kun näytettävää ei ole.
+    // Size is a pointless choice when there is nothing to show.
     el.subsize.hidden = !list.length;
     const options = [];
     if (list.length) {
@@ -1118,7 +1132,7 @@ function renderSubtitles(tracks, active) {
   select.value = active == null ? 'off' : String(active);
 }
 
-/** Katsojan valinta valitsimesta: raita näkyviin ja kieli talteen. */
+/** The viewer's choice from the selector: show the track, keep the language. */
 function chooseSubtitle() {
   const value = el.subs.value;
   const number = value === 'off' ? null : Number(value);
@@ -1126,7 +1140,7 @@ function chooseSubtitle() {
   rememberSubtitleLanguage(number);
 }
 
-/** Tekstityksen koko: CSS lukee sen bodyn attribuutista, ks. player.css. */
+/** Subtitle size: the CSS reads it from the body attribute, see player.css. */
 function applySubtitleSize(size) {
   document.body.dataset.subsize = size || 'small';
   el.subsize.value = document.body.dataset.subsize;
@@ -1138,8 +1152,8 @@ async function chooseSubtitleSize() {
 }
 
 /**
- * Kieli talteen seuraavia jaksoja varten — ei raidan numeroa, koska numerot
- * vaihtelevat tiedostosta toiseen.
+ * The language is kept for the coming episodes — not the track number,
+ * because the numbers vary from one file to the next.
  */
 async function rememberSubtitleLanguage(number) {
   const track = state.subtitles.find((t) => t.number === number);
@@ -1157,7 +1171,7 @@ function renderFavButton() {
   button.disabled = !item;
 }
 
-/* ------------------------------------------------------- tietopaneeli */
+/* ---------------------------------------------------------- info panel */
 
 function renderInfoStrip() {
   const item = state.playing;
@@ -1223,8 +1237,9 @@ function renderInfoStrip() {
     if (info.video) bits.push(`${info.video.codec}${info.video.height ? ' ' + info.video.height + 'p' : ''}`);
   }
   if (item.ext) bits.push(item.ext.toUpperCase());
-  // Luettu otsikko on tarkempi kuin API:n tiedot: se tuntee ääniraidan ja
-  // tekstitykset, joista kumpaakaan rajapinta ei kerro.
+  // A header that has been read is more precise than the API's data: it
+  // knows the audio track and the subtitles, neither of which the API
+  // reports.
   const probed = probeFor(item);
   if (probed && !probed.error) {
     if (probed.video) bits.push(`${probed.video.codec.toUpperCase()}${probed.video.height ? ' ' + probed.video.height + 'p' : ''}`);
@@ -1255,10 +1270,10 @@ async function loadVodDetails(item) {
     const info = await state.lib.movieDetails(item.id);
     item.details = info;
     if (state.playing === item) renderInfoStrip();
-  } catch { /* lisätiedot ovat vapaaehtoisia */ }
+  } catch { /* the extra details are optional */ }
 }
 
-/* --------------------------------------------------------- ohjelmaopas */
+/* ------------------------------------------------------ programme guide */
 
 const grid = new EpgGrid({
   scroll: $('epg-scroll'), canvas: $('epg-canvas'),
@@ -1282,7 +1297,7 @@ async function openGuide() {
   if (guideOpen) return;
   if (!state.lib || !state.epg) { toast(t('guide.needserver')); return; }
   if (!state.epg.enabled) { toast(t('guide.epgoff')); return; }
-  // Opas näyttää kanavarivit, joten se tarvitsee kanavavälilehden sisällön.
+  // The guide shows channel rows, so it needs the channel tab's contents.
   if (state.tab !== 'live' || state.detail) await activateTab('live', { restore: true });
 
   const channels = state.rows.filter((it) => it.k === 0);
@@ -1314,7 +1329,7 @@ function closeGuide() {
   renderInfoStrip();
 }
 
-/** Ryhmävalitsin oppaaseen: sivupalkki on piilossa opastilassa. */
+/** A group selector for the guide: the sidebar is hidden in guide mode. */
 function renderGuideGroups() {
   const select = $('epg-group');
   const frag = document.createDocumentFragment();
@@ -1383,7 +1398,7 @@ function renderGuidePreview(channel, programme) {
   }));
 }
 
-/** Enter tai kaksoisklikkaus ruudukossa. */
+/** Enter, or a double-click in the grid. */
 function activateProgramme(channel, programme) {
   if (!channel) return;
   const now = Date.now();
@@ -1399,7 +1414,7 @@ function activateProgramme(channel, programme) {
   playItem(channel);
 }
 
-/** Näppäimistöohjaus kuuluu ruudukolle, ei viimeksi painetulle napille. */
+/** Keyboard control belongs to the grid, not to the last button pressed. */
 function focusGrid() {
   $('epg-scroll').focus({ preventScroll: true });
 }
@@ -1450,15 +1465,16 @@ setInterval(() => {
   ].filter(Boolean).join(' · ');
 }, 2000);
 
-// EPG-palkki elää ajassa, joten se piirretään uudelleen vaikkei dataa tulisi.
+// The EPG bar lives in time, so it is repainted even when no data arrives.
 setInterval(() => {
   if (state.playing && state.playing.k === 0) renderInfoStrip();
   if (state.epg && state.rows.some((it) => it.k === 0)) vlist.refresh();
 }, 30000);
 
-/* ============================================================ latausdialogi */
+/* =========================================================== progress dialog */
 
-/** Palkin täyttö 0…1. Skaalaus, ei leveys — ks. .bar-fill player.css:ssä. */
+/** The bar's fill, 0…1. A scale rather than a width — see .bar-fill in
+ *  player.css. */
 function fillBar(ratio) {
   const clamped = Math.min(1, Math.max(0, ratio || 0));
   el.pFill.style.transform = `scaleX(${clamped.toFixed(4)})`;
@@ -1486,7 +1502,7 @@ function hideProgress() {
   if (el.progress.open) el.progress.close();
 }
 
-/* ============================================================= asetukset */
+/* ============================================================== settings */
 
 const FIELDS = ['scheme', 'host', 'port', 'username', 'password'];
 
@@ -1502,9 +1518,9 @@ function openSetup() {
 }
 
 /**
- * Yhteystapa vaihtaa vain sen kumpi lomake on näkyvissä. Osoitteesta puretut
- * tunnukset menevät samoihin kenttiin kuin käsin kirjoitetut, joten tilan
- * vaihtaminen ei hukkaa mitään eikä kumpikaan reitti ole toistaan virallisempi.
+ * The connection mode changes only which form is visible. Credentials parsed
+ * from a URL land in the same fields as ones typed by hand, so switching
+ * mode loses nothing and neither route is more official than the other.
  */
 function showSourceMode(mode) {
   const m3u = mode === 'm3u';
@@ -1552,10 +1568,11 @@ async function renderAccountBox() {
 }
 
 /**
- * Alkutila: tunnukset, asetukset, suosikit, historia, katselukohdat ja koko
- * välimuisti pois. Sivu ladataan lopuksi uudelleen, koska muistissa oleva
- * tila — ladatut listat, avoin toisto, valittu ryhmä — ei tyhjennyksen
- * jälkeen vastaa mitään, ja uusi lataus alkaa tervetulonäkymästä.
+ * Back to the initial state: credentials, settings, favourites, history,
+ * resume points and the whole cache gone. The page is reloaded at the end,
+ * because the state in memory — loaded lists, an open playback, the chosen
+ * group — corresponds to nothing after the wipe, and a fresh load starts
+ * from the welcome view.
  */
 async function resetEverything() {
   playback.stop();
@@ -1577,8 +1594,8 @@ function wireSetup() {
     option.textContent = label;
     return option;
   }));
-  // Kieli vaihtuu heti eikä vasta tallennettaessa: valinnan pitää näkyä
-  // samassa dialogissa jossa se tehtiin, muuten sen vaikutusta ei näe.
+  // The language changes at once rather than on save: the choice has to
+  // show in the very dialog it was made in, or its effect is invisible.
   $('f-lang').addEventListener('change', () => applyLanguage($('f-lang').value));
 
   for (const radio of document.querySelectorAll('input[name="source"]')) {
@@ -1592,17 +1609,18 @@ function wireSetup() {
   });
   $('f-cancel').addEventListener('click', () => el.setup.close());
   $('f-save').addEventListener('click', async () => {
-    // M3U-tilassa kentät täytetään osoitteesta vasta tässä, jotta liimattu
-    // mutta kesken jäänyt osoite ei ehdi ylikirjoittaa vanhoja tunnuksia.
+    // In M3U mode the fields are filled from the URL only here, so that a
+    // pasted but unfinished address cannot overwrite the old credentials.
     if (sourceMode() === 'm3u') {
       const parsed = parsePlaylistUrl($('f-paste').value);
       if (!parsed) { toast(t('setup.m3u.bad')); return; }
       for (const f of FIELDS) if (parsed[f] != null) $(`f-${f}`).value = parsed[f];
     }
     const patch = { ...readSetup(), sourceMode: sourceMode() };
-    // Host-oikeus pyydetään ennen ensimmäistä awaitia: käyttäjän ele kuluu
-    // siihen, ja ilman elettä Chrome hylkää pyynnön näyttämättä dialogia.
-    // Jo myönnetylle originille tämä palaa heti ilman dialogia.
+    // The host permission is asked for before the first await: the user
+    // gesture is spent by it, and without a gesture Chrome rejects the
+    // request without showing a dialog. For an origin already granted this
+    // returns at once with no dialog.
     const granted = patch.host ? await requestAccess(baseUrl(patch)) : true;
     state.settings = await store.saveSettings({
       lang: $('f-lang').value,
@@ -1622,10 +1640,10 @@ function wireSetup() {
     await connect({ silent: true });
   });
 
-  // Palautus on peruuttamaton, joten nappi kysyy varmistuksen itse:
-  // asetusdialogin päälle avattu toinen dialog jäisi sen alle. Aseteltu
-  // tila raukeaa itsestään, jottei nappi jää varmistustilaan odottamaan
-  // seuraavaa ohimennen osunutta klikkausta.
+  // A reset cannot be undone, so the button asks for confirmation itself: a
+  // second dialog opened on top of the settings dialog would end up beneath
+  // it. The armed state lapses on its own, so the button is not left waiting
+  // in confirmation mode for the next click that happens to land on it.
   let armed = null;
   const disarm = (button) => {
     clearTimeout(armed);
@@ -1652,7 +1670,7 @@ function wireSetup() {
 
 }
 
-/* ================================================================ pikkuja */
+/* ============================================================== oddments */
 
 let toastTimer = null;
 function toast(text) {
@@ -1668,23 +1686,23 @@ async function copyUrl() {
   toast(t('player.copied'));
 }
 
-/* ------------------------------------------------- ulkoinen soitin */
+/* -------------------------------------------------- external player */
 
-/** Malli koskee vain mukautettua valintaa; presetit tuovat omansa. */
 /**
- * Luovuttaa nykyisen virran ulkoiselle soittimelle.
+ * Hands the current stream over to an external player.
  *
- * Toisto pysäytetään ensin: testitilillä yhtäaikaisia yhteyksiä sallitaan
- * yksi, joten selaimen auki pitämä virta jättäisi ulkoisen soittimen mykäksi.
- * Kaikki tässä on tahallaan synkronista — vieraan skeeman käynnistys vaatii
- * käyttäjän eleen, joka kuluisi ensimmäiseen awaitiin.
+ * Playback is stopped first: the test account allows one concurrent
+ * connection, so a stream the browser keeps open would leave the external
+ * player silent. Everything here is deliberately synchronous — starting a
+ * download requires a user gesture, which the first await would spend.
  */
 function playExternal() {
   if (!state.playingSpec) { toast(t('ext.nothing')); return; }
 
   const name = state.playing ? state.playing.n : 'Stream';
   const spec = state.playingSpec;
-  // Katselukohta siitä mihin selain ehti, ei siitä mistä toisto alkoi.
+  // The resume position is where the browser got to, not where playback
+  // started.
   const startAt = spec.live ? 0 : Math.floor(el.video.currentTime || spec.startAt || 0);
   playback.stop();
   handOff({ ...spec, startAt }, name);
@@ -1730,8 +1748,9 @@ function wireUi() {
     clearTimeout(searchTimer);
     searchTimer = setTimeout(() => {
       state.query = el.search.value.trim();
-      // Haku kohdistuu koko listaan: kategoria- ja tyyppirajaus poistetaan
-      // näkyvästi, jottei osumien puuttuminen jää selittämättömäksi.
+      // The search covers the whole list: the category and type filters are
+      // cleared visibly, so that an absence of matches is never left
+      // unexplained.
       if (state.query && state.group != null) {
         state.group = null;
         state.sub = null;
@@ -1769,8 +1788,8 @@ function wireUi() {
   });
 
   $('btn-settings').addEventListener('click', openSetup);
-  // Listan lataus ei ole keskeytettävissä, joten Esc ei saa sulkea dialogia
-  // kesken työn: suljettu dialogi näyttäisi siltä että lataus loppui.
+  // Loading a list cannot be interrupted, so Esc must not close the dialog
+  // mid-work: a closed dialog would look as if the loading had finished.
   el.progress.addEventListener('cancel', (e) => e.preventDefault());
 
   el.mode.addEventListener('change', () => {
@@ -1782,9 +1801,9 @@ function wireUi() {
   $('btn-reload').addEventListener('click', () => state.playing && playItem(state.playing));
   $('btn-guide').addEventListener('click', toggleGuide);
   $('epg-close').addEventListener('click', closeGuide);
-  // Kuollut logo-osoite on kirjastossa tavallinen. Sama tapa kuin listarivillä
-  // ja oppaan ruudukossa, mutta ilman once-lippua: elementti on pysyvä ja
-  // vaihtaa lähdettä kanavan mukana.
+  // A dead logo URL is ordinary in this library. The same approach as on a
+  // list row and in the guide grid, but without the once flag: the element
+  // is permanent and changes source with the channel.
   $('epgv-logo').addEventListener('error', (e) => e.target.classList.add('blank'));
   $('epg-now').addEventListener('click', () => { grid.goNow(); focusGrid(); });
   $('epg-prev').addEventListener('click', () => { grid.nudge(-30); focusGrid(); });
@@ -1834,15 +1853,15 @@ function wireUi() {
   });
 }
 
-/* ================================================================== kieli */
+/* =============================================================== language */
 
 /**
- * Kieli vaihtuu kesken istunnon ilman sivun latausta.
+ * The language changes mid-session without reloading the page.
  *
- * Kolme kerrosta on päivitettävä: merkkaukseen kirjoitetut tekstit, Intlin
- * muotoilijat ja tilasta piirretyt näkymät. Kolmas hoituu samoilla kutsuilla
- * joilla näkymät muutenkin syntyvät, joten kieli ei tarvitse omaa
- * piirtoreittiään — vain kutsun.
+ * Three layers have to be refreshed: the texts written into the markup,
+ * Intl's formatters, and the views painted from state. The third is handled
+ * by the same calls that produce the views anyway, so the language needs no
+ * painting route of its own — only the call.
  */
 async function applyLanguage(lang) {
   state.settings = await store.saveSettings({ lang: setLanguage(lang) });
@@ -1853,22 +1872,22 @@ async function applyLanguage(lang) {
   renderNowSub();
   renderFavButton();
   renderInfoStrip();
-  // Valitsin rakennetaan uudelleen vain jos lista on eri: nollataan se, jotta
-  // "Ei tekstitystä" kääntyy vaikka raidat pysyvät samoina.
+  // The selector is rebuilt only when the list differs: clear it, so that
+  // "No subtitles" is translated even when the tracks stay the same.
   const tracks = state.subtitles;
   const active = el.subs.value === 'off' || !el.subs.value ? null : Number(el.subs.value);
   state.subtitles = null;
   renderSubtitles(tracks, active);
   if (el.setup.open) renderAccountBox();
   if (guideOpen) { renderGuideGroups(); grid.invalidate(); }
-  // Ennen yhteyttä ei ole listaa jota piirtää uudelleen, ja refreshRows
-  // lähtisi hakemaan sitä palvelimelta jota ei vielä ole.
+  // Before a connection there is no list to repaint, and refreshRows would
+  // set off to fetch it from a server that does not exist yet.
   if (state.lib) await refreshRows({ keepScroll: true });
-  // Tyhjä soitin näyttää tervetulotekstiä, joka ei tule mistään piirrosta.
+  // An idle player shows the welcome text, which comes from no paint routine.
   if (!state.playing && !el.overlay.hidden && !el.overlay.classList.contains('loading')) renderIdleOverlay();
 }
 
-/** Soittimen lepotila: joko tervetulo tai kehotus valita kanava. */
+/** The player's idle state: either a welcome or a prompt to pick a channel. */
 function renderIdleOverlay() {
   const welcome = !state.config.host;
   el.overlayTitle.textContent = welcome ? t('setup.welcome') : t('player.idle');

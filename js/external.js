@@ -1,25 +1,26 @@
-// Luovutus ulkoiselle soittimelle.
+// Handing the stream over to an external player.
 //
-// Wasm-purku kattaa AC-3:n, E-AC-3:n ja DTS:n, mutta kaikkea ei selaimeen
-// saa: AVI-kontti, VC-1, 10-bittinen H.264 ja bittikarttatekstitykset (PGS,
-// VOBSUB) jäävät ulottumattomiin. Työpöytäsoitin osaa ne natiivisti, ja
-// Xtreamin stream-osoite kelpaa sille sellaisenaan — mitään ei tarvitse
-// välittää eteenpäin osoitetta enempää.
+// Wasm decoding covers AC-3, E-AC-3 and DTS, but not everything reaches
+// the browser: the AVI container, VC-1, 10-bit H.264 and bitmap subtitles
+// (PGS, VOBSUB) stay out of reach. A desktop player handles them natively,
+// and the Xtream stream URL suits it as it is — nothing beyond the URL
+// needs to be passed on.
 //
-// Reittejä oli kaksi, jäljellä on yksi. Soittolistatiedosto: yhden kohteen
-// .m3u ladataan blobista, ja käyttöjärjestelmä avaa sen sillä soittimella
-// joka on rekisteröity .m3u:lle — VLC:llä se on `public.m3u-playlist` sen
-// Info.plistissä. `#EXTVLCOPT` vie katselukohdan mukana. Kaksi klikkausta,
-// mutta toimii ilman että mitään on asennettu laajennusta varten eikä vaadi
-// uusia manifest-oikeuksia.
+// There were two routes, one is left. The playlist file: a one-item .m3u
+// is downloaded from a blob, and the operating system opens it with
+// whichever player is registered for .m3u — for VLC that is
+// `public.m3u-playlist` in its Info.plist. `#EXTVLCOPT` carries the resume
+// position along. Two clicks, but it works without anything being
+// installed for the extension and needs no new manifest permissions.
 //
-// Soittimen omat URL-skeemat (iina://, mpv://) jäivät pois: ne vaativat
-// käyttäjältä valinnan ja tiedon siitä mitä hänelle on asennettu, ja mitattu
-// hyöty oli yksi klikkaus. VLC ei rekisteröi `vlc://`-skeemaa lainkaan, eli
-// yleisimmälle soittimelle tiedostoreitti on joka tapauksessa ainoa.
+// Player-specific URL schemes (iina://, mpv://) were dropped: they
+// required a choice from the user and knowledge of what they had
+// installed, and the measured benefit was one click. VLC does not register
+// a `vlc://` scheme at all, so for the most common player the file route
+// was the only one anyway.
 //
-// Osoitteessa ovat Xtreamin tunnukset, joten ladattu soittolista on yhtä
-// arkaluontoinen kuin itse tili.
+// The URL carries the Xtream credentials, so a downloaded playlist is as
+// sensitive as the account itself.
 
 import { t } from './i18n.js';
 
@@ -27,34 +28,35 @@ import { t } from './i18n.js';
 export function externalLabel() { return t('ext.label'); }
 
 /**
- * Luovuttaa virran ulkoiselle soittimelle.
+ * Hands the stream over to an external player.
  *
- * Kutsuttava suoraan käyttäjän eleestä ilman välissä olevaa awaitia: lataus
- * on selaimessa eleen vaativa toiminto samalla tavalla kuin
+ * Must be called straight from a user gesture with no await in between: in
+ * the browser a download is a gesture-requiring action in the same way as
  * permissions.request.
  *
  * @param {{url: string, startAt?: number}} spec
- * @param {string} name kohteen nimi soittolistariville ja tiedostonimeksi
+ * @param {string} name item name for the playlist line and the file name
  */
 export function handOff(spec, name) {
   downloadPlaylist(spec, name);
 }
 
-/** Yhden kohteen soittolista. */
+/** A one-item playlist. */
 export function playlist(spec, name) {
   const lines = ['#EXTM3U', `#EXTINF:-1,${title(name)}`];
-  // VLC:n oma laajennos: aloituskohta sekunteina. Muut soittimet ohittavat
-  // tuntemattoman risuaitarivin, joten se ei riko mitään.
+  // VLC's own extension: start position in seconds. Other players skip an
+  // unknown hash line, so it breaks nothing.
   if (spec.startAt > 0) lines.push(`#EXTVLCOPT:start-time=${Math.floor(spec.startAt)}`);
   lines.push(spec.url, '');
   return lines.join('\n');
 }
 
-// Rivinvaihto katkaisisi soittolistan ja pilkku #EXTINF:n kentät.
+// A newline would cut the playlist short and a comma would split the
+// #EXTINF fields.
 const title = (name) => String(name || 'Stream').replace(/[\r\n]+/g, ' ').trim();
 
-// Tiedostonimestä pois se mitä tiedostojärjestelmät eivät ota vastaan.
-// Nimet ovat kirjastossa pitkiä, joten myös katkaisu on tarpeen.
+// Strip from the file name whatever file systems will not accept. Names in
+// the library are long, so truncation is needed too.
 function filename(name) {
   const clean = title(name).replace(/[/\\:*?"<>|]+/g, '-').replace(/\s+/g, ' ').slice(0, 80).trim();
   return clean || 'stream';
@@ -64,12 +66,12 @@ function downloadPlaylist(spec, name) {
   const blob = new Blob([playlist(spec, name)], { type: 'audio/x-mpegurl' });
   const href = URL.createObjectURL(blob);
   click(href, `${filename(name)}.m3u`);
-  // Blobia ei saa vapauttaa samalla tikillä: lataus lukee sen vasta kun
-  // tapahtumasilmukka on pyörähtänyt.
+  // The blob must not be revoked on the same tick: the download reads it
+  // only after the event loop has turned.
   setTimeout(() => URL.revokeObjectURL(href), 60000);
 }
 
-/** Ankkurin klikkaus: lataus tarvitsee download-attribuutin. */
+/** An anchor click: the download needs the download attribute. */
 function click(href, download) {
   const a = document.createElement('a');
   a.href = href;

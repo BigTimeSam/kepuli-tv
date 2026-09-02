@@ -1,15 +1,14 @@
 #!/usr/bin/env node
-// Kehityssilmukka: avaa Chromen, lataa laajennuksen, avaa soittimen ja
-// lataa sivun uudelleen aina kun lähdetiedosto muuttuu.
+// Development loop: opens Chrome, loads the extension, opens the player and
+// reloads the page whenever a source file changes.
 //
-// Miksi näin eikä --load-extension: Chrome poisti sen komentoriviltä
-// (152 hylkää lipun hiljaa, ERR_BLOCKED_BY_CLIENT). Tilalla on
-// DevTools-protokollan Extensions.loadUnpacked, joka toimii myös
-// uudelleenlatauksena samaan polkuun kutsuttaessa — sitä tarvitaan kun
-// manifest.json tai background.js muuttuu, sillä pelkkä sivun lataus ei
-// niitä huomaa.
+// Why this and not --load-extension: Chrome removed it from the command
+// line (152 rejects the flag silently, ERR_BLOCKED_BY_CLIENT). In its place
+// is the DevTools protocol's Extensions.loadUnpacked, which also works as a
+// reload when called with the same path — that is needed when manifest.json
+// or background.js changes, since a page reload alone does not notice them.
 //
-// Riippuvuuksia ei ole: Node 22+ riittää (global fetch ja WebSocket).
+// No dependencies: Node 22+ is enough (global fetch and WebSocket).
 
 import { spawn } from 'node:child_process';
 import { existsSync, watch } from 'node:fs';
@@ -22,7 +21,7 @@ const PORT = Number(process.env.KEPULI_DEV_PORT || 9222);
 const PROFILE = process.env.KEPULI_DEV_PROFILE || join(homedir(), '.cache', 'kepuli-tv-dev');
 const PAGE = 'player.html';
 
-// Tiedostot joiden muutos vaatii koko laajennuksen uudelleenlatauksen.
+// Files whose change requires reloading the whole extension.
 const NEEDS_EXTENSION_RELOAD = new Set(['manifest.json', 'background.js']);
 const WATCHED = /\.(js|css|html|json)$/;
 
@@ -38,7 +37,7 @@ const log = (msg) => console.log(`${new Date().toTimeString().slice(0, 8)}  ${ms
 
 /* ------------------------------------------------------ DevTools-protokolla */
 
-/** Yksi kutsu, oma yhteys. Kehitystyökalulle riittävän halpaa. */
+/** One call, one connection. Cheap enough for a development tool. */
 function call(wsUrl, method, params = {}) {
   return new Promise((resolve, reject) => {
     const ws = new WebSocket(wsUrl);
@@ -120,8 +119,8 @@ async function reloadPage(id) {
 /* ---------------------------------------------------------------- vahtikoira */
 
 function watchSources(onChange) {
-  // Rekursiivinen vahti juuresta: editorit tallentavat usein nimeämällä
-  // tilapäistiedoston, jolloin yksittäisen tiedoston vahti katkeaisi.
+  // A recursive watch from the root: editors often save by renaming a
+  // temporary file, which would break a watch on a single file.
   watch(ROOT, { recursive: true }, (_event, file) => {
     if (!file) return;
     const path = file.replaceAll('\\', '/');
@@ -151,14 +150,14 @@ let busy = false;
 watchSources((path) => {
   changed.add(path);
   clearTimeout(pending);
-  // Yksi tallennus poikii useita tapahtumia, ja macOS niputtaa niitä
-  // vielä omaan tahtiinsa; odotetaan että ne rauhoittuvat.
+  // One save spawns several events, and macOS batches them at its own pace
+  // on top of that; wait for them to settle.
   pending = setTimeout(apply, 120);
 });
 
 async function apply() {
-  // Jos edellinen lataus on kesken, yritetään uudelleen hetken päästä
-  // — muuten juuri tallennettu muutos jäisi näkymättä.
+  // If the previous reload is still running, try again in a moment —
+  // otherwise the change just saved would go unseen.
   if (busy) { pending = setTimeout(apply, 200); return; }
   if (changed.size === 0) return;
   const paths = [...changed];

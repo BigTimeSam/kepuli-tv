@@ -1,15 +1,16 @@
-// EBML- ja Matroska-primitiivit. Yhteiset otsikon luvulle (probe.js) ja
-// purulle (mkv.js).
+// EBML and Matroska primitives. Shared by the header reader (probe.js) and
+// the demuxer (mkv.js).
 //
-// EBML on sisäkkäisiä elementtejä: tunnus (vint, pituusmerkki mukana) + koko
-// (vint, pituusmerkki pois) + data. Segmentin koko on usein tuntematon —
-// kaikki bitit ykkösiä — jolloin sisältö jatkuu tiedoston loppuun.
+// EBML is nested elements: an id (vint, length marker included) + a size
+// (vint, length marker removed) + data. The size of the Segment is often
+// unknown — all bits set — in which case the content runs to the end of the
+// file.
 //
-// Kaikki tässä tiedostossa toimii valmiin puskurin varassa. Klustereiden
-// purku tapahtuu mkv.js:ssä, joka lukee tavuja sitä mukaa kuin niitä tulee.
+// Everything in this file works on a buffer that is already in hand. The
+// clusters are demuxed in mkv.js, which reads bytes as they arrive.
 
 export const ID = {
-  // ylätaso
+  // top level
   EBML: 0x1a45dfa3, Segment: 0x18538067,
   SeekHead: 0x114d9b74, Seek: 0x4dbb, SeekID: 0x53ab, SeekPosition: 0x53ac,
   Info: 0x1549a966, Tracks: 0x1654ae6b, Cues: 0x1c53bb6b,
@@ -44,7 +45,7 @@ export class Reader {
     this.end = end;
   }
 
-  /** EBML-vint. id=true säilyttää pituusmerkin, koska tunnus on raakatavut. */
+  /** An EBML vint. id=true keeps the length marker, because an id is raw bytes. */
   vint(id) {
     const first = this.b[this.p];
     if (first === undefined) return null;
@@ -69,7 +70,7 @@ export class Reader {
     return value;
   }
 
-  /** Etumerkillinen kokonaisluku (ReferenceBlock). */
+  /** A signed integer (ReferenceBlock). */
   int(len) {
     let value = this.uint(len);
     const limit = Math.pow(2, len * 8 - 1);
@@ -84,7 +85,7 @@ export class Reader {
   text(len) {
     const raw = this.b.subarray(this.p, this.p + len);
     let end = raw.length;
-    while (end > 0 && raw[end - 1] === 0) end--;      // kentät on täytetty NUL:lla
+    while (end > 0 && raw[end - 1] === 0) end--;      // the fields are NUL-padded
     try { return new TextDecoder().decode(raw.subarray(0, end)); } catch { return ''; }
   }
 
@@ -94,16 +95,16 @@ export class Reader {
 }
 
 /**
- * Tiedoston alkuosan jäsennys: raidat, aikaskaala ja segmentin sijainnit.
+ * Parses the start of the file: tracks, time scale and segment positions.
  *
- * @param {Uint8Array} bytes tiedoston alusta luettu puskuri
+ * @param {Uint8Array} bytes a buffer read from the start of the file
  * @returns {{
  *   ok: boolean, truncated: boolean, tracks: object[], timestampScale: number,
  *   duration: number|null, writingApp: string|null,
  *   segmentStart: number, firstCluster: number|null, cuesPosition: number|null,
  * }}
- *   segmentStart on Segmentin datan alku tiedoston alusta laskien; Cues- ja
- *   SeekHead-sijainnit ovat siihen nähden suhteellisia.
+ *   segmentStart is where the Segment's data begins, counted from the start
+ *   of the file; Cues and SeekHead positions are relative to it.
  */
 export function parseHeader(bytes) {
   const out = {
@@ -136,8 +137,8 @@ export function parseHeader(bytes) {
           walk(new Reader(r.b, start, limit), limit, 'segment');
           break;
         case ID.Cluster:
-          // Raidat on aina määritelty ennen ensimmäistä klusteria; tästä
-          // eteenpäin on pelkkää kuva- ja äänidataa.
+          // The tracks are always defined before the first cluster; from
+          // here on there is nothing but picture and sound data.
           if (out.firstCluster === null) out.firstCluster = idStart;
           stop = true;
           return;
@@ -172,8 +173,8 @@ export function parseHeader(bytes) {
           break;
       }
 
-      // Tracksin jälkeen tuleva Cues tai Attachments ylittää puskurin lähes
-      // aina; se ei tarkoita että raitatiedot olisivat vajaat.
+      // A Cues or Attachments element after Tracks overruns the buffer
+      // almost always; that does not mean the track data is incomplete.
       if (overflows) {
         if (!tracksDone) out.truncated = true;
         return;
@@ -190,7 +191,7 @@ export function parseHeader(bytes) {
   return out;
 }
 
-/** SeekHeadista Cuesin sijainti, jotta kelausta ei tarvitse arvata. */
+/** The position of Cues from the SeekHead, so seeking need not be guessed. */
 function seekHead(r, end, out) {
   while (r.p < end) {
     const id = r.vint(true);
@@ -218,7 +219,7 @@ function seekHead(r, end, out) {
   }
 }
 
-/** Yksi TrackEntryn kenttä. */
+/** A single TrackEntry field. */
 export function field(track, id, r, len) {
   switch (id) {
     case ID.TrackNumber: track.number = r.uint(len); break;
@@ -230,7 +231,7 @@ export function field(track, id, r, len) {
     case ID.Language: if (!track.langBcp) track.lang = r.text(len); break;
     case ID.LanguageBCP47: track.langBcp = r.text(len); break;
     case ID.Name: track.name = r.text(len); break;
-    case ID.FlagDefault: track.isDefault = r.uint(len) === 1; break;   // puuttuessa 1
+    case ID.FlagDefault: track.isDefault = r.uint(len) === 1; break;   // 1 when absent
     case ID.FlagForced: track.forced = r.uint(len) === 1; break;
     case ID.FlagLacing: track.lacing = r.uint(len) === 1; break;
     case ID.PixelWidth: track.width = r.uint(len); break;

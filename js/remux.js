@@ -1,20 +1,21 @@
-// MKV:n toisto MediaSourcen kautta.
+// Playing MKV through MediaSource.
 //
-// Chrome ei ota Matroskaa vastaan, mutta sen sisällä oleva H.264 tai HEVC
-// kelpaa sellaisenaan. Tiedosto luetaan verkosta virtana, klusterit puretaan
-// (mkv.js) ja kehykset pakataan uudelleen fMP4-paloiksi (mp4.js). Kuvaa ei
-// pureta eikä koodata — vain kontti vaihtuu, joten työ on kevyttä.
+// Chrome will not take Matroska, but the H.264 or HEVC inside it is fine as
+// it is. The file is read from the network as a stream, the clusters are
+// demuxed (mkv.js) and the frames repackaged into fMP4 segments (mp4.js).
+// The picture is neither decoded nor encoded — only the container changes,
+// so the work is light.
 //
-// Reunaehdot jotka määräävät rakenteen:
+// The constraints that shape the design:
 //
-// - Tili sallii yhden yhtäaikaisen yhteyden, joten avoinna on aina täsmälleen
-//   yksi lataus. Kelaus katkaisee sen ja avaa uuden.
-// - Palvelin ei paljasta content-rangea JS:lle, joten tiedoston koko haetaan
-//   erikseen Range-vapaalla pyynnöllä, joka katkaistaan heti otsakkeiden
-//   jälkeen.
-// - Cues on mitatuissa tiedostoissa tiedoston lopussa (esim. 366 Mt:n
-//   kohdalla), joten kelaustaulu haetaan omalla pyynnöllään ja vasta
-//   tarvittaessa.
+// - The account allows one concurrent connection, so there is always
+//   exactly one download open. Seeking cuts it and opens a new one.
+// - The server does not expose content-range to JS, so the file size is
+//   fetched separately with a Range-free request that is cut off right
+//   after the headers.
+// - In the measured files Cues sits at the end of the file (at the 366 MB
+//   mark, for instance), so the seek table is fetched with its own request
+//   and only when needed.
 
 import { parseHeader, ID, Reader } from './ebml.js';
 import { t } from './i18n.js';
@@ -28,31 +29,33 @@ import { SubtitleTracks, isTextSubtitle, preferred } from './subs.js';
 const HEADER_BYTES = 256 * 1024;
 const CUES_BYTES = 4 * 1024 * 1024;
 
-// Kuinka pitkälle eteenpäin puskuroidaan ennen kuin lataus odottaa.
+// How far ahead to buffer before the download waits.
 const BUFFER_AHEAD = 60;
-// Kuinka paljon jo katsottua jätetään taakse ennen siivousta.
+// How much of what has been watched is left behind before cleaning up.
 const BUFFER_BEHIND = 30;
 const MAX_PENDING_BYTES = 8 * 1024 * 1024;
 
-// Videopala katkaistaan avainkuvaan, mutta vasta kun palassa on tarpeeksi
-// kehyksiä: liian lyhyt pala tekisi moof-otsikoista suhteettoman kalliita.
+// A video segment is cut at a keyframe, but only once it holds enough
+// frames: too short a segment would make the moof headers disproportionately
+// expensive.
 const MIN_SEGMENT_FRAMES = 48;
 const AUDIO_SEGMENT_FRAMES = 100;
 
-// Lataus voi katketa kesken tiedoston: palvelin sulkee yhteyden, verkko
-// pätkii. Toisto jatkuu viimeisen kokonaisen klusterin alusta, koska
-// puolikas klusteri jättäisi purkajalle vajaan kuvaryhmän — VideoToolbox
-// vastaa siihen virheellä -12909 eikä toisto enää palaudu.
+// A download can break mid-file: the server closes the connection, the
+// network stutters. Playback resumes from the start of the last complete
+// cluster, because half a cluster would leave the decoder with an
+// incomplete group of pictures — VideoToolbox answers that with error
+// -12909 and playback does not recover.
 const MAX_RESUMES = 6;
 const RESUME_DELAY_MS = 700;
 
 const AAC_FRAME_LENGTHS = [960, 1024, 1920, 2048];
 
-// Mykkä toisto pysähtyy itsestään: Chrome kohtelee ääniraidatonta elementtiä
-// autoplay-sääntöjen mukaan ja pysäyttää sen aika ajoin. Mitatussa ajossa
-// tauko tuli 17,8 sekunnin kohdalla readyState 4:llä ja 62 sekunnin puskurilla,
-// eikä sitä edeltänyt mikään tapahtuma. Ääniraidan kanssa toistavat jaksot
-// eivät pysähdy kertaakaan, joten jatkaminen rajataan tähän tapaukseen.
+// Silent playback stops by itself: Chrome treats an element without an
+// audio track under the autoplay rules and pauses it from time to time. In
+// a measured run the pause came at 17.8 seconds with readyState 4 and a
+// 62-second buffer, preceded by no event at all. Episodes that play with an
+// audio track never stop, so resuming is confined to this case.
 const MAX_SILENT_RESUMES = 20;
 
 
@@ -78,15 +81,15 @@ export class Remuxer {
     this.ms = null;
     this.objectUrl = null;
     this.connection = null;
-    this.generation = 0;          // kasvaa kelatessa, mitätöi vanhan pumpun
+    this.generation = 0;          // bumped on seek, invalidates the old pump
     this.destroyed = false;
 
     this.header = null;
     this.videoTrack = null;
     this.audioTrack = null;
-    this.decodeTrack = null;      // raita joka puretaan itse, jos sellaista tarvitaan
+    this.decodeTrack = null;      // the track we decode ourselves, when one is needed
     this.transcoder = null;
-    this.subs = null;             // SubtitleTracks, jos tekstiraitoja on
+    this.subs = null;             // SubtitleTracks, when there are text tracks
     this.subtitleList = [];
     this.buffers = { video: null, audio: null };
     this.queues = { video: Promise.resolve(), audio: Promise.resolve() };
@@ -101,7 +104,7 @@ export class Remuxer {
     this.onPause = () => this.resumeSilent();
     this.silentResumes = 0;
     this.state = { phase: 'alku', pending: 0, lastPts: 0, segments: 0, reading: false, resumes: 0 };
-    this.clusterAt = null;        // viimeisimmän klusterin sijainti tiedostossa
+    this.clusterAt = null;        // where the latest cluster sits in the file
     this.resumes = 0;
   }
 
@@ -115,35 +118,36 @@ export class Remuxer {
     await open;
     if (this.destroyed) return;
 
-    // Koodaimen mittaus ei riipu tiedostosta ja tulos on sivukohtainen, joten
-    // se käynnistetään rinnan otsikon luvun kanssa. Otsikon luku jättää
-    // yhteyden auki lukija odottamaan, eikä sitä kannata pysäyttää mittauksen
-    // ajaksi — tili sallii yhden yhteyden, joten sitä ei voi vain avata
-    // uudelleen.
-    encoderSetup().catch(() => { /* openTranscoder kertoo syyn */ });
+    // The encoder measurement does not depend on the file and its result
+    // is per page, so it is started alongside reading the header. Reading
+    // the header leaves the connection open with the reader waiting, and it
+    // is not worth stopping for the measurement — the account allows one
+    // connection, so it cannot simply be opened again.
+    encoderSetup().catch(() => { /* openTranscoder reports the reason */ });
 
     await this.readHeader();
     if (this.destroyed) return;
 
-    // Ennen lähdepuskureita: purkaja kertoo ääniraidan lopullisen muodon,
-    // jota init-pala tarvitsee.
+    // Before the source buffers: the decoder reports the audio track's
+    // final format, which the init segment needs.
     await this.openTranscoder();
     if (this.destroyed) return;
 
-    // Sukupolvi kiinnitetään ennen alkupaloja: append() merkitsee jokaisen
-    // lisäyksen sen hetkiseen sukupolveen, ja myöhempi kasvatus hylkäisi
-    // juuri jonotetut alkupalat vanhentuneina. Ilman niitä SourceBuffer
-    // torjuu ensimmäisen mediapalan.
+    // The generation is pinned before the init segments: append() stamps
+    // every addition with the generation of the moment, and a later bump
+    // would discard the init segments just queued as stale. Without them
+    // the SourceBuffer rejects the first media segment.
     const generation = ++this.generation;
 
-    // Kesto ennen lähdepuskureita: MediaSource kieltäytyy kestosta jos jokin
-    // puskuri on kesken lisäystä. Ilman kestoa seekable rajautuu puskuroituun
-    // osaan ja selain typistää kelauksen sen loppuun.
+    // The duration before the source buffers: MediaSource refuses a
+    // duration while any buffer is mid-append. Without a duration, seekable
+    // is limited to the buffered part and the browser clamps a seek to its
+    // end.
     if (this.header.duration) {
       try {
         this.ms.duration = this.header.duration;
       } catch (err) {
-        console.warn('[iptv] keston asetus epäonnistui', err);
+        console.warn('[iptv] setting the duration failed', err);
       }
     }
     this.setupTracks();
@@ -151,8 +155,9 @@ export class Remuxer {
     this.video.addEventListener('seeking', this.onSeeking);
     if (!this.audioTrack) this.video.addEventListener('pause', this.onPause);
 
-    // Alusta toistettaessa jatketaan otsikon lukeneesta virrasta. Jatkokohta
-    // vaatii kelaustaulun, jonka haku vie yhteyden — silloin virta suljetaan.
+    // When playing from the start we continue from the stream that read the
+    // header. A resume point needs the seek table, and fetching it takes the
+    // connection — then the stream is closed.
     let offset = 0;
     if (this.startAt > 1) {
       const target = await this.clusterFor(this.startAt);
@@ -186,7 +191,7 @@ export class Remuxer {
   fail(err) {
     if (this.destroyed) return;
     if (err && err.name === 'AbortError') return;
-    console.warn('[iptv] remux epäonnistui', err);
+    console.warn('[iptv] remux failed', err);
     this.onError(err);
   }
 
@@ -198,7 +203,7 @@ export class Remuxer {
     if (open) { try { open.abort(); } catch { /* jo suljettu */ } }
   }
 
-  /** Yksi lataus kerrallaan: edellinen katkaistaan aina ensin. */
+  /** One download at a time: the previous one is always cut first. */
   async openRange(from, to) {
     this.closeConnection();
     if (this.stream) {
@@ -211,7 +216,7 @@ export class Remuxer {
     const res = await fetch(this.url, {
       signal: ctrl.signal, cache: 'no-store', credentials: 'omit', headers: { Range: range },
     });
-    if (!res.ok) throw new Error(`palvelin vastasi ${res.status}`);
+    if (!res.ok) throw new Error(`the server answered ${res.status}`);
     return { res, ctrl };
   }
 
@@ -227,7 +232,7 @@ export class Remuxer {
       parts.push(value);
       total += value.byteLength;
     }
-    try { ctrl.abort(); } catch { /* runko oli jo loppu */ }
+    try { ctrl.abort(); } catch { /* the body had already ended */ }
     if (this.connection === ctrl) this.connection = null;
     const out = new Uint8Array(total);
     let at = 0;
@@ -236,10 +241,10 @@ export class Remuxer {
   }
 
   /**
-   * Lukee otsikon tiedoston alusta ja jättää yhteyden auki: sama virta
-   * jatkuu klustereihin. Erillinen otsikkopyyntö tarkoittaisi kahta
-   * yhteyttä peräkkäin, ja tili sallii yhden — palvelin katkaisi
-   * jälkimmäisen muutaman sekunnin jälkeen.
+   * Reads the header from the start of the file and leaves the connection
+   * open: the same stream continues into the clusters. A separate header
+   * request would mean two connections back to back, and the account allows
+   * one — the server cut the second after a few seconds.
    */
   async readHeader() {
     const { res, ctrl } = await this.openRange(0, null);
@@ -259,27 +264,27 @@ export class Remuxer {
     const header = parseHeader(bytes);
     if (!header.ok) {
       try { ctrl.abort(); } catch { /* jo suljettu */ }
-      throw new Error('raitatietoja ei löytynyt');
+      throw new Error('no track data found');
     }
     this.stream = { reader, ctrl, chunks, offset: 0 };
     this.header = header;
 
     const tracks = header.tracks;
     this.videoTrack = tracks.find((t) => t.type === 1 && videoMime(t)) || null;
-    // Tiedostossa voi olla useampi ääniraita — otetaan ensimmäinen jonka
-    // Chrome osaa purkaa. Juuri tämä pelastaa levyt joissa on sekä AC3 että
-    // AAC: pelkkä oletusraita olisi usein se väärä, ja koskematon raita on
-    // aina parempi kuin uudelleen koodattu.
+    // A file may hold several audio tracks — take the first one Chrome can
+    // decode. This is exactly what saves discs carrying both AC-3 and AAC:
+    // the default track alone would often be the wrong one, and an
+    // untouched track always beats a re-encoded one.
     this.audioTrack = tracks.find((t) => t.type === 2 && supportedAudio(t)) || null;
-    // Muuten raita joka puretaan itse. Mitatuista 45:stä ac3/eac3-jaksosta
-    // yhdessäkään ei ollut vaihtoehtoista raitaa, joten ilman tätä ne
-    // jäisivät mykiksi.
+    // Otherwise a track we decode ourselves. Of the 45 measured ac3/eac3
+    // episodes not one had an alternative track, so without this they would
+    // be left silent.
     this.decodeTrack = this.audioTrack ? null
       : tracks.find((t) => t.type === 2 && decodable(t.codecId)) || null;
-    if (!this.videoTrack) throw new Error('toistettavaa videoraitaa ei löytynyt');
+    if (!this.videoTrack) throw new Error('no playable video track found');
   }
 
-  /* --------------------------------------------------------- lähdepuskurit */
+  /* --------------------------------------------------------- source buffers */
 
   setupTracks() {
     const videoType = `video/mp4; codecs="${videoMime(this.videoTrack)}"`;
@@ -292,9 +297,10 @@ export class Remuxer {
     }]));
 
     if (this.audioTrack) {
-      // Puretulla raidalla muoto on transcode.js:n kiinteä stereo 48 kHz, ei
-      // alkuperäisen raidan — ja AudioSpecificConfig tulee koodaimelta, koska
-      // Matroskan CodecPrivate kuvaa purettua muotoa eikä koodattua.
+      // For a decoded track the format is transcode.js's fixed stereo
+      // 48 kHz rather than the original track's — and the
+      // AudioSpecificConfig comes from the encoder, because Matroska's
+      // CodecPrivate describes the decoded format, not the encoded one.
       const decoded = Boolean(this.transcoder);
       const rate = decoded ? DECODED_RATE : (this.audioTrack.outputRate || this.audioTrack.rate || 48000);
       const mime = decoded ? 'mp4a.40.2' : AUDIO_MIME[this.audioTrack.codecId];
@@ -310,52 +316,54 @@ export class Remuxer {
   }
 
   /**
-   * Avaa purkajan raidalle jota Chrome ei pura. Epäonnistuminen ei estä
-   * toistoa: kuva menee läpi ilman ääntä, ja katsojalle kerrotaan miksi.
+   * Opens the decoder for a track Chrome will not decode. A failure does not
+   * stop playback: the picture goes through without sound, and the viewer is
+   * told why.
    */
   async openTranscoder() {
     if (!this.decodeTrack) return;
     try {
       if (!(await AudioTranscoder.available(this.decodeTrack.codecId))) {
-        throw new Error('selaimessa ei ole AAC-koodainta');
+        throw new Error('the browser has no AAC encoder');
       }
       const transcoder = await AudioTranscoder.open(this.decodeTrack.codecId, (err) => this.audioFailed(err));
       if (this.destroyed) { transcoder.close(); return; }
       this.transcoder = transcoder;
       this.audioTrack = this.decodeTrack;
     } catch (err) {
-      console.warn('[iptv] ääniraidan purku ei onnistu', err);
+      console.warn('[iptv] audio track cannot be decoded', err);
       this.onNotice(t('remux.noaudio'));
     }
   }
 
   /**
-   * Koodain kaatui kesken toiston. Ääniraita on jätettävä pois kokonaan:
-   * kuivunut lähdepuskuri jättäisi kuvankin odottamaan ääntä jota ei enää
-   * tule.
+   * The encoder failed mid-playback. The audio track has to be dropped
+   * entirely: a starved source buffer would leave the picture waiting for
+   * sound that is no longer coming.
    */
   audioFailed(err) {
     if (this.destroyed || !this.transcoder) return;
-    console.warn('[iptv] äänen koodaus keskeytyi', err);
+    console.warn('[iptv] audio encoding stopped', err);
     this.transcoder.close();
     this.transcoder = null;
     const sb = this.buffers.audio;
     this.buffers.audio = null;
-    try { if (sb && this.ms && this.ms.readyState === 'open') this.ms.removeSourceBuffer(sb); } catch { /* toisto jatkuu silti */ }
+    try { if (sb && this.ms && this.ms.readyState === 'open') this.ms.removeSourceBuffer(sb); } catch { /* playback continues regardless */ }
     this.onNotice(t('remux.audiostopped'));
   }
 
   /**
-   * Tekstitysraidat elementille ja kielivalinnan mukainen raita näkyviin.
-   * Raidat luodaan ennen ensimmäistä klusteria, jotta valitsin on paikallaan
-   * heti kun kuva lähtee — cuet valuvat sisään sitä mukaa kuin puretaan.
+   * The subtitle tracks for the element, with the one matching the language
+   * choice shown. The tracks are created before the first cluster, so the
+   * selector is in place the moment the picture starts — the cues trickle in
+   * as the demuxing goes on.
    */
   setupSubtitles() {
     const tracks = this.header.tracks.filter(isTextSubtitle);
     if (!tracks.length) { this.report([], null); return; }
-    // Takaisinkutsu laukeaa vain sovelluksen ulkopuolelta tulleesta
-    // vaihdosta — selaimen omasta tekstitysvalikosta — koska select() on jo
-    // kirjannut oman valintansa.
+    // The callback fires only for a change that came from outside the app
+    // — from the browser's own subtitle menu — because select() has already
+    // recorded its own choice.
     this.subs = new SubtitleTracks(this.video, (active) => this.report(this.subtitleList, active, true));
     this.subtitleList = this.subs.setup(tracks);
     this.report(this.subtitleList, this.subs.select(preferred(this.subtitleList, this.subtitleLang)));
@@ -366,7 +374,7 @@ export class Remuxer {
     this.onSubtitles({ tracks, active, external });
   }
 
-  /** Raidan vaihto katsojan valinnasta. null piilottaa tekstityksen. */
+  /** Changing track from the viewer's choice. null hides the subtitles. */
   selectSubtitle(number) {
     if (!this.subs) return null;
     const active = this.subs.select(number);
@@ -374,7 +382,7 @@ export class Remuxer {
     return active;
   }
 
-  /** Lisäykset jonossa raidoittain: SourceBuffer ottaa vastaan yhden kerrallaan. */
+  /** Appends queued per track: a SourceBuffer accepts one at a time. */
   append(kind, data) {
     const sb = this.buffers[kind];
     if (!sb) return Promise.resolve();
@@ -396,14 +404,15 @@ export class Remuxer {
   appendOnce(sb, data) {
     return new Promise((resolve, reject) => {
       const done = () => { sb.removeEventListener('updateend', done); sb.removeEventListener('error', bad); resolve(); };
-      const bad = () => { sb.removeEventListener('updateend', done); sb.removeEventListener('error', bad); reject(new Error('SourceBuffer hylkäsi palan')); };
+      const bad = () => { sb.removeEventListener('updateend', done); sb.removeEventListener('error', bad); reject(new Error('SourceBuffer rejected the segment')); };
       sb.addEventListener('updateend', done);
       sb.addEventListener('error', bad);
       try { sb.appendBuffer(data); } catch (err) { bad(); reject(err); }
     });
   }
 
-  /** Poistaa katsotun osan puskurista, jottei muisti kasva rajatta. */
+  /** Removes the watched part from the buffer, so memory does not grow
+   *  without bound. */
   async evict(kind, aggressive = false) {
     const sb = this.buffers[kind];
     const ranges = timeRanges(sb);
@@ -422,16 +431,18 @@ export class Remuxer {
   /* ---------------------------------------------------------------- pumppu */
 
   /**
-   * Lukee tiedostoa annetusta kohdasta, purkaa klusterit ja syöttää palat
-   * eteenpäin. Sukupolvi mitätöi ajon, jos kelaus ehtii väliin.
+   * Reads the file from the given offset, demuxes the clusters and feeds the
+   * segments onward. The generation invalidates the run if a seek gets in
+   * between.
    */
   async pump(offset, generation) {
     let reader;
     let ctrl;
     const bytes = new BufferedBytes();
     if (this.stream && this.stream.offset === offset) {
-      // Otsikon lukenut virta jatkuu tästä; jo luetut tavut annetaan
-      // purkajalle uudelleen, koska se aloittaa tiedoston alusta.
+      // The stream that read the header continues from here; the bytes
+      // already read are handed to the demuxer again, because it starts
+      // from the beginning of the file.
       ({ reader, ctrl } = this.stream);
       for (const chunk of this.stream.chunks) bytes.push(chunk);
       this.stream = null;
@@ -462,14 +473,14 @@ export class Remuxer {
 
     this.clusterAt = offset;
     const onCluster = (at) => { this.clusterAt = offset + at; };
-    // Virran loppuminen on ohimenevää ja jatkettavissa; kelvoton tunnus taas
-    // tarkoittaa että tiedosto itse on rikki. Mitatussa tapauksessa jaksoa
-    // seurasi kolme megatavua nollia eikä yhtään klusteria — sellaisesta ei
-    // uudelleenyrittämällä pääse eteenpäin.
+    // The stream running out is transient and resumable; an invalid id, on
+    // the other hand, means the file itself is broken. In the measured case
+    // the episode was followed by three megabytes of zeros and no cluster
+    // at all — retrying gets nowhere with that.
     let damaged = null;
     const onStop = (reason, at) => {
       this.state.stop = `${reason} @ ${offset + at}`;
-      if (!reason.startsWith('virta loppui')) damaged = offset + at;
+      if (!reason.startsWith('stream ended')) damaged = offset + at;
     };
     const tracks = new Map(this.header.tracks.map((t) => [t.number, t]));
     const videoNumber = this.videoTrack.number;
@@ -481,8 +492,8 @@ export class Remuxer {
     let decodedFrames = 0;
     let broke = false;
     this.audioDts = null;
-    // Jatkokohta ei osu kehyksen rajalle eikä koodaimen jonossa oleva ääni
-    // kuulu enää tähän kohtaan tiedostoa.
+    // The resume point does not land on a frame boundary, and the audio
+    // queued in the encoder no longer belongs at this point in the file.
     if (this.transcoder) await this.transcoder.restart();
     this.state.phase = 'purkaa';
     this.state.reading = true;
@@ -514,24 +525,27 @@ export class Remuxer {
             }
           }
         } else if (this.subs && this.subs.has(frame.track)) {
-          // Tekstitys ei kulje MediaSourcen läpi vaan suoraan elementin
-          // omalle raidalle, joten sitä ei tarvitse paloitella eikä jonottaa.
+          // Subtitles do not go through MediaSource but straight onto the
+          // element's own track, so they need neither segmenting nor
+          // queueing.
           this.subs.push(frame.track, frame.pts, frame.duration, frame.data);
         }
       }
       if (generation === this.generation && !this.destroyed) {
-        // Kesken katkennutta kuvaryhmää ei syötetä eteenpäin: purkaja saisi
-        // vajaan ryhmän ja kaatuisi. Se luetaan uudelleen jatkettaessa.
+        // A group of pictures cut short is not fed onward: the decoder
+        // would get an incomplete group and fail. It is read again on
+        // resume.
         if (complete && pendingVideo.length) this.flushVideo(pendingVideo, generation);
         if (complete && pendingAudio.length) this.flushAudio(pendingAudio, rate, generation);
         if (this.transcoder) {
-          // Koodaimeen jää aina viimeiset kehykset, ja ne on annettava ulos
-          // myös katkenneessa ajossa: jatko alkaa klusterin alusta, eikä
-          // väliin jäänyttä ääntä lueta uudelleen. Huuhtelu lisää ketjun
-          // loppuun vajaan kehyksen verran hiljaisuutta, mutta seuraava ketju
-          // ankkuroidaan taas omaan PTS:äänsä — venymistä ei siis kerry,
-          // toisin kuin jos huuhtelua käytettäisiin vastapaineeseen.
-          // Purkajan häntä kuuluu vain oikeaan loppuun.
+          // The last frames always stay in the encoder, and they have to
+          // be emitted in an interrupted run too: the resume starts at the
+          // beginning of a cluster, and the audio in between is not read
+          // again. Flushing adds up to a partial frame of silence at the
+          // end of the chain, but the next chain is anchored to its own PTS
+          // — so no stretching accumulates, unlike if flushing were used
+          // for back pressure. The decoder's tail belongs only to the real
+          // end.
           if (complete) await this.transcoder.finish();
           else await this.transcoder.drain();
           this.flushDecoded(generation);
@@ -540,15 +554,16 @@ export class Remuxer {
         await this.queues.audio;
         if (complete) this.finish(generation);
       }
-      this.state.phase = complete ? 'valmis' : damaged !== null ? 'tiedosto rikki' : 'katkesi';
+      this.state.phase = complete ? 'valmis' : damaged !== null ? 'file broken' : 'katkesi';
       if (damaged !== null && generation === this.generation && !this.destroyed) {
-        // Viimeistä kuvaryhmää ei syötetä: se jäi kesken, ja purkaja vastaa
-        // vajaaseen ryhmään virheellä -12909 eikä toisto palaudu siitä.
-        // Toisto päättyy siis siististi viimeiseen ehjään ryhmään.
+        // The last group of pictures is not fed: it was left incomplete,
+        // and the decoder answers an incomplete group with error -12909,
+        // from which playback does not recover. Playback therefore ends
+        // cleanly at the last intact group.
         await this.queues.video;
         await this.queues.audio;
         this.finish(generation);
-        console.warn('[iptv] tiedosto katkeaa tavussa %d (%s)', damaged, this.state.stop);
+        console.warn('[iptv] file is cut off at byte %d (%s)', damaged, this.state.stop);
         this.onNotice(t('remux.truncated', { time: formatClock(this.bufferedEnd()) }));
       }
       broke = !complete && damaged === null && generation === this.generation && !this.destroyed;
@@ -558,48 +573,51 @@ export class Remuxer {
       if (this.connection === ctrl) this.connection = null;
       await network.catch(() => {});
     }
-    // Vasta yhteyden sulkemisen jälkeen: tili sallii yhden kerrallaan, joten
-    // uutta ei saa avata ennen kuin edellinen on varmasti kiinni.
+    // Only after the connection is closed: the account allows one at a
+    // time, so a new one must not be opened before the previous is
+    // certainly shut.
     if (broke) await this.resume(generation);
   }
 
   /**
-   * Jatkaa lataamista viimeisen kokonaisen klusterin alusta. Onnistunut
-   * jatko nollaa laskurin, joten pitkä elokuva kestää useita katkoja — vain
-   * peräkkäiset epäonnistumiset lopettavat yrittämisen.
+   * Resumes downloading from the start of the last complete cluster. A
+   * successful resume clears the counter, so a long film survives several
+   * drops — only consecutive failures stop the retrying.
    */
   async resume(generation) {
     if (this.resumes >= MAX_RESUMES) {
-      this.state.phase = 'katkesi lopullisesti';
-      this.onError(new Error('lataus katkesi toistuvasti'));
+      this.state.phase = 'broke for good';
+      this.onError(new Error('the download broke repeatedly'));
       return;
     }
     this.resumes++;
     this.state.resumes = this.resumes;
     const from = this.clusterAt;
-    this.state.phase = `jatketaan tavusta ${from} (${this.resumes}/${MAX_RESUMES})`;
-    console.warn('[iptv] lataus katkesi, jatketaan tavusta %d (%d/%d)', from, this.resumes, MAX_RESUMES);
+    this.state.phase = `resuming from byte ${from} (${this.resumes}/${MAX_RESUMES})`;
+    console.warn('[iptv] download broke, resuming from byte %d (%d/%d)', from, this.resumes, MAX_RESUMES);
     await new Promise((resolve) => setTimeout(resolve, RESUME_DELAY_MS * this.resumes));
     if (this.destroyed || generation !== this.generation) return;
-    // Ääniraidan ketju alkaa alusta, koska jatkokohta ei osu kehyksen rajalle.
+    // The audio chain starts over, because the resume point does not land
+    // on a frame boundary.
     this.audioDts = null;
     await this.pump(from, generation);
   }
 
-  /** Odottaa kunnes puskurissa on tilaa. Estää koko tiedoston lataamisen. */
+  /** Waits until there is room in the buffer. Stops the whole file being
+   *  downloaded. */
   async waitForRoom(bytes, generation) {
     for (;;) {
       if (this.destroyed || generation !== this.generation) return;
       const ahead = this.bufferedAhead();
       if (bytes.available < MAX_PENDING_BYTES && ahead < BUFFER_AHEAD) return;
-      this.state.phase = `odottaa tilaa (puskurissa ${Math.round(ahead)} s, jonossa ${Math.round(bytes.available / 1024)} kt)`;
+      this.state.phase = `waiting for room (${Math.round(ahead)} s buffered, ${Math.round(bytes.available / 1024)} kB queued)`;
       await this.evict('video');
       await this.evict('audio');
       await new Promise((resolve) => setTimeout(resolve, 250));
     }
   }
 
-  /** Puskuroidun kuvan viimeinen hetki sekunteina. */
+  /** The last moment of buffered picture, in seconds. */
   bufferedEnd() {
     const ranges = timeRanges(this.buffers.video);
     return ranges ? ranges.end(ranges.length - 1) : 0;
@@ -613,8 +631,8 @@ export class Remuxer {
     for (let i = 0; i < ranges.length; i++) {
       if (now >= ranges.start(i) - 0.5 && now <= ranges.end(i)) return ranges.end(i) - now;
     }
-    // Toistokohta on puskurin ulkopuolella: dataa tarvitaan heti, eikä
-    // etäisyys johonkin toiseen alueeseen saa jarruttaa latausta.
+    // The playback position is outside the buffer: data is needed at once,
+    // and the distance to some other range must not slow the download.
     return 0;
   }
 
@@ -636,9 +654,9 @@ export class Remuxer {
   }
 
   /**
-   * Ääni ketjutetaan peräkkäin nimelliskestolla. Matroskan aikaleimat ovat
-   * millisekunnin tarkkuudella, joten AAC-kehyksen 21,333 ms pyöristyisi ja
-   * virhe kertyisi tunnissa sekunneiksi.
+   * The audio is chained back to back at its nominal duration. Matroska's
+   * timestamps have millisecond resolution, so an AAC frame's 21.333 ms
+   * would round and the error would accumulate into seconds over an hour.
    */
   flushAudio(list, rate, generation) {
     if (generation !== this.generation || !this.buffers.audio) return;
@@ -649,7 +667,7 @@ export class Remuxer {
     const samples = [];
     for (const frame of list) {
       const wanted = Math.round((frame.pts * rate) / 1e9);
-      // Iso poikkeama tarkoittaa aukkoa tai kelausta: sarja aloitetaan alusta.
+      // A large deviation means a gap or a seek: the series starts over.
       if (Math.abs(wanted - this.audioDts) > rate / 4) this.audioDts = wanted;
       samples.push({ data: frame.data, dts: this.audioDts, cts: 0, duration: this.audioNominal, keyframe: true });
       this.audioDts += this.audioNominal;
@@ -658,9 +676,10 @@ export class Remuxer {
   }
 
   /**
-   * Valmiit AAC-kehykset lähdepuskuriin. Ajat tulevat koodaimelta valmiiksi
-   * ketjutettuina, mutta yksi mediapala saa sisältää vain yhtenäisen jakson:
-   * tfdt kertoo vain ensimmäisen ajan ja loput lasketaan kestoista.
+   * The finished AAC frames into the source buffer. The times arrive from
+   * the encoder already chained, but a single media segment may only hold a
+   * contiguous run: the tfdt states just the first time and the rest are
+   * derived from the durations.
    */
   flushDecoded(generation) {
     if (generation !== this.generation || !this.buffers.audio || !this.transcoder) return;
@@ -683,12 +702,13 @@ export class Remuxer {
     if (generation !== this.generation || this.destroyed) return;
     try {
       if (this.ms && this.ms.readyState === 'open') this.ms.endOfStream();
-    } catch { /* selain ehti sulkea */ }
+    } catch { /* the browser had already closed it */ }
   }
 
   /* ---------------------------------------------------------------- kelaus */
 
-  /** Cues-taulu tiedoston lopusta. Haetaan kerran ja vain jos kelataan. */
+  /** The Cues table from the end of the file. Fetched once, and only if a
+   *  seek happens. */
   async loadCues() {
     if (this.cues || this.cuesTried) return this.cues;
     this.cuesTried = true;
@@ -698,17 +718,17 @@ export class Remuxer {
       const bytes = await this.readRange(from, from + CUES_BYTES - 1);
       this.cues = parseCues(bytes, this.header.timestampScale, this.videoTrack.number);
     } catch (err) {
-      console.warn('[iptv] kelaustaulun luku epäonnistui', err);
+      console.warn('[iptv] reading the seek table failed', err);
       this.cues = null;
     }
     return this.cues;
   }
 
   /**
-   * Jatkaa mykkää toistoa jonka selain pysäytti omasta aloitteestaan.
-   * Katsojan tauko tulee aina eleestä, joten userActivation erottaa ne;
-   * mediakäppäimeltä tuleva tauko menee tässä väärään pinoon, mutta se on
-   * harvinaisempi kuin itsestään seisahtuva kuva.
+   * Resumes silent playback that the browser paused of its own accord. The
+   * viewer's pause always comes from a gesture, so userActivation tells them
+   * apart; a pause from a media key lands in the wrong pile here, but that
+   * is rarer than a picture stopping by itself.
    */
   resumeSilent() {
     if (this.destroyed || this.video.ended || this.video.seeking) return;
@@ -719,7 +739,7 @@ export class Remuxer {
     if (started && started.catch) started.catch(() => { /* katsoja ehti painaa taukoa */ });
   }
 
-  /** Tiedoston kohta josta annettu hetki alkaa, tai null. */
+  /** The file offset where the given moment starts, or null. */
   async clusterFor(seconds) {
     const cues = await this.loadCues();
     if (!cues || !cues.length) return null;
@@ -735,17 +755,18 @@ export class Remuxer {
     const target = this.video.currentTime;
     if (this.isBuffered(target)) return;
 
-    // Sukupolvi kasvaa ennen ensimmäistä awaitia. Kelaustaulun haku vie
-    // ainoan yhteyden, jolloin käynnissä oleva pumppu näkee virran
-    // loppuvan — vanhentuneena se ei enää päätä tiedostoa endOfStreamilla,
-    // joka typistäisi keston puskurin loppuun ja romuttaisi juuri tämän
-    // kelauksen.
+    // The generation is bumped before the first await. Fetching the seek
+    // table takes the single connection, at which point the running pump
+    // sees the stream end — being stale it no longer finishes the file with
+    // endOfStream, which would clamp the duration to the end of the buffer
+    // and wreck this very seek.
     const generation = ++this.generation;
     this.closeConnection();
 
     const offset = await this.clusterFor(target);
     if (offset == null || this.destroyed || generation !== this.generation) return;
-    // Vanhat palat pois kelauskohdan ympäriltä, muuten puskuri pirstaloituu.
+    // Drop the old segments around the seek point, or the buffer
+    // fragments.
     await this.clear();
     if (this.destroyed || generation !== this.generation) return;
     this.sequence++;
@@ -788,9 +809,9 @@ const formatClock = (seconds) => {
 };
 
 /**
- * SourceBufferin alueet, tai null jos puskuria ei voi lukea. Kun MediaSource
- * sulkeutuu, buffered heittää poikkeuksen — sitä tapahtuu normaalisti kun
- * toisto lopetetaan kesken latauksen.
+ * A SourceBuffer's ranges, or null when the buffer cannot be read. When the
+ * MediaSource closes, buffered throws — which happens normally when
+ * playback is stopped mid-download.
  */
 function timeRanges(sb) {
   if (!sb) return null;
@@ -809,9 +830,9 @@ const supportedAudio = (track) => {
 };
 
 /**
- * AAC-kehyksen pituus näytteinä. Yksittäisten aikaleimojen erotus olisi
- * millisekuntipyöristyksen takia epäluotettava, joten se lasketaan pitkältä
- * väliltä ja pyöristetään lähimpään vakioarvoon.
+ * An AAC frame's length in samples. The difference between individual
+ * timestamps would be unreliable because of millisecond rounding, so it is
+ * computed over a long interval and rounded to the nearest standard value.
  */
 function nominalFrame(list, rate) {
   if (list.length < 8) return 1024;
@@ -826,7 +847,8 @@ function nominalFrame(list, rate) {
   return best;
 }
 
-/** CuePoint → { time (s), position (segmentin alusta) } videoraidalle. */
+/** CuePoint → { time (s), position (from the segment start) } for the
+ *  video track. */
 function parseCues(bytes, timestampScale, trackNumber) {
   const out = [];
   const r = new Reader(bytes);

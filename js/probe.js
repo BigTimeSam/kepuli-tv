@@ -1,18 +1,21 @@
-// Mediatiedoston otsikon luku: mitä kontissa on oikeasti.
+// Reading a media file's header: what the container really holds.
 //
-// Xtreamin metadataan ei voi luottaa. get_vod_info ei palauta koodekkeja
-// lainkaan (400 elokuvan otoksessa 400 tyhjää), ja get_series_info kertoo
-// 4,7 %:lle jaksoista videokoodekiksi png:n tai mjpegin — se on kansikuva,
-// jonka ffprobe näkee ensimmäisenä raitana. Pelkkä pääte taas ei kerro
-// ääniraidasta mitään, ja juuri ääni ratkaisee: mkv-jaksoista noin 42 % on
-// aac ja 53 % ac3/eac3/dts, joita Chrome ei pura millään.
+// Xtream's metadata cannot be trusted. get_vod_info returns no codecs at
+// all (400 empty results in a sample of 400 movies), and get_series_info
+// reports png or mjpeg as the video codec for 4.7% of episodes — that is
+// the cover image, which ffprobe sees as the first track. The file
+// extension in turn says nothing about the audio track, and audio is
+// exactly what decides: of the mkv episodes around 42% are aac and 53%
+// ac3/eac3/dts, which Chrome will not decode by any route.
 //
-// Yksi 256 kt:n Range-luku riittää. Matroskan Tracks-elementti on tiedoston
-// alussa ja sisältää raidat koodekkeineen ja kielineen. Palvelin vastaa
-// Range-pyyntöön 206:lla, joten koko tiedostoa ei ladata.
+// One 256 kB Range read is enough. Matroska's Tracks element sits at the
+// start of the file and holds the tracks with their codecs and languages.
+// The server answers a Range request with 206, so the whole file is not
+// downloaded.
 //
-// Tili sallii yhden yhtäaikaisen yhteyden: pyynnöt sarjoitetaan ja runko
-// katkaistaan heti kun tavut on luettu, muuten seuraava pyyntö saa HTTP 400:n.
+// The account allows one concurrent connection: requests are serialised and
+// the body is cut off as soon as the bytes have been read, otherwise the
+// next request gets HTTP 400.
 
 import { cacheGet, cachePut, cacheGetAll } from './db.js';
 import { t } from './i18n.js';
@@ -22,12 +25,12 @@ import { parseHeader, TRACK_TYPE } from './ebml.js';
 const HEADER_BYTES = 256 * 1024;
 const TIMEOUT_MS = 15000;
 const CACHE_PREFIX = 'probe:';
-const CACHE_TTL = 90 * 24 * 60 * 60 * 1000;   // kontti ei muutu tiedoston alla
+const CACHE_TTL = 90 * 24 * 60 * 60 * 1000;   // the container does not change under the file
 
-/* ------------------------------------------------------------- muistivälimuisti */
+/* ------------------------------------------------------------ memory cache */
 
-// Listarivit tarvitsevat tuloksen synkronisesti piirron aikana, joten
-// IndexedDB:n sisältö peilataan muistiin kerran yhteyden avauksessa.
+// List rows need the result synchronously while painting, so the contents
+// of IndexedDB are mirrored into memory once when the connection opens.
 const memory = new Map();
 
 export async function warmCache() {
@@ -39,15 +42,16 @@ export async function warmCache() {
   return memory.size;
 }
 
-/** Valmis tulos ilman verkkoa, tai undefined. */
+/** A ready result without touching the network, or undefined. */
 export function peek(url) {
   return memory.get(cacheKey(url));
 }
 
 /**
- * Osoitteesta tunniste ilman tunnuksia: /series/USER/PASS/123.mkv →
- * "probe:host:series:123.mkv". Salasana on jo chrome.storagessa
- * selkokielisenä eikä sitä ole syytä monistaa välimuistin avaimiin.
+ * An identifier from the URL without the credentials:
+ * /series/USER/PASS/123.mkv → "probe:host:series:123.mkv". The password is
+ * already in chrome.storage in the clear and there is no reason to copy it
+ * into cache keys as well.
  */
 function cacheKey(url) {
   try {
@@ -63,7 +67,7 @@ function cacheKey(url) {
 
 /* ---------------------------------------------------------------- sarjoitus */
 
-// Yksi yhteys kerrallaan. Ketju ei katkea vaikka yksi luotaus epäonnistuisi.
+// One connection at a time. The chain does not break if one probe fails.
 let queue = Promise.resolve();
 
 function serialize(task) {
@@ -72,12 +76,12 @@ function serialize(task) {
   return run;
 }
 
-/* -------------------------------------------------------------------- haku */
+/* ----------------------------------------------------------------- fetch */
 
 /**
  * @param {string} url
  * @param {{signal?: AbortSignal, force?: boolean}} opts
- * @returns {Promise<object>} ks. describe() — aina objekti, myös virheessä
+ * @returns {Promise<object>} see describe() — always an object, errors included
  */
 export async function probe(url, { signal, force } = {}) {
   const key = cacheKey(url);
@@ -90,7 +94,8 @@ export async function probe(url, { signal, force } = {}) {
     error: err && err.message ? err.message : String(err),
   })));
   info.at = Date.now();
-  // Verkkovirhettä ei kannata muistaa: se voi johtua varatusta yhteydestä.
+  // A network error is not worth remembering: it may come from the single
+  // connection being busy.
   if (!info.error) { memory.set(key, info); cachePut(key, info); }
   return info;
 }
@@ -120,8 +125,9 @@ async function readHeader(url, signal) {
       parts.push(value);
       total += value.byteLength;
     }
-    // Yhteys on vapautettava ennen paluuta, muuten seuraava pyyntö torjutaan.
-    try { ctrl.abort(); } catch { /* runko oli jo loppu */ }
+    // The connection must be released before returning, or the next request
+    // is refused.
+    try { ctrl.abort(); } catch { /* the body had already ended */ }
     const bytes = new Uint8Array(total);
     let offset = 0;
     for (const part of parts) { bytes.set(part, offset); offset += part.byteLength; }
@@ -140,7 +146,7 @@ function parse(bytes) {
     return parseMatroska(bytes);
   }
   if (str(bytes, 4, 4) === 'ftyp') return parseMp4(bytes);
-  // MPEG-TS: 188 tavun paketit, joiden alussa synkkitavu.
+  // MPEG-TS: 188-byte packets, each starting with a sync byte.
   if (bytes[0] === 0x47 && bytes[188] === 0x47 && bytes[376] === 0x47) {
     return { container: 'mpegts', video: null, audio: [], subtitles: [] };
   }
@@ -174,10 +180,10 @@ function parseMatroska(bytes) {
 
 const language = (track) => (track.langBcp || track.lang || 'und').toLowerCase();
 
-// Matroska merkitsee kielen joko ISO 639-2:lla (Language) tai BCP 47:llä
-// (LanguageBCP47), ja saman kirjaston tiedostoissa esiintyy molempia — sama
-// kieli näkyisi muuten kahtena ("fin" ja "fi"). Näytöllä käytetään lyhyttä
-// muotoa ja alueosa jätetään pois.
+// Matroska marks the language either with ISO 639-2 (Language) or with
+// BCP 47 (LanguageBCP47), and both occur in files from the same library —
+// otherwise the same language would show up twice ("fin" and "fi"). The
+// short form is used on screen and the region part is dropped.
 const ISO3 = {
   fin: 'fi', swe: 'sv', nor: 'no', nob: 'no', nno: 'no', dan: 'da', isl: 'is',
   eng: 'en', ger: 'de', deu: 'de', fre: 'fr', fra: 'fr', spa: 'es', ita: 'it',
@@ -233,7 +239,7 @@ function subtitleTrack(track) {
   };
 }
 
-/* ------------------------------------------------------------ koodekkikartta */
+/* ------------------------------------------------------------ codec map */
 
 const VIDEO_NAME = {
   'V_MPEG4/ISO/AVC': 'h264', 'V_MPEGH/ISO/HEVC': 'hevc', 'V_VP8': 'vp8', 'V_VP9': 'vp9',
@@ -269,9 +275,9 @@ function shortCodec(codecId) {
 }
 
 /**
- * Tarkka koodekkimerkkijono CodecPrivatesta. Profiili ratkaisee: Chrome ei
- * pura 10-bittistä H.264:ää (High 10, profile_idc 110), joten pelkkä
- * "avc1" antaisi liian toiveikkaan vastauksen.
+ * The exact codec string from CodecPrivate. The profile decides: Chrome
+ * does not decode 10-bit H.264 (High 10, profile_idc 110), so a bare
+ * "avc1" would give too hopeful an answer.
  */
 export function videoMime(track) {
   const id = track.codecId;
@@ -294,7 +300,7 @@ export function videoMime(track) {
   if (id === 'V_VP9') return 'vp09.00.10.08';
   if (id === 'V_VP8') return 'vp8';
   if (id === 'V_AV1') return 'av01.0.05M.08';
-  return null;                                  // mpeg4 asp, vfw, mpeg2 → ei fMP4:ää
+  return null;                                  // mpeg4 asp, vfw, mpeg2 → no fMP4
 }
 
 const supportCache = new Map();
@@ -310,9 +316,9 @@ function supports(type) {
 
 /* ------------------------------------------------------------------- MP4 */
 
-// Vain pintapuolinen: mp4 toistuu natiivisti, joten kiinnostavaa on
-// tekstitysraitojen olemassaolo. moov voi olla tiedoston lopussa, jolloin
-// sitä ei näy otsikossa — silloin raidat jäävät tuntemattomiksi.
+// Only skin-deep: mp4 plays natively, so what is interesting is whether
+// subtitle tracks exist. The moov may sit at the end of the file, in which
+// case it is not in the header — then the tracks stay unknown.
 function parseMp4(bytes) {
   const out = { container: 'mp4', video: null, audio: [], subtitles: [], truncated: false, brand: str(bytes, 8, 4) };
   const handlers = [];
@@ -343,7 +349,7 @@ function parseMp4(bytes) {
   };
   walk(0, bytes.length, 0);
 
-  // Ilman moovia otsikossa ei tiedetä raidoista mitään.
+  // Without a moov in the header nothing is known about the tracks.
   if (!sawMoov) { out.truncated = true; return out; }
   for (const handler of handlers) {
     if ((handler === 'sbtl' || handler === 'text' || handler === 'subt') && !out.subtitles.length) {
@@ -371,18 +377,19 @@ function codecBox(fourcc, out) {
   }
 }
 
-/* ---------------------------------------------------------------- päätelmä */
+/* --------------------------------------------------------------- verdict */
 
 /**
- * Mitä tiedostolle voi tehdä. Palauttaa reitin ja ihmisluettavan syyn.
+ * What can be done with the file. Returns the route and a human-readable
+ * reason.
  *
  * path:
- *   native    selaimen oma toistin
+ *   native    the browser's own player
  *   mpegts    mpegts.js
- *   remux     kelpaisi MSE:lle uudelleenpakattuna (ei vielä toteutettu)
- *   silent    kuva kelpaisi, ääniraita ei
- *   none      ei toistu Chromessa
- *   unknown   otsikko ei kertonut tarpeeksi
+ *   remux     would suit MSE once repackaged
+ *   silent    the picture would do, the audio track would not
+ *   none      does not play in Chrome
+ *   unknown   the header did not say enough
  */
 export function verdict(info) {
   if (!info || info.error) {
@@ -411,9 +418,9 @@ export function verdict(info) {
     if (others.length) {
       return { path: 'remux', video, audio: others[0], reason: matroskaReason(video, others[0]) };
     }
-    // Chrome ei pura AC-3:a, E-AC-3:a eikä DTS:ää, mutta soitin purkaa
-    // (transcode.js). Koskematon raita olisi silti parempi, joten tämä on
-    // vasta kolmas vaihtoehto.
+    // Chrome decodes neither AC-3, E-AC-3 nor DTS, but the player does
+    // (transcode.js). An untouched track would still be better, so this is
+    // only the third choice.
     if (decodable(audio.codecId)) {
       const size = video.height ? ` ${video.height}p` : '';
       return {
@@ -434,7 +441,7 @@ function matroskaReason(video, audio) {
   return t('probe.remux', { video: video.codec.toUpperCase() + size, audio: audio.codec.toUpperCase() });
 }
 
-/** Paras ääniraita: ensisijaisesti tuettu, muuten oletusraita. */
+/** The best audio track: a supported one first, otherwise the default. */
 function bestAudio(info) {
   if (!info.audio || !info.audio.length) return null;
   return info.audio.find((a) => a.supported && a.default)
@@ -443,7 +450,7 @@ function bestAudio(info) {
       ?? info.audio[0];
 }
 
-/** Lyhyt merkintä listariville, tai null jos toistuu normaalisti. */
+/** A short badge for a list row, or null when it plays normally. */
 export function badge(info) {
   const v = verdict(info);
   if (v.path === 'native' || v.path === 'mpegts') return null;
@@ -453,7 +460,7 @@ export function badge(info) {
   return { text: t('probe.badge.none'), title: v.reason, level: 'warn' };
 }
 
-/** Tekstitysraidat tiiviisti: "5 tekstitystä · fin, swe, eng". */
+/** The subtitle tracks in brief: "5 subtitles · fin, swe, eng". */
 export function subtitleSummary(info) {
   if (!info || !info.subtitles || !info.subtitles.length) return null;
   const text = info.subtitles.filter((s) => s.text);
@@ -467,8 +474,8 @@ export function subtitleSummary(info) {
   };
 }
 
-// Kirjastossa on jaksoja joissa on yli 30 tekstitysraitaa, joten listan
-// alkupää ratkaisee: siellä on oltava ne kielet joita täällä luetaan.
+// The library has episodes with more than 30 subtitle tracks, so the head
+// of the list decides: it must hold the languages that are read here.
 const PREFERRED = ['fi', 'sv', 'en', 'no', 'da'];
 const rank = (lang) => {
   const at = PREFERRED.indexOf(lang);

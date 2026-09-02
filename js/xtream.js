@@ -1,10 +1,10 @@
-// Xtream-osoitteiden rakentaminen ja purkaminen.
+// Building and parsing Xtream URLs.
 
 export function baseUrl(cfg) {
   return `${cfg.scheme || 'http'}://${cfg.host}${cfg.port ? ':' + cfg.port : ''}`;
 }
 
-/** Purkaa liitetyn get.php- tai player_api-osoitteen asetuskentiksi. */
+/** Parses a pasted get.php or player_api URL into settings fields. */
 export function parsePlaylistUrl(text) {
   let u;
   try { u = new URL(text.trim()); } catch { return null; }
@@ -21,8 +21,8 @@ export function parsePlaylistUrl(text) {
 }
 
 /**
- * Toisto-osoite API:sta saadulle kohteelle.
- * @param {'ts'|'m3u8'} format vain live-kanaville
+ * Playback URL for an item that came from the API.
+ * @param {'ts'|'m3u8'} format live channels only
  */
 export function streamUrl(cfg, item, format = 'ts') {
   if (item.direct) return item.direct;
@@ -35,9 +35,9 @@ export function streamUrl(cfg, item, format = 'ts') {
 }
 
 /**
- * Catchup-osoite. Aikaleima on palvelimen paikallisessa ajassa, joka voi
- * poiketa selaimen vyöhykkeestä (tässä tapauksessa Europe/Ljubljana vs.
- * Europe/Helsinki = tunnin ero), joten se lasketaan palvelimen offsetista.
+ * Catch-up URL. The timestamp is in the server's local time, which can
+ * differ from the browser's zone (here Europe/Ljubljana vs.
+ * Europe/Helsinki = one hour), so it is derived from the server offset.
  */
 export function timeshiftUrl(cfg, streamId, startMs, durationMinutes, serverUtcOffsetMs = 0) {
   const d = new Date(startMs + serverUtcOffsetMs);
@@ -49,14 +49,14 @@ export function timeshiftUrl(cfg, streamId, startMs, durationMinutes, serverUtcO
 }
 
 /**
- * Selaimen natiivisti toistamat VOD-päätteet. Chrome ei tue Matroskaa
- * (.mkv) eikä .avi:ta, vaikka niiden sisällä olisi H.264 + AAC.
+ * VOD extensions the browser plays natively. Chrome supports neither
+ * Matroska (.mkv) nor .avi, even when they hold H.264 + AAC.
  */
 export function isNativelyPlayable(url) {
   return /\.(mp4|m4v|mov|webm|ogv)$/i.test(String(url).split('?')[0]);
 }
 
-/** Onko kontti selaimessa toistettavissa pelkän päätteen perusteella. */
+/** Whether the container is playable in the browser judging by extension alone. */
 export function isPlayableExtension(ext) {
   return /^(mp4|m4v|mov|webm|ogv|ts|flv)$/i.test(String(ext || ''));
 }

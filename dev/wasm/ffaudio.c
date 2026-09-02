@@ -1,23 +1,23 @@
-// FFmpegin AC-3-, E-AC-3- ja DTS-purkajat wasm-rajapinnan takana.
+// FFmpeg's AC-3, E-AC-3 and DTS decoders behind a wasm interface.
 //
-// Chrome ei pura mitään näistä kolmesta, ja mitatussa kirjastossa 53 %
-// mkv-jaksojen ääniraidoista on juuri niitä. Käsin kirjoitettu AC-3-purku
-// (vendor/ac3) kattaisi vain osan eikä E-AC-3 ole sama bittivirta, joten
-// purku otetaan sieltä missä se on jo oikein.
+// Chrome decodes none of the three, and in the measured library 53% of the
+// audio tracks in mkv episodes are exactly those. A hand-written AC-3
+// decoder (vendor/ac3) would cover only part of it, and E-AC-3 is not the
+// same bitstream, so the decoding is taken from where it is already right.
 //
-// Ulostulo on aina lomitettu stereo pyydetyllä näytetaajuudella. Kiinteä
-// muoto ei ole yksinkertaistus vaan vaatimus: purettu ääni koodataan
-// selaimen AAC-koodaimella MSE:tä varten, ja se hyväksyy vain 44 100 ja
-// 48 000 Hz — AC-3 sallii myös 32 000 Hz:n. Samasta syystä kanavamäärä on
-// kiinteä: DTS-purkaja ei laske kaikkia virtoja stereoksi, ja mitatussa
-// kirjastossa on tiedostoja joissa mono vaihtuu stereoksi kesken raidan.
-// Kumpikin muutos kaataisi koodaimen kesken toiston.
+// The output is always interleaved stereo at the requested sample rate. The
+// fixed format is not a simplification but a requirement: the decoded audio
+// is encoded with the browser's AAC encoder for MSE, and that accepts only
+// 44,100 and 48,000 Hz — AC-3 also allows 32,000 Hz. The channel count is
+// fixed for the same reason: the DTS decoder does not downmix every stream
+// to stereo, and the measured library holds files where mono turns into
+// stereo mid-track. Either change would crash the encoder mid-playback.
 //
-// Alaslaskenta pyydetään ensisijaisesti purkajalta itseltään
-// (`downmix`-valitsin), koska se käyttää virran omia cmixlev/surmixlev-tasoja
-// — se on mitä AC-3 tarkoittaa, ja mitattuna eri tulos kuin swresamplen
-// yleisellä matriisilla. Swresample hoitaa lopun: näytetaajuuden, lomituksen
-// ja ne virrat joita purkaja ei suostunut laskemaan.
+// The downmix is asked of the decoder itself where possible (the `downmix`
+// option), because it uses the stream's own cmixlev/surmixlev levels — that
+// is what AC-3 means, and measured, a different result from swresample's
+// generic matrix. Swresample handles the rest: the sample rate, the
+// interleaving, and the streams the decoder declined to downmix.
 
 #include <stdlib.h>
 #include <string.h>
@@ -28,7 +28,8 @@
 #include <libavutil/opt.h>
 #include <libswresample/swresample.h>
 
-// Purettavat koodekit. Numerot ovat tämän rajapinnan omat, eivät FFmpegin.
+// The codecs that can be decoded. The numbers belong to this interface, not
+// to FFmpeg.
 enum { FA_AC3 = 0, FA_EAC3 = 1, FA_DTS = 2 };
 
 #define OUT_CHANNELS 2
@@ -40,14 +41,14 @@ typedef struct {
     AVFrame *frame;
     SwrContext *swr;
 
-    int out_rate;        // pyydetty näytetaajuus
-    int in_rate;         // mistä swr on rakennettu
+    int out_rate;        // the requested sample rate
+    int in_rate;         // what swr was built from
     int in_format;
     AVChannelLayout in_layout;
 
     float *out;          // lomitettu stereo
-    int out_cap;         // kapasiteetti näytteinä per kanava
-    int out_len;         // tuotetut näytteet per kanava
+    int out_cap;         // capacity in samples per channel
+    int out_len;         // samples produced per channel
 } FaCtx;
 
 static enum AVCodecID codec_id(int sel) {
@@ -59,8 +60,8 @@ static enum AVCodecID codec_id(int sel) {
     }
 }
 
-// Ulostulopuskuri kasvaa tarpeen mukaan eikä kutistu: kehyskoko on vakio,
-// joten muutama ensimmäinen kasvatus riittää koko toiston ajaksi.
+// The output buffer grows as needed and never shrinks: the frame size is
+// fixed, so the first few growths suffice for the whole playback.
 static int reserve(FaCtx *c, int samples) {
     int need = c->out_len + samples;
     if (need <= c->out_cap) return 1;
@@ -88,14 +89,14 @@ FaCtx *fa_open(int sel, int out_rate) {
     if (!c->dec || !c->pkt || !c->frame) goto fail;
 
     AVChannelLayout stereo = AV_CHANNEL_LAYOUT_STEREO;
-    // Ei virhe jos ei mene läpi: DTS:ssä alaslaskentakertoimet ovat
-    // valinnaisia, ja silloin purkaja antaa raidan omat kanavat.
-    // Swresample laskee ne stereoksi jäljempänä.
+    // Not an error if it does not take: in DTS the downmix coefficients are
+    // optional, and the decoder then hands back the track's own channels.
+    // Swresample mixes them to stereo further down.
     av_opt_set_chlayout(c->dec, "downmix", &stereo, AV_OPT_SEARCH_CHILDREN);
 
-    // Kehysraja tulee Matroskan lohkosta useimmiten valmiina, mutta lohko saa
-    // sisältää useamman kehyksen eikä katkennut lataus osu kehysrajalle.
-    // Jäsennin hoitaa molemmat.
+    // A frame boundary usually comes ready from the Matroska block, but a
+    // block may hold several frames and an interrupted download does not
+    // land on a frame boundary. The parser handles both.
     c->parser = av_parser_init(codec->id);
     if (!c->parser) goto fail;
 
@@ -125,9 +126,9 @@ void fa_close(FaCtx *c) {
 }
 
 /**
- * Muunnin puretusta muodosta ulostulomuotoon. Rakennetaan uudelleen jos
- * lähde vaihtuu kesken raidan; ulostulo ei silloinkaan muutu, joten
- * puskurissa jo olevat näytteet kelpaavat edelleen.
+ * The resampler from the decoded format to the output format. Rebuilt if the
+ * source changes mid-track; even then the output does not change, so the
+ * samples already in the buffer remain valid.
  */
 static int ensure_swr(FaCtx *c) {
     const AVFrame *f = c->frame;
@@ -156,8 +157,9 @@ static int drain(FaCtx *c) {
         if (err < 0) return 0;
 
         if (!ensure_swr(c)) { av_frame_unref(c->frame); return 0; }
-        // Näytetaajuutta nostettaessa ulos tulee enemmän kuin sisään meni, ja
-        // muuntimeen jää edellisen kutsun häntä — molemmat mukaan varaukseen.
+        // When the sample rate goes up, more comes out than went in, and
+        // the tail of the previous call stays in the resampler — both are
+        // accounted for in the allocation.
         int room = swr_get_out_samples(c->swr, c->frame->nb_samples);
         if (room < 0 || !reserve(c, room)) { av_frame_unref(c->frame); return 0; }
 
@@ -170,9 +172,9 @@ static int drain(FaCtx *c) {
     }
 }
 
-// Yksi jäsennetty kehys purkajalle. Rikkoutunut kehys ei ole syy lopettaa:
-// seuraava synkkasana löytyy ja ääni jatkuu. Vain purkajan tilavirhe
-// keskeyttää.
+// One parsed frame to the decoder. A corrupt frame is no reason to stop:
+// the next sync word will be found and the audio goes on. Only a decoder
+// state error aborts.
 static int feed(FaCtx *c, uint8_t *frame, int len) {
     c->pkt->data = frame;
     c->pkt->size = len;
@@ -181,10 +183,10 @@ static int feed(FaCtx *c, uint8_t *frame, int len) {
 }
 
 /**
- * Syöttää puskurin purkajalle. Ulostulo kertyy fa_output()-puskuriin;
- * fa_take() nollaa laskurin seuraavaa erää varten.
+ * Feeds a buffer to the decoder. The output accumulates in the fa_output()
+ * buffer; fa_take() clears the counter for the next batch.
  *
- * @return puskurissa olevat näytteet per kanava, tai -1 virheestä
+ * @return the samples in the buffer per channel, or -1 on error
  */
 EMSCRIPTEN_KEEPALIVE
 int fa_decode(FaCtx *c, const uint8_t *data, int len) {
@@ -203,9 +205,9 @@ int fa_decode(FaCtx *c, const uint8_t *data, int len) {
 }
 
 /**
- * Loppuhuuhtelu. Jäsentimeen jää aina viimeinen kehys odottamaan seuraavaa
- * synkkasanaa, joka ei koskaan tule — ilman tätä raidan viimeinen 32 ms jäisi
- * pois. Vasta sen jälkeen huuhdellaan purkaja ja muunnin.
+ * The final flush. The parser always keeps the last frame waiting for the
+ * next sync word, which never comes — without this the track's final 32 ms
+ * would be lost. Only after that are the decoder and the resampler flushed.
  */
 EMSCRIPTEN_KEEPALIVE
 int fa_flush(FaCtx *c) {

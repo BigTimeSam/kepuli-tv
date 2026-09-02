@@ -1,5 +1,5 @@
-// Listarivien DOM-rakentajat. Erillään sovelluslogiikasta, koska näitä
-// kutsutaan jokaisella vieritysruudulla ja ne on pidettävä kevyinä.
+// DOM builders for list rows. Kept apart from the application logic
+// because these run on every scroll frame and must stay light.
 
 import { clock, progressOf, duration } from './format.js';
 import { isPlayableExtension } from './xtream.js';
@@ -24,8 +24,8 @@ function image(cls, src) {
 }
 
 /**
- * Sama tähti kolmessa paikassa: listarivillä, sivupalkin ryhmällä ja
- * tarkennesirulla. Luokka vaihtuu, ele ja merkitys eivät.
+ * The same star in three places: on a list row, on a sidebar group and on
+ * a topic chip. The class changes; the gesture and the meaning do not.
  */
 function star(isFav, onToggle, cls = 'row-star') {
   const button = el('button', cls + (isFav ? ' on' : ''), isFav ? '★' : '☆');
@@ -59,8 +59,8 @@ export function itemRow(item, ctx) {
   else if (item.k === 1 || item.k === 2) row.appendChild(image('row-poster', item.logo));
 
   const body = el('div', 'row-body');
-  // Näkyvästä nimestä voi olla karsittu suodattimen jo kertoma etuliite;
-  // title pitää koko nimen tallella.
+  // The visible name may have lost a prefix the filter already states;
+  // the title keeps the whole name available.
   const name = el('div', 'row-name', ctx.label || item.n);
   name.title = item.n;
   body.appendChild(name);
@@ -77,7 +77,7 @@ export function itemRow(item, ctx) {
   return row;
 }
 
-/** Väliotsikko listassa: historian päivä tai suosikkien tyyppi. */
+/** A section heading in the list: a history day or a favourites type. */
 export function sectionHeader(label) {
   return el('div', 'daysep', label);
 }
@@ -137,9 +137,10 @@ function badges(item, ctx) {
     out.push(badge);
   }
   if (item.k === 1 || item.k === 3) {
-    // Luettu otsikko kertoo myös ääniraidan, joka ratkaisee toistettavuuden
-    // useammin kuin kontti. Ilman sitä mennään päätteen varassa, ja se on
-    // arvaus: se ei tiedä koodekeista mitään.
+    // A header that has been read also names the audio track, which
+    // decides playability more often than the container does. Without it
+    // we go by the file extension, and that is a guess: it knows nothing
+    // about codecs.
     const known = ctx.probe ? probeBadge(ctx.probe) : null;
     if (known) {
       const node = el('div', `row-badge ${known.level}`, known.text);
@@ -161,14 +162,14 @@ function badges(item, ctx) {
 }
 
 /**
- * Kategoriarivi sivupalkkiin. onFavorite annetaan vain selattaville
- * ryhmille — kokoelmien tyyppisuodattimet eivät ole mitään mitä voisi
- * merkitä suosikiksi.
+ * A category row for the sidebar. onFavorite is given only for browsable
+ * groups — a collection's type filters are not something that could be
+ * marked as a favourite.
  */
 export function categoryRow({ id, name, count, active, all, favorite, onFavorite, indent }, onSelect) {
   const row = el('div', 'group' + (active ? ' active' : '') + (all ? ' all' : ''));
-  // Tähdetön rivi tähtien joukossa varaa saman tilan, jottei sen nimi ala
-  // eri kohdasta kuin muiden.
+  // A starless row among starred ones reserves the same space, so that
+  // its name does not start at a different offset from the rest.
   if (onFavorite) row.appendChild(star(favorite, onFavorite, 'group-star'));
   else if (indent) row.appendChild(el('div', 'group-star'));
   const label = el('div', 'group-name', name);
@@ -180,8 +181,8 @@ export function categoryRow({ id, name, count, active, all, favorite, onFavorite
 }
 
 /**
- * Tarkennesiru. Tähti tekee sirusta säiliön kahdelle painikkeelle:
- * napattava nimi ja tähti, joka ei saa valita tarkennetta mukanaan.
+ * A topic chip. The star makes the chip a container for two buttons: the
+ * name you press, and the star, which must not select the topic with it.
  */
 export function chipRow({ label, count, active, title, favorite, onFavorite }, onSelect) {
   const box = el('span', 'chip' + (active ? ' active' : '') + (onFavorite ? '' : ' plain'));
@@ -195,14 +196,14 @@ export function chipRow({ label, count, active, title, favorite, onFavorite }, o
   return box;
 }
 
-// Pinottu lista: kategoria on nimensä mukaan joukko kohteita, ei yksi.
-// Sama viivatyyli kuin yläpalkin hakukuvakkeessa.
+// Stacked lines: a category is by definition a set of items, not one.
+// The same stroke style as the search icon in the top bar.
 const LIST_ICON = '<svg viewBox="0 0 20 20" aria-hidden="true"><path d="M3.5 6h13M3.5 10h13M3.5 14h8"/></svg>';
 
 /**
- * Suosikkikategorian rivi. Ei toistettava kohde vaan portti listaan, joten
- * se näyttää chevronin eikä logoa — ja tähti on aina päällä: rivi on
- * olemassa vain koska kategoria on suosikki.
+ * A favourite category's row. Not a playable item but a door into a list,
+ * so it shows a chevron rather than a logo — and the star is always on:
+ * the row exists only because the category is a favourite.
  *
  * @param {object} ctx { subtitle, count, selected, onOpen, onFavorite }
  */

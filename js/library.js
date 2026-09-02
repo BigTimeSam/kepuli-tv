@@ -1,26 +1,27 @@
 // Laiska datakerros.
 //
-// Periaate: lataa mahdollisimman vähän, mahdollisimman myöhään.
-//   1. Kategoriat haetaan aina (43 kt kaikille kolmelle tyypille).
-//   2. Kategoriaa klikattaessa haetaan vain sen sisältö (~2 kt).
-//   3. Koko tyypin lista (0,6–2,9 Mt) haetaan vasta kun sitä oikeasti
-//      tarvitaan: haussa tai "Kaikki"-valinnassa. Sen jälkeen kaikki on
-//      muistissa ja haku on välitön.
-// Koko lista tallentuu IndexedDB:hen; kategoriakohtaiset osumat pidetään
-// vain muistissa, koska ne ovat halpoja hakea uudelleen eivätkä silloin
-// voi jäädä vanhentuneina roikkumaan.
+// Principle: load as little as possible, as late as possible.
+//   1. The categories are always fetched (43 kB for all three types).
+//   2. Clicking a category fetches only its contents (~2 kB).
+//   3. A type's whole list (0.6–2.9 MB) is fetched only when it is really
+//      needed: on search or on the "All" selection. After that everything
+//      is in memory and searching is instant.
+// The whole list is stored in IndexedDB; per-category results are kept in
+// memory only, because they are cheap to fetch again and then cannot hang
+// around stale.
 
 import { cacheGet, cachePut, cacheAge, cacheClear } from './db.js';
 import { localeTag } from './i18n.js';
 
 export const TYPES = ['live', 'movie', 'series'];
 
-// Kaikki listat aakkosjärjestykseen. Palveluntarjoajan oma järjestys on
-// mielivaltainen — myös kanavilla, joissa se vaihtelee kategoriasta toiseen —
-// ja pitkän listan selaaminen vaatii ennakoitavan järjestyksen.
-// Kootaan kutsuttaessa: kieli voi vaihtua kesken istunnon, ja aakkosjärjestys
-// on kielen asia. Uusi Collator per kutsu olisi mitattavaa kuormaa 55 000
-// nimen listalla, joten se tehdään kerran per tunniste.
+// Every list in alphabetical order. The provider's own order is arbitrary —
+// channels included, where it varies from one category to the next — and
+// browsing a long list needs a predictable order.
+//
+// Built on demand: the language can change mid-session, and alphabetical
+// order is a matter of language. A new Collator per call would be
+// measurable load on a list of 55,000 names, so one is made per tag.
 let collatorTag = null;
 let collatorInstance = null;
 function collator() {
@@ -31,8 +32,8 @@ function collator() {
   return collatorInstance;
 }
 
-// Nimen alun välimerkit ("|FI| Title", "- Title") eivät ole aakkosia eivätkä
-// saa siksi määrätä paikkaa listassa.
+// Punctuation at the start of a name ("|FI| Title", "- Title") is not a
+// letter and must therefore not decide a place in the list.
 const LEADING_JUNK = /^[^\p{L}\p{N}]+/u;
 
 function sortKey(name) {
@@ -40,12 +41,12 @@ function sortKey(name) {
 }
 
 /**
- * Palauttaa uuden, aakkostetun taulukon — alkuperäistä ei muuteta, koska
- * sama taulukko on jaossa usealle näkymälle.
+ * Returns a new, sorted array — the original is left alone, because the
+ * same array is shared with several views.
  *
  * @param {{n:string}[]} items
- * @param {((name: string) => string)|null} [label] järjestysperuste, kun
- *        näkyvä nimi on muu kuin item.n (ks. name.js).
+ * @param {((name: string) => string)|null} [label] what to sort by, when the
+ *        visible name is something other than item.n (see name.js).
  */
 export function sortItems(items, label) {
   if (!items || items.length < 2) return items;
@@ -70,12 +71,12 @@ export class Library {
     this.full = { live: null, movie: null, series: null };
     this.lower = { live: null, movie: null, series: null };
     this.fullAt = { live: null, movie: null, series: null };
-    this.byCategory = new Map();     // "live:3" → items (muistissa)
-    this.pending = new Map();        // rinnakkaiset kutsut jaetaan
-    this.details = new Map();        // sarjan/elokuvan lisätiedot
+    this.byCategory = new Map();     // "live:3" → items (in memory)
+    this.pending = new Map();        // concurrent calls share one promise
+    this.details = new Map();        // extra details for a series/movie
   }
 
-  /* ------------------------------------------------------------ kategoriat */
+  /* ------------------------------------------------------------ categories */
 
   async loadCategories({ force = false } = {}) {
     await Promise.all(TYPES.map(async (type) => {
@@ -97,15 +98,15 @@ export class Library {
     return hit ? hit.name : id;
   }
 
-  /** Ryhmän kuvaus nimen perusteella. */
+  /** A group's description, found by name. */
   group(type, name) {
     return this.groups[type].find((g) => g.name === name) || null;
   }
 
   /**
-   * Yhden ryhmän (esim. "Sweden") koko sisältö: kaikkien alakategorioiden
-   * kanavat yhtenä listana. Haetaan kerran, minkä jälkeen alakategorioiden
-   * välillä vaihtaminen on pelkkää muistista suodattamista.
+   * One group's entire contents (e.g. "Sweden"): the channels of all its
+   * sub-categories as a single list. Fetched once, after which switching
+   * between sub-categories is pure filtering in memory.
    */
   async groupItems(type, groupName, { onProgress } = {}) {
     const group = this.group(type, groupName);
@@ -125,9 +126,9 @@ export class Library {
   }
 
   /**
-   * Hakee kategoriat rinnakkain mutta kokoaa tuloksen kategoriajärjestyksessä,
-   * jottei kaksoiskappaleiden karsinta riipu siitä missä järjestyksessä
-   * vastaukset sattuvat tulemaan. Lopuksi koko joukko aakkostetaan.
+   * Fetches the categories concurrently but assembles the result in
+   * category order, so that de-duplication does not depend on the order the
+   * answers happen to arrive in. Finally the whole set is sorted.
    */
   async fetchCategories(type, categoryIds, onProgress) {
     const results = new Array(categoryIds.length);
@@ -156,7 +157,7 @@ export class Library {
     return sortItems(out);
   }
 
-  /** Ryhmäkohtaiset lukumäärät — tiedossa vasta kun koko lista on haettu. */
+  /** Per-group counts — known only once the whole list has been fetched. */
   groupCounts(type) {
     const counts = this.categoryCounts(type);
     if (!counts) return null;
@@ -169,11 +170,11 @@ export class Library {
     return out;
   }
 
-  /* ---------------------------------------------------------------- listat */
+  /* ----------------------------------------------------------------- lists */
 
   isFull(type) { return this.full[type] != null; }
 
-  /** Yhden kategorian sisältö. Käyttää koko listaa jos se on jo muistissa. */
+  /** One category's contents. Uses the whole list when it is already in memory. */
   async categoryItems(type, categoryId) {
     if (this.full[type]) return this.full[type].filter((it) => it.cats.includes(categoryId));
     const key = `${type}:${categoryId}`;
@@ -186,7 +187,7 @@ export class Library {
     });
   }
 
-  /** Koko tyypin lista. Palauttaa heti jos jo ladattu tai välimuistissa. */
+  /** A type's whole list. Returns at once if already loaded or cached. */
   async ensureFull(type, { onProgress, force = false } = {}) {
     if (this.full[type] && !force) return this.full[type];
     return this.share(`full:${type}`, async () => {
@@ -205,20 +206,20 @@ export class Library {
   setFull(type, items, at) {
     this.full[type] = sortItems(items);
     this.fullAt[type] = at || Date.now();
-    // Hakuindeksi kerran: 55 000 toLowerCase-kutsua per näppäinpainallus
-    // olisi näkyvää nykimistä.
+    // The search index once: 55,000 toLowerCase calls per keystroke would
+    // be visible stutter.
     this.lower[type] = this.full[type].map((it) => it.n.toLowerCase());
     this.byCategory.clear();
   }
 
   /**
-   * Hakee koko listasta; vaatii ensureFull():n.
+   * Searches the whole list; requires ensureFull().
    *
-   * Osumat järjestetään osuvuuden mukaan: pelkkä osamerkkijonohaku nostaisi
-   * hakusanalla "yle" ensin "KYLE COLLECTIONin" ja "Pink Stylen" ennen
-   * Yle-kanavia. Sanan alusta alkava osuma menee siksi aina keskeltä
-   * löytyvän edelle. Samanarvoiset osumat säilyttävät koko listan
-   * järjestyksen eli aakkosjärjestyksen.
+   * Matches are ordered by relevance: a plain substring search would put
+   * "KYLE COLLECTION" and "Pink Style" ahead of the Yle channels for the
+   * query "yle". A match at the start of a word therefore always beats one
+   * found mid-word. Equally ranked matches keep the whole list's order,
+   * which is alphabetical.
    */
   search(type, query, categoryId) {
     const items = this.full[type];
@@ -237,7 +238,7 @@ export class Library {
     return scored.map(([, i]) => items[i]);
   }
 
-  /** Kategoriakohtaiset lukumäärät — tiedossa vasta kun koko lista on haettu. */
+  /** Per-category counts — known only once the whole list has been fetched. */
   categoryCounts(type) {
     const items = this.full[type];
     if (!items) return null;
@@ -246,7 +247,7 @@ export class Library {
     return counts;
   }
 
-  /* ------------------------------------------------------------ lisätiedot */
+  /* --------------------------------------------------------------- details */
 
   async seriesEpisodes(seriesId) {
     const key = `series:${seriesId}`;
@@ -270,9 +271,9 @@ export class Library {
     });
   }
 
-  /* ----------------------------------------------------------------- muuta */
+  /* ------------------------------------------------------------------ misc */
 
-  /** Estää saman haun tekemisen kahdesti rinnakkain. */
+  /** Prevents the same fetch from running twice concurrently. */
   share(key, factory) {
     const running = this.pending.get(key);
     if (running) return running;
@@ -293,9 +294,9 @@ export class Library {
   }
 }
 
-// 0 = nimi alkaa hakusanalla, 1 = sana alkaa hakusanalla, 2 = keskeltä.
-// Kanavanimissä on usein maakoodi edessä ("FI: Yle TV1"), joten myös
-// tunnisteen jälkeinen alku lasketaan sanan aluksi.
+// 0 = the name starts with the query, 1 = a word starts with it, 2 = found
+// mid-word. Channel names often carry a country code up front ("FI: Yle
+// TV1"), so a start right after such a tag also counts as a word start.
 function matchScore(name, query, at) {
   if (at === 0) return 0;
   const before = name.charCodeAt(at - 1);
@@ -304,9 +305,9 @@ function matchScore(name, query, at) {
 }
 
 /**
- * Palveluntarjoajan kategorianimissä on kaksi tasoa, jotka on koodattu
- * merkkijonoon: "Sweden - Sport", "Movies: NL - Kids". Puretaan ne
- * maaksi/aiheeksi ja tarkenteeksi, jotta 519 kategoriaa mahtuu 81 riviin.
+ * The provider's category names hold two levels encoded into one string:
+ * "Sweden - Sport", "Movies: NL - Kids". They are split into a
+ * country/subject and a topic, so that 519 categories fit into 81 rows.
  */
 export function buildGroups(categories) {
   const prefix = commonPrefix(categories.map((c) => c.name));
@@ -320,7 +321,7 @@ export function buildGroups(categories) {
   return [...map.values()].sort((a, b) => collator().compare(a.name, b.name));
 }
 
-/** Kaikille yhteinen "Movies:"-tyyppinen etuliite on pelkkää toistoa. */
+/** A "Movies:"-style prefix shared by all of them is pure repetition. */
 function commonPrefix(names) {
   if (names.length < 4) return null;
   const counts = new Map();

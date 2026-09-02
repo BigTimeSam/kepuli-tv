@@ -1,10 +1,11 @@
-// Kuvakkeen klikkaus avaa soittimen omaan välilehteen (tai nostaa olemassa olevan esiin).
+// Clicking the icon opens the player in a tab of its own (or brings an
+// existing one to the front).
 //
-// Oma välilehti etsitään runtime.getContexts()-kutsulla eikä
-// tabs.query({ url })-kutsulla: jälkimmäinen vaatisi "tabs"-oikeuden, joka
-// Chrome Web Storen tarkistuksessa pitäisi perustella erikseen. getContexts
-// näkee vain laajennuksen omat sivut eikä tarvitse mitään oikeutta.
-// Vaatii Chrome 116+ (manifestin minimum_chrome_version).
+// Our own tab is found with runtime.getContexts() rather than
+// tabs.query({ url }): the latter would need the "tabs" permission, which
+// would have to be justified separately in Chrome Web Store review.
+// getContexts sees only the extension's own pages and needs no permission
+// at all. Requires Chrome 116+ (minimum_chrome_version in the manifest).
 const PLAYER_URL = chrome.runtime.getURL('player.html');
 
 chrome.action.onClicked.addListener(async () => {
