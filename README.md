@@ -215,6 +215,9 @@ COLLECTION".
   been examined the mark sharpens according to its codecs
 - **Hand-off to an external player** (`↗` or `x`) for what the browser cannot
   do — see below
+- **Chromecast** (`Cast` or `c`): a natively played file goes to the device
+  through the Remote Playback API, and for the rest the button explains how
+  Chrome's own tab casting does it — see below
 - **Resume positions remembered** for movies and episodes, with a progress bar
   on the row
 - **Favourites** and **history** as tabs of their own — a whole category can be
@@ -243,6 +246,7 @@ COLLECTION".
 | `n` `p` | next / previous |
 | `g` | open and close the programme guide |
 | `x` | hand over to an external player |
+| `c` | cast to a Chromecast |
 
 In the guide the arrows move between channels and programmes, `PgUp` and
 `PgDn` a screen at a time, `Home` returns to the present, `+` and `−` adjust
@@ -262,6 +266,7 @@ and **Settings**. The player's own row is below the picture:
 | `☆` | the channel or the film into the favourites |
 | `↻` | reload the stream |
 | `PiP` | picture in picture |
+| `Cast` | to a Chromecast — see below |
 | `URL` | the stream address to the clipboard |
 | `↗` | hand over to an external player |
 
@@ -344,6 +349,31 @@ stream the browser keeps open would leave the external player silent.
 
 The URL carries the credentials, so a downloaded `.m3u` is as sensitive as the
 account itself.
+
+### Chromecast
+
+The `Cast` button (or `c`) works in two ways, and `CHROMECAST.md` holds the
+assessment behind them.
+
+A file the browser plays natively — `.mp4`, `.m4v`, `.mov`, `.webm` — goes to
+the device through the Remote Playback API: Chrome's own device picker opens,
+and Chrome sends the compressed picture and sound to the device as they are.
+Nothing is re-encoded, the server needs no CORS headers, and the browser keeps
+the one connection the account allows. The tab has to stay open, and
+*Chromecast* shows on the engine line below the player while the device plays.
+
+Everything that runs through MediaSource — live channels, HLS, the MKV
+unpacking — is outside that API's reach on desktop Chrome, which accepts only
+a plain `http(s)` source for it. For those the button explains the route that
+does work: **Cast…** in Chrome's menu, this tab, then `f`. Once the video is
+full screen Chrome switches by itself from mirroring the screen to sending the
+compressed stream, MediaSource included. Subtitles are drawn by the browser
+and travel only while the screen is mirrored, not after the switch.
+
+The Google Cast SDK is not used. Manifest V3 forbids loading it from Google's
+servers, and what it offers — the device fetching a URL by itself — would
+cover only MP4 files and HLS from servers that send CORS headers; neither
+MPEG-TS nor Matroska plays on the device's own player.
 
 ### Unpacking Matroska
 
@@ -520,9 +550,11 @@ dev/wasm/           building ffaudio and comparing it with ffmpeg
 dev/site.mjs        renders README.md into docs/index.html, the Pages front page
 dev/screenshot.mjs  a 1280x800 store screenshot of the player, over the DevTools protocol
 dev/store-screenshots.mjs  the five store screenshots, from the mock server's content
-dev/mock/           a fake Xtream Codes server with invented content, and its media
+dev/mock/           a fake Xtream Codes server with invented content, and its media;
+                    also the Fly.io demo the store reviewers are given
 docs/               the GitHub Pages site: front page, privacy policy, terms of use
 FIREFOX.md          an assessment of what a Firefox version would take
+CHROMECAST.md       the Chromecast assessment, and the design built from it
 store-listing.txt   the Chrome Web Store listing copy
 vendor/             mpegts.js 1.8.0, hls.js 1.6.5 (local: MV3's CSP does not
                     allow remote scripts)
@@ -627,6 +659,31 @@ set up by hand in the development Chrome, is captured with
 needs uv for Pillow. The mock server also serves on its own,
 `node dev/mock/server.mjs`, for developing without an account: user `demo`,
 password `demo`, port 8790.
+
+### The demo server for the store review
+
+The Chrome Web Store reviewers need an account to see anything, and a real
+IPTV subscription is nobody's to hand out. The same mock server runs on
+Fly.io as a public demo, https://kepuli-demo.fly.dev, user `demo`, password
+`demo`, and the review form carries those with a walk-through (see
+`store-listing.txt`). The live channel there is an endless HLS loop of the
+same segments; the `.ts` address answers 404 and the player falls back to
+HLS by itself.
+
+`dev/mock/Dockerfile` and `dev/mock/fly.toml` describe it: one small machine
+that stops when nobody is connected and starts on the first request, so it
+costs next to nothing between reviews. The media are rendered on the machine
+that deploys and copied into the image. To ship a change:
+
+```
+sh dev/mock/media.sh
+cd dev/mock && fly deploy
+```
+
+`KEPULI_DEMO_URL=https://kepuli-demo.fly.dev node dev/store-screenshots.mjs`
+runs the screenshot walk against the deployed demo, which is the check that
+what the reviewers get really works; `KEPULI_SHOTS_DIR` keeps the pictures
+out of `brand/screenshots/`.
 
 The release package:
 

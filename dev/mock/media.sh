@@ -1,14 +1,19 @@
 #!/bin/sh
-# Dummy media for the mock server: a "live" MPEG-TS channel, an MP4 movie and
-# an MKV episode with English and Finnish subtitle tracks. Each is a slowly
-# moving gradient with a title on it, made with ffmpeg; nothing real. The
-# files go to dev/mock/media/, which is not in version control.
+# Dummy media for the mock server: a "live" channel as HLS segments, an MP4
+# movie and an MKV episode with English and Finnish subtitle tracks. Each is
+# a slowly moving gradient with a title on it, made with ffmpeg; nothing
+# real. The files go to dev/mock/media/, which is not in version control.
 set -eu
 DIR="$(cd "$(dirname "$0")" && pwd)/media"
-FONT=/System/Library/Fonts/Helvetica.ttc
 SECS=120        # movie and episode
-LIVE_SECS=240   # the "live" channel: longer, because the server plays it out at real time
+LIVE_SECS=120   # the live channel loops, so this is the loop length
 mkdir -p "$DIR"
+
+FONT=
+for f in /System/Library/Fonts/Helvetica.ttc /usr/share/fonts/dejavu/DejaVuSans.ttf /usr/share/fonts/truetype/dejavu/DejaVuSans.ttf; do
+  [ -f "$f" ] && FONT=$f && break
+done
+[ -n "$FONT" ] || { echo "no font found for drawtext" >&2; exit 1; }
 
 # Video and audio sources shared by all three files.
 # $1 title   $2 gradient colours
@@ -22,14 +27,20 @@ text() {
 VIDEO="-c:v libx264 -preset veryfast -crf 26 -pix_fmt yuv420p -g 50"
 AUDIO="-c:a aac -b:a 96k"
 
-# A constant 3 Mbit/s mux rate, null packets included: a gradient compresses to
-# almost nothing, and the player stashes 256 kB before it demuxes anything.
-# A real channel runs at megabits per second; the mock has to as well.
-echo "live.ts"
+# The live channel: HLS segments of four seconds that the server loops into
+# an endless playlist. Encoded at a constant 1.5 Mbit/s, filler included: a
+# gradient compresses to almost nothing, and mpegts.js — which plays the
+# catch-up stream made of these same segments — stashes 256 kB before it
+# demuxes anything. A real channel runs at megabits per second.
+echo "hls/ (the live channel)"
+mkdir -p "$DIR/hls"; rm -f "$DIR/hls"/*
 # shellcheck disable=SC2046
 ffmpeg -y -hide_banner -loglevel error $(src 'Aurora One' 'c0=0x1b1040:c1=0x0b3b57:c2=0x7c5cff' "$LIVE_SECS") \
-  -vf "$(text 'Aurora One')" $VIDEO $AUDIO -f mpegts -muxrate 3000000 "$DIR/live.ts"
-echo "$LIVE_SECS" > "$DIR/live.seconds"   # the server paces the stream by this
+  -vf "$(text 'Aurora One')" \
+  -c:v libx264 -preset veryfast -b:v 1500k -minrate 1500k -maxrate 1500k -bufsize 3000k \
+  -x264-params nal-hrd=cbr -pix_fmt yuv420p -g 50 -keyint_min 50 -sc_threshold 0 $AUDIO \
+  -f hls -hls_time 4 -hls_playlist_type vod -hls_flags independent_segments \
+  -hls_segment_filename "$DIR/hls/%03d.ts" "$DIR/hls/index.m3u8"
 
 echo "movie.mp4"
 # shellcheck disable=SC2046
@@ -98,4 +109,4 @@ ffmpeg -y -hide_banner -loglevel error $(src 'Silent Fjord' 'c0=0x0b1a2e:c1=0x3a
   -metadata:s:s:1 language=fin -metadata:s:s:1 title=Suomi \
   "$DIR/episode.mkv"
 
-ls -la "$DIR"
+ls -la "$DIR" "$DIR/hls" | head -20

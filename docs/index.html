@@ -422,6 +422,9 @@ and the chosen language carries over to the following episodes — see below</li
 been examined the mark sharpens according to its codecs</li>
   <li><strong>Hand-off to an external player</strong> (<code>↗</code> or <code>x</code>) for what the browser cannot
 do — see below</li>
+  <li><strong>Chromecast</strong> (<code>Cast</code> or <code>c</code>): a natively played file goes to the device
+through the Remote Playback API, and for the rest the button explains how
+Chrome's own tab casting does it — see below</li>
   <li><strong>Resume positions remembered</strong> for movies and episodes, with a progress bar
 on the row</li>
   <li><strong>Favourites</strong> and <strong>history</strong> as tabs of their own — a whole category can be
@@ -453,6 +456,7 @@ fourteen days — the rest of the account's details are in the settings</li>
     <tr><td><code>n</code> <code>p</code></td><td>next / previous</td></tr>
     <tr><td><code>g</code></td><td>open and close the programme guide</td></tr>
     <tr><td><code>x</code></td><td>hand over to an external player</td></tr>
+    <tr><td><code>c</code></td><td>cast to a Chromecast</td></tr>
   </tbody>
 </table>
 </div>
@@ -477,6 +481,7 @@ and <strong>Settings</strong>. The player's own row is below the picture:</p>
     <tr><td><code>☆</code></td><td>the channel or the film into the favourites</td></tr>
     <tr><td><code>↻</code></td><td>reload the stream</td></tr>
     <tr><td><code>PiP</code></td><td>picture in picture</td></tr>
+    <tr><td><code>Cast</code></td><td>to a Chromecast — see below</td></tr>
     <tr><td><code>URL</code></td><td>the stream address to the clipboard</td></tr>
     <tr><td><code>↗</code></td><td>hand over to an external player</td></tr>
   </tbody>
@@ -567,6 +572,31 @@ stream the browser keeps open would leave the external player silent.</p>
 
 <p>The URL carries the credentials, so a downloaded <code>.m3u</code> is as sensitive as the
 account itself.</p>
+
+<h3 id="chromecast">Chromecast</h3>
+
+<p>The <code>Cast</code> button (or <code>c</code>) works in two ways, and <code>CHROMECAST.md</code> holds the
+assessment behind them.</p>
+
+<p>A file the browser plays natively — <code>.mp4</code>, <code>.m4v</code>, <code>.mov</code>, <code>.webm</code> — goes to
+the device through the Remote Playback API: Chrome's own device picker opens,
+and Chrome sends the compressed picture and sound to the device as they are.
+Nothing is re-encoded, the server needs no CORS headers, and the browser keeps
+the one connection the account allows. The tab has to stay open, and
+<em>Chromecast</em> shows on the engine line below the player while the device plays.</p>
+
+<p>Everything that runs through MediaSource — live channels, HLS, the MKV
+unpacking — is outside that API's reach on desktop Chrome, which accepts only
+a plain <code>http(s)</code> source for it. For those the button explains the route that
+does work: <strong>Cast…</strong> in Chrome's menu, this tab, then <code>f</code>. Once the video is
+full screen Chrome switches by itself from mirroring the screen to sending the
+compressed stream, MediaSource included. Subtitles are drawn by the browser
+and travel only while the screen is mirrored, not after the switch.</p>
+
+<p>The Google Cast SDK is not used. Manifest V3 forbids loading it from Google's
+servers, and what it offers — the device fetching a URL by itself — would
+cover only MP4 files and HLS from servers that send CORS headers; neither
+MPEG-TS nor Matroska plays on the device's own player.</p>
 
 <h3 id="unpacking-matroska">Unpacking Matroska</h3>
 
@@ -755,9 +785,11 @@ dev/wasm/           building ffaudio and comparing it with ffmpeg
 dev/site.mjs        renders README.md into docs/index.html, the Pages front page
 dev/screenshot.mjs  a 1280x800 store screenshot of the player, over the DevTools protocol
 dev/store-screenshots.mjs  the five store screenshots, from the mock server's content
-dev/mock/           a fake Xtream Codes server with invented content, and its media
+dev/mock/           a fake Xtream Codes server with invented content, and its media;
+                    also the Fly.io demo the store reviewers are given
 docs/               the GitHub Pages site: front page, privacy policy, terms of use
 FIREFOX.md          an assessment of what a Firefox version would take
+CHROMECAST.md       the Chromecast assessment, and the design built from it
 store-listing.txt   the Chrome Web Store listing copy
 vendor/             mpegts.js 1.8.0, hls.js 1.6.5 (local: MV3's CSP does not
                     allow remote scripts)
@@ -859,6 +891,29 @@ set up by hand in the development Chrome, is captured with
 needs uv for Pillow. The mock server also serves on its own,
 <code>node dev/mock/server.mjs</code>, for developing without an account: user <code>demo</code>,
 password <code>demo</code>, port 8790.</p>
+
+<h3 id="the-demo-server-for-the-store-review">The demo server for the store review</h3>
+
+<p>The Chrome Web Store reviewers need an account to see anything, and a real
+IPTV subscription is nobody's to hand out. The same mock server runs on
+Fly.io as a public demo, https://kepuli-demo.fly.dev, user <code>demo</code>, password
+<code>demo</code>, and the review form carries those with a walk-through (see
+<code>store-listing.txt</code>). The live channel there is an endless HLS loop of the
+same segments; the <code>.ts</code> address answers 404 and the player falls back to
+HLS by itself.</p>
+
+<p><code>dev/mock/Dockerfile</code> and <code>dev/mock/fly.toml</code> describe it: one small machine
+that stops when nobody is connected and starts on the first request, so it
+costs next to nothing between reviews. The media are rendered on the machine
+that deploys and copied into the image. To ship a change:</p>
+
+<pre><code>sh dev/mock/media.sh
+cd dev/mock &amp;&amp; fly deploy</code></pre>
+
+<p><code>KEPULI_DEMO_URL=https://kepuli-demo.fly.dev node dev/store-screenshots.mjs</code>
+runs the screenshot walk against the deployed demo, which is the check that
+what the reviewers get really works; <code>KEPULI_SHOTS_DIR</code> keeps the pictures
+out of <code>brand/screenshots/</code>.</p>
 
 <p>The release package:</p>
 

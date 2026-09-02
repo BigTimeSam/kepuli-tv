@@ -15,6 +15,7 @@
 // Needs uv for the downscale (Pillow), like brand/promo.py does.
 
 import { spawn, spawnSync } from 'node:child_process';
+import { createHash } from 'node:crypto';
 import { existsSync, readFileSync, unlinkSync, writeFileSync } from 'node:fs';
 import { homedir } from 'node:os';
 import { dirname, join, resolve } from 'node:path';
@@ -97,17 +98,53 @@ export async function playerTarget() {
   return list.find((t) => t.type === 'page' && /^chrome-extension:\/\/[a-p]{32}\/player\.html/.test(t.url)) || null;
 }
 
-/** The player tab: loads the extension from this folder and opens it if needed. */
+/**
+ * The id Chrome gives an unpacked extension: the first half of the SHA-256
+ * of its path, written in the letters a–p. Knowing it, the player tab can
+ * be opened without loading the extension again — loading a path that is
+ * already loaded makes Chrome drop the DevTools connection.
+ */
+export const expectedId = () => createHash('sha256').update(ROOT).digest('hex').slice(0, 32)
+  .replace(/[0-9a-f]/g, (c) => String.fromCharCode(97 + parseInt(c, 16)));
+
+/** Is the tab really the player, rather than Chrome's error page for a missing extension? */
+async function isPlayer(target) {
+  const page = session(target.webSocketDebuggerUrl);
+  try {
+    for (let i = 0; i < 20; i++) {
+      const { result } = await page.call('Runtime.evaluate', {
+        expression: 'document.readyState === "complete" ? (document.getElementById("tabs") ? "player" : "other") : "loading"',
+        returnByValue: true,
+      });
+      if (result.value !== 'loading') return result.value === 'player';
+      await sleep(150);
+    }
+    return false;
+  } catch {
+    return false;
+  } finally {
+    page.close();
+  }
+}
+
+async function openTab(id) {
+  await http(`/json/new?chrome-extension://${id}/${PAGE}`, { method: 'PUT' });
+  for (let i = 0; i < 20; i++) { const t = await playerTarget(); if (t) return t; await sleep(150); }
+  throw new Error('The player tab did not open.');
+}
+
+/** The player tab: opens it, loading the extension from this folder first if it is not loaded. */
 export async function openPlayer() {
   const existing = await playerTarget();
   if (existing) return existing;
+  const tab = await openTab(expectedId());
+  if (await isPlayer(tab)) return tab;
+  await fetch(`http://127.0.0.1:${PORT}/json/close/${tab.id}`);   // answers in plain text
   const { webSocketDebuggerUrl } = await http('/json/version');
   const browser = session(webSocketDebuggerUrl);
   const { id } = await browser.call('Extensions.loadUnpacked', { path: ROOT });
   browser.close();
-  await http(`/json/new?chrome-extension://${id}/${PAGE}`, { method: 'PUT' });
-  for (let i = 0; i < 20; i++) { const t = await playerTarget(); if (t) return t; await sleep(150); }
-  throw new Error('The player tab did not open.');
+  return openTab(id);
 }
 
 /* ----------------------------------------------------------------- capture */

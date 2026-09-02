@@ -7,8 +7,17 @@
 //
 //   node dev/mock/server.mjs           http://127.0.0.1:8790, user demo, password demo
 //
+// KEPULI_MOCK_PORT and KEPULI_MOCK_HOST override the port and the address to
+// listen on; the Dockerfile next to this file sets them for Fly.io, where the
+// same server is the demo the Chrome Web Store reviewers are given.
+//
 // The extension reaches it without a host permission, because every answer
 // carries CORS headers; logos and covers load as <img> and need none anyway.
+//
+// The live channel is HLS: a playlist that slides over the same segments
+// forever, so that it never ends. The .ts address answers 404 and the player
+// falls back to HLS on its own. The catch-up stream is the same segments
+// back to back, played out at real time.
 
 import { createServer } from 'node:http';
 import { createReadStream, existsSync, readFileSync, statSync } from 'node:fs';
@@ -18,6 +27,7 @@ import { fileURLToPath } from 'node:url';
 const HERE = dirname(fileURLToPath(import.meta.url));
 const MEDIA = join(HERE, 'media');
 export const PORT = Number(process.env.KEPULI_MOCK_PORT || 8790);
+export const HOST = process.env.KEPULI_MOCK_HOST || '127.0.0.1';
 export const USER = 'demo';
 export const PASS = 'demo';
 const TZ = 'Europe/Helsinki';
@@ -48,6 +58,9 @@ const localTime = new Intl.DateTimeFormat('sv-SE', {
 });
 const stamp = (ms) => localTime.format(new Date(ms)).replace(',', '');
 const secs = (ms) => String(Math.floor(ms / 1000));
+
+/** Behind Fly's proxy the request is plain HTTP; the outside address is not. */
+const originOf = (req) => `${req.headers['x-forwarded-proto'] || 'http'}://${req.headers.host}`;
 
 /* --------------------------------------------------------------- channels */
 
@@ -321,7 +334,7 @@ function send(res, status, body, type = 'application/json; charset=utf-8') {
 }
 
 function sendFile(req, res, name, type) {
-  const file = join(MEDIA, name);
+  const file = name.startsWith('/') ? name : join(MEDIA, name);
   if (!existsSync(file)) return send(res, 404, `${name} is missing: run sh dev/mock/media.sh`, 'text/plain');
   const size = statSync(file).size;
   const m = /^bytes=(\d*)-(\d*)$/.exec(req.headers.range || '');
@@ -339,39 +352,82 @@ function sendFile(req, res, name, type) {
   createReadStream(file, { start, end }).pipe(res);
 }
 
+/* ------------------------------------------------------------ live channel */
+
+// The segments from dev/mock/media.sh, with their durations from the VOD
+// playlist ffmpeg wrote next to them.
+const HLS = join(MEDIA, 'hls');
+const SEGMENTS = (() => {
+  let text = '';
+  try { text = readFileSync(join(HLS, 'index.m3u8'), 'utf8'); } catch { return []; }
+  const out = [];
+  let dur = 0;
+  for (const line of text.split('\n')) {
+    if (line.startsWith('#EXTINF:')) dur = Number(line.slice(8).split(',')[0]);
+    else if (line && !line.startsWith('#')) out.push({ file: join(HLS, line.trim()), dur });
+  }
+  return out;
+})();
+const LOOP_SECONDS = SEGMENTS.reduce((sum, s) => sum + s.dur, 0);
+
 /**
- * The live channel is played out at real time, like a broadcast: a burst
- * first, so that playback starts at once, then chunks paced by the file's
- * duration. Served whole, the download would finish in a second and the
- * player would take the end of it for a dropped source.
+ * The live playlist: a window of the last few segments of an endless
+ * sequence that wraps around the loop, with a discontinuity marked at each
+ * wrap so that the player accepts the timestamps starting over.
  */
-function sendLive(req, res) {
-  const file = join(MEDIA, 'live.ts');
-  if (!existsSync(file)) return send(res, 404, 'live.ts is missing: run sh dev/mock/media.sh', 'text/plain');
-  const size = statSync(file).size;
-  let seconds = 120;
-  try { seconds = Number(readFileSync(join(MEDIA, 'live.seconds'), 'utf8')) || seconds; } catch { /* the default is fine */ }
-  // A little faster than real time, in small chunks: the player chases the
-  // live edge, and a chunk that arrives late is a stall on screen.
-  const bytesPerSecond = size / seconds * 1.25;
+function livePlaylist() {
+  const n = SEGMENTS.length;
+  const elapsed = (Date.now() - T0) / 1000;
+  const loops = Math.floor(elapsed / LOOP_SECONDS);
+  let t = elapsed - loops * LOOP_SECONDS;
+  let i = 0;
+  while (i < n - 1 && t >= SEGMENTS[i].dur) { t -= SEGMENTS[i].dur; i++; }
+  const current = loops * n + i;
+  const first = Math.max(0, current - 5);
+  const lines = [
+    '#EXTM3U', '#EXT-X-VERSION:3',
+    `#EXT-X-TARGETDURATION:${Math.ceil(Math.max(...SEGMENTS.map((s) => s.dur)))}`,
+    `#EXT-X-MEDIA-SEQUENCE:${first}`,
+    `#EXT-X-DISCONTINUITY-SEQUENCE:${first === 0 ? 0 : Math.floor((first - 1) / n)}`,
+  ];
+  for (let k = first; k <= current; k++) {
+    if (k > 0 && k % n === 0) lines.push('#EXT-X-DISCONTINUITY');
+    lines.push(`#EXTINF:${SEGMENTS[k % n].dur.toFixed(3)},`, `seg/${k}.ts`);
+  }
+  return lines.join('\n') + '\n';
+}
+
+/**
+ * The catch-up stream: the segments back to back, which is a valid
+ * continuous transport stream, played out a little faster than real time
+ * after a burst — served whole, the download would finish in a second and
+ * the player would take the end of it for a dropped source.
+ */
+async function sendTimeshift(req, res) {
+  const total = SEGMENTS.reduce((sum, s) => sum + statSync(s.file).size, 0);
+  const bytesPerSecond = total / LOOP_SECONDS * 1.25;
   const BURST = 2 * 1024 * 1024;
   res.writeHead(200, { ...CORS, 'Content-Type': 'video/mp2t', 'Cache-Control': 'no-store' });
   if (req.method === 'HEAD') return res.end();
-  const stream = createReadStream(file, { highWaterMark: 32 * 1024 });
   const t0 = Date.now();
   let sent = 0;
-  stream.on('data', (chunk) => {
-    sent += chunk.length;
-    res.write(chunk);
-    const due = t0 + Math.max(0, sent - BURST) / bytesPerSecond * 1000;
-    const wait = due - Date.now();
-    if (wait > 0) { stream.pause(); setTimeout(() => stream.resume(), wait); }
-  });
-  stream.on('end', () => res.end());
-  res.on('close', () => stream.destroy());
+  for (const segment of SEGMENTS) {
+    const data = readFileSync(segment.file);
+    for (let offset = 0; offset < data.length && !res.destroyed; offset += 32 * 1024) {
+      const chunk = data.subarray(offset, offset + 32 * 1024);
+      sent += chunk.length;
+      res.write(chunk);
+      const wait = t0 + Math.max(0, sent - BURST) / bytesPerSecond * 1000 - Date.now();
+      if (wait > 0) await new Promise((r) => setTimeout(r, wait));
+    }
+    if (res.destroyed) return;
+  }
+  res.end();
 }
 
-function account() {
+function account(req) {
+  const proto = req.headers['x-forwarded-proto'] || 'http';
+  const [host, port] = String(req.headers.host).split(':');
   return {
     user_info: {
       username: USER, password: PASS, message: 'Demo server — nothing here is real', auth: 1, status: 'Active',
@@ -379,8 +435,8 @@ function account() {
       max_connections: '1', allowed_output_formats: ['ts', 'm3u8'],
     },
     server_info: {
-      url: '127.0.0.1', port: String(PORT), https_port: '', server_protocol: 'http', rtmp_port: '',
-      timezone: TZ, timestamp_now: secs(T0), time_now: stamp(T0),
+      url: host, port: port || (proto === 'https' ? '443' : '80'), https_port: proto === 'https' ? (port || '443') : '',
+      server_protocol: proto, rtmp_port: '', timezone: TZ, timestamp_now: secs(T0), time_now: stamp(T0),
     },
   };
 }
@@ -392,7 +448,7 @@ const publicSeries = (origin, s) => ({ ...s, cover: origin + s.cover });
 function api(req, res, url) {
   const q = url.searchParams;
   if (q.get('username') !== USER || q.get('password') !== PASS) return send(res, 512, { user_info: { auth: 0 } });
-  const origin = `http://${req.headers.host}`;
+  const origin = originOf(req);
   const withCategory = (list) => (q.get('category_id') ? list.filter((x) => x.category_id === q.get('category_id')) : list);
   switch (q.get('action')) {
     case 'get_live_categories': return send(res, 200, live.categories);
@@ -429,7 +485,7 @@ function api(req, res, url) {
       const c = live.channels.find((x) => String(x.stream_id) === q.get('stream_id'));
       return send(res, 200, { epg_listings: c ? programmes(c) : [] });
     }
-    default: return send(res, 200, account());   // like the real thing: an unknown action returns the account
+    default: return send(res, 200, account(req));   // like the real thing: an unknown action returns the account
   }
 }
 
@@ -456,8 +512,15 @@ function handle(req, res) {
   // Streams. The credentials sit in the path, as in the real URL scheme.
   const auth = `/${USER}/${PASS}/`;
   if (!path.includes(auth)) return send(res, 401, 'wrong credentials', 'text/plain');
-  if (/^\/live\/.*\.ts$/.test(path) || path.startsWith('/timeshift/')) return sendLive(req, res);
-  if (/^\/live\/.*\.m3u8$/.test(path)) return send(res, 404, 'no HLS on the demo server', 'text/plain');
+  if (!SEGMENTS.length && (path.startsWith('/live/') || path.startsWith('/timeshift/'))) {
+    return send(res, 404, 'the live channel is missing: run sh dev/mock/media.sh', 'text/plain');
+  }
+  if ((m = /^\/live\/[^/]+\/[^/]+\/seg\/(\d+)\.ts$/.exec(path))) {
+    return sendFile(req, res, SEGMENTS[Number(m[1]) % SEGMENTS.length].file, 'video/mp2t');
+  }
+  if (/^\/live\/.*\.m3u8$/.test(path)) return send(res, 200, livePlaylist(), 'application/vnd.apple.mpegurl');
+  if (/^\/live\/.*\.ts$/.test(path)) return send(res, 404, 'the demo channel is HLS; the player falls back to it', 'text/plain');
+  if (path.startsWith('/timeshift/')) return sendTimeshift(req, res);
   if ((m = /^\/(movie|series)\/.*\.(\w+)$/.exec(path))) {
     if (m[2] === 'mkv') return sendFile(req, res, 'episode.mkv', 'video/x-matroska');
     if (m[2] === 'mp4') return sendFile(req, res, 'movie.mp4', 'video/mp4');
@@ -470,12 +533,13 @@ export function startMockServer(port = PORT) {
   return new Promise((resolve, reject) => {
     const server = createServer(handle);
     server.on('error', reject);
-    server.listen(port, '127.0.0.1', () => resolve(server));
+    server.listen(port, HOST, () => resolve(server));
   });
 }
 
 if (process.argv[1] && fileURLToPath(import.meta.url) === process.argv[1]) {
   await startMockServer(PORT);
-  console.log(`Mock Xtream server on http://127.0.0.1:${PORT}  (user ${USER}, password ${PASS})`);
-  console.log(`${live.channels.length} channels in ${live.categories.length} categories, ${vod.movies.length} movies, ${series.list.length} series`);
+  console.log(`Mock Xtream server on http://${HOST}:${PORT}  (user ${USER}, password ${PASS})`);
+  console.log(`${live.channels.length} channels in ${live.categories.length} categories, ${vod.movies.length} movies, ${series.list.length} series` +
+    (SEGMENTS.length ? `, live loop of ${LOOP_SECONDS} s in ${SEGMENTS.length} segments` : ', NO MEDIA: run sh dev/mock/media.sh'));
 }

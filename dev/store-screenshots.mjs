@@ -8,6 +8,10 @@
 //   sh dev/mock/media.sh              once: renders the dummy media with ffmpeg
 //   node dev/store-screenshots.mjs
 //
+// KEPULI_DEMO_URL=https://kepuli-demo.fly.dev runs the same walk against the
+// deployed demo instead of a local server — the check that what the store
+// reviewers get really works — and KEPULI_SHOTS_DIR sets where the pictures go.
+//
 // The extension in the development profile is left pointing at the mock
 // server; its settings dialog takes it back to a real one.
 
@@ -18,7 +22,8 @@ import { startMockServer, PORT as MOCK_PORT, USER, PASS } from './mock/server.mj
 import { ensureChrome, openPlayer, session, setViewport, clearViewport, capture, sleep } from './screenshot.mjs';
 
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '..');
-const OUT = join(ROOT, 'brand', 'screenshots');
+const OUT = process.env.KEPULI_SHOTS_DIR ? resolve(process.env.KEPULI_SHOTS_DIR) : join(ROOT, 'brand', 'screenshots');
+const DEMO = process.env.KEPULI_DEMO_URL ? new URL(process.env.KEPULI_DEMO_URL) : null;
 
 /* ------------------------------------------------------------ page helpers */
 
@@ -69,8 +74,11 @@ const ROWS = `document.querySelectorAll('#list .row').length > 0 && !document.ge
 /* -------------------------------------------------------------------- main */
 
 mkdirSync(OUT, { recursive: true });
-const server = await startMockServer(MOCK_PORT);
-console.log(`mock server on http://127.0.0.1:${MOCK_PORT}`);
+const server = DEMO ? null : await startMockServer(MOCK_PORT);
+console.log(DEMO ? `against ${DEMO.origin}` : `mock server on http://127.0.0.1:${MOCK_PORT}`);
+const connection = DEMO
+  ? { scheme: DEMO.protocol.replace(':', ''), host: DEMO.hostname, port: DEMO.port || (DEMO.protocol === 'https:' ? '443' : '80') }
+  : { scheme: 'http', host: '127.0.0.1', port: String(MOCK_PORT) };
 await ensureChrome(['--autoplay-policy=no-user-gesture-required']);
 const target = await openPlayer();
 const page = session(target.webSocketDebuggerUrl);
@@ -80,7 +88,7 @@ try {
 
   // Point the extension at the mock server and start from a clean slate.
   await evaluate(page, `chrome.storage.local.set({
-    config: { scheme: 'http', host: '127.0.0.1', port: ${JSON.stringify(String(MOCK_PORT))}, username: ${JSON.stringify(USER)}, password: ${JSON.stringify(PASS)}, sourceMode: 'xtream', streamMode: 'auto' },
+    config: { ...${JSON.stringify(connection)}, username: ${JSON.stringify(USER)}, password: ${JSON.stringify(PASS)}, sourceMode: 'xtream', streamMode: 'auto' },
     settings: { lang: 'en', epgEnabled: true, resumeEnabled: true, subtitleLang: 'eng' },
     ui: { tab: 'live' }, favorites: [], recents: [], resume: {},
   })`);
@@ -143,6 +151,5 @@ try {
   page.close();
   // The paced live stream would keep the server, and this process, alive
   // for as long as the file lasts.
-  server.closeAllConnections();
-  server.close();
+  if (server) { server.closeAllConnections(); server.close(); }
 }

@@ -1,0 +1,31 @@
+# The demo server on Fly.io: https://kepuli-demo.fly.dev, user demo, password
+# demo. One small machine that stops when nobody is connected and starts on
+# the first request, so it costs next to nothing between reviews.
+#
+#   sh dev/mock/media.sh                      render the media first
+#   cd dev/mock && fly deploy                 build remotely and ship
+app = "kepuli-demo"
+primary_region = "arn"
+
+[build]
+  dockerfile = "Dockerfile"
+
+[env]
+  KEPULI_MOCK_HOST = "0.0.0.0"
+  KEPULI_MOCK_PORT = "8080"
+
+[http_service]
+  internal_port = 8080
+  force_https = true
+  auto_stop_machines = "stop"
+  auto_start_machines = true
+  min_machines_running = 0
+
+  [http_service.concurrency]
+    type = "requests"
+    soft_limit = 200
+    hard_limit = 250
+
+[[vm]]
+  size = "shared-cpu-1x"
+  memory = "256mb"
