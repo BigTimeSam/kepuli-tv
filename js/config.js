@@ -6,6 +6,8 @@
 // exception is a favourite category (k = 'c'), whose contents are exactly
 // what is allowed to change: only its identifier is kept, see app.js.
 
+import { cacheClear } from './db.js';
+
 const CONNECTION_DEFAULTS = {
   scheme: 'http', host: '', port: '8080', username: '', password: '',
   streamMode: 'auto',
@@ -39,8 +41,19 @@ export async function loadConfig() {
   return { ...CONNECTION_DEFAULTS, ...(await read('config', {})) };
 }
 
+/**
+ * What the catalogue cache belongs to. The cache is one database for
+ * whatever server is configured, so another server's listing — or another
+ * account's on the same server — must not survive a switch: its categories,
+ * covers and programme data would show until the user found Clear cache.
+ * The password and the playback mode are not part of it.
+ */
+const serverKey = (c) => `${c.scheme}://${c.host}:${c.port}/${c.username}`;
+
 export async function saveConfig(patch) {
-  const next = { ...(await loadConfig()), ...patch };
+  const prev = await loadConfig();
+  const next = { ...prev, ...patch };
+  if (serverKey(next) !== serverKey(prev)) await cacheClear();
   await chrome.storage.local.set({ config: next });
   return next;
 }
