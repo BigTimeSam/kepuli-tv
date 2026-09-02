@@ -1,0 +1,216 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Kepuli-TV</title>
+<link rel="icon" type="image/png" sizes="32x32" href="icons/icon32.png">
+<link rel="icon" type="image/png" sizes="128x128" href="icons/icon128.png">
+<link rel="stylesheet" href="css/player.css">
+</head>
+<body>
+
+<header class="topbar">
+  <div class="brand"><span class="brand-mark"></span>Kepuli-TV</div>
+
+  <nav class="tabs" id="tabs">
+    <button type="button" data-tab="live" class="active" data-i18n="tab.live">Channels</button>
+    <button type="button" data-tab="movie" data-i18n="tab.movie">Movies</button>
+    <button type="button" data-tab="series" data-i18n="tab.series">Series</button>
+    <button type="button" data-tab="fav" data-i18n="tab.fav">Favourites</button>
+    <button type="button" data-tab="recent" data-i18n="tab.recent">History</button>
+  </nav>
+
+  <label class="search">
+    <svg viewBox="0 0 20 20" aria-hidden="true"><circle cx="9" cy="9" r="6"/><path d="M13.5 13.5 18 18"/></svg>
+    <input id="search" type="search" data-i18n-placeholder="search.placeholder" autocomplete="off" spellcheck="false">
+  </label>
+
+  <div class="topbar-end">
+    <span id="account-meta" class="account-meta"></span>
+    <button type="button" id="btn-guide" class="ghost" data-i18n="btn.guide" data-i18n-title="btn.guide.title">Guide</button>
+    <button type="button" id="btn-refresh" class="ghost" data-i18n="btn.refresh" data-i18n-title="btn.refresh.title">Refresh</button>
+    <button type="button" id="btn-settings" class="ghost" data-i18n="btn.settings">Settings</button>
+  </div>
+</header>
+
+<main id="main">
+  <aside class="groups" id="groups-col">
+    <div class="groups-filter" id="groups-filter">
+      <input id="category-filter" type="search" data-i18n-placeholder="groups.filter.placeholder" autocomplete="off" spellcheck="false">
+    </div>
+    <div class="groups-list" id="groups"></div>
+  </aside>
+
+  <section class="listcol">
+    <div class="crumbs" id="crumbs" hidden></div>
+    <div class="subcats" id="subcats" hidden></div>
+    <div class="detail" id="detail" hidden></div>
+    <div class="list" id="list" tabindex="0"></div>
+    <div class="listinfo" id="listinfo"></div>
+  </section>
+
+  <section class="stage">
+    <div class="videowrap" id="videowrap">
+      <video id="video" controls playsinline preload="none"></video>
+      <div class="overlay" id="overlay">
+        <div class="overlay-inner">
+          <div class="overlay-title" id="overlay-title" data-i18n="player.idle">Nothing playing</div>
+          <div class="overlay-text" id="overlay-text" data-i18n="player.idle.text">Pick a channel from the list.</div>
+          <div class="overlay-actions" id="overlay-actions" hidden></div>
+        </div>
+      </div>
+      <div class="statbadge" id="statbadge" hidden></div>
+    </div>
+
+    <div class="infostrip" id="infostrip" hidden></div>
+
+    <div class="nowbar">
+      <div class="now">
+        <div class="now-title" id="now-title">—</div>
+        <div class="now-sub" id="now-sub" data-i18n="player.disconnected">Not connected</div>
+      </div>
+      <div class="now-actions">
+        <select id="mode" data-i18n-title="player.mode.title">
+          <option value="auto">Auto</option>
+          <option value="ts">TS</option>
+          <option value="hls">HLS</option>
+        </select>
+        <select id="subs" class="subs" data-i18n-title="player.subs.title" hidden></select>
+        <select id="subsize" class="subsize" data-i18n-title="player.subsize.title" hidden>
+          <option value="small" data-i18n="player.subsize.small">Small</option>
+          <option value="medium" data-i18n="player.subsize.medium">Medium</option>
+          <option value="large" data-i18n="player.subsize.large">Large</option>
+        </select>
+        <button type="button" id="btn-fav" class="ghost" data-i18n-title="fav.button.title">☆</button>
+        <button type="button" id="btn-reload" class="ghost" data-i18n-title="player.reload.title">↻</button>
+        <button type="button" id="btn-pip" class="ghost" data-i18n-title="player.pip.title">PiP</button>
+        <button type="button" id="btn-copy" class="ghost" data-i18n-title="player.copy.title">URL</button>
+        <button type="button" id="btn-ext" class="ghost" data-i18n-title="ext.title">↗</button>
+      </div>
+    </div>
+  </section>
+
+  <section class="epgview" id="epg-preview" hidden>
+    <div class="epgv-head">
+      <!-- Lähde asetetaan vasta kanavaa valittaessa, ks. renderGuidePreview.
+           blank piilottaa varatun tilan siihen asti ja aina kun logoa ei ole
+           tai sen lataus epäonnistuu. -->
+      <img class="epgv-logo blank" id="epgv-logo" alt="">
+      <div class="epgv-chan">
+        <div class="epgv-name" id="epgv-name">—</div>
+        <div class="epgv-meta" id="epgv-meta"></div>
+      </div>
+      <div class="epgv-actions" id="epgv-actions"></div>
+    </div>
+    <div class="epgv-slot" id="epgv-slot"></div>
+    <div class="epgv-desc" id="epgv-desc"></div>
+  </section>
+
+  <section class="epg" id="epg" hidden>
+    <div class="epg-bar">
+      <select id="epg-group" class="epg-select" data-i18n-title="guide.group.title"></select>
+      <div class="epg-days" id="epg-days"></div>
+      <div class="spacer"></div>
+      <div class="epg-nav">
+        <button type="button" id="epg-prev" class="ghost" data-i18n-title="guide.prev.title">‹</button>
+        <button type="button" id="epg-now" class="ghost" data-i18n="guide.now" data-i18n-title="guide.now.title">Now</button>
+        <button type="button" id="epg-next" class="ghost" data-i18n-title="guide.next.title">›</button>
+      </div>
+      <div class="epg-nav">
+        <button type="button" id="epg-out" class="ghost" data-i18n-title="guide.out.title">−</button>
+        <button type="button" id="epg-in" class="ghost" data-i18n-title="guide.in.title">+</button>
+      </div>
+      <span class="epg-clock" id="epg-clock"></span>
+      <button type="button" id="epg-close" class="ghost" data-i18n="guide.close">Close</button>
+    </div>
+    <div class="epg-body">
+      <div class="epg-corner" id="epg-corner"></div>
+      <div class="epg-times"><div class="epg-times-inner" id="epg-times-inner"></div></div>
+      <div class="epg-chans"><div class="epg-chans-inner" id="epg-chans-inner"></div></div>
+      <div class="epg-scroll" id="epg-scroll" tabindex="-1"><div class="epg-canvas" id="epg-canvas"></div></div>
+    </div>
+  </section>
+</main>
+
+<dialog id="setup">
+  <form method="dialog" class="setup">
+    <h2 data-i18n="setup.title">Settings</h2>
+
+    <!-- Kaksi tapaa sanoa sama asia: erilliset kentät tai yksi osoite, josta
+         tunnukset puretaan. Valinta ohjaa vain lomaketta — taustalla on
+         kummassakin sama palvelin ja samat tunnukset. -->
+    <div class="field">
+      <span data-i18n="setup.source">Connection</span>
+      <div class="radios">
+        <label class="radio">
+          <input type="radio" name="source" value="xtream" checked>
+          <span data-i18n="setup.source.xtream">Xtream Codes</span>
+        </label>
+        <label class="radio">
+          <input type="radio" name="source" value="m3u">
+          <span data-i18n="setup.source.m3u">M3U address</span>
+        </label>
+      </div>
+    </div>
+
+    <div class="grid" id="src-xtream">
+      <label class="field w-scheme"><span data-i18n="setup.scheme">Protocol</span>
+        <select id="f-scheme"><option value="http">http</option><option value="https">https</option></select>
+      </label>
+      <label class="field w-host"><span data-i18n="setup.host">Server</span>
+        <input id="f-host" type="text" placeholder="example.tv" autocomplete="off" spellcheck="false">
+      </label>
+      <label class="field w-port"><span data-i18n="setup.port">Port</span>
+        <input id="f-port" type="text" placeholder="8080" autocomplete="off">
+      </label>
+      <label class="field"><span data-i18n="setup.username">Username</span>
+        <input id="f-username" type="text" autocomplete="off" spellcheck="false">
+      </label>
+      <label class="field"><span data-i18n="setup.password">Password</span>
+        <input id="f-password" type="password" autocomplete="off">
+      </label>
+    </div>
+
+    <label class="field" id="src-m3u" hidden>
+      <span data-i18n="setup.m3u.label">Address of the channel list</span>
+      <input id="f-paste" type="text" placeholder="http://example.tv:8080/…?username=…&amp;password=…" autocomplete="off" spellcheck="false">
+    </label>
+
+    <div id="account-box" class="account-box" hidden></div>
+
+    <div class="grid">
+      <label class="field w-lang"><span data-i18n="setup.language">Language</span>
+        <select id="f-lang"></select>
+      </label>
+    </div>
+
+    <div class="toggles">
+      <label class="toggle"><input type="checkbox" id="f-epg" checked><span data-i18n="setup.epg">Fetch programme data automatically</span></label>
+      <label class="toggle"><input type="checkbox" id="f-resume" checked><span data-i18n="setup.resume">Remember where movies and episodes were left</span></label>
+    </div>
+
+    <div class="setup-actions">
+      <button type="button" id="f-clear" class="ghost danger" data-i18n="setup.clear" data-i18n-title="setup.clear.title">Clear cache</button>
+      <button type="button" id="f-reset" class="ghost danger" data-i18n="setup.reset" data-i18n-title="setup.reset.title">Reset everything</button>
+      <div class="spacer"></div>
+      <button type="button" id="f-cancel" class="ghost" data-i18n="setup.cancel">Cancel</button>
+      <button type="button" id="f-save" class="primary" data-i18n="setup.save">Connect</button>
+    </div>
+  </form>
+</dialog>
+
+<dialog id="progress">
+  <div class="progress">
+    <div class="progress-title" id="p-title" data-i18n="progress.loading">Loading…</div>
+    <div class="bar"><div class="bar-fill" id="p-fill"></div></div>
+    <div class="progress-text" id="p-text">…</div>
+  </div>
+</dialog>
+
+<div class="toast" id="toast" hidden></div>
+
+<script src="vendor/mpegts.js"></script>
+<script src="vendor/hls.js"></script>
+<script type="module" src="js/app.js"></script>
+</body>
+</html>

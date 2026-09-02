@@ -1,0 +1,33 @@
+Use your image generation tool to create ONE image and save it to the file
+"icon-master.png" in your current working directory. Do not write any code to
+draw it; use the image generation tool directly.
+
+SUBJECT
+A retro 1960s cathode-ray-tube television set, viewed strictly straight from
+the front and left-right symmetrical (no perspective, no three-quarter view).
+It has:
+- a rounded-corner screen occupying the left two thirds of the body
+- a narrow control panel on the right with exactly two round knobs
+- two thin straight "rabbit ear" antennas rising in a V from the top
+- two short splayed legs at the bottom
+
+STYLE
+Flat vector illustration. Clean geometric shapes, thick confident forms,
+minimal detail, no texture, no photorealism, no drop shadows, no gradients on
+the cabinet. The icon must stay readable when scaled down to 16x16 pixels, so:
+strong silhouette, nothing thinner than about 3% of the image width, no text,
+no small ornaments, no fine grille lines.
+
+COLORS - use these exactly
+- television cabinet: violet, #7c5cff for the lit faces and #4a3aa8 for the
+  shaded faces
+- screen: bright cyan #22d3ee, with a slightly lighter soft glow in the middle
+- knobs and the two antenna tips: warm amber #ffc857
+- outlines and inner shadow: near black #0a0c11
+Background: fully transparent (alpha), not white.
+
+COMPOSITION
+Square canvas 1024x1024. The television including its antennas fills about 86%
+of the canvas, optically centred, with even margins on all sides.
+
+When the file is saved, print the absolute path of the file you created.

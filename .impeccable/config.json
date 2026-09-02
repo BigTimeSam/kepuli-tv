@@ -1,0 +1,17 @@
+{
+  "detector": {
+    "ignoreRules": [],
+    "ignoreFiles": [],
+    "ignoreValues": [
+      {
+        "rule": "broken-image",
+        "value": "*",
+        "files": [
+          "player.html"
+        ],
+        "createdAt": "2026-09-01T22:53:38.174Z",
+        "reason": "epgv-logo taytetaan ajossa (renderGuidePreview): blank-luokka piilottaa varatun tilan kunnes lataus onnistuu, ja error-kasittelija palauttaa sen piiloon. Todennettu Chromessa: alku hidden, kuollut osoite hidden, toimiva logo visible."
+      }
+    ]
+  }
+}

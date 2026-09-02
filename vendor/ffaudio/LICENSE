@@ -1,0 +1,29 @@
+Tämän hakemiston sisältö on käännetty kolmannen osapuolen koodista.
+
+--------------------------------------------------------------------------
+ffaudio.wasm, ffaudio.js — FFmpegin AC-3-, E-AC-3- ja DTS-purkajat
+  https://github.com/FFmpeg/FFmpeg  tagi n7.1.1
+
+Copyright (c) 2000-2024 the FFmpeg developers
+
+Lisensoitu GNU Lesser General Public License -lisenssin version 2.1 tai
+minkä tahansa myöhemmän version ehdoin. Lisenssiteksti on tiedostossa
+COPYING.LGPLv2.1.
+
+Käännös ei sisällä yhtään GPL- tai epävapaata osaa: configure ajetaan ilman
+--enable-gpl- ja --enable-nonfree-valitsimia, ja mukaan on otettu vain
+purkajat ac3, eac3 ja dca sekä jäsentimet ac3 ja dca.
+
+LGPL 2.1 §6 vaatii, että käyttäjä voi vaihtaa kirjaston toiseen versioon.
+Se toteutuu näin:
+
+  - käännöskomennot kokonaisuudessaan: dev/wasm/build.sh
+  - ainoa oma lähdekoodi kirjastoa vasten: dev/wasm/ffaudio.c
+  - FFmpegin lähdekoodi haetaan skriptissä nimetystä tagista
+
+Skriptin ajaminen tuottaa saman ffaudio.wasmin, ja FFMPEG_TAGin vaihtaminen
+tuottaa saman rajapinnan toisesta FFmpeg-versiosta.
+
+--------------------------------------------------------------------------
+MUUTOKSET FFmpegiin: ei mitään. Lähde on käännetty sellaisenaan; kaikki oma
+koodi on erillisessä ffaudio.c:ssä.

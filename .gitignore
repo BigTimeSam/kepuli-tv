@@ -1,0 +1,13 @@
+.DS_Store
+
+# dev/dev.mjs käyttää oletuksena ~/.cache/kepuli-tv-dev, mutta
+# KEPULI_DEV_PROFILE voi osoittaa projektin sisälle.
+.dev-profile/
+
+node_modules/
+
+# dev/wasm/build.sh --test tekee nämä ffmpegillä; ne eivät kuulu versionhallintaan.
+dev/wasm/media/
+
+# Kauppaan ladattava paketti rakennetaan tarvittaessa uudelleen.
+*.zip

@@ -1,0 +1,306 @@
+<!doctype html>
+<html lang="fi">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Käyttöehdot — Kepuli-TV</title>
+<meta name="description" content="Kepuli-TV-selainlaajennuksen käyttötarkoitus, sallittu käyttö ja vastuunrajoitus.">
+<meta name="robots" content="index,follow">
+<style>
+  :root {
+    --bg: #0a0c11;
+    --panel: #11141c;
+    --panel-2: #161a24;
+    --border: #232838;
+    --text: #e7eaf2;
+    --muted: #9aa2b6;
+    --dim: #6d7488;
+    --accent: #8f74ff;
+    --accent-2: #22d3ee;
+    --warn: #e0a458;
+  }
+
+  * { box-sizing: border-box; }
+
+  html { -webkit-text-size-adjust: 100%; }
+
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--text);
+    font: 16px/1.65 -apple-system, BlinkMacSystemFont, "Segoe UI", Inter, system-ui, sans-serif;
+    font-synthesis-weight: none;
+  }
+
+  .wrap { max-width: 760px; margin: 0 auto; padding: 48px 22px 96px; }
+
+  /* ---------------------------------------------------------- otsikko */
+
+  header { border-bottom: 1px solid var(--border); padding-bottom: 28px; margin-bottom: 36px; }
+
+  .brand {
+    display: inline-flex; align-items: center; gap: 9px;
+    font-weight: 650; letter-spacing: -0.01em; font-size: 15px;
+    color: var(--text); text-decoration: none;
+  }
+  .brand-mark {
+    width: 22px; height: 22px; border-radius: 5px; flex: none;
+    background: linear-gradient(150deg, var(--accent), #5b3fd6);
+    display: grid; place-items: center;
+  }
+  .brand-mark svg { width: 13px; height: 13px; stroke: #fff; fill: none; stroke-width: 1.9; stroke-linejoin: round; }
+
+  h1 { font-size: 30px; line-height: 1.2; letter-spacing: -0.02em; margin: 22px 0 10px; }
+
+  .meta { color: var(--dim); font-size: 13.5px; margin: 0; }
+
+  /* Suomenkielisen osan meta-rivin alla on headerin padding-bottom ja
+     margin-bottom sekä kielivalitsin. Englanninkielisellä osiolla ei ole
+     headeria, joten sama väli tehdään tässä. */
+  #en > .meta { margin-bottom: 36px; }
+
+  .langs { margin-top: 20px; display: flex; gap: 8px; font-size: 13.5px; }
+  .langs a {
+    color: var(--muted); text-decoration: none;
+    border: 1px solid var(--border); background: var(--panel);
+    padding: 4px 11px; border-radius: 999px;
+  }
+  .langs a:hover { color: var(--text); border-color: var(--accent); }
+
+  /* ---------------------------------------------------------- sisältö */
+
+  h2 {
+    font-size: 19px; letter-spacing: -0.01em; margin: 44px 0 12px;
+    padding-top: 10px;
+  }
+  h2 .num { color: var(--accent); font-variant-numeric: tabular-nums; margin-right: 8px; }
+
+  h3 { font-size: 15.5px; margin: 26px 0 8px; color: var(--text); }
+
+  p, li { color: #cfd5e4; }
+  p { margin: 0 0 14px; }
+
+  ul { margin: 0 0 14px; padding-left: 20px; }
+  li { margin-bottom: 7px; }
+  li::marker { color: var(--dim); }
+
+  a { color: var(--accent-2); text-decoration-thickness: 1px; text-underline-offset: 2px; }
+
+  strong { color: var(--text); font-weight: 620; }
+
+  code {
+    font: 500 13.5px/1.4 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+    background: var(--panel-2); border: 1px solid var(--border);
+    border-radius: 5px; padding: 1px 5px; color: #d7ccff;
+  }
+
+  /* -------------------------------------------------------- tiivistys */
+
+  .summary {
+    background: var(--panel); border: 1px solid var(--border);
+    border-left: 3px solid var(--accent);
+    border-radius: 10px; padding: 20px 22px 8px; margin: 0 0 8px;
+  }
+  .summary h2 { margin-top: 0; font-size: 15px; text-transform: uppercase; letter-spacing: 0.06em; color: var(--muted); }
+  .summary ul { padding-left: 18px; }
+
+  .note {
+    background: var(--panel-2); border: 1px solid var(--border);
+    border-left: 3px solid var(--warn);
+    border-radius: 10px; padding: 16px 20px; margin: 20px 0;
+  }
+  .note p:last-child { margin-bottom: 0; }
+
+  /* ---------------------------------------------------------- taulukko */
+
+  .table-scroll { overflow-x: auto; margin: 0 0 18px; }
+  table { border-collapse: collapse; width: 100%; min-width: 520px; font-size: 14.5px; }
+  th, td { text-align: left; vertical-align: top; padding: 11px 14px; border-bottom: 1px solid var(--border); }
+  th { color: var(--muted); font-weight: 600; font-size: 12.5px; text-transform: uppercase; letter-spacing: 0.05em; background: var(--panel); }
+  td:first-child { color: var(--text); font-weight: 560; }
+  tr:last-child td { border-bottom: 0; }
+
+  /* ---------------------------------------------------------- alatunniste */
+
+  footer {
+    margin-top: 56px; padding-top: 24px;
+    border-top: 1px solid var(--border);
+    color: var(--dim); font-size: 13.5px;
+  }
+  footer p { color: var(--dim); }
+
+  hr.sep { border: 0; border-top: 1px solid var(--border); margin: 64px 0 44px; }
+
+  /* ---------------------------------------------------------- vaalea */
+
+  @media (prefers-color-scheme: light) {
+    :root {
+      --bg: #ffffff; --panel: #f6f7fa; --panel-2: #f0f2f7; --border: #dfe3ec;
+      --text: #14171f; --muted: #5b6377; --dim: #767e91; --accent: #5b3fd6; --accent-2: #0f7c8c;
+    }
+    p, li { color: #333a49; }
+    code { color: #4a32b8; }
+  }
+
+  @media print {
+    body { background: #fff; color: #000; font-size: 11pt; }
+    .wrap { max-width: none; padding: 0; }
+    .langs { display: none; }
+    p, li, footer p { color: #000; }
+    a { color: #000; }
+    .summary, .note { border: 1px solid #999; }
+    h2 { page-break-after: avoid; }
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<header>
+  <span class="brand">
+    <span class="brand-mark" aria-hidden="true">
+      <svg viewBox="0 0 24 24"><rect x="2.5" y="6.5" width="19" height="13" rx="2"/><path d="M8 3l4 3.5L16 3"/></svg>
+    </span>
+    Kepuli-TV
+  </span>
+  <h1>Käyttöehdot</h1>
+  <p class="meta">Koskee Kepuli-TV-selainlaajennusta · Voimassa 2.9.2026 alkaen · Versio 1.0</p>
+  <nav class="langs" aria-label="Kieli">
+    <a href="#fi" hreflang="fi" lang="fi">Suomeksi</a>
+    <a href="#en" hreflang="en" lang="en">In English</a>
+    <a href="../tietosuoja/">Tietosuojaseloste</a>
+  </nav>
+</header>
+
+<main id="fi">
+
+<section class="summary">
+  <h2>Lyhyesti</h2>
+  <ul>
+    <li><strong>Kepuli-TV on pelkkä soitin.</strong> Se ei sisällä, jaa, isännöi eikä indeksoi mitään sisältöä, kanavia, toistolistoja eikä palveluntarjoajia.</li>
+    <li><strong>Se ei tee mitään ilman tunnuksia, jotka tuot itse.</strong> Ohjelman mukana ei toimiteta yhtään osoitetta mihinkään palveluun.</li>
+    <li><strong>Käytä sitä vain sisältöön johon sinulla on oikeus.</strong> Vastaat itse käyttämäsi palvelun laillisuudesta omassa maassasi.</li>
+  </ul>
+</section>
+
+<h2><span class="num">1.</span>Mikä Kepuli-TV on</h2>
+<p>
+  Kepuli-TV on selainlaajennus, joka toistaa käyttäjän oman Xtream Codes -IPTV-tilin
+  sisältöä selaimen välilehdessä. Se on soitin samassa mielessä kuin mikä tahansa
+  työpöydän mediasoitin: se ottaa vastaan osoitteen ja tunnukset, jotka käyttäjä
+  antaa, ja näyttää mitä niiden takaa tulee.
+</p>
+<p>
+  Ohjelma <strong>ei sisällä, jaa, isännöi eikä indeksoi</strong> mediasisältöä,
+  kanavaluetteloita, toistolistoja eikä palveluntarjoajia. Sen mukana ei toimiteta
+  yhtään palvelimen osoitetta, tiliä eikä linkkiä mihinkään palveluun. Ilman
+  tunnuksia, jotka käyttäjä hankkii ja syöttää itse, ohjelma ei tee mitään.
+</p>
+
+<h2><span class="num">2.</span>Sallittu käyttö</h2>
+<p>
+  Ohjelma on tarkoitettu <strong>vain sellaisen sisällön katseluun, johon
+  käyttäjällä on oikeus</strong>: omaan maksettuun tilaukseen, omaan mediaan tai
+  muuhun aineistoon, jonka katseluun hänellä on lupa.
+</p>
+<p>
+  Ohjelmaa <strong>ei saa käyttää</strong> sellaisen sisällön katseluun, johon
+  käyttäjällä ei ole käyttöoikeutta, eikä tekijänoikeuden tai muun oikeuden
+  loukkaamiseen. Käyttäjä vastaa itse siitä, että hänen käyttämänsä palvelu, sen
+  sisältö ja hänen oma käyttönsä ovat laillisia siinä maassa jossa hän on.
+</p>
+
+<h2><span class="num">3.</span>Mitä tekijä ei tee</h2>
+<p>
+  Ohjelman tekijä ei tarjoa, myy, välitä, suosittele eikä neuvo IPTV-tilausten tai
+  muiden sisältöpalveluiden hankinnassa, eikä vastaa niitä koskeviin kysymyksiin
+  missään kanavassa. Tekijällä ei ole yhteyttä yhteenkään palveluntarjoajaan eikä
+  vaikutusvaltaa siihen, mitä käyttäjän oma palvelin tarjoaa tai millä oikeuksilla.
+</p>
+
+<h2><span class="num">4.</span>Ei takuuta</h2>
+<p>
+  Ohjelmisto toimitetaan sellaisenaan, ilman minkäänlaista takuuta. Tekijä ei vastaa
+  ohjelman käytöstä aiheutuvista vahingoista siinä laajuudessa kuin laki sallii.
+  Tarkat ehdot ovat lähdekoodin mukana toimitettavassa lisenssissä.
+</p>
+
+<h2><span class="num">5.</span>Muutokset</h2>
+<p>
+  Muutettu versio julkaistaan tässä osoitteessa ja sivun yläreunan päivämäärä
+  muuttuu.
+</p>
+
+</main>
+
+<hr class="sep">
+
+<section id="en" lang="en">
+<h1>Terms of Use</h1>
+<p class="meta">Applies to the Kepuli-TV browser extension · Effective 2 September 2026 · Version 1.0</p>
+
+<section class="summary">
+  <h2>In short</h2>
+  <ul>
+    <li><strong>Kepuli-TV is only a player.</strong> It contains, distributes, hosts and indexes no content, channels, playlists or providers.</li>
+    <li><strong>It does nothing without credentials you bring yourself.</strong> No address to any service ships with the software.</li>
+    <li><strong>Use it only for content you have the right to watch.</strong> You are responsible for the lawfulness of the service you use in your own country.</li>
+  </ul>
+</section>
+
+<h2><span class="num">1.</span>What Kepuli-TV is</h2>
+<p>
+  Kepuli-TV is a browser extension that plays back the content of the user's own
+  Xtream Codes IPTV account in a browser tab. It is a player in the same sense as any
+  desktop media player: it takes an address and credentials the user supplies and
+  shows what comes back.
+</p>
+<p>
+  The software <strong>contains, distributes, hosts and indexes no</strong> media,
+  channel listings, playlists or providers. No server address, account or link to any
+  service ships with it. Without credentials the user obtains and enters themselves,
+  it does nothing.
+</p>
+
+<h2><span class="num">2.</span>Permitted use</h2>
+<p>
+  The software is intended <strong>solely for viewing content the user has the right
+  to view</strong>: their own paid subscription, their own media, or other material
+  they are permitted to watch.
+</p>
+<p>
+  The software <strong>must not be used</strong> to view content the user has no right
+  to access, or to infringe copyright or any other right. Users are responsible for
+  ensuring that the service they use, its content, and their own use are lawful in the
+  country where they are.
+</p>
+
+<h2><span class="num">3.</span>What the author does not do</h2>
+<p>
+  The author does not provide, sell, broker, recommend or advise on obtaining IPTV
+  subscriptions or other content services, and does not answer questions about them in
+  any channel. The author has no connection to any provider and no influence over what
+  a user's own server offers, or under what rights.
+</p>
+
+<h2><span class="num">4.</span>No warranty</h2>
+<p>
+  The software is provided as is, without warranty of any kind. The author is not
+  liable for damages arising from its use, to the extent permitted by law. The exact
+  terms are in the licence shipped with the source code.
+</p>
+
+<h2><span class="num">5.</span>Changes</h2>
+<p>
+  A changed version is published at this address and the date at the top of the page
+  changes.
+</p>
+</section>
+
+<footer>
+  <p>Kepuli-TV · <a href="../tietosuoja/">Tietosuojaseloste</a></p>
+</footer>
+
+</div>
+</body>
+</html>

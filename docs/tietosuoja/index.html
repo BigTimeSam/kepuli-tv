@@ -1,0 +1,550 @@
+<!doctype html>
+<html lang="fi">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Tietosuojaseloste — Kepuli-TV</title>
+<meta name="description" content="Kepuli-TV-selainlaajennuksen tietosuojaseloste: mitä tietoja laajennus käsittelee, minne niitä lähetetään ja miten ne poistetaan.">
+<meta name="robots" content="index,follow">
+<style>
+  :root {
+    --bg: #0a0c11;
+    --panel: #11141c;
+    --panel-2: #161a24;
+    --border: #232838;
+    --text: #e7eaf2;
+    --muted: #9aa2b6;
+    --dim: #6d7488;
+    --accent: #8f74ff;
+    --accent-2: #22d3ee;
+    --warn: #e0a458;
+  }
+
+  * { box-sizing: border-box; }
+
+  html { -webkit-text-size-adjust: 100%; }
+
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--text);
+    font: 16px/1.65 -apple-system, BlinkMacSystemFont, "Segoe UI", Inter, system-ui, sans-serif;
+    font-synthesis-weight: none;
+  }
+
+  .wrap { max-width: 760px; margin: 0 auto; padding: 48px 22px 96px; }
+
+  /* ---------------------------------------------------------- otsikko */
+
+  header { border-bottom: 1px solid var(--border); padding-bottom: 28px; margin-bottom: 36px; }
+
+  .brand {
+    display: inline-flex; align-items: center; gap: 9px;
+    font-weight: 650; letter-spacing: -0.01em; font-size: 15px;
+    color: var(--text); text-decoration: none;
+  }
+  .brand-mark {
+    width: 22px; height: 22px; border-radius: 5px; flex: none;
+    background: linear-gradient(150deg, var(--accent), #5b3fd6);
+    display: grid; place-items: center;
+  }
+  .brand-mark svg { width: 13px; height: 13px; stroke: #fff; fill: none; stroke-width: 1.9; stroke-linejoin: round; }
+
+  h1 { font-size: 30px; line-height: 1.2; letter-spacing: -0.02em; margin: 22px 0 10px; }
+
+  .meta { color: var(--dim); font-size: 13.5px; margin: 0; }
+
+  /* Suomenkielisen osan meta-rivin alla on headerin padding-bottom ja
+     margin-bottom sekä kielivalitsin. Englanninkielisellä osiolla ei ole
+     headeria, joten sama väli tehdään tässä. */
+  #en > .meta { margin-bottom: 36px; }
+
+  .langs { margin-top: 20px; display: flex; gap: 8px; font-size: 13.5px; }
+  .langs a {
+    color: var(--muted); text-decoration: none;
+    border: 1px solid var(--border); background: var(--panel);
+    padding: 4px 11px; border-radius: 999px;
+  }
+  .langs a:hover { color: var(--text); border-color: var(--accent); }
+
+  /* ---------------------------------------------------------- sisältö */
+
+  h2 {
+    font-size: 19px; letter-spacing: -0.01em; margin: 44px 0 12px;
+    padding-top: 10px;
+  }
+  h2 .num { color: var(--accent); font-variant-numeric: tabular-nums; margin-right: 8px; }
+
+  h3 { font-size: 15.5px; margin: 26px 0 8px; color: var(--text); }
+
+  p, li { color: #cfd5e4; }
+  p { margin: 0 0 14px; }
+
+  ul { margin: 0 0 14px; padding-left: 20px; }
+  li { margin-bottom: 7px; }
+  li::marker { color: var(--dim); }
+
+  a { color: var(--accent-2); text-decoration-thickness: 1px; text-underline-offset: 2px; }
+
+  strong { color: var(--text); font-weight: 620; }
+
+  code {
+    font: 500 13.5px/1.4 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+    background: var(--panel-2); border: 1px solid var(--border);
+    border-radius: 5px; padding: 1px 5px; color: #d7ccff;
+  }
+
+  /* -------------------------------------------------------- tiivistys */
+
+  .summary {
+    background: var(--panel); border: 1px solid var(--border);
+    border-left: 3px solid var(--accent);
+    border-radius: 10px; padding: 20px 22px 8px; margin: 0 0 8px;
+  }
+  .summary h2 { margin-top: 0; font-size: 15px; text-transform: uppercase; letter-spacing: 0.06em; color: var(--muted); }
+  .summary ul { padding-left: 18px; }
+
+  .note {
+    background: var(--panel-2); border: 1px solid var(--border);
+    border-left: 3px solid var(--warn);
+    border-radius: 10px; padding: 16px 20px; margin: 20px 0;
+  }
+  .note p:last-child { margin-bottom: 0; }
+
+  /* ---------------------------------------------------------- taulukko */
+
+  .table-scroll { overflow-x: auto; margin: 0 0 18px; }
+  table { border-collapse: collapse; width: 100%; min-width: 520px; font-size: 14.5px; }
+  th, td { text-align: left; vertical-align: top; padding: 11px 14px; border-bottom: 1px solid var(--border); }
+  th { color: var(--muted); font-weight: 600; font-size: 12.5px; text-transform: uppercase; letter-spacing: 0.05em; background: var(--panel); }
+  td:first-child { color: var(--text); font-weight: 560; }
+  tr:last-child td { border-bottom: 0; }
+
+  /* ---------------------------------------------------------- alatunniste */
+
+  footer {
+    margin-top: 56px; padding-top: 24px;
+    border-top: 1px solid var(--border);
+    color: var(--dim); font-size: 13.5px;
+  }
+  footer p { color: var(--dim); }
+
+  hr.sep { border: 0; border-top: 1px solid var(--border); margin: 64px 0 44px; }
+
+  /* ---------------------------------------------------------- vaalea */
+
+  @media (prefers-color-scheme: light) {
+    :root {
+      --bg: #ffffff; --panel: #f6f7fa; --panel-2: #f0f2f7; --border: #dfe3ec;
+      --text: #14171f; --muted: #5b6377; --dim: #767e91; --accent: #5b3fd6; --accent-2: #0f7c8c;
+    }
+    p, li { color: #333a49; }
+    code { color: #4a32b8; }
+  }
+
+  @media print {
+    body { background: #fff; color: #000; font-size: 11pt; }
+    .wrap { max-width: none; padding: 0; }
+    .langs { display: none; }
+    p, li, footer p { color: #000; }
+    a { color: #000; }
+    .summary, .note { border: 1px solid #999; }
+    h2 { page-break-after: avoid; }
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<header>
+  <span class="brand">
+    <span class="brand-mark" aria-hidden="true">
+      <svg viewBox="0 0 24 24"><rect x="2.5" y="6.5" width="19" height="13" rx="2"/><path d="M8 3l4 3.5L16 3"/></svg>
+    </span>
+    Kepuli-TV
+  </span>
+  <h1>Tietosuojaseloste</h1>
+  <p class="meta">Koskee Kepuli-TV-selainlaajennusta · Voimassa 2.9.2026 alkaen · Versio 1.0</p>
+  <nav class="langs" aria-label="Kieli">
+    <a href="#fi" hreflang="fi" lang="fi">Suomeksi</a>
+    <a href="#en" hreflang="en" lang="en">In English</a>
+    <a href="../kayttoehdot/">Käyttöehdot</a>
+  </nav>
+</header>
+
+<main id="fi">
+
+<section class="summary">
+  <h2>Lyhyesti</h2>
+  <ul>
+    <li><strong>Laajennus ei kerää mitään.</strong> Ei analytiikkaa, ei seurantaa, ei mainoksia, ei käyttäjätilejä.</li>
+    <li><strong>Kaikki tiedot pysyvät omalla laitteellasi</strong> selaimen tallennustilassa.</li>
+    <li><strong>Kehittäjä ei vastaanota, näe eikä säilytä mitään tietojasi.</strong> Laajennuksella ei ole taustapalvelinta.</li>
+    <li><strong>Verkkopyynnöt menevät vain sille palvelimelle, jonka osoitat itse</strong> — omalle IPTV-palvelimellesi.</li>
+    <li><strong>Laajennus ei näe selaamiasi sivuja.</strong> Sisältöskriptejä ei ole, eikä asennus pyydä pääsyä yhteenkään sivustoon.</li>
+  </ul>
+</section>
+
+<h2><span class="num">1.</span>Mikä Kepuli-TV on</h2>
+<p>
+  Kepuli-TV on selainlaajennus, joka toistaa <strong>käyttäjän oman</strong> Xtream Codes -IPTV-tilin
+  sisältöä selaimen välilehdessä. Laajennus ei sisällä eikä välitä mitään
+  mediasisältöä, kanavia tai tilejä: se on pelkkä soitin, joka on käyttökelvoton ilman
+  tunnuksia, jotka käyttäjä tuo itse.
+</p>
+<p>
+  Selosteen laatija ja laajennuksen kehittäjä on <strong>Samuli Vainio</strong>, yksityishenkilö.
+  Kepuli-TV on henkilökohtainen projekti eikä minkään yrityksen tuote.
+  Yhteydenotot: <a href="mailto:samuli.vainio@gmail.com">samuli.vainio@gmail.com</a>.
+</p>
+
+<h2><span class="num">2.</span>Mitä tietoja laajennus käsittelee</h2>
+<p>
+  Kaikki alla oleva syntyy käyttäjän omista toimista laajennuksen omassa välilehdessä ja
+  tallentuu <strong>vain paikallisesti</strong> selaimen laajennuskohtaiseen tallennustilaan
+  (<code>chrome.storage.local</code> ja <code>IndexedDB</code>) sillä laitteella, jolla laajennusta käytetään.
+</p>
+
+<div class="table-scroll">
+<table>
+  <thead>
+    <tr><th>Tieto</th><th>Mihin sitä käytetään</th><th>Missä se on</th></tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td>Yhteysasetukset: palvelimen osoite, portti, käyttäjätunnus ja salasana</td>
+      <td>Yhteyden muodostamiseen omaan IPTV-palvelimeen, jotta tunnuksia ei tarvitse syöttää uudelleen joka kerta</td>
+      <td><code>chrome.storage.local</code></td>
+    </tr>
+    <tr>
+      <td>Soittimen asetukset: tekstityskieli ja -koko, virtatila, aikuisviihteen piilotus, ulkoisen soittimen malli</td>
+      <td>Käyttöliittymän ja toiston asetusten muistamiseen</td>
+      <td><code>chrome.storage.local</code></td>
+    </tr>
+    <tr>
+      <td>Suosikit, katseluhistoria ja katselukohdat</td>
+      <td>Omien listojen näyttämiseen ja katselun jatkamiseen siitä mihin se jäi</td>
+      <td><code>chrome.storage.local</code></td>
+    </tr>
+    <tr>
+      <td>Sisältöluettelon välimuisti: kanava-, elokuva- ja sarjalistat, kategoriat sekä ohjelmaoppaan tiedot</td>
+      <td>Nopeuttamaan avaamista niin ettei koko luetteloa ladata uudelleen joka kerta</td>
+      <td><code>IndexedDB</code></td>
+    </tr>
+  </tbody>
+</table>
+</div>
+
+<p>
+  Laajennus ei kysy eikä käsittele nimeä, sähköpostiosoitetta, sijaintia, maksutietoja,
+  terveystietoja, yhteystietoja, viestejä eikä selaushistoriaa.
+</p>
+
+<h2><span class="num">3.</span>Minne tietoja lähetetään</h2>
+<p>
+  Laajennuksella ei ole omaa palvelinta eikä pilvipalvelua, eikä se lähetä mitään
+  kehittäjälle tai kolmansille osapuolille. Verkkoliikennettä syntyy vain seuraavasti:
+</p>
+<ul>
+  <li>
+    <strong>Oma IPTV-palvelimesi.</strong> Laajennus hakee luettelot, ohjelmatiedot ja
+    mediavirrat siltä osoitteelta, jonka syötät asetuksiin. Xtream Codes -rajapinnan
+    toimintatavan mukaisesti käyttäjätunnus ja salasana kulkevat pyynnön osoitteessa.
+    Palveluntarjoajasi näkee tämän liikenteen, mukaan lukien IP-osoitteesi ja sen mitä
+    katsot — se määräytyy <strong>heidän</strong> ehdoistaan ja tietosuojakäytännöstään, ei tästä selosteesta.
+  </li>
+  <li>
+    <strong>Kanavalogot ja kansikuvat.</strong> Selain hakee kuvat niistä osoitteista,
+    jotka palveluntarjoajasi on luetteloon merkinnyt. Osoitteet voivat osoittaa kolmannen
+    osapuolen palvelimelle, jolloin kyseinen palvelin näkee IP-osoitteesi ja selaintietosi
+    kuten minkä tahansa verkkosivun kuvaa haettaessa. Laajennus ei valitse näitä osoitteita
+    eikä lisää niihin tunnistetietoja.
+  </li>
+  <li>
+    <strong>Ulkoiselle soittimelle luovutus.</strong> Jos käytät luovutustoimintoa
+    (VLC, IINA, mpv), laajennus muodostaa toistolistatiedoston tai osoitteen ja antaa sen
+    käyttöjärjestelmällesi. Osoite sisältää IPTV-tunnuksesi, mutta se ei poistu laitteeltasi:
+    se välitetään paikallisesti asentamallesi soittimelle, joka avaa virran omalta palvelimeltasi.
+  </li>
+  <li>
+    <strong>Leikepöydälle kopiointi.</strong> Osoitteen kopiointi tapahtuu vain nimenomaisesta
+    klikkauksestasi. Kopioitu osoite sisältää tunnuksesi, joten ole varovainen minne liität sen.
+  </li>
+</ul>
+
+<h2><span class="num">4.</span>Tunnusten säilytys ja turvallisuus</h2>
+<div class="note">
+  <p>
+    IPTV-tunnuksesi tallennetaan selaimen laajennustallennustilaan <strong>salaamattomana</strong>,
+    kuten selainlaajennusten paikallinen data yleisesti. Kuka tahansa, jolla on pääsy
+    käyttäjätiliisi tai selainprofiiliisi kyseisellä laitteella, voi lukea ne.
+    Älä käytä laajennusta jaetulla tai valvomattomalla tietokoneella, jos tämä on ongelma.
+  </p>
+</div>
+<p>
+  Tunnukset lähetetään sellaisenaan sille osoitteelle, jonka itse annat. Jos palvelimesi
+  toimii <code>http</code>-yhteydellä, liikenne on salaamatonta myös verkossa — käytä
+  <code>https</code>-osoitetta aina kun palveluntarjoajasi tarjoaa sellaisen.
+</p>
+
+<h2><span class="num">5.</span>Oikeudet ja miksi niitä pyydetään</h2>
+<ul>
+  <li><strong><code>storage</code></strong> — asetusten, tunnusten, suosikkien, historian ja katselukohtien tallentamiseen laitteelle.</li>
+  <li><strong><code>unlimitedStorage</code></strong> — sisältöluettelon välimuistiin. Tyypillinen IPTV-luettelo on kymmeniä megatavuja ja ylittää selaimen oletuskiintiön.</li>
+  <li>
+    <strong>Valinnainen pääsy sivustoihin</strong> (<code>http://*/*</code>, <code>https://*/*</code>) —
+    laajennus <em>ei</em> pyydä tätä asennettaessa. Selain kysyy luvan vasta kun syötät oman
+    palvelimesi osoitteen, ja lupa myönnetään <strong>vain sille osoitteelle</strong>. Lupa on tarpeen,
+    koska palvelimesi osoitetta ei voi tietää etukäteen.
+  </li>
+</ul>
+<p>
+  Laajennuksessa ei ole sisältöskriptejä: se ei lue, muuta eikä havainnoi mitään muuta
+  välilehteä tai verkkosivua. Se toimii ainoastaan omassa välilehdessään.
+</p>
+
+<h2><span class="num">6.</span>Etäkoodi</h2>
+<p>
+  Laajennus ei lataa eikä suorita koodia paketin ulkopuolelta. Kaikki suoritettava
+  koodi — mukaan lukien mediakirjastot ja WebAssembly-äänipurkaja — toimitetaan
+  laajennuspaketin sisällä. Verkosta haetaan vain mediaa ja luettelodataa, ei koskaan koodia.
+</p>
+
+<h2><span class="num">7.</span>Tietojen poistaminen</h2>
+<ul>
+  <li><strong>Välimuisti:</strong> tyhjennettävissä laajennuksen asetuksista milloin tahansa
+    (<em>Asetukset → Tyhjennä välimuisti</em>).</li>
+  <li><strong>Kaikki laajennuksen tallentama:</strong> <em>Asetukset → Palauta alkutilaan</em> poistaa
+    tunnukset, asetukset, suosikit, katseluhistorian, katselukohdat ja koko välimuistitietokannan.</li>
+  <li><strong>Kaikki tiedot:</strong> laajennuksen poistaminen selaimesta poistaa kaiken sen tallentaman datan laitteelta. Kehittäjälle ei jää mitään poistettavaa, koska kehittäjälle ei ole toimitettu mitään.</li>
+</ul>
+
+<h2><span class="num">8.</span>Tietojen myynti ja luovutus</h2>
+<p>
+  Käyttäjätietoja ei myydä eikä siirretä kolmansille osapuolille. Tietoja ei käytetä
+  eikä siirretä laajennuksen käyttötarkoitukseen liittymättömiin tarkoituksiin eikä
+  luottokelpoisuuden arviointiin tai luotonantoon. Tämä on teknisesti taattua:
+  kehittäjä ei vastaanota tietoja lainkaan.
+</p>
+
+<h2><span class="num">9.</span>Lapset</h2>
+<p>
+  Laajennusta ei ole suunnattu alle 13-vuotiaille eikä se kerää tietoja lapsilta —
+  kuten ei keneltäkään muultakaan.
+</p>
+
+<h2><span class="num">10.</span>Rekisterinpitäjä ja GDPR</h2>
+<p>
+  Koska kehittäjä ei vastaanota, käsittele eikä säilytä henkilötietoja, laajennuksen
+  käytöstä ei synny kehittäjän ylläpitämää henkilörekisteriä. Laitteellasi olevat tiedot
+  ovat sinun hallinnassasi, ja voit poistaa ne yllä kuvatulla tavalla. Rekisteröidyn
+  oikeuksia (pääsy, oikaisu, poisto, siirrettävyys) koskevat pyynnöt kohdistuvat
+  käytännössä IPTV-palveluntarjoajaasi, joka on oma rekisterinpitäjänsä.
+</p>
+
+<h2><span class="num">11.</span>Muutokset</h2>
+<p>
+  Jos selostetta muutetaan, päivitetty versio julkaistaan tässä osoitteessa ja
+  sivun yläreunan päivämäärä muuttuu. Olennaisista muutoksista kerrotaan
+  laajennuksen julkaisutiedoissa.
+</p>
+
+<h2><span class="num">12.</span>Yhteystiedot</h2>
+<p>
+  Samuli Vainio · Tampere, Suomi<br>
+  <a href="mailto:samuli.vainio@gmail.com">samuli.vainio@gmail.com</a>
+</p>
+
+</main>
+
+<hr class="sep">
+
+<section id="en" lang="en">
+<h1>Privacy Policy</h1>
+<p class="meta">Applies to the Kepuli-TV browser extension · Effective 2 September 2026 · Version 1.0</p>
+
+<section class="summary">
+  <h2>In short</h2>
+  <ul>
+    <li><strong>The extension collects nothing.</strong> No analytics, no tracking, no ads, no user accounts.</li>
+    <li><strong>All data stays on your own device</strong> in the browser's extension storage.</li>
+    <li><strong>The developer never receives, sees or stores any of your data.</strong> The extension has no backend.</li>
+    <li><strong>Network requests go only to the server you point it at</strong> — your own IPTV server.</li>
+    <li><strong>The extension cannot see the pages you browse.</strong> It has no content scripts and requests access to no website at install time.</li>
+  </ul>
+</section>
+
+<h2><span class="num">1.</span>What Kepuli-TV is</h2>
+<p>
+  Kepuli-TV is a browser extension that plays back the content of the <strong>user's own</strong>
+  Xtream Codes IPTV account in a browser tab. It ships no media, no channel
+  list and no accounts of its own: it is a player, useless without credentials the user brings.
+</p>
+<p>
+  The developer and author of this policy is <strong>Samuli Vainio</strong>, a private individual.
+  Kepuli-TV is a personal project, not a company product.
+  Contact: <a href="mailto:samuli.vainio@gmail.com">samuli.vainio@gmail.com</a>.
+</p>
+
+<h2><span class="num">2.</span>What data the extension handles</h2>
+<p>
+  Everything below is created by the user's own actions inside the extension's own tab and is
+  stored <strong>locally only</strong>, in the browser's per-extension storage
+  (<code>chrome.storage.local</code> and <code>IndexedDB</code>) on the device where it is used.
+</p>
+
+<div class="table-scroll">
+<table>
+  <thead>
+    <tr><th>Data</th><th>Why it is kept</th><th>Where it lives</th></tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td>Connection settings: server address, port, username and password</td>
+      <td>To connect to your own IPTV server without retyping the credentials on every launch</td>
+      <td><code>chrome.storage.local</code></td>
+    </tr>
+    <tr>
+      <td>Player preferences: subtitle language and size, stream mode, adult-category hiding, external player template</td>
+      <td>To remember interface and playback settings</td>
+      <td><code>chrome.storage.local</code></td>
+    </tr>
+    <tr>
+      <td>Favourites, watch history and resume positions</td>
+      <td>To show your own lists and continue playback where it stopped</td>
+      <td><code>chrome.storage.local</code></td>
+    </tr>
+    <tr>
+      <td>Catalogue cache: channel, movie and series listings, categories and programme guide data</td>
+      <td>To avoid re-downloading the whole catalogue on every launch</td>
+      <td><code>IndexedDB</code></td>
+    </tr>
+  </tbody>
+</table>
+</div>
+
+<p>
+  The extension does not ask for or handle names, email addresses, location, payment
+  information, health information, contacts, messages or browsing history.
+</p>
+
+<h2><span class="num">3.</span>Where data is sent</h2>
+<p>
+  The extension has no server or cloud service of its own and sends nothing to the developer
+  or to third parties. Network traffic occurs only as follows:
+</p>
+<ul>
+  <li>
+    <strong>Your own IPTV server.</strong> The extension fetches catalogues, programme data and
+    media streams from the address you enter in the settings. As the Xtream Codes API works,
+    the username and password travel in the request URL. Your provider sees this traffic,
+    including your IP address and what you watch — governed by <strong>their</strong> terms and
+    privacy policy, not by this one.
+  </li>
+  <li>
+    <strong>Channel logos and cover art.</strong> The browser loads images from the addresses
+    your provider put in the listing. Those may point to a third-party server, which then sees
+    your IP address and browser details, exactly as when any web page loads an image. The
+    extension does not choose these addresses and adds no identifiers to them.
+  </li>
+  <li>
+    <strong>Handoff to an external player.</strong> If you use the handoff feature (VLC, IINA, mpv),
+    the extension builds a playlist file or a URL and gives it to your operating system. The
+    address contains your IPTV credentials, but it does not leave your device: it is passed
+    locally to the player you installed, which opens the stream from your own server.
+  </li>
+  <li>
+    <strong>Copy to clipboard.</strong> A stream URL is copied only when you explicitly click to
+    copy it. That URL contains your credentials, so take care where you paste it.
+  </li>
+</ul>
+
+<h2><span class="num">4.</span>Credential storage and security</h2>
+<div class="note">
+  <p>
+    Your IPTV credentials are stored <strong>unencrypted</strong> in the browser's extension storage,
+    as local extension data generally is. Anyone with access to your user account or browser
+    profile on that device can read them. Do not use the extension on a shared or unattended
+    computer if that is a concern.
+  </p>
+</div>
+<p>
+  Credentials are sent as-is to the address you supply. If your server uses <code>http</code>,
+  that traffic is unencrypted on the network too — use an <code>https</code> address whenever
+  your provider offers one.
+</p>
+
+<h2><span class="num">5.</span>Permissions and why they are requested</h2>
+<ul>
+  <li><strong><code>storage</code></strong> — to keep settings, credentials, favourites, history and resume positions on the device.</li>
+  <li><strong><code>unlimitedStorage</code></strong> — for the catalogue cache. A typical IPTV catalogue is tens of megabytes and exceeds the browser's default quota.</li>
+  <li>
+    <strong>Optional host access</strong> (<code>http://*/*</code>, <code>https://*/*</code>) —
+    <em>not</em> requested at install time. The browser asks for permission only when you enter
+    your own server address, and grants it <strong>for that address alone</strong>. It is needed because
+    your server's address cannot be known in advance.
+  </li>
+</ul>
+<p>
+  The extension has no content scripts: it does not read, modify or observe any other tab or
+  web page. It operates solely within its own tab.
+</p>
+
+<h2><span class="num">6.</span>Remote code</h2>
+<p>
+  The extension neither loads nor executes any code from outside its package. All executable
+  code — including the media libraries and the WebAssembly audio decoder — ships inside the
+  extension package. Only media and catalogue data are fetched from the network; never code.
+</p>
+
+<h2><span class="num">7.</span>Deleting your data</h2>
+<ul>
+  <li><strong>Cache:</strong> can be cleared from the extension's settings at any time
+    (<em>Asetukset → Tyhjennä välimuisti</em>, the interface is in Finnish).</li>
+  <li><strong>Everything the extension stored:</strong> <em>Asetukset → Palauta alkutilaan</em> (&ldquo;reset&rdquo;) removes the credentials,
+    preferences, favourites, watch history, resume positions and the whole cache database.</li>
+  <li><strong>Everything:</strong> uninstalling the extension removes all data it stored on the device. There is nothing for the developer to delete, because nothing was ever sent to the developer.</li>
+</ul>
+
+<h2><span class="num">8.</span>Sale and transfer of data</h2>
+<p>
+  User data is not sold or transferred to third parties. It is not used or transferred for
+  purposes unrelated to the extension's single purpose, nor to determine creditworthiness or
+  for lending purposes. This is guaranteed technically: the developer receives no data at all.
+</p>
+
+<h2><span class="num">9.</span>Children</h2>
+<p>
+  The extension is not directed at children under 13 and collects no data from them — as it
+  collects none from anyone.
+</p>
+
+<h2><span class="num">10.</span>Data controller and GDPR</h2>
+<p>
+  Because the developer neither receives, processes nor stores personal data, using the
+  extension creates no personal data register held by the developer. The data on your device
+  is under your control and can be deleted as described above. Data subject requests (access,
+  rectification, erasure, portability) are in practice directed at your IPTV provider, which is
+  its own controller.
+</p>
+
+<h2><span class="num">11.</span>Changes</h2>
+<p>
+  If this policy changes, the updated version is published at this address and the date at the
+  top of the page changes. Material changes are noted in the extension's release notes.
+</p>
+
+<h2><span class="num">12.</span>Contact</h2>
+<p>
+  Samuli Vainio · Tampere, Finland<br>
+  <a href="mailto:samuli.vainio@gmail.com">samuli.vainio@gmail.com</a>
+</p>
+</section>
+
+<footer>
+  <p>Kepuli-TV · © 2026 Samuli Vainio · <a href="mailto:samuli.vainio@gmail.com">samuli.vainio@gmail.com</a></p>
+</footer>
+
+</div>
+</body>
+</html>

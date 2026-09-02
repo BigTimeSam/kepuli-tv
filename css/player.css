@@ -1,0 +1,558 @@
+:root {
+  --bg: #0a0c11;
+  --panel: #11141c;
+  --panel-2: #161a24;
+  --row-hover: #1c2130;
+  --border: #232838;
+  --text: #e7eaf2;
+  --muted: #8d95aa;
+  --dim: #626a7e;
+  --accent: #7c5cff;
+  --accent-2: #22d3ee;
+  --warn: #e0a458;
+  --danger: #ff5c7a;
+  --row-h: 50px;          /* sama luku kuin ROW_H app.js:ssä */
+  --sep-h: 26px;          /* sama luku kuin SEP_H app.js:ssä */
+  --topbar-h: 52px;
+  --epg-row: 48px;         /* sama luku kuin ROW_H epggrid.js:ssä */
+  --epg-chan-w: 210px;
+  --epg-line: #1b2030;
+  font-synthesis-weight: none;
+}
+
+* { box-sizing: border-box; }
+
+html, body {
+  height: 100%;
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font: 13px/1.45 -apple-system, BlinkMacSystemFont, "Segoe UI", Inter, system-ui, sans-serif;
+  overflow: hidden;
+}
+
+button, input, select { font: inherit; color: inherit; }
+h2, h3 { font-weight: 600; }
+
+/* ---------------------------------------------------------- yläpalkki */
+
+.topbar {
+  display: flex; align-items: center; gap: 14px;
+  height: var(--topbar-h); padding: 0 14px;
+  background: var(--panel); border-bottom: 1px solid var(--border);
+}
+
+.brand { display: flex; align-items: center; gap: 8px; font-weight: 650; letter-spacing: -0.01em; white-space: nowrap; }
+/* Sama televisio kuin laajennuksen kuvakkeessa. 48px lähde, jotta
+   tunnus pysyy terävänä myös tarkkapikselinäytöllä. */
+.brand-mark { width: 18px; height: 18px; background: url("../icons/icon48.png") center / contain no-repeat; }
+
+.tabs { display: flex; gap: 2px; background: var(--panel-2); padding: 3px; border-radius: 9px; }
+.tabs button { border: 0; background: transparent; color: var(--muted); padding: 5px 11px; border-radius: 6px; cursor: pointer; white-space: nowrap; }
+.tabs button:hover { color: var(--text); }
+.tabs button.active { background: var(--accent); color: #fff; }
+
+.search { position: relative; display: flex; align-items: center; flex: 1 1 200px; max-width: 380px; }
+.search svg { position: absolute; left: 10px; width: 14px; height: 14px; fill: none; stroke: var(--muted); stroke-width: 1.8; stroke-linecap: round; pointer-events: none; }
+.search input { width: 100%; padding: 7px 10px 7px 30px; background: var(--panel-2); border: 1px solid var(--border); border-radius: 8px; outline: none; }
+.search input:focus { border-color: var(--accent); }
+.search input::-webkit-search-cancel-button { filter: invert(0.6); }
+
+.topbar-end { margin-left: auto; display: flex; align-items: center; gap: 8px; }
+.account-meta { color: var(--muted); font-size: 11.5px; white-space: nowrap; }
+.account-meta .warn { color: var(--warn); }
+
+button.ghost {
+  background: var(--panel-2); border: 1px solid var(--border);
+  border-radius: 8px; padding: 6px 11px; cursor: pointer;
+}
+button.ghost:hover { background: var(--row-hover); border-color: #333a4f; }
+button.ghost:disabled { opacity: .4; cursor: default; }
+button.ghost.danger { color: var(--danger); }
+button.ghost.on { color: #ffc857; border-color: #4a4230; }
+button.primary { background: var(--accent); border: 1px solid var(--accent); color: #fff; border-radius: 8px; padding: 6px 14px; cursor: pointer; font-weight: 550; }
+button.primary:hover { filter: brightness(1.1); }
+
+/* -------------------------------------------------------------- runko */
+
+main {
+  display: grid;
+  grid-template-columns: 224px minmax(300px, 380px) 1fr;
+  grid-template-rows: minmax(0, 1fr);
+  height: calc(100vh - var(--topbar-h));
+}
+.groups, .listcol, .stage { min-height: 0; }
+/* Sarakkeet nimetään erikseen, koska automaattinen sijoittelu siirtäisi
+   loput vasemmalle heti kun jokin lapsi piilotetaan — silloin lista
+   valuisi nollan levyiseen sarakkeeseen ja katoaisi näkyvistä. */
+main > .groups { grid-column: 1; }
+main > .listcol { grid-column: 2; }
+main > .stage { grid-column: 3; }
+
+main.guide {
+  grid-template-columns: minmax(0, 1fr) minmax(280px, 24vw);
+  grid-template-rows: minmax(150px, 21vh) minmax(0, 1fr);
+}
+main.guide > .groups, main.guide > .listcol { display: none; }
+main.guide > .epgview { grid-area: 1 / 1; }
+main.guide > .stage { grid-area: 1 / 2; }
+main.guide > .epg { grid-area: 2 / 1 / 3 / 3; }
+/* Ohjelmatiedot näkyvät oppaan omassa paneelissa, eikä kapeaan
+   soitinlaatikkoon mahdu kuutta painiketta. */
+main.guide .infostrip,
+main.guide #mode,
+main.guide #btn-pip,
+main.guide #btn-copy { display: none; }
+
+.groups { background: var(--panel); border-right: 1px solid var(--border); display: flex; flex-direction: column; }
+.groups-filter { padding: 8px; border-bottom: 1px solid var(--border); }
+.groups-filter input {
+  width: 100%; padding: 5px 8px; background: var(--panel-2);
+  border: 1px solid var(--border); border-radius: 7px; outline: none; font-size: 12px;
+}
+.groups-filter input:focus { border-color: var(--accent); }
+.groups-list { flex: 1; overflow-y: auto; padding: 6px; }
+
+.group { display: flex; align-items: center; gap: 8px; padding: 6px 9px; border-radius: 7px; cursor: pointer; color: var(--muted); }
+.group:hover { background: var(--panel-2); color: var(--text); }
+.group-name { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.group-count { font-size: 11px; color: var(--dim); font-variant-numeric: tabular-nums; }
+.group.all { color: var(--text); font-weight: 550; }
+/* Sama korostus kuin välilehdillä ja tarkennesiruilla: valinta on koko rivi,
+   ei reunaviiva. Viimeisenä, jotta se voittaa myös .all-rivin värin. */
+.group.active, .group.active:hover { background: var(--accent); color: #fff; }
+.group.active .group-count { color: #fff; opacity: .65; }
+
+/* Ryhmän tähti näkyy vasta osoitettaessa tai kun se on päällä: sivupalkissa
+   on kymmeniä rivejä eikä yhdelläkään ole tähteä valtaosan ajasta. Tila on
+   silti aina varattu, jottei nimi hyppää osoittimen alla. */
+.group-star {
+  width: 18px; height: 18px; flex: none; display: grid; place-items: center;
+  border: 0; background: transparent; color: #4b5368; cursor: pointer;
+  border-radius: 5px; font-size: 12px; line-height: 1; opacity: 0;
+}
+.group:hover .group-star, .group-star.on, .group-star:focus-visible { opacity: 1; }
+/* Vain painike reagoi: tähdettömän rivin varaus on tyhjä div, eikä siihen
+   saa syttyä korostusta jonka takana ei ole nappia. */
+button.group-star:hover { color: var(--text); background: #262c3d; }
+.group-star.on { color: #ffc857; }
+.group.active .group-star { color: rgba(255, 255, 255, .6); }
+.group.active .group-star:hover { background: rgba(0, 0, 0, .18); color: #fff; }
+.group.active .group-star.on { color: #ffd884; }
+
+.listcol { display: flex; flex-direction: column; border-right: 1px solid var(--border); min-width: 0; background: #0d1016; }
+
+.crumbs { display: flex; align-items: center; gap: 8px; padding: 8px 10px; border-bottom: 1px solid var(--border); color: var(--muted); }
+/* Oma display voittaa selaimen [hidden]-säännön, joten se on kumottava
+   erikseen — muuten piilotettu murupolku jättää listan päälle raidan. */
+.crumbs[hidden] { display: none; }
+.crumbs button { background: var(--panel-2); border: 1px solid var(--border); border-radius: 6px; padding: 3px 8px; cursor: pointer; }
+.crumbs span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--text); }
+
+/* ------------------------------------------------ tarkennesuodattimet */
+
+.subcats {
+  display: flex; gap: 5px; flex-wrap: wrap;
+  padding: 8px 10px; border-bottom: 1px solid var(--border); background: var(--panel);
+  /* Korkeus tulee sisällöstä: harvat tarkenteet vievät yhden rivin eikä
+     tyhjää varata. Katto on mitoitettu neljään täyteen siruriviin (rivin
+     nousu 30,6 px + 16 px pehmusteet = 133 px) plus kymmenisen pikseliä,
+     jotta viidennen rivin reuna näkyy ja kertoo vieritettävästä. Matalassa
+     ikkunassa vh-raja pitää listan pääosassa. */
+  max-height: min(144px, 20vh); overflow-y: auto;
+}
+.subcats[hidden] { display: none; }
+/* Siru on säiliö kahdelle painikkeelle: valinta ja tähti. Ulkoasu — pohja,
+   reuna, korostus — pysyy säiliöllä, jotta kumpikin nappi näyttää osalta
+   samaa sirua eikä omalta painikkeeltaan. */
+.chip {
+  display: inline-flex; align-items: center;
+  background: var(--panel-2); border: 1px solid var(--border); border-radius: 99px;
+  color: var(--muted); font-size: 12px; white-space: nowrap;
+}
+.chip:hover { color: var(--text); border-color: #333a4f; }
+.chip.active { background: var(--accent); border-color: var(--accent); color: #fff; }
+.chip-main {
+  background: none; border: 0; border-radius: 99px; padding: 3px 4px 3px 11px;
+  color: inherit; font: inherit; cursor: pointer;
+}
+.chip.plain .chip-main { padding-right: 11px; }
+.chip .n { opacity: .6; margin-left: 5px; font-variant-numeric: tabular-nums; }
+/* Ahtaasti: sirupalkki rivittyy kapeaan sarakkeeseen, joten jokainen
+   tähden viemä pikseli maksaa rivin korkeuden verran koko palkissa. */
+.chip-star {
+  border: 0; background: none; padding: 0 7px 0 0;
+  color: #4b5368; cursor: pointer; font-size: 10.5px; line-height: 1;
+}
+.chip-star:hover { color: var(--text); }
+.chip-star.on { color: #ffc857; }
+.chip.active .chip-star { color: rgba(255, 255, 255, .55); }
+.chip.active .chip-star:hover { color: #fff; }
+.chip.active .chip-star.on { color: #ffd884; }
+
+/* --------------------------------------------------- sarjan tiedot */
+
+.detail { border-bottom: 1px solid var(--border); background: var(--panel); }
+.detail-main { display: flex; gap: 12px; padding: 12px; }
+.detail-cover { width: 76px; height: 114px; flex: none; object-fit: cover; border-radius: 7px; background: var(--panel-2); }
+.detail-body { min-width: 0; flex: 1; }
+.detail-title { font-weight: 600; font-size: 14px; margin-bottom: 3px; }
+.detail-meta { color: var(--muted); font-size: 11.5px; margin-bottom: 6px; display: flex; gap: 8px; flex-wrap: wrap; }
+.detail-plot { color: var(--muted); font-size: 12px; max-height: 66px; overflow-y: auto; }
+.seasons { display: flex; gap: 5px; padding: 0 12px 10px; flex-wrap: wrap; }
+.season { background: var(--panel-2); border: 1px solid var(--border); border-radius: 7px; padding: 3px 10px; cursor: pointer; color: var(--muted); }
+.season:hover { color: var(--text); }
+.season.active { background: var(--accent); border-color: var(--accent); color: #fff; }
+
+/* ------------------------------------------------------------ lista */
+
+.list { flex: 1; overflow-y: auto; outline: none; position: relative; }
+.vlist-spacer { position: relative; width: 100%; }
+.vlist-window { position: absolute; top: 0; left: 0; right: 0; will-change: transform; }
+
+.row {
+  display: flex; align-items: center; gap: 9px;
+  height: var(--row-h); padding: 0 10px; cursor: pointer;
+  border-bottom: 1px solid rgba(35, 40, 56, .45);
+}
+.row:hover { background: var(--row-hover); }
+.row.selected { background: #202538; }
+.row.playing { background: linear-gradient(90deg, rgba(124, 92, 255, .2), transparent 70%); box-shadow: inset 2px 0 0 var(--accent); }
+.row.unplayable .row-name { color: var(--dim); }
+
+.row-star { width: 22px; height: 22px; flex: none; display: grid; place-items: center; border: 0; background: transparent; color: #394052; cursor: pointer; border-radius: 5px; font-size: 13px; }
+.row-star:hover { color: var(--text); background: #262c3d; }
+.row-star.on { color: #ffc857; }
+
+/* Suosikkikategoria ei ole toistettava kohde vaan portti listaan: logon
+   paikalla on pinottu lista ja rivin lopussa chevron kuten sarjalla. */
+.row-cat-icon {
+  width: 30px; height: 24px; flex: none; display: grid; place-items: center;
+  border-radius: 4px; background: var(--panel-2);
+}
+.row-cat-icon svg {
+  width: 15px; height: 15px; fill: none; stroke: var(--muted);
+  stroke-width: 1.7; stroke-linecap: round;
+}
+.row-cat .row-name { font-weight: 550; }
+.row-cat:hover .row-cat-icon svg { stroke: var(--text); }
+
+.row-logo { width: 30px; height: 24px; flex: none; object-fit: contain; border-radius: 3px; }
+.row-logo.blank { visibility: hidden; }
+.row-poster { width: 26px; height: 38px; flex: none; object-fit: cover; border-radius: 3px; background: var(--panel-2); }
+.row-poster.blank { visibility: hidden; }
+
+.row-body { flex: 1; min-width: 0; }
+.row-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.row-sub { display: flex; align-items: center; gap: 6px; font-size: 11px; color: var(--dim); margin-top: 2px; }
+.row-sub .txt { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.row-progress { flex: none; width: 42px; height: 3px; border-radius: 2px; background: #262c3d; overflow: hidden; }
+.row-progress i { display: block; height: 100%; background: var(--accent); }
+
+.row-badge { font-size: 10.5px; color: var(--muted); background: var(--panel-2); border: 1px solid var(--border); padding: 1px 6px; border-radius: 5px; white-space: nowrap; flex: none; }
+.row-badge.warn { color: var(--warn); border-color: #3d3627; }
+.row-badge.archive { color: var(--accent-2); border-color: #1f3a42; }
+.row-ep { font-size: 11px; color: var(--muted); font-variant-numeric: tabular-nums; white-space: nowrap; flex: none; }
+.row-chevron { color: #4b5368; flex: none; }
+.row-resume { flex: none; width: 34px; height: 3px; border-radius: 2px; background: #262c3d; overflow: hidden; }
+.row-resume i { display: block; height: 100%; background: var(--accent-2); }
+
+/* Poisto näkyy vasta osoitettaessa: se on kokoelmien harvinaisin ele
+   eikä saa kilpailla tähden kanssa jokaisella rivillä. */
+.row-x {
+  width: 20px; height: 20px; flex: none; display: grid; place-items: center;
+  border: 0; background: transparent; color: #394052; cursor: pointer;
+  border-radius: 5px; font-size: 14px; line-height: 1; opacity: 0;
+}
+.row:hover .row-x, .row-x:focus-visible { opacity: 1; }
+.row-x:hover { color: var(--danger); background: #2b2230; }
+
+/* Päivä- ja tyyppiotsikot suosikeissa ja historiassa. */
+.rowgroup { display: flow-root; }
+.daysep {
+  height: var(--sep-h); display: flex; align-items: center; gap: 8px;
+  padding: 0 10px; font-size: 10.5px; letter-spacing: .06em; text-transform: uppercase;
+  color: var(--dim); background: var(--panel); border-bottom: 1px solid var(--border);
+}
+.daysep::after { content: ""; flex: 1; height: 1px; background: var(--border); }
+
+.listinfo { padding: 7px 10px; border-top: 1px solid var(--border); color: var(--muted); font-size: 11.5px; background: var(--panel); font-variant-numeric: tabular-nums; display: flex; align-items: center; gap: 8px; }
+.listinfo .spacer { flex: 1; }
+.listinfo button { background: none; border: 0; padding: 0; font: inherit; color: var(--muted); cursor: pointer; text-decoration: underline; text-underline-offset: 2px; }
+.listinfo button:hover { color: var(--text); }
+.listinfo button.armed { color: var(--danger); }
+.empty { padding: 34px 20px; color: var(--muted); text-align: center; }
+.empty strong { display: block; color: var(--text); margin-bottom: 6px; font-weight: 600; }
+.empty button { margin-top: 12px; }
+
+/* ----------------------------------------------------------- soitin */
+
+.stage { display: flex; flex-direction: column; min-width: 0; background: #06070a; }
+.videowrap { flex: 1; position: relative; background: #000; min-height: 0; }
+video { width: 100%; height: 100%; display: block; background: #000; }
+
+/* Selaimen oletustekstitys on läpinäkyvällä pohjalla ja katoaa vaaleaan
+   kuvaan. Laatikko on tummennettu ja rivinväli väljennetty, koska
+   kaksirivinen repliikki on tavallisin tapaus. */
+video::cue { background: rgba(0, 0, 0, .72); color: #fff; line-height: 1.35; }
+
+/* Koko suhteessa selaimen omaan mittaan, joka johdetaan videon korkeudesta:
+   kiinteä pikselikoko kutistuisi olemattomiin koko näytön tilassa. Selaimen
+   oma mitta on tarkoitettu television katseluetäisyydelle ja on työpöydällä
+   turhan iso, joten koko asteikko on kerrottu 0,75:llä — myös "iso" on nyt
+   lähellä oletusta. Sovelluksen oletus on "pieni" (ks. config.js). */
+body[data-subsize="small"] video::cue { font-size: 55%; }
+body[data-subsize="medium"] video::cue { font-size: 75%; }
+body[data-subsize="large"] video::cue { font-size: 105%; }
+
+.overlay { position: absolute; inset: 0; display: grid; place-items: center; background: radial-gradient(circle at 50% 45%, #12151f, #06070a 70%); text-align: center; padding: 24px; }
+.overlay[hidden] { display: none; }
+.overlay-inner { max-width: 480px; }
+.overlay-title { font-size: 15px; font-weight: 600; margin-bottom: 6px; }
+.overlay-text { color: var(--muted); }
+.overlay-actions { margin-top: 14px; display: flex; gap: 8px; justify-content: center; }
+.overlay.loading .overlay-title::after {
+  content: ""; display: inline-block; width: 12px; height: 12px; margin-left: 8px;
+  border: 2px solid var(--accent); border-right-color: transparent; border-radius: 50%;
+  animation: spin .8s linear infinite; vertical-align: -1px;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+
+.statbadge {
+  position: absolute; top: 10px; right: 10px;
+  background: rgba(10, 12, 17, .78); border: 1px solid var(--border);
+  border-radius: 7px; padding: 4px 8px; font-size: 11px; color: var(--muted);
+  font-variant-numeric: tabular-nums; pointer-events: none;
+}
+
+.infostrip { border-top: 1px solid var(--border); background: var(--panel); padding: 9px 12px; max-height: 132px; overflow-y: auto; }
+.infostrip[hidden] { display: none; }
+.epgnow { display: flex; align-items: baseline; gap: 8px; }
+.epgnow-time { color: var(--accent-2); font-variant-numeric: tabular-nums; flex: none; font-size: 11.5px; }
+.epgnow-title { font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.epgbar { height: 3px; background: #262c3d; border-radius: 2px; margin: 6px 0; overflow: hidden; }
+.epgbar i { display: block; height: 100%; background: linear-gradient(90deg, var(--accent), var(--accent-2)); }
+.epgdesc { color: var(--muted); font-size: 12px; }
+.epgnext { color: var(--dim); font-size: 11.5px; margin-top: 5px; }
+.vodinfo { display: flex; gap: 10px; }
+.vodinfo img { width: 54px; height: 80px; object-fit: cover; border-radius: 5px; flex: none; background: var(--panel-2); }
+.vodinfo .meta { color: var(--muted); font-size: 11.5px; margin-bottom: 4px; display: flex; gap: 8px; flex-wrap: wrap; }
+.vodinfo .plot { color: var(--muted); font-size: 12px; }
+
+.nowbar { display: flex; align-items: center; gap: 12px; padding: 9px 12px; background: var(--panel); border-top: 1px solid var(--border); }
+.now { min-width: 0; flex: 1; }
+.now-title { font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.now-sub { color: var(--muted); font-size: 11.5px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.now-actions { display: flex; gap: 6px; align-items: center; flex: none; }
+.now-actions select { background: var(--panel-2); border: 1px solid var(--border); border-radius: 8px; padding: 6px 8px; }
+/* Raidan nimi voi olla pitkä ("Ruotsi · Forced Narrative"): valitsin ei saa
+   työntää muita painikkeita ulos riviltä. */
+.now-actions .subs { max-width: 190px; }
+.now-actions .subs[hidden], .now-actions .subsize[hidden] { display: none; }
+
+/* --------------------------------------------------------- dialogit */
+
+dialog { border: 1px solid var(--border); background: var(--panel); color: var(--text); border-radius: 14px; padding: 0; box-shadow: 0 24px 70px rgba(0, 0, 0, .6); }
+dialog::backdrop { background: rgba(5, 6, 10, .66); backdrop-filter: blur(2px); }
+
+.setup { padding: 20px 22px; width: min(620px, 92vw); }
+.setup h2 { margin: 0 0 6px; font-size: 16px; }
+.setup h3 { margin: 18px 0 8px; font-size: 13px; color: var(--muted); font-weight: 550; }
+.hint { color: var(--muted); margin: 0 0 14px; font-size: 12px; }
+.hint code { background: var(--panel-2); padding: 1px 5px; border-radius: 4px; font-size: 11px; }
+.hint.warn { color: var(--warn); margin: 14px 0 0; }
+
+.field { display: flex; flex-direction: column; gap: 4px; margin-bottom: 10px; }
+.field[hidden] { display: none; }        /* oma display voittaa [hidden]:n, ks. .crumbs */
+.field span code { background: var(--panel-2); padding: 1px 4px; border-radius: 4px; }
+.field span { color: var(--muted); font-size: 11.5px; }
+.field input, .field select { background: var(--panel-2); border: 1px solid var(--border); border-radius: 8px; padding: 7px 9px; outline: none; width: 100%; }
+.field input:focus, .field select:focus { border-color: var(--accent); }
+.grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 0 10px; }
+.grid[hidden] { display: none; }         /* oma display voittaa [hidden]:n, ks. .crumbs */
+.grid .w-scheme { grid-column: span 1; }
+.grid .w-host { grid-column: span 2; }
+.grid .w-port { grid-column: span 1; }
+.grid .w-lang { grid-column: span 2; }
+.grid .field:nth-child(n+4) { grid-column: span 2; }
+
+/* Yhteystavan valinta. Sirut olisivat tässä liian kevyitä: valinta muuttaa
+   koko lomakkeen, joten se saa näyttää siltä miltä valinta näyttää. */
+.radios { display: flex; gap: 8px; margin-top: 3px; }
+.radio {
+  display: flex; align-items: center; gap: 7px; cursor: pointer;
+  padding: 7px 12px; border: 1px solid var(--border); border-radius: 9px;
+  background: var(--panel-2); color: var(--muted);
+}
+.radio:hover { color: var(--text); border-color: #333a4f; }
+.radio input { accent-color: var(--accent); width: 15px; height: 15px; margin: 0; }
+.radio:has(input:checked) { border-color: var(--accent); color: var(--text); }
+
+.toggles { display: flex; flex-direction: column; gap: 7px; }
+.toggle { display: flex; align-items: center; gap: 8px; color: var(--muted); cursor: pointer; }
+.toggle input { accent-color: var(--accent); width: 15px; height: 15px; }
+
+.account-box { background: var(--panel-2); border: 1px solid var(--border); border-radius: 9px; padding: 10px 12px; font-size: 12px; color: var(--muted); }
+.account-box[hidden] { display: none; }
+.account-box b { color: var(--text); font-weight: 600; }
+.account-box .cols { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px 12px; margin-top: 6px; }
+
+.setup-actions { display: flex; align-items: center; gap: 8px; margin-top: 16px; flex-wrap: wrap; }
+/* Peruuttamattomat toiminnot omaan reunaansa, vastapäätä Yhdistä-nappia:
+   erotinviivaa tarvittiin vain niin kauan kuin ne olivat samassa nipussa
+   sen kanssa jota katsoja oikeasti hakee. */
+.setup-actions .spacer { flex: 1; }
+.setup-actions .armed { color: #fff; background: var(--danger); border-color: var(--danger); }
+
+.progress { padding: 20px 22px; width: min(420px, 90vw); }
+.progress-title { font-weight: 600; margin-bottom: 12px; }
+.bar { height: 6px; background: var(--panel-2); border-radius: 99px; overflow: hidden; }
+/* Palkki skaalataan, ei levennetä: leveyden ja marginaalin muutos pakottaisi
+   asettelun uusiksi joka ruudulla, ja määrittelemätön lataus pyörii minuutteja.
+   Liukuväri puristuu näkyvään osaan sen sijaan että siitä näkyisi vain alkupää
+   — kuuden pikselin palkissa ero ei erotu. Täyttö tulee JS:stä: scaleX(0…1). */
+.bar-fill { height: 100%; width: 100%; transform: scaleX(0); transform-origin: 0 50%; background: linear-gradient(90deg, var(--accent), var(--accent-2)); transition: transform .15s ease; }
+.bar.indeterminate .bar-fill { animation: slide 1.1s ease-in-out infinite; transition: none; }
+/* scaleX(.35) vastaa vanhaa 35 %:n leveyttä, ja koska translateX laskee
+   prosentit skaalaamattomasta leveydestä, siirtymän luvut ovat samat kuin
+   ennen margin-leftissä: reunan takaa reunan taakse. */
+@keyframes slide {
+  0% { transform: translateX(-35%) scaleX(.35); }
+  100% { transform: translateX(100%) scaleX(.35); }
+}
+.progress-text { color: var(--muted); font-size: 12px; margin-top: 10px; font-variant-numeric: tabular-nums; }
+
+.toast { position: fixed; bottom: 18px; left: 50%; transform: translateX(-50%); background: var(--panel-2); border: 1px solid var(--border); padding: 9px 16px; border-radius: 10px; box-shadow: 0 10px 32px rgba(0, 0, 0, .5); z-index: 10; max-width: 70vw; }
+.toast[hidden] { display: none; }
+
+/* --------------------------------------------------- ohjelmaopas */
+
+.epgview, .epg { min-width: 0; min-height: 0; }
+.epgview[hidden], .epg[hidden] { display: none; }
+
+.epgview {
+  display: flex; flex-direction: column; gap: 4px;
+  padding: 12px 14px; overflow: hidden;
+  background: var(--panel); border-bottom: 1px solid var(--border);
+}
+.epgv-head { display: flex; align-items: center; gap: 10px; }
+.epgv-logo { width: 44px; height: 34px; object-fit: contain; flex: none; }
+.epgv-logo.blank { visibility: hidden; }
+.epgv-chan { min-width: 0; flex: 1; }
+.epgv-name { font-weight: 600; font-size: 14px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.epgv-meta { color: var(--muted); font-size: 11.5px; display: flex; gap: 8px; flex-wrap: wrap; }
+.epgv-actions { display: flex; gap: 6px; flex: none; }
+.epgv-slot { color: var(--accent-2); font-variant-numeric: tabular-nums; font-size: 12px; margin-top: 4px; }
+.epgv-slot b { color: var(--text); font-weight: 600; font-size: 13px; margin-left: 8px; }
+.epgv-desc { color: var(--muted); font-size: 12px; overflow-y: auto; min-height: 0; }
+
+.epg { display: flex; flex-direction: column; background: #0b0e14; }
+
+.epg-bar {
+  display: flex; align-items: center; gap: 8px; flex-wrap: wrap;
+  padding: 7px 10px; background: var(--panel); border-top: 1px solid var(--border);
+  border-bottom: 1px solid var(--border);
+}
+.epg-bar .spacer { flex: 1; }
+.epg-bar button.ghost { padding: 4px 9px; }
+.epg-select { background: var(--panel-2); border: 1px solid var(--border); border-radius: 8px; padding: 5px 8px; max-width: 220px; }
+.epg-nav { display: flex; gap: 3px; }
+.epg-days { display: flex; gap: 3px; overflow-x: auto; }
+.epg-day {
+  background: transparent; border: 1px solid transparent; border-radius: 7px;
+  padding: 4px 9px; cursor: pointer; color: var(--muted); white-space: nowrap;
+}
+.epg-day:hover { color: var(--text); background: var(--panel-2); }
+.epg-day.active { background: var(--panel-2); border-color: var(--border); color: var(--text); }
+.epg-clock { color: var(--muted); font-size: 11.5px; font-variant-numeric: tabular-nums; white-space: nowrap; }
+
+.epg-body {
+  flex: 1; min-height: 0;
+  display: grid;
+  grid-template-columns: var(--epg-chan-w) minmax(0, 1fr);
+  grid-template-rows: 28px minmax(0, 1fr);
+}
+
+.epg-corner {
+  grid-area: 1 / 1; display: flex; align-items: center; padding: 0 10px;
+  background: var(--panel); border-right: 1px solid var(--border); border-bottom: 1px solid var(--border);
+  color: var(--text); font-weight: 550; font-size: 11.5px;
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+
+/* Otsikkorivi ja kanavasarake vierivät ruudukon mukana translatella:
+   omat vierityspalkit näkyisivät kolmena päällekkäisenä palkkina. */
+.epg-times { grid-area: 1 / 2; overflow: hidden; position: relative; background: var(--panel); border-bottom: 1px solid var(--border); }
+.epg-times-inner { position: relative; height: 100%; will-change: transform; }
+.epg-tick {
+  position: absolute; top: 0; bottom: 0; display: flex; align-items: center;
+  padding-left: 7px; color: var(--muted); font-size: 11.5px;
+  font-variant-numeric: tabular-nums; border-left: 1px solid var(--epg-line);
+}
+.epg-tick.hour { border-left-color: #2b3247; color: var(--text); }
+.epg-tick.day { border-left-color: var(--accent); color: var(--accent-2); font-weight: 600; }
+
+.epg-chans { grid-area: 2 / 1; overflow: hidden; position: relative; background: var(--panel); border-right: 1px solid var(--border); }
+.epg-chans-inner { position: relative; will-change: transform; }
+.epg-chan {
+  position: absolute; left: 0; right: 0; height: var(--epg-row);
+  display: flex; align-items: center; gap: 8px; padding: 0 9px;
+  border-bottom: 1px solid rgba(35, 40, 56, .45); cursor: pointer;
+}
+.epg-chan:hover { background: var(--row-hover); }
+.epg-chan.cursor { background: #202538; }
+.epg-chan.playing { background: linear-gradient(90deg, rgba(124, 92, 255, .22), transparent); box-shadow: inset 2px 0 0 var(--accent); }
+.epg-chan-logo { width: 30px; height: 24px; flex: none; object-fit: contain; border-radius: 3px; }
+.epg-chan-logo.blank { visibility: hidden; }
+.epg-chan-body { min-width: 0; flex: 1; display: flex; align-items: baseline; gap: 6px; }
+.epg-chan-num { color: var(--dim); font-size: 11px; font-variant-numeric: tabular-nums; flex: none; }
+.epg-chan-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 12.5px; }
+.epg-chan-rec { flex: none; font-size: 10px; color: var(--accent-2); border: 1px solid #1f3a42; border-radius: 5px; padding: 0 4px; }
+
+.epg-scroll { grid-area: 2 / 2; overflow: auto; outline: none; }
+.epg-canvas {
+  position: relative;
+  background-image:
+    repeating-linear-gradient(90deg, #2b3247 0 1px, transparent 1px var(--hour, 300px)),
+    repeating-linear-gradient(90deg, var(--epg-line) 0 1px, transparent 1px var(--slot, 150px)),
+    repeating-linear-gradient(0deg, transparent 0 calc(var(--epg-row) - 1px), var(--epg-line) calc(var(--epg-row) - 1px) var(--epg-row));
+}
+
+.epg-prog {
+  position: absolute; height: calc(var(--epg-row) - 6px);
+  display: flex; align-items: center; overflow: hidden;
+  background: var(--panel-2); border: 1px solid var(--border); border-radius: 6px;
+  cursor: pointer; font-size: 12px;
+}
+.epg-prog:hover { background: var(--row-hover); border-color: #333a4f; }
+.epg-prog-label { padding: 0 8px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.epg-prog.clipped::before { content: "‹"; position: absolute; left: calc(var(--clip, 0px) + 5px); color: var(--dim); }
+.epg-prog.past { background: #10131b; color: var(--dim); }
+.epg-prog.past.rec { color: var(--muted); border-color: #1f3a42; }
+.epg-prog.live { background: #1d2333; border-color: #39415c; }
+.epg-prog.sel { outline: 2px solid var(--accent); outline-offset: -2px; background: #2a2350; color: var(--text); }
+.epg-prog.empty { background: transparent; border-style: dashed; color: var(--dim); cursor: default; }
+.epg-prog.empty:hover { background: transparent; border-color: var(--border); }
+/* Menossa olevan ohjelman eteneminen — sama tieto kuin listarivin palkki. */
+.epg-prog.live i { position: absolute; left: 0; bottom: 0; height: 2px; background: linear-gradient(90deg, var(--accent), var(--accent-2)); }
+
+.epg-nowline { position: absolute; top: 0; width: 2px; background: var(--accent-2); pointer-events: none; z-index: 2; }
+.epg-nowline[hidden] { display: none; }
+.epg-nowhead { position: absolute; top: 0; bottom: 0; width: 2px; background: var(--accent-2); pointer-events: none; }
+.epg-nowhead::after {
+  content: ""; position: absolute; bottom: 0; left: 50%; transform: translateX(-50%);
+  border-left: 5px solid transparent; border-right: 5px solid transparent;
+  border-bottom: 6px solid var(--accent-2);
+}
+.epg-nowhead[hidden] { display: none; }
+
+::-webkit-scrollbar { width: 10px; height: 10px; }
+::-webkit-scrollbar-thumb { background: #262c3d; border-radius: 99px; border: 2px solid transparent; background-clip: content-box; }
+::-webkit-scrollbar-thumb:hover { background: #333b52; background-clip: content-box; }
+::-webkit-scrollbar-track { background: transparent; }
+
+@media (max-width: 1180px) {
+  main { grid-template-columns: 190px minmax(260px, 320px) 1fr; }
+  main.guide { grid-template-columns: minmax(0, 1fr) minmax(260px, 30vw); }
+  :root { --epg-chan-w: 170px; }
+}
