@@ -86,15 +86,28 @@ try {
   await page.call('Page.bringToFront');
   await setViewport(page);
 
-  // Point the extension at the mock server and start from a clean slate.
+  // Point the extension at the server and start from a clean slate: the
+  // settings from storage, and the catalogue cache emptied — it is not keyed
+  // by server, and an earlier run against another server would otherwise
+  // hand out that server's addresses. The databases can only be deleted
+  // once the app has let go of them, so that is done from a page of the
+  // extension's origin that runs no app at all.
   await evaluate(page, `chrome.storage.local.set({
     config: { ...${JSON.stringify(connection)}, username: ${JSON.stringify(USER)}, password: ${JSON.stringify(PASS)}, sourceMode: 'xtream', streamMode: 'auto' },
     settings: { lang: 'en', epgEnabled: true, resumeEnabled: true, subtitleLang: 'eng' },
     ui: { tab: 'live' }, favorites: [], recents: [], resume: {},
   })`);
-  await page.call('Page.reload', { ignoreCache: true });
+  const origin = target.url.match(/^chrome-extension:\/\/[a-p]{32}/)[0];   // URL.origin is null for the scheme
+  await page.call('Page.navigate', { url: `${origin}/css/player.css` });
+  await sleep(500);
+  const dropped = await evaluate(page, `indexedDB.databases().then((dbs) => Promise.all(dbs.map((d) => new Promise((resolve) => {
+    const req = indexedDB.deleteDatabase(d.name);
+    req.onsuccess = () => resolve(d.name); req.onerror = () => resolve(d.name + ' (error)'); req.onblocked = () => resolve(d.name + ' (blocked)');
+  }))))`);
+  console.log(`cache dropped: ${dropped.length ? dropped.join(', ') : 'nothing to drop'}`);
+  await page.call('Page.navigate', { url: target.url });
   await sleep(1000);
-  await waitFor(page, CONNECTED, 'the connection to the mock server');
+  await waitFor(page, CONNECTED, 'the connection to the server');
   // The compositor adopts the 2x viewport lazily; a throwaway capture makes
   // sure the first real one is not taken mid-change.
   await page.call('Page.captureScreenshot', { format: 'png' });
