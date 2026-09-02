@@ -214,6 +214,17 @@ const STRINGS = {
     'ext.handed.text': 'The playlist was downloaded — open it from the browser downloads.',
     'ext.continue': 'Continue in the browser',
 
+    /* ------------------------------------------------------- Chromecast */
+    'cast.title': 'Cast to a Chromecast',
+    'cast.nothing': 'There is no playback to cast',
+    'cast.loading': 'Wait for playback to start',
+    'cast.nodevice': 'No Chromecast was found on this network',
+    'cast.playing': 'Chromecast',
+    'cast.tab': 'Cast the tab from Chrome\u2019s menu',
+    'cast.tab.text': 'This stream runs through MediaSource, which the Remote Playback API does not accept. Choose Cast\u2026 from Chrome\u2019s menu and cast this tab, then press f: once the video is full screen, Chrome sends the picture as it is, without re-encoding.',
+    'cast.fullscreen': 'Full screen',
+    'cast.close': 'Close',
+
     /* --------------------------------------------------------- settings */
     'setup.title': 'Settings',
     'setup.welcome': 'Welcome',
@@ -479,6 +490,17 @@ const STRINGS = {
     'ext.handed': 'Luovutettu ulkoiselle soittimelle',
     'ext.handed.text': 'Soittolista ladattiin — avaa se selaimen latauksista.',
     'ext.continue': 'Jatka selaimessa',
+
+    /* ------------------------------------------------------- Chromecast */
+    'cast.title': 'Lähetä Chromecastiin',
+    'cast.nothing': 'Ei toistoa, jonka voisi lähettää',
+    'cast.loading': 'Odota, että toisto alkaa',
+    'cast.nodevice': 'Verkosta ei löytynyt Chromecastia',
+    'cast.playing': 'Chromecast',
+    'cast.tab': 'Lähetä välilehti Chromen valikosta',
+    'cast.tab.text': 'Tämä virta kulkee MediaSourcen kautta, jota Remote Playback -rajapinta ei ota vastaan. Valitse Chromen valikosta Suoratoista\u2026 ja lähetä tämä välilehti, paina sitten f: kokoruudussa Chrome lähettää kuvan sellaisenaan ilman uudelleenkoodausta.',
+    'cast.fullscreen': 'Kokoruutu',
+    'cast.close': 'Sulje',
 
     /* --------------------------------------------------------- settings */
     'setup.title': 'Asetukset',

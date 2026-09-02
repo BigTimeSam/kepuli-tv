@@ -133,6 +133,9 @@ in the project. `dev.mjs` stays with Chrome.
   which Firefox accepts under the same key as Chrome — the same string works
   for both.
 - **IndexedDB, `<video>`, MSE, Range requests.** The same APIs.
+- **Chromecast.** `js/cast.js` uses the Remote Playback API, which Firefox
+  does not have. The Cast button hides itself when `HTMLMediaElement.remote`
+  is missing, and nothing else refers to it.
 - **Optional host permissions.** In Firefox's MV3 host permissions are optional
   and user-granted by default, so the app's current model — ask for the
   permission only when the user gives their server — is the norm there rather

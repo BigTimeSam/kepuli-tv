@@ -10,6 +10,7 @@ import { cacheClear, wipeStorage, storageEstimate } from './db.js';
 import { parsePlaylistUrl, streamUrl, timeshiftUrl, baseUrl } from './xtream.js';
 import { requestAccess, hasAccess } from './permissions.js';
 import { externalLabel, handOff } from './external.js';
+import { Cast, supported as castSupported } from './cast.js';
 import { warmCache, peek, badge as probeBadge, subtitleSummary, shortLanguage } from './probe.js';
 import * as store from './config.js';
 import { nf, dateTimeFmt, dateFmt, stampFmt, dayLabel, clock, megabytes, duration, progressOf, setLocale } from './format.js';
@@ -24,7 +25,7 @@ const el = {
   video: $('video'), overlay: $('overlay'), overlayTitle: $('overlay-title'),
   overlayText: $('overlay-text'), overlayActions: $('overlay-actions'), statbadge: $('statbadge'),
   infostrip: $('infostrip'), nowTitle: $('now-title'), nowSub: $('now-sub'), mode: $('mode'),
-  subs: $('subs'), subsize: $('subsize'),
+  subs: $('subs'), subsize: $('subsize'), cast: $('btn-cast'),
   setup: $('setup'), progress: $('progress'),
   epg: $('epg'), epgPreview: $('epg-preview'),
   pTitle: $('p-title'), pFill: $('p-fill'), pText: $('p-text'), toast: $('toast'),
@@ -1091,6 +1092,7 @@ function renderNowSub(engine) {
   if (item.cats && item.cats.length && state.lib && type) bits.push(state.lib.categoryName(type, item.cats[0]));
   if (item.k === 3) bits.push(`S${item.season} E${item.episode}`);
   if (engine || playback.engineName) bits.push(engine || playback.engineName);
+  if (cast.connected) bits.push(t('cast.playing'));
   el.nowSub.textContent = bits.filter(Boolean).join(' · ') || '—';
 }
 
@@ -1718,6 +1720,59 @@ function playExternal() {
   ]);
 }
 
+/* --------------------------------------------------------- Chromecast */
+
+const cast = new Cast(el.video, renderCastState);
+
+/**
+ * The Cast button and the c key. A natively played file goes through the
+ * Remote Playback API, which opens Chrome's device picker; the MediaSource
+ * routes are outside its reach, and for them the overlay explains how
+ * Chrome's own tab casting does the same once the player is full screen.
+ * cast.js and CHROMECAST.md have the reasons.
+ *
+ * Synchronous up to prompt(): the picker needs the user gesture, and the
+ * first await would spend it.
+ */
+function castCurrent() {
+  if (!castSupported) return;
+  if (!state.playingSpec) { toast(t('cast.nothing')); return; }
+  // Already casting: the same dialog is where Chrome lets the viewer stop.
+  if (cast.busy) { cast.prompt().catch(() => {}); return; }
+  if (!playback.engineKey) { toast(t('cast.loading')); return; }
+  if (playback.engineKey !== 'native') { showCastHint(); return; }
+  cast.prompt().catch((err) => {
+    const name = err && err.name;
+    if (name === 'NotAllowedError') return;                    // the picker was closed
+    if (name === 'NotFoundError') { toast(t('cast.nodevice')); return; }
+    // NotSupportedError: this source will not remote after all. The tab
+    // route still does.
+    showCastHint();
+  });
+}
+
+/** The tab route, over the picture; playback carries on beneath. */
+function showCastHint() {
+  el.overlay.hidden = false;
+  el.overlay.classList.remove('loading');
+  el.overlayTitle.textContent = t('cast.tab');
+  el.overlayText.textContent = t('cast.tab.text');
+  const close = () => { el.overlay.hidden = true; showOverlayActions(null); };
+  showOverlayActions([
+    { label: t('cast.fullscreen'), onClick: () => { close(); el.video.requestFullscreen().catch(() => {}); } },
+    { label: t('cast.close'), onClick: close },
+  ]);
+}
+
+/** The button: hidden without the API, lit while the device plays. */
+function renderCastState() {
+  el.cast.hidden = !castSupported;
+  el.cast.classList.toggle('on', cast.connected);
+  // The engine line carries the device; before anything plays it says "Not
+  // connected", and that text is not this function's to change.
+  if (state.playing) renderNowSub();
+}
+
 function moveCursor(delta) {
   if (state.rows.length === 0) return;
   state.cursor = Math.max(0, Math.min(state.rows.length - 1, state.cursor + delta));
@@ -1815,6 +1870,7 @@ function wireUi() {
   $('btn-fav').addEventListener('click', () => state.playing && toggleFavorite(state.playing));
   $('btn-copy').addEventListener('click', copyUrl);
   $('btn-ext').addEventListener('click', playExternal);
+  el.cast.addEventListener('click', castCurrent);
   $('btn-pip').addEventListener('click', async () => {
     try {
       if (document.pictureInPictureElement) await document.exitPictureInPicture();
@@ -1849,6 +1905,7 @@ function wireUi() {
       case 'p': playRelative(-1); break;
       case 'g': toggleGuide(); break;
       case 'x': playExternal(); break;
+      case 'c': castCurrent(); break;
       default: break;
     }
   });
@@ -1912,6 +1969,7 @@ async function init() {
   el.mode.value = state.config.streamMode || 'auto';
   applySubtitleSize(state.settings.subtitleSize);
   renderFavButton();
+  renderCastState();
 
   const ui = await store.loadUiState();
   if (ui.tab) state.tab = ui.tab;
