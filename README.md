@@ -30,6 +30,9 @@ The software is provided as is, without warranty; see LICENSE.
    password) or **M3U address** (a single field for the playlist URL your
    provider gave you). Both end up in the same place, see below
 
+Chrome 116 or newer, which is what `minimum_chrome_version` in the manifest
+states.
+
 ## Development
 
 There is no build step: the files are, as they are, what the browser runs — so
@@ -145,6 +148,29 @@ The sidebar filter matches sub-categories too: the query *sport* brings up the
 countries that have sports channels even when the country's name lacks the
 word.
 
+### The repeating prefix
+
+Once a country or a topic has been chosen, the beginning of the row name
+repeats what the sidebar already says: under *USA ▸ NHL*, `US: NHL Ice Center
+Pass 3 FHD` is distinguished from no other visible row by its prefix, which
+only takes space from a narrow column. `js/name.js` strips two things from the
+start of the name: a country code closed by a hard separator (`US:`, `|FI|`,
+`EX-YU |`) and the words of the filters that are on.
+
+Both go only when an absolute majority of the visible rows repeat them. That is
+why `USA Network HD` survives intact under the country *USA* — the start of a
+name is part of the name when the others do not repeat it — and why the
+separator is part of the detection, or `US Open Tennis` would lose its
+beginning. The prefixes come in either order (`US: NHL …`, `NHL US: …`), so the
+passes are repeated until nothing matches any more, and the whole name is
+always in the row's title text.
+
+Only a filtered view is tidied. In search, in the favourites and in the history
+the rows come from different groups, so there the prefix is what tells them
+apart and it stays put. Inside a favourite category the filter is known even
+though the sidebar does not show it, and the names tidy up as in the browsing
+view.
+
 ### A category as a favourite
 
 Starring a single channel is not enough when the interesting thing is a whole
@@ -200,6 +226,8 @@ COLLECTION".
   played out, or the picture freezes while the connection stays open. The
   viewer's own pause is told apart from these and is never overridden
 - **Technical details** over the picture: resolution, bitrate, engine
+- **The account's expiry date** in the top bar, in warning colour for the last
+  fourteen days — the rest of the account's details are in the settings
 
 ### Keyboard shortcuts
 
@@ -216,9 +244,37 @@ COLLECTION".
 | `g` | open and close the programme guide |
 | `x` | hand over to an external player |
 
-In the guide the arrows move between channels and programmes, `Home` returns to
-the present, `+` and `−` adjust the timeline's scale, `Enter` starts playback
-and `Esc` closes.
+In the guide the arrows move between channels and programmes, `PgUp` and
+`PgDn` a screen at a time, `Home` returns to the present, `+` and `−` adjust
+the timeline's scale, `Enter` starts playback and `Esc` closes.
+
+### The buttons
+
+The top bar holds the five tabs, the search box, the account's expiry date and
+three buttons: **Guide**, **Refresh** — which fetches the categories and the
+lists already loaded from the server again and empties the programme cache —
+and **Settings**. The player's own row is below the picture:
+
+| Button | Action |
+| --- | --- |
+| `Auto` `TS` `HLS` | the engine for a live channel; `Auto` is described below |
+| the subtitle selectors | language and size, on a file that carries subtitles |
+| `☆` | the channel or the film into the favourites |
+| `↻` | reload the stream |
+| `PiP` | picture in picture |
+| `URL` | the stream address to the clipboard |
+| `↗` | hand over to an external player |
+
+### Settings
+
+The dialog holds the connection mode with its fields (see below), the
+interface language, and two switches: whether programme data is fetched
+automatically and whether the position of movies and episodes is remembered.
+Below them are the account's own details as the server reports them — status,
+simultaneous connections, the expiry date, the output formats, the server's
+time zone, the size of the cache and the lists loaded so far — and the two
+buttons that empty things: **Clear cache** leaves the credentials and the
+favourites in place, **Reset everything** does not.
 
 ## The programme guide
 
@@ -434,6 +490,7 @@ background.js       a click on the icon opens the player
 player.html         the whole interface on one page
 css/player.css
 js/api.js           player_api.php client, base64 EPG, time zones
+js/xtream.js        building the Xtream URLs, parsing a pasted M3U address
 js/library.js       the lazy data layer: grouping, cache, search
 js/epg.js           programme data on a queue, 4 concurrent requests
 js/epggrid.js       the guide grid, virtualised in both directions
@@ -451,6 +508,7 @@ js/transcode.js     decoded audio back to AAC for MediaSource
 js/subs.js          subtitle tracks from MKV into the video element's own tracks
 js/vlist.js         the virtualised list
 js/rows.js          painting the list rows
+js/name.js          a repeating prefix off the row names in a filtered view
 js/format.js        formatters
 js/app.js           views, search, keyboard
 js/permissions.js   requesting and checking optional host permissions
@@ -464,6 +522,8 @@ dev/screenshot.mjs  a 1280x800 store screenshot of the player, over the DevTools
 dev/store-screenshots.mjs  the five store screenshots, from the mock server's content
 dev/mock/           a fake Xtream Codes server with invented content, and its media
 docs/               the GitHub Pages site: front page, privacy policy, terms of use
+FIREFOX.md          an assessment of what a Firefox version would take
+store-listing.txt   the Chrome Web Store listing copy
 vendor/             mpegts.js 1.8.0, hls.js 1.6.5 (local: MV3's CSP does not
                     allow remote scripts)
 vendor/ffaudio/     FFmpeg 7.1.1's ac3, eac3 and dca decoders as wasm
@@ -578,7 +638,7 @@ zip -rq kepuli-tv-1.0.1.zip . \
   -x ".impeccable/*" -x "*.zip"
 ```
 
-The result is 43 entries and around 684 kB. `*.zip` is in `.gitignore`, so the
+The result is 43 entries and around 682 kB. `*.zip` is in `.gitignore`, so the
 package can be built in the project root.
 
 `dev/` and `docs/` have to be excluded: `dev/wasm/media/` is tens of megabytes
