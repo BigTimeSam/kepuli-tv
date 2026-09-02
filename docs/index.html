@@ -229,6 +229,13 @@ provider gave you). Both end up in the same place, see below</li>
 <p>Chrome 116 or newer, which is what <code>minimum_chrome_version</code> in the manifest
 states.</p>
 
+<p>In Firefox: <code>node firefox/build.mjs</code>, then <code>about:debugging</code> → <strong>This
+Firefox</strong> → <strong>Load Temporary Add-on</strong> → <code>firefox/dist/manifest.json</code>. Firefox
+128 or newer. A temporary add-on lasts until Firefox closes; the permanent
+route is a signed package from AMO, see <code>FIREFOX.md</code>. The same code runs in
+both browsers — <code>firefox/</code> holds only the Firefox manifest and the tools that
+assemble the package from it.</p>
+
 <h2 id="development">Development</h2>
 
 <p>There is no build step: the files are, as they are, what the browser runs — so
@@ -268,6 +275,18 @@ can be changed with the environment variables <code>KEPULI_DEV_PORT</code> and
 
 <p>A page reload reads the files from disk again — ES modules included — so the
 extension does not need reloading in ordinary work.</p>
+
+<h3 id="firefox">Firefox</h3>
+
+<pre><code>node firefox/dev.mjs</code></pre>
+
+<p>The same loop for Firefox: assembles <code>firefox/dist/</code> from the shared source,
+starts Firefox with a profile of its own (<code>~/.cache/kepuli-tv-firefox</code>), loads
+the add-on temporarily and opens the player. A change to <code>js/</code>, <code>css/</code> or
+<code>player.html</code> rebuilds and reloads the page; a change to <code>background.js</code> or
+<code>firefox/manifest.json</code> reloads the add-on. It speaks Firefox's Marionette
+protocol directly (<code>firefox/marionette.mjs</code>), so nothing is installed here
+either. <code>FIREFOX.md</code> has the whole picture, including what was measured.</p>
 
 <h3 id="note-load-extension-no-longer-works">Note: <code>--load-extension</code> no longer works</h3>
 
@@ -337,6 +356,17 @@ alphabetical order. Choosing a country shows all of its channels, and the topic
 buttons along the top narrow it to a subject. The buttons are in alphabetical
 order, except for the country's own general category, which sits right after
 the <em>All</em> button.</p>
+
+<p>The button bar is as tall as its topics need, up to a ceiling of a quarter of
+the column: Albania's three take one row and reserve nothing, USA's 48 fill six
+or seven before the rest is left to scroll. A ceiling counted in rows rather
+than in the column's height would be right for the small countries and short
+for exactly those whose topics are worth reading. The bar's lower edge is a
+handle: dragging it sets the height by hand — down to a single row when the
+list matters more, up to 60 % of the column when the topics do — and a double
+click gives the automatic height back. The height is remembered between
+sessions, and it stays a ceiling rather than a height, so a country of three
+topics never leaves a band of empty panel below them.</p>
 
 <p>The same splitting removes the <code>Movies:</code> and <code>Series:</code> prefixes from movies and
 series, which only repeat the name of the tab.</p>
@@ -793,8 +823,10 @@ dev/screenshot.mjs  a 1280x800 store screenshot of the player, over the DevTools
 dev/store-screenshots.mjs  the five store screenshots, from the mock server's content
 dev/mock/           a fake Xtream Codes server with invented content, and its media;
                     also the Fly.io demo the store reviewers are given
+firefox/            the Firefox version: its manifest, the build that assembles
+                    firefox/dist/ from the shared source, and its development loop
 docs/               the GitHub Pages site: front page, privacy policy, terms of use
-FIREFOX.md          an assessment of what a Firefox version would take
+FIREFOX.md          the Firefox version: what differs, how it is built and tested, what was measured
 CHROMECAST.md       the Chromecast assessment, and the design built from it
 store-listing.txt   the Chrome Web Store listing copy
 vendor/             mpegts.js 1.8.0, hls.js 1.6.5 (local: MV3's CSP does not
@@ -926,13 +958,22 @@ out of <code>brand/screenshots/</code>.</p>
 <pre><code>rm -f kepuli-tv-1.0.3.zip
 zip -rq kepuli-tv-1.0.3.zip . \
   -x "*.DS_Store" -x "*.git*" -x "README.md" -x "FIREFOX.md" -x "CHROMECAST.md" -x "LICENSE" \
-  -x "store-listing.txt" -x "brand/*" -x "dev/*" -x "docs/*" \
+  -x "store-listing.txt" -x "brand/*" -x "dev/*" -x "docs/*" -x "firefox/*" \
   -x ".impeccable/*" -x "*.zip"</code></pre>
 
-<p>The result is 44 entries and around 700 kB. <code>*.zip</code> is in <code>.gitignore</code>, so the
+<p>The result is 45 entries and around 700 kB. <code>*.zip</code> is in <code>.gitignore</code>, so the
 package can be built in the project root.</p>
 
-<p><code>dev/</code> and <code>docs/</code> have to be excluded: <code>dev/wasm/media/</code> is tens of megabytes
+<p>The Firefox package is the same files with the manifest from <code>firefox/</code>:</p>
+
+<pre><code>node firefox/build.mjs --zip</code></pre>
+
+<p>writes <code>kepuli-tv-firefox-&lt;version&gt;.zip</code> next to the Chrome one. The script
+compares the two manifests first and stops if the version or any shared key
+differs, so a release bumps the version in both <code>manifest.json</code> and
+<code>firefox/manifest.json</code>. AMO signs the package; see <code>FIREFOX.md</code>.</p>
+
+<p><code>dev/</code>, <code>docs/</code> and <code>firefox/</code> have to be excluded: <code>dev/wasm/media/</code> is tens of megabytes
 of test material made by <code>build.sh --test</code>, and <code>docs/</code> is the Pages site, not
 part of the extension. <code>.impeccable/</code> is tool configuration and is ignored as
 well.</p>

@@ -125,7 +125,7 @@ function watchSources(onChange) {
     if (!file) return;
     const path = file.replaceAll('\\', '/');
     if (path.startsWith('.') || path.includes('/.')) return;
-    if (path.startsWith('dev/') || path.startsWith('icons/')) return;
+    if (path.startsWith('dev/') || path.startsWith('icons/') || path.startsWith('firefox/')) return;
     if (!WATCHED.test(path)) return;
     onChange(path);
   });

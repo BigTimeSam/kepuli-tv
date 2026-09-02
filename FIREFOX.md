@@ -1,210 +1,202 @@
-# A Firefox version
+# The Firefox version
 
-An assessment of what porting Kepuli-TV to a Firefox extension would take, and
-whether maintaining both from one codebase is worth it.
+What differs between the Chrome extension and the Firefox one, how the Firefox
+package is built and tested, and what was measured. This began as an
+assessment of whether a Firefox version could come from one codebase; it
+could, it does, and this is the record.
 
-**Short answer:** it is, and from one codebase. The extension's dependency on
-the browser is 15 calls in three files. Everything else — the player, the
-lists, the guide, the cache, the unpacking — is ordinary web code that knows
-nothing about extension APIs.
+**Short answer:** the player is one codebase. Everything under `js/`, `css/`,
+`vendor/` and `icons/`, with `player.html` and `background.js`, runs in both
+browsers as it is. `js/browser.js` holds the one line that differs, and
+`firefox/` holds the Firefox manifest and the tools that assemble the package
+from the shared files. There is no second copy of anything to keep in step.
 
-The areas of MV3 where Chrome and Firefox really differ are content scripts,
-`webRequest` and `declarativeNetRequest`. Kepuli-TV uses none of them.
+## The shape
 
-## What in the code is browser-specific
+```
+firefox/manifest.json   the Firefox manifest — the only Firefox-specific source file
+firefox/build.mjs       copies the shared files and the manifest into firefox/dist/,
+                        zips it with --zip, compares the manifests with --check
+firefox/dev.mjs         the development loop: Firefox with a profile of its own,
+                        the add-on loaded temporarily, rebuilt and reloaded on change
+firefox/marionette.mjs  Firefox's remote protocol, spoken with node:net alone
+firefox/dist/           the assembled add-on, in .gitignore
+js/browser.js           api = browser ?? chrome
+```
 
-| File | Calls | In Firefox |
-| --- | --- | --- |
-| `js/config.js` | `storage.local.get/set` × 9 | works, see the namespace |
-| `js/permissions.js` | `permissions.contains/request` × 3 | works (Fx 55+) |
-| `background.js` | `runtime.getURL`, `runtime.getContexts`, `tabs.update`, `tabs.create`, `windows.update`, `action.onClicked` | works (`getContexts` Fx 127+) |
+`firefox/dist/` is what Firefox loads, from `about:debugging` or from the
+loop, and what the zip is made of. It is never edited: a change goes into the
+shared source at the project root, and the next build carries it over. The
+Chrome package's zip command excludes `firefox/`, and the Firefox build
+excludes everything that is not on its list of shared files, so neither
+package can pick up the other's files.
 
-No content scripts, no `webRequest`, no `declarativeNetRequest`, no
-`scripting`, no messaging between the page and the background. `player.html` is
-an ordinary page that happens to live on the extension's origin.
+## What differs
 
-## Five changes
+### The namespace
 
-### 1. A namespace shim
-
-In Firefox the promise-returning namespace is `browser`. `chrome` exists as a
-compatibility alias, but in callback style — so `await
-chrome.storage.local.get(key)` would return `undefined` rather than the data.
-The fault would be silent: the settings would simply vanish.
-
-A new `js/browser.js`:
+Chrome knows `chrome`; Firefox knows both `chrome` and `browser`, but in
+Firefox the promises live only on `browser` — `await
+chrome.storage.local.get(key)` comes back `undefined` there, and the settings
+would simply vanish without a word. `js/browser.js`:
 
 ```js
-// Chrome knows only chrome (browser arrived in 148); Firefox knows both, but
-// the promises live only on browser. The alias settles both.
 export const api = globalThis.browser ?? globalThis.chrome;
 ```
 
-Then `config.js`, `permissions.js` and `background.js` use `api` instead of
-`chrome`. `background.js` is not a module, so the same line at the top of the
-file is enough there.
+`config.js`, `permissions.js` and `app.js` import it; `background.js` is not a
+module and carries the same line itself. Nothing else in the code touches an
+extension API: the player, the lists, the guide, the cache and the unpacking
+are ordinary web code.
 
-This is the only actual code change in the whole job.
+Measured: Chrome 152 has a `browser` namespace of its own (`action`, `dom`,
+`extension`, `i18n`, `management`, `permissions`, `runtime`, `storage`,
+`tabs`, `windows`), not the same object as `chrome`, and the alias picks it
+without any difference in behaviour. Chrome 116–147 fall through to `chrome`,
+whose MV3 APIs return promises.
 
-### 2. The background script in the manifest
+### The manifest
 
-Firefox does not implement `background.service_worker` at all. It uses an event
-page, i.e. the `background.scripts` key. The same manifest can carry both:
-Firefox ignores `service_worker` and Chrome, from 121 onwards, ignores
-`scripts`.
+| Key | Chrome | Firefox |
+| --- | --- | --- |
+| `background` | `service_worker: "background.js"` | `scripts: ["background.js"]` — Firefox has no service workers for extensions |
+| `minimum_chrome_version` | `116` | absent |
+| `browser_specific_settings.gecko.id` | absent | `kepuli-tv@bigtimesam.github.io`, mandatory for signing |
+| `browser_specific_settings.gecko.strict_min_version` | absent | `128.0`, dictated by `optional_host_permissions` |
+| `browser_specific_settings.gecko.data_collection_permissions` | absent | `required: ["none"]`, mandatory on AMO since November 2025 |
+| everything else | the same | the same |
 
-```json
-"background": {
-  "service_worker": "background.js",
-  "scripts": ["background.js"]
-}
-```
+The other APIs in use are older than 128: `runtime.getContexts` 127,
+`action` 109, `permissions.request` 55, `unlimitedStorage` 56. The CSP with
+`'wasm-unsafe-eval'` is accepted under the same key.
 
-**Caveat:** Chrome 116–120 does not ignore `scripts` but refuses to load the
-extension at all. The manifest currently says `"minimum_chrome_version": "116"`,
-so it would have to be raised to 121 — or there will be two manifests. Chrome
-121 is from January 2024, so raising it is cheap and keeps the project's
-promise of having no build step.
+`build.mjs` compares the two manifests on every run: `manifest_version`,
+`name`, `version`, `description`, `content_security_policy`, `permissions`,
+`optional_host_permissions`, `action` and `icons` must agree, the Firefox one
+must have `background.scripts` and a gecko id, and a key that appears in the
+Chrome manifest without being on either list stops the build until this
+script knows about it. That is what keeps the two from drifting apart.
 
-### 3. `browser_specific_settings`
+The data-collection declaration is a judgement call to revisit at submission.
+The extension sends the user's credentials to the server the user configured
+and nowhere else, and reports nothing to anyone; whether Mozilla reads that as
+*none* or as *authenticationInfo* is for the listing form to settle.
 
-```json
-"browser_specific_settings": {
-  "gecko": {
-    "id": "kepuli-tv@bigtimesam.github.io",
-    "strict_min_version": "128.0"
-  }
-}
-```
+### Wording
 
-The `id` is mandatory on AMO and it binds the storage to the extension. The
-minimum version of 128 is dictated by `optional_host_permissions`, which
-arrived in Firefox only then. The other APIs in use are older:
-`runtime.getContexts` 127, `action` 109, `unlimitedStorage` 56,
-`permissions.request` 55.
+The messages that named Chrome — the row badge for an unpromising extension,
+the denied-permission error, the three probe verdicts — now say *the
+browser*. The decision logic was browser-independent already: `probe.js` asks
+`MediaSource.isTypeSupported` and assumes nothing.
 
-Chrome does not know the key but does not choke on it either — unknown manifest
-keys are a warning, not an error. The same holds the other way round for
-`minimum_chrome_version` in Firefox.
+## What was measured
 
-### 4. Wording
+Firefox 155 on macOS, the extension loaded temporarily from `firefox/dist/`
+over Marionette, against the mock server (`dev/mock/`):
 
-A dozen error messages and tooltips name Chrome:
+| Case | Result |
+| --- | --- |
+| The add-on installs, the action opens the player | yes |
+| `browser.storage.local`, promise-based | yes |
+| Live channel: mpegts.js fails on the mock's 404, hls.js takes over | plays, 1280×720 |
+| VOD `.mp4`, native | plays, details below the player |
+| VOD `.mkv`, unpacked into fMP4 through MediaSource | plays, 1280×720, with sound |
+| Subtitles from the MKV as `VTTCue`s, the selector, the English track | a cue on screen |
+| Seeking in the MKV to 60 s | continues from 63.9 s, `readyState` 4 |
+| `MediaSource.isTypeSupported`: H.264, HEVC, AAC, Opus in MP4 | all true |
+| `AudioEncoder.isConfigSupported` AAC | **false** |
+| `AudioEncoder.isConfigSupported` Opus | true |
+| Remote Playback API | absent, so the Cast button hides itself |
+| `requestPictureInPicture` | present |
+| `permissions.contains` | answers |
+| Console | the mock's expected 404, and the AAC encoder's NotSupportedError twice per MKV |
 
-```
-js/probe.js    "The video codec %s cannot be decoded in Chrome."
-               "The audio track is %s, which Chrome does not decode."
-               "the content suits Chrome, but the container is not unpacked"
-js/rows.js     "does not promise playback in Chrome"
-js/xtream.js   the comment on natively played extensions
-js/app.js      "Chrome did not grant access"
-```
+The one real risk the assessment named — `remux.js`, where Chrome and Firefox
+accept different things into a `SourceBuffer` — turned out not to be one: the
+segments that Chrome takes, Firefox takes as they are, seeking included.
 
-The decision logic itself is already browser-independent: `probe.js` asks
-`MediaSource.isTypeSupported` and assumes nothing. Only the texts change,
-"Chrome" → "the browser".
+### The remaining gap: AC-3 and DTS
 
-One hard-coded list remains: `js/xtream.js:isNativelyPlayable` enumerates the
-extensions `mp4|m4v|mov|webm|ogv`. Firefox plays the same set. An aside: `ogv`
-is out of date on the Chrome side, as Chrome dropped Theora in version 123.
+Firefox has no AAC encoder, so the wasm decoder's output has nowhere to go:
+an MKV whose only audio track is AC-3, E-AC-3 or DTS plays without sound in
+Firefox, with the same notice Chrome shows when its encoder fails. The list
+badge and the probe verdict still promise a decoded track, because the
+verdict looks at the decoder alone.
 
-### 5. The development loop
+The way out is measured too: Firefox encodes Opus, and its MediaSource takes
+Opus in MP4. Encoding to Opus instead of AAC where AAC is not on offer means
+an `Opus` sample entry with a `dOps` box in `mp4.js`, a 20 ms frame size in
+`transcode.js` in place of AAC's 1024 samples, and a priming delay of Opus's
+own. That is a change to the shared code, so it would serve Chrome too. Until
+then the verdict should ask the encoder as well as the decoder, so that the
+row is marked *silent* honestly.
 
-`dev/dev.mjs` speaks Chrome's DevTools protocol, and it cannot be ported. The
-equivalent for Firefox is Mozilla's own `web-ext`:
+## The development loop
 
-```
-npx web-ext run --source-dir=. --start-url=about:debugging
-```
+`node firefox/dev.mjs` is `dev/dev.mjs` for Firefox. Firefox has no
+`--load-extension` either; what it has is Marionette, its own remote
+protocol, which geckodriver speaks and which is small enough to speak from
+`node:net` without a dependency:
 
-It loads the extension temporarily, opens a profile of its own and reloads on
-changes — the same workflow, ready made. The dependency sits behind `npx`, not
-in the project. `dev.mjs` stays with Chrome.
+- Firefox is started with `-marionette -remote-allow-system-access
+  -no-remote -profile ~/.cache/kepuli-tv-firefox`. The second flag is what
+  lets a script run in Firefox's own context, where `WebExtensionPolicy`
+  answers the add-on's `moz-extension://` URL; without it Firefox 154+
+  refuses the context.
+- The profile's `user.js` sets `marionette.port`, turns off the first-run
+  pages, relaxes the autoplay policy — for the same reason
+  `dev/store-screenshots.mjs` gives Chrome
+  `--autoplay-policy=no-user-gesture-required`: scripts click by script,
+  which no policy counts as a gesture — and keeps the window open when its
+  last tab closes. Reloading the add-on closes the add-on's own tab, and a
+  Firefox left without a window answers on the port but cannot open a
+  session; `session()` quits and restarts such a Firefox, once.
+- Installing the temporary add-on again over the installed one is the
+  reload, measured; there is no separate reload command to speak.
+- Every message is `length:json`. A command is `[0, id, name, params]`, a
+  reply `[1, id, error, result]`. `Addon:Install` with `temporary: true` is
+  what `about:debugging`'s *Load Temporary Add-on* does;
+  `WebDriver:ExecuteScript` runs a line in the player and awaits a promise.
+- One client at a time: a test script and the loop cannot share the port.
 
-## What needs no change
+A temporary add-on is gone when Firefox closes, so each run installs it
+again; the profile's storage, credentials included, survives that. The
+credentials of the development profile are separate from the user's own
+browser, as they are for Chrome.
 
-- **The playback engines.** mpegts.js states support for Firefox 42+, and
-  hls.js works in Firefox. Neither leans on Chrome's peculiarities: both demux
-  the stream into fMP4 and feed it to MediaSource, which is exactly the route
-  Firefox supports.
-- **The CSP and the local vendor files.** Firefox's MV3 CSP forbids remote
-  scripts just as Chrome's does, and the libraries are local already. Decoding
-  the audio track requires the `'wasm-unsafe-eval'` source in the manifest,
-  which Firefox accepts under the same key as Chrome — the same string works
-  for both.
-- **IndexedDB, `<video>`, MSE, Range requests.** The same APIs.
-- **Chromecast.** `js/cast.js` uses the Remote Playback API, which Firefox
-  does not have. The Cast button hides itself when `HTMLMediaElement.remote`
-  is missing, and nothing else refers to it.
-- **Optional host permissions.** In Firefox's MV3 host permissions are optional
-  and user-granted by default, so the app's current model — ask for the
-  permission only when the user gives their server — is the norm there rather
-  than the exception.
+## Keeping the two in step
 
-## The one real risk: `js/remux.js`
-
-Unpacking MKV into fMP4 is the most browser-sensitive part of the whole
-project. Chrome and Firefox accept different things into a `SourceBuffer`: each
-has its own requirements about where the `avcC` parameter sets sit, about the
-timestamps in `moof` headers, and about the use of `changeType`. Code that one
-accepts may fail in the other with an `InvalidStateError` and no further
-explanation.
-
-This is not a reason to leave Firefox undone, but it is a reason to set aside a
-test round of its own for it. Everything else can be ported blind; this cannot.
+- A change to the player goes into the shared source at the project root
+  and reaches both packages by itself. Nothing is copied by hand.
+- A change to `manifest.json` that is not browser-specific goes into
+  `firefox/manifest.json` too; `node firefox/build.mjs --check` says whether
+  the two agree, and the build refuses until they do.
+- A release bumps the version in both manifests, builds both packages, and
+  tags once.
+- A browser API is used only through `js/browser.js`. A new one goes through
+  the same alias, and its Firefox version is checked against
+  `strict_min_version` before it is used.
+- Something that exists in one browser only — Remote Playback, picture in
+  picture — is detected, never assumed, and hides its own control when
+  missing.
 
 ## Publishing on AMO
 
 - **Signing is mandatory.** Release Firefox will not install an unsigned
   extension permanently. A signature can be had from AMO without a public
-  listing too (self-distribution).
-- **Minified code.** AMO requires the source to be submitted when *you* minify
-  or bundle. `vendor/hls.js` and `vendor/mpegts.js` are the libraries' own
-  release files, covered by the separate third-party library policy: use the
-  official release unmodified and state the version and origin, so the reviewer
-  can compare it with the original. It is worth adding a `vendor/README` stating
-  the version and the download URL.
-- **`vendor/ffaudio` is a different case.** It is not a library's own release
-  but our build of FFmpeg, so the clause requiring source and build
+  listing too (self-distribution). `node firefox/build.mjs --zip` makes the
+  package to upload.
+- **Minified code.** AMO requires the source to be submitted when *you*
+  minify or bundle. `vendor/hls.js` and `vendor/mpegts.js` are the
+  libraries' own release files, covered by the third-party library policy:
+  state the version and origin so the reviewer can compare them with the
+  original.
+- **`vendor/ffaudio` is a different case.** It is not a library's own
+  release but our build of FFmpeg, so the clause requiring source and build
   instructions applies to it precisely. They are in place: `dev/wasm/build.sh`
-  holds the whole command sequence, `dev/wasm/ffaudio.c` is the only source file
-  of our own, and `vendor/ffaudio/LICENSE` states FFmpeg's tag and the
+  holds the whole command sequence, `dev/wasm/ffaudio.c` is the only source
+  file of our own, and `vendor/ffaudio/LICENSE` states FFmpeg's tag and the
   replaceability LGPL 2.1 §6 requires.
-- **Review is done by a human** and is slower than Chrome's, but the extension
-  asks for no permissions at install time and does not touch the pages you
-  browse, so it is an easy case for a reviewer.
-
-## A proposed structure
-
-One manifest, no build step, no conditionals in the code:
-
-```
-manifest.json      both background keys + browser_specific_settings
-js/browser.js      api = browser ?? chrome            ← new
-dev/dev.mjs        Chrome's loop
-                   for Firefox: npx web-ext run
-```
-
-The alternative would be two manifests and a small `build.mjs` that picks the
-right one. That would be tidier but would break the project's promise that the
-files are, as they are, what the browser runs. The cost of a single manifest is
-two cosmetic warnings, one in each browser.
-
-## Effort
-
-| Stage | Estimate |
-| --- | --- |
-| Shim, manifest, wording | 1–2 h |
-| A pass through Firefox: lists, guide, EPG, live playback | 1–2 h |
-| `remux.js` in Firefox | unknown, 0 h – several days |
-| The first AMO release | 2–3 h |
-
-Maintenance after that is effectively free: new features are written into the
-player, not into the extension shell, and the shell does not change again.
-
-## Bonus: Firefox for Android
-
-Firefox is the only mobile browser that runs extensions. The same package
-installs there once `browser_specific_settings.gecko_android` and its
-`strict_min_version` are added. The interface is designed for the desktop and
-would not do as it is, but the route exists — for Chrome it does not.
+- **Review is done by a human** and is slower than Chrome's, but the
+  extension asks for no permissions at install time and does not touch the
+  pages you browse, so it is an easy case for a reviewer.

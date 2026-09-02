@@ -33,6 +33,13 @@ The software is provided as is, without warranty; see LICENSE.
 Chrome 116 or newer, which is what `minimum_chrome_version` in the manifest
 states.
 
+In Firefox: `node firefox/build.mjs`, then `about:debugging` → **This
+Firefox** → **Load Temporary Add-on** → `firefox/dist/manifest.json`. Firefox
+128 or newer. A temporary add-on lasts until Firefox closes; the permanent
+route is a signed package from AMO, see `FIREFOX.md`. The same code runs in
+both browsers — `firefox/` holds only the Firefox manifest and the tools that
+assemble the package from it.
+
 ## Development
 
 There is no build step: the files are, as they are, what the browser runs — so
@@ -67,6 +74,20 @@ can be changed with the environment variables `KEPULI_DEV_PORT` and
 
 A page reload reads the files from disk again — ES modules included — so the
 extension does not need reloading in ordinary work.
+
+### Firefox
+
+```
+node firefox/dev.mjs
+```
+
+The same loop for Firefox: assembles `firefox/dist/` from the shared source,
+starts Firefox with a profile of its own (`~/.cache/kepuli-tv-firefox`), loads
+the add-on temporarily and opens the player. A change to `js/`, `css/` or
+`player.html` rebuilds and reloads the page; a change to `background.js` or
+`firefox/manifest.json` reloads the add-on. It speaks Firefox's Marionette
+protocol directly (`firefox/marionette.mjs`), so nothing is installed here
+either. `FIREFOX.md` has the whole picture, including what was measured.
 
 ### Note: `--load-extension` no longer works
 
@@ -131,6 +152,17 @@ alphabetical order. Choosing a country shows all of its channels, and the topic
 buttons along the top narrow it to a subject. The buttons are in alphabetical
 order, except for the country's own general category, which sits right after
 the *All* button.
+
+The button bar is as tall as its topics need, up to a ceiling of a quarter of
+the column: Albania's three take one row and reserve nothing, USA's 48 fill six
+or seven before the rest is left to scroll. A ceiling counted in rows rather
+than in the column's height would be right for the small countries and short
+for exactly those whose topics are worth reading. The bar's lower edge is a
+handle: dragging it sets the height by hand — down to a single row when the
+list matters more, up to 60 % of the column when the topics do — and a double
+click gives the automatic height back. The height is remembered between
+sessions, and it stays a ceiling rather than a height, so a country of three
+topics never leaves a band of empty panel below them.
 
 The same splitting removes the `Movies:` and `Series:` prefixes from movies and
 series, which only repeat the name of the tab.
@@ -558,8 +590,10 @@ dev/screenshot.mjs  a 1280x800 store screenshot of the player, over the DevTools
 dev/store-screenshots.mjs  the five store screenshots, from the mock server's content
 dev/mock/           a fake Xtream Codes server with invented content, and its media;
                     also the Fly.io demo the store reviewers are given
+firefox/            the Firefox version: its manifest, the build that assembles
+                    firefox/dist/ from the shared source, and its development loop
 docs/               the GitHub Pages site: front page, privacy policy, terms of use
-FIREFOX.md          an assessment of what a Firefox version would take
+FIREFOX.md          the Firefox version: what differs, how it is built and tested, what was measured
 CHROMECAST.md       the Chromecast assessment, and the design built from it
 store-listing.txt   the Chrome Web Store listing copy
 vendor/             mpegts.js 1.8.0, hls.js 1.6.5 (local: MV3's CSP does not
@@ -697,14 +731,25 @@ The release package:
 rm -f kepuli-tv-1.0.3.zip
 zip -rq kepuli-tv-1.0.3.zip . \
   -x "*.DS_Store" -x "*.git*" -x "README.md" -x "FIREFOX.md" -x "CHROMECAST.md" -x "LICENSE" \
-  -x "store-listing.txt" -x "brand/*" -x "dev/*" -x "docs/*" \
+  -x "store-listing.txt" -x "brand/*" -x "dev/*" -x "docs/*" -x "firefox/*" \
   -x ".impeccable/*" -x "*.zip"
 ```
 
-The result is 44 entries and around 700 kB. `*.zip` is in `.gitignore`, so the
+The result is 45 entries and around 700 kB. `*.zip` is in `.gitignore`, so the
 package can be built in the project root.
 
-`dev/` and `docs/` have to be excluded: `dev/wasm/media/` is tens of megabytes
+The Firefox package is the same files with the manifest from `firefox/`:
+
+```
+node firefox/build.mjs --zip
+```
+
+writes `kepuli-tv-firefox-<version>.zip` next to the Chrome one. The script
+compares the two manifests first and stops if the version or any shared key
+differs, so a release bumps the version in both `manifest.json` and
+`firefox/manifest.json`. AMO signs the package; see `FIREFOX.md`.
+
+`dev/`, `docs/` and `firefox/` have to be excluded: `dev/wasm/media/` is tens of megabytes
 of test material made by `build.sh --test`, and `docs/` is the Pages site, not
 part of the extension. `.impeccable/` is tool configuration and is ignored as
 well.

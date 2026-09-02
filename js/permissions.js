@@ -10,7 +10,7 @@
 // player_api.php, get.php and the segment requests of hls.js and
 // mpegts.js. A native <video src> and <img> logos work without it.
 //
-// NOTE: chrome.permissions.request() requires a user gesture, and the
+// NOTE: permissions.request() requires a user gesture, and the
 // gesture is spent by the first await. Call requestAccess() straight from
 // the top of the click handler, before any other await. For an origin
 // that is already granted the call returns true immediately without
@@ -23,6 +23,8 @@
  * host name may not contain a port, and a pattern with one is rejected as
  * invalid. A portless pattern covers every port on the host.
  */
+import { api } from './browser.js';
+
 export function originPattern(url) {
   let u;
   try {
@@ -43,7 +45,7 @@ export async function hasAccess(url) {
   const pattern = originPattern(url);
   if (!pattern) return true;
   try {
-    return await chrome.permissions.contains({ origins: [pattern] });
+    return await api.permissions.contains({ origins: [pattern] });
   } catch (err) {
     console.warn('[iptv] permission check failed', pattern, err);
     return false;
@@ -55,7 +57,7 @@ export async function requestAccess(url) {
   const pattern = originPattern(url);
   if (!pattern) return true;
   try {
-    return await chrome.permissions.request({ origins: [pattern] });
+    return await api.permissions.request({ origins: [pattern] });
   } catch (err) {
     console.warn('[iptv] permission request failed', pattern, err);
     return false;

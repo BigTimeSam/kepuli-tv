@@ -1,4 +1,5 @@
-// Settings, favourites, history and resume points in chrome.storage.local.
+// Settings, favourites, history and resume points in the extension's
+// storage.local.
 // Note: the password is stored in the clear in the extension's own storage.
 //
 // Favourites and history are stored as whole items rather than bare ids,
@@ -6,6 +7,7 @@
 // exception is a favourite category (k = 'c'), whose contents are exactly
 // what is allowed to change: only its identifier is kept, see app.js.
 
+import { api } from './browser.js';
 import { cacheClear } from './db.js';
 
 const CONNECTION_DEFAULTS = {
@@ -33,7 +35,7 @@ const MAX_RESUME = 400;
 export const itemKey = (item) => `${item.k}:${item.id}`;
 
 async function read(key, fallback) {
-  const data = await chrome.storage.local.get(key);
+  const data = await api.storage.local.get(key);
   return data[key] === undefined ? fallback : data[key];
 }
 
@@ -54,7 +56,7 @@ export async function saveConfig(patch) {
   const prev = await loadConfig();
   const next = { ...prev, ...patch };
   if (serverKey(next) !== serverKey(prev)) await cacheClear();
-  await chrome.storage.local.set({ config: next });
+  await api.storage.local.set({ config: next });
   return next;
 }
 
@@ -64,7 +66,7 @@ export async function loadSettings() {
 
 export async function saveSettings(patch) {
   const next = { ...(await loadSettings()), ...patch };
-  await chrome.storage.local.set({ settings: next });
+  await api.storage.local.set({ settings: next });
   return next;
 }
 
@@ -72,7 +74,7 @@ export async function loadUiState() { return read('ui', {}); }
 
 export async function saveUiState(patch) {
   const ui = { ...(await loadUiState()), ...patch };
-  await chrome.storage.local.set({ ui });
+  await api.storage.local.set({ ui });
 }
 
 /* ---------------------------------------------------------- favourites */
@@ -83,7 +85,7 @@ export async function loadFavorites() {
 }
 
 export async function saveFavorites(map) {
-  await chrome.storage.local.set({ favorites: [...map.values()] });
+  await api.storage.local.set({ favorites: [...map.values()] });
 }
 
 /* ------------------------------------------------------------- history */
@@ -95,18 +97,18 @@ export async function pushRecent(item) {
   const list = (await loadRecents()).filter((r) => itemKey(r) !== key);
   list.unshift({ ...item, watchedAt: Date.now() });
   const trimmed = list.slice(0, MAX_RECENTS);
-  await chrome.storage.local.set({ recents: trimmed });
+  await api.storage.local.set({ recents: trimmed });
   return trimmed;
 }
 
 export async function removeRecent(key) {
   const list = (await loadRecents()).filter((r) => itemKey(r) !== key);
-  await chrome.storage.local.set({ recents: list });
+  await api.storage.local.set({ recents: list });
   return list;
 }
 
 export async function clearRecents() {
-  await chrome.storage.local.set({ recents: [] });
+  await api.storage.local.set({ recents: [] });
 }
 
 /* ------------------------------------------------------- resume points */
@@ -118,5 +120,5 @@ export async function loadResume() {
 export async function saveResume(map) {
   // The oldest are dropped so that storage does not grow without bound.
   const entries = [...map.entries()].sort((a, b) => b[1].at - a[1].at).slice(0, MAX_RESUME);
-  await chrome.storage.local.set({ resume: Object.fromEntries(entries) });
+  await api.storage.local.set({ resume: Object.fromEntries(entries) });
 }

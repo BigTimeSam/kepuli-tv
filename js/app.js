@@ -8,6 +8,7 @@ import { nameCleaner } from './name.js';
 import { EpgGrid, catchupAvailable } from './epggrid.js';
 import { cacheClear, wipeStorage, storageEstimate } from './db.js';
 import { parsePlaylistUrl, streamUrl, timeshiftUrl, baseUrl } from './xtream.js';
+import { api } from './browser.js';
 import { requestAccess, hasAccess } from './permissions.js';
 import { externalLabel, handOff } from './external.js';
 import { Cast, supported as castSupported } from './cast.js';
@@ -1579,7 +1580,7 @@ async function renderAccountBox() {
  */
 async function resetEverything() {
   playback.stop();
-  await chrome.storage.local.clear();
+  await api.storage.local.clear();
   await wipeStorage();
   location.reload();
 }

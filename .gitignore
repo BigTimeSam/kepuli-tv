@@ -18,3 +18,6 @@ dev/wasm/media/
 
 # dev/mock/media.sh makes these with ffmpeg; dummy media for the mock server.
 dev/mock/media/
+
+# firefox/build.mjs assembles the Firefox package here from the shared source.
+firefox/dist/

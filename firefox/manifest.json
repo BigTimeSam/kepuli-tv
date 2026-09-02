@@ -1,0 +1,24 @@
+{
+  "manifest_version": 3,
+  "name": "Kepuli-TV",
+  "version": "1.0.3",
+  "description": "Xtream Codes IPTV player for the browser: channels, programme guide, movies and series — MKV with subtitles included.",
+  "browser_specific_settings": {
+    "gecko": {
+      "id": "kepuli-tv@bigtimesam.github.io",
+      "strict_min_version": "128.0",
+      "data_collection_permissions": { "required": ["none"] }
+    }
+  },
+  "content_security_policy": {
+    "extension_pages": "script-src 'self' 'wasm-unsafe-eval'; object-src 'self'"
+  },
+  "permissions": ["storage", "unlimitedStorage"],
+  "optional_host_permissions": ["http://*/*", "https://*/*"],
+  "background": { "scripts": ["background.js"] },
+  "action": {
+    "default_title": "Kepuli-TV",
+    "default_icon": { "16": "icons/icon16.png", "32": "icons/icon32.png", "48": "icons/icon48.png", "128": "icons/icon128.png" }
+  },
+  "icons": { "16": "icons/icon16.png", "32": "icons/icon32.png", "48": "icons/icon48.png", "128": "icons/icon128.png" }
+}
