@@ -725,34 +725,33 @@ runs the screenshot walk against the deployed demo, which is the check that
 what the reviewers get really works; `KEPULI_SHOTS_DIR` keeps the pictures
 out of `brand/screenshots/`.
 
-The release package:
+The release packages:
 
 ```
-rm -f kepuli-tv-1.0.4.zip
-zip -rq kepuli-tv-1.0.4.zip . \
-  -x "*.DS_Store" -x "*.git*" -x "README.md" -x "FIREFOX.md" -x "CHROMECAST.md" -x "LICENSE" \
-  -x "store-listing.txt" -x "brand/*" -x "dev/*" -x "docs/*" -x "firefox/*" \
-  -x ".impeccable/*" -x "*.zip"
+node dev/package.mjs --zip
 ```
 
-The result is 45 entries and around 700 kB. `*.zip` is in `.gitignore`, so the
-package can be built in the project root.
+builds `dist/chrome/` and `dist/firefox/` and zips them into
+`kepuli-tv-chrome-<version>.zip` and `kepuli-tv-firefox-<version>.zip` in the
+project root. A package is an allowlist, not the project minus exclusions:
+`player.html`, `background.js`, `js/`, `css/`, `vendor/` and `icons/`, plus
+the one manifest that belongs to the browser. Nothing else in the project can
+get in, so the Chrome package cannot pick up Firefox's tooling or the other
+way round. The files come from git, HEAD unless `--ref` names another commit
+or tag, so uncommitted work in the checkout never ships by accident; the
+script says what it left out. `--worktree` packages what is on disk instead,
+and says what that includes. A single browser is `node dev/package.mjs chrome
+--zip`.
 
-The Firefox package is the same files with the manifest from `firefox/`:
-
-```
-node firefox/build.mjs --zip
-```
-
-writes `kepuli-tv-firefox-<version>.zip` next to the Chrome one. The script
-compares the two manifests first and stops if the version or any shared key
-differs, so a release bumps the version in both `manifest.json` and
-`firefox/manifest.json`. AMO signs the package; see `FIREFOX.md`.
-
-`dev/`, `docs/` and `firefox/` have to be excluded: `dev/wasm/media/` is tens of megabytes
-of test material made by `build.sh --test`, and `docs/` is the Pages site, not
-part of the extension. `.impeccable/` is tool configuration and is ignored as
-well.
+The script compares the two manifests first and stops if the version or any
+shared key differs, so a release bumps the version in both `manifest.json`
+and `firefox/manifest.json`; `--check` runs that comparison alone. After the
+copy it checks that every file the manifest and `player.html` refer to is in
+the package, and lists the zip against the previous one of the same browser,
+so a file that went missing or crept in shows up before the upload. `*.zip`
+and `dist/` are in `.gitignore`. AMO signs the Firefox package; see
+`FIREFOX.md`. `firefox/build.mjs` remains the development loop's assembler of
+`firefox/dist/` from the checkout, for `firefox/dev.mjs` to reload.
 
 ## Licence
 

@@ -21,3 +21,6 @@ dev/mock/media/
 
 # firefox/build.mjs assembles the Firefox package here from the shared source.
 firefox/dist/
+
+# dev/package.mjs assembles the release packages here, one directory per browser.
+dist/
