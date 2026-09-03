@@ -4,142 +4,144 @@ The store page does not support Markdown. These texts are deliberately plain
 and can be copied as they are. English is the language to choose, because the
 interface is in English by default.
 
+The store's reviewers read the description under the "Spam and placement in
+the Store" policy (violation reference Yellow Argon). The first submission was
+rejected for a list of file extensions in the detailed description. What the
+policy forbids, and what this text therefore avoids:
+  • lists of keywords, file types, brands or sites: write sentences, and name
+    a format only where the sentence needs it, at most a couple per sentence
+  • lists of countries or regions: one example at most
+  • any one keyword used five times or more (the Spam FAQ says "under 5",
+    and counts the primary purpose word too); the audit below every word
+    with a meaning stays at four or fewer
+  • anonymous testimonials, superlatives, and mentions of competing extensions
+
 
 --- SHORT DESCRIPTION (field "Description", max 132 characters) ------------
-The same text is in manifest.json, from which the store reads it
-automatically. Length 117 characters.
+The same text is in manifest.json and firefox/manifest.json, from which the
+store reads it automatically. Length 98 characters. A sentence on purpose:
+a colon followed by a comma-separated run of nouns reads as a keyword list.
 
-Xtream Codes IPTV player for the browser: channels, programme guide, movies and series — MKV with subtitles included.
+Plays your own Xtream Codes IPTV account in the browser, with a programme guide and MKV subtitles.
 
 
 --- LONG DESCRIPTION (field "Detailed description", max 16,000 characters) --
 
 Kepuli-TV plays the contents of your own Xtream Codes IPTV account straight in
 Chrome. No separate application and no media server: you give the server
-address and your credentials, and the channels, movies and series are in the
-list.
+address and your credentials, and your live channels, movies and series appear
+in the sidebar.
 
-PLEASE NOTE: The extension contains, distributes and relays no content, no
-channels and no providers. You need your own Xtream Codes IPTV account, which
-you have obtained yourself. Kepuli-TV is a player and nothing else, and it is
+PLEASE NOTE: The extension contains, distributes and relays no content, and it
+comes with no provider. You need your own Xtream Codes IPTV account, which you
+have obtained yourself. Kepuli-TV is a player and nothing else, and it is
 intended solely for viewing content you have the right to view. You are
 responsible for ensuring that the service you use is lawful in your own
 country.
 
 
-IT PLAYS WHAT THE BROWSER CANNOT
+MATROSKA ON THE FLY
 
-Chrome will not take Matroska, even when the picture inside it would be fine.
-Kepuli-TV unpacks the MKV container on the fly into fMP4 and feeds it to the
-browser's own player — the picture is neither decoded nor re-encoded, so the
+Chrome will not open a Matroska file, even when the picture inside it would be
+fine. Kepuli-TV unpacks the MKV container on the fly into a form the built-in
+video element accepts. The picture is neither decoded nor re-encoded, so the
 work is light and seeking behaves normally.
 
 The audio decides more often than the container: more than half of the
-episodes use AC-3, E-AC-3 or DTS, none of which exist in Chrome. Those are
-decoded with a wasm decoder and encoded back to AAC with the browser's own
-encoder.
+episodes carry a surround-sound track that the browser cannot decode. Those
+tracks are decoded on the spot and encoded back with the browser's own
+encoder: AAC, or Opus where the browser has no AAC encoder.
 
-Measured on a sample of 23,628 episodes: without these, 44.6% would play; with
-the unpacking, 93.7%.
+Measured on a sample of 23,628 episodes: without this, 44.6% would work; with
+it, 93.7%.
 
 
 SUBTITLES
 
-The subtitle tracks of MKV files are picked up during the unpacking and handed
-to the browser, so they show in full-screen mode too. Below the player there is
-a language selector in alphabetical order and three sizes. The chosen language
-is remembered and carries over to the next episode of a series.
+Subtitle tracks are picked up during the unpacking and handed to the video
+element, so they show in full-screen mode too. Below the picture there is a
+language selector in alphabetical order and three sizes. The chosen language is
+remembered and carries over to the next episode.
 
-The supported formats are SRT, ASS/SSA and WebVTT. Bitmap subtitles (PGS,
-VOBSUB) are images and do not show in the browser.
+Text formats such as SRT show. Bitmap formats are images and cannot be shown.
 
 
-FAST EVEN WITH ENORMOUS LISTS
+FAST EVEN WITH ENORMOUS CATALOGUES
 
-A typical playlist is tens of megabytes and hundreds of thousands of lines.
-Kepuli-TV does not load it in one go. It fetches from the player_api.php API
-only what you are browsing at the time: the categories when the connection
-opens, a country's channels only when you click the country, the whole list
-only if you search it. A country's channels typically open within a second or
-two.
+A typical catalogue is tens of megabytes and hundreds of thousands of lines.
+Kepuli-TV does not load it in one go. It fetches only what you are browsing at
+the time: the categories when the connection opens, a country's channels only
+when you click it, the whole catalogue only if you search it. One typically
+opens within a second or two.
 
-Everything loaded once stays in the IndexedDB cache, so the next open is
-instant. The cache can be cleared from the settings.
+Everything loaded once stays in a local cache, so the next open is instant. The
+cache can be cleared from the settings.
 
 
 CATEGORIES IN A SENSIBLE SHAPE
 
-Providers pack two levels into a single string: "Sweden - Sport", "Albania -
-Movies Club". Kepuli-TV splits them, which condenses hundreds of muddled
-categories into dozens of countries in the sidebar and moves the subjects into
-topic buttons along the top.
+Providers pack two levels into a single name, such as "Sweden - Sport". They
+are split, which condenses hundreds of muddled categories into dozens of
+countries in the sidebar and moves the subjects into topic buttons along the
+top.
 
-Lists are always sorted alphabetically, numbers as numbers included: Rocky 2
-comes before Rocky 10. The sidebar search matches sub-categories too: with the
-word "sport" you find the countries that have sports channels even when the
-country's name lacks it.
+Everything is sorted alphabetically, numbers as numbers included: Rocky 2 comes
+before Rocky 10. The sidebar filter matches the second level too: with the word
+"sport" you find the places that have a sports category even when their name
+lacks the word.
 
 
 PROGRAMME GUIDE AND ARCHIVE
 
-The guide (the g key) turns the whole window into a grid: channels as rows,
-time on the horizontal axis and a moving now line. The video continues in the
-corner. The timeline runs from two days back to five days forward, and on
-channels that have an archive a past programme can be started straight from the
-guide.
+The guide turns the whole window into a grid: channels as rows, time on the
+horizontal axis and a moving now line. The video continues in the corner. The
+timeline runs from two days back to five days forward, and where the provider
+keeps an archive, a past programme can be started straight from the guide.
 
 
 FEATURES
 
-• Programme data on the list rows: the programme on air and a progress bar
-• A full-window programme guide, and catch-up on channels with an archive
-• MKV playback and subtitles without an external player
-• Series by season, with cover art and episode descriptions
-• Movie details: plot, running time, rating, codec
-• Unplayable files are marked in the list before you click
-• Hand-off to a desktop player (VLC and the like) with the resume position
-• Chromecast: natively played files through Chrome's Remote Playback API,
-  the rest with Chrome's own tab casting
-• Resume positions remembered for movies and episodes
-• The interface in English and Finnish
-• Favourites and viewing history as tabs of their own
-• A whole category as a favourite: its channels open straight from the
-  favourites list, always fresh
+• What is on air, with a progress bar, on every row
+• A full-window programme guide, with catch-up where an archive exists
+• Matroska and its subtitles without an external player
+• Series by season, with cover art and episode descriptions; movies with
+  their plot and rating
+• Files that cannot be shown are marked before you click, and their address
+  can be handed to a desktop application with the resume position
+• Casting to a Chromecast
+• Resume positions remembered for everything on demand
+• Favourites and viewing history as tabs of their own, and a favourite can be
+  a whole section
 • Automatic reconnection when a live stream drops
-• Technical details over the picture: resolution, bitrate, playback engine
-• Account details in view: validity and the number of concurrent connections
-• Keyboard control: / search, arrow keys in the list, space pause,
-  f full screen, m mute, n and p next and previous, g programme guide,
-  x hand over to an external player, c cast to a Chromecast
+• Technical details over the picture, and account validity in view
+• Keyboard control throughout
+• The interface in English and Finnish
 
 
-WHAT THE BROWSER PLAYS
+LIVE AND ON DEMAND
 
-Live channels are played as an MPEG-TS stream and, when needed, as HLS. In
-automatic mode TS is tried first for its lower latency, and HLS takes over if
-it does not start.
+Live channels arrive as a transport stream and, when needed, as HLS. Automatic
+mode tries the transport stream first for its lower latency and falls back to
+HLS if it does not start.
 
-Of movies and episodes, .mp4, .m4v, .mov, .webm, .ts, .flv and .mkv play. Left
-out are the AVI container, VC-1 and 10-bit H.264. Those are marked in the list
-before you click, and their address goes to a desktop player or to the
-clipboard with a single button.
+On-demand files in the common containers open, MKV included. Left out are the
+AVI container and a couple of video codecs with no decoder on board. Those
+files are marked before you click, and their address goes to a desktop player
+or to the clipboard with a single button.
 
 
 PRIVACY AND PERMISSIONS
 
 • All data stays on your own machine. The extension sends your details
   nowhere: network requests go only to your own server. The exception is
-  channel logos and cover art, which the browser fetches from the addresses
-  your provider put in the listing — those may point elsewhere.
+  logos and cover art, which are fetched from wherever your provider points.
 • No tracking, no analytics, no advertising, no user accounts.
 • Installation asks for access to no site at all. Chrome asks for the
   permission only when you enter your own server address, and only for that
-  address.
+  one.
 • There are no content scripts: the extension does not touch the pages you
   browse.
-• Credentials are stored in the extension's own storage on this machine.
-
-The interface is in English, with Finnish available in the settings.
+• Credentials are stored locally on this machine.
 
 
 --- THE OTHER FIELDS ON THE STORE FORM -------------------------------------

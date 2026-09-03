@@ -2,7 +2,7 @@
   "manifest_version": 3,
   "name": "Kepuli-TV",
   "version": "1.0.4",
-  "description": "Xtream Codes IPTV player for the browser: channels, programme guide, movies and series — MKV with subtitles included.",
+  "description": "Plays your own Xtream Codes IPTV account in the browser, with a programme guide and MKV subtitles.",
   "minimum_chrome_version": "116",
   "content_security_policy": {
     "extension_pages": "script-src 'self' 'wasm-unsafe-eval'; object-src 'self'"
