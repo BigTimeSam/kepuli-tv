@@ -47,6 +47,11 @@
   <section class="listcol">
     <div class="crumbs" id="crumbs" hidden></div>
     <div class="subcats" id="subcats" hidden></div>
+    <!-- The topic bar's lower edge is its handle: role and the value
+         attributes make it a splitter for a keyboard and a screen reader
+         too, see wireSubcatsResize. -->
+    <div class="subcats-grip" id="subcats-grip" role="separator" aria-orientation="horizontal"
+         tabindex="0" data-i18n-title="subcats.resize.title" hidden></div>
     <div class="detail" id="detail" hidden></div>
     <div class="list" id="list" tabindex="0"></div>
     <div class="listinfo" id="listinfo"></div>

@@ -158,15 +158,40 @@ button.group-star:hover { color: var(--text); background: #262c3d; }
 
 .subcats {
   display: flex; gap: 5px; flex-wrap: wrap;
-  padding: 8px 10px; border-bottom: 1px solid var(--border); background: var(--panel);
+  padding: 8px 10px; background: var(--panel);
   /* The height comes from the content: a handful of topics take one row and
-     no empty space is reserved. The ceiling is sized for four full chip rows
-     (a row's advance of 30.6 px + 16 px of padding = 133 px) plus ten-odd
-     pixels, so that the edge of a fifth row shows and says there is more to
-     scroll. In a short window the vh limit keeps the list in the lead. */
+     no empty space is reserved. The ceiling is a share of the column rather
+     than a count of chip rows (a row's advance is 30.6 px and the padding
+     16), so a country of three topics stays one row tall and one of forty
+     fills six or seven. applySubcatsHeight sets it, and the user's own
+     height with it; the value here only covers the first paint. */
   max-height: min(144px, 20vh); overflow-y: auto;
 }
 .subcats[hidden] { display: none; }
+
+/* The bar's lower edge doubles as the handle: it is the border it replaced,
+   with a grip in the middle that grows visible under the pointer. A whole
+   band rather than a corner, because it is the edge the eye already reads
+   as the boundary between the topics and the list. */
+.subcats-grip {
+  flex: none; height: 8px; position: relative; cursor: row-resize;
+  background: var(--panel); border-bottom: 1px solid var(--border); outline: none;
+}
+.subcats-grip[hidden] { display: none; }
+.subcats-grip::after {
+  content: ''; position: absolute; left: 50%; top: 3px; width: 30px; height: 2px;
+  transform: translateX(-50%); border-radius: 2px; background: var(--border);
+  transition: background .12s, width .12s;
+}
+.subcats-grip:hover::after,
+.subcats-grip:focus-visible::after,
+.subcats-grip.dragging::after { background: var(--accent); width: 46px; }
+/* While dragging, the pointer belongs to the handle wherever it wanders: no
+   text is selected under it, and the chips and rows it passes do not answer
+   with a hand of their own. */
+body.resizing, body.resizing * { cursor: row-resize; }
+body.resizing { user-select: none; }
+
 /* A chip is a container for two buttons: the selection and the star. The
    appearance — background, border, highlight — stays on the container, so
    that both buttons look like parts of the same chip rather than buttons of
@@ -363,20 +388,23 @@ body[data-subsize="large"] video::cue { font-size: 105%; }
 dialog { border: 1px solid var(--border); background: var(--panel); color: var(--text); border-radius: 14px; padding: 0; box-shadow: 0 24px 70px rgba(0, 0, 0, .6); }
 dialog::backdrop { background: rgba(5, 6, 10, .66); backdrop-filter: blur(2px); }
 
-.setup { padding: 20px 22px; width: min(620px, 92vw); }
-.setup h2 { margin: 0 0 6px; font-size: 16px; }
-.setup h3 { margin: 18px 0 8px; font-size: 13px; color: var(--muted); font-weight: 550; }
-.hint { color: var(--muted); margin: 0 0 14px; font-size: 12px; }
-.hint code { background: var(--panel-2); padding: 1px 5px; border-radius: 4px; font-size: 11px; }
-.hint.warn { color: var(--warn); margin: 14px 0 0; }
+/* The form is a column of blocks — the title, the connection choice, the
+   credentials, the account box, the language, the toggles, the buttons —
+   and one gap keeps them apart. A gap rather than a margin on each block,
+   so that a block without one (the account box, once) cannot sit flush
+   against its neighbour, and a hidden block leaves no double space behind.
+   The rows inside the credential grid sit a little tighter than the
+   blocks, see .grid. */
+.setup { padding: 20px 22px; width: min(620px, 92vw); display: flex; flex-direction: column; gap: 14px; }
+.setup h2 { margin: 0; font-size: 16px; }
 
-.field { display: flex; flex-direction: column; gap: 4px; margin-bottom: 10px; }
+.field { display: flex; flex-direction: column; gap: 4px; }
 .field[hidden] { display: none; }        /* an explicit display beats [hidden], see .crumbs */
 .field span code { background: var(--panel-2); padding: 1px 4px; border-radius: 4px; }
 .field span { color: var(--muted); font-size: 11.5px; }
 .field input, .field select { background: var(--panel-2); border: 1px solid var(--border); border-radius: 8px; padding: 7px 9px; outline: none; width: 100%; }
 .field input:focus, .field select:focus { border-color: var(--accent); }
-.grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 0 10px; }
+.grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; }
 .grid[hidden] { display: none; }         /* an explicit display beats [hidden], see .crumbs */
 .grid .w-scheme { grid-column: span 1; }
 .grid .w-host { grid-column: span 2; }
@@ -386,7 +414,7 @@ dialog::backdrop { background: rgba(5, 6, 10, .66); backdrop-filter: blur(2px); 
 
 /* Choosing the connection mode. Chips would be too light here: the choice
    changes the whole form, so it may look like a choice. */
-.radios { display: flex; gap: 8px; margin-top: 3px; }
+.radios { display: flex; gap: 8px; }
 .radio {
   display: flex; align-items: center; gap: 7px; cursor: pointer;
   padding: 7px 12px; border: 1px solid var(--border); border-radius: 9px;
@@ -405,7 +433,7 @@ dialog::backdrop { background: rgba(5, 6, 10, .66); backdrop-filter: blur(2px); 
 .account-box b { color: var(--text); font-weight: 600; }
 .account-box .cols { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px 12px; margin-top: 6px; }
 
-.setup-actions { display: flex; align-items: center; gap: 8px; margin-top: 16px; flex-wrap: wrap; }
+.setup-actions { display: flex; align-items: center; gap: 8px; margin-top: 4px; flex-wrap: wrap; }
 /* The irreversible actions to an edge of their own, opposite the Connect
    button: the separator line was needed only for as long as they sat in the
    same cluster as the one the viewer is actually after. */

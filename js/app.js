@@ -22,7 +22,8 @@ const el = {
   tabs: $('tabs'), search: $('search'), groups: $('groups'), groupsCol: $('groups-col'),
   categoryFilter: $('category-filter'), groupsFilter: $('groups-filter'),
   list: $('list'), crumbs: $('crumbs'), detail: $('detail'),
-  listinfo: $('listinfo'), main: $('main'), accountMeta: $('account-meta'), accountExpiry: $('account-expiry'), subcats: $('subcats'),
+  listinfo: $('listinfo'), main: $('main'), accountMeta: $('account-meta'), accountExpiry: $('account-expiry'),
+  subcats: $('subcats'), subcatsGrip: $('subcats-grip'),
   video: $('video'), overlay: $('overlay'), overlayTitle: $('overlay-title'),
   overlayText: $('overlay-text'), overlayActions: $('overlay-actions'), statbadge: $('statbadge'),
   infostrip: $('infostrip'), nowTitle: $('now-title'), nowSub: $('now-sub'), mode: $('mode'),
@@ -79,6 +80,7 @@ const state = {
   subtitles: [],          // the subtitle tracks of the file being played
   favorites: new Map(), recents: [], resume: new Map(),
   lastGroup: {}, lastKind: {},
+  subcatsHeight: null,    // the topic bar's height when dragged, null = automatic
 };
 
 const isCollection = () => COLLECTIONS.has(state.tab);
@@ -450,12 +452,18 @@ async function loadGroupItems(type, groupName) {
   }
 }
 
+/** The topic bar and its handle appear and disappear together. */
+function showSubcats(on) {
+  el.subcats.hidden = !on;
+  el.subcatsGrip.hidden = !on;
+}
+
 /** The topic filters within the chosen group. */
 function renderSubcats() {
   const type = tabType();
   const group = type && state.group ? state.lib.group(type, state.group) : null;
   if (!group || group.cats.length < 2 || state.detail || state.query) {
-    el.subcats.hidden = true;
+    showSubcats(false);
     el.subcats.replaceChildren();
     return;
   }
@@ -488,7 +496,123 @@ function renderSubcats() {
     }, () => selectSub(cat.id)));
   }
   el.subcats.replaceChildren(frag);
-  el.subcats.hidden = false;
+  showSubcats(true);
+  applySubcatsHeight();
+}
+
+/* ================================================== the topic bar height */
+
+// A chip row advances 30.6 px and the bar's own padding adds 16, so one row
+// comes to 47 px and eight to 261. The fixed 144 px this used to have for
+// every group alike was four of them.
+const SUBCATS_MIN = 48;          // one row: the bar never shrinks to a stripe
+const SUBCATS_AUTO_MAX = 260;    // eight rows: beyond that it is a page of its own
+// Sweden's 31 topics and USA's 48 do not fit in four rows, and it is exactly
+// there that the bar is the thing being read, so it is given a share of the
+// column rather than a number of rows: on a tall window that is six or seven
+// rows, on a short one the list still keeps what it needs.
+const SUBCATS_AUTO_SHARE = 0.28;
+// Dragging is a decision, not a default, so it may go further — up to where
+// a few list rows are still under the bar.
+const SUBCATS_DRAG_SHARE = 0.6;
+
+/**
+ * How tall the topic bar may be: the ceiling it takes by itself, and the one
+ * a drag may reach. Both are measured from the column, because a ceiling in
+ * pixels that is right on a full screen hides the list on a half one.
+ */
+function subcatsBounds() {
+  const column = el.subcats.parentElement.clientHeight || window.innerHeight;
+  return {
+    min: SUBCATS_MIN,
+    auto: Math.round(Math.min(SUBCATS_AUTO_MAX, column * SUBCATS_AUTO_SHARE)),
+    max: Math.round(Math.max(SUBCATS_MIN * 2, column * SUBCATS_DRAG_SHARE)),
+  };
+}
+
+/**
+ * The bar is as tall as its chips, up to the ceiling. A ceiling rather than
+ * a height, because a bar dragged past its last chip would be a band of
+ * empty panel, and the list needs the pixels more.
+ */
+function applySubcatsHeight() {
+  if (el.subcats.hidden) return;
+  const bounds = subcatsBounds();
+  const cap = state.subcatsHeight == null
+    ? bounds.auto
+    : Math.min(Math.max(state.subcatsHeight, bounds.min), bounds.max);
+  el.subcats.style.maxHeight = `${cap}px`;
+  el.subcatsGrip.setAttribute('aria-valuemin', String(bounds.min));
+  el.subcatsGrip.setAttribute('aria-valuemax', String(bounds.max));
+  el.subcatsGrip.setAttribute('aria-valuenow', String(Math.round(el.subcats.getBoundingClientRect().height)));
+}
+
+/** A dragged height is the user's, so it is remembered between sessions. */
+function setSubcatsHeight(height) {
+  const bounds = subcatsBounds();
+  state.subcatsHeight = height == null ? null : Math.min(Math.max(Math.round(height), bounds.min), bounds.max);
+  applySubcatsHeight();
+}
+
+/**
+ * The handle at the bar's lower edge. The pointer is captured, so the drag
+ * follows it over the list and outside the window as well, and a double
+ * click gives the automatic height back.
+ */
+function wireSubcatsResize() {
+  const grip = el.subcatsGrip;
+  let startY = 0;
+  let startHeight = 0;
+
+  grip.addEventListener('pointerdown', (e) => {
+    if (e.button !== 0) return;
+    // No preventDefault here: cancelling a pointerdown also cancels the
+    // mouse events derived from it, and the double click below is one of
+    // them. Dragging over text is kept from selecting it by body.resizing.
+    startY = e.clientY;
+    startHeight = el.subcats.getBoundingClientRect().height;
+    grip.setPointerCapture(e.pointerId);
+    grip.classList.add('dragging');
+    document.body.classList.add('resizing');
+  });
+
+  grip.addEventListener('pointermove', (e) => {
+    if (!grip.hasPointerCapture(e.pointerId)) return;
+    // The distance the pointer has come, not where it is: the bar's top
+    // edge is not the same as the column's when a breadcrumb is above it.
+    setSubcatsHeight(startHeight + (e.clientY - startY));
+  });
+
+  const release = (e) => {
+    if (!grip.hasPointerCapture(e.pointerId)) return;
+    grip.releasePointerCapture(e.pointerId);
+    grip.classList.remove('dragging');
+    document.body.classList.remove('resizing');
+    store.saveUiState({ subcatsHeight: state.subcatsHeight });
+  };
+  grip.addEventListener('pointerup', release);
+  grip.addEventListener('pointercancel', release);
+
+  grip.addEventListener('dblclick', () => {
+    setSubcatsHeight(null);
+    store.saveUiState({ subcatsHeight: null });
+  });
+
+  grip.addEventListener('keydown', (e) => {
+    const step = e.key === 'ArrowDown' ? 1 : e.key === 'ArrowUp' ? -1 : 0;
+    if (!step) return;
+    // The same arrows move the cursor in the list, and a handle that has
+    // been given the focus is the one being steered.
+    e.preventDefault();
+    e.stopPropagation();
+    setSubcatsHeight(el.subcats.getBoundingClientRect().height + step * (e.shiftKey ? 48 : 12));
+    store.saveUiState({ subcatsHeight: state.subcatsHeight });
+  });
+
+  // Both ceilings are measured from the column, so a window that changes
+  // size changes them. The observer looks at the column and the callback
+  // touches only the bar inside it, so nothing here can feed itself.
+  new ResizeObserver(() => applySubcatsHeight()).observe(el.subcats.parentElement);
 }
 
 async function selectSub(categoryId) {
@@ -1964,6 +2088,7 @@ async function init() {
 
   wireSetup();
   wireUi();
+  wireSubcatsResize();
   state.favorites = await store.loadFavorites();
   state.recents = await store.loadRecents();
   state.resume = await store.loadResume();
@@ -1974,6 +2099,7 @@ async function init() {
 
   const ui = await store.loadUiState();
   if (ui.tab) state.tab = ui.tab;
+  if (typeof ui.subcatsHeight === 'number') state.subcatsHeight = ui.subcatsHeight;
   for (const button of el.tabs.children) button.classList.toggle('active', button.dataset.tab === state.tab);
 
   if (!state.config.host) {

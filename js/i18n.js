@@ -47,6 +47,7 @@ const STRINGS = {
     /* ------------------------------------------------------------- list */
     'subcats.all': 'All',
     'subcats.general': 'General',
+    'subcats.resize.title': 'Drag to set the height of the topic bar, double-click for the default',
     'crumbs.back': '← Back',
     'list.topics': '{n} topics',
     'list.partial': 'whole list not loaded',
@@ -324,6 +325,7 @@ const STRINGS = {
     /* ------------------------------------------------------------- list */
     'subcats.all': 'Kaikki',
     'subcats.general': 'Yleiset',
+    'subcats.resize.title': 'Vedä aihepalkin korkeus haluamaksesi, kaksoisnapsautus palauttaa oletuksen',
     'crumbs.back': '← Takaisin',
     'list.topics': '{n} aihetta',
     'list.partial': 'koko listaa ei ladattu',
