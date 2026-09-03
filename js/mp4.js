@@ -19,6 +19,12 @@
 //    the sample rate is used and frames are chained back to back, because
 //    Matroska's millisecond resolution would round an AAC frame's 21.333 ms
 //    duration and the error would accumulate into seconds over an hour.
+//
+// The audio sample entry is one of two. AAC, whether the file's own track
+// or the re-encoded one, is an mp4a entry with the AudioSpecificConfig in
+// its esds. Opus — what transcode.js encodes where the browser has no AAC
+// encoder, Firefox above all — is an Opus entry with a dOps box, as the
+// Opus-in-ISOBMFF specification lays it out.
 
 export const VIDEO_TIMESCALE = 90000;
 
@@ -148,9 +154,33 @@ function trak(track) {
     box('stsc', u32(0, 0)),
     box('stsz', u32(0, 0, 0)),
     box('stco', u32(0, 0)),
+    ...(track.codec === 'opus' ? rollGroup() : []),
   );
 
   return box('trak', tkhd, box('mdia', mdhd, hdlr, box('minf', header, dinf, stbl)));
+}
+
+/**
+ * The 'roll' sample group Opus in ISOBMFF requires of every Opus track: a
+ * player seeking into the stream decodes this many samples before the
+ * target and discards them, so that the decoder has settled — 80 ms of
+ * pre-roll, four 20 ms frames, hence a roll distance of -4. Neither Chrome
+ * nor Firefox reads it for playback; the specification's "shall" is the
+ * reason it is here. The sgpd holds the one description, the sbgp of the
+ * sample table is empty, and every media segment's traf refers to the
+ * description from its own sbgp.
+ */
+function rollGroup() {
+  return [
+    box('sgpd', join([
+      u32(0x01000000),            // version 1: default_length follows
+      new Uint8Array(CHARS('roll')),
+      u32(2),                     // default_length
+      u32(1),                     // entry_count
+      u16(0xfffc),                // roll_distance -4
+    ])),
+    box('sbgp', join([u32(0), new Uint8Array(CHARS('roll')), u32(0)])),
+  ];
 }
 
 function sampleEntry(track) {
@@ -175,21 +205,39 @@ function sampleEntry(track) {
     return box(track.codec === 'hevc' ? 'hvc1' : 'avc1', payload);
   }
 
-  const payload = join([
+  const audio = join([
     new Uint8Array(6),
     u16(1),                       // data_reference_index
     u32(0, 0),                    // reserved
     u16(track.channels || 2, 16), // channelcount, samplesize
     u16(0, 0),                    // pre_defined, reserved
     u32((track.rate || 48000) << 16),
-    esds(track.priv),
   ]);
-  return box('mp4a', payload);
+  if (track.codec === 'opus') return box('Opus', audio, dOps(track));
+  return box('mp4a', audio, esds(track.priv));
 }
 
 function compressorName() {
   const out = new Uint8Array(32);   // length byte + 31 characters, zeroed
   return out;
+}
+
+/**
+ * The OpusSpecificBox. Only the case at hand: mono or stereo, channel
+ * mapping family 0, so no mapping table follows. PreSkip is zero on
+ * purpose — the encoder's priming delay is measured and taken off the
+ * timestamps in transcode.js, as it is for AAC, and a decoder told to trim
+ * would take the same samples off twice.
+ */
+function dOps(track) {
+  return box('dOps', join([
+    bytes(0),                     // Version
+    bytes(track.channels || 2),   // OutputChannelCount
+    u16(0),                       // PreSkip
+    u32(track.rate || 48000),     // InputSampleRate
+    u16(0),                       // OutputGain, 0 dB
+    bytes(0),                     // ChannelMappingFamily 0: no table
+  ]));
 }
 
 /**
@@ -220,8 +268,9 @@ function esds(asc) {
  * @param {number} sequence running number
  * @param {number} trackId
  * @param {{data:Uint8Array, dts:number, cts:number, duration:number, keyframe:boolean}[]} samples
+ * @param {string} [codec] 'opus' adds the fragment's roll group, see rollGroup
  */
-export function mediaSegment(sequence, trackId, samples) {
+export function mediaSegment(sequence, trackId, samples, codec) {
   const baseTime = samples[0].dts;
   const mfhd = box('mfhd', u32(0, sequence));
 
@@ -248,7 +297,13 @@ export function mediaSegment(sequence, trackId, samples) {
     at += 16;
   }
 
-  const traf = box('traf', tfhd, tfdt, box('trun', trunPayload));
+  // Every sample of the fragment in the roll group: one run, description 1
+  // of the sample table's sgpd. After the trun, so that the data offset
+  // below is still found at the same place.
+  const roll = codec === 'opus'
+    ? [box('sbgp', join([u32(0), new Uint8Array(CHARS('roll')), u32(1), u32(samples.length), u32(1)]))]
+    : [];
+  const traf = box('traf', tfhd, tfdt, box('trun', trunPayload), ...roll);
   const moof = box('moof', mfhd, traf);
 
   // data_offset points into the mdat contents, counted from the start of

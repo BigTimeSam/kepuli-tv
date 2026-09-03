@@ -231,7 +231,9 @@ states.</p>
 
 <p>In Firefox: <code>node firefox/build.mjs</code>, then <code>about:debugging</code> → <strong>This
 Firefox</strong> → <strong>Load Temporary Add-on</strong> → <code>firefox/dist/manifest.json</code>. Firefox
-128 or newer. A temporary add-on lasts until Firefox closes; the permanent
+128 or newer — 130 for the decoded AC-3, E-AC-3 and DTS route, which needs
+WebCodecs audio; on 128 and 129 those files are marked <em>no sound</em> instead. A
+temporary add-on lasts until Firefox closes; the permanent
 route is a signed package from AMO, see <code>FIREFOX.md</code>. The same code runs in
 both browsers — <code>firefox/</code> holds only the Firefox manifest and the tools that
 assemble the package from it.</p>
@@ -444,8 +446,9 @@ started straight from the guide</li>
   <li><strong>Series</strong> by season, with cover art and plots from TMDB</li>
   <li><strong>Movie details</strong>: plot, running time, rating, codec</li>
   <li><strong>MKV plays</strong> without an external player: the container is unpacked on the
-fly into fMP4, seeking included. If the audio track is AC-3 or DTS, <strong>Play
-without sound</strong> is on offer</li>
+fly into fMP4, seeking included, and an AC-3, E-AC-3 or DTS track is
+decoded in the player — in Firefox 130 or newer too. For the few tracks
+that are not decoded, <strong>Play without sound</strong> is on offer</li>
   <li><strong>Subtitles</strong> from MKV files: a language and size selector below the player,
 and the chosen language carries over to the following episodes — see below</li>
   <li><strong>Unplayable files are marked in the list</strong> before you click; once a file has
@@ -728,24 +731,33 @@ third separate one. The build is <code>dev/wasm/build.sh</code>, and <code>--tes
 output with ffmpeg's own from the same bitstream — in every case the difference
 is float rounding (~1e-7), including the 5.1 downmix and the 32 kHz conversion.</p>
 
-<p>MediaSource will not take PCM, so the decoded audio is re-encoded to AAC with
-the browser's own <code>AudioEncoder</code> (<code>js/transcode.js</code>). Two measured constraints
-set the format:</p>
+<p>MediaSource will not take PCM, so the decoded audio is re-encoded with the
+browser's own <code>AudioEncoder</code> (<code>js/transcode.js</code>): to AAC where the browser has
+that encoder — Chrome on macOS and Windows — and otherwise to Opus, which is
+what Firefox and Chrome on Linux encode. MediaSource takes both in MP4, with an
+<code>mp4a</code> or an <code>Opus</code> sample entry from <code>js/mp4.js</code>; the choice is made once per
+page, a candidate counts only once it has actually encoded, and <code>FIREFOX.md</code>
+has the measurements for both. <code>node dev/audiocheck.mjs
+firefox</code> (or <code>chrome</code>) makes them again: the real modules run inside the
+extension, and what they produce is decoded with ffmpeg and compared with the
+wasm decoder's own reference. Two measured constraints set the format:</p>
 
 <ul>
-  <li><strong>The encoder accepts only 44,100 and 48,000 Hz</strong>, and it does not tolerate
-the channel count changing mid-track. AC-3 allows 32,000 Hz, and the library
-holds files where mono turns into stereo. That is why the wasm decoder brings
-everything down to a fixed format (stereo, 48 kHz) before the encoder. The
-downmix is asked of the decoder itself, which uses the stream's own
-cmixlev/surmixlev levels; swresample's generic matrix gave a different,
-clipping result when measured.</li>
+  <li><strong>The AAC encoder accepts only 44,100 and 48,000 Hz</strong>, Opus wants 48,000,
+and neither tolerates the channel count changing mid-track. AC-3 allows
+32,000 Hz, and the library holds files where mono turns into stereo. That
+is why the wasm decoder brings everything down to a fixed format (stereo,
+48 kHz) before the encoder. The downmix is asked of the decoder itself,
+which uses the stream's own cmixlev/surmixlev levels; swresample's generic
+matrix gave a different, clipping result when measured.</li>
   <li><strong>The encoder has a priming delay that it neither reports nor corrects</strong> —
-2112 samples, or 44 ms, when measured, which is macOS's AudioToolbox figure
-and therefore not portable. Without correction the audio would lag the picture
-by that much throughout. The figure is therefore measured at run time: a known
-impulse is encoded and decoded back with the browser's own decoder. Measured,
-the chain lands sample-accurate and does not creep at all over 60 seconds.</li>
+2112 samples, or 44 ms, for AAC when measured, which is macOS's AudioToolbox
+figure and therefore not portable, and 312 samples (6.5 ms) for Opus in
+Firefox. Without correction the audio would lag the picture by that much
+throughout. The figure is therefore measured at run time: a known impulse is
+encoded and decoded back with the browser's own decoder. Measured, the chain
+lands sample-accurate with either encoder and does not creep at all over 60
+seconds.</li>
 </ul>
 
 <p>Back pressure is handled by waiting rather than flushing: <code>flush()</code> forces the
@@ -805,7 +817,7 @@ js/mkv.js           Matroska clusters from a stream into frames
 js/mp4.js           fMP4 segments for MediaSource
 js/remux.js         the unpacking engine: downloading, seeking, buffers
 js/ffaudio.js       AC-3, E-AC-3 and DTS decoding with wasm
-js/transcode.js     decoded audio back to AAC for MediaSource
+js/transcode.js     decoded audio back to AAC, or to Opus where there is no AAC encoder, for MediaSource
 js/subs.js          subtitle tracks from MKV into the video element's own tracks
 js/vlist.js         the virtualised list
 js/rows.js          painting the list rows
@@ -818,6 +830,7 @@ icons/              16, 32, 48, 128 px extension icons
 brand/              the sources of the brand graphics, not part of the package
 dev/dev.mjs         the development loop: reloads the extension and the page
 dev/wasm/           building ffaudio and comparing it with ffmpeg
+dev/audiocheck.mjs  the decoded-audio route run inside Firefox or Chrome and compared with ffmpeg
 dev/site.mjs        renders README.md into docs/index.html, the Pages front page
 dev/screenshot.mjs  a 1280x800 store screenshot of the player, over the DevTools protocol
 dev/store-screenshots.mjs  the five store screenshots, from the mock server's content
@@ -953,30 +966,31 @@ runs the screenshot walk against the deployed demo, which is the check that
 what the reviewers get really works; <code>KEPULI_SHOTS_DIR</code> keeps the pictures
 out of <code>brand/screenshots/</code>.</p>
 
-<p>The release package:</p>
+<p>The release packages:</p>
 
-<pre><code>rm -f kepuli-tv-1.0.4.zip
-zip -rq kepuli-tv-1.0.4.zip . \
-  -x "*.DS_Store" -x "*.git*" -x "README.md" -x "FIREFOX.md" -x "CHROMECAST.md" -x "LICENSE" \
-  -x "store-listing.txt" -x "brand/*" -x "dev/*" -x "docs/*" -x "firefox/*" \
-  -x ".impeccable/*" -x "*.zip"</code></pre>
+<pre><code>node dev/package.mjs --zip</code></pre>
 
-<p>The result is 45 entries and around 700 kB. <code>*.zip</code> is in <code>.gitignore</code>, so the
-package can be built in the project root.</p>
+<p>builds <code>dist/chrome/</code> and <code>dist/firefox/</code> and zips them into
+<code>kepuli-tv-chrome-&lt;version&gt;.zip</code> and <code>kepuli-tv-firefox-&lt;version&gt;.zip</code> in the
+project root. A package is an allowlist, not the project minus exclusions:
+<code>player.html</code>, <code>background.js</code>, <code>js/</code>, <code>css/</code>, <code>vendor/</code> and <code>icons/</code>, plus
+the one manifest that belongs to the browser. Nothing else in the project can
+get in, so the Chrome package cannot pick up Firefox's tooling or the other
+way round. The files come from git, HEAD unless <code>--ref</code> names another commit
+or tag, so uncommitted work in the checkout never ships by accident; the
+script says what it left out. <code>--worktree</code> packages what is on disk instead,
+and says what that includes. A single browser is <code>node dev/package.mjs chrome
+--zip</code>.</p>
 
-<p>The Firefox package is the same files with the manifest from <code>firefox/</code>:</p>
-
-<pre><code>node firefox/build.mjs --zip</code></pre>
-
-<p>writes <code>kepuli-tv-firefox-&lt;version&gt;.zip</code> next to the Chrome one. The script
-compares the two manifests first and stops if the version or any shared key
-differs, so a release bumps the version in both <code>manifest.json</code> and
-<code>firefox/manifest.json</code>. AMO signs the package; see <code>FIREFOX.md</code>.</p>
-
-<p><code>dev/</code>, <code>docs/</code> and <code>firefox/</code> have to be excluded: <code>dev/wasm/media/</code> is tens of megabytes
-of test material made by <code>build.sh --test</code>, and <code>docs/</code> is the Pages site, not
-part of the extension. <code>.impeccable/</code> is tool configuration and is ignored as
-well.</p>
+<p>The script compares the two manifests first and stops if the version or any
+shared key differs, so a release bumps the version in both <code>manifest.json</code>
+and <code>firefox/manifest.json</code>; <code>--check</code> runs that comparison alone. After the
+copy it checks that every file the manifest and <code>player.html</code> refer to is in
+the package, and lists the zip against the previous one of the same browser,
+so a file that went missing or crept in shows up before the upload. <code>*.zip</code>
+and <code>dist/</code> are in <code>.gitignore</code>. AMO signs the Firefox package; see
+<code>FIREFOX.md</code>. <code>firefox/build.mjs</code> remains the development loop's assembler of
+<code>firefox/dist/</code> from the checkout, for <code>firefox/dev.mjs</code> to reload.</p>
 
 <h2 id="licence">Licence</h2>
 

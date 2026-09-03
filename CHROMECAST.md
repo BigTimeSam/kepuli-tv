@@ -142,7 +142,8 @@ then `f`. The player's `f` puts the video element itself full screen, which is
 what Chrome's dominant-content check wants.
 
 The audio of an MKV has already been decoded from AC-3 or DTS and encoded to
-AAC before it reaches MediaSource, so it suits remoting as it is.
+AAC — or to Opus, where the browser has no AAC encoder; remoting takes both —
+before it reaches MediaSource, so it suits remoting as it is.
 
 **Subtitles** are the known casualty. The player hands them to the browser as
 `VTTCue`s, which the video element draws; media remoting carries only the

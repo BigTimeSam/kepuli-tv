@@ -20,6 +20,7 @@
 import { cacheGet, cachePut, cacheGetAll } from './db.js';
 import { t } from './i18n.js';
 import { decodable } from './ffaudio.js';
+import { hasEncoder } from './transcode.js';
 import { parseHeader, TRACK_TYPE } from './ebml.js';
 
 const HEADER_BYTES = 256 * 1024;
@@ -214,11 +215,12 @@ function videoTrack(track) {
 
 function audioTrack(track) {
   const mime = AUDIO_MIME[track.codecId] || null;
+  const passable = passthroughMime(track.codecId);
   return {
     codec: shortCodec(track.codecId),
     codecId: track.codecId || null,
     mime,
-    supported: mime ? supports(`audio/mp4; codecs="${mime}"`) : false,
+    supported: passable ? supports(`audio/mp4; codecs="${passable}"`) : false,
     channels: track.channels || 0,
     language: language(track),
     name: track.name || null,
@@ -254,6 +256,22 @@ export const AUDIO_MIME = {
   'A_DTS/LOSSLESS': 'dtsl', 'A_TRUEHD': 'mlpa', 'A_MPEG/L3': 'mp4a.69', 'A_MPEG/L2': 'mp4a.69',
   'A_OPUS': 'opus', 'A_VORBIS': 'vorbis', 'A_FLAC': 'flac',
 };
+
+/**
+ * The codec string for a track the remuxer can hand to MediaSource as it
+ * is, or null. Only AAC: the init segment describes it with an mp4a entry
+ * around the track's own AudioSpecificConfig, and that is the one
+ * description mp4.js can write from a Matroska header. Opus, Vorbis, FLAC
+ * and MP3 in MKV would each need a sample entry of their own — the browser
+ * may well say yes to the codec, but an mp4a entry under an Opus track is
+ * a rejected init segment, not playback. So they are not passed on: a file
+ * with such a track and an AC-3 one takes the decoded route, and one with
+ * nothing else is marked silent, honestly.
+ */
+export function passthroughMime(codecId) {
+  const mime = AUDIO_MIME[codecId];
+  return mime && mime.startsWith('mp4a.40') ? mime : null;
+}
 
 const AUDIO_NAME = {
   'A_AAC': 'aac', 'A_AAC/MPEG4/LC': 'aac', 'A_AAC/MPEG4/LC/SBR': 'aac',
@@ -418,14 +436,23 @@ export function verdict(info) {
     if (others.length) {
       return { path: 'remux', video, audio: others[0], reason: matroskaReason(video, others[0]) };
     }
-    // Chrome decodes neither AC-3, E-AC-3 nor DTS, but the player does
+    // The browser decodes neither AC-3, E-AC-3 nor DTS, but the player does
     // (transcode.js). An untouched track would still be better, so this is
-    // only the third choice.
+    // only the third choice — and it holds only where the decoded audio has
+    // an encoder to go through on its way to MediaSource. A browser without
+    // one (Firefox 128, say, before WebCodecs audio) gets the honest verdict
+    // rather than a promise the playback cannot keep.
     if (decodable(audio.codecId)) {
       const size = video.height ? ` ${video.height}p` : '';
+      if (hasEncoder()) {
+        return {
+          path: 'remux', video, audio, decoded: true,
+          reason: t('probe.decoded', { video: video.codec.toUpperCase() + size, audio: audio.codec.toUpperCase() }),
+        };
+      }
       return {
-        path: 'remux', video, audio, decoded: true,
-        reason: t('probe.decoded', { video: video.codec.toUpperCase() + size, audio: audio.codec.toUpperCase() }),
+        path: 'silent', video, audio,
+        reason: t('probe.noencoder', { codec: audio.codec.toUpperCase() }),
       };
     }
     return {

@@ -35,7 +35,9 @@ states.
 
 In Firefox: `node firefox/build.mjs`, then `about:debugging` → **This
 Firefox** → **Load Temporary Add-on** → `firefox/dist/manifest.json`. Firefox
-128 or newer. A temporary add-on lasts until Firefox closes; the permanent
+128 or newer — 130 for the decoded AC-3, E-AC-3 and DTS route, which needs
+WebCodecs audio; on 128 and 129 those files are marked *no sound* instead. A
+temporary add-on lasts until Firefox closes; the permanent
 route is a signed package from AMO, see `FIREFOX.md`. The same code runs in
 both browsers — `firefox/` holds only the Firefox manifest and the tools that
 assemble the package from it.
@@ -239,8 +241,9 @@ COLLECTION".
 - **Series** by season, with cover art and plots from TMDB
 - **Movie details**: plot, running time, rating, codec
 - **MKV plays** without an external player: the container is unpacked on the
-  fly into fMP4, seeking included. If the audio track is AC-3 or DTS, **Play
-  without sound** is on offer
+  fly into fMP4, seeking included, and an AC-3, E-AC-3 or DTS track is
+  decoded in the player — in Firefox 130 or newer too. For the few tracks
+  that are not decoded, **Play without sound** is on offer
 - **Subtitles** from MKV files: a language and size selector below the player,
   and the chosen language carries over to the following episodes — see below
 - **Unplayable files are marked in the list** before you click; once a file has
@@ -498,23 +501,32 @@ third separate one. The build is `dev/wasm/build.sh`, and `--test` compares the
 output with ffmpeg's own from the same bitstream — in every case the difference
 is float rounding (~1e-7), including the 5.1 downmix and the 32 kHz conversion.
 
-MediaSource will not take PCM, so the decoded audio is re-encoded to AAC with
-the browser's own `AudioEncoder` (`js/transcode.js`). Two measured constraints
-set the format:
+MediaSource will not take PCM, so the decoded audio is re-encoded with the
+browser's own `AudioEncoder` (`js/transcode.js`): to AAC where the browser has
+that encoder — Chrome on macOS and Windows — and otherwise to Opus, which is
+what Firefox and Chrome on Linux encode. MediaSource takes both in MP4, with an
+`mp4a` or an `Opus` sample entry from `js/mp4.js`; the choice is made once per
+page, a candidate counts only once it has actually encoded, and `FIREFOX.md`
+has the measurements for both. `node dev/audiocheck.mjs
+firefox` (or `chrome`) makes them again: the real modules run inside the
+extension, and what they produce is decoded with ffmpeg and compared with the
+wasm decoder's own reference. Two measured constraints set the format:
 
-- **The encoder accepts only 44,100 and 48,000 Hz**, and it does not tolerate
-  the channel count changing mid-track. AC-3 allows 32,000 Hz, and the library
-  holds files where mono turns into stereo. That is why the wasm decoder brings
-  everything down to a fixed format (stereo, 48 kHz) before the encoder. The
-  downmix is asked of the decoder itself, which uses the stream's own
-  cmixlev/surmixlev levels; swresample's generic matrix gave a different,
-  clipping result when measured.
+- **The AAC encoder accepts only 44,100 and 48,000 Hz**, Opus wants 48,000,
+  and neither tolerates the channel count changing mid-track. AC-3 allows
+  32,000 Hz, and the library holds files where mono turns into stereo. That
+  is why the wasm decoder brings everything down to a fixed format (stereo,
+  48 kHz) before the encoder. The downmix is asked of the decoder itself,
+  which uses the stream's own cmixlev/surmixlev levels; swresample's generic
+  matrix gave a different, clipping result when measured.
 - **The encoder has a priming delay that it neither reports nor corrects** —
-  2112 samples, or 44 ms, when measured, which is macOS's AudioToolbox figure
-  and therefore not portable. Without correction the audio would lag the picture
-  by that much throughout. The figure is therefore measured at run time: a known
-  impulse is encoded and decoded back with the browser's own decoder. Measured,
-  the chain lands sample-accurate and does not creep at all over 60 seconds.
+  2112 samples, or 44 ms, for AAC when measured, which is macOS's AudioToolbox
+  figure and therefore not portable, and 312 samples (6.5 ms) for Opus in
+  Firefox. Without correction the audio would lag the picture by that much
+  throughout. The figure is therefore measured at run time: a known impulse is
+  encoded and decoded back with the browser's own decoder. Measured, the chain
+  lands sample-accurate with either encoder and does not creep at all over 60
+  seconds.
 
 Back pressure is handled by waiting rather than flushing: `flush()` forces the
 encoder to emit a partial frame padded with silence, and the frame chain would
@@ -572,7 +584,7 @@ js/mkv.js           Matroska clusters from a stream into frames
 js/mp4.js           fMP4 segments for MediaSource
 js/remux.js         the unpacking engine: downloading, seeking, buffers
 js/ffaudio.js       AC-3, E-AC-3 and DTS decoding with wasm
-js/transcode.js     decoded audio back to AAC for MediaSource
+js/transcode.js     decoded audio back to AAC, or to Opus where there is no AAC encoder, for MediaSource
 js/subs.js          subtitle tracks from MKV into the video element's own tracks
 js/vlist.js         the virtualised list
 js/rows.js          painting the list rows
@@ -585,6 +597,7 @@ icons/              16, 32, 48, 128 px extension icons
 brand/              the sources of the brand graphics, not part of the package
 dev/dev.mjs         the development loop: reloads the extension and the page
 dev/wasm/           building ffaudio and comparing it with ffmpeg
+dev/audiocheck.mjs  the decoded-audio route run inside Firefox or Chrome and compared with ffmpeg
 dev/site.mjs        renders README.md into docs/index.html, the Pages front page
 dev/screenshot.mjs  a 1280x800 store screenshot of the player, over the DevTools protocol
 dev/store-screenshots.mjs  the five store screenshots, from the mock server's content

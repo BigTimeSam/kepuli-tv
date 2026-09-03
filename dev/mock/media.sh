@@ -109,4 +109,21 @@ ffmpeg -y -hide_banner -loglevel error $(src 'Silent Fjord' 'c0=0x0b1a2e:c1=0x3a
   -metadata:s:s:1 language=fin -metadata:s:s:1 title=Suomi \
   "$DIR/episode.mkv"
 
+# The same episode with AC-3 5.1 sound, for the route the player decodes
+# itself: the wasm decoder and then the browser's own encoder, AAC in Chrome
+# and Opus in Firefox. The server hands it out as the second episode of
+# every first season. A tone per channel, as dev/wasm/build.sh does, so that
+# a wrong channel map would be heard; the front pair beeps for the first
+# tenth of every second, in step with the clock on the picture, so that the
+# audio's lead or lag against the picture can be judged by ear.
+echo "episode-ac3.mkv"
+AC3="aevalsrc=0.5*sin(2*PI*880*t)*lt(mod(t\,1)\,0.1)|0.5*sin(2*PI*880*t)*lt(mod(t\,1)\,0.1)|0.3*sin(2*PI*330*t)|0.2*sin(2*PI*60*t)|0.25*sin(2*PI*440*t)|0.25*sin(2*PI*550*t):c=5.1:d=$SECS:s=48000"
+ffmpeg -y -hide_banner -loglevel error \
+  -f lavfi -i "gradients=s=1280x720:r=25:c0=0x2a0a1e:c1=0x7a1f4d:c2=0xff8f5c:nb_colors=3:speed=0.01:duration=$SECS" \
+  -f lavfi -i "$AC3" -i "$DIR/en.srt" -i "$DIR/fi.srt" -map 0:v -map 1:a -map 2:s -map 3:s \
+  -vf "$(text 'Ember Coast')" $VIDEO -c:a ac3 -b:a 384k -c:s srt \
+  -metadata:s:s:0 language=eng -metadata:s:s:0 title=English \
+  -metadata:s:s:1 language=fin -metadata:s:s:1 title=Suomi \
+  "$DIR/episode-ac3.mkv"
+
 ls -la "$DIR" "$DIR/hls" | head -20

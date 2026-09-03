@@ -21,7 +21,7 @@ import { parseHeader, ID, Reader } from './ebml.js';
 import { t } from './i18n.js';
 import { BufferedBytes, frames } from './mkv.js';
 import { initSegment, mediaSegment, decodeTimes, durations, VIDEO_TIMESCALE } from './mp4.js';
-import { videoMime, AUDIO_MIME } from './probe.js';
+import { videoMime, passthroughMime } from './probe.js';
 import { decodable } from './ffaudio.js';
 import { AudioTranscoder, encoderSetup, RATE as DECODED_RATE, CHANNELS as DECODED_CHANNELS } from './transcode.js';
 import { SubtitleTracks, isTextSubtitle, preferred } from './subs.js';
@@ -271,10 +271,11 @@ export class Remuxer {
 
     const tracks = header.tracks;
     this.videoTrack = tracks.find((t) => t.type === 1 && videoMime(t)) || null;
-    // A file may hold several audio tracks — take the first one Chrome can
-    // decode. This is exactly what saves discs carrying both AC-3 and AAC:
-    // the default track alone would often be the wrong one, and an
-    // untouched track always beats a re-encoded one.
+    // A file may hold several audio tracks — take the first one that can go
+    // to MediaSource as it is (AAC, see passthroughMime). This is exactly
+    // what saves discs carrying both AC-3 and AAC: the default track alone
+    // would often be the wrong one, and an untouched track always beats a
+    // re-encoded one.
     this.audioTrack = tracks.find((t) => t.type === 2 && supportedAudio(t)) || null;
     // Otherwise a track we decode ourselves. Of the 45 measured ac3/eac3
     // episodes not one had an alternative track, so without this they would
@@ -298,16 +299,17 @@ export class Remuxer {
 
     if (this.audioTrack) {
       // For a decoded track the format is transcode.js's fixed stereo
-      // 48 kHz rather than the original track's — and the
-      // AudioSpecificConfig comes from the encoder, because Matroska's
+      // 48 kHz rather than the original track's, and the codec is whichever
+      // encoder the browser has — AAC in Chrome, Opus in Firefox. The
+      // AudioSpecificConfig comes from the encoder too, because Matroska's
       // CodecPrivate describes the decoded format, not the encoded one.
       const decoded = Boolean(this.transcoder);
       const rate = decoded ? DECODED_RATE : (this.audioTrack.outputRate || this.audioTrack.rate || 48000);
-      const mime = decoded ? 'mp4a.40.2' : AUDIO_MIME[this.audioTrack.codecId];
+      const mime = decoded ? this.transcoder.mime : passthroughMime(this.audioTrack.codecId);
       this.buffers.audio = this.ms.addSourceBuffer(`audio/mp4; codecs="${mime}"`);
       this.buffers.audio.mode = 'segments';
       this.append('audio', initSegment([{
-        id: 2, kind: 'audio', timescale: rate, codec: 'aac',
+        id: 2, kind: 'audio', timescale: rate, codec: decoded ? this.transcoder.codec : 'aac',
         priv: decoded ? this.transcoder.description : this.audioTrack.priv,
         channels: decoded ? DECODED_CHANNELS : this.audioTrack.channels,
         rate,
@@ -316,15 +318,15 @@ export class Remuxer {
   }
 
   /**
-   * Opens the decoder for a track Chrome will not decode. A failure does not
-   * stop playback: the picture goes through without sound, and the viewer is
-   * told why.
+   * Opens the decoder for a track the browser will not decode. A failure
+   * does not stop playback: the picture goes through without sound, and the
+   * viewer is told why.
    */
   async openTranscoder() {
     if (!this.decodeTrack) return;
     try {
       if (!(await AudioTranscoder.available(this.decodeTrack.codecId))) {
-        throw new Error('the browser has no AAC encoder');
+        throw new Error('the browser has neither an AAC nor an Opus encoder');
       }
       const transcoder = await AudioTranscoder.open(this.decodeTrack.codecId, (err) => this.audioFailed(err));
       if (this.destroyed) { transcoder.close(); return; }
@@ -676,10 +678,10 @@ export class Remuxer {
   }
 
   /**
-   * The finished AAC frames into the source buffer. The times arrive from
-   * the encoder already chained, but a single media segment may only hold a
-   * contiguous run: the tfdt states just the first time and the rest are
-   * derived from the durations.
+   * The finished frames — AAC or Opus, whichever the browser encodes — into
+   * the source buffer. The times arrive from the encoder already chained,
+   * but a single media segment may only hold a contiguous run: the tfdt
+   * states just the first time and the rest are derived from the durations.
    */
   flushDecoded(generation) {
     if (generation !== this.generation || !this.buffers.audio || !this.transcoder) return;
@@ -687,7 +689,7 @@ export class Remuxer {
     let next = null;
     const emit = () => {
       if (!run.length) return;
-      this.append('audio', mediaSegment(this.sequence++, 2, run));
+      this.append('audio', mediaSegment(this.sequence++, 2, run, this.transcoder.codec));
       run = [];
     };
     for (const chunk of this.transcoder.take()) {
@@ -823,8 +825,9 @@ function timeRanges(sb) {
   }
 }
 
+// Only what the init segment can describe, see passthroughMime: AAC.
 const supportedAudio = (track) => {
-  const mime = AUDIO_MIME[track.codecId];
+  const mime = passthroughMime(track.codecId);
   if (!mime) return false;
   try { return MediaSource.isTypeSupported(`audio/mp4; codecs="${mime}"`); } catch { return false; }
 };

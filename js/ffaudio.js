@@ -6,8 +6,8 @@
 // the next call.
 //
 // The output is always interleaved stereo at the requested sample rate —
-// the reason is in transcode.js: the browser's AAC encoder does not
-// tolerate the channel count or the sample rate changing mid-track, and
+// the reason is in transcode.js: the browser's encoder, AAC or Opus, does
+// not tolerate the channel count or the sample rate changing mid-track, and
 // both occur in the library.
 
 import createFfAudio from '../vendor/ffaudio/ffaudio.js';

@@ -84,8 +84,9 @@ ffmpeg -v error -y -f lavfi -i "$SRC"    -c:a eac3 -b:a 640k "$MEDIA/t51.eac3"
 ffmpeg -v error -y -f lavfi -i "$SRC"    -c:a eac3 -b:a 192k "$MEDIA/t51_192.eac3"
 ffmpeg -v error -y -f lavfi -i "$STEREO" -c:a eac3 -b:a 128k "$MEDIA/t2.eac3"
 ffmpeg -v error -y -f lavfi -i "$SRC"    -c:a dca -strict -2 -b:a 1509k "$MEDIA/t51.dts"
-# 32 kHz is legal for AC-3 but unacceptable to the browser's AAC encoder, so
-# it is the one case where resampling is mandatory.
+# 32 kHz is legal for AC-3 but unacceptable to the browser's encoders (AAC
+# takes 44.1 and 48 kHz, Opus 48), so it is the one case where resampling is
+# mandatory.
 SRC32="aevalsrc=0.5*sin(2*PI*200*t)|0.5*sin(2*PI*300*t)|0.5*sin(2*PI*400*t)|0.5*sin(2*PI*500*t)|0.5*sin(2*PI*600*t)|0.3*sin(2*PI*80*t):c=5.1:d=5:s=32000"
 ffmpeg -v error -y -f lavfi -i "$SRC32"  -c:a ac3 -b:a 448k "$MEDIA/t32.ac3"
 

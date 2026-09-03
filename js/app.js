@@ -13,6 +13,7 @@ import { requestAccess, hasAccess } from './permissions.js';
 import { externalLabel, handOff } from './external.js';
 import { Cast, supported as castSupported } from './cast.js';
 import { warmCache, peek, badge as probeBadge, subtitleSummary, shortLanguage } from './probe.js';
+import { pickEncoder } from './transcode.js';
 import * as store from './config.js';
 import { nf, dateTimeFmt, dateFmt, stampFmt, dayLabel, clock, megabytes, duration, progressOf, setLocale } from './format.js';
 import { t, applyStatic, setLanguage, localeTag, LANGUAGES } from './i18n.js';
@@ -96,6 +97,12 @@ async function connect({ silent = false } = {}) {
     if (!silent) showProgress(t('progress.connecting'), config.host);
     state.account = await state.source.account();
     state.lib = new Library(state.source);
+    // Which audio encoder the browser has is asked now, so that the answer
+    // is in by the time the first list paints: a row whose AC-3 track the
+    // player can decode is marked playable only where the decoded audio
+    // has somewhere to go (probe.js). A browser without an encoder is no
+    // reason to stop connecting.
+    pickEncoder().catch(() => {});
     // File headers read earlier into memory, so that list rows can show the
     // result without a network request while painting.
     await warmCache();

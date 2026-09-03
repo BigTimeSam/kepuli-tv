@@ -90,8 +90,8 @@ const cases = [
   // The channel count changes mid-stream. The output format is fixed, so
   // the change must show up as nothing but a rebuild of the resampler.
   ['mix.ac3', 'ac3', 'AC-3 mono→stereo'],
-  // 32 kHz is not acceptable to the browser's AAC encoder, so it has to be
-  // resampled.
+  // 32 kHz is not acceptable to the browser's encoders, AAC or Opus, so it
+  // has to be resampled.
   ['t32.ac3', 'ac3', 'AC-3 32 kHz → 48 kHz'],
 ];
 

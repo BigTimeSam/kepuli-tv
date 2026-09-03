@@ -229,6 +229,11 @@ const vod = { categories: [], movies: [] };
 }
 
 const series = { categories: [], list: [], info: new Map() };
+// The second episode of every first season carries AC-3 5.1 sound
+// (episode-ac3.mkv from dev/mock/media.sh), so that the route the player
+// decodes itself — the wasm decoder, then the browser's own encoder, AAC in
+// Chrome and Opus in Firefox — is one click away in either browser.
+export const AC3_EPISODES = new Set();
 {
   let id = 7000;
   let epId = 70000;
@@ -258,13 +263,16 @@ const series = { categories: [], list: [], info: new Map() };
         for (let e = 1; e <= count; e++) {
           const mins = Number(entry.episode_run_time);
           const mkv = e === 1 || r() < 0.7;   // the first episode is always the MKV with subtitles
+          const ac3 = s === 1 && e === 2;     // the second is the MKV with AC-3 sound
+          if (ac3) AC3_EPISODES.add(String(epId));
           episodes[String(s)].push({
-            id: String(epId), episode_num: e, title: pick(r, EPISODE_TITLES), container_extension: mkv ? 'mkv' : 'mp4',
+            id: String(epId), episode_num: e, title: pick(r, EPISODE_TITLES), container_extension: mkv || ac3 ? 'mkv' : 'mp4',
             info: {
               movie_image: entry.cover, plot: plotFor(r), duration_secs: mins * 60 + between(r, 0, 59), duration: `00:${mins}:00`,
               air_date: `${year + s - 1}-${String(between(r, 9, 12)).padStart(2, '0')}-${String(between(r, 1, 28)).padStart(2, '0')}`,
               rating: stars, bitrate: between(r, 2400, 5600),
-              video: { codec_name: 'h264', width: 1920, height: 1080 }, audio: { codec_name: 'aac', channels: 2 },
+              video: { codec_name: 'h264', width: 1920, height: 1080 },
+              audio: ac3 ? { codec_name: 'ac3', channels: 6 } : { codec_name: 'aac', channels: 2 },
             },
             custom_sid: '', added: entry.last_modified, season: s, direct_source: '',
           });
@@ -522,7 +530,11 @@ function handle(req, res) {
   if (/^\/live\/.*\.ts$/.test(path)) return send(res, 404, 'the demo channel is HLS; the player falls back to it', 'text/plain');
   if (path.startsWith('/timeshift/')) return sendTimeshift(req, res);
   if ((m = /^\/(movie|series)\/.*\.(\w+)$/.exec(path))) {
-    if (m[2] === 'mkv') return sendFile(req, res, 'episode.mkv', 'video/x-matroska');
+    if (m[2] === 'mkv') {
+      const id = path.slice(path.lastIndexOf('/') + 1, -4);
+      const ac3 = AC3_EPISODES.has(id) && existsSync(join(MEDIA, 'episode-ac3.mkv'));
+      return sendFile(req, res, ac3 ? 'episode-ac3.mkv' : 'episode.mkv', 'video/x-matroska');
+    }
     if (m[2] === 'mp4') return sendFile(req, res, 'movie.mp4', 'video/mp4');
     return send(res, 404, `the demo server has no ${m[2]} files`, 'text/plain');
   }

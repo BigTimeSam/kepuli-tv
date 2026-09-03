@@ -7,8 +7,9 @@
 //
 // The output is always interleaved stereo at the requested sample rate. The
 // fixed format is not a simplification but a requirement: the decoded audio
-// is encoded with the browser's AAC encoder for MSE, and that accepts only
-// 44,100 and 48,000 Hz — AC-3 also allows 32,000 Hz. The channel count is
+// is encoded with the browser's own encoder for MSE — AAC, or Opus where
+// there is no AAC — and AAC accepts only 44,100 and 48,000 Hz, Opus 48,000;
+// AC-3 also allows 32,000 Hz. The channel count is
 // fixed for the same reason: the DTS decoder does not downmix every stream
 // to stereo, and the measured library holds files where mono turns into
 // stereo mid-track. Either change would crash the encoder mid-playback.

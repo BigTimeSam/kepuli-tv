@@ -109,27 +109,75 @@ over Marionette, against the mock server (`dev/mock/`):
 | Remote Playback API | absent, so the Cast button hides itself |
 | `requestPictureInPicture` | present |
 | `permissions.contains` | answers |
-| Console | the mock's expected 404, and the AAC encoder's NotSupportedError twice per MKV |
+| Console | the mock's expected 404, and the AAC encoder's NotSupportedError twice per MKV — the latter gone since the encoder is chosen (below): AAC is asked with `isConfigSupported` and never configured |
 
 The one real risk the assessment named — `remux.js`, where Chrome and Firefox
 accept different things into a `SourceBuffer` — turned out not to be one: the
 segments that Chrome takes, Firefox takes as they are, seeking included.
 
-### The remaining gap: AC-3 and DTS
+### AC-3 and DTS: Opus where there is no AAC
 
-Firefox has no AAC encoder, so the wasm decoder's output has nowhere to go:
-an MKV whose only audio track is AC-3, E-AC-3 or DTS plays without sound in
-Firefox, with the same notice Chrome shows when its encoder fails. The list
-badge and the probe verdict still promise a decoded track, because the
-verdict looks at the decoder alone.
+Firefox has no AAC encoder, so the wasm decoder's output — stereo PCM at
+48 kHz — used to have nowhere to go: an MKV whose only audio track was AC-3,
+E-AC-3 or DTS played without sound. What Firefox does have is an Opus
+encoder, and its MediaSource takes Opus in MP4. So `transcode.js` now asks
+for an encoder rather than assuming one: AAC first, because that is what
+Chrome has been measured with and an untouched route beats a new one, and
+Opus where AAC is not on offer. The choice is made once per page:
+`AudioEncoder.isConfigSupported` and `MediaSource.isTypeSupported` are the
+first filter, and a candidate counts only once it has actually encoded —
+the measurement below is part of the choice — because the filter is not
+always the truth. Chrome answers for AAC from its build, and the platform
+encoder behind the answer is only instantiated at `configure()`: a Windows N
+without the Media Feature Pack has the answer but not the encoder, and would
+otherwise never reach Opus. The choice serves every track. Chrome on Linux,
+which has no AAC encoder either, takes the Opus route too — the change is in
+the shared code, so it serves both browsers.
 
-The way out is measured too: Firefox encodes Opus, and its MediaSource takes
-Opus in MP4. Encoding to Opus instead of AAC where AAC is not on offer means
-an `Opus` sample entry with a `dOps` box in `mp4.js`, a 20 ms frame size in
-`transcode.js` in place of AAC's 1024 samples, and a priming delay of Opus's
-own. That is a change to the shared code, so it would serve Chrome too. Until
-then the verdict should ask the encoder as well as the decoder, so that the
-row is marked *silent* honestly.
+What the Opus route needed:
+
+- an `Opus` sample entry with a `dOps` box in `mp4.js` in place of `mp4a`
+  and its `esds`: stereo, channel mapping family 0, PreSkip 0 — and the
+  `roll` sample group the Opus-in-ISOBMFF specification requires of every
+  Opus track (80 ms of pre-roll, four frames), which neither browser reads
+  for playback but the specification's *shall* asks for
+- a frame of 960 samples — 20 ms, pinned with `opus.frameDuration` — in the
+  timestamp chain in place of AAC's 1024
+- the priming delay measured the same way as for AAC, an impulse encoded and
+  decoded back, which for Opus comes out as 312 samples (6.5 ms), libopus's
+  lookahead. PreSkip stays at zero because the delay is taken off the
+  timestamps instead, as it is for AAC; a decoder told to trim would take
+  the same samples off twice
+- the verdict in `probe.js` asks the encoder as well as the decoder: a
+  browser with the wasm decoder but no encoder at all — Firefox 128 and 129,
+  before desktop Firefox got WebCodecs audio in 130 — marks the row *no
+  sound* honestly, with a reason of its own. `strict_min_version` stays at
+  128: everything else in the player works there
+
+Measured, Firefox 155 and Chrome 152 on macOS, with `node dev/audiocheck.mjs
+firefox` and `chrome`: the real modules run inside the extension against the
+wasm test material (`dev/wasm/media/`, five files — AC-3 5.1, E-AC-3 stereo,
+DTS 5.1, AC-3 at 32 kHz, AC-3 changing from mono to stereo mid-stream), the
+fMP4 they produced decoded both by the browser itself and with ffmpeg, and
+compared with the wasm decoder's own reference PCM:
+
+| | Firefox 155 | Chrome 152 |
+| --- | --- | --- |
+| `AudioEncoder.isConfigSupported` AAC / Opus | false / true | true / true |
+| Encoder chosen, and its priming delay | Opus, 312 samples | AAC, 2112 samples |
+| Alignment against the reference, decoded with ffmpeg | sample-exact, all five files | sample-exact, all five files |
+| The same, decoded by the browser itself (`decodeAudioData`, the demuxer and decoder MediaSource uses) | sample-exact, the same SNR | sample-exact, the same SNR |
+| SNR against the reference | 33–43 dB | 47–49 dB |
+| Decoding and encoding, in real time | 54–93x | 57–132x |
+| The mock server's AC-3 5.1 episode, 120 s, through the remuxer | plays with sound; a seek to 60 s continues from 65.8 s | the same |
+| Opus packets | CELT, 20 ms, stereo, every one | — |
+
+The alignment check is the one that matters: a chain off by the delay, or by
+a frame, drops the SNR below zero, so a wrong correction could not have
+hidden. The mock server now hands out an AC-3 5.1 episode — the second of
+every first season, made by `dev/mock/media.sh` — with a beep on every
+second in step with the clock on the picture, so that the lead or lag can be
+judged by ear in either browser as well.
 
 ## The development loop
 
@@ -179,6 +227,10 @@ browser, as they are for Chrome.
 - Something that exists in one browser only — Remote Playback, picture in
   picture — is detected, never assumed, and hides its own control when
   missing.
+- An encoder is asked for, never assumed. `transcode.js` tries AAC and then
+  Opus, and the choice reaches `mp4.js` as the sample entry and `probe.js`
+  as the verdict — so a browser that gains or loses an encoder changes
+  nothing in the code.
 
 ## Publishing on AMO
 
