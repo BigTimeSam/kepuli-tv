@@ -303,6 +303,7 @@ COLLECTION".
 | `space` | pause |
 | `f` | full screen |
 | `m` | mute |
+| `a` | the next audio track, when the file has more than one |
 | `n` `p` | next / previous |
 | `g` | open and close the programme guide |
 | `x` | hand over to an external player |
@@ -322,6 +323,7 @@ and **Settings**. The player's own row is below the picture:
 | Button | Action |
 | --- | --- |
 | `Auto` `TS` `HLS` | the engine for a live channel; `Auto` is described below |
+| the audio selector | the track, on a file that carries more than one; `a` steps to the next |
 | the subtitle selector | the language, on a file that carries subtitles; the look and the size are in the settings |
 | `☆` | the channel or the film into the favourites |
 | `↻` | reload the stream |
@@ -576,6 +578,35 @@ The name in the selector is built from the language, the track's own name
 and the format: *Finnish · AC3 5.1*, *English · Commentary · AAC stereo*. A
 name that only repeats the language is left out, so a Finnish track called
 `Suomi` does not read *Finnish · Suomi*.
+
+### Changing the audio track
+
+The selector sits below the player next to the subtitle one, and appears
+only when there is a choice to make — one track is not a decision. The `a`
+key steps to the next track and names it in a toast, because the eye is on
+the picture rather than on the selector then. The choice is remembered as a
+language, so the next episode opens on the same one.
+
+Changing track mid-playback costs a read of the file. The account allows
+one connection, so the other track is not on the browser's side: it has to
+be fetched again. What is dropped, then, is only the sound — the picture
+stays in its buffer, which holds up to a minute ahead — and the download
+starts again from the cluster the playback position sits in. Measured, the
+picture runs through the change without stopping and the sound comes back
+in about a second.
+
+Two things had to be got right for that. The `SourceBuffer` keeps its
+identity and is re-pointed with `changeType`, because removing an audio
+buffer from under a running playback changes the element's track set;
+a new init segment follows in either case, since the sample rate and the
+channel count differ from track to track even within one codec. And the
+download's back pressure, which used to look at the video buffer alone,
+now looks at the shorter of the two — otherwise the minute of picture
+already buffered would stop the very download the sound is waiting for.
+
+A switch to or from an AC-3, E-AC-3 or DTS track builds or drops the
+decoder on the way; between two tracks of the same codec the decoder is
+only restarted.
 
 Two limits remain. A natively played `.mp4` cannot be switched at all, for
 the reason above. On a live channel `mpegts.js` takes the first audio PID

@@ -41,8 +41,10 @@
 //                                     the cursor announced and marked
 //   node dev/playcheck.mjs audio      the three-track episode: the automatic
 //                                     choice is heard as the English track's
-//                                     tone, and a remembered Finnish moves it
-//                                     to the Finnish one
+//                                     tone, the selector changes the track
+//                                     mid-playback without stopping the
+//                                     picture, and a remembered Finnish opens
+//                                     the next playback on the Finnish track
 //   node dev/playcheck.mjs subtitles  the cues are drawn by the layer, a
 //                                     two-line cue in one box; a double click
 //                                     takes the wrapper to full screen with
@@ -590,6 +592,46 @@ async function audio(page, { requests, target }) {
   if (!MULTI_EPISODES.has(id)) return { ok: false, detail: `the third row is episode ${id}, which is not the three-track one` };
   if (Math.abs(auto.hz - 440) > 12) return { ok: false, detail: `the automatic choice sounds at ${auto.hz} Hz (${auto.db} dB), expected the English track's 440 Hz` };
 
+  // The selector offers all three, with the English one chosen.
+  const menu = await evaluate(page, `(() => { const s = document.getElementById('audio');
+    return { hidden: s.hidden, options: [...s.options].map((o) => o.textContent), value: s.value }; })()`);
+  if (menu.hidden || menu.options.length !== 3) return { ok: false, detail: `the selector: ${JSON.stringify(menu)}` };
+  // A third selector on a row that was already full: every button has to
+  // stay on screen, at the narrowest width the layout is drawn for as well.
+  for (const width of [1024, 1280, 1512]) {
+    await page.call('Emulation.setDeviceMetricsOverride', { width, height: 800, deviceScaleFactor: 1, mobile: false });
+    await sleep(300);
+    const row = await evaluate(page, `(() => { const acts = document.querySelector('.now-actions');
+      const edge = acts.closest('section').getBoundingClientRect().right;
+      return { cutOff: Math.round(Math.max(...[...acts.children].filter((c) => !c.hidden).map((c) => c.getBoundingClientRect().right)) - edge),
+        buttons: acts.querySelectorAll('button').length }; })()`);
+    if (row.cutOff > 0) { await page.call('Emulation.clearDeviceMetricsOverride'); return { ok: false, detail: `at ${width} px the player's row runs ${row.cutOff} px past its column` }; }
+  }
+  await page.call('Emulation.clearDeviceMetricsOverride');
+  await sleep(300);
+  if (!/^English · AAC/.test(menu.options[0]) || !/^Finnish · AAC/.test(menu.options[1]) || !/Commentary/.test(menu.options[2])) {
+    return { ok: false, detail: `the selector names them ${JSON.stringify(menu.options)}` };
+  }
+
+  // The change mid-playback: the picture must not go back to buffering,
+  // and the sound must come back as the other track.
+  const before = await videoState(page);
+  await evaluate(page, `(() => { const s = document.getElementById('audio');
+    s.value = [...s.options].find((o) => /Finnish/.test(o.textContent)).value;
+    s.dispatchEvent(new Event('change')); return true; })()`, { gesture: true });
+  const switched = await evaluate(page, MEASURE);
+  const after = await videoState(page);
+  if (Math.abs(switched.hz - 660) > 12) return { ok: false, detail: `after the change it sounds at ${switched.hz} Hz (${switched.db} dB), expected 660 Hz` };
+  if (after.paused || after.t <= before.t) return { ok: false, detail: `the picture stopped at ${after.t} s (it was at ${before.t} s)` };
+  // The commentary is AC-3: choosing it takes the decoded route, decoder
+  // and encoder and all, which is the switch that changes the buffer's
+  // format rather than only its contents.
+  await evaluate(page, `(() => { const s = document.getElementById('audio');
+    s.value = [...s.options].find((o) => /Commentary/.test(o.textContent)).value;
+    s.dispatchEvent(new Event('change')); return true; })()`, { gesture: true });
+  const commentary = await evaluate(page, MEASURE);
+  if (Math.abs(commentary.hz - 880) > 12) return { ok: false, detail: `the commentary sounds at ${commentary.hz} Hz (${commentary.db} dB), expected 880 Hz` };
+
   // The remembered language, as the settings hold it between episodes.
   await evaluate(page, `chrome.storage.local.set({ settings: { lang: 'en', epgEnabled: true, resumeEnabled: false, subtitleLang: 'eng', audioLang: 'fi' } })`);
   await page.call('Page.navigate', { url: target.url });
@@ -597,7 +639,7 @@ async function audio(page, { requests, target }) {
   await waitFor(page, CONNECTED, 'the connection after the reload');
   const finnish = await heard(2);
   if (Math.abs(finnish.hz - 660) > 12) return { ok: false, detail: `with Finnish asked for it sounds at ${finnish.hz} Hz (${finnish.db} dB), expected the Finnish track's 660 Hz` };
-  return { ok: true, detail: `episode ${id}: automatic ${auto.hz} Hz (English), audioLang fi ${finnish.hz} Hz (Finnish), commentary's 880 Hz not heard` };
+  return { ok: true, detail: `episode ${id}: automatic ${auto.hz} Hz, switched to Finnish ${switched.hz} Hz with the picture running from ${before.t} to ${after.t} s, to the AC-3 commentary ${commentary.hz} Hz, audioLang fi opens at ${finnish.hz} Hz, and the row fits at 1024-1512 px` };
 }
 
 const SCENARIOS = { seek, death, cancel, timeout, search, paste, keys, switching, resume, reconnect, accounts, listerror, a11y, subtitles, audio };

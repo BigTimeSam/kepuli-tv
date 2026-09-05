@@ -75,11 +75,11 @@ export class Remuxer {
    * @param {HTMLVideoElement} video
    * @param {string} url
    * @param {{onError:Function, onFirstAppend:Function, onNotice:Function,
-   *          onSubtitles:Function, startAt:number, subtitleLang:string|null,
-   *          audioLang:string|null}} opts
+   *          onSubtitles:Function, onAudio:Function, startAt:number,
+   *          subtitleLang:string|null, audioLang:string|null}} opts
    */
   constructor(video, url, {
-    onError, onFirstAppend, onNotice, onSubtitles, startAt = 0, subtitleLang = null,
+    onError, onFirstAppend, onNotice, onSubtitles, onAudio, startAt = 0, subtitleLang = null,
     audioLang = null,
   } = {}) {
     this.video = video;
@@ -88,6 +88,7 @@ export class Remuxer {
     this.onFirstAppend = onFirstAppend || (() => {});
     this.onNotice = onNotice || (() => {});
     this.onSubtitles = onSubtitles || (() => {});
+    this.onAudio = onAudio || (() => {});
     this.startAt = startAt;
     this.subtitleLang = subtitleLang;
     this.audioLang = audioLang;
@@ -102,11 +103,14 @@ export class Remuxer {
     this.videoTrack = null;
     this.audioTrack = null;
     this.audioList = [];          // every audio track of the file, see audio.js
+    this.audioChoices = [];       // those of them that can be played
+    this.switching = null;        // the audio switch in flight, so two clicks do not race
     this.decodeTrack = null;      // the track we decode ourselves, when one is needed
     this.transcoder = null;
     this.subs = null;             // SubtitleTracks, when there are text tracks
     this.subtitleList = [];
     this.buffers = { video: null, audio: null };
+    this.audioMime = null;        // what the audio buffer is parsing, for changeType
     this.queues = { video: Promise.resolve(), audio: Promise.resolve() };
     this.sequence = 1;
     this.audioNominal = 1024;
@@ -169,6 +173,7 @@ export class Remuxer {
       }
     }
     this.setupTracks();
+    this.reportAudio();
     this.setupSubtitles();
     this.video.addEventListener('seeking', this.onSeeking);
     if (!this.audioTrack) this.video.addEventListener('pause', this.onPause);
@@ -304,6 +309,8 @@ export class Remuxer {
     // language decides first; failing that an untouched track beats a
     // decoded one, which is what saves discs carrying both AC-3 and AAC.
     this.audioList = describeAll(tracks);
+    // What the viewer may choose between: the rest cannot be played at all.
+    this.audioChoices = this.audioList.filter((entry) => entry.route);
     const wanted = preferredAudio(this.audioList, this.audioLang);
     const chosen = wanted ? tracks.find((t) => t.number === wanted.number) : null;
     this.audioTrack = wanted && wanted.route === 'passthrough' ? chosen : null;
@@ -327,23 +334,37 @@ export class Remuxer {
     }]));
 
     if (this.audioTrack) {
-      // For a decoded track the format is transcode.js's fixed stereo
-      // 48 kHz rather than the original track's, and the codec is whichever
-      // encoder the browser has — AAC in Chrome, Opus in Firefox. The
-      // AudioSpecificConfig comes from the encoder too, because Matroska's
-      // CodecPrivate describes the decoded format, not the encoded one.
-      const decoded = Boolean(this.transcoder);
-      const rate = decoded ? DECODED_RATE : (this.audioTrack.outputRate || this.audioTrack.rate || 48000);
-      const mime = decoded ? this.transcoder.mime : passthroughMime(this.audioTrack.codecId);
+      const { mime, init } = this.audioFormat();
       this.buffers.audio = this.ms.addSourceBuffer(`audio/mp4; codecs="${mime}"`);
       this.buffers.audio.mode = 'segments';
-      this.append('audio', initSegment([{
+      this.audioMime = mime;
+      this.append('audio', init);
+    }
+  }
+
+  /**
+   * The codec string and the init segment for the audio track in play.
+   *
+   * For a decoded track the format is transcode.js's fixed stereo 48 kHz
+   * rather than the original track's, and the codec is whichever encoder
+   * the browser has — AAC in Chrome, Opus in Firefox. The
+   * AudioSpecificConfig comes from the encoder too, because Matroska's
+   * CodecPrivate describes the decoded format, not the encoded one.
+   */
+  audioFormat() {
+    const decoded = Boolean(this.transcoder);
+    const rate = decoded ? DECODED_RATE : (this.audioTrack.outputRate || this.audioTrack.rate || 48000);
+    const mime = decoded ? this.transcoder.mime : passthroughMime(this.audioTrack.codecId);
+    return {
+      mime,
+      rate,
+      init: initSegment([{
         id: 2, kind: 'audio', timescale: rate, codec: decoded ? this.transcoder.codec : 'aac',
         priv: decoded ? this.transcoder.description : this.audioTrack.priv,
         channels: decoded ? DECODED_CHANNELS : this.audioTrack.channels,
         rate,
-      }]));
-    }
+      }]),
+    };
   }
 
   /**
@@ -375,12 +396,23 @@ export class Remuxer {
   audioFailed(err) {
     if (this.destroyed || !this.transcoder) return;
     console.warn('[iptv] audio encoding stopped', err);
-    this.transcoder.close();
-    this.transcoder = null;
+    this.dropAudio(t('remux.audiostopped'));
+  }
+
+  /**
+   * The sound goes, the picture stays. The selector goes with it: there is
+   * nothing left to choose between once the buffer is gone.
+   */
+  dropAudio(message) {
+    if (this.transcoder) { this.transcoder.close(); this.transcoder = null; }
     const sb = this.buffers.audio;
     this.buffers.audio = null;
+    this.audioTrack = null;
+    this.decodeTrack = null;
+    this.audioChoices = [];
     try { if (sb && this.ms && this.ms.readyState === 'open') this.ms.removeSourceBuffer(sb); } catch { /* playback continues regardless */ }
-    this.onNotice(t('remux.audiostopped'));
+    this.onNotice(message);
+    this.reportAudio();
   }
 
   /**
@@ -414,6 +446,135 @@ export class Remuxer {
     const active = this.subs.select(number);
     this.report(this.subtitleList, active);
     return active;
+  }
+
+  /* ------------------------------------------------------------ ääniraita */
+
+  /**
+   * The audio tracks and the one in play, for the selector. The same list
+   * every time — only the choice changes — so the menu is not rebuilt
+   * under the viewer's cursor on a change of track.
+   */
+  reportAudio() {
+    if (this.destroyed) return;
+    this.onAudio({
+      tracks: this.audioChoices,
+      active: this.audioTrack ? this.audioTrack.number : null,
+    });
+  }
+
+  /**
+   * Changing the audio track while the picture runs.
+   *
+   * The account allows one connection, so the alternative track is not on
+   * the browser's side: it has to be read from the file again. The picture
+   * is left where it is — the video buffer holds up to a minute ahead — and
+   * only the sound is dropped and refilled from the cluster the playback
+   * position sits in. What the viewer gets is a gap in the sound of about a
+   * second, not a stall in the picture.
+   *
+   * A seek in the middle of this is not a problem: both bump the
+   * generation, and whichever is later wins.
+   */
+  selectAudio(number) {
+    if (this.destroyed || !this.buffers.audio) return null;
+    const entry = this.audioList.find((e) => e.number === number && e.route);
+    if (!entry) return this.audioTrack ? this.audioTrack.number : null;
+    if (this.audioTrack && this.audioTrack.number === number) return number;
+    // A second click while the first switch is still opening its decoder
+    // would leave two pumps reading the same connection. Only the last
+    // link of the chain clears it, or an earlier one would declare the
+    // switching over while the next was still running.
+    const chain = (this.switching || Promise.resolve())
+      .then(() => this.switchAudio(entry))
+      .catch((err) => this.fail(err))
+      .finally(() => { if (this.switching === chain) this.switching = null; });
+    this.switching = chain;
+    return number;
+  }
+
+  async switchAudio(entry) {
+    if (this.destroyed || !this.buffers.audio) return;
+    const track = this.header.tracks.find((t) => t.number === entry.number);
+    if (!track) return;
+    const previous = { decode: this.decodeTrack, transcoder: this.transcoder };
+
+    // The decoder for the new track is opened before anything is torn
+    // down, so that a browser without an encoder leaves the track that is
+    // playing alone rather than ending up with neither. A decoder belongs
+    // to a codec, not to a track, so a switch between two tracks of the
+    // same codec keeps the one that is open.
+    let transcoder = null;
+    if (entry.route === 'decoded') {
+      if (previous.transcoder && previous.decode && previous.decode.codecId === entry.codecId) {
+        transcoder = previous.transcoder;
+      } else {
+        try {
+          if (!(await AudioTranscoder.available(entry.codecId))) {
+            throw new Error('the browser has neither an AAC nor an Opus encoder');
+          }
+          transcoder = await AudioTranscoder.open(entry.codecId, (err) => this.audioFailed(err));
+        } catch (err) {
+          console.warn('[iptv] audio track cannot be decoded', err);
+          this.onNotice(t('remux.noaudio'));
+          this.reportAudio();       // the selector snaps back to what is playing
+          return;
+        }
+      }
+    }
+    if (this.destroyed) {
+      if (transcoder && transcoder !== previous.transcoder) transcoder.close();
+      return;
+    }
+
+    const generation = ++this.generation;
+    this.closeConnection();
+    if (previous.transcoder && previous.transcoder !== transcoder) previous.transcoder.close();
+    this.transcoder = transcoder;
+    this.decodeTrack = transcoder ? track : null;
+    this.audioTrack = track;
+
+    // The buffer keeps its identity — the element's track set must not
+    // change under a running playback — and changeType re-points its
+    // parser. A new init segment follows either way: the sample rate and
+    // the channel count differ from track to track even within one codec.
+    const { mime, init } = this.audioFormat();
+    await this.clearAudio();
+    if (this.destroyed || generation !== this.generation) return;
+    if (mime !== this.audioMime) {
+      try {
+        this.buffers.audio.changeType(`audio/mp4; codecs="${mime}"`);
+        this.audioMime = mime;
+      } catch (err) {
+        // The picture must not stop with it: the pump below still runs,
+        // and it now feeds the video buffer alone.
+        console.warn('[iptv] the audio buffer would not take the new format', err);
+        this.dropAudio(t('remux.audioswitchfailed'));
+      }
+    }
+    this.sequence++;
+    this.audioDts = null;
+    this.resumes = 0;
+    this.append('audio', init);
+    this.reportAudio();
+    // From the cluster the picture is at: the sound before that point is
+    // gone with the buffer, and the viewer hears the new track from where
+    // they are.
+    const offset = (await this.clusterFor(this.video.currentTime)) ?? 0;
+    if (this.destroyed || generation !== this.generation) return;
+    this.pump(offset, generation).catch((err) => this.fail(err));
+  }
+
+  /** Drops the sound, and only the sound: the picture stays buffered. */
+  async clearAudio() {
+    const sb = this.buffers.audio;
+    if (!timeRanges(sb)) return;
+    await new Promise((resolve) => {
+      const done = () => { sb.removeEventListener('updateend', done); resolve(); };
+      sb.addEventListener('updateend', done);
+      try { sb.remove(0, this.ms.duration || Infinity); } catch { done(); }
+    });
+    this.queues.audio = Promise.resolve();
   }
 
   /** Appends queued per track: a SourceBuffer accepts one at a time. */
@@ -685,17 +846,18 @@ export class Remuxer {
     return ranges ? ranges.end(ranges.length - 1) : 0;
   }
 
+  /**
+   * How far the buffers reach past the playback position — the shorter of
+   * the two. Normally they run together, both filled from the same
+   * clusters; after a change of audio track they do not, and the minute of
+   * picture already buffered must not stop the download that the sound is
+   * waiting for.
+   */
   bufferedAhead() {
-    const sb = this.buffers.video;
-    const ranges = timeRanges(sb);
-    if (!ranges) return 0;
-    const now = this.video.currentTime;
-    for (let i = 0; i < ranges.length; i++) {
-      if (now >= ranges.start(i) - 0.5 && now <= ranges.end(i)) return ranges.end(i) - now;
-    }
-    // The playback position is outside the buffer: data is needed at once,
-    // and the distance to some other range must not slow the download.
-    return 0;
+    const each = ['video', 'audio']
+      .filter((kind) => this.buffers[kind])
+      .map((kind) => aheadIn(timeRanges(this.buffers[kind]), this.video.currentTime));
+    return each.length ? Math.min(...each) : 0;
   }
 
   flushVideo(list, generation) {
@@ -828,6 +990,11 @@ export class Remuxer {
 
   async handleSeek() {
     if (this.destroyed || !this.header) return;
+    // A change of audio track is already on its way to re-read the file
+    // from wherever the picture is, and it reads the position after
+    // dropping the sound — so it lands on this seek's target by itself.
+    // Letting the seek in as well would leave two pumps on one connection.
+    if (this.switching) return;
     const target = this.video.currentTime;
     if (this.isBuffered(target)) return;
 
@@ -913,6 +1080,17 @@ function within(promise, ctrl) {
     }, STALL_MS);
   });
   return Promise.race([promise, stalled]).finally(() => clearTimeout(timer));
+}
+
+/** How far a buffer's ranges reach past a moment, 0 when they do not cover it. */
+function aheadIn(ranges, now) {
+  if (!ranges) return 0;
+  for (let i = 0; i < ranges.length; i++) {
+    if (now >= ranges.start(i) - 0.5 && now <= ranges.end(i)) return ranges.end(i) - now;
+  }
+  // The playback position is outside the buffer: data is needed at once,
+  // and the distance to some other range must not slow the download.
+  return 0;
 }
 
 /**

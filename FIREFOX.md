@@ -117,6 +117,8 @@ over Marionette, against the mock server (`dev/mock/`):
 | VOD `.mp4`, native | plays, details below the player |
 | VOD `.mkv`, unpacked into fMP4 through MediaSource | plays, 1280×720, with sound |
 | Subtitles from the MKV as `VTTCue`s, the selector, the English track | a cue on screen |
+| The audio selector on a three-track MKV, the track measured from the element's own output | English 441 Hz, Finnish 662 Hz, the AC-3 commentary 877 Hz |
+| `changeType` across the codec boundary — the decoded track goes out as Opus here — and back to `mp4a.40.2` | both ways, with the picture running from 10.3 s to 15.2 s and never pausing |
 | The subtitle layer (`js/subdisplay.js`): a cue drawn by the app, the browser's own drawing hidden by `::cue` | one box, nothing drawn twice |
 | The full-screen button on the player's row | the wrapper full screen, the layer with it, 3440×1440 |
 | `video.requestFullscreen()` — what Firefox's own button does, `controlslist` being ignored | `data-subrender` flips to `native`, the browser draws with the look in `::cue`, and back on exit |

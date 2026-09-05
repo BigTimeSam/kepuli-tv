@@ -441,16 +441,29 @@ body[data-substyle="contrast"] video::cue { background: #000; }
 .vodinfo .meta { color: var(--muted); font-size: 11.5px; margin-bottom: 4px; display: flex; gap: 8px; flex-wrap: wrap; }
 .vodinfo .plot { color: var(--muted); font-size: 12px; }
 
-.nowbar { display: flex; align-items: center; gap: 12px; padding: 9px 12px; background: var(--panel); border-top: 1px solid var(--border); }
+/* Three selectors and seven buttons do not fit beside the title in a
+   narrow player column — 1280 px of window leaves it about 675 — and a
+   button pushed off the edge is a button the viewer cannot reach. The row
+   therefore wraps: the title keeps its line and the actions drop below it,
+   and if even they do not fit on one line they wrap among themselves. */
+.nowbar { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; padding: 9px 12px; background: var(--panel); border-top: 1px solid var(--border); }
 .now { min-width: 0; flex: 1; }
 .now-title { font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .now-sub { color: var(--muted); font-size: 11.5px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.now-actions { display: flex; gap: 6px; align-items: center; flex: none; }
+/* The buttons are never dropped and never wrap: what gives when the row
+   runs short is the two track selectors, which is why the actions may
+   shrink at all. Measured in a 1024 px window — the narrowest the layout
+   is drawn for — the actions still come out on one line. */
+.now-actions { display: flex; gap: 6px; align-items: center; flex: 0 1 auto; min-width: 0; }
+.now-actions > :not(.trackpick) { flex: none; }
 .now-actions select { background: var(--panel-2); border: 1px solid var(--border); border-radius: 8px; padding: 6px 8px; }
-/* A track name can be long ("Swedish · Forced Narrative"): the selector
-   must not push the other buttons off the row. */
-.now-actions .subs { max-width: 190px; }
-.now-actions .subs[hidden] { display: none; }
+/* A track name can be long ("Swedish · Forced Narrative", "English ·
+   Commentary · AC3 5.1"): a selector must not push the other buttons off
+   the row. It is given the width it asks for up to a ceiling, and taken
+   back down to a readable stub before anything else on the row goes — the
+   whole name is still in the menu it opens, and in its tooltip. */
+.now-actions .trackpick { flex: 0 1 auto; min-width: 90px; max-width: 190px; }
+.now-actions .trackpick[hidden] { display: none; }
 /* A button with a drawn symbol: the same height as the ones with a word. */
 .now-actions .icon svg { display: block; width: 14px; height: 19px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
 
@@ -709,4 +722,9 @@ dialog::backdrop { background: rgba(5, 6, 10, .66); backdrop-filter: blur(2px); 
   main { grid-template-columns: 190px minmax(260px, 320px) 1fr; }
   main.guide { grid-template-columns: minmax(0, 1fr) minmax(260px, 30vw); }
   :root { --epg-chan-w: 170px; }
+  /* Below this the player column is too narrow for the whole row even with
+     the selectors at their stub width — measured, 1024 px leaves it about
+     500 and the row needs 590. The buttons wrap to a second line rather
+     than falling off the edge; above the breakpoint they stay on one. */
+  .now-actions { flex-wrap: wrap; justify-content: flex-end; }
 }

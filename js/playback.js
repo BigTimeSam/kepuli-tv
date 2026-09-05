@@ -376,6 +376,7 @@ export class Playback {
       onFirstAppend: () => this.tryPlay(),
       onNotice: (message) => this.onState({ status: 'notice', message }),
       onSubtitles: (info) => this.onState({ status: 'subtitles', ...info }),
+      onAudio: (info) => this.onState({ status: 'audio', ...info }),
       onError: (err) => finish(false, err && err.message ? err.message : t('playback.reason.demux')),
     });
     this.engine = remuxer;
@@ -413,6 +414,17 @@ export class Playback {
     const engine = this.engine;
     if (!engine || !engine.selectSubtitle) return null;
     return engine.selectSubtitle(number);
+  }
+
+  /**
+   * Changing the audio track. Only the MKV path can: the browser offers no
+   * audioTracks to pick from on the others, so a natively played file gets
+   * whichever track it marks default, see js/audio.js.
+   */
+  selectAudio(number) {
+    const engine = this.engine;
+    if (!engine || !engine.selectAudio) return null;
+    return engine.selectAudio(number);
   }
 
   tryPlay() {

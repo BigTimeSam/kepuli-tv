@@ -136,6 +136,7 @@ const STRINGS = {
     'player.idle.text': 'Pick a channel from the list.',
     'player.disconnected': 'Not connected',
     'player.mode.title': 'Playback mode',
+    'player.audio.title': 'Audio track',
     'player.subs.title': 'Subtitles',
     'player.subs.off': 'No subtitles',
     'player.fullscreen.title': 'Full screen',
@@ -303,6 +304,7 @@ const STRINGS = {
     'probe.badge.none': 'NOT SUPPORTED',
     'remux.noaudio': 'The audio track could not be decoded, so the picture plays without sound.',
     'remux.audiostopped': 'Audio decoding stopped; the picture continues without sound.',
+    'remux.audioswitchfailed': 'The audio track could not be changed; the picture continues without sound.',
     'remux.truncated': 'The file is incomplete on the server: there is intact picture up to {time}.',
     'remux.nocues': 'This file has no seek table: seeking downloads the file up to that point, which takes a while.',
 
@@ -437,6 +439,7 @@ const STRINGS = {
     'player.idle.text': 'Valitse kanava listalta.',
     'player.disconnected': 'Ei yhteyttä',
     'player.mode.title': 'Toistotapa',
+    'player.audio.title': 'Ääniraita',
     'player.subs.title': 'Tekstitys',
     'player.subs.off': 'Ei tekstitystä',
     'player.fullscreen.title': 'Koko näyttö',
@@ -604,6 +607,7 @@ const STRINGS = {
     'probe.badge.none': 'EI TUETTU',
     'remux.noaudio': 'Ääniraitaa ei saatu purettua, joten kuva toistuu ilman ääntä.',
     'remux.audiostopped': 'Äänen purku keskeytyi; kuva jatkuu ilman ääntä.',
+    'remux.audioswitchfailed': 'Ääniraitaa ei saatu vaihdettua; kuva jatkuu ilman ääntä.',
     'remux.truncated': 'Tiedosto on vaillinainen palvelimella: ehjää kuvaa on {time} asti.',
     'remux.nocues': 'Tiedostossa ei ole hakutaulua: kelaus lataa tiedoston siihen kohtaan asti, ja se kestää hetken.',
 

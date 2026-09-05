@@ -14,6 +14,7 @@ import { externalLabel, handOff } from './external.js';
 import { Cast, supported as castSupported } from './cast.js';
 import { warmCache, peek, badge as probeBadge, subtitleSummary } from './probe.js';
 import { shortLanguage } from './lang.js';
+import { label as audioLabel } from './audio.js';
 import { SubtitleDisplay, subtitleLook } from './subdisplay.js';
 import { pickEncoder } from './transcode.js';
 import * as store from './config.js';
@@ -31,7 +32,7 @@ const el = {
   overlay: $('overlay'), overlayTitle: $('overlay-title'),
   overlayText: $('overlay-text'), overlayActions: $('overlay-actions'), statbadge: $('statbadge'),
   infostrip: $('infostrip'), nowTitle: $('now-title'), nowSub: $('now-sub'), mode: $('mode'),
-  subs: $('subs'), cast: $('btn-cast'),
+  subs: $('subs'), audio: $('audio'), cast: $('btn-cast'),
   setup: $('setup'), progress: $('progress'),
   epg: $('epg'), epgPreview: $('epg-preview'),
   pTitle: $('p-title'), pFill: $('p-fill'), pText: $('p-text'), toast: $('toast'),
@@ -82,6 +83,7 @@ const state = {
   catCounts: null,        // the sizes of favourite categories, when known
   playing: null, playingSpec: null, catchup: null,
   subtitles: [],          // the subtitle tracks of the file being played
+  audioTracks: [],        // the audio tracks of the file being played, see js/audio.js
   subtitleInfo: null,     // what the file being played holds, once the player has looked: { tracks, bitmap }
   favorites: new Map(), recents: [], resume: new Map(),
   lastGroup: {}, lastKind: {},
@@ -1210,6 +1212,8 @@ function onPlaybackState(s) {
     // The change came from the browser's own subtitle menu: the same choice
     // as from the selector, so the language is remembered the same way.
     if (s.external) rememberSubtitleLanguage(s.active);
+  } else if (s.status === 'audio') {
+    renderAudio(s.tracks, s.active);
   } else if (s.status === 'probing') {
     el.overlay.hidden = false;
     el.overlay.classList.add('loading');
@@ -1288,6 +1292,7 @@ async function playItem(item, { startAt, allowSilent } = {}) {
   // Clear the previous file's tracks: the new ones arrive only once the
   // header has been read.
   renderSubtitles([], null);
+  renderAudio([], null);
   state.subtitleInfo = null;
   el.nowTitle.textContent = item.n;
   renderNowSub();
@@ -1353,6 +1358,70 @@ function renderSubtitles(tracks, active) {
     select.replaceChildren(...options);
   }
   select.value = active == null ? 'off' : String(active);
+}
+
+/* ---------------------------------------------------------- audio track */
+
+/**
+ * The audio selector. Shown only when there is a choice to make: one track
+ * is not a decision, and a file with nothing playable has no selector
+ * either — the details say what it holds instead.
+ *
+ * The name is built here rather than in the engine, so that a change of
+ * interface language relabels the tracks without touching playback.
+ *
+ * @param {object[]} tracks the playable audio tracks, in the file's order
+ * @param {number|null} active the number of the track in play
+ */
+function renderAudio(tracks, active) {
+  const list = tracks || [];
+  const select = el.audio;
+  if (list !== state.audioTracks) {
+    state.audioTracks = list;
+    select.hidden = list.length < 2;
+    select.replaceChildren(...list.map((track) => {
+      const option = document.createElement('option');
+      option.value = String(track.number);
+      option.textContent = audioLabel(track);
+      option.title = `${track.language} · ${track.codec || '?'}`;
+      return option;
+    }));
+  }
+  if (active != null) select.value = String(active);
+}
+
+/** The viewer's choice from the selector: play the track, keep the language. */
+function chooseAudio() {
+  const number = Number(el.audio.value);
+  playback.selectAudio(number);
+  rememberAudioLanguage(number);
+}
+
+/**
+ * The a key steps to the next track. The eye is on the picture rather than
+ * on the selector then, so the name is said out loud.
+ */
+function cycleAudio() {
+  const list = state.audioTracks;
+  if (list.length < 2) return;
+  const at = list.findIndex((track) => String(track.number) === el.audio.value);
+  const next = list[(at + 1) % list.length];
+  el.audio.value = String(next.number);
+  chooseAudio();
+  toast(audioLabel(next));
+}
+
+/**
+ * The language is kept for the coming episodes, as it is for the
+ * subtitles. A track whose language the file does not state answers no
+ * choice in the next file, so the setting is left as it was.
+ */
+async function rememberAudioLanguage(number) {
+  const track = state.audioTracks.find((t) => t.number === number);
+  if (!track) return;
+  const language = shortLanguage(track.language);
+  if (language === 'und' || state.settings.audioLang === language) return;
+  state.settings = await store.saveSettings({ audioLang: language });
 }
 
 /** The viewer's choice from the selector: show the track, keep the language. */
@@ -2181,6 +2250,7 @@ function wireUi() {
     if (state.playing) playItem(state.playing);
   });
   el.subs.addEventListener('change', chooseSubtitle);
+  el.audio.addEventListener('change', chooseAudio);
   $('btn-fullscreen').addEventListener('click', toggleFullscreen);
   // The double click that the browser's controls used to take for the bare
   // video; preventDefault keeps the browser from acting on it as well.
@@ -2258,6 +2328,7 @@ function wireUi() {
       case ' ': e.preventDefault(); el.video.paused ? el.video.play().catch(() => {}) : el.video.pause(); break;
       case 'f': toggleFullscreen(); break;
       case 'm': el.video.muted = !el.video.muted; break;
+      case 'a': cycleAudio(); break;
       case 'n': playRelative(1); break;
       case 'p': playRelative(-1); break;
       case 'g': toggleGuide(); break;
@@ -2293,6 +2364,10 @@ async function applyLanguage(lang) {
   const active = el.subs.value === 'off' || !el.subs.value ? null : Number(el.subs.value);
   state.subtitles = null;
   renderSubtitles(tracks, active);
+  const audio = state.audioTracks;
+  const playing = el.audio.value ? Number(el.audio.value) : null;
+  state.audioTracks = null;
+  renderAudio(audio, playing);
   if (el.setup.open) renderAccountBox();
   if (guideOpen) { renderGuideGroups(); grid.invalidate(); }
   // Before a connection there is no list to repaint, and refreshRows would
