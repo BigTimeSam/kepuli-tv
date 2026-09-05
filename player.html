@@ -208,7 +208,10 @@
 
 <dialog id="channel-editor" aria-labelledby="channel-editor-title">
   <div class="editor-content">
-    <h2 id="channel-editor-title" data-i18n="organize.title">Organize channels</h2>
+    <div class="modal-head">
+      <h2 id="channel-editor-title" data-i18n="organize.title">Organize channels</h2>
+      <button type="button" id="channel-editor-close" data-modal-close data-i18n-label="modal.close"></button>
+    </div>
     <p class="editor-help" data-i18n="organize.help">Uncheck to hide. Use the arrows to change the order. Hidden categories hide their channels everywhere. Save applies changes to this account.</p>
     <div class="editor-toolbar">
       <select id="channel-editor-kind" data-i18n-label="organize.kind">
@@ -224,7 +227,7 @@
       <button type="button" id="channel-editor-reset" class="ghost" data-i18n="organize.reset">Reset order</button>
     </div>
     <div id="channel-editor-list" class="organize-list" role="region" data-i18n-label="organize.title"></div>
-    <div class="editor-actions">
+    <div class="editor-actions modal-actions">
       <span id="channel-editor-status" role="status"></span>
       <button type="button" id="channel-editor-cancel" class="ghost" data-i18n="organize.cancel">Cancel</button>
       <button type="button" id="channel-editor-save" class="primary" data-i18n="setup.save">Save</button>
@@ -234,9 +237,9 @@
 
 <dialog id="setup" aria-labelledby="setup-title">
   <form class="setup" novalidate>
-    <div class="setup-head">
+    <div class="setup-head modal-head">
       <h2 id="setup-title" data-i18n="setup.title">Settings</h2>
-      <button type="button" id="f-close" class="setup-close" data-i18n-title="setup.close">&times;</button>
+      <button type="button" id="f-close" data-modal-close data-i18n-label="modal.close"></button>
     </div>
 
     <div class="tabs setup-tabs" id="setup-tabs" role="tablist" data-i18n-label="setup.sections">
@@ -365,7 +368,7 @@ on two lines as well.</div></div>
       <button type="button" id="f-keep" class="ghost" data-i18n="setup.keep">Keep editing</button>
       <button type="button" id="f-discard" class="ghost danger" data-i18n="setup.discard">Discard changes</button>
     </div>
-    <div class="setup-actions">
+    <div class="setup-actions modal-actions">
       <p class="setup-note" id="setup-note" role="status"></p>
       <button type="button" id="f-done" class="ghost" data-i18n="progress.cancel">Cancel</button>
       <button type="submit" id="f-save" class="primary" data-i18n="setup.save">Save</button>
@@ -375,9 +378,10 @@ on two lines as well.</div></div>
 
 <dialog id="progress" aria-labelledby="p-title" aria-describedby="p-text">
   <div class="progress">
-    <div class="progress-head">
+    <div class="progress-head modal-head">
       <div class="progress-mark" aria-hidden="true"><span class="progress-spinner"></span></div>
       <h2 class="progress-title" id="p-title" data-i18n="progress.loading">Loading…</h2>
+      <button type="button" id="p-close" data-modal-close data-i18n-label="modal.close"></button>
     </div>
     <div class="progress-meter">
       <div class="progress-status">
@@ -386,7 +390,7 @@ on two lines as well.</div></div>
       </div>
       <div class="bar" role="progressbar" aria-labelledby="p-title" aria-describedby="p-text" aria-valuemin="0" aria-valuemax="100"><div class="bar-fill" id="p-fill"></div></div>
     </div>
-    <div class="setup-actions">
+    <div class="setup-actions modal-actions">
       <button type="button" id="p-cancel" class="ghost" data-i18n="progress.cancel">Cancel</button>
     </div>
   </div>

@@ -64,6 +64,9 @@ assemble the package from it.
 
 ## User guide
 
+See [Keyboard shortcuts](#keyboard-shortcuts) for quick controls, including
+switching audio tracks, pausing playback and entering full screen.
+
 ### Getting started
 
 1. Open the player using the Kepuli-TV icon in your browser toolbar.
@@ -87,7 +90,25 @@ assemble the package from it.
   the TV programme guide. Catch-up playback is available
   when your provider supports recordings for that channel.
 - The star button adds an item to **Favourites**. **History** lists the
-  channels, movies and episodes you have recently started.
+  channels, movies and episodes you have recently started. Each account keeps
+  up to 60 entries; older entries are removed as new ones are added.
+
+### Closing dialogs and cancelling loading
+
+Settings, the channel-list editor, loading and enlarged covers use the same
+dialog style, with an **X** close button at the top right. You can also press
+**Esc** or click outside the dialog. Player keyboard shortcuts are inactive
+while a dialog is open.
+
+- In **Settings**, X, Esc and clicking outside ask before discarding unsaved
+  changes. **Cancel** discards the draft; **Save** applies it.
+- In **Organize channels**, X, Esc, clicking outside and **Cancel** discard
+  the draft. **Save** applies the changes to the current account.
+- During loading, X, Esc, clicking outside and **Cancel** stop the request.
+  The dialog closes when cancellation finishes, and an interrupted channel-list
+  load restores the previous list. The compact loading dialog shows a spinner,
+  the current country/category and progress when the total is known.
+- Enlarged covers close immediately without changing playback.
 
 ### Playback and cover images
 
@@ -276,7 +297,8 @@ name. Uncheck an item to hide it, use the arrows to change its order, or apply
 **Hide shown / Show shown** to the filtered set. Hidden items remain in the editor
 and can always be restored. **Reset order** restores the default order for
 channels or categories, depending on the selected type; it keeps visibility.
-Changes stay in the editor until **Save**; **Cancel** and Escape discard them.
+Changes stay in the editor until **Save**; **Cancel**, the top-right **X**,
+Escape and clicking outside discard them.
 
 Hiding a live category hides its channels in browsing, search, favourites,
 history and the guide, including channels that also belong to another category.
@@ -412,10 +434,10 @@ the timeline's scale, `Enter` starts playback and `Esc` closes.
 
 ### The buttons
 
-The top bar holds the five tabs, the search box, the account's expiry date and
-two buttons: **Refresh** — which fetches the categories and the
-lists already loaded from the server again and empties the programme cache —
-and **Settings**, at the far right after **Help**. The **⛶** button is over the
+The top bar holds the five tabs, the search box, the account's expiry date,
+**Refresh**, **Help** and **Settings** at the far right. **Refresh** fetches the
+categories and the lists already loaded from the server again and empties the
+programme cache. **Help** opens this user guide. The **⛶** button is over the
 picture at the top right, with video statistics at the top left. It enters
 and exits full screen with the subtitles included. It appears on pointer movement, touch or keyboard focus,
 stays visible while paused and fades during uninterrupted playback. It is
@@ -869,6 +891,7 @@ js/epggrid.js       the guide grid, virtualised in both directions
 js/programmesearch.js  cancellable programme search and virtualised results
 js/channelprefs.js  per-account channel visibility and ordering helpers
 js/channeleditor.js  draft editor for live channels and categories
+js/modal.js         shared close buttons, Escape and backdrop dismissal
 js/db.js            IndexedDB: a TTL cache
 js/config.js        settings, favourites, history, resume points
 js/i18n.js          the interface language: dictionaries, t() and static HTML

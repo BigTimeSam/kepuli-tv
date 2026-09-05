@@ -6,6 +6,7 @@ import { VirtualList } from './vlist.js';
 import { itemRow, categoryRow, chipRow, favCategoryRow, sectionHeader, emptyState } from './rows.js';
 import { nameCleaner, searchNameCleaner } from './name.js';
 import { poster } from './poster.js';
+import { wireModal } from './modal.js';
 import { MediaFilters } from './mediafilters.js';
 import { titleFacts, externalLinks, playbackFacts } from './titleinfo.js';
 import { EpgGrid, catchupAvailable } from './epggrid.js';
@@ -2461,11 +2462,10 @@ function wireSetup() {
     $('f-host').focus();
   });
   $('f-host').addEventListener('change', splitServerField);
-  $('f-close').addEventListener('click', closeSetup);
+  wireModal(el.setup, closeSetup);
   $('f-done').addEventListener('click', () => { if (!setupSaving) el.setup.close(); });
   $('f-keep').addEventListener('click', () => { $('setup-discard').hidden = true; focusSetupSection(); });
   $('f-discard').addEventListener('click', () => el.setup.close());
-  el.setup.addEventListener('cancel', (event) => { event.preventDefault(); closeSetup(); });
   el.setup.addEventListener('close', () => { $('setup-discard').hidden = true; });
   el.setupTabs.addEventListener('keydown', (event) => {
     const tabs = [...el.setupTabs.querySelectorAll('[role="tab"]')];
@@ -2485,15 +2485,6 @@ function wireSetup() {
     const button = e.target.closest('button[data-panel]');
     if (!button) return;
     showSetupSection(button.dataset.panel);
-  });
-  // Backdrop clicks and Esc request closing, guarded when dirty. Both ends of
-  // the click have to land there: dragging the size slider past the edge
-  // of the dialog and letting go would otherwise close it mid-drag.
-  let fromBackdrop = false;
-  el.setup.addEventListener('mousedown', (e) => { fromBackdrop = e.target === el.setup; });
-  el.setup.addEventListener('click', (e) => {
-    if (fromBackdrop && e.target === el.setup) closeSetup();
-    fromBackdrop = false;
   });
   el.setup.querySelector('form').addEventListener('submit', async (event) => {
     event.preventDefault();
@@ -2783,7 +2774,7 @@ function wireUi() {
   // Esc does not close the dialog by itself — a closed dialog would look as
   // if the loading had finished — it cancels the load, and the dialog goes
   // once the load has stopped.
-  el.progress.addEventListener('cancel', (e) => { e.preventDefault(); cancelProgress(); });
+  wireModal(el.progress, cancelProgress);
   $('p-cancel').addEventListener('click', cancelProgress);
 
   el.mode.addEventListener('change', () => {

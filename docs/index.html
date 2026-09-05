@@ -173,7 +173,7 @@
 
 <main>
 <h1>Kepuli-TV</h1>
-<p class="meta">The README of the Kepuli-TV browser extension · Version 1.0.8 · <a href="https://github.com/BigTimeSam/kepuli-tv">Source on GitHub</a></p>
+<p class="meta">The README of the Kepuli-TV browser extension · Version 1.0.9 · <a href="https://github.com/BigTimeSam/kepuli-tv">Source on GitHub</a></p>
 
 <p>A Chrome and Firefox extension (Manifest V3) that plays Xtream Codes IPTV straight in the
 browser. Data is fetched from the <code>player_api.php</code> API lazily: only what you
@@ -266,6 +266,9 @@ assemble the package from it.</p>
 
 <h2 id="user-guide">User guide</h2>
 
+<p>See <a href="#keyboard-shortcuts">Keyboard shortcuts</a> for quick controls, including
+switching audio tracks, pausing playback and entering full screen.</p>
+
 <h3 id="getting-started">Getting started</h3>
 
 <ol>
@@ -292,7 +295,27 @@ titles may be missing particular details.</li>
 the TV programme guide. Catch-up playback is available
 when your provider supports recordings for that channel.</li>
   <li>The star button adds an item to <strong>Favourites</strong>. <strong>History</strong> lists the
-channels, movies and episodes you have recently started.</li>
+channels, movies and episodes you have recently started. Each account keeps
+up to 60 entries; older entries are removed as new ones are added.</li>
+</ul>
+
+<h3 id="closing-dialogs-and-cancelling-loading">Closing dialogs and cancelling loading</h3>
+
+<p>Settings, the channel-list editor, loading and enlarged covers use the same
+dialog style, with an <strong>X</strong> close button at the top right. You can also press
+<strong>Esc</strong> or click outside the dialog. Player keyboard shortcuts are inactive
+while a dialog is open.</p>
+
+<ul>
+  <li>In <strong>Settings</strong>, X, Esc and clicking outside ask before discarding unsaved
+changes. <strong>Cancel</strong> discards the draft; <strong>Save</strong> applies it.</li>
+  <li>In <strong>Organize channels</strong>, X, Esc, clicking outside and <strong>Cancel</strong> discard
+the draft. <strong>Save</strong> applies the changes to the current account.</li>
+  <li>During loading, X, Esc, clicking outside and <strong>Cancel</strong> stop the request.
+The dialog closes when cancellation finishes, and an interrupted channel-list
+load restores the previous list. The compact loading dialog shows a spinner,
+the current country/category and progress when the total is known.</li>
+  <li>Enlarged covers close immediately without changing playback.</li>
 </ul>
 
 <h3 id="playback-and-cover-images">Playback and cover images</h3>
@@ -492,7 +515,8 @@ name. Uncheck an item to hide it, use the arrows to change its order, or apply
 <strong>Hide shown / Show shown</strong> to the filtered set. Hidden items remain in the editor
 and can always be restored. <strong>Reset order</strong> restores the default order for
 channels or categories, depending on the selected type; it keeps visibility.
-Changes stay in the editor until <strong>Save</strong>; <strong>Cancel</strong> and Escape discard them.</p>
+Changes stay in the editor until <strong>Save</strong>; <strong>Cancel</strong>, the top-right <strong>X</strong>,
+Escape and clicking outside discard them.</p>
 
 <p>Hiding a live category hides its channels in browsing, search, favourites,
 history and the guide, including channels that also belong to another category.
@@ -635,10 +659,10 @@ the timeline's scale, <code>Enter</code> starts playback and <code>Esc</code> cl
 
 <h3 id="the-buttons">The buttons</h3>
 
-<p>The top bar holds the five tabs, the search box, the account's expiry date and
-two buttons: <strong>Refresh</strong> — which fetches the categories and the
-lists already loaded from the server again and empties the programme cache —
-and <strong>Settings</strong>, at the far right after <strong>Help</strong>. The <strong>⛶</strong> button is over the
+<p>The top bar holds the five tabs, the search box, the account's expiry date,
+<strong>Refresh</strong>, <strong>Help</strong> and <strong>Settings</strong> at the far right. <strong>Refresh</strong> fetches the
+categories and the lists already loaded from the server again and empties the
+programme cache. <strong>Help</strong> opens this user guide. The <strong>⛶</strong> button is over the
 picture at the top right, with video statistics at the top left. It enters
 and exits full screen with the subtitles included. It appears on pointer movement, touch or keyboard focus,
 stays visible while paused and fades during uninterrupted playback. It is
@@ -1121,6 +1145,7 @@ js/epggrid.js       the guide grid, virtualised in both directions
 js/programmesearch.js  cancellable programme search and virtualised results
 js/channelprefs.js  per-account channel visibility and ordering helpers
 js/channeleditor.js  draft editor for live channels and categories
+js/modal.js         shared close buttons, Escape and backdrop dismissal
 js/db.js            IndexedDB: a TTL cache
 js/config.js        settings, favourites, history, resume points
 js/i18n.js          the interface language: dictionaries, t() and static HTML

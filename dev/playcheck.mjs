@@ -127,6 +127,27 @@ const videoState = (page) => evaluate(page, `(() => { const v = document.getElem
 
 /* ---------------------------------------------------------------- set-up */
 
+async function checkModal(page, selector, name) {
+  const state = await evaluate(page, `(() => {
+    const dialog = document.querySelector(${JSON.stringify(selector)}), close = dialog.querySelector('.modal-head .modal-close');
+    if (!close) return { error: 'missing shared close button' };
+    const d = dialog.getBoundingClientRect(), r = close.getBoundingClientRect();
+    return { width: r.width, height: r.height, label: close.getAttribute('aria-label'),
+      visible: r.top >= d.top && r.bottom <= d.bottom && r.right <= d.right && r.left > d.left + d.width / 2,
+      fits: d.left >= 0 && d.top >= 0 && d.right <= innerWidth && d.bottom <= innerHeight,
+      radius: getComputedStyle(dialog).borderRadius };
+  })()`);
+  if (state.width !== 32 || state.height !== 32 || !state.label || !state.visible || !state.fits || state.radius !== '14px') {
+    throw new Error(`${name} modal controls: ${JSON.stringify(state)}`);
+  }
+  if (process.env.KEPULI_MODAL_CAPTURE_DIR) {
+    const fs = await import('node:fs');
+    fs.mkdirSync(process.env.KEPULI_MODAL_CAPTURE_DIR, { recursive: true });
+    const { data } = await page.call('Page.captureScreenshot', { format: 'png' });
+    fs.writeFileSync(`${process.env.KEPULI_MODAL_CAPTURE_DIR}/${name}.png`, Buffer.from(data, 'base64'));
+  }
+}
+
 /** A fresh player pointed at the mock server, connected and throttled. */
 async function freshPlayer(target, page) {
   // Screenshot inspections may leave a narrow emulated viewport behind.
@@ -260,17 +281,20 @@ async function loadAll(page) {
 }
 
 async function cancel(page) {
-  const before = await loadAll(page);
-  await sleep(1500);
-  await evaluate(page, `document.getElementById('p-cancel').click()`);
-  const t0 = Date.now();
-  await waitFor(page, `!document.getElementById('progress').open`, 'the dialog to close', 5000);
-  const closedIn = Date.now() - t0;
+  let before;
+  for (const control of ['p-close', 'Escape', 'p-cancel']) {
+    before = await loadAll(page);
+    await checkModal(page, '#progress', 'progress');
+    if (control === 'Escape') await pressKey(page, 'Escape', 'Escape', 27);
+    else await evaluate(page, `document.getElementById('${control}').click()`);
+    await waitFor(page, `!document.getElementById('progress').open`, `${control} cancels loading`, 5000);
+    if (await evaluate(page, ACTIVE_GROUP) !== before) throw new Error(`${control} did not restore the previous group`);
+  }
   await sleep(500);
   const after = await evaluate(page, `({ overlay: ${OVERLAY}, active: ${ACTIVE_GROUP}, rows: document.querySelectorAll('#list .row').length, toast: document.getElementById('toast').textContent.trim() })`);
   // The overlay may say "Nothing playing": only an error counts against.
   const ok = !/failed|error/i.test(after.overlay || '') && after.active === before && after.rows > 0;
-  return { ok, detail: `dialog closed in ${closedIn} ms; group "${before}" → "${after.active}", ${after.rows} rows, overlay ${after.overlay}, toast "${after.toast}"` };
+  return { ok, detail: `X, Escape and Cancel abort loading; group "${before}" → "${after.active}", ${after.rows} rows, overlay ${after.overlay}, toast "${after.toast}"` };
 }
 
 async function timeout(page) {
@@ -311,6 +335,7 @@ async function search(page) {
 async function paste(page) {
   await evaluate(page, `document.getElementById('btn-settings').click()`);
   await waitFor(page, `document.getElementById('setup').open`, 'the settings dialog', 5000);
+  await checkModal(page, '#setup', 'settings');
   // The fields live in their own section now, and that is where a viewer
   // pasting an address would be.
   await evaluate(page, `document.querySelector('#setup-tabs [data-panel="connection"]').click()`);
@@ -786,6 +811,9 @@ async function settings(page, { requests, target }) {
   await tab('subs');
   await change('f-subsize', '36');
   await change('f-substyle', 'yellow');
+  await press('f-close');
+  assert(await evaluate(page, `document.getElementById('setup').open && !document.getElementById('setup-discard').hidden`), 'X discarded unsaved settings without confirmation');
+  await press('f-keep');
   assert(JSON.stringify(await saved()) === JSON.stringify(initial), 'draft wrote to storage');
   assert(await evaluate(page, `document.documentElement.lang === 'en' && document.body.dataset.substyle === 'shadow' && document.querySelector('#panel-subs .sublook').dataset.substyle === 'yellow'`), 'draft changed runtime or failed to preview');
   await press('f-done');
@@ -937,6 +965,18 @@ async function organize(page, { target }) {
   const names = () => evaluate(page, `[...document.querySelectorAll('#list .row-name')].map((n) => n.title)`);
   await open();
   const original = await evaluate(page, `[...document.querySelectorAll('.organize-row')].map((n) => ({id:n.dataset.id,name:n.querySelector('label span').textContent}))`);
+  await checkModal(page, '#channel-editor', 'channels');
+  await page.call('Emulation.setDeviceMetricsOverride', { width: 390, height: 720, deviceScaleFactor: 1, mobile: false });
+  await checkModal(page, '#channel-editor', 'channels-narrow');
+  await page.call('Emulation.setDeviceMetricsOverride', { width: 1280, height: 800, deviceScaleFactor: 1, mobile: false });
+  for (const control of ['channel-editor-close', 'Escape']) {
+    await evaluate(page, `document.querySelector('.organize-row input').click()`);
+    if (control === 'Escape') await pressKey(page, 'Escape', 'Escape', 27);
+    else await evaluate(page, `document.getElementById('${control}').click()`);
+    assert(await evaluate(page, `!document.getElementById('channel-editor').open`), `${control} did not close channel editor`);
+    await open();
+    assert(await evaluate(page, `document.querySelector('.organize-row input').checked`), `${control} retained an unsaved channel draft`);
+  }
   await evaluate(page, `document.querySelectorAll('.organize-row')[1].querySelector('[data-action="up"]').click()`);
   await evaluate(page, `document.querySelectorAll('.organize-row')[1].querySelector('input').click()`);
   await save();
@@ -1105,6 +1145,7 @@ async function catalogUi(page) {
   await waitFor(page, `document.querySelector('#detail .detail-cover.loaded:not(:disabled)')`, 'series cover');
   await evaluate(page, `document.querySelector('#detail .detail-cover').click()`);
   await waitFor(page, `document.querySelector('.poster-dialog[open] img')`, 'expanded cover');
+  await checkModal(page, '.poster-dialog', 'poster');
   await evaluate(page, `document.querySelector('.poster-close').click()`);
   assert(await evaluate(page, `!document.querySelector('.poster-dialog[open]')`), 'cover did not close');
   await evaluate(page, `document.querySelector('[data-tab="recent"]').click()`);

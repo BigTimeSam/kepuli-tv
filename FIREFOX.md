@@ -11,6 +11,17 @@ browsers as it is. `js/browser.js` holds the one line that differs, and
 `firefox/` holds the Firefox manifest and the tools that assemble the package
 from the shared files. There is no second copy of anything to keep in step.
 
+## Release 1.0.9 verification
+
+The shared dialog changes were checked on 2026-09-06 in Firefox 155 on macOS
+and Chrome, using the mock provider. All six relevant scenarios passed in
+each browser: `organize`, `cancel`, `settings`, `catalogUi`, `setupClarity`
+and `paste`. They cover the common X button and layout, narrow channel editor,
+discarding channel drafts, guarding unsaved settings, slider drags released
+outside, loading cancellation through X/Esc/Cancel and enlarged cover closing.
+The 150 unit cases also passed. The broader playback baseline below belongs
+to 1.0.8; it was not rerun in full for this dialog-only update.
+
 ## Release 1.0.8 verification
 
 Checked on 2026-09-06 in Firefox 155 on macOS, with an isolated profile,

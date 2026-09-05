@@ -1,6 +1,7 @@
 import { VirtualList } from './vlist.js';
 import { channelPreferences, ordered, moveInOrder } from './channelprefs.js';
 import { t, localeTag } from './i18n.js';
+import { wireModal } from './modal.js';
 
 const $ = (id) => document.getElementById(id);
 
@@ -13,7 +14,9 @@ export class ChannelEditor {
     for (const id of ['channel-editor-kind', 'channel-editor-group', 'channel-editor-filter']) {
       $(id).addEventListener('input', () => this.render());
     }
-    $('channel-editor-cancel').addEventListener('click', () => this.dialog.close());
+    const close = () => { if (!$('channel-editor-save').disabled) this.dialog.close(); };
+    wireModal(this.dialog, close);
+    $('channel-editor-cancel').addEventListener('click', close);
     $('channel-editor-hide').addEventListener('click', () => this.setHidden(true));
     $('channel-editor-show').addEventListener('click', () => this.setHidden(false));
     $('channel-editor-reset').addEventListener('click', () => {
@@ -28,7 +31,6 @@ export class ChannelEditor {
       catch { $('channel-editor-status').textContent = t('organize.savefailed'); }
       finally { button.disabled = false; this.dialog.querySelector('.editor-content').inert = false; }
     });
-    this.dialog.addEventListener('cancel', (e) => { if ($('channel-editor-save').disabled) e.preventDefault(); });
   }
 
   get categories() { return $('channel-editor-kind').value === 'categories'; }

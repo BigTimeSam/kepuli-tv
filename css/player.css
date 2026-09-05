@@ -595,13 +595,18 @@ body[data-substyle="contrast"] video::cue { background: #000; }
 
 dialog { border: 1px solid var(--border); background: var(--panel); color: var(--text); border-radius: 14px; padding: 0; box-shadow: 0 24px 70px rgba(0, 0, 0, .6); }
 dialog::backdrop { background: rgba(5, 6, 10, .66); backdrop-filter: blur(2px); }
-.poster-dialog { max-width: none; max-height: none; border: 0; border-radius: 8px; overflow: hidden; }
-.poster-dialog::backdrop { background: rgba(5, 6, 10, .86); }
-.poster-dialog > img { display: block; width: auto; height: auto; max-width: calc(100vw - 48px); max-height: calc(100vh - 48px); max-height: calc(100dvh - 48px); object-fit: contain; }
-.poster-close { position: absolute; top: 10px; right: 10px; display: grid; place-items: center; width: 36px; height: 36px; padding: 0; border: 1px solid rgba(255, 255, 255, .4); border-radius: 50%; background: rgba(5, 6, 10, .8); color: #fff; cursor: pointer; }
-.poster-close > svg { display: block; width: 24px; height: 24px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; }
-.poster-close:hover { background: #05060a; }
-.poster-close:focus-visible { outline: 2px solid #fff; outline-offset: 2px; }
+.modal-head { display: flex; align-items: center; gap: 12px; flex-shrink: 0; }
+.modal-head h2 { flex: 1; min-width: 0; margin: 0; font-size: 16px; font-weight: 600; line-height: 1.4; }
+.modal-close { display: grid; place-items: center; flex: none; width: 32px; height: 32px; padding: 0; border: 1px solid var(--border); border-radius: 7px; background: transparent; color: var(--muted); cursor: pointer; }
+.modal-close > svg { display: block; width: 18px; height: 18px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; }
+.modal-close:hover { color: var(--text); background: var(--panel-2); }
+.modal-close:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.modal-actions { display: flex; align-items: center; justify-content: flex-end; gap: 10px; flex-wrap: wrap; flex-shrink: 0; border-top: 1px solid var(--border); padding-top: 14px; }
+.modal-actions > button { min-height: 32px; }
+.poster-dialog { max-width: calc(100vw - 32px); max-height: calc(100dvh - 32px); overflow: hidden; }
+.poster-dialog .modal-head { padding: 12px 16px; }
+.poster-dialog h2 { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.poster-dialog > img { display: block; margin: auto; width: auto; height: auto; max-width: calc(100vw - 34px); max-height: calc(100vh - 90px); max-height: calc(100dvh - 90px); object-fit: contain; }
 
 /* The form is a column of blocks — the title, the section rail, the one
    visible section, the action row — and one gap keeps them apart. A gap
@@ -621,19 +626,6 @@ dialog::backdrop { background: rgba(5, 6, 10, .66); backdrop-filter: blur(2px); 
 .setup-panel { display: flex; flex-direction: column; gap: 14px; }
 .setup-panel[hidden] { display: none; }
 .setup-note { margin: 0; color: var(--muted); font-size: 11.5px; line-height: 1.5; }
-.setup h2 { margin: 0; font-size: 16px; }
-/* The title row: the heading, and in the corner a cross that closes the
-   dialog the way Cancel and Esc do. The cross is a bigger target than the
-   heading's line is tall, so negative margins pull it in: the row keeps the
-   heading's height with the cross centred on its line, and the cross sits
-   near the corner rather than a full padding's width in from it. */
-.setup-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
-.setup-close {
-  width: 28px; height: 28px; flex: none; display: grid; place-items: center;
-  margin: -4px -10px -4px 0; border: 0; padding: 0; background: transparent;
-  color: var(--muted); cursor: pointer; border-radius: 7px; font-size: 18px; line-height: 1;
-}
-.setup-close:hover { color: var(--text); background: var(--panel-2); }
 /* The caution edge takes the warning colour rather than the gold a
    favourited star is drawn in, which is what it borrowed before. */
 .connection-security { margin: 0; padding: 10px 12px; border-left: 3px solid var(--warn); background: var(--panel-2); color: var(--text); font-size: 12px; line-height: 1.5; }
@@ -715,9 +707,7 @@ dialog::backdrop { background: rgba(5, 6, 10, .66); backdrop-filter: blur(2px); 
 .account-box .cols { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px 12px; margin-top: 6px; }
 
 /* Status and actions share one footer across all settings tabs. */
-.setup-actions { display: flex; align-items: center; gap: 14px; margin-top: 4px; flex-wrap: wrap; }
 .setup-actions .setup-note { flex: 1; min-width: 180px; }
-.setup-actions button { margin-left: auto; }
 .setup-actions .armed { color: #fff; background: var(--danger); border-color: var(--danger); }
 
 /* A stable frame keeps navigation and the shared save action in place. */
@@ -731,7 +721,7 @@ dialog::backdrop { background: rgba(5, 6, 10, .66); backdrop-filter: blur(2px); 
 .setup .toggles { gap: 0; }
 .setup .toggle { padding: 14px 0; border-bottom: 1px solid var(--border); color: var(--text); }
 .setup .toggle input { flex-shrink: 0; }
-.setup > .setup-actions { border-top: 1px solid var(--border); padding-top: 16px; gap: 10px; margin-top: 0; }
+.setup > .setup-actions { margin-top: 0; }
 .setup > .setup-actions button { margin-left: 0; }
 .setup button.primary:disabled { opacity: .45; cursor: default; filter: none; }
 .setup > .setup-actions .setup-note { font-size: 12px; }
@@ -755,12 +745,11 @@ dialog::backdrop { background: rgba(5, 6, 10, .66); backdrop-filter: blur(2px); 
   .setup .grid .field:nth-child(n+4) { grid-column: 1 / -1; }
 }
 
-#progress { border-radius: 10px; }
 .progress { padding: 18px; width: min(360px, calc(100vw - 36px)); }
-.progress-head { display: flex; align-items: center; gap: 10px; margin-bottom: 16px; }
+.progress-head { gap: 10px; margin-bottom: 12px; }
 .progress-mark { width: 20px; height: 20px; flex: none; display: grid; place-items: center; }
 .progress-spinner { width: 18px; height: 18px; border: 2px solid var(--border); border-top-color: var(--accent); border-radius: 50%; animation: spin .9s linear infinite; }
-.progress-title { margin: 0; min-width: 0; font-size: 14px; font-weight: 600; line-height: 1.4; overflow-wrap: anywhere; }
+.progress .progress-title { font-size: 14px; overflow-wrap: anywhere; }
 .progress-status { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; margin-bottom: 8px; }
 .progress-text { min-width: 0; color: var(--muted); font-size: 12px; font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
 .progress-percent { flex: none; color: var(--muted); font-size: 12px; font-variant-numeric: tabular-nums; }
@@ -816,9 +805,8 @@ dialog::backdrop { background: rgba(5, 6, 10, .66); backdrop-filter: blur(2px); 
 /* Personal channel list and programme search share the player's controls. */
 #channel-editor { width: min(760px, calc(100vw - 32px)); max-height: calc(100dvh - 32px); }
 .editor-content { padding: 24px; display: flex; flex-direction: column; gap: 14px; max-height: calc(100dvh - 34px); }
-.editor-content h2 { margin: 0; font-size: 20px; }
 .editor-help { margin: 0; color: var(--muted); line-height: 1.5; }
-.editor-toolbar, .editor-actions, .programme-form, .programme-summary { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.editor-toolbar, .programme-form, .programme-summary { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
 .editor-toolbar input, .programme-form input { flex: 1; min-width: 150px; }
 .editor-toolbar input, .editor-toolbar select, .programme-form input, .programme-form select {
   color: var(--text); background: var(--panel-2); border: 1px solid var(--border); border-radius: 6px; padding: 7px 9px; min-width: 0;
@@ -831,7 +819,6 @@ dialog::backdrop { background: rgba(5, 6, 10, .66); backdrop-filter: blur(2px); 
 .organize-row input { accent-color: var(--accent); flex-shrink: 0; }
 .organize-row.is-hidden label span { color: var(--muted); text-decoration: line-through; }
 .organize-row button:disabled { opacity: .3; }
-.editor-actions { border-top: 1px solid var(--border); padding-top: 14px; }
 .editor-actions span { flex: 1; color: var(--muted); font-size: 12px; }
 .programme-form { padding: 8px 10px; border-bottom: 1px solid var(--border); background: var(--panel); }
 .programme-form input { min-width: 180px; }

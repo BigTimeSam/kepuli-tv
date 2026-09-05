@@ -1,6 +1,7 @@
 // Decorative covers share one fallback in lists and detail views.
 // Their dimensions belong to the container, so loading cannot move the text.
 import { t } from './i18n.js';
+import { wireModal } from './modal.js';
 
 const ICONS = {
   channel: '<rect x="3" y="6" width="18" height="14" rx="3"/><path d="m8 2 4 4 4-4M7 10h7v6H7zM17 11h.01M17 15h.01"/>',
@@ -54,26 +55,16 @@ function showPoster(source, title) {
   const close = document.createElement('button');
   close.type = 'button';
   close.className = 'poster-close';
-  close.innerHTML = '<svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M6 6l12 12M18 6L6 18"/></svg>';
-  close.title = t('poster.close');
-  close.setAttribute('aria-label', close.title);
+  close.setAttribute('data-modal-close', '');
   close.autofocus = true;
-  close.addEventListener('click', () => dialog.close());
-  // Keep player shortcuts behind the modal; Escape retains its native action.
-  dialog.addEventListener('keydown', event => event.stopPropagation());
-  const outside = event => {
-    const rect = dialog.getBoundingClientRect();
-    return event.target === dialog && (event.clientX < rect.left || event.clientX > rect.right
-      || event.clientY < rect.top || event.clientY > rect.bottom);
-  };
-  let pressedOutside = false;
-  dialog.addEventListener('pointerdown', event => { pressedOutside = outside(event); });
-  dialog.addEventListener('click', event => {
-    if (pressedOutside && outside(event)) dialog.close();
-    pressedOutside = false;
-  });
+  const header = document.createElement('div');
+  header.className = 'modal-head';
+  const heading = document.createElement('h2');
+  heading.textContent = t('poster.title', { title });
+  header.append(heading, close);
   dialog.addEventListener('close', () => dialog.remove(), { once: true });
-  dialog.append(image, close);
+  dialog.append(header, image);
+  wireModal(dialog, () => dialog.close());
   document.body.append(dialog);
   dialog.showModal();
 }
