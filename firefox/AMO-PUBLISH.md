@@ -1,10 +1,19 @@
 # Firefox Add-ons publication
 
 Prepared on 2026-09-05 for the first public desktop Firefox listing on
-addons.mozilla.org (AMO). No AMO submission has been made. Version 1.0.7 is
-the preparation candidate; the released 1.0.6 packages remain unchanged.
-HTTP support is retained at the owner's request. Its reviewer acceptance
-remains a question to resolve during submission.
+addons.mozilla.org (AMO). Version 1.0.7 was submitted on 2026-09-05 with its
+matching reviewer source archive and is **Awaiting Review**. The released
+GitHub 1.0.6 packages remain unchanged. HTTP support is retained at the
+owner's request; its acceptance awaits Mozilla's reviewer determination.
+
+- Listing: https://addons.mozilla.org/en-GB/firefox/addon/kepuli-tv/
+  (currently visible only with developer access, not yet public).
+- Version editor: https://addons.mozilla.org/en-GB/developers/addon/kepuli-tv/versions/6463530
+- Five Firefox 155 screenshots and English captions were uploaded and
+  verified in the listing preview. Originals and captions are in
+  `brand/firefox-screenshots/`; their views match the Chrome store set.
+- Runtime ZIP, source ZIP, description, privacy policy, support link, MIT
+  licence, reviewer notes and store icon have been submitted. Desktop only.
 
 ## Release preparation status
 

@@ -1,14 +1,20 @@
 # Kepuli-TV
 
-A Chrome extension (Manifest V3) that plays Xtream Codes IPTV straight in the
+A Chrome and Firefox extension (Manifest V3) that plays Xtream Codes IPTV straight in the
 browser. Data is fetched from the `player_api.php` API lazily: only what you
 browse, when you browse it.
 
-**Recommended installation:** Install Kepuli-TV from the
-[Chrome Web Store](https://chromewebstore.google.com/detail/kepuli-tv/okkgclcakhjhldkdcblgagoaibghpfmi)
-for automatic updates and a straightforward installation. The packages in
-GitHub Releases are intended for manual installation and testing; most users
-should use the store version.
+**Recommended installation:** Choose the extension store for your browser
+for straightforward installation and automatic updates.
+
+| Browser | Extension store | Availability |
+| --- | --- | --- |
+| Google Chrome | [Chrome Web Store](https://chromewebstore.google.com/detail/kepuli-tv/okkgclcakhjhldkdcblgagoaibghpfmi) | Available |
+| Mozilla Firefox | [Firefox Add-ons](https://addons.mozilla.org/en-GB/firefox/addon/kepuli-tv/) | Awaiting Mozilla approval; not yet available for public installation |
+
+The Firefox listing will become publicly accessible after approval. Packages
+in GitHub Releases are intended for manual installation and testing; most
+users should use their browser's store version once available.
 
 ## Intended use
 
@@ -28,9 +34,10 @@ The software is provided as is, without warranty; see LICENSE.
 
 ## Installation
 
-For regular use, install the extension from the
-[Chrome Web Store](https://chromewebstore.google.com/detail/kepuli-tv/okkgclcakhjhldkdcblgagoaibghpfmi),
-then click its toolbar icon to open the player and configure your connection.
+For regular use, choose your browser's extension store from the table above.
+The Chrome version is available now; the Firefox store version is awaiting
+approval. After installation, click the toolbar icon to open the player and
+configure your connection.
 
 For development or manual installation from this repository:
 
