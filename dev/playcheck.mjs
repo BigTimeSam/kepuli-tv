@@ -24,7 +24,9 @@
 //   node dev/playcheck.mjs paste      a whole address pasted into the Server
 //                                     field is split into its parts
 //   node dev/playcheck.mjs keys       Esc and the arrows keep working after a
-//                                     button has been clicked with the mouse
+//                                     button has been clicked with the mouse,
+//                                     and f alone goes to full screen while
+//                                     Cmd+F and Ctrl+F are left to the browser
 //   node dev/playcheck.mjs switching  a channel switch during the wait before
 //                                     a reconnect leaves the new channel alone
 //   node dev/playcheck.mjs resume     a film with a resume position, abandoned
@@ -316,12 +318,19 @@ async function mouseClick(page, selector) {
   await page.call('Input.dispatchMouseEvent', { type: 'mousePressed', x: r.x, y: r.y, button: 'left', clickCount: 1 });
   await page.call('Input.dispatchMouseEvent', { type: 'mouseReleased', x: r.x, y: r.y, button: 'left', clickCount: 1 });
 }
-async function pressKey(page, key, code, keyCode) {
-  await page.call('Input.dispatchKeyEvent', { type: 'keyDown', key, code, windowsVirtualKeyCode: keyCode });
-  await page.call('Input.dispatchKeyEvent', { type: 'keyUp', key, code, windowsVirtualKeyCode: keyCode });
+// DevTools' own bitmask for the keys held down with the key: Alt 1, Ctrl 2,
+// Cmd 4, Shift 8.
+const CTRL = 2;
+const CMD = 4;
+async function pressKey(page, key, code, keyCode, modifiers = 0) {
+  await page.call('Input.dispatchKeyEvent', { type: 'keyDown', key, code, windowsVirtualKeyCode: keyCode, modifiers });
+  await page.call('Input.dispatchKeyEvent', { type: 'keyUp', key, code, windowsVirtualKeyCode: keyCode, modifiers });
 }
 
-/** The keys keep working after a button has been clicked with the mouse. */
+/**
+ * The keys keep working after a button has been clicked with the mouse, and
+ * a key held down with Cmd or Ctrl is left to the browser.
+ */
 async function keys(page) {
   await evaluate(page, `document.querySelector('#tabs [data-tab="live"]').click()`);
   await waitFor(page, `document.querySelectorAll('#list .row').length > 0`, 'the channel rows');
@@ -340,7 +349,23 @@ async function keys(page) {
   await sleep(300);
   const cursorMoved = await evaluate(page, `Boolean(document.querySelector('#list .row.selected'))`);
   const focus = await evaluate(page, `document.activeElement.tagName + (document.activeElement.id ? '#' + document.activeElement.id : '')`);
-  return { ok: guideClosed && cursorMoved, detail: `Esc after the Guide click ${guideClosed ? 'closed' : 'did not close'} the guide; ArrowDown after the tab click ${cursorMoved ? 'moved' : 'did not move'} the cursor; focus on ${focus}` };
+  // Cmd+F and Ctrl+F are the browser's search box, not the app's: only the
+  // bare f takes the picture to full screen. Each of the two is measured on
+  // its own, because full screen is a toggle: pressed one after the other
+  // they would undo each other and leave the state looking right.
+  const fullscreen = async (key, modifiers) => {
+    await pressKey(page, key, 'KeyF', 70, modifiers);
+    await sleep(600);
+    const id = await evaluate(page, `(document.fullscreenElement || {}).id || ''`);
+    await evaluate(page, `document.fullscreenElement && document.exitFullscreen()`);
+    await sleep(500);
+    return id;
+  };
+  const withCmd = await fullscreen('f', CMD);
+  const withCtrl = await fullscreen('f', CTRL);
+  const bare = await fullscreen('f', 0);
+  const fullscreenKey = !withCmd && !withCtrl && bare === 'videowrap';
+  return { ok: guideClosed && cursorMoved && fullscreenKey, detail: `Esc after the Guide click ${guideClosed ? 'closed' : 'did not close'} the guide; ArrowDown after the tab click ${cursorMoved ? 'moved' : 'did not move'} the cursor; focus on ${focus}; Cmd+F went to ${withCmd || 'nothing'} and Ctrl+F to ${withCtrl || 'nothing'}, a bare f to ${bare || 'nothing'}` };
 }
 
 /**

@@ -317,6 +317,10 @@ COLLECTION".
 | `x` | hand over to an external player |
 | `c` | cast to a Chromecast |
 
+These are the bare keys: a key held down with Ctrl, Cmd or Alt is left to the
+browser, so `Cmd+F` and `Ctrl+F` open its search box rather than taking the
+picture to full screen.
+
 In the guide the arrows move between channels and programmes, `PgUp` and
 `PgDn` a screen at a time, `Home` returns to the present, `+` and `−` adjust
 the timeline's scale, `Enter` starts playback and `Esc` closes.

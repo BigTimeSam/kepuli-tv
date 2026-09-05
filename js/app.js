@@ -2436,17 +2436,23 @@ function wireUi() {
   document.addEventListener('keydown', (e) => {
     const tag = e.target.tagName;
     const typing = tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT';
+    // A key pressed with Ctrl, Cmd or Alt down belongs to the browser or to
+    // the system, not to the app: Cmd+F and Ctrl+F open the browser's search
+    // box and must not throw the picture to full screen the way a bare f
+    // does. So every shortcut below answers to the plain key alone.
+    const plain = !e.ctrlKey && !e.metaKey && !e.altKey;
     if (e.key === 'Escape' && !el.sublookPop.hidden) { toggleSubtitleLook(false); el.sublook.focus(); return; }
-    if (e.key === '/' && !typing) { e.preventDefault(); el.search.focus(); el.search.select(); return; }
+    if (e.key === '/' && !typing && plain) { e.preventDefault(); el.search.focus(); el.search.select(); return; }
     if (e.target === el.search && e.key === 'Escape') {
       clearSearch(); el.search.blur(); return;
     }
     // The video's own controls take the keys while the video has the
     // focus — after a click on the picture — except f, which used to be
     // the browser's full-screen key there and is now the app's.
-    if (e.target === el.video && e.key === 'f') { toggleFullscreen(); return; }
+    if (e.target === el.video && e.key === 'f' && plain) { toggleFullscreen(); return; }
     if (typing || e.target === el.video) return;
     if (el.setup.open || el.progress.open) return;
+    if (!plain) return;
     // A focused button takes Space and Enter itself; every other key is the player's.
     if (tag === 'BUTTON' && (e.key === ' ' || e.key === 'Enter')) return;
     if (guideOpen) {
