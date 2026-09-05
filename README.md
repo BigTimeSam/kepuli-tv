@@ -4,6 +4,12 @@ A Chrome extension (Manifest V3) that plays Xtream Codes IPTV straight in the
 browser. Data is fetched from the `player_api.php` API lazily: only what you
 browse, when you browse it.
 
+**Recommended installation:** Install Kepuli-TV from the
+[Chrome Web Store](https://chromewebstore.google.com/detail/kepuli-tv/okkgclcakhjhldkdcblgagoaibghpfmi)
+for automatic updates and a straightforward installation. The packages in
+GitHub Releases are intended for manual installation and testing; most users
+should use the store version.
+
 ## Intended use
 
 Kepuli-TV is a player. It contains, distributes, hosts and indexes no media,
@@ -21,6 +27,12 @@ subscriptions, and does not answer questions about them. Such issues are closed.
 The software is provided as is, without warranty; see LICENSE.
 
 ## Installation
+
+For regular use, install the extension from the
+[Chrome Web Store](https://chromewebstore.google.com/detail/kepuli-tv/okkgclcakhjhldkdcblgagoaibghpfmi),
+then click its toolbar icon to open the player and configure your connection.
+
+For development or manual installation from this repository:
 
 1. Open `chrome://extensions`
 2. Turn on **Developer mode**
