@@ -373,6 +373,14 @@ pieces, so the app loads in stages:</p>
 1.1 s, USA (48 topics) 1.6 s. Everything loaded is stored in IndexedDB, so the
 next open is instant.</p>
 
+<p>Because the fetching happens after the click, the list empties when the tab
+does. The tab is marked active straight away, and the rows arrive only once
+stage 2 answers; rows left standing in between would be the previous tab's,
+clickable under the new tab's heading. Measured on the mock server, a click
+on <strong>Channels</strong> followed at once by a click on the top row opened a series
+instead of playing a channel — the list is therefore emptied with the tab
+and fills a moment later.</p>
+
 <h2 id="categories-on-two-levels">Categories on two levels</h2>
 
 <p>The provider encodes two levels into a single string: <code>Sweden - Sport</code>,

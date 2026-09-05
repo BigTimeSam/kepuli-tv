@@ -248,6 +248,13 @@ async function activateTab(tab, { restore = false } = {}) {
 
   store.saveUiState({ tab });
   renderSidebar();
+  // The rows on screen belong to the tab that was open, and refreshRows
+  // waits for the network before it can replace them. Left there they sit
+  // clickable under the new tab's heading, and a click in that moment
+  // opens an item from the tab the viewer has just left — measured, a
+  // click on Channels followed by a click on the top row opened a series.
+  // The list is therefore emptied with the tab, and fills a moment later.
+  showRows([]);
   await refreshRows();
 }
 
@@ -293,6 +300,14 @@ async function refreshRows({ keepScroll = false } = {}) {
   // shows.
   state.cleanName = nameCleanerFor(rows);
   if (state.cleanName) rows = sortItems(rows, state.cleanName);
+  showRows(rows, { keepScroll });
+}
+
+/**
+ * The rows on screen. Everything painted from them follows in one call, so
+ * that nothing on screen can belong to a list that is no longer shown.
+ */
+function showRows(rows, { keepScroll = false } = {}) {
   state.rows = rows;
   state.catCounts = categoryCountsFor(rows);
   state.rowIndex = new Map(rows.map((it, i) => [`${it.k}:${it.id}`, i]));

@@ -164,6 +164,14 @@ Measured times on the test server: Albania (3 topics) 0.27 s, Sweden (31 topics)
 1.1 s, USA (48 topics) 1.6 s. Everything loaded is stored in IndexedDB, so the
 next open is instant.
 
+Because the fetching happens after the click, the list empties when the tab
+does. The tab is marked active straight away, and the rows arrive only once
+stage 2 answers; rows left standing in between would be the previous tab's,
+clickable under the new tab's heading. Measured on the mock server, a click
+on **Channels** followed at once by a click on the top row opened a series
+instead of playing a channel — the list is therefore emptied with the tab
+and fills a moment later.
+
 ## Categories on two levels
 
 The provider encodes two levels into a single string: `Sweden - Sport`,

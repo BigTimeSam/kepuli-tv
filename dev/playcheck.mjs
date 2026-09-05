@@ -140,6 +140,37 @@ async function freshPlayer(target, page) {
   await waitFor(page, CONNECTED, 'the connection');
 }
 
+/**
+ * The live tab's channel list, painted.
+ *
+ * Waiting for "some rows" is not enough and once made three scenarios
+ * flaky: activateTab marks the tab active and only then waits for the
+ * network, so for a moment the list still held the previous tab's rows —
+ * measured, the wait was satisfied in 1 ms by a series row, and the click
+ * that followed opened a series instead of playing a channel. js/app.js
+ * empties the list with the tab now; this checks what arrived is really
+ * the channel list rather than trusting the timing.
+ */
+async function openLiveList(page, minRows = 1) {
+  await evaluate(page, `document.querySelector('#tabs [data-tab="live"]').click()`);
+  await waitFor(page, `document.querySelectorAll('#list .row').length >= ${minRows}`, 'the channel rows');
+}
+
+/** The first channel of that list, playing. */
+async function playFirstChannel(page) {
+  await openLiveList(page, 2);
+  await evaluate(page, `document.querySelectorAll('#list .row')[0].click()`, { gesture: true });
+  await sleep(300);
+  // A row that is not a channel opens a detail panel instead of playing.
+  // Said at once, it beats waiting out the playback timeout and reporting
+  // only that nothing happened.
+  const opened = await evaluate(page, `(() => { const row = document.querySelector('#list .row');
+    return { detail: !document.getElementById('detail').hidden,
+      first: row ? row.textContent.trim().replace(/\s+/g, ' ').slice(0, 40) : null }; })()`);
+  if (opened.detail) throw new Error(`the top row of the channel list opened a detail panel: "${opened.first}"`);
+  await waitFor(page, PLAYING, 'the channel');
+}
+
 /** An episode of the demo series, playing. The first by default; the third
  *  is the one with three audio tracks, see dev/mock/media.sh. */
 async function playEpisode(page, index = 0) {
@@ -319,11 +350,8 @@ async function keys(page) {
  * must be asked for once.
  */
 async function switching(page, { requests }) {
-  await evaluate(page, `document.querySelector('#tabs [data-tab="live"]').click()`);
-  await waitFor(page, `document.querySelectorAll('#list .row').length > 1`, 'the channel rows');
-  await evaluate(page, `document.querySelectorAll('#list .row')[0].click()`, { gesture: true });
   try {
-    await waitFor(page, PLAYING, 'the first channel');
+    await playFirstChannel(page);
   } catch (err) {
     const st = await videoState(page);
     throw new Error(`${err.message}; overlay "${st.overlay}", readyState ${st.readyState}, requests ${requests.slice(-4).join(' ')}`);
@@ -456,11 +484,10 @@ async function accounts(page, { target }) {
  * rows are on screen.
  */
 async function listerror(page) {
-  await evaluate(page, `document.querySelector('#tabs [data-tab="live"]').click()`);
-  await waitFor(page, `document.querySelectorAll('#list .row').length > 0`, 'the channel rows');
+  await playFirstChannel(page);
+  // Playing does not change the group, so this is the one the failed
+  // switch below has to come back to.
   const before = await evaluate(page, ACTIVE_GROUP);
-  await evaluate(page, `document.querySelector('#list .row').click()`, { gesture: true });
-  await waitFor(page, PLAYING, 'the channel');
   process.env.KEPULI_MOCK_FAIL_LISTS = '1';
   try {
     await click(page, '#groups', 'Finland');
@@ -475,8 +502,7 @@ async function listerror(page) {
 
 /** What assistive technology is told: roles, names, the cursor, the tabs. */
 async function a11y(page) {
-  await evaluate(page, `document.querySelector('#tabs [data-tab="live"]').click()`);
-  await waitFor(page, `document.querySelectorAll('#list .row').length > 1`, 'the channel rows');
+  await openLiveList(page, 2);
   await evaluate(page, `document.getElementById('list').focus()`);
   await pressKey(page, 'ArrowDown', 'ArrowDown', 40);
   await sleep(300);
