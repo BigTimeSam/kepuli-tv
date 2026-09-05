@@ -181,14 +181,18 @@ button.group-star:hover { color: var(--text); background: #262c3d; }
   background: var(--panel); border-bottom: 1px solid var(--border); outline: none;
 }
 .subcats-grip[hidden] { display: none; }
+/* The handle is drawn at its full 46 px and held short until the pointer
+   arrives. Growing it by its width would lay the element out again on
+   every frame of the transition; scaling it is the compositor's work
+   alone, and a solid bar scaled down loses nothing. */
 .subcats-grip::after {
-  content: ''; position: absolute; left: 50%; top: 3px; width: 30px; height: 2px;
-  transform: translateX(-50%); border-radius: 2px; background: var(--border);
-  transition: background .12s, width .12s;
+  content: ''; position: absolute; left: 50%; top: 3px; width: 46px; height: 2px;
+  transform: translateX(-50%) scaleX(.652); border-radius: 2px; background: var(--border);
+  transition: background .12s, transform .12s;
 }
 .subcats-grip:hover::after,
 .subcats-grip:focus-visible::after,
-.subcats-grip.dragging::after { background: var(--accent); width: 46px; }
+.subcats-grip.dragging::after { background: var(--accent); transform: translateX(-50%) scaleX(1); }
 /* While dragging, the pointer belongs to the handle wherever it wanders: no
    text is selected under it, and the chips and rows it passes do not answer
    with a hand of their own. */
@@ -522,7 +526,9 @@ dialog::backdrop { background: rgba(5, 6, 10, .66); backdrop-filter: blur(2px); 
   color: var(--muted); cursor: pointer; border-radius: 7px; font-size: 18px; line-height: 1;
 }
 .setup-close:hover { color: var(--text); background: var(--panel-2); }
-.connection-security { margin: 0; padding: 10px 12px; border-left: 3px solid #ffc857; background: var(--panel-2); color: var(--text); font-size: 12px; line-height: 1.5; }
+/* The caution edge takes the warning colour rather than the gold a
+   favourited star is drawn in, which is what it borrowed before. */
+.connection-security { margin: 0; padding: 10px 12px; border-left: 3px solid var(--warn); background: var(--panel-2); color: var(--text); font-size: 12px; line-height: 1.5; }
 
 /* Clearing the cache and starting over are a year apart in use from
    anything else in here, so they sit at the foot of their own section
