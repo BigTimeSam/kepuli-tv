@@ -173,7 +173,7 @@
 
 <main>
 <h1>Kepuli-TV</h1>
-<p class="meta">The README of the Kepuli-TV browser extension · Version 1.0.6 · <a href="https://github.com/BigTimeSam/kepuli-tv">Source on GitHub</a></p>
+<p class="meta">The README of the Kepuli-TV browser extension · Version 1.0.7 · <a href="https://github.com/BigTimeSam/kepuli-tv">Source on GitHub</a></p>
 
 <p>A Chrome extension (Manifest V3) that plays Xtream Codes IPTV straight in the
 browser. Data is fetched from the <code>player_api.php</code> API lazily: only what you
@@ -243,8 +243,8 @@ states.</p>
 
 <p>In Firefox: <code>node firefox/build.mjs</code>, then <code>about:debugging</code> → <strong>This
 Firefox</strong> → <strong>Load Temporary Add-on</strong> → <code>firefox/dist/manifest.json</code>. Firefox
-128 or newer — 130 for the decoded AC-3, E-AC-3 and DTS route, which needs
-WebCodecs audio; on 128 and 129 those files are marked <em>no sound</em> instead. A
+140 or newer is required for the upcoming AMO version, including Firefox's
+built-in consent for sending credentials to the user's own service. A
 temporary add-on lasts until Firefox closes; the permanent
 route is a signed package from AMO, see <code>FIREFOX.md</code>. The same code runs in
 both browsers — <code>firefox/</code> holds only the Firefox manifest and the tools that
@@ -464,7 +464,7 @@ started straight from the guide</li>
   <li><strong>Movie details</strong>: plot, running time, rating, codec</li>
   <li><strong>MKV plays</strong> without an external player: the container is unpacked on the
 fly into fMP4, seeking included, and an AC-3, E-AC-3 or DTS track is
-decoded in the player — in Firefox 130 or newer too. For the few tracks
+decoded in the player — in Firefox too. For the few tracks
 that are not decoded, <strong>Play without sound</strong> is on offer</li>
   <li><strong>Subtitles</strong> from MKV files: a language and size selector below the player,
 and the chosen language carries over to the following episodes — see below</li>
@@ -852,7 +852,7 @@ dev/site.mjs        renders README.md into docs/index.html, the Pages front page
 dev/screenshot.mjs  a 1280x800 store screenshot of the player, over the DevTools protocol
 dev/store-screenshots.mjs  the five store screenshots, from the mock server's content
 dev/mock/           a fake Xtream Codes server with invented content, and its media;
-                    also the Fly.io demo the store reviewers are given
+                    local development, screenshots and review fixtures only
 firefox/            the Firefox version: its manifest, the build that assembles
                     firefox/dist/ from the shared source, and its development loop
 docs/               the GitHub Pages site: front page, privacy policy, terms of use
@@ -960,28 +960,18 @@ needs uv for Pillow. The mock server also serves on its own,
 <code>node dev/mock/server.mjs</code>, for developing without an account: user <code>demo</code>,
 password <code>demo</code>, port 8790.</p>
 
-<h3 id="the-demo-server-for-the-store-review">The demo server for the store review</h3>
+<h3 id="local-testing-and-store-review">Local testing and store review</h3>
 
-<p>The Chrome Web Store reviewers need an account to see anything, and a real
-IPTV subscription is nobody's to hand out. The same mock server runs on
-Fly.io as a public demo, https://kepuli-demo.fly.dev, user <code>demo</code>, password
-<code>demo</code>, and the review form carries those with a walk-through (see
-<code>store-listing.txt</code>). The live channel there is an endless HLS loop of the
-same segments; the <code>.ts</code> address answers 404 and the player falls back to
-HLS by itself.</p>
+<p>The mock server and generated media are development and review fixtures.
+Kepuli-TV does not provide a hosted demo, an IPTV service or a subscription
+for customers. Users connect to their own compatible service using their own
+credentials.</p>
 
-<p><code>dev/mock/Dockerfile</code> and <code>dev/mock/fly.toml</code> describe it: one small machine
-that stops when nobody is connected and starts on the first request, so it
-costs next to nothing between reviews. The media are rendered on the machine
-that deploys and copied into the image. To ship a change:</p>
-
-<pre><code>sh dev/mock/media.sh
-cd dev/mock &amp;&amp; fly deploy</code></pre>
-
-<p><code>KEPULI_DEMO_URL=https://kepuli-demo.fly.dev node dev/store-screenshots.mjs</code>
-runs the screenshot walk against the deployed demo, which is the check that
-what the reviewers get really works; <code>KEPULI_SHOTS_DIR</code> keeps the pictures
-out of <code>brand/screenshots/</code>.</p>
+<p>For local testing, run <code>sh dev/mock/media.sh</code> and then
+<code>node dev/mock/server.mjs</code>. The Firefox reviewer source archive includes the
+same tools so a reviewer can test with invented content on their own machine.
+The instructions are in <code>firefox/AMO-BUILD.md</code>; test files are excluded from
+the installable extension.</p>
 
 <p>The release packages:</p>
 

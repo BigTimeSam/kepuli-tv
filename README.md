@@ -47,8 +47,8 @@ states.
 
 In Firefox: `node firefox/build.mjs`, then `about:debugging` → **This
 Firefox** → **Load Temporary Add-on** → `firefox/dist/manifest.json`. Firefox
-128 or newer — 130 for the decoded AC-3, E-AC-3 and DTS route, which needs
-WebCodecs audio; on 128 and 129 those files are marked *no sound* instead. A
+140 or newer is required for the upcoming AMO version, including Firefox's
+built-in consent for sending credentials to the user's own service. A
 temporary add-on lasts until Firefox closes; the permanent
 route is a signed package from AMO, see `FIREFOX.md`. The same code runs in
 both browsers — `firefox/` holds only the Firefox manifest and the tools that
@@ -259,7 +259,7 @@ COLLECTION".
 - **Movie details**: plot, running time, rating, codec
 - **MKV plays** without an external player: the container is unpacked on the
   fly into fMP4, seeking included, and an AC-3, E-AC-3 or DTS track is
-  decoded in the player — in Firefox 130 or newer too. For the few tracks
+  decoded in the player — in Firefox too. For the few tracks
   that are not decoded, **Play without sound** is on offer
 - **Subtitles** from MKV files: a language and size selector below the player,
   and the chosen language carries over to the following episodes — see below
@@ -619,7 +619,7 @@ dev/site.mjs        renders README.md into docs/index.html, the Pages front page
 dev/screenshot.mjs  a 1280x800 store screenshot of the player, over the DevTools protocol
 dev/store-screenshots.mjs  the five store screenshots, from the mock server's content
 dev/mock/           a fake Xtream Codes server with invented content, and its media;
-                    also the Fly.io demo the store reviewers are given
+                    local development, screenshots and review fixtures only
 firefox/            the Firefox version: its manifest, the build that assembles
                     firefox/dist/ from the shared source, and its development loop
 docs/               the GitHub Pages site: front page, privacy policy, terms of use
@@ -730,30 +730,18 @@ needs uv for Pillow. The mock server also serves on its own,
 `node dev/mock/server.mjs`, for developing without an account: user `demo`,
 password `demo`, port 8790.
 
-### The demo server for the store review
+### Local testing and store review
 
-The Chrome Web Store reviewers need an account to see anything, and a real
-IPTV subscription is nobody's to hand out. The same mock server runs on
-Fly.io as a public demo, https://kepuli-demo.fly.dev, user `demo`, password
-`demo`, and the review form carries those with a walk-through (see
-`store-listing.txt`). The live channel there is an endless HLS loop of the
-same segments; the `.ts` address answers 404 and the player falls back to
-HLS by itself.
+The mock server and generated media are development and review fixtures.
+Kepuli-TV does not provide a hosted demo, an IPTV service or a subscription
+for customers. Users connect to their own compatible service using their own
+credentials.
 
-`dev/mock/Dockerfile` and `dev/mock/fly.toml` describe it: one small machine
-that stops when nobody is connected and starts on the first request, so it
-costs next to nothing between reviews. The media are rendered on the machine
-that deploys and copied into the image. To ship a change:
-
-```
-sh dev/mock/media.sh
-cd dev/mock && fly deploy
-```
-
-`KEPULI_DEMO_URL=https://kepuli-demo.fly.dev node dev/store-screenshots.mjs`
-runs the screenshot walk against the deployed demo, which is the check that
-what the reviewers get really works; `KEPULI_SHOTS_DIR` keeps the pictures
-out of `brand/screenshots/`.
+For local testing, run `sh dev/mock/media.sh` and then
+`node dev/mock/server.mjs`. The Firefox reviewer source archive includes the
+same tools so a reviewer can test with invented content on their own machine.
+The instructions are in `firefox/AMO-BUILD.md`; test files are excluded from
+the installable extension.
 
 The release packages:
 

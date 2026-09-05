@@ -164,7 +164,7 @@
 
     <div class="grid" id="src-xtream">
       <label class="field w-scheme"><span data-i18n="setup.scheme">Protocol</span>
-        <select id="f-scheme"><option value="http">http</option><option value="https">https</option></select>
+        <select id="f-scheme" aria-describedby="connection-security"><option value="http">http</option><option value="https">https</option></select>
       </label>
       <label class="field w-host"><span data-i18n="setup.host">Server</span>
         <input id="f-host" type="text" placeholder="example.tv" autocomplete="off" spellcheck="false">
@@ -182,8 +182,10 @@
 
     <label class="field" id="src-m3u" hidden>
       <span data-i18n="setup.m3u.label">Address of the channel list</span>
-      <input id="f-paste" type="text" placeholder="http://example.tv:8080/…?username=…&amp;password=…" autocomplete="off" spellcheck="false">
+      <input id="f-paste" type="text" placeholder="http://example.tv:8080/…?username=…&amp;password=…" autocomplete="off" spellcheck="false" aria-describedby="connection-security">
     </label>
+
+    <p id="connection-security" class="connection-security" data-i18n="setup.security">Use HTTPS when your provider supports it. With HTTP, your username, password and viewing requests travel without encryption and can be read or changed by others on the network.</p>
 
     <div id="account-box" class="account-box" hidden></div>
 

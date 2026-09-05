@@ -177,7 +177,7 @@ const zipEntries = (path) => execFileSync('unzip', ['-Z1', path], { encoding: 'u
 function previousZip(target, except) {
   const pattern = target === 'chrome' ? /^kepuli-tv-(chrome-)?\d[\w.-]*\.zip$/ : new RegExp(`^kepuli-tv-${target}-\\d[\\w.-]*\\.zip$`);
   return readdirSync(ROOT)
-    .filter((f) => pattern.test(f) && f !== except)
+    .filter((f) => pattern.test(f) && f !== except && !f.endsWith('-amo-source.zip'))
     .map((f) => ({ f, mtime: statSync(join(ROOT, f)).mtimeMs }))
     .sort((a, b) => b.mtime - a.mtime)[0]?.f;
 }
@@ -202,7 +202,7 @@ export function zip({ target, dir, files, version }) {
 
 const kb = (n) => `${Math.round(n / 1024)} kB`;
 
-if (import.meta.url === pathToFileURL(process.argv[1]).href) {
+if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
   const args = process.argv.slice(2);
   const flag = (f) => args.includes(f);
   const ref = args.includes('--ref') ? args[args.indexOf('--ref') + 1] : 'HEAD';

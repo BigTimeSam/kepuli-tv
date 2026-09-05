@@ -193,17 +193,18 @@ Screenshots:           brand/screenshots/01-channels.png … 05-movie.png
 
 
 --- TEST INSTRUCTIONS (Privacy practices → Test instructions) --------------
-The extension shows nothing without an account, so the reviewers get the
-demo server on Fly.io (dev/mock/, see the README). Everything on it is
-invented. The credentials go in the two fields; the text below is 493
-characters, within the 500 limit.
+The extension needs the user's own account. No hosted demo is offered.
+For review, dev/mock/ contains a local server and generated-media script;
+the README explains how to run it. These replacement instructions must also
+be updated in the store dashboard before the old test deployment is retired.
+The credentials below apply only to the local test fixture.
 
 Username:  demo
 Password:  demo
 
 Additional instructions:
 
-The extension needs an Xtream Codes account; a demo server with invented content is provided for review. Click the toolbar icon and, in the Settings dialog, choose Xtream Codes: Protocol https, Server kepuli-demo.fly.dev, Port 443, Username demo, Password demo, then Connect (Chrome asks for access to that one host). Pick Finland in the sidebar and a channel to play it; press g for the programme guide; open Series > Nordic Noir > Silent Fjord and an episode for MKV playback with subtitles.
+Local review fixture: clone github.com/BigTimeSam/kepuli-tv, install Node 22+ and FFmpeg, run sh dev/mock/media.sh, then node dev/mock/server.mjs. In Settings use Xtream Codes, HTTP, server 127.0.0.1, port 8790, username demo, password demo. Connect, choose Finland and a channel; press g for the guide. Series > Nordic Noir > Silent Fjord tests MKV subtitles; the second episode tests AC-3 audio. The fixture contains only invented content and runs on your machine.
 
 
 --- THE PRIVACY PRACTICES TAB ----------------------------------------------

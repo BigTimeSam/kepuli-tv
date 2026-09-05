@@ -62,8 +62,8 @@ whose MV3 APIs return promises.
 | `background` | `service_worker: "background.js"` | `scripts: ["background.js"]` — Firefox has no service workers for extensions |
 | `minimum_chrome_version` | `116` | absent |
 | `browser_specific_settings.gecko.id` | absent | `kepuli-tv@bigtimesam.github.io`, mandatory for signing |
-| `browser_specific_settings.gecko.strict_min_version` | absent | `128.0`, dictated by `optional_host_permissions` |
-| `browser_specific_settings.gecko.data_collection_permissions` | absent | `required: ["none"]`, mandatory on AMO since November 2025 |
+| `browser_specific_settings.gecko.strict_min_version` | absent | `140.0`, for Firefox's built-in data-transmission consent |
+| `browser_specific_settings.gecko.data_collection_permissions` | absent | `required: ["authenticationInfo"]`, because credentials are sent to the user's service |
 | everything else | the same | the same |
 
 The other APIs in use are older than 128: `runtime.getContexts` 127,
@@ -77,10 +77,12 @@ must have `background.scripts` and a gecko id, and a key that appears in the
 Chrome manifest without being on either list stops the build until this
 script knows about it. That is what keeps the two from drifting apart.
 
-The data-collection declaration is a judgement call to revisit at submission.
-The extension sends the user's credentials to the server the user configured
-and nowhere else, and reports nothing to anyone; whether Mozilla reads that as
-*none* or as *authenticationInfo* is for the listing form to settle.
+The declaration concerns transmission to the user's own server, even though
+the developer receives nothing. Version 1.0.7 declares `authenticationInfo`
+and requires Firefox 140 so Firefox obtains consent at installation. HTTP
+support remains available for user-supplied services; the connection form
+explains the lack of encryption and recommends HTTPS where supported. The
+AMO assessment and its remaining uncertainty are in `firefox/AMO-PUBLISH.md`.
 
 ### Wording
 
@@ -151,8 +153,9 @@ What the Opus route needed:
 - the verdict in `probe.js` asks the encoder as well as the decoder: a
   browser with the wasm decoder but no encoder at all — Firefox 128 and 129,
   before desktop Firefox got WebCodecs audio in 130 — marks the row *no
-  sound* honestly, with a reason of its own. `strict_min_version` stays at
-  128: everything else in the player works there
+  sound* honestly, with a reason of its own. Versions through 1.0.6 kept
+  `strict_min_version` at 128; the AMO preparation in 1.0.7 raises it to 140
+  for built-in data-transmission consent
 
 Measured, Firefox 155 and Chrome 152 on macOS, with `node dev/audiocheck.mjs
 firefox` and `chrome`: the real modules run inside the extension against the
@@ -234,6 +237,14 @@ browser, as they are for Chrome.
 
 ## Publishing on AMO
 
+The current submission plan, validation results, copyable store fields and
+remaining release decisions are in [firefox/AMO-PUBLISH.md](firefox/AMO-PUBLISH.md).
+The reviewer source package is built with `node firefox/amo-source.mjs` after
+committing the preparation files; `--worktree` makes an explicitly uncommitted
+preview. It includes FFmpeg's full source and [English build
+instructions](firefox/AMO-BUILD.md). Runtime release packages come from
+`node dev/package.mjs firefox --zip`.
+
 - **Signing is mandatory.** Release Firefox will not install an unsigned
   extension permanently. A signature can be had from AMO without a public
   listing too (self-distribution). `node firefox/build.mjs --zip` makes the
@@ -249,6 +260,7 @@ browser, as they are for Chrome.
   holds the whole command sequence, `dev/wasm/ffaudio.c` is the only source
   file of our own, and `vendor/ffaudio/LICENSE` states FFmpeg's tag and the
   replaceability LGPL 2.1 §6 requires.
-- **Review is done by a human** and is slower than Chrome's, but the
-  extension asks for no permissions at install time and does not touch the
-  pages you browse, so it is an easy case for a reviewer.
+- **Review and signing.** AMO validates the upload and may perform further
+  review. Validation alone does not establish policy compliance or guarantee
+  publication; the consent declaration and secure transport must be addressed
+  before this project's first submission.

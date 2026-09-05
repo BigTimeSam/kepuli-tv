@@ -10,32 +10,45 @@
 #   sh dev/wasm/build.sh          build
 #   sh dev/wasm/build.sh --test   build, make test material and compare with ffmpeg
 #
-# Requires: git, make, (--test also ffmpeg and node)
+# Requires: git, make, Python 3, (--test also ffmpeg and node)
 
 set -e
 
 ROOT=$(cd "$(dirname "$0")/../.." && pwd)
 BUILD=${KEPULI_WASM_BUILD:-$HOME/.cache/kepuli-tv-build}
 FFMPEG_TAG=${KEPULI_FFMPEG_TAG:-n7.1.1}
-OUT=$ROOT/vendor/ffaudio
+EMSDK_VERSION=6.0.9
+EMSDK_COMMIT=5eb0bde7585670252e8ba05e9d361627bffd08b5
+OUT=${KEPULI_WASM_OUT:-$ROOT/vendor/ffaudio}
 MEDIA=$ROOT/dev/wasm/media
 
 mkdir -p "$BUILD"
 
 if [ ! -d "$BUILD/emsdk" ]; then
     echo "--> emsdk"
-    git clone --depth 1 https://github.com/emscripten-core/emsdk.git "$BUILD/emsdk"
-    "$BUILD/emsdk/emsdk" install latest
-    "$BUILD/emsdk/emsdk" activate latest
+    git init "$BUILD/emsdk"
+    git -C "$BUILD/emsdk" remote add origin https://github.com/emscripten-core/emsdk.git
+    git -C "$BUILD/emsdk" fetch --depth 1 origin "$EMSDK_COMMIT"
+    git -C "$BUILD/emsdk" checkout --detach FETCH_HEAD
+    "$BUILD/emsdk/emsdk" install "$EMSDK_VERSION"
+    "$BUILD/emsdk/emsdk" activate "$EMSDK_VERSION"
 fi
 # shellcheck disable=SC1091
 . "$BUILD/emsdk/emsdk_env.sh" >/dev/null 2>&1
+if [ "$(tr -d '\"\r\n' < "$BUILD/emsdk/upstream/emscripten/emscripten-version.txt")" != "$EMSDK_VERSION" ]; then
+    echo "Expected Emscripten $EMSDK_VERSION. Use a fresh KEPULI_WASM_BUILD directory." >&2
+    exit 1
+fi
 
 if [ ! -d "$BUILD/ffmpeg" ]; then
     echo "--> FFmpeg $FFMPEG_TAG"
     git clone --depth 1 --branch "$FFMPEG_TAG" https://github.com/FFmpeg/FFmpeg.git "$BUILD/ffmpeg"
 fi
 FF=$BUILD/ffmpeg
+if [ -d "$FF/.git" ] && [ "$(git -C "$FF" rev-parse HEAD)" != "$(git -C "$FF" rev-parse "$FFMPEG_TAG^{commit}")" ]; then
+    echo "The FFmpeg checkout does not match $FFMPEG_TAG. Use a fresh KEPULI_WASM_BUILD directory." >&2
+    exit 1
+fi
 
 # --disable-all strips everything; only the three decoders, their parsers
 # and swresample are taken in. No muxers, no protocols. No GPL parts: the
