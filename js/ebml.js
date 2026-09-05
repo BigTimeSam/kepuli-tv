@@ -21,6 +21,8 @@ export const ID = {
   // Tracks
   TrackEntry: 0xae, TrackNumber: 0xd7, TrackUID: 0x73c5, TrackType: 0x83,
   FlagEnabled: 0xb9, FlagDefault: 0x88, FlagForced: 0x55aa, FlagLacing: 0x9c,
+  FlagHearingImpaired: 0x55ab, FlagVisualImpaired: 0x55ac, FlagTextDescriptions: 0x55ad,
+  FlagOriginal: 0x55ae, FlagCommentary: 0x55af,
   DefaultDuration: 0x23e383, TrackTimestampScale: 0x23314f,
   CodecID: 0x86, CodecPrivate: 0x63a2, CodecDelay: 0x56aa, SeekPreRoll: 0x56bb,
   Language: 0x22b59c, LanguageBCP47: 0x22b59d, Name: 0x536e,
@@ -233,6 +235,12 @@ export function field(track, id, r, len) {
     case ID.Name: track.name = r.text(len); break;
     case ID.FlagDefault: track.isDefault = r.uint(len) === 1; break;   // 1 when absent
     case ID.FlagForced: track.forced = r.uint(len) === 1; break;
+    // Matroska v4 flags. Rarely written — see audio.js, which falls back
+    // to reading the track's own name — but exact where they are.
+    case ID.FlagHearingImpaired: track.hearingImpaired = r.uint(len) === 1; break;
+    case ID.FlagVisualImpaired: track.visualImpaired = r.uint(len) === 1; break;
+    case ID.FlagOriginal: track.original = r.uint(len) === 1; break;
+    case ID.FlagCommentary: track.commentary = r.uint(len) === 1; break;
     case ID.FlagLacing: track.lacing = r.uint(len) === 1; break;
     case ID.PixelWidth: track.width = r.uint(len); break;
     case ID.PixelHeight: track.height = r.uint(len); break;

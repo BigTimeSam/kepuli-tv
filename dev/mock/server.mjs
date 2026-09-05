@@ -235,6 +235,12 @@ const series = { categories: [], list: [], info: new Map() };
 // decodes itself — the wasm decoder, then the browser's own encoder, AAC in
 // Chrome and Opus in Firefox — is one click away in either browser.
 export const AC3_EPISODES = new Set();
+// The third carries three audio tracks (episode-multi.mkv): English AAC as
+// the file's default, Finnish AAC, and an English AC-3 commentary. That is
+// what the choice in js/audio.js has to get right — a decoded track and a
+// commentary to pass over, and a Finnish track to find when it is asked
+// for.
+export const MULTI_EPISODES = new Set();
 {
   let id = 7000;
   let epId = 70000;
@@ -265,15 +271,18 @@ export const AC3_EPISODES = new Set();
           const mins = Number(entry.episode_run_time);
           const mkv = e === 1 || r() < 0.7;   // the first episode is always the MKV with subtitles
           const ac3 = s === 1 && e === 2;     // the second is the MKV with AC-3 sound
+          const multi = s === 1 && e === 3;   // the third has three audio tracks
           if (ac3) AC3_EPISODES.add(String(epId));
+          if (multi) MULTI_EPISODES.add(String(epId));
           episodes[String(s)].push({
-            id: String(epId), episode_num: e, title: pick(r, EPISODE_TITLES), container_extension: mkv || ac3 ? 'mkv' : 'mp4',
+            id: String(epId), episode_num: e, title: pick(r, EPISODE_TITLES), container_extension: mkv || ac3 || multi ? 'mkv' : 'mp4',
             info: {
               movie_image: entry.cover, plot: plotFor(r), duration_secs: mins * 60 + between(r, 0, 59), duration: `00:${mins}:00`,
               air_date: `${year + s - 1}-${String(between(r, 9, 12)).padStart(2, '0')}-${String(between(r, 1, 28)).padStart(2, '0')}`,
               rating: stars, bitrate: between(r, 2400, 5600),
               video: { codec_name: 'h264', width: 1920, height: 1080 },
               audio: ac3 ? { codec_name: 'ac3', channels: 6 } : { codec_name: 'aac', channels: 2 },
+              audio_tracks: multi ? 3 : 1,
             },
             custom_sid: '', added: entry.last_modified, season: s, direct_source: '',
           });
@@ -567,8 +576,11 @@ function handle(req, res) {
   if ((m = /^\/(movie|series)\/.*\.(\w+)$/.exec(path))) {
     if (m[2] === 'mkv') {
       const id = path.slice(path.lastIndexOf('/') + 1, -4);
-      const ac3 = AC3_EPISODES.has(id) && existsSync(join(MEDIA, 'episode-ac3.mkv'));
-      return sendFile(req, res, ac3 ? 'episode-ac3.mkv' : 'episode.mkv', 'video/x-matroska');
+      const variant = (set, file) => (set.has(id) && existsSync(join(MEDIA, file)) ? file : null);
+      const file = variant(AC3_EPISODES, 'episode-ac3.mkv')
+                || variant(MULTI_EPISODES, 'episode-multi.mkv')
+                || 'episode.mkv';
+      return sendFile(req, res, file, 'video/x-matroska');
     }
     if (m[2] === 'mp4') return sendFile(req, res, 'movie.mp4', 'video/mp4');
     return send(res, 404, `the demo server has no ${m[2]} files`, 'text/plain');

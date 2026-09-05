@@ -6,10 +6,16 @@
 //
 // Exit code 0 when every case holds, 1 otherwise.
 
+// audio.js asks MediaSource what the browser takes, and Node has none.
+// The stub says what Chrome and Firefox both say: AAC in an mp4 goes
+// through as it is, nothing else does.
+globalThis.MediaSource = { isTypeSupported: (type) => /mp4a\.40/.test(type) };
+
 import { parseServer } from '../js/xtream.js';
 import { nameCleaner } from '../js/name.js';
 import { cueText } from '../js/subs.js';
 import { subtitleLook, STYLES, MIN_SIZE, MAX_SIZE, DEFAULT_SIZE } from '../js/subdisplay.js';
+import { describe, describeAll, label, preferred, route } from '../js/audio.js';
 
 let failed = 0;
 let count = 0;
@@ -179,6 +185,102 @@ check('subtitleLook reads the older sizes', ['small', 'medium', 'large'].map((s)
   check('player.html offers the looks in the module\'s order', offered, STYLES);
   const slider = html.match(/<input id="f-subsize" type="range" min="(\d+)" max="(\d+)" step="1" value="(\d+)">/);
   check('player.html\'s slider has the module\'s bounds and default', slider && slider.slice(1).map(Number), [MIN_SIZE, MAX_SIZE, DEFAULT_SIZE]);
+}
+
+/* --------------------------------------------------- audio.js: the track */
+
+// A TrackEntry as ebml.js hands it over. Only the fields the choice reads.
+const track = (number, codecId, extra = {}) => ({ type: 2, number, codecId, ...extra });
+
+check('route: AAC goes through as it is', route('A_AAC'), 'passthrough');
+check('route: AC-3 is decoded in the player', route('A_AC3'), 'decoded');
+check('route: E-AC-3 is decoded in the player', route('A_EAC3'), 'decoded');
+check('route: TrueHD has no route', route('A_TRUEHD'), null);
+// MP3 and FLAC in MKV: the browser knows the codec, but mp4.js can write
+// no sample entry for them, so they are not passed on either.
+check('route: MP3 in MKV has no route', route('A_MPEG/L3'), null);
+check('route: FLAC in MKV has no route', route('A_FLAC'), null);
+
+const pick = (what, tracks, language, expected) =>
+  check(`preferred(${what}, ${JSON.stringify(language)})`,
+        (preferred(describeAll(tracks), language) || {}).number ?? null, expected);
+
+// An untouched track beats a decoded one even when the file marks the
+// decoded one default: that is what saves discs carrying both AC-3 and AAC.
+const dual = [track(1, 'A_AC3', { lang: 'eng', isDefault: true }), track(2, 'A_AAC', { lang: 'fin' })];
+pick('AC-3 default + AAC', dual, 'auto', 2);
+pick('AC-3 default + AAC', dual, null, 2);
+// The language decides before the route: an English AC-3 is worth decoding
+// when English is what was asked for.
+pick('AC-3 default + AAC', dual, 'eng', 1);
+pick('AC-3 default + AAC', dual, 'fi', 2);
+// A language the file does not have falls back to the automatic choice.
+pick('AC-3 default + AAC', dual, 'sv', 2);
+
+// The file's own default decides between two tracks of the same route;
+// without the flag the file's order does.
+const two = [track(1, 'A_AAC', { lang: 'eng' }), track(2, 'A_AAC', { lang: 'ger', isDefault: true })];
+pick('AAC + AAC default', [track(1, 'A_AAC', { lang: 'eng', isDefault: false }), two[1]], 'auto', 2);
+pick('AAC + AAC, neither flagged', two.map((t) => ({ ...t, isDefault: undefined })), 'auto', 1);
+
+// A commentary answers no language choice unless it is asked for by
+// language, or unless it is all the file has.
+const commented = [
+  track(1, 'A_AAC', { lang: 'eng', name: 'Commentary' }),
+  track(2, 'A_AAC', { lang: 'ger' }),
+];
+pick('commentary + German', commented, 'auto', 2);
+pick('commentary + German', commented, 'en', 1);
+pick('commentary alone', [commented[0]], 'auto', 1);
+
+// Nothing plays: no track is offered rather than a wrong one.
+pick('TrueHD alone', [track(1, 'A_TRUEHD', { lang: 'eng' })], 'auto', null);
+// The one that used to be reported silent: the default cannot be played,
+// but the other one can be decoded.
+pick('TrueHD default + AC-3', [track(1, 'A_TRUEHD', { lang: 'eng', isDefault: true }), track(2, 'A_AC3', { lang: 'eng' })], 'auto', 2);
+
+const named = (codecId, extra) => label(describe(track(1, codecId, extra)));
+check('label: language and format', named('A_AC3', { lang: 'fin', channels: 6 }), 'Finnish · AC3 5.1');
+check('label: a name that only repeats the language is left out',
+      named('A_AAC', { lang: 'fin', channels: 2, name: 'Suomi' }), 'Finnish · AAC stereo');
+check('label: a name that says something is kept',
+      named('A_AAC', { lang: 'eng', channels: 2, name: 'Original' }), 'English · Original · AAC stereo');
+check('label: the flag is not spelled twice',
+      named('A_AAC', { lang: 'eng', channels: 2, name: 'Commentary' }), 'English · Commentary · AAC stereo');
+check('label: the flag is spelled when the name does not',
+      named('A_AC3', { lang: 'eng', channels: 6, commentary: true }), 'English · commentary · AC3 5.1');
+check('label: an unknown language falls back to the name',
+      named('A_AAC', { channels: 2, name: 'Track 1' }), 'Track 1 · AAC stereo');
+check('label: an unknown language with no name says so',
+      named('A_AAC', { channels: 2 }), 'Unknown language · AAC stereo');
+// BCP 47 and ISO 639-2 name the same language, and both occur in files
+// from the same library.
+check('label: BCP 47 with a region', named('A_AAC', { langBcp: 'sv-SE', channels: 2 }), 'Swedish · AAC stereo');
+
+/* ------------------------------------- audio.js against a real header */
+
+// The cases above are hand-written tracks; this one is a file ffmpeg
+// wrote. What a muxer actually puts in the header — the language as
+// ISO 639-2, FlagDefault on one track and off on the others, the titles —
+// is not something to take on trust. Skipped when the media has not been
+// built, so that the suite stays dependency-free.
+{
+  const { existsSync, readFileSync } = await import('node:fs');
+  const file = new URL('mock/media/episode-multi.mkv', import.meta.url);
+  if (!existsSync(file)) {
+    console.log('SKIP  episode-multi.mkv is missing — run sh dev/mock/media.sh');
+  } else {
+    const { parseHeader } = await import('../js/ebml.js');
+    const bytes = new Uint8Array(readFileSync(file).subarray(0, 256 * 1024));
+    const list = describeAll(parseHeader(bytes).tracks);
+    check('episode-multi.mkv: three audio tracks',
+          list.map((e) => `${e.language} ${e.route}${e.default ? ' default' : ''}${e.commentary ? ' commentary' : ''}`),
+          ['eng passthrough default', 'fin passthrough', 'eng decoded commentary']);
+    const chosen = (language) => (preferred(list, language) || {}).language ?? null;
+    check('episode-multi.mkv: the automatic choice passes over the commentary', chosen('auto'), 'eng');
+    check('episode-multi.mkv: Finnish is found when it is asked for', chosen('fi'), 'fin');
+    check('episode-multi.mkv: a language the file lacks falls back', chosen('de'), 'eng');
+  }
 }
 
 /* ------------------------------------------------- player.css: contrast */

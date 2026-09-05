@@ -538,10 +538,49 @@ Measured on a sample of 1,500 series (23,628 episodes):
 | Unpacked, audio decoded (AC-3/E-AC-3/DTS) | +27.5% → **93.7%** |
 
 The last row needs a decoder of its own, because Chrome has neither AC-3,
-E-AC-3 nor DTS. An alternative audio track is not worth waiting for: of 45
-ac3/eac3 episodes not one had a second track Chrome supports, and 43 had a
-single audio track. **Play without sound** therefore remains only for the few
+E-AC-3 nor DTS. Of 45 ac3/eac3 episodes not one had a second track Chrome
+supports, and 43 had a single audio track, so an alternative track rescues
+few of them. **Play without sound** therefore remains only for the few
 tracks that are not decoded (TrueHD, or MP3 in MKV, for instance).
+
+### Choosing the audio track
+
+A file often carries more than one: the original and a dub, a director's
+commentary, an audio description. Only one of them reaches MediaSource, and
+the choice is the player's — neither browser offers
+`HTMLMediaElement.audioTracks`. Measured, Chrome 152 and Firefox 155 both
+answer `false` for it, so nothing below the player can pick a track, and a
+natively played `.mp4` gets whichever track the file marks default.
+
+`js/audio.js` makes the choice, and `js/probe.js` reports it below the
+player from the same function — so what is written there and what is heard
+cannot disagree. The order is:
+
+1. The language the viewer chose last, if the file has it. The language is
+   what is remembered, not the track number, because the numbering varies
+   from one file to the next — the same as for the subtitles.
+2. Otherwise an untouched track before a decoded one. That is what saves
+   discs carrying both AC-3 and AAC: an AAC track goes to MediaSource as it
+   is, and passing it through always beats decoding and re-encoding, even
+   when the file marks the AC-3 one default.
+3. Between two tracks of the same kind, the one the file marks default; and
+   failing that, the file's own order.
+
+A commentary or an audio description is passed over unless it is asked for
+by language, or unless it is all the file has. Matroska's own flags for
+them (`FlagCommentary`, `FlagVisualImpaired`) came late and are rarely
+written, so the track's name is read as well — `Commentary`,
+`kommenttiraita`, `kuvailutulkkaus`.
+
+The name in the selector is built from the language, the track's own name
+and the format: *Finnish · AC3 5.1*, *English · Commentary · AAC stereo*. A
+name that only repeats the language is left out, so a Finnish track called
+`Suomi` does not read *Finnish · Suomi*.
+
+Two limits remain. A natively played `.mp4` cannot be switched at all, for
+the reason above. On a live channel `mpegts.js` takes the first audio PID
+of each codec from the PMT and offers no way to name another, and the
+vendored build is minified — the track that comes is the track that plays.
 
 ### Decoding the audio track
 
@@ -630,6 +669,8 @@ js/config.js        settings, favourites, history, resume points
 js/i18n.js          the interface language: dictionaries, t() and static HTML
 js/playback.js      engine selection, fallbacks, watchdog
 js/probe.js         reading the file header: container, codecs, subtitles
+js/audio.js         which audio track is played, and what it is called
+js/lang.js          language codes and the names shown for them
 js/ebml.js          EBML primitives and the Matroska header
 js/mkv.js           Matroska clusters from a stream into frames
 js/mp4.js           fMP4 segments for MediaSource

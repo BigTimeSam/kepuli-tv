@@ -16,7 +16,7 @@
 // Bitmap subtitles (PGS, VOBSUB) are left out: they are images, and cannot
 // be handed to a VTTCue.
 
-import { shortLanguage } from './probe.js';
+import { languageLabel, sameish, shortLanguage, shorten, trackLanguage } from './lang.js';
 import { t, localeTag } from './i18n.js';
 
 const SUBTITLE_TYPE = 17;
@@ -83,7 +83,7 @@ export class SubtitleTracks {
   setup(tracks) {
     const claimed = new Set();
     for (const track of tracks) {
-      const language = (track.langBcp || track.lang || 'und').toLowerCase();
+      const language = trackLanguage(track);
       const text = label(track, language);
       // The key ties the track to a reusable TextTrack. The label and the
       // language are read-only, so the same TextTrack fits only when both
@@ -292,35 +292,12 @@ const clean = (text) => text.replace(/[ \t]+\n/g, '\n').replace(/\n{3,}/g, '\n\n
 
 /* ------------------------------------------------------------------ names */
 
-// Rebuilt per tag: the interface language can change mid-session, and a
-// language name belongs in the language the viewer reads.
-let namesTag = null;
-let namesInstance = null;
-function displayNames() {
-  if (namesTag !== localeTag()) {
-    namesTag = localeTag();
-    try { namesInstance = new Intl.DisplayNames([namesTag], { type: 'language' }); } catch { namesInstance = null; }
-  }
-  return namesInstance;
-}
-
-function languageName(code) {
-  if (!code || code === 'und') return null;
-  try {
-    const names = displayNames();
-    const name = names && names.of(code);
-    return name && name !== code ? name : null;
-  } catch { return null; }
-}
-
-const MAX_NAME = 26;
-
 /** The name shown in the selector: "Finnish", "Finnish · forced",
- *  "Swedish · SDH". */
+ *  "Swedish · SDH". The pieces are shared with the audio selector, see
+ *  lang.js. */
 function label(track, language) {
   const code = shortLanguage(language);
-  const name = languageName(code);
-  let base = name ? name.charAt(0).toUpperCase() + name.slice(1) : code.toUpperCase();
+  let base = languageLabel(code);
   if (code === 'und' && !track.name) base = t('subs.unknown');
   const extras = [];
   // A track's own name often says what the language does not: "SDH",
@@ -329,9 +306,3 @@ function label(track, language) {
   if (track.forced) extras.push(t('subs.forced'));
   return extras.length ? `${base} · ${extras.join(' · ')}` : base;
 }
-
-const sameish = (a, b) => a.trim().toLowerCase() === b.trim().toLowerCase();
-const shorten = (text) => {
-  const trimmed = text.trim();
-  return trimmed.length > MAX_NAME ? `${trimmed.slice(0, MAX_NAME - 1)}…` : trimmed;
-};

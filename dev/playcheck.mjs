@@ -39,6 +39,10 @@
 //                                     channel plays: a toast, not the overlay
 //   node dev/playcheck.mjs a11y       roles and names for assistive technology,
 //                                     the cursor announced and marked
+//   node dev/playcheck.mjs audio      the three-track episode: the automatic
+//                                     choice is heard as the English track's
+//                                     tone, and a remembered Finnish moves it
+//                                     to the Finnish one
 //   node dev/playcheck.mjs subtitles  the cues are drawn by the layer, a
 //                                     two-line cue in one box; a double click
 //                                     takes the wrapper to full screen with
@@ -60,7 +64,7 @@
 // the rate in bytes per second (60 kB/s). Exit code 0 when every scenario
 // passes, 1 otherwise.
 
-import { startMockServer, PORT as MOCK_PORT } from './mock/server.mjs';
+import { startMockServer, MULTI_EPISODES, PORT as MOCK_PORT } from './mock/server.mjs';
 import { ensureChrome, openPlayer, session, sleep } from './screenshot.mjs';
 
 const THROTTLE = Number(process.env.KEPULI_THROTTLE || 60 * 1024);
@@ -134,13 +138,14 @@ async function freshPlayer(target, page) {
   await waitFor(page, CONNECTED, 'the connection');
 }
 
-/** The first episode of the demo series, playing. */
-async function playEpisode(page) {
+/** An episode of the demo series, playing. The first by default; the third
+ *  is the one with three audio tracks, see dev/mock/media.sh. */
+async function playEpisode(page, index = 0) {
   await evaluate(page, `document.querySelector('#tabs [data-tab="series"]').click()`);
   await click(page, '#groups', 'Nordic Noir');
   await click(page, '#list', 'Silent Fjord');
-  await waitFor(page, `!document.getElementById('detail').hidden && document.querySelectorAll('#list .row').length > 0`, 'the series page');
-  await evaluate(page, `document.querySelector('#list .row').click()`, { gesture: true });
+  await waitFor(page, `!document.getElementById('detail').hidden && document.querySelectorAll('#list .row').length > ${index}`, 'the series page');
+  await evaluate(page, `document.querySelectorAll('#list .row')[${index}].click()`, { gesture: true });
   await waitFor(page, PLAYING, 'the episode');
   await sleep(3000);
 }
@@ -540,7 +545,62 @@ async function subtitles(page) {
   return { ok: true, detail: `one box for ${first.active} cue, two lines in one box, full screen on the wrapper, the movie says "No subtitles"` };
 }
 
-const SCENARIOS = { seek, death, cancel, timeout, search, paste, keys, switching, resume, reconnect, accounts, listerror, a11y, subtitles };
+/**
+ * Which audio track is heard. The demo episode's three tracks each carry a
+ * tone of their own — English 440 Hz, Finnish 660 Hz, the English AC-3
+ * commentary 880 Hz — so the choice can be measured rather than assumed:
+ * the element's own output goes through an AnalyserNode and the loudest
+ * bin says which track is playing.
+ *
+ * The automatic choice must take the English AAC: it is the file's default
+ * and it goes through untouched. Asking for Finnish must move it to the
+ * Finnish track, and the commentary must not be picked either way.
+ */
+async function audio(page, { requests, target }) {
+  const MEASURE = `(() => {
+    const v = document.getElementById('video');
+    if (!window.__tone) {
+      const ctx = new AudioContext();
+      const analyser = ctx.createAnalyser();
+      analyser.fftSize = 8192;
+      // The element has to stay connected to the destination as well, or
+      // it falls silent the moment Web Audio takes its output.
+      ctx.createMediaElementSource(v).connect(analyser);
+      analyser.connect(ctx.destination);
+      window.__tone = { ctx, analyser, data: new Float32Array(analyser.frequencyBinCount) };
+    }
+    const { ctx, analyser, data } = window.__tone;
+    return ctx.resume().then(() => new Promise((done) => setTimeout(() => {
+      analyser.getFloatFrequencyData(data);
+      let peak = 1;
+      for (let i = 2; i < data.length; i++) if (data[i] > data[peak]) peak = i;
+      done({ hz: Math.round((peak * ctx.sampleRate) / analyser.fftSize), db: Math.round(data[peak]) });
+    }, 1200)));
+  })()`;
+
+  const heard = async (index) => {
+    await playEpisode(page, index);
+    const tone = await evaluate(page, MEASURE);
+    return tone;
+  };
+
+  const auto = await heard(2);
+  const played = requests.filter((url) => /\/series\/.*\.mkv$/.test(url)).pop() || '';
+  const id = played.slice(played.lastIndexOf('/') + 1, -4);
+  if (!MULTI_EPISODES.has(id)) return { ok: false, detail: `the third row is episode ${id}, which is not the three-track one` };
+  if (Math.abs(auto.hz - 440) > 12) return { ok: false, detail: `the automatic choice sounds at ${auto.hz} Hz (${auto.db} dB), expected the English track's 440 Hz` };
+
+  // The remembered language, as the settings hold it between episodes.
+  await evaluate(page, `chrome.storage.local.set({ settings: { lang: 'en', epgEnabled: true, resumeEnabled: false, subtitleLang: 'eng', audioLang: 'fi' } })`);
+  await page.call('Page.navigate', { url: target.url });
+  await sleep(1000);
+  await waitFor(page, CONNECTED, 'the connection after the reload');
+  const finnish = await heard(2);
+  if (Math.abs(finnish.hz - 660) > 12) return { ok: false, detail: `with Finnish asked for it sounds at ${finnish.hz} Hz (${finnish.db} dB), expected the Finnish track's 660 Hz` };
+  return { ok: true, detail: `episode ${id}: automatic ${auto.hz} Hz (English), audioLang fi ${finnish.hz} Hz (Finnish), commentary's 880 Hz not heard` };
+}
+
+const SCENARIOS = { seek, death, cancel, timeout, search, paste, keys, switching, resume, reconnect, accounts, listerror, a11y, subtitles, audio };
 // The mock's whole-list answers stall for these, longer than the request limit.
 const SLOW_LIST_MS = { cancel: 60000, timeout: 60000 };
 // The media is sent slowly for these: the seek targets must lie outside the

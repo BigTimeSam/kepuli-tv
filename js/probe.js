@@ -19,9 +19,10 @@
 
 import { cacheGet, cachePut, cacheGetAll } from './db.js';
 import { t } from './i18n.js';
-import { decodable } from './ffaudio.js';
 import { hasEncoder } from './transcode.js';
 import { parseHeader, TRACK_TYPE } from './ebml.js';
+import { AUDIO_MIME, AUDIO_NAME, describe, preferred, route, supports } from './audio.js';
+import { shortLanguage, trackLanguage } from './lang.js';
 
 const HEADER_BYTES = 256 * 1024;
 const TIMEOUT_MS = 15000;
@@ -179,28 +180,6 @@ function parseMatroska(bytes) {
   return out;
 }
 
-const language = (track) => (track.langBcp || track.lang || 'und').toLowerCase();
-
-// Matroska marks the language either with ISO 639-2 (Language) or with
-// BCP 47 (LanguageBCP47), and both occur in files from the same library —
-// otherwise the same language would show up twice ("fin" and "fi"). The
-// short form is used on screen and the region part is dropped.
-const ISO3 = {
-  fin: 'fi', swe: 'sv', nor: 'no', nob: 'no', nno: 'no', dan: 'da', isl: 'is',
-  eng: 'en', ger: 'de', deu: 'de', fre: 'fr', fra: 'fr', spa: 'es', ita: 'it',
-  dut: 'nl', nld: 'nl', por: 'pt', rus: 'ru', pol: 'pl', cze: 'cs', ces: 'cs',
-  hun: 'hu', rum: 'ro', ron: 'ro', gre: 'el', ell: 'el', tur: 'tr', ara: 'ar',
-  heb: 'he', hin: 'hi', jpn: 'ja', kor: 'ko', chi: 'zh', zho: 'zh', tha: 'th',
-  vie: 'vi', ind: 'id', may: 'ms', msa: 'ms', ukr: 'uk', hrv: 'hr', srp: 'sr',
-  slo: 'sk', slk: 'sk', slv: 'sl', bul: 'bg', est: 'et', lav: 'lv', lit: 'lt',
-  cat: 'ca', baq: 'eu', eus: 'eu', glg: 'gl', fil: 'fil', und: 'und',
-};
-
-export function shortLanguage(code) {
-  const base = String(code || 'und').toLowerCase().split('-')[0];
-  return ISO3[base] || base;
-}
-
 function videoTrack(track) {
   const mime = videoMime(track);
   return {
@@ -213,19 +192,13 @@ function videoTrack(track) {
   };
 }
 
+// The stored shape is audio.js's description plus the two fields the rest
+// of the app has always read. `route` is written but never trusted on the
+// way back: a result cached for 90 days outlives a browser update, so
+// verdict() asks again.
 function audioTrack(track) {
-  const mime = AUDIO_MIME[track.codecId] || null;
-  const passable = passthroughMime(track.codecId);
-  return {
-    codec: shortCodec(track.codecId),
-    codecId: track.codecId || null,
-    mime,
-    supported: passable ? supports(`audio/mp4; codecs="${passable}"`) : false,
-    channels: track.channels || 0,
-    language: language(track),
-    name: track.name || null,
-    default: track.isDefault !== false,
-  };
+  const entry = describe(track);
+  return { ...entry, mime: AUDIO_MIME[entry.codecId] || null, supported: entry.route === 'passthrough' };
 }
 
 function subtitleTrack(track) {
@@ -234,7 +207,7 @@ function subtitleTrack(track) {
     format,
     codecId: track.codecId || null,
     text: format === 'srt' || format === 'ass' || format === 'vtt',
-    language: language(track),
+    language: trackLanguage(track),
     name: track.name || null,
     default: track.isDefault !== false,
     forced: Boolean(track.forced),
@@ -247,38 +220,6 @@ const VIDEO_NAME = {
   'V_MPEG4/ISO/AVC': 'h264', 'V_MPEGH/ISO/HEVC': 'hevc', 'V_VP8': 'vp8', 'V_VP9': 'vp9',
   'V_AV1': 'av1', 'V_MPEG4/ISO/ASP': 'mpeg4', 'V_MPEG4/ISO/SP': 'mpeg4',
   'V_MPEG4/MS/V3': 'msmpeg4', 'V_MPEG2': 'mpeg2', 'V_MS/VFW/FOURCC': 'vfw', 'V_THEORA': 'theora',
-};
-
-export const AUDIO_MIME = {
-  'A_AAC': 'mp4a.40.2', 'A_AAC/MPEG4/LC': 'mp4a.40.2', 'A_AAC/MPEG4/LC/SBR': 'mp4a.40.5',
-  'A_AAC/MPEG2/LC': 'mp4a.40.2', 'A_AAC/MPEG2/LC/SBR': 'mp4a.40.5',
-  'A_AC3': 'ac-3', 'A_EAC3': 'ec-3', 'A_DTS': 'dtsc', 'A_DTS/EXPRESS': 'dtse',
-  'A_DTS/LOSSLESS': 'dtsl', 'A_TRUEHD': 'mlpa', 'A_MPEG/L3': 'mp4a.69', 'A_MPEG/L2': 'mp4a.69',
-  'A_OPUS': 'opus', 'A_VORBIS': 'vorbis', 'A_FLAC': 'flac',
-};
-
-/**
- * The codec string for a track the remuxer can hand to MediaSource as it
- * is, or null. Only AAC: the init segment describes it with an mp4a entry
- * around the track's own AudioSpecificConfig, and that is the one
- * description mp4.js can write from a Matroska header. Opus, Vorbis, FLAC
- * and MP3 in MKV would each need a sample entry of their own — the browser
- * may well say yes to the codec, but an mp4a entry under an Opus track is
- * a rejected init segment, not playback. So they are not passed on: a file
- * with such a track and an AC-3 one takes the decoded route, and one with
- * nothing else is marked silent, honestly.
- */
-export function passthroughMime(codecId) {
-  const mime = AUDIO_MIME[codecId];
-  return mime && mime.startsWith('mp4a.40') ? mime : null;
-}
-
-const AUDIO_NAME = {
-  'A_AAC': 'aac', 'A_AAC/MPEG4/LC': 'aac', 'A_AAC/MPEG4/LC/SBR': 'aac',
-  'A_AAC/MPEG2/LC': 'aac', 'A_AAC/MPEG2/LC/SBR': 'aac',
-  'A_AC3': 'ac3', 'A_EAC3': 'eac3', 'A_DTS': 'dts', 'A_DTS/EXPRESS': 'dts',
-  'A_DTS/LOSSLESS': 'dts', 'A_TRUEHD': 'truehd', 'A_MPEG/L3': 'mp3', 'A_MPEG/L2': 'mp2',
-  'A_OPUS': 'opus', 'A_VORBIS': 'vorbis', 'A_FLAC': 'flac', 'A_PCM/INT/LIT': 'pcm',
 };
 
 const SUBTITLE_FORMAT = {
@@ -319,17 +260,6 @@ export function videoMime(track) {
   if (id === 'V_VP8') return 'vp8';
   if (id === 'V_AV1') return 'av01.0.05M.08';
   return null;                                  // mpeg4 asp, vfw, mpeg2 → no fMP4
-}
-
-const supportCache = new Map();
-
-function supports(type) {
-  if (!supportCache.has(type)) {
-    let ok = false;
-    try { ok = typeof MediaSource !== 'undefined' && MediaSource.isTypeSupported(type); } catch { ok = false; }
-    supportCache.set(type, ok);
-  }
-  return supportCache.get(type);
 }
 
 /* ------------------------------------------------------------------- MP4 */
@@ -423,41 +353,45 @@ export function verdict(info) {
   }
 
   const video = info.video;
-  const audio = bestAudio(info);
+  // The same choice the remuxer makes from the same header — see audio.js
+  // — so what is written below the player is what will be heard. The route
+  // is asked again rather than read from the cached result: a result kept
+  // for 90 days outlives a browser update, and what the browser decodes is
+  // the browser's business.
+  const tracks = (info.audio || []).map((track) => ({ ...track, route: route(track.codecId) }));
+  const audio = preferred(tracks, null);
   if (!video || !video.supported) {
     const name = video ? video.codec.toUpperCase() : t('probe.unknowncodec');
     return { path: 'none', video, audio, reason: t('probe.video', { codec: name }) };
   }
-  if (!audio) {
+  if (!tracks.length) {
     return { path: 'silent', video, audio: null, reason: t('probe.noaudio') };
   }
-  if (!audio.supported) {
-    const others = info.audio.filter((a) => a.supported);
-    if (others.length) {
-      return { path: 'remux', video, audio: others[0], reason: matroskaReason(video, others[0]) };
-    }
-    // The browser decodes neither AC-3, E-AC-3 nor DTS, but the player does
-    // (transcode.js). An untouched track would still be better, so this is
-    // only the third choice — and it holds only where the decoded audio has
-    // an encoder to go through on its way to MediaSource. A browser without
-    // one (Firefox 128, say, before WebCodecs audio) gets the honest verdict
-    // rather than a promise the playback cannot keep.
-    if (decodable(audio.codecId)) {
-      const size = video.height ? ` ${video.height}p` : '';
-      if (hasEncoder()) {
-        return {
-          path: 'remux', video, audio, decoded: true,
-          reason: t('probe.decoded', { video: video.codec.toUpperCase() + size, audio: audio.codec.toUpperCase() }),
-        };
-      }
+  if (!audio) {
+    // No route out of any of them. The one the file points at is named, so
+    // that the reason says something the viewer can act on.
+    const named = tracks.find((track) => track.default) || tracks[0];
+    return {
+      path: 'silent', video, audio: named,
+      reason: t('probe.silent', { codec: String(named.codec).toUpperCase() }),
+    };
+  }
+  // The browser decodes neither AC-3, E-AC-3 nor DTS, but the player does
+  // (transcode.js). That holds only where the decoded audio has an encoder
+  // to go through on its way to MediaSource: a browser without one
+  // (Firefox 128, say, before WebCodecs audio) gets the honest verdict
+  // rather than a promise the playback cannot keep.
+  if (audio.route === 'decoded') {
+    const size = video.height ? ` ${video.height}p` : '';
+    if (!hasEncoder()) {
       return {
         path: 'silent', video, audio,
         reason: t('probe.noencoder', { codec: audio.codec.toUpperCase() }),
       };
     }
     return {
-      path: 'silent', video, audio,
-      reason: t('probe.silent', { codec: audio.codec.toUpperCase() }),
+      path: 'remux', video, audio, decoded: true,
+      reason: t('probe.decoded', { video: video.codec.toUpperCase() + size, audio: audio.codec.toUpperCase() }),
     };
   }
   return { path: 'remux', video, audio, reason: matroskaReason(video, audio) };
@@ -466,15 +400,6 @@ export function verdict(info) {
 function matroskaReason(video, audio) {
   const size = video.height ? ` ${video.height}p` : '';
   return t('probe.remux', { video: video.codec.toUpperCase() + size, audio: audio.codec.toUpperCase() });
-}
-
-/** The best audio track: a supported one first, otherwise the default. */
-function bestAudio(info) {
-  if (!info.audio || !info.audio.length) return null;
-  return info.audio.find((a) => a.supported && a.default)
-      ?? info.audio.find((a) => a.supported)
-      ?? info.audio.find((a) => a.default)
-      ?? info.audio[0];
 }
 
 /** A short badge for a list row, or null when it plays normally. */

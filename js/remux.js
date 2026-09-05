@@ -21,10 +21,10 @@ import { parseHeader, ID, Reader } from './ebml.js';
 import { t } from './i18n.js';
 import { BufferedBytes, frames } from './mkv.js';
 import { initSegment, mediaSegment, decodeTimes, durations, VIDEO_TIMESCALE } from './mp4.js';
-import { videoMime, passthroughMime } from './probe.js';
-import { decodable } from './ffaudio.js';
+import { videoMime } from './probe.js';
+import { describeAll, passthroughMime, preferred as preferredAudio } from './audio.js';
 import { AudioTranscoder, encoderSetup, RATE as DECODED_RATE, CHANNELS as DECODED_CHANNELS } from './transcode.js';
-import { SubtitleTracks, isSubtitle, isTextSubtitle, preferred } from './subs.js';
+import { SubtitleTracks, isSubtitle, isTextSubtitle, preferred as preferredSubtitle } from './subs.js';
 
 const HEADER_BYTES = 256 * 1024;
 const CUES_BYTES = 4 * 1024 * 1024;
@@ -75,10 +75,12 @@ export class Remuxer {
    * @param {HTMLVideoElement} video
    * @param {string} url
    * @param {{onError:Function, onFirstAppend:Function, onNotice:Function,
-   *          onSubtitles:Function, startAt:number, subtitleLang:string|null}} opts
+   *          onSubtitles:Function, startAt:number, subtitleLang:string|null,
+   *          audioLang:string|null}} opts
    */
   constructor(video, url, {
     onError, onFirstAppend, onNotice, onSubtitles, startAt = 0, subtitleLang = null,
+    audioLang = null,
   } = {}) {
     this.video = video;
     this.url = url;
@@ -88,6 +90,7 @@ export class Remuxer {
     this.onSubtitles = onSubtitles || (() => {});
     this.startAt = startAt;
     this.subtitleLang = subtitleLang;
+    this.audioLang = audioLang;
 
     this.ms = null;
     this.objectUrl = null;
@@ -98,6 +101,7 @@ export class Remuxer {
     this.header = null;
     this.videoTrack = null;
     this.audioTrack = null;
+    this.audioList = [];          // every audio track of the file, see audio.js
     this.decodeTrack = null;      // the track we decode ourselves, when one is needed
     this.transcoder = null;
     this.subs = null;             // SubtitleTracks, when there are text tracks
@@ -293,17 +297,20 @@ export class Remuxer {
 
     const tracks = header.tracks;
     this.videoTrack = tracks.find((t) => t.type === 1 && videoMime(t)) || null;
-    // A file may hold several audio tracks — take the first one that can go
-    // to MediaSource as it is (AAC, see passthroughMime). This is exactly
-    // what saves discs carrying both AC-3 and AAC: the default track alone
-    // would often be the wrong one, and an untouched track always beats a
-    // re-encoded one.
-    this.audioTrack = tracks.find((t) => t.type === 2 && supportedAudio(t)) || null;
-    // Otherwise a track we decode ourselves. Of the 45 measured ac3/eac3
-    // episodes not one had an alternative track, so without this they would
-    // be left silent.
-    this.decodeTrack = this.audioTrack ? null
-      : tracks.find((t) => t.type === 2 && decodable(t.codecId)) || null;
+    // A file may hold several audio tracks: the original and a dub, a
+    // commentary, an audio description. Which one plays is audio.js's
+    // decision — the same one probe.js reports below the player, so the
+    // details and what is heard cannot disagree. The viewer's remembered
+    // language decides first; failing that an untouched track beats a
+    // decoded one, which is what saves discs carrying both AC-3 and AAC.
+    this.audioList = describeAll(tracks);
+    const wanted = preferredAudio(this.audioList, this.audioLang);
+    const chosen = wanted ? tracks.find((t) => t.number === wanted.number) : null;
+    this.audioTrack = wanted && wanted.route === 'passthrough' ? chosen : null;
+    // A track we decode ourselves. Of the 45 measured ac3/eac3 episodes not
+    // one had an alternative track Chrome supports, so without this they
+    // would be left silent.
+    this.decodeTrack = wanted && wanted.route === 'decoded' ? chosen : null;
     if (!this.videoTrack) throw new Error('no playable video track found');
   }
 
@@ -393,7 +400,7 @@ export class Remuxer {
     // recorded its own choice.
     this.subs = new SubtitleTracks(this.video, (active) => this.report(this.subtitleList, active, true));
     this.subtitleList = this.subs.setup(tracks);
-    this.report(this.subtitleList, this.subs.select(preferred(this.subtitleList, this.subtitleLang)));
+    this.report(this.subtitleList, this.subs.select(preferredSubtitle(this.subtitleList, this.subtitleLang)));
   }
 
   report(tracks, active, external = false) {
@@ -922,13 +929,6 @@ function timeRanges(sb) {
     return null;
   }
 }
-
-// Only what the init segment can describe, see passthroughMime: AAC.
-const supportedAudio = (track) => {
-  const mime = passthroughMime(track.codecId);
-  if (!mime) return false;
-  try { return MediaSource.isTypeSupported(`audio/mp4; codecs="${mime}"`); } catch { return false; }
-};
 
 /**
  * An AAC frame's length in samples. The difference between individual

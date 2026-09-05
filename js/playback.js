@@ -372,6 +372,7 @@ export class Playback {
     const remuxer = new Remuxer(this.video, spec.url, {
       startAt: spec.startAt || 0,
       subtitleLang: spec.subtitleLang || null,
+      audioLang: spec.audioLang || null,
       onFirstAppend: () => this.tryPlay(),
       onNotice: (message) => this.onState({ status: 'notice', message }),
       onSubtitles: (info) => this.onState({ status: 'subtitles', ...info }),

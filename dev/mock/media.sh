@@ -126,4 +126,28 @@ ffmpeg -y -hide_banner -loglevel error \
   -metadata:s:s:1 language=fin -metadata:s:s:1 title=Suomi \
   "$DIR/episode-ac3.mkv"
 
+# The same episode with three audio tracks, for the choice the player makes
+# from them (js/audio.js). Each carries a tone of its own, so that which
+# one is playing can be told by ear and by ffmpeg: English 440 Hz, Finnish
+# 660 Hz, and an English commentary at 880 Hz. The English track is the
+# file's default and the commentary is AC-3, so the automatic choice has
+# both a decoded track and a commentary to pass over. The server hands it
+# out as the third episode of every first season.
+echo "episode-multi.mkv"
+tone() { printf -- '-f lavfi -i aevalsrc=0.4*sin(2*PI*%s*t)|0.4*sin(2*PI*%s*t):c=stereo:s=48000:d=%s' "$1" "$1" "$SECS"; }
+# shellcheck disable=SC2046
+ffmpeg -y -hide_banner -loglevel error \
+  -f lavfi -i "gradients=s=1280x720:r=25:c0=0x07231d:c1=0x0f766e:c2=0xfacc15:nb_colors=3:speed=0.01:duration=$SECS" \
+  $(tone 440) $(tone 660) $(tone 880) -i "$DIR/en.srt" -i "$DIR/fi.srt" \
+  -map 0:v -map 1:a -map 2:a -map 3:a -map 4:s -map 5:s \
+  -vf "$(text 'Three Voices')" $VIDEO -c:s srt \
+  -c:a:0 aac -b:a:0 96k -c:a:1 aac -b:a:1 96k -c:a:2 ac3 -b:a:2 192k \
+  -metadata:s:a:0 language=eng -metadata:s:a:0 title=English \
+  -metadata:s:a:1 language=fin -metadata:s:a:1 title=Suomi \
+  -metadata:s:a:2 language=eng -metadata:s:a:2 title=Commentary \
+  -disposition:a:0 default -disposition:a:1 0 -disposition:a:2 0 \
+  -metadata:s:s:0 language=eng -metadata:s:s:0 title=English \
+  -metadata:s:s:1 language=fin -metadata:s:s:1 title=Suomi \
+  "$DIR/episode-multi.mkv"
+
 ls -la "$DIR" "$DIR/hls" | head -20

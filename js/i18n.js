@@ -182,6 +182,10 @@ const STRINGS = {
     'info.subs.none': 'No subtitles',
     'subs.unknown': 'Unknown language',
     'subs.forced': 'forced',
+    'audio.unknown': 'Unknown language',
+    'audio.commentary': 'commentary',
+    'audio.described': 'audio description',
+    'audio.channels': '{n} ch',
 
     /* ----------------------------------------------------------- guide */
     'guide.needserver': 'Connect to a server first',
@@ -479,6 +483,10 @@ const STRINGS = {
     'info.subs.none': 'Ei tekstityksiä',
     'subs.unknown': 'Tuntematon kieli',
     'subs.forced': 'pakotettu',
+    'audio.unknown': 'Tuntematon kieli',
+    'audio.commentary': 'kommenttiraita',
+    'audio.described': 'kuvailutulkkaus',
+    'audio.channels': '{n} kanavaa',
 
     /* ----------------------------------------------------------- guide */
     'guide.needserver': 'Yhdistä ensin palvelimeen',

@@ -34,6 +34,10 @@ const SETTINGS_DEFAULTS = {
   // The subtitle language is chosen once and applies to later episodes.
   // 'off' = no subtitles; otherwise a two-letter code.
   subtitleLang: 'fi',
+  // The same for the audio track, when the file offers more than one.
+  // 'auto' = whatever the file and the browser suit best, see js/audio.js;
+  // otherwise a two-letter code.
+  audioLang: 'auto',
   // How the subtitles are drawn — the looks and the sizes are in js/subdisplay.js.
   subtitleStyle: 'shadow',  // shadow | outline | yellow | box | contrast
   subtitleSize: 24,         // CSS pixels; older settings hold small | medium | large

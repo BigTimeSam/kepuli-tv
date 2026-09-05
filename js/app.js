@@ -12,7 +12,8 @@ import { api } from './browser.js';
 import { requestAccess, hasAccess } from './permissions.js';
 import { externalLabel, handOff } from './external.js';
 import { Cast, supported as castSupported } from './cast.js';
-import { warmCache, peek, badge as probeBadge, subtitleSummary, shortLanguage } from './probe.js';
+import { warmCache, peek, badge as probeBadge, subtitleSummary } from './probe.js';
+import { shortLanguage } from './lang.js';
 import { SubtitleDisplay, subtitleLook } from './subdisplay.js';
 import { pickEncoder } from './transcode.js';
 import * as store from './config.js';
@@ -1277,6 +1278,7 @@ async function playItem(item, { startAt, allowSilent } = {}) {
     mode: el.mode.value,
     allowSilent: Boolean(allowSilent),
     subtitleLang: state.settings.subtitleLang,
+    audioLang: state.settings.audioLang,
     startAt: startAt ?? (state.settings.resumeEnabled && !live && saved ? saved.position : 0),
   };
 
