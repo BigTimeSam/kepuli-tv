@@ -82,6 +82,23 @@
         <div class="now-title" id="now-title">—</div>
         <div class="now-sub" id="now-sub" data-i18n="player.disconnected">Not connected</div>
       </div>
+      <!-- Above the row rather than inside it: the row is full, and the
+           popover must not take part in its layout. -->
+      <div class="pop sublook-pop" id="sublook-pop" role="dialog" data-i18n-label="player.subs.look" hidden>
+        <label class="field"><span data-i18n="setup.subs.style">Style</span>
+          <select id="p-substyle">
+            <option value="shadow" data-i18n="subs.style.shadow">Shadow</option>
+            <option value="outline" data-i18n="subs.style.outline">Outline</option>
+            <option value="yellow" data-i18n="subs.style.yellow">Yellow</option>
+            <option value="box" data-i18n="subs.style.box">Box</option>
+            <option value="contrast" data-i18n="subs.style.contrast">High contrast</option>
+          </select>
+        </label>
+        <label class="field">
+          <span class="range-label"><span data-i18n="setup.subs.size">Size</span><output id="p-subsize-value" for="p-subsize">24 px</output></span>
+          <input id="p-subsize" type="range" min="12" max="72" step="1" value="24">
+        </label>
+      </div>
       <div class="now-actions">
         <select id="mode" data-i18n-title="player.mode.title">
           <option value="auto">Auto</option>
@@ -90,6 +107,11 @@
         </select>
         <select id="audio" class="trackpick" data-i18n-title="player.audio.title" hidden></select>
         <select id="subs" class="trackpick" data-i18n-title="player.subs.title" hidden></select>
+        <!-- The look of the subtitles is judged against the picture being
+             watched, not against a preview in a dialog, so the same two
+             controls open here as well. The button appears on the same
+             condition as the selector beside it. -->
+        <button type="button" id="btn-sublook" class="ghost" data-i18n-title="player.subs.look" aria-expanded="false" aria-controls="sublook-pop" hidden>Aa</button>
         <button type="button" id="btn-fav" class="ghost" data-i18n-title="fav.button.title">☆</button>
         <button type="button" id="btn-reload" class="ghost" data-i18n-title="player.reload.title">↻</button>
         <button type="button" id="btn-fullscreen" class="ghost icon" data-i18n-title="player.fullscreen.title">
@@ -148,67 +170,36 @@
 <dialog id="setup">
   <form method="dialog" class="setup">
     <div class="setup-head">
-      <h2 data-i18n="setup.title">Settings</h2>
-      <button type="button" id="f-close" class="setup-close" data-i18n-title="setup.close">×</button>
+      <h2 id="setup-title" data-i18n="setup.title">Settings</h2>
+      <button type="button" id="f-close" class="setup-close" data-i18n-title="setup.close">&times;</button>
     </div>
 
-    <!-- Two ways of saying the same thing: separate fields, or one address
-         the credentials are parsed from. The choice steers only the form —
-         behind it lie the same server and the same credentials either way. -->
-    <div class="field">
-      <span data-i18n="setup.source">Connection</span>
-      <div class="radios">
-        <label class="radio">
-          <!-- autofocus: the dialog opens on the first field, not on the
-               close cross that now precedes it in the markup. -->
-          <input type="radio" name="source" value="xtream" checked autofocus>
-          <span data-i18n="setup.source.xtream">Xtream Codes</span>
-        </label>
-        <label class="radio">
-          <input type="radio" name="source" value="m3u">
-          <span data-i18n="setup.source.m3u">M3U address</span>
-        </label>
-      </div>
+    <!-- The sections the settings fall into. The rail is the same component
+         as the top bar's tabs, so the dialog gains no widget of its own.
+         Everything but Connection takes effect the moment it is changed;
+         Connection is a form, and it alone has something to submit. -->
+    <div class="tabs setup-tabs" id="setup-tabs" role="tablist" data-i18n-label="setup.sections">
+      <button type="button" role="tab" id="tab-general" class="active" aria-selected="true" aria-controls="panel-general" data-panel="general" data-i18n="setup.tab.general">General</button>
+      <button type="button" role="tab" id="tab-subs" aria-selected="false" aria-controls="panel-subs" data-panel="subs" data-i18n="setup.tab.subs">Subtitles</button>
+      <button type="button" role="tab" id="tab-connection" aria-selected="false" aria-controls="panel-connection" data-panel="connection" data-i18n="setup.tab.connection">Connection</button>
+      <button type="button" role="tab" id="tab-account" aria-selected="false" aria-controls="panel-account" data-panel="account" data-i18n="setup.tab.account">Account</button>
     </div>
 
-    <div class="grid" id="src-xtream">
-      <label class="field w-scheme"><span data-i18n="setup.scheme">Protocol</span>
-        <select id="f-scheme" aria-describedby="connection-security"><option value="http">http</option><option value="https">https</option></select>
-      </label>
-      <label class="field w-host"><span data-i18n="setup.host">Server</span>
-        <input id="f-host" type="text" placeholder="example.tv" autocomplete="off" spellcheck="false">
-      </label>
-      <label class="field w-port"><span data-i18n="setup.port">Port</span>
-        <input id="f-port" type="text" placeholder="8080" autocomplete="off">
-      </label>
-      <label class="field"><span data-i18n="setup.username">Username</span>
-        <input id="f-username" type="text" autocomplete="off" spellcheck="false">
-      </label>
-      <label class="field"><span data-i18n="setup.password">Password</span>
-        <input id="f-password" type="password" autocomplete="off">
-      </label>
-    </div>
-
-    <label class="field" id="src-m3u" hidden>
-      <span data-i18n="setup.m3u.label">Address of the channel list</span>
-      <input id="f-paste" type="text" placeholder="http://example.tv:8080/…?username=…&amp;password=…" autocomplete="off" spellcheck="false" aria-describedby="connection-security">
-    </label>
-
-    <p id="connection-security" class="connection-security" data-i18n="setup.security">Use HTTPS when your provider supports it. With HTTP, your username, password and viewing requests travel without encryption and can be read or changed by others on the network.</p>
-
-    <div id="account-box" class="account-box" hidden></div>
-
-    <div class="grid">
+    <section class="setup-panel" id="panel-general" role="tabpanel" aria-labelledby="tab-general">
       <label class="field w-lang"><span data-i18n="setup.language">Language</span>
         <select id="f-lang"></select>
       </label>
-    </div>
+      <div class="toggles">
+        <label class="toggle"><input type="checkbox" id="f-epg" checked><span data-i18n="setup.epg">Fetch programme data automatically</span></label>
+        <label class="toggle"><input type="checkbox" id="f-resume" checked><span data-i18n="setup.resume">Remember where movies and episodes were left</span></label>
+      </div>
+    </section>
 
     <!-- The look of the subtitles, judged by eye: the preview is drawn by
          the same rules as the picture's own layer, see .sublook in
-         player.css. The choice takes effect at once, like the language. -->
-    <div class="field">
-      <span data-i18n="setup.subs">Subtitles</span>
+         player.css. While something is playing the same two controls sit
+         under the player's own Aa button, over the real picture. -->
+    <section class="setup-panel" id="panel-subs" role="tabpanel" aria-labelledby="tab-subs" hidden>
       <div class="sublook">
         <div class="sublook-preview" aria-hidden="true">
           <div class="subdisplay"><div class="cue" data-i18n="setup.subs.sample">Subtitles look like this,
@@ -232,19 +223,75 @@ on two lines as well.</div></div>
           </label>
         </div>
       </div>
-    </div>
+    </section>
 
-    <div class="toggles">
-      <label class="toggle"><input type="checkbox" id="f-epg" checked><span data-i18n="setup.epg">Fetch programme data automatically</span></label>
-      <label class="toggle"><input type="checkbox" id="f-resume" checked><span data-i18n="setup.resume">Remember where movies and episodes were left</span></label>
-    </div>
+    <!-- Two ways of saying the same thing: separate fields, or one address
+         the credentials are parsed from. The choice steers only the form —
+         behind it lie the same server and the same credentials either way. -->
+    <section class="setup-panel" id="panel-connection" role="tabpanel" aria-labelledby="tab-connection" hidden>
+      <div class="field">
+        <span data-i18n="setup.source">Connection</span>
+        <div class="radios">
+          <label class="radio">
+            <input type="radio" name="source" value="xtream" checked>
+            <span data-i18n="setup.source.xtream">Xtream Codes</span>
+          </label>
+          <label class="radio">
+            <input type="radio" name="source" value="m3u">
+            <span data-i18n="setup.source.m3u">M3U address</span>
+          </label>
+        </div>
+      </div>
 
+      <div class="grid" id="src-xtream">
+        <label class="field w-scheme"><span data-i18n="setup.scheme">Protocol</span>
+          <select id="f-scheme" aria-describedby="connection-security"><option value="http">http</option><option value="https">https</option></select>
+        </label>
+        <label class="field w-host"><span data-i18n="setup.host">Server</span>
+          <input id="f-host" type="text" placeholder="example.tv" autocomplete="off" spellcheck="false">
+        </label>
+        <label class="field w-port"><span data-i18n="setup.port">Port</span>
+          <input id="f-port" type="text" placeholder="8080" autocomplete="off">
+        </label>
+        <label class="field"><span data-i18n="setup.username">Username</span>
+          <input id="f-username" type="text" autocomplete="off" spellcheck="false">
+        </label>
+        <label class="field"><span data-i18n="setup.password">Password</span>
+          <input id="f-password" type="password" autocomplete="off">
+        </label>
+      </div>
+
+      <label class="field" id="src-m3u" hidden>
+        <span data-i18n="setup.m3u.label">Address of the channel list</span>
+        <input id="f-paste" type="text" placeholder="http://example.tv:8080/…?username=…&amp;password=…" autocomplete="off" spellcheck="false" aria-describedby="connection-security">
+      </label>
+
+      <p id="connection-security" class="connection-security" data-i18n="setup.security">Use HTTPS when your provider supports it. With HTTP, your username, password and viewing requests travel without encryption and can be read or changed by others on the network.</p>
+    </section>
+
+    <section class="setup-panel" id="panel-account" role="tabpanel" aria-labelledby="tab-account" hidden>
+      <div id="account-box" class="account-box" hidden></div>
+      <p id="account-none" class="setup-note" data-i18n="setup.account.none" hidden>Not connected yet.</p>
+      <!-- The button names the action, the line beside it says what the
+           action takes with it. Neither repeats the other. -->
+      <div class="danger-rows">
+        <div class="danger-row">
+          <span data-i18n="setup.clear.desc">Categories, lists, covers and programme data are fetched again. Favourites and history stay.</span>
+          <button type="button" id="f-clear" class="ghost danger" data-i18n="setup.clear">Clear cache</button>
+        </div>
+        <div class="danger-row">
+          <span data-i18n="setup.reset.desc">Credentials, settings, favourites, history and the cache all go. This cannot be undone.</span>
+          <button type="button" id="f-reset" class="ghost danger" data-i18n="setup.reset">Reset everything</button>
+        </div>
+      </div>
+    </section>
+
+    <!-- The action belongs to the section: only Connection has something to
+         submit, and only it says what submitting costs. -->
     <div class="setup-actions">
-      <button type="button" id="f-clear" class="ghost danger" data-i18n="setup.clear" data-i18n-title="setup.clear.title">Clear cache</button>
-      <button type="button" id="f-reset" class="ghost danger" data-i18n="setup.reset" data-i18n-title="setup.reset.title">Reset everything</button>
-      <div class="spacer"></div>
-      <button type="button" id="f-cancel" class="ghost" data-i18n="setup.cancel">Cancel</button>
-      <button type="button" id="f-save" class="primary" data-i18n="setup.save">Connect</button>
+      <p class="setup-note" id="setup-note" data-i18n="setup.instant">Changes take effect as you make them.</p>
+      <button type="button" id="f-done" class="primary" data-i18n="setup.done">Done</button>
+      <button type="button" id="f-save" class="primary" data-i18n="setup.connect" hidden>Connect</button>
     </div>
   </form>
 </dialog>

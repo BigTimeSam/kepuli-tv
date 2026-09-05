@@ -464,6 +464,19 @@ body[data-substyle="contrast"] video::cue { background: #000; }
    whole name is still in the menu it opens, and in its tooltip. */
 .now-actions .trackpick { flex: 0 1 auto; min-width: 90px; max-width: 190px; }
 .now-actions .trackpick[hidden] { display: none; }
+/* The subtitle look, over the picture it is judged against. Above the row
+   rather than in it, because the row is full and a popover that took part
+   in its layout would push a button off the edge every time it opened. */
+.nowbar { position: relative; }
+.pop {
+  position: absolute; z-index: 5; bottom: calc(100% - 4px); right: 12px;
+  display: flex; flex-direction: column; gap: 12px; width: 250px;
+  padding: 14px; background: var(--panel); border: 1px solid var(--border);
+  border-radius: 12px; box-shadow: 0 18px 44px rgba(0, 0, 0, .55);
+}
+.pop[hidden] { display: none; }
+#btn-sublook[aria-expanded="true"] { color: var(--text); background: var(--panel-2); }
+
 /* A button with a drawn symbol: the same height as the ones with a word. */
 .now-actions .icon svg { display: block; width: 14px; height: 19px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
 
@@ -472,14 +485,26 @@ body[data-substyle="contrast"] video::cue { background: #000; }
 dialog { border: 1px solid var(--border); background: var(--panel); color: var(--text); border-radius: 14px; padding: 0; box-shadow: 0 24px 70px rgba(0, 0, 0, .6); }
 dialog::backdrop { background: rgba(5, 6, 10, .66); backdrop-filter: blur(2px); }
 
-/* The form is a column of blocks — the title, the connection choice, the
-   credentials, the account box, the language, the toggles, the buttons —
-   and one gap keeps them apart. A gap rather than a margin on each block,
-   so that a block without one (the account box, once) cannot sit flush
-   against its neighbour, and a hidden block leaves no double space behind.
-   The rows inside the credential grid sit a little tighter than the
-   blocks, see .grid. */
+/* The form is a column of blocks — the title, the section rail, the one
+   visible section, the action row — and one gap keeps them apart. A gap
+   rather than a margin on each block, so that a block without one cannot
+   sit flush against its neighbour, and a hidden block leaves no double
+   space behind. The rows inside the credential grid sit a little tighter
+   than the blocks, see .grid. */
 .setup { padding: 20px 22px; width: min(620px, 92vw); display: flex; flex-direction: column; gap: 14px; }
+/* The rail is the top bar's own tabs component; only its width differs,
+   because four sections should fill the dialog rather than huddle left. */
+.setup-tabs { align-self: stretch; }
+/* .tabs sets display: flex, and an explicit display beats [hidden] — the
+   first run has no sections to offer and the rail has to go. */
+.setup-tabs[hidden] { display: none; }
+.setup-tabs button { flex: 1; text-align: center; }
+/* One section at a time, each a column of blocks like the form itself.
+   Measured, the tallest — Subtitles, with its preview — comes to 300 px,
+   where the single form it replaced was 871 px in a 900 px window. */
+.setup-panel { display: flex; flex-direction: column; gap: 14px; }
+.setup-panel[hidden] { display: none; }
+.setup-note { margin: 0; color: var(--muted); font-size: 11.5px; line-height: 1.5; }
 .setup h2 { margin: 0; font-size: 16px; }
 /* The title row: the heading, and in the corner a cross that closes the
    dialog the way Cancel and Esc do. The cross is a bigger target than the
@@ -494,6 +519,15 @@ dialog::backdrop { background: rgba(5, 6, 10, .66); backdrop-filter: blur(2px); 
 }
 .setup-close:hover { color: var(--text); background: var(--panel-2); }
 .connection-security { margin: 0; padding: 10px 12px; border-left: 3px solid #ffc857; background: var(--panel-2); color: var(--text); font-size: 12px; line-height: 1.5; }
+
+/* Clearing the cache and starting over are a year apart in use from
+   anything else in here, so they sit at the foot of their own section
+   rather than beside Done in every one of them. Each says what it takes
+   with it: the words are the guard, the red is only the warning. */
+.danger-rows { display: flex; flex-direction: column; gap: 10px; }
+.danger-row { display: flex; align-items: center; gap: 14px; padding: 10px 12px; background: var(--panel-2); border: 1px solid var(--border); border-radius: 10px; }
+.danger-row span { color: var(--muted); font-size: 11.5px; line-height: 1.45; min-width: 0; }
+.danger-row button { flex: none; margin-left: auto; white-space: nowrap; }
 
 .field { display: flex; flex-direction: column; gap: 4px; }
 .field[hidden] { display: none; }        /* an explicit display beats [hidden], see .crumbs */
@@ -554,11 +588,12 @@ dialog::backdrop { background: rgba(5, 6, 10, .66); backdrop-filter: blur(2px); 
 .account-box b { color: var(--text); font-weight: 600; }
 .account-box .cols { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px 12px; margin-top: 6px; }
 
-.setup-actions { display: flex; align-items: center; gap: 8px; margin-top: 4px; flex-wrap: wrap; }
-/* The irreversible actions to an edge of their own, opposite the Connect
-   button: the separator line was needed only for as long as they sat in the
-   same cluster as the one the viewer is actually after. */
-.setup-actions .spacer { flex: 1; }
+/* The note on the left says what the section's action does, or that there
+   is nothing to press because the change is already made; the one button
+   sits at the far end. */
+.setup-actions { display: flex; align-items: center; gap: 14px; margin-top: 4px; flex-wrap: wrap; }
+.setup-actions .setup-note { flex: 1; min-width: 180px; }
+.setup-actions button { margin-left: auto; }
 .setup-actions .armed { color: #fff; background: var(--danger); border-color: var(--danger); }
 
 .progress { padding: 20px 22px; width: min(420px, 90vw); }

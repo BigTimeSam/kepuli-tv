@@ -181,10 +181,17 @@ check('subtitleLook reads the older sizes', ['small', 'medium', 'large'].map((s)
   for (const style of STYLES) {
     check(`player.css draws the look "${style}"`, sheet.includes(`body[data-substyle="${style}"] .subdisplay .cue`), true);
   }
-  const offered = [...html.matchAll(/<option value="(\w+)" data-i18n="subs\.style\.\w+">/g)].map((m) => m[1]);
-  check('player.html offers the looks in the module\'s order', offered, STYLES);
-  const slider = html.match(/<input id="f-subsize" type="range" min="(\d+)" max="(\d+)" step="1" value="(\d+)">/);
-  check('player.html\'s slider has the module\'s bounds and default', slider && slider.slice(1).map(Number), [MIN_SIZE, MAX_SIZE, DEFAULT_SIZE]);
+  // The controls exist twice — f in the settings, p over the picture (see
+  // LOOK_FORMS in app.js) — and each copy is checked on its own: a look
+  // offered by only one of them is exactly the drift that writing both on
+  // every change is meant to prevent.
+  for (const form of ['f', 'p']) {
+    const menu = html.match(new RegExp(`<select id="${form}-substyle">([^]*?)</select>`));
+    const offered = menu && [...menu[1].matchAll(/<option value="(\w+)" data-i18n="subs\.style\.\w+">/g)].map((m) => m[1]);
+    check(`player.html offers the looks in the module's order (${form})`, offered, STYLES);
+    const slider = html.match(new RegExp(`<input id="${form}-subsize" type="range" min="(\\d+)" max="(\\d+)" step="1" value="(\\d+)">`));
+    check(`player.html's slider has the module's bounds and default (${form})`, slider && slider.slice(1).map(Number), [MIN_SIZE, MAX_SIZE, DEFAULT_SIZE]);
+  }
 }
 
 /* --------------------------------------------------- audio.js: the track */

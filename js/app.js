@@ -33,7 +33,9 @@ const el = {
   overlayText: $('overlay-text'), overlayActions: $('overlay-actions'), statbadge: $('statbadge'),
   infostrip: $('infostrip'), nowTitle: $('now-title'), nowSub: $('now-sub'), mode: $('mode'),
   subs: $('subs'), audio: $('audio'), cast: $('btn-cast'),
-  setup: $('setup'), progress: $('progress'),
+  setup: $('setup'), setupTabs: $('setup-tabs'), setupNote: $('setup-note'),
+  sublook: $('btn-sublook'), sublookPop: $('sublook-pop'),
+  progress: $('progress'),
   epg: $('epg'), epgPreview: $('epg-preview'),
   pTitle: $('p-title'), pFill: $('p-fill'), pText: $('p-text'), toast: $('toast'),
 };
@@ -1356,6 +1358,8 @@ function renderSubtitles(tracks, active) {
   if (list !== state.subtitles) {
     state.subtitles = list;
     select.hidden = !list.length;
+    el.sublook.hidden = !list.length;
+    if (!list.length) toggleSubtitleLook(false);
     const options = [];
     if (list.length) {
       const off = document.createElement('option');
@@ -1452,26 +1456,44 @@ function chooseSubtitle() {
  * from the body attributes (see player.css), and the settings dialog shows
  * the same choice, preview included.
  */
+// The same two controls exist twice: in the settings, where a preview
+// stands in for the picture, and over the picture itself under the
+// player's Aa button. One look, so both are written on every change and
+// neither can drift from the other.
+const LOOK_FORMS = ['f', 'p'];
+
 function applySubtitleLook(settings) {
   const look = subtitleLook(settings);
   document.body.dataset.substyle = look.style;
   document.body.style.setProperty('--sub-size', `${look.size}px`);
-  $('f-substyle').value = look.style;
-  $('f-subsize').value = String(look.size);
-  $('f-subsize-value').textContent = `${look.size} px`;
+  for (const form of LOOK_FORMS) {
+    $(`${form}-substyle`).value = look.style;
+    $(`${form}-subsize`).value = String(look.size);
+    $(`${form}-subsize-value`).textContent = `${look.size} px`;
+  }
 }
 
-const readSubtitleLook = () => ({ subtitleStyle: $('f-substyle').value, subtitleSize: Number($('f-subsize').value) });
-
 /**
- * The viewer's choice in the settings: it takes effect at once, like the
- * language. The slider shows its effect while it is dragged and is saved
- * when it is let go.
+ * The viewer's choice, from whichever of the two the change came. It takes
+ * effect at once, like the language. The slider shows its effect while it
+ * is dragged and is saved when it is let go.
  */
-async function chooseSubtitleLook() {
-  const patch = readSubtitleLook();
+async function chooseSubtitleLook(form) {
+  const patch = { subtitleStyle: $(`${form}-substyle`).value, subtitleSize: Number($(`${form}-subsize`).value) };
   applySubtitleLook(patch);
   state.settings = await store.saveSettings(patch);
+}
+
+/**
+ * The look over the picture. Opened from the player's row, closed by a
+ * click outside it, by Esc, or by the button again — the same ways the
+ * settings dialog closes.
+ */
+function toggleSubtitleLook(open) {
+  const show = open ?? el.sublookPop.hidden;
+  el.sublookPop.hidden = !show;
+  el.sublook.setAttribute('aria-expanded', String(show));
+  if (show) $('p-substyle').focus();
 }
 
 /* ----------------------------------------------------------- full screen */
@@ -1884,7 +1906,20 @@ function hideProgress() {
 
 const FIELDS = ['scheme', 'host', 'port', 'username', 'password'];
 
-function openSetup() {
+/** Whether there is anything to connect with yet. */
+const configured = () => Boolean(state.config.host && state.config.username && state.config.password);
+
+/**
+ * The settings, or — before there are any credentials — the one thing
+ * that matters then. With nothing to connect with, sections would offer a
+ * choice of rooms in a house with no door: the rail is left out, the title
+ * says what the dialog is for, and Connection is all there is.
+ *
+ * The connection fields are read from the saved config on every open, so
+ * closing the dialog abandons whatever was typed and does not half-save
+ * it.
+ */
+function openSetup({ section } = {}) {
   for (const f of FIELDS) $(`f-${f}`).value = state.config[f] ?? '';
   $('f-paste').value = '';
   $('f-lang').value = state.settings.lang;
@@ -1893,7 +1928,53 @@ function openSetup() {
   applySubtitleLook(state.settings);
   showSourceMode(state.config.sourceMode);
   renderAccountBox();
+  const first = !configured();
+  el.setup.classList.toggle('firstrun', first);
+  el.setupTabs.hidden = first;
+  $('setup-title').textContent = t(first ? 'setup.title.connect' : 'setup.title');
+  showSetupSection(first ? 'connection' : (section || setupSection));
   if (!el.setup.open) el.setup.showModal();
+  focusSetupSection();
+}
+
+// The section the dialog reopens on: the viewer who came for the subtitle
+// size last time is likely to come for it again.
+let setupSection = 'general';
+
+/**
+ * One section on show, and with it the only action that belongs to it.
+ * Everything outside Connection is saved the moment it is changed, so
+ * those sections have nothing to submit and say so instead.
+ */
+function showSetupSection(name) {
+  setupSection = name;
+  for (const button of el.setupTabs.children) {
+    const on = button.dataset.panel === name;
+    button.classList.toggle('active', on);
+    button.setAttribute('aria-selected', String(on));
+  }
+  for (const panel of document.querySelectorAll('.setup-panel')) {
+    panel.hidden = panel.id !== `panel-${name}`;
+  }
+  const connection = name === 'connection';
+  $('f-save').hidden = !connection;
+  $('f-done').hidden = connection;
+  // Account holds no settings, only two actions that say what they do:
+  // "changes take effect" would be a promise about nothing.
+  const note = connection ? (configured() ? 'setup.connect.note' : 'setup.connect.first')
+    : name === 'account' ? null : 'setup.instant';
+  el.setupNote.textContent = note ? t(note) : '';
+}
+
+/**
+ * The first field of the section on show, so the keyboard starts where the
+ * eye does. Buttons are not fields: the Account section's are the two that
+ * throw things away, and focus does not belong on those.
+ */
+function focusSetupSection() {
+  const panel = document.querySelector('.setup-panel:not([hidden])');
+  const field = panel && panel.querySelector('input:not([type="radio"]), select');
+  if (field) field.focus();
 }
 
 /**
@@ -1915,6 +1996,8 @@ const sourceMode = () => (document.querySelector('input[name="source"]:checked')
 async function renderAccountBox() {
   const box = $('account-box');
   const a = state.account;
+  // A section that is simply empty tells the viewer nothing about why.
+  $('account-none').hidden = Boolean(a);
   if (!a) { box.hidden = true; return; }
   box.hidden = false;
   const estimate = await storageEstimate();
@@ -1986,10 +2069,35 @@ function wireSetup() {
   // The language changes at once rather than on save: the choice has to
   // show in the very dialog it was made in, or its effect is invisible.
   $('f-lang').addEventListener('change', () => applyLanguage($('f-lang').value));
+  // Saved the moment they are flipped, like the language and the subtitle
+  // look beside them. Nothing in this dialog waits for a button any more
+  // except the connection, which is the only thing that has to be sent
+  // somewhere.
+  $('f-epg').addEventListener('change', async () => {
+    state.settings = await store.saveSettings({ epgEnabled: $('f-epg').checked });
+    if (state.epg) state.epg.enabled = state.settings.epgEnabled;
+  });
+  $('f-resume').addEventListener('change', async () => {
+    state.settings = await store.saveSettings({ resumeEnabled: $('f-resume').checked });
+  });
   // The subtitle look likewise: the preview beside the choice shows it.
-  $('f-substyle').addEventListener('change', chooseSubtitleLook);
-  $('f-subsize').addEventListener('input', () => applySubtitleLook(readSubtitleLook()));
-  $('f-subsize').addEventListener('change', chooseSubtitleLook);
+  // The dragging slider shows its effect at once and is saved when it is
+  // let go, so a drag does not write to storage sixty times a second.
+  for (const form of LOOK_FORMS) {
+    $(`${form}-substyle`).addEventListener('change', () => chooseSubtitleLook(form));
+    $(`${form}-subsize`).addEventListener('input', () => applySubtitleLook({
+      subtitleStyle: $(`${form}-substyle`).value, subtitleSize: Number($(`${form}-subsize`).value),
+    }));
+    $(`${form}-subsize`).addEventListener('change', () => chooseSubtitleLook(form));
+  }
+  el.sublook.addEventListener('click', () => toggleSubtitleLook());
+  // Outside the popover closes it, as it does the dialog. The button is
+  // excluded, or its own click would reopen what it just closed.
+  document.addEventListener('pointerdown', (e) => {
+    if (el.sublookPop.hidden) return;
+    if (el.sublookPop.contains(e.target) || el.sublook.contains(e.target)) return;
+    toggleSubtitleLook(false);
+  });
 
   for (const radio of document.querySelectorAll('input[name="source"]')) {
     radio.addEventListener('change', () => showSourceMode(radio.value));
@@ -2001,8 +2109,22 @@ function wireSetup() {
     for (const f of FIELDS) if (parsed[f] != null) $(`f-${f}`).value = parsed[f];
   });
   $('f-host').addEventListener('change', splitServerField);
-  $('f-cancel').addEventListener('click', () => el.setup.close());
   $('f-close').addEventListener('click', () => el.setup.close());
+  $('f-done').addEventListener('click', () => el.setup.close());
+  el.setupTabs.addEventListener('click', (e) => {
+    const button = e.target.closest('button[data-panel]');
+    if (!button) return;
+    showSetupSection(button.dataset.panel);
+  });
+  // A click on the backdrop closes the dialog, as Esc does. Both ends of
+  // the click have to land there: dragging the size slider past the edge
+  // of the dialog and letting go would otherwise close it mid-drag.
+  let fromBackdrop = false;
+  el.setup.addEventListener('mousedown', (e) => { fromBackdrop = e.target === el.setup; });
+  el.setup.addEventListener('click', (e) => {
+    if (fromBackdrop && e.target === el.setup) el.setup.close();
+    fromBackdrop = false;
+  });
   $('f-save').addEventListener('click', async () => {
     // In M3U mode the fields are filled from the URL only here, so that a
     // pasted but unfinished address cannot overwrite the old credentials.
@@ -2017,11 +2139,8 @@ function wireSetup() {
     // request without showing a dialog. For an origin already granted this
     // returns at once with no dialog.
     const granted = patch.host ? await requestAccess(baseUrl(patch)) : true;
-    state.settings = await store.saveSettings({
-      lang: $('f-lang').value,
-      epgEnabled: $('f-epg').checked,
-      resumeEnabled: $('f-resume').checked,
-    });
+    // The settings around it saved themselves as they were changed; this
+    // button carries the connection and nothing else.
     state.config = await store.saveConfig(patch);
     // The personal lists belong to the account: another account's come out
     // with it, and this one's are found again on the way back.
@@ -2317,6 +2436,7 @@ function wireUi() {
   document.addEventListener('keydown', (e) => {
     const tag = e.target.tagName;
     const typing = tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT';
+    if (e.key === 'Escape' && !el.sublookPop.hidden) { toggleSubtitleLook(false); el.sublook.focus(); return; }
     if (e.key === '/' && !typing) { e.preventDefault(); el.search.focus(); el.search.select(); return; }
     if (e.target === el.search && e.key === 'Escape') {
       clearSearch(); el.search.blur(); return;
@@ -2383,7 +2503,14 @@ async function applyLanguage(lang) {
   const playing = el.audio.value ? Number(el.audio.value) : null;
   state.audioTracks = null;
   renderAudio(audio, playing);
-  if (el.setup.open) renderAccountBox();
+  // applyStatic has just written every data-i18n node, the dialog's title
+  // and section note among them: both depend on where the dialog stands,
+  // so they are set again from that.
+  if (el.setup.open) {
+    renderAccountBox();
+    $('setup-title').textContent = t(configured() ? 'setup.title' : 'setup.title.connect');
+    showSetupSection(setupSection);
+  }
   if (guideOpen) { renderGuideGroups(); grid.invalidate(); }
   // Before a connection there is no list to repaint, and refreshRows would
   // set off to fetch it from a server that does not exist yet.
