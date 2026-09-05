@@ -16,6 +16,7 @@ import { nameCleaner } from '../js/name.js';
 import { cueText } from '../js/subs.js';
 import { subtitleLook, STYLES, MIN_SIZE, MAX_SIZE, DEFAULT_SIZE } from '../js/subdisplay.js';
 import { describe, describeAll, label, preferred, route } from '../js/audio.js';
+import { LANGUAGES, keysOf, setLanguage, t } from '../js/i18n.js';
 
 let failed = 0;
 let count = 0;
@@ -288,6 +289,31 @@ check('label: BCP 47 with a region', named('A_AAC', { langBcp: 'sv-SE', channels
     check('episode-multi.mkv: Finnish is found when it is asked for', chosen('fi'), 'fin');
     check('episode-multi.mkv: a language the file lacks falls back', chosen('de'), 'eng');
   }
+}
+
+/* ------------------------------------------- i18n: the keys and the markup */
+
+// A key renamed on one side shows up in the interface as its own name —
+// "setup.cancel" where a button should read "Cancel". Both languages are
+// asked for every key player.html uses, and the dictionaries are compared
+// with each other, so neither a missing translation nor a stale key in the
+// markup can reach a screen.
+{
+  const langs = Object.keys(LANGUAGES);
+  const first = keysOf(langs[0]);
+  for (const lang of langs.slice(1)) {
+    const theirs = new Set(keysOf(lang));
+    const mine = new Set(first);
+    check(`i18n: ${lang} has every key ${langs[0]} has`, first.filter((k) => !theirs.has(k)), []);
+    check(`i18n: ${lang} has no key ${langs[0]} lacks`, keysOf(lang).filter((k) => !mine.has(k)), []);
+  }
+  const html = (await import('node:fs')).readFileSync(new URL('../player.html', import.meta.url), 'utf8');
+  const used = [...new Set([...html.matchAll(/data-i18n(?:-title|-placeholder|-label)?="([^"]+)"/g)].map((m) => m[1]))];
+  for (const lang of langs) {
+    setLanguage(lang);
+    check(`i18n: every key player.html uses resolves in ${lang}`, used.filter((k) => t(k) === k), []);
+  }
+  setLanguage('en');
 }
 
 /* ------------------------------------------------- player.css: contrast */

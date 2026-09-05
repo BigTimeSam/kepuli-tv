@@ -275,6 +275,7 @@ const STRINGS = {
     'setup.reset.failed': 'Reset failed',
     'setup.close': 'Close',
     'setup.done': 'Done',
+    'progress.cancel': 'Cancel',
     'setup.connect': 'Connect',
     'setup.nogrant': 'Without access to the server the connection cannot work',
     'setup.title.connect': 'Connect to your provider',
@@ -591,6 +592,7 @@ const STRINGS = {
     'setup.reset.failed': 'Palautus epäonnistui',
     'setup.close': 'Sulje',
     'setup.done': 'Valmis',
+    'progress.cancel': 'Peruuta',
     'setup.connect': 'Yhdistä',
     'setup.nogrant': 'Ilman oikeutta palvelimeen yhteys ei onnistu',
     'setup.title.connect': 'Yhdistä palveluusi',
@@ -656,11 +658,16 @@ let current = DEFAULT_LANGUAGE;
 
 export function setLanguage(lang) {
   current = STRINGS[lang] ? lang : DEFAULT_LANGUAGE;
-  document.documentElement.lang = current;
+  // The dev checks load this module in Node, where there is no document.
+  if (typeof document !== 'undefined') document.documentElement.lang = current;
   return current;
 }
 
 export function language() { return current; }
+
+/** The keys one dictionary holds. dev/unitcheck.mjs proves with it that
+ *  the languages stay in step; the app itself has no use for it. */
+export const keysOf = (lang) => Object.keys(STRINGS[lang] || {});
 export function localeTag() { return LOCALE_TAG[current] || LOCALE_TAG[DEFAULT_LANGUAGE]; }
 
 /**

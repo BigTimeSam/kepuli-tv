@@ -345,6 +345,10 @@ video { width: 100%; height: 100%; display: block; background: #000; }
 /* Above the browser's controls while they are likely on show, see wake()
    in js/subdisplay.js. */
 .videowrap.controls .subdisplay { bottom: max(6%, 84px); }
+/* And above the subtitle-look popover while that is open: it is opened to
+   judge the subtitles by, so it is the one thing that must not cover
+   them. */
+.videowrap.looking .subdisplay { bottom: max(6%, 210px); }
 
 /* One box per cue, lines and all. The measures are in em, so that the
    padding and the corners follow the text. Line breaks come from the file;

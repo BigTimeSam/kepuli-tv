@@ -336,7 +336,8 @@ and **Settings**. The player's own row is below the picture:
 | --- | --- |
 | `Auto` `TS` `HLS` | the engine for a live channel; `Auto` is described below |
 | the audio selector | the track, on a file that carries more than one; `a` steps to the next |
-| the subtitle selector | the language, on a file that carries subtitles; the look and the size are in the settings |
+| the subtitle selector | the language, on a file that carries subtitles |
+| `Aa` | the look and the size of the subtitles, over the picture they are judged against |
 | `☆` | the channel or the film into the favourites |
 | `↻` | reload the stream |
 | `⛶` | full screen — the picture with its subtitles |
@@ -347,14 +348,42 @@ and **Settings**. The player's own row is below the picture:
 
 ### Settings
 
-The dialog holds the connection mode with its fields (see below), the
-interface language, and two switches: whether programme data is fetched
-automatically and whether the position of movies and episodes is remembered.
-Below them are the account's own details as the server reports them — status,
-simultaneous connections, the expiry date, the output formats, the server's
-time zone, the size of the cache and the lists loaded so far — and the two
-buttons that empty things: **Clear cache** leaves the credentials and the
-favourites in place, **Reset everything** does not.
+The dialog falls into four sections, on the same tab component the top bar
+uses:
+
+| Section | Holds |
+| --- | --- |
+| **General** | the interface language, and the two switches: whether programme data is fetched automatically and whether the position of movies and episodes is remembered |
+| **Subtitles** | the look and the size, with a preview |
+| **Connection** | the connection mode with its fields, and the only button in the dialog |
+| **Account** | the account's own details as the server reports them — status, simultaneous connections, the expiry date, the output formats, the server's time zone, the size of the cache and the lists loaded so far — and the two buttons that empty things: **Clear cache** leaves the credentials and the favourites in place, **Reset everything** does not |
+
+Everything outside **Connection** takes effect the moment it is changed, and
+the dialog says so where a Save button would have been. Before, half of it
+did — the language and the subtitle look saved themselves while the switches
+and the credentials waited for a button labelled *Connect*, so **Cancel**
+cancelled some of the dialog and not the rest, and changing the subtitle size
+reconnected to the server and reloaded the lists. There is no Cancel now,
+because there is nothing left to cancel: the credentials are the one thing
+that has to be sent somewhere, and they are read from what is saved every
+time the dialog opens, so closing it abandons whatever was typed.
+
+The dialog closes with the cross, with Esc, or with a click outside it. Both
+ends of that click have to land outside: dragging the size slider past the
+edge and letting go there would otherwise close the dialog mid-drag.
+
+Before there are any credentials the same dialog is not settings at all. The
+section rail is left out, the title reads *Connect to your provider*, and
+Connection is all there is — a choice of rooms is no use in a house with no
+door yet.
+
+The look of the subtitles is also under the player's own **Aa** button, which
+appears beside the subtitle selector on a file that carries subtitles. It
+opens the same two controls over the picture, so the size is judged against
+what is being watched rather than against a preview in a dialog; the
+subtitles rise out of the popover's way while it is open, as they do for the
+browser's controls. Both places write one setting, so they cannot drift. In
+full screen neither is reachable, as neither was before.
 
 The cache belongs to the server and the account. Saving a connection whose
 server, port, protocol or username differs from the previous one empties it

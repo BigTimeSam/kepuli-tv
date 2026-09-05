@@ -554,7 +554,8 @@ and <strong>Settings</strong>. The player's own row is below the picture:</p>
   <tbody>
     <tr><td><code>Auto</code> <code>TS</code> <code>HLS</code></td><td>the engine for a live channel; <code>Auto</code> is described below</td></tr>
     <tr><td>the audio selector</td><td>the track, on a file that carries more than one; <code>a</code> steps to the next</td></tr>
-    <tr><td>the subtitle selector</td><td>the language, on a file that carries subtitles; the look and the size are in the settings</td></tr>
+    <tr><td>the subtitle selector</td><td>the language, on a file that carries subtitles</td></tr>
+    <tr><td><code>Aa</code></td><td>the look and the size of the subtitles, over the picture they are judged against</td></tr>
     <tr><td><code>☆</code></td><td>the channel or the film into the favourites</td></tr>
     <tr><td><code>↻</code></td><td>reload the stream</td></tr>
     <tr><td><code>⛶</code></td><td>full screen — the picture with its subtitles</td></tr>
@@ -568,14 +569,47 @@ and <strong>Settings</strong>. The player's own row is below the picture:</p>
 
 <h3 id="settings">Settings</h3>
 
-<p>The dialog holds the connection mode with its fields (see below), the
-interface language, and two switches: whether programme data is fetched
-automatically and whether the position of movies and episodes is remembered.
-Below them are the account's own details as the server reports them — status,
-simultaneous connections, the expiry date, the output formats, the server's
-time zone, the size of the cache and the lists loaded so far — and the two
-buttons that empty things: <strong>Clear cache</strong> leaves the credentials and the
-favourites in place, <strong>Reset everything</strong> does not.</p>
+<p>The dialog falls into four sections, on the same tab component the top bar
+uses:</p>
+
+<div class="table-scroll">
+<table>
+  <thead><tr><th>Section</th><th>Holds</th></tr></thead>
+  <tbody>
+    <tr><td><strong>General</strong></td><td>the interface language, and the two switches: whether programme data is fetched automatically and whether the position of movies and episodes is remembered</td></tr>
+    <tr><td><strong>Subtitles</strong></td><td>the look and the size, with a preview</td></tr>
+    <tr><td><strong>Connection</strong></td><td>the connection mode with its fields, and the only button in the dialog</td></tr>
+    <tr><td><strong>Account</strong></td><td>the account's own details as the server reports them — status, simultaneous connections, the expiry date, the output formats, the server's time zone, the size of the cache and the lists loaded so far — and the two buttons that empty things: <strong>Clear cache</strong> leaves the credentials and the favourites in place, <strong>Reset everything</strong> does not</td></tr>
+  </tbody>
+</table>
+</div>
+
+<p>Everything outside <strong>Connection</strong> takes effect the moment it is changed, and
+the dialog says so where a Save button would have been. Before, half of it
+did — the language and the subtitle look saved themselves while the switches
+and the credentials waited for a button labelled <em>Connect</em>, so <strong>Cancel</strong>
+cancelled some of the dialog and not the rest, and changing the subtitle size
+reconnected to the server and reloaded the lists. There is no Cancel now,
+because there is nothing left to cancel: the credentials are the one thing
+that has to be sent somewhere, and they are read from what is saved every
+time the dialog opens, so closing it abandons whatever was typed.</p>
+
+<p>The dialog closes with the cross, with Esc, or with a click outside it. Both
+ends of that click have to land outside: dragging the size slider past the
+edge and letting go there would otherwise close the dialog mid-drag.</p>
+
+<p>Before there are any credentials the same dialog is not settings at all. The
+section rail is left out, the title reads <em>Connect to your provider</em>, and
+Connection is all there is — a choice of rooms is no use in a house with no
+door yet.</p>
+
+<p>The look of the subtitles is also under the player's own <strong>Aa</strong> button, which
+appears beside the subtitle selector on a file that carries subtitles. It
+opens the same two controls over the picture, so the size is judged against
+what is being watched rather than against a preview in a dialog; the
+subtitles rise out of the popover's way while it is open, as they do for the
+browser's controls. Both places write one setting, so they cannot drift. In
+full screen neither is reachable, as neither was before.</p>
 
 <p>The cache belongs to the server and the account. Saving a connection whose
 server, port, protocol or username differs from the previous one empties it

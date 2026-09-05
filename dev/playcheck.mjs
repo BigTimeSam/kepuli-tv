@@ -47,6 +47,14 @@
 //                                     mid-playback without stopping the
 //                                     picture, and a remembered Finnish opens
 //                                     the next playback on the Finnish track
+//   node dev/playcheck.mjs settings   the settings dialog: a toggle saves
+//                                     itself without reconnecting, a slider
+//                                     drag released outside does not close
+//                                     it, a backdrop click does, the Aa
+//                                     popover sizes the real subtitles
+//                                     without covering them, and the first
+//                                     run is a connect dialog rather than
+//                                     settings
 //   node dev/playcheck.mjs subtitles  the cues are drawn by the layer, a
 //                                     two-line cue in one box; a double click
 //                                     takes the wrapper to full screen with
@@ -300,12 +308,18 @@ async function search(page) {
 async function paste(page) {
   await evaluate(page, `document.getElementById('btn-settings').click()`);
   await waitFor(page, `document.getElementById('setup').open`, 'the settings dialog', 5000);
+  // The fields live in their own section now, and that is where a viewer
+  // pasting an address would be.
+  await evaluate(page, `document.querySelector('#setup-tabs [data-panel="connection"]').click()`);
+  await sleep(200);
   const address = `http://127.0.0.1:${MOCK_PORT}/player_api.php?username=demo&password=demo`;
   await evaluate(page, `(() => { const h = document.getElementById('f-host'); h.value = ${JSON.stringify(address)};
     h.dispatchEvent(new Event('change', { bubbles: true })); return true; })()`);
   await sleep(300);
   const fields = await evaluate(page, `['scheme', 'host', 'port', 'username', 'password'].map((f) => document.getElementById('f-' + f).value)`);
-  await evaluate(page, `document.getElementById('f-cancel').click()`);
+  // Closing abandons what was typed: there is no Cancel any more, because
+  // nothing outside Connection waits for a button to be saved.
+  await evaluate(page, `document.getElementById('f-close').click()`);
   const expected = ['http', '127.0.0.1', String(MOCK_PORT), 'demo', 'demo'];
   return { ok: JSON.stringify(fields) === JSON.stringify(expected), detail: `fields ${JSON.stringify(fields)}` };
 }
@@ -693,7 +707,84 @@ async function audio(page, { requests, target }) {
   return { ok: true, detail: `episode ${id}: automatic ${auto.hz} Hz, switched to Finnish ${switched.hz} Hz with the picture running from ${before.t} to ${after.t} s, to the AC-3 commentary ${commentary.hz} Hz, audioLang fi opens at ${finnish.hz} Hz, and the row fits at 1024-1512 px` };
 }
 
-const SCENARIOS = { seek, death, cancel, timeout, search, paste, keys, switching, resume, reconnect, accounts, listerror, a11y, subtitles, audio };
+/**
+ * The settings dialog: what saves itself, what waits for a button, and what
+ * closes it.
+ *
+ * The dialog used to be one form whose primary read "Connect", while the
+ * language and the subtitle look inside it saved themselves the moment they
+ * were changed — so its Cancel cancelled some of the dialog and not the
+ * rest, and changing the subtitle size reconnected to the server. Now every
+ * section but Connection saves as it goes and says so, and only Connection
+ * has a button.
+ */
+async function settings(page, { requests, target }) {
+  const buttons = `[...document.querySelectorAll('#setup .setup-actions button')].filter((b) => !b.hidden).map((b) => b.textContent.trim())`;
+  const from = requests.length;
+  await evaluate(page, `document.getElementById('btn-settings').click()`, { gesture: true });
+  await waitFor(page, `document.getElementById('setup').open`, 'the settings dialog', 5000);
+  const opened = await evaluate(page, `({ focus: document.activeElement.id, buttons: ${buttons},
+    section: (document.querySelector('#setup-tabs .active') || {}).dataset.panel })`);
+  if (opened.section !== 'general' || opened.focus !== 'f-lang' || opened.buttons.join() !== 'Done') {
+    return { ok: false, detail: `opened as ${JSON.stringify(opened)}` };
+  }
+
+  // A toggle is saved by flipping it, and reconnecting is not part of that.
+  await evaluate(page, `(() => { const c = document.getElementById('f-epg'); c.checked = !c.checked; c.dispatchEvent(new Event('change')); })()`);
+  await sleep(400);
+  const stored = await evaluate(page, `chrome.storage.local.get('settings').then((d) => d.settings.epgEnabled)`);
+  const calls = requests.slice(from).filter((u) => u.includes('player_api.php')).length;
+  if (stored !== false || calls !== 0) return { ok: false, detail: `the toggle left epgEnabled ${stored} and made ${calls} api call(s)` };
+
+  // The size slider is dragged; letting go outside the dialog must not be
+  // read as a click on the backdrop.
+  await evaluate(page, `document.querySelector('#setup-tabs [data-panel="subs"]').click()`);
+  await sleep(300);
+  const at = await evaluate(page, `(() => { const r = document.getElementById('f-subsize').getBoundingClientRect(), d = document.querySelector('.setup').getBoundingClientRect();
+    return { x: Math.round(r.left + r.width / 2), y: Math.round(r.top + r.height / 2), outX: Math.round(d.right + 60), outY: Math.round(d.bottom + 40) }; })()`);
+  const mouse = (type, x, y) => page.call('Input.dispatchMouseEvent', { type, x, y, button: 'left', clickCount: 1 });
+  await mouse('mousePressed', at.x, at.y);
+  await mouse('mouseMoved', at.outX, at.outY);
+  await mouse('mouseReleased', at.outX, at.outY);
+  await sleep(300);
+  if (!(await evaluate(page, `document.getElementById('setup').open`))) return { ok: false, detail: 'a slider drag released outside closed the dialog' };
+
+  // A click that begins and ends on the backdrop does close it.
+  await mouse('mousePressed', at.outX, at.outY);
+  await mouse('mouseReleased', at.outX, at.outY);
+  await sleep(300);
+  if (await evaluate(page, `document.getElementById('setup').open`)) return { ok: false, detail: 'a click on the backdrop left the dialog open' };
+
+  // The look over the picture: the same setting, judged against the real
+  // subtitles, which the popover must not cover.
+  await playEpisode(page);
+  await waitFor(page, `!document.getElementById('btn-sublook').hidden`, 'the Aa button', 10000);
+  await evaluate(page, `document.getElementById('btn-sublook').click()`, { gesture: true });
+  await evaluate(page, `(() => { const r = document.getElementById('p-subsize'); r.value = '40'; r.dispatchEvent(new Event('input')); r.dispatchEvent(new Event('change')); })()`);
+  await waitFor(page, `document.querySelectorAll('#subdisplay .cue').length > 0`, 'a cue on screen');
+  await sleep(400);
+  const look = await evaluate(page, `(() => { const pop = document.getElementById('sublook-pop').getBoundingClientRect();
+    const cues = [...document.querySelectorAll('#subdisplay .cue')].map((c) => c.getBoundingClientRect());
+    return { size: getComputedStyle(document.body).getPropertyValue('--sub-size').trim(),
+      mirror: document.getElementById('f-subsize').value,
+      covered: cues.filter((c) => c.bottom > pop.top && c.right > pop.left && c.left < pop.right).length, cues: cues.length }; })()`);
+  const savedSize = await evaluate(page, `chrome.storage.local.get('settings').then((d) => d.settings.subtitleSize)`);
+  if (look.size !== '40px' || savedSize !== 40 || look.mirror !== '40') return { ok: false, detail: `the popover left ${JSON.stringify(look)}, stored ${savedSize}` };
+  if (!look.cues || look.covered) return { ok: false, detail: `the popover covers ${look.covered} of ${look.cues} cue(s)` };
+
+  // Without credentials the dialog is not settings at all: there is nothing
+  // to set until there is something to connect to.
+  await evaluate(page, `chrome.storage.local.remove('config')`);
+  await page.call('Page.navigate', { url: target.url });
+  await sleep(1200);
+  await waitFor(page, `document.getElementById('setup').open`, 'the first-run dialog', 10000);
+  const first = await evaluate(page, `({ rail: getComputedStyle(document.getElementById('setup-tabs')).display,
+    title: document.getElementById('setup-title').textContent.trim(), buttons: ${buttons} })`);
+  if (first.rail !== 'none' || first.buttons.join() !== 'Connect') return { ok: false, detail: `the first run showed ${JSON.stringify(first)}` };
+  return { ok: true, detail: `opens on General focused on the language with only Done; a toggle saved itself with ${calls} api calls; a slider drag out kept it open and a backdrop click closed it; the popover set ${look.size} without covering the cue; the first run is "${first.title}" with no rail and only Connect` };
+}
+
+const SCENARIOS = { seek, death, cancel, timeout, search, paste, keys, switching, resume, reconnect, accounts, listerror, a11y, subtitles, audio, settings };
 // The mock's whole-list answers stall for these, longer than the request limit.
 const SLOW_LIST_MS = { cancel: 60000, timeout: 60000 };
 // The media is sent slowly for these: the seek targets must lie outside the

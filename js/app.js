@@ -1493,6 +1493,10 @@ function toggleSubtitleLook(open) {
   const show = open ?? el.sublookPop.hidden;
   el.sublookPop.hidden = !show;
   el.sublook.setAttribute('aria-expanded', String(show));
+  // The subtitles rise out of its way, as they do for the browser's own
+  // controls: a popover that covered the text it is there to size would be
+  // no use at all.
+  el.videowrap.classList.toggle('looking', show);
   if (show) $('p-substyle').focus();
 }
 
