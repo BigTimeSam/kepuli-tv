@@ -17,6 +17,7 @@
 
 import { api } from './browser.js';
 import { cacheClear } from './db.js';
+import { channelPreferences } from './channelprefs.js';
 
 const CONNECTION_DEFAULTS = {
   scheme: 'http', host: '', port: '8080', username: '', password: '',
@@ -105,6 +106,14 @@ async function readPersonal(name, fallback) {
 
 const writePersonal = (name, value) => api.storage.local.set({ [personalKey(name)]: value });
 
+export async function loadChannelPreferences() {
+  return channelPreferences(await readPersonal('channels', {}));
+}
+
+export async function saveChannelPreferences(value) {
+  await writePersonal('channels', channelPreferences(value));
+}
+
 export async function loadSettings() {
   return { ...SETTINGS_DEFAULTS, ...(await read('settings', {})) };
 }
@@ -113,6 +122,17 @@ export async function saveSettings(patch) {
   const next = { ...(await loadSettings()), ...patch };
   await api.storage.local.set({ settings: next });
   return next;
+}
+
+/** Commit all dialog changes together after Save. No draft reaches storage. */
+export async function saveSetup(configPatch, settingsPatch) {
+  const prev = await loadConfig();
+  const config = { ...prev, ...configPatch };
+  const settings = { ...(await loadSettings()), ...settingsPatch };
+  if (serverKey(config) !== serverKey(prev)) await cacheClear();
+  await api.storage.local.set({ config, settings });
+  account = serverKey(config);
+  return { config, settings };
 }
 
 export async function loadUiState() { return read('ui', {}); }

@@ -154,6 +154,44 @@ export function nameCleaner(labels, items) {
   return (name) => clean(String(name || ''), steps);
 }
 
+const searchCleaners = new WeakMap();
+
+/** Apply each search result's own group rules, never the mixed result set's. */
+export function searchNameCleaner(groups, items) {
+  const cached = searchCleaners.get(items);
+  if (cached?.groups === groups) return cached.cleaner;
+  const byCategory = new Map();
+  const buckets = groups.map(group => ({ group, items: new Set(), clean: null }));
+  for (const bucket of buckets) {
+    for (const category of bucket.group.cats) {
+      const id = String(category.id);
+      if (!byCategory.has(id)) byCategory.set(id, []);
+      byCategory.get(id).push(bucket);
+    }
+  }
+  for (const item of items) {
+    for (const id of item.cats || []) {
+      for (const bucket of byCategory.get(String(id)) || []) bucket.items.add(item);
+    }
+  }
+  for (const bucket of buckets) {
+    bucket.clean = nameCleaner([bucket.group.name], [...bucket.items]);
+    bucket.items.clear();
+  }
+  const cleaner = (name, item) => {
+    for (const id of item?.cats || []) {
+      for (const bucket of byCategory.get(String(id)) || []) {
+        // Select the rule using the parent title, even when later applying
+        // it to an episode name in that title's detail view.
+        if (bucket.clean && bucket.clean(item.n) !== item.n) return bucket.clean(name);
+      }
+    }
+    return name;
+  };
+  searchCleaners.set(items, { groups, cleaner });
+  return cleaner;
+}
+
 /**
  * Prefixes can appear in any order ("US: NHL …", "NHL US: …"), so passes
  * are run until nothing matches any more.

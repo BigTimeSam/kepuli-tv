@@ -1,10 +1,11 @@
 // DOM builders for list rows. Kept apart from the application logic
 // because these run on every scroll frame and must stay light.
 
-import { clock, progressOf, duration } from './format.js';
-import { isPlayableExtension } from './xtream.js';
+import { clock, progressOf, duration, calendarDate } from './format.js';
 import { badge as probeBadge } from './probe.js';
 import { t } from './i18n.js';
+import { poster } from './poster.js';
+import { ratingText } from './rating.js';
 
 const el = (tag, cls, text) => {
   const node = document.createElement(tag);
@@ -12,16 +13,6 @@ const el = (tag, cls, text) => {
   if (text != null) node.textContent = text;
   return node;
 };
-
-function image(cls, src) {
-  const img = el('img', cls);
-  img.loading = 'lazy';
-  img.decoding = 'async';
-  img.alt = '';
-  if (src) img.src = src; else img.classList.add('blank');
-  img.addEventListener('error', () => img.classList.add('blank'), { once: true });
-  return img;
-}
 
 /**
  * The same star in three places: on a list row, on a sidebar group and on
@@ -53,7 +44,7 @@ function remove(title, onRemove) {
 /**
  * @param {object} item
  * @param {object} ctx { label, playing, selected, favorite, epg, resume, tag, onOpen,
- *                       onFavorite, onRemove }
+ *                       onFavorite, onRemove, showEpisodeCover }
  */
 export function itemRow(item, ctx) {
   const row = el('div', 'row');
@@ -67,8 +58,9 @@ export function itemRow(item, ctx) {
 
   row.appendChild(star(ctx.favorite, ctx.onFavorite));
 
-  if (item.k === 0) row.appendChild(image('row-logo', item.logo));
-  else if (item.k === 1 || item.k === 2) row.appendChild(image('row-poster', item.logo));
+  if (item.k === 0) row.appendChild(poster('row-logo', item.logo, 'channel'));
+  else if (item.k === 1 || item.k === 2) row.appendChild(poster('row-poster', item.logo, item.k === 2 ? 'series' : 'movie'));
+  else if (item.k === 3 && ctx.showEpisodeCover) row.appendChild(poster('row-poster', item.seriesCover || item.logo, 'series'));
 
   const body = el('div', 'row-body');
   // The visible name may have lost a prefix the filter already states;
@@ -112,18 +104,20 @@ function subLine(item, ctx) {
   }
 
   const bits = [];
+  const rating = ratingText(item.details) || ratingText(item);
   if (item.k === 1) {
     if (item.year) bits.push(item.year);
-    if (item.rating) bits.push(`★ ${item.rating.toFixed(1)}`);
+    if (rating) bits.push(rating);
   }
   if (item.k === 2) {
     if (item.year) bits.push(item.year);
     if (item.genre) bits.push(item.genre.split(',')[0].trim());
-    if (item.rating) bits.push(`★ ${item.rating.toFixed(1)}`);
+    if (rating) bits.push(rating);
   }
   if (item.k === 3) {
     if (item.durationSec) bits.push(duration(item.durationSec));
-    if (item.airDate) bits.push(item.airDate);
+    const aired = calendarDate(item.airDate);
+    if (aired) bits.push(aired);
   }
 
   const resume = ctx.resume;
@@ -148,25 +142,35 @@ function badges(item, ctx) {
     badge.title = t('row.archive.title', { days: item.archive });
     out.push(badge);
   }
-  if (item.k === 1 || item.k === 3) {
-    // A header that has been read also names the audio track, which
-    // decides playability more often than the container does. Without it
-    // we go by the file extension, and that is a guess: it knows nothing
-    // about codecs.
+  if (item.k === 1) {
+    const seconds = item.details?.durationSec || item.durationSec || ctx.resume?.duration;
+    if (Number.isFinite(seconds) && seconds > 0) {
+      const node = el('div', 'row-duration', duration(seconds, { compact: true }));
+      node.title = t('title.duration');
+      out.push(node);
+    }
+  }
+  if (item.k === 3) {
+    // Show actual playback limitations from the header, never a format
+    // badge inferred from an extension (including an unprobed MKV).
     const known = ctx.probe ? probeBadge(ctx.probe) : null;
     if (known) {
       const node = el('div', `row-badge ${known.level}`, known.text);
       node.title = known.title;
-      out.push(node);
-    } else if (!ctx.probe && item.ext && !isPlayableExtension(item.ext)) {
-      const node = el('div', 'row-badge warn', item.ext.toUpperCase());
-      node.title = t('row.ext.warn');
       out.push(node);
     }
   }
   if (item.k === 3) out.push(el('div', 'row-ep', `S${String(item.season).padStart(2, '0')}E${String(item.episode).padStart(2, '0')}`));
   if (ctx.tag) {
     const node = el('div', 'row-badge', ctx.tag.text);
+    if (ctx.tag.icon === 'clock') {
+      node.classList.add('row-time');
+      const icon = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+      icon.setAttribute('viewBox', '0 0 20 20');
+      icon.setAttribute('aria-hidden', 'true');
+      icon.innerHTML = '<circle cx="10" cy="10" r="6.5"/><path d="M10 6.4V10l2.6 1.6"/>';
+      node.prepend(icon);
+    }
     if (ctx.tag.title) node.title = ctx.tag.title;
     out.push(node);
   }

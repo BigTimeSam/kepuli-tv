@@ -4,15 +4,21 @@ import { Epg } from './epg.js';
 import { Playback } from './playback.js';
 import { VirtualList } from './vlist.js';
 import { itemRow, categoryRow, chipRow, favCategoryRow, sectionHeader, emptyState } from './rows.js';
-import { nameCleaner } from './name.js';
+import { nameCleaner, searchNameCleaner } from './name.js';
+import { poster } from './poster.js';
+import { MediaFilters } from './mediafilters.js';
+import { titleFacts, externalLinks, playbackFacts } from './titleinfo.js';
 import { EpgGrid, catchupAvailable } from './epggrid.js';
+import { ChannelEditor } from './channeleditor.js';
+import { channelPreferences, visibilityFilter, ordered } from './channelprefs.js';
+import { ProgrammeSearch } from './programmesearch.js';
 import { cacheClear, wipeStorage, storageEstimate } from './db.js';
 import { parsePlaylistUrl, streamUrl, timeshiftUrl, baseUrl, parseServer } from './xtream.js';
 import { api } from './browser.js';
 import { requestAccess, hasAccess } from './permissions.js';
 import { externalLabel, handOff } from './external.js';
 import { Cast, supported as castSupported } from './cast.js';
-import { warmCache, peek, badge as probeBadge, subtitleSummary } from './probe.js';
+import { warmCache, peek, badge as probeBadge, subtitleSummary, audioDetails } from './probe.js';
 import { shortLanguage } from './lang.js';
 import { label as audioLabel } from './audio.js';
 import { SubtitleDisplay, subtitleLook } from './subdisplay.js';
@@ -37,7 +43,7 @@ const el = {
   sublook: $('btn-sublook'), sublookPop: $('sublook-pop'),
   progress: $('progress'),
   epg: $('epg'), epgPreview: $('epg-preview'),
-  pTitle: $('p-title'), pFill: $('p-fill'), pText: $('p-text'), toast: $('toast'),
+  pTitle: $('p-title'), pFill: $('p-fill'), pText: $('p-text'), pPercent: $('p-percent'), toast: $('toast'),
 };
 
 const TYPE_OF_TAB = { live: 'live', movie: 'movie', series: 'series' };
@@ -72,6 +78,9 @@ const state = {
   groupItems: [],         // every item of the chosen group, in memory
   categoryFilter: '', query: '',
   cleanName: null,        // the row-name tidier, null = the name as it is
+  listLoading: false,
+  listError: null,
+  listRequest: 0,
   kind: null,             // a collection's type filter, null = all
   rows: [], rowIndex: new Map(), sections: new Map(), cursor: -1,
   // A drill-down into the list. A series and a favourite category share the
@@ -86,8 +95,11 @@ const state = {
   playing: null, playingSpec: null, catchup: null,
   subtitles: [],          // the subtitle tracks of the file being played
   audioTracks: [],        // the audio tracks of the file being played, see js/audio.js
+  activeAudio: null,      // the track confirmed by the playback engine
+  playbackInfoLoading: false,
   subtitleInfo: null,     // what the file being played holds, once the player has looked: { tracks, bitmap }
   favorites: new Map(), recents: [], resume: new Map(),
+  channelPrefs: channelPreferences(),
   lastGroup: {}, lastKind: {},
   searchReturn: null,     // the group a search took over from, restored when the search ends
   subcatsHeight: null,    // the topic bar's height when dragged, null = automatic
@@ -98,6 +110,8 @@ const isCollection = () => COLLECTIONS.has(state.tab);
 /* ============================================================ connection */
 
 async function connect({ silent = false } = {}) {
+  programmeSearch.clear();
+  if (guideOpen) closeGuide();
   const config = state.config;
   try {
     if (!config.host || !config.username || !config.password) { openSetup(); return false; }
@@ -142,12 +156,35 @@ const isAbort = (err) => Boolean(err && err.name === 'AbortError');
  * way to try again.
  */
 function showListError(err, retry) {
+  finishListLoad();
   const message = err instanceof ApiError ? err.message : t('error.unexpected', { message: err.message });
+  state.listError = message;
   console.error('[iptv] the list could not be loaded', err);
   if (state.rows.length) { toast(message, { long: true }); return; }
   const existing = el.list.querySelector('.empty');
   if (existing) existing.remove();
   el.list.appendChild(emptyState(t('error.list'), message, retry ? { label: t('player.retry'), onClick: retry } : null));
+}
+
+function finishListLoad() {
+  state.listLoading = false;
+  el.list.setAttribute('aria-busy', 'false');
+  el.list.querySelector('.list-loading')?.remove();
+  renderListInfo();
+}
+
+function showListCancelled(retry) {
+  finishListLoad();
+  if (state.rows.length) { toast(t('progress.cancelled')); return; }
+  el.list.querySelector('.empty')?.remove();
+  el.list.appendChild(emptyState(t('progress.cancelled'), '', { label: t('player.retry'), onClick: retry }));
+}
+
+function beginListLoad({ keepScroll = false } = {}) {
+  const request = ++state.listRequest;
+  state.listError = null;
+  showRows(keepScroll ? state.rows : [], { keepScroll, loading: true });
+  return request;
 }
 
 /** The viewer cancelled connecting: nothing is wrong, and the way on is the same. */
@@ -229,6 +266,7 @@ function tabType() { return TYPE_OF_TAB[state.tab] || null; }
 
 async function activateTab(tab, { restore = false } = {}) {
   state.tab = tab;
+  $('channel-tools').hidden = tab !== 'live';
   for (const button of el.tabs.children) {
     button.classList.toggle('active', button.dataset.tab === tab);
     button.setAttribute('aria-selected', String(button.dataset.tab === tab));
@@ -241,10 +279,11 @@ async function activateTab(tab, { restore = false } = {}) {
 
   const type = tabType();
 
+  if (type === 'live' && state.group && !visibleGroups(type).some((g) => g.name === state.group)) state.group = null;
   // First open: pick a group, so the list fills from a few kilobytes rather
   // than by loading the type's whole list straight away.
   if (type && state.group == null && !state.lib.isFull(type)) {
-    const groups = state.lib.groups[type];
+    const groups = visibleGroups(type);
     if (groups.length) state.group = groups[0].name;
   }
 
@@ -256,14 +295,18 @@ async function activateTab(tab, { restore = false } = {}) {
   // opens an item from the tab the viewer has just left — measured, a
   // click on Channels followed by a click on the top row opened a series.
   // The list is therefore emptied with the tab, and fills a moment later.
-  showRows([]);
+  mediaFilters.apply([], null);
   await refreshRows();
 }
 
 async function refreshRows({ keepScroll = false } = {}) {
   const type = tabType();
+  const library = state.lib;
+  const request = beginListLoad({ keepScroll });
+  const current = () => state.listRequest === request && state.lib === library;
   let rows = [];
   renderDetail();   // the detail panel follows the state on a tab change too
+  if (state.detail?.loading) return;
 
   try {
     if (state.detail) {
@@ -275,20 +318,23 @@ async function refreshRows({ keepScroll = false } = {}) {
       // collection's own order within a type.
       else if (state.tab === 'fav') rows = [...rows].sort((a, b) => kindIndex(a) - kindIndex(b));
     } else if (state.query) {
-      if (!(await ensureFull(type, t('progress.reason.search')))) return false;
+      if (!(await ensureFull(type, t('progress.reason.search'), current)) || !current()) return false;
       rows = state.lib.search(type, state.query, null);
     } else if (state.group == null) {
-      if (!(await ensureFull(type, t('progress.reason.all')))) return false;
+      if (!(await ensureFull(type, t('progress.reason.all'), current)) || !current()) return false;
       rows = state.lib.full[type];
     } else {
-      state.groupItems = await loadGroupItems(type, state.group);
+      const items = await loadGroupItems(type, state.group, current);
+      if (!current()) return false;
+      state.groupItems = items;
       rows = state.sub
         ? state.groupItems.filter((it) => it.cats.includes(state.sub))
         : state.groupItems;
     }
   } catch (err) {
+    if (!current()) return false;
     hideProgress();
-    if (isAbort(err)) toast(t('progress.cancelled')); else showListError(err, () => refreshRows());
+    if (isAbort(err)) showListCancelled(() => refreshRows()); else showListError(err, () => refreshRows());
     return false;
   }
 
@@ -301,15 +347,30 @@ async function refreshRows({ keepScroll = false } = {}) {
   // from a row, the library's sorting no longer matches what the list
   // shows.
   state.cleanName = nameCleanerFor(rows);
-  if (state.cleanName) rows = sortItems(rows, state.cleanName);
+  // Episode order comes from season/episode numbers, even when names are tidied.
+  if (state.cleanName && !state.query && state.detail?.view !== 'series') rows = sortItems(rows, item => state.cleanName(item.n, item));
+  rows = visibleRows(rows);
+  if ((type === 'live' || state.detail?.entry?.t === 'live') && !state.query) {
+    rows = ordered(rows, state.channelPrefs.channelOrder);
+  }
+  const filterType = !isCollection() && !state.detail && (type === 'movie' || type === 'series') ? type : null;
+  rows = mediaFilters.apply(rows, filterType);
   showRows(rows, { keepScroll });
 }
+
+const mediaFilters = new MediaFilters($('media-filters'), () => {
+  state.cursor = -1;
+  refreshRows();
+}, item => item.details || state.lib?.details.get(`${item.k === 1 ? 'vod' : 'series'}:v2:${item.id}`));
 
 /**
  * The rows on screen. Everything painted from them follows in one call, so
  * that nothing on screen can belong to a list that is no longer shown.
  */
-function showRows(rows, { keepScroll = false } = {}) {
+function showRows(rows, { keepScroll = false, loading = false } = {}) {
+  state.listLoading = loading;
+  el.list.setAttribute('aria-busy', String(loading));
+  programmeSearch.clear();
   state.rows = rows;
   state.catCounts = categoryCountsFor(rows);
   state.rowIndex = new Map(rows.map((it, i) => [`${it.k}:${it.id}`, i]));
@@ -330,7 +391,7 @@ function showRows(rows, { keepScroll = false } = {}) {
 
 /** The whole set of favourites or history, before any filters. */
 function collectionItems() {
-  return state.tab === 'fav' ? favoritesNewestFirst() : state.recents;
+  return visibleRows(state.tab === 'fav' ? favoritesNewestFirst() : state.recents);
 }
 
 /**
@@ -421,12 +482,10 @@ function categoryCountsFor(rows) {
 async function openFavCategory(entry) {
   if (!state.lib) { toast(t('error.noserver')); return; }
   const back = state.detail;
-  state.detail = { view: 'category', entry, items: [], back };
+  state.detail = { view: 'category', entry, items: [], back, loading: true };
   state.cursor = -1;
   renderDetail();
-  state.rows = [];
-  state.sections = new Map();
-  vlist.setCount(0);
+  beginListLoad();
   const open = state.detail;
   try {
     const items = entry.c == null
@@ -434,8 +493,10 @@ async function openFavCategory(entry) {
       : await state.lib.categoryItems(entry.t, entry.c);
     if (state.detail !== open) return;
     state.detail.items = items;
+    state.detail.loading = false;
     await refreshRows();
   } catch (err) {
+    if (state.detail !== open) return;
     if (state.detail === open) { state.detail = back; renderDetail(); await refreshRows(); }
     showListError(err, () => openFavCategory(entry));
   }
@@ -501,22 +562,21 @@ async function clearHistory() {
  * kilobytes, and after this, switching between topics needs no network at
  * all.
  */
-async function loadGroupItems(type, groupName) {
+async function loadGroupItems(type, groupName, current = () => true) {
   const group = state.lib.group(type, groupName);
   const heavy = group && group.cats.length > 3 && !state.lib.isFull(type);
-  if (heavy) showProgress(t('progress.group', { group: groupName }), t('progress.categories', { done: 0, total: group.cats.length }));
+  if (heavy) showProgress(t('progress.group', { group: groupName }), t('progress.categories', { done: 0, total: group.cats.length }), 0);
   try {
     return await state.lib.groupItems(type, groupName, {
       signal: progressSignal(),
       onProgress: (done, total) => {
-        if (!heavy) return;
-        el.pFill.parentElement.classList.remove('indeterminate');
+        if (!heavy || !current()) return;
         fillBar(done / total);
         el.pText.textContent = t('progress.categories', { done, total });
       },
     });
   } finally {
-    if (heavy) hideProgress();
+    if (heavy && current()) hideProgress();
   }
 }
 
@@ -536,24 +596,26 @@ function renderSubcats() {
     return;
   }
   const counts = new Map();
-  for (const item of state.groupItems) {
+  const visibleItems = type === 'live' ? visibleRows(state.groupItems) : state.groupItems;
+  for (const item of visibleItems) {
     for (const cat of item.cats) counts.set(cat, (counts.get(cat) || 0) + 1);
   }
   // The buttons in alphabetical order, but the group's own general
   // category ("Sweden" with no topic) right after the All button: it is not
   // a topic among topics but the country's main channels.
-  const ordered = [...group.cats].sort((a, b) => {
+  let cats = [...group.cats].sort((a, b) => {
     if (!a.sub !== !b.sub) return a.sub ? 1 : -1;
     return (a.sub || '').localeCompare(b.sub || '', 'fi');
   });
+  if (type === 'live') cats = ordered(cats.filter((c) => !state.channelPrefs.hiddenCategories.includes(c.id)), state.channelPrefs.categoryOrder);
 
   const frag = document.createDocumentFragment();
   // "All" is the whole group, and its star is on the sidebar row — two
   // buttons for the same favourite would blur both.
   frag.appendChild(chipRow({
-    label: t('subcats.all'), count: nf.format(state.groupItems.length), active: state.sub == null,
+    label: t('subcats.all'), count: nf.format(visibleItems.length), active: state.sub == null,
   }, () => selectSub(null)));
-  for (const cat of ordered) {
+  for (const cat of cats) {
     const count = counts.get(cat.id) || 0;
     if (count === 0) continue;
     const entry = favCategoryEntry(type, group.name, cat);
@@ -689,22 +751,23 @@ async function selectSub(categoryId) {
   await refreshRows();
 }
 
-async function ensureFull(type, reason) {
+async function ensureFull(type, reason, current = () => true) {
   if (state.lib.isFull(type)) return true;
   showProgress(t('progress.list', { what: t(`progress.list.${type}`) }), reason);
   try {
     await state.lib.ensureFull(type, {
       signal: progressSignal(),
-      onProgress: (received, total) => updateProgress(received, total),
+      onProgress: (received, total) => { if (current()) updateProgress(received, total); },
     });
-    renderSidebar();
+    if (current()) renderSidebar();
     return true;
   } catch (err) {
+    if (!current()) return false;
     hideProgress();
-    if (isAbort(err)) toast(t('progress.cancelled')); else showListError(err, () => refreshRows());
+    if (isAbort(err)) showListCancelled(() => refreshRows()); else showListError(err, () => refreshRows());
     return false;
   } finally {
-    hideProgress();
+    if (current()) hideProgress();
   }
 }
 
@@ -712,10 +775,24 @@ function renderEmptyState() {
   const existing = el.list.querySelector('.empty');
   if (existing) existing.remove();
   if (state.rows.length > 0) return;
+  if (state.listLoading) {
+    const loading = document.createElement('div');
+    loading.className = 'empty list-loading';
+    loading.setAttribute('role', 'status');
+    const spinner = document.createElement('span');
+    spinner.className = 'list-spinner';
+    spinner.setAttribute('aria-hidden', 'true');
+    const label = document.createElement('span');
+    label.textContent = t('progress.loading');
+    loading.append(spinner, label);
+    el.list.appendChild(loading);
+    return;
+  }
   const type = tabType();
   const browse = { label: t('empty.browse'), onClick: () => activateTab('live') };
   let node;
-  if (state.query) node = emptyState(t('empty.nohits'), t('empty.nohits.text', { query: state.query }));
+  if (mediaFilters.filtering) node = emptyState(t('filters.nohits'), t('filters.nohits.text'), { label: t('filters.reset'), onClick: () => mediaFilters.clear() });
+  else if (state.query) node = emptyState(t('empty.nohits'), t('empty.nohits.text', { query: state.query }));
   else if (state.detail && state.detail.view === 'category') {
     node = emptyState(t('empty.category'), t('empty.category.text'));
   } else if (state.tab === 'fav') {
@@ -727,6 +804,10 @@ function renderEmptyState() {
 }
 
 function renderListInfo() {
+  if (state.listLoading) {
+    el.listinfo.textContent = t('progress.loading');
+    return;
+  }
   const type = tabType();
   const parts = [];
   const count = state.rows.length;
@@ -748,9 +829,16 @@ function renderListInfo() {
       ? state.lib.categoryName(type, state.sub)
       : `${state.group}${group && group.cats.length > 1 ? ` · ${t('list.topics', { n: group.cats.length })}` : ''}`);
   }
-  if (type && state.lib && !state.lib.isFull(type) && !state.detail) parts.push(t('list.partial'));
 
   el.listinfo.replaceChildren(document.createTextNode(parts.join(' · ')));
+  if (state.tab === 'live' && state.lib) {
+    const button = document.createElement('button');
+    button.type = 'button';
+    button.id = 'btn-organize';
+    button.textContent = t('organize.title');
+    button.addEventListener('click', openChannelEditor);
+    el.listinfo.append(button);
+  }
   if (state.tab === 'recent' && state.recents.length) {
     const spacer = document.createElement('span');
     spacer.className = 'spacer';
@@ -837,17 +925,26 @@ function renderCategories() {
   el.groupsFilter.hidden = false;
   if (!type || !state.lib) { el.groups.replaceChildren(); return; }
 
-  const counts = state.lib.groupCounts(type);
+  let counts = state.lib.groupCounts(type);
+  const full = state.lib.full[type];
+  const visible = type === 'live' && full ? visibleRows(full) : full;
+  if (type === 'live' && full) {
+    const groupOf = new Map(visibleGroups(type).flatMap((g) => g.cats.map((c) => [c.id, g.name])));
+    counts = new Map();
+    for (const item of visible) {
+      for (const group of new Set(item.cats.map((id) => groupOf.get(id)).filter(Boolean))) counts.set(group, (counts.get(group) || 0) + 1);
+    }
+  }
   const filter = state.categoryFilter.trim().toLowerCase();
   // The filter matches sub-categories too, so that "sport" finds the
   // countries that have one even when the country's name lacks the word.
-  const groups = state.lib.groups[type].filter((g) => !filter
+  const groups = visibleGroups(type).filter((g) => !filter
     || g.name.toLowerCase().includes(filter)
     || g.cats.some((c) => c.name.toLowerCase().includes(filter)));
 
   const frag = document.createDocumentFragment();
   if (!filter) {
-    const total = state.lib.full[type] ? state.lib.full[type].length : null;
+    const total = visible ? visible.length : null;
     const all = categoryRow(
       { id: null, name: t('groups.all'), count: total, active: state.group == null, all: true, indent: true },
       selectGroup,
@@ -871,21 +968,69 @@ function renderCategories() {
 }
 
 async function selectGroup(name) {
-  const before = { group: state.group, sub: state.sub };
+  programmeSearch.clear();
+  const before = { group: state.group, sub: state.sub, rows: state.rows, groupItems: state.groupItems };
   state.group = name;
   state.sub = null;
   state.detail = null;
   state.cursor = -1;
   state.lastGroup[state.tab] = name;
   renderSidebar();
-  if (await refreshRows() === false) {
-    // The load was cancelled or failed: the rows on screen are still the
-    // old group's, so the sidebar goes back to saying so.
+  const pending = refreshRows();
+  const request = state.listRequest;
+  if (await pending === false && request === state.listRequest) {
+    // Loading clears the rows. Restore the previous view on cancellation
+    // or failure, unless a newer navigation already owns the list.
     state.group = before.group;
     state.sub = before.sub;
+    state.groupItems = before.groupItems;
     state.lastGroup[state.tab] = before.group;
     renderSidebar();
+    showRows(before.rows);
+    if (state.listError) toast(state.listError, { long: true });
   }
+}
+
+function visibleGroups(type) {
+  const groups = state.lib?.groups[type] || [];
+  if (type !== 'live') return groups;
+  const hidden = new Set(state.channelPrefs.hiddenCategories);
+  const rank = new Map(state.channelPrefs.categoryOrder.map((id, i) => [id, i]));
+  return groups.map((g) => ({ ...g, cats: g.cats.filter((c) => !hidden.has(c.id)) }))
+    .filter((g) => g.cats.length)
+    .sort((a, b) => Math.min(...a.cats.map((c) => rank.get(c.id) ?? Infinity))
+      - Math.min(...b.cats.map((c) => rank.get(c.id) ?? Infinity)));
+}
+
+function visibleRows(rows) {
+  const prefs = state.channelPrefs;
+  const visible = visibilityFilter(prefs);
+  const groups = new Set(visibleGroups('live').map((g) => g.name));
+  return rows.filter((item) => {
+    if (!visible(item)) return false;
+    if (item.k !== 'c' || item.t !== 'live' || !prefs.hiddenCategories.length) return true;
+    if (item.c != null) return !prefs.hiddenCategories.includes(item.c);
+    return groups.has(item.g);
+  });
+}
+
+const channelEditor = new ChannelEditor(async (prefs) => {
+  await store.saveChannelPreferences(prefs);
+  state.channelPrefs = channelPreferences(prefs);
+  if (state.group && !visibleGroups('live').some((g) => g.name === state.group)) {
+    state.group = visibleGroups('live')[0]?.name ?? null;
+    state.sub = null;
+  }
+  if (state.channelPrefs.hiddenCategories.includes(state.sub)) state.sub = null;
+  state.lastGroup.live = state.group;
+  renderSidebar();
+  renderGuideGroups();
+  await refreshRows();
+});
+
+async function openChannelEditor() {
+  if (!state.lib || !await ensureFull('live', t('organize.loading'))) return;
+  channelEditor.show(state.lib.full.live, state.lib.groups.live, state.channelPrefs, state.group);
 }
 
 /**
@@ -918,6 +1063,21 @@ const vlist = new VirtualList(el.list, ROW_H, renderRow, {
     // In guide mode the list is hidden, and its visible rows would take the
     // programme-data queue away from the grid.
     if (state.epg && !guideOpen) state.epg.setVisible(state.rows.slice(first, last));
+    const lib = state.lib;
+    if (lib) lib.warmMovieDurations(guideOpen ? [] : state.rows.slice(first, last), (id, info) => {
+      if (state.lib !== lib) return;
+      mediaFilters.metadataChanged();
+      const index = state.rowIndex.get(`1:${id}`);
+      if (index != null) {
+        state.rows[index].details = info;
+        state.rows[index].durationSec = info.durationSec;
+        vlist.refreshRow(index);
+      }
+      if (state.playing?.k === 1 && state.playing.id === id) {
+        state.playing.details = info;
+        renderInfoStrip();
+      }
+    });
   },
 });
 
@@ -932,7 +1092,7 @@ function renderRow(index) {
     onOpen: () => { state.cursor = index; openFavCategory(item); },
     onFavorite: () => toggleFavCategory(item),
   }) : itemRow(item, {
-    label: state.cleanName ? state.cleanName(item.n) : null,
+    label: state.cleanName ? state.cleanName(item.n, item) : null,
     playing: state.playing && `${state.playing.k}:${state.playing.id}` === key,
     selected: index === state.cursor,
     domId: rowDomId(index),
@@ -940,6 +1100,7 @@ function renderRow(index) {
     epg: item.k === 0 && state.epg ? state.epg.nowNext(item.id) : null,
     resume: state.resume.get(key),
     tag: tagFor(item),
+    showEpisodeCover: state.tab === 'recent',
     probe: probeFor(item),
     onOpen: () => { state.cursor = index; openItem(item); },
     onFavorite: () => toggleFavorite(item),
@@ -960,10 +1121,15 @@ function renderRow(index) {
 /**
  * Once a country or a category is chosen, the sidebar says what every row
  * name repeats: "US: NHL Ice Center Pass 3 FHD" is, under NHL, merely "Ice
- * Center Pass 3 FHD". In search and in the collections the rows come from
- * different groups, so there the prefix distinguishes — and stays put.
+ * Center Pass 3 FHD". Movie and series search results use their own group
+ * rules, since one search can contain titles from several countries.
  */
 function nameCleanerFor(rows) {
+  if (state.detail?.view === 'series') return state.detail.cleanName;
+  const type = tabType();
+  if (state.query && !state.detail && (type === 'movie' || type === 'series') && state.lib?.full[type]) {
+    return searchNameCleaner(state.lib.groups[type], state.lib.full[type]);
+  }
   // Inside a favourite category the filter is known even though the sidebar
   // does not show it, so the row names tidy up as in the browsing view.
   if (state.detail && state.detail.view === 'category') {
@@ -971,7 +1137,6 @@ function nameCleanerFor(rows) {
     return nameCleaner(entry.g && entry.g !== entry.n ? [entry.g, entry.n] : [entry.n], rows);
   }
   if (isCollection() || state.detail || state.query || state.group == null) return null;
-  const type = tabType();
   const group = type && state.lib ? state.lib.group(type, state.group) : null;
   if (!group) return null;
   const labels = [group.name];
@@ -990,7 +1155,7 @@ function nameCleanerFor(rows) {
  */
 function tagFor(item) {
   if (state.tab !== 'recent' || !item.watchedAt) return null;
-  return { text: clock(item.watchedAt), title: t('row.watched', { stamp: stampFmt.format(new Date(item.watchedAt)) }) };
+  return { text: clock(item.watchedAt).replace(/^0(?=\d)/, ''), icon: 'clock', title: t('row.watched', { stamp: stampFmt.format(new Date(item.watchedAt)) }) };
 }
 
 /**
@@ -1026,8 +1191,8 @@ function toggleFavorite(item) {
 
 /** Only the fields the list needs for painting are kept. */
 function stripItem(item) {
-  const { id, k, n, logo, ext, season, episode, archive, epgId, direct, cats, durationSec } = item;
-  return { id, k, n, logo, ext, season, episode, archive, epgId, direct, cats, durationSec };
+  const { id, k, n, logo, ext, season, episode, archive, epgId, direct, cats, durationSec, seriesCover, seriesName, displayName, rating, ratingScale } = item;
+  return { id, k, n, logo, ext, season, episode, archive, epgId, direct, cats, durationSec, seriesCover, seriesName, displayName, rating, ratingScale };
 }
 
 /* ================================================================ series */
@@ -1039,23 +1204,44 @@ async function openItem(item) {
 }
 
 async function openSeries(item) {
+  mediaFilters.apply([], null);
   // A series opened from a favourite category stays inside the category:
   // going back returns to the list it was chosen from.
   const back = state.detail && state.detail.view === 'category' ? state.detail : null;
-  state.detail = { view: 'series', item, info: null, season: null, back };
+  // Keep the parent list's rules: the episode list is a different set and
+  // must not infer new prefixes from its repeated series title.
+  const sourceItem = item;
+  const parentCleaner = state.cleanName;
+  const cleanName = parentCleaner ? name => parentCleaner(name, sourceItem) : null;
+  item = { ...item, displayName: cleanName ? cleanName(item.n) : item.displayName || item.n };
+  state.detail = { view: 'series', item, info: null, season: null, back, cleanName, loading: true };
+  const open = state.detail;
   renderDetail();
-  state.rows = [];
-  state.sections = new Map();
-  vlist.setCount(0);
+  beginListLoad();
   try {
     const info = await state.lib.seriesEpisodes(item.id);
-    if (!state.detail || state.detail.view !== 'series' || state.detail.item.id !== item.id) return;
-    state.detail.info = info;
+    if (state.detail !== open) return;
+    state.detail.loading = false;
+    // Episodes often have no artwork of their own. Carry the parent cover
+    // with each episode so playback keeps it even after leaving this view
+    // or reopening the episode from history or favourites. Also enrich
+    // cached responses, without changing the shared cache object.
+    state.detail.info = {
+      ...info,
+      episodes: info.episodes.map(episode => ({
+        ...episode,
+        displayName: cleanName ? cleanName(episode.n) : episode.n,
+        seriesCover: info.cover || item.logo || '',
+        seriesName: cleanName ? cleanName(item.n) : item.displayName || item.n,
+      })),
+    };
     const seasons = seasonNumbers(info.episodes);
     state.detail.season = seasons[0] ?? null;
     renderDetail();
     await refreshRows();
   } catch (err) {
+    if (state.detail !== open) return;
+    state.detail.loading = false;
     showListError(err, () => openSeries(item));
   }
 }
@@ -1069,28 +1255,6 @@ function episodesOfSeason() {
   if (!detail || detail.view !== 'series' || !detail.info) return [];
   const eps = detail.info.episodes;
   return detail.season == null ? eps : eps.filter((e) => e.season === detail.season);
-}
-
-// A transparent 1×1 GIF. Chrome draws a thin border and a broken-image mark
-// on every image without a loaded source — including when src has been
-// removed altogether, so removing it is not enough. With the pixel in place
-// all that shows is the element's own background, which is the placeholder
-// for a missing cover anyway.
-const BLANK_PIXEL = 'data:image/gif;base64,R0lGODlhAQABAAAAACH5BAEKAAEALAAAAAABAAEAAAICTAEAOw==';
-
-/**
- * A cover image that leaves no broken image on screen: some of the library's
- * cover and logo URLs are dead. On list rows (rows.js) the same situation is
- * handled by hiding the image entirely, because there is no background there
- * to fall back on.
- */
-function coverImage(className, src) {
-  const img = document.createElement('img');
-  if (className) img.className = className;
-  img.alt = '';
-  img.src = src || BLANK_PIXEL;
-  if (src) img.addEventListener('error', () => { img.src = BLANK_PIXEL; }, { once: true });
-  return img;
 }
 
 function renderDetail() {
@@ -1107,7 +1271,9 @@ function renderDetail() {
   back.textContent = t('crumbs.back');
   back.addEventListener('click', closeDetail);
   const label = document.createElement('span');
-  label.textContent = detail.view === 'category' ? crumbLabel(detail.entry) : detail.item.n;
+  const displayTitle = detail.view === 'series' ? (detail.cleanName ? detail.cleanName(detail.item.n) : detail.item.displayName || detail.item.n) : '';
+  label.textContent = detail.view === 'category' ? crumbLabel(detail.entry) : displayTitle;
+  if (detail.view === 'series') label.title = detail.item.n;
   el.crumbs.append(back, label);
 
   if (detail.view === 'category') { el.detail.replaceChildren(); return; }
@@ -1116,32 +1282,29 @@ function renderDetail() {
   const main = document.createElement('div');
   main.className = 'detail-main';
 
-  const cover = coverImage('detail-cover', (info && info.cover) || detail.item.logo);
-  cover.loading = 'lazy';
+  const cover = poster('detail-cover', (info && info.cover) || detail.item.logo, 'series', { expand: true, title: displayTitle });
   main.appendChild(cover);
 
   const body = document.createElement('div');
   body.className = 'detail-body';
+  const heading = document.createElement('div');
+  heading.className = 'detail-heading';
   const title = document.createElement('div');
   title.className = 'detail-title';
-  title.textContent = detail.item.n;
-  body.appendChild(title);
+  title.textContent = displayTitle;
+  title.title = detail.item.n;
+  const favorite = document.createElement('button');
+  favorite.type = 'button';
+  favorite.id = 'detail-fav';
+  favorite.className = 'ghost series-favorite';
+  favorite.addEventListener('click', () => toggleFavorite(detail.item));
+  heading.append(title, favorite);
+  body.appendChild(heading);
 
-  const meta = document.createElement('div');
-  meta.className = 'detail-meta';
-  const bits = [];
-  if (info) {
-    if (info.releaseDate) bits.push(String(info.releaseDate).slice(0, 4));
-    if (info.genre) bits.push(info.genre);
-    if (info.rating) bits.push(`★ ${info.rating}`);
-    bits.push(t('list.episodes', { count: info.episodes.length, n: nf.format(info.episodes.length) }));
-  } else bits.push(t('progress.loading'));
-  for (const bit of bits) {
-    const span = document.createElement('span');
-    span.textContent = bit;
-    meta.appendChild(span);
-  }
-  body.appendChild(meta);
+  body.appendChild(titleFacts(info || detail.item, {
+    episodes: info?.episodes.length,
+    seasons: info ? seasonNumbers(info.episodes).filter(season => season > 0).length : undefined,
+  }));
 
   if (info && (info.plot || detail.item.plot)) {
     const plot = document.createElement('div');
@@ -1149,8 +1312,10 @@ function renderDetail() {
     plot.textContent = info.plot || detail.item.plot;
     body.appendChild(plot);
   }
+  body.appendChild(externalLinks(detail.item, info));
   main.appendChild(body);
   el.detail.replaceChildren(main);
+  renderSeriesFavorite();
 
   if (info) {
     const seasons = seasonNumbers(info.episodes);
@@ -1193,6 +1358,7 @@ const playback = new Playback(el.video, onPlaybackState);
 
 function onPlaybackState(s) {
   if (s.status === 'playing') {
+    state.playbackInfoLoading = false;
     el.overlay.hidden = true;
     el.overlay.classList.remove('loading');
     showOverlayActions(null);
@@ -1201,13 +1367,15 @@ function onPlaybackState(s) {
     // are none the player could show, and the details say so.
     if (!state.subtitleInfo && playback.engineKey !== 'remux') {
       state.subtitleInfo = { tracks: [], bitmap: 0 };
-      renderInfoStrip();
     }
+    renderInfoStrip();
   } else if (s.status === 'loading') {
+    state.playbackInfoLoading = true;
+    renderInfoStrip();
     el.overlay.hidden = false;
     el.overlay.classList.add('loading');
     el.overlayTitle.textContent = t('progress.connecting');
-    el.overlayText.textContent = `${state.playing ? state.playing.n : ''} · ${s.engine}`;
+    el.overlayText.textContent = `${state.playing ? state.playing.displayName || state.playing.n : ''} · ${s.engine}`;
     showOverlayActions(null);
   } else if (s.status === 'reconnecting') {
     el.overlay.hidden = false;
@@ -1231,7 +1399,12 @@ function onPlaybackState(s) {
     if (s.external) rememberSubtitleLanguage(s.active);
   } else if (s.status === 'audio') {
     renderAudio(s.tracks, s.active);
+    renderInfoStrip();
+  } else if (s.status === 'metadata') {
+    renderInfoStrip();
   } else if (s.status === 'probing') {
+    state.playbackInfoLoading = true;
+    renderInfoStrip();
     el.overlay.hidden = false;
     el.overlay.classList.add('loading');
     el.overlayTitle.textContent = t('player.probing');
@@ -1243,6 +1416,8 @@ function onPlaybackState(s) {
     el.overlayTitle.textContent = t('player.waiting');
     el.overlayText.textContent = s.message;
   } else if (s.status === 'error') {
+    state.playbackInfoLoading = false;
+    renderInfoStrip();
     el.overlay.hidden = false;
     el.overlay.classList.remove('loading');
     el.overlayTitle.textContent = t('player.failed');
@@ -1250,7 +1425,7 @@ function onPlaybackState(s) {
     // Right here an external player is worth the most: the browser has
     // already given up.
     const actions = [
-      { label: t('player.retry'), onClick: () => state.playing && playItem(state.playing) },
+      { label: t('player.retry'), onClick: retryPlayback },
       { label: t('ext.title'), onClick: playExternal },
       { label: t('player.copyurl'), onClick: copyUrl },
     ];
@@ -1267,7 +1442,7 @@ function onPlaybackState(s) {
     // permission is checked against this stream's own origin.
     if (state.playingSpec) {
       offerAccess(state.playingSpec.url, actions,
-                  () => state.playing && playItem(state.playing));
+                  retryPlayback);
     }
   }
 }
@@ -1286,6 +1461,9 @@ function showOverlayActions(actions) {
 }
 
 async function playItem(item, { startAt, allowSilent } = {}) {
+  // Snapshot the visible name so later browsing cannot rename playback.
+  const displayName = item.displayName || (state.rows.includes(item) && state.cleanName ? state.cleanName(item.n, item) : item.n);
+  item = { ...item, displayName };
   const live = item.k === 0;
   const url = streamUrl(state.config, item, 'ts');
   if (!url) { toast(t('player.nourl')); return; }
@@ -1305,16 +1483,21 @@ async function playItem(item, { startAt, allowSilent } = {}) {
 
   state.playing = item;
   state.playingSpec = spec;
+  state.playbackInfoLoading = !live;
+  item.detailsLoading = item.k === 1 && !item.details;
   state.catchup = null;
+  $('btn-live').hidden = true;
+  el.mode.disabled = false;
   // Clear the previous file's tracks: the new ones arrive only once the
   // header has been read.
   renderSubtitles([], null);
   renderAudio([], null);
   state.subtitleInfo = null;
-  el.nowTitle.textContent = item.n;
+  el.nowTitle.textContent = displayName;
+  el.nowTitle.title = item.n;
   renderNowSub();
   renderFavButton();
-  document.title = t('player.title', { name: item.n });
+  document.title = t('player.title', { name: displayName });
   if (guideOpen) grid.setPlaying(live ? item.id : null);
 
   playback.play(spec);
@@ -1394,6 +1577,7 @@ function renderSubtitles(tracks, active) {
  */
 function renderAudio(tracks, active) {
   const list = tracks || [];
+  state.activeAudio = list.find((track) => track.number === active) || null;
   const select = el.audio;
   if (list !== state.audioTracks) {
     state.audioTracks = list;
@@ -1458,8 +1642,7 @@ function chooseSubtitle() {
  */
 // The same two controls exist twice: in the settings, where a preview
 // stands in for the picture, and over the picture itself under the
-// player's Aa button. One look, so both are written on every change and
-// neither can drift from the other.
+// player's Aa button. The dialog renders its draft in a separate preview.
 const LOOK_FORMS = ['f', 'p'];
 
 function applySubtitleLook(settings) {
@@ -1474,9 +1657,8 @@ function applySubtitleLook(settings) {
 }
 
 /**
- * The viewer's choice, from whichever of the two the change came. It takes
- * effect at once, like the language. The slider shows its effect while it
- * is dragged and is saved when it is let go.
+ * The player's Aa adjustment applies immediately. Dialog adjustments
+ * use previewSetupLook and wait for Save.
  */
 async function chooseSubtitleLook(form) {
   const patch = { subtitleStyle: $(`${form}-substyle`).value, subtitleSize: Number($(`${form}-subsize`).value) };
@@ -1518,6 +1700,25 @@ function toggleFullscreen() {
   else enterFullscreen();
 }
 
+/** The same control enters and leaves full screen, including after Esc. */
+function renderFullscreenButton() {
+  const full = document.fullscreenElement === el.videowrap;
+  const button = $('btn-fullscreen');
+  const hasVideo = el.video.readyState >= HTMLMediaElement.HAVE_CURRENT_DATA
+    && el.video.videoWidth > 0 && !el.video.error;
+  // Pausing keeps the picture available. An empty player has no action,
+  // but full screen must always retain its exit button if playback fails.
+  button.hidden = !full && !hasVideo;
+  const label = full ? 'player.fullscreen.exit' : 'player.fullscreen.title';
+  button.dataset.i18nTitle = label;
+  button.dataset.i18nLabel = label;
+  button.title = t(label);
+  button.setAttribute('aria-label', t(label));
+  button.querySelector('path').setAttribute('d', full
+    ? 'M3 8h5V3M12 3v5h5M17 12h-5v5M8 17v-5H3'
+    : 'M3 8V3h5M12 3h5v5M17 12v5h-5M8 17H3v-5');
+}
+
 /**
  * The language is kept for the coming episodes — not the track number,
  * because the numbers vary from one file to the next.
@@ -1529,7 +1730,19 @@ async function rememberSubtitleLanguage(number) {
   state.settings = await store.saveSettings({ subtitleLang: language });
 }
 
+function renderSeriesFavorite() {
+  const button = $('detail-fav');
+  if (!button || state.detail?.view !== 'series') return;
+  const on = isFavorite(state.detail.item);
+  button.textContent = on ? '★' : '☆';
+  button.classList.toggle('on', on);
+  button.setAttribute('aria-pressed', String(on));
+  button.title = t(on ? 'fav.series.remove' : 'fav.series.add');
+  button.setAttribute('aria-label', button.title);
+}
+
 function renderFavButton() {
+  renderSeriesFavorite();
   const button = $('btn-fav');
   const item = state.playing;
   const on = item && state.favorites.has(`${item.k}:${item.id}`);
@@ -1545,7 +1758,7 @@ function renderInfoStrip() {
   if (!item) { el.infostrip.hidden = true; return; }
 
   if (item.k === 0) {
-    const entry = state.epg ? state.epg.nowNext(item.id) : null;
+    const entry = state.catchup ? { now: state.catchup, next: null } : state.epg ? state.epg.nowNext(item.id) : null;
     if (!entry || (!entry.now && !entry.next)) { el.infostrip.hidden = true; return; }
     el.infostrip.hidden = false;
     const frag = document.createDocumentFragment();
@@ -1559,6 +1772,14 @@ function renderInfoStrip() {
       title.className = 'epgnow-title';
       title.textContent = entry.now.title;
       head.append(time, title);
+      if (!state.catchup && catchupAvailable(item, entry.now)) {
+        const start = document.createElement('button');
+        start.type = 'button';
+        start.className = 'ghost';
+        start.textContent = t('guide.startover');
+        start.addEventListener('click', () => playCatchup(item, entry.now));
+        head.append(start);
+      }
       frag.appendChild(head);
 
       const share = progressOf(entry.now);
@@ -1591,32 +1812,34 @@ function renderInfoStrip() {
   el.infostrip.hidden = false;
   const box = document.createElement('div');
   box.className = 'vodinfo';
-  if (info && info.cover) box.appendChild(coverImage('', info.cover));
+  const cover = item.k === 3 ? item.seriesCover || item.logo : info?.cover || item.logo;
+  box.appendChild(poster('info-cover', cover, item.k === 1 ? 'movie' : 'series', { expand: true, title: item.seriesName || item.displayName || item.n }));
   const body = document.createElement('div');
-  const meta = document.createElement('div');
-  meta.className = 'meta';
-  const bits = [];
-  if (info) {
-    if (info.releaseDate) bits.push(String(info.releaseDate).slice(0, 10));
-    if (info.genre) bits.push(info.genre);
-    if (info.rating) bits.push(`★ ${info.rating}`);
-    if (info.durationSec) bits.push(duration(info.durationSec));
-    if (info.video) bits.push(`${info.video.codec}${info.video.height ? ' ' + info.video.height + 'p' : ''}`);
+  body.className = 'vodinfo-body';
+  if (item.k === 1) {
+    body.appendChild(titleFacts(info || item, { movie: true }));
+    body.appendChild(externalLinks(item, info));
   }
-  if (item.ext) bits.push(item.ext.toUpperCase());
   // A header that has been read is more precise than the API's data: it
   // knows the audio track and the subtitles, neither of which the API
   // reports.
   const probed = probeFor(item);
-  if (probed && !probed.error) {
-    if (probed.video) bits.push(`${probed.video.codec.toUpperCase()}${probed.video.height ? ' ' + probed.video.height + 'p' : ''}`);
-    const track = probed.audio && probed.audio[0];
-    if (track) bits.push(`${track.codec.toUpperCase()}${track.channels ? ' ' + track.channels + 'ch' : ''}${track.supported ? '' : t('info.unsupported')}`);
-  }
-  const subs = subtitleBit(item, probed);
-  if (subs) bits.push(subs);
-  for (const bit of bits) { const s = document.createElement('span'); s.textContent = bit; meta.appendChild(s); }
-  body.appendChild(meta);
+  const header = probed && !probed.error ? probed : null;
+  const video = header?.video || info?.video;
+  const audio = audioDetails(header, { active: state.activeAudio, language: state.settings.audioLang });
+  const subtitles = subtitleDetails(item, probed);
+  body.appendChild(playbackFacts({
+    ext: item.ext,
+    video,
+    audio,
+    subtitles,
+    loading: {
+      video: !video && ((!header && state.playbackInfoLoading) || Boolean(item.detailsLoading)),
+      audio: !audio && !header && state.playbackInfoLoading,
+      subtitles: !subtitles && state.playbackInfoLoading,
+    },
+    durationSec: item.k !== 1 ? info?.durationSec : undefined,
+  }));
   if (info && info.plot) {
     const plot = document.createElement('div');
     plot.className = 'plot';
@@ -1634,33 +1857,33 @@ function renderInfoStrip() {
  * the viewer to notice that the selector never appeared; a file with only
  * bitmap tracks has subtitles the player cannot show, and says that.
  */
-function subtitleBit(item, probed) {
-  const summary = (total, shown, languages) => {
-    if (!total) return t('info.subs.none');
-    const text = languages.length
-      ? t('info.subs', { count: total, n: total, languages: languages.slice(0, 5).join(', ') })
-      : t('info.subs.count', { count: total, n: total });
-    return shown ? text : text + t('info.unsupported');
-  };
+function subtitleDetails(item, probed) {
   const known = state.playing === item ? state.subtitleInfo : null;
   if (known) {
     const languages = [...new Set(known.tracks.map((track) => shortLanguage(track.language)))].filter((l) => l !== 'und');
-    return summary(known.tracks.length + known.bitmap, known.tracks.length, languages);
+    return { total: known.tracks.length + known.bitmap, shown: known.tracks.length, languages };
   }
   if (!probed || probed.error) return null;
   const subs = subtitleSummary(probed);
-  if (subs) return summary(subs.total, subs.text, subs.languages);
+  if (subs) return { total: subs.total, shown: subs.text, languages: subs.languages };
   // A header cut short may hold tracks that were not reached.
-  return probed.truncated ? null : t('info.subs.none');
+  return probed.truncated ? null : { total: 0, shown: 0, languages: [] };
 }
 
 async function loadVodDetails(item) {
   if (item.k !== 1 || item.details) return;
+  item.detailsLoading = true;
   try {
     const info = await state.lib.movieDetails(item.id);
     item.details = info;
-    if (state.playing === item) renderInfoStrip();
+    item.durationSec = info.durationSec;
+    const index = state.rowIndex.get(`1:${item.id}`);
+    if (index != null) vlist.refreshRow(index);
   } catch { /* the extra details are optional */ }
+  finally {
+    item.detailsLoading = false;
+    if (state.playing === item) renderInfoStrip();
+  }
 }
 
 /* ------------------------------------------------------ programme guide */
@@ -1678,6 +1901,26 @@ const grid = new EpgGrid({
 });
 
 let guideOpen = false;
+
+const programmeSearch = new ProgrammeSearch({
+  getEpg: () => state.epg,
+  getChannels: async (scope, signal) => {
+    if (scope === 'all') {
+      const library = state.lib;
+      const channels = await library.ensureFull('live', { signal });
+      if (signal.aborted || library !== state.lib) throw new DOMException('Cancelled', 'AbortError');
+      return visibleRows(channels);
+    }
+    return state.rows.filter((c) => c.k === 0);
+  },
+  onSelect: renderGuidePreview,
+  onActivate: activateProgramme,
+  onMode: (searching) => {
+    $('epg-body').hidden = searching;
+    if (searching) grid.hide();
+    else if (guideOpen && !grid.open) grid.show();
+  },
+});
 
 async function toggleGuide() {
   if (guideOpen) closeGuide(); else await openGuide();
@@ -1697,7 +1940,7 @@ async function openGuide() {
   el.main.classList.add('guide');
   el.epg.hidden = false;
   el.epgPreview.hidden = false;
-  $('btn-guide').classList.add('on');
+  $('btn-guide').setAttribute('aria-expanded', 'true');
 
   renderGuideGroups();
   grid.epg = state.epg;
@@ -1710,12 +1953,16 @@ async function openGuide() {
 
 function closeGuide() {
   if (!guideOpen) return;
+  const restoreFocus = el.epg.contains(document.activeElement) || el.epgPreview.contains(document.activeElement)
+    || document.activeElement === $('epg-close');
   guideOpen = false;
+  programmeSearch.clear();
   grid.hide();
   el.main.classList.remove('guide');
   el.epg.hidden = true;
   el.epgPreview.hidden = true;
-  $('btn-guide').classList.remove('on');
+  $('btn-guide').setAttribute('aria-expanded', 'false');
+  if (restoreFocus) $('btn-guide').focus();
   vlist.refresh();
   renderInfoStrip();
 }
@@ -1728,7 +1975,7 @@ function renderGuideGroups() {
   all.value = '';
   all.textContent = t('guide.allchannels');
   frag.appendChild(all);
-  for (const group of state.lib.groups.live) {
+  for (const group of visibleGroups('live')) {
     const option = document.createElement('option');
     option.value = group.name;
     option.textContent = group.name;
@@ -1740,9 +1987,9 @@ function renderGuideGroups() {
 
 function renderGuidePreview(channel, programme) {
   if (!channel) return;
-  const logo = $('epgv-logo');
-  logo.classList.toggle('blank', !channel.logo);
-  if (channel.logo) logo.src = channel.logo; else logo.removeAttribute('src');
+  const logo = poster('epgv-logo', channel.logo, 'channel');
+  logo.id = 'epgv-logo';
+  $('epgv-logo').replaceWith(logo);
 
   $('epgv-name').textContent = channel.num
     ? `${String(channel.num).padStart(4, '0')} · ${channel.n}`
@@ -1776,7 +2023,7 @@ function renderGuidePreview(channel, programme) {
   const actions = $('epgv-actions');
   const buttons = [{ label: t('guide.watch'), primary: true, onClick: () => playItem(channel) }];
   if (catchupAvailable(channel, programme, now)) {
-    buttons.unshift({ label: t('guide.watch.recording'), primary: true, onClick: () => playCatchup(channel, programme) });
+    buttons.unshift({ label: t(programme.stop > now ? 'guide.startover' : 'guide.watch.recording'), primary: true, onClick: () => playCatchup(channel, programme) });
     buttons[1].primary = false;
   }
   actions.replaceChildren(...buttons.map(({ label, primary, onClick }) => {
@@ -1817,20 +2064,40 @@ function relativeSoon(start, now) {
 }
 
 function playCatchup(item, programme) {
-  const minutes = Math.max(1, Math.round((programme.stop - programme.start) / 60000));
+  if (!catchupAvailable(item, programme)) { toast(t('guide.norecording')); return; }
+  const minutes = Math.max(1, Math.ceil((programme.stop - programme.start) / 60000));
   const url = timeshiftUrl(state.config, item.id, programme.start, minutes, state.account.serverUtcOffsetMs || 0);
-  state.playing = { ...item, n: `${item.n} — ${programme.title}` };
-  state.playingSpec = { url, live: true, mode: 'ts' };
-  state.catchup = programme;
-  el.nowTitle.textContent = state.playing.n;
+  state.playing = item;
+  state.playingSpec = { url, live: false, catchup: true, ext: 'ts', mode: 'ts' };
+  state.catchup = { ...programme, channel: item };
+  renderSubtitles([], null);
+  renderAudio([], null);
+  state.subtitleInfo = null;
+  el.mode.disabled = true;
+  $('btn-live').hidden = false;
+  el.nowTitle.textContent = `${item.n} — ${programme.title}`;
+  el.nowTitle.title = item.n;
+  document.title = t('player.title', { name: el.nowTitle.textContent });
   renderNowSub();
+  renderFavButton();
+  renderInfoStrip();
+  vlist.refresh();
   if (guideOpen) grid.setPlaying(item.id);
   playback.play(state.playingSpec);
+  if (programme.stop > Date.now()) toast(t('guide.startover.note'), { long: true });
+}
+
+function retryPlayback() {
+  if (state.catchup) playCatchup(state.catchup.channel, state.catchup);
+  else if (state.playing) playItem(state.playing);
 }
 
 /* ------------------------------------------------- katselukohta & stats */
 
 let lastResumeSave = 0;
+el.video.addEventListener('ended', () => {
+  if (state.catchup) toast(t('guide.archiveended'), { long: true });
+});
 el.video.addEventListener('timeupdate', () => {
   const item = state.playing;
   if (!item || item.k === 0 || !state.settings.resumeEnabled) return;
@@ -1864,11 +2131,23 @@ setInterval(() => {
 
 /* =========================================================== progress dialog */
 
-/** The bar's fill, 0…1. A scale rather than a width — see .bar-fill in
- *  player.css. */
+/** A known fraction (0…1), or null while the total is unknown. */
 function fillBar(ratio) {
+  const bar = el.pFill.parentElement;
+  const known = Number.isFinite(ratio);
+  bar.classList.toggle('indeterminate', !known);
+  el.pPercent.hidden = !known;
+  if (!known) {
+    bar.removeAttribute('aria-valuenow');
+    el.pPercent.textContent = '';
+    el.pFill.style.removeProperty('transform');
+    return;
+  }
   const clamped = Math.min(1, Math.max(0, ratio || 0));
+  const percent = Math.round(clamped * 100);
   el.pFill.style.transform = `scaleX(${clamped.toFixed(4)})`;
+  el.pPercent.textContent = `${nf.format(percent)} %`;
+  bar.setAttribute('aria-valuenow', String(percent));
 }
 
 // The load behind the dialog is cancellable: every request made while it
@@ -1876,11 +2155,10 @@ function fillBar(ratio) {
 let progressCtrl = null;
 const progressSignal = () => (progressCtrl ? progressCtrl.signal : undefined);
 
-function showProgress(title, text) {
+function showProgress(title, text, ratio = null) {
   el.pTitle.textContent = title;
   el.pText.textContent = text || '';
-  fillBar(0);
-  el.pFill.parentElement.classList.add('indeterminate');
+  fillBar(ratio);
   if (!el.progress.open) {
     progressCtrl = new AbortController();
     el.progress.showModal();
@@ -1893,10 +2171,10 @@ function cancelProgress() {
 
 function updateProgress(received, total) {
   if (total > 0) {
-    el.pFill.parentElement.classList.remove('indeterminate');
     fillBar(received / total);
     el.pText.textContent = t('progress.bytes', { received: megabytes(received), total: megabytes(total) });
   } else {
+    fillBar(null);
     el.pText.textContent = t('progress.received', { received: megabytes(received) });
   }
 }
@@ -1919,55 +2197,122 @@ const configured = () => Boolean(state.config.host && state.config.username && s
  * choice of rooms in a house with no door: the rail is left out, the title
  * says what the dialog is for, and Connection is all there is.
  *
- * The connection fields are read from the saved config on every open, so
- * closing the dialog abandons whatever was typed and does not half-save
- * it.
+ * Every open reads a fresh draft from saved values. Tab changes retain
+ * it; Save commits it and Cancel discards it.
  */
 function openSetup({ section } = {}) {
   for (const f of FIELDS) $(`f-${f}`).value = state.config[f] ?? '';
   $('f-paste').value = '';
+  $('playlist-feedback').hidden = true;
+  $('f-show-fields').hidden = true;
+  $('f-paste').removeAttribute('aria-invalid');
   $('f-lang').value = state.settings.lang;
   $('f-epg').checked = state.settings.epgEnabled;
   $('f-resume').checked = state.settings.resumeEnabled;
+  setupInitial = { ...state.settings, subtitleStyle: subtitleLook(state.settings).style, subtitleSize: subtitleLook(state.settings).size };
   applySubtitleLook(state.settings);
+  previewSetupLook();
+  $('setup-error').hidden = true;
+  $('setup-discard').hidden = true;
+  document.querySelector('.setup-maintenance').open = false;
   showSourceMode(state.config.sourceMode);
   renderAccountBox();
   const first = !configured();
   el.setup.classList.toggle('firstrun', first);
   el.setupTabs.hidden = first;
   $('setup-title').textContent = t(first ? 'setup.title.connect' : 'setup.title');
-  showSetupSection(first ? 'connection' : (section || setupSection));
+  showSetupSection(first ? 'connection' : (section || 'connection'));
   if (!el.setup.open) el.setup.showModal();
   focusSetupSection();
 }
 
-// The section the dialog reopens on: the viewer who came for the subtitle
-// size last time is likely to come for it again.
-let setupSection = 'general';
+// Every open starts with the connection; edits survive tab changes only.
+let setupSection = 'connection';
+let setupInitial = null;
+let setupSaving = false;
 
-/**
- * One section on show, and with it the only action that belongs to it.
- * Everything outside Connection is saved the moment it is changed, so
- * those sections have nothing to submit and say so instead.
- */
+function readSetupSettings() {
+  return {
+    lang: $('f-lang').value,
+    epgEnabled: $('f-epg').checked,
+    resumeEnabled: $('f-resume').checked,
+    subtitleStyle: $('f-substyle').value,
+    subtitleSize: Number($('f-subsize').value),
+  };
+}
+
+function setupSettingsPatch() {
+  return Object.fromEntries(Object.entries(readSetupSettings()).filter(([key, value]) => value !== setupInitial?.[key]));
+}
+
+function setupConnectionChanged() {
+  return FIELDS.some((key) => $(`f-${key}`).value.trim() !== String(state.config[key] ?? ''))
+    || sourceMode() !== state.config.sourceMode || Boolean($('f-paste').value.trim());
+}
+
+function setupDirty() {
+  return setupConnectionChanged() || Object.keys(setupSettingsPatch()).length > 0;
+}
+
+function updateSetupActions() {
+  const dirty = setupDirty();
+  const first = !configured();
+  const connection = readSetup();
+  const reconnect = FIELDS.some((key) => connection[key] !== state.config[key]);
+  $('f-save').disabled = setupSaving || (!first && !dirty);
+  $('f-save').textContent = t(setupSaving ? 'setup.saving' : first ? 'setup.connect' : 'setup.save');
+  el.setupNote.textContent = t(dirty ? (reconnect && !first ? 'setup.reconnect' : 'setup.pending') : 'setup.unchanged');
+  if (!dirty) $('setup-discard').hidden = true;
+}
+
+function previewSetupLook() {
+  const look = subtitleLook(readSetupSettings());
+  const preview = document.querySelector('#panel-subs .sublook');
+  preview.dataset.substyle = look.style;
+  preview.style.setProperty('--sub-size', `${look.size}px`);
+  $('f-subsize-value').textContent = `${look.size} px`;
+  fitSubtitlePreview();
+}
+
+/** Keep the two-line sample intact even at 72 px or in a narrow dialog.
+ * Only this decorative preview is scaled; stored and playback sizes stay put. */
+function fitSubtitlePreview() {
+  const frame = document.querySelector('#panel-subs .sublook-preview');
+  const sample = frame.querySelector('.subdisplay');
+  if (!frame.clientWidth || !frame.clientHeight || !sample.offsetWidth) return;
+  const scale = Math.min(1, Math.max(0, frame.clientWidth - 32) / sample.offsetWidth,
+    Math.max(0, frame.clientHeight - 32) / sample.offsetHeight);
+  frame.style.setProperty('--sub-preview-scale', String(scale));
+}
+
+function closeSetup() {
+  if (setupSaving) return;
+  if (setupDirty()) {
+    $('setup-discard').hidden = false;
+    $('f-keep').focus();
+    return;
+  }
+  el.setup.close();
+}
+
+function setupError(key, field) {
+  $('setup-error').textContent = t(key);
+  $('setup-error').hidden = false;
+  if (field) { showSetupSection('connection'); $(field).focus(); }
+}
+
 function showSetupSection(name) {
   setupSection = name;
   for (const button of el.setupTabs.children) {
     const on = button.dataset.panel === name;
     button.classList.toggle('active', on);
     button.setAttribute('aria-selected', String(on));
+    button.tabIndex = on ? 0 : -1;
   }
   for (const panel of document.querySelectorAll('.setup-panel')) {
     panel.hidden = panel.id !== `panel-${name}`;
   }
-  const connection = name === 'connection';
-  $('f-save').hidden = !connection;
-  $('f-done').hidden = connection;
-  // Account holds no settings, only two actions that say what they do:
-  // "changes take effect" would be a promise about nothing.
-  const note = connection ? (configured() ? 'setup.connect.note' : 'setup.connect.first')
-    : name === 'account' ? null : 'setup.instant';
-  el.setupNote.textContent = note ? t(note) : '';
+  updateSetupActions();
 }
 
 /**
@@ -1977,7 +2322,7 @@ function showSetupSection(name) {
  */
 function focusSetupSection() {
   const panel = document.querySelector('.setup-panel:not([hidden])');
-  const field = panel && panel.querySelector('input:not([type="radio"]), select');
+  const field = panel && [...panel.querySelectorAll('input:not([type="radio"]), select')].find((node) => node.getClientRects().length);
   if (field) field.focus();
 }
 
@@ -1993,6 +2338,7 @@ function showSourceMode(mode) {
   }
   $('src-xtream').hidden = m3u;
   $('src-m3u').hidden = !m3u;
+  $('playlist-feedback').hidden = !m3u || !$('f-paste').value.trim();
 }
 
 const sourceMode = () => (document.querySelector('input[name="source"]:checked') || {}).value || 'xtream';
@@ -2064,36 +2410,27 @@ function splitServerField() {
 }
 
 function wireSetup() {
+  new ResizeObserver(fitSubtitlePreview).observe(document.querySelector('#panel-subs .sublook-preview'));
   $('f-lang').replaceChildren(...Object.entries(LANGUAGES).map(([value, label]) => {
     const option = document.createElement('option');
     option.value = value;
     option.textContent = label;
     return option;
   }));
-  // The language changes at once rather than on save: the choice has to
-  // show in the very dialog it was made in, or its effect is invisible.
-  $('f-lang').addEventListener('change', () => applyLanguage($('f-lang').value));
-  // Saved the moment they are flipped, like the language and the subtitle
-  // look beside them. Nothing in this dialog waits for a button any more
-  // except the connection, which is the only thing that has to be sent
-  // somewhere.
-  $('f-epg').addEventListener('change', async () => {
-    state.settings = await store.saveSettings({ epgEnabled: $('f-epg').checked });
-    if (state.epg) state.epg.enabled = state.settings.epgEnabled;
-  });
-  $('f-resume').addEventListener('change', async () => {
-    state.settings = await store.saveSettings({ resumeEnabled: $('f-resume').checked });
-  });
-  // The subtitle look likewise: the preview beside the choice shows it.
-  // The dragging slider shows its effect at once and is saved when it is
-  // let go, so a drag does not write to storage sixty times a second.
-  for (const form of LOOK_FORMS) {
-    $(`${form}-substyle`).addEventListener('change', () => chooseSubtitleLook(form));
-    $(`${form}-subsize`).addEventListener('input', () => applySubtitleLook({
-      subtitleStyle: $(`${form}-substyle`).value, subtitleSize: Number($(`${form}-subsize`).value),
-    }));
-    $(`${form}-subsize`).addEventListener('change', () => chooseSubtitleLook(form));
+  // Dialog controls edit a draft. Only the local subtitle sample previews it.
+  for (const event of ['input', 'change']) {
+    el.setup.querySelector('form').addEventListener(event, () => {
+      $('setup-error').hidden = true;
+      previewSetupLook();
+      updateSetupActions();
+    });
   }
+  // The player's Aa popover remains a direct adjustment during playback.
+  $('p-substyle').addEventListener('change', () => chooseSubtitleLook('p'));
+  $('p-subsize').addEventListener('input', () => applySubtitleLook({
+    subtitleStyle: $('p-substyle').value, subtitleSize: Number($('p-subsize').value),
+  }));
+  $('p-subsize').addEventListener('change', () => chooseSubtitleLook('p'));
   el.sublook.addEventListener('click', () => toggleSubtitleLook());
   // Outside the popover closes it, as it does the dialog. The button is
   // excluded, or its own click would reopen what it just closed.
@@ -2109,54 +2446,117 @@ function wireSetup() {
 
   $('f-paste').addEventListener('input', (e) => {
     const parsed = parsePlaylistUrl(e.target.value);
+    const status = $('playlist-status');
+    $('playlist-feedback').hidden = !e.target.value.trim();
+    $('f-show-fields').hidden = !parsed;
+    status.textContent = t(parsed ? 'setup.m3u.ok' : 'setup.m3u.bad');
+    status.classList.toggle('invalid', !parsed);
+    e.target.setAttribute('aria-invalid', String(!parsed && Boolean(e.target.value.trim())));
     if (!parsed) return;
     for (const f of FIELDS) if (parsed[f] != null) $(`f-${f}`).value = parsed[f];
   });
+  $('f-show-fields').addEventListener('click', () => {
+    showSourceMode('xtream');
+    updateSetupActions();
+    $('f-host').focus();
+  });
   $('f-host').addEventListener('change', splitServerField);
-  $('f-close').addEventListener('click', () => el.setup.close());
-  $('f-done').addEventListener('click', () => el.setup.close());
+  $('f-close').addEventListener('click', closeSetup);
+  $('f-done').addEventListener('click', () => { if (!setupSaving) el.setup.close(); });
+  $('f-keep').addEventListener('click', () => { $('setup-discard').hidden = true; focusSetupSection(); });
+  $('f-discard').addEventListener('click', () => el.setup.close());
+  el.setup.addEventListener('cancel', (event) => { event.preventDefault(); closeSetup(); });
+  el.setup.addEventListener('close', () => { $('setup-discard').hidden = true; });
+  el.setupTabs.addEventListener('keydown', (event) => {
+    const tabs = [...el.setupTabs.querySelectorAll('[role="tab"]')];
+    const index = tabs.indexOf(event.target);
+    if (index < 0) return;
+    let next;
+    if (event.key === 'ArrowRight') next = (index + 1) % tabs.length;
+    else if (event.key === 'ArrowLeft') next = (index + tabs.length - 1) % tabs.length;
+    else if (event.key === 'Home') next = 0;
+    else if (event.key === 'End') next = tabs.length - 1;
+    else return;
+    event.preventDefault();
+    showSetupSection(tabs[next].dataset.panel);
+    tabs[next].focus();
+  });
   el.setupTabs.addEventListener('click', (e) => {
     const button = e.target.closest('button[data-panel]');
     if (!button) return;
     showSetupSection(button.dataset.panel);
   });
-  // A click on the backdrop closes the dialog, as Esc does. Both ends of
+  // Backdrop clicks and Esc request closing, guarded when dirty. Both ends of
   // the click have to land there: dragging the size slider past the edge
   // of the dialog and letting go would otherwise close it mid-drag.
   let fromBackdrop = false;
   el.setup.addEventListener('mousedown', (e) => { fromBackdrop = e.target === el.setup; });
   el.setup.addEventListener('click', (e) => {
-    if (fromBackdrop && e.target === el.setup) el.setup.close();
+    if (fromBackdrop && e.target === el.setup) closeSetup();
     fromBackdrop = false;
   });
-  $('f-save').addEventListener('click', async () => {
-    // In M3U mode the fields are filled from the URL only here, so that a
-    // pasted but unfinished address cannot overwrite the old credentials.
-    if (sourceMode() === 'm3u') {
+  el.setup.querySelector('form').addEventListener('submit', async (event) => {
+    event.preventDefault();
+    if (setupSaving || (configured() && !setupDirty())) return;
+    const connectionEdited = setupConnectionChanged() || !configured();
+    // An existing M3U account can save other preferences without pasting
+    // its address again. Any newly entered address must be complete.
+    if (sourceMode() === 'm3u' && (connectionEdited || $('f-paste').value.trim())) {
       const parsed = parsePlaylistUrl($('f-paste').value);
-      if (!parsed) { toast(t('setup.m3u.bad')); return; }
+      if (!parsed) { setupError('setup.m3u.bad', 'f-paste'); return; }
       for (const f of FIELDS) if (parsed[f] != null) $(`f-${f}`).value = parsed[f];
     }
     const patch = { ...readSetup(), sourceMode: sourceMode() };
-    // The host permission is asked for before the first await: the user
-    // gesture is spent by it, and without a gesture Chrome rejects the
-    // request without showing a dialog. For an origin already granted this
-    // returns at once with no dialog.
-    const granted = patch.host ? await requestAccess(baseUrl(patch)) : true;
-    // The settings around it saved themselves as they were changed; this
-    // button carries the connection and nothing else.
-    state.config = await store.saveConfig(patch);
-    // The personal lists belong to the account: another account's come out
-    // with it, and this one's are found again on the way back.
-    state.favorites = await store.loadFavorites();
-    state.recents = await store.loadRecents();
-    state.resume = await store.loadResume();
-    renderFavButton();
-    el.setup.close();
-    if (!granted) toast(t('setup.nogrant'));
-    await connect();
+    const changed = FIELDS.some((key) => patch[key] !== state.config[key]);
+    if (connectionEdited && (!patch.host || !patch.username || !patch.password)) {
+      setupError('setup.incomplete', !patch.host ? 'f-host' : !patch.username ? 'f-username' : 'f-password');
+      return;
+    }
+    const settingsPatch = setupSettingsPatch();
+    $('setup-error').hidden = true;
+    setupSaving = true;
+    updateSetupActions();
+    el.setup.querySelector('form').inert = true;
+    el.setup.setAttribute('aria-busy', 'true');
+    let saved = false;
+    try {
+      // Permission must be requested before the first await, while the
+      // submit still carries the user's gesture. Denial leaves the draft.
+      if (changed && !(await requestAccess(baseUrl(patch)))) {
+        setupError('setup.nogrant');
+        return;
+      }
+      const next = await store.saveSetup(connectionEdited ? patch : null, settingsPatch);
+      state.config = next.config;
+      state.settings = next.settings;
+      saved = true;
+      el.setup.close();
+      if (state.epg) state.epg.enabled = state.settings.epgEnabled;
+      applySubtitleLook(state.settings);
+      if (settingsPatch.lang) await applyLanguage(state.settings.lang);
+      if (changed) {
+        state.favorites = await store.loadFavorites();
+        state.recents = await store.loadRecents();
+        state.resume = await store.loadResume();
+        state.channelPrefs = await store.loadChannelPreferences();
+        renderFavButton();
+        await connect();
+      } else {
+        toast(t('setup.saved'));
+      }
+    } catch (err) {
+      console.error('[iptv] settings save failed', err);
+      if (!saved) setupError('setup.failed');
+      else toast(err.message);
+    } finally {
+      setupSaving = false;
+      el.setup.querySelector('form').inert = false;
+      el.setup.removeAttribute('aria-busy');
+      updateSetupActions();
+    }
   });
   $('f-clear').addEventListener('click', async () => {
+    if (setupDirty()) { setupError('setup.maintenance.pending'); return; }
     await cacheClear();
     if (state.lib) await state.lib.reset();
     toast(t('setup.cleared'));
@@ -2176,6 +2576,7 @@ function wireSetup() {
     button.classList.remove('armed');
   };
   $('f-reset').addEventListener('click', (e) => {
+    if (setupDirty()) { setupError('setup.maintenance.pending'); return; }
     const button = e.currentTarget;
     if (!armed) {
       button.textContent = t('setup.reset.confirm');
@@ -2224,12 +2625,14 @@ async function copyUrl() {
 function playExternal() {
   if (!state.playingSpec) { toast(t('ext.nothing')); return; }
 
-  const name = state.playing ? state.playing.n : 'Stream';
+  const name = state.playing ? state.playing.displayName || state.playing.n : 'Stream';
   const spec = state.playingSpec;
   // The resume position is where the browser got to, not where playback
   // started.
   const startAt = spec.live ? 0 : Math.floor(el.video.currentTime || spec.startAt || 0);
   playback.stop();
+  state.playbackInfoLoading = false;
+  renderInfoStrip();
   handOff({ ...spec, startAt }, name);
 
   el.overlay.hidden = false;
@@ -2237,7 +2640,7 @@ function playExternal() {
   el.overlayTitle.textContent = t('ext.handed');
   el.overlayText.textContent = t('ext.handed.text');
   showOverlayActions([
-    { label: t('ext.continue'), onClick: () => state.playing && playItem(state.playing, { startAt }) },
+    { label: t('ext.continue'), onClick: () => state.catchup ? retryPlayback() : state.playing && playItem(state.playing, { startAt }) },
     { label: t('player.copyurl'), onClick: copyUrl },
   ]);
 }
@@ -2390,16 +2793,18 @@ function wireUi() {
   el.subs.addEventListener('change', chooseSubtitle);
   el.audio.addEventListener('change', chooseAudio);
   $('btn-fullscreen').addEventListener('click', toggleFullscreen);
+  document.addEventListener('fullscreenchange', renderFullscreenButton);
+  for (const event of ['loadeddata', 'playing', 'resize', 'emptied', 'error']) {
+    el.video.addEventListener(event, renderFullscreenButton);
+  }
+  renderFullscreenButton();
   // The double click that the browser's controls used to take for the bare
   // video; preventDefault keeps the browser from acting on it as well.
   el.video.addEventListener('dblclick', (e) => { e.preventDefault(); toggleFullscreen(); });
-  $('btn-reload').addEventListener('click', () => state.playing && playItem(state.playing));
+  $('btn-reload').addEventListener('click', retryPlayback);
+  $('btn-live').addEventListener('click', () => state.catchup && playItem(state.catchup.channel));
   $('btn-guide').addEventListener('click', toggleGuide);
   $('epg-close').addEventListener('click', closeGuide);
-  // A dead logo URL is ordinary in this library. The same approach as on a
-  // list row and in the guide grid, but without the once flag: the element
-  // is permanent and changes source with the channel.
-  $('epgv-logo').addEventListener('error', (e) => e.target.classList.add('blank'));
   $('epg-now').addEventListener('click', () => { grid.goNow(); focusGrid(); });
   $('epg-prev').addEventListener('click', () => { grid.nudge(-30); focusGrid(); });
   $('epg-next').addEventListener('click', () => { grid.nudge(30); focusGrid(); });
@@ -2438,6 +2843,7 @@ function wireUi() {
   });
 
   document.addEventListener('keydown', (e) => {
+    if ($('channel-editor').open) return;
     const tag = e.target.tagName;
     const typing = tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT';
     // A key pressed with Ctrl, Cmd or Alt down belongs to the browser or to
@@ -2455,12 +2861,13 @@ function wireUi() {
     // the browser's full-screen key there and is now the app's.
     if (e.target === el.video && e.key === 'f' && plain) { toggleFullscreen(); return; }
     if (typing || e.target === el.video) return;
-    if (el.setup.open || el.progress.open) return;
+    if (el.setup.open || el.progress.open || $('channel-editor').open) return;
     if (!plain) return;
     // A focused button takes Space and Enter itself; every other key is the player's.
     if (tag === 'BUTTON' && (e.key === ' ' || e.key === 'Enter')) return;
     if (guideOpen) {
       if (e.key === 'Escape') { closeGuide(); return; }
+      if (!$('programme-panel').hidden && e.key !== 'g') return;
       if (grid.handleKey(e)) { e.preventDefault(); return; }
     }
     switch (e.key) {
@@ -2495,13 +2902,14 @@ function wireUi() {
  * painting route of its own — only the call.
  */
 async function applyLanguage(lang) {
-  state.settings = await store.saveSettings({ lang: setLanguage(lang) });
+  setLanguage(lang);
   setLocale(localeTag());
   applyStatic();
   renderAccount();
   renderSidebar();
   renderNowSub();
   renderFavButton();
+  renderDetail();
   renderInfoStrip();
   // The selector is rebuilt only when the list differs: clear it, so that
   // "No subtitles" is translated even when the tracks stay the same.
@@ -2510,7 +2918,7 @@ async function applyLanguage(lang) {
   state.subtitles = null;
   renderSubtitles(tracks, active);
   const audio = state.audioTracks;
-  const playing = el.audio.value ? Number(el.audio.value) : null;
+  const playing = state.activeAudio?.number ?? null;
   state.audioTracks = null;
   renderAudio(audio, playing);
   // applyStatic has just written every data-i18n node, the dialog's title
@@ -2551,6 +2959,7 @@ async function init() {
   state.favorites = await store.loadFavorites();
   state.recents = await store.loadRecents();
   state.resume = await store.loadResume();
+  state.channelPrefs = await store.loadChannelPreferences();
   el.mode.value = state.config.streamMode || 'auto';
   applySubtitleLook(state.settings);
   new SubtitleDisplay(el.video, el.subdisplay, el.videowrap);
@@ -2559,6 +2968,7 @@ async function init() {
 
   const ui = await store.loadUiState();
   if (ui.tab) state.tab = ui.tab;
+  $('channel-tools').hidden = state.tab !== 'live';
   if (typeof ui.subcatsHeight === 'number') state.subcatsHeight = ui.subcatsHeight;
   for (const button of el.tabs.children) {
     button.classList.toggle('active', button.dataset.tab === state.tab);

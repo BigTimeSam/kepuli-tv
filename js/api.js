@@ -10,6 +10,9 @@
 //    the server's time zone (here Europe/Ljubljana)
 
 import { t } from './i18n.js';
+import { externalMetadata } from './titlelinks.js';
+import { releaseYear } from './mediafilters.js';
+import { providerRating } from './rating.js';
 
 const TEXT_DECODER = new TextDecoder();
 
@@ -210,8 +213,10 @@ export class XtreamApi {
       director: info.director || '',
       genre: info.genre || '',
       releaseDate: info.releaseDate || info.release_date || '',
+      ...externalMetadata(info),
       cover: safeUrl(info.cover),
-      rating: info.rating || '',
+      rating: providerRating(info),
+      ratingScale: 10,
       episodes,
     };
   }
@@ -227,9 +232,10 @@ export class XtreamApi {
       genre: info.genre || '',
       releaseDate: info.releasedate || info.release_date || '',
       cover: safeUrl(info.movie_image) || safeUrl(info.cover_big),
-      rating: info.rating || '',
-      durationSec: Number(info.duration_secs) || 0,
-      trailer: info.youtube_trailer || '',
+      rating: providerRating(info),
+      ratingScale: 10,
+      durationSec: movieDuration(info),
+      ...externalMetadata(info, movie),
       ext: movie.container_extension || null,
       video: codecInfo(info.video),
       audio: codecInfo(info.audio),
@@ -322,10 +328,21 @@ function normalizeMovie(s) {
     logo: safeUrl(s.stream_icon),
     cats: categoryIds(s),
     ext: s.container_extension || 'mp4',
-    rating: Number(s.rating_5based) || 0,
+    durationSec: movieDuration(s),
+    year: releaseYear(s.year || s.releaseDate || s.release_date || s.releasedate, s.name),
+    genre: s.genre || '',
+    rating: providerRating(s),
+    ratingScale: 10,
     direct: s.direct_source || null,
     num: Number(s.num) || 0,
   };
+}
+
+function movieDuration(info) {
+  const seconds = Number(info.duration_secs);
+  if (Number.isFinite(seconds) && seconds > 0) return seconds;
+  const parts = /^(\d+):([0-5]\d):([0-5]\d)$/.exec(String(info.duration || '').trim());
+  return parts ? Number(parts[1]) * 3600 + Number(parts[2]) * 60 + Number(parts[3]) : 0;
 }
 
 function normalizeSeries(s) {
@@ -337,8 +354,9 @@ function normalizeSeries(s) {
     cats: categoryIds(s),
     plot: s.plot || '',
     genre: s.genre || '',
-    rating: Number(s.rating_5based) || 0,
-    year: (s.releaseDate || s.release_date || '').slice(0, 4),
+    rating: providerRating(s),
+    ratingScale: 10,
+    year: releaseYear(s.releaseDate || s.release_date || s.year, s.name),
     num: Number(s.num) || 0,
   };
 }

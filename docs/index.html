@@ -173,7 +173,7 @@
 
 <main>
 <h1>Kepuli-TV</h1>
-<p class="meta">The README of the Kepuli-TV browser extension · Version 1.0.7 · <a href="https://github.com/BigTimeSam/kepuli-tv">Source on GitHub</a></p>
+<p class="meta">The README of the Kepuli-TV browser extension · Version 1.0.8 · <a href="https://github.com/BigTimeSam/kepuli-tv">Source on GitHub</a></p>
 
 <p>A Chrome and Firefox extension (Manifest V3) that plays Xtream Codes IPTV straight in the
 browser. Data is fetched from the <code>player_api.php</code> API lazily: only what you
@@ -200,6 +200,7 @@ users should use their browser's store version once available.</p>
 <ul>
   <li><a href="#intended-use">Intended use</a></li>
   <li><a href="#installation">Installation</a></li>
+  <li><a href="#user-guide">User guide</a></li>
   <li><a href="#development">Development</a></li>
   <li><a href="#how-the-data-is-fetched">How the data is fetched</a></li>
   <li><a href="#categories-on-two-levels">Categories on two levels</a></li>
@@ -245,9 +246,10 @@ configure your connection.</p>
   <li>Turn on <strong>Developer mode</strong></li>
   <li><strong>Load unpacked</strong> → pick this folder</li>
   <li>Click the extension icon → the player opens in a tab of its own</li>
-  <li>Choose the connection mode: <strong>Xtream Codes</strong> (server, port, username,
-password) or <strong>M3U address</strong> (a single field for the playlist URL your
-provider gave you). Both end up in the same place, see below</li>
+  <li>Choose <strong>Paste subscription URL (M3U)</strong> to paste the complete address from
+your provider and fill the connection fields automatically, or <strong>Enter fields
+(Xtream Codes)</strong> to type them yourself. <strong>Show filled fields</strong> lets you inspect
+and edit the parsed values before connecting.</li>
 </ol>
 
 <p>Chrome 116 or newer, which is what <code>minimum_chrome_version</code> in the manifest
@@ -261,6 +263,66 @@ temporary add-on lasts until Firefox closes; the permanent
 route is a signed package from AMO, see <code>FIREFOX.md</code>. The same code runs in
 both browsers — <code>firefox/</code> holds only the Firefox manifest and the tools that
 assemble the package from it.</p>
+
+<h2 id="user-guide">User guide</h2>
+
+<h3 id="getting-started">Getting started</h3>
+
+<ol>
+  <li>Open the player using the Kepuli-TV icon in your browser toolbar.</li>
+  <li>Paste your provider's M3U subscription URL, or enter the server address,
+port, username and password separately. You need your own subscription:
+the app does not include channels or content.</li>
+  <li>Connect to the service. You can change your connection details and the
+interface language later in <strong>Settings</strong>.</li>
+</ol>
+
+<h3 id="channels-movies-and-series">Channels, movies and series</h3>
+
+<ul>
+  <li>Choose <strong>Channels</strong>, <strong>Movies</strong> or <strong>Series</strong> in the top bar, then narrow
+the list using the categories on the left. The search field finds titles
+within the selected content type.</li>
+  <li>Click a channel or movie to start playback. For a series, choose a season
+and then an episode.</li>
+  <li>Movie and series filters let you narrow titles by release year or rating
+and change their sort order. Filters use the available metadata, so some
+titles may be missing particular details.</li>
+  <li><strong>Programme guide</strong>, above the channel list on the <strong>Channels</strong> tab, opens
+the TV programme guide. Catch-up playback is available
+when your provider supports recordings for that channel.</li>
+  <li>The star button adds an item to <strong>Favourites</strong>. <strong>History</strong> lists the
+channels, movies and episodes you have recently started.</li>
+</ul>
+
+<h3 id="playback-and-cover-images">Playback and cover images</h3>
+
+<ul>
+  <li>Use the selectors below the player to choose audio and subtitles when
+the file offers selectable tracks. Set your preferred languages and
+subtitle appearance in <strong>Settings</strong>.</li>
+  <li>Loading indicators appear in the video, audio and subtitle fields while
+the player reads the file's metadata.</li>
+  <li>Click a cover image in the series details or below the player to enlarge
+it. Close the image with the close button, by clicking outside it or by
+pressing Esc.</li>
+  <li>If playback fails in the browser, copy the address with the <strong>URL</strong> button
+and open it in a player such as VLC. The external player button can also
+hand playback directly to the player selected in your settings.</li>
+</ul>
+
+<h3 id="if-something-goes-wrong">If something goes wrong</h3>
+
+<ul>
+  <li><strong>Refresh</strong> fetches the content lists again from the server.</li>
+  <li>If the connection fails, check the address and credentials in <strong>Settings</strong>
+and make sure your subscription is still active.</li>
+  <li>If cached information is outdated, clear the cache in Settings. Resetting
+everything also removes your saved connection details.</li>
+  <li>Report app bugs in <a href="https://github.com/BigTimeSam/kepuli-tv/issues">GitHub Issues</a>.
+Include your browser, a description of the problem and steps to reproduce
+it. Do not include credentials or playback URLs containing them.</li>
+</ul>
 
 <h2 id="development">Development</h2>
 
@@ -314,6 +376,16 @@ the add-on temporarily and opens the player. A change to <code>js/</code>, <code
 protocol directly (<code>firefox/marionette.mjs</code>), so nothing is installed here
 either. <code>FIREFOX.md</code> has the whole picture, including what was measured.</p>
 
+<p>Run the shared browser regression suite in Firefox with:</p>
+
+<pre><code>KEPULI_BROWSER=firefox node dev/playcheck.mjs</code></pre>
+
+<p>It builds the Firefox package and runs the same catalogue, guide, settings,
+playback and recovery assertions through Marionette. A scenario name, such as
+<code>catalogUi</code> or <code>subtitles</code>, runs only that case. The mock media must exist
+first (<code>sh dev/mock/media.sh</code>). Use a dedicated test profile: the suite resets
+its extension settings and personal lists to demo data.</p>
+
 <h3 id="note-load-extension-no-longer-works">Note: <code>--load-extension</code> no longer works</h3>
 
 <p>Chrome rejects the flag silently (152 gives <code>ERR_BLOCKED_BY_CLIENT</code> on the
@@ -362,9 +434,9 @@ pieces, so the app loads in stages:</p>
     <tr><td>1</td><td>Categories (live + movies + series)</td><td>43 kB</td><td>opening the connection</td></tr>
     <tr><td>2</td><td>The chosen country's channels</td><td>2–60 kB</td><td>on clicking a country</td></tr>
     <tr><td>3</td><td>A type's whole list</td><td>0.6–2.9 MB</td><td>only on search or the "All" selection</td></tr>
-    <tr><td>4</td><td>A series' episodes, a movie's details</td><td>1–20 kB</td><td>on opening an item</td></tr>
+    <tr><td>4</td><td>A series' episodes, a movie's details</td><td>1–20 kB</td><td>series on opening; movies as their rows become visible</td></tr>
     <tr><td>5</td><td>Programme data for a channel</td><td>1.6 kB</td><td>for visible rows</td></tr>
-    <tr><td>6</td><td>A channel's whole programme table</td><td>50–150 kB</td><td>only when browsing into the past in the guide</td></tr>
+    <tr><td>6</td><td>A channel's whole programme table</td><td>50–150 kB</td><td>browsing beyond known programmes or explicitly searching programmes</td></tr>
   </tbody>
 </table>
 </div>
@@ -405,7 +477,7 @@ topics never leaves a band of empty panel below them.</p>
 <p>The same splitting removes the <code>Movies:</code> and <code>Series:</code> prefixes from movies and
 series, which only repeat the name of the tab.</p>
 
-<p>Lists are always sorted alphabetically — channels, movies and series, within a
+<p>Lists are sorted alphabetically by default — channels, movies and series, within a
 category, within a group and in the <em>All</em> list. The provider's own order varies
 from one category to the next and carries no meaning across the list.
 Punctuation at the start of a name (<code>|FI| Alien</code>) is ignored, and numbers are
@@ -413,6 +485,22 @@ compared as numbers, so <em>Rocky 2</em> comes before <em>Rocky 10</em>. When a 
 prefix has been stripped from a row (below), the order follows the visible
 name. Search still ranks matches by relevance, but equally ranked matches fall
 into alphabetical order.</p>
+
+<p><strong>Organize channels</strong>, below the channel list, opens a personal live-TV editor.
+Switch between channels and categories, choose a country or <em>All</em>, and filter by
+name. Uncheck an item to hide it, use the arrows to change its order, or apply
+<strong>Hide shown / Show shown</strong> to the filtered set. Hidden items remain in the editor
+and can always be restored. <strong>Reset order</strong> restores the default order for
+channels or categories, depending on the selected type; it keeps visibility.
+Changes stay in the editor until <strong>Save</strong>; <strong>Cancel</strong> and Escape discard them.</p>
+
+<p>Hiding a live category hides its channels in browsing, search, favourites,
+history and the guide, including channels that also belong to another category.
+The personal channel order applies to browsing and the guide; name search keeps
+its relevance ranking and favourites/history keep their collection order.
+Category order also determines country order in the sidebar. Movies and series
+are unaffected. These preferences belong to the server and account and survive
+cache clearing, reloading and switching away from the account and back.</p>
 
 <p>The sidebar filter matches sub-categories too: the query <em>sport</em> brings up the
 countries that have sports channels even when the country's name lacks the
@@ -479,7 +567,11 @@ bar on the list row, a description and the next programme below the player</li>
   <li><strong>An interactive programme guide</strong> (<code>g</code>): channels as rows, time on the
 horizontal axis and a moving now line — see below</li>
   <li><strong>Catch-up</strong> for channels that have an archive: a past programme can be
-started straight from the guide</li>
+started straight from the guide; an ongoing programme offers <strong>Start from
+beginning</strong> when the channel advertises an archive</li>
+  <li><strong>Programme search</strong> by title and description, with a choice of shown or all
+visible channels and past/upcoming programmes</li>
+  <li><strong>Personal channel lists</strong>: hide and reorder live channels and categories</li>
   <li><strong>Series</strong> by season, with cover art and plots from TMDB</li>
   <li><strong>Movie details</strong>: plot, running time, rating, codec</li>
   <li><strong>MKV plays</strong> without an external player: the container is unpacked on the
@@ -544,9 +636,14 @@ the timeline's scale, <code>Enter</code> starts playback and <code>Esc</code> cl
 <h3 id="the-buttons">The buttons</h3>
 
 <p>The top bar holds the five tabs, the search box, the account's expiry date and
-three buttons: <strong>Guide</strong>, <strong>Refresh</strong> — which fetches the categories and the
+two buttons: <strong>Refresh</strong> — which fetches the categories and the
 lists already loaded from the server again and empties the programme cache —
-and <strong>Settings</strong>. The player's own row is below the picture:</p>
+and <strong>Settings</strong>, at the far right after <strong>Help</strong>. The <strong>⛶</strong> button is over the
+picture at the top right, with video statistics at the top left. It enters
+and exits full screen with the subtitles included. It appears on pointer movement, touch or keyboard focus,
+stays visible while paused and fades during uninterrupted playback. It is
+hidden until a video is loaded; an empty player has no full-screen button.
+The remaining player controls are below the picture:</p>
 
 <div class="table-scroll">
 <table>
@@ -558,7 +655,6 @@ and <strong>Settings</strong>. The player's own row is below the picture:</p>
     <tr><td><code>Aa</code></td><td>the look and the size of the subtitles, over the picture they are judged against</td></tr>
     <tr><td><code>☆</code></td><td>the channel or the film into the favourites</td></tr>
     <tr><td><code>↻</code></td><td>reload the stream</td></tr>
-    <tr><td><code>⛶</code></td><td>full screen — the picture with its subtitles</td></tr>
     <tr><td><code>PiP</code></td><td>picture in picture</td></tr>
     <tr><td><code>Cast</code></td><td>to a Chromecast — see below</td></tr>
     <tr><td><code>URL</code></td><td>the stream address to the clipboard</td></tr>
@@ -567,48 +663,65 @@ and <strong>Settings</strong>. The player's own row is below the picture:</p>
 </table>
 </div>
 
+<p>Series and movie details separate the year, genre, provider rating and episode
+count or duration into labelled fields. <strong>IMDb</strong> opens the title directly when
+its ID is available; otherwise <strong>Search IMDb</strong> uses its name and year. <strong>Trailer</strong>
+appears only for a valid YouTube trailer. Links open in a new tab;
+constructing them requires no external API calls or API keys.</p>
+
+<p>Movie rows show running time (for example, <strong>1h 35 min</strong>) instead of technical
+format badges. Missing durations load for visible rows, with two detail requests
+at a time and cached results reused. If the provider supplies no duration, it is
+omitted.</p>
+
+<p>File format, video, audio and subtitles have separate labels in the playback
+details. The subtitle summary shows the track count and at most three language
+codes, followed by the number of additional languages. Hovering reveals all known
+language codes; individual tracks remain available in the subtitle selector.</p>
+
 <h3 id="settings">Settings</h3>
 
-<p>The dialog falls into four sections, on the same tab component the top bar
-uses:</p>
+<p>Settings always opens on <strong>Connection</strong>, with four focused tabs:</p>
 
 <div class="table-scroll">
 <table>
   <thead><tr><th>Section</th><th>Holds</th></tr></thead>
   <tbody>
-    <tr><td><strong>General</strong></td><td>the interface language, and the two switches: whether programme data is fetched automatically and whether the position of movies and episodes is remembered</td></tr>
-    <tr><td><strong>Subtitles</strong></td><td>the look and the size, with a preview</td></tr>
-    <tr><td><strong>Connection</strong></td><td>the connection mode with its fields, and the only button in the dialog</td></tr>
-    <tr><td><strong>Account</strong></td><td>the account's own details as the server reports them — status, simultaneous connections, the expiry date, the output formats, the server's time zone, the size of the cache and the lists loaded so far — and the two buttons that empty things: <strong>Clear cache</strong> leaves the credentials and the favourites in place, <strong>Reset everything</strong> does not</td></tr>
+    <tr><td><strong>Connection</strong></td><td>the provider address and credentials, entered as Xtream Codes fields or an M3U address</td></tr>
+    <tr><td><strong>Viewing</strong></td><td>interface language, automatic programme data and remembered playback positions</td></tr>
+    <tr><td><strong>Subtitles</strong></td><td>style and size, with a local preview</td></tr>
+    <tr><td><strong>Account &amp; data</strong></td><td>subscription details and cache information; an expandable <strong>Manage stored data</strong> section contains cache clearing and reset</td></tr>
   </tbody>
 </table>
 </div>
 
-<p>Everything outside <strong>Connection</strong> takes effect the moment it is changed, and
-the dialog says so where a Save button would have been. Before, half of it
-did — the language and the subtitle look saved themselves while the switches
-and the credentials waited for a button labelled <em>Connect</em>, so <strong>Cancel</strong>
-cancelled some of the dialog and not the rest, and changing the subtitle size
-reconnected to the server and reloaded the lists. There is no Cancel now,
-because there is nothing left to cancel: the credentials are the one thing
-that has to be sent somewhere, and they are read from what is saved every
-time the dialog opens, so closing it abandons whatever was typed.</p>
+<p>Changes on every tab remain drafts until <strong>Save</strong>. Switching tabs keeps the
+draft; <strong>Cancel</strong> discards it. The cross, Escape and a backdrop click ask
+before discarding unsaved changes. A slider drag released outside does not
+close the dialog. The tabs support arrow keys, Home and End.</p>
 
-<p>The dialog closes with the cross, with Esc, or with a click outside it. Both
-ends of that click have to land outside: dragging the size slider past the
-edge and letting go there would otherwise close the dialog mid-drag.</p>
+<p>Saving preferences applies them without reconnecting. Only changed connection
+credentials reconnect and reload the lists. A denied host permission or failed
+storage write leaves the draft open for correction or retry. An existing M3U
+connection does not require its address to be pasted again when saving viewing
+preferences. Cache clearing and reset require a clean form and remain explicit
+actions, with a separate confirmation for reset.</p>
 
-<p>Before there are any credentials the same dialog is not settings at all. The
-section rail is left out, the title reads <em>Connect to your provider</em>, and
-Connection is all there is — a choice of rooms is no use in a house with no
-door yet.</p>
+<p>Before credentials exist, the tabs are hidden and <strong>Connect</strong> saves the initial
+connection. Otherwise the same <strong>Save</strong> action is available from every tab.</p>
+
+<p>In <strong>Subtitles</strong>, the style and size controls sit above the preview. The sample
+keeps its two lines and scales down to fit the available space, including at
+72 px and in narrow windows. This scaling affects only the preview: playback
+and the saved setting use the exact selected size.</p>
 
 <p>The look of the subtitles is also under the player's own <strong>Aa</strong> button, which
 appears beside the subtitle selector on a file that carries subtitles. It
 opens the same two controls over the picture, so the size is judged against
 what is being watched rather than against a preview in a dialog; the
 subtitles rise out of the popover's way while it is open, as they do for the
-browser's controls. Both places write one setting, so they cannot drift. In
+browser's controls. The Aa controls apply and save immediately; Settings previews
+locally and applies the same stored setting only on Save. In
 full screen neither is reachable, as neither was before.</p>
 
 <p>The cache belongs to the server and the account. Saving a connection whose
@@ -619,16 +732,40 @@ so correcting it costs nothing.</p>
 
 <h2 id="the-programme-guide">The programme guide</h2>
 
-<p><code>Guide</code> (or <code>g</code>) turns the whole window into a grid view: channels as rows,
+<p><strong>Programme guide</strong>, above the channel list on the <strong>Channels</strong> tab (or <code>g</code>),
+turns the whole window into a grid view: channels as rows,
 time on the horizontal axis and a moving now line. The video continues in the
 top right corner and the selected programme shows on the left with its
 description. The grid shows the same set of channels as the list, so the group
-selection and the search narrow the guide as well.</p>
+selection and the search narrow the guide as well.
+<strong>Back to channels</strong> at the top left returns to the channel list. You can
+also close the guide with <code>Esc</code> or <code>g</code>.</p>
 
-<p>The timeline runs from two days back to five days forward. Past programmes are
+<p>The timeline runs back as far as the longest advertised channel archive in the
+current view, with at least two days of history, and five days forward. Invalid
+provider durations are bounded to one year. Past programmes are
 dimmed; those the channel's archive reaches get a <strong>Watch the recording</strong>
 button. A programme continuing past the left edge is marked with <code>‹</code> and its
 name is nudged into view.</p>
+
+<p><strong>Start from beginning</strong> is offered for an ongoing programme on an archive
+channel. Whether the provider makes that programme available before it ends
+depends on the service; the archive may stop at its latest available moment.
+<strong>Back to live</strong> returns to the channel. Archive playback is finite: reaching
+its end does not trigger the live reconnection loop. Reload and Retry keep the
+archive programme selected. This is provider catch-up, not a local DVR buffer.</p>
+
+<p>The guide's separate <strong>Search programmes</strong> form searches programme titles and
+descriptions. It searches the shown channels by default; <strong>All visible channels</strong>
+loads the full channel catalogue and excludes personal hidden channels and
+categories. Only channels with programme identifiers can be searched. The
+period selector includes upcoming programmes, past programmes or both.
+Search is explicit rather than triggered by every keystroke, makes at most four
+search requests in parallel, and reuses full programme tables in the guide cache.
+Results and channel progress appear as answers arrive; failed channels are
+counted separately. <strong>Stop search</strong> keeps partial results. Selecting a result
+shows its description and live/catch-up actions; <strong>Back to guide</strong> restores the
+grid. Closing the guide or changing channels' scope cancels the search.</p>
 
 <p>Programme data is fetched at three levels of detail into the same cache: a list
 row needs four programmes, looking ahead in the guide needs 40, and the whole
@@ -774,7 +911,7 @@ measured in a window. The looks are written into <code>::cue</code> as well, as 
 <code>::cue</code> goes, for the one case where the browser still draws (below).</p>
 
 <p>Full screen is therefore the picture's wrapper rather than the bare video
-element, which would leave the layer behind: the button on the player's row,
+element, which would leave the layer behind: the button over the picture,
 a double click on the picture and <code>f</code> all take the wrapper, and the browser's
 own full-screen button is removed from the controls (<code>controlslist</code>). Firefox
 does not know <code>controlslist</code> and keeps its button; when that takes the video
@@ -981,6 +1118,9 @@ js/xtream.js        building the Xtream URLs, parsing a pasted M3U address
 js/library.js       the lazy data layer: grouping, cache, search
 js/epg.js           programme data on a queue, 4 concurrent requests
 js/epggrid.js       the guide grid, virtualised in both directions
+js/programmesearch.js  cancellable programme search and virtualised results
+js/channelprefs.js  per-account channel visibility and ordering helpers
+js/channeleditor.js  draft editor for live channels and categories
 js/db.js            IndexedDB: a TTL cache
 js/config.js        settings, favourites, history, resume points
 js/i18n.js          the interface language: dictionaries, t() and static HTML
@@ -1070,12 +1210,14 @@ tag. <code>en-GB</code> rather than <code>en</code>, because in this app the tim
 
 <h2 id="connection-mode">Connection mode</h2>
 
-<p>The settings hold two ways of saying the same thing. <strong>Xtream Codes</strong> asks for
-the server, the port, the username and the password separately. <strong>M3U address</strong>
-takes a single field for the playlist URL the provider gave you — it carries the
-same credentials as query parameters, so they are parsed into fields and the
-connection is made in exactly the same way. The choice changes only the form;
-behind it lie the same API and the same details either way.</p>
+<p>The settings offer <strong>Enter fields (Xtream Codes)</strong> and <strong>Paste subscription URL
+(M3U)</strong>. The latter accepts the complete HTTP or HTTPS <code>get.php</code> address supplied
+by the provider, including its query parameters. Protocol, server, port, username
+and password are extracted automatically, including URL-encoded characters.
+A confirmation explains what happened, and <strong>Show filled fields</strong> reveals the
+editable values. Pasting or inspecting them does not save or connect; <strong>Save</strong>
+(or <strong>Connect</strong> on first use) does that. The choice changes only the form:
+both use the same Xtream API, rather than downloading a generic M3U playlist.</p>
 
 <h2 id="brand-graphics">Brand graphics</h2>
 

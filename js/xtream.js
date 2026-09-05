@@ -8,6 +8,7 @@ export function baseUrl(cfg) {
 export function parsePlaylistUrl(text) {
   let u;
   try { u = new URL(text.trim()); } catch { return null; }
+  if (!u.hostname || !['http:', 'https:'].includes(u.protocol)) return null;
   const username = u.searchParams.get('username');
   const password = u.searchParams.get('password');
   if (!username || !password) return null;

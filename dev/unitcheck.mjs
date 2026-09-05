@@ -11,12 +11,15 @@
 // through as it is, nothing else does.
 globalThis.MediaSource = { isTypeSupported: (type) => /mp4a\.40/.test(type) };
 
-import { parseServer } from '../js/xtream.js';
+import { parseServer, parsePlaylistUrl } from '../js/xtream.js';
 import { nameCleaner } from '../js/name.js';
 import { cueText } from '../js/subs.js';
 import { subtitleLook, STYLES, MIN_SIZE, MAX_SIZE, DEFAULT_SIZE } from '../js/subdisplay.js';
 import { describe, describeAll, label, preferred, route } from '../js/audio.js';
 import { LANGUAGES, keysOf, setLanguage, t } from '../js/i18n.js';
+import { channelPreferences, visibilityFilter, ordered, moveInOrder } from '../js/channelprefs.js';
+import { catchupAvailable, archiveDays } from '../js/epggrid.js';
+import { searchProgrammes } from '../js/programmesearch.js';
 
 let failed = 0;
 let count = 0;
@@ -30,6 +33,55 @@ function check(what, actual, expected) {
 }
 
 /* ------------------------------------------------ xtream.js: parseServer */
+
+const preferences = channelPreferences({ hiddenChannels: [1, '1'], hiddenCategories: ['sport'], channelOrder: ['3', '2'] });
+const channelRows = [{ k: 0, id: '1', cats: ['news'] }, { k: 0, id: '2', cats: ['sport', 'news'] },
+  { k: 0, id: '3', cats: ['news'] }, { k: 1, id: '1' }, { k: 0, id: '4', cats: ['new'] }];
+check('hidden channels and categories also filter overlapping categories, without hiding movies',
+  channelRows.filter(visibilityFilter(preferences)).map((i) => `${i.k}:${i.id}`), ['0:3', '1:1', '0:4']);
+check('new channels remain after the custom order', ordered(channelRows.filter((c) => c.k === 0), preferences.channelOrder).map((c) => c.id), ['3', '2', '1', '4']);
+check('filtered reorder retains unseen and stale IDs', moveInOrder(['a', 'hidden', 'b', 'gone', 'c'], ['a', 'c'], 'c', -1), ['c', 'hidden', 'b', 'gone', 'a']);
+check('first move keeps the displayed default order', moveInOrder([], ['z', 'a', 'b'], 'a', -1), ['a', 'z', 'b']);
+check('moving past an edge does nothing', moveInOrder(['a'], ['a'], 'a', -1), ['a']);
+
+const now = Date.UTC(2026, 8, 6, 12);
+check('archive duration extends the guide', archiveDays([{ archive: 3 }, { archive: 7 }, { archive: Infinity }]), 7);
+check('channels without archives keep two days of guide history', archiveDays([]), 2);
+check('current archived programme can start over', catchupAvailable({ archive: 7 }, { start: now - 3600e3, stop: now + 3600e3 }, now), true);
+check('future programme cannot start over', catchupAvailable({ archive: 7 }, { start: now + 1, stop: now + 3600e3 }, now), false);
+check('exact archive boundary is included', catchupAvailable({ archive: 7 }, { start: now - 7 * 86400e3, stop: now - 6 * 86400e3 }, now), true);
+check('expired archive cannot play', catchupAvailable({ archive: 3 }, { start: now - 4 * 86400e3, stop: now - 3 * 86400e3 }, now), false);
+check('no archive never offers start over', catchupAvailable({ archive: 0 }, { start: now - 1, stop: now + 1 }, now), false);
+check('invalid programme has no archive action', catchupAvailable({ archive: 7 }, { start: now - 1, stop: NaN }, now), false);
+
+{
+  let active = 0, peak = 0, calls = 0;
+  const fakeEpg = { cache: new Map(), isStale(id) { return !this.cache.has(String(id)); }, markUpdated() {}, api: {
+    async fullEpg(id, { signal }) {
+      calls++; active++; peak = Math.max(peak, active);
+      await new Promise((resolve) => setTimeout(resolve, 2));
+      active--;
+      if (signal?.aborted) throw new DOMException('Cancelled', 'AbortError');
+      if (id === 'bad') throw new Error('Provider failed');
+      const p = { start: now, stop: now + 1000, title: 'Aurora Cup', description: 'Live ICE hockey' };
+      return [p, p, { ...p, start: now - 2000, stop: now - 1000 }];
+    },
+  } };
+  const channels = [...Array.from({ length: 8 }, (_, i) => ({ id: String(i), epgId: 'epg', n: `Channel ${i}` })),
+    { id: 'bad', epgId: 'epg', n: 'Bad channel' }, { id: 'none', n: 'No EPG' }];
+  let report;
+  await searchProgrammes(fakeEpg, channels, 'ice AURORA', { from: now, to: now + 2000, onProgress: (r) => { report = r; } });
+  check('programme search caps parallel requests at four', peak, 4);
+  check('programme search matches title and description, removes duplicates and old programmes', report.results.length, 8);
+  check('programme search explicitly counts failed channels and skips channels without EPG', [report.done, report.total, report.failed], [9, 9, 1]);
+  await searchProgrammes(fakeEpg, channels.slice(0, 8), 'cup', { from: now, to: now + 2000 });
+  check('repeated programme search reuses full EPG tables', calls, 9);
+  const abort = new AbortController();
+  fakeEpg.cache.clear(); calls = 0;
+  const running = searchProgrammes(fakeEpg, channels, 'cup', { signal: abort.signal, from: now, to: now + 2000 });
+  abort.abort(); await running;
+  check('cancelled programme search stops queued requests and does not cache late responses', [calls, fakeEpg.cache.size], [4, 0]);
+}
 
 const server = (text, expected) => check(`parseServer(${JSON.stringify(text)})`, parseServer(text), expected);
 
@@ -52,6 +104,13 @@ server('http://example.tv:8080/get.php?username=u&password=p&type=m3u_plus&outpu
 server('http://example.tv:8080/get.php?username=u', { host: 'example.tv', scheme: 'http', port: '8080' });
 server('ftp://example.tv', null);
 server('http://', null);
+
+check('subscription URL decodes credential components and preserves the port',
+  parsePlaylistUrl('http://example.test:8080/get.php?username=demo%2Buser&password=p%26%3D%2B&type=m3u_plus&output=ts'),
+  { scheme: 'http', host: 'example.test', port: '8080', username: 'demo+user', password: 'p&=+' });
+check('subscription URL uses the HTTPS default port', parsePlaylistUrl('https://example.test/get.php?username=u&password=p')?.port, '443');
+check('subscription URL requires both credentials', parsePlaylistUrl('https://example.test/get.php?username=u'), null);
+check('subscription URL rejects unsupported protocols', parsePlaylistUrl('ftp://example.test/get.php?username=u&password=p'), null);
 
 /* ------------------------------------------------- name.js: nameCleaner */
 
@@ -146,6 +205,13 @@ check('and no history from the other account', await store.loadRecents(), []);
 // A change that keeps the account keeps the lists.
 await store.saveConfig({ streamMode: 'hls' });
 check('a playback-mode change keeps the lists', await favs(), ['Yle TV1']);
+await store.saveChannelPreferences(preferences);
+stored.config = accountB;
+await store.loadConfig();
+check('channel presentation belongs to its account', await store.loadChannelPreferences(), channelPreferences());
+stored.config = accountA;
+await store.loadConfig();
+check('switching back restores hidden channels and their order', await store.loadChannelPreferences(), preferences);
 
 /* ---------------------------------------------------- subs.js: cueText */
 
@@ -180,7 +246,7 @@ check('subtitleLook reads the older sizes', ['small', 'medium', 'large'].map((s)
   const html = (await import('node:fs')).readFileSync(new URL('../player.html', import.meta.url), 'utf8');
   const sheet = (await import('node:fs')).readFileSync(new URL('../css/player.css', import.meta.url), 'utf8');
   for (const style of STYLES) {
-    check(`player.css draws the look "${style}"`, sheet.includes(`body[data-substyle="${style}"] .subdisplay .cue`), true);
+    check(`player.css draws the look "${style}"`, sheet.includes(`body[data-substyle="${style}"] .videowrap .subdisplay .cue`), true);
   }
   // The controls exist twice — f in the settings, p over the picture (see
   // LOOK_FORMS in app.js) — and each copy is checked on its own: a look

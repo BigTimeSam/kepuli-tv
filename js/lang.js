@@ -61,6 +61,16 @@ export function languageLabel(code) {
   return name ? name.charAt(0).toUpperCase() + name.slice(1) : String(code).toUpperCase();
 }
 
+/** Full names for a compact summary: English, Finnish, then local alphabetic order. */
+export function orderedLanguageNames(codes) {
+  const priority = code => code === 'en' ? 0 : code === 'fi' ? 1 : 2;
+  return [...new Set(codes.map(shortLanguage))]
+    .filter(code => code !== 'und')
+    .map(code => ({ code, name: languageLabel(code) }))
+    .sort((a, b) => priority(a.code) - priority(b.code) || a.name.localeCompare(b.name, localeTag()))
+    .map(entry => entry.name);
+}
+
 // The names of one language in the tags a track's own name might be
 // written in. Kept per tag: building an Intl.DisplayNames is not free and
 // a selector asks this once per track.

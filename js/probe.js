@@ -201,6 +201,21 @@ function audioTrack(track) {
   return { ...entry, mime: AUDIO_MIME[entry.codecId] || null, supported: entry.route === 'passthrough' };
 }
 
+/** Audio for the details: the active track, or the player's expected choice. */
+export function audioDetails(info, { active = null, language = null } = {}) {
+  // The engine reports the active track after setting up its audio path.
+  if (active) return { ...active, supported: true };
+  if (!info || info.error) return null;
+  if (info.container !== 'matroska') return info.audio?.[0] || null;
+  // Cached support flags describe native decoding, not the player's wasm
+  // route, and can outlive changes to the browser's encoder support.
+  const tracks = (info.audio || []).map((track) => {
+    const path = route(track.codecId);
+    return { ...track, route: path, supported: path === 'passthrough' || (path === 'decoded' && hasEncoder()) };
+  });
+  return preferred(tracks, language) || tracks.find((track) => track.default) || tracks[0] || null;
+}
+
 function subtitleTrack(track) {
   const format = SUBTITLE_FORMAT[track.codecId] || 'muu';
   return {
@@ -405,9 +420,8 @@ function matroskaReason(video, audio) {
 /** A short badge for a list row, or null when it plays normally. */
 export function badge(info) {
   const v = verdict(info);
-  if (v.path === 'native' || v.path === 'mpegts') return null;
+  if (v.path === 'native' || v.path === 'mpegts' || v.path === 'remux') return null;
   if (v.path === 'unknown') return null;
-  if (v.path === 'remux') return { text: 'MKV', title: v.reason, level: 'warn' };
   if (v.path === 'silent') return { text: t('probe.badge.silent'), title: v.reason, level: 'warn' };
   return { text: t('probe.badge.none'), title: v.reason, level: 'warn' };
 }

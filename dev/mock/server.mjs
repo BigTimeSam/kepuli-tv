@@ -133,7 +133,7 @@ function programmes(channel) {
   const r = rng(channel.stream_id * 7919);
   const pool = PROGRAMMES[channel.topic];
   const out = [];
-  let t = Math.floor((T0 - 2 * 86400e3) / 1800e3) * 1800e3;
+  let t = Math.floor((T0 - Math.max(2, channel.tv_archive_duration || 0) * 86400e3) / 1800e3) * 1800e3;
   const end = T0 + 5 * 86400e3;
   let n = 1;
   while (t < end) {
@@ -219,7 +219,7 @@ const vod = { categories: [], movies: [] };
       const ext = i === titles.length - 1 ? 'avi' : i < 2 ? 'mp4' : r() < 0.4 ? 'mkv' : 'mp4';
       vod.movies.push({
         num: id - 4999, name: `${title} (${year})`, title, stream_type: 'movie', stream_id: id, stream_icon: `/img/poster/movie/${id}.svg`,
-        rating: stars, rating_5based: Number(stars), added: secs(T0 - between(r, 1, 400) * 86400e3), category_id: cat.category_id,
+        rating: (Number(stars) * 2).toFixed(1), rating_5based: Number(stars), added: secs(T0 - between(r, 1, 400) * 86400e3), category_id: cat.category_id,
         category_ids: [Number(cat.category_id)], container_extension: ext, custom_sid: '', direct_source: '',
         year, genre, plot: plotFor(r), cast: people(r, 4).join(', '), director: people(r, 1)[0],
         duration: between(r, 84, 142),
@@ -255,7 +255,7 @@ export const MULTI_EPISODES = new Set();
       const entry = {
         num: id - 6999, name: title, series_id: id, cover: `/img/poster/series/${id}.svg`, plot, cast: people(r, 5).join(', '),
         director: people(r, 1)[0], genre, releaseDate: `${year}-${String(between(r, 1, 12)).padStart(2, '0')}-${String(between(r, 1, 28)).padStart(2, '0')}`,
-        last_modified: secs(T0 - between(r, 1, 60) * 86400e3), rating: stars, rating_5based: Number(stars),
+        last_modified: secs(T0 - between(r, 1, 60) * 86400e3), rating: (Number(stars) * 2).toFixed(1), rating_5based: Number(stars),
         backdrop_path: [], youtube_trailer: '', episode_run_time: String(pick(r, [22, 28, 42, 48, 55])), category_id: cat.category_id,
         category_ids: [Number(cat.category_id)],
       };
@@ -279,7 +279,7 @@ export const MULTI_EPISODES = new Set();
             info: {
               movie_image: entry.cover, plot: plotFor(r), duration_secs: mins * 60 + between(r, 0, 59), duration: `00:${mins}:00`,
               air_date: `${year + s - 1}-${String(between(r, 9, 12)).padStart(2, '0')}-${String(between(r, 1, 28)).padStart(2, '0')}`,
-              rating: stars, bitrate: between(r, 2400, 5600),
+              rating: (Number(stars) * 2).toFixed(1), bitrate: between(r, 2400, 5600),
               video: { codec_name: 'h264', width: 1920, height: 1080 },
               audio: ac3 ? { codec_name: 'ac3', channels: 6 } : { codec_name: 'aac', channels: 2 },
               audio_tracks: multi ? 3 : 1,

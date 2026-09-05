@@ -163,6 +163,10 @@ export class Epg {
         : this.api.shortEpg(id, mode === 'grid' ? GRID_LIMIT : 4);
       request
         .then((listings) => {
+          // An explicit programme search may have completed a full table
+          // while this older, shorter grid/list request was in flight.
+          const existing = this.cache.get(id);
+          if (existing && RANK[existing.mode] > RANK[mode] && !this.isStale(id, existing.mode)) return;
           // get_simple_data_table returns the rows in arbitrary order;
           // the guide relies on them being in time order.
           listings.sort((a, b) => a.start - b.start);

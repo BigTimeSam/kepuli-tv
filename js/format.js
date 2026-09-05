@@ -26,16 +26,28 @@ setLocale();
 
 export function clock(ms) { return ms ? timeFmt.format(new Date(ms)) : ''; }
 
+/** An ISO calendar date, without letting the viewer's time zone shift the day. */
+export function calendarDate(value) {
+  const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(String(value || '').trim());
+  if (!match) return '';
+  const [, year, month, day] = match.map(Number);
+  const date = new Date(Date.UTC(year, month - 1, day));
+  if (date.getUTCFullYear() !== year || date.getUTCMonth() !== month - 1 || date.getUTCDate() !== day) return '';
+  return `${day}.${month}.${year}`;
+}
+
 export function megabytes(bytes) {
   if (bytes < 1024 * 1024) return t('size.kb', { n: Math.round(bytes / 1024) });
   return t('size.mb', { n: (bytes / 1048576).toFixed(1) });
 }
 
-export function duration(totalSeconds) {
-  if (!totalSeconds) return '';
-  const h = Math.floor(totalSeconds / 3600);
-  const m = Math.round((totalSeconds % 3600) / 60);
-  if (h > 0) return m > 0 ? t('duration.hm', { h, m }) : t('duration.h', { h });
+export function duration(totalSeconds, { compact = false } = {}) {
+  if (!Number.isFinite(totalSeconds) || totalSeconds <= 0) return '';
+  const minutes = Math.round(totalSeconds / 60);
+  const h = Math.floor(minutes / 60);
+  const m = minutes % 60;
+  const prefix = compact ? 'duration.compact' : 'duration';
+  if (h > 0) return m > 0 ? t(`${prefix}.hm`, { h, m }) : t(`${prefix}.h`, { h });
   return t('duration.m', { m });
 }
 

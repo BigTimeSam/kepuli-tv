@@ -47,10 +47,10 @@
 //                                     mid-playback without stopping the
 //                                     picture, and a remembered Finnish opens
 //                                     the next playback on the Finnish track
-//   node dev/playcheck.mjs settings   the settings dialog: a toggle saves
-//                                     itself without reconnecting, a slider
+//   node dev/playcheck.mjs settings   the settings dialog: drafts save on
+//                                     demand without reconnecting, a slider
 //                                     drag released outside does not close
-//                                     it, a backdrop click does, the Aa
+//                                     it, a backdrop click guards edits, the Aa
 //                                     popover sizes the real subtitles
 //                                     without covering them, and the first
 //                                     run is a connect dialog rather than
@@ -77,7 +77,9 @@
 // passes, 1 otherwise.
 
 import { startMockServer, MULTI_EPISODES, PORT as MOCK_PORT } from './mock/server.mjs';
-import { ensureChrome, openPlayer, session, sleep } from './screenshot.mjs';
+// Run the same scenarios in Firefox with KEPULI_BROWSER=firefox.
+const { ensureChrome, openPlayer, session, sleep } = await import(
+  process.env.KEPULI_BROWSER === 'firefox' ? '../firefox/playcheck-driver.mjs' : './screenshot.mjs');
 
 const THROTTLE = Number(process.env.KEPULI_THROTTLE || 60 * 1024);
 const CUES_DELAY_MS = 1500;
@@ -127,20 +129,22 @@ const videoState = (page) => evaluate(page, `(() => { const v = document.getElem
 
 /** A fresh player pointed at the mock server, connected and throttled. */
 async function freshPlayer(target, page) {
+  // Screenshot inspections may leave a narrow emulated viewport behind.
+  await page.call('Emulation.setDeviceMetricsOverride', { width: 1280, height: 800, deviceScaleFactor: 1, mobile: false });
   const { windowId } = await page.call('Browser.getWindowForTarget');
   await page.call('Browser.setWindowBounds', { windowId, bounds: { windowState: 'normal' } });
   await page.call('Page.bringToFront');
   const visibility = await evaluate(page, 'document.visibilityState');
   if (visibility !== 'visible') throw new Error('the player tab is not visible; raise the dev Chrome window or run headless');
   // The personal lists are kept per account, so every account's copy goes.
-  await evaluate(page, `chrome.storage.local.get(null).then((all) => chrome.storage.local.remove(Object.keys(all).filter((k) => /^(favorites|recents|resume)(:|$)/.test(k))))`);
+  await evaluate(page, `chrome.storage.local.get(null).then((all) => chrome.storage.local.remove(Object.keys(all).filter((k) => /^(favorites|recents|resume|channels)(:|$)/.test(k))))`);
   await evaluate(page, `chrome.storage.local.set({
     config: { scheme: 'http', host: '127.0.0.1', port: '${MOCK_PORT}', username: 'demo', password: 'demo', sourceMode: 'xtream', streamMode: 'auto' },
     settings: { lang: 'en', epgEnabled: true, resumeEnabled: false, subtitleLang: 'eng' },
     ui: { tab: 'series' } })`);
   // The catalogue cache is dropped as the screenshot script does: a run
   // against another server would otherwise hand out that server's addresses.
-  const origin = target.url.match(/^chrome-extension:\/\/[a-p]{32}/)[0];
+  const origin = target.url.match(/^(?:chrome|moz)-extension:\/\/[^/]+/)[0];
   await page.call('Page.navigate', { url: `${origin}/css/player.css` });
   await sleep(500);
   await evaluate(page, `indexedDB.databases().then((dbs) => Promise.all(dbs.map((d) => new Promise((resolve) => {
@@ -248,8 +252,7 @@ const OVERLAY = `(() => { const ov = document.getElementById('overlay'); return 
 
 /** "All" on the Channels tab, which needs the whole list — slow to arrive here. */
 async function loadAll(page) {
-  await evaluate(page, `document.querySelector('#tabs [data-tab="live"]').click()`);
-  await waitFor(page, `document.querySelectorAll('#groups .group').length > 1`, 'the sidebar');
+  await openLiveList(page);
   const before = await evaluate(page, ACTIVE_GROUP);
   await click(page, '#groups', 'All');
   await waitFor(page, `document.getElementById('progress').open`, 'the progress dialog', 5000);
@@ -317,8 +320,7 @@ async function paste(page) {
     h.dispatchEvent(new Event('change', { bubbles: true })); return true; })()`);
   await sleep(300);
   const fields = await evaluate(page, `['scheme', 'host', 'port', 'username', 'password'].map((f) => document.getElementById('f-' + f).value)`);
-  // Closing abandons what was typed: there is no Cancel any more, because
-  // nothing outside Connection waits for a button to be saved.
+  // Normalised fields still describe the saved account; closing is clean.
   await evaluate(page, `document.getElementById('f-close').click()`);
   const expected = ['http', '127.0.0.1', String(MOCK_PORT), 'demo', 'demo'];
   return { ok: JSON.stringify(fields) === JSON.stringify(expected), detail: `fields ${JSON.stringify(fields)}` };
@@ -573,15 +575,60 @@ async function a11y(page) {
   return { ok, detail: `list ${st.listRole}/${st.listName}, cursor ${st.pointsAtCursor ? 'announced' : 'not announced'} and ${st.cursorMark ? 'marked' : 'unmarked'}, tabs ${st.tablist} selected ${st.selectedTabs.join(',')}, toast ${st.toastRole}, unnamed icon buttons ${st.unnamedIcons.length}, group by keyboard: "${st.groupName}" → "${chosen}"` };
 }
 
+/** The control stays with the video and preserves the subtitle overlay. */
+async function fullscreenControl(page) {
+  const assert = (ok, detail) => { if (!ok) throw new Error(detail); };
+  assert(await evaluate(page, `document.getElementById('btn-fullscreen').hidden && document.getElementById('btn-fullscreen').getClientRects().length === 0`), 'empty player exposes fullscreen');
+  await playEpisode(page);
+  await waitFor(page, `document.querySelectorAll('#subdisplay .cue').length > 0`, 'a subtitle cue');
+  await evaluate(page, `document.getElementById('video').pause()`);
+  await sleep(250);
+  const bounds = await evaluate(page, `(() => {
+    const b = document.getElementById('btn-fullscreen'), r = b.getBoundingClientRect(), w = document.getElementById('videowrap').getBoundingClientRect();
+    const cues = [...document.querySelectorAll('#subdisplay .cue')].map(c => c.getBoundingClientRect());
+    return { inside: b.parentElement.id === 'videowrap' && r.left >= w.left && r.top >= w.top && r.right <= w.right && r.bottom <= w.bottom,
+      topRight: Math.abs(r.top - w.top - 12) < 1 && Math.abs(w.right - r.right - 12) < 1,
+      visible: getComputedStyle(b).opacity === '1', clear: cues.every(c => c.bottom <= r.top || c.top >= r.bottom || c.right <= r.left || c.left >= r.right), label: b.getAttribute('aria-label') };
+  })()`);
+  assert(bounds.inside && bounds.topRight && bounds.visible && bounds.clear && bounds.label === 'Full screen', `overlay control: ${JSON.stringify(bounds)}`);
+  if (process.env.KEPULI_FULLSCREEN_CAPTURE) {
+    const { data } = await page.call('Page.captureScreenshot', { format: 'png' });
+    (await import('node:fs')).writeFileSync(process.env.KEPULI_FULLSCREEN_CAPTURE, Buffer.from(data, 'base64'));
+  }
+  await mouseClick(page, '#btn-fullscreen');
+  await waitFor(page, `document.fullscreenElement?.id === 'videowrap' && document.getElementById('btn-fullscreen').getAttribute('aria-label') === 'Exit full screen'`, 'overlay fullscreen');
+  assert(await evaluate(page, `document.body.dataset.subrender === 'overlay' && document.querySelectorAll('#subdisplay .cue').length > 0 && document.getElementById('video').paused`), 'fullscreen lost subtitles or changed playback');
+  await mouseClick(page, '#btn-fullscreen');
+  await waitFor(page, `!document.fullscreenElement && document.getElementById('btn-fullscreen').getAttribute('aria-label') === 'Full screen'`, 'exit via the same button');
+
+  // Keyboard focus reveals the control even after the pointer controls fade.
+  await evaluate(page, `document.getElementById('video').play()`);
+  const center = await evaluate(page, `(() => {const r=document.getElementById('video').getBoundingClientRect(); return {x:r.left+r.width/2,y:r.top+r.height/3};})()`);
+  await page.call('Input.dispatchMouseEvent', { type: 'mouseMoved', ...center });
+  await waitFor(page, `getComputedStyle(document.getElementById('btn-fullscreen')).opacity === '0'`, 'control fades during playback', 6000);
+  await pressKey(page, 'Tab', 'Tab', 9);
+  await evaluate(page, `document.getElementById('btn-fullscreen').focus()`);
+  await waitFor(page, `getComputedStyle(document.getElementById('btn-fullscreen')).opacity === '1'`, 'keyboard focus reveals the control');
+  // Native buttons activate on the Enter keypress, so include its text.
+  await page.call('Input.dispatchKeyEvent', { type: 'keyDown', key: 'Enter', code: 'Enter', windowsVirtualKeyCode: 13, text: '\r' });
+  await page.call('Input.dispatchKeyEvent', { type: 'keyUp', key: 'Enter', code: 'Enter', windowsVirtualKeyCode: 13 });
+  await waitFor(page, `document.fullscreenElement?.id === 'videowrap'`, 'keyboard fullscreen');
+  // Browser-owned Escape is not dispatched by headless CDP; exercise the
+  // same fullscreenchange path through the browser's exit API.
+  await evaluate(page, `document.exitFullscreen()`);
+  await waitFor(page, `!document.fullscreenElement && document.getElementById('btn-fullscreen').title === 'Full screen'`, 'browser exit restores the button state');
+  return { ok: true, detail: 'overlay is clear of subtitles; click enters/exits with subtitles and paused state preserved; fades during playback; keyboard focus and Enter work; browser exit restores the label' };
+}
+
 async function subtitles(page) {
   await playEpisode(page);
   await waitFor(page, `document.querySelectorAll('#subdisplay .cue').length > 0`, 'a cue in the layer');
   // One box per active cue, drawn by the layer while the track stays showing.
   const first = await evaluate(page, `(() => { const v = document.getElementById('video'); const shown = [...v.textTracks].filter((t) => t.mode === 'showing');
     return { render: document.body.dataset.subrender, showing: shown.length, active: shown[0] ? shown[0].activeCues.length : 0,
-      boxes: document.querySelectorAll('#subdisplay .cue').length, meta: document.querySelector('#infostrip .meta').textContent }; })()`);
+      boxes: document.querySelectorAll('#subdisplay .cue').length, meta: document.querySelector('#infostrip .playback-fact-subtitles dd').textContent }; })()`);
   if (first.render !== 'overlay' || first.showing !== 1 || !first.boxes || first.boxes !== first.active) return { ok: false, detail: `the layer: ${JSON.stringify(first)}` };
-  if (!/2 subtitles: en, fi/.test(first.meta)) return { ok: false, detail: `the details say ${JSON.stringify(first.meta)}` };
+  if (!/^2.*English.*Finnish/.test(first.meta)) return { ok: false, detail: `the details say ${JSON.stringify(first.meta)}` };
   // A two-line cue is one box with the lines stacked inside it.
   const box = await evaluate(page, `(() => { const v = document.getElementById('video'); const tr = [...v.textTracks].find((t) => t.mode === 'showing');
     for (let i = tr.cues.length - 1; i >= 0; i--) tr.removeCue(tr.cues[i]);
@@ -592,24 +639,34 @@ async function subtitles(page) {
   if (box.boxes !== 1 || box.lines !== 2) return { ok: false, detail: `a two-line cue: ${JSON.stringify(box)}` };
   // A double click takes the wrapper to full screen, and the layer with it.
   const at = await evaluate(page, `(() => { const r = document.getElementById('video').getBoundingClientRect(); return { x: r.left + r.width / 2, y: r.top + r.height / 2 }; })()`);
-  for (const clickCount of [1, 2]) {
+  if (page.doubleClick) await page.doubleClick(at.x, at.y);
+  else for (const clickCount of [1, 2]) {
     await page.call('Input.dispatchMouseEvent', { type: 'mousePressed', x: at.x, y: at.y, button: 'left', clickCount });
     await page.call('Input.dispatchMouseEvent', { type: 'mouseReleased', x: at.x, y: at.y, button: 'left', clickCount });
   }
   await sleep(1000);
   const full = await evaluate(page, `(() => ({ element: document.fullscreenElement && document.fullscreenElement.id,
-    boxes: document.querySelectorAll('#subdisplay .cue').length, render: document.body.dataset.subrender }))()`);
+    boxes: document.querySelectorAll('#subdisplay .cue').length, render: document.body.dataset.subrender,
+    nativeCues: [...document.getElementById('video').textTracks].filter(t => t.mode === 'showing').reduce((n,t) => n + (t.activeCues?.length || 0), 0) }))()`);
   await evaluate(page, `document.fullscreenElement && document.exitFullscreen()`);
   await sleep(600);
-  if (full.element !== 'videowrap' || full.boxes !== 1 || full.render !== 'overlay') return { ok: false, detail: `full screen: ${JSON.stringify(full)}` };
+  const wrapper = full.element === 'videowrap' && full.boxes === 1 && full.render === 'overlay';
+  // Firefox's native video controls can own the double click. Its native
+  // text track must then render the cue; the overlay returns on exit.
+  const native = process.env.KEPULI_BROWSER === 'firefox' && full.element === 'video'
+    && full.render === 'native' && full.nativeCues > 0;
+  if (!wrapper && !native) return { ok: false, detail: `full screen: ${JSON.stringify(full)}` };
+  if (!await evaluate(page, `document.body.dataset.subrender === 'overlay' && document.querySelectorAll('#subdisplay .cue').length === 1`)) {
+    return { ok: false, detail: 'subtitle overlay did not return after full screen' };
+  }
   // A file with no subtitles: the details below the player say so.
   await evaluate(page, `document.querySelector('#tabs [data-tab="movie"]').click()`);
   await waitFor(page, `document.querySelectorAll('#groups .group').length > 1`, 'the movie groups');
   await evaluate(page, `document.querySelectorAll('#groups .group')[1].click()`);
   await click(page, '#list', 'Crossfire Alley', { gesture: true });
   await waitFor(page, PLAYING, 'the movie');
-  await waitFor(page, `/No subtitles/.test((document.querySelector('#infostrip .meta') || {}).textContent || '')`, 'the details of the movie', 10000);
-  return { ok: true, detail: `one box for ${first.active} cue, two lines in one box, full screen on the wrapper, the movie says "No subtitles"` };
+  await waitFor(page, `/No subtitles/.test((document.querySelector('#infostrip .playback-fact-subtitles dd') || {}).textContent || '')`, 'the details of the movie', 10000);
+  return { ok: true, detail: `one box for ${first.active} cue, two lines in one box, full screen on ${full.element} with ${full.render} subtitles, the movie says "No subtitles"` };
 }
 
 /**
@@ -672,7 +729,7 @@ async function audio(page, { requests, target }) {
         buttons: acts.querySelectorAll('button').length }; })()`);
     if (row.cutOff > 0) { await page.call('Emulation.clearDeviceMetricsOverride'); return { ok: false, detail: `at ${width} px the player's row runs ${row.cutOff} px past its column` }; }
   }
-  await page.call('Emulation.clearDeviceMetricsOverride');
+  await page.call('Emulation.setDeviceMetricsOverride', { width: 1280, height: 800, deviceScaleFactor: 1, mobile: false });
   await sleep(300);
   if (!/^English · AAC/.test(menu.options[0]) || !/^Finnish · AAC/.test(menu.options[1]) || !/Commentary/.test(menu.options[2])) {
     return { ok: false, detail: `the selector names them ${JSON.stringify(menu.options)}` };
@@ -707,34 +764,62 @@ async function audio(page, { requests, target }) {
   return { ok: true, detail: `episode ${id}: automatic ${auto.hz} Hz, switched to Finnish ${switched.hz} Hz with the picture running from ${before.t} to ${after.t} s, to the AC-3 commentary ${commentary.hz} Hz, audioLang fi opens at ${finnish.hz} Hz, and the row fits at 1024-1512 px` };
 }
 
-/**
- * The settings dialog: what saves itself, what waits for a button, and what
- * closes it.
- *
- * The dialog used to be one form whose primary read "Connect", while the
- * language and the subtitle look inside it saved themselves the moment they
- * were changed — so its Cancel cancelled some of the dialog and not the
- * rest, and changing the subtitle size reconnected to the server. Now every
- * section but Connection saves as it goes and says so, and only Connection
- * has a button.
- */
+/** Drafts across tabs, cancellation, explicit save and the live Aa control. */
 async function settings(page, { requests, target }) {
-  const buttons = `[...document.querySelectorAll('#setup .setup-actions button')].filter((b) => !b.hidden).map((b) => b.textContent.trim())`;
+  const buttons = `[...document.querySelectorAll('#setup > form > .setup-actions button')].filter((b) => !b.hidden).map((b) => b.textContent.trim())`;
+  const change = (id, value, checkbox = false) => evaluate(page, `(() => { const c = document.getElementById('${id}'); c.${checkbox ? 'checked' : 'value'} = ${JSON.stringify(value)}; c.dispatchEvent(new Event('input', { bubbles: true })); c.dispatchEvent(new Event('change', { bubbles: true })); })()`);
+  const open = () => evaluate(page, `document.getElementById('btn-settings').click()`, { gesture: true });
+  const tab = (name) => evaluate(page, `document.querySelector('#setup-tabs [data-panel="${name}"]').click()`);
+  const press = (id) => evaluate(page, `document.getElementById('${id}').click()`, { gesture: true });
+  const assert = (ok, detail) => { if (!ok) throw new Error(detail); };
+  const saved = () => evaluate(page, `chrome.storage.local.get(['settings', 'config'])`);
+  const initial = await saved();
   const from = requests.length;
-  await evaluate(page, `document.getElementById('btn-settings').click()`, { gesture: true });
+  await open();
   await waitFor(page, `document.getElementById('setup').open`, 'the settings dialog', 5000);
-  const opened = await evaluate(page, `({ focus: document.activeElement.id, buttons: ${buttons},
-    section: (document.querySelector('#setup-tabs .active') || {}).dataset.panel })`);
-  if (opened.section !== 'general' || opened.focus !== 'f-lang' || opened.buttons.join() !== 'Done') {
-    return { ok: false, detail: `opened as ${JSON.stringify(opened)}` };
-  }
-
-  // A toggle is saved by flipping it, and reconnecting is not part of that.
-  await evaluate(page, `(() => { const c = document.getElementById('f-epg'); c.checked = !c.checked; c.dispatchEvent(new Event('change')); })()`);
-  await sleep(400);
-  const stored = await evaluate(page, `chrome.storage.local.get('settings').then((d) => d.settings.epgEnabled)`);
+  const opened = await evaluate(page, `({ focus: document.activeElement.id, buttons: ${buttons}, disabled: document.getElementById('f-save').disabled,
+    section: document.querySelector('#setup-tabs .active').dataset.panel })`);
+  assert(opened.section === 'connection' && opened.focus === 'f-scheme' && opened.buttons.join() === 'Cancel,Save' && opened.disabled, `opened as ${JSON.stringify(opened)}`);
+  await tab('general');
+  await change('f-epg', false, true);
+  await change('f-lang', 'fi');
+  await tab('subs');
+  await change('f-subsize', '36');
+  await change('f-substyle', 'yellow');
+  assert(JSON.stringify(await saved()) === JSON.stringify(initial), 'draft wrote to storage');
+  assert(await evaluate(page, `document.documentElement.lang === 'en' && document.body.dataset.substyle === 'shadow' && document.querySelector('#panel-subs .sublook').dataset.substyle === 'yellow'`), 'draft changed runtime or failed to preview');
+  await press('f-done');
+  await open();
+  assert(await evaluate(page, `document.getElementById('f-epg').checked && document.getElementById('f-lang').value === 'en' && document.getElementById('f-subsize').value === '24'`), 'Cancel retained a draft');
+  await tab('general');
+  await change('f-epg', false, true);
+  await tab('subs');
+  await change('f-subsize', '36');
+  // A failed write must keep the dialog and draft without persisting either key.
+  await evaluate(page, `window.originalSettingsSet = chrome.storage.local.set; chrome.storage.local.set = async () => { throw new Error('simulated write failure'); };`);
+  await press('f-save');
+  await waitFor(page, `!document.getElementById('setup-error').hidden && !document.getElementById('f-save').disabled`, 'save failure');
+  assert(JSON.stringify(await saved()) === JSON.stringify(initial), 'failed save changed storage');
+  await evaluate(page, `chrome.storage.local.set = window.originalSettingsSet; delete window.originalSettingsSet;`);
+  await press('f-save');
+  await waitFor(page, `!document.getElementById('setup').open`, 'saved settings');
+  const committed = await saved();
+  assert(committed.settings.epgEnabled === false && committed.settings.subtitleSize === 36, 'Save did not commit all tabs');
   const calls = requests.slice(from).filter((u) => u.includes('player_api.php')).length;
-  if (stored !== false || calls !== 0) return { ok: false, detail: `the toggle left epgEnabled ${stored} and made ${calls} api call(s)` };
+  assert(calls === 0, `preference save made ${calls} API calls`);
+  await open();
+  await tab('general');
+  await change('f-lang', 'fi');
+  await press('f-save');
+  await waitFor(page, `document.documentElement.lang === 'fi'`, 'saved Finnish language');
+  await open();
+  await tab('general');
+  await change('f-lang', 'en');
+  await press('f-save');
+  await waitFor(page, `document.documentElement.lang === 'en'`, 'restored English language');
+  await open();
+  await tab('general');
+  await change('f-resume', true, true);
 
   // The size slider is dragged; letting go outside the dialog must not be
   // read as a click on the backdrop.
@@ -749,11 +834,63 @@ async function settings(page, { requests, target }) {
   await sleep(300);
   if (!(await evaluate(page, `document.getElementById('setup').open`))) return { ok: false, detail: 'a slider drag released outside closed the dialog' };
 
-  // A click that begins and ends on the backdrop does close it.
+  // A backdrop click asks before discarding changes; keep editing retains them.
   await mouse('mousePressed', at.outX, at.outY);
   await mouse('mouseReleased', at.outX, at.outY);
   await sleep(300);
-  if (await evaluate(page, `document.getElementById('setup').open`)) return { ok: false, detail: 'a click on the backdrop left the dialog open' };
+  assert(await evaluate(page, `document.getElementById('setup').open && !document.getElementById('setup-discard').hidden`), 'dirty backdrop did not ask before discarding');
+  await press('f-keep');
+  assert(await evaluate(page, `document.getElementById('f-resume').checked`), 'keep editing lost the draft');
+  await pressKey(page, 'Escape', 'Escape', 27);
+  await waitFor(page, `!document.getElementById('setup-discard').hidden`, 'Escape draft guard', 3000);
+  await press('f-discard');
+  assert(!(await saved()).settings.resumeEnabled, 'discard saved a change');
+  await open();
+  await press('f-close');
+  assert(await evaluate(page, `!document.getElementById('setup').open`), 'clean close stayed open');
+
+  // Existing M3U credentials do not require pasting the URL to save preferences.
+  await evaluate(page, `chrome.storage.local.get('config').then(({ config }) => chrome.storage.local.set({ config: { ...config, sourceMode: 'm3u' } }))`);
+  await page.call('Page.navigate', { url: target.url });
+  await waitFor(page, CONNECTED, 'M3U connection');
+  await open();
+  assert(await evaluate(page, `document.activeElement.id === 'f-paste'`), 'M3U focused a hidden field');
+  await tab('general');
+  await change('f-resume', true, true);
+  await press('f-save');
+  await waitFor(page, `!document.getElementById('setup').open`, 'M3U preferences saved without URL');
+  await open();
+  await change('f-paste', 'invalid');
+  await tab('subs');
+  await press('f-save');
+  assert(await evaluate(page, `!document.getElementById('setup-error').hidden && document.activeElement.id === 'f-paste'`), 'invalid M3U did not focus its error');
+  await press('f-done');
+
+  // Saving from another tab commits credentials too; denied permission
+  // must commit neither credentials nor preferences.
+  await open();
+  const beforeConnection = await saved();
+  await change('f-paste', `http://127.0.0.1:${MOCK_PORT}/get.php?username=demo&password=changed`);
+  await tab('general');
+  await change('f-epg', true, true);
+  await evaluate(page, `window.originalSettingsPermission = chrome.permissions.request; chrome.permissions.request = async () => false;`);
+  await press('f-save');
+  await waitFor(page, `!document.getElementById('setup-error').hidden && !document.getElementById('f-save').disabled`, 'permission denial');
+  assert(JSON.stringify(await saved()) === JSON.stringify(beforeConnection), 'denied permission committed settings');
+  // The isolated headless profile cannot answer Chrome's permission prompt.
+  await evaluate(page, `chrome.permissions.request = async () => true;`);
+  const reconnectFrom = requests.length;
+  await press('f-save');
+  await waitFor(page, `!document.getElementById('setup').open`, 'saved connection');
+  await waitFor(page, `!document.querySelector('#setup form').inert`, 'connection attempt completed');
+  const afterConnection = await saved();
+  assert(afterConnection.config.password === 'changed' && afterConnection.settings.epgEnabled, 'Save did not commit connection and preferences together');
+  assert(requests.slice(reconnectFrom).some((url) => url.includes('password=changed')), 'changed connection did not reconnect');
+  await open();
+  await change('f-paste', `http://127.0.0.1:${MOCK_PORT}/get.php?username=demo&password=demo`);
+  await press('f-save');
+  await waitFor(page, CONNECTED, 'reconnected with corrected credentials');
+  await evaluate(page, `chrome.permissions.request = window.originalSettingsPermission; delete window.originalSettingsPermission;`);
 
   // The look over the picture: the same setting, judged against the real
   // subtitles, which the popover must not cover.
@@ -780,11 +917,216 @@ async function settings(page, { requests, target }) {
   await waitFor(page, `document.getElementById('setup').open`, 'the first-run dialog', 10000);
   const first = await evaluate(page, `({ rail: getComputedStyle(document.getElementById('setup-tabs')).display,
     title: document.getElementById('setup-title').textContent.trim(), buttons: ${buttons} })`);
-  if (first.rail !== 'none' || first.buttons.join() !== 'Connect') return { ok: false, detail: `the first run showed ${JSON.stringify(first)}` };
-  return { ok: true, detail: `opens on General focused on the language with only Done; a toggle saved itself with ${calls} api calls; a slider drag out kept it open and a backdrop click closed it; the popover set ${look.size} without covering the cue; the first run is "${first.title}" with no rail and only Connect` };
+  if (first.rail !== 'none' || first.buttons.join() !== 'Cancel,Connect') return { ok: false, detail: `the first run showed ${JSON.stringify(first)}` };
+  return { ok: true, detail: `Connection first; drafts and cancel across tabs; failed write and retry; explicit save with ${calls} preference API calls; saved language; guarded backdrop/Escape; M3U preference save and validation; live Aa control and first run` };
 }
 
-const SCENARIOS = { seek, death, cancel, timeout, search, paste, keys, switching, resume, reconnect, accounts, listerror, a11y, subtitles, audio, settings };
+
+/** Personal presentation survives reload, cancels cleanly and can be restored. */
+async function organize(page, { target }) {
+  const assert = (ok, message) => { if (!ok) throw new Error(message); };
+  await openLiveList(page, 3);
+  const open = async () => {
+    await evaluate(page, `document.getElementById('btn-organize').click()`);
+    await waitFor(page, `document.getElementById('channel-editor').open`, 'channel editor');
+  };
+  const save = async () => {
+    await evaluate(page, `document.getElementById('channel-editor-save').click()`);
+    await waitFor(page, `!document.getElementById('channel-editor').open`, 'saved channel editor');
+  };
+  const names = () => evaluate(page, `[...document.querySelectorAll('#list .row-name')].map((n) => n.title)`);
+  await open();
+  const original = await evaluate(page, `[...document.querySelectorAll('.organize-row')].map((n) => ({id:n.dataset.id,name:n.querySelector('label span').textContent}))`);
+  await evaluate(page, `document.querySelectorAll('.organize-row')[1].querySelector('[data-action="up"]').click()`);
+  await evaluate(page, `document.querySelectorAll('.organize-row')[1].querySelector('input').click()`);
+  await save();
+  assert((await names())[0] === original[1].name, 'custom order not applied to channel list');
+  assert(!(await names()).includes(original[0].name), 'hidden channel remained in the channel list');
+  await page.call('Page.navigate', { url: target.url });
+  await waitFor(page, CONNECTED, 'reload with preferences');
+  await waitFor(page, `document.querySelectorAll('#list .row').length > 0`, 'reloaded list');
+  assert((await names())[0] === original[1].name, 'custom order lost on reload');
+  await open();
+  assert(await evaluate(page, `!document.querySelector('.organize-row[data-id="${original[0].id}"] input').checked`), 'hidden channel cannot be restored from editor');
+  await evaluate(page, `document.querySelector('.organize-row[data-id="${original[0].id}"] input').click(); document.getElementById('channel-editor-cancel').click()`);
+  assert(!(await names()).includes(original[0].name), 'Cancel committed the draft');
+  await open();
+  await evaluate(page, `document.getElementById('channel-editor-show').click(); document.getElementById('channel-editor-reset').click()`);
+  await save();
+  assert((await names()).includes(original[0].name), 'restoring hidden channels failed');
+  await open();
+  await evaluate(page, `document.getElementById('channel-editor-kind').value='categories'; document.getElementById('channel-editor-kind').dispatchEvent(new Event('input'))`);
+  const group = await evaluate(page, `document.getElementById('channel-editor-group').value`);
+  await evaluate(page, `document.getElementById('channel-editor-hide').click()`);
+  await save();
+  assert(!(await evaluate(page, `[...document.querySelectorAll('#groups .group')].some((g) => g.textContent.includes(${JSON.stringify(group)}))`)), 'fully hidden category group remained in sidebar');
+  await open();
+  await evaluate(page, `document.getElementById('channel-editor-kind').value='categories'; document.getElementById('channel-editor-group').value=''; document.getElementById('channel-editor-kind').dispatchEvent(new Event('input')); document.getElementById('channel-editor-show').click()`);
+  await save();
+  assert(await evaluate(page, `[...document.querySelectorAll('#groups .group')].some((g) => g.textContent.includes(${JSON.stringify(group)}))`), 'hidden category group was not restorable');
+  return { ok: true, detail: 'channel hide/order/save/reload; Cancel preserves saved data; hidden channels and categories restored' };
+}
+
+async function programmes(page, { requests }) {
+  const assert = (ok, message) => { if (!ok) throw new Error(message); };
+  await openLiveList(page, 3);
+  await evaluate(page, `document.getElementById('btn-guide').click()`);
+  await waitFor(page, `document.getElementById('main').classList.contains('guide')`, 'guide');
+  assert(await evaluate(page, `document.querySelectorAll('#epg-days button').length >= 8`), 'archive duration did not extend guide history');
+  const search = async (query, period = 'upcoming') => {
+    await evaluate(page, `document.getElementById('programme-query').value=${JSON.stringify(query)}; document.getElementById('programme-period').value=${JSON.stringify(period)}; document.getElementById('programme-form').requestSubmit()`);
+    await waitFor(page, `document.getElementById('programme-status').textContent.includes('Search finished')`, 'programme search');
+  };
+  await search('Ice hockey');
+  assert(await evaluate(page, `document.querySelectorAll('.programme-result').length > 0`), 'programme title search found no hockey');
+  assert(await evaluate(page, `getComputedStyle(document.getElementById('epg-body')).display === 'none'`), 'grid not replaced by programme results');
+  const before = requests.filter((r) => r.includes('get_simple_data_table')).length;
+  await search('behind the scenes');
+  assert(await evaluate(page, `document.querySelectorAll('.programme-result').length > 0`), 'description search found no results');
+  assert(requests.filter((r) => r.includes('get_simple_data_table')).length === before, 'repeated search refetched cached full tables');
+  await search('No-such-programme-38472');
+  assert(await evaluate(page, `document.getElementById('programme-status').textContent.startsWith('0 results')`), 'empty search had no explicit result count');
+  await search('News', 'past');
+  await evaluate(page, `document.querySelector('.programme-result').click()`);
+  await waitFor(page, `document.querySelector('#epgv-slot b')`, 'search result detail');
+  await evaluate(page, `document.getElementById('programme-clear').click()`);
+  assert(await evaluate(page, `!document.getElementById('epg-body').hidden && document.getElementById('programme-panel').hidden`), 'return to guide failed');
+  return { ok: true, detail: 'archive-length guide; title/description search, cached repeat, empty results, past results and return to grid' };
+}
+
+async function catchup(page, { requests }) {
+  const assert = (ok, message) => { if (!ok) throw new Error(message); };
+  await openLiveList(page, 3);
+  await evaluate(page, `(async () => {
+    const {XtreamApi}=await import('./js/api.js');
+    const {config}=await chrome.storage.local.get('config');
+    const channels=await new XtreamApi(config).streams('live');
+    const names=[...document.querySelectorAll('#list .row-name')];
+    const row=names.find(n=>channels.some(c=>c.n===n.title && c.archive>0));
+    if(!row) throw new Error('No archived channel in view');
+    row.closest('.row').click();
+  })()`, { gesture: true });
+  await waitFor(page, PLAYING, 'live channel');
+  await evaluate(page, `document.getElementById('btn-guide').click()`);
+  await waitFor(page, `[...document.querySelectorAll('#epgv-actions button')].some(b=>b.textContent==='Start from beginning')`, 'start-over action');
+  await click(page, '#epgv-actions', 'Start from beginning', { gesture: true });
+  await waitFor(page, PLAYING, 'start-over playback');
+  assert(requests.some((r) => r.startsWith('/timeshift/')), 'start over did not request the archive');
+  const archiveCount = () => requests.filter((r) => r.startsWith('/timeshift/')).length;
+  let before = archiveCount();
+  await evaluate(page, `document.getElementById('btn-reload').click()`, { gesture: true });
+  await waitFor(page, PLAYING, 'archive reload');
+  assert(archiveCount() > before, 'reload escaped to live instead of reloading the archive');
+  before = archiveCount();
+  await evaluate(page, `document.getElementById('video').dispatchEvent(new Event('ended'))`);
+  await sleep(2200);
+  assert(archiveCount() === before, 'archive ended event triggered live reconnection');
+  await evaluate(page, `document.getElementById('btn-live').click()`, { gesture: true });
+  await waitFor(page, PLAYING, 'return to live');
+  assert(await evaluate(page, `document.getElementById('btn-live').hidden && !document.getElementById('mode').disabled`), 'return to live left archive controls active');
+  return { ok: true, detail: 'current programme starts via timeshift; reload stays in archive; end does not reconnect; return to live' };
+}
+
+
+async function setupClarity(page) {
+  const assert = (ok, message) => { if (!ok) throw new Error(message); };
+  const press = (id) => evaluate(page, `document.getElementById('${id}').click()`, { gesture: true });
+  const change = (id, value) => evaluate(page, `(() => {const input=document.getElementById('${id}');input.value=${JSON.stringify(value)};input.dispatchEvent(new Event('input',{bubbles:true}));})()`);
+  const capture = async (name) => {
+    if (!process.env.KEPULI_SETUP_CAPTURE_DIR) return;
+    const fs = await import('node:fs');
+    fs.mkdirSync(process.env.KEPULI_SETUP_CAPTURE_DIR, {recursive:true});
+    const {data} = await page.call('Page.captureScreenshot', {format:'png'});
+    fs.writeFileSync(`${process.env.KEPULI_SETUP_CAPTURE_DIR}/${name}.png`, Buffer.from(data,'base64'));
+  };
+  const before = await evaluate(page, `chrome.storage.local.get(['config','settings'])`);
+  await press('btn-settings');
+  await evaluate(page, `document.querySelector('input[name="source"][value="m3u"]').click()`);
+  await change('f-paste', 'http://example.test:8080/get.php?username=%3Cusername%3E&password=%3Cpassword%3E&type=m3u_plus&output=ts');
+  assert(await evaluate(page, `!document.getElementById('f-show-fields').hidden && document.getElementById('playlist-status').textContent.includes('filled')`), 'paste did not explain the filled fields');
+  await capture('subscription-url');
+  await press('f-show-fields');
+  const fields = await evaluate(page, `['scheme','host','port','username','password'].map(f=>document.getElementById('f-'+f).value)`);
+  assert(JSON.stringify(fields) === JSON.stringify(['http','example.test','8080','<username>','<password>']), 'pasted URL was not decoded into visible fields');
+  assert(await evaluate(page, `!document.getElementById('src-xtream').hidden && document.activeElement.id==='f-host'`), 'show fields did not reveal and focus editable fields');
+  assert(JSON.stringify(await evaluate(page, `chrome.storage.local.get(['config','settings'])`)) === JSON.stringify(before), 'pasting committed credentials before Save');
+  await press('f-done');
+  await press('btn-settings');
+  await evaluate(page, `document.querySelector('#setup-tabs [data-panel="subs"]').click()`);
+  await change('f-subsize', '72');
+  for (const [width,height] of [[1280,800],[390,844],[320,568],[640,420]]) {
+    await page.call('Emulation.setDeviceMetricsOverride', {width,height,deviceScaleFactor:1,mobile:false});
+    for (const style of ['shadow','box','contrast']) {
+      await change('f-substyle', style);
+      await sleep(120);
+      const fit = await evaluate(page, `(() => {
+        const frame=document.querySelector('.sublook-preview').getBoundingClientRect(),
+          sample=document.querySelector('.sublook-preview .subdisplay').getBoundingClientRect(),
+          controls=document.querySelector('.sublook-fields').getBoundingClientRect(),
+          panel=document.getElementById('panel-subs').getBoundingClientRect(),
+          save=document.getElementById('f-save').getBoundingClientRect();
+        return {inside:sample.left>=frame.left && sample.right<=frame.right && sample.top>=frame.top && sample.bottom<=frame.bottom,
+          controlsAbove:controls.bottom<=frame.top,visible:controls.top>=panel.top && frame.bottom<=panel.bottom+1,
+          footer:save.bottom<=innerHeight, size:document.getElementById('f-subsize').value,
+          runtime:document.body.style.getPropertyValue('--sub-size')};})()`);
+      assert(fit.inside && fit.controlsAbove && fit.visible && fit.footer && fit.size==='72' && fit.runtime==='24px', `${width}x${height} ${style}: ${JSON.stringify(fit)}`);
+      if(style==='box') await capture(`subtitles-72-${width}`);
+    }
+  }
+  await page.call('Emulation.setDeviceMetricsOverride', {width:1280,height:800,deviceScaleFactor:1,mobile:false});
+  await press('f-save');
+  await waitFor(page, `!document.getElementById('setup').open`, 'saved 72px subtitles');
+  assert(await evaluate(page, `chrome.storage.local.get('settings').then(d=>d.settings.subtitleSize===72 && document.body.style.getPropertyValue('--sub-size')==='72px')`), 'preview scaling changed saved or playback size');
+  return {ok:true, detail:'subscription URL explains decoded fields without saving; controls above an unclipped 72px preview at 320–1280px; playback saves 72px'};
+}
+
+
+/** Covers and catalogue metadata use the same DOM in both browsers. */
+async function catalogUi(page) {
+  const assert = (ok, detail) => { if (!ok) throw new Error(detail); };
+  await evaluate(page, `document.querySelector('[data-tab="movie"]').click()`);
+  await waitFor(page, `document.querySelectorAll('#list .row').length > 1 && !document.getElementById('progress').open`, 'movie rows');
+  await waitFor(page, `document.querySelector('#list .row-duration')`, 'movie duration metadata');
+  assert(await evaluate(page, `!document.getElementById('media-filters').hidden && document.getElementById('channel-tools').hidden && document.querySelector('.topbar-end').lastElementChild.id === 'btn-settings'`), 'movie navigation/filters');
+  const apply = (key,value) => evaluate(page, `(() => {const f=document.querySelector('#media-filters [name="${key}"]');f.value=${JSON.stringify(value)};f.dispatchEvent(new Event('change'));})()`);
+  await apply('rating','8');
+  await waitFor(page, `!document.getElementById('progress').open && document.querySelectorAll('#list .row').length > 0`, 'rating filter');
+  assert(await evaluate(page, String.raw`[...document.querySelectorAll('#list .row-sub')].every(n => Number(n.textContent.match(/★\s*([\d.]+)/)?.[1]) >= 8)`), 'low rating leaked into filtered movies');
+  await apply('sort','rating');
+  const values = await evaluate(page, String.raw`[...document.querySelectorAll('#list .row-sub')].map(n=>Number(n.textContent.match(/★\s*([\d.]+)/)?.[1]))`);
+  assert(values.every((v,i)=>!i || values[i-1]>=v), 'rating sort order');
+  await evaluate(page, `document.querySelector('.media-filter-footer button').click()`);
+  await waitFor(page, `document.querySelectorAll('#list .row').length > 1`, 'filter reset');
+  await evaluate(page, `document.querySelector('#list .row').click()`, {gesture:true});
+  await waitFor(page, PLAYING, 'native movie playback');
+  await waitFor(page, `document.querySelector('#infostrip .title-links a') && document.querySelector('#infostrip .playback-facts')`, 'movie facts and external link');
+  assert(await evaluate(page, `document.querySelector('#infostrip .title-links a').href.startsWith('https://www.imdb.com/')`), 'IMDb link destination');
+  await playEpisode(page);
+  await waitFor(page, `document.querySelector('#detail .detail-cover.loaded:not(:disabled)')`, 'series cover');
+  await evaluate(page, `document.querySelector('#detail .detail-cover').click()`);
+  await waitFor(page, `document.querySelector('.poster-dialog[open] img')`, 'expanded cover');
+  await evaluate(page, `document.querySelector('.poster-close').click()`);
+  assert(await evaluate(page, `!document.querySelector('.poster-dialog[open]')`), 'cover did not close');
+  await evaluate(page, `document.querySelector('[data-tab="recent"]').click()`);
+  await waitFor(page, `document.querySelectorAll('#list .row').length >= 2`, 'movie and episode history');
+  // Exercise actual image loading and error handling without a remote provider.
+  await evaluate(page, `import('./js/poster.js').then(({poster})=>{
+    const host=document.createElement('div');host.id='cover-check';document.body.append(host);
+    host.append(poster('row-logo','', 'channel'),poster('row-logo','data:image/png;base64,bm90aW1hZ2U=', 'channel'));
+  })`);
+  await waitFor(page, `!document.querySelector('#cover-check img')`, 'failed image fallback');
+  assert(await evaluate(page, `[...document.querySelectorAll('#cover-check svg')].every(svg=>getComputedStyle(svg).visibility==='visible')`), 'channel placeholder hidden');
+  await evaluate(page, `document.getElementById('cover-check').remove()`);
+  await openLiveList(page);
+  assert(await evaluate(page, `!document.getElementById('channel-tools').hidden && document.getElementById('media-filters').hidden`), 'channel navigation');
+  await evaluate(page, `document.getElementById('btn-guide').click()`);
+  await waitFor(page, `document.getElementById('main').classList.contains('guide')`, 'guide entry');
+  await mouseClick(page, '#epg-close');
+  assert(await evaluate(page, `!document.getElementById('main').classList.contains('guide') && document.activeElement.id==='btn-guide'`), 'guide return and focus');
+  return {ok:true,detail:'movie duration, rating filter/sort/reset, native playback, IMDb/facts, series cover expansion, history, failed/missing logo fallback and guide return'};
+}
+
+const SCENARIOS = { catalogUi, setupClarity, fullscreenControl, organize, programmes, catchup, seek, death, cancel, timeout, search, paste, keys, switching, resume, reconnect, accounts, listerror, a11y, subtitles, audio, settings };
 // The mock's whole-list answers stall for these, longer than the request limit.
 const SLOW_LIST_MS = { cancel: 60000, timeout: 60000 };
 // The media is sent slowly for these: the seek targets must lie outside the

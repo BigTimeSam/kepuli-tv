@@ -169,7 +169,7 @@ export class Playback {
     // reason emerged — so the header is read before the first attempt. The
     // extensions .mp4 and .mkv, on the other hand, always held true in the
     // sample, and they are not slowed down.
-    if (chain.length === 0 || (!spec.live && chain[0] === 'mpegts')) {
+    if (chain.length === 0 || (!spec.live && !spec.catchup && chain[0] === 'mpegts')) {
       const known = await this.inspect(spec, token);
       if (!known) return;
       if (known.path === 'native') chain = ['native'];
@@ -208,6 +208,7 @@ export class Playback {
     const known = verdict(info);
     spec.probe = info;
     spec.verdict = known;
+    this.onState({ status: 'metadata' });
     return known;
   }
 
@@ -229,7 +230,7 @@ export class Playback {
    */
   async explain(spec, token) {
     const generic = t('playback.nosource');
-    if (spec.live || spec.probe) { this.onState({ status: 'error', message: generic, verdict: spec.verdict }); return; }
+    if (spec.live || spec.catchup || spec.probe) { this.onState({ status: 'error', message: generic, verdict: spec.verdict }); return; }
     const known = await this.inspect(spec, token);
     if (!known) return;
     if (known.path === 'silent') return this.refuse(known, { canSilent: true });
@@ -333,7 +334,9 @@ export class Playback {
 
   startMpegts(url, isLive, finish) {
     if (typeof mpegts === 'undefined' || !mpegts.isSupported()) return finish(false, 'mpegts.js not supported');
-    const player = mpegts.createPlayer({ type: 'mpegts', isLive, url }, MPEGTS_CONFIG);
+    const player = mpegts.createPlayer({ type: 'mpegts', isLive, url }, {
+      ...MPEGTS_CONFIG, liveBufferLatencyChasing: isLive,
+    });
     this.engine = player;
     player.on(mpegts.Events.ERROR, (type, detail) => finish(false, `${type}/${detail}`));
     // A live source does not end by itself: this means the server cut the

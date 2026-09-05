@@ -30,13 +30,23 @@
       <svg viewBox="0 0 20 20" aria-hidden="true"><circle cx="10" cy="10" r="6.5"/><path d="M10 6.4V10l2.6 1.6"/></svg>
       <span id="account-expiry"></span>
     </span>
-    <button type="button" id="btn-guide" class="ghost" data-i18n="btn.guide" data-i18n-title="btn.guide.title">Guide</button>
     <button type="button" id="btn-refresh" class="ghost" data-i18n="btn.refresh" data-i18n-title="btn.refresh.title">Refresh</button>
+    <a id="help-link" class="help-link" href="https://github.com/BigTimeSam/kepuli-tv#user-guide" target="_blank" rel="noopener noreferrer" data-i18n-title="btn.help.title" data-i18n-label="btn.help.title">
+      <span data-i18n="btn.help">Help</span>
+      <svg viewBox="0 0 20 20" aria-hidden="true"><path d="M11 3h6v6M17 3l-8 8M8 4H4a1 1 0 0 0-1 1v11a1 1 0 0 0 1 1h11a1 1 0 0 0 1-1v-4"/></svg>
+    </a>
     <button type="button" id="btn-settings" class="ghost" data-i18n="btn.settings">Settings</button>
   </div>
 </header>
 
 <main id="main">
+  <div class="guide-header">
+    <button type="button" id="epg-close" class="guide-back" aria-controls="epg">
+      <svg viewBox="0 0 20 20" aria-hidden="true"><path d="m8 4-6 6 6 6M2 10h16"/></svg>
+      <span data-i18n="guide.close">Back to channels</span>
+    </button>
+    <h1 data-i18n="btn.guide">Programme guide</h1>
+  </div>
   <aside class="groups" id="groups-col">
     <div class="groups-filter" id="groups-filter">
       <input id="category-filter" type="search" data-i18n-placeholder="groups.filter.placeholder" data-i18n-label="groups.filter.placeholder" autocomplete="off" spellcheck="false">
@@ -45,6 +55,13 @@
   </aside>
 
   <section class="listcol">
+    <div class="channel-tools" id="channel-tools" hidden>
+      <button type="button" id="btn-guide" class="channel-guide" data-i18n-title="btn.guide.title" aria-controls="epg" aria-expanded="false">
+        <svg viewBox="0 0 20 20" aria-hidden="true"><rect x="2.5" y="3.5" width="15" height="13" rx="2"/><path d="M2.5 8h15M7 8v8.5M11 8v4M7 12h10.5"/></svg>
+        <span data-i18n="btn.guide">Programme guide</span>
+        <span class="channel-guide-arrow" aria-hidden="true">›</span>
+      </button>
+    </div>
     <div class="crumbs" id="crumbs" hidden></div>
     <div class="subcats" id="subcats" hidden></div>
     <!-- The topic bar's lower edge is its handle: role and the value
@@ -53,6 +70,7 @@
     <div class="subcats-grip" id="subcats-grip" role="separator" aria-orientation="horizontal"
          tabindex="0" data-i18n-title="subcats.resize.title" hidden></div>
     <div class="detail" id="detail" hidden></div>
+    <details class="media-filters" id="media-filters" open hidden></details>
     <div class="list" id="list" tabindex="0" role="listbox" data-i18n-label="list.aria"></div>
     <div class="listinfo" id="listinfo"></div>
   </section>
@@ -62,7 +80,7 @@
       <!-- The subtitles are drawn into the layer by js/subdisplay.js; the
            video's own full-screen button would take the bare video and
            leave the layer behind, so the wrapper goes to full screen
-           instead, from the button on the row below. -->
+           instead, from the button over the picture. -->
       <video id="video" controls controlslist="nofullscreen" playsinline preload="none"></video>
       <div class="subdisplay" id="subdisplay" aria-hidden="true"></div>
       <div class="overlay" id="overlay">
@@ -73,6 +91,9 @@
         </div>
       </div>
       <div class="statbadge" id="statbadge" hidden></div>
+      <button type="button" id="btn-fullscreen" class="video-fullscreen" data-i18n-title="player.fullscreen.title" data-i18n-label="player.fullscreen.title" aria-controls="videowrap" hidden>
+        <svg viewBox="0 0 20 20" aria-hidden="true"><path d="M3 8V3h5M12 3h5v5M17 12v5h-5M8 17H3v-5"/></svg>
+      </button>
     </div>
 
     <div class="infostrip" id="infostrip" hidden></div>
@@ -100,6 +121,7 @@
         </label>
       </div>
       <div class="now-actions">
+        <button type="button" id="btn-live" class="ghost" data-i18n="guide.returnlive" hidden>Back to live</button>
         <select id="mode" data-i18n-title="player.mode.title">
           <option value="auto">Auto</option>
           <option value="ts">TS</option>
@@ -114,9 +136,6 @@
         <button type="button" id="btn-sublook" class="ghost" data-i18n-title="player.subs.look" aria-expanded="false" aria-controls="sublook-pop" hidden>Aa</button>
         <button type="button" id="btn-fav" class="ghost" data-i18n-title="fav.button.title">☆</button>
         <button type="button" id="btn-reload" class="ghost" data-i18n-title="player.reload.title">↻</button>
-        <button type="button" id="btn-fullscreen" class="ghost icon" data-i18n-title="player.fullscreen.title">
-          <svg viewBox="0 0 20 20" aria-hidden="true"><path d="M3 8V3h5M12 3h5v5M17 12v5h-5M8 17H3v-5"/></svg>
-        </button>
         <button type="button" id="btn-pip" class="ghost" data-i18n-title="player.pip.title">PiP</button>
         <button type="button" id="btn-cast" class="ghost" data-i18n-title="cast.title">Cast</button>
         <button type="button" id="btn-copy" class="ghost" data-i18n-title="player.copy.title">URL</button>
@@ -130,7 +149,7 @@
       <!-- The source is set only when a channel is chosen, see
            renderGuidePreview. Until then, and whenever there is no logo or
            it fails to load, blank hides the reserved space. -->
-      <img class="epgv-logo blank" id="epgv-logo" alt="">
+      <span class="epgv-logo" id="epgv-logo" aria-hidden="true"></span>
       <div class="epgv-chan">
         <div class="epgv-name" id="epgv-name">—</div>
         <div class="epgv-meta" id="epgv-meta"></div>
@@ -156,9 +175,29 @@
         <button type="button" id="epg-in" class="ghost" data-i18n-title="guide.in.title">+</button>
       </div>
       <span class="epg-clock" id="epg-clock"></span>
-      <button type="button" id="epg-close" class="ghost" data-i18n="guide.close">Close</button>
     </div>
-    <div class="epg-body">
+    <form id="programme-form" class="programme-form">
+      <input id="programme-query" type="search" data-i18n-placeholder="programmes.placeholder" data-i18n-label="programmes.placeholder" autocomplete="off">
+      <select id="programme-scope" data-i18n-label="programmes.scope">
+        <option value="group" data-i18n="programmes.group">Shown channels</option>
+        <option value="all" data-i18n="programmes.all">All visible channels</option>
+      </select>
+      <select id="programme-period" data-i18n-label="programmes.period">
+        <option value="upcoming" data-i18n="programmes.upcoming">Now and upcoming</option>
+        <option value="past" data-i18n="programmes.past">Past programmes</option>
+        <option value="all" data-i18n="programmes.anytime">Past and upcoming</option>
+      </select>
+      <button type="submit" class="ghost" data-i18n="programmes.search">Search programmes</button>
+    </form>
+    <section id="programme-panel" class="programme-panel" hidden data-i18n-label="programmes.results">
+      <div class="programme-summary">
+        <span id="programme-status" role="status"></span>
+        <button type="button" id="programme-cancel" class="ghost" data-i18n="programmes.cancel" hidden>Stop search</button>
+        <button type="button" id="programme-clear" class="ghost" data-i18n="programmes.clear">Back to guide</button>
+      </div>
+      <div id="programme-results" class="programme-results"></div>
+    </section>
+    <div class="epg-body" id="epg-body">
       <div class="epg-corner" id="epg-corner"></div>
       <div class="epg-times"><div class="epg-times-inner" id="epg-times-inner"></div></div>
       <div class="epg-chans"><div class="epg-chans-inner" id="epg-chans-inner"></div></div>
@@ -167,25 +206,48 @@
   </section>
 </main>
 
-<dialog id="setup">
-  <form method="dialog" class="setup">
+<dialog id="channel-editor" aria-labelledby="channel-editor-title">
+  <div class="editor-content">
+    <h2 id="channel-editor-title" data-i18n="organize.title">Organize channels</h2>
+    <p class="editor-help" data-i18n="organize.help">Uncheck to hide. Use the arrows to change the order. Hidden categories hide their channels everywhere. Save applies changes to this account.</p>
+    <div class="editor-toolbar">
+      <select id="channel-editor-kind" data-i18n-label="organize.kind">
+        <option value="channels" data-i18n="tab.live">Channels</option>
+        <option value="categories" data-i18n="kind.c">Categories</option>
+      </select>
+      <select id="channel-editor-group" data-i18n-label="guide.group.title"></select>
+      <input id="channel-editor-filter" type="search" data-i18n-placeholder="search.placeholder" data-i18n-label="search.placeholder" autocomplete="off">
+    </div>
+    <div class="editor-toolbar">
+      <button type="button" id="channel-editor-hide" class="ghost" data-i18n="organize.hide">Hide shown</button>
+      <button type="button" id="channel-editor-show" class="ghost" data-i18n="organize.show">Show shown</button>
+      <button type="button" id="channel-editor-reset" class="ghost" data-i18n="organize.reset">Reset order</button>
+    </div>
+    <div id="channel-editor-list" class="organize-list" role="region" data-i18n-label="organize.title"></div>
+    <div class="editor-actions">
+      <span id="channel-editor-status" role="status"></span>
+      <button type="button" id="channel-editor-cancel" class="ghost" data-i18n="organize.cancel">Cancel</button>
+      <button type="button" id="channel-editor-save" class="primary" data-i18n="setup.save">Save</button>
+    </div>
+  </div>
+</dialog>
+
+<dialog id="setup" aria-labelledby="setup-title">
+  <form class="setup" novalidate>
     <div class="setup-head">
       <h2 id="setup-title" data-i18n="setup.title">Settings</h2>
       <button type="button" id="f-close" class="setup-close" data-i18n-title="setup.close">&times;</button>
     </div>
 
-    <!-- The sections the settings fall into. The rail is the same component
-         as the top bar's tabs, so the dialog gains no widget of its own.
-         Everything but Connection takes effect the moment it is changed;
-         Connection is a form, and it alone has something to submit. -->
     <div class="tabs setup-tabs" id="setup-tabs" role="tablist" data-i18n-label="setup.sections">
-      <button type="button" role="tab" id="tab-general" class="active" aria-selected="true" aria-controls="panel-general" data-panel="general" data-i18n="setup.tab.general">General</button>
-      <button type="button" role="tab" id="tab-subs" aria-selected="false" aria-controls="panel-subs" data-panel="subs" data-i18n="setup.tab.subs">Subtitles</button>
-      <button type="button" role="tab" id="tab-connection" aria-selected="false" aria-controls="panel-connection" data-panel="connection" data-i18n="setup.tab.connection">Connection</button>
-      <button type="button" role="tab" id="tab-account" aria-selected="false" aria-controls="panel-account" data-panel="account" data-i18n="setup.tab.account">Account</button>
+      <button type="button" role="tab" id="tab-connection" class="active" aria-selected="true" aria-controls="panel-connection" data-panel="connection" data-i18n="setup.tab.connection">Connection</button>
+      <button type="button" role="tab" id="tab-general" tabindex="-1" aria-selected="false" aria-controls="panel-general" data-panel="general" data-i18n="setup.tab.general">Viewing</button>
+      <button type="button" role="tab" id="tab-subs" tabindex="-1" aria-selected="false" aria-controls="panel-subs" data-panel="subs" data-i18n="setup.tab.subs">Subtitles</button>
+      <button type="button" role="tab" id="tab-account" tabindex="-1" aria-selected="false" aria-controls="panel-account" data-panel="account" data-i18n="setup.tab.account">Account & data</button>
     </div>
 
-    <section class="setup-panel" id="panel-general" role="tabpanel" aria-labelledby="tab-general">
+    <section class="setup-panel" id="panel-general" role="tabpanel" aria-labelledby="tab-general" hidden>
+      <p class="setup-intro" data-i18n="setup.general.intro">Language and everyday viewing preferences.</p>
       <label class="field w-lang"><span data-i18n="setup.language">Language</span>
         <select id="f-lang"></select>
       </label>
@@ -200,11 +262,8 @@
          player.css. While something is playing the same two controls sit
          under the player's own Aa button, over the real picture. -->
     <section class="setup-panel" id="panel-subs" role="tabpanel" aria-labelledby="tab-subs" hidden>
+      <p class="setup-intro" data-i18n="setup.subs.intro">The preview scales to fit. Playback uses your selected text size.</p>
       <div class="sublook">
-        <div class="sublook-preview" aria-hidden="true">
-          <div class="subdisplay"><div class="cue" data-i18n="setup.subs.sample">Subtitles look like this,
-on two lines as well.</div></div>
-        </div>
         <div class="sublook-fields">
           <label class="field"><span data-i18n="setup.subs.style">Style</span>
             <select id="f-substyle">
@@ -216,11 +275,15 @@ on two lines as well.</div></div>
             </select>
           </label>
           <!-- The size in pixels; the bounds are MIN_SIZE and MAX_SIZE in
-               js/subdisplay.js. The preview shows the text at that size. -->
+               js/subdisplay.js. The preview scales to fit; playback keeps this size. -->
           <label class="field">
             <span class="range-label"><span data-i18n="setup.subs.size">Size</span><output id="f-subsize-value" for="f-subsize">24 px</output></span>
             <input id="f-subsize" type="range" min="12" max="72" step="1" value="24">
           </label>
+        </div>
+        <div class="sublook-preview" aria-hidden="true">
+          <div class="subdisplay"><div class="cue" data-i18n="setup.subs.sample">Subtitles look like this,
+on two lines as well.</div></div>
         </div>
       </div>
     </section>
@@ -228,17 +291,18 @@ on two lines as well.</div></div>
     <!-- Two ways of saying the same thing: separate fields, or one address
          the credentials are parsed from. The choice steers only the form —
          behind it lie the same server and the same credentials either way. -->
-    <section class="setup-panel" id="panel-connection" role="tabpanel" aria-labelledby="tab-connection" hidden>
+    <section class="setup-panel" id="panel-connection" role="tabpanel" aria-labelledby="tab-connection">
+      <p class="setup-intro" data-i18n="setup.connection.intro">Your provider’s address and credentials.</p>
       <div class="field">
         <span data-i18n="setup.source">Connection</span>
         <div class="radios">
           <label class="radio">
             <input type="radio" name="source" value="xtream" checked>
-            <span data-i18n="setup.source.xtream">Xtream Codes</span>
+            <span data-i18n="setup.source.xtream">Enter fields (Xtream Codes)</span>
           </label>
           <label class="radio">
             <input type="radio" name="source" value="m3u">
-            <span data-i18n="setup.source.m3u">M3U address</span>
+            <span data-i18n="setup.source.m3u">Paste subscription URL (M3U)</span>
           </label>
         </div>
       </div>
@@ -262,45 +326,66 @@ on two lines as well.</div></div>
       </div>
 
       <label class="field" id="src-m3u" hidden>
-        <span data-i18n="setup.m3u.label">Address of the channel list</span>
-        <input id="f-paste" type="text" placeholder="http://example.tv:8080/…?username=…&amp;password=…" autocomplete="off" spellcheck="false" aria-describedby="connection-security">
+        <span data-i18n="setup.m3u.label">Full subscription URL</span>
+        <input id="f-paste" type="text" placeholder="http://example.tv:8080/…?username=…&amp;password=…" autocomplete="off" spellcheck="false" aria-describedby="playlist-hint playlist-status">
+        <span id="playlist-hint" class="field-hint" data-i18n="setup.m3u.hint">Paste the full URL to fill the connection fields automatically.</span>
       </label>
+      <div id="playlist-feedback" class="playlist-feedback" hidden>
+        <p id="playlist-status" class="playlist-status" role="status"></p>
+        <button type="button" id="f-show-fields" class="ghost" data-i18n="setup.m3u.fields" hidden>Show filled fields</button>
+      </div>
 
       <p id="connection-security" class="connection-security" data-i18n="setup.security">Use HTTPS when your provider supports it. With HTTP, your username, password and viewing requests travel without encryption and can be read or changed by others on the network.</p>
     </section>
 
     <section class="setup-panel" id="panel-account" role="tabpanel" aria-labelledby="tab-account" hidden>
+      <p class="setup-intro" data-i18n="setup.account.intro">Subscription details and stored data.</p>
       <div id="account-box" class="account-box" hidden></div>
       <p id="account-none" class="setup-note" data-i18n="setup.account.none" hidden>Not connected yet.</p>
       <!-- The button names the action, the line beside it says what the
            action takes with it. Neither repeats the other. -->
-      <div class="danger-rows">
-        <div class="danger-row">
-          <span data-i18n="setup.clear.desc">Categories, lists, covers and programme data are fetched again. Favourites and history stay.</span>
-          <button type="button" id="f-clear" class="ghost danger" data-i18n="setup.clear">Clear cache</button>
+      <details class="setup-maintenance">
+        <summary data-i18n="setup.maintenance">Manage stored data</summary>
+        <div class="danger-rows">
+          <div class="danger-row">
+            <span data-i18n="setup.clear.desc">Categories, lists, covers and programme data are fetched again. Favourites and history stay.</span>
+            <button type="button" id="f-clear" class="ghost danger" data-i18n="setup.clear">Clear cache</button>
+          </div>
+          <div class="danger-row">
+            <span data-i18n="setup.reset.desc">Credentials, settings, favourites, history and the cache all go. This cannot be undone.</span>
+            <button type="button" id="f-reset" class="ghost danger" data-i18n="setup.reset">Reset everything</button>
+          </div>
         </div>
-        <div class="danger-row">
-          <span data-i18n="setup.reset.desc">Credentials, settings, favourites, history and the cache all go. This cannot be undone.</span>
-          <button type="button" id="f-reset" class="ghost danger" data-i18n="setup.reset">Reset everything</button>
-        </div>
-      </div>
+      </details>
     </section>
 
-    <!-- The action belongs to the section: only Connection has something to
-         submit, and only it says what submitting costs. -->
+    <p id="setup-error" class="setup-error" role="alert" hidden></p>
+    <div id="setup-discard" class="setup-discard" hidden>
+      <p data-i18n="setup.discard.question">Discard unsaved changes?</p>
+      <button type="button" id="f-keep" class="ghost" data-i18n="setup.keep">Keep editing</button>
+      <button type="button" id="f-discard" class="ghost danger" data-i18n="setup.discard">Discard changes</button>
+    </div>
     <div class="setup-actions">
-      <p class="setup-note" id="setup-note" data-i18n="setup.instant">Changes take effect as you make them.</p>
-      <button type="button" id="f-done" class="primary" data-i18n="setup.done">Done</button>
-      <button type="button" id="f-save" class="primary" data-i18n="setup.connect" hidden>Connect</button>
+      <p class="setup-note" id="setup-note" role="status"></p>
+      <button type="button" id="f-done" class="ghost" data-i18n="progress.cancel">Cancel</button>
+      <button type="submit" id="f-save" class="primary" data-i18n="setup.save">Save</button>
     </div>
   </form>
 </dialog>
 
-<dialog id="progress">
+<dialog id="progress" aria-labelledby="p-title" aria-describedby="p-text">
   <div class="progress">
-    <div class="progress-title" id="p-title" data-i18n="progress.loading">Loading…</div>
-    <div class="bar"><div class="bar-fill" id="p-fill"></div></div>
-    <div class="progress-text" id="p-text">…</div>
+    <div class="progress-head">
+      <div class="progress-mark" aria-hidden="true"><span class="progress-spinner"></span></div>
+      <h2 class="progress-title" id="p-title" data-i18n="progress.loading">Loading…</h2>
+    </div>
+    <div class="progress-meter">
+      <div class="progress-status">
+        <div class="progress-text" id="p-text" role="status">…</div>
+        <span class="progress-percent" id="p-percent" aria-hidden="true" hidden></span>
+      </div>
+      <div class="bar" role="progressbar" aria-labelledby="p-title" aria-describedby="p-text" aria-valuemin="0" aria-valuemax="100"><div class="bar-fill" id="p-fill"></div></div>
+    </div>
     <div class="setup-actions">
       <button type="button" id="p-cancel" class="ghost" data-i18n="progress.cancel">Cancel</button>
     </div>

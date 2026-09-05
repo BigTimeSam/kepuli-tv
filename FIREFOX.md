@@ -11,6 +11,34 @@ browsers as it is. `js/browser.js` holds the one line that differs, and
 `firefox/` holds the Firefox manifest and the tools that assemble the package
 from the shared files. There is no second copy of anything to keep in step.
 
+## Release 1.0.8 verification
+
+Checked on 2026-09-06 in Firefox 155 on macOS, with an isolated profile,
+the temporary extension and the generated mock-provider media:
+
+- All 22 shared browser scenarios pass: catalogue metadata and filters,
+  cover expansion and missing-logo fallbacks, guide navigation, programme
+  search and catch-up, channel organization, settings and subtitle previews,
+  live/MP4/MKV playback, seeking, recovery, cancellation, timeouts, account
+  switching, favourites, history, accessibility and keyboard controls.
+- The custom full-screen button takes the wrapper and its subtitle layer
+  full screen. Firefox's native video controls can own a double click and
+  take the video itself full screen; native text tracks render in that case,
+  and the app's overlay returns on exit. Both paths were checked.
+- Audio track switching measures 441 Hz for English, 662 Hz for Finnish
+  and 877 Hz for the AC-3 commentary while playback continues.
+- `dev/audiocheck.mjs firefox --mkv` passes all five decoded-audio cases
+  (E-AC-3, AC-3 5.1, DTS 5.1, mono-to-stereo and 32 kHz input), plus AAC
+  and AC-3 MKV playback and seeking. Firefox uses Opus when AAC encoding
+  is unavailable; decoded timing aligns with the reference samples.
+
+Reproduce with `KEPULI_BROWSER=firefox node dev/playcheck.mjs` and
+`node dev/audiocheck.mjs firefox --mkv`. The shared scenarios use
+`firefox/playcheck-driver.mjs` for actual WebDriver input and the Firefox
+extension API namespace. The checks use test media and a mock provider;
+the installable GitHub Firefox ZIP remains unsigned and requires AMO
+signing for permanent installation.
+
 ## The shape
 
 ```
@@ -120,7 +148,7 @@ over Marionette, against the mock server (`dev/mock/`):
 | The audio selector on a three-track MKV, the track measured from the element's own output | English 441 Hz, Finnish 662 Hz, the AC-3 commentary 877 Hz |
 | `changeType` across the codec boundary — the decoded track goes out as Opus here — and back to `mp4a.40.2` | both ways, with the picture running from 10.3 s to 15.2 s and never pausing |
 | The subtitle layer (`js/subdisplay.js`): a cue drawn by the app, the browser's own drawing hidden by `::cue` | one box, nothing drawn twice |
-| The full-screen button on the player's row | the wrapper full screen, the layer with it, 3440×1440 |
+| The full-screen button over the picture | the wrapper full screen, the layer with it, 3440×1440 |
 | `video.requestFullscreen()` — what Firefox's own button does, `controlslist` being ignored | `data-subrender` flips to `native`, the browser draws with the look in `::cue`, and back on exit |
 | The size slider at 40 px | the layer and the preview at 40 px, the setting saved |
 | Seeking in the MKV to 60 s | continues from 63.9 s, `readyState` 4 |

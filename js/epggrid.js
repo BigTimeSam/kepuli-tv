@@ -13,6 +13,7 @@
 
 import { clock, shortDay, stampFmt, progressOf } from './format.js';
 import { t } from './i18n.js';
+import { poster } from './poster.js';
 
 const ROW_H = 48;              // keep in step with --epg-row in the CSS
 const ZOOMS = [2, 3, 5, 8];    // pixels per minute
@@ -25,9 +26,17 @@ const TICK_MS = 20e3;
 
 /** Is the programme watchable from the channel's catch-up window? */
 export function catchupAvailable(channel, programme, now = Date.now()) {
-  if (!channel || !programme || !channel.archive) return false;
-  if (programme.stop > now) return false;
-  return programme.start > now - channel.archive * 86400e3;
+  if (!channel || !programme || !(Number(channel.archive) > 0)) return false;
+  if (!Number.isFinite(programme.start) || !Number.isFinite(programme.stop)
+    || programme.stop <= programme.start || programme.start >= now) return false;
+  return programme.start >= now - channel.archive * 86400e3;
+}
+
+export function archiveDays(channels) {
+  return channels.reduce((days, ch) => {
+    const value = Number(ch.archive);
+    return Number.isFinite(value) ? Math.max(days, Math.min(365, Math.ceil(value))) : days;
+  }, PAST_DAYS);
 }
 
 export class EpgGrid {
@@ -39,6 +48,7 @@ export class EpgGrid {
     this.el = refs;
     this.epg = null;               // set once the connection is open
     this.channels = [];
+    this.pastDays = PAST_DAYS;
     this.playingId = null;
     this.zoomIndex = 2;
     this.origin = 0;
@@ -91,7 +101,7 @@ export class EpgGrid {
    */
   layout() {
     const midnight = new Date().setHours(0, 0, 0, 0);
-    this.origin = startOfDay(midnight, -PAST_DAYS);
+    this.origin = startOfDay(midnight, -this.pastDays);
     this.end = startOfDay(midnight, FUTURE_DAYS);
     this.width = this.minutes(this.end) * this.zoom;
 
@@ -190,14 +200,7 @@ export class EpgGrid {
       row.style.top = `${i * ROW_H}px`;
       row.title = ch.n;
 
-      const img = document.createElement('img');
-      img.className = 'epg-chan-logo';
-      img.loading = 'lazy';
-      img.decoding = 'async';
-      img.alt = '';
-      if (ch.logo) img.src = ch.logo; else img.classList.add('blank');
-      img.addEventListener('error', () => img.classList.add('blank'), { once: true });
-      row.appendChild(img);
+      row.appendChild(poster('epg-chan-logo', ch.logo, 'channel'));
 
       const body = document.createElement('div');
       body.className = 'epg-chan-body';
@@ -506,7 +509,13 @@ export class EpgGrid {
   /* ----------------------------------------------------------------- tila */
 
   setChannels(items) {
+    const anchor = this.width ? this.timeAt(this.el.scroll.scrollLeft) : Date.now();
     this.channels = items;
+    const days = archiveDays(items);
+    if (days !== this.pastDays) {
+      this.pastDays = days;
+      if (this.open) { this.layout(); this.scrollToTime(anchor); }
+    }
     this.cursorRow = 0;
     this.selection = null;
     this.lastWindowKey = '';
@@ -555,7 +564,7 @@ export class EpgGrid {
   tick() {
     // The guide can be open when the day turns over, at which point the
     // timeline's zero and the day names ("today") point at yesterday.
-    if (startOfDay(Date.now()) !== startOfDay(this.origin, PAST_DAYS)) {
+    if (startOfDay(Date.now()) !== startOfDay(this.origin, this.pastDays)) {
       const anchor = this.timeAt(this.el.scroll.scrollLeft);
       this.layout();
       this.scrollToTime(anchor);

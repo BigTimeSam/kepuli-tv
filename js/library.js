@@ -74,6 +74,9 @@ export class Library {
     this.byCategory = new Map();     // "live:3" → items (in memory)
     this.pending = new Map();        // concurrent calls share one promise
     this.details = new Map();        // extra details for a series/movie
+    this.movieQueue = [];
+    this.movieWorkers = 0;
+    this.movieAttempts = new Set();
   }
 
   /* ------------------------------------------------------------ categories */
@@ -249,8 +252,9 @@ export class Library {
 
   /* --------------------------------------------------------------- details */
 
+  // v2 retains external title IDs and trailers missing from earlier cache entries.
   async seriesEpisodes(seriesId) {
-    const key = `series:${seriesId}`;
+    const key = `series:v2:${seriesId}`;
     if (this.details.has(key)) return this.details.get(key);
     return this.share(key, async () => {
       let info = await cacheGet(key, TTL.seriesInfo);
@@ -261,7 +265,7 @@ export class Library {
   }
 
   async movieDetails(vodId) {
-    const key = `vod:${vodId}`;
+    const key = `vod:v2:${vodId}`;
     if (this.details.has(key)) return this.details.get(key);
     return this.share(key, async () => {
       let info = await cacheGet(key, TTL.vodInfo);
@@ -269,6 +273,41 @@ export class Library {
       this.details.set(key, info);
       return info;
     });
+  }
+
+  /** Only the current viewport needs durations; scrolling replaces the queue. */
+  warmMovieDurations(items, onUpdate) {
+    for (const item of items) {
+      if (item.k !== 1 || item.details) continue;
+      const cached = this.details.get(`vod:v2:${item.id}`);
+      if (cached) {
+        item.details = cached;
+        item.durationSec = cached.durationSec;
+        onUpdate(item.id, cached);
+      }
+    }
+    this.movieQueue = items.filter(item => item.k === 1 && !item.durationSec && !item.details && !this.movieAttempts.has(item.id))
+      .map(item => ({ item, onUpdate }));
+    this.drainMovieDurations();
+  }
+
+  drainMovieDurations() {
+    while (this.movieWorkers < 2 && this.movieQueue.length) {
+      const { item, onUpdate } = this.movieQueue.shift();
+      if (this.movieAttempts.has(item.id)) continue;
+      this.movieAttempts.add(item.id);
+      this.movieWorkers++;
+      this.movieDetails(item.id).then(info => {
+        item.details = info;
+        item.durationSec = info.durationSec;
+        onUpdate(item.id, info);
+      }).catch(() => {
+        // Optional metadata: leave the duration blank, and do not retry on every paint.
+      }).finally(() => {
+        this.movieWorkers--;
+        this.drainMovieDurations();
+      });
+    }
   }
 
   /* ------------------------------------------------------------------ misc */
@@ -290,6 +329,8 @@ export class Library {
     this.fullAt = { live: null, movie: null, series: null };
     this.byCategory.clear();
     this.details.clear();
+    this.movieQueue = [];
+    this.movieAttempts.clear();
     await cacheClear();
   }
 }

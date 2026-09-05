@@ -54,7 +54,7 @@ export function subtitleLook(settings) {
 // How long the controls stay on show after the pointer stops, and how far
 // from the bottom edge the pointer counts as resting on the controls.
 const CONTROLS_LINGER_MS = 3000;
-const CONTROLS_BAND_PX = 72;
+const CONTROLS_BAND_PX = 132;
 
 export class SubtitleDisplay {
   /**
@@ -87,6 +87,7 @@ export class SubtitleDisplay {
       .observe(document.body, { attributes: true, attributeFilter: ['data-substyle', 'style'] });
 
     wrap.addEventListener('pointermove', (e) => { this.pointerY = e.clientY; this.wake(); });
+    wrap.addEventListener('pointerdown', () => this.wake());
     wrap.addEventListener('pointerleave', () => { this.pointerY = null; this.rest(); });
     video.addEventListener('pause', () => this.wake());
     video.addEventListener('play', () => this.wake());
@@ -104,6 +105,7 @@ export class SubtitleDisplay {
   mode() {
     const native = document.fullscreenElement === this.video;
     document.body.dataset.subrender = native ? 'native' : 'overlay';
+    this.wake();
     this.repaint();
   }
 
