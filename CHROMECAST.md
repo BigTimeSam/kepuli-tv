@@ -138,15 +138,16 @@ offer for the rest.
 
 A page cannot start tab casting; there is no API for it. The overlay is the
 best that can be done, and it is enough: **Cast…** in Chrome's menu, this tab,
-then `f`. The player's `f` puts the video element itself full screen, which is
-what Chrome's dominant-content check wants.
+then `f`. The player's `f` puts the picture's wrapper full screen — the video
+fills it, which is what Chrome's dominant-content check wants, and the subtitle
+layer comes along, see `js/subdisplay.js`.
 
 The audio of an MKV has already been decoded from AC-3 or DTS and encoded to
 AAC — or to Opus, where the browser has no AAC encoder; remoting takes both —
 before it reaches MediaSource, so it suits remoting as it is.
 
-**Subtitles** are the known casualty. The player hands them to the browser as
-`VTTCue`s, which the video element draws; media remoting carries only the
+**Subtitles** are the known casualty. The player draws them itself in a layer
+over the picture (`js/subdisplay.js`); media remoting carries only the
 encoded audio and video, so once Chrome switches from mirroring to remoting the
 subtitles stay on the laptop. While the screen is mirrored they show. This
 follows from the protocol's definition (`media/remoting/proto`) and is to be

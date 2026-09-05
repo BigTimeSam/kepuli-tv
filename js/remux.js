@@ -24,7 +24,7 @@ import { initSegment, mediaSegment, decodeTimes, durations, VIDEO_TIMESCALE } fr
 import { videoMime, passthroughMime } from './probe.js';
 import { decodable } from './ffaudio.js';
 import { AudioTranscoder, encoderSetup, RATE as DECODED_RATE, CHANNELS as DECODED_CHANNELS } from './transcode.js';
-import { SubtitleTracks, isTextSubtitle, preferred } from './subs.js';
+import { SubtitleTracks, isSubtitle, isTextSubtitle, preferred } from './subs.js';
 
 const HEADER_BYTES = 256 * 1024;
 const CUES_BYTES = 4 * 1024 * 1024;
@@ -384,6 +384,9 @@ export class Remuxer {
    */
   setupSubtitles() {
     const tracks = this.header.tracks.filter(isTextSubtitle);
+    // The bitmap tracks are counted for the details below the player: such
+    // a file has subtitles, only none the player can show.
+    this.bitmapSubtitles = this.header.tracks.filter(isSubtitle).length - tracks.length;
     if (!tracks.length) { this.report([], null); return; }
     // The callback fires only for a change that came from outside the app
     // — from the browser's own subtitle menu — because select() has already
@@ -395,7 +398,7 @@ export class Remuxer {
 
   report(tracks, active, external = false) {
     if (this.destroyed) return;
-    this.onSubtitles({ tracks, active, external });
+    this.onSubtitles({ tracks, active, external, bitmap: this.bitmapSubtitles || 0 });
   }
 
   /** Changing track from the viewer's choice. null hides the subtitles. */

@@ -129,10 +129,13 @@ main.guide #btn-copy { display: none; }
 
 /* A group's star appears only on hover or when it is on: the sidebar holds
    dozens of rows and none of them has a star most of the time. The space is
-   reserved all the same, so the name does not jump under the pointer. */
+   reserved all the same, so the name does not jump under the pointer.
+   The browser's own button padding is zeroed here and on the row star: it
+   left 6px for a 12px glyph, and a grid item that overflows its cell lands
+   on the start edge instead of the centre, so the star sat 3px right. */
 .group-star {
   width: 18px; height: 18px; flex: none; display: grid; place-items: center;
-  border: 0; background: transparent; color: #4b5368; cursor: pointer;
+  border: 0; padding: 0; background: transparent; color: #4b5368; cursor: pointer;
   border-radius: 5px; font-size: 12px; line-height: 1; opacity: 0;
 }
 .group:hover .group-star, .group-star.on, .group-star:focus-visible { opacity: 1; }
@@ -251,7 +254,7 @@ body.resizing { user-select: none; }
 .row.playing { background: linear-gradient(90deg, rgba(124, 92, 255, .2), transparent 70%); box-shadow: inset 2px 0 0 var(--accent); }
 .row.unplayable .row-name { color: var(--dim); }
 
-.row-star { width: 22px; height: 22px; flex: none; display: grid; place-items: center; border: 0; background: transparent; color: #394052; cursor: pointer; border-radius: 5px; font-size: 13px; }
+.row-star { width: 22px; height: 22px; flex: none; display: grid; place-items: center; border: 0; padding: 0; background: transparent; color: #394052; cursor: pointer; border-radius: 5px; font-size: 13px; }
 .row-star:hover { color: var(--text); background: #262c3d; }
 .row-star.on { color: #ffc857; }
 
@@ -323,20 +326,86 @@ body.resizing { user-select: none; }
 .videowrap { flex: 1; position: relative; background: #000; min-height: 0; }
 video { width: 100%; height: 100%; display: block; background: #000; }
 
-/* The browser's default subtitles sit on a transparent background and
-   disappear into a bright picture. The box is darkened and the line spacing
-   loosened, because a two-line line of dialogue is the common case. */
-video::cue { background: rgba(0, 0, 0, .72); color: #fff; line-height: 1.35; }
+/* --------------------------------------------------------- subtitles */
 
-/* The size is relative to the browser's own measure, which is derived from
-   the video height: a fixed pixel size would shrink to nothing in
-   full-screen mode. The browser's measure is meant for television viewing
-   distance and is needlessly large on a desktop, so the whole scale is
-   multiplied by 0.75 — even "large" is now close to the default. The app's
-   own default is "small" (see config.js). */
-body[data-subsize="small"] video::cue { font-size: 55%; }
-body[data-subsize="medium"] video::cue { font-size: 75%; }
-body[data-subsize="large"] video::cue { font-size: 105%; }
+/* The subtitles are drawn by the app in a layer over the picture, see
+   js/subdisplay.js. The size is the viewer's, in pixels, and comes as
+   --sub-size in the body's style; it is the same in full screen, where the
+   wrapper goes and the layer with it. */
+.videowrap:fullscreen { background: #000; }
+
+.subdisplay {
+  position: absolute; left: 5%; right: 5%; bottom: 6%;
+  display: flex; flex-direction: column; align-items: center; justify-content: flex-end; gap: .3em;
+  pointer-events: none; text-align: center;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  font-size: var(--sub-size, 24px); font-weight: 500; line-height: 1.3;
+  transition: bottom .2s ease;
+}
+/* Above the browser's controls while they are likely on show, see wake()
+   in js/subdisplay.js. */
+.videowrap.controls .subdisplay { bottom: max(6%, 84px); }
+
+/* One box per cue, lines and all. The measures are in em, so that the
+   padding and the corners follow the text. Line breaks come from the file;
+   a line the box cannot hold is wrapped in balance rather than left with a
+   word on the second row. */
+.subdisplay .cue {
+  max-width: 100%; color: #fff;
+  white-space: pre-line; text-wrap: balance; overflow-wrap: break-word;
+}
+
+/* The looks: the names are the values of the settings menu. */
+body[data-substyle="box"] .subdisplay .cue {
+  background: rgba(0, 0, 0, .62); border-radius: .3em; padding: .2em .55em .26em;
+  text-shadow: 0 .04em .1em rgba(0, 0, 0, .55);
+}
+body[data-substyle="shadow"] .subdisplay .cue {
+  text-shadow: 0 0 .12em rgba(0, 0, 0, .95), 0 .06em .16em rgba(0, 0, 0, .9), 0 .12em .4em rgba(0, 0, 0, .55);
+}
+body[data-substyle="outline"] .subdisplay .cue,
+body[data-substyle="yellow"] .subdisplay .cue {
+  font-weight: 600;
+  text-shadow: -.06em -.06em 0 #000, .06em -.06em 0 #000, -.06em .06em 0 #000, .06em .06em 0 #000,
+               0 -.08em 0 #000, 0 .08em 0 #000, -.08em 0 0 #000, .08em 0 0 #000, 0 .1em .25em rgba(0, 0, 0, .6);
+}
+/* A real stroke where it can be painted under the fill — Chrome 123,
+   Firefox; the shadow stack above stands in elsewhere. */
+@supports (paint-order: stroke fill) {
+  body[data-substyle="outline"] .subdisplay .cue,
+  body[data-substyle="yellow"] .subdisplay .cue {
+    -webkit-text-stroke: .07em #000; paint-order: stroke fill;
+    text-shadow: 0 .08em .22em rgba(0, 0, 0, .6);
+  }
+}
+body[data-substyle="yellow"] .subdisplay .cue { color: #ffe14d; }
+body[data-substyle="contrast"] .subdisplay .cue {
+  background: #000; border-radius: .12em; padding: .22em .6em .28em; font-weight: 600;
+}
+
+/* The browser's own drawing, kept for the case where the video element
+   itself is full screen — Firefox's own button, see js/subdisplay.js — and
+   hidden the rest of the time. It approximates the look as far as ::cue
+   goes: no padding, no corners, each line a box of its own. */
+body[data-subrender="overlay"] video::cue { visibility: hidden; opacity: 0; }
+body[data-subrender="overlay"] video::-webkit-media-text-track-container { display: none; }
+video::cue {
+  color: #fff; background: rgba(0, 0, 0, .62); line-height: 1.25;
+  font-size: var(--sub-size, 24px);
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+}
+body[data-substyle="shadow"] video::cue {
+  background: transparent;
+  text-shadow: 0 0 .12em rgba(0, 0, 0, .95), 0 .06em .16em rgba(0, 0, 0, .9), 0 .12em .4em rgba(0, 0, 0, .55);
+}
+body[data-substyle="outline"] video::cue,
+body[data-substyle="yellow"] video::cue {
+  background: transparent;
+  text-shadow: -.06em -.06em 0 #000, .06em -.06em 0 #000, -.06em .06em 0 #000, .06em .06em 0 #000,
+               0 -.08em 0 #000, 0 .08em 0 #000, -.08em 0 0 #000, .08em 0 0 #000, 0 .1em .25em rgba(0, 0, 0, .6);
+}
+body[data-substyle="yellow"] video::cue { color: #ffe14d; }
+body[data-substyle="contrast"] video::cue { background: #000; }
 
 .overlay { position: absolute; inset: 0; display: grid; place-items: center; background: radial-gradient(circle at 50% 45%, #12151f, #06070a 70%); text-align: center; padding: 24px; }
 .overlay[hidden] { display: none; }
@@ -381,7 +450,9 @@ body[data-subsize="large"] video::cue { font-size: 105%; }
 /* A track name can be long ("Swedish · Forced Narrative"): the selector
    must not push the other buttons off the row. */
 .now-actions .subs { max-width: 190px; }
-.now-actions .subs[hidden], .now-actions .subsize[hidden] { display: none; }
+.now-actions .subs[hidden] { display: none; }
+/* A button with a drawn symbol: the same height as the ones with a word. */
+.now-actions .icon svg { display: block; width: 14px; height: 19px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
 
 /* --------------------------------------------------------- dialogit */
 
@@ -397,6 +468,18 @@ dialog::backdrop { background: rgba(5, 6, 10, .66); backdrop-filter: blur(2px); 
    blocks, see .grid. */
 .setup { padding: 20px 22px; width: min(620px, 92vw); display: flex; flex-direction: column; gap: 14px; }
 .setup h2 { margin: 0; font-size: 16px; }
+/* The title row: the heading, and in the corner a cross that closes the
+   dialog the way Cancel and Esc do. The cross is a bigger target than the
+   heading's line is tall, so negative margins pull it in: the row keeps the
+   heading's height with the cross centred on its line, and the cross sits
+   near the corner rather than a full padding's width in from it. */
+.setup-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.setup-close {
+  width: 28px; height: 28px; flex: none; display: grid; place-items: center;
+  margin: -4px -10px -4px 0; border: 0; padding: 0; background: transparent;
+  color: var(--muted); cursor: pointer; border-radius: 7px; font-size: 18px; line-height: 1;
+}
+.setup-close:hover { color: var(--text); background: var(--panel-2); }
 .connection-security { margin: 0; padding: 10px 12px; border-left: 3px solid #ffc857; background: var(--panel-2); color: var(--text); font-size: 12px; line-height: 1.5; }
 
 .field { display: flex; flex-direction: column; gap: 4px; }
@@ -424,6 +507,30 @@ dialog::backdrop { background: rgba(5, 6, 10, .66); backdrop-filter: blur(2px); 
 .radio:hover { color: var(--text); border-color: #333a4f; }
 .radio input { accent-color: var(--accent); width: 15px; height: 15px; margin: 0; }
 .radio:has(input:checked) { border-color: var(--accent); color: var(--text); }
+
+/* The subtitle look, with a preview: the choice is judged by eye, and the
+   picture is not always there to judge it on. The same rules draw the
+   preview as the layer, at the same size in pixels. The ground is a
+   stand-in for a bright, uneven picture — the case a look has to survive. */
+.sublook { display: flex; flex-direction: column; gap: 10px; }
+/* The preview takes the dialog's whole width, so that the sample holds its
+   two lines up to a large size; the sample sits in the flow rather than
+   over the ground, so that the preview grows with the text at the largest
+   sizes rather than cutting it off. */
+.sublook-preview {
+  display: flex; align-items: flex-end; justify-content: center;
+  min-height: 104px; padding: 18px 14px 14px; overflow: hidden;
+  border: 1px solid var(--border); border-radius: 9px;
+  background:
+    radial-gradient(ellipse at 18% 12%, rgba(255, 219, 160, .55), transparent 55%),
+    radial-gradient(ellipse at 85% 80%, rgba(34, 211, 238, .18), transparent 50%),
+    linear-gradient(165deg, #55648a, #1a2030 55%, #0a0c11);
+}
+.sublook-preview .subdisplay { position: static; width: 100%; }
+.sublook-fields { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.range-label { display: flex; justify-content: space-between; }
+.range-label output { font-variant-numeric: tabular-nums; }
+.field input[type="range"] { padding: 0; border: 0; background: none; height: 33px; accent-color: var(--accent); cursor: pointer; }
 
 .toggles { display: flex; flex-direction: column; gap: 7px; }
 .toggle { display: flex; align-items: center; gap: 8px; color: var(--muted); cursor: pointer; }

@@ -39,6 +39,11 @@
 //                                     channel plays: a toast, not the overlay
 //   node dev/playcheck.mjs a11y       roles and names for assistive technology,
 //                                     the cursor announced and marked
+//   node dev/playcheck.mjs subtitles  the cues are drawn by the layer, a
+//                                     two-line cue in one box; a double click
+//                                     takes the wrapper to full screen with
+//                                     the layer; a file without subtitles
+//                                     says so in the details
 //
 // The driver is the one dev/store-screenshots.mjs uses, from the same
 // profile (KEPULI_DEV_PROFILE) and port (KEPULI_DEV_PORT), and it needs the
@@ -496,7 +501,46 @@ async function a11y(page) {
   return { ok, detail: `list ${st.listRole}/${st.listName}, cursor ${st.pointsAtCursor ? 'announced' : 'not announced'} and ${st.cursorMark ? 'marked' : 'unmarked'}, tabs ${st.tablist} selected ${st.selectedTabs.join(',')}, toast ${st.toastRole}, unnamed icon buttons ${st.unnamedIcons.length}, group by keyboard: "${st.groupName}" → "${chosen}"` };
 }
 
-const SCENARIOS = { seek, death, cancel, timeout, search, paste, keys, switching, resume, reconnect, accounts, listerror, a11y };
+async function subtitles(page) {
+  await playEpisode(page);
+  await waitFor(page, `document.querySelectorAll('#subdisplay .cue').length > 0`, 'a cue in the layer');
+  // One box per active cue, drawn by the layer while the track stays showing.
+  const first = await evaluate(page, `(() => { const v = document.getElementById('video'); const shown = [...v.textTracks].filter((t) => t.mode === 'showing');
+    return { render: document.body.dataset.subrender, showing: shown.length, active: shown[0] ? shown[0].activeCues.length : 0,
+      boxes: document.querySelectorAll('#subdisplay .cue').length, meta: document.querySelector('#infostrip .meta').textContent }; })()`);
+  if (first.render !== 'overlay' || first.showing !== 1 || !first.boxes || first.boxes !== first.active) return { ok: false, detail: `the layer: ${JSON.stringify(first)}` };
+  if (!/2 subtitles: en, fi/.test(first.meta)) return { ok: false, detail: `the details say ${JSON.stringify(first.meta)}` };
+  // A two-line cue is one box with the lines stacked inside it.
+  const box = await evaluate(page, `(() => { const v = document.getElementById('video'); const tr = [...v.textTracks].find((t) => t.mode === 'showing');
+    for (let i = tr.cues.length - 1; i >= 0; i--) tr.removeCue(tr.cues[i]);
+    tr.addCue(new VTTCue(0, 100000, 'One line,\\nand another.'));
+    return new Promise((r) => setTimeout(() => { const boxes = [...document.querySelectorAll('#subdisplay .cue')];
+      const range = document.createRange(); range.selectNodeContents(boxes[0]);
+      r({ boxes: boxes.length, lines: new Set([...range.getClientRects()].map((x) => Math.round(x.top))).size }); }, 500)); })()`);
+  if (box.boxes !== 1 || box.lines !== 2) return { ok: false, detail: `a two-line cue: ${JSON.stringify(box)}` };
+  // A double click takes the wrapper to full screen, and the layer with it.
+  const at = await evaluate(page, `(() => { const r = document.getElementById('video').getBoundingClientRect(); return { x: r.left + r.width / 2, y: r.top + r.height / 2 }; })()`);
+  for (const clickCount of [1, 2]) {
+    await page.call('Input.dispatchMouseEvent', { type: 'mousePressed', x: at.x, y: at.y, button: 'left', clickCount });
+    await page.call('Input.dispatchMouseEvent', { type: 'mouseReleased', x: at.x, y: at.y, button: 'left', clickCount });
+  }
+  await sleep(1000);
+  const full = await evaluate(page, `(() => ({ element: document.fullscreenElement && document.fullscreenElement.id,
+    boxes: document.querySelectorAll('#subdisplay .cue').length, render: document.body.dataset.subrender }))()`);
+  await evaluate(page, `document.fullscreenElement && document.exitFullscreen()`);
+  await sleep(600);
+  if (full.element !== 'videowrap' || full.boxes !== 1 || full.render !== 'overlay') return { ok: false, detail: `full screen: ${JSON.stringify(full)}` };
+  // A file with no subtitles: the details below the player say so.
+  await evaluate(page, `document.querySelector('#tabs [data-tab="movie"]').click()`);
+  await waitFor(page, `document.querySelectorAll('#groups .group').length > 1`, 'the movie groups');
+  await evaluate(page, `document.querySelectorAll('#groups .group')[1].click()`);
+  await click(page, '#list', 'Crossfire Alley', { gesture: true });
+  await waitFor(page, PLAYING, 'the movie');
+  await waitFor(page, `/No subtitles/.test((document.querySelector('#infostrip .meta') || {}).textContent || '')`, 'the details of the movie', 10000);
+  return { ok: true, detail: `one box for ${first.active} cue, two lines in one box, full screen on the wrapper, the movie says "No subtitles"` };
+}
+
+const SCENARIOS = { seek, death, cancel, timeout, search, paste, keys, switching, resume, reconnect, accounts, listerror, a11y, subtitles };
 // The mock's whole-list answers stall for these, longer than the request limit.
 const SLOW_LIST_MS = { cancel: 60000, timeout: 60000 };
 // The media is sent slowly for these: the seek targets must lie outside the

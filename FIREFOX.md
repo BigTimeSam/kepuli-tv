@@ -91,6 +91,19 @@ the denied-permission error, the three probe verdicts — now say *the
 browser*. The decision logic was browser-independent already: `probe.js` asks
 `MediaSource.isTypeSupported` and assumes nothing.
 
+### Full screen and the subtitles
+
+The subtitles are drawn by the player in a layer over the picture
+(`js/subdisplay.js`), so full screen has to be the picture's wrapper, not the
+bare video element: the player's own button, the double click and `f` take the
+wrapper, and Chrome's own full-screen button is removed from the controls with
+`controlslist="nofullscreen"`. Firefox does not implement `controlslist` and
+keeps its button, which takes the video itself to full screen and leaves the
+layer behind. For that case the browser's own drawing is switched back on for
+the duration — `document.fullscreenElement === video` flips `data-subrender` on
+the body — with the chosen look approximated in `::cue` as far as `::cue` goes:
+no padding, no corners, each line a box of its own. Nothing else differs.
+
 ## What was measured
 
 Firefox 155 on macOS, the extension loaded temporarily from `firefox/dist/`
@@ -104,6 +117,10 @@ over Marionette, against the mock server (`dev/mock/`):
 | VOD `.mp4`, native | plays, details below the player |
 | VOD `.mkv`, unpacked into fMP4 through MediaSource | plays, 1280×720, with sound |
 | Subtitles from the MKV as `VTTCue`s, the selector, the English track | a cue on screen |
+| The subtitle layer (`js/subdisplay.js`): a cue drawn by the app, the browser's own drawing hidden by `::cue` | one box, nothing drawn twice |
+| The full-screen button on the player's row | the wrapper full screen, the layer with it, 3440×1440 |
+| `video.requestFullscreen()` — what Firefox's own button does, `controlslist` being ignored | `data-subrender` flips to `native`, the browser draws with the look in `::cue`, and back on exit |
+| The size slider at 40 px | the layer and the preview at 40 px, the setting saved |
 | Seeking in the MKV to 60 s | continues from 63.9 s, `readyState` 4 |
 | `MediaSource.isTypeSupported`: H.264, HEVC, AAC, Opus in MP4 | all true |
 | `AudioEncoder.isConfigSupported` AAC | **false** |

@@ -1,11 +1,11 @@
 // Subtitle tracks from MKV to the <video> element.
 //
 // The container demuxer (remux.js) throws the blocks that belong to a
-// subtitle track in here. The drawing is not done by hand: the block's text
-// is dug out, timed and handed to the browser as a VTTCue. That way the
-// subtitles show in full-screen mode and in Chrome's own subtitle menu too
-// — an overlay of our own would disappear the moment the viewer presses the
-// video's own full-screen button.
+// subtitle track in here. The block's text is dug out, timed and handed to
+// the browser as a VTTCue on a TextTrack of the video element. The browser
+// keeps the time — it fires cuechange as the cues come and go — and offers
+// the tracks in its own subtitle menu; the drawing is the app's, see
+// subdisplay.js.
 //
 // The cues of every text track are collected in one pass, even though only
 // one is visible at a time. The alternative would be reading the file again
@@ -32,8 +32,8 @@ const FORMAT = {
 const FALLBACK_SECONDS = 4;
 const MIN_SECONDS = 0.2;
 
-export const isTextSubtitle = (track) =>
-  track.type === SUBTITLE_TYPE && Boolean(FORMAT[track.codecId]);
+export const isSubtitle = (track) => track.type === SUBTITLE_TYPE;
+export const isTextSubtitle = (track) => isSubtitle(track) && Boolean(FORMAT[track.codecId]);
 
 const DECODER = new TextDecoder();
 
@@ -265,7 +265,8 @@ function fromAss(raw) {
   const text = body
     .replace(/\{[^}]*\}/g, '')     // tyylikoodit: {\an8}, {\i1}, {\pos(…)}
     .replace(/\\[Nn]/g, '\n')
-    .replace(/\\h/g, ' ');
+    .replace(/\\h/g, ' ')
+    .replace(/</g, '&lt;');        // to the cue parser a bare < opens a tag
   return clean(text);
 }
 
@@ -274,11 +275,16 @@ function fromAss(raw) {
 // contents are text that has to show.
 const KEEP_TAG = /^<\/?(i|b|u|ruby|rt)>$/i;
 
+// A < that opens no tag — "a < b" in the dialogue — would swallow the rest
+// of the line in the cue parser; it goes in as the entity.
+const STRAY_LT = /<(?!\/?(?:i|b|u|ruby|rt)>)/gi;
+
 function fromSrt(raw) {
   const text = raw
     .replace(/\r\n?/g, '\n')
     .replace(/\{\\[^}]*\}/g, '')   // ASS style codes stray into SRT tracks too
-    .replace(/<[^<>\n]+>/g, (tag) => (KEEP_TAG.test(tag) ? tag : ''));
+    .replace(/<[^<>\n]+>/g, (tag) => (KEEP_TAG.test(tag) ? tag : ''))
+    .replace(STRAY_LT, '&lt;');
   return clean(text);
 }
 

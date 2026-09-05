@@ -268,8 +268,9 @@ COLLECTION".
   fly into fMP4, seeking included, and an AC-3, E-AC-3 or DTS track is
   decoded in the player — in Firefox too. For the few tracks
   that are not decoded, **Play without sound** is on offer
-- **Subtitles** from MKV files: a language and size selector below the player,
-  and the chosen language carries over to the following episodes — see below
+- **Subtitles** from MKV files, drawn by the player in a look of your choosing
+  — shadow, outline, yellow, box or high contrast, at a size of your choosing
+  — and the chosen language carries over to the following episodes — see below
 - **Unplayable files are marked in the list** before you click; once a file has
   been examined the mark sharpens according to its codecs
 - **Hand-off to an external player** (`↗` or `x`) for what the browser cannot
@@ -321,9 +322,10 @@ and **Settings**. The player's own row is below the picture:
 | Button | Action |
 | --- | --- |
 | `Auto` `TS` `HLS` | the engine for a live channel; `Auto` is described below |
-| the subtitle selectors | language and size, on a file that carries subtitles |
+| the subtitle selector | the language, on a file that carries subtitles; the look and the size are in the settings |
 | `☆` | the channel or the film into the favourites |
 | `↻` | reload the stream |
+| `⛶` | full screen — the picture with its subtitles |
 | `PiP` | picture in picture |
 | `Cast` | to a Chromecast — see below |
 | `URL` | the stream address to the clipboard |
@@ -432,8 +434,8 @@ unpacking — is outside that API's reach on desktop Chrome, which accepts only
 a plain `http(s)` source for it. For those the button explains the route that
 does work: **Cast…** in Chrome's menu, this tab, then `f`. Once the video is
 full screen Chrome switches by itself from mirroring the screen to sending the
-compressed stream, MediaSource included. Subtitles are drawn by the browser
-and travel only while the screen is mirrored, not after the switch.
+compressed stream, MediaSource included. Subtitles are drawn by the player over
+the picture and travel only while the screen is mirrored, not after the switch.
 
 The Google Cast SDK is not used. Manifest V3 forbids loading it from Google's
 servers, and what it offers — the device fetching a URL by itself — would
@@ -471,18 +473,40 @@ and the viewer is told how far the picture went.
 ### Subtitles
 
 The unpacking picks up the subtitle tracks along the way (`js/subs.js`). A
-block's text is handed to the browser as a `VTTCue` rather than to an overlay of
-our own: that way the subtitles show in full-screen mode and in Chrome's own
-subtitle menu. The choice is made from the selector below the player, and the
-language — not the track number — is remembered, so the next episode of a series
-opens in the same language. The default is Finnish when the file has a Finnish
-track.
+block's text is handed to the browser as a `VTTCue` on a text track of the video
+element: the browser keeps the time — it fires `cuechange` as the cues come and
+go — and offers the tracks in its own subtitle menu. The choice is made from the
+selector below the player, and the language — not the track number — is
+remembered, so the next episode of a series opens in the same language. The
+default is Finnish when the file has a Finnish track.
 
 The selector is in alphabetical order for the interface language: the file's own
 order is arbitrary, and in a list of thirty tracks the right language cannot be
-found unless its place can be guessed. Beside it is the size (small, medium,
-large), which scales relative to the browser's own measure — a fixed pixel size
-would shrink to nothing in full-screen mode.
+found unless its place can be guessed.
+
+The drawing is the player's own (`js/subdisplay.js`): the active cues are laid
+out as HTML in a layer over the picture. The browser's drawing was used first
+and fell short in two ways — a two-line line of dialogue came out as two boxes
+with a gap between them, and `::cue` takes only a colour, a font, a shadow and a
+background, so no look could be built on it. The layer gives one box per cue and
+five looks to choose from in the settings, with a preview: shadow — the default,
+no box — outline, yellow, box and high contrast. The size is set in pixels with
+a slider and is the same in full screen: the viewer sets what reads well on
+their screen, and a larger picture does not turn it into a larger text. The
+small, medium and large of the earlier settings are read as the pixels they
+measured in a window. The looks are written into `::cue` as well, as far as
+`::cue` goes, for the one case where the browser still draws (below).
+
+Full screen is therefore the picture's wrapper rather than the bare video
+element, which would leave the layer behind: the button on the player's row,
+a double click on the picture and `f` all take the wrapper, and the browser's
+own full-screen button is removed from the controls (`controlslist`). Firefox
+does not know `controlslist` and keeps its button; when that takes the video
+itself to full screen, the browser's drawing is switched back on for the
+duration. The browser also lifted the subtitles above the controls while those
+were on show, and their visibility cannot be read from outside, so the rule is
+imitated: the video is paused, or the pointer moved over the picture within the
+last three seconds.
 
 The cues of every text track are collected as the file is unpacked, even though
 one is visible. The alternative would be reading the file again when the track
@@ -494,7 +518,10 @@ Limits:
 
 - **SRT, ASS/SSA and WebVTT** are accepted. Bitmap formats (PGS, VOBSUB,
   DVBSUB) are images and cannot be handed to a `VTTCue`, so they are left out of
-  the selector — the list row's "34 subtitles" counts them in.
+  the selector — the list row's "34 subtitles" counts them in, and the details
+  below the player add "(not supported)" when a file has nothing else. A file
+  with no subtitles at all says so there too, rather than leaving the viewer to
+  notice that the selector never appeared.
 - ASS style codes (`{\an8}`, `{\pos}`) are stripped and italics survive;
   backgrounds and effects made with drawing commands are not rendered.
 - Only the unpacking route knows about subtitles. The `mov_text` of a natively
@@ -610,6 +637,7 @@ js/remux.js         the unpacking engine: downloading, seeking, buffers
 js/ffaudio.js       AC-3, E-AC-3 and DTS decoding with wasm
 js/transcode.js     decoded audio back to AAC, or to Opus where there is no AAC encoder, for MediaSource
 js/subs.js          subtitle tracks from MKV into the video element's own tracks
+js/subdisplay.js    the subtitle layer over the picture: the looks, the controls, full screen
 js/vlist.js         the virtualised list
 js/rows.js          painting the list rows
 js/name.js          a repeating prefix off the row names in a filtered view

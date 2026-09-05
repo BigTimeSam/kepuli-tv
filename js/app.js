@@ -13,6 +13,7 @@ import { requestAccess, hasAccess } from './permissions.js';
 import { externalLabel, handOff } from './external.js';
 import { Cast, supported as castSupported } from './cast.js';
 import { warmCache, peek, badge as probeBadge, subtitleSummary, shortLanguage } from './probe.js';
+import { SubtitleDisplay, subtitleLook } from './subdisplay.js';
 import { pickEncoder } from './transcode.js';
 import * as store from './config.js';
 import { nf, dateTimeFmt, dateFmt, stampFmt, dayLabel, clock, megabytes, duration, progressOf, setLocale } from './format.js';
@@ -25,10 +26,11 @@ const el = {
   list: $('list'), crumbs: $('crumbs'), detail: $('detail'),
   listinfo: $('listinfo'), main: $('main'), accountMeta: $('account-meta'), accountExpiry: $('account-expiry'),
   subcats: $('subcats'), subcatsGrip: $('subcats-grip'),
-  video: $('video'), overlay: $('overlay'), overlayTitle: $('overlay-title'),
+  video: $('video'), videowrap: $('videowrap'), subdisplay: $('subdisplay'),
+  overlay: $('overlay'), overlayTitle: $('overlay-title'),
   overlayText: $('overlay-text'), overlayActions: $('overlay-actions'), statbadge: $('statbadge'),
   infostrip: $('infostrip'), nowTitle: $('now-title'), nowSub: $('now-sub'), mode: $('mode'),
-  subs: $('subs'), subsize: $('subsize'), cast: $('btn-cast'),
+  subs: $('subs'), cast: $('btn-cast'),
   setup: $('setup'), progress: $('progress'),
   epg: $('epg'), epgPreview: $('epg-preview'),
   pTitle: $('p-title'), pFill: $('p-fill'), pText: $('p-text'), toast: $('toast'),
@@ -79,6 +81,7 @@ const state = {
   catCounts: null,        // the sizes of favourite categories, when known
   playing: null, playingSpec: null, catchup: null,
   subtitles: [],          // the subtitle tracks of the file being played
+  subtitleInfo: null,     // what the file being played holds, once the player has looked: { tracks, bitmap }
   favorites: new Map(), recents: [], resume: new Map(),
   lastGroup: {}, lastKind: {},
   searchReturn: null,     // the group a search took over from, restored when the search ends
@@ -1174,6 +1177,12 @@ function onPlaybackState(s) {
     el.overlay.classList.remove('loading');
     showOverlayActions(null);
     renderNowSub(s.engine);
+    // Only the unpacking route reports its subtitles; on the others there
+    // are none the player could show, and the details say so.
+    if (!state.subtitleInfo && playback.engineKey !== 'remux') {
+      state.subtitleInfo = { tracks: [], bitmap: 0 };
+      renderInfoStrip();
+    }
   } else if (s.status === 'loading') {
     el.overlay.hidden = false;
     el.overlay.classList.add('loading');
@@ -1190,6 +1199,12 @@ function onPlaybackState(s) {
     // early.
     toast(s.message);
   } else if (s.status === 'subtitles') {
+    // The same list comes with every change of track; the details are
+    // repainted for a new list only.
+    if (!state.subtitleInfo || state.subtitleInfo.tracks !== s.tracks) {
+      state.subtitleInfo = { tracks: s.tracks || [], bitmap: s.bitmap || 0 };
+      renderInfoStrip();
+    }
     renderSubtitles(s.tracks, s.active);
     // The change came from the browser's own subtitle menu: the same choice
     // as from the selector, so the language is remembered the same way.
@@ -1271,6 +1286,7 @@ async function playItem(item, { startAt, allowSilent } = {}) {
   // Clear the previous file's tracks: the new ones arrive only once the
   // header has been read.
   renderSubtitles([], null);
+  state.subtitleInfo = null;
   el.nowTitle.textContent = item.n;
   renderNowSub();
   renderFavButton();
@@ -1318,8 +1334,6 @@ function renderSubtitles(tracks, active) {
   if (list !== state.subtitles) {
     state.subtitles = list;
     select.hidden = !list.length;
-    // Size is a pointless choice when there is nothing to show.
-    el.subsize.hidden = !list.length;
     const options = [];
     if (list.length) {
       const off = document.createElement('option');
@@ -1347,15 +1361,49 @@ function chooseSubtitle() {
   rememberSubtitleLanguage(number);
 }
 
-/** Subtitle size: the CSS reads it from the body attribute, see player.css. */
-function applySubtitleSize(size) {
-  document.body.dataset.subsize = size || 'small';
-  el.subsize.value = document.body.dataset.subsize;
+/**
+ * The look of the subtitles — the style and the size. The CSS reads both
+ * from the body attributes (see player.css), and the settings dialog shows
+ * the same choice, preview included.
+ */
+function applySubtitleLook(settings) {
+  const look = subtitleLook(settings);
+  document.body.dataset.substyle = look.style;
+  document.body.style.setProperty('--sub-size', `${look.size}px`);
+  $('f-substyle').value = look.style;
+  $('f-subsize').value = String(look.size);
+  $('f-subsize-value').textContent = `${look.size} px`;
 }
 
-async function chooseSubtitleSize() {
-  applySubtitleSize(el.subsize.value);
-  state.settings = await store.saveSettings({ subtitleSize: el.subsize.value });
+const readSubtitleLook = () => ({ subtitleStyle: $('f-substyle').value, subtitleSize: Number($('f-subsize').value) });
+
+/**
+ * The viewer's choice in the settings: it takes effect at once, like the
+ * language. The slider shows its effect while it is dragged and is saved
+ * when it is let go.
+ */
+async function chooseSubtitleLook() {
+  const patch = readSubtitleLook();
+  applySubtitleLook(patch);
+  state.settings = await store.saveSettings(patch);
+}
+
+/* ----------------------------------------------------------- full screen */
+
+/**
+ * Full screen for the wrapper — the picture with the subtitle layer and the
+ * overlay — rather than for the bare video element, which would leave both
+ * behind, see js/subdisplay.js. Chrome's tab casting still recognises the
+ * video as the dominant content: it fills the fullscreen element.
+ */
+function enterFullscreen() {
+  if (document.fullscreenElement) return;
+  el.videowrap.requestFullscreen().catch(() => {});
+}
+
+function toggleFullscreen() {
+  if (document.fullscreenElement) document.exitFullscreen().catch(() => {});
+  else enterFullscreen();
 }
 
 /**
@@ -1452,13 +1500,9 @@ function renderInfoStrip() {
     if (probed.video) bits.push(`${probed.video.codec.toUpperCase()}${probed.video.height ? ' ' + probed.video.height + 'p' : ''}`);
     const track = probed.audio && probed.audio[0];
     if (track) bits.push(`${track.codec.toUpperCase()}${track.channels ? ' ' + track.channels + 'ch' : ''}${track.supported ? '' : t('info.unsupported')}`);
-    const subs = subtitleSummary(probed);
-    if (subs) {
-      bits.push(subs.languages.length
-        ? t('info.subs', { count: subs.total, n: subs.total, languages: subs.languages.slice(0, 5).join(', ') })
-        : t('info.subs.count', { count: subs.total, n: subs.total }));
-    }
   }
+  const subs = subtitleBit(item, probed);
+  if (subs) bits.push(subs);
   for (const bit of bits) { const s = document.createElement('span'); s.textContent = bit; meta.appendChild(s); }
   body.appendChild(meta);
   if (info && info.plot) {
@@ -1469,6 +1513,33 @@ function renderInfoStrip() {
   }
   box.appendChild(body);
   el.infostrip.replaceChildren(box);
+}
+
+/**
+ * The subtitles of the file, for the details: what the player found once it
+ * opened the file — or, before that, what an earlier reading of the header
+ * found, if there was one. A file without any says so, rather than leaving
+ * the viewer to notice that the selector never appeared; a file with only
+ * bitmap tracks has subtitles the player cannot show, and says that.
+ */
+function subtitleBit(item, probed) {
+  const summary = (total, shown, languages) => {
+    if (!total) return t('info.subs.none');
+    const text = languages.length
+      ? t('info.subs', { count: total, n: total, languages: languages.slice(0, 5).join(', ') })
+      : t('info.subs.count', { count: total, n: total });
+    return shown ? text : text + t('info.unsupported');
+  };
+  const known = state.playing === item ? state.subtitleInfo : null;
+  if (known) {
+    const languages = [...new Set(known.tracks.map((track) => shortLanguage(track.language)))].filter((l) => l !== 'und');
+    return summary(known.tracks.length + known.bitmap, known.tracks.length, languages);
+  }
+  if (!probed || probed.error) return null;
+  const subs = subtitleSummary(probed);
+  if (subs) return summary(subs.total, subs.text, subs.languages);
+  // A header cut short may hold tracks that were not reached.
+  return probed.truncated ? null : t('info.subs.none');
 }
 
 async function loadVodDetails(item) {
@@ -1733,6 +1804,7 @@ function openSetup() {
   $('f-lang').value = state.settings.lang;
   $('f-epg').checked = state.settings.epgEnabled;
   $('f-resume').checked = state.settings.resumeEnabled;
+  applySubtitleLook(state.settings);
   showSourceMode(state.config.sourceMode);
   renderAccountBox();
   if (!el.setup.open) el.setup.showModal();
@@ -1828,6 +1900,10 @@ function wireSetup() {
   // The language changes at once rather than on save: the choice has to
   // show in the very dialog it was made in, or its effect is invisible.
   $('f-lang').addEventListener('change', () => applyLanguage($('f-lang').value));
+  // The subtitle look likewise: the preview beside the choice shows it.
+  $('f-substyle').addEventListener('change', chooseSubtitleLook);
+  $('f-subsize').addEventListener('input', () => applySubtitleLook(readSubtitleLook()));
+  $('f-subsize').addEventListener('change', chooseSubtitleLook);
 
   for (const radio of document.querySelectorAll('input[name="source"]')) {
     radio.addEventListener('change', () => showSourceMode(radio.value));
@@ -1840,6 +1916,7 @@ function wireSetup() {
   });
   $('f-host').addEventListener('change', splitServerField);
   $('f-cancel').addEventListener('click', () => el.setup.close());
+  $('f-close').addEventListener('click', () => el.setup.close());
   $('f-save').addEventListener('click', async () => {
     // In M3U mode the fields are filled from the URL only here, so that a
     // pasted but unfinished address cannot overwrite the old credentials.
@@ -1995,7 +2072,7 @@ function showCastHint() {
   el.overlayText.textContent = t('cast.tab.text');
   const close = () => { el.overlay.hidden = true; showOverlayActions(null); };
   showOverlayActions([
-    { label: t('cast.fullscreen'), onClick: () => { close(); el.video.requestFullscreen().catch(() => {}); } },
+    { label: t('cast.fullscreen'), onClick: () => { close(); enterFullscreen(); } },
     { label: t('cast.close'), onClick: close },
   ]);
 }
@@ -2102,7 +2179,10 @@ function wireUi() {
     if (state.playing) playItem(state.playing);
   });
   el.subs.addEventListener('change', chooseSubtitle);
-  el.subsize.addEventListener('change', chooseSubtitleSize);
+  $('btn-fullscreen').addEventListener('click', toggleFullscreen);
+  // The double click that the browser's controls used to take for the bare
+  // video; preventDefault keeps the browser from acting on it as well.
+  el.video.addEventListener('dblclick', (e) => { e.preventDefault(); toggleFullscreen(); });
   $('btn-reload').addEventListener('click', () => state.playing && playItem(state.playing));
   $('btn-guide').addEventListener('click', toggleGuide);
   $('epg-close').addEventListener('click', closeGuide);
@@ -2154,6 +2234,10 @@ function wireUi() {
     if (e.target === el.search && e.key === 'Escape') {
       clearSearch(); el.search.blur(); return;
     }
+    // The video's own controls take the keys while the video has the
+    // focus — after a click on the picture — except f, which used to be
+    // the browser's full-screen key there and is now the app's.
+    if (e.target === el.video && e.key === 'f') { toggleFullscreen(); return; }
     if (typing || e.target === el.video) return;
     if (el.setup.open || el.progress.open) return;
     // A focused button takes Space and Enter itself; every other key is the player's.
@@ -2170,7 +2254,7 @@ function wireUi() {
       case 'Enter': if (state.cursor >= 0) openItem(state.rows[state.cursor]); break;
       case 'Backspace': if (state.detail) closeDetail(); break;
       case ' ': e.preventDefault(); el.video.paused ? el.video.play().catch(() => {}) : el.video.pause(); break;
-      case 'f': document.fullscreenElement ? document.exitFullscreen() : el.video.requestFullscreen().catch(() => {}); break;
+      case 'f': toggleFullscreen(); break;
       case 'm': el.video.muted = !el.video.muted; break;
       case 'n': playRelative(1); break;
       case 'p': playRelative(-1); break;
@@ -2239,7 +2323,8 @@ async function init() {
   state.recents = await store.loadRecents();
   state.resume = await store.loadResume();
   el.mode.value = state.config.streamMode || 'auto';
-  applySubtitleSize(state.settings.subtitleSize);
+  applySubtitleLook(state.settings);
+  new SubtitleDisplay(el.video, el.subdisplay, el.videowrap);
   renderFavButton();
   renderCastState();
 

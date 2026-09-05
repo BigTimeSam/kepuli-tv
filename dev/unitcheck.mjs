@@ -8,6 +8,8 @@
 
 import { parseServer } from '../js/xtream.js';
 import { nameCleaner } from '../js/name.js';
+import { cueText } from '../js/subs.js';
+import { subtitleLook, STYLES, MIN_SIZE, MAX_SIZE, DEFAULT_SIZE } from '../js/subdisplay.js';
 
 let failed = 0;
 let count = 0;
@@ -137,6 +139,47 @@ check('and no history from the other account', await store.loadRecents(), []);
 // A change that keeps the account keeps the lists.
 await store.saveConfig({ streamMode: 'hls' });
 check('a playback-mode change keeps the lists', await favs(), ['Yle TV1']);
+
+/* ---------------------------------------------------- subs.js: cueText */
+
+const bytes = (text) => new TextEncoder().encode(text);
+const srt = (what, text, expected) => check(`cueText SRT ${what}`, cueText('S_TEXT/UTF8', bytes(text)), expected);
+const ass = (what, text, expected) => check(`cueText ASS ${what}`, cueText('S_TEXT/ASS', bytes(text)), expected);
+
+srt('keeps italics', '<i>Hello</i>\r\nthere', '<i>Hello</i>\nthere');
+srt('drops font tags but keeps their text', '<font color="#ffff00">Hello</font>', 'Hello');
+srt('escapes a bare < that would open a tag', 'a < b and c<d', 'a &lt; b and c&lt;d');
+srt('leaves a kept tag alone beside a bare <', '<b>x</b> < y', '<b>x</b> &lt; y');
+srt('strips stray ASS codes', '{\\an8}Up here', 'Up here');
+ass('takes the text after eight commas', '0,0,Default,,0,0,0,,One, two\\Nthree', 'One, two\nthree');
+ass('drops style codes and escapes <', '0,0,Default,,0,0,0,,{\\i1}a < b', 'a &lt; b');
+ass('drops a drawing', '0,0,Default,,0,0,0,,{\\p1}m 0 0 l 100 0', '');
+
+/* ---------------------------------------------- subdisplay.js: the look */
+
+check('subtitleLook defaults', subtitleLook({}), { style: 'shadow', size: DEFAULT_SIZE });
+check('subtitleLook defaults on nothing', subtitleLook(null), { style: 'shadow', size: DEFAULT_SIZE });
+check('subtitleLook keeps a known choice', subtitleLook({ subtitleStyle: 'yellow', subtitleSize: 31 }), { style: 'yellow', size: 31 });
+check('subtitleLook takes a size written as text', subtitleLook({ subtitleSize: '40' }).size, 40);
+check('subtitleLook rounds a size', subtitleLook({ subtitleSize: 20.6 }).size, 21);
+check('subtitleLook holds a size to the bounds', [subtitleLook({ subtitleSize: 1 }).size, subtitleLook({ subtitleSize: 900 }).size], [MIN_SIZE, MAX_SIZE]);
+check('subtitleLook replaces an unknown choice', subtitleLook({ subtitleStyle: 'neon', subtitleSize: 'huge' }), { style: 'shadow', size: DEFAULT_SIZE });
+check('subtitleLook replaces a size that is not a number', [subtitleLook({ subtitleSize: NaN }).size, subtitleLook({ subtitleSize: -5 }).size], [DEFAULT_SIZE, DEFAULT_SIZE]);
+// The named sizes of the older settings, at what they measured in a window.
+check('subtitleLook reads the older sizes', ['small', 'medium', 'large'].map((s) => subtitleLook({ subtitleSize: s }).size), [18, 24, 34]);
+// Every look has a rule in the stylesheet and an option in the menu, in the
+// same order; the slider's bounds are the module's.
+{
+  const html = (await import('node:fs')).readFileSync(new URL('../player.html', import.meta.url), 'utf8');
+  const sheet = (await import('node:fs')).readFileSync(new URL('../css/player.css', import.meta.url), 'utf8');
+  for (const style of STYLES) {
+    check(`player.css draws the look "${style}"`, sheet.includes(`body[data-substyle="${style}"] .subdisplay .cue`), true);
+  }
+  const offered = [...html.matchAll(/<option value="(\w+)" data-i18n="subs\.style\.\w+">/g)].map((m) => m[1]);
+  check('player.html offers the looks in the module\'s order', offered, STYLES);
+  const slider = html.match(/<input id="f-subsize" type="range" min="(\d+)" max="(\d+)" step="1" value="(\d+)">/);
+  check('player.html\'s slider has the module\'s bounds and default', slider && slider.slice(1).map(Number), [MIN_SIZE, MAX_SIZE, DEFAULT_SIZE]);
+}
 
 /* ------------------------------------------------- player.css: contrast */
 

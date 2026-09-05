@@ -58,10 +58,11 @@ it, 93.7%.
 
 SUBTITLES
 
-Subtitle tracks are picked up during the unpacking and handed to the video
-element, so they show in full-screen mode too. Below the picture there is a
-language selector in alphabetical order and three sizes. The chosen language is
-remembered and carries over to the next episode.
+Subtitle tracks are picked up during the unpacking and drawn over the picture
+by the player, in full-screen mode too. Below the picture there is a language
+selector in alphabetical order; the settings offer five looks - shadow, outline,
+yellow, box and high contrast - with a preview, and the size in pixels from a
+slider. The chosen language is remembered and carries over to the next episode.
 
 Text formats such as SRT show. Bitmap formats are images and cannot be shown.
 
@@ -226,7 +227,7 @@ STORAGE JUSTIFICATION (855 characters)
 chrome.storage.local holds only what the player cannot work without:
 
 1) The connection the user configures - their own IPTV server address, port, username and password - so the credentials are not retyped every time the player tab is opened.
-2) Playback preferences: interface language, subtitle language and size, and stream mode.
+2) Playback preferences: interface language, subtitle language, look and size, and stream mode.
 3) The user's own lists: favourites, recently watched, and the resume position per movie and episode.
 
 All of it is written by the user's own actions inside the extension's own tab, stays on the device, and is never transmitted anywhere - the extension has no backend and no analytics. Without this permission the user would have to re-enter their server address and credentials on every launch, and no favourite, history entry or resume position could survive a page reload.

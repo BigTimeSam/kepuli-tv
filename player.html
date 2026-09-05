@@ -59,7 +59,12 @@
 
   <section class="stage">
     <div class="videowrap" id="videowrap">
-      <video id="video" controls playsinline preload="none"></video>
+      <!-- The subtitles are drawn into the layer by js/subdisplay.js; the
+           video's own full-screen button would take the bare video and
+           leave the layer behind, so the wrapper goes to full screen
+           instead, from the button on the row below. -->
+      <video id="video" controls controlslist="nofullscreen" playsinline preload="none"></video>
+      <div class="subdisplay" id="subdisplay" aria-hidden="true"></div>
       <div class="overlay" id="overlay">
         <div class="overlay-inner">
           <div class="overlay-title" id="overlay-title" data-i18n="player.idle">Nothing playing</div>
@@ -84,13 +89,11 @@
           <option value="hls">HLS</option>
         </select>
         <select id="subs" class="subs" data-i18n-title="player.subs.title" hidden></select>
-        <select id="subsize" class="subsize" data-i18n-title="player.subsize.title" hidden>
-          <option value="small" data-i18n="player.subsize.small">Small</option>
-          <option value="medium" data-i18n="player.subsize.medium">Medium</option>
-          <option value="large" data-i18n="player.subsize.large">Large</option>
-        </select>
         <button type="button" id="btn-fav" class="ghost" data-i18n-title="fav.button.title">☆</button>
         <button type="button" id="btn-reload" class="ghost" data-i18n-title="player.reload.title">↻</button>
+        <button type="button" id="btn-fullscreen" class="ghost icon" data-i18n-title="player.fullscreen.title">
+          <svg viewBox="0 0 20 20" aria-hidden="true"><path d="M3 8V3h5M12 3h5v5M17 12v5h-5M8 17H3v-5"/></svg>
+        </button>
         <button type="button" id="btn-pip" class="ghost" data-i18n-title="player.pip.title">PiP</button>
         <button type="button" id="btn-cast" class="ghost" data-i18n-title="cast.title">Cast</button>
         <button type="button" id="btn-copy" class="ghost" data-i18n-title="player.copy.title">URL</button>
@@ -143,7 +146,10 @@
 
 <dialog id="setup">
   <form method="dialog" class="setup">
-    <h2 data-i18n="setup.title">Settings</h2>
+    <div class="setup-head">
+      <h2 data-i18n="setup.title">Settings</h2>
+      <button type="button" id="f-close" class="setup-close" data-i18n-title="setup.close">×</button>
+    </div>
 
     <!-- Two ways of saying the same thing: separate fields, or one address
          the credentials are parsed from. The choice steers only the form —
@@ -152,7 +158,9 @@
       <span data-i18n="setup.source">Connection</span>
       <div class="radios">
         <label class="radio">
-          <input type="radio" name="source" value="xtream" checked>
+          <!-- autofocus: the dialog opens on the first field, not on the
+               close cross that now precedes it in the markup. -->
+          <input type="radio" name="source" value="xtream" checked autofocus>
           <span data-i18n="setup.source.xtream">Xtream Codes</span>
         </label>
         <label class="radio">
@@ -193,6 +201,36 @@
       <label class="field w-lang"><span data-i18n="setup.language">Language</span>
         <select id="f-lang"></select>
       </label>
+    </div>
+
+    <!-- The look of the subtitles, judged by eye: the preview is drawn by
+         the same rules as the picture's own layer, see .sublook in
+         player.css. The choice takes effect at once, like the language. -->
+    <div class="field">
+      <span data-i18n="setup.subs">Subtitles</span>
+      <div class="sublook">
+        <div class="sublook-preview" aria-hidden="true">
+          <div class="subdisplay"><div class="cue" data-i18n="setup.subs.sample">Subtitles look like this,
+on two lines as well.</div></div>
+        </div>
+        <div class="sublook-fields">
+          <label class="field"><span data-i18n="setup.subs.style">Style</span>
+            <select id="f-substyle">
+              <option value="shadow" data-i18n="subs.style.shadow">Shadow</option>
+              <option value="outline" data-i18n="subs.style.outline">Outline</option>
+              <option value="yellow" data-i18n="subs.style.yellow">Yellow</option>
+              <option value="box" data-i18n="subs.style.box">Box</option>
+              <option value="contrast" data-i18n="subs.style.contrast">High contrast</option>
+            </select>
+          </label>
+          <!-- The size in pixels; the bounds are MIN_SIZE and MAX_SIZE in
+               js/subdisplay.js. The preview shows the text at that size. -->
+          <label class="field">
+            <span class="range-label"><span data-i18n="setup.subs.size">Size</span><output id="f-subsize-value" for="f-subsize">24 px</output></span>
+            <input id="f-subsize" type="range" min="12" max="72" step="1" value="24">
+          </label>
+        </div>
+      </div>
     </div>
 
     <div class="toggles">
