@@ -33,6 +33,9 @@ const CUES_BYTES = 4 * 1024 * 1024;
 const BUFFER_AHEAD = 60;
 // How much of what has been watched is left behind before cleaning up.
 const BUFFER_BEHIND = 30;
+// How many bytes the network may run ahead of the demuxer. A block larger
+// than this still gets through: the demuxer says what it waits for, see
+// BufferedBytes.hasRoom.
 const MAX_PENDING_BYTES = 8 * 1024 * 1024;
 
 // A video segment is cut at a keyframe, but only once it holds enough
@@ -48,6 +51,14 @@ const AUDIO_SEGMENT_FRAMES = 100;
 // -12909 and playback does not recover.
 const MAX_RESUMES = 6;
 const RESUME_DELAY_MS = 700;
+
+// A read that yields nothing for this long is a dead connection: the server
+// accepted and went quiet, or the network went away under an open socket,
+// which raises no error at all. The wait is cut and treated as a break in
+// the download, which resumes like any other; a server that is really gone
+// then fails the resume, and that is reported. Without the limit the
+// picture would run out the buffer and stop without a word.
+const STALL_MS = 15000;
 
 const AAC_FRAME_LENGTHS = [960, 1024, 1920, 2048];
 
@@ -98,6 +109,9 @@ export class Remuxer {
     this.audioDts = null;
     this.cues = null;
     this.cuesTried = false;
+    this.cuesLoading = null;      // the fetch in flight, shared by every seek that waits for it
+    this.pinned = null;           // its controller: closeConnection() leaves it alone
+    this.noticedCues = false;
     this.stream = null;
     this.started = false;
     this.onSeeking = () => this.handleSeek();
@@ -181,6 +195,7 @@ export class Remuxer {
       this.stream = null;
     }
     this.closeConnection();
+    if (this.pinned) { try { this.pinned.abort(); } catch { /* jo suljettu */ } this.pinned = null; }
     try {
       if (this.ms && this.ms.readyState === 'open') this.ms.endOfStream();
     } catch { /* jo suljettu */ }
@@ -203,37 +218,44 @@ export class Remuxer {
     if (open) { try { open.abort(); } catch { /* jo suljettu */ } }
   }
 
-  /** One download at a time: the previous one is always cut first. */
-  async openRange(from, to) {
+  /**
+   * One download at a time: the previous one is always cut first. A pinned
+   * read — the seek table — is the exception: it is not registered as the
+   * connection, so a seek that comes while it is in flight does not cut it
+   * but waits for it, and a pump that would open meanwhile waits too.
+   */
+  async openRange(from, to, { pinned = false } = {}) {
+    if (!pinned && this.cuesLoading) await this.cuesLoading;
     this.closeConnection();
     if (this.stream) {
       try { this.stream.ctrl.abort(); } catch { /* jo suljettu */ }
       this.stream = null;
     }
     const ctrl = new AbortController();
-    this.connection = ctrl;
+    if (pinned) this.pinned = ctrl; else this.connection = ctrl;
     const range = to != null ? `bytes=${from}-${to}` : `bytes=${from}-`;
-    const res = await fetch(this.url, {
+    const res = await within(fetch(this.url, {
       signal: ctrl.signal, cache: 'no-store', credentials: 'omit', headers: { Range: range },
-    });
+    }), ctrl);
     if (!res.ok) throw new Error(`the server answered ${res.status}`);
     return { res, ctrl };
   }
 
-  async readRange(from, to) {
-    const { res, ctrl } = await this.openRange(from, to);
+  async readRange(from, to, opts) {
+    const { res, ctrl } = await this.openRange(from, to, opts);
     const reader = res.body.getReader();
     const parts = [];
     let total = 0;
     const cap = to != null ? to - from + 1 : Infinity;
     while (total < cap) {
-      const { done, value } = await reader.read();
+      const { done, value } = await within(reader.read(), ctrl);
       if (done) break;
       parts.push(value);
       total += value.byteLength;
     }
     try { ctrl.abort(); } catch { /* the body had already ended */ }
     if (this.connection === ctrl) this.connection = null;
+    if (this.pinned === ctrl) this.pinned = null;
     const out = new Uint8Array(total);
     let at = 0;
     for (const part of parts) { out.set(part, at); at += part.byteLength; }
@@ -252,7 +274,7 @@ export class Remuxer {
     const chunks = [];
     let total = 0;
     while (total < HEADER_BYTES) {
-      const { done, value } = await reader.read();
+      const { done, value } = await within(reader.read(), ctrl);
       if (done) break;
       chunks.push(value);
       total += value.byteLength;
@@ -461,13 +483,17 @@ export class Remuxer {
         for (;;) {
           if (this.destroyed || generation !== this.generation) break;
           await this.waitForRoom(bytes, generation);
-          const { done, value } = await reader.read();
+          const { done, value } = await within(reader.read(), ctrl);
           if (done) { complete = true; break; }
           bytes.push(value);
         }
       } catch (err) {
+        // Whatever ended the download — the server closing the connection,
+        // a network error under it, a stall cut above, an abort of our own
+        // — the stream ends cleanly here and the bytes that did arrive are
+        // demuxed. What follows is decided below: a stale generation stops,
+        // a live one resumes from the last cluster.
         this.state.netError = err && err.name ? `${err.name}: ${err.message}` : String(err);
-        if (!(err && err.name === 'AbortError')) bytes.fail(err);
       } finally {
         bytes.end();
       }
@@ -491,6 +517,14 @@ export class Remuxer {
 
     let pendingVideo = [];
     let pendingAudio = [];
+    // Where the oldest pending frame's cluster begins. A break in the
+    // download is resumed from there rather than from the cluster being
+    // read: the frames waiting for a keyframe or for a full audio segment
+    // came from the cluster before, and read again from the current one
+    // they would be gone, leaving a hole in the buffer that playback stops
+    // at. Reading a cluster twice merely overwrites frames already there.
+    let videoFrom = null;
+    let audioFrom = null;
     let decodedFrames = 0;
     let broke = false;
     this.audioDts = null;
@@ -510,7 +544,9 @@ export class Remuxer {
           if (frame.keyframe && pendingVideo.length >= MIN_SEGMENT_FRAMES) {
             this.flushVideo(pendingVideo, generation);
             pendingVideo = [];
+            videoFrom = null;
           }
+          if (!pendingVideo.length) videoFrom = this.clusterAt;
           pendingVideo.push(frame);
         } else if (frame.track === audioNumber) {
           if (this.transcoder) {
@@ -520,10 +556,12 @@ export class Remuxer {
               decodedFrames = 0;
             }
           } else {
+            if (!pendingAudio.length) audioFrom = this.clusterAt;
             pendingAudio.push(frame);
             if (pendingAudio.length >= AUDIO_SEGMENT_FRAMES) {
               this.flushAudio(pendingAudio, rate, generation);
               pendingAudio = [];
+              audioFrom = null;
             }
           }
         } else if (this.subs && this.subs.has(frame.track)) {
@@ -578,7 +616,10 @@ export class Remuxer {
     // Only after the connection is closed: the account allows one at a
     // time, so a new one must not be opened before the previous is
     // certainly shut.
-    if (broke) await this.resume(generation);
+    if (broke) {
+      const from = Math.min(...[videoFrom, audioFrom, this.clusterAt].filter((at) => at != null));
+      await this.resume(generation, from);
+    }
   }
 
   /**
@@ -586,7 +627,7 @@ export class Remuxer {
    * successful resume clears the counter, so a long film survives several
    * drops — only consecutive failures stop the retrying.
    */
-  async resume(generation) {
+  async resume(generation, from = this.clusterAt) {
     if (this.resumes >= MAX_RESUMES) {
       this.state.phase = 'broke for good';
       this.onError(new Error('the download broke repeatedly'));
@@ -594,7 +635,6 @@ export class Remuxer {
     }
     this.resumes++;
     this.state.resumes = this.resumes;
-    const from = this.clusterAt;
     this.state.phase = `resuming from byte ${from} (${this.resumes}/${MAX_RESUMES})`;
     console.warn('[iptv] download broke, resuming from byte %d (%d/%d)', from, this.resumes, MAX_RESUMES);
     await new Promise((resolve) => setTimeout(resolve, RESUME_DELAY_MS * this.resumes));
@@ -602,7 +642,17 @@ export class Remuxer {
     // The audio chain starts over, because the resume point does not land
     // on a frame boundary.
     this.audioDts = null;
-    await this.pump(from, generation);
+    try {
+      await this.pump(from, generation);
+    } catch (err) {
+      // The new connection could not be opened, or stalled before the
+      // first byte: another break, counted like the rest, so that a server
+      // that is really gone is reported after the last attempt.
+      if (this.destroyed || generation !== this.generation || (err && err.name === 'AbortError')) return;
+      console.warn('[iptv] resuming failed', err);
+      this.state.netError = err && err.message ? err.message : String(err);
+      await this.resume(generation, from);
+    }
   }
 
   /** Waits until there is room in the buffer. Stops the whole file being
@@ -611,7 +661,7 @@ export class Remuxer {
     for (;;) {
       if (this.destroyed || generation !== this.generation) return;
       const ahead = this.bufferedAhead();
-      if (bytes.available < MAX_PENDING_BYTES && ahead < BUFFER_AHEAD) return;
+      if (bytes.hasRoom(MAX_PENDING_BYTES) && ahead < BUFFER_AHEAD) return;
       this.state.phase = `waiting for room (${Math.round(ahead)} s buffered, ${Math.round(bytes.available / 1024)} kB queued)`;
       await this.evict('video');
       await this.evict('audio');
@@ -709,20 +759,34 @@ export class Remuxer {
 
   /* ---------------------------------------------------------------- kelaus */
 
-  /** The Cues table from the end of the file. Fetched once, and only if a
-   *  seek happens. */
-  async loadCues() {
-    if (this.cues || this.cuesTried) return this.cues;
-    this.cuesTried = true;
-    if (this.header.cuesPosition == null) return null;
+  /**
+   * The Cues table from the end of the file. Fetched once, and only if a
+   * seek happens. Seeks that arrive while the fetch is in flight — a
+   * scrubber drag, two arrow presses — share the one fetch: cutting it
+   * would lose the table for the rest of the file, and with it every later
+   * seek.
+   */
+  loadCues() {
+    if (this.cues || this.cuesTried) return Promise.resolve(this.cues);
+    if (!this.cuesLoading) {
+      this.cuesLoading = this.fetchCues().finally(() => { this.cuesLoading = null; });
+    }
+    return this.cuesLoading;
+  }
+
+  async fetchCues() {
+    if (this.header.cuesPosition == null) { this.cuesTried = true; return null; }
     const from = this.header.segmentStart + this.header.cuesPosition;
     try {
-      const bytes = await this.readRange(from, from + CUES_BYTES - 1);
+      const bytes = await this.readRange(from, from + CUES_BYTES - 1, { pinned: true });
       this.cues = parseCues(bytes, this.header.timestampScale, this.videoTrack.number);
     } catch (err) {
+      // Only destroy() aborts a pinned read, and then nothing follows.
+      if (err && err.name === 'AbortError') return null;
       console.warn('[iptv] reading the seek table failed', err);
       this.cues = null;
     }
+    this.cuesTried = true;
     return this.cues;
   }
 
@@ -765,8 +829,21 @@ export class Remuxer {
     const generation = ++this.generation;
     this.closeConnection();
 
-    const offset = await this.clusterFor(target);
-    if (offset == null || this.destroyed || generation !== this.generation) return;
+    let offset = await this.clusterFor(target);
+    if (this.destroyed || generation !== this.generation) return;
+    if (offset == null) {
+      // No seek table, or one that could not be read. The connection is
+      // already cut and the old pump is stale, so something has to be
+      // pumped or the picture stops at the end of the buffer for good.
+      // Without the table the file is read through to the target: from the
+      // current cluster when the target is ahead, from the start when it is
+      // behind. Slow, but it arrives — and the viewer is told why.
+      offset = target >= this.state.lastPts && this.clusterAt != null ? this.clusterAt : 0;
+      if (!this.noticedCues) {
+        this.noticedCues = true;
+        this.onNotice(t('remux.nocues'));
+      }
+    }
     // Drop the old segments around the seek point, or the buffer
     // fragments.
     await this.clear();
@@ -809,6 +886,24 @@ const formatClock = (seconds) => {
   const ss = String(total % 60).padStart(2, '0');
   return `${mm}:${ss}`;
 };
+
+/**
+ * A step of a download with a stall limit: reader.read() or the fetch
+ * itself. Past the limit the controller is aborted, so the underlying
+ * request ends too, and the rejection says why.
+ */
+function within(promise, ctrl) {
+  let timer;
+  const stalled = new Promise((_, reject) => {
+    timer = setTimeout(() => {
+      const err = new Error('the download stalled');
+      err.stalled = true;
+      reject(err);
+      try { ctrl.abort(); } catch { /* jo suljettu */ }
+    }, STALL_MS);
+  });
+  return Promise.race([promise, stalled]).finally(() => clearTimeout(timer));
+}
 
 /**
  * A SourceBuffer's ranges, or null when the buffer cannot be read. When the

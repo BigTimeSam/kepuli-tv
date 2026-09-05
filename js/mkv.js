@@ -24,6 +24,7 @@ export class BufferedBytes {
     this.done = false;
     this.waiter = null;
     this.failure = null;
+    this.wanted = 0;          // what need() is waiting for, see hasRoom
   }
 
   push(chunk) {
@@ -45,9 +46,11 @@ export class BufferedBytes {
 
   /** Waits until n bytes are available. False = the stream ended early. */
   async need(n) {
+    this.wanted = n;
     while (this.available < n && !this.done) {
       await new Promise((resolve) => { this.waiter = resolve; });
     }
+    this.wanted = 0;
     // The bytes that already arrived are consumed before the error is
     // reported: they are valid however the connection ended, and the parser
     // always trails the reader. Without this, a drop would discard even the
@@ -56,6 +59,14 @@ export class BufferedBytes {
     if (this.failure) throw this.failure;
     return false;
   }
+
+  /**
+   * Whether the reader may push more. The limit is the reader's own cap on
+   * bytes buffered ahead of the parser. A wait for more than the cap
+   * overrides it: otherwise a block larger than the cap could never be
+   * gathered whole, and the two sides would wait for each other for good.
+   */
+  hasRoom(limit) { return this.available < Math.max(limit, this.wanted); }
 
   peek(i) {
     let index = this.offset + i;
@@ -171,9 +182,26 @@ export async function* frames(bytes, { timestampScale, tracks, onCluster, onStop
     }
 
     if (el.unknown) continue;                 // unknown size: cannot be skipped
-    if (!await bytes.need(el.size)) { stop(`stream ended while skipping ${el.size} bytes`); return; }
-    bytes.skip(el.size);
+    if (!await skipBytes(bytes, el.size)) { stop(`stream ended while skipping ${el.size} bytes`); return; }
   }
+}
+
+// A skipped element is dropped a piece at a time, so that the buffer never
+// has to hold it whole. An Attachments element before the first cluster —
+// the fonts of an anime release, a cover — can run to tens of megabytes,
+// more than the reader buffers ahead, and gathering it whole would wait for
+// bytes that never come.
+const SKIP_CHUNK = 1024 * 1024;
+
+async function skipBytes(bytes, n) {
+  let left = n;
+  while (left > 0) {
+    const take = Math.min(left, SKIP_CHUNK);
+    if (!await bytes.need(take)) return false;
+    bytes.skip(take);
+    left -= take;
+  }
+  return true;
 }
 
 // In practice a single block is at most a few megabytes. A number larger

@@ -195,9 +195,14 @@ Both go only when an absolute majority of the visible rows repeat them. That is
 why `USA Network HD` survives intact under the country *USA* — the start of a
 name is part of the name when the others do not repeat it — and why the
 separator is part of the detection, or `US Open Tennis` would lose its
-beginning. The prefixes come in either order (`US: NHL …`, `NHL US: …`), so the
-passes are repeated until nothing matches any more, and the whole name is
-always in the row's title text.
+beginning. The chosen country's own codes are the exception: under *Finland*,
+`FI:`, `FIN |` and `FI -` go whatever their share, because providers mix their
+spellings and leave rows untagged, and a majority is then never reached — the
+viewer would see `FI: MTV` among clean rows. A table in `js/name.js` maps the
+sidebar's country names, in English, in the country's own language and in
+Finnish, to the codes providers use. The prefixes come in either order (`US:
+NHL …`, `NHL US: …`), so the passes are repeated until nothing matches any
+more, and the whole name is always in the row's title text.
 
 Only a filtered view is tidied. In search, in the favourites and in the history
 the rows come from different groups, so there the prefix is what tells them

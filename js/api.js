@@ -13,6 +13,26 @@ import { t } from './i18n.js';
 
 const TEXT_DECODER = new TextDecoder();
 
+// A request that gets no answer within this is given up: a server that
+// accepts the connection and then goes quiet raises no error by itself,
+// and without a limit the progress dialog would stay open for good. For a
+// list download the limit is between chunks, not over the whole download.
+const REQUEST_MS = 20000;
+
+/** The caller's signal, if any, and the time limit as one signal. */
+function deadline(signal, ms = REQUEST_MS) {
+  const timeout = AbortSignal.timeout(ms);
+  return signal ? AbortSignal.any([signal, timeout]) : timeout;
+}
+
+/** A failed fetch as the error the caller sees. A cancellation is the
+ *  caller's own and passes through as it is. */
+function networkError(err) {
+  if (err && err.name === 'AbortError') return err;
+  if (err && err.name === 'TimeoutError') return new ApiError('verkko', t('api.timeout', { seconds: REQUEST_MS / 1000 }));
+  return new ApiError('verkko', t('api.unreachable', { message: err && err.message ? err.message : String(err) }));
+}
+
 /** base64 → UTF-8. A bare atob() would mangle non-ASCII letters. */
 export function decodeField(value) {
   if (!value) return '';
@@ -40,28 +60,33 @@ export class XtreamApi {
 
   async call(action, params, { signal } = {}) {
     let res;
+    let text;
     try {
-      res = await fetch(this.url(action, params), { signal, cache: 'no-store', credentials: 'omit' });
+      res = await fetch(this.url(action, params), { signal: deadline(signal), cache: 'no-store', credentials: 'omit' });
+      if (res.status === 512 || res.status === 401 || res.status === 403) {
+        throw new ApiError('tunnistus', t('api.rejected'));
+      }
+      if (!res.ok) throw new ApiError('http', t('api.status', { status: res.status, statusText: res.statusText }));
+      text = await res.text();
     } catch (err) {
-      if (err.name === 'AbortError') throw err;
-      throw new ApiError('verkko', t('api.unreachable', { message: err.message }));
+      if (err instanceof ApiError) throw err;
+      throw networkError(err);
     }
-    if (res.status === 512 || res.status === 401 || res.status === 403) {
-      throw new ApiError('tunnistus', t('api.rejected'));
-    }
-    if (!res.ok) throw new ApiError('http', t('api.status', { status: res.status, statusText: res.statusText }));
-    const text = await res.text();
     try {
       return JSON.parse(text);
     } catch {
-      throw new ApiError('muoto', t('api.notjson', { head: text.slice(0, 80) }));
+      console.warn('[iptv] the answer was not JSON:', text.slice(0, 200));
+      throw new ApiError('muoto', t('api.notxtream'));
     }
   }
 
   /** Account and server details. Doubles as a connection test. */
   async account({ signal } = {}) {
     const data = await this.call('', null, { signal });
-    if (!data || !data.user_info) throw new ApiError('muoto', t('api.nouserinfo'));
+    if (!data || !data.user_info) {
+      console.warn('[iptv] the answer had no user_info:', JSON.stringify(data).slice(0, 200));
+      throw new ApiError('muoto', t('api.notxtream'));
+    }
     if (String(data.user_info.auth) !== '1') throw new ApiError('tunnistus', t('api.authfailed'));
     const u = data.user_info;
     const s = data.server_info || {};
@@ -103,35 +128,48 @@ export class XtreamApi {
     return raw.map(type === 'series' ? normalizeSeries : type === 'movie' ? normalizeMovie : normalizeLive);
   }
 
-  /** Like call(), but reports download progress. */
+  /**
+   * Like call(), but reports download progress. The time limit runs
+   * between chunks: a list of megabytes may take longer than the limit as
+   * a whole, but a body that stops arriving is a dead connection.
+   */
   async callStreaming(action, params, { signal, onProgress }) {
-    let res;
-    try {
-      res = await fetch(this.url(action, params), { signal, cache: 'no-store', credentials: 'omit' });
-    } catch (err) {
-      if (err.name === 'AbortError') throw err;
-      throw new ApiError('verkko', t('api.unreachable', { message: err.message }));
-    }
-    if (res.status === 512 || res.status === 401 || res.status === 403) {
-      throw new ApiError('tunnistus', t('api.rejected'));
-    }
-    if (!res.ok) throw new ApiError('http', t('api.status', { status: res.status, statusText: res.statusText }));
-
-    const total = Number(res.headers.get('content-length')) || 0;
-    const reader = res.body.getReader();
-    const decoder = new TextDecoder();
+    const ctrl = new AbortController();
+    const quiet = () => ctrl.abort(new DOMException('no data within the limit', 'TimeoutError'));
+    let idle = setTimeout(quiet, REQUEST_MS);
     const parts = [];
     let received = 0;
-    let lastTick = 0;
-    for (;;) {
-      const { done, value } = await reader.read();
-      if (done) break;
-      received += value.byteLength;
-      parts.push(decoder.decode(value, { stream: true }));
-      const now = performance.now();
-      if (now - lastTick > 100) { lastTick = now; onProgress(received, total); }
+    let total = 0;
+    try {
+      const res = await fetch(this.url(action, params), {
+        signal: signal ? AbortSignal.any([signal, ctrl.signal]) : ctrl.signal, cache: 'no-store', credentials: 'omit',
+      });
+      if (res.status === 512 || res.status === 401 || res.status === 403) {
+        throw new ApiError('tunnistus', t('api.rejected'));
+      }
+      if (!res.ok) throw new ApiError('http', t('api.status', { status: res.status, statusText: res.statusText }));
+
+      total = Number(res.headers.get('content-length')) || 0;
+      const reader = res.body.getReader();
+      const decoder = new TextDecoder();
+      let lastTick = 0;
+      for (;;) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        clearTimeout(idle);
+        idle = setTimeout(quiet, REQUEST_MS);
+        received += value.byteLength;
+        parts.push(decoder.decode(value, { stream: true }));
+        const now = performance.now();
+        if (now - lastTick > 100) { lastTick = now; onProgress(received, total); }
+      }
+      parts.push(decoder.decode());
+    } catch (err) {
+      if (err instanceof ApiError) throw err;
+      throw networkError(err);
+    } finally {
+      clearTimeout(idle);
     }
-    parts.push(decoder.decode());
     onProgress(received, total);
     try {
       return JSON.parse(parts.join(''));

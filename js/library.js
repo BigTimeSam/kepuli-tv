@@ -78,14 +78,14 @@ export class Library {
 
   /* ------------------------------------------------------------ categories */
 
-  async loadCategories({ force = false } = {}) {
+  async loadCategories({ force = false, signal } = {}) {
     await Promise.all(TYPES.map(async (type) => {
       const key = `cats:${type}`;
       if (!force) {
         const cached = await cacheGet(key, TTL.categories);
         if (cached) { this.categories[type] = cached; return; }
       }
-      const cats = await this.api.categories(type);
+      const cats = await this.api.categories(type, { signal });
       this.categories[type] = cats;
       await cachePut(key, cats);
     }));
@@ -108,7 +108,7 @@ export class Library {
    * sub-categories as a single list. Fetched once, after which switching
    * between sub-categories is pure filtering in memory.
    */
-  async groupItems(type, groupName, { onProgress } = {}) {
+  async groupItems(type, groupName, { onProgress, signal } = {}) {
     const group = this.group(type, groupName);
     if (!group) return [];
     if (this.full[type]) {
@@ -119,7 +119,7 @@ export class Library {
     const hit = this.byCategory.get(key);
     if (hit) return hit;
     return this.share(key, async () => {
-      const items = await this.fetchCategories(type, group.cats.map((c) => c.id), onProgress);
+      const items = await this.fetchCategories(type, group.cats.map((c) => c.id), onProgress, signal);
       this.byCategory.set(key, items);
       return items;
     });
@@ -130,7 +130,7 @@ export class Library {
    * category order, so that de-duplication does not depend on the order the
    * answers happen to arrive in. Finally the whole set is sorted.
    */
-  async fetchCategories(type, categoryIds, onProgress) {
+  async fetchCategories(type, categoryIds, onProgress, signal) {
     const results = new Array(categoryIds.length);
     let next = 0;
     let done = 0;
@@ -138,7 +138,7 @@ export class Library {
       for (;;) {
         const index = next++;
         if (index >= categoryIds.length) return;
-        results[index] = await this.api.streams(type, categoryIds[index]);
+        results[index] = await this.api.streams(type, categoryIds[index], { signal });
         done++;
         if (onProgress) onProgress(done, categoryIds.length);
       }
@@ -175,20 +175,20 @@ export class Library {
   isFull(type) { return this.full[type] != null; }
 
   /** One category's contents. Uses the whole list when it is already in memory. */
-  async categoryItems(type, categoryId) {
+  async categoryItems(type, categoryId, { signal } = {}) {
     if (this.full[type]) return this.full[type].filter((it) => it.cats.includes(categoryId));
     const key = `${type}:${categoryId}`;
     const hit = this.byCategory.get(key);
     if (hit) return hit;
     return this.share(key, async () => {
-      const items = sortItems(await this.api.streams(type, categoryId));
+      const items = sortItems(await this.api.streams(type, categoryId, { signal }));
       this.byCategory.set(key, items);
       return items;
     });
   }
 
   /** A type's whole list. Returns at once if already loaded or cached. */
-  async ensureFull(type, { onProgress, force = false } = {}) {
+  async ensureFull(type, { onProgress, force = false, signal } = {}) {
     if (this.full[type] && !force) return this.full[type];
     return this.share(`full:${type}`, async () => {
       const key = `full:${type}`;
@@ -196,7 +196,7 @@ export class Library {
         const cached = await cacheGet(key, TTL.full);
         if (cached) { this.setFull(type, cached, await cacheAge(key)); return this.full[type]; }
       }
-      const items = await this.api.streams(type, null, { onProgress });
+      const items = await this.api.streams(type, null, { onProgress, signal });
       this.setFull(type, items, Date.now());
       await cachePut(key, items);
       return this.full[type];

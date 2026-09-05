@@ -91,6 +91,7 @@ export class Playback {
     this.wantPlaying = false;   // the viewer's intent, not the element's state
     this.guards = null;
     this.recovering = false;
+    this.recoverTimer = null;
     this.stableTimer = null;
   }
 
@@ -102,6 +103,7 @@ export class Playback {
     this.stopWatchdog();
     this.detachGuards();
     clearTimeout(this.stableTimer);
+    clearTimeout(this.recoverTimer);
     this.wantPlaying = false;
     this.recovering = false;
     if (this.cleanup) { this.cleanup(); this.cleanup = null; }
@@ -240,7 +242,10 @@ export class Playback {
     let settled = false;
 
     const finish = (ok, why) => {
-      if (settled || token !== this.token) return;
+      if (token !== this.token) return;
+      // The engine keeps reporting after the start has been settled, and a
+      // failure then is a different event from a failed start.
+      if (settled) { if (!ok) this.died(name, why, token); return; }
       settled = true;
       drop();
       if (ok) {
@@ -253,6 +258,11 @@ export class Playback {
         this.onState({ status: 'playing', engine: this.engineName });
         this.bindGuards(token);
         this.startWatchdog(token);
+        // The element's own error event is listened to for the rest of the
+        // session, so that a media error mid-film reaches died() too.
+        const onLater = () => finish(false, t('playback.reason.media', { code: video.error ? video.error.code : '?' }));
+        video.addEventListener('error', onLater);
+        this.cleanup = () => video.removeEventListener('error', onLater);
         return;
       }
       console.warn('[iptv] engine %s did not start: %s', name, why);
@@ -295,6 +305,30 @@ export class Playback {
     } catch (err) {
       finish(false, String(err && err.message));
     }
+  }
+
+  /**
+   * The engine failed after playback had started: the download broke for
+   * good, the SourceBuffer refused a segment, the element hit a media
+   * error. A film or an episode stops with the reason on screen, and Retry
+   * resumes from the position reached; left alone, the picture would run
+   * out the buffer and freeze without a word. A live stream is not handled
+   * here: its guards and watchdog own the reconnecting, and they let the
+   * buffer play out first so that the viewer sees all the picture that
+   * arrived.
+   */
+  died(name, why, token) {
+    if (token !== this.token || !this.spec || this.spec.live) return;
+    console.warn('[iptv] engine %s failed after start: %s', name, why);
+    this.stopWatchdog();
+    this.detachGuards();
+    clearTimeout(this.stableTimer);
+    if (this.cleanup) { this.cleanup(); this.cleanup = null; }
+    const engine = this.engine;
+    this.engine = null;
+    if (engine) { try { engine.destroy(); } catch { /* purettu */ } }
+    const reason = /failed to fetch|networkerror|network error/i.test(String(why)) ? t('playback.reason.network') : why;
+    this.onState({ status: 'error', message: t('playback.died', { reason }), verdict: this.spec.verdict });
   }
 
   startMpegts(url, isLive, finish) {
@@ -350,13 +384,21 @@ export class Playback {
   startNative(spec) {
     const video = this.video;
     if (spec.startAt > 0) {
+      // The listener belongs to this attempt. Abandoned before the metadata
+      // arrived — the viewer switched while the connection was busy — it
+      // would otherwise fire on the next item's metadata and drag that to
+      // this item's resume position.
+      const token = this.token;
       const seek = () => {
         video.removeEventListener('loadedmetadata', seek);
+        if (token !== this.token) return;
         if (Number.isFinite(video.duration) && spec.startAt < video.duration - 5) {
           try { video.currentTime = spec.startAt; } catch { /* the browser refused */ }
         }
       };
       video.addEventListener('loadedmetadata', seek);
+      const drop = this.cleanup;
+      this.cleanup = () => { video.removeEventListener('loadedmetadata', seek); if (drop) drop(); };
     }
     video.src = spec.url;
     this.tryPlay();
@@ -436,7 +478,15 @@ export class Playback {
     // account allows only a few at a time, and a request repeated at once
     // is refused.
     const delay = Math.min(RECONNECT_MAX_MS, RECONNECT_STEP_MS * this.reconnects);
-    setTimeout(() => {
+    // The wait belongs to this channel: stop() clears it, and should the
+    // viewer have switched channel meanwhile, the token says so and the
+    // new channel is left alone — a restart on top of its fresh attempt
+    // would open a second connection, which a one-connection account
+    // refuses.
+    const token = this.token;
+    clearTimeout(this.recoverTimer);
+    this.recoverTimer = setTimeout(() => {
+      if (token !== this.token) return;
       this.recovering = false;
       if (this.spec) this.restart();
     }, delay);

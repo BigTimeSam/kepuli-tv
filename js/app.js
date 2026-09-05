@@ -7,7 +7,7 @@ import { itemRow, categoryRow, chipRow, favCategoryRow, sectionHeader, emptyStat
 import { nameCleaner } from './name.js';
 import { EpgGrid, catchupAvailable } from './epggrid.js';
 import { cacheClear, wipeStorage, storageEstimate } from './db.js';
-import { parsePlaylistUrl, streamUrl, timeshiftUrl, baseUrl } from './xtream.js';
+import { parsePlaylistUrl, streamUrl, timeshiftUrl, baseUrl, parseServer } from './xtream.js';
 import { api } from './browser.js';
 import { requestAccess, hasAccess } from './permissions.js';
 import { externalLabel, handOff } from './external.js';
@@ -81,6 +81,7 @@ const state = {
   subtitles: [],          // the subtitle tracks of the file being played
   favorites: new Map(), recents: [], resume: new Map(),
   lastGroup: {}, lastKind: {},
+  searchReturn: null,     // the group a search took over from, restored when the search ends
   subcatsHeight: null,    // the topic bar's height when dragged, null = automatic
 };
 
@@ -95,7 +96,7 @@ async function connect({ silent = false } = {}) {
     state.source = new XtreamApi(config);
 
     if (!silent) showProgress(t('progress.connecting'), config.host);
-    state.account = await state.source.account();
+    state.account = await state.source.account({ signal: progressSignal() });
     state.lib = new Library(state.source);
     // Which audio encoder the browser has is asked now, so that the answer
     // is in by the time the first list paints: a row whose AC-3 track the
@@ -108,7 +109,7 @@ async function connect({ silent = false } = {}) {
     await warmCache();
     state.epg = new Epg(state.source, onEpgUpdated);
     state.epg.enabled = state.settings.epgEnabled;
-    await state.lib.loadCategories();
+    await state.lib.loadCategories({ signal: progressSignal() });
     hideProgress();
 
     renderAccount();
@@ -118,9 +119,39 @@ async function connect({ silent = false } = {}) {
     return true;
   } catch (err) {
     hideProgress();
-    showConnectionError(err);
+    if (isAbort(err)) showCancelled(); else showConnectionError(err);
     return false;
   }
+}
+
+const isAbort = (err) => Boolean(err && err.name === 'AbortError');
+
+/**
+ * A list that could not be fetched — a group, a series, the whole list —
+ * is the list's business, not the player's: the overlay would cover a
+ * picture that is playing perfectly well. Over rows a toast says what
+ * happened; where there are no rows, the message takes their place with a
+ * way to try again.
+ */
+function showListError(err, retry) {
+  const message = err instanceof ApiError ? err.message : t('error.unexpected', { message: err.message });
+  console.error('[iptv] the list could not be loaded', err);
+  if (state.rows.length) { toast(message, { long: true }); return; }
+  const existing = el.list.querySelector('.empty');
+  if (existing) existing.remove();
+  el.list.appendChild(emptyState(t('error.list'), message, retry ? { label: t('player.retry'), onClick: retry } : null));
+}
+
+/** The viewer cancelled connecting: nothing is wrong, and the way on is the same. */
+function showCancelled() {
+  el.overlay.hidden = false;
+  el.overlay.classList.remove('loading');
+  el.overlayTitle.textContent = t('progress.cancelled');
+  el.overlayText.textContent = t('error.connect.cancelled');
+  showOverlayActions([
+    { label: t('player.retry'), onClick: () => connect() },
+    { label: t('btn.settings'), onClick: openSetup },
+  ]);
 }
 
 function showConnectionError(err) {
@@ -131,7 +162,10 @@ function showConnectionError(err) {
   el.overlayText.textContent = apiError
     ? err.message
     : t('error.unexpected', { message: err.message });
-  const actions = [{ label: t('btn.settings'), onClick: openSetup }];
+  const actions = [
+    { label: t('player.retry'), onClick: () => connect() },
+    { label: t('btn.settings'), onClick: openSetup },
+  ];
   showOverlayActions(actions);
   if (state.config.host) {
     offerAccess(baseUrl(state.config), actions, () => connect());
@@ -187,7 +221,10 @@ function tabType() { return TYPE_OF_TAB[state.tab] || null; }
 
 async function activateTab(tab, { restore = false } = {}) {
   state.tab = tab;
-  for (const button of el.tabs.children) button.classList.toggle('active', button.dataset.tab === tab);
+  for (const button of el.tabs.children) {
+    button.classList.toggle('active', button.dataset.tab === tab);
+    button.setAttribute('aria-selected', String(button.dataset.tab === tab));
+  }
   state.detail = null;
   state.cursor = -1;
   state.sub = null;
@@ -223,10 +260,10 @@ async function refreshRows({ keepScroll = false } = {}) {
       // collection's own order within a type.
       else if (state.tab === 'fav') rows = [...rows].sort((a, b) => kindIndex(a) - kindIndex(b));
     } else if (state.query) {
-      if (!(await ensureFull(type, t('progress.reason.search')))) return;
+      if (!(await ensureFull(type, t('progress.reason.search')))) return false;
       rows = state.lib.search(type, state.query, null);
     } else if (state.group == null) {
-      if (!(await ensureFull(type, t('progress.reason.all')))) return;
+      if (!(await ensureFull(type, t('progress.reason.all')))) return false;
       rows = state.lib.full[type];
     } else {
       state.groupItems = await loadGroupItems(type, state.group);
@@ -236,8 +273,8 @@ async function refreshRows({ keepScroll = false } = {}) {
     }
   } catch (err) {
     hideProgress();
-    showConnectionError(err);
-    return;
+    if (isAbort(err)) toast(t('progress.cancelled')); else showListError(err, () => refreshRows());
+    return false;
   }
 
   if (state.query && isCollection()) {
@@ -377,7 +414,7 @@ async function openFavCategory(entry) {
     await refreshRows();
   } catch (err) {
     if (state.detail === open) { state.detail = back; renderDetail(); await refreshRows(); }
-    showConnectionError(err);
+    showListError(err, () => openFavCategory(entry));
   }
 }
 
@@ -447,6 +484,7 @@ async function loadGroupItems(type, groupName) {
   if (heavy) showProgress(t('progress.group', { group: groupName }), t('progress.categories', { done: 0, total: group.cats.length }));
   try {
     return await state.lib.groupItems(type, groupName, {
+      signal: progressSignal(),
       onProgress: (done, total) => {
         if (!heavy) return;
         el.pFill.parentElement.classList.remove('indeterminate');
@@ -633,13 +671,14 @@ async function ensureFull(type, reason) {
   showProgress(t('progress.list', { what: t(`progress.list.${type}`) }), reason);
   try {
     await state.lib.ensureFull(type, {
+      signal: progressSignal(),
       onProgress: (received, total) => updateProgress(received, total),
     });
     renderSidebar();
     return true;
   } catch (err) {
     hideProgress();
-    showConnectionError(err);
+    if (isAbort(err)) toast(t('progress.cancelled')); else showListError(err, () => refreshRows());
     return false;
   } finally {
     hideProgress();
@@ -809,13 +848,44 @@ function renderCategories() {
 }
 
 async function selectGroup(name) {
+  const before = { group: state.group, sub: state.sub };
   state.group = name;
   state.sub = null;
   state.detail = null;
   state.cursor = -1;
   state.lastGroup[state.tab] = name;
   renderSidebar();
-  await refreshRows();
+  if (await refreshRows() === false) {
+    // The load was cancelled or failed: the rows on screen are still the
+    // old group's, so the sidebar goes back to saying so.
+    state.group = before.group;
+    state.sub = before.sub;
+    state.lastGroup[state.tab] = before.group;
+    renderSidebar();
+  }
+}
+
+/**
+ * The group a search took over from, back in place once the search is
+ * over — cleared or cancelled. Without this, a search from "Finland" ends
+ * in the whole list with "All" lit.
+ */
+function returnFromSearch() {
+  const back = state.searchReturn;
+  state.searchReturn = null;
+  if (!back || back.tab !== state.tab || state.group != null) return;
+  state.group = back.group;
+  state.sub = back.sub;
+  state.lastGroup[state.tab] = back.group;
+  renderSidebar();
+}
+
+/** Ends the search: the field emptied, the group restored, the rows refreshed. */
+function clearSearch() {
+  el.search.value = '';
+  state.query = '';
+  returnFromSearch();
+  refreshRows();
 }
 
 /* ================================================================== rows */
@@ -835,12 +905,14 @@ function renderRow(index) {
     subtitle: favCategorySubtitle(item),
     count: state.catCounts && state.catCounts.has(key) ? nf.format(state.catCounts.get(key)) : null,
     selected: index === state.cursor,
+    domId: rowDomId(index),
     onOpen: () => { state.cursor = index; openFavCategory(item); },
     onFavorite: () => toggleFavCategory(item),
   }) : itemRow(item, {
     label: state.cleanName ? state.cleanName(item.n) : null,
     playing: state.playing && `${state.playing.k}:${state.playing.id}` === key,
     selected: index === state.cursor,
+    domId: rowDomId(index),
     favorite: state.favorites.has(key),
     epg: item.k === 0 && state.epg ? state.epg.nowNext(item.id) : null,
     resume: state.resume.get(key),
@@ -961,7 +1033,7 @@ async function openSeries(item) {
     renderDetail();
     await refreshRows();
   } catch (err) {
-    showConnectionError(err);
+    showListError(err, () => openSeries(item));
   }
 }
 
@@ -1450,6 +1522,7 @@ async function openGuide() {
   grid.setChannels(channels);
   grid.show();
   if (state.playing && state.playing.k === 0) grid.focusChannel(state.playing.id);
+  focusGrid();
 }
 
 function closeGuide() {
@@ -1615,12 +1688,24 @@ function fillBar(ratio) {
   el.pFill.style.transform = `scaleX(${clamped.toFixed(4)})`;
 }
 
+// The load behind the dialog is cancellable: every request made while it
+// is open carries this controller's signal, and Cancel or Esc aborts them.
+let progressCtrl = null;
+const progressSignal = () => (progressCtrl ? progressCtrl.signal : undefined);
+
 function showProgress(title, text) {
   el.pTitle.textContent = title;
   el.pText.textContent = text || '';
   fillBar(0);
   el.pFill.parentElement.classList.add('indeterminate');
-  if (!el.progress.open) el.progress.showModal();
+  if (!el.progress.open) {
+    progressCtrl = new AbortController();
+    el.progress.showModal();
+  }
+}
+
+function cancelProgress() {
+  if (progressCtrl) progressCtrl.abort();
 }
 
 function updateProgress(received, total) {
@@ -1634,6 +1719,7 @@ function updateProgress(received, total) {
 }
 
 function hideProgress() {
+  progressCtrl = null;
   if (el.progress.open) el.progress.close();
 }
 
@@ -1719,7 +1805,17 @@ async function resetEverything() {
 function readSetup() {
   const patch = {};
   for (const f of FIELDS) patch[f] = $(`f-${f}`).value.trim();
+  // A whole address in the Server field is split into its parts here as
+  // well as on leaving the field, so that Connect never sees one.
+  Object.assign(patch, parseServer(patch.host) || {});
   return patch;
+}
+
+/** An address pasted into the Server field lands in the fields it belongs in. */
+function splitServerField() {
+  const parsed = parseServer($('f-host').value);
+  if (!parsed) return;
+  for (const f of FIELDS) if (parsed[f] != null) $(`f-${f}`).value = parsed[f];
 }
 
 function wireSetup() {
@@ -1742,6 +1838,7 @@ function wireSetup() {
     if (!parsed) return;
     for (const f of FIELDS) if (parsed[f] != null) $(`f-${f}`).value = parsed[f];
   });
+  $('f-host').addEventListener('change', splitServerField);
   $('f-cancel').addEventListener('click', () => el.setup.close());
   $('f-save').addEventListener('click', async () => {
     // In M3U mode the fields are filled from the URL only here, so that a
@@ -1763,6 +1860,12 @@ function wireSetup() {
       resumeEnabled: $('f-resume').checked,
     });
     state.config = await store.saveConfig(patch);
+    // The personal lists belong to the account: another account's come out
+    // with it, and this one's are found again on the way back.
+    state.favorites = await store.loadFavorites();
+    state.recents = await store.loadRecents();
+    state.resume = await store.loadResume();
+    renderFavButton();
     el.setup.close();
     if (!granted) toast(t('setup.nogrant'));
     await connect();
@@ -1808,11 +1911,12 @@ function wireSetup() {
 /* ============================================================== oddments */
 
 let toastTimer = null;
-function toast(text) {
+function toast(text, { long = false } = {}) {
   el.toast.textContent = text;
   el.toast.hidden = false;
   clearTimeout(toastTimer);
-  toastTimer = setTimeout(() => { el.toast.hidden = true; }, 2800);
+  // An error deserves the time it takes to read it.
+  toastTimer = setTimeout(() => { el.toast.hidden = true; }, long ? 7000 : 2800);
 }
 
 async function copyUrl() {
@@ -1910,7 +2014,11 @@ function moveCursor(delta) {
   state.cursor = Math.max(0, Math.min(state.rows.length - 1, state.cursor + delta));
   vlist.scrollToIndex(state.cursor);
   vlist.refresh();
+  el.list.setAttribute('aria-activedescendant', rowDomId(state.cursor));
 }
+
+/** The id of a row's node, for the list box to point at. */
+const rowDomId = (index) => `row-${index}`;
 
 function playRelative(delta) {
   if (!state.playing) return;
@@ -1938,8 +2046,9 @@ function wireUi() {
       state.query = el.search.value.trim();
       // The search covers the whole list: the category and type filters are
       // cleared visibly, so that an absence of matches is never left
-      // unexplained.
+      // unexplained. The group comes back when the search ends.
       if (state.query && state.group != null) {
+        state.searchReturn = { tab: state.tab, group: state.group, sub: state.sub };
         state.group = null;
         state.sub = null;
         state.lastGroup[state.tab] = null;
@@ -1950,7 +2059,11 @@ function wireUi() {
         state.lastKind[state.tab] = null;
         renderSidebar();
       }
-      refreshRows();
+      if (!state.query) returnFromSearch();
+      refreshRows().then((ok) => {
+        // The list the search needs did not arrive: the search is over.
+        if (ok === false && state.query) clearSearch();
+      });
     }, 180);
   });
 
@@ -1964,21 +2077,25 @@ function wireUi() {
     if (!state.lib) return connect();
     showProgress(t('progress.refresh'));
     try {
-      await state.lib.loadCategories({ force: true });
+      await state.lib.loadCategories({ force: true, signal: progressSignal() });
       for (const type of ['live', 'movie', 'series']) {
-        if (state.lib.isFull(type)) await state.lib.ensureFull(type, { force: true, onProgress: updateProgress });
+        if (state.lib.isFull(type)) await state.lib.ensureFull(type, { force: true, onProgress: updateProgress, signal: progressSignal() });
       }
       if (state.epg) state.epg.clear();
       renderSidebar();
       await refreshRows({ keepScroll: true });
       toast(t('toast.refreshed'));
-    } catch (err) { showConnectionError(err); } finally { hideProgress(); }
+    } catch (err) {
+      if (isAbort(err)) toast(t('progress.cancelled')); else showListError(err, null);
+    } finally { hideProgress(); }
   });
 
   $('btn-settings').addEventListener('click', openSetup);
-  // Loading a list cannot be interrupted, so Esc must not close the dialog
-  // mid-work: a closed dialog would look as if the loading had finished.
-  el.progress.addEventListener('cancel', (e) => e.preventDefault());
+  // Esc does not close the dialog by itself — a closed dialog would look as
+  // if the loading had finished — it cancels the load, and the dialog goes
+  // once the load has stopped.
+  el.progress.addEventListener('cancel', (e) => { e.preventDefault(); cancelProgress(); });
+  $('p-cancel').addEventListener('click', cancelProgress);
 
   el.mode.addEventListener('change', () => {
     store.saveConfig({ streamMode: el.mode.value });
@@ -2010,15 +2127,37 @@ function wireUi() {
     } catch { toast(t('player.pip.unavailable')); }
   });
 
+  // A mouse click leaves the focus on the button or the select it landed
+  // on, and from then on the keys would go there: Space would press the
+  // button again — reload the stream, say — and an arrow would change the
+  // select. So the focus is given back after the click. A keyboard user's
+  // click carries no detail and keeps the focus, and the dialogs keep
+  // theirs as well.
+  document.addEventListener('click', (e) => {
+    const button = e.target.closest('button');
+    if (!button || e.detail === 0 || button.closest('dialog')) return;
+    setTimeout(() => { if (document.activeElement === button) button.blur(); }, 0);
+  });
+  const mousedSelects = new WeakSet();
+  document.addEventListener('mousedown', (e) => { if (e.target.tagName === 'SELECT') mousedSelects.add(e.target); });
+  document.addEventListener('change', (e) => {
+    const select = e.target;
+    if (select.tagName !== 'SELECT' || !mousedSelects.has(select) || select.closest('dialog')) return;
+    mousedSelects.delete(select);
+    select.blur();
+  });
+
   document.addEventListener('keydown', (e) => {
     const tag = e.target.tagName;
-    const typing = tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT' || tag === 'BUTTON';
+    const typing = tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT';
     if (e.key === '/' && !typing) { e.preventDefault(); el.search.focus(); el.search.select(); return; }
     if (e.target === el.search && e.key === 'Escape') {
-      el.search.value = ''; state.query = ''; refreshRows(); el.search.blur(); return;
+      clearSearch(); el.search.blur(); return;
     }
     if (typing || e.target === el.video) return;
     if (el.setup.open || el.progress.open) return;
+    // A focused button takes Space and Enter itself; every other key is the player's.
+    if (tag === 'BUTTON' && (e.key === ' ' || e.key === 'Enter')) return;
     if (guideOpen) {
       if (e.key === 'Escape') { closeGuide(); return; }
       if (grid.handleKey(e)) { e.preventDefault(); return; }
@@ -2107,7 +2246,10 @@ async function init() {
   const ui = await store.loadUiState();
   if (ui.tab) state.tab = ui.tab;
   if (typeof ui.subcatsHeight === 'number') state.subcatsHeight = ui.subcatsHeight;
-  for (const button of el.tabs.children) button.classList.toggle('active', button.dataset.tab === state.tab);
+  for (const button of el.tabs.children) {
+    button.classList.toggle('active', button.dataset.tab === state.tab);
+    button.setAttribute('aria-selected', String(button.dataset.tab === state.tab));
+  }
 
   if (!state.config.host) {
     renderIdleOverlay();

@@ -21,6 +21,7 @@
 
 import { createServer } from 'node:http';
 import { createReadStream, existsSync, readFileSync, statSync } from 'node:fs';
+import { Transform } from 'node:stream';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -341,6 +342,15 @@ function send(res, status, body, type = 'application/json; charset=utf-8') {
   res.end(data);
 }
 
+// A whole-list answer whose headers come at once and whose body only after
+// a delay: a server that accepted and went quiet, for dev/playcheck.mjs.
+function sendLate(res, body, ms) {
+  const data = JSON.stringify(body);
+  res.writeHead(200, { ...CORS, 'Content-Type': 'application/json; charset=utf-8', 'Content-Length': Buffer.byteLength(data), 'Cache-Control': 'no-store' });
+  const timer = setTimeout(() => res.end(data), ms);
+  res.on('close', () => clearTimeout(timer));
+}
+
 function sendFile(req, res, name, type) {
   const file = name.startsWith('/') ? name : join(MEDIA, name);
   if (!existsSync(file)) return send(res, 404, `${name} is missing: run sh dev/mock/media.sh`, 'text/plain');
@@ -357,7 +367,25 @@ function sendFile(req, res, name, type) {
   if (status === 206) headers['Content-Range'] = `bytes ${start}-${end}/${size}`;
   res.writeHead(status, headers);
   if (req.method === 'HEAD') return res.end();
-  createReadStream(file, { start, end }).pipe(res);
+  // KEPULI_MOCK_CUT_AT, bytes: the next whole-file download is cut off
+  // there, the connection dropped mid-body the way a flaky server drops it.
+  // Once only; the resume that follows is served whole.
+  const cutAt = Number(process.env.KEPULI_MOCK_CUT_AT || 0);
+  const cut = cutAt > 0 && req.headers.range === 'bytes=0-';
+  if (cut) process.env.KEPULI_MOCK_CUT_AT = '';
+  const body = createReadStream(file, { start, end: cut ? Math.min(end, start + cutAt - 1) : end, highWaterMark: 16 * 1024 });
+  // KEPULI_MOCK_THROTTLE, bytes per second, sends the media slowly — the
+  // way a real server does. A throttle in the browser would not do for
+  // dev/playcheck.mjs: DevTools takes the whole answer at full speed and
+  // doles it out, so cutting the server underneath changes nothing.
+  const rate = Number(process.env.KEPULI_MOCK_THROTTLE || 0);
+  const out = rate > 0
+    ? body.pipe(new Transform({
+      transform(chunk, _enc, done) { setTimeout(() => done(null, chunk), (chunk.length * 1000) / rate); },
+    }))
+    : body;
+  out.pipe(res, { end: !cut });
+  if (cut) out.on('end', () => res.destroy());
 }
 
 /* ------------------------------------------------------------ live channel */
@@ -458,13 +486,20 @@ function api(req, res, url) {
   if (q.get('username') !== USER || q.get('password') !== PASS) return send(res, 512, { user_info: { auth: 0 } });
   const origin = originOf(req);
   const withCategory = (list) => (q.get('category_id') ? list.filter((x) => x.category_id === q.get('category_id')) : list);
+  // KEPULI_MOCK_SLOW_LIST, milliseconds: the whole list of a type arrives
+  // late, one category's list at once.
+  const slow = Number(process.env.KEPULI_MOCK_SLOW_LIST || 0);
+  // KEPULI_MOCK_FAIL_LISTS: every stream list answers 500 while set — the
+  // lists fail, the streams and the rest keep working.
+  const sendList = (list) => (process.env.KEPULI_MOCK_FAIL_LISTS ? send(res, 500, { error: 'as asked' })
+    : slow > 0 && !q.get('category_id') ? sendLate(res, list, slow) : send(res, 200, list));
   switch (q.get('action')) {
     case 'get_live_categories': return send(res, 200, live.categories);
     case 'get_vod_categories': return send(res, 200, vod.categories);
     case 'get_series_categories': return send(res, 200, series.categories);
-    case 'get_live_streams': return send(res, 200, withCategory(live.channels).map((c) => publicChannel(origin, c)));
-    case 'get_vod_streams': return send(res, 200, withCategory(vod.movies).map((m) => publicMovie(origin, m)));
-    case 'get_series': return send(res, 200, withCategory(series.list).map((s) => publicSeries(origin, s)));
+    case 'get_live_streams': return sendList(withCategory(live.channels).map((c) => publicChannel(origin, c)));
+    case 'get_vod_streams': return sendList(withCategory(vod.movies).map((m) => publicMovie(origin, m)));
+    case 'get_series': return sendList(withCategory(series.list).map((s) => publicSeries(origin, s)));
     case 'get_series_info': {
       const info = series.info.get(q.get('series_id'));
       if (!info) return send(res, 200, { seasons: [], info: {}, episodes: {} });

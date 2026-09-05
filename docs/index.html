@@ -173,7 +173,7 @@
 
 <main>
 <h1>Kepuli-TV</h1>
-<p class="meta">The README of the Kepuli-TV browser extension · Version 1.0.5 · <a href="https://github.com/BigTimeSam/kepuli-tv">Source on GitHub</a></p>
+<p class="meta">The README of the Kepuli-TV browser extension · Version 1.0.6 · <a href="https://github.com/BigTimeSam/kepuli-tv">Source on GitHub</a></p>
 
 <p>A Chrome extension (Manifest V3) that plays Xtream Codes IPTV straight in the
 browser. Data is fetched from the <code>player_api.php</code> API lazily: only what you
@@ -399,9 +399,14 @@ start of the name: a country code closed by a hard separator (<code>US:</code>, 
 why <code>USA Network HD</code> survives intact under the country <em>USA</em> — the start of a
 name is part of the name when the others do not repeat it — and why the
 separator is part of the detection, or <code>US Open Tennis</code> would lose its
-beginning. The prefixes come in either order (<code>US: NHL …</code>, <code>NHL US: …</code>), so the
-passes are repeated until nothing matches any more, and the whole name is
-always in the row's title text.</p>
+beginning. The chosen country's own codes are the exception: under <em>Finland</em>,
+<code>FI:</code>, <code>FIN |</code> and <code>FI -</code> go whatever their share, because providers mix their
+spellings and leave rows untagged, and a majority is then never reached — the
+viewer would see <code>FI: MTV</code> among clean rows. A table in <code>js/name.js</code> maps the
+sidebar's country names, in English, in the country's own language and in
+Finnish, to the codes providers use. The prefixes come in either order (<code>US:
+NHL …</code>, <code>NHL US: …</code>), so the passes are repeated until nothing matches any
+more, and the whole name is always in the row's title text.</p>
 
 <p>Only a filtered view is tidied. In search, in the favourites and in the history
 the rows come from different groups, so there the prefix is what tells them

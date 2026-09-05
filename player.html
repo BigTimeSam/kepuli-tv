@@ -12,17 +12,17 @@
 <header class="topbar">
   <div class="brand"><span class="brand-mark"></span>Kepuli-TV</div>
 
-  <nav class="tabs" id="tabs">
-    <button type="button" data-tab="live" class="active" data-i18n="tab.live">Channels</button>
-    <button type="button" data-tab="movie" data-i18n="tab.movie">Movies</button>
-    <button type="button" data-tab="series" data-i18n="tab.series">Series</button>
-    <button type="button" data-tab="fav" data-i18n="tab.fav">Favourites</button>
-    <button type="button" data-tab="recent" data-i18n="tab.recent">History</button>
+  <nav class="tabs" id="tabs" role="tablist">
+    <button type="button" role="tab" aria-selected="true" data-tab="live" class="active" data-i18n="tab.live">Channels</button>
+    <button type="button" role="tab" aria-selected="false" data-tab="movie" data-i18n="tab.movie">Movies</button>
+    <button type="button" role="tab" aria-selected="false" data-tab="series" data-i18n="tab.series">Series</button>
+    <button type="button" role="tab" aria-selected="false" data-tab="fav" data-i18n="tab.fav">Favourites</button>
+    <button type="button" role="tab" aria-selected="false" data-tab="recent" data-i18n="tab.recent">History</button>
   </nav>
 
   <label class="search">
     <svg viewBox="0 0 20 20" aria-hidden="true"><circle cx="9" cy="9" r="6"/><path d="M13.5 13.5 18 18"/></svg>
-    <input id="search" type="search" data-i18n-placeholder="search.placeholder" autocomplete="off" spellcheck="false">
+    <input id="search" type="search" data-i18n-placeholder="search.placeholder" data-i18n-label="search.placeholder" autocomplete="off" spellcheck="false">
   </label>
 
   <div class="topbar-end">
@@ -39,9 +39,9 @@
 <main id="main">
   <aside class="groups" id="groups-col">
     <div class="groups-filter" id="groups-filter">
-      <input id="category-filter" type="search" data-i18n-placeholder="groups.filter.placeholder" autocomplete="off" spellcheck="false">
+      <input id="category-filter" type="search" data-i18n-placeholder="groups.filter.placeholder" data-i18n-label="groups.filter.placeholder" autocomplete="off" spellcheck="false">
     </div>
-    <div class="groups-list" id="groups"></div>
+    <div class="groups-list" id="groups" role="list" data-i18n-label="groups.aria"></div>
   </aside>
 
   <section class="listcol">
@@ -53,7 +53,7 @@
     <div class="subcats-grip" id="subcats-grip" role="separator" aria-orientation="horizontal"
          tabindex="0" data-i18n-title="subcats.resize.title" hidden></div>
     <div class="detail" id="detail" hidden></div>
-    <div class="list" id="list" tabindex="0"></div>
+    <div class="list" id="list" tabindex="0" role="listbox" data-i18n-label="list.aria"></div>
     <div class="listinfo" id="listinfo"></div>
   </section>
 
@@ -63,7 +63,7 @@
       <div class="overlay" id="overlay">
         <div class="overlay-inner">
           <div class="overlay-title" id="overlay-title" data-i18n="player.idle">Nothing playing</div>
-          <div class="overlay-text" id="overlay-text" data-i18n="player.idle.text">Pick a channel from the list.</div>
+          <div class="overlay-text" id="overlay-text" data-i18n="player.idle.text" aria-live="polite">Pick a channel from the list.</div>
           <div class="overlay-actions" id="overlay-actions" hidden></div>
         </div>
       </div>
@@ -136,7 +136,7 @@
       <div class="epg-corner" id="epg-corner"></div>
       <div class="epg-times"><div class="epg-times-inner" id="epg-times-inner"></div></div>
       <div class="epg-chans"><div class="epg-chans-inner" id="epg-chans-inner"></div></div>
-      <div class="epg-scroll" id="epg-scroll" tabindex="-1"><div class="epg-canvas" id="epg-canvas"></div></div>
+      <div class="epg-scroll" id="epg-scroll" tabindex="-1" role="grid" data-i18n-label="guide.aria"><div class="epg-canvas" id="epg-canvas"></div></div>
     </div>
   </section>
 </main>
@@ -213,10 +213,14 @@
     <div class="progress-title" id="p-title" data-i18n="progress.loading">Loading…</div>
     <div class="bar"><div class="bar-fill" id="p-fill"></div></div>
     <div class="progress-text" id="p-text">…</div>
+    <div class="setup-actions">
+      <div class="spacer"></div>
+      <button type="button" id="p-cancel" class="ghost" data-i18n="setup.cancel">Cancel</button>
+    </div>
   </div>
 </dialog>
 
-<div class="toast" id="toast" hidden></div>
+<div class="toast" id="toast" role="status" aria-live="polite" hidden></div>
 
 <script src="vendor/mpegts.js"></script>
 <script src="vendor/hls.js"></script>

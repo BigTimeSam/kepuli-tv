@@ -90,6 +90,10 @@ const STRINGS = {
     'empty.recent': 'History is empty',
     'empty.recent.text': 'Channels, movies and episodes you watch collect here on their own, newest first.',
     'empty.plain': 'Empty category',
+    'list.aria': 'Contents',
+    'groups.aria': 'Countries and topics',
+    'guide.aria': 'Programme guide',
+    'error.list': 'The list could not be loaded',
     'empty.plain.text': 'There is no content in this category.',
 
     /* --------------------------------------------------------- loading */
@@ -106,6 +110,8 @@ const STRINGS = {
     'progress.bytes': '{received} / {total}',
     'progress.received': '{received} loaded',
     'progress.refresh': 'Refreshing lists…',
+    'progress.cancelled': 'Cancelled.',
+    'error.connect.cancelled': 'Connecting was cancelled. Try again or check the settings.',
     'toast.refreshed': 'Lists refreshed',
 
     /* ------------------------------------------------------ connection */
@@ -117,12 +123,12 @@ const STRINGS = {
     'api.unreachable': 'The server could not be reached ({message}).',
     'api.rejected': 'The server rejected the credentials.',
     'api.status': 'The server answered {status} {statusText}.',
-    'api.notjson': 'The answer was not JSON: {head}',
-    'api.nouserinfo': 'The answer had no user_info.',
+    'api.notxtream': 'This address does not answer as an Xtream Codes server. Check the server and the port.',
     'api.authfailed': 'Authentication failed.',
     'api.nocategories': 'The category list was missing.',
     'api.nostreams': 'The stream list was missing.',
     'api.badjson': 'The answer was not valid JSON.',
+    'api.timeout': 'The server did not answer within {seconds} seconds.',
     'api.episode': 'Episode {number}',
 
     /* ---------------------------------------------------------- player */
@@ -164,6 +170,8 @@ const STRINGS = {
     'playback.reason.frozen': 'the picture froze',
     'playback.reason.media': 'media error {code}',
     'playback.reason.demux': 'demuxing failed',
+    'playback.reason.network': 'the connection was lost',
+    'playback.died': 'Playback stopped: {reason}.',
     'engine.native': 'native',
     'engine.remux': 'MKV remux',
 
@@ -283,6 +291,7 @@ const STRINGS = {
     'remux.noaudio': 'The audio track could not be decoded, so the picture plays without sound.',
     'remux.audiostopped': 'Audio decoding stopped; the picture continues without sound.',
     'remux.truncated': 'The file is incomplete on the server: there is intact picture up to {time}.',
+    'remux.nocues': 'This file has no seek table: seeking downloads the file up to that point, which takes a while.',
 
     /* ------------------------------------------------------------- time */
     'day.today': 'Today',
@@ -369,6 +378,10 @@ const STRINGS = {
     'empty.recent': 'Historia on tyhjä',
     'empty.recent.text': 'Katsotut kanavat, elokuvat ja jaksot kertyvät tänne itsestään, tuorein ensin.',
     'empty.plain': 'Tyhjä kategoria',
+    'list.aria': 'Sisältö',
+    'groups.aria': 'Maat ja aiheet',
+    'guide.aria': 'Ohjelmaopas',
+    'error.list': 'Listaa ei saatu ladattua',
     'empty.plain.text': 'Kategoriassa ei ole sisältöä.',
 
     /* --------------------------------------------------------- loading */
@@ -385,6 +398,8 @@ const STRINGS = {
     'progress.bytes': '{received} / {total}',
     'progress.received': '{received} ladattu',
     'progress.refresh': 'Päivitetään listat…',
+    'progress.cancelled': 'Peruttu.',
+    'error.connect.cancelled': 'Yhdistäminen peruttiin. Yritä uudelleen tai tarkista asetukset.',
     'toast.refreshed': 'Listat päivitetty',
 
     /* ------------------------------------------------------ connection */
@@ -396,12 +411,12 @@ const STRINGS = {
     'api.unreachable': 'Palvelimeen ei saatu yhteyttä ({message}).',
     'api.rejected': 'Palvelin hylkäsi tunnukset.',
     'api.status': 'Palvelin vastasi {status} {statusText}.',
-    'api.notjson': 'Vastaus ei ollut JSONia: {head}',
-    'api.nouserinfo': 'Vastauksesta puuttui user_info.',
+    'api.notxtream': 'Tämä osoite ei vastaa Xtream Codes -palvelimena. Tarkista palvelin ja portti.',
     'api.authfailed': 'Tunnistus epäonnistui.',
     'api.nocategories': 'Kategorialista puuttui.',
     'api.nostreams': 'Striimilista puuttui.',
     'api.badjson': 'Vastaus ei ollut kelvollista JSONia.',
+    'api.timeout': 'Palvelin ei vastannut {seconds} sekunnissa.',
     'api.episode': 'Jakso {number}',
 
     /* ---------------------------------------------------------- player */
@@ -441,8 +456,10 @@ const STRINGS = {
     'playback.reason.ended': 'lähde päättyi',
     'playback.reason.buffer': 'puskuri tyhjeni',
     'playback.reason.frozen': 'kuva pysähtyi',
-    'playback.reason.media': 'media error {code}',
+    'playback.reason.media': 'mediavirhe {code}',
     'playback.reason.demux': 'purku epäonnistui',
+    'playback.reason.network': 'yhteys katkesi',
+    'playback.died': 'Toisto pysähtyi: {reason}.',
     'engine.native': 'natiivi',
     'engine.remux': 'MKV-purku',
 
@@ -562,6 +579,7 @@ const STRINGS = {
     'remux.noaudio': 'Ääniraitaa ei saatu purettua, joten kuva toistuu ilman ääntä.',
     'remux.audiostopped': 'Äänen purku keskeytyi; kuva jatkuu ilman ääntä.',
     'remux.truncated': 'Tiedosto on vaillinainen palvelimella: ehjää kuvaa on {time} asti.',
+    'remux.nocues': 'Tiedostossa ei ole hakutaulua: kelaus lataa tiedoston siihen kohtaan asti, ja se kestää hetken.',
 
     /* ------------------------------------------------------------- time */
     'day.today': 'Tänään',
@@ -617,6 +635,12 @@ export function t(key, params) {
  */
 export function applyStatic(root = document) {
   for (const node of root.querySelectorAll('[data-i18n]')) node.textContent = t(node.dataset.i18n);
-  for (const node of root.querySelectorAll('[data-i18n-title]')) node.title = t(node.dataset.i18nTitle);
+  for (const node of root.querySelectorAll('[data-i18n-title]')) {
+    node.title = t(node.dataset.i18nTitle);
+    // A button that shows a symbol rather than a word — ↻, ↗, ☆ — has no
+    // name a screen reader could say; the title is that name.
+    if (node.tagName === 'BUTTON' && !/\p{L}/u.test(node.textContent)) node.setAttribute('aria-label', node.title);
+  }
   for (const node of root.querySelectorAll('[data-i18n-placeholder]')) node.placeholder = t(node.dataset.i18nPlaceholder);
+  for (const node of root.querySelectorAll('[data-i18n-label]')) node.setAttribute('aria-label', t(node.dataset.i18nLabel));
 }
