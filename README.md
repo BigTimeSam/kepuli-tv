@@ -661,6 +661,21 @@ so correcting it costs nothing.
 
 ## The programme guide
 
+The guide is three bands: the preview and the picture side by side, the
+timeline's own controls, and the grid. The middle band takes what the picture
+and the preview need and no more. It used to be `minmax(240px, 30vh)` — a
+fixed share of the window whatever was in it — so a 900px-tall window gave the
+band 270px to hold 105px of preview and a picture that wanted 194. The picture
+is now shaped by its own 16:9 ratio, with a floor at what that comes to in the
+narrowest the column goes, and the slack drops to the grid: measured, 4.6
+visible channel rows became 4.8 at 1024×700 and 8.1 became 8.6 at 1440×900.
+
+That is a third of a row. The band cannot give back much more, because what
+sets its height is the picture rather than the preview beside it — the preview
+needs 105px of its 227 and the rest of its box is empty. Reclaiming that means
+moving the grid out from under the preview, which is a change of shape rather
+than of numbers.
+
 **Programme guide**, above the channel list on the **Channels** tab (or `g`),
 turns the whole window into a grid view: channels as rows,
 time on the horizontal axis and a moving now line. The video continues in the

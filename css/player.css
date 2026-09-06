@@ -119,8 +119,12 @@ main > .stage { grid-column: 3; }
 
 main.guide {
   grid-template-columns: minmax(0, 1fr) minmax(280px, 24vw);
-  /* Leave room for the picture above wrapped audio/subtitle controls. */
-  grid-template-rows: auto minmax(240px, 30vh) minmax(0, 1fr);
+  /* The middle row takes what the picture and the preview beside it need,
+     and no more. It used to be minmax(240px, 30vh) — a fixed share of the
+     window whatever was in it — which on a 900px-tall window gave the row
+     270px to hold 105px of preview and a picture that wanted 194. The grid
+     underneath is what the guide was opened for, so the slack goes there. */
+  grid-template-rows: auto minmax(0, auto) minmax(0, 1fr);
 }
 .guide-header { display: none; }
 main.guide > .guide-header { grid-area: 1 / 1 / 2 / 3; display: flex; align-items: center; gap: 16px; padding: 8px 14px; background: var(--panel); border-bottom: 1px solid var(--border); }
@@ -131,7 +135,12 @@ main.guide > .guide-header { grid-area: 1 / 1 / 2 / 3; display: flex; align-item
 .guide-back:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 main.guide > .groups, main.guide > .listcol { display: none; }
 main.guide > .epgview { grid-area: 2 / 1; }
-main.guide > .stage { grid-area: 2 / 2; }
+main.guide > .stage { grid-area: 2 / 2; min-height: 0; }
+/* In the guide the picture is a thumbnail beside the grid, so it is shaped
+   by its own aspect ratio rather than by whatever height a row hands it.
+   The floor is what a 16:9 picture comes to in the narrowest this column
+   goes (280px), below which it stops being watchable. */
+main.guide #videowrap:not(:fullscreen) { aspect-ratio: 16 / 9; min-height: 158px; }
 main.guide > .epg { grid-area: 3 / 1 / 4 / 3; }
 /* The programme data shows in the guide's own panel, and six buttons do not
    fit in the narrow player box. */
