@@ -1,8 +1,9 @@
 Kepuli-TV — Chrome Web Store listing copy
 =========================================
 The store page does not support Markdown. These texts are deliberately plain
-and can be copied as they are. English is the language to choose, because the
-interface is in English by default.
+and can be copied as they are. English is the language to choose: it is what
+the listing is written in, and what the player falls back to for anyone whose
+browser it does not speak.
 
 The store's reviewers read the description under the "Spam and placement in
 the Store" policy (violation reference Yellow Argon). The first submission was
@@ -15,6 +16,44 @@ policy forbids, and what this text therefore avoids:
     and counts the primary purpose word too); the audit below every word
     with a meaning stays at four or fewer
   • anonymous testimonials, superlatives, and mentions of competing extensions
+
+
+--- PUBLISHING A NEW VERSION -----------------------------------------------
+Most of this file is written once and left alone. What a release actually
+touches in the dashboard, and what it does not:
+
+ALWAYS
+  • Package (Package → Upload new package): the ZIP from
+    node dev/package.mjs --zip. Chrome takes the version from the manifest;
+    there is no version field to type and no release-notes field at all.
+
+WHEN THE PLAYER LOOKS DIFFERENT
+  • Screenshots (Store listing → Graphic assets): all five, from
+    node dev/store-screenshots.mjs. Delete the old ones first — the store
+    keeps what you do not replace, and a stale shot beside a fresh one is
+    worse than either.
+  • Detailed description, if a section of it has stopped being true.
+
+ONLY WHEN THE MANIFEST CHANGES
+  • Short description — it is read from the manifest's description field, so
+    it changes only when that string does.
+  • Permission justifications and the single-purpose text — only if
+    permissions, host permissions or the single purpose changed. Adding a
+    permission puts the submission into a longer review; changing neither
+    keeps it in the ordinary queue.
+  • Data usage checkboxes and certifications — only if what the extension
+    receives from the user changes.
+
+RARELY
+  • Category, language, homepage, support URL, privacy policy URL, test
+    instructions: leave them unless the thing they describe has moved.
+
+FOR 1.1.0 SPECIFICALLY
+  Diffing the manifests, only "version" changed: no permission, no CSP and no
+  description difference between 1.0.9 and 1.1.0. So: upload the package,
+  replace all five screenshots, paste the detailed description below. Nothing
+  else on the form needs touching, and the review has no new permission to
+  weigh.
 
 
 --- SHORT DESCRIPTION (field "Description", max 132 characters) ------------
@@ -60,9 +99,11 @@ SUBTITLES
 
 Subtitle tracks are picked up during the unpacking and drawn over the picture
 by the player, in full-screen mode too. Below the picture there is a language
-selector in alphabetical order; the settings offer five looks - shadow, outline,
-yellow, box and high contrast - with a preview, and the size in pixels from a
-slider. The chosen language is remembered and carries over to the next episode.
+selector in alphabetical order, and beside it an Aa button that sets how the
+text looks against what is on screen rather than against a preview in a
+dialog. Five looks - shadow, outline, yellow, box and high contrast - and the
+size in pixels from a slider. The chosen language is remembered and carries
+over to the next episode.
 
 Text formats such as SRT show. Bitmap formats are images and cannot be shown.
 
@@ -78,6 +119,10 @@ opens within a second or two.
 Everything loaded once stays in a local cache, so the next open is instant. The
 cache can be cleared from the settings.
 
+Nothing waits behind a dialog while it arrives. A fetch reports itself in a
+strip above the rows it is filling, with what it is loading and a way to stop
+it, and what is playing carries on while it runs.
+
 
 CATEGORIES IN A SENSIBLE SHAPE
 
@@ -91,13 +136,20 @@ before Rocky 10. The sidebar filter matches the second level too: with the word
 "sport" you find the places that have a sports category even when their name
 lacks the word.
 
+Searching folds the marks off a name and takes the words in whatever order they
+were typed, because a catalogue written in a dozen languages is read on a
+single keyboard: elain finds Elainkanava spelled with its umlaut, and a title found
+with its words the wrong way round still ranks below a title that reads as typed.
+
 
 PROGRAMME GUIDE AND ARCHIVE
 
-The guide turns the whole window into a grid: channels as rows, time on the
-horizontal axis and a moving now line. The video continues in the corner. The
-timeline runs from two days back to five days forward, and where the provider
-keeps an archive, a past programme can be started straight from the guide.
+The guide gives the grid the height of the window: channels as rows, time on
+the horizontal axis and a moving now line, with what is selected and the
+video itself in a column beside it rather than in a band across the top. On a
+1024-by-700 window that is nine rows where a band left four. The timeline runs
+from two days back to five days forward, and where the provider keeps an
+archive, a past programme can be started straight from the guide.
 
 
 FEATURES
@@ -113,10 +165,14 @@ FEATURES
 • Resume positions remembered for everything on demand
 • Favourites and viewing history as tabs of their own, and a favourite can be
   a whole section
-• Automatic reconnection when a live stream drops
-• Technical details over the picture, and account validity in view
-• Keyboard control throughout
-• The interface in English and Finnish
+• Automatic reconnection when a live stream drops, and where the account
+  itself is the reason a stream will not come - the subscription run out, or
+  every connection it allows already in use - the message says so
+• Technical details over the video, and the subscription's own details
+  under Account & data
+• Every key listed under Help, or behind the ? key
+• The interface in English and Finnish, opening in whichever the browser asks
+  for
 
 
 LIVE AND ON DEMAND
@@ -129,6 +185,17 @@ On-demand files in the common containers open, MKV included. Left out are the
 AVI container and a couple of video codecs with no decoder on board. Those
 files are marked before you click, and their address goes to a desktop player
 or to the clipboard with a single button.
+
+
+WITHIN REACH
+
+The keyboard reaches everything: a single tab stop for each of the three
+places that hold a cursor of their own, the arrows inside them, and a key for
+whatever the mouse can do. Text sizes follow the setting in your browser rather
+than ignoring it, and the rows grow with them. A system asking for more
+contrast is answered. Below 760 pixels of width the sidebar becomes a menu at
+the top of the list, which is what a window on half a screen - or a screen at
+200 per cent - actually has.
 
 
 PRIVACY AND PERMISSIONS
@@ -153,7 +220,9 @@ options in the Productivity group (Workflow & Planning, Tools, Developer
 Tools) do not fit.
 
 Language:
-English — Finnish is available in the settings, but English is the default.
+English. The listing is written in it, and the player uses it for anyone whose
+browser language it does not speak; a Finnish browser opens in Finnish, and
+either can be chosen in the settings.
 
 Single purpose, permissions, remote code and data usage:
 In a section of their own at the end of this file — the fields in copyable
@@ -190,7 +259,12 @@ Screenshots:           brand/screenshots/01-channels.png … 05-movie.png
     04  an MKV episode with English subtitles on screen
     05  a movie with its details below the player
   All content on them is invented: they come from the mock server in
-  dev/mock/, via node dev/store-screenshots.mjs (see the README).
+  dev/mock/, via node dev/store-screenshots.mjs (see the README). The same
+  walk makes the Firefox Add-ons set in brand/firefox-screenshots/ with
+  KEPULI_BROWSER=firefox; that set is for AMO, not for this store.
+
+  Retake them for any release that changes what the player looks like. The
+  1.0.9 set showed a layout that release had already left behind.
 
 
 --- TEST INSTRUCTIONS (Privacy practices → Test instructions) --------------
