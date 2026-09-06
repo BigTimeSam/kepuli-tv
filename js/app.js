@@ -11,10 +11,11 @@ import { MediaFilters } from './mediafilters.js';
 import { titleFacts, externalLinks, playbackFacts } from './titleinfo.js';
 import { EpgGrid, catchupAvailable } from './epggrid.js';
 import { ChannelEditor } from './channeleditor.js';
-import { channelPreferences, visibilityFilter, ordered } from './channelprefs.js';
+import { channelPreferences, visibilityFilter, ordered, sortChannels } from './channelprefs.js';
 import { ProgrammeSearch } from './programmesearch.js';
 import { cacheClear, wipeStorage, storageEstimate } from './db.js';
 import { parsePlaylistUrl, streamUrl, timeshiftUrl, baseUrl, parseServer } from './xtream.js';
+import { formatRoute, parseRoute } from './route.js';
 import { api } from './browser.js';
 import { requestAccess, hasAccess } from './permissions.js';
 import { externalLabel, handOff } from './external.js';
@@ -33,18 +34,19 @@ const el = {
   tabs: $('tabs'), search: $('search'), groups: $('groups'), groupsCol: $('groups-col'),
   categoryFilter: $('category-filter'), groupsFilter: $('groups-filter'),
   list: $('list'), crumbs: $('crumbs'), detail: $('detail'),
-  listinfo: $('listinfo'), main: $('main'), accountMeta: $('account-meta'), accountExpiry: $('account-expiry'),
+  listinfo: $('listinfo'), main: $('main'),
   subcats: $('subcats'), subcatsGrip: $('subcats-grip'),
   video: $('video'), videowrap: $('videowrap'), subdisplay: $('subdisplay'),
   overlay: $('overlay'), overlayTitle: $('overlay-title'),
   overlayText: $('overlay-text'), overlayActions: $('overlay-actions'), statbadge: $('statbadge'),
   infostrip: $('infostrip'), nowTitle: $('now-title'), nowSub: $('now-sub'), mode: $('mode'),
   subs: $('subs'), audio: $('audio'), cast: $('btn-cast'),
-  setup: $('setup'), setupTabs: $('setup-tabs'), setupNote: $('setup-note'),
+  setup: $('setup'), setupTabs: $('setup-tabs'), setupNote: $('setup-note'), setupNoteText: $('setup-note-text'),
   sublook: $('btn-sublook'), sublookPop: $('sublook-pop'),
+  more: $('btn-more'), morePop: $('more-pop'),
   progress: $('progress'),
   epg: $('epg'), epgPreview: $('epg-preview'),
-  pTitle: $('p-title'), pFill: $('p-fill'), pText: $('p-text'), pPercent: $('p-percent'), toast: $('toast'),
+  pTitle: $('p-title'), pFill: $('p-fill'), pText: $('p-text'), pPercent: $('p-percent'), toast: $('toast'), toastText: $('toast-text'),
 };
 
 const TYPE_OF_TAB = { live: 'live', movie: 'movie', series: 'series' };
@@ -108,6 +110,12 @@ const state = {
 
 const isCollection = () => COLLECTIONS.has(state.tab);
 
+// The topic the last session ended on, waiting for the library. It belongs
+// to the restore that follows the load, not to every tab switch after it,
+// so it is taken once and gone.
+let storedSub = null;
+const takeStoredSub = () => { const id = storedSub; storedSub = null; return id; };
+
 /* ============================================================ connection */
 
 async function connect({ silent = false } = {}) {
@@ -135,10 +143,10 @@ async function connect({ silent = false } = {}) {
     await state.lib.loadCategories({ signal: progressSignal() });
     hideProgress();
 
-    renderAccount();
     renderNowSub();
     renderSidebar();
     await activateTab(state.tab, { restore: true });
+    await restoreDetail();
     return true;
   } catch (err) {
     hideProgress();
@@ -161,7 +169,7 @@ function showListError(err, retry) {
   const message = err instanceof ApiError ? err.message : t('error.unexpected', { message: err.message });
   state.listError = message;
   console.error('[iptv] the list could not be loaded', err);
-  if (state.rows.length) { toast(message, { long: true }); return; }
+  if (state.rows.length) { toast(message, { long: true, kind: 'error' }); return; }
   const existing = el.list.querySelector('.empty');
   if (existing) existing.remove();
   el.list.appendChild(emptyState(t('error.list'), message, retry ? { label: t('player.retry'), onClick: retry } : null));
@@ -240,30 +248,199 @@ function grantAction(url, onGranted) {
     // gesture is spent and Chrome shows no permission dialog at all.
     onClick: async () => {
       if (await requestAccess(url)) await onGranted();
-      else toast(t('error.grant.denied'));
+      else toast(t('error.grant.denied'), { kind: 'error' });
     },
   };
-}
-
-/**
- * The top bar has room for one fact about the account, and the only one
- * that ever calls for action is the expiry date. The connection count and
- * the rest of the details live in the settings dialog.
- */
-function renderAccount() {
-  const a = state.account;
-  if (!a?.expiresAt) { el.accountMeta.hidden = true; el.accountExpiry.textContent = ''; return; }
-  const date = dateFmt.format(new Date(a.expiresAt));
-  const days = Math.round((a.expiresAt - Date.now()) / 86400e3);
-  el.accountExpiry.textContent = date;
-  el.accountMeta.title = days < 14 ? t('account.expiring', { date, days }) : t('account.valid', { date });
-  el.accountMeta.classList.toggle('warn', a.status !== 'Active' || days < 14);
-  el.accountMeta.hidden = false;
 }
 
 /* ================================================================= views */
 
 function tabType() { return TYPE_OF_TAB[state.tab] || null; }
+
+/**
+ * The view worth coming back to: the tab, the group and topic within it,
+ * and a collection's type filter. It is written once the list has settled,
+ * so that a reload — or the toolbar icon after the tab was closed — opens
+ * where the viewer left off rather than at the first group of the first tab.
+ *
+ * A search is a detour rather than a place. While one is running the stored
+ * view stays the group the search took over from, which is where clearing
+ * the search returns anyway.
+ */
+let remembered = '';
+function rememberView() {
+  if (state.query) return;
+  const view = { tab: state.tab, group: state.group, sub: state.sub, kind: state.kind };
+  const key = JSON.stringify(view);
+  if (key === remembered) return;
+  remembered = key;
+  store.saveUiState(view);
+}
+
+/* ---------------------------------------------------------- the address */
+
+/**
+ * The place the address bar names: the tab, the group and the topic within
+ * it, a collection's type filter, and whatever has been drilled into. It is
+ * written beside the stored view, and the two answer different questions —
+ * the address is what a reload of this tab comes back to, the stored view
+ * what the toolbar icon opens once the tab itself is gone.
+ *
+ * A collection has no groups, so its address carries no group segment:
+ * #/fav and #/fav/- are not the same place.
+ */
+function currentRoute() {
+  const view = { tab: state.tab };
+  // A search is a detour rather than a place. It empties the group while it
+  // runs, so the address stays on the group it took over from — which is
+  // where clearing the search returns, and where a reload should therefore
+  // arrive rather than on the whole list the search was reading.
+  const searching = state.query && state.searchReturn?.tab === state.tab ? state.searchReturn : null;
+  if (!isCollection()) {
+    view.group = searching ? searching.group : state.group;
+    const sub = searching ? searching.sub : state.sub;
+    if (sub != null) view.sub = sub;
+  }
+  if (state.kind != null) view.kind = state.kind;
+  // A series opened from a favourite category is inside it, and both
+  // belong to the address: the back button returns to the category.
+  for (let detail = state.detail; detail; detail = detail.back) {
+    if (detail.view === 'series') view.series = detail.item.id;
+    else if (detail.view === 'category') view.cat = detail.entry.id;
+  }
+  return view;
+}
+
+/** A topic by the name on its chip: "Sport", or "General" for a group's own. */
+function topicLabel(id) {
+  const type = tabType();
+  const group = type && state.group ? state.lib?.group(type, state.group) : null;
+  const cat = group?.cats.find((c) => c.id === id);
+  return cat ? cat.sub || t('subcats.general') : null;
+}
+
+/**
+ * "Channels › Finland › Sport" — the path the sidebar was clicked down,
+ * in the language of the interface. The search is in it although it is not
+ * in the address: while one is running it is where we are, and the title
+ * says so without the reload promising to bring it back.
+ */
+function pathLabels() {
+  const labels = [t(`tab.${state.tab}`)];
+  if (state.kind != null) labels.push(kindLabel(state.kind));
+  if (state.group) labels.push(state.group);
+  if (state.sub != null) labels.push(topicLabel(state.sub));
+  const chain = [];
+  for (let detail = state.detail; detail; detail = detail.back) chain.unshift(detail);
+  for (const detail of chain) {
+    labels.push(detail.view === 'category' ? crumbLabel(detail.entry)
+      : detail.cleanName ? detail.cleanName(detail.item.n) : detail.item.displayName || detail.item.n);
+  }
+  if (state.query) labels.push(t('title.search', { query: state.query }));
+  return labels.filter(Boolean);
+}
+
+/**
+ * The address bar and the tab's title, from the one place. The title is the
+ * readable half of the address: what is playing comes first, because a tab
+ * shows only its first characters and a stream that is running is the
+ * answer to "which tab is that", and the path follows it.
+ *
+ * replaceState rather than a new history entry: the player's own back is
+ * the breadcrumb, and a browser history one item deep per topic chip would
+ * make the browser's back button useless for leaving the player.
+ */
+let address = '';
+function updateAddress() {
+  if (state.lib) {
+    const hash = formatRoute(currentRoute());
+    address = hash;
+    if (hash !== location.hash) history.replaceState(null, '', hash);
+  }
+  const name = state.playing ? el.nowTitle.textContent : '';
+  const path = pathLabels().join(' › ');
+  const title = name ? t('title.playing', { name, path })
+    : state.lib ? t('title.path', { path })
+    : t('title.plain');
+  if (document.title !== title) document.title = title;
+}
+
+/**
+ * An address that arrived from outside — typed into the bar, opened from a
+ * link, or reached with the back button after a reload. Our own writes go
+ * through replaceState, which raises no event, so nothing here is an echo
+ * of them.
+ */
+function onAddressChanged() {
+  if (!state.lib || location.hash === address) return;
+  const route = parseRoute(location.hash);
+  // An address the player cannot read is not a place to go to; the view
+  // stays where it is and writes its own address back over it.
+  if (!route) { updateAddress(); return; }
+  goToRoute(route);
+}
+
+async function goToRoute(route) {
+  if (guideOpen) closeGuide();
+  el.search.value = '';
+  state.query = '';
+  state.searchReturn = null;
+  if (route.group === undefined) delete state.lastGroup[route.tab];
+  else state.lastGroup[route.tab] = route.group;
+  if (route.kind === undefined) delete state.lastKind[route.tab];
+  else state.lastKind[route.tab] = route.kind;
+  storedSub = route.sub ?? null;
+  routeDetail = route.series || route.cat ? { series: route.series ?? null, cat: route.cat ?? null } : null;
+  await activateTab(route.tab, { restore: true });
+  await restoreDetail();
+}
+
+// The drill-down an address carried, waiting for the list it belongs to.
+// Like the topic above, it belongs to the one restore that follows the
+// load rather than to every tab switch after it.
+let routeDetail = null;
+const takeRouteDetail = () => { const detail = routeDetail; routeDetail = null; return detail; };
+
+/**
+ * The drill-down, once the list underneath it is on screen: the favourite
+ * category first, so that a series opened from one returns to the category
+ * rather than to the collection's root. What is no longer there is dropped
+ * the same way a missing group is — the list underneath it is a place of
+ * its own, and the address is rewritten from where we actually arrive.
+ */
+async function restoreDetail() {
+  const pending = takeRouteDetail();
+  if (!pending) return;
+  if (pending.cat) {
+    const entry = state.favorites.get(`c:${pending.cat}`);
+    if (entry) await openFavCategory(entry);
+  }
+  if (pending.series) {
+    const item = findLoaded(2, pending.series);
+    if (item) await openSeries(item);
+  }
+  updateAddress();
+}
+
+/** An item of a type and id, from whatever the restore has in memory. */
+function findLoaded(kind, id) {
+  const same = (it) => it.k === kind && String(it.id) === String(id);
+  const type = tabType();
+  const full = (type && state.lib.full[type]) || [];
+  return state.rows.find(same) || state.groupItems.find(same) || full.find(same)
+    || [...state.favorites.values()].find(same) || state.recents.find(same) || null;
+}
+
+/**
+ * Whether a group still offers a topic. A stored one may be gone: the
+ * provider's categories change, the channel editor hides them, and the
+ * stored view is not tied to an account.
+ */
+function groupHasTopic(type, groupName, id) {
+  if (!type || !groupName) return false;
+  if (type === 'live' && state.channelPrefs.hiddenCategories.includes(id)) return false;
+  return Boolean(state.lib?.group(type, groupName)?.cats.some((cat) => cat.id === id));
+}
 
 async function activateTab(tab, { restore = false } = {}) {
   state.tab = tab;
@@ -274,21 +451,31 @@ async function activateTab(tab, { restore = false } = {}) {
   }
   state.detail = null;
   state.cursor = -1;
-  state.sub = null;
-  state.group = restore ? (state.lastGroup[tab] ?? null) : null;
+  state.sub = restore ? takeStoredSub() : null;
+  // No group is two different answers: "All", which the viewer chose and
+  // which costs the whole list, and "none yet", which is where a first
+  // open stands. The map tells them apart — a tab it has never heard of
+  // has never been chosen for.
+  let chosen = restore && Object.hasOwn(state.lastGroup, tab);
+  state.group = chosen ? state.lastGroup[tab] : null;
   state.kind = restore ? (state.lastKind[tab] ?? null) : null;
 
   const type = tabType();
 
-  if (type === 'live' && state.group && !visibleGroups(type).some((g) => g.name === state.group)) state.group = null;
+  // A group named by an earlier session may be gone by now, and the check
+  // is worth making for every type, not only for the channels the editor
+  // can hide: an unknown name would leave the list empty with the sidebar
+  // pointing at nothing. What is gone was not chosen, so the first group
+  // takes over rather than the whole list.
+  if (type && state.group && !visibleGroups(type).some((g) => g.name === state.group)) { state.group = null; chosen = false; }
   // First open: pick a group, so the list fills from a few kilobytes rather
   // than by loading the type's whole list straight away.
-  if (type && state.group == null && !state.lib.isFull(type)) {
+  if (type && state.group == null && !chosen && !state.lib.isFull(type)) {
     const groups = visibleGroups(type);
     if (groups.length) state.group = groups[0].name;
   }
+  if (state.sub != null && !groupHasTopic(type, state.group, state.sub)) state.sub = null;
 
-  store.saveUiState({ tab });
   renderSidebar();
   // The rows on screen belong to the tab that was open, and refreshRows
   // waits for the network before it can replace them. Left there they sit
@@ -351,12 +538,19 @@ async function refreshRows({ keepScroll = false } = {}) {
   // Episode order comes from season/episode numbers, even when names are tidied.
   if (state.cleanName && !state.query && state.detail?.view !== 'series') rows = sortItems(rows, item => state.cleanName(item.n, item));
   rows = visibleRows(rows);
+  // The setting says where the list starts; the personal arrangement, made
+  // in Organize channels, has the last word over it.
   if ((type === 'live' || state.detail?.entry?.t === 'live') && !state.query) {
-    rows = ordered(rows, state.channelPrefs.channelOrder);
+    rows = ordered(sortChannels(rows, state.settings.channelSort), state.channelPrefs.channelOrder);
   }
   const filterType = !isCollection() && !state.detail && (type === 'movie' || type === 'series') ? type : null;
   rows = mediaFilters.apply(rows, filterType);
   showRows(rows, { keepScroll });
+  // The view is stored where it has arrived, not where it was heading: a
+  // group whose list failed or was cancelled is restored below and stored
+  // from there instead.
+  rememberView();
+  updateAddress();
 }
 
 const mediaFilters = new MediaFilters($('media-filters'), () => {
@@ -481,11 +675,12 @@ function categoryCountsFor(rows) {
  * so that returning to the favourites is one tap rather than a tab change.
  */
 async function openFavCategory(entry) {
-  if (!state.lib) { toast(t('error.noserver')); return; }
+  if (!state.lib) { toast(t('error.noserver'), { kind: 'warn' }); return; }
   const back = state.detail;
   state.detail = { view: 'category', entry, items: [], back, loading: true };
   state.cursor = -1;
   renderDetail();
+  updateAddress();
   beginListLoad();
   const open = state.detail;
   try {
@@ -833,12 +1028,14 @@ function renderListInfo() {
 
   el.listinfo.replaceChildren(document.createTextNode(parts.join(' · ')));
   if (state.tab === 'live' && state.lib) {
+    const spacer = document.createElement('span');
+    spacer.className = 'spacer';
     const button = document.createElement('button');
     button.type = 'button';
     button.id = 'btn-organize';
     button.textContent = t('organize.title');
     button.addEventListener('click', openChannelEditor);
-    el.listinfo.append(button);
+    el.listinfo.append(spacer, button);
   }
   if (state.tab === 'recent' && state.recents.length) {
     const spacer = document.createElement('span');
@@ -988,7 +1185,8 @@ async function selectGroup(name) {
     state.lastGroup[state.tab] = before.group;
     renderSidebar();
     showRows(before.rows);
-    if (state.listError) toast(state.listError, { long: true });
+    rememberView();
+    if (state.listError) toast(state.listError, { long: true, kind: 'error' });
   }
 }
 
@@ -1031,7 +1229,8 @@ const channelEditor = new ChannelEditor(async (prefs) => {
 
 async function openChannelEditor() {
   if (!state.lib || !await ensureFull('live', t('organize.loading'))) return;
-  channelEditor.show(state.lib.full.live, state.lib.groups.live, state.channelPrefs, state.group);
+  channelEditor.show(state.lib.full.live, state.lib.groups.live, state.channelPrefs,
+    { group: state.group, sort: state.settings.channelSort });
 }
 
 /**
@@ -1187,7 +1386,7 @@ function toggleFavorite(item) {
   store.saveFavorites(state.favorites);
   if (state.tab === 'fav') { renderSidebar(); refreshRows({ keepScroll: true }); }
   else vlist.refresh();
-  renderFavButton();
+  renderSeriesFavorite();
 }
 
 /** Only the fields the list needs for painting are kept. */
@@ -1218,6 +1417,7 @@ async function openSeries(item) {
   state.detail = { view: 'series', item, info: null, season: null, back, cleanName, loading: true };
   const open = state.detail;
   renderDetail();
+  updateAddress();
   beginListLoad();
   try {
     const info = await state.lib.seriesEpisodes(item.id);
@@ -1350,6 +1550,7 @@ function closeDetail() {
   state.detail = (state.detail && state.detail.back) || null;
   state.cursor = -1;
   renderDetail();
+  updateAddress();
   refreshRows();
 }
 
@@ -1363,7 +1564,7 @@ function onPlaybackState(s) {
     el.overlay.hidden = true;
     el.overlay.classList.remove('loading');
     showOverlayActions(null);
-    renderNowSub(s.engine);
+    renderNowSub();
     // Only the unpacking route reports its subtitles; on the others there
     // are none the player could show, and the details say so.
     if (!state.subtitleInfo && playback.engineKey !== 'remux') {
@@ -1376,7 +1577,7 @@ function onPlaybackState(s) {
     el.overlay.hidden = false;
     el.overlay.classList.add('loading');
     el.overlayTitle.textContent = t('progress.connecting');
-    el.overlayText.textContent = `${state.playing ? state.playing.displayName || state.playing.n : ''} · ${s.engine}`;
+    el.overlayText.textContent = state.playing ? state.playing.displayName || state.playing.n : '';
     showOverlayActions(null);
   } else if (s.status === 'reconnecting') {
     el.overlay.hidden = false;
@@ -1386,7 +1587,7 @@ function onPlaybackState(s) {
   } else if (s.status === 'notice') {
     // Playback continues, but the viewer had better know why it will end
     // early.
-    toast(s.message);
+    toast(s.message, { kind: 'warn' });
   } else if (s.status === 'subtitles') {
     // The same list comes with every change of track; the details are
     // repainted for a new list only.
@@ -1467,7 +1668,7 @@ async function playItem(item, { startAt, allowSilent } = {}) {
   item = { ...item, displayName };
   const live = item.k === 0;
   const url = streamUrl(state.config, item, 'ts');
-  if (!url) { toast(t('player.nourl')); return; }
+  if (!url) { toast(t('player.nourl'), { kind: 'error' }); return; }
   const key = `${item.k}:${item.id}`;
   const saved = state.resume.get(key);
   const spec = {
@@ -1497,8 +1698,7 @@ async function playItem(item, { startAt, allowSilent } = {}) {
   el.nowTitle.textContent = displayName;
   el.nowTitle.title = item.n;
   renderNowSub();
-  renderFavButton();
-  document.title = t('player.title', { name: displayName });
+  updateAddress();
   if (guideOpen) grid.setPlaying(live ? item.id : null);
 
   playback.play(spec);
@@ -1511,7 +1711,11 @@ async function playItem(item, { startAt, allowSilent } = {}) {
   if (state.tab === 'recent') { renderSidebar(); refreshRows({ keepScroll: true }); }
 }
 
-function renderNowSub(engine) {
+// The line under the title says where the thing being played sits — the
+// category, the episode, whether it comes from the archive. Which engine
+// carries it does not belong here: "mpegts.js" names a library, and no
+// choice the viewer has to make depends on knowing it.
+function renderNowSub() {
   const item = state.playing;
   if (!item) { el.nowSub.textContent = t('player.idle'); return; }
   const bits = [];
@@ -1519,7 +1723,6 @@ function renderNowSub(engine) {
   if (state.catchup) bits.push(t('player.catchup', { time: clock(state.catchup.start) }));
   if (item.cats && item.cats.length && state.lib && type) bits.push(state.lib.categoryName(type, item.cats[0]));
   if (item.k === 3) bits.push(`S${item.season} E${item.episode}`);
-  if (engine || playback.engineName) bits.push(engine || playback.engineName);
   if (cast.connected) bits.push(t('cast.playing'));
   el.nowSub.textContent = bits.filter(Boolean).join(' · ') || '—';
 }
@@ -1674,6 +1877,7 @@ async function chooseSubtitleLook(form) {
  */
 function toggleSubtitleLook(open) {
   const show = open ?? el.sublookPop.hidden;
+  if (show) toggleMoreMenu(false);
   el.sublookPop.hidden = !show;
   el.sublook.setAttribute('aria-expanded', String(show));
   // The subtitles rise out of its way, as they do for the browser's own
@@ -1681,6 +1885,35 @@ function toggleSubtitleLook(open) {
   // no use at all.
   el.videowrap.classList.toggle('looking', show);
   if (show) $('p-substyle').focus();
+}
+
+/* ----------------------------------------------------------- player menu */
+
+/** The items on offer: Cast is not among them without the API behind it. */
+const moreItems = () => [...el.morePop.querySelectorAll('.popitem')].filter((item) => !item.hidden);
+
+/**
+ * The player's menu, opened from the hamburger at the end of the row.
+ *
+ * Picture in picture, casting, the stream address and the hand-off to an
+ * external player are wanted now and then rather than during every
+ * programme, and as buttons they cost the row four places and say what they
+ * do in two letters and an arrow. In the menu there is room for the whole
+ * sentence.
+ *
+ * It closes the way the Aa popover does — the button again, a click
+ * outside, Esc — and the two close each other: one panel over the picture
+ * at a time. focusButton returns the focus to the hamburger, which is where
+ * a keyboard left it; a mouse click is let go of, as every other click in
+ * the player is, or Space would reopen the menu instead of pausing.
+ */
+function toggleMoreMenu(open, { focusButton = false } = {}) {
+  const show = open ?? el.morePop.hidden;
+  if (show) toggleSubtitleLook(false);
+  el.morePop.hidden = !show;
+  el.more.setAttribute('aria-expanded', String(show));
+  if (show) moreItems()[0]?.focus();
+  else if (focusButton) el.more.focus();
 }
 
 /* ----------------------------------------------------------- full screen */
@@ -1742,16 +1975,6 @@ function renderSeriesFavorite() {
   button.setAttribute('aria-label', button.title);
 }
 
-function renderFavButton() {
-  renderSeriesFavorite();
-  const button = $('btn-fav');
-  const item = state.playing;
-  const on = item && state.favorites.has(`${item.k}:${item.id}`);
-  button.textContent = on ? '★' : '☆';
-  button.classList.toggle('on', !!on);
-  button.disabled = !item;
-}
-
 /* ---------------------------------------------------------- info panel */
 
 function renderInfoStrip() {
@@ -1800,9 +2023,21 @@ function renderInfoStrip() {
       }
     }
     if (entry.next) {
+      // Three parts rather than one sentence: the label says which
+      // programme this is, and the time and the title then sit in the same
+      // two columns as the one on now, so the eye reads them the same way.
       const next = document.createElement('div');
       next.className = 'epgnext';
-      next.textContent = t('info.next', { time: clock(entry.next.start), title: entry.next.title });
+      const label = document.createElement('span');
+      label.className = 'epgnext-label';
+      label.textContent = t('info.next');
+      const when = document.createElement('span');
+      when.className = 'epgnext-time';
+      when.textContent = `${clock(entry.next.start)}–${clock(entry.next.stop)}`;
+      const what = document.createElement('span');
+      what.className = 'epgnext-title';
+      what.textContent = entry.next.title;
+      next.append(label, when, what);
       frag.appendChild(next);
     }
     el.infostrip.replaceChildren(frag);
@@ -1861,7 +2096,7 @@ function renderInfoStrip() {
 function subtitleDetails(item, probed) {
   const known = state.playing === item ? state.subtitleInfo : null;
   if (known) {
-    const languages = [...new Set(known.tracks.map((track) => shortLanguage(track.language)))].filter((l) => l !== 'und');
+    const languages = [...new Set(known.tracks.map((track) => shortLanguage(track.language)))];
     return { total: known.tracks.length + known.bitmap, shown: known.tracks.length, languages };
   }
   if (!probed || probed.error) return null;
@@ -1929,13 +2164,13 @@ async function toggleGuide() {
 
 async function openGuide() {
   if (guideOpen) return;
-  if (!state.lib || !state.epg) { toast(t('guide.needserver')); return; }
-  if (!state.epg.enabled) { toast(t('guide.epgoff')); return; }
+  if (!state.lib || !state.epg) { toast(t('guide.needserver'), { kind: 'warn' }); return; }
+  if (!state.epg.enabled) { toast(t('guide.epgoff'), { kind: 'warn' }); return; }
   // The guide shows channel rows, so it needs the channel tab's contents.
   if (state.tab !== 'live' || state.detail) await activateTab('live', { restore: true });
 
   const channels = state.rows.filter((it) => it.k === 0);
-  if (!channels.length) { toast(t('guide.needgroup')); return; }
+  if (!channels.length) { toast(t('guide.needgroup'), { kind: 'warn' }); return; }
 
   guideOpen = true;
   el.main.classList.add('guide');
@@ -2043,7 +2278,7 @@ function activateProgramme(channel, programme) {
   const now = Date.now();
   if (programme && programme.stop <= now) {
     if (catchupAvailable(channel, programme, now)) playCatchup(channel, programme);
-    else toast(t('guide.norecording'));
+    else toast(t('guide.norecording'), { kind: 'warn' });
     return;
   }
   if (programme && programme.start > now) {
@@ -2065,7 +2300,7 @@ function relativeSoon(start, now) {
 }
 
 function playCatchup(item, programme) {
-  if (!catchupAvailable(item, programme)) { toast(t('guide.norecording')); return; }
+  if (!catchupAvailable(item, programme)) { toast(t('guide.norecording'), { kind: 'warn' }); return; }
   const minutes = Math.max(1, Math.ceil((programme.stop - programme.start) / 60000));
   const url = timeshiftUrl(state.config, item.id, programme.start, minutes, state.account.serverUtcOffsetMs || 0);
   state.playing = item;
@@ -2078,14 +2313,13 @@ function playCatchup(item, programme) {
   $('btn-live').hidden = false;
   el.nowTitle.textContent = `${item.n} — ${programme.title}`;
   el.nowTitle.title = item.n;
-  document.title = t('player.title', { name: el.nowTitle.textContent });
+  updateAddress();
   renderNowSub();
-  renderFavButton();
   renderInfoStrip();
   vlist.refresh();
   if (guideOpen) grid.setPlaying(item.id);
   playback.play(state.playingSpec);
-  if (programme.stop > Date.now()) toast(t('guide.startover.note'), { long: true });
+  if (programme.stop > Date.now()) toast(t('guide.startover.note'), { long: true, kind: 'warn' });
 }
 
 function retryPlayback() {
@@ -2113,8 +2347,16 @@ el.video.addEventListener('timeupdate', () => {
   store.saveResume(state.resume);
 });
 
-setInterval(() => {
-  const stats = playback.stats();
+/**
+ * The read-out in the corner of the picture: how large the picture is, how
+ * fast it is arriving, and which engine carries it. Diagnostics — it
+ * answers no question about what to watch, and the resolution is in the
+ * playback details below in any case — so it is shown only when the
+ * settings ask for it, and then it earns the engine's name too: that is
+ * the one thing it says that is nowhere else.
+ */
+function renderStatBadge() {
+  const stats = state.settings?.statsEnabled ? playback.stats() : null;
   if (!stats) { el.statbadge.hidden = true; return; }
   el.statbadge.hidden = false;
   el.statbadge.textContent = [
@@ -2122,7 +2364,11 @@ setInterval(() => {
     stats.kbps ? `${nf.format(stats.kbps)} kbit/s` : null,
     stats.engine,
   ].filter(Boolean).join(' · ');
-}, 2000);
+}
+
+// The bit rate is measured, not reported, so it is read again rather than
+// waited for.
+setInterval(renderStatBadge, 2000);
 
 // The EPG bar lives in time, so it is repainted even when no data arrives.
 setInterval(() => {
@@ -2204,12 +2450,12 @@ const configured = () => Boolean(state.config.host && state.config.username && s
 function openSetup({ section } = {}) {
   for (const f of FIELDS) $(`f-${f}`).value = state.config[f] ?? '';
   $('f-paste').value = '';
-  $('playlist-feedback').hidden = true;
-  $('f-show-fields').hidden = true;
-  $('f-paste').removeAttribute('aria-invalid');
+  showPlaylistError(false);
   $('f-lang').value = state.settings.lang;
+  $('f-channelsort').value = state.settings.channelSort;
   $('f-epg').checked = state.settings.epgEnabled;
   $('f-resume').checked = state.settings.resumeEnabled;
+  $('f-stats').checked = state.settings.statsEnabled;
   setupInitial = { ...state.settings, subtitleStyle: subtitleLook(state.settings).style, subtitleSize: subtitleLook(state.settings).size };
   applySubtitleLook(state.settings);
   previewSetupLook();
@@ -2235,8 +2481,10 @@ let setupSaving = false;
 function readSetupSettings() {
   return {
     lang: $('f-lang').value,
+    channelSort: $('f-channelsort').value,
     epgEnabled: $('f-epg').checked,
     resumeEnabled: $('f-resume').checked,
+    statsEnabled: $('f-stats').checked,
     subtitleStyle: $('f-substyle').value,
     subtitleSize: Number($('f-subsize').value),
   };
@@ -2262,7 +2510,8 @@ function updateSetupActions() {
   const reconnect = FIELDS.some((key) => connection[key] !== state.config[key]);
   $('f-save').disabled = setupSaving || (!first && !dirty);
   $('f-save').textContent = t(setupSaving ? 'setup.saving' : first ? 'setup.connect' : 'setup.save');
-  el.setupNote.textContent = t(dirty ? (reconnect && !first ? 'setup.reconnect' : 'setup.pending') : 'setup.unchanged');
+  el.setupNoteText.textContent = t(dirty ? (reconnect && !first ? 'setup.reconnect' : 'setup.pending') : 'setup.unchanged');
+  el.setupNote.classList.toggle('pending', dirty);
   if (!dirty) $('setup-discard').hidden = true;
 }
 
@@ -2339,7 +2588,13 @@ function showSourceMode(mode) {
   }
   $('src-xtream').hidden = m3u;
   $('src-m3u').hidden = !m3u;
-  $('playlist-feedback').hidden = !m3u || !$('f-paste').value.trim();
+}
+
+/** The M3U field says only what is wrong; what is right, it shows. */
+function showPlaylistError(bad) {
+  $('playlist-status').textContent = bad ? t('setup.m3u.bad') : '';
+  $('playlist-status').hidden = !bad;
+  $('f-paste').setAttribute('aria-invalid', String(bad));
 }
 
 const sourceMode = () => (document.querySelector('input[name="source"]:checked') || {}).value || 'xtream';
@@ -2433,30 +2688,23 @@ function wireSetup() {
   }));
   $('p-subsize').addEventListener('change', () => chooseSubtitleLook('p'));
   el.sublook.addEventListener('click', () => toggleSubtitleLook());
-  // Outside the popover closes it, as it does the dialog. The button is
-  // excluded, or its own click would reopen what it just closed.
-  document.addEventListener('pointerdown', (e) => {
-    if (el.sublookPop.hidden) return;
-    if (el.sublookPop.contains(e.target) || el.sublook.contains(e.target)) return;
-    toggleSubtitleLook(false);
-  });
 
   for (const radio of document.querySelectorAll('input[name="source"]')) {
     radio.addEventListener('change', () => showSourceMode(radio.value));
   }
 
+  // Pasting an address is a way of filling the fields, not a mode of its
+  // own: the fields it filled are what the viewer wants to see, so the
+  // dialog goes there rather than reporting the fill and offering a button.
   $('f-paste').addEventListener('input', (e) => {
     const parsed = parsePlaylistUrl(e.target.value);
-    const status = $('playlist-status');
-    $('playlist-feedback').hidden = !e.target.value.trim();
-    $('f-show-fields').hidden = !parsed;
-    status.textContent = t(parsed ? 'setup.m3u.ok' : 'setup.m3u.bad');
-    status.classList.toggle('invalid', !parsed);
-    e.target.setAttribute('aria-invalid', String(!parsed && Boolean(e.target.value.trim())));
+    showPlaylistError(Boolean(e.target.value.trim()) && !parsed);
     if (!parsed) return;
     for (const f of FIELDS) if (parsed[f] != null) $(`f-${f}`).value = parsed[f];
-  });
-  $('f-show-fields').addEventListener('click', () => {
+    // An address that arrived whole has been said in full. One being typed
+    // parses at the first letter of its password already, and taking the
+    // field away then would swallow the rest of it.
+    if (e.inputType !== 'insertFromPaste' && e.inputType !== 'insertFromDrop') return;
     showSourceMode('xtream');
     updateSetupActions();
     $('f-host').focus();
@@ -2524,13 +2772,16 @@ function wireSetup() {
       el.setup.close();
       if (state.epg) state.epg.enabled = state.settings.epgEnabled;
       applySubtitleLook(state.settings);
+      renderStatBadge();
       if (settingsPatch.lang) await applyLanguage(state.settings.lang);
+      // A new starting order repaints the channel list where it stands; a
+      // changed connection is about to load it again anyway.
+      if (settingsPatch.channelSort && !changed) await refreshRows({ keepScroll: true });
       if (changed) {
         state.favorites = await store.loadFavorites();
         state.recents = await store.loadRecents();
         state.resume = await store.loadResume();
         state.channelPrefs = await store.loadChannelPreferences();
-        renderFavButton();
         await connect();
       } else {
         toast(t('setup.saved'));
@@ -2538,7 +2789,7 @@ function wireSetup() {
     } catch (err) {
       console.error('[iptv] settings save failed', err);
       if (!saved) setupError('setup.failed');
-      else toast(err.message);
+      else toast(err.message, { kind: 'error' });
     } finally {
       setupSaving = false;
       el.setup.querySelector('form').inert = false;
@@ -2580,7 +2831,7 @@ function wireSetup() {
     resetEverything().catch((err) => {
       button.disabled = false;
       console.error('[iptv] palautus epäonnistui', err);
-      toast(t('setup.reset.failed'));
+      toast(t('setup.reset.failed'), { kind: 'error' });
     });
   });
 
@@ -2589,8 +2840,18 @@ function wireSetup() {
 /* ============================================================== oddments */
 
 let toastTimer = null;
-function toast(text, { long = false } = {}) {
-  el.toast.textContent = text;
+/**
+ * The message strip at the bottom of the window. `kind` colours it: an error
+ * arrives in red, a warning in yellow, and everything else keeps the panel's
+ * own tone. Each kind brings its own icon, so the colour is never the only
+ * thing that separates a failure from a note.
+ */
+function toast(text, { long = false, kind = 'info' } = {}) {
+  el.toastText.textContent = text;
+  el.toast.classList.remove('info', 'warn', 'error');
+  el.toast.classList.add(kind);
+  // An error interrupts the reader; the rest can wait for a pause in speech.
+  el.toast.setAttribute('aria-live', kind === 'error' ? 'assertive' : 'polite');
   el.toast.hidden = false;
   clearTimeout(toastTimer);
   // An error deserves the time it takes to read it.
@@ -2614,7 +2875,7 @@ async function copyUrl() {
  * download requires a user gesture, which the first await would spend.
  */
 function playExternal() {
-  if (!state.playingSpec) { toast(t('ext.nothing')); return; }
+  if (!state.playingSpec) { toast(t('ext.nothing'), { kind: 'warn' }); return; }
 
   const name = state.playing ? state.playing.displayName || state.playing.n : 'Stream';
   const spec = state.playingSpec;
@@ -2652,7 +2913,7 @@ const cast = new Cast(el.video, renderCastState);
  */
 function castCurrent() {
   if (!castSupported) return;
-  if (!state.playingSpec) { toast(t('cast.nothing')); return; }
+  if (!state.playingSpec) { toast(t('cast.nothing'), { kind: 'warn' }); return; }
   // Already casting: the same dialog is where Chrome lets the viewer stop.
   if (cast.busy) { cast.prompt().catch(() => {}); return; }
   if (!playback.engineKey) { toast(t('cast.loading')); return; }
@@ -2660,7 +2921,7 @@ function castCurrent() {
   cast.prompt().catch((err) => {
     const name = err && err.name;
     if (name === 'NotAllowedError') return;                    // the picker was closed
-    if (name === 'NotFoundError') { toast(t('cast.nodevice')); return; }
+    if (name === 'NotFoundError') { toast(t('cast.nodevice'), { kind: 'warn' }); return; }
     // NotSupportedError: this source will not remote after all. The tab
     // route still does.
     showCastHint();
@@ -2680,10 +2941,15 @@ function showCastHint() {
   ]);
 }
 
-/** The button: hidden without the API, lit while the device plays. */
+/**
+ * The menu item: hidden without the API, lit while the device plays. The
+ * hamburger is lit with it — the item's own colour is behind a press, and
+ * casting is worth seeing without one.
+ */
 function renderCastState() {
   el.cast.hidden = !castSupported;
   el.cast.classList.toggle('on', cast.connected);
+  el.more.classList.toggle('on', cast.connected);
   // The engine line carries the device; before anything plays it says "Not
   // connected", and that text is not this function's to change.
   if (state.playing) renderNowSub();
@@ -2802,7 +3068,6 @@ function wireUi() {
   $('epg-in').addEventListener('click', () => { grid.zoomBy(1); focusGrid(); });
   $('epg-out').addEventListener('click', () => { grid.zoomBy(-1); focusGrid(); });
   $('epg-group').addEventListener('change', (e) => selectGroup(e.target.value || null));
-  $('btn-fav').addEventListener('click', () => state.playing && toggleFavorite(state.playing));
   $('btn-copy').addEventListener('click', copyUrl);
   $('btn-ext').addEventListener('click', playExternal);
   el.cast.addEventListener('click', castCurrent);
@@ -2810,7 +3075,34 @@ function wireUi() {
     try {
       if (document.pictureInPictureElement) await document.exitPictureInPicture();
       else await el.video.requestPictureInPicture();
-    } catch { toast(t('player.pip.unavailable')); }
+    } catch { toast(t('player.pip.unavailable'), { kind: 'error' }); }
+  });
+
+  el.more.addEventListener('click', () => toggleMoreMenu());
+  // The item's own handler has run by the time the click reaches the menu,
+  // and none of them awaits before it spends the gesture — the clipboard,
+  // the cast picker and the hand-off all need it.
+  el.morePop.addEventListener('click', (e) => {
+    if (e.target.closest('.popitem')) toggleMoreMenu(false, { focusButton: e.detail === 0 });
+  });
+  el.morePop.addEventListener('keydown', (e) => {
+    const items = moreItems();
+    const at = items.indexOf(document.activeElement);
+    const step = e.key === 'ArrowDown' ? 1 : e.key === 'ArrowUp' ? -1 : 0;
+    if (step) { e.preventDefault(); items[(at + step + items.length) % items.length]?.focus(); }
+    else if (e.key === 'Home') { e.preventDefault(); items[0]?.focus(); }
+    else if (e.key === 'End') { e.preventDefault(); items.at(-1)?.focus(); }
+  });
+  // Tab out of the menu closes it: a menu left open behind the focus would
+  // hang over the picture with no way back into it.
+  el.morePop.addEventListener('focusout', (e) => {
+    if (!el.morePop.contains(e.relatedTarget) && e.relatedTarget !== el.more) toggleMoreMenu(false);
+  });
+  // Outside either panel closes it, as it does the dialog. The button that
+  // opened it is excluded, or its own click would reopen what it closed.
+  document.addEventListener('pointerdown', (e) => {
+    if (!el.sublookPop.hidden && !el.sublookPop.contains(e.target) && !el.sublook.contains(e.target)) toggleSubtitleLook(false);
+    if (!el.morePop.hidden && !el.morePop.contains(e.target) && !el.more.contains(e.target)) toggleMoreMenu(false);
   });
 
   // A mouse click leaves the focus on the button or the select it landed
@@ -2843,6 +3135,10 @@ function wireUi() {
     // does. So every shortcut below answers to the plain key alone.
     const plain = !e.ctrlKey && !e.metaKey && !e.altKey;
     if (e.key === 'Escape' && !el.sublookPop.hidden) { toggleSubtitleLook(false); el.sublook.focus(); return; }
+    if (e.key === 'Escape' && !el.morePop.hidden) { toggleMoreMenu(false, { focusButton: true }); return; }
+    // While the menu has the focus the keys are its own: an arrow steps
+    // between its items rather than down the channel list.
+    if (!el.morePop.hidden && el.morePop.contains(e.target)) return;
     if (e.key === '/' && !typing && plain) { e.preventDefault(); el.search.focus(); el.search.select(); return; }
     if (e.target === el.search && e.key === 'Escape') {
       clearSearch(); el.search.blur(); return;
@@ -2896,10 +3192,8 @@ async function applyLanguage(lang) {
   setLanguage(lang);
   setLocale(localeTag());
   applyStatic();
-  renderAccount();
   renderSidebar();
   renderNowSub();
-  renderFavButton();
   renderDetail();
   renderInfoStrip();
   // The selector is rebuilt only when the list differs: clear it, so that
@@ -2926,6 +3220,8 @@ async function applyLanguage(lang) {
   if (state.lib) await refreshRows({ keepScroll: true });
   // An idle player shows the welcome text, which comes from no paint routine.
   if (!state.playing && !el.overlay.hidden && !el.overlay.classList.contains('loading')) renderIdleOverlay();
+  // The path in the tab's title is in the interface language as well.
+  updateAddress();
 }
 
 /** The player's idle state: either a welcome or a prompt to pick a channel. */
@@ -2954,17 +3250,38 @@ async function init() {
   el.mode.value = state.config.streamMode || 'auto';
   applySubtitleLook(state.settings);
   new SubtitleDisplay(el.video, el.subdisplay, el.videowrap);
-  renderFavButton();
   renderCastState();
 
   const ui = await store.loadUiState();
-  if (ui.tab) state.tab = ui.tab;
+  // The address names this tab's place; the stored view names the place any
+  // tab last settled on. A reload has an address and takes it, drill-down
+  // and all. A player opened fresh from the toolbar icon has none, and the
+  // stored view is what brings it back to where the last one was left.
+  const route = parseRoute(location.hash);
+  if (route) routeDetail = route.series || route.cat ? { series: route.series ?? null, cat: route.cat ?? null } : null;
+  const start = route || {
+    tab: ui.tab,
+    ...(ui.group != null ? { group: ui.group } : {}),
+    ...(ui.sub != null ? { sub: ui.sub } : {}),
+    ...(ui.kind != null ? { kind: ui.kind } : {}),
+  };
+  if (start.tab) state.tab = start.tab;
+  // The rest of the view waits for the library. connect() ends in
+  // activateTab({ restore }), which takes the group and the type filter
+  // from these two maps and the topic from storedSub, and drops any of
+  // them the account no longer offers.
+  if (start.group !== undefined) state.lastGroup[state.tab] = start.group;
+  if (start.kind !== undefined) state.lastKind[state.tab] = start.kind;
+  storedSub = start.sub ?? null;
   $('channel-tools').hidden = state.tab !== 'live';
   if (typeof ui.subcatsHeight === 'number') state.subcatsHeight = ui.subcatsHeight;
   for (const button of el.tabs.children) {
     button.classList.toggle('active', button.dataset.tab === state.tab);
     button.setAttribute('aria-selected', String(button.dataset.tab === state.tab));
   }
+
+  window.addEventListener('hashchange', onAddressChanged);
+  updateAddress();
 
   if (!state.config.host) {
     renderIdleOverlay();

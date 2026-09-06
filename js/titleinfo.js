@@ -1,7 +1,7 @@
 import { t } from './i18n.js';
 import { duration, nf } from './format.js';
 import { titleLinks } from './titlelinks.js';
-import { orderedLanguageNames } from './lang.js';
+import { languageSummary, orderedLanguageNames, shortLanguage } from './lang.js';
 import { ratingText } from './rating.js';
 
 export function titleFacts(info, { episodes, seasons, movie = false } = {}) {
@@ -87,13 +87,14 @@ export function playbackFacts({ ext, video, audio, subtitles, durationSec, loadi
   add('audio', audio && [audio.codec?.toUpperCase(), audio.channels ? t('audio.channels', { n: audio.channels }) : ''].filter(Boolean).join(' · '), { unsupported: audio?.supported === false });
   if (subtitles) {
     const { total, shown } = subtitles;
-    const languages = orderedLanguageNames(subtitles.languages);
-    const preview = languages.slice(0, 3).join(', ');
-    const remaining = languages.length - 3;
-    const languageText = preview + (remaining > 0 ? ` +${nf.format(remaining)}` : '');
-    add('subtitles', total ? [nf.format(total), languageText].filter(Boolean).join(' · ') : t('info.subs.none'), {
+    // Bitmap tracks are counted but never named, and an mp4's tracks are
+    // read only skin-deep: when the file names no language at all, the
+    // count is the only thing left to say — beside the warning, for a file
+    // whose subtitles the player cannot show.
+    const named = subtitles.languages.some((code) => shortLanguage(code) !== 'und');
+    add('subtitles', total ? (named ? languageSummary(subtitles.languages) : nf.format(total)) : t('info.subs.none'), {
       unsupported: total > 0 && !shown,
-      title: languages.join(', '),
+      title: orderedLanguageNames(subtitles.languages).join(', '),
     });
   } else add('subtitles', '');
   return list;

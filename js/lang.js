@@ -12,7 +12,8 @@
 // the same way, so what they share sits here rather than in either of
 // them.
 
-import { localeTag } from './i18n.js';
+import { localeTag, t } from './i18n.js';
+import { nf } from './format.js';
 
 const ISO3 = {
   fin: 'fi', swe: 'sv', nor: 'no', nob: 'no', nno: 'no', dan: 'da', isl: 'is',
@@ -30,8 +31,15 @@ export function shortLanguage(code) {
   return ISO3[base] || base;
 }
 
-/** A track's language as the file gives it, or 'und'. */
-export const trackLanguage = (track) => (track.langBcp || track.lang || 'und').toLowerCase();
+/**
+ * A track's language as the file gives it. Matroska gives the Language
+ * element the default value "eng", so a track that names no language at
+ * all is English rather than unknown — that is how ffmpeg and the desktop
+ * players read such a file, and reading it as unknown put an English
+ * subtitle track in the selector under "Unknown language". Only an
+ * explicit "und" is unknown.
+ */
+export const trackLanguage = (track) => (track.langBcp || track.lang || 'eng').toLowerCase();
 
 // Rebuilt per tag: the interface language can change mid-session, and a
 // language name belongs in the language the viewer reads.
@@ -61,14 +69,35 @@ export function languageLabel(code) {
   return name ? name.charAt(0).toUpperCase() + name.slice(1) : String(code).toUpperCase();
 }
 
-/** Full names for a compact summary: English, Finnish, then local alphabetic order. */
+/**
+ * Full names for a compact summary: English, Finnish, then local
+ * alphabetic order, and last the tracks whose language the file states as
+ * unknown. The unknown one is named rather than dropped, so that the
+ * summary holds every language the selector offers.
+ */
 export function orderedLanguageNames(codes) {
-  const priority = code => code === 'en' ? 0 : code === 'fi' ? 1 : 2;
+  const priority = code => code === 'en' ? 0 : code === 'fi' ? 1 : code === 'und' ? 3 : 2;
   return [...new Set(codes.map(shortLanguage))]
-    .filter(code => code !== 'und')
-    .map(code => ({ code, name: languageLabel(code) }))
+    .map(code => ({ code, name: code === 'und' ? t('subs.unknown') : languageLabel(code) }))
     .sort((a, b) => priority(a.code) - priority(b.code) || a.name.localeCompare(b.name, localeTag()))
     .map(entry => entry.name);
+}
+
+// Three names fit the line the details give them; the rest are a number.
+const SUMMARY_NAMES = 3;
+
+/**
+ * The languages on one line: "English, Finnish, Danish + 2". The number of
+ * tracks used to stand in front of the names, but a file holds more tracks
+ * than languages — two Finnish tracks are one language — and the two
+ * counts next to each other only invited the reader to check a subtraction
+ * that was never meant to add up.
+ */
+export function languageSummary(codes) {
+  const names = orderedLanguageNames(codes);
+  const rest = names.length - SUMMARY_NAMES;
+  const head = names.slice(0, SUMMARY_NAMES).join(', ');
+  return rest > 0 ? `${head} + ${nf.format(rest)}` : head;
 }
 
 // The names of one language in the tags a track's own name might be

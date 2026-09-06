@@ -247,9 +247,8 @@ configure your connection.</p>
   <li><strong>Load unpacked</strong> → pick this folder</li>
   <li>Click the extension icon → the player opens in a tab of its own</li>
   <li>Choose <strong>Paste subscription URL (M3U)</strong> to paste the complete address from
-your provider and fill the connection fields automatically, or <strong>Enter fields
-(Xtream Codes)</strong> to type them yourself. <strong>Show filled fields</strong> lets you inspect
-and edit the parsed values before connecting.</li>
+your provider — the connection fields open filled from it, ready to inspect
+and edit — or <strong>Enter fields (Xtream Codes)</strong> to type them yourself.</li>
 </ol>
 
 <p>Chrome 116 or newer, which is what <code>minimum_chrome_version</code> in the manifest
@@ -279,6 +278,39 @@ the app does not include channels or content.</li>
   <li>Connect to the service. You can change your connection details and the
 interface language later in <strong>Settings</strong>.</li>
 </ol>
+
+<h3 id="where-the-player-opens">Where the player opens</h3>
+
+<p>The player returns to the view you left, by two routes that answer different
+questions.</p>
+
+<p>The address bar names where you are: <code>#/live/Finland/312</code> is <strong>Channels →
+Finland</strong>, narrowed to a topic within it, and a series you have opened rides
+along in it. It is written as each list settles, so reloading the page
+comes back exactly there, episode list and all. The address is written over
+the current history entry rather than added to it: stepping back is what the
+breadcrumb above the list is for, and the browser's own back button stays a
+way out of the player rather than a walk back through every topic you have
+touched. The browser tab's title says the same path in words,
+<strong>Channels › Finland › Kids</strong>, with whatever is playing in front of it, so
+that a window of tabs tells you which one is the player and where it stands.
+An address typed or pasted into the bar is a navigation like any other.</p>
+
+<p>The tab, the group within it and the chosen topic are also remembered as each
+list settles. That is the second route, and it is what opening the toolbar
+icon after the player's tab has been closed comes back to.</p>
+
+<p>A search is a detour rather than a place: it stays out of the address, and
+reloading while one is running returns to the group the search took over from,
+which is where clearing the search would return anyway. Playback is not
+resumed by the reload either — an address that started a stream by itself
+would play something you did not ask for — but a film or episode keeps its own
+playback position, offered when you open it again.</p>
+
+<p>What the account no longer offers is not restored. A group, topic or series
+the provider has renamed or removed, or one the channel-list editor now hides,
+falls back to the list underneath it, and the address is rewritten from where
+the player actually arrives.</p>
 
 <h3 id="channels-movies-and-series">Channels, movies and series</h3>
 
@@ -337,7 +369,7 @@ hand playback directly to the player selected in your settings.</li>
 <h3 id="if-something-goes-wrong">If something goes wrong</h3>
 
 <ul>
-  <li><strong>Refresh</strong> fetches the content lists again from the server.</li>
+  <li><strong>Refresh lists</strong> fetches the content lists again from the server.</li>
   <li>If the connection fails, check the address and credentials in <strong>Settings</strong>
 and make sure your subscription is still active.</li>
   <li>If cached information is outdated, clear the cache in Settings. Resetting
@@ -551,14 +583,30 @@ prefix has been stripped from a row (below), the order follows the visible
 name. Search still ranks matches by relevance, but equally ranked matches fall
 into alphabetical order.</p>
 
-<p><strong>Organize channels</strong>, below the channel list, opens a personal live-TV editor.
-Switch between channels and categories, choose a country or <em>All</em>, and filter by
-name. Uncheck an item to hide it, use the arrows to change its order, or apply
-<strong>Hide shown / Show shown</strong> to the filtered set. Hidden items remain in the editor
-and can always be restored. <strong>Reset order</strong> restores the default order for
-channels or categories, depending on the selected type; it keeps visibility.
-Changes stay in the editor until <strong>Save</strong>; <strong>Cancel</strong>, the top-right <strong>X</strong>,
-Escape and clicking outside discard them.</p>
+<p><strong>Channel order</strong> in Settings &gt; Viewing says where the channel list starts:
+<strong>Name (A-Z)</strong>, <strong>Name (Z-A)</strong> or <strong>Channel number</strong> — the provider's own
+numbering, and where a provider sends none, the stream id in its place. It is
+the answer to a list of hundreds: choose the order that already suits, then
+move the few favourites where they belong. Movies and series are unaffected.</p>
+
+<p><strong>Organize channels</strong>, at the right below the channel list, opens a personal
+live-TV editor. Switch between channels and categories, choose a country or
+<em>All</em>, and filter by name. Uncheck an item to hide it, or apply <strong>Hide shown /
+Show shown</strong> to the filtered set. Hidden items remain in the editor and can
+always be restored.</p>
+
+<p>Drag a row by the handle at its left to move it. The rows underneath shuffle as
+it passes and the list scrolls when the row is held near an edge, so a channel
+can travel the whole way in one drag; Escape during a drag puts the row back.
+The handle also takes the keyboard: the arrows move the row one place, <strong>Home</strong>
+and <strong>End</strong> take it to the top or the bottom, and the focus travels with it.
+Moving a row within one country does not move that country ahead of the others.</p>
+
+<p><strong>Reset order</strong> returns to the order Settings chose, for channels or categories
+depending on the selected type; it keeps visibility, and it is offered only
+once something has been arranged by hand. Changes stay in the editor until
+<strong>Save</strong>; <strong>Cancel</strong>, the top-right <strong>X</strong>, Escape and clicking outside discard
+them.</p>
 
 <p>Hiding a live category hides its channels in browsing, search, favourites,
 history and the guide, including channels that also belong to another category.
@@ -649,10 +697,10 @@ that are not decoded, <strong>Play without sound</strong> is on offer</li>
 — and the chosen language carries over to the following episodes — see below</li>
   <li><strong>Unplayable files are marked in the list</strong> before you click; once a file has
 been examined the mark sharpens according to its codecs</li>
-  <li><strong>Hand-off to an external player</strong> (<code>↗</code> or <code>x</code>) for what the browser cannot
-do — see below</li>
-  <li><strong>Chromecast</strong> (<code>Cast</code> or <code>c</code>): a natively played file goes to the device
-through the Remote Playback API, and for the rest the button explains how
+  <li><strong>Hand-off to an external player</strong> (the player's <code>☰</code> menu or <code>x</code>) for what the
+browser cannot do — see below</li>
+  <li><strong>Chromecast</strong> (the same menu or <code>c</code>): a natively played file goes to the
+device through the Remote Playback API, and for the rest the menu explains how
 Chrome's own tab casting does it — see below</li>
   <li><strong>Resume positions remembered</strong> for movies and episodes, with a progress bar
 on the row</li>
@@ -664,9 +712,9 @@ page reload</li>
 is recognised in three ways: the server cuts the connection, the buffer is
 played out, or the picture freezes while the connection stays open. The
 viewer's own pause is told apart from these and is never overridden</li>
-  <li><strong>Technical details</strong> over the picture: resolution, bitrate, engine</li>
-  <li><strong>The account's expiry date</strong> in the top bar, in warning colour for the last
-fourteen days — the rest of the account's details are in the settings</li>
+  <li><strong>Technical details</strong> over the picture — resolution, bit rate, engine — for
+working out why a stream stutters. Off unless the settings ask for them: they
+answer no question about what to watch</li>
 </ul>
 
 <h3 id="keyboard-shortcuts">Keyboard shortcuts</h3>
@@ -701,10 +749,10 @@ the timeline's scale, <code>Enter</code> starts playback and <code>Esc</code> cl
 
 <h3 id="the-buttons">The buttons</h3>
 
-<p>The top bar holds the five tabs, the search box, the account's expiry date,
-<strong>Refresh</strong>, <strong>Help</strong> and <strong>Settings</strong> at the far right. <strong>Refresh</strong> fetches the
-categories and the lists already loaded from the server again and empties the
-programme cache. <strong>Help</strong> opens this user guide. The <strong>⛶</strong> button is over the
+<p>The top bar holds the five tabs, the search box, <strong>Refresh lists</strong>, <strong>Help</strong>
+and <strong>Settings</strong> at the far right. <strong>Refresh lists</strong> fetches the categories and
+the lists already loaded from the server again and empties the programme
+cache. <strong>Help</strong> opens this user guide. The <strong>⛶</strong> button is over the
 picture at the top right, with video statistics at the top left. It enters
 and exits full screen with the subtitles included. It appears on pointer movement, touch or keyboard focus,
 stays visible while paused and fades during uninterrupted playback. It is
@@ -719,15 +767,24 @@ The remaining player controls are below the picture:</p>
     <tr><td>the audio selector</td><td>the track, on a file that carries more than one; <code>a</code> steps to the next</td></tr>
     <tr><td>the subtitle selector</td><td>the language, on a file that carries subtitles</td></tr>
     <tr><td><code>Aa</code></td><td>the look and the size of the subtitles, over the picture they are judged against</td></tr>
-    <tr><td><code>☆</code></td><td>the channel or the film into the favourites</td></tr>
     <tr><td><code>↻</code></td><td>reload the stream</td></tr>
-    <tr><td><code>PiP</code></td><td>picture in picture</td></tr>
-    <tr><td><code>Cast</code></td><td>to a Chromecast — see below</td></tr>
-    <tr><td><code>URL</code></td><td>the stream address to the clipboard</td></tr>
-    <tr><td><code>↗</code></td><td>hand over to an external player</td></tr>
+    <tr><td><code>☰</code></td><td>the menu of the rest, opened upward over the picture</td></tr>
   </tbody>
 </table>
 </div>
+
+<p>The menu holds what is wanted now and then rather than during every programme:
+<strong>Picture in picture</strong>, <strong>Cast to a Chromecast</strong>, <strong>Copy the stream address</strong>
+and <strong>Open in an external player</strong>. Four buttons that said what they did in two
+letters and an arrow are four lines that say it in words, and the row keeps only
+what a viewer reaches for while watching. It opens upward — below the row is the
+bottom of the window — and closes on the button again, a click outside, Esc or a
+choice; the arrows, Home and End step through it. <code>x</code> and <code>c</code> still reach the
+external player and the Chromecast without it. The hamburger turns gold while a
+Chromecast is playing, as the <code>Cast</code> button used to.</p>
+
+<p>There is no favourite star below the picture any more: every row in the list
+carries its own, and a series page has one beside its title.</p>
 
 <p>Series and movie details separate the year, genre, provider rating and episode
 count or duration into labelled fields. <strong>IMDb</strong> opens the title directly when
@@ -741,9 +798,13 @@ at a time and cached results reused. If the provider supplies no duration, it is
 omitted.</p>
 
 <p>File format, video, audio and subtitles have separate labels in the playback
-details. The subtitle summary shows the track count and at most three language
-codes, followed by the number of additional languages. Hovering reveals all known
-language codes; individual tracks remain available in the subtitle selector.</p>
+details. The subtitle summary names at most three languages — English and
+Finnish first, then in alphabetical order — and counts the rest as <strong>+ 2</strong>. No
+track count stands in front of them: a file holds more tracks than languages,
+and the two numbers side by side only invited a subtraction that was never meant
+to add up. Hovering reveals every language; individual tracks remain available in
+the subtitle selector. A file whose subtitles are all bitmap tracks names no
+language at all, and there the count stands instead, beside the warning.</p>
 
 <h3 id="settings">Settings</h3>
 
@@ -754,7 +815,7 @@ language codes; individual tracks remain available in the subtitle selector.</p>
   <thead><tr><th>Section</th><th>Holds</th></tr></thead>
   <tbody>
     <tr><td><strong>Connection</strong></td><td>the provider address and credentials, entered as Xtream Codes fields or an M3U address</td></tr>
-    <tr><td><strong>Viewing</strong></td><td>interface language, automatic programme data and remembered playback positions</td></tr>
+    <tr><td><strong>Viewing</strong></td><td>interface language, the channel order, automatic programme data, remembered playback positions and the technical read-out over the picture</td></tr>
     <tr><td><strong>Subtitles</strong></td><td>style and size, with a local preview</td></tr>
     <tr><td><strong>Account &amp; data</strong></td><td>subscription details and cache information; an expandable <strong>Manage stored data</strong> section contains cache clearing and reset</td></tr>
   </tbody>
@@ -869,8 +930,8 @@ offered.</p>
 <p>Unpacking and wasm audio cover most of the library, but not all of it: the AVI
 container, VC-1, 10-bit H.264 and bitmap subtitles (PGS, VOBSUB) stay out of
 the browser's reach. A desktop player handles them natively and takes the
-Xtream stream URL as it is. The hand-off is always manual — from the <code>↗</code> button
-below the player, the <code>x</code> key, or a button in an error message — and never
+Xtream stream URL as it is. The hand-off is always manual — from the player's
+<code>☰</code> menu, the <code>x</code> key, or a button in an error message — and never
 happens by itself.</p>
 
 <p>There were two routes, one is left: a one-item <code>.m3u</code> is downloaded from a
@@ -896,15 +957,15 @@ account itself.</p>
 
 <h3 id="chromecast">Chromecast</h3>
 
-<p>The <code>Cast</code> button (or <code>c</code>) works in two ways, and <code>CHROMECAST.md</code> holds the
-assessment behind them.</p>
+<p><strong>Cast to a Chromecast</strong> in the player's <code>☰</code> menu (or <code>c</code>) works in two ways, and
+<code>CHROMECAST.md</code> holds the assessment behind them.</p>
 
 <p>A file the browser plays natively — <code>.mp4</code>, <code>.m4v</code>, <code>.mov</code>, <code>.webm</code> — goes to
 the device through the Remote Playback API: Chrome's own device picker opens,
 and Chrome sends the compressed picture and sound to the device as they are.
 Nothing is re-encoded, the server needs no CORS headers, and the browser keeps
 the one connection the account allows. The tab has to stay open, and
-<em>Chromecast</em> shows on the engine line below the player while the device plays.</p>
+<em>Chromecast</em> shows on the line below the player's title while the device plays.</p>
 
 <p>Everything that runs through MediaSource — live channels, HLS, the MKV
 unpacking — is outside that API's reach on desktop Chrome, which accepts only
@@ -958,6 +1019,13 @@ go — and offers the tracks in its own subtitle menu. The choice is made from t
 selector below the player, and the language — not the track number — is
 remembered, so the next episode of a series opens in the same language. The
 default is Finnish when the file has a Finnish track.</p>
+
+<p>A track that carries no <code>Language</code> element at all is English: that is the default
+Matroska gives the element, and it is how ffmpeg and the desktop players read
+such a file. Reading it as unknown instead put an English track in the selector
+under <strong>Unknown language</strong>, and left the summary counting a language it never
+named. A track the file marks <code>und</code> outright stays unknown, and the summary names
+it as such rather than dropping it.</p>
 
 <p>The selector is in alphabetical order for the interface language: the file's own
 order is arbitrary, and in a list of thirty tracks the right language cannot be
@@ -1189,7 +1257,7 @@ js/channelprefs.js  per-account channel visibility and ordering helpers
 js/channeleditor.js  draft editor for live channels and categories
 js/modal.js         shared close buttons, Escape and backdrop dismissal
 js/db.js            IndexedDB: a TTL cache
-js/config.js        settings, favourites, history, resume points
+js/config.js        settings, favourites, history, resume points, the remembered view
 js/i18n.js          the interface language: dictionaries, t() and static HTML
 js/playback.js      engine selection, fallbacks, watchdog
 js/probe.js         reading the file header: container, codecs, subtitles
@@ -1210,6 +1278,7 @@ js/name.js          a repeating prefix off the row names in a filtered view,
 js/logos.js         channel logos from tv-logos, matched to a channel by name
 js/logoindex.js     the tv-logos file list, generated by dev/logos.mjs
 js/format.js        formatters
+js/route.js         the place we are in, as an address: #/live/Finland/312
 js/app.js           views, search, keyboard
 js/permissions.js   requesting and checking optional host permissions
 js/external.js      hand-off to an external player: a one-item .m3u
@@ -1263,6 +1332,10 @@ on the test server, around 8,800 channels out of 29,600.</li>
 provider, which points at a repository that was archived years ago. A channel
 the collection does not have keeps the provider's own address; a logo that
 fails to load either way is hidden automatically.</li>
+  <li>Part of the provider's catalogue gives a picture's address without the file
+name on the end — <code>https://image.tmdb.org/t/p/w600_and_h900_bestv2</code> where a
+poster's path belongs. An address that names no file cannot be a picture, so
+it is dropped as the list is read and never requested.</li>
 </ul>
 
 <h2 id="language">Language</h2>
@@ -1288,9 +1361,11 @@ tag. <code>en-GB</code> rather than <code>en</code>, because in this app the tim
 (M3U)</strong>. The latter accepts the complete HTTP or HTTPS <code>get.php</code> address supplied
 by the provider, including its query parameters. Protocol, server, port, username
 and password are extracted automatically, including URL-encoded characters.
-A confirmation explains what happened, and <strong>Show filled fields</strong> reveals the
-editable values. Pasting or inspecting them does not save or connect; <strong>Save</strong>
-(or <strong>Connect</strong> on first use) does that. The choice changes only the form:
+A pasted address then hands the dialog over to <strong>Enter fields (Xtream Codes)</strong>
+with the values in place, which both shows what was understood and leaves it
+open to correction; only an address that cannot be read says so instead.
+Pasting does not save or connect; <strong>Save</strong> (or <strong>Connect</strong> on first use) does
+that. The choice changes only the form:
 both use the same Xtream API, rather than downloading a generic M3U playlist.</p>
 
 <h2 id="brand-graphics">Brand graphics</h2>

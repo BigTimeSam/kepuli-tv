@@ -14,10 +14,13 @@ const api = globalThis.browser ?? globalThis.chrome;
 const PLAYER_URL = api.runtime.getURL('player.html');
 
 api.action.onClicked.addListener(async () => {
-  const [open] = await api.runtime.getContexts({
-    contextTypes: ['TAB'],
-    documentUrls: [PLAYER_URL],
-  });
+  // Every page of ours in a tab, rather than documentUrls: [PLAYER_URL]:
+  // the player writes the place it is in into its address (js/route.js), so
+  // the document's URL is player.html#/live/Finland rather than the bare
+  // one, and a filter that asks for the bare URL finds nothing and opens a
+  // second player beside the first.
+  const contexts = await api.runtime.getContexts({ contextTypes: ['TAB'] });
+  const open = contexts.find((context) => String(context.documentUrl).split('#')[0] === PLAYER_URL);
   if (open) {
     await api.tabs.update(open.tabId, { active: true });
     await api.windows.update(open.windowId, { focused: true });

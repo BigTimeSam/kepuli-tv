@@ -105,7 +105,10 @@ try {
     req.onsuccess = () => resolve(d.name); req.onerror = () => resolve(d.name + ' (error)'); req.onblocked = () => resolve(d.name + ' (blocked)');
   }))))`);
   console.log(`cache dropped: ${dropped.length ? dropped.join(', ') : 'nothing to drop'}`);
-  await page.call('Page.navigate', { url: target.url });
+  // Without the place the player writes into its address: the shots are
+  // taken from the view this script sets up, not from wherever the tab
+  // was last left.
+  await page.call('Page.navigate', { url: target.url.split('#')[0] });
   await sleep(1000);
   await waitFor(page, CONNECTED, 'the connection to the server');
   // The compositor adopts the 2x viewport lazily; a throwaway capture makes

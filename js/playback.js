@@ -191,7 +191,7 @@ export class Playback {
       if (token !== this.token) return;
       if (i >= chain.length) return void this.explain(spec, token);
       const name = chain[i];
-      this.onState({ status: 'loading', engine: engineLabel(name), attempt: i });
+      this.onState({ status: 'loading', attempt: i });
       this.runAttempt(name, spec, token, () => attempt(i + 1));
     };
     attempt(0);
@@ -256,7 +256,7 @@ export class Playback {
         // reset immediately, a flaky source would never reach the limit.
         clearTimeout(this.stableTimer);
         this.stableTimer = setTimeout(() => { this.reconnects = 0; }, STABLE_MS);
-        this.onState({ status: 'playing', engine: this.engineName });
+        this.onState({ status: 'playing' });
         this.bindGuards(token);
         this.startWatchdog(token);
         // The element's own error event is listened to for the rest of the

@@ -21,17 +21,16 @@ const LOCALE_TAG = { en: 'en-GB', fi: 'fi-FI' };
 const STRINGS = {
   en: {
     "setup.m3u.hint": "Paste the complete get.php URL from your provider. Protocol, server, port, username and password are filled automatically.",
-    "setup.m3u.fields": "Show filled fields",
     "organize.title": "Organize channels",
-    "organize.help": "Uncheck to hide. Use the arrows to change the order. Hidden categories hide their channels everywhere. Save applies changes to this account.",
+    "organize.help": "Uncheck to hide. Drag a row by its handle to move it, or focus the handle and use the arrows, Home and End. Hidden categories hide their channels everywhere. Save applies changes to this account.",
     "organize.kind": "Items to organize",
     "organize.hide": "Hide shown",
     "organize.show": "Show shown",
     "organize.reset": "Reset order",
     "organize.count": "{count} listed · {hidden} hidden in total",
     "organize.visible": "Show {name}",
-    "organize.up": "Move {name} up",
-    "organize.down": "Move {name} down",
+    "organize.move": "Drag to move {name}, or use the arrows, Home and End",
+    "organize.moveat": "Move {name}, position {at} of {of}",
     "organize.loading": "Loading channels for organizing",
     "organize.savefailed": "Could not save. Your changes are still here; try again.",
     "organize.cancel": "Cancel",
@@ -64,13 +63,11 @@ const STRINGS = {
     'search.placeholder': 'Search by name…',
     'btn.guide': 'Programme guide',
     'btn.guide.title': 'Programme guide and catch-up  ( g )',
-    'btn.refresh': 'Refresh',
+    'btn.refresh': 'Refresh lists',
     'btn.refresh.title': 'Fetch the lists again from the server',
     'btn.settings': 'Settings',
     'btn.help': 'Help',
     'btn.help.title': 'Help (opens in a new tab)',
-    'account.expiring': 'Valid until {date} — {days} d left',
-    'account.valid': 'Valid until {date}',
 
     /* ---------------------------------------------------------- sidebar */
     'groups.filter.placeholder': 'Filter countries and topics…',
@@ -179,6 +176,7 @@ const STRINGS = {
     'player.fullscreen.title': 'Full screen',
     'player.fullscreen.exit': 'Exit full screen',
     'player.reload.title': 'Reload the stream',
+    'player.more': 'More actions',
     'player.pip.title': 'Picture in picture',
     'player.pip.unavailable': 'PiP not available',
     'player.copy.title': 'Copy the stream address',
@@ -194,10 +192,17 @@ const STRINGS = {
     'player.silent': 'Play without sound',
     'player.nourl': 'No playback address was found for this item',
     'player.catchup': 'Catch-up {time}',
-    'player.title': '{name} — Kepuli-TV',
+    // The tab's title is the path in words: "Channels › Finland › Sport",
+    // with what is playing before it, because a tab shows only the
+    // beginning of its title and a running stream is the answer to
+    // "which tab is that". See updateAddress in js/app.js.
+    'title.plain': 'Kepuli-TV',
+    'title.path': '{path} — Kepuli-TV',
+    'title.playing': '{name} · {path} — Kepuli-TV',
+    'title.search': 'Search: {query}',
     'playback.startfailed': 'Playback could not be started.',
     'playback.hint.copy': '{reason} Copy the address with the URL button and open it in VLC, for example.',
-    'playback.nosource': 'Playback did not work. The source did not answer or the format is not supported.',
+    'playback.nosource': 'The source did not answer or the format is not supported.',
     'playback.autoplay': 'The browser blocked autoplay — press play.',
     'playback.gaveup': 'The stream stopped ({reason}) and did not recover in {max} attempts. ',
     'playback.gaveup.hint': 'Try again or change the playback mode.',
@@ -212,7 +217,7 @@ const STRINGS = {
     'engine.remux': 'MKV remux',
 
     /* ---------------------------------------------------------- detail */
-    'info.next': 'Next {time} · {title}',
+    'info.next': 'Next',
     'info.unsupported': ' (not supported)',
     'filters.title': 'Filter titles',
     'filters.year': 'Release year',
@@ -286,7 +291,6 @@ const STRINGS = {
     'guide.catchup.title': 'Catch-up from the past {days} days',
 
     /* ------------------------------------------------------ favourites */
-    'fav.button.title': 'Add to favourites',
     'fav.series.add': 'Add series to favourites',
     'fav.series.remove': 'Remove series from favourites',
 
@@ -341,8 +345,11 @@ const STRINGS = {
     'setup.password': 'Password',
     'setup.m3u.label': 'Full subscription URL',
     'setup.m3u.bad': 'Enter a full HTTP or HTTPS URL containing username and password.',
-    'setup.m3u.ok': 'Connection fields filled. Save when you are ready to connect.',
     'setup.language': 'Language',
+    'setup.channelsort': 'Channel order',
+    'setup.channelsort.az': 'Name (A–Z)',
+    'setup.channelsort.za': 'Name (Z–A)',
+    'setup.channelsort.num': 'Channel number',
     'setup.subs': 'Subtitles',
     'setup.subs.style': 'Style',
     'setup.subs.size': 'Size',
@@ -354,6 +361,8 @@ const STRINGS = {
     'subs.style.contrast': 'High contrast',
     'setup.epg': 'Fetch programme data automatically',
     'setup.resume': 'Remember where movies and episodes were left',
+    'setup.stats': 'Show stream statistics over the picture',
+    'setup.stats.hint': 'Resolution, bit rate and the engine playing the stream, in the corner of the picture. For working out why a stream stutters.',
     'setup.clear': 'Clear cache',
     'setup.clear.title': 'Removes the loaded lists and programme data. Credentials and favourites stay.',
     'setup.cleared': 'Cache cleared',
@@ -425,17 +434,16 @@ const STRINGS = {
 
   fi: {
     "setup.m3u.hint": "Liitä palveluntarjoajan lähettämä koko get.php-osoite. Protokolla, palvelin, portti, käyttäjätunnus ja salasana täytetään automaattisesti.",
-    "setup.m3u.fields": "Näytä täytetyt kentät",
     "organize.title": "Muokkaa kanavalistaa",
-    "organize.help": "Poista valinta piilottaaksesi. Muuta järjestystä nuolilla. Piilotettu kategoria piilottaa kanavansa kaikista näkymistä. Tallenna ottaa muutokset käyttöön tällä tilillä.",
+    "organize.help": "Poista valinta piilottaaksesi. Siirrä riviä raahaamalla sen kahvasta tai valitse kahva ja käytä nuolia, Home- ja End-näppäimiä. Piilotettu kategoria piilottaa kanavansa kaikista näkymistä. Tallenna ottaa muutokset käyttöön tällä tilillä.",
     "organize.kind": "Muokattavat kohteet",
     "organize.hide": "Piilota listatut",
     "organize.show": "Näytä listatut",
     "organize.reset": "Palauta oletusjärjestys",
     "organize.count": "Listattu {count} · piilotettu yhteensä {hidden}",
     "organize.visible": "Näytä {name}",
-    "organize.up": "Siirrä {name} ylemmäs",
-    "organize.down": "Siirrä {name} alemmas",
+    "organize.move": "Siirrä {name} raahaamalla tai nuolilla, Home- ja End-näppäimillä",
+    "organize.moveat": "Siirrä {name}, sijainti {at}/{of}",
     "organize.loading": "Ladataan kanavat muokkausta varten",
     "organize.savefailed": "Tallennus epäonnistui. Muutokset ovat tallella tässä näkymässä; yritä uudelleen.",
     "organize.cancel": "Peruuta",
@@ -468,13 +476,11 @@ const STRINGS = {
     'search.placeholder': 'Hae nimellä…',
     'btn.guide': 'Ohjelmaopas',
     'btn.guide.title': 'Ohjelmaopas ja catchup  ( g )',
-    'btn.refresh': 'Päivitä',
+    'btn.refresh': 'Päivitä listat',
     'btn.refresh.title': 'Hae listat uudelleen palvelimelta',
     'btn.settings': 'Asetukset',
     'btn.help': 'Ohjeet',
     'btn.help.title': 'Ohjeet (avautuu uuteen välilehteen)',
-    'account.expiring': 'Voimassa {date} asti — {days} pv jäljellä',
-    'account.valid': 'Voimassa {date} asti',
 
     /* ---------------------------------------------------------- sidebar */
     'groups.filter.placeholder': 'Suodata maat ja aiheet…',
@@ -583,6 +589,7 @@ const STRINGS = {
     'player.fullscreen.title': 'Koko näyttö',
     'player.fullscreen.exit': 'Poistu koko näytöstä',
     'player.reload.title': 'Lataa virta uudelleen',
+    'player.more': 'Lisää toimintoja',
     'player.pip.title': 'Kuva kuvassa',
     'player.pip.unavailable': 'PiP ei käytettävissä',
     'player.copy.title': 'Kopioi suoratoisto-osoite',
@@ -598,10 +605,13 @@ const STRINGS = {
     'player.silent': 'Toista ilman ääntä',
     'player.nourl': 'Kohteelle ei löytynyt toisto-osoitetta',
     'player.catchup': 'Catchup {time}',
-    'player.title': '{name} — Kepuli-TV',
+    'title.plain': 'Kepuli-TV',
+    'title.path': '{path} — Kepuli-TV',
+    'title.playing': '{name} · {path} — Kepuli-TV',
+    'title.search': 'Haku: {query}',
     'playback.startfailed': 'Toiston aloitus epäonnistui.',
     'playback.hint.copy': '{reason} Kopioi osoite URL-painikkeella ja avaa se esimerkiksi VLC:ssä.',
-    'playback.nosource': 'Toisto ei onnistunut. Lähde ei vastannut tai muoto ei ole tuettu.',
+    'playback.nosource': 'Lähde ei vastannut tai muoto ei ole tuettu.',
     'playback.autoplay': 'Selain esti automaattisen toiston — paina play.',
     'playback.gaveup': 'Virta katkesi ({reason}) eikä palautunut {max} yrityksellä. ',
     'playback.gaveup.hint': 'Kokeile uudelleen tai vaihda toistotapaa.',
@@ -616,7 +626,7 @@ const STRINGS = {
     'engine.remux': 'MKV-purku',
 
     /* ---------------------------------------------------------- detail */
-    'info.next': 'Seuraavaksi {time} · {title}',
+    'info.next': 'Seuraavaksi',
     'info.unsupported': ' (ei tuettu)',
     'filters.title': 'Suodata nimikkeitä',
     'filters.year': 'Julkaisuvuosi',
@@ -690,7 +700,6 @@ const STRINGS = {
     'guide.catchup.title': 'Catchup {days} vuorokauden ajalta',
 
     /* ------------------------------------------------------ favourites */
-    'fav.button.title': 'Lisää suosikkeihin',
     'fav.series.add': 'Lisää sarja suosikkeihin',
     'fav.series.remove': 'Poista sarja suosikeista',
 
@@ -745,8 +754,11 @@ const STRINGS = {
     'setup.password': 'Salasana',
     'setup.m3u.label': 'Koko tilausosoite',
     'setup.m3u.bad': 'Anna koko HTTP- tai HTTPS-osoite, jossa on username ja password.',
-    'setup.m3u.ok': 'Yhteyskentät täytetty. Yhdistä tallentamalla, kun olet valmis.',
     'setup.language': 'Kieli',
+    'setup.channelsort': 'Kanavien järjestys',
+    'setup.channelsort.az': 'Nimi (A–Ö)',
+    'setup.channelsort.za': 'Nimi (Ö–A)',
+    'setup.channelsort.num': 'Kanavanumero',
     'setup.subs': 'Tekstitys',
     'setup.subs.style': 'Tyyli',
     'setup.subs.size': 'Koko',
@@ -758,6 +770,8 @@ const STRINGS = {
     'subs.style.contrast': 'Vahva kontrasti',
     'setup.epg': 'Hae ohjelmatiedot automaattisesti',
     'setup.resume': 'Muista elokuvien ja jaksojen katselukohta',
+    'setup.stats': 'Näytä lähetyksen tekniset tiedot kuvan päällä',
+    'setup.stats.hint': 'Tarkkuus, bittinopeus ja lähetystä toistava moottori kuvan nurkassa. Pätkivän lähetyksen selvittämiseen.',
     'setup.clear': 'Tyhjennä välimuisti',
     'setup.clear.title': 'Poistaa ladatut listat ja ohjelmatiedot. Tunnukset ja suosikit säilyvät.',
     'setup.cleared': 'Välimuisti tyhjennetty',
@@ -874,7 +888,7 @@ export function applyStatic(root = document) {
   for (const node of root.querySelectorAll('[data-i18n]')) node.textContent = t(node.dataset.i18n);
   for (const node of root.querySelectorAll('[data-i18n-title]')) {
     node.title = t(node.dataset.i18nTitle);
-    // A button that shows a symbol rather than a word — ↻, ↗, ☆ — has no
+    // A button that shows a symbol rather than a word — ↻, ‹, − — has no
     // name a screen reader could say; the title is that name.
     if (node.tagName === 'BUTTON' && !/\p{L}/u.test(node.textContent)) node.setAttribute('aria-label', node.title);
   }

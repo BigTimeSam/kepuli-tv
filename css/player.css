@@ -59,11 +59,6 @@ h2, h3 { font-weight: 600; }
 .search input::-webkit-search-cancel-button { filter: invert(0.6); }
 
 .topbar-end { margin-left: auto; display: flex; align-items: center; gap: 8px; }
-.account-meta { display: flex; align-items: center; gap: 5px; color: var(--muted); font-size: 11.5px; white-space: nowrap; }
-/* An explicit display beats the browser's [hidden] rule, see .crumbs. */
-.account-meta[hidden] { display: none; }
-.account-meta svg { width: 12px; height: 12px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
-.account-meta.warn { color: var(--warn); }
 
 button.ghost, .help-link {
   background: var(--panel-2); border: 1px solid var(--border);
@@ -539,7 +534,15 @@ body[data-substyle="contrast"] video::cue { background: #000; }
 .epgbar { height: 3px; background: #262c3d; border-radius: 2px; margin: 6px 0; overflow: hidden; }
 .epgbar i { display: block; height: 100%; background: linear-gradient(90deg, var(--accent), var(--accent-2)); }
 .epgdesc { color: var(--muted); font-size: 12px; }
-.epgnext { color: var(--dim); font-size: 11.5px; margin-top: 5px; }
+/* The programme on next reads in the same two columns as the one on now,
+   under a label in the same voice as the day headings in the lists. The
+   rule above it is dropped when nothing is on now: then this is the whole
+   strip, and a line across the top of it would separate nothing. */
+.epgnext { display: flex; align-items: baseline; gap: 8px; font-size: 11.5px; }
+.epgnext:not(:first-child) { margin-top: 7px; padding-top: 6px; border-top: 1px solid var(--border); }
+.epgnext-label { flex: none; font-size: 10.5px; letter-spacing: .06em; text-transform: uppercase; color: var(--dim); }
+.epgnext-time { flex: none; color: var(--accent-2); font-variant-numeric: tabular-nums; }
+.epgnext-title { color: var(--text); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .vodinfo { display: flex; gap: 10px; }
 .info-cover { width: 54px; height: 80px; border-radius: 5px; flex: none; }
 .playback-facts { display: flex; flex-wrap: wrap; gap: 10px 20px; margin: 0 0 8px; padding-top: 8px; border-top: 1px solid var(--border); }
@@ -586,7 +589,23 @@ body[data-substyle="contrast"] video::cue { background: #000; }
   border-radius: 12px; box-shadow: 0 18px 44px rgba(0, 0, 0, .55);
 }
 .pop[hidden] { display: none; }
-#btn-sublook[aria-expanded="true"] { color: var(--text); background: var(--panel-2); }
+#btn-sublook[aria-expanded="true"], #btn-more[aria-expanded="true"] { color: var(--text); background: var(--row-hover); border-color: #333a4f; }
+
+/* The menu of the actions that are wanted now and then. Same panel, but a
+   list rather than a form: no padding of its own, so a row can light up
+   edge to edge, and the room a word needs rather than a fixed width. */
+.more-pop { width: auto; min-width: 216px; max-width: min(320px, calc(100vw - 24px)); gap: 2px; padding: 6px; }
+.popitem {
+  display: flex; align-items: center; gap: 10px; width: 100%;
+  padding: 8px 10px; border: 0; border-radius: 8px; background: transparent;
+  color: var(--text); font: inherit; text-align: left; cursor: pointer;
+}
+.popitem[hidden] { display: none; }
+.popitem:hover { background: var(--row-hover); }
+.popitem:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; }
+/* The same gold as the row's own Cast button had while a device plays. */
+.popitem.on { color: #ffc857; }
+.popitem svg { flex: none; width: 16px; height: 16px; fill: none; stroke: currentColor; stroke-width: 1.7; stroke-linecap: round; stroke-linejoin: round; }
 
 /* A button with a drawn symbol: the same height as the ones with a word. */
 .now-actions .icon svg { display: block; width: 14px; height: 19px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
@@ -650,8 +669,10 @@ dialog::backdrop { background: rgba(5, 6, 10, .66); backdrop-filter: blur(2px); 
 .grid .w-scheme { grid-column: span 1; }
 .grid .w-host { grid-column: span 2; }
 .grid .w-port { grid-column: span 1; }
-.grid .w-lang { grid-column: span 2; }
 .grid .field:nth-child(n+4) { grid-column: span 2; }
+/* Two fields that belong together on one line, as .grid does for the
+   connection form; below 520px they go one above the other. */
+.field-pair { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
 
 /* Choosing the connection mode. Chips would be too light here: the choice
    changes the whole form, so it may look like a choice. */
@@ -686,12 +707,9 @@ dialog::backdrop { background: rgba(5, 6, 10, .66); backdrop-filter: blur(2px); 
 }
 .sublook-preview .subdisplay .cue { max-width: none; white-space: pre; }
 .sublook-fields { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; flex-shrink: 0; }
-.field-hint, .playlist-status { font-size: 12px; color: var(--muted); line-height: 1.45; }
-.playlist-status { margin: 0; color: var(--accent-2); }
-.playlist-status.invalid { color: var(--danger); }
-.playlist-feedback { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
-.playlist-feedback[hidden] { display: none; }
-.playlist-feedback .playlist-status { flex: 1; min-width: 160px; }
+.field-hint { font-size: 12px; color: var(--muted); line-height: 1.45; }
+/* Two classes, to beat the muted colour .field gives every span in it. */
+.field .playlist-status { color: var(--danger); }
 .radios { flex-wrap: wrap; }
 .range-label { display: flex; justify-content: space-between; }
 .range-label output { font-variant-numeric: tabular-nums; }
@@ -708,6 +726,11 @@ dialog::backdrop { background: rgba(5, 6, 10, .66); backdrop-filter: blur(2px); 
 
 /* Status and actions share one footer across all settings tabs. */
 .setup-actions .setup-note { flex: 1; min-width: 180px; }
+/* Unsaved work says so twice: a yellow mark before the words, so the
+   pending save is caught by the eye and not only by the reader. The
+   mark is inline, so a note that wraps still wraps around it. */
+#setup-note > svg { display: none; width: 15px; height: 15px; margin-right: 5px; vertical-align: -3px; color: var(--warn); fill: none; stroke: currentColor; stroke-width: 1.7; stroke-linecap: round; stroke-linejoin: round; }
+#setup-note.pending > svg { display: inline; }
 .setup-actions .armed { color: #fff; background: var(--danger); border-color: var(--danger); }
 
 /* A stable frame keeps navigation and the shared save action in place. */
@@ -717,7 +740,8 @@ dialog::backdrop { background: rgba(5, 6, 10, .66); backdrop-filter: blur(2px); 
 .setup-panel { min-height: 0; height: 320px; overflow-y: auto; padding: 2px; }
 #panel-subs { overflow: hidden; }
 .setup-intro { margin: 0 0 2px; color: var(--muted); font-size: 13px; line-height: 1.5; }
-.setup .w-lang { max-width: 260px; }
+/* A hint belongs to the field above it, not to the space between fields. */
+.setup-panel > .field-hint { margin: -8px 0 0; }
 .setup .toggles { gap: 0; }
 .setup .toggle { padding: 14px 0; border-bottom: 1px solid var(--border); color: var(--text); }
 .setup .toggle input { flex-shrink: 0; }
@@ -740,6 +764,7 @@ dialog::backdrop { background: rgba(5, 6, 10, .66); backdrop-filter: blur(2px); 
   .setup .danger-row { align-items: flex-start; flex-direction: column; }
   .setup .account-box .cols { grid-template-columns: repeat(2, 1fr); }
   .setup .sublook-fields { grid-template-columns: 1fr; }
+  .setup .field-pair { grid-template-columns: 1fr; }
   .setup .grid { grid-template-columns: minmax(72px, 1fr) minmax(0, 2fr) minmax(64px, 1fr); }
   .setup .grid .w-host { grid-column: span 1; }
   .setup .grid .field:nth-child(n+4) { grid-column: 1 / -1; }
@@ -777,8 +802,17 @@ dialog::backdrop { background: rgba(5, 6, 10, .66); backdrop-filter: blur(2px); 
   .bar.indeterminate .bar-fill { transform: scaleX(.35); }
 }
 
-.toast { position: fixed; bottom: 18px; left: 50%; transform: translateX(-50%); background: var(--panel-2); border: 1px solid var(--border); padding: 9px 16px; border-radius: 10px; box-shadow: 0 10px 32px rgba(0, 0, 0, .5); z-index: 10; max-width: 70vw; }
+.toast { position: fixed; bottom: 18px; left: 50%; transform: translateX(-50%); display: flex; align-items: center; gap: 9px; background: var(--panel-2); border: 1px solid var(--border); padding: 9px 16px; border-radius: 10px; box-shadow: 0 10px 32px rgba(0, 0, 0, .5); z-index: 10; max-width: 70vw; }
 .toast[hidden] { display: none; }
+/* Only the icon of the message's own kind is shown; the other two wait. */
+.toast > svg { display: none; flex: none; width: 16px; height: 16px; fill: none; stroke: currentColor; stroke-width: 1.7; stroke-linecap: round; stroke-linejoin: round; }
+.toast.info > svg[data-kind="info"] { display: block; color: var(--accent-2); }
+.toast.warn > svg[data-kind="warn"] { display: block; color: var(--warn); }
+.toast.error > svg[data-kind="error"] { display: block; color: var(--danger); }
+/* The colour carries the same weight as the icon: a warning is yellow, an
+   error red, and the text stays at full contrast on both grounds. */
+.toast.warn { background: #241d13; border-color: #5b4526; }
+.toast.error { background: #27141b; border-color: #6d2b3e; }
 
 /* --------------------------------------------------- ohjelmaopas */
 
@@ -813,12 +847,27 @@ dialog::backdrop { background: rgba(5, 6, 10, .66); backdrop-filter: blur(2px); 
 }
 .editor-toolbar select { max-width: 45%; }
 .organize-list { height: 364px; min-height: 104px; overflow-y: auto; border: 1px solid var(--border); border-radius: 8px; }
-.organize-row { height: 52px; display: flex; align-items: center; gap: 8px; padding: 6px 10px; border-bottom: 1px solid var(--border); }
+.organize-row { height: 52px; display: flex; align-items: center; gap: 8px; padding: 6px 10px; border-bottom: 1px solid var(--border); background: var(--panel); }
 .organize-row label { display: flex; align-items: center; gap: 10px; flex: 1; min-width: 0; cursor: pointer; }
 .organize-row label span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .organize-row input { accent-color: var(--accent); flex-shrink: 0; }
 .organize-row.is-hidden label span { color: var(--muted); text-decoration: line-through; }
-.organize-row button:disabled { opacity: .3; }
+
+/* The drag handle. touch-action keeps a finger on it from scrolling the
+   list instead of picking the row up. */
+.organize-grip { display: grid; place-items: center; flex: none; width: 30px; height: 34px; padding: 0;
+  border: 0; border-radius: 7px; background: transparent; color: var(--muted); cursor: grab; touch-action: none; }
+.organize-grip > svg { display: block; width: 16px; height: 16px; fill: currentColor; }
+.organize-grip:hover:enabled { color: var(--text); background: var(--panel-2); }
+.organize-grip:disabled { opacity: .3; cursor: default; }
+.organize-grip:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; }
+.organize-list.is-dragging { user-select: none; }
+.organize-list.is-dragging .organize-grip { cursor: grabbing; }
+/* The row the floating copy came from: a gap that shows where it would land. */
+.organize-row.is-dragging { background: var(--panel-2); }
+.organize-row.is-dragging > * { opacity: .25; }
+.organize-ghost { position: fixed; z-index: 3; pointer-events: none; border: 1px solid var(--accent);
+  border-radius: 8px; box-shadow: 0 14px 34px rgba(0, 0, 0, .55); }
 .editor-actions span { flex: 1; color: var(--muted); font-size: 12px; }
 .programme-form { padding: 8px 10px; border-bottom: 1px solid var(--border); background: var(--panel); }
 .programme-form input { min-width: 180px; }

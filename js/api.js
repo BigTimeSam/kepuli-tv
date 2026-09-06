@@ -273,13 +273,36 @@ export class ApiError extends Error {
 const RE_GITHUB_BLOB = /^https?:\/\/github\.com\/([^/]+)\/([^/]+)\/blob\/(.+?)(?:\?.*)?$/i;
 
 /** Some of the server's stream_icon values are junk ("[", "[\"\"]"). */
-function safeUrl(value) {
+export function safeUrl(value) {
   if (typeof value !== 'string') return null;
   const trimmed = value.trim();
   if (!/^https?:\/\//i.test(trimmed)) return null;
   const gh = RE_GITHUB_BLOB.exec(trimmed);
-  if (gh) return `https://raw.githubusercontent.com/${gh[1]}/${gh[2]}/${gh[3]}`;
-  return trimmed;
+  const url = gh ? `https://raw.githubusercontent.com/${gh[1]}/${gh[2]}/${gh[3]}` : trimmed;
+  return namesAFile(url) ? url : null;
+}
+
+/**
+ * Does the address end in a file name? Part of the provider's catalogue
+ * stops at the folder — "https://image.tmdb.org/t/p/w600_and_h900_bestv2"
+ * where a poster's path belongs, without the
+ * "/cuFPxoFopAjFUz4oIMUzpzeTA8I.jpg" that would make it one — and every
+ * row carrying one asked the CDN for a directory and got an error back.
+ * The picture would have been hidden a moment later anyway; an address
+ * that cannot name a picture is dropped before it is ever requested.
+ *
+ * The test is the last step of the path, not a list of image extensions: a
+ * name is a name whatever it ends in. A query is not judged at all — the
+ * name may well be in it, as in "…/logo.php?id=12" and "…/logo?ch=5" —
+ * because the point here is to drop what is known to be incomplete, not to
+ * guess at what might work.
+ */
+function namesAFile(url) {
+  let parsed;
+  try { parsed = new URL(url); } catch { return false; }
+  if (parsed.search) return true;
+  const path = parsed.pathname;
+  return path.slice(path.lastIndexOf('/') + 1).includes('.');
 }
 
 /** The server returns the whole ffprobe dump; only the essentials are kept. */

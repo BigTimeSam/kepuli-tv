@@ -56,12 +56,14 @@ export class VirtualList {
 
   refresh() { this.paint(); }
 
-  /** Repaints one row if it is visible. */
+  /** Repaints one row if it is visible, keeping the focus it holds. */
   refreshRow(index) {
     if (!this.nodes.has(index)) return;
+    const held = this.heldFocus();
     const fresh = this.renderRow(index);
     this.window.replaceChild(fresh, this.nodes.get(index));
     this.nodes.set(index, fresh);
+    if (held?.index === index) descend(fresh, held.path)?.focus?.({ preventScroll: true });
   }
 
   offsetOf(index) {
@@ -103,6 +105,11 @@ export class VirtualList {
 
   paint() {
     const [first, last] = this.visibleRange();
+    // Every paint builds the rows again, so a control the viewer is using
+    // would lose the focus under it — and a paint is queued by a scroll,
+    // which is exactly what moving a row with the keyboard causes. The
+    // place the focus held is found again in the row that replaces it.
+    const held = this.heldFocus();
     const frag = document.createDocumentFragment();
     this.nodes.clear();
     for (let i = first; i < last; i++) {
@@ -112,8 +119,38 @@ export class VirtualList {
     }
     this.window.replaceChildren(frag);
     this.window.style.transform = `translateY(${this.offsetOf(first)}px)`;
+    if (held) {
+      // preventScroll: putting the focus back must not scroll the list out
+      // from under the scroll that caused this paint.
+      descend(this.nodes.get(held.index), held.path)?.focus?.({ preventScroll: true });
+    }
     if (this.onVisible) this.onVisible(first, last);
   }
+
+  /** Which row the focus is in, and where inside it. */
+  heldFocus() {
+    const active = document.activeElement;
+    if (!active || !this.window.contains(active)) return null;
+    for (const [index, node] of this.nodes) {
+      if (node.contains(active)) return { index, path: pathTo(node, active) };
+    }
+    return null;
+  }
+}
+
+/** A node's position inside a row, as the child index at every step down. */
+function pathTo(root, node) {
+  const path = [];
+  for (let el = node; el && el !== root && el.parentElement; el = el.parentElement) {
+    path.unshift([...el.parentElement.children].indexOf(el));
+  }
+  return path;
+}
+
+function descend(root, path) {
+  let el = root;
+  for (const i of path) el = el?.children[i];
+  return el;
 }
 
 /** Cumulative start offsets; offsets[count] = total height. */

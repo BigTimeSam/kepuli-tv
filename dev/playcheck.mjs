@@ -19,6 +19,15 @@
 //                                     limit must end it with a message, as a
 //                                     toast over the rows, rather than the
 //                                     dialog staying open for good
+//   node dev/playcheck.mjs restore    the address follows the path and the
+//                                     title says it in words; a refresh comes
+//                                     back to the group, the topic and the
+//                                     open series from the address alone, a
+//                                     typed address navigates, and the stored
+//                                     view brings the tab, group and topic
+//                                     back to a player opened fresh, while a
+//                                     search, an unknown topic and an unknown
+//                                     group do not take the list with them
 //   node dev/playcheck.mjs search     a search takes over from the group and
 //                                     clearing it brings the group back
 //   node dev/playcheck.mjs paste      a whole address pasted into the Server
@@ -28,7 +37,9 @@
 //                                     and f alone goes to full screen while
 //                                     Cmd+F and Ctrl+F are left to the browser
 //   node dev/playcheck.mjs switching  a channel switch during the wait before
-//                                     a reconnect leaves the new channel alone
+//                                     a reconnect leaves the new channel alone,
+//                                     and the tab's title names what is playing
+//                                     before the path the list stands on
 //   node dev/playcheck.mjs resume     a film with a resume position, abandoned
 //                                     before its metadata arrived for an
 //                                     episode, does not drag the episode to
@@ -56,10 +67,14 @@
 //                                     run is a connect dialog rather than
 //                                     settings
 //   node dev/playcheck.mjs subtitles  the cues are drawn by the layer, a
-//                                     two-line cue in one box; a double click
-//                                     takes the wrapper to full screen with
-//                                     the layer; a file without subtitles
-//                                     says so in the details
+//                                     two-line cue in one box; the selector
+//                                     changes the track and switches the
+//                                     subtitles off without an error, and
+//                                     the language it chose opens the next
+//                                     episode; a double click takes the
+//                                     wrapper to full screen with the
+//                                     layer; a file without subtitles says
+//                                     so in the details
 //
 // The driver is the one dev/store-screenshots.mjs uses, from the same
 // profile (KEPULI_DEV_PROFILE) and port (KEPULI_DEV_PORT), and it needs the
@@ -125,6 +140,32 @@ const videoState = (page) => evaluate(page, `(() => { const v = document.getElem
     overlay: ov && !ov.hidden ? ov.textContent.trim().replace(/\\s+/g, ' ').slice(0, 120) : null,
     actions: [...document.querySelectorAll('#overlay button')].map((b) => b.textContent.trim()) }; })()`);
 
+// An error thrown from a control's own handler reaches no catch of the
+// app's: the page carries on with the work half done and says nothing. The
+// scenario has to listen for it, so that "the picture still runs" is not
+// mistaken for "nothing went wrong".
+const watchErrors = (page) => evaluate(page, `(() => { window.__thrown = [];
+  addEventListener('error', (e) => window.__thrown.push((e.error && e.error.message) || e.message));
+  addEventListener('unhandledrejection', (e) => window.__thrown.push(String((e.reason && e.reason.message) || e.reason)));
+  return true; })()`);
+const errorsSeen = (page) => evaluate(page, `window.__thrown.slice()`);
+
+/** The viewer's own choice from the player's subtitle selector, by its name
+ *  in the menu; the name chosen, or null when the menu does not offer it. */
+const pickSubtitle = (page, name) => evaluate(page, `(() => { const select = document.getElementById('subs');
+  const option = [...select.options].find((o) => o.textContent.startsWith(${JSON.stringify(name)}));
+  if (!option) return null;
+  select.value = option.value;
+  select.dispatchEvent(new Event('change', { bubbles: true }));
+  return option.textContent; })()`, { gesture: true });
+
+/** What the player shows: the choice in the menu, the track under the
+ *  picture, and the boxes the layer is drawing. */
+const subtitleState = (page) => evaluate(page, `(() => { const v = document.getElementById('video');
+  return { picked: document.getElementById('subs').value,
+    showing: [...v.textTracks].filter((t) => t.mode === 'showing').map((t) => t.label),
+    boxes: document.querySelectorAll('#subdisplay .cue').length }; })()`);
+
 /* ---------------------------------------------------------------- set-up */
 
 async function checkModal(page, selector, name) {
@@ -149,6 +190,9 @@ async function checkModal(page, selector, name) {
 }
 
 /** A fresh player pointed at the mock server, connected and throttled. */
+/** The player's address without the place written into it: a fresh start. */
+const bare = (url) => url.split('#')[0];
+
 async function freshPlayer(target, page) {
   // Screenshot inspections may leave a narrow emulated viewport behind.
   await page.call('Emulation.setDeviceMetricsOverride', { width: 1280, height: 800, deviceScaleFactor: 1, mobile: false });
@@ -170,7 +214,7 @@ async function freshPlayer(target, page) {
   await sleep(500);
   await evaluate(page, `indexedDB.databases().then((dbs) => Promise.all(dbs.map((d) => new Promise((resolve) => {
     const req = indexedDB.deleteDatabase(d.name); req.onsuccess = req.onerror = req.onblocked = () => resolve(d.name); }))))`);
-  await page.call('Page.navigate', { url: target.url });
+  await page.call('Page.navigate', { url: bare(target.url) });
   await sleep(1000);
   await waitFor(page, CONNECTED, 'the connection');
 }
@@ -430,7 +474,13 @@ async function switching(page, { requests }) {
   await sleep(5000);
   // The stream address itself, not the HLS segments that follow it.
   const ts = requests.slice(from).filter((u) => /^\/live\/[^/]+\/[^/]+\/\d+\.ts(\?|$)/.test(u));
-  return { ok: ts.length === 1, detail: `${ts.length} stream request(s) after the switch: ${ts.join(' ')}` };
+  // What is playing is the head of the tab's title, and the path where the
+  // list stands follows it: a window of tabs says which one is the player
+  // and what it is playing without being opened.
+  const titled = await evaluate(page, `(() => { const name = document.getElementById('now-title').textContent;
+    return { ok: document.title.startsWith(name + ' · Channels › '), title: document.title }; })()`);
+  if (!titled.ok) return { ok: false, detail: `the title does not name what is playing: ${JSON.stringify(titled.title)}` };
+  return { ok: ts.length === 1, detail: `${ts.length} stream request(s) after the switch: ${ts.join(' ')}; title ${JSON.stringify(titled.title)}` };
 }
 
 /**
@@ -520,7 +570,10 @@ async function accounts(page, { target }) {
     };
     const reconnectOn = async (port) => {
       await evaluate(page, `chrome.storage.local.get('config').then((got) => chrome.storage.local.set({ config: { ...got.config, port: ${JSON.stringify(String(port))} }, ui: { tab: 'live' } }))`);
-      await page.call('Page.navigate', { url: target.url });
+      // Without the place in it: two addresses that differ only in their
+      // fragment are one document to the browser, and the player would go
+      // on running with the previous account's lists in memory.
+      await page.call('Page.navigate', { url: bare(target.url) });
       await sleep(1000);
       try {
         await waitFor(page, CONNECTED, `the connection on port ${port}`);
@@ -653,7 +706,30 @@ async function subtitles(page) {
     return { render: document.body.dataset.subrender, showing: shown.length, active: shown[0] ? shown[0].activeCues.length : 0,
       boxes: document.querySelectorAll('#subdisplay .cue').length, meta: document.querySelector('#infostrip .playback-fact-subtitles dd').textContent }; })()`);
   if (first.render !== 'overlay' || first.showing !== 1 || !first.boxes || first.boxes !== first.active) return { ok: false, detail: `the layer: ${JSON.stringify(first)}` };
-  if (!/^2.*English.*Finnish/.test(first.meta)) return { ok: false, detail: `the details say ${JSON.stringify(first.meta)}` };
+  if (!/^English, Finnish/.test(first.meta)) return { ok: false, detail: `the details say ${JSON.stringify(first.meta)}` };
+
+  // The viewer's own choice from the selector, which nothing here used to
+  // make: the track under the picture follows it, "No subtitles" empties
+  // the layer, and neither leaves an error behind — a choice of track was
+  // reported as taking the whole player down with it.
+  await watchErrors(page);
+  const finnish = await pickSubtitle(page, 'Finnish');
+  if (!finnish) return { ok: false, detail: 'the selector offers no Finnish track' };
+  await waitFor(page, `document.querySelectorAll('#subdisplay .cue').length > 0`, 'a cue from the chosen track');
+  const chosen = await subtitleState(page);
+  if (chosen.showing.length !== 1 || chosen.showing[0] !== finnish || chosen.picked === 'off') {
+    return { ok: false, detail: `after choosing ${finnish}: ${JSON.stringify(chosen)}` };
+  }
+  await pickSubtitle(page, 'No subtitles');
+  await waitFor(page, `document.querySelectorAll('#subdisplay .cue').length === 0`, 'the layer to empty');
+  const off = await subtitleState(page);
+  if (off.showing.length || off.picked !== 'off') return { ok: false, detail: `after switching off: ${JSON.stringify(off)}` };
+  // Back on, so that the rest of the scenario has a track to work with.
+  await pickSubtitle(page, 'English');
+  await waitFor(page, `document.querySelectorAll('#subdisplay .cue').length > 0`, 'the cues to return');
+  const broke = await errorsSeen(page);
+  if (broke.length) return { ok: false, detail: `choosing a track threw: ${broke.join(' / ')}` };
+
   // A two-line cue is one box with the lines stacked inside it.
   const box = await evaluate(page, `(() => { const v = document.getElementById('video'); const tr = [...v.textTracks].find((t) => t.mode === 'showing');
     for (let i = tr.cues.length - 1; i >= 0; i--) tr.removeCue(tr.cues[i]);
@@ -684,6 +760,17 @@ async function subtitles(page) {
   if (!await evaluate(page, `document.body.dataset.subrender === 'overlay' && document.querySelectorAll('#subdisplay .cue').length === 1`)) {
     return { ok: false, detail: 'subtitle overlay did not return after full screen' };
   }
+  // The choice is a language, and the next episode opens on it: the track
+  // numbers are the file's own and say nothing about the one after it.
+  await pickSubtitle(page, 'Finnish');
+  await sleep(500);
+  await playEpisode(page, 2);
+  await waitFor(page, `document.querySelectorAll('#subdisplay .cue').length > 0`, 'a cue in the next episode');
+  const remembered = await subtitleState(page);
+  if (!remembered.showing[0] || !remembered.showing[0].startsWith('Finnish')) {
+    return { ok: false, detail: `the next episode opened on ${JSON.stringify(remembered)}` };
+  }
+
   // A file with no subtitles: the details below the player say so.
   await evaluate(page, `document.querySelector('#tabs [data-tab="movie"]').click()`);
   await waitFor(page, `document.querySelectorAll('#groups .group').length > 1`, 'the movie groups');
@@ -691,7 +778,7 @@ async function subtitles(page) {
   await click(page, '#list', 'Crossfire Alley', { gesture: true });
   await waitFor(page, PLAYING, 'the movie');
   await waitFor(page, `/No subtitles/.test((document.querySelector('#infostrip .playback-fact-subtitles dd') || {}).textContent || '')`, 'the details of the movie', 10000);
-  return { ok: true, detail: `one box for ${first.active} cue, two lines in one box, full screen on ${full.element} with ${full.render} subtitles, the movie says "No subtitles"` };
+  return { ok: true, detail: `one box for ${first.active} cue, two lines in one box, the selector switches track and off without a word of complaint, full screen on ${full.element} with ${full.render} subtitles, ${remembered.showing[0]} remembered for the next episode, the movie says "No subtitles"` };
 }
 
 /**
@@ -781,7 +868,7 @@ async function audio(page, { requests, target }) {
 
   // The remembered language, as the settings hold it between episodes.
   await evaluate(page, `chrome.storage.local.set({ settings: { lang: 'en', epgEnabled: true, resumeEnabled: false, subtitleLang: 'eng', audioLang: 'fi' } })`);
-  await page.call('Page.navigate', { url: target.url });
+  await page.call('Page.navigate', { url: bare(target.url) });
   await sleep(1000);
   await waitFor(page, CONNECTED, 'the connection after the reload');
   const finnish = await heard(2);
@@ -879,7 +966,7 @@ async function settings(page, { requests, target }) {
 
   // Existing M3U credentials do not require pasting the URL to save preferences.
   await evaluate(page, `chrome.storage.local.get('config').then(({ config }) => chrome.storage.local.set({ config: { ...config, sourceMode: 'm3u' } }))`);
-  await page.call('Page.navigate', { url: target.url });
+  await page.call('Page.navigate', { url: bare(target.url) });
   await waitFor(page, CONNECTED, 'M3U connection');
   await open();
   assert(await evaluate(page, `document.activeElement.id === 'f-paste'`), 'M3U focused a hidden field');
@@ -940,7 +1027,7 @@ async function settings(page, { requests, target }) {
   // Without credentials the dialog is not settings at all: there is nothing
   // to set until there is something to connect to.
   await evaluate(page, `chrome.storage.local.remove('config')`);
-  await page.call('Page.navigate', { url: target.url });
+  await page.call('Page.navigate', { url: bare(target.url) });
   await sleep(1200);
   await waitFor(page, `document.getElementById('setup').open`, 'the first-run dialog', 10000);
   const first = await evaluate(page, `({ rail: getComputedStyle(document.getElementById('setup-tabs')).display,
@@ -963,6 +1050,40 @@ async function organize(page, { target }) {
     await waitFor(page, `!document.getElementById('channel-editor').open`, 'saved channel editor');
   };
   const names = () => evaluate(page, `[...document.querySelectorAll('#list .row-name')].map((n) => n.title)`);
+
+  // Where the list starts is a setting; the arrangement made below then has
+  // the last word over it.
+  const setSort = async (value) => {
+    await evaluate(page, `document.getElementById('btn-settings').click()`, { gesture: true });
+    await waitFor(page, `document.getElementById('setup').open`, 'the settings dialog');
+    await evaluate(page, `document.querySelector('#setup-tabs [data-panel="general"]').click()`);
+    await evaluate(page, `(() => { const c = document.getElementById('f-channelsort'); c.value = ${JSON.stringify(value)};
+      c.dispatchEvent(new Event('input', { bubbles: true })); c.dispatchEvent(new Event('change', { bubbles: true })); })()`);
+    await evaluate(page, `document.getElementById('f-save').click()`, { gesture: true });
+    await waitFor(page, `!document.getElementById('setup').open`, `the saved channel order (${value})`);
+  };
+  // The list paints only what is on screen, so it is judged by its two ends.
+  const ends = async () => {
+    await evaluate(page, `document.getElementById('list').scrollTop = 0`);
+    await sleep(250);
+    const first = (await names())[0];
+    await evaluate(page, `document.getElementById('list').scrollTop = 1e7`);
+    await sleep(250);
+    const last = (await names()).at(-1);
+    await evaluate(page, `document.getElementById('list').scrollTop = 0`);
+    await sleep(250);
+    return { first, last };
+  };
+  const az = await ends();
+  await setSort('za');
+  const za = await ends();
+  assert(za.first === az.last && za.last === az.first, `Z-A did not mirror A-Z: ${JSON.stringify(az)} then ${JSON.stringify(za)}`);
+  await setSort('num');
+  const num = await ends();
+  assert(num.first && num.first !== az.first && num.first !== za.first, `the channel number gave an alphabetical order: ${JSON.stringify(num)}`);
+  await setSort('az');
+  assert(JSON.stringify(await ends()) === JSON.stringify(az), 'the alphabetical order did not come back');
+
   await open();
   const original = await evaluate(page, `[...document.querySelectorAll('.organize-row')].map((n) => ({id:n.dataset.id,name:n.querySelector('label span').textContent}))`);
   await checkModal(page, '#channel-editor', 'channels');
@@ -977,12 +1098,38 @@ async function organize(page, { target }) {
     await open();
     assert(await evaluate(page, `document.querySelector('.organize-row input').checked`), `${control} retained an unsaved channel draft`);
   }
-  await evaluate(page, `document.querySelectorAll('.organize-row')[1].querySelector('[data-action="up"]').click()`);
+  // Drag row 1 onto row 0's place: the rows underneath shuffle live and the
+  // floating copy goes when it is let go.
+  const grip = async (index) => evaluate(page, `(() => { const r = document.querySelectorAll('.organize-row')[${index}].querySelector('[data-action="move"]').getBoundingClientRect();
+    return { x: Math.round(r.left + r.width / 2), y: Math.round(r.top + r.height / 2) }; })()`);
+  const mouse = (type, x, y, buttons = 1) => page.call('Input.dispatchMouseEvent', { type, x, y, button: 'left', buttons, clickCount: 1 });
+  const shown = () => evaluate(page, `[...document.querySelectorAll('.organize-row')].map((n) => n.dataset.id)`);
+  const from = await grip(1);
+  const drag = async (dy) => {
+    await mouse('mouseMoved', from.x, from.y, 0);
+    await mouse('mousePressed', from.x, from.y);
+    await mouse('mouseMoved', from.x, from.y - 20);
+    assert(await evaluate(page, `document.querySelectorAll('.organize-ghost').length === 1`), 'no floating copy while dragging');
+    await mouse('mouseMoved', from.x, from.y - dy);
+    assert((await shown())[0] === original[1].id, 'the dragged row did not follow the pointer');
+  };
+  // Escape puts the row back and leaves the editor open; the release that
+  // follows belongs to a drag that is already over.
+  await drag(52);
+  await pressKey(page, 'Escape', 'Escape', 27);
+  assert(await evaluate(page, `document.getElementById('channel-editor').open && !document.querySelector('.organize-ghost')`),
+    'Escape during a drag closed the editor or left the floating copy behind');
+  assert((await shown())[0] === original[0].id, 'Escape during a drag kept the move');
+  await mouse('mouseReleased', from.x, from.y - 52, 0);
+  await drag(52);
+  await mouse('mouseReleased', from.x, from.y - 52, 0);
+  assert(await evaluate(page, `!document.querySelector('.organize-ghost')`), 'the floating copy outlived the drop');
+  assert((await shown()).slice(0, 2).join() === [original[1].id, original[0].id].join(), 'the drop did not hold');
   await evaluate(page, `document.querySelectorAll('.organize-row')[1].querySelector('input').click()`);
   await save();
   assert((await names())[0] === original[1].name, 'custom order not applied to channel list');
   assert(!(await names()).includes(original[0].name), 'hidden channel remained in the channel list');
-  await page.call('Page.navigate', { url: target.url });
+  await page.call('Page.navigate', { url: bare(target.url) });
   await waitFor(page, CONNECTED, 'reload with preferences');
   await waitFor(page, `document.querySelectorAll('#list .row').length > 0`, 'reloaded list');
   assert((await names())[0] === original[1].name, 'custom order lost on reload');
@@ -1004,7 +1151,215 @@ async function organize(page, { target }) {
   await evaluate(page, `document.getElementById('channel-editor-kind').value='categories'; document.getElementById('channel-editor-group').value=''; document.getElementById('channel-editor-kind').dispatchEvent(new Event('input')); document.getElementById('channel-editor-show').click()`);
   await save();
   assert(await evaluate(page, `[...document.querySelectorAll('#groups .group')].some((g) => g.textContent.includes(${JSON.stringify(group)}))`), 'hidden category group was not restorable');
-  return { ok: true, detail: 'channel hide/order/save/reload; Cancel preserves saved data; hidden channels and categories restored' };
+
+  // The keyboard reaches the whole list without a drag: End takes the
+  // handle's row to the bottom and Home brings it back, the focus travelling
+  // with it. Nothing here is saved.
+  const before = await names();
+  await open();
+  const move = (index, key) => evaluate(page, `document.querySelectorAll('.organize-row')[${index}]
+    .querySelector('[data-action="move"]').dispatchEvent(new KeyboardEvent('keydown', { key: ${JSON.stringify(key)}, bubbles: true }))`);
+  assert(await evaluate(page, `document.getElementById('channel-editor-reset').disabled`), 'Reset order was offered with nothing arranged');
+  const top = (await shown())[0];
+  await move(0, 'End');
+  assert((await shown()).at(-1) === top, 'End did not take the row to the bottom');
+  assert(await evaluate(page, `document.activeElement.dataset.action === 'move'`), 'the handle lost the focus after a keyboard move');
+  assert(!(await evaluate(page, `document.getElementById('channel-editor-reset').disabled`)), 'Reset order stayed off after an arrangement');
+  await move((await shown()).length - 1, 'Home');
+  assert((await shown())[0] === top, 'Home did not bring the row back to the top');
+  await evaluate(page, `document.getElementById('channel-editor-cancel').click()`);
+  assert((await names()).join() === before.join(), 'a cancelled keyboard move reached the channel list');
+  return { ok: true, detail: 'channel order from Settings (A-Z, Z-A, channel number); drag and drop with a live shuffle; End/Home from the handle; hide/save/reload; Cancel preserves saved data; hidden channels and categories restored' };
+}
+
+/**
+ * Where the viewer was is where the player opens again, by two routes that
+ * answer different questions.
+ *
+ * The address names this tab's place — the tab, the group, the topic and
+ * the series drilled into — and is written as each list settles, so a
+ * refresh comes back into it with the stored view deleted underneath.
+ * The stored view names the place any tab last settled on, and it is what
+ * the toolbar icon opens on once the tab itself has been closed.
+ *
+ * What the account no longer offers is dropped by either route rather than
+ * restored onto an empty list, and a search is a detour rather than a
+ * place: neither brings one back.
+ */
+async function restore(page, { target }) {
+  const assert = (ok, message) => { if (!ok) throw new Error(message); };
+  const active = () => evaluate(page, ACTIVE_GROUP);
+  const topic = () => evaluate(page, `((document.querySelector('#subcats .chip.active .chip-main') || {}).textContent || '').trim().replace(/\\s*\\d+$/, '')`);
+  const rows = () => evaluate(page, `document.querySelectorAll('#list .row').length`);
+  const tab = () => evaluate(page, `document.querySelector('#tabs [aria-selected="true"]').dataset.tab`);
+  const stored = () => evaluate(page, `(async () => (await chrome.storage.local.get('ui')).ui)()`);
+  const store = (patch) => evaluate(page, `(async () => {
+    const { ui } = await chrome.storage.local.get('ui');
+    await chrome.storage.local.set({ ui: { ...ui, ...${JSON.stringify(patch)} } });
+  })()`);
+  const settled = async (what) => {
+    await waitFor(page, CONNECTED, `the connection after the reload (${what})`);
+    await waitFor(page, `document.querySelectorAll('#list .row').length > 0`, `the restored list (${what})`);
+  };
+  // The toolbar icon after the tab has been closed: a fresh address, so
+  // only the stored view can say where the player was.
+  const reopen = async (what) => {
+    await page.call('Page.navigate', { url: bare(target.url) });
+    await settled(what);
+  };
+  // F5: the address stands, and it is the address the place comes back from.
+  const refresh = async (what) => {
+    await page.call('Page.reload');
+    await settled(what);
+  };
+  const hash = () => evaluate(page, `location.hash`);
+  const title = () => evaluate(page, `document.title`);
+  const crumb = () => evaluate(page, `((document.querySelector('#crumbs span') || {}).textContent || '').trim()`);
+  // Nothing of the stored view is left: what comes back after this came
+  // back from the address.
+  const forget = () => evaluate(page, `chrome.storage.local.remove('ui')`);
+
+  // A group other than the one the player opens on, and a topic within it.
+  await openLiveList(page, 1);
+  await evaluate(page, `document.querySelectorAll('#groups .group')[3].click()`);
+  await waitFor(page, `document.querySelectorAll('#subcats .chip').length > 1`, 'the topic bar');
+  const group = await active();
+  await evaluate(page, `document.querySelectorAll('#subcats .chip')[1].querySelector('.chip-main').click()`);
+  await waitFor(page, `document.querySelectorAll('#subcats .chip')[1].classList.contains('active')`, 'the chosen topic');
+  const chosen = await topic();
+  const narrowed = await rows();
+  assert(chosen && narrowed > 0, `no topic to restore: "${chosen}", ${narrowed} rows`);
+
+  // The address names the place, and the tab's title says it in words.
+  // The sidebar row carries the favourite star in its text; the name alone
+  // is what the address and the title are made of.
+  const groupName = group.replace(/^[^\p{L}\p{N}]+/u, '');
+  const chosenHash = await hash();
+  assert(chosenHash === `#/live/${encodeURIComponent(groupName)}/${chosenHash.split('/')[3]}` && chosenHash.split('/').length === 4,
+    `the address does not name the topic: "${chosenHash}" for "${groupName}"`);
+  assert(await title() === `Channels › ${groupName} › ${chosen} — Kepuli-TV`,
+    `the title does not follow the path: "${await title()}"`);
+
+  // A refresh keeps the address, and the address alone brings the place
+  // back: the stored view is gone before the page reloads.
+  await forget();
+  await refresh('the address');
+  assert(await hash() === chosenHash, `the address changed over the refresh: "${chosenHash}" → "${await hash()}"`);
+  assert(await active() === group, `the address lost the group: "${group}" → "${await active()}"`);
+  assert(await topic() === chosen, `the address lost the topic: "${chosen}" → "${await topic()}"`);
+  assert(await rows() === narrowed, `the address restored a different list: ${narrowed} → ${await rows()} rows`);
+
+  await reopen('group and topic');
+  assert(await active() === group, `the group was not restored: "${group}" → "${await active()}"`);
+  assert(await topic() === chosen, `the topic was not restored: "${chosen}" → "${await topic()}"`);
+  assert(await rows() === narrowed, `the restored list differs: ${narrowed} → ${await rows()} rows`);
+
+  // A search is a detour rather than a place: it empties the group while it
+  // runs, and a reload during one returns to where the search started. The
+  // address says so while the search is on screen — it is the group the
+  // search took over from, not the whole list it is reading — and the title
+  // says what is on screen, the search included.
+  await evaluate(page, `(() => { const s = document.getElementById('search'); s.value = 'news'; s.dispatchEvent(new Event('input')); })()`);
+  await waitFor(page, `${ACTIVE_GROUP}.startsWith('All') && document.querySelectorAll('#list .row').length > 0`, 'the search results', 15000);
+  assert(await hash() === chosenHash, `a search took the address with it: "${chosenHash}" → "${await hash()}"`);
+  assert(await title() === 'Channels › Search: news — Kepuli-TV', `the title does not name the search: "${await title()}"`);
+  await refresh('a search in the address');
+  assert(await active() === group, `a refresh during a search lost the group: "${group}" → "${await active()}"`);
+  assert(await topic() === chosen, `a refresh during a search lost the topic: "${chosen}" → "${await topic()}"`);
+  assert(await evaluate(page, `document.getElementById('search').value === ''`), 'the search itself came back with the group');
+
+  await evaluate(page, `(() => { const s = document.getElementById('search'); s.value = 'news'; s.dispatchEvent(new Event('input')); })()`);
+  await waitFor(page, `${ACTIVE_GROUP}.startsWith('All') && document.querySelectorAll('#list .row').length > 0`, 'the search results again', 15000);
+  await reopen('a search');
+  assert(await active() === group, `a search took the stored view with it: "${group}" → "${await active()}"`);
+  assert(await topic() === chosen, `a search took the stored topic with it: "${chosen}" → "${await topic()}"`);
+
+  // A topic the account no longer offers leaves the group standing.
+  await store({ sub: 'no-such-category' });
+  await reopen('an unknown topic');
+  assert(await active() === group, `an unknown topic lost the group: "${group}" → "${await active()}"`);
+  assert(await evaluate(page, `document.querySelectorAll('#subcats .chip')[0].classList.contains('active')`), 'an unknown topic was restored onto the topic bar');
+  assert(await rows() > narrowed, `an unknown topic kept the list narrowed: ${await rows()} rows`);
+
+  // Nor does an unknown group leave the list empty under a sidebar pointing
+  // at nothing: the stored view is not tied to an account, and a provider
+  // renames its categories.
+  await store({ group: 'Atlantis', sub: null });
+  await reopen('an unknown group');
+  assert(await active() !== 'Atlantis', 'an unknown group was restored');
+  assert(await rows() > 0, 'an unknown group left the list empty');
+
+  // The tab and its own group, which is a second entry in the same store.
+  await evaluate(page, `document.querySelector('#tabs [data-tab="movie"]').click()`);
+  await waitFor(page, `document.querySelectorAll('#list .row').length > 0`, 'the movie list');
+  const movies = await active();
+  await reopen('the tab');
+  assert(await tab() === 'movie', `the tab was not restored: "${await tab()}"`);
+  assert(await active() === movies, `the movie group was not restored: "${movies}" → "${await active()}"`);
+
+  // A series is a place of its own, and the deepest one the list has: the
+  // address carries it, and a refresh comes back into the episodes rather
+  // than to the list they were opened from.
+  await evaluate(page, `document.querySelector('#tabs [data-tab="series"]').click()`);
+  await waitFor(page, `document.querySelectorAll('#list .row').length > 0`, 'the series list');
+  await evaluate(page, `document.querySelectorAll('#list .row')[0].click()`);
+  await waitFor(page, `!document.getElementById('detail').hidden && document.querySelectorAll('#list .row').length > 0`, 'the episodes');
+  const series = await crumb();
+  const episodes = await rows();
+  assert(series && (await hash()).includes('?series='), `the address does not name the series: "${await hash()}"`);
+  assert((await title()).startsWith(`Series › `) && (await title()).includes(series), `the title does not name the series: "${await title()}"`);
+  await forget();
+  await refresh('a series');
+  await waitFor(page, `!document.getElementById('detail').hidden`, 'the restored episodes');
+  assert(await crumb() === series, `the series was not restored: "${series}" → "${await crumb()}"`);
+  assert(await rows() === episodes, `the restored episode list differs: ${episodes} → ${await rows()} rows`);
+
+  // The back button leaves the series, and the address follows it out.
+  await evaluate(page, `document.querySelector('#crumbs button').click()`);
+  await waitFor(page, `document.getElementById('crumbs').hidden`, 'the list behind the series');
+  assert(!(await hash()).includes('series='), `the address kept the series after the back button: "${await hash()}"`);
+
+  // An address typed into the bar is a navigation like any other.
+  await evaluate(page, `location.hash = '#/live/' + encodeURIComponent(${JSON.stringify(groupName)})`);
+  await waitFor(page, `document.querySelector('#tabs [aria-selected="true"]').dataset.tab === 'live'`, 'the tab the address named');
+  await waitFor(page, `${ACTIVE_GROUP} === ${JSON.stringify(group)}`, 'the group the address named');
+
+  // A favourite category is a place of its own inside the favourites, and
+  // the address carries it as well: a refresh comes back into the category
+  // rather than to the collection's root.
+  await openLiveList(page, 1);
+  await waitFor(page, `document.querySelectorAll('#subcats .chip .chip-star').length > 0`, 'a topic to make a favourite');
+  await evaluate(page, `document.querySelector('#subcats .chip .chip-star').click()`);
+  await evaluate(page, `document.querySelector('#tabs [data-tab="fav"]').click()`);
+  await waitFor(page, `document.querySelectorAll('#list .row').length > 0`, 'the favourites');
+  await evaluate(page, `document.querySelector('#list .row').click()`);
+  await waitFor(page, `!document.getElementById('crumbs').hidden && document.querySelectorAll('#list .row').length > 0`, 'the category contents');
+  const category = await crumb();
+  const inside = await rows();
+  assert((await hash()).startsWith('#/fav?cat='), `the address does not name the category: "${await hash()}"`);
+  await forget();
+  await refresh('a favourite category');
+  await waitFor(page, `!document.getElementById('crumbs').hidden`, 'the restored category');
+  assert(await crumb() === category, `the category was not restored: "${category}" → "${await crumb()}"`);
+  assert(await rows() === inside, `the restored category differs: ${inside} → ${await rows()} rows`);
+  await evaluate(page, `document.querySelector('#crumbs button').click()`);
+  await openLiveList(page, 1);
+
+  // "All" is a choice too, and a costly one: it is the whole type rather
+  // than a group of it. The address tells it apart from a group not yet
+  // chosen, so a refresh comes back to the whole list rather than to the
+  // first group the player would otherwise open on.
+  await evaluate(page, `document.querySelector('#groups .group.all').click()`);
+  await waitFor(page, `${ACTIVE_GROUP}.startsWith('All') && document.querySelectorAll('#list .row').length > 0`, 'the whole channel list', 20000);
+  const all = await rows();
+  assert(await hash() === '#/live/-', `All is not in the address: "${await hash()}"`);
+  await forget();
+  await refresh('All');
+  assert((await active()).startsWith('All'), `All was not restored: "${await active()}"`);
+  assert(await rows() === all, `the restored list differs: ${all} → ${await rows()} rows`);
+
+  const ui = await stored();
+  return { ok: true, detail: `address and title follow the path; refresh restores group, topic, series, favourite category and All without the stored view; a typed address navigates; stored view brings back group, topic, tab, drops a search, an unknown topic and an unknown group; stored ${JSON.stringify(ui)}` };
 }
 
 async function programmes(page, { requests }) {
@@ -1072,6 +1427,9 @@ async function setupClarity(page) {
   const assert = (ok, message) => { if (!ok) throw new Error(message); };
   const press = (id) => evaluate(page, `document.getElementById('${id}').click()`, { gesture: true });
   const change = (id, value) => evaluate(page, `(() => {const input=document.getElementById('${id}');input.value=${JSON.stringify(value)};input.dispatchEvent(new Event('input',{bubbles:true}));})()`);
+  // What Chrome sends on Ctrl+V: the inputType is what tells a whole
+  // address from one still being typed.
+  const paste = (id, value) => evaluate(page, `(() => {const input=document.getElementById('${id}');input.focus();input.value=${JSON.stringify(value)};input.dispatchEvent(new InputEvent('input',{bubbles:true,inputType:'insertFromPaste'}));})()`);
   const capture = async (name) => {
     if (!process.env.KEPULI_SETUP_CAPTURE_DIR) return;
     const fs = await import('node:fs');
@@ -1082,13 +1440,13 @@ async function setupClarity(page) {
   const before = await evaluate(page, `chrome.storage.local.get(['config','settings'])`);
   await press('btn-settings');
   await evaluate(page, `document.querySelector('input[name="source"][value="m3u"]').click()`);
-  await change('f-paste', 'http://example.test:8080/get.php?username=%3Cusername%3E&password=%3Cpassword%3E&type=m3u_plus&output=ts');
-  assert(await evaluate(page, `!document.getElementById('f-show-fields').hidden && document.getElementById('playlist-status').textContent.includes('filled')`), 'paste did not explain the filled fields');
-  await capture('subscription-url');
-  await press('f-show-fields');
+  await change('f-paste', 'http://example.test:8080/get.php?username=%3Cusername%3E');
+  assert(await evaluate(page, `!document.getElementById('playlist-status').hidden && !document.getElementById('src-m3u').hidden`), 'an address without a password was accepted');
+  await paste('f-paste', 'http://example.test:8080/get.php?username=%3Cusername%3E&password=%3Cpassword%3E&type=m3u_plus&output=ts');
   const fields = await evaluate(page, `['scheme','host','port','username','password'].map(f=>document.getElementById('f-'+f).value)`);
   assert(JSON.stringify(fields) === JSON.stringify(['http','example.test','8080','<username>','<password>']), 'pasted URL was not decoded into visible fields');
-  assert(await evaluate(page, `!document.getElementById('src-xtream').hidden && document.activeElement.id==='f-host'`), 'show fields did not reveal and focus editable fields');
+  assert(await evaluate(page, `!document.getElementById('src-xtream').hidden && document.getElementById('src-m3u').hidden && document.getElementById('playlist-status').hidden && document.activeElement.id==='f-host'`), 'a pasted address did not open and focus the fields it filled');
+  await capture('subscription-url');
   assert(JSON.stringify(await evaluate(page, `chrome.storage.local.get(['config','settings'])`)) === JSON.stringify(before), 'pasting committed credentials before Save');
   await press('f-done');
   await press('btn-settings');
@@ -1117,7 +1475,7 @@ async function setupClarity(page) {
   await press('f-save');
   await waitFor(page, `!document.getElementById('setup').open`, 'saved 72px subtitles');
   assert(await evaluate(page, `chrome.storage.local.get('settings').then(d=>d.settings.subtitleSize===72 && document.body.style.getPropertyValue('--sub-size')==='72px')`), 'preview scaling changed saved or playback size');
-  return {ok:true, detail:'subscription URL explains decoded fields without saving; controls above an unclipped 72px preview at 320–1280px; playback saves 72px'};
+  return {ok:true, detail:'a pasted subscription URL opens the fields it decoded into, without saving; an incomplete one says so; controls above an unclipped 72px preview at 320–1280px; playback saves 72px'};
 }
 
 
@@ -1167,7 +1525,7 @@ async function catalogUi(page) {
   return {ok:true,detail:'movie duration, rating filter/sort/reset, native playback, IMDb/facts, series cover expansion, history, failed/missing logo fallback and guide return'};
 }
 
-const SCENARIOS = { catalogUi, setupClarity, fullscreenControl, organize, programmes, catchup, seek, death, cancel, timeout, search, paste, keys, switching, resume, reconnect, accounts, listerror, a11y, subtitles, audio, settings };
+const SCENARIOS = { catalogUi, setupClarity, fullscreenControl, organize, restore, programmes, catchup, seek, death, cancel, timeout, search, paste, keys, switching, resume, reconnect, accounts, listerror, a11y, subtitles, audio, settings };
 // The mock's whole-list answers stall for these, longer than the request limit.
 const SLOW_LIST_MS = { cancel: 60000, timeout: 60000 };
 // The media is sent slowly for these: the seek targets must lie outside the

@@ -426,11 +426,13 @@ export function badge(info) {
   return { text: t('probe.badge.none'), title: v.reason, level: 'warn' };
 }
 
-/** The subtitle tracks in brief: "5 subtitles · fin, swe, eng". */
+/** The subtitle tracks in brief: how many, and in which languages. */
 export function subtitleSummary(info) {
   if (!info || !info.subtitles || !info.subtitles.length) return null;
   const text = info.subtitles.filter((s) => s.text);
-  const langs = [...new Set(text.map((s) => shortLanguage(s.language)))].filter((l) => l !== 'und');
+  // 'und' is kept: a track whose language the file states as unknown is
+  // still a track the selector offers, and the summary names it too.
+  const langs = [...new Set(text.map((s) => shortLanguage(s.language)))];
   langs.sort((a, b) => rank(a) - rank(b) || a.localeCompare(b));
   return {
     total: info.subtitles.length,

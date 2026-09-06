@@ -1,16 +1,26 @@
 import { VirtualList } from './vlist.js';
-import { channelPreferences, ordered, moveInOrder } from './channelprefs.js';
+import { channelPreferences, ordered, placeInOrder, arrangeOrder, sortChannels } from './channelprefs.js';
 import { t, localeTag } from './i18n.js';
 import { wireModal } from './modal.js';
 
 const $ = (id) => document.getElementById(id);
+
+const ROW_H = 52;   // the same number as .organize-row in player.css
+const EDGE = 48;    // how near an edge a drag starts scrolling the list
+const SPEED = 0.4;  // pixels of scroll per pixel into that edge, per frame
+
+const GRIP_ICON = '<svg viewBox="0 0 16 16" aria-hidden="true" focusable="false">'
+  + [4, 8, 12].map((y) => `<circle cx="6" cy="${y}" r="1.3"/><circle cx="10" cy="${y}" r="1.3"/>`).join('')
+  + '</svg>';
 
 export class ChannelEditor {
   constructor(onSave) {
     this.dialog = $('channel-editor');
     this.onSave = onSave;
     this.rows = [];
-    this.list = new VirtualList($('channel-editor-list'), 52, (i) => this.row(i));
+    this.drag = null;
+    this.sort = 'az';
+    this.list = new VirtualList($('channel-editor-list'), ROW_H, (i) => this.row(i));
     for (const id of ['channel-editor-kind', 'channel-editor-group', 'channel-editor-filter']) {
       $(id).addEventListener('input', () => this.render());
     }
@@ -31,15 +41,18 @@ export class ChannelEditor {
       catch { $('channel-editor-status').textContent = t('organize.savefailed'); }
       finally { button.disabled = false; this.dialog.querySelector('.editor-content').inert = false; }
     });
+    // A drag left running would keep listening after the dialog had gone.
+    this.dialog.addEventListener('close', () => this.endDrag(false));
   }
 
   get categories() { return $('channel-editor-kind').value === 'categories'; }
   get orderKey() { return this.categories ? 'categoryOrder' : 'channelOrder'; }
   get hiddenKey() { return this.categories ? 'hiddenCategories' : 'hiddenChannels'; }
 
-  show(channels, groups, prefs, group) {
+  show(channels, groups, prefs, { group, sort } = {}) {
     this.channels = channels;
     this.groups = groups;
+    this.sort = sort || 'az';
     this.draft = channelPreferences(prefs);
     $('channel-editor-filter').value = '';
     $('channel-editor-kind').value = 'channels';
@@ -54,14 +67,18 @@ export class ChannelEditor {
     const group = this.groups.find((g) => g.name === $('channel-editor-group').value);
     const cats = group ? group.cats : this.groups.flatMap((g) => g.cats);
     const ids = new Set(cats.map((c) => c.id));
-    const items = this.categories ? cats.map((c) => ({ id: c.id, n: c.name })).sort((a, b) => a.n.localeCompare(b.n, localeTag()))
-      : this.channels.filter((c) => !group || c.cats.some((id) => ids.has(id)));
+    const items = this.categories
+      ? cats.map((c) => ({ id: c.id, n: c.name })).sort((a, b) => a.n.localeCompare(b.n, localeTag()))
+      : sortChannels(this.channels.filter((c) => !group || c.cats.some((id) => ids.has(id))), this.sort);
     const query = $('channel-editor-filter').value.trim().toLocaleLowerCase();
     this.rows = ordered(items, this.draft[this.orderKey]).filter((c) => c.n.toLocaleLowerCase().includes(query));
     this.list.setCount(this.rows.length, { keepScroll });
     $('channel-editor-status').textContent = t('organize.count', { count: this.rows.length,
       hidden: this.draft[this.hiddenKey].length });
     $('channel-editor-hide').disabled = $('channel-editor-show').disabled = !this.rows.length;
+    // Nothing to reset until something has been arranged by hand; while it
+    // is empty the order is the one Settings chose.
+    $('channel-editor-reset').disabled = !this.draft[this.orderKey].length;
   }
 
   setHidden(hide, id = null) {
@@ -81,16 +98,191 @@ export class ChannelEditor {
     (row?.querySelector(`[data-action="${action}"]:not(:disabled)`) || row?.querySelector('input'))?.focus();
   }
 
+  /**
+   * Seed untouched IDs in the global default order. Moving within Finland
+   * must not also promote Finland ahead of every country. The seed follows
+   * the sort setting, so arranging one channel does not silently return
+   * the rest to A–Z.
+   */
+  savedOrder() {
+    const defaults = this.categories
+      ? this.groups.flatMap((g) => g.cats).sort((a, b) => a.name.localeCompare(b.name, localeTag()))
+      : sortChannels(this.channels, this.sort);
+    return [...new Set([...this.draft[this.orderKey], ...defaults.map((r) => String(r.id))])];
+  }
+
+  /** One row to a position among those on screen. Refuses a move to nowhere. */
+  moveTo(id, to) {
+    const displayed = this.rows.map((r) => String(r.id));
+    const at = displayed.indexOf(String(id));
+    if (at < 0 || to < 0 || to >= displayed.length || to === at) return;
+    this.draft[this.orderKey] = placeInOrder(this.savedOrder(), displayed, id, to);
+    this.render({ keepScroll: true });
+    this.focus(id, 'move');
+  }
+
+  /* ------------------------------------------------------- drag and drop */
+
+  /**
+   * The list paints only the rows on screen, so there is no element to
+   * carry from one end to the other: what moves is the order itself. A
+   * floating copy of the row follows the pointer, the rows underneath
+   * shuffle as it passes, and near either edge the list scrolls — so a
+   * channel can travel the whole way without being let go.
+   *
+   * The listeners sit on the window rather than on the handle: the handle
+   * is destroyed by the first repaint, and pointer capture would go with it.
+   */
+  startDrag(event, id) {
+    if (this.drag || event.button > 0 || this.rows.length < 2) return;
+    const at = this.rows.findIndex((r) => String(r.id) === String(id));
+    if (at < 0) return;
+    const row = event.currentTarget.closest('.organize-row');
+    const box = row.getBoundingClientRect();
+    event.preventDefault();
+    const ghost = row.cloneNode(true);
+    ghost.classList.add('organize-ghost');
+    ghost.style.left = `${box.left}px`;
+    ghost.style.top = `${box.top}px`;
+    ghost.style.width = `${box.width}px`;
+    this.dialog.append(ghost);
+    this.list.viewport.classList.add('is-dragging');
+    this.drag = { id: String(id), at, ghost, moved: false, frame: 0, pointerId: event.pointerId,
+      from: this.rows.map((r) => String(r.id)), grab: event.clientY - box.top, y: event.clientY };
+    // A second finger on the list is not this drag.
+    const mine = (e) => this.drag && e.pointerId === this.drag.pointerId;
+    this.onPointerMove = (e) => { if (mine(e)) this.dragMove(e); };
+    this.onPointerUp = (e) => { if (mine(e)) this.endDrag(true); };
+    this.onPointerCancel = (e) => { if (mine(e)) this.endDrag(false); };
+    // Escape puts the row back rather than closing the whole editor, and a
+    // window left mid-drag must not come back still holding one.
+    this.onDragKey = (e) => {
+      if (e.key !== 'Escape') return;
+      e.preventDefault();
+      e.stopPropagation();
+      this.endDrag(false);
+    };
+    this.onDragBlur = () => this.endDrag(false);
+    addEventListener('pointermove', this.onPointerMove);
+    addEventListener('pointerup', this.onPointerUp);
+    addEventListener('pointercancel', this.onPointerCancel);
+    addEventListener('keydown', this.onDragKey, true);
+    addEventListener('blur', this.onDragBlur);
+    this.list.refresh();
+    this.step();
+  }
+
+  dragMove(event) {
+    if (!this.drag) return;
+    this.drag.y = event.clientY;
+    // The floating row stays within the list even when the pointer leaves
+    // it: past an edge it is the list that moves, under the row.
+    const box = this.list.viewport.getBoundingClientRect();
+    const top = Math.max(box.top, Math.min(box.bottom - ROW_H, event.clientY - this.drag.grab));
+    this.drag.ghost.style.top = `${top}px`;
+    this.dragTo(this.indexAt(event.clientY));
+  }
+
+  /** Where the floating row's top edge now sits, as a row number. */
+  indexAt(clientY) {
+    const view = this.list.viewport;
+    const top = clientY - this.drag.grab - view.getBoundingClientRect().top + view.scrollTop;
+    return Math.max(0, Math.min(this.rows.length - 1, Math.round(top / ROW_H)));
+  }
+
+  dragTo(to) {
+    if (!this.drag || to === this.drag.at) return;
+    this.rows.splice(to, 0, ...this.rows.splice(this.drag.at, 1));
+    this.drag.at = to;
+    this.drag.moved = true;
+    this.list.refresh();
+  }
+
+  /** Held near an edge, the list keeps scrolling — faster the nearer it is. */
+  step() {
+    if (!this.drag) return;
+    const view = this.list.viewport;
+    const box = view.getBoundingClientRect();
+    const over = Math.max(0, box.top + EDGE - this.drag.y) - Math.max(0, this.drag.y - (box.bottom - EDGE));
+    if (over) {
+      const before = view.scrollTop;
+      view.scrollTop = before - Math.sign(over) * Math.min(Math.abs(over), EDGE) * SPEED;
+      if (view.scrollTop !== before) this.dragTo(this.indexAt(this.drag.y));
+    }
+    this.drag.frame = requestAnimationFrame(() => this.step());
+  }
+
+  endDrag(commit) {
+    const drag = this.drag;
+    if (!drag) return;
+    this.drag = null;
+    cancelAnimationFrame(drag.frame);
+    removeEventListener('pointermove', this.onPointerMove);
+    removeEventListener('pointerup', this.onPointerUp);
+    removeEventListener('pointercancel', this.onPointerCancel);
+    removeEventListener('keydown', this.onDragKey, true);
+    removeEventListener('blur', this.onDragBlur);
+    drag.ghost.remove();
+    this.list.viewport.classList.remove('is-dragging');
+    if (drag.moved && commit) {
+      this.draft[this.orderKey] = arrangeOrder(this.savedOrder(), drag.from, this.rows.map((r) => String(r.id)));
+    }
+    if (!this.dialog.open) return;
+    // Committed or not, the rows are painted from the draft again: an
+    // abandoned drag leaves the spliced working copy behind. The handle
+    // keeps the focus, so the keyboard can carry the move on from there.
+    this.render({ keepScroll: true });
+    this.focus(drag.id, 'move');
+  }
+
+  /* ------------------------------------------------------------- one row */
+
   row(index) {
     const item = this.rows[index];
     const hidden = this.draft[this.hiddenKey].includes(String(item.id));
     const row = document.createElement('div');
-    row.className = 'organize-row' + (hidden ? ' is-hidden' : '');
+    row.className = 'organize-row' + (hidden ? ' is-hidden' : '')
+      + (this.drag?.at === index ? ' is-dragging' : '');
     row.dataset.id = item.id;
+    row.append(this.grip(item, index), this.visibility(item, hidden));
+    return row;
+  }
+
+  /**
+   * The handle. The pointer drags it; the keyboard moves it a step with the
+   * arrows and the whole way with Home and End, which is what a list of
+   * hundreds needs. Its name carries the position, so a screen reader says
+   * where the row landed when the focus returns to it after the move.
+   */
+  grip(item, index) {
+    const grip = document.createElement('button');
+    grip.type = 'button';
+    grip.className = 'organize-grip';
+    grip.dataset.action = 'move';
+    grip.innerHTML = GRIP_ICON;
+    // One row on its own has nowhere to go; a handle that did nothing would
+    // only invite the attempt.
+    grip.disabled = this.rows.length < 2;
+    grip.title = t('organize.move', { name: item.n });
+    grip.setAttribute('aria-label', t('organize.moveat',
+      { name: item.n, at: index + 1, of: this.rows.length }));
+    grip.addEventListener('pointerdown', (event) => this.startDrag(event, item.id));
+    grip.addEventListener('keydown', (event) => {
+      const to = { ArrowUp: index - 1, ArrowDown: index + 1, Home: 0, End: this.rows.length - 1 }[event.key];
+      if (to == null) return;
+      event.preventDefault();
+      this.moveTo(item.id, to);
+    });
+    return grip;
+  }
+
+  visibility(item, hidden) {
     const label = document.createElement('label');
     const checkbox = document.createElement('input');
     checkbox.type = 'checkbox';
-    checkbox.checked = !hidden;
+    // defaultChecked as well: the floating copy of a dragged row is a clone,
+    // and a clone carries the attribute rather than the property.
+    checkbox.checked = checkbox.defaultChecked = !hidden;
     checkbox.dataset.action = 'visibility';
     checkbox.setAttribute('aria-label', t('organize.visible', { name: item.n }));
     checkbox.addEventListener('change', () => this.setHidden(!checkbox.checked, item.id));
@@ -98,29 +290,6 @@ export class ChannelEditor {
     name.textContent = item.n;
     name.title = item.n;
     label.append(checkbox, name);
-    row.append(label);
-    for (const [delta, action, symbol] of [[-1, 'up', '↑'], [1, 'down', '↓']]) {
-      const button = document.createElement('button');
-      button.type = 'button';
-      button.className = 'ghost';
-      button.textContent = symbol;
-      button.dataset.action = action;
-      button.title = t(`organize.${action}`, { name: item.n });
-      button.setAttribute('aria-label', button.title);
-      button.disabled = index + delta < 0 || index + delta >= this.rows.length;
-      button.addEventListener('click', () => {
-        // Seed untouched IDs in the global default order. Moving within
-        // Finland must not also promote Finland ahead of every country.
-        const defaults = this.categories
-          ? this.groups.flatMap((g) => g.cats).sort((a, b) => a.name.localeCompare(b.name, localeTag()))
-          : this.channels;
-        const saved = [...new Set([...this.draft[this.orderKey], ...defaults.map((r) => String(r.id))])];
-        this.draft[this.orderKey] = moveInOrder(saved, this.rows.map((r) => r.id), item.id, delta);
-        this.render({ keepScroll: true });
-        this.focus(item.id, action);
-      });
-      row.append(button);
-    }
-    return row;
+    return label;
   }
 }

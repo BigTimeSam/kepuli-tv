@@ -12,15 +12,18 @@
 globalThis.MediaSource = { isTypeSupported: (type) => /mp4a\.40/.test(type) };
 
 import { parseServer, parsePlaylistUrl } from '../js/xtream.js';
+import { safeUrl } from '../js/api.js';
 import { nameCleaner, labelCodes, countryCodes } from '../js/name.js';
 import { channelLogo, slugify } from '../js/logos.js';
 import { cueText } from '../js/subs.js';
 import { subtitleLook, STYLES, MIN_SIZE, MAX_SIZE, DEFAULT_SIZE } from '../js/subdisplay.js';
 import { describe, describeAll, label, preferred, route } from '../js/audio.js';
+import { languageSummary, orderedLanguageNames, trackLanguage } from '../js/lang.js';
 import { LANGUAGES, keysOf, setLanguage, t } from '../js/i18n.js';
-import { channelPreferences, visibilityFilter, ordered, moveInOrder } from '../js/channelprefs.js';
+import { channelPreferences, visibilityFilter, ordered, moveInOrder, placeInOrder, arrangeOrder, sortChannels, CHANNEL_SORTS } from '../js/channelprefs.js';
 import { catchupAvailable, archiveDays } from '../js/epggrid.js';
 import { searchProgrammes } from '../js/programmesearch.js';
+import { formatRoute, parseRoute } from '../js/route.js';
 
 let failed = 0;
 let count = 0;
@@ -44,6 +47,23 @@ check('new channels remain after the custom order', ordered(channelRows.filter((
 check('filtered reorder retains unseen and stale IDs', moveInOrder(['a', 'hidden', 'b', 'gone', 'c'], ['a', 'c'], 'c', -1), ['c', 'hidden', 'b', 'gone', 'a']);
 check('first move keeps the displayed default order', moveInOrder([], ['z', 'a', 'b'], 'a', -1), ['a', 'z', 'b']);
 check('moving past an edge does nothing', moveInOrder(['a'], ['a'], 'a', -1), ['a']);
+check('a drop travels the whole list at once', placeInOrder([], ['a', 'b', 'c', 'd'], 'd', 0), ['d', 'a', 'b', 'c']);
+check('a drop back where it started changes nothing', placeInOrder(['a', 'b'], ['a', 'b'], 'b', 1), ['a', 'b']);
+check('a drop keeps IDs the filter left out in their own slots',
+  placeInOrder(['a', 'hidden', 'b', 'c'], ['a', 'b', 'c'], 'a', 2), ['b', 'hidden', 'c', 'a']);
+check('a whole new displayed order is written into the saved slots',
+  arrangeOrder(['a', 'hidden', 'b', 'c'], ['a', 'b', 'c'], ['c', 'a', 'b']), ['c', 'hidden', 'a', 'b']);
+
+// The list comes in alphabetically, so A–Z is what came in and Z–A its mirror.
+const sortable = [{ id: '30', n: 'Alfa', num: 3 }, { id: '10', n: 'Beta', num: 1 }, { id: '20', n: 'Gamma', num: 2 }];
+check('A–Z leaves the library order alone', sortChannels(sortable, 'az').map((c) => c.n), ['Alfa', 'Beta', 'Gamma']);
+check('Z–A mirrors it', sortChannels(sortable, 'za').map((c) => c.n), ['Gamma', 'Beta', 'Alfa']);
+check('the channel number is the provider’s own order', sortChannels(sortable, 'num').map((c) => c.n), ['Beta', 'Gamma', 'Alfa']);
+check('a provider that sends no number leaves the stream id to stand for it',
+  sortChannels([{ id: '30', n: 'Alfa' }, { id: '10', n: 'Beta' }], 'num').map((c) => c.n), ['Beta', 'Alfa']);
+check('equal numbers keep the alphabetical order',
+  sortChannels([{ id: 'x', n: 'Alfa' }, { id: 'y', n: 'Beta' }], 'num').map((c) => c.n), ['Alfa', 'Beta']);
+check('an unknown sort is the library order', sortChannels(sortable, undefined).map((c) => c.n), ['Alfa', 'Beta', 'Gamma']);
 
 const now = Date.UTC(2026, 8, 6, 12);
 check('archive duration extends the guide', archiveDays([{ archive: 3 }, { archive: 7 }, { archive: Infinity }]), 7);
@@ -112,6 +132,24 @@ check('subscription URL decodes credential components and preserves the port',
 check('subscription URL uses the HTTPS default port', parsePlaylistUrl('https://example.test/get.php?username=u&password=p')?.port, '443');
 check('subscription URL requires both credentials', parsePlaylistUrl('https://example.test/get.php?username=u'), null);
 check('subscription URL rejects unsupported protocols', parsePlaylistUrl('ftp://example.test/get.php?username=u&password=p'), null);
+
+/* ------------------------------------------------------- api.js: safeUrl */
+
+const TMDB = 'https://image.tmdb.org/t/p/w600_and_h900_bestv2';
+check('a poster address that stops at the folder is not requested', safeUrl(TMDB), null);
+check('the same address with the file on the end', safeUrl(`${TMDB}/cuFPxoFopAjFUz4oIMUzpzeTA8I.jpg`),
+  `${TMDB}/cuFPxoFopAjFUz4oIMUzpzeTA8I.jpg`);
+check('a bare host', safeUrl('https://cdn.example.test'), null);
+check('a trailing slash', safeUrl('https://cdn.example.test/logos/'), null);
+check('a file name', safeUrl('https://cdn.example.test/logos/mtv3.png'), 'https://cdn.example.test/logos/mtv3.png');
+check('a query is left to the server', safeUrl('https://cdn.example.test/logo?ch=5'), 'https://cdn.example.test/logo?ch=5');
+check('a GitHub page rewritten to the raw file',
+  safeUrl('https://github.com/tv-logo/tv-logos/blob/main/countries/nordic/finland/mtv3-fi.png?raw=true'),
+  'https://raw.githubusercontent.com/tv-logo/tv-logos/main/countries/nordic/finland/mtv3-fi.png');
+check('a GitHub page that names no file', safeUrl('https://github.com/tv-logo/tv-logos/blob/main/countries'), null);
+check('the junk the server sends', [safeUrl('['), safeUrl('[""]'), safeUrl(''), safeUrl(null), safeUrl(42)],
+  [null, null, null, null, null]);
+check('a scheme that is not the web', safeUrl('ftp://example.test/logo.png'), null);
 
 /* ------------------------------------------------- name.js: nameCleaner */
 
@@ -207,8 +245,18 @@ picks('the channel filed under its owner', 'FI: Sub HD', [], 'mtv-sub-fi.png');
 picks('a tail two files share resolves to neither', 'DK: Hits', [], null);
 picks('a tail is looked for in the country only', 'Sub', [], null);
 
+// The provider's notes about the row: dropped whatever they say, and read
+// for a country before they go.
+picks('a note on the end', 'Liiga 1 FHD [Live During Events Only]', ['fi'], 'mtv-liiga-1-fi.png');
+picks('a note in parentheses', 'Sub (Backup)', ['fi'], 'mtv-sub-fi.png');
+picks('a note in front of the name', '(VIP) MTV3', ['fi'], 'mtv3-fi.png');
+picks('the country a note names outranks the shelf', 'TV3 (Norway)', ['dk'], 'tv3-no.png');
+picks('a note that is the country’s code', 'TV3 (NO)', ['dk'], 'tv3-no.png');
+picks('a note opened and never closed', 'Sub [Backup', ['fi'], null);
+
 // What must not be answered at all.
 picks('a name the collection does not have', 'FI: Yle Areena', [], null);
+picks('a note does not make an ambiguous name answerable', 'DK: Hits [Backup]', [], null);
 picks('an empty name', '', ['fi'], null);
 
 /* ------------------------------------------- config.js: per-account lists */
@@ -314,6 +362,11 @@ check('subtitleLook reads the older sizes', ['small', 'medium', 'large'].map((s)
     const slider = html.match(new RegExp(`<input id="${form}-subsize" type="range" min="(\\d+)" max="(\\d+)" step="1" value="(\\d+)">`));
     check(`player.html's slider has the module's bounds and default (${form})`, slider && slider.slice(1).map(Number), [MIN_SIZE, MAX_SIZE, DEFAULT_SIZE]);
   }
+  // The same for the channel order: a value the settings offer but the
+  // sorting does not know would silently leave the list alphabetical.
+  const orders = html.match(/<select id="f-channelsort">([^]*?)<\/select>/);
+  const offered = orders && [...orders[1].matchAll(/<option value="(\w+)" data-i18n="setup\.channelsort\.\w+">/g)].map((m) => m[1]);
+  check("player.html offers the channel orders in the module's order", offered, CHANNEL_SORTS);
 }
 
 /* --------------------------------------------------- audio.js: the track */
@@ -379,12 +432,35 @@ check('label: the flag is not spelled twice',
 check('label: the flag is spelled when the name does not',
       named('A_AC3', { lang: 'eng', channels: 6, commentary: true }), 'English · commentary · AC3 5.1');
 check('label: an unknown language falls back to the name',
-      named('A_AAC', { channels: 2, name: 'Track 1' }), 'Track 1 · AAC stereo');
+      named('A_AAC', { lang: 'und', channels: 2, name: 'Track 1' }), 'Track 1 · AAC stereo');
 check('label: an unknown language with no name says so',
-      named('A_AAC', { channels: 2 }), 'Unknown language · AAC stereo');
+      named('A_AAC', { lang: 'und', channels: 2 }), 'Unknown language · AAC stereo');
+// Matroska's own default for a track that states no language at all.
+check('label: no language element at all is English',
+      named('A_AAC', { channels: 2 }), 'English · AAC stereo');
 // BCP 47 and ISO 639-2 name the same language, and both occur in files
 // from the same library.
 check('label: BCP 47 with a region', named('A_AAC', { langBcp: 'sv-SE', channels: 2 }), 'Swedish · AAC stereo');
+
+/* ------------------------------------------------- lang.js: the languages */
+
+// Matroska gives Language the default value "eng". A file that states no
+// language for a track was read as unknown, which put an English subtitle
+// track in the selector under "Unknown language" — and played English.
+check('trackLanguage: no language element is English', trackLanguage({}), 'eng');
+check('trackLanguage: an explicit und stays unknown', trackLanguage({ lang: 'und' }), 'und');
+check('trackLanguage: BCP 47 beats ISO 639-2', trackLanguage({ lang: 'eng', langBcp: 'sv-SE' }), 'sv-se');
+
+check('languageSummary: English and Finnish first, the rest alphabetic, then a count',
+      languageSummary(['dan', 'nor', 'swe', 'fin', 'eng']), 'English, Finnish, Danish + 2');
+check('languageSummary: three names need no count', languageSummary(['swe', 'dan', 'fin']), 'Finnish, Danish, Swedish');
+check('languageSummary: the same language written two ways is one language',
+      languageSummary(['fin', 'fi', 'fin']), 'Finnish');
+check('languageSummary: nothing to name', languageSummary([]), '');
+// The count and the names have to describe the same set: an unknown
+// language used to be dropped from the names while the count kept it.
+check('orderedLanguageNames: an unknown language is named, and last',
+      orderedLanguageNames(['und', 'swe', 'fin']), ['Finnish', 'Swedish', 'Unknown language']);
 
 /* ------------------------------------- audio.js against a real header */
 
@@ -437,11 +513,72 @@ check('label: BCP 47 with a region', named('A_AAC', { langBcp: 'sv-SE', channels
   setLanguage('en');
 }
 
+/* --------------------------------------------------- route.js: the address */
+
+// The address is written from the view and read back into one, so what
+// matters is that the pair agree: every place the player can be in must
+// survive the trip through the address bar.
+const trip = (view) => parseRoute(formatRoute(view));
+check('the tab alone', formatRoute({ tab: 'live' }), '#/live');
+check('a group within it', formatRoute({ tab: 'live', group: 'Finland' }), '#/live/Finland');
+check('a topic within the group', formatRoute({ tab: 'live', group: 'Finland', sub: '312' }), '#/live/Finland/312');
+check('All is a segment of its own', formatRoute({ tab: 'movie', group: null }), '#/movie/-');
+check('a collection carries no group', formatRoute({ tab: 'fav', kind: 1 }), '#/fav?kind=1');
+check('a drill-down rides along', formatRoute({ tab: 'series', group: 'Drama', series: '1234' }), '#/series/Drama?series=1234');
+check('a series inside a favourite category', formatRoute({ tab: 'fav', cat: 'live:312', series: '99' }),
+  '#/fav?cat=live%3A312&series=99');
+check('a group whose name is a path separator', formatRoute({ tab: 'live', group: 'A/B' }), '#/live/A%2FB');
+check('a group named like All is not All', trip({ tab: 'live', group: '-' }), { tab: 'live', group: '-' });
+
+check('a topic returns as it went', trip({ tab: 'live', group: 'Suomi', sub: '312' }), { tab: 'live', group: 'Suomi', sub: '312' });
+check('All returns as All', trip({ tab: 'movie', group: null }), { tab: 'movie', group: null });
+check('a collection returns without a group', trip({ tab: 'recent', kind: 0 }), { tab: 'recent', kind: 0 });
+check('the category filter keeps its own type', trip({ tab: 'fav', kind: 'c' }), { tab: 'fav', kind: 'c' });
+check('the drill-down returns whole', trip({ tab: 'fav', cat: 'live:g:Finland', series: '99' }),
+  { tab: 'fav', cat: 'live:g:Finland', series: '99' });
+// A group not chosen and All are different answers: the first leaves the
+// player to pick one, the second costs the whole list.
+check('no group is not All', trip({ tab: 'live' }), { tab: 'live' });
+
+check('an empty address names no place', parseRoute(''), null);
+check('a bare hash names no place', parseRoute('#'), null);
+check('a tab that does not exist names no place', parseRoute('#/telly/Finland'), null);
+check('an address from elsewhere names no place', parseRoute('#some-anchor'), null);
+check('an unknown type filter is dropped, the place kept', parseRoute('#/fav?kind=7'), { tab: 'fav' });
+check('a half-escaped group is taken as it stands', parseRoute('#/live/100%'), { tab: 'live', group: '100%' });
+check('extra segments are ignored', parseRoute('#/live/Finland/312/extra'), { tab: 'live', group: 'Finland', sub: '312' });
+
+/* --------------------------------------- player.html: the elements found */
+
+// The scripts reach the markup by id alone. An id only one of the two knows
+// — a control renamed in the markup, a lookup left behind — costs nothing
+// until the line runs, and then it takes down whatever called it: a toast
+// that cannot find the element for its text turns a handled error into an
+// unexpected one, and the message the viewer gets names neither. Cheaper to
+// read the two files against each other than to meet it in the player.
+const fs = await import('node:fs');
+const source = (name) => fs.readFileSync(new URL(`../${name}`, import.meta.url), 'utf8');
+const inMarkup = new Set([...source('player.html').matchAll(/id="([\w-]+)"/g)].map((m) => m[1]));
+// An id the scripts give an element they build themselves is theirs, not
+// the markup's; a lookup of one is answered once it has been built.
+const scriptFiles = fs.readdirSync(new URL('../js', import.meta.url)).filter((name) => name.endsWith('.js'));
+const built = new Set();
+const lookups = new Map();
+for (const name of scriptFiles) {
+  const text = source(`js/${name}`);
+  for (const m of text.matchAll(/\.id = '([\w-]+)'/g)) built.add(m[1]);
+  for (const m of text.matchAll(/(?:\$|getElementById)\('([\w-]+)'\)/g)) {
+    if (!lookups.has(m[1])) lookups.set(m[1], name);
+  }
+}
+check('every element the scripts look up by id is in player.html',
+  [...lookups].filter(([id]) => !inMarkup.has(id) && !built.has(id)).map(([id, name]) => `${id} (js/${name})`), []);
+
 /* ------------------------------------------------- player.css: contrast */
 
 // The text colours against every ground they sit on, by WCAG's formula:
 // 4.5:1 for the small text, and the selected row is a ground too.
-const css = (await import('node:fs')).readFileSync(new URL('../css/player.css', import.meta.url), 'utf8');
+const css = source('css/player.css');
 const cssVar = (name) => (css.match(new RegExp(`--${name}:\\s*(#[0-9a-f]{6})`, 'i')) || [])[1];
 const luminance = (hex) => {
   const [r, g, b] = [1, 3, 5].map((i) => parseInt(hex.slice(i, i + 2), 16) / 255)

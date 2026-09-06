@@ -45,6 +45,11 @@
 // Anything still ambiguous is left to the provider's own address. Note how
 // much of this rests on knowing the country: only the last two rules work
 // without one, and they are the two that can reach across a border.
+//
+// A name that answers to none of the rules is asked once more without the
+// notes the provider hung on it — see RE_NOTE. That second reading can
+// only turn a no into a yes, never one logo into another, so a channel
+// that matches as written goes on matching as written.
 
 import { countryCodes, isCountryCode } from './name.js';
 import { LOGO_BASE, LOGO_DIRS } from './logoindex.js';
@@ -64,6 +69,20 @@ const QUALITY = new Set(['hd', 'fhd', 'uhd', 'shd', 'sd', 'ld', 'hq', '4k', '8k'
 // the best country hint there is: it travels with the channel rather than
 // with the shelf the channel happens to stand on.
 const RE_TAG = /^\s*[|([]?\s*([\p{L}\p{N}]{2,6}(?:[-/][\p{L}\p{N}]{2,6})?)\s*[:|)\]]\s*/u;
+
+// A note about the row rather than a part of the channel's name: "Liiga 1
+// FHD [Live During Events Only]", "beIN Sports 1 (Backup)", "Eurosport 2
+// [Geo-Blocked]". The brackets are the whole of the evidence, and they
+// carry it because the collection files no channel under one — every file
+// name it has is a plain name. What is inside them is each provider's own
+// vocabulary, which is why the words are not read as words: an unknown
+// note and a known one are dropped alike.
+//
+// One thing is read out of a note before it goes, and it is the country
+// (noteCodes). Dropping "(Norway)" leaves a "TV3" that four countries
+// have, and the shorter a name gets the more countries can claim it —
+// exactly the reading that hands a Danish shelf the wrong TV3.
+const RE_NOTE = /[([{][^()\[\]{}]*[)\]}]/g;
 const RE_WORD = /[\p{L}\p{N}]+/gu;
 const RE_MARK = /\p{M}/gu;
 const RE_NON_ASCII = /[^\x20-\x7e]/;
@@ -164,6 +183,35 @@ function build() {
  */
 export function channelLogo(name, codes) {
   build();
+  const text = String(name || '');
+  const written = lookup(text, codes);
+  if (written) return written;
+  // Second reading: the same rules, the notes gone. It is a second reading
+  // rather than the only one so that a channel the collection files under
+  // a bracketed name of its own — should one ever appear — is still found
+  // by the name it was given.
+  const bare = text.replace(RE_NOTE, ' ');
+  if (bare === text) return null;
+  return lookup(bare, [...noteCodes(text), ...(codes || [])]);
+}
+
+/**
+ * The country a note names: "(Norway)", "(UK)". Any one of a country's
+ * codes is enough for folders() — it keeps its folders under all of them —
+ * so a code found is passed on as it stands.
+ */
+function noteCodes(text) {
+  const out = [];
+  for (const note of text.match(RE_NOTE) || []) {
+    const inner = note.slice(1, -1);
+    const named = countryCodes(inner);
+    const found = named.length ? named : [inner.trim().toLowerCase()].filter(isCountryCode);
+    for (const code of found) if (!out.includes(code)) out.push(code);
+  }
+  return out;
+}
+
+function lookup(name, codes) {
   const { code, slug } = readName(name);
   if (!slug) return null;
   const home = folders(code, codes);

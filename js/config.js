@@ -32,6 +32,13 @@ const SETTINGS_DEFAULTS = {
   lang: 'en',
   epgEnabled: true,
   resumeEnabled: true,
+  // The technical read-out over the picture — resolution, bit rate, the
+  // engine carrying the stream. Diagnostics rather than viewing, so it is
+  // asked for rather than given: see the stat badge in js/app.js.
+  statsEnabled: false,
+  // Where the channel list starts, before a personal arrangement:
+  // az | za | num, see CHANNEL_SORTS in js/channelprefs.js.
+  channelSort: 'az',
   // The subtitle language is chosen once and applies to later episodes.
   // 'off' = no subtitles; otherwise a two-letter code.
   subtitleLang: 'fi',
