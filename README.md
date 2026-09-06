@@ -452,6 +452,9 @@ name — not the category's contents. A group favourite (*Finland*) stores the
 group name and gathers its sub-categories only when opened, so it follows a
 changing offering too.
 
+The sidebar's filter names what the sidebar holds: countries on the channel
+tab, genres on the movie and series tabs.
+
 The search in the header covers the whole list (the category filter is cleared
 visibly) and ranks matches by relevance: a match at the start of a word beats
 one found mid-word, so that *yle* raises the Yle channels rather than "KYLE
@@ -1116,8 +1119,12 @@ vendor/ffaudio/     FFmpeg 7.1.1's ac3, eac3 and dca decoders as wasm
 
 ## Language
 
-The interface is in English and Finnish; English is the default and the choice
-is made in the settings. The dictionaries live in one file (`js/i18n.js`), and
+The interface is in English and Finnish. It opens in whichever of the two the
+browser says its owner reads — the first match in `navigator.languages` — and
+in English when it names neither; the choice is then made in the settings.
+The subtitle language starts from the same answer rather than from a fixed
+`fi`, which used to give an English interface offering Finnish subtitles to
+someone who had asked for neither. The dictionaries live in one file (`js/i18n.js`), and
 English is at the same time the list missing keys fall back to — a Finnish
 string left undone shows as English text rather than as a key name.
 

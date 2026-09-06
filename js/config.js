@@ -16,6 +16,7 @@
 // the first time it is asked for.
 
 import { api } from './browser.js';
+import { LANGUAGES, DEFAULT_LANGUAGE } from './i18n.js';
 import { cacheClear } from './db.js';
 import { channelPreferences } from './channelprefs.js';
 
@@ -27,9 +28,25 @@ const CONNECTION_DEFAULTS = {
   sourceMode: 'xtream',     // xtream | m3u
 };
 
+/**
+ * The language the app opens in, from the browser's own list.
+ *
+ * English used to be the default for everyone, while the subtitle language
+ * defaulted to Finnish — so a viewer got an English interface offering
+ * Finnish subtitles, and neither had been asked for. The browser has already
+ * been told which languages its owner reads; the first of them the app
+ * speaks is the answer, and English is what is left when it speaks none.
+ */
+function browserLanguage() {
+  const tags = navigator.languages?.length ? navigator.languages : [navigator.language || ''];
+  for (const tag of tags) {
+    const base = String(tag).toLowerCase().split('-')[0];
+    if (Object.hasOwn(LANGUAGES, base)) return base;
+  }
+  return DEFAULT_LANGUAGE;
+}
+
 const SETTINGS_DEFAULTS = {
-  // Interface language, see js/i18n.js. English by default.
-  lang: 'en',
   epgEnabled: true,
   resumeEnabled: true,
   // The technical read-out over the picture — resolution, bit rate, the
@@ -39,12 +56,14 @@ const SETTINGS_DEFAULTS = {
   // Where the channel list starts, before a personal arrangement:
   // az | za | num, see CHANNEL_SORTS in js/channelprefs.js.
   channelSort: 'az',
-  // The subtitle language is chosen once and applies to later episodes.
-  // 'off' = no subtitles; otherwise a two-letter code.
-  subtitleLang: 'fi',
-  // The same for the audio track, when the file offers more than one.
-  // 'auto' = whatever the file and the browser suit best, see js/audio.js;
+  // The interface language and the subtitle language are not here: both
+  // start from the browser's own, see settingsDefaults(). The subtitle one
+  // is chosen once and applies to later episodes; 'off' = no subtitles,
   // otherwise a two-letter code.
+  //
+  // The audio track, when the file offers more than one. 'auto' = whatever
+  // the file and the browser suit best, see js/audio.js; otherwise a
+  // two-letter code.
   audioLang: 'auto',
   // How the subtitles are drawn — the looks and the sizes are in js/subdisplay.js.
   subtitleStyle: 'shadow',  // shadow | outline | yellow | box | contrast
@@ -121,8 +140,19 @@ export async function saveChannelPreferences(value) {
   await writePersonal('channels', channelPreferences(value));
 }
 
+/**
+ * The defaults, with the two that depend on where the browser is. Read at
+ * call time rather than at import: navigator.languages is not available to
+ * a module while it is still being evaluated in every browser, and a stored
+ * setting overrides both in any case.
+ */
+function settingsDefaults() {
+  const lang = browserLanguage();
+  return { ...SETTINGS_DEFAULTS, lang, subtitleLang: lang };
+}
+
 export async function loadSettings() {
-  return { ...SETTINGS_DEFAULTS, ...(await read('settings', {})) };
+  return { ...settingsDefaults(), ...(await read('settings', {})) };
 }
 
 export async function saveSettings(patch) {

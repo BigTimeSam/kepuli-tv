@@ -135,19 +135,29 @@ function subLine(item, ctx) {
   return sub;
 }
 
+/**
+ * A badge says "7 d" because that is what a narrow column has room for, and
+ * the whole sentence sat in a title attribute — which is a hover, and a
+ * hover is no gesture on a touch screen and nothing at all to a screen
+ * reader. The title stays for the pointer; the sentence is now also in the
+ * badge, where only a screen reader will find it.
+ */
+function explained(node, sentence) {
+  node.title = sentence;
+  node.appendChild(el('span', 'sr-only', sentence));
+  return node;
+}
+
 function badges(item, ctx) {
   const out = [];
   if (item.k === 0 && item.archive > 0) {
     const badge = el('div', 'row-badge archive', t('row.archive', { days: item.archive }));
-    badge.title = t('row.archive.title', { days: item.archive });
-    out.push(badge);
+    out.push(explained(badge, t('row.archive.title', { days: item.archive })));
   }
   if (item.k === 1) {
     const seconds = item.details?.durationSec || item.durationSec || ctx.resume?.duration;
     if (Number.isFinite(seconds) && seconds > 0) {
-      const node = el('div', 'row-duration', duration(seconds, { compact: true }));
-      node.title = t('title.duration');
-      out.push(node);
+      out.push(explained(el('div', 'row-duration', duration(seconds, { compact: true })), t('title.duration')));
     }
   }
   if (item.k === 3) {
@@ -155,9 +165,7 @@ function badges(item, ctx) {
     // badge inferred from an extension (including an unprobed MKV).
     const known = ctx.probe ? probeBadge(ctx.probe) : null;
     if (known) {
-      const node = el('div', `row-badge ${known.level}`, known.text);
-      node.title = known.title;
-      out.push(node);
+      out.push(explained(el('div', `row-badge ${known.level}`, known.text), known.title));
     }
   }
   if (item.k === 3) out.push(el('div', 'row-ep', `S${String(item.season).padStart(2, '0')}E${String(item.episode).padStart(2, '0')}`));

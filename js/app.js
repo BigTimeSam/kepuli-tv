@@ -1222,6 +1222,12 @@ async function selectKind(kind) {
 function renderCategories() {
   const type = tabType();
   el.groupsFilter.hidden = false;
+  // Countries on the channel tab, genres on the other two. The field above
+  // the sidebar named only the first, on every tab.
+  const genres = type === 'movie' || type === 'series';
+  el.categoryFilter.placeholder = t(genres ? 'groups.filter.genres' : 'groups.filter.placeholder');
+  el.categoryFilter.setAttribute('aria-label', el.categoryFilter.placeholder);
+  el.groups.setAttribute('aria-label', t(genres ? 'groups.genres.aria' : 'groups.aria'));
   if (!type || !state.lib) { el.groups.replaceChildren(); return; }
 
   let counts = state.lib.groupCounts(type);
@@ -2328,8 +2334,14 @@ async function toggleGuide() {
 
 async function openGuide() {
   if (guideOpen) return;
-  if (!state.lib || !state.epg) { toast(t('guide.needserver'), { kind: 'warn' }); return; }
-  if (!state.epg.enabled) { toast(t('guide.epgoff'), { kind: 'warn' }); return; }
+  if (!state.lib || !state.epg) {
+    toast(t('guide.needserver'), { kind: 'warn', action: { label: t('btn.settings'), onClick: openSetup } });
+    return;
+  }
+  if (!state.epg.enabled) {
+    toast(t('guide.epgoff'), { kind: 'warn', action: { label: t('guide.epgon'), onClick: switchEpgOn } });
+    return;
+  }
   // The guide shows channel rows, so it needs the channel tab's contents.
   if (state.tab !== 'live' || state.detail) await activateTab('live', { restore: true });
 
@@ -2349,6 +2361,13 @@ async function openGuide() {
   grid.show();
   if (state.playing && state.playing.k === 0) grid.focusChannel(state.playing.id);
   focusGrid();
+}
+
+/** The switch the "programme data is off" message offers, and the guide after it. */
+async function switchEpgOn() {
+  state.settings = await store.saveSettings({ epgEnabled: true });
+  if (state.epg) state.epg.enabled = true;
+  await openGuide();
 }
 
 function closeGuide() {
@@ -3010,16 +3029,29 @@ let toastTimer = null;
  * own tone. Each kind brings its own icon, so the colour is never the only
  * thing that separates a failure from a note.
  */
-function toast(text, { long = false, kind = 'info' } = {}) {
+function toast(text, { long = false, kind = 'info', action = null } = {}) {
   el.toastText.textContent = text;
+  // A message that names what is wrong can carry the thing that fixes it:
+  // "Programme data is switched off in settings" said so and then left the
+  // viewer to find the switch. One button is shorter than that sentence.
+  el.toast.querySelector('.toast-action')?.remove();
+  if (action) {
+    const button = document.createElement('button');
+    button.type = 'button';
+    button.className = 'toast-action';
+    button.textContent = action.label;
+    button.addEventListener('click', () => { clearTimeout(toastTimer); el.toast.hidden = true; action.onClick(); });
+    el.toast.appendChild(button);
+  }
   el.toast.classList.remove('info', 'warn', 'error');
   el.toast.classList.add(kind);
   // An error interrupts the reader; the rest can wait for a pause in speech.
   el.toast.setAttribute('aria-live', kind === 'error' ? 'assertive' : 'polite');
   el.toast.hidden = false;
   clearTimeout(toastTimer);
-  // An error deserves the time it takes to read it.
-  toastTimer = setTimeout(() => { el.toast.hidden = true; }, long ? 7000 : 2800);
+  // An error deserves the time it takes to read it, and so does a message
+  // with something in it to press.
+  toastTimer = setTimeout(() => { el.toast.hidden = true; }, long || action ? 7000 : 2800);
 }
 
 async function copyUrl() {

@@ -71,6 +71,8 @@ const STRINGS = {
 
     /* ---------------------------------------------------------- sidebar */
     'groups.filter.placeholder': 'Filter countries and topics…',
+    'groups.filter.genres': 'Filter genres and topics…',
+    'groups.genres.aria': 'Genres and topics',
     'groups.all': 'All',
     'groups.all.title': 'Loads the whole list from the server',
     'kind.c': 'Categories',
@@ -108,9 +110,7 @@ const STRINGS = {
     'row.watched': 'Watched {stamp}',
     'row.archive': '{days} d',
     'row.archive.title': 'Catch-up: programmes from the past {days} days',
-    'row.ext.warn': 'The file extension does not promise playback in the browser — the exact reason shows when you try',
     'row.cat.count.title': 'Category size according to the last load',
-    'row.cat.subtitle': '{kind} · {where}',
 
     /* ------------------------------------------------------ empty states */
     'empty.browse': 'Browse channels',
@@ -267,6 +267,7 @@ const STRINGS = {
 
     /* ----------------------------------------------------------- guide */
     'guide.needserver': 'Connect to a server first',
+    'guide.epgon': 'Switch it on',
     'guide.epgoff': 'Programme data is switched off in settings',
     'guide.needgroup': 'Pick a channel group first',
     'guide.allchannels': 'All channels',
@@ -315,7 +316,7 @@ const STRINGS = {
     'cast.nodevice': 'No Chromecast was found on this network',
     'cast.playing': 'Chromecast',
     'cast.tab': 'Cast the tab from Chrome\u2019s menu',
-    'cast.tab.text': 'This stream runs through MediaSource, which the Remote Playback API does not accept. Choose Cast\u2026 from Chrome\u2019s menu and cast this tab, then press f: once the video is full screen, Chrome sends the picture as it is, without re-encoding.',
+    'cast.tab.text': 'A Chromecast cannot take this stream directly. Cast the whole tab instead: choose Cast\u2026 from Chrome\u2019s own menu, then press f — with the picture full screen, Chrome sends it as it is, without re-encoding.',
     'cast.fullscreen': 'Full screen',
     'cast.close': 'Close',
 
@@ -356,7 +357,6 @@ const STRINGS = {
     'setup.channelsort.az': 'Name (A–Z)',
     'setup.channelsort.za': 'Name (Z–A)',
     'setup.channelsort.num': 'Channel number',
-    'setup.subs': 'Subtitles',
     'setup.subs.style': 'Style',
     'setup.subs.size': 'Size',
     'setup.subs.sample': 'Subtitles look like this,\non two lines as well.',
@@ -370,13 +370,10 @@ const STRINGS = {
     'setup.stats': 'Show stream statistics over the picture',
     'setup.stats.hint': 'Resolution, bit rate and the engine playing the stream, in the corner of the picture. For working out why a stream stutters.',
     'setup.clear': 'Clear cache',
-    'setup.clear.title': 'Removes the loaded lists and programme data. Credentials and favourites stay.',
     'setup.cleared': 'Cache cleared',
     'setup.reset': 'Reset everything',
-    'setup.reset.title': 'Removes credentials, favourites, history, resume points and the cache',
     'setup.reset.confirm': 'Confirm: delete everything',
     'setup.reset.failed': 'Reset failed',
-    'setup.close': 'Close',
     'modal.close': 'Close',
     'progress.cancel': 'Cancel',
     'setup.connect': 'Connect',
@@ -495,6 +492,8 @@ const STRINGS = {
 
     /* ---------------------------------------------------------- sidebar */
     'groups.filter.placeholder': 'Suodata maat ja aiheet…',
+    'groups.filter.genres': 'Suodata lajityypit ja aiheet…',
+    'groups.genres.aria': 'Lajityypit ja aiheet',
     'groups.all': 'Kaikki',
     'groups.all.title': 'Lataa koko listan palvelimelta',
     'kind.c': 'Kategoriat',
@@ -532,9 +531,7 @@ const STRINGS = {
     'row.watched': 'Katsottu {stamp}',
     'row.archive': '{days} vrk',
     'row.archive.title': 'Catchup: ohjelmat {days} vuorokauden ajalta',
-    'row.ext.warn': 'Pääte ei lupaa toistoa selaimessa — tarkka syy selviää toistoa yritettäessä',
     'row.cat.count.title': 'Kategorian koko viime latauksen mukaan',
-    'row.cat.subtitle': '{kind} · {where}',
 
     /* ------------------------------------------------------ empty states */
     'empty.browse': 'Selaa kanavia',
@@ -687,6 +684,7 @@ const STRINGS = {
 
     /* ----------------------------------------------------------- guide */
     'guide.needserver': 'Yhdistä ensin palvelimeen',
+    'guide.epgon': 'Kytke päälle',
     'guide.epgoff': 'Ohjelmatiedot on kytketty pois asetuksista',
     'guide.needgroup': 'Valitse ensin kanavaryhmä',
     'guide.allchannels': 'Kaikki kanavat',
@@ -735,7 +733,7 @@ const STRINGS = {
     'cast.nodevice': 'Verkosta ei löytynyt Chromecastia',
     'cast.playing': 'Chromecast',
     'cast.tab': 'Lähetä välilehti Chromen valikosta',
-    'cast.tab.text': 'Tämä virta kulkee MediaSourcen kautta, jota Remote Playback -rajapinta ei ota vastaan. Valitse Chromen valikosta Suoratoista\u2026 ja lähetä tämä välilehti, paina sitten f: kokoruudussa Chrome lähettää kuvan sellaisenaan ilman uudelleenkoodausta.',
+    'cast.tab.text': 'Chromecast ei ota tätä virtaa vastaan suoraan. Lähetä koko välilehti sen sijaan: valitse Chromen omasta valikosta Suoratoista\u2026 ja paina sitten f — kokoruudussa Chrome lähettää kuvan sellaisenaan ilman uudelleenkoodausta.',
     'cast.fullscreen': 'Kokoruutu',
     'cast.close': 'Sulje',
 
@@ -776,7 +774,6 @@ const STRINGS = {
     'setup.channelsort.az': 'Nimi (A–Ö)',
     'setup.channelsort.za': 'Nimi (Ö–A)',
     'setup.channelsort.num': 'Kanavanumero',
-    'setup.subs': 'Tekstitys',
     'setup.subs.style': 'Tyyli',
     'setup.subs.size': 'Koko',
     'setup.subs.sample': 'Tältä tekstitys näyttää,\nkahdella rivilläkin.',
@@ -790,13 +787,10 @@ const STRINGS = {
     'setup.stats': 'Näytä lähetyksen tekniset tiedot kuvan päällä',
     'setup.stats.hint': 'Tarkkuus, bittinopeus ja lähetystä toistava moottori kuvan nurkassa. Pätkivän lähetyksen selvittämiseen.',
     'setup.clear': 'Tyhjennä välimuisti',
-    'setup.clear.title': 'Poistaa ladatut listat ja ohjelmatiedot. Tunnukset ja suosikit säilyvät.',
     'setup.cleared': 'Välimuisti tyhjennetty',
     'setup.reset': 'Palauta alkutilaan',
-    'setup.reset.title': 'Poistaa tunnukset, suosikit, historian, katselukohdat ja välimuistin',
     'setup.reset.confirm': 'Varmista: poista kaikki',
     'setup.reset.failed': 'Palautus epäonnistui',
-    'setup.close': 'Sulje',
     'modal.close': 'Sulje',
     'progress.cancel': 'Peruuta',
     'setup.connect': 'Yhdistä',
