@@ -12,12 +12,15 @@
 <header class="topbar">
   <div class="brand"><span class="brand-mark"></span>Kepuli-TV</div>
 
-  <nav class="tabs" id="tabs" role="tablist">
-    <button type="button" role="tab" aria-selected="true" data-tab="live" class="active" data-i18n="tab.live">Channels</button>
-    <button type="button" role="tab" aria-selected="false" data-tab="movie" data-i18n="tab.movie">Movies</button>
-    <button type="button" role="tab" aria-selected="false" data-tab="series" data-i18n="tab.series">Series</button>
-    <button type="button" role="tab" aria-selected="false" data-tab="fav" data-i18n="tab.fav">Favourites</button>
-    <button type="button" role="tab" aria-selected="false" data-tab="recent" data-i18n="tab.recent">History</button>
+  <!-- A tab strip that keeps the whole promise: one stop in the tab order,
+       the arrows between the tabs, and a panel each of them names. The
+       chosen one carries tabindex 0 and the rest -1, see activateTab. -->
+  <nav class="tabs" id="tabs" role="tablist" data-i18n-label="tabs.aria">
+    <button type="button" role="tab" id="tab-live" aria-selected="true" aria-controls="listcol" data-tab="live" class="active" data-i18n="tab.live">Channels</button>
+    <button type="button" role="tab" id="tab-movie" aria-selected="false" aria-controls="listcol" tabindex="-1" data-tab="movie" data-i18n="tab.movie">Movies</button>
+    <button type="button" role="tab" id="tab-series" aria-selected="false" aria-controls="listcol" tabindex="-1" data-tab="series" data-i18n="tab.series">Series</button>
+    <button type="button" role="tab" id="tab-fav" aria-selected="false" aria-controls="listcol" tabindex="-1" data-tab="fav" data-i18n="tab.fav">Favourites</button>
+    <button type="button" role="tab" id="tab-recent" aria-selected="false" aria-controls="listcol" tabindex="-1" data-tab="recent" data-i18n="tab.recent">History</button>
   </nav>
 
   <label class="search">
@@ -47,10 +50,13 @@
     <div class="groups-filter" id="groups-filter">
       <input id="category-filter" type="search" data-i18n-placeholder="groups.filter.placeholder" data-i18n-label="groups.filter.placeholder" autocomplete="off" spellcheck="false">
     </div>
-    <div class="groups-list" id="groups" role="list" data-i18n-label="groups.aria"></div>
+    <!-- A listbox, like the list beside it: the container holds the tab stop,
+         the arrows move a cursor inside it, and aria-activedescendant names
+         the row the cursor is on. See markGroups in js/app.js. -->
+    <div class="groups-list" id="groups" role="listbox" tabindex="0" data-i18n-label="groups.aria"></div>
   </aside>
 
-  <section class="listcol">
+  <section class="listcol" id="listcol" role="tabpanel" aria-labelledby="tab-live">
     <div class="channel-tools" id="channel-tools" hidden>
       <button type="button" id="btn-guide" class="channel-guide" data-i18n-title="btn.guide.title" aria-controls="epg" aria-expanded="false">
         <svg viewBox="0 0 20 20" aria-hidden="true"><rect x="2.5" y="3.5" width="15" height="13" rx="2"/><path d="M2.5 8h15M7 8v8.5M11 8v4M7 12h10.5"/></svg>

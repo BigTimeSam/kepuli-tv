@@ -522,7 +522,7 @@ the guide, so one spelling works everywhere a name is typed.
 | `f` | full screen |
 | `m` | mute |
 | `a` | the next audio track, when the file has more than one |
-| `s` | star what the cursor is on — a row, or a sidebar group or topic chip that has the focus |
+| `s` | star what the cursor is on — a list row, or the sidebar row or topic chip the keyboard stands on |
 | `n` `p` | next / previous |
 | `g` | open and close the programme guide |
 | `x` | hand over to an external player, after a confirmation over the picture |
@@ -531,6 +531,17 @@ the guide, so one spelling works everywhere a name is typed.
 These are the bare keys: a key held down with Ctrl, Cmd or Alt is left to the
 browser, so `Cmd+F` and `Ctrl+F` open its search box rather than taking the
 picture to full screen.
+
+Tab reaches the three places that hold a cursor of their own, one stop each:
+the tab strip, the sidebar and the list. Inside the strip the arrows move
+between **Channels**, **Movies**, **Series**, **Favourites** and **History**,
+and `Home` and `End` reach its ends; the panel below takes its name from
+whichever is chosen. Inside the sidebar the arrows move a cursor down the
+countries or topics, `Home` and `End` reach its ends, and `Enter` or `space`
+chooses the row the cursor is on — the row being marked as the cursor's, which
+is a different thing from the group being shown. Both are listboxes, as the
+list itself already was, so a screen reader is told what the eye can see: which
+row is selected and which one the keyboard stands on.
 
 In the guide the arrows move between channels and programmes, `PgUp` and
 `PgDn` a screen at a time, `Home` returns to the present, `+` and `−` adjust

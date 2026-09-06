@@ -977,7 +977,11 @@ dialog::backdrop { background: rgba(5, 6, 10, .66); backdrop-filter: blur(2px); 
 .epg-scroll { grid-area: 2 / 2; overflow: auto; outline: none; }
 /* The keyboard's whereabouts: the container that takes the arrows shows it. */
 #list:focus-visible, .epg-scroll:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; }
-.group:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; }
+/* The sidebar's own focus ring, and inside it the row the arrows are on.
+   Two different things: .active is the group being shown, .cursor is where
+   the keyboard stands, and either can be on a row the other is not. */
+.groups-list:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; }
+.groups-list:focus-visible .group.cursor { box-shadow: inset 0 0 0 2px var(--accent-2); }
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation-duration: 0.01ms !important; animation-iteration-count: 1 !important; transition-duration: 0s !important; }
 }

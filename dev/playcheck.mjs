@@ -627,30 +627,47 @@ async function a11y(page) {
   await sleep(300);
   const st = await evaluate(page, `(() => {
     const list = document.getElementById('list');
+    const groups = document.getElementById('groups');
     const selected = list.querySelector('.row.selected');
     const tabs = [...document.querySelectorAll('#tabs [role="tab"]')];
     const iconButtons = [...document.querySelectorAll('button[data-i18n-title]')].filter((b) => !/\\p{L}/u.test(b.textContent));
-    const group = document.querySelectorAll('#groups .group')[2];
+    const rows = [...groups.children];
+    const cursor = groups.querySelector('.group.cursor');
     return {
       listRole: list.getAttribute('role'), listName: list.getAttribute('aria-label'),
       pointsAtCursor: Boolean(selected) && list.getAttribute('aria-activedescendant') === selected.id && selected.getAttribute('role') === 'option' && selected.getAttribute('aria-selected') === 'true',
       cursorMark: selected ? getComputedStyle(selected).boxShadow !== 'none' : false,
       tablist: document.getElementById('tabs').getAttribute('role'),
       selectedTabs: tabs.filter((b) => b.getAttribute('aria-selected') === 'true').map((b) => b.dataset.tab),
+      // A tab strip is one stop in the tab order, and its panel takes its name.
+      tabStops: tabs.filter((b) => b.tabIndex === 0).map((b) => b.dataset.tab),
+      panelNamedBy: document.getElementById('listcol').getAttribute('aria-labelledby'),
       toastRole: document.getElementById('toast').getAttribute('role'),
       unnamedIcons: iconButtons.filter((b) => !b.getAttribute('aria-label')).map((b) => b.id || b.className),
-      groupTabbable: group ? group.tabIndex === 0 : false,
-      groupName: group ? group.textContent.trim().replace(/\\s*\\d+$/, '') : null,
+      // The sidebar is a listbox of options, not a list of tabbable items.
+      groupsRole: groups.getAttribute('role'), groupsTabbable: groups.tabIndex === 0,
+      optionRoles: [...new Set(rows.map((r) => r.getAttribute('role')))],
+      rowsTabbable: rows.filter((r) => r.tabIndex >= 0).length,
+      pointsAtGroup: Boolean(cursor) && groups.getAttribute('aria-activedescendant') === cursor.id,
+      target: rows[2] ? rows[2].textContent.trim().replace(/\\s*\\d+$/, '') : null,
+      at: rows.indexOf(cursor),
     }; })()`);
-  // A sidebar group by keyboard: Tab-reachable, chosen with Enter.
-  await evaluate(page, `document.querySelectorAll('#groups .group')[2].focus()`);
+  // A sidebar group by keyboard: one Tab into the listbox, the arrows to the
+  // row, Enter to choose it.
+  await evaluate(page, `document.getElementById('groups').focus()`);
+  for (let i = st.at; i < 2; i++) await pressKey(page, 'ArrowDown', 'ArrowDown', 40);
+  for (let i = st.at; i > 2; i--) await pressKey(page, 'ArrowUp', 'ArrowUp', 38);
+  await sleep(200);
   await pressKey(page, 'Enter', 'Enter', 13);
   await sleep(800);
   const chosen = await evaluate(page, ACTIVE_GROUP);
   const ok = st.listRole === 'listbox' && Boolean(st.listName) && st.pointsAtCursor && st.cursorMark
     && st.tablist === 'tablist' && st.selectedTabs.length === 1 && st.selectedTabs[0] === 'live'
-    && st.toastRole === 'status' && st.unnamedIcons.length === 0 && st.groupTabbable && chosen === st.groupName;
-  return { ok, detail: `list ${st.listRole}/${st.listName}, cursor ${st.pointsAtCursor ? 'announced' : 'not announced'} and ${st.cursorMark ? 'marked' : 'unmarked'}, tabs ${st.tablist} selected ${st.selectedTabs.join(',')}, toast ${st.toastRole}, unnamed icon buttons ${st.unnamedIcons.length}, group by keyboard: "${st.groupName}" → "${chosen}"` };
+    && st.tabStops.length === 1 && st.tabStops[0] === 'live' && st.panelNamedBy === 'tab-live'
+    && st.toastRole === 'status' && st.unnamedIcons.length === 0
+    && st.groupsRole === 'listbox' && st.groupsTabbable && st.optionRoles.join() === 'option'
+    && st.rowsTabbable === 0 && st.pointsAtGroup && chosen === st.target;
+  return { ok, detail: `list ${st.listRole}/${st.listName}, cursor ${st.pointsAtCursor ? 'announced' : 'not announced'} and ${st.cursorMark ? 'marked' : 'unmarked'}, tabs ${st.tablist} selected ${st.selectedTabs.join(',')} with ${st.tabStops.length} stop naming ${st.panelNamedBy}, sidebar ${st.groupsRole} of ${st.optionRoles.join('/')} with ${st.rowsTabbable} tabbable rows, toast ${st.toastRole}, unnamed icon buttons ${st.unnamedIcons.length}, group by keyboard: "${st.target}" → "${chosen}"` };
 }
 
 /** The control stays with the video and preserves the subtitle overlay. */

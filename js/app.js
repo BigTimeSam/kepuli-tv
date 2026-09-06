@@ -86,6 +86,7 @@ const state = {
   listRequest: 0,
   kind: null,             // a collection's type filter, null = all
   rows: [], rowIndex: new Map(), sections: new Map(), cursor: -1,
+  groupCursor: null,      // where the arrows stand in the sidebar, null = on whatever is chosen
   // A drill-down into the list. A series and a favourite category share the
   // same place and the same back button, so they are one state with two
   // shapes:
@@ -476,15 +477,31 @@ function groupHasTopic(type, groupName, id) {
   return Boolean(state.lib?.group(type, groupName)?.cats.some((cat) => cat.id === id));
 }
 
+/**
+ * Which tab is on: the class that colours it, the state a screen reader
+ * reads, the one stop the tab order gets, and the name the panel below
+ * takes from it. Four things that must never disagree, so they are written
+ * in one place.
+ */
+function markTabs(tab) {
+  for (const button of el.tabs.children) {
+    const on = button.dataset.tab === tab;
+    button.classList.toggle('active', on);
+    button.setAttribute('aria-selected', String(on));
+    // A tab strip is one stop in the tab order and the arrows move inside
+    // it; five stops would put four of them between the strip and the list.
+    button.tabIndex = on ? 0 : -1;
+    if (on) $('listcol').setAttribute('aria-labelledby', button.id);
+  }
+}
+
 async function activateTab(tab, { restore = false } = {}) {
   state.tab = tab;
   $('channel-tools').hidden = tab !== 'live';
-  for (const button of el.tabs.children) {
-    button.classList.toggle('active', button.dataset.tab === tab);
-    button.setAttribute('aria-selected', String(button.dataset.tab === tab));
-  }
+  markTabs(tab);
   state.detail = null;
   state.cursor = -1;
+  state.groupCursor = null;
   state.sub = restore ? takeStoredSub() : null;
   // No group is two different answers: "All", which the viewer chose and
   // which costs the whole list, and "none yet", which is where a first
@@ -1127,6 +1144,41 @@ function clearHistoryButton() {
 function renderSidebar() {
   if (isCollection()) renderKinds();
   else renderCategories();
+  markGroups();
+}
+
+/**
+ * The sidebar's rows, named so aria-activedescendant can point at one, and
+ * the cursor placed. The cursor is kept across a repaint — starring a row
+ * rebuilds the whole strip, and a cursor that jumped back to the chosen
+ * group each time would make a second press land somewhere else. It is
+ * seeded on the chosen row only when it has none, which is what a tab change
+ * and a fresh choice both ask for by clearing it.
+ */
+function markGroups() {
+  const rows = [...el.groups.children];
+  rows.forEach((row, i) => { row.id = `grp-${i}`; });
+  if (state.groupCursor == null || state.groupCursor >= rows.length) {
+    const chosen = rows.findIndex((row) => row.getAttribute('aria-selected') === 'true');
+    state.groupCursor = chosen >= 0 ? chosen : 0;
+  }
+  paintGroupCursor();
+}
+
+function paintGroupCursor() {
+  const rows = [...el.groups.children];
+  rows.forEach((row, i) => row.classList.toggle('cursor', i === state.groupCursor));
+  const at = rows[state.groupCursor];
+  if (at) el.groups.setAttribute('aria-activedescendant', at.id);
+  else el.groups.removeAttribute('aria-activedescendant');
+}
+
+function moveGroupCursor(to) {
+  const rows = [...el.groups.children];
+  if (!rows.length) return;
+  state.groupCursor = Math.max(0, Math.min(rows.length - 1, to));
+  paintGroupCursor();
+  rows[state.groupCursor].scrollIntoView({ block: 'nearest' });
 }
 
 function renderKinds() {
@@ -1161,6 +1213,7 @@ async function selectKind(kind) {
   // from it — otherwise the tap would appear to do nothing.
   state.detail = null;
   state.cursor = -1;
+  state.groupCursor = null;
   state.lastKind[state.tab] = kind;
   renderKinds();
   await refreshRows();
@@ -1222,6 +1275,7 @@ async function selectGroup(name) {
   state.sub = null;
   state.detail = null;
   state.cursor = -1;
+  state.groupCursor = null;
   state.lastGroup[state.tab] = name;
   renderSidebar();
   const pending = refreshRows();
@@ -3107,7 +3161,11 @@ function renderCastState() {
 function toggleFavoriteAtCursor() {
   // A starless sidebar row reserves the space with a plain div, so the
   // class alone does not promise a button.
-  const box = document.activeElement?.closest('.group, .chip');
+  // A chip carries its own focus. The sidebar's rows are options, and the
+  // listbox around them holds the focus, so its cursor says which row.
+  const active = document.activeElement;
+  const box = active?.closest('.group, .chip')
+    ?? (active === el.groups ? el.groups.children[state.groupCursor] ?? null : null);
   const star = box?.querySelector('.group-star, .chip-star');
   if (star && star.tagName === 'BUTTON') { starFocusedRow(box, star); return; }
 
@@ -3138,7 +3196,9 @@ function starFocusedRow(box, star) {
   const again = strip.children[at];
   const back = again?.querySelector('.group-star, .chip-star');
   if (!back) return;                       // the strip is not the one it was
-  (again.querySelector('.chip-main') || again).focus();
+  // A chip's own button had the focus and its replacement needs it back. A
+  // sidebar row never had it — the listbox around it did, and still does.
+  again.querySelector('.chip-main')?.focus();
   toast(t(back.classList.contains('on') ? 'fav.added' : 'fav.removed', { name }));
 }
 
@@ -3165,6 +3225,27 @@ function playRelative(delta) {
 }
 
 function wireUi() {
+  // The arrows walk the strip and Home and End reach its ends, which is what
+  // a tab strip promises the moment it calls itself one. The same keys are
+  // the list's while the focus is elsewhere, so they are taken only here.
+  el.tabs.addEventListener('keydown', (e) => {
+    const tabs = [...el.tabs.children];
+    const at = tabs.indexOf(e.target);
+    if (at < 0) return;
+    const next = e.key === 'ArrowRight' ? (at + 1) % tabs.length
+      : e.key === 'ArrowLeft' ? (at + tabs.length - 1) % tabs.length
+      : e.key === 'Home' ? 0
+      : e.key === 'End' ? tabs.length - 1 : -1;
+    if (next < 0) return;
+    e.preventDefault();
+    e.stopPropagation();
+    closeGuide();
+    // The focus follows the choice, as it does in the settings dialog: the
+    // strip is small and every tab is one the viewer may be heading for.
+    tabs[next].focus();
+    activateTab(tabs[next].dataset.tab, { restore: true });
+  });
+
   el.tabs.addEventListener('click', (e) => {
     const button = e.target.closest('button[data-tab]');
     if (!button) return;
@@ -3198,6 +3279,23 @@ function wireUi() {
         if (ok === false && state.query) clearSearch();
       });
     }, 180);
+  });
+
+  el.groups.addEventListener('keydown', (e) => {
+    const rows = el.groups.children;
+    if (!rows.length) return;
+    const last = rows.length - 1;
+    if (e.key === 'ArrowDown') moveGroupCursor(state.groupCursor + 1);
+    else if (e.key === 'ArrowUp') moveGroupCursor(state.groupCursor - 1);
+    else if (e.key === 'PageDown') moveGroupCursor(state.groupCursor + 10);
+    else if (e.key === 'PageUp') moveGroupCursor(state.groupCursor - 10);
+    else if (e.key === 'Home') moveGroupCursor(0);
+    else if (e.key === 'End') moveGroupCursor(last);
+    else if (e.key === 'Enter' || e.key === ' ') rows[state.groupCursor]?.click();
+    else return;
+    e.preventDefault();
+    // The same arrows move the list's cursor when the focus is elsewhere.
+    e.stopPropagation();
   });
 
   let filterTimer = null;
@@ -3463,10 +3561,7 @@ async function init() {
   storedSub = start.sub ?? null;
   $('channel-tools').hidden = state.tab !== 'live';
   if (typeof ui.subcatsHeight === 'number') state.subcatsHeight = ui.subcatsHeight;
-  for (const button of el.tabs.children) {
-    button.classList.toggle('active', button.dataset.tab === state.tab);
-    button.setAttribute('aria-selected', String(button.dataset.tab === state.tab));
-  }
+  markTabs(state.tab);
 
   window.addEventListener('hashchange', onAddressChanged);
   updateAddress();

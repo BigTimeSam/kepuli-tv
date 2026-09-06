@@ -184,13 +184,13 @@ function badges(item, ctx) {
  */
 export function categoryRow({ id, name, count, active, all, favorite, onFavorite, indent }, onSelect) {
   const row = el('div', 'group' + (active ? ' active' : '') + (all ? ' all' : ''));
-  // Reachable by Tab and chosen with Enter or Space, like a link in a list.
-  row.setAttribute('role', 'listitem');
-  row.tabIndex = 0;
-  if (active) row.setAttribute('aria-current', 'true');
-  row.addEventListener('keydown', (e) => {
-    if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onSelect(id); }
-  });
+  // An option of the sidebar's listbox. It used to be a list item with a
+  // tabindex — a role that tells a screen reader "not interactive" on an
+  // element that was, and twelve tab stops between the filter above and the
+  // list beside it. The container holds the one stop now and the keys are
+  // handled there, so the row itself is not focusable.
+  row.setAttribute('role', 'option');
+  row.setAttribute('aria-selected', String(Boolean(active)));
   // A starless row among starred ones reserves the same space, so that
   // its name does not start at a different offset from the rest.
   if (onFavorite) row.appendChild(star(favorite, onFavorite, 'group-star'));
