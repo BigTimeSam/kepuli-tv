@@ -661,20 +661,28 @@ so correcting it costs nothing.
 
 ## The programme guide
 
-The guide is three bands: the preview and the picture side by side, the
-timeline's own controls, and the grid. The middle band takes what the picture
-and the preview need and no more. It used to be `minmax(240px, 30vh)` — a
-fixed share of the window whatever was in it — so a 900px-tall window gave the
-band 270px to hold 105px of preview and a picture that wanted 194. The picture
-is now shaped by its own 16:9 ratio, with a floor at what that comes to in the
-narrowest the column goes, and the slack drops to the grid: measured, 4.6
-visible channel rows became 4.8 at 1024×700 and 8.1 became 8.6 at 1440×900.
+The guide is a grid with a column beside it: the programme's own details on
+top of that column and the picture below them, and the grid taking the whole
+height to their left.
 
-That is a third of a row. The band cannot give back much more, because what
-sets its height is the picture rather than the preview beside it — the preview
-needs 105px of its 227 and the rest of its box is empty. Reclaiming that means
-moving the grid out from under the preview, which is a change of shape rather
-than of numbers.
+It used to be three bands — details and picture side by side across the top,
+then the controls, then the grid in what was left. The top band was
+`minmax(240px, 30vh)`, a fixed share of the window whatever happened to be in
+it, so a 900px-tall window spent 270px on 105px of details and a picture that
+wanted 194. The grid, which is the reason anyone opens the guide, got the
+remainder. Measured against the mock server, visible channel rows:
+
+| Window | Three bands | Sized to content | Column beside the grid |
+| --- | --- | --- | --- |
+| 1024×800 | 4.6 | 4.8 | **9.1** |
+| 1280×800 | 6.6 | 6.9 | **11.7** |
+| 1440×900 | 8.1 | 8.6 | **13.8** |
+
+The picture keeps its own 16:9 shape rather than stretching to whatever height
+a row hands it — a stretched picture is only letterboxing — and the details
+above it take the slack instead, because a long description is the thing that
+actually grows. The rule that shapes it excludes `:fullscreen`, or the ratio
+would follow the picture there and letterbox it against the screen.
 
 **Programme guide**, above the channel list on the **Channels** tab (or `g`),
 turns the whole window into a grid view: channels as rows,

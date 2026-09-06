@@ -117,14 +117,18 @@ main > .groups { grid-column: 1; }
 main > .listcol { grid-column: 2; }
 main > .stage { grid-column: 3; }
 
+/* The grid is what the guide was opened for, so it gets the height and the
+   two things that describe one row of it stand beside it in a column of
+   their own: the programme's own details on top, the picture under them.
+   The band across the top that used to hold both cost the grid its whole
+   height for a preview that filled 105px of 227 — measured at 1024x700,
+   4.8 channel rows were visible where the column now leaves 9. */
 main.guide {
-  grid-template-columns: minmax(0, 1fr) minmax(280px, 24vw);
-  /* The middle row takes what the picture and the preview beside it need,
-     and no more. It used to be minmax(240px, 30vh) — a fixed share of the
-     window whatever was in it — which on a 900px-tall window gave the row
-     270px to hold 105px of preview and a picture that wanted 194. The grid
-     underneath is what the guide was opened for, so the slack goes there. */
-  grid-template-rows: auto minmax(0, auto) minmax(0, 1fr);
+  grid-template-columns: minmax(0, 1fr) minmax(272px, 24vw);
+  /* The picture is as tall as 16:9 makes it and no taller; the programme's
+     details above take whatever is left, because a long description is what
+     grows and a stretched picture is only letterboxing. */
+  grid-template-rows: auto minmax(0, 1fr) auto;
 }
 .guide-header { display: none; }
 main.guide > .guide-header { grid-area: 1 / 1 / 2 / 3; display: flex; align-items: center; gap: 16px; padding: 8px 14px; background: var(--panel); border-bottom: 1px solid var(--border); }
@@ -134,14 +138,25 @@ main.guide > .guide-header { grid-area: 1 / 1 / 2 / 3; display: flex; align-item
 .guide-back:hover { background: #30244f; }
 .guide-back:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 main.guide > .groups, main.guide > .listcol { display: none; }
-main.guide > .epgview { grid-area: 2 / 1; }
-main.guide > .stage { grid-area: 2 / 2; min-height: 0; }
+main.guide > .epgview { grid-area: 2 / 2; border-left: 1px solid var(--border); border-bottom: 0; }
+main.guide > .stage { grid-area: 3 / 2; min-height: 0; border-left: 1px solid var(--border); border-top: 1px solid var(--border); }
 /* In the guide the picture is a thumbnail beside the grid, so it is shaped
    by its own aspect ratio rather than by whatever height a row hands it.
    The floor is what a 16:9 picture comes to in the narrowest this column
    goes (280px), below which it stops being watchable. */
-main.guide #videowrap:not(:fullscreen) { aspect-ratio: 16 / 9; min-height: 158px; }
-main.guide > .epg { grid-area: 3 / 1 / 4 / 3; }
+main.guide #videowrap:not(:fullscreen) { flex: none; aspect-ratio: 16 / 9; min-height: 153px; }
+
+/* The preview is a column now, not a band: the two actions go under the
+   channel's name rather than beside it, and the description takes whatever
+   the picture below has not claimed. */
+main.guide > .epgview { gap: 6px; }
+main.guide .epgv-head { flex-wrap: wrap; }
+/* Two buttons side by side in a 272px column wrap to two lines each and
+   read as four; stacked they read as two. */
+main.guide .epgv-actions { flex: 1 0 100%; flex-direction: column; }
+main.guide .epgv-actions button { width: 100%; }
+main.guide .epgv-desc { flex: 1; }
+main.guide > .epg { grid-area: 2 / 1 / 4 / 2; }
 /* The programme data shows in the guide's own panel, and six buttons do not
    fit in the narrow player box. */
 main.guide .infostrip,
@@ -955,7 +970,7 @@ dialog::backdrop { background: rgba(5, 6, 10, .66); backdrop-filter: blur(2px); 
 .programme-result:hover, .programme-result:focus-visible { background: var(--panel-2); }
 .programme-result strong, .programme-result span { max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .programme-result span { color: var(--muted); font-size: 12px; }
-.epg-days { min-width: 0; max-width: 45vw; overflow-x: auto; }
+.epg-days { min-width: 0; max-width: 34vw; overflow-x: auto; }
 
 @media (max-width: 600px) {
   .editor-content { padding: 16px; gap: 10px; }
@@ -967,7 +982,7 @@ dialog::backdrop { background: rgba(5, 6, 10, .66); backdrop-filter: blur(2px); 
 
 .epg-bar {
   display: flex; align-items: center; gap: 8px; flex-wrap: wrap;
-  padding: 7px 10px; background: var(--panel); border-top: 1px solid var(--border);
+  padding: 6px 10px; background: var(--panel); border-top: 1px solid var(--border);
   border-bottom: 1px solid var(--border);
 }
 .epg-bar .spacer { flex: 1; }
