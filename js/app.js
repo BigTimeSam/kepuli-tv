@@ -148,6 +148,10 @@ async function connect({ silent = false } = {}) {
     renderSidebar();
     await activateTab(state.tab, { restore: true });
     await restoreDetail();
+    // A subscription that has already run out is worth saying now, rather
+    // than leaving the first stream to fail and explain it.
+    const problem = accountProblem(state.account);
+    if (problem) toast(problem, { long: true, kind: 'warn' });
     return true;
   } catch (err) {
     hideProgress();
@@ -1687,6 +1691,9 @@ function onPlaybackState(s) {
       });
     }
     showOverlayActions(actions);
+    // Why it failed, when the account can say: a subscription that has run
+    // out, or every connection already in use.
+    explainFailure(s.message);
     // A stream may point at a different server from the API, so the
     // permission is checked against this stream's own origin.
     if (state.playingSpec) {
@@ -1694,6 +1701,62 @@ function onPlaybackState(s) {
                   retryPlayback);
     }
   }
+}
+
+/* ------------------------------------------------- what the account says */
+
+/**
+ * The account's own trouble, in a sentence, or null when it has none.
+ *
+ * A subscription that has run out and an account whose connections are all
+ * in use are the two commonest reasons an IPTV stream does not arrive, and
+ * neither of them is in the stream's own error: the player is handed a
+ * media error code or a connection that simply closes. Left unnamed, the
+ * viewer is offered "try again" and "change the playback mode", which are
+ * the two things that cannot help.
+ *
+ * @param {boolean} busy whether to count connections as well. At connect
+ *        time the count says nothing — no stream has been asked for yet —
+ *        and only a failure makes it worth reading.
+ */
+function accountProblem(account, { busy = false } = {}) {
+  if (!account) return null;
+  if (account.expiresAt && account.expiresAt < Date.now()) {
+    return t('account.expired', { date: dateFmt.format(new Date(account.expiresAt)) });
+  }
+  if (account.status && !/^active$/i.test(String(account.status).trim())) {
+    return t('account.inactive', { status: account.status });
+  }
+  if (busy && account.maxConnections && account.activeConnections >= account.maxConnections) {
+    return t('account.busy', { active: account.activeConnections, max: account.maxConnections });
+  }
+  return null;
+}
+
+/**
+ * The same, with the figures asked for again rather than remembered:
+ * active_cons is a count at the moment it was read, and the moment that
+ * matters is the one that just failed. One small request, and only after a
+ * failure — never on the way to playing something.
+ */
+async function accountTrouble() {
+  if (!state.source) return null;
+  try {
+    const account = await state.source.account();
+    state.account = account;
+    return accountProblem(account, { busy: true });
+  } catch { return null; }        // the account cannot say; the stream's own error stands
+}
+
+/**
+ * The account's answer, added to a failure once it arrives. The message is
+ * left alone if the situation has moved on in the meantime — the same check
+ * offerAccess makes.
+ */
+async function explainFailure(message) {
+  const trouble = await accountTrouble();
+  if (!trouble || el.overlay.hidden || el.overlayText.textContent !== message) return;
+  el.overlayText.textContent = `${message} ${trouble}`;
 }
 
 function showOverlayActions(actions) {
@@ -2944,6 +3007,33 @@ function playExternal() {
   ]);
 }
 
+/**
+ * The x key asks before handing over; the menu item does not.
+ *
+ * The hand-off is not a small thing done twice: it stops playback, and it
+ * writes a playlist file into the downloads folder carrying the server
+ * address, the user name and the password in clear text, where it stays
+ * until someone deletes it. A single stray keystroke should not do that —
+ * and stray keystrokes do reach here, because the focus is deliberately
+ * dropped to the body after every click, so nothing is holding the keys.
+ *
+ * The menu item is deliberate already: a menu opened and a line chosen,
+ * spelled out in words. The confirmation's own button is a fresh click, so
+ * the download still has the user gesture it needs.
+ */
+function askExternal() {
+  if (!state.playingSpec) { toast(t('ext.nothing'), { kind: 'warn' }); return; }
+  el.overlay.hidden = false;
+  el.overlay.classList.remove('loading');
+  el.overlayTitle.textContent = t('ext.confirm');
+  el.overlayText.textContent = t('ext.confirm.text');
+  const close = () => { el.overlay.hidden = true; showOverlayActions(null); };
+  showOverlayActions([
+    { label: t('ext.title'), onClick: () => { close(); playExternal(); } },
+    { label: t('progress.cancel'), onClick: close },
+  ]);
+}
+
 /* --------------------------------------------------------- Chromecast */
 
 const cast = new Cast(el.video, renderCastState);
@@ -3269,7 +3359,7 @@ function wireUi() {
       case 'n': playRelative(1); break;
       case 'p': playRelative(-1); break;
       case 'g': toggleGuide(); break;
-      case 'x': playExternal(); break;
+      case 'x': askExternal(); break;
       case 'c': castCurrent(); break;
       default: break;
     }

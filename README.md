@@ -525,7 +525,7 @@ the guide, so one spelling works everywhere a name is typed.
 | `s` | star what the cursor is on — a row, or a sidebar group or topic chip that has the focus |
 | `n` `p` | next / previous |
 | `g` | open and close the programme guide |
-| `x` | hand over to an external player |
+| `x` | hand over to an external player, after a confirmation over the picture |
 | `c` | cast to a Chromecast |
 
 These are the bare keys: a key held down with Ctrl, Cmd or Alt is left to the
@@ -727,7 +727,13 @@ hand-off, because the account allows one concurrent connection — otherwise a
 stream the browser keeps open would leave the external player silent.
 
 The URL carries the credentials, so a downloaded `.m3u` is as sensitive as the
-account itself.
+account itself, and the app now says so where it matters rather than only here.
+The `x` key asks over the picture before it hands over — one keystroke should
+not stop playback and write a password to disk, and the focus is dropped to the
+body after every click, so nothing is holding the keys. The `☰` menu item is
+deliberate already, a menu opened and a line chosen in words, and goes straight
+through; both say afterwards that the file carries your credentials and is
+worth deleting.
 
 ### Chromecast
 

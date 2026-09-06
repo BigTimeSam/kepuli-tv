@@ -302,7 +302,9 @@ const STRINGS = {
     'ext.title': 'Open in an external player',
     'ext.nothing': 'There is no playback to hand over',
     'ext.handed': 'Handed to an external player',
-    'ext.handed.text': 'The playlist was downloaded — open it from the browser downloads.',
+    'ext.confirm': 'Open in an external player?',
+    'ext.confirm.text': 'Playback stops here and a playlist file is saved to your downloads. It carries the server address, your user name and your password in clear text, and stays there until you delete it.',
+    'ext.handed.text': 'The playlist was downloaded — open it from the browser downloads. It carries your credentials, so delete it once you are done with it.',
     'ext.continue': 'Continue in the browser',
 
     /* ------------------------------------------------------- Chromecast */
@@ -387,6 +389,11 @@ const STRINGS = {
     'setup.account.none': 'Not connected yet. The account\u2019s details appear here once the connection is made.',
     'setup.clear.desc': 'Categories, lists, covers and programme data are fetched again. Favourites and history stay.',
     'setup.reset.desc': 'Credentials, settings, favourites, history and the cache all go. This cannot be undone.',
+    // What the account itself says is wrong. Two answers a stream's own
+    // error can never give, and the two commonest ones there are.
+    'account.expired': 'The subscription ran out on {date}.',
+    'account.inactive': 'The provider reports this account as {status}.',
+    'account.busy': 'Every connection this account allows is in use ({active}/{max}) — another device or tab may still be watching.',
     'account.title': 'Account:',
     'account.trial': ' (trial)',
     'account.connections.label': 'Simultaneous connections',
@@ -714,7 +721,9 @@ const STRINGS = {
     'ext.title': 'Avaa ulkoisessa soittimessa',
     'ext.nothing': 'Ei toistoa, jonka voisi luovuttaa',
     'ext.handed': 'Luovutettu ulkoiselle soittimelle',
-    'ext.handed.text': 'Soittolista ladattiin — avaa se selaimen latauksista.',
+    'ext.confirm': 'Avataanko ulkoisessa soittimessa?',
+    'ext.confirm.text': 'Toisto pysähtyy tähän ja latauskansioon tallentuu soittolistatiedosto. Siinä ovat palvelimen osoite, käyttäjätunnuksesi ja salasanasi selkokielisenä, ja se jää sinne kunnes poistat sen.',
+    'ext.handed.text': 'Soittolista ladattiin — avaa se selaimen latauksista. Siinä ovat tunnuksesi, joten poista se kun et enää tarvitse sitä.',
     'ext.continue': 'Jatka selaimessa',
 
     /* ------------------------------------------------------- Chromecast */
@@ -799,6 +808,9 @@ const STRINGS = {
     'setup.account.none': 'Ei vielä yhteyttä. Tilin tiedot ilmestyvät tähän, kun yhteys on muodostettu.',
     'setup.clear.desc': 'Kategoriat, listat, kansikuvat ja ohjelmatiedot haetaan uudelleen. Suosikit ja historia säilyvät.',
     'setup.reset.desc': 'Tunnukset, asetukset, suosikit, historia ja välimuisti poistuvat. Tätä ei voi perua.',
+    'account.expired': 'Tilaus päättyi {date}.',
+    'account.inactive': 'Palveluntarjoaja ilmoittaa tilin tilaksi {status}.',
+    'account.busy': 'Kaikki tilin sallimat yhteydet ovat käytössä ({active}/{max}) — jokin toinen laite tai välilehti voi olla vielä katsomassa.',
     'account.title': 'Tili:',
     'account.trial': ' (kokeilu)',
     'account.connections.label': 'Yhtäaikaiset yhteydet',
