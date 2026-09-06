@@ -1,4 +1,4 @@
-import { VirtualList } from './vlist.js';
+import { VirtualList, watchLength } from './vlist.js';
 import { channelPreferences, ordered, placeInOrder, arrangeOrder, sortChannels } from './channelprefs.js';
 import { t, localeTag } from './i18n.js';
 import { wireModal } from './modal.js';
@@ -7,7 +7,10 @@ import { poster } from './poster.js';
 
 const $ = (id) => document.getElementById(id);
 
-const ROW_H = 44;   // the same number as .organize-row in player.css
+// .organize-row in player.css, in rem so that it grows with the reader's
+// font setting. What that comes to is the browser's answer, asked again when
+// the setting moves.
+let ROW_H = 44;
 const EDGE = 48;    // how near an edge a drag starts scrolling the list
 const SPEED = 0.4;  // pixels of scroll per pixel into that edge, per frame
 
@@ -23,6 +26,8 @@ export class ChannelEditor {
     this.drag = null;
     this.sort = 'az';
     this.list = new VirtualList($('channel-editor-list'), ROW_H, (i) => this.row(i));
+    ROW_H = watchLength('--organize-row-h', ROW_H, (px) => { ROW_H = px; this.list.setRowHeight(px); });
+    this.list.setRowHeight(ROW_H);
     for (const id of ['channel-editor-kind', 'channel-editor-group', 'channel-editor-filter']) {
       $(id).addEventListener('input', () => this.render());
     }

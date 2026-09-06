@@ -551,6 +551,17 @@ picture to full screen.
 a note on why the browser's back button leaves the player rather than stepping
 back inside it. **Help** in the top bar opens it too.
 
+The interface is sized in `rem`, so it follows the reader's own font setting
+in the browser rather than ignoring it. That takes the row heights with it:
+the lists are virtualised, which means something has to divide by a row's
+height, and that number is now asked of the browser rather than written down —
+`cssPixels` and `watchLength` in `js/vlist.js` measure it and measure it again
+when the setting moves under a running page. Measured, a 24px root gives 75px
+rows and text to match, with the virtualisation still landing every row where
+it belongs. A system asking for more contrast is answered too: the borders
+that separate one panel from the next go to 3.7:1 and the muted text to
+9.8:1.
+
 Tab reaches the three places that hold a cursor of their own, one stop each:
 the tab strip, the sidebar and the list. Inside the strip the arrows move
 between **Channels**, **Movies**, **Series**, **Favourites** and **History**,

@@ -6,6 +6,41 @@
 // taller than the others when it wants to: then the heights are summed
 // once up front and the range is found by binary search.
 
+/**
+ * A CSS length as the browser has resolved it, in pixels.
+ *
+ * The row heights are written in rem so that they grow with the reader's own
+ * font setting, which means the number a virtualised list divides by is no
+ * longer a constant anyone can write down. It is asked for instead, and asked
+ * for again whenever the setting changes — see watchLength.
+ */
+export function cssPixels(name, fallback) {
+  const probe = document.createElement('div');
+  probe.style.cssText = `position:absolute;visibility:hidden;pointer-events:none;width:0;height:var(${name})`;
+  document.body.appendChild(probe);
+  const px = probe.getBoundingClientRect().height;
+  probe.remove();
+  return px > 0 ? px : fallback;
+}
+
+/**
+ * The same, watched: onChange is called whenever the resolved length moves,
+ * which is what happens when the browser's default font size is changed under
+ * a running page. The probe stays in the document for the observer to watch.
+ */
+export function watchLength(name, fallback, onChange) {
+  const probe = document.createElement('div');
+  probe.style.cssText = `position:absolute;visibility:hidden;pointer-events:none;width:0;height:var(${name})`;
+  probe.setAttribute('aria-hidden', 'true');
+  document.body.appendChild(probe);
+  let last = probe.getBoundingClientRect().height || fallback;
+  new ResizeObserver(() => {
+    const px = probe.getBoundingClientRect().height;
+    if (px > 0 && Math.abs(px - last) > 0.5) { last = px; onChange(px); }
+  }).observe(probe);
+  return last;
+}
+
 export class VirtualList {
   /**
    * @param {HTMLElement} viewport the scrolling container
@@ -55,6 +90,15 @@ export class VirtualList {
   }
 
   refresh() { this.paint(); }
+
+  /** The rows are taller or shorter than they were: re-measure and repaint. */
+  setRowHeight(rowHeight, heightAt = null) {
+    if (rowHeight === this.rowHeight && !heightAt) return;
+    this.rowHeight = rowHeight;
+    this.offsets = heightAt ? buildOffsets(this.count, heightAt) : null;
+    this.spacer.style.height = `${this.offsetOf(this.count)}px`;
+    this.paint();
+  }
 
   /** Repaints one row if it is visible, keeping the focus it holds. */
   refreshRow(index) {

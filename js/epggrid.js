@@ -13,9 +13,12 @@
 
 import { clock, shortDay, stampFmt, progressOf } from './format.js';
 import { t } from './i18n.js';
+import { cssPixels } from './vlist.js';
 import { poster } from './poster.js';
 
-const ROW_H = 48;              // keep in step with --epg-row in the CSS
+// --epg-row in the CSS, in rem so that it grows with the reader's font
+// setting; the pixels are the browser's answer rather than a number here.
+let ROW_H = 48;
 const ZOOMS = [2, 3, 5, 8];    // pixels per minute
 const PAST_DAYS = 2;
 const FUTURE_DAYS = 5;
@@ -548,6 +551,8 @@ export class EpgGrid {
 
   show() {
     this.open = true;
+    // The reader's font setting may have moved since the guide was last open.
+    ROW_H = cssPixels('--epg-row', ROW_H);
     this.layout();
     this.goNow();
     this.paint();

@@ -2,7 +2,7 @@ import { XtreamApi, ApiError } from './api.js';
 import { Library, sortItems } from './library.js';
 import { Epg } from './epg.js';
 import { Playback } from './playback.js';
-import { VirtualList } from './vlist.js';
+import { VirtualList, watchLength } from './vlist.js';
 import { itemRow, categoryRow, chipRow, favCategoryRow, sectionHeader, emptyState } from './rows.js';
 import { nameCleaner, searchNameCleaner, searchKey, searchTerms, matchesTerms } from './name.js';
 import { poster } from './poster.js';
@@ -70,8 +70,12 @@ const KIND_INDEX = new Map(KIND_ORDER.map((kind, i) => [kind, i]));
 // labelled as a series — otherwise history would show a type that does not
 // exist among the tabs.
 const kindGroup = (k) => (k === 3 ? 2 : k);
-const ROW_H = 50;   // the same number as --row-h in player.css
-const SEP_H = 26;   // the same number as --sep-h in player.css
+// The row heights are --row-h and --sep-h in player.css, written in rem so
+// that they grow with the reader's own font setting. What they come to in
+// pixels is therefore the browser's answer rather than a number written here,
+// and it is asked again when the setting changes under a running page.
+let ROW_H = 50;
+let SEP_H = 26;
 
 const state = {
   config: null, settings: null, account: null,
@@ -1386,6 +1390,17 @@ function clearSearch() {
 }
 
 /* ================================================================== rows */
+
+/** The list's own geometry, and the same again whenever the reader's font
+ *  setting moves it. */
+function watchRowHeights() {
+  const resize = () => {
+    vlist.setRowHeight(ROW_H, state.sections.size ? (i) => ROW_H + (state.sections.has(i) ? SEP_H : 0) : null);
+  };
+  ROW_H = watchLength('--row-h', ROW_H, (px) => { ROW_H = px; resize(); });
+  SEP_H = watchLength('--sep-h', SEP_H, (px) => { SEP_H = px; resize(); });
+  resize();
+}
 
 const vlist = new VirtualList(el.list, ROW_H, renderRow, {
   onVisible: (first, last) => {
@@ -3704,6 +3719,7 @@ async function init() {
   setLocale(localeTag());
   applyStatic();
 
+  watchRowHeights();
   wireSetup();
   wireUi();
   wireSubcatsResize();
