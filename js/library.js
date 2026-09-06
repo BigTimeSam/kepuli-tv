@@ -12,6 +12,8 @@
 
 import { cacheGet, cachePut, cacheAge, cacheClear } from './db.js';
 import { localeTag } from './i18n.js';
+import { channelLogo } from './logos.js';
+import { labelCodes } from './name.js';
 
 export const TYPES = ['live', 'movie', 'series'];
 
@@ -71,6 +73,7 @@ export class Library {
     this.full = { live: null, movie: null, series: null };
     this.lower = { live: null, movie: null, series: null };
     this.fullAt = { live: null, movie: null, series: null };
+    this.catCodes = new Map();       // category id → the country codes it names
     this.byCategory = new Map();     // "live:3" → items (in memory)
     this.pending = new Map();        // concurrent calls share one promise
     this.details = new Map();        // extra details for a series/movie
@@ -93,6 +96,16 @@ export class Library {
       await cachePut(key, cats);
     }));
     for (const type of TYPES) this.groups[type] = buildGroups(this.categories[type]);
+    // The channel logos need to know which country a channel belongs to,
+    // and the column it is filed under is where that is written down. The
+    // group's name rather than the category's: it is the category name
+    // with the topic and the repeated prefix already off it, so "Finland"
+    // is what is read and not "Live: Finland - Sport".
+    this.catCodes = new Map();
+    for (const group of this.groups.live) {
+      const codes = labelCodes(group.name);
+      if (codes.length) for (const cat of group.cats) this.catCodes.set(cat.id, codes);
+    }
     return this.categories;
   }
 
@@ -141,7 +154,7 @@ export class Library {
       for (;;) {
         const index = next++;
         if (index >= categoryIds.length) return;
-        results[index] = await this.api.streams(type, categoryIds[index], { signal });
+        results[index] = this.withLogos(type, await this.api.streams(type, categoryIds[index], { signal }));
         done++;
         if (onProgress) onProgress(done, categoryIds.length);
       }
@@ -184,7 +197,7 @@ export class Library {
     const hit = this.byCategory.get(key);
     if (hit) return hit;
     return this.share(key, async () => {
-      const items = sortItems(await this.api.streams(type, categoryId, { signal }));
+      const items = sortItems(this.withLogos(type, await this.api.streams(type, categoryId, { signal })));
       this.byCategory.set(key, items);
       return items;
     });
@@ -207,7 +220,7 @@ export class Library {
   }
 
   setFull(type, items, at) {
-    this.full[type] = sortItems(items);
+    this.full[type] = sortItems(this.withLogos(type, items));
     this.fullAt[type] = at || Date.now();
     // The search index once: 55,000 toLowerCase calls per keystroke would
     // be visible stutter.
@@ -312,6 +325,36 @@ export class Library {
 
   /* ------------------------------------------------------------------ misc */
 
+  /**
+   * The channels' logos, from tv-logos rather than from the provider
+   * (js/logos.js). Applied wherever channels enter the library, cached
+   * lists included: the index ships with the app and a release may know
+   * logos the list in IndexedDB was built without.
+   *
+   * A channel with no match keeps the address the provider sent.
+   */
+  withLogos(type, items) {
+    if (type !== 'live') return items;
+    for (const item of items) {
+      const logo = channelLogo(item.n, this.channelCodes(item));
+      if (logo) item.logo = logo;
+    }
+    return items;
+  }
+
+  /** The country codes a channel's categories name. */
+  channelCodes(item) {
+    const cats = item.cats || [];
+    // Nearly every channel is in one category, and that category's codes
+    // have been worked out already: there is nothing to merge.
+    if (cats.length === 1) return this.catCodes.get(cats[0]) || [];
+    const out = [];
+    for (const id of cats) {
+      for (const code of this.catCodes.get(id) || []) if (!out.includes(code)) out.push(code);
+    }
+    return out;
+  }
+
   /** Prevents the same fetch from running twice concurrently. */
   share(key, factory) {
     const running = this.pending.get(key);
@@ -327,6 +370,7 @@ export class Library {
     this.full = { live: null, movie: null, series: null };
     this.lower = { live: null, movie: null, series: null };
     this.fullAt = { live: null, movie: null, series: null };
+    this.catCodes.clear();
     this.byCategory.clear();
     this.details.clear();
     this.movieQueue = [];

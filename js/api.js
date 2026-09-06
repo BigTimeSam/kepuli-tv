@@ -264,10 +264,12 @@ export class ApiError extends Error {
   }
 }
 
-// The provider points channel logos at GitHub HTML pages
+// The provider points its pictures at GitHub HTML pages
 // (github.com/…/blob/…?raw=true). Those redirect to the raw server, and
-// GitHub throttles concurrent requests, which leaves most logos unloaded.
-// The URL is rewritten straight to its final form.
+// GitHub throttles concurrent requests, which leaves most of them
+// unloaded. The URL is rewritten straight to its final form. For a channel
+// this address is only the fallback — js/logos.js has the first say — but
+// a film's cover comes from nowhere else.
 const RE_GITHUB_BLOB = /^https?:\/\/github\.com\/([^/]+)\/([^/]+)\/blob\/(.+?)(?:\?.*)?$/i;
 
 /** Some of the server's stream_icon values are junk ("[", "[\"\"]"). */

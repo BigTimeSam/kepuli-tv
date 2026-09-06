@@ -14,6 +14,11 @@
 // provider mixes its spellings and leaves rows untagged, and a majority is
 // then never reached — the viewer would see "FI: MTV" among clean rows. The
 // full name is always in the row's title text, so nothing is lost for good.
+//
+// The country table the tidier keeps for that answers one more question,
+// for js/logos.js: which country a label, a folder name or the tag in
+// front of a channel name stands for. It is the same table either way, so
+// a spelling the sidebar understands is one the logos understand too.
 
 const WORD = /[\p{L}\p{N}]/u;
 const LEADING_JUNK = /^[^\p{L}\p{N}]+/u;
@@ -89,18 +94,49 @@ const COUNTRIES = [
   [['ar', 'arab', 'ara'], 'arabic', 'arab', 'arabia'],
 ];
 const CODES_BY_NAME = new Map();
-for (const [codes, ...names] of COUNTRIES) for (const name of names) CODES_BY_NAME.set(name, codes);
+const CODES_BY_CODE = new Map();
+for (const [codes, ...names] of COUNTRIES) {
+  for (const name of names) CODES_BY_NAME.set(name, codes);
+  // "ar" is Argentina's and Arabic's alike; the first line to claim it keeps it.
+  for (const code of codes) if (!CODES_BY_CODE.has(code)) CODES_BY_CODE.set(code, codes);
+}
 
-/** The codes a sidebar label stands for: the whole label, or any word of it. */
-function labelCodes(label) {
+/**
+ * Is this one of the codes above? Asked of the word a name begins with,
+ * to tell a tag from a name: "FI | MTV" carries one, "MTV3 | HD" does not,
+ * and the two look alike to a pattern that reads only the punctuation.
+ */
+export function isCountryCode(code) {
+  return CODES_BY_CODE.has(String(code || '').toLowerCase());
+}
+
+/**
+ * The codes a country's own name stands for, and nothing else: "world
+ * latin america" is not the United States, however much "America" is one
+ * of its words. This is the reading a folder name or a country column
+ * needs; a provider's label, which mixes the country with a topic, needs
+ * labelCodes below.
+ */
+export function countryCodes(name) {
+  return CODES_BY_NAME.get(wordsOf(name).join(' ')) || [];
+}
+
+/**
+ * The codes a sidebar label stands for: the whole label, any word of it,
+ * or — when the provider writes the code where another writes the name —
+ * the code the label begins with. Only the beginning, and only a code:
+ * "FI" is Finland's column, while an "in" or an "is" further along a label
+ * is a word of English rather than India or Iceland.
+ */
+export function labelCodes(label) {
+  const whole = countryCodes(label);
+  if (whole.length) return whole;
   const words = wordsOf(label);
-  const whole = CODES_BY_NAME.get(words.join(' '));
-  if (whole) return whole;
   for (const word of words) {
     const hit = CODES_BY_NAME.get(word);
     if (hit) return hit;
   }
-  return [];
+  return (words.length && CODES_BY_CODE.get(words[0])) || [];
 }
 
 /**

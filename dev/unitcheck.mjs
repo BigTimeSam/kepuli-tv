@@ -12,7 +12,8 @@
 globalThis.MediaSource = { isTypeSupported: (type) => /mp4a\.40/.test(type) };
 
 import { parseServer, parsePlaylistUrl } from '../js/xtream.js';
-import { nameCleaner } from '../js/name.js';
+import { nameCleaner, labelCodes, countryCodes } from '../js/name.js';
+import { channelLogo, slugify } from '../js/logos.js';
 import { cueText } from '../js/subs.js';
 import { subtitleLook, STYLES, MIN_SIZE, MAX_SIZE, DEFAULT_SIZE } from '../js/subdisplay.js';
 import { describe, describeAll, label, preferred, route } from '../js/audio.js';
@@ -134,6 +135,7 @@ tidy('a topic under the country', ['Finland', 'Sport'], ['FI: Sport 1', 'FIN: Vi
 tidy('the topic as a tag', ['Finland', 'Sport'], ['FI: Sport | Liiga 1', 'FI: Sport - Liiga 2', 'FI: Sportti'], ['Liiga 1', 'Liiga 2', 'Sportti']);
 tidy('the country in the label with more words', ['Finland HD'], ['FI: Yle TV1 HD'], ['Yle TV1 HD']);
 tidy('United Kingdom', ['United Kingdom'], ['UK: BBC One', 'GB | ITV', 'ENG: Sky News'], ['BBC One', 'ITV', 'Sky News']);
+tidy('a column named with the code', ['FI'], ['FI: Yle TV1', 'Yle TV2'], ['Yle TV1', 'Yle TV2']);
 tidy('EX-YU', ['EX-YU'], ['EX-YU | RTS 1', 'YU: HRT 1'], ['RTS 1', 'HRT 1']);
 
 // Another country's code is not the chosen one's: it stays, unless it is
@@ -155,6 +157,59 @@ tidy('no labels: the majority rule alone', [], ['FI: A', 'FI: B', 'C'], ['A', 'B
 tidy('no labels, no majority', [], ['FI: A', 'SE: B', 'C', 'D'], ['FI: A', 'SE: B', 'C', 'D']);
 check('nameCleaner with nothing to strip is null', nameCleaner(['Sport'], items('Eurosport 1', 'Eurosport 2')), null);
 check('nameCleaner with no items is null', nameCleaner(['Finland'], []), null);
+
+// The country a label names, for the logo lookup rather than for the list.
+check('a label names its country', labelCodes('Finland'), ['fi', 'fin']);
+check('a label that is the code the provider writes', labelCodes('FI'), ['fi', 'fin']);
+check('a code further along a label is a word', labelCodes('Movies in English'), []);
+check('a whole country name only, for a folder', countryCodes('world latin america'), []);
+check('a folder that is a country', countryCodes('finland'), ['fi', 'fin']);
+check('a code is not a name', countryCodes('fi'), []);
+
+/* ------------------------------------------------- logos.js: channelLogo */
+
+check('slugify drops the quality tag and the punctuation', slugify('Yle TV1 HD'), 'yle-tv1');
+check('slugify folds the accents away', slugify('TRT Genç'), 'trt-genc');
+check('slugify keeps a name that is nothing but a tag', slugify('HD'), 'hd');
+check('slugify on nothing', slugify(''), '');
+
+// The address is checked whole once; after that the file name is enough to
+// say which logo was chosen.
+check('the whole address', channelLogo('FI: MTV3 HD', ['fi']),
+  'https://raw.githubusercontent.com/tv-logo/tv-logos/main/countries/nordic/finland/mtv3-fi.png');
+
+const logo = (name, ...codes) => {
+  const url = channelLogo(name, codes);
+  return url ? url.slice(url.lastIndexOf('/') + 1) : null;
+};
+const picks = (what, name, codes, expected) => check(`channelLogo ${what}`, logo(name, ...codes), expected);
+
+// The name's own tag is a country hint as good as the category's, and the
+// quality tag on the end belongs to neither.
+picks('the tag in front of the name', 'FI: MTV3 HD', [], 'mtv3-fi.png');
+picks('the category behind the row', 'MTV3', ['fi'], 'mtv3-fi.png');
+picks('a name unique in the whole collection', 'MTV3', [], 'mtv3-fi.png');
+picks('the tag in bars', '|FIN| Yle TV1', [], 'yle-tv1-fi.png');
+picks('a tag that is no country code', 'MTV3 | HD', [], 'mtv3-fi.png');
+
+// The same name in several countries: the channel's own decides, and
+// without one there is no answer to give.
+picks('TV3 under Sweden', 'TV3', ['se'], 'tv3-se.png');
+picks('TV3 under Denmark', 'TV3', ['dk'], 'tv3-dk.png');
+picks('TV3 under nothing at all', 'TV3', [], null);
+picks('a brand every country has, from the neutral folder', 'Cartoon Network', [], 'cartoon-network-int.png');
+picks('the name’s own tag outranks the shelf it stands on', 'SE: TV3', ['dk'], 'tv3-se.png');
+
+// Where the words of a name end, and what the channel is filed under.
+picks('the word breaks ignored', 'FI: SkyShowtime 1', [], 'sky-showtime-1-fi.png');
+picks('a space inside the name', 'DK: TV 2 News', [], 'tv2-news-dk.png');
+picks('the channel filed under its owner', 'FI: Sub HD', [], 'mtv-sub-fi.png');
+picks('a tail two files share resolves to neither', 'DK: Hits', [], null);
+picks('a tail is looked for in the country only', 'Sub', [], null);
+
+// What must not be answered at all.
+picks('a name the collection does not have', 'FI: Yle Areena', [], null);
+picks('an empty name', '', ['fi'], null);
 
 /* ------------------------------------------- config.js: per-account lists */
 
