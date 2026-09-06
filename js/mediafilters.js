@@ -142,7 +142,11 @@ export class MediaFilters {
     this.reset.textContent = t('filters.reset');
     this.reset.disabled = !active;
     const missing = entries.some(e => !e.facts.year || !e.facts.rating || (type === 'series' && !e.facts.genres.length));
-    this.note.textContent = missing ? t('filters.incomplete') : '';
+    // The genre field is hidden on movies because a film's genre there is
+    // the provider's own category. A control that is present on Series and
+    // gone on Movies needs to say why rather than leave it to be noticed.
+    this.note.textContent = [type === 'movie' ? t('filters.genre.movie') : '', missing ? t('filters.incomplete') : '']
+      .filter(Boolean).join(' ');
     return results;
   }
 }

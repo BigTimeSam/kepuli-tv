@@ -88,13 +88,11 @@ h2, h3 { font-weight: 600; }
 
 .topbar-end { margin-left: auto; display: flex; align-items: center; flex: none; gap: 8px; }
 
-button.ghost, .help-link {
+button.ghost {
   background: var(--panel-2); border: 1px solid var(--border);
   border-radius: 8px; padding: 6px 11px; cursor: pointer;
 }
-button.ghost:hover, .help-link:hover { background: var(--row-hover); border-color: #333a4f; }
-.help-link { display: inline-flex; align-items: center; gap: 6px; color: var(--text); text-decoration: none; white-space: nowrap; }
-.help-link svg { width: 14px; height: 14px; flex: none; fill: none; stroke: currentColor; stroke-width: 1.6; stroke-linecap: round; stroke-linejoin: round; }
+button.ghost:hover { background: var(--row-hover); border-color: #333a4f; }
 button.ghost:disabled { opacity: .4; cursor: default; }
 button.ghost.danger { color: var(--danger); }
 button.ghost.on { color: #ffc857; border-color: #4a4230; }
@@ -926,6 +924,15 @@ dialog::backdrop { background: rgba(5, 6, 10, .66); backdrop-filter: blur(2px); 
 .epg { display: flex; flex-direction: column; background: #0b0e14; }
 
 /* Personal channel list and programme search share the player's controls. */
+/* The help, which is mostly a two-column list of keys and what they do. */
+#help { width: min(560px, calc(100vw - 32px)); max-height: calc(100dvh - 32px); }
+.help-content { padding: 24px; display: flex; flex-direction: column; gap: 12px; max-height: calc(100dvh - 34px); overflow-y: auto; }
+.help-content h3 { margin: 4px 0 0; font-size: 12px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
+.help-keys { display: grid; grid-template-columns: minmax(88px, auto) 1fr; gap: 6px 14px; margin: 0; align-items: baseline; }
+.help-keys dt { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 11.5px; color: var(--text); background: var(--panel-2); border: 1px solid var(--border); border-radius: 6px; padding: 3px 7px; justify-self: start; white-space: nowrap; }
+.help-keys dd { margin: 0; color: var(--muted); }
+.help-note { margin: 0; color: var(--muted); line-height: 1.5; }
+
 #channel-editor { width: min(760px, calc(100vw - 32px)); max-height: calc(100dvh - 32px); }
 .editor-content { padding: 24px; display: flex; flex-direction: column; gap: 14px; max-height: calc(100dvh - 34px); }
 .editor-help { margin: 0; color: var(--muted); line-height: 1.5; }
@@ -935,10 +942,15 @@ dialog::backdrop { background: rgba(5, 6, 10, .66); backdrop-filter: blur(2px); 
   color: var(--text); background: var(--panel-2); border: 1px solid var(--border); border-radius: 6px; padding: 7px 9px; min-width: 0;
 }
 .editor-toolbar select { max-width: 45%; }
-.organize-list { height: 364px; min-height: 104px; overflow-y: auto; border: 1px solid var(--border); border-radius: 8px; }
-.organize-row { height: 52px; display: flex; align-items: center; gap: 8px; padding: 6px 10px; border-bottom: 1px solid var(--border); background: var(--panel); }
+/* As many rows as the window will carry: reordering hundreds of channels
+   seven at a time is a scrollbar, not a tool. */
+.organize-list { height: min(52vh, 616px); min-height: 132px; overflow-y: auto; border: 1px solid var(--border); border-radius: 8px; }
+.organize-row { height: 44px; display: flex; align-items: center; gap: 8px; padding: 4px 10px; border-bottom: 1px solid var(--border); background: var(--panel); }
 .organize-row label { display: flex; align-items: center; gap: 10px; flex: 1; min-width: 0; cursor: pointer; }
-.organize-row label span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.organize-body { display: grid; min-width: 0; line-height: 1.25; }
+.organize-name, .organize-where { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.organize-where { color: var(--muted); font-size: 11px; }
+.organize-logo { width: 30px; height: 22px; flex: none; }
 .organize-row input { accent-color: var(--accent); flex-shrink: 0; }
 .organize-row.is-hidden label span { color: var(--muted); text-decoration: line-through; }
 

@@ -2442,6 +2442,15 @@ function renderGuidePreview(channel, programme) {
     ? (programme.description || '')
     : t('guide.noepg.channel');
 
+  // Said out loud when the cursor moves: the channel, and the programme it
+  // has landed on. The panel above shows more, but a description read on
+  // every arrow press would bury the one thing that changed.
+  $('epg-announce').textContent = [
+    $('epgv-name').textContent,
+    programme ? `${clock(programme.start)}–${clock(programme.stop)}` : null,
+    programme ? programme.title : t('guide.noepg.channel'),
+  ].filter(Boolean).join(' · ');
+
   const actions = $('epgv-actions');
   const buttons = [{ label: t('guide.watch'), primary: true, onClick: () => playItem(channel) }];
   if (catchupAvailable(channel, programme, now)) {
@@ -2715,7 +2724,10 @@ function updateSetupActions() {
   const reconnect = FIELDS.some((key) => connection[key] !== state.config[key]);
   $('f-save').disabled = setupSaving || (!first && !dirty);
   $('f-save').textContent = t(setupSaving ? 'setup.saving' : first ? 'setup.connect' : 'setup.save');
-  el.setupNoteText.textContent = t(dirty ? (reconnect && !first ? 'setup.reconnect' : 'setup.pending') : 'setup.unchanged');
+  // Account & data holds the only two controls in the dialog that act at
+  // once, so the line under them must not promise that nothing does.
+  el.setupNoteText.textContent = t(dirty ? (reconnect && !first ? 'setup.reconnect' : 'setup.pending')
+    : setupSection === 'account' ? 'setup.account.immediate' : 'setup.unchanged');
   el.setupNote.classList.toggle('pending', dirty);
   if (!dirty) $('setup-discard').hidden = true;
 }
@@ -3061,6 +3073,50 @@ function wireSetup() {
     });
   });
 
+}
+
+/* ================================================================== help */
+
+/**
+ * The shortcuts, in the order the hands find them: the list first, then the
+ * picture, then the things done now and then. The key column is written out
+ * rather than translated — ↑ is ↑ in every language — and the sentence beside
+ * it is not.
+ */
+const SHORTCUTS = [
+  ['/', 'help.key.search'],
+  ['↑ ↓ PgUp PgDn', 'help.key.move'],
+  ['Enter', 'help.key.open'],
+  ['Backspace', 'help.key.back'],
+  ['Delete', 'help.key.remove'],
+  ['Space', 'help.key.pause'],
+  ['f', 'help.key.fullscreen'],
+  ['m', 'help.key.mute'],
+  ['a', 'help.key.audio'],
+  ['s', 'help.key.star'],
+  ['n  p', 'help.key.nextprev'],
+  ['g', 'help.key.guide'],
+  ['x', 'help.key.external'],
+  ['c', 'help.key.cast'],
+  ['?', 'help.key.help'],
+];
+
+/**
+ * The help, inside the app. It used to be a link to an 83 kB page written for
+ * whoever builds the player, opened in another tab at the moment the viewer
+ * was least sure of themselves — and the thirteen keys the player answers to
+ * were named nowhere the player itself could show them.
+ */
+function openHelp() {
+  const keys = $('help-keys');
+  keys.replaceChildren(...SHORTCUTS.flatMap(([key, id]) => {
+    const dt = document.createElement('dt');
+    dt.textContent = key;
+    const dd = document.createElement('dd');
+    dd.textContent = t(id);
+    return [dt, dd];
+  }));
+  if (!$('help').open) $('help').showModal();
 }
 
 /* ============================================================== oddments */
@@ -3416,6 +3472,8 @@ function wireUi() {
   });
 
   $('btn-settings').addEventListener('click', openSetup);
+  $('btn-help').addEventListener('click', openHelp);
+  wireModal($('help'), () => $('help').close());
   // The strip goes when the load stops, not when the key is pressed: a strip
   // that vanished on Esc would look as if the loading had finished.
   $('lp-cancel').addEventListener('click', cancelProgress);
@@ -3528,7 +3586,7 @@ function wireUi() {
     // the browser's full-screen key there and is now the app's.
     if (e.target === el.video && e.key === 'f' && plain) { toggleFullscreen(); return; }
     if (typing || e.target === el.video) return;
-    if (el.setup.open || $('channel-editor').open) return;
+    if (el.setup.open || $('channel-editor').open || $('help').open) return;
     if (!plain) return;
     // A focused button takes Space and Enter itself; every other key is the player's.
     if (tag === 'BUTTON' && (e.key === ' ' || e.key === 'Enter')) return;
@@ -3549,6 +3607,7 @@ function wireUi() {
       case 'm': el.video.muted = !el.video.muted; break;
       case 'a': cycleAudio(); break;
       case 's': toggleFavoriteAtCursor(); break;
+      case '?': openHelp(); break;
       case 'Delete': removeAtCursor(); break;
       case 'n': playRelative(1); break;
       case 'p': playRelative(-1); break;

@@ -3,10 +3,11 @@ import { channelPreferences, ordered, placeInOrder, arrangeOrder, sortChannels }
 import { t, localeTag } from './i18n.js';
 import { wireModal } from './modal.js';
 import { searchKey, searchTerms, matchesTerms } from './name.js';
+import { poster } from './poster.js';
 
 const $ = (id) => document.getElementById(id);
 
-const ROW_H = 52;   // the same number as .organize-row in player.css
+const ROW_H = 44;   // the same number as .organize-row in player.css
 const EDGE = 48;    // how near an edge a drag starts scrolling the list
 const SPEED = 0.4;  // pixels of scroll per pixel into that edge, per frame
 
@@ -53,6 +54,8 @@ export class ChannelEditor {
   show(channels, groups, prefs, { group, sort } = {}) {
     this.channels = channels;
     this.groups = groups;
+    // Category id → its own name, for the line under a channel's.
+    this.catNames = new Map(groups.flatMap((g) => g.cats.map((c) => [c.id, c.sub || g.name])));
     this.sort = sort || 'az';
     this.draft = channelPreferences(prefs);
     $('channel-editor-filter').value = '';
@@ -277,6 +280,13 @@ export class ChannelEditor {
     return grip;
   }
 
+  /** The category a channel is filed under, for telling two of a name apart. */
+  whereOf(item) {
+    if (!item.cats || !item.cats.length) return '';
+    const cat = this.catNames?.get(item.cats[0]);
+    return cat || '';
+  }
+
   visibility(item, hidden) {
     const label = document.createElement('label');
     const checkbox = document.createElement('input');
@@ -287,10 +297,28 @@ export class ChannelEditor {
     checkbox.dataset.action = 'visibility';
     checkbox.setAttribute('aria-label', t('organize.visible', { name: item.n }));
     checkbox.addEventListener('change', () => this.setHidden(!checkbox.checked, item.id));
+    // The logo and the category, because a provider files several channels
+    // under one name — three "Maple Cinema"s in a list of names alone are
+    // three identical rows, and hiding the wrong one is silent.
+    const body = document.createElement('span');
+    body.className = 'organize-body';
     const name = document.createElement('span');
+    name.className = 'organize-name';
     name.textContent = item.n;
-    name.title = item.n;
-    label.append(checkbox, name);
+    const where = this.whereOf(item);
+    body.append(name);
+    if (where) {
+      const sub = document.createElement('span');
+      sub.className = 'organize-where';
+      sub.textContent = where;
+      body.append(sub);
+    }
+    label.title = where ? `${item.n} · ${where}` : item.n;
+    // Categories have no logo of their own, and a placeholder television
+    // beside every one of them is noise rather than information.
+    label.append(checkbox);
+    if (!this.categories) label.append(poster('organize-logo', item.logo, 'channel'));
+    label.append(body);
     return label;
   }
 }

@@ -1109,7 +1109,7 @@ async function organize(page, { target }) {
   assert(JSON.stringify(await ends()) === JSON.stringify(az), 'the alphabetical order did not come back');
 
   await open();
-  const original = await evaluate(page, `[...document.querySelectorAll('.organize-row')].map((n) => ({id:n.dataset.id,name:n.querySelector('label span').textContent}))`);
+  const original = await evaluate(page, `[...document.querySelectorAll('.organize-row')].map((n) => ({id:n.dataset.id,name:n.querySelector('.organize-name').textContent}))`);
   await checkModal(page, '#channel-editor', 'channels');
   await page.call('Emulation.setDeviceMetricsOverride', { width: 390, height: 720, deviceScaleFactor: 1, mobile: false });
   await checkModal(page, '#channel-editor', 'channels-narrow');

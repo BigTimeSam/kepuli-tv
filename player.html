@@ -30,10 +30,10 @@
 
   <div class="topbar-end">
     <button type="button" id="btn-refresh" class="ghost" data-i18n="btn.refresh" data-i18n-title="btn.refresh.title">Refresh lists</button>
-    <a id="help-link" class="help-link" href="https://github.com/BigTimeSam/kepuli-tv#user-guide" target="_blank" rel="noopener noreferrer" data-i18n-title="btn.help.title" data-i18n-label="btn.help.title">
-      <span data-i18n="btn.help">Help</span>
-      <svg viewBox="0 0 20 20" aria-hidden="true"><path d="M11 3h6v6M17 3l-8 8M8 4H4a1 1 0 0 0-1 1v11a1 1 0 0 0 1 1h11a1 1 0 0 0 1-1v-4"/></svg>
-    </a>
+    <!-- Help opens here rather than in a new tab. It used to send the viewer
+         to an 83 kB page written for whoever builds the thing, at the moment
+         they were least sure of themselves. -->
+    <button type="button" id="btn-help" class="ghost" data-i18n="btn.help" data-i18n-title="btn.help.title">Help</button>
     <button type="button" id="btn-settings" class="ghost" data-i18n="btn.settings">Settings</button>
   </div>
 </header>
@@ -236,11 +236,24 @@
       </div>
       <div id="programme-results" class="programme-results"></div>
     </section>
+    <!-- The cursor's whereabouts in one sentence, for a screen reader. The
+         preview panel says the same thing in full, but as a live region it
+         would read a whole description on every arrow press. -->
+    <p id="epg-announce" class="sr-only" role="status" aria-live="polite"></p>
     <div class="epg-body" id="epg-body">
       <div class="epg-corner" id="epg-corner"></div>
       <div class="epg-times"><div class="epg-times-inner" id="epg-times-inner"></div></div>
       <div class="epg-chans"><div class="epg-chans-inner" id="epg-chans-inner"></div></div>
-      <div class="epg-scroll" id="epg-scroll" tabindex="-1" role="grid" data-i18n-label="guide.aria"><div class="epg-canvas" id="epg-canvas"></div></div>
+      <!-- role="application" rather than "grid": the channel names and the
+           programmes live in two containers side by side, so there are no rows
+           holding both and nothing for a grid's row and cell roles to describe.
+           What the surface really is, is a widget with a keyboard model of its
+           own — arrows, PgUp/PgDn, Home, Enter, + and − — and application is
+           what tells a screen reader to let those keys through instead of
+           reading the page with them. What moving the cursor lands on is
+           announced by #epg-announce below. -->
+      <div class="epg-scroll" id="epg-scroll" tabindex="-1" role="application"
+           data-i18n-label="guide.aria" aria-describedby="epg-announce"><div class="epg-canvas" id="epg-canvas"></div></div>
     </div>
   </section>
 </main>
@@ -446,6 +459,23 @@ on two lines as well.</div></div>
       <button type="submit" id="f-save" class="primary" data-i18n="setup.save">Save</button>
     </div>
   </form>
+</dialog>
+
+<dialog id="help" aria-labelledby="help-title">
+  <div class="help-content">
+    <div class="modal-head">
+      <h2 id="help-title" data-i18n="help.title">Help</h2>
+      <button type="button" id="help-close" data-modal-close data-i18n-label="modal.close"></button>
+    </div>
+    <h3 data-i18n="help.shortcuts">Keyboard shortcuts</h3>
+    <dl class="help-keys" id="help-keys"></dl>
+    <p class="help-note" data-i18n="help.guide.keys"></p>
+    <p class="help-note" data-i18n="help.back"></p>
+    <a class="setup-help" href="https://github.com/BigTimeSam/kepuli-tv#user-guide" target="_blank" rel="noopener noreferrer">
+      <span data-i18n="help.full">The full user guide</span>
+      <svg viewBox="0 0 20 20" aria-hidden="true"><path d="M11 3h6v6M17 3l-8 8M8 4H4a1 1 0 0 0-1 1v11a1 1 0 0 0 1 1h11a1 1 0 0 0 1-1v-4"/></svg>
+    </a>
+  </div>
 </dialog>
 
 <!-- The message strip. All three icons live here; the toast's kind class
