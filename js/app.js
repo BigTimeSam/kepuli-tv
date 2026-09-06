@@ -3017,14 +3017,39 @@ function renderCastState() {
 function toggleFavoriteAtCursor() {
   // A starless sidebar row reserves the space with a plain div, so the
   // class alone does not promise a button.
-  const star = document.activeElement?.closest('.group, .chip')?.querySelector('.group-star, .chip-star');
-  if (star && star.tagName === 'BUTTON') { star.click(); return; }
+  const box = document.activeElement?.closest('.group, .chip');
+  const star = box?.querySelector('.group-star, .chip-star');
+  if (star && star.tagName === 'BUTTON') { starFocusedRow(box, star); return; }
 
   const item = state.cursor >= 0 ? state.rows[state.cursor] : state.playing;
   if (!item) return;
   if (item.k === 'c') toggleFavCategory(item); else toggleFavorite(item);
   const on = state.favorites.has(`${item.k}:${item.id}`);
   toast(t(on ? 'fav.added' : 'fav.removed', { name: item.displayName || item.n }));
+}
+
+/**
+ * The star of a sidebar group or a topic chip that has the focus.
+ *
+ * Both strips are repainted whole when a favourite changes — the star is a
+ * state of the row, and the row is rebuilt to show it — so the node holding
+ * the focus is gone by the time the click returns. Left there, the focus
+ * falls to the body and a second press reaches nothing at all: measured, the
+ * key added a category and then did nothing, silently, for the rest of the
+ * session. The focus goes back to the row standing in the same place, and
+ * what that row now says is what is read out.
+ */
+function starFocusedRow(box, star) {
+  const strip = box.parentElement;
+  const at = [...strip.children].indexOf(box);
+  const name = (box.querySelector('.group-name')?.textContent
+    ?? box.querySelector('.chip-main')?.firstChild?.textContent ?? '').trim();
+  star.click();
+  const again = strip.children[at];
+  const back = again?.querySelector('.group-star, .chip-star');
+  if (!back) return;                       // the strip is not the one it was
+  (again.querySelector('.chip-main') || again).focus();
+  toast(t(back.classList.contains('on') ? 'fav.added' : 'fav.removed', { name }));
 }
 
 function moveCursor(delta) {
