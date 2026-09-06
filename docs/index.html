@@ -274,7 +274,10 @@ switching audio tracks, pausing playback and entering full screen.</p>
   <li>Open the player using the Kepuli-TV icon in your browser toolbar.</li>
   <li>Paste your provider's M3U subscription URL, or enter the server address,
 port, username and password separately. You need your own subscription:
-the app does not include channels or content.</li>
+the app does not include channels or content. The dialog says as much on a
+first run and links to this section; the caret starts in <strong>Server</strong>, and
+the eye at the end of the password field shows what was typed — a
+provider's password is long, random and entered by hand exactly once.</li>
   <li>Connect to the service. You can change your connection details and the
 interface language later in <strong>Settings</strong>.</li>
 </ol>
@@ -333,22 +336,27 @@ up to 60 entries; older entries are removed as new ones are added.</li>
 
 <h3 id="closing-dialogs-and-cancelling-loading">Closing dialogs and cancelling loading</h3>
 
-<p>Settings, the channel-list editor, loading and enlarged covers use the same
-dialog style, with an <strong>X</strong> close button at the top right. You can also press
-<strong>Esc</strong> or click outside the dialog. Player keyboard shortcuts are inactive
-while a dialog is open.</p>
+<p>Settings, the channel-list editor and enlarged covers use the same dialog
+style, with an <strong>X</strong> close button at the top right. You can also press <strong>Esc</strong>
+or click outside the dialog. Player keyboard shortcuts are inactive while a
+dialog is open.</p>
 
 <ul>
   <li>In <strong>Settings</strong>, X, Esc and clicking outside ask before discarding unsaved
 changes. <strong>Cancel</strong> discards the draft; <strong>Save</strong> applies it.</li>
   <li>In <strong>Organize channels</strong>, X, Esc, clicking outside and <strong>Cancel</strong> discard
 the draft. <strong>Save</strong> applies the changes to the current account.</li>
-  <li>During loading, X, Esc, clicking outside and <strong>Cancel</strong> stop the request.
-The dialog closes when cancellation finishes, and an interrupted channel-list
-load restores the previous list. The compact loading dialog shows a spinner,
-the current country/category and progress when the total is known.</li>
   <li>Enlarged covers close immediately without changing playback.</li>
 </ul>
+
+<p>Loading a list is not a dialog at all. It used to be one, over everything, and
+that meant typing three letters into the search box — a search needs the whole
+list of its type — stopped the volume, the subtitle selector and full screen
+until it was over. It is a strip at the top of the list column instead, saying
+what is being fetched, how far it has come when the total is known, and
+carrying its own <strong>Cancel</strong>; <strong>Esc</strong> cancels it from wherever the focus is.
+Everything else keeps working while it runs, the picture included, and an
+interrupted channel-list load restores the previous list.</p>
 
 <h3 id="playback-and-cover-images">Playback and cover images</h3>
 
@@ -668,10 +676,27 @@ name — not the category's contents. A group favourite (<em>Finland</em>) store
 group name and gathers its sub-categories only when opened, so it follows a
 changing offering too.</p>
 
+<p>The sidebar's filter names what the sidebar holds: countries on the channel
+tab, genres on the movie and series tabs. Below 760px there is no sidebar —
+three columns leave the list about 210px, which is a column of truncated
+names — and the same choice appears as a menu at the top of the list, which
+brings the list back to 360px at 720px wide.</p>
+
 <p>The search in the header covers the whole list (the category filter is cleared
 visibly) and ranks matches by relevance: a match at the start of a word beats
 one found mid-word, so that <em>yle</em> raises the Yle channels rather than "KYLE
 COLLECTION".</p>
+
+<p>Names are matched with their marks folded away, and the words may come in any
+order. A provider's list is written in a dozen languages and read on one
+keyboard: <em>elain</em> finds "Eläinkanava", <em>sodergran</em> finds "Södergran" and
+<em>oresund</em> finds "Øresund", because a search that answers "no matches" is read
+as "there is no such channel" rather than as "type the umlaut". <em>cnn news</em>
+finds "News CNN" as well as "CNN News" — but the one that reads the way the
+query was typed still comes first, so the looser rule costs the exact match
+nothing. The same folding is used by the country and topic filter beside the
+list, by the filter in <strong>Organize channels</strong>, and by the programme search in
+the guide, so one spelling works everywhere a name is typed.</p>
 
 <h2 id="features">Features</h2>
 
@@ -731,9 +756,11 @@ answer no question about what to watch</li>
     <tr><td><code>f</code></td><td>full screen</td></tr>
     <tr><td><code>m</code></td><td>mute</td></tr>
     <tr><td><code>a</code></td><td>the next audio track, when the file has more than one</td></tr>
+    <tr><td><code>s</code></td><td>star what the cursor is on — a list row, or the sidebar row or topic chip the keyboard stands on</td></tr>
+    <tr><td><code>Delete</code></td><td>drop the history row the cursor is on</td></tr>
     <tr><td><code>n</code> <code>p</code></td><td>next / previous</td></tr>
     <tr><td><code>g</code></td><td>open and close the programme guide</td></tr>
-    <tr><td><code>x</code></td><td>hand over to an external player</td></tr>
+    <tr><td><code>x</code></td><td>hand over to an external player, after a confirmation over the picture</td></tr>
     <tr><td><code>c</code></td><td>cast to a Chromecast</td></tr>
   </tbody>
 </table>
@@ -742,6 +769,21 @@ answer no question about what to watch</li>
 <p>These are the bare keys: a key held down with Ctrl, Cmd or Alt is left to the
 browser, so <code>Cmd+F</code> and <code>Ctrl+F</code> open its search box rather than taking the
 picture to full screen.</p>
+
+<p><code>?</code> opens the same list inside the player, along with the guide's own keys and
+a note on why the browser's back button leaves the player rather than stepping
+back inside it. <strong>Help</strong> in the top bar opens it too.</p>
+
+<p>Tab reaches the three places that hold a cursor of their own, one stop each:
+the tab strip, the sidebar and the list. Inside the strip the arrows move
+between <strong>Channels</strong>, <strong>Movies</strong>, <strong>Series</strong>, <strong>Favourites</strong> and <strong>History</strong>,
+and <code>Home</code> and <code>End</code> reach its ends; the panel below takes its name from
+whichever is chosen. Inside the sidebar the arrows move a cursor down the
+countries or topics, <code>Home</code> and <code>End</code> reach its ends, and <code>Enter</code> or <code>space</code>
+chooses the row the cursor is on — the row being marked as the cursor's, which
+is a different thing from the group being shown. Both are listboxes, as the
+list itself already was, so a screen reader is told what the eye can see: which
+row is selected and which one the keyboard stands on.</p>
 
 <p>In the guide the arrows move between channels and programmes, <code>PgUp</code> and
 <code>PgDn</code> a screen at a time, <code>Home</code> returns to the present, <code>+</code> and <code>−</code> adjust
@@ -859,6 +901,34 @@ so correcting it costs nothing.</p>
 
 <h2 id="the-programme-guide">The programme guide</h2>
 
+<p>The guide is a grid with a column beside it: the programme's own details on
+top of that column and the picture below them, and the grid taking the whole
+height to their left.</p>
+
+<p>It used to be three bands — details and picture side by side across the top,
+then the controls, then the grid in what was left. The top band was
+<code>minmax(240px, 30vh)</code>, a fixed share of the window whatever happened to be in
+it, so a 900px-tall window spent 270px on 105px of details and a picture that
+wanted 194. The grid, which is the reason anyone opens the guide, got the
+remainder. Measured against the mock server, visible channel rows:</p>
+
+<div class="table-scroll">
+<table>
+  <thead><tr><th>Window</th><th>Three bands</th><th>Sized to content</th><th>Column beside the grid</th></tr></thead>
+  <tbody>
+    <tr><td>1024×800</td><td>4.6</td><td>4.8</td><td><strong>9.1</strong></td></tr>
+    <tr><td>1280×800</td><td>6.6</td><td>6.9</td><td><strong>11.7</strong></td></tr>
+    <tr><td>1440×900</td><td>8.1</td><td>8.6</td><td><strong>13.8</strong></td></tr>
+  </tbody>
+</table>
+</div>
+
+<p>The picture keeps its own 16:9 shape rather than stretching to whatever height
+a row hands it — a stretched picture is only letterboxing — and the details
+above it take the slack instead, because a long description is the thing that
+actually grows. The rule that shapes it excludes <code>:fullscreen</code>, or the ratio
+would follow the picture there and letterbox it against the screen.</p>
+
 <p><strong>Programme guide</strong>, above the channel list on the <strong>Channels</strong> tab (or <code>g</code>),
 turns the whole window into a grid view: channels as rows,
 time on the horizontal axis and a moving now line. The video continues in the
@@ -953,7 +1023,13 @@ hand-off, because the account allows one concurrent connection — otherwise a
 stream the browser keeps open would leave the external player silent.</p>
 
 <p>The URL carries the credentials, so a downloaded <code>.m3u</code> is as sensitive as the
-account itself.</p>
+account itself, and the app now says so where it matters rather than only here.
+The <code>x</code> key asks over the picture before it hands over — one keystroke should
+not stop playback and write a password to disk, and the focus is dropped to the
+body after every click, so nothing is holding the keys. The <code>☰</code> menu item is
+deliberate already, a menu opened and a line chosen in words, and goes straight
+through; both say afterwards that the file carries your credentials and is
+worth deleting.</p>
 
 <h3 id="chromecast">Chromecast</h3>
 
@@ -1340,8 +1416,12 @@ it is dropped as the list is read and never requested.</li>
 
 <h2 id="language">Language</h2>
 
-<p>The interface is in English and Finnish; English is the default and the choice
-is made in the settings. The dictionaries live in one file (<code>js/i18n.js</code>), and
+<p>The interface is in English and Finnish. It opens in whichever of the two the
+browser says its owner reads — the first match in <code>navigator.languages</code> — and
+in English when it names neither; the choice is then made in the settings.
+The subtitle language starts from the same answer rather than from a fixed
+<code>fi</code>, which used to give an English interface offering Finnish subtitles to
+someone who had asked for neither. The dictionaries live in one file (<code>js/i18n.js</code>), and
 English is at the same time the list missing keys fall back to — a Finnish
 string left undone shows as English text rather than as a key name.</p>
 
