@@ -7,7 +7,16 @@
   --text: #e7eaf2;
   --muted: #8d95aa;
   --dim: #868fa3;         /* 4.5:1 on every ground it sits on, the selected row included */
-  --accent: #7c5cff;
+  /* White on this is 5.2:1 and the 2px focus outline still reads at 3.3:1
+     on the darkest panel. The old #7c5cff left white at 4.35:1 — under the
+     4.5:1 normal text asks for — on the active tab, the primary buttons,
+     the chosen sidebar group and the chosen topic chip, which is to say on
+     every control that says where you are. */
+  --accent: #6d4ff0;
+  /* The same hue for accent-coloured text, which needs to go the other way:
+     a ground darkens to carry white, a word lightens to be read on a dark
+     panel. */
+  --accent-ink: #a48cff;
   --accent-2: #22d3ee;
   --warn: #e0a458;
   --danger: #ff5c7a;
@@ -31,14 +40,26 @@ html, body {
   overflow: hidden;
 }
 
+/* The page is a column of two: the bar and everything under it. The bar was
+   a fixed 52 px and the rest calc(100vh - 52px), which held only while the
+   bar stayed one row high. It no longer does — below 900 px it wraps — and
+   a measured height would then have pushed the player's own row off the
+   bottom of the window. The column gives the bar what it needs and the rest
+   to what is under it. */
+body { display: flex; flex-direction: column; }
+
 button, input, select { font: inherit; color: inherit; }
 h2, h3 { font-weight: 600; }
 
 /* ------------------------------------------------------------ top bar */
 
+/* Measured before this wrapped: at 800 px the search box was 43 px wide and
+   at 760 px the Settings button ended 25 px past the right edge, with
+   overflow: hidden above and no way to scroll to it. A window at half a
+   1440 px screen, or the same screen at 200 % zoom, is exactly there. */
 .topbar {
-  display: flex; align-items: center; gap: 14px;
-  height: var(--topbar-h); padding: 0 14px;
+  display: flex; align-items: center; flex-wrap: wrap; gap: 8px 14px;
+  flex: none; min-height: var(--topbar-h); padding: 6px 14px;
   background: var(--panel); border-bottom: 1px solid var(--border);
 }
 
@@ -52,13 +73,13 @@ h2, h3 { font-weight: 600; }
 .tabs button:hover { color: var(--text); }
 .tabs button.active { background: var(--accent); color: #fff; }
 
-.search { position: relative; display: flex; align-items: center; flex: 1 1 200px; max-width: 380px; }
+.search { position: relative; display: flex; align-items: center; flex: 1 1 200px; min-width: 190px; max-width: 380px; }
 .search svg { position: absolute; left: 10px; width: 14px; height: 14px; fill: none; stroke: var(--muted); stroke-width: 1.8; stroke-linecap: round; pointer-events: none; }
 .search input { width: 100%; padding: 7px 10px 7px 30px; background: var(--panel-2); border: 1px solid var(--border); border-radius: 8px; outline: none; }
 .search input:focus { border-color: var(--accent); }
 .search input::-webkit-search-cancel-button { filter: invert(0.6); }
 
-.topbar-end { margin-left: auto; display: flex; align-items: center; gap: 8px; }
+.topbar-end { margin-left: auto; display: flex; align-items: center; flex: none; gap: 8px; }
 
 button.ghost, .help-link {
   background: var(--panel-2); border: 1px solid var(--border);
@@ -79,7 +100,7 @@ main {
   display: grid;
   grid-template-columns: 224px minmax(300px, 380px) 1fr;
   grid-template-rows: minmax(0, 1fr);
-  height: calc(100vh - var(--topbar-h));
+  flex: 1 1 auto; min-height: 0;
 }
 .groups, .listcol, .stage { min-height: 0; }
 /* The columns are named explicitly, because automatic placement would move
@@ -132,18 +153,17 @@ main.guide #btn-copy { display: none; }
 .group.active, .group.active:hover { background: var(--accent); color: #fff; }
 .group.active .group-count { color: #fff; opacity: .65; }
 
-/* A group's star appears only on hover or when it is on: the sidebar holds
-   dozens of rows and none of them has a star most of the time. The space is
-   reserved all the same, so the name does not jump under the pointer.
+/* The star used to appear on hover alone, which is no gesture at all on a
+   touch screen and no help to anyone reading the sidebar rather than
+   sweeping it. It stands quietly instead, and brightens under the pointer.
    The browser's own button padding is zeroed here and on the row star: it
    left 6px for a 12px glyph, and a grid item that overflows its cell lands
    on the start edge instead of the centre, so the star sat 3px right. */
 .group-star {
   width: 18px; height: 18px; flex: none; display: grid; place-items: center;
-  border: 0; padding: 0; background: transparent; color: #4b5368; cursor: pointer;
-  border-radius: 5px; font-size: 12px; line-height: 1; opacity: 0;
+  border: 0; padding: 0; background: transparent; color: #707b96; cursor: pointer;
+  border-radius: 5px; font-size: 12px; line-height: 1;
 }
-.group:hover .group-star, .group-star.on, .group-star:focus-visible { opacity: 1; }
 /* Only the button reacts: the reservation on a starless row is an empty
    div, and no highlight may light up behind which there is no button. */
 button.group-star:hover { color: var(--text); background: #262c3d; }
@@ -171,7 +191,7 @@ button.group-star:hover { color: var(--text); background: #262c3d; }
 .media-filter-controls select { width: 100%; min-width: 0; padding: 6px 5px; border: 1px solid var(--border); border-radius: 6px; background: var(--panel-2); color: var(--text); font-size: 11.5px; cursor: pointer; }
 .media-filter-controls select.active { border-color: var(--accent); }
 .media-filter-footer { display: flex; align-items: baseline; gap: 8px; justify-content: space-between; margin-top: 9px; color: var(--muted); font-size: 10.5px; }
-.media-filter-footer button { flex: none; padding: 0; border: 0; background: none; color: var(--accent); font-size: inherit; cursor: pointer; }
+.media-filter-footer button { flex: none; padding: 0; border: 0; background: none; color: var(--accent-ink); font-size: inherit; cursor: pointer; }
 .media-filter-footer button:disabled { color: var(--muted); opacity: .5; cursor: default; }
 .media-filters :focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 
@@ -246,7 +266,7 @@ body.resizing { user-select: none; }
    takes costs a row's height across the whole bar. */
 .chip-star {
   border: 0; background: none; padding: 0 7px 0 0;
-  color: #4b5368; cursor: pointer; font-size: 10.5px; line-height: 1;
+  color: #707b96; cursor: pointer; font-size: 10.5px; line-height: 1;
 }
 .chip-star:hover { color: var(--text); }
 .chip-star.on { color: #ffc857; }
@@ -320,7 +340,10 @@ button.series-favorite { flex: none; width: 32px; height: 32px; padding: 0; disp
 .row.playing { background: linear-gradient(90deg, rgba(124, 92, 255, .2), transparent 70%); box-shadow: inset 2px 0 0 var(--accent); }
 .row.unplayable .row-name { color: var(--dim); }
 
-.row-star { width: 22px; height: 22px; flex: none; display: grid; place-items: center; border: 0; padding: 0; background: transparent; color: #394052; cursor: pointer; border-radius: 5px; font-size: 13px; }
+/* 3.2:1 even on the selected row, where the ground is lightest. At the old
+   #394052 it was 1.84:1 against the list and 1.47:1 on that row — a control
+   that could not be seen, and the only way into the Favourites tab. */
+.row-star { width: 22px; height: 22px; flex: none; display: grid; place-items: center; border: 0; padding: 0; background: transparent; color: #707b96; cursor: pointer; border-radius: 5px; font-size: 13px; }
 .row-star:hover { color: var(--text); background: #262c3d; }
 .row-star.on { color: #ffc857; }
 
@@ -358,14 +381,14 @@ button.series-favorite { flex: none; width: 32px; height: 32px; padding: 0; disp
 .row-resume { flex: none; width: 34px; height: 3px; border-radius: 2px; background: #262c3d; overflow: hidden; }
 .row-resume i { display: block; height: 100%; background: var(--accent-2); }
 
-/* Removal shows only on hover: it is the rarest gesture in the collections
-   and must not compete with the star on every row. */
+/* Dimmer than the star beside it — it is the rarer gesture and must not
+   compete — but present: on hover alone it was the only way to drop a
+   single history row, and unreachable by touch. */
 .row-x {
   width: 20px; height: 20px; flex: none; display: grid; place-items: center;
-  border: 0; background: transparent; color: #394052; cursor: pointer;
-  border-radius: 5px; font-size: 14px; line-height: 1; opacity: 0;
+  border: 0; background: transparent; color: #5a6480; cursor: pointer;
+  border-radius: 5px; font-size: 14px; line-height: 1;
 }
-.row:hover .row-x, .row-x:focus-visible { opacity: 1; }
 .row-x:hover { color: var(--danger); background: #2b2230; }
 
 /* Day and type headings in the favourites and the history. */
@@ -1009,4 +1032,12 @@ dialog::backdrop { background: rgba(5, 6, 10, .66); backdrop-filter: blur(2px); 
      500 and the row needs 590. The buttons wrap to a second line rather
      than falling off the edge; above the breakpoint they stay on one. */
   .now-actions { flex-wrap: wrap; justify-content: flex-end; }
+}
+
+/* Below this the three columns cannot all keep their width — 224 + 300 of
+   sidebar and list leave the picture 276 px at 800 — so the two that read
+   text give up what they can and the picture keeps the rest. */
+@media (max-width: 980px) {
+  main { grid-template-columns: 158px minmax(212px, 260px) 1fr; }
+  :root { --epg-chan-w: 140px; }
 }

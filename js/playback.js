@@ -286,7 +286,7 @@ export class Playback {
     const nudge = setInterval(() => {
       if (video.paused && video.currentTime === 0) this.tryPlay();
     }, 500);
-    const timer = setTimeout(() => finish(false, 'aikakatkaisu'), TIMEOUT_MS[name]);
+    const timer = setTimeout(() => finish(false, t('playback.reason.timeout')), TIMEOUT_MS[name]);
 
     video.addEventListener('playing', onPlaying);
     video.addEventListener('error', onError);

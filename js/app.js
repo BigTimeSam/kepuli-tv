@@ -125,6 +125,7 @@ async function connect({ silent = false } = {}) {
   try {
     if (!config.host || !config.username || !config.password) { openSetup(); return false; }
     state.source = new XtreamApi(config);
+    dropConnectedView();
 
     if (!silent) showProgress(t('progress.connecting'), config.host);
     state.account = await state.source.account({ signal: progressSignal() });
@@ -150,9 +151,38 @@ async function connect({ silent = false } = {}) {
     return true;
   } catch (err) {
     hideProgress();
+    // The list was emptied for a connection that never arrived: it must not
+    // be left spinning for one.
+    showRows([]);
     if (isAbort(err)) showCancelled(); else showConnectionError(err);
     return false;
   }
+}
+
+/**
+ * Everything on screen belongs to the account that is going away, so it goes
+ * with it — the same reason the list is emptied with the tab, one level up.
+ *
+ * Left there, the sidebar of the previous connection stays clickable while
+ * the new one is still fetching its categories, and a group chosen in that
+ * moment loads against a library connect() is about to replace. The load is
+ * then dropped as stale, selectGroup restores the view it came from, and the
+ * choice is undone with nothing said. Measured against the mock server, a
+ * group clicked during a reconnect sprang back four times in six.
+ */
+function dropConnectedView() {
+  state.lib = null;
+  state.epg = null;
+  state.account = null;
+  state.detail = null;
+  state.group = null;
+  state.sub = null;
+  state.groupItems = [];
+  state.cursor = -1;
+  mediaFilters.apply([], null);
+  renderDetail();
+  renderSidebar();
+  showRows([], { loading: true });
 }
 
 const isAbort = (err) => Boolean(err && err.name === 'AbortError');
@@ -470,7 +500,7 @@ async function activateTab(tab, { restore = false } = {}) {
   if (type && state.group && !visibleGroups(type).some((g) => g.name === state.group)) { state.group = null; chosen = false; }
   // First open: pick a group, so the list fills from a few kilobytes rather
   // than by loading the type's whole list straight away.
-  if (type && state.group == null && !chosen && !state.lib.isFull(type)) {
+  if (type && state.group == null && !chosen && state.lib && !state.lib.isFull(type)) {
     const groups = visibleGroups(type);
     if (groups.length) state.group = groups[0].name;
   }
@@ -495,6 +525,11 @@ async function refreshRows({ keepScroll = false } = {}) {
   let rows = [];
   renderDetail();   // the detail panel follows the state on a tab change too
   if (state.detail?.loading) return;
+  // Without a connection there is nothing to fetch. The collections are the
+  // viewer's own and are read from storage, but every other tab would ask a
+  // library that is not there — before the first connection, and for as long
+  // as a new one is being made.
+  if (!library && !isCollection()) { showRows([]); return false; }
 
   try {
     if (state.detail) {
@@ -785,7 +820,7 @@ function showSubcats(on) {
 /** The topic filters within the chosen group. */
 function renderSubcats() {
   const type = tabType();
-  const group = type && state.group ? state.lib.group(type, state.group) : null;
+  const group = type && state.group ? state.lib?.group(type, state.group) : null;
   if (!group || group.cats.length < 2 || state.detail || state.query) {
     showSubcats(false);
     el.subcats.replaceChildren();
@@ -984,6 +1019,10 @@ function renderEmptyState() {
     el.list.appendChild(loading);
     return;
   }
+  // Before a connection — and while one is being made — the player's own
+  // overlay says what is missing. A second message calling the list an empty
+  // category would name the wrong thing.
+  if (!state.lib && !isCollection()) return;
   const type = tabType();
   const browse = { label: t('empty.browse'), onClick: () => activateTab('live') };
   let node;
@@ -1004,6 +1043,9 @@ function renderListInfo() {
     el.listinfo.textContent = t('progress.loading');
     return;
   }
+  // "0 channels" under a list that is empty for want of a connection counts
+  // something that was never asked for.
+  if (!state.lib && !isCollection()) { el.listinfo.replaceChildren(); return; }
   const type = tabType();
   const parts = [];
   const count = state.rows.length;
@@ -1168,6 +1210,7 @@ function renderCategories() {
 async function selectGroup(name) {
   programmeSearch.clear();
   const before = { group: state.group, sub: state.sub, rows: state.rows, groupItems: state.groupItems };
+  const library = state.lib;
   state.group = name;
   state.sub = null;
   state.detail = null;
@@ -1176,9 +1219,10 @@ async function selectGroup(name) {
   renderSidebar();
   const pending = refreshRows();
   const request = state.listRequest;
-  if (await pending === false && request === state.listRequest) {
+  if (await pending === false && request === state.listRequest && state.lib === library) {
     // Loading clears the rows. Restore the previous view on cancellation
-    // or failure, unless a newer navigation already owns the list.
+    // or failure, unless a newer navigation already owns the list — or a new
+    // connection does, whose account these rows and this group are not from.
     state.group = before.group;
     state.sub = before.sub;
     state.groupItems = before.groupItems;
@@ -2955,6 +2999,31 @@ function renderCastState() {
   if (state.playing) renderNowSub();
 }
 
+/**
+ * The s key stars what the view is pointing at: a sidebar group or a topic
+ * chip that has the focus, otherwise the row the list cursor stands on, and
+ * failing that whatever is playing.
+ *
+ * Every star in the app is out of the tab order — a list of 55,000 films
+ * would otherwise put 55,000 buttons between the list and the player, see
+ * rows.js — so until this key there was no way to reach one without a
+ * mouse, and the Favourites tab was a room with no door for anyone using a
+ * keyboard. The name is said out loud the way the audio track's is: at that
+ * moment the eye is on the picture, not on the row.
+ */
+function toggleFavoriteAtCursor() {
+  // A starless sidebar row reserves the space with a plain div, so the
+  // class alone does not promise a button.
+  const star = document.activeElement?.closest('.group, .chip')?.querySelector('.group-star, .chip-star');
+  if (star && star.tagName === 'BUTTON') { star.click(); return; }
+
+  const item = state.cursor >= 0 ? state.rows[state.cursor] : state.playing;
+  if (!item) return;
+  if (item.k === 'c') toggleFavCategory(item); else toggleFavorite(item);
+  const on = state.favorites.has(`${item.k}:${item.id}`);
+  toast(t(on ? 'fav.added' : 'fav.removed', { name: item.displayName || item.n }));
+}
+
 function moveCursor(delta) {
   if (state.rows.length === 0) return;
   state.cursor = Math.max(0, Math.min(state.rows.length - 1, state.cursor + delta));
@@ -3168,6 +3237,7 @@ function wireUi() {
       case 'f': toggleFullscreen(); break;
       case 'm': el.video.muted = !el.video.muted; break;
       case 'a': cycleAudio(); break;
+      case 's': toggleFavoriteAtCursor(); break;
       case 'n': playRelative(1); break;
       case 'p': playRelative(-1); break;
       case 'g': toggleGuide(); break;

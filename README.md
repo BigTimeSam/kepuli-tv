@@ -511,6 +511,7 @@ COLLECTION".
 | `f` | full screen |
 | `m` | mute |
 | `a` | the next audio track, when the file has more than one |
+| `s` | star what the cursor is on — a row, or a sidebar group or topic chip that has the focus |
 | `n` `p` | next / previous |
 | `g` | open and close the programme guide |
 | `x` | hand over to an external player |

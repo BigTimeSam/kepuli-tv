@@ -119,7 +119,7 @@ const STRINGS = {
     'empty.category': 'Category is empty',
     'empty.category.text': 'The provider returns no content for this category right now. It may have been removed or emptied from the list.',
     'empty.fav': 'No favourites',
-    'empty.fav.text': 'The star at the start of a row or next to the player picks a channel, movie or episode. The star on a sidebar country or on a topic chip picks the whole category. Favourites are there without loading any list.',
+    'empty.fav.text': 'The star at the start of a row picks a channel, movie or episode, and the s key stars whatever the list cursor stands on. The star on a sidebar country or on a topic chip picks the whole category. Favourites are there without loading any list.',
     'empty.recent': 'History is empty',
     'empty.recent.text': 'Channels, movies and episodes you watch collect here on their own, newest first.',
     'empty.plain': 'Empty category',
@@ -201,7 +201,7 @@ const STRINGS = {
     'title.playing': '{name} · {path} — Kepuli-TV',
     'title.search': 'Search: {query}',
     'playback.startfailed': 'Playback could not be started.',
-    'playback.hint.copy': '{reason} Copy the address with the URL button and open it in VLC, for example.',
+    'playback.hint.copy': '{reason} Copy the address from the \u2630 menu and open it in VLC, for example.',
     'playback.nosource': 'The source did not answer or the format is not supported.',
     'playback.autoplay': 'The browser blocked autoplay — press play.',
     'playback.gaveup': 'The stream stopped ({reason}) and did not recover in {max} attempts. ',
@@ -212,6 +212,7 @@ const STRINGS = {
     'playback.reason.media': 'media error {code}',
     'playback.reason.demux': 'demuxing failed',
     'playback.reason.network': 'the connection was lost',
+    'playback.reason.timeout': 'it timed out',
     'playback.died': 'Playback stopped: {reason}.',
     'engine.native': 'native',
     'engine.remux': 'MKV remux',
@@ -291,6 +292,8 @@ const STRINGS = {
     'guide.catchup.title': 'Catch-up from the past {days} days',
 
     /* ------------------------------------------------------ favourites */
+    'fav.added': '{name} added to favourites',
+    'fav.removed': '{name} removed from favourites',
     'fav.series.add': 'Add series to favourites',
     'fav.series.remove': 'Remove series from favourites',
 
@@ -532,7 +535,7 @@ const STRINGS = {
     'empty.category': 'Kategoria on tyhjä',
     'empty.category.text': 'Palveluntarjoaja ei palauta tälle kategorialle sisältöä juuri nyt. Kategoria voi olla poistettu tai tyhjennetty listalta.',
     'empty.fav': 'Ei suosikkeja',
-    'empty.fav.text': 'Tähti rivin alussa tai soittimen vieressä poimii kanavan, elokuvan tai jakson tänne. Tähti sivupalkin maan tai tarkennesirun kohdalla poimii koko kategorian. Suosikit löytyvät ilman että mitään listaa tarvitsee ladata.',
+    'empty.fav.text': 'Tähti rivin alussa poimii kanavan, elokuvan tai jakson tänne, ja s-näppäin poimii sen rivin, jolla listan kohdistin on. Tähti sivupalkin maan tai tarkennesirun kohdalla poimii koko kategorian. Suosikit löytyvät ilman että mitään listaa tarvitsee ladata.',
     'empty.recent': 'Historia on tyhjä',
     'empty.recent.text': 'Katsotut kanavat, elokuvat ja jaksot kertyvät tänne itsestään, tuorein ensin.',
     'empty.plain': 'Tyhjä kategoria',
@@ -610,7 +613,7 @@ const STRINGS = {
     'title.playing': '{name} · {path} — Kepuli-TV',
     'title.search': 'Haku: {query}',
     'playback.startfailed': 'Toiston aloitus epäonnistui.',
-    'playback.hint.copy': '{reason} Kopioi osoite URL-painikkeella ja avaa se esimerkiksi VLC:ssä.',
+    'playback.hint.copy': '{reason} Kopioi osoite \u2630-valikosta ja avaa se esimerkiksi VLC:ssä.',
     'playback.nosource': 'Lähde ei vastannut tai muoto ei ole tuettu.',
     'playback.autoplay': 'Selain esti automaattisen toiston — paina play.',
     'playback.gaveup': 'Virta katkesi ({reason}) eikä palautunut {max} yrityksellä. ',
@@ -621,6 +624,7 @@ const STRINGS = {
     'playback.reason.media': 'mediavirhe {code}',
     'playback.reason.demux': 'purku epäonnistui',
     'playback.reason.network': 'yhteys katkesi',
+    'playback.reason.timeout': 'aikakatkaisu',
     'playback.died': 'Toisto pysähtyi: {reason}.',
     'engine.native': 'natiivi',
     'engine.remux': 'MKV-purku',
@@ -700,6 +704,8 @@ const STRINGS = {
     'guide.catchup.title': 'Catchup {days} vuorokauden ajalta',
 
     /* ------------------------------------------------------ favourites */
+    'fav.added': '{name} lisättiin suosikkeihin',
+    'fav.removed': '{name} poistettiin suosikeista',
     'fav.series.add': 'Lisää sarja suosikkeihin',
     'fav.series.remove': 'Poista sarja suosikeista',
 
