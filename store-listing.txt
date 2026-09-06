@@ -138,8 +138,9 @@ lacks the word.
 
 Searching folds the marks off a name and takes the words in whatever order they
 were typed, because a catalogue written in a dozen languages is read on a
-single keyboard: elain finds Elainkanava spelled with its umlaut, and a title found
-with its words the wrong way round still ranks below a title that reads as typed.
+single keyboard: elain finds Elainkanava spelled with its umlaut, and a name
+found with its words the wrong way round still ranks below one that reads as
+it was typed.
 
 
 PROGRAMME GUIDE AND ARCHIVE
