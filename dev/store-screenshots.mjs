@@ -19,10 +19,15 @@ import { mkdirSync } from 'node:fs';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { startMockServer, PORT as MOCK_PORT, USER, PASS } from './mock/server.mjs';
-import { ensureChrome, openPlayer, session, setViewport, clearViewport, capture, sleep } from './screenshot.mjs';
+// The same five views in either browser, as dev/playcheck.mjs runs the same
+// scenarios in either: KEPULI_BROWSER=firefox swaps the driver underneath.
+const FIREFOX = process.env.KEPULI_BROWSER === 'firefox';
+const { ensureChrome, openPlayer, session, setViewport, clearViewport, capture, sleep } =
+  await import(FIREFOX ? '../firefox/playcheck-driver.mjs' : './screenshot.mjs');
 
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '..');
-const OUT = process.env.KEPULI_SHOTS_DIR ? resolve(process.env.KEPULI_SHOTS_DIR) : join(ROOT, 'brand', 'screenshots');
+const OUT = process.env.KEPULI_SHOTS_DIR ? resolve(process.env.KEPULI_SHOTS_DIR)
+  : join(ROOT, 'brand', FIREFOX ? 'firefox-screenshots' : 'screenshots');
 const DEMO = process.env.KEPULI_DEMO_URL ? new URL(process.env.KEPULI_DEMO_URL) : null;
 
 /* ------------------------------------------------------------ page helpers */
@@ -68,8 +73,8 @@ async function click(page, root, text, { gesture = false, timeout = 10000 } = {}
 }
 
 const PLAYING = `(() => { const v = document.getElementById('video'); return v.readyState >= 2 && v.currentTime > 0.3 && !v.paused; })()`;
-const CONNECTED = `document.querySelectorAll('#groups .group').length > 1 && !document.getElementById('progress').open`;
-const ROWS = `document.querySelectorAll('#list .row').length > 0 && !document.getElementById('progress').open`;
+const CONNECTED = `document.querySelectorAll('#groups .group').length > 1 && document.getElementById('list-progress').hidden`;
+const ROWS = `document.querySelectorAll('#list .row').length > 0 && document.getElementById('list-progress').hidden`;
 
 /* -------------------------------------------------------------------- main */
 
@@ -97,7 +102,9 @@ try {
     settings: { lang: 'en', epgEnabled: true, resumeEnabled: true, subtitleLang: 'eng' },
     ui: { tab: 'live' }, favorites: [], recents: [], resume: {},
   })`);
-  const origin = target.url.match(/^chrome-extension:\/\/[a-p]{32}/)[0];   // URL.origin is null for the scheme
+  // URL.origin is null for an extension scheme, and Firefox's is moz-extension
+  // with a uuid rather than Chrome's [a-p]{32}.
+  const origin = target.url.match(/^(?:chrome|moz)-extension:\/\/[^/]+/)[0];
   await page.call('Page.navigate', { url: `${origin}/css/player.css` });
   await sleep(500);
   const dropped = await evaluate(page, `indexedDB.databases().then((dbs) => Promise.all(dbs.map((d) => new Promise((resolve) => {

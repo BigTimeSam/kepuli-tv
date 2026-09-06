@@ -1,7 +1,9 @@
 // Marionette adapter for the browser interactions used by dev/playcheck.mjs.
 // The assertions and app code are shared with Chrome; input uses real
 // WebDriver actions, not synthetic DOM events.
+import { readFileSync, unlinkSync, writeFileSync } from 'node:fs';
 import { build, DIST } from './build.mjs';
+import { downscale, WIDTH, HEIGHT } from '../dev/screenshot.mjs';
 import { ensureFirefox, session as firefoxSession, sleep } from './marionette.mjs';
 export { sleep };
 let client, url;
@@ -16,6 +18,41 @@ export async function ensureChrome() {
   console.log('Firefox:', await client.evaluate('return navigator.userAgent'));
 }
 export async function openPlayer() { return { url, webSocketDebuggerUrl: 'marionette' }; }
+
+/**
+ * A CSS viewport of exactly WIDTHxHEIGHT. Marionette sizes the window, not
+ * the viewport, and what the browser's own chrome takes off it differs by
+ * platform and by whether a scrollbar is showing — so the window is set from
+ * the difference and the difference measured again, until it is nothing.
+ */
+export async function setViewport() {
+  for (let i = 0; i < 4; i++) {
+    const inner = await client.evaluate('return {w: innerWidth, h: innerHeight}');
+    if (inner.w === WIDTH && inner.h === HEIGHT) return;
+    const rect = await client.call('WebDriver:GetWindowRect');
+    await client.call('WebDriver:SetWindowRect', {
+      width: rect.width + (WIDTH - inner.w), height: rect.height + (HEIGHT - inner.h) });
+    await sleep(400);
+  }
+}
+
+export async function clearViewport() { /* the window keeps the size it was given */ }
+
+/** The same picture the Chrome path produces, taken through Marionette. */
+export async function capture(page, out) {
+  for (let attempt = 1; ; attempt++) {
+    await client.evaluate('return document.fonts.ready.then(() => new Promise(r => setTimeout(r, 800)))');
+    const { value } = await client.call('WebDriver:TakeScreenshot', { full: false });
+    const raw = `${out}.2x.png`;
+    writeFileSync(raw, Buffer.from(value, 'base64'));
+    // 1x: see the note on downscale's scale parameter.
+    if (downscale(raw, out, 1) === 'quadrants' && attempt < 4) { unlinkSync(raw); await sleep(1000); continue; }
+    unlinkSync(raw);
+    console.log(`${out}  ${WIDTH}x${HEIGHT}  ${(readFileSync(out).length / 1024).toFixed(0)} kB`);
+    return;
+  }
+}
+
 const KEYS = { Enter: '\uE007', Escape: '\uE00C', Tab: '\uE004', Backspace: '\uE003', ArrowDown: '\uE015', ArrowUp: '\uE013', ArrowLeft: '\uE012', ArrowRight: '\uE014', PageDown: '\uE00F', PageUp: '\uE00E', Home: '\uE011', End: '\uE010', Shift: '\uE008', Control: '\uE009', Alt: '\uE00A', Meta: '\uE03D' };
 async function actions(type, id, actions) { await client.call('WebDriver:PerformActions', { actions: [{type,id,...(type==='pointer'?{parameters:{pointerType:'mouse'}}:{}),actions}] }); }
 async function viewport(width, height) {

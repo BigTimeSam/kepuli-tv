@@ -152,6 +152,37 @@ export async function openPlayer() {
 export const setViewport = (page) => page.call('Emulation.setDeviceMetricsOverride', { width: WIDTH, height: HEIGHT, deviceScaleFactor: SCALE, mobile: false });
 export const clearViewport = (page) => page.call('Emulation.clearDeviceMetricsOverride');
 
+/**
+ * A 2x capture scaled down to WIDTHxHEIGHT, 24-bit and without alpha, which
+ * is what the stores ask for. Shared with the Firefox driver, which captures
+ * through Marionette but wants the same picture out of it.
+ *
+ * @param {number} [scale] the density the capture was taken at. Chrome is
+ *   given a 2x viewport over DevTools; Firefox has no equivalent — its own
+ *   density is a profile preference, and asking for 2 there would need a
+ *   2560x1600 window, which is larger than most screens. Firefox therefore
+ *   captures at 1, where this only drops the alpha channel.
+ * @returns {'ok'|'quadrants'} quadrants when a 2x capture came out as four
+ *   half-size copies of the page, which is what a compositor still adopting
+ *   the 2x viewport produces; the caller takes it again.
+ */
+export function downscale(raw, out, scale = SCALE) {
+  const py = `
+import sys
+from PIL import Image, ImageChops
+im = Image.open(${JSON.stringify(raw)}).convert('RGB')
+assert im.size == (${WIDTH} * ${scale}, ${HEIGHT} * ${scale}), im.size
+w, h = im.size
+if ${scale} > 1 and ImageChops.difference(im.crop((0, 0, w // 2, h // 2)), im.crop((w // 2, 0, w, h // 2))).getbbox() is None:
+    sys.exit(3)
+im.resize((${WIDTH}, ${HEIGHT}), Image.LANCZOS).save(${JSON.stringify(out)}, optimize=True)
+`;
+  const r = spawnSync('uv', ['run', '--quiet', '--with', 'pillow', 'python3', '-c', py], { stdio: 'inherit' });
+  if (r.status === 3) return 'quadrants';
+  if (r.error || r.status !== 0) throw new Error(`downscale failed (is uv installed?); the 2x capture is at ${raw}`);
+  return 'ok';
+}
+
 /** Captures the viewport at 2x and writes a 1280x800 24-bit PNG to out. */
 export async function capture(page, out) {
   for (let attempt = 1; ; attempt++) {
@@ -165,19 +196,7 @@ export async function capture(page, out) {
     // wants 24-bit. A capture taken while the compositor is still adopting
     // the 2x viewport comes out as four half-size copies of the page; the
     // quadrants are then identical, and the capture is taken again.
-    const py = `
-import sys
-from PIL import Image, ImageChops
-im = Image.open(${JSON.stringify(raw)}).convert('RGB')
-assert im.size == (${WIDTH * SCALE}, ${HEIGHT * SCALE}), im.size
-w, h = im.size
-if ImageChops.difference(im.crop((0, 0, w // 2, h // 2)), im.crop((w // 2, 0, w, h // 2))).getbbox() is None:
-    sys.exit(3)
-im.resize((${WIDTH}, ${HEIGHT}), Image.LANCZOS).save(${JSON.stringify(out)}, optimize=True)
-`;
-    const r = spawnSync('uv', ['run', '--quiet', '--with', 'pillow', 'python3', '-c', py], { stdio: 'inherit' });
-    if (r.status === 3 && attempt < 4) { unlinkSync(raw); await sleep(1000); continue; }
-    if (r.error || r.status !== 0) throw new Error(`downscale failed (is uv installed?); the 2x capture is at ${raw}`);
+    if (downscale(raw, out) === 'quadrants' && attempt < 4) { unlinkSync(raw); await sleep(1000); continue; }
     unlinkSync(raw);
     console.log(`${out}  ${WIDTH}x${HEIGHT}  ${(readFileSync(out).length / 1024).toFixed(0)} kB`);
     return;

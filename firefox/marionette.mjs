@@ -55,6 +55,10 @@ const PREFS = {
   // would go with it, and Marionette cannot open a session in a Firefox
   // without a window — measured. So the window stays.
   'browser.tabs.closeWindowWithLastTab': false,
+  // The store screenshots are captured at twice the density and scaled down,
+  // as Chrome's are. Firefox has no per-capture scale, so it is a profile
+  // preference and the screenshot run asks for it.
+  ...(process.env.KEPULI_FIREFOX_DPR ? { 'layout.css.devPixelsPerPx': Number(process.env.KEPULI_FIREFOX_DPR) } : {}),
 };
 
 export const sleep = (ms) => new Promise((r) => setTimeout(r, ms));

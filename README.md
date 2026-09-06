@@ -1235,9 +1235,16 @@ channel at a constant 3 Mbit/s, an MP4 movie and an MKV episode with English
 and Finnish subtitle tracks.
 
 ```
-sh dev/mock/media.sh              once: renders the media
-node dev/store-screenshots.mjs
+sh dev/mock/media.sh                                  once: renders the media
+node dev/store-screenshots.mjs                        brand/screenshots/
+KEPULI_BROWSER=firefox node dev/store-screenshots.mjs  brand/firefox-screenshots/
 ```
+
+The Firefox set comes from the same walk, driven through Marionette rather
+than DevTools — the same swap `dev/playcheck.mjs` makes to run its scenarios
+in either browser. It captures at 1×: Firefox has no per-capture density, its
+own is a profile preference, and asking for 2× there would need a 2560 × 1600
+window.
 
 The second command starts the mock server, points the development profile's
 copy of the extension at it, walks through five views and captures each into

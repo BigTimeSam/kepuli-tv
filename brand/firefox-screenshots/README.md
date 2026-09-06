@@ -1,13 +1,16 @@
 # Firefox Add-ons screenshots
 
-Captured from the submitted Kepuli-TV 1.0.7 ZIP in Firefox 155 on macOS,
-using an isolated test profile and the local `dev/mock/server.mjs` fixture.
-All channels, titles, artwork and video are fictional demo content. No
-customer account or hosted demo service was used.
+Captured by `KEPULI_BROWSER=firefox node dev/store-screenshots.mjs` — the
+same walk that makes the Chrome set, driven through Marionette instead of
+DevTools — in Firefox 155 on macOS, using an isolated test profile and the
+local `dev/mock/server.mjs` fixture. All channels, titles, artwork and video
+are fictional demo content. No customer account or hosted demo service was
+used.
 
-The five views match the Chrome Web Store set in `brand/screenshots/`.
-Each PNG is 1280 × 800 RGB, captured at 2× pixel density and downscaled.
-The subtitles view uses the player's Large subtitle setting for readability.
+The five views match the Chrome Web Store set in `brand/screenshots/`. Each
+PNG is 1280 × 800 RGB. The Chrome set is captured at 2× and scaled down;
+Firefox has no per-capture density — its own is a profile preference, and 2×
+would need a 2560 × 1600 window — so this set is captured at 1×.
 
 | File | AMO caption |
 | --- | --- |
