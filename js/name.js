@@ -106,6 +106,41 @@ for (const [codes, ...names] of COUNTRIES) {
  * to tell a tag from a name: "FI | MTV" carries one, "MTV3 | HD" does not,
  * and the two look alike to a pattern that reads only the punctuation.
  */
+/* ------------------------------------------------------------- searching */
+
+// The Nordic and central-European letters that are not a letter with a mark
+// hung on it: NFD leaves them whole, so they are named. Everything else —
+// ä, ö, å, é, ñ, ç and the rest — comes apart on its own.
+const WHOLE_LETTERS = /[øœæðđþłßıŋ]/g;
+const WHOLE_LETTER = { ø: 'o', œ: 'oe', æ: 'ae', ð: 'd', đ: 'd', þ: 'th', ł: 'l', ß: 'ss', ı: 'i', ŋ: 'n' };
+
+/**
+ * A name as a search matches it: lower case, and without the marks the
+ * viewer is not going to type.
+ *
+ * A provider's list is written in a dozen languages and read on one
+ * keyboard. Matching the letters as they stand meant "elain" found nothing
+ * while "Eläinkanava" sat in the list, and "sodergran" nothing while
+ * "Södergran" did — and a search that answers "no matches" is read as
+ * "there is no such channel", not as "type the umlaut". Both the name and
+ * the query go through this, so the fold never has to be undone.
+ */
+export const searchKey = (text) => String(text ?? '')
+  .toLowerCase()
+  .replace(WHOLE_LETTERS, (c) => WHOLE_LETTER[c])
+  .normalize('NFD')
+  .replace(/\p{M}/gu, '');
+
+/** The words of a query, folded. An empty query has none. */
+export const searchTerms = (query) => searchKey(query).split(/\s+/).filter(Boolean);
+
+/**
+ * Whether a folded name holds every word of the query, wherever they sit.
+ * "cnn news" finds "News CNN": a viewer types the words they remember, not
+ * the order the provider filed them in.
+ */
+export const matchesTerms = (key, terms) => terms.every((term) => key.includes(term));
+
 export function isCountryCode(code) {
   return CODES_BY_CODE.has(String(code || '').toLowerCase());
 }

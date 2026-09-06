@@ -457,6 +457,17 @@ visibly) and ranks matches by relevance: a match at the start of a word beats
 one found mid-word, so that *yle* raises the Yle channels rather than "KYLE
 COLLECTION".
 
+Names are matched with their marks folded away, and the words may come in any
+order. A provider's list is written in a dozen languages and read on one
+keyboard: *elain* finds "Eläinkanava", *sodergran* finds "Södergran" and
+*oresund* finds "Øresund", because a search that answers "no matches" is read
+as "there is no such channel" rather than as "type the umlaut". *cnn news*
+finds "News CNN" as well as "CNN News" — but the one that reads the way the
+query was typed still comes first, so the looser rule costs the exact match
+nothing. The same folding is used by the country and topic filter beside the
+list, by the filter in **Organize channels**, and by the programme search in
+the guide, so one spelling works everywhere a name is typed.
+
 ## Features
 
 - **Programme data** for visible channels: the programme on air and a progress

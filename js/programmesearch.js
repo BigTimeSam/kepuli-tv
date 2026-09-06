@@ -2,12 +2,13 @@ import { VirtualList } from './vlist.js';
 import { t } from './i18n.js';
 import { stampFmt } from './format.js';
 import { archiveDays } from './epggrid.js';
+import { searchKey, searchTerms } from './name.js';
 
 /** Explicit, cancellable full-guide search. Four requests at most; completed
  * full tables are shared with the grid. Partial failures never look like a
  * complete empty result. No media connection is opened by a search. */
 export async function searchProgrammes(epg, channels, query, { signal, from = -Infinity, to = Infinity, onProgress = () => {} } = {}) {
-  const words = query.trim().toLocaleLowerCase().split(/\s+/).filter(Boolean);
+  const words = searchTerms(query);
   const eligible = [...new Map(channels.filter((c) => c.epgId).map((c) => [String(c.id), c])).values()];
   const results = [];
   let next = 0, done = 0, failed = 0;
@@ -38,7 +39,7 @@ export async function searchProgrammes(epg, channels, query, { signal, from = -I
           const key = `${programme.start}:${programme.stop}:${programme.title}`;
           if (seen.has(key)) continue;
           seen.add(key);
-          const text = `${programme.title} ${programme.description || ''}`.toLocaleLowerCase();
+          const text = searchKey(`${programme.title} ${programme.description || ''}`);
           if (words.every((word) => text.includes(word))) results.push({ channel, programme });
         }
       } catch (err) {

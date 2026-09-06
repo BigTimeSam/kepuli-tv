@@ -4,7 +4,7 @@ import { Epg } from './epg.js';
 import { Playback } from './playback.js';
 import { VirtualList } from './vlist.js';
 import { itemRow, categoryRow, chipRow, favCategoryRow, sectionHeader, emptyState } from './rows.js';
-import { nameCleaner, searchNameCleaner } from './name.js';
+import { nameCleaner, searchNameCleaner, searchKey, searchTerms, matchesTerms } from './name.js';
 import { poster } from './poster.js';
 import { wireModal } from './modal.js';
 import { MediaFilters } from './mediafilters.js';
@@ -562,8 +562,10 @@ async function refreshRows({ keepScroll = false } = {}) {
   }
 
   if (state.query && isCollection()) {
-    const q = state.query.toLowerCase();
-    rows = rows.filter((it) => it.n.toLowerCase().includes(q));
+    // The collections are searched here rather than in the library: they are
+    // the viewer's own rows and never went through its index.
+    const terms = searchTerms(state.query);
+    rows = rows.filter((it) => matchesTerms(searchKey(it.n), terms));
   }
 
   // The visible name decides the order: once a prefix has been stripped
@@ -1175,12 +1177,13 @@ function renderCategories() {
       for (const group of new Set(item.cats.map((id) => groupOf.get(id)).filter(Boolean))) counts.set(group, (counts.get(group) || 0) + 1);
     }
   }
-  const filter = state.categoryFilter.trim().toLowerCase();
+  const terms = searchTerms(state.categoryFilter);
+  const filter = terms.length > 0;
   // The filter matches sub-categories too, so that "sport" finds the
   // countries that have one even when the country's name lacks the word.
   const groups = visibleGroups(type).filter((g) => !filter
-    || g.name.toLowerCase().includes(filter)
-    || g.cats.some((c) => c.name.toLowerCase().includes(filter)));
+    || matchesTerms(searchKey(g.name), terms)
+    || g.cats.some((c) => matchesTerms(searchKey(c.name), terms)));
 
   const frag = document.createDocumentFragment();
   if (!filter) {

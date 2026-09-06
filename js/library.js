@@ -13,7 +13,7 @@
 import { cacheGet, cachePut, cacheAge, cacheClear } from './db.js';
 import { localeTag } from './i18n.js';
 import { channelLogo } from './logos.js';
-import { labelCodes } from './name.js';
+import { labelCodes, searchKey, searchTerms } from './name.js';
 
 export const TYPES = ['live', 'movie', 'series'];
 
@@ -71,7 +71,7 @@ export class Library {
     this.categories = { live: [], movie: [], series: [] };
     this.groups = { live: [], movie: [], series: [] };
     this.full = { live: null, movie: null, series: null };
-    this.lower = { live: null, movie: null, series: null };
+    this.keys = { live: null, movie: null, series: null };
     this.fullAt = { live: null, movie: null, series: null };
     this.catCodes = new Map();       // category id → the country codes it names
     this.byCategory = new Map();     // "live:3" → items (in memory)
@@ -222,9 +222,9 @@ export class Library {
   setFull(type, items, at) {
     this.full[type] = sortItems(this.withLogos(type, items));
     this.fullAt[type] = at || Date.now();
-    // The search index once: 55,000 toLowerCase calls per keystroke would
-    // be visible stutter.
-    this.lower[type] = this.full[type].map((it) => it.n.toLowerCase());
+    // The search index once: folding 55,000 names per keystroke would be
+    // visible stutter.
+    this.keys[type] = this.full[type].map((it) => searchKey(it.n));
     this.byCategory.clear();
   }
 
@@ -240,15 +240,18 @@ export class Library {
   search(type, query, categoryId) {
     const items = this.full[type];
     if (!items) return [];
-    const lower = this.lower[type];
-    const q = query.trim().toLowerCase();
+    const keys = this.keys[type];
+    const terms = searchTerms(query);
+    // The words back together, for the test that comes first: a name that
+    // reads the way the query was typed is the better answer.
+    const phrase = terms.join(' ');
     const scored = [];
     for (let i = 0; i < items.length; i++) {
       if (categoryId && !items[i].cats.includes(categoryId)) continue;
-      if (!q) { scored.push([0, i]); continue; }
-      const at = lower[i].indexOf(q);
-      if (at === -1) continue;
-      scored.push([matchScore(lower[i], q, at), i]);
+      if (!terms.length) { scored.push([0, i]); continue; }
+      const score = queryScore(keys[i], terms, phrase);
+      if (score == null) continue;
+      scored.push([score, i]);
     }
     scored.sort((a, b) => a[0] - b[0] || a[1] - b[1]);
     return scored.map(([, i]) => items[i]);
@@ -368,7 +371,7 @@ export class Library {
     this.categories = { live: [], movie: [], series: [] };
     this.groups = { live: [], movie: [], series: [] };
     this.full = { live: null, movie: null, series: null };
-    this.lower = { live: null, movie: null, series: null };
+    this.keys = { live: null, movie: null, series: null };
     this.fullAt = { live: null, movie: null, series: null };
     this.catCodes.clear();
     this.byCategory.clear();
@@ -382,6 +385,29 @@ export class Library {
 // 0 = the name starts with the query, 1 = a word starts with it, 2 = found
 // mid-word. Channel names often carry a country code up front ("FI: Yle
 // TV1"), so a start right after such a tag also counts as a word start.
+/**
+ * How well a name answers the query, lower is better, null for no answer.
+ *
+ * A name carrying the words together and in the order they were typed is
+ * scored by where they sit — the start of the name, the start of a word,
+ * mid-word. A name carrying them all but scattered, "News CNN" for "cnn
+ * news", answers too and scores below every contiguous one, so a viewer who
+ * did type the name in order still sees it first.
+ */
+function queryScore(name, terms, phrase) {
+  const at = name.indexOf(phrase);
+  if (at !== -1) return matchScore(name, phrase, at);
+  if (terms.length < 2) return null;
+  let worst = 0;
+  for (const term of terms) {
+    const found = name.indexOf(term);
+    if (found === -1) return null;
+    worst = Math.max(worst, matchScore(name, term, found));
+  }
+  // Above every contiguous score, whatever the words did inside the name.
+  return 3 + worst;
+}
+
 function matchScore(name, query, at) {
   if (at === 0) return 0;
   const before = name.charCodeAt(at - 1);

@@ -13,7 +13,8 @@ globalThis.MediaSource = { isTypeSupported: (type) => /mp4a\.40/.test(type) };
 
 import { parseServer, parsePlaylistUrl } from '../js/xtream.js';
 import { safeUrl } from '../js/api.js';
-import { nameCleaner, labelCodes, countryCodes } from '../js/name.js';
+import { nameCleaner, labelCodes, countryCodes, searchKey, searchTerms, matchesTerms } from '../js/name.js';
+import { Library } from '../js/library.js';
 import { channelLogo, slugify } from '../js/logos.js';
 import { cueText } from '../js/subs.js';
 import { subtitleLook, STYLES, MIN_SIZE, MAX_SIZE, DEFAULT_SIZE } from '../js/subdisplay.js';
@@ -150,6 +151,40 @@ check('a GitHub page that names no file', safeUrl('https://github.com/tv-logo/tv
 check('the junk the server sends', [safeUrl('['), safeUrl('[""]'), safeUrl(''), safeUrl(null), safeUrl(42)],
   [null, null, null, null, null]);
 check('a scheme that is not the web', safeUrl('ftp://example.test/logo.png'), null);
+
+/* -------------------------------------------------- name.js: searchKey */
+
+check('searchKey folds a letter with a mark', searchKey('Eläinkanava'), 'elainkanava');
+check('searchKey folds the Nordic vowels', [searchKey('Södergran'), searchKey('Åland'), searchKey('NRK Sápmi')],
+  ['sodergran', 'aland', 'nrk sapmi']);
+check('searchKey folds the letters NFD leaves whole', [searchKey('Øresund'), searchKey('Æther'), searchKey('Straße')],
+  ['oresund', 'aether', 'strasse']);
+check('searchKey leaves a plain name alone', searchKey('CNN News HD'), 'cnn news hd');
+check('searchKey takes nothing for nothing', [searchKey(''), searchKey(null), searchKey(undefined)], ['', '', '']);
+check('searchTerms splits on any run of space', searchTerms('  CNN \t  News '), ['cnn', 'news']);
+check('searchTerms of an empty query is empty', searchTerms('   '), []);
+check('matchesTerms ignores the order the words were typed',
+  [matchesTerms(searchKey('News CNN'), searchTerms('cnn news')), matchesTerms(searchKey('CNN'), searchTerms('cnn news'))],
+  [true, false]);
+check('matchesTerms with no terms matches anything', matchesTerms(searchKey('whatever'), searchTerms('')), true);
+
+/* ------------------------------------------------ library.js: search */
+
+// The search index is built by setFull, so the list goes in through it.
+const searchable = (...names) => {
+  const lib = new Library({});
+  lib.setFull('live', names.map((n, i) => ({ id: String(i + 1), k: 0, n, cats: [] })));
+  return (query) => lib.search('live', query).map((item) => item.n);
+};
+const found = searchable('Eläinkanava', 'Yle TV1 HD', 'News CNN', 'CNN News HD', 'Pink Style', 'Øresund Sport');
+check('a search without the marks finds the name that has them', found('elain'), ['Eläinkanava']);
+check('a search with the marks finds it too', found('eläin'), ['Eläinkanava']);
+check('a folded name is found by its folded query', found('oresund'), ['Øresund Sport']);
+check('a word at the start of a name beats one inside another word', found('yle'), ['Yle TV1 HD', 'Pink Style']);
+check('the words may come in either order', found('news cnn'), ['News CNN', 'CNN News HD']);
+check('a name that reads as typed comes first all the same', found('cnn news'), ['CNN News HD', 'News CNN']);
+check('every word has to be there', found('cnn eurosport'), []);
+check('a query of nothing matches nothing found', found('zzz'), []);
 
 /* ------------------------------------------------- name.js: nameCleaner */
 

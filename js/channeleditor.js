@@ -2,6 +2,7 @@ import { VirtualList } from './vlist.js';
 import { channelPreferences, ordered, placeInOrder, arrangeOrder, sortChannels } from './channelprefs.js';
 import { t, localeTag } from './i18n.js';
 import { wireModal } from './modal.js';
+import { searchKey, searchTerms, matchesTerms } from './name.js';
 
 const $ = (id) => document.getElementById(id);
 
@@ -70,8 +71,8 @@ export class ChannelEditor {
     const items = this.categories
       ? cats.map((c) => ({ id: c.id, n: c.name })).sort((a, b) => a.n.localeCompare(b.n, localeTag()))
       : sortChannels(this.channels.filter((c) => !group || c.cats.some((id) => ids.has(id))), this.sort);
-    const query = $('channel-editor-filter').value.trim().toLocaleLowerCase();
-    this.rows = ordered(items, this.draft[this.orderKey]).filter((c) => c.n.toLocaleLowerCase().includes(query));
+    const terms = searchTerms($('channel-editor-filter').value);
+    this.rows = ordered(items, this.draft[this.orderKey]).filter((c) => matchesTerms(searchKey(c.n), terms));
     this.list.setCount(this.rows.length, { keepScroll });
     $('channel-editor-status').textContent = t('organize.count', { count: this.rows.length,
       hidden: this.draft[this.hiddenKey].length });
