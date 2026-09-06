@@ -1208,6 +1208,8 @@ function renderKinds() {
     ));
   }
   el.groups.replaceChildren(frag);
+  fillGroupPicker(KIND_ORDER.filter((k) => counts.get(k)).map((k) => [kindLabel(k), String(k)]),
+    state.kind == null ? '' : String(state.kind));
 }
 
 async function selectKind(kind) {
@@ -1274,6 +1276,19 @@ function renderCategories() {
     }, selectGroup));
   }
   el.groups.replaceChildren(frag);
+  fillGroupPicker(visibleGroups(type).map((g) => [g.name, g.name]), state.group ?? '');
+}
+
+/**
+ * The sidebar's choice as a menu, for a window with no room for a sidebar.
+ * Built from whatever the sidebar has just been built from, so the two can
+ * never disagree about what is on offer or what is chosen.
+ */
+function fillGroupPicker(options, chosen) {
+  const picker = $('group-select');
+  picker.replaceChildren(new Option(t('groups.all'), ''), ...options.map(([label, value]) => new Option(label, value)));
+  picker.value = String(chosen);
+  $('group-picker').hidden = !state.lib && !isCollection();
 }
 
 async function selectGroup(name) {
@@ -3449,6 +3464,14 @@ function wireUi() {
   $('media-filters').addEventListener('toggle', () => store.saveUiState({ filtersOpen: $('media-filters').open }));
 
   let filterTimer = null;
+  $('group-select').addEventListener('change', (e) => {
+    const value = e.target.value;
+    if (!isCollection()) return selectGroup(value || null);
+    // The collections filter by type, and a type is 'c', 0, 1 or 2 — the
+    // menu carries them as text and they go back as they came.
+    return selectKind(value === '' ? null : KIND_ORDER.find((k) => String(k) === value) ?? null);
+  });
+
   el.categoryFilter.addEventListener('input', () => {
     clearTimeout(filterTimer);
     filterTimer = setTimeout(() => { state.categoryFilter = el.categoryFilter.value; renderCategories(); }, 120);

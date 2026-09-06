@@ -64,6 +64,14 @@
         <span class="channel-guide-arrow" aria-hidden="true">›</span>
       </button>
     </div>
+    <!-- The sidebar's job in a window too narrow to carry a sidebar. Below
+         760px three columns leave the list about 210px, which is a column of
+         truncated names; the countries move in here and the list gets the
+         width back. Filled by renderCategories, shown by CSS alone. -->
+    <label class="group-picker" id="group-picker">
+      <span class="sr-only" data-i18n="groups.aria">Countries and topics</span>
+      <select id="group-select"></select>
+    </label>
     <div class="crumbs" id="crumbs" hidden></div>
     <div class="subcats" id="subcats" hidden></div>
     <!-- The topic bar's lower edge is its handle: role and the value

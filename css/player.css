@@ -31,6 +31,22 @@
 
 * { box-sizing: border-box; }
 
+/* A viewer who has asked the system for more contrast gets it: the borders
+   that separate one panel from the next are the first thing to go at low
+   contrast, and the muted text is the next. The palette is otherwise the
+   same, so nothing moves. */
+@media (prefers-contrast: more) {
+  :root {
+    --border: #626f94;      /* 3.7:1 on the panel, 3.2:1 on the darker one */
+    --muted: #b6bdcd;
+    --dim: #b0b8c8;
+    --panel-2: #1b2130;
+    --row-hover: #232a3c;
+  }
+  .row-star, .row-x, .group-star, .chip-star { color: #97a1ba; }
+  .row { border-bottom-color: var(--border); }
+}
+
 /* Said to a screen reader and to nothing else: a badge shows "7 d" where the
    column has room for two characters, and the whole sentence goes here. */
 .sr-only {
@@ -214,12 +230,12 @@ button.group-star:hover { color: var(--text); background: #262c3d; }
 .media-filters > summary { padding: 10px 0; color: var(--text); font-size: 12px; cursor: pointer; }
 .media-filter-count { float: right; color: var(--muted); font-size: 11px; font-variant-numeric: tabular-nums; }
 .media-filter-controls { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
-.media-filter-controls label { display: grid; gap: 4px; min-width: 0; color: var(--muted); font-size: 10.5px; }
+.media-filter-controls label { display: grid; gap: 4px; min-width: 0; color: var(--muted); font-size: 11px; }
 .media-filter-controls label[hidden] { display: none; }
 .media-filter-controls label.wide { grid-column: 1 / -1; }
 .media-filter-controls select { width: 100%; min-width: 0; padding: 6px 5px; border: 1px solid var(--border); border-radius: 6px; background: var(--panel-2); color: var(--text); font-size: 11.5px; cursor: pointer; }
 .media-filter-controls select.active { border-color: var(--accent); }
-.media-filter-footer { display: flex; align-items: baseline; gap: 8px; justify-content: space-between; margin-top: 9px; color: var(--muted); font-size: 10.5px; }
+.media-filter-footer { display: flex; align-items: baseline; gap: 8px; justify-content: space-between; margin-top: 9px; color: var(--muted); font-size: 11px; }
 .media-filter-footer button { flex: none; padding: 0; border: 0; background: none; color: var(--accent-ink); font-size: inherit; cursor: pointer; }
 .media-filter-footer button:disabled { color: var(--muted); opacity: .5; cursor: default; }
 .media-filters :focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
@@ -295,7 +311,7 @@ body.resizing { user-select: none; }
    takes costs a row's height across the whole bar. */
 .chip-star {
   border: 0; background: none; padding: 0 7px 0 0;
-  color: #707b96; cursor: pointer; font-size: 10.5px; line-height: 1;
+  color: #707b96; cursor: pointer; font-size: 11px; line-height: 1;
 }
 .chip-star:hover { color: var(--text); }
 .chip-star.on { color: #ffc857; }
@@ -331,7 +347,7 @@ button.series-favorite { flex: none; width: 32px; height: 32px; padding: 0; disp
 /* Labelled facts separate catalogue metadata from playback diagnostics. */
 .title-facts { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px 16px; margin: 2px 0 12px; }
 .title-facts > div { min-width: 0; }
-.title-facts dt { font-size: 10px; color: var(--muted); margin-bottom: 3px; }
+.title-facts dt { font-size: 11px; color: var(--muted); margin-bottom: 3px; }
 .title-facts dd { margin: 0; font-size: 12px; font-weight: 550; color: var(--text); overflow-wrap: anywhere; }
 .title-fact-rating dd { color: #ffc857; font-variant-numeric: tabular-nums; }
 .row-duration { flex: none; color: var(--muted); font-size: 11px; font-variant-numeric: tabular-nums; white-space: nowrap; }
@@ -400,7 +416,7 @@ button.series-favorite { flex: none; width: 32px; height: 32px; padding: 0; disp
 .row-progress { flex: none; width: 42px; height: 3px; border-radius: 2px; background: #262c3d; overflow: hidden; }
 .row-progress i { display: block; height: 100%; background: var(--accent); }
 
-.row-badge { font-size: 10.5px; color: var(--muted); background: var(--panel-2); border: 1px solid var(--border); padding: 1px 6px; border-radius: 5px; white-space: nowrap; flex: none; }
+.row-badge { font-size: 11px; color: var(--muted); background: var(--panel-2); border: 1px solid var(--border); padding: 1px 6px; border-radius: 5px; white-space: nowrap; flex: none; }
 .row-badge.warn { color: var(--warn); border-color: #3d3627; }
 .row-time { display: inline-flex; align-items: center; gap: 4px; }
 .row-time svg { width: 13px; height: 13px; flex: none; fill: none; stroke: currentColor; stroke-width: 1.5; stroke-linecap: round; stroke-linejoin: round; }
@@ -424,7 +440,7 @@ button.series-favorite { flex: none; width: 32px; height: 32px; padding: 0; disp
 .rowgroup { display: flow-root; }
 .daysep {
   height: var(--sep-h); display: flex; align-items: center; gap: 8px;
-  padding: 0 10px; font-size: 10.5px; letter-spacing: .06em; text-transform: uppercase;
+  padding: 0 10px; font-size: 11px; letter-spacing: .06em; text-transform: uppercase;
   color: var(--dim); background: var(--panel); border-bottom: 1px solid var(--border);
 }
 .daysep::after { content: ""; flex: 1; height: 1px; background: var(--border); }
@@ -440,6 +456,12 @@ button.series-favorite { flex: none; width: 32px; height: 32px; padding: 0; disp
 /* The list's own loading strip, above the rows it is fetching. It carries
    what the dialog used to: what is being loaded, how far it has come, and
    the way out of it. */
+/* Shown only where the sidebar is not, see the narrow-window rules below. */
+.group-picker[hidden] { display: none; }
+.group-picker { display: none; padding: 8px 10px; background: var(--panel); border-bottom: 1px solid var(--border); }
+.group-picker select { width: 100%; color: var(--text); background: var(--panel-2); border: 1px solid var(--border); border-radius: 7px; padding: 7px 9px; }
+.group-picker select:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
 .list-progress {
   display: flex; flex-direction: column; gap: 7px; flex: none;
   padding: 10px 12px; background: var(--panel); border-bottom: 1px solid var(--border);
@@ -609,7 +631,7 @@ body[data-substyle="contrast"] video::cue { background: #000; }
    strip, and a line across the top of it would separate nothing. */
 .epgnext { display: flex; align-items: baseline; gap: 8px; font-size: 11.5px; }
 .epgnext:not(:first-child) { margin-top: 7px; padding-top: 6px; border-top: 1px solid var(--border); }
-.epgnext-label { flex: none; font-size: 10.5px; letter-spacing: .06em; text-transform: uppercase; color: var(--dim); }
+.epgnext-label { flex: none; font-size: 11px; letter-spacing: .06em; text-transform: uppercase; color: var(--dim); }
 .epgnext-time { flex: none; color: var(--accent-2); font-variant-numeric: tabular-nums; }
 .epgnext-title { color: var(--text); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .vodinfo { display: flex; gap: 10px; }
@@ -617,11 +639,11 @@ body[data-substyle="contrast"] video::cue { background: #000; }
 .playback-facts { display: flex; flex-wrap: wrap; gap: 10px 20px; margin: 0 0 8px; padding-top: 8px; border-top: 1px solid var(--border); }
 .playback-facts:empty { display: none; }
 .playback-facts > div { min-width: 0; }
-.playback-facts dt { color: var(--muted); font-size: 10px; margin-bottom: 3px; }
+.playback-facts dt { color: var(--muted); font-size: 11px; margin-bottom: 3px; }
 .playback-facts dd { display: flex; align-items: baseline; flex-wrap: wrap; gap: 4px 6px; margin: 0; color: var(--text); font-size: 11.5px; overflow-wrap: anywhere; }
 .playback-facts dd.playback-pending { align-items: center; min-width: 86px; color: var(--muted); }
 .playback-pending .fact-spinner { width: 14px; height: 14px; }
-.playback-warning { color: #ffc857; font-size: 10px; }
+.playback-warning { color: #ffc857; font-size: 11px; }
 .vodinfo .plot { color: var(--muted); font-size: 12px; }
 
 /* Three selectors and seven buttons do not fit beside the title in a
@@ -1050,7 +1072,7 @@ dialog::backdrop { background: rgba(5, 6, 10, .66); backdrop-filter: blur(2px); 
 .epg-chan-body { min-width: 0; flex: 1; display: flex; align-items: baseline; gap: 6px; }
 .epg-chan-num { color: var(--dim); font-size: 11px; font-variant-numeric: tabular-nums; flex: none; }
 .epg-chan-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 12.5px; }
-.epg-chan-rec { flex: none; font-size: 10px; color: var(--accent-2); border: 1px solid #1f3a42; border-radius: 5px; padding: 0 4px; }
+.epg-chan-rec { flex: none; font-size: 11px; color: var(--accent-2); border: 1px solid #1f3a42; border-radius: 5px; padding: 0 4px; }
 
 .epg-scroll { grid-area: 2 / 2; overflow: auto; outline: none; }
 /* The keyboard's whereabouts: the container that takes the arrows shows it. */
@@ -1122,4 +1144,19 @@ dialog::backdrop { background: rgba(5, 6, 10, .66); backdrop-filter: blur(2px); 
 @media (max-width: 980px) {
   main { grid-template-columns: 158px minmax(212px, 260px) 1fr; }
   :root { --epg-chan-w: 140px; }
+}
+
+/* Narrower than this, a sidebar costs the list more than it gives: three
+   columns leave about 210px for the names. The countries move into a menu at
+   the top of the list instead, and two columns share the width. */
+@media (max-width: 760px) {
+  main { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); }
+  main > .groups { display: none; }
+  /* The two that are left move up a column each: the assignments above put
+     the list in column 2 and the picture in column 3, which with the sidebar
+     gone would leave column 1 empty and the picture in an implicit track. */
+  main > .listcol { grid-column: 1; }
+  main > .stage { grid-column: 2; }
+  .group-picker { display: block; }
+  main.guide { grid-template-columns: minmax(0, 1fr) minmax(0, 40vw); }
 }

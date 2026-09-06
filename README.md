@@ -461,7 +461,10 @@ group name and gathers its sub-categories only when opened, so it follows a
 changing offering too.
 
 The sidebar's filter names what the sidebar holds: countries on the channel
-tab, genres on the movie and series tabs.
+tab, genres on the movie and series tabs. Below 760px there is no sidebar —
+three columns leave the list about 210px, which is a column of truncated
+names — and the same choice appears as a menu at the top of the list, which
+brings the list back to 360px at 720px wide.
 
 The search in the header covers the whole list (the category filter is cleared
 visibly) and ranks matches by relevance: a match at the start of a word beats
@@ -543,6 +546,10 @@ the guide, so one spelling works everywhere a name is typed.
 These are the bare keys: a key held down with Ctrl, Cmd or Alt is left to the
 browser, so `Cmd+F` and `Ctrl+F` open its search box rather than taking the
 picture to full screen.
+
+`?` opens the same list inside the player, along with the guide's own keys and
+a note on why the browser's back button leaves the player rather than stepping
+back inside it. **Help** in the top bar opens it too.
 
 Tab reaches the three places that hold a cursor of their own, one stop each:
 the tab strip, the sidebar and the list. Inside the strip the arrows move
