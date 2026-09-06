@@ -99,7 +99,7 @@ const { ensureChrome, openPlayer, session, sleep } = await import(
 const THROTTLE = Number(process.env.KEPULI_THROTTLE || 60 * 1024);
 const CUES_DELAY_MS = 1500;
 const PLAYING = `(() => { const v = document.getElementById('video'); return v.readyState >= 2 && v.currentTime > 0.3 && !v.paused; })()`;
-const CONNECTED = `document.querySelectorAll('#groups .group').length > 1 && !document.getElementById('progress').open`;
+const CONNECTED = `document.querySelectorAll('#groups .group').length > 1 && document.getElementById('list-progress').hidden`;
 
 /* ------------------------------------------------------------ page helpers */
 
@@ -320,25 +320,32 @@ async function loadAll(page) {
   await openLiveList(page);
   const before = await evaluate(page, ACTIVE_GROUP);
   await click(page, '#groups', 'All');
-  await waitFor(page, `document.getElementById('progress').open`, 'the progress dialog', 5000);
+  await waitFor(page, `!document.getElementById('list-progress').hidden`, 'the loading strip', 5000);
   return before;
 }
 
 async function cancel(page) {
   let before;
-  for (const control of ['p-close', 'Escape', 'p-cancel']) {
+  // The load lives in the list column now, not in a modal over everything, so
+  // what has to keep working is Escape wherever the focus is, the strip's own
+  // Cancel, and the player underneath being live throughout.
+  for (const control of ['Escape', 'lp-cancel']) {
     before = await loadAll(page);
-    await checkModal(page, '#progress', 'progress');
+    const live = await evaluate(page, `(() => { const b = document.getElementById('btn-reload');
+      return !b.disabled && b.getClientRects().length > 0 && document.elementFromPoint(
+        Math.round(b.getBoundingClientRect().left + b.getBoundingClientRect().width / 2),
+        Math.round(b.getBoundingClientRect().top + b.getBoundingClientRect().height / 2)) === b; })()`);
+    if (!live) throw new Error('the loading strip left the player unreachable');
     if (control === 'Escape') await pressKey(page, 'Escape', 'Escape', 27);
     else await evaluate(page, `document.getElementById('${control}').click()`);
-    await waitFor(page, `!document.getElementById('progress').open`, `${control} cancels loading`, 5000);
+    await waitFor(page, `document.getElementById('list-progress').hidden`, `${control} cancels loading`, 5000);
     if (await evaluate(page, ACTIVE_GROUP) !== before) throw new Error(`${control} did not restore the previous group`);
   }
   await sleep(500);
   const after = await evaluate(page, `({ overlay: ${OVERLAY}, active: ${ACTIVE_GROUP}, rows: document.querySelectorAll('#list .row').length, toast: document.getElementById('toast').textContent.trim() })`);
   // The overlay may say "Nothing playing": only an error counts against.
   const ok = !/failed|error/i.test(after.overlay || '') && after.active === before && after.rows > 0;
-  return { ok, detail: `X, Escape and Cancel abort loading; group "${before}" → "${after.active}", ${after.rows} rows, overlay ${after.overlay}, toast "${after.toast}"` };
+  return { ok, detail: `Escape and Cancel abort loading with the player reachable throughout; group "${before}" → "${after.active}", ${after.rows} rows, overlay ${after.overlay}, toast "${after.toast}"` };
 }
 
 async function timeout(page) {
@@ -348,7 +355,7 @@ async function timeout(page) {
   while (Date.now() - t0 < 35000) {
     // The list's own error goes to a toast over the rows on screen (or to
     // the list's empty state when there are none), never over the player.
-    last = await evaluate(page, `({ open: document.getElementById('progress').open, overlay: ${OVERLAY}, active: ${ACTIVE_GROUP},
+    last = await evaluate(page, `({ open: !document.getElementById('list-progress').hidden, overlay: ${OVERLAY}, active: ${ACTIVE_GROUP},
       toast: document.getElementById('toast').hidden ? '' : document.getElementById('toast').textContent.trim(),
       empty: (document.querySelector('#list .empty') || {}).textContent || '' })`);
     if (!last.open && /did not answer within/.test(last.toast + last.empty)) {
@@ -357,7 +364,7 @@ async function timeout(page) {
     }
     await sleep(500);
   }
-  return { ok: false, detail: `after 35 s the dialog is ${last.open ? 'still open' : 'closed'}, toast "${last.toast}", overlay ${last.overlay}` };
+  return { ok: false, detail: `after 35 s the strip is ${last.open ? 'still showing' : 'gone'}, toast "${last.toast}", overlay ${last.overlay}` };
 }
 
 /** A search takes over from the group, and the group comes back when the search is cleared. */
@@ -367,7 +374,7 @@ async function search(page) {
   const before = await evaluate(page, ACTIVE_GROUP);
   const type = (text) => evaluate(page, `(() => { const s = document.getElementById('search'); s.value = ${JSON.stringify(text)}; s.dispatchEvent(new Event('input', { bubbles: true })); return true; })()`);
   await type('aurora');
-  await waitFor(page, `${ACTIVE_GROUP}.startsWith('All') && !document.getElementById('progress').open && document.querySelectorAll('#list .row').length > 0`, 'the search results', 15000);
+  await waitFor(page, `${ACTIVE_GROUP}.startsWith('All') && document.getElementById('list-progress').hidden && document.querySelectorAll('#list .row').length > 0`, 'the search results', 15000);
   const hits = await evaluate(page, `document.querySelectorAll('#list .row').length`);
   await type('');
   await sleep(600);
@@ -578,7 +585,7 @@ async function accounts(page, { target }) {
       try {
         await waitFor(page, CONNECTED, `the connection on port ${port}`);
       } catch (err) {
-        const st = await evaluate(page, `(async () => ({ overlay: ${OVERLAY}, progress: document.getElementById('progress').open, groups: document.querySelectorAll('#groups .group').length, keys: Object.keys(await chrome.storage.local.get(null)) }))()`);
+        const st = await evaluate(page, `(async () => ({ overlay: ${OVERLAY}, progress: !document.getElementById('list-progress').hidden, groups: document.querySelectorAll('#groups .group').length, keys: Object.keys(await chrome.storage.local.get(null)) }))()`);
         throw new Error(`${err.message}: ${JSON.stringify(st)}`);
       }
     };
@@ -908,7 +915,7 @@ async function settings(page, { requests, target }) {
   await waitFor(page, `document.getElementById('setup').open`, 'the settings dialog', 5000);
   const opened = await evaluate(page, `({ focus: document.activeElement.id, buttons: ${buttons}, disabled: document.getElementById('f-save').disabled,
     section: document.querySelector('#setup-tabs .active').dataset.panel })`);
-  assert(opened.section === 'connection' && opened.focus === 'f-scheme' && opened.buttons.join() === 'Cancel,Save' && opened.disabled, `opened as ${JSON.stringify(opened)}`);
+  assert(opened.section === 'connection' && opened.focus === 'f-host' && opened.buttons.join() === 'Cancel,Save' && opened.disabled, `opened as ${JSON.stringify(opened)}`);
   await tab('general');
   await change('f-epg', false, true);
   await change('f-lang', 'fi');
@@ -1500,12 +1507,12 @@ async function setupClarity(page) {
 async function catalogUi(page) {
   const assert = (ok, detail) => { if (!ok) throw new Error(detail); };
   await evaluate(page, `document.querySelector('[data-tab="movie"]').click()`);
-  await waitFor(page, `document.querySelectorAll('#list .row').length > 1 && !document.getElementById('progress').open`, 'movie rows');
+  await waitFor(page, `document.querySelectorAll('#list .row').length > 1 && document.getElementById('list-progress').hidden`, 'movie rows');
   await waitFor(page, `document.querySelector('#list .row-duration')`, 'movie duration metadata');
   assert(await evaluate(page, `!document.getElementById('media-filters').hidden && document.getElementById('channel-tools').hidden && document.querySelector('.topbar-end').lastElementChild.id === 'btn-settings'`), 'movie navigation/filters');
   const apply = (key,value) => evaluate(page, `(() => {const f=document.querySelector('#media-filters [name="${key}"]');f.value=${JSON.stringify(value)};f.dispatchEvent(new Event('change'));})()`);
   await apply('rating','8');
-  await waitFor(page, `!document.getElementById('progress').open && document.querySelectorAll('#list .row').length > 0`, 'rating filter');
+  await waitFor(page, `document.getElementById('list-progress').hidden && document.querySelectorAll('#list .row').length > 0`, 'rating filter');
   assert(await evaluate(page, String.raw`[...document.querySelectorAll('#list .row-sub')].every(n => Number(n.textContent.match(/★\s*([\d.]+)/)?.[1]) >= 8)`), 'low rating leaked into filtered movies');
   await apply('sort','rating');
   const values = await evaluate(page, String.raw`[...document.querySelectorAll('#list .row-sub')].map(n=>Number(n.textContent.match(/★\s*([\d.]+)/)?.[1]))`);

@@ -415,6 +415,23 @@ button.series-favorite { flex: none; width: 32px; height: 32px; padding: 0; disp
 .empty { padding: 34px 20px; color: var(--muted); text-align: center; }
 .empty strong { display: block; color: var(--text); margin-bottom: 6px; font-weight: 600; }
 .empty button { margin-top: 12px; }
+/* The list's own loading strip, above the rows it is fetching. It carries
+   what the dialog used to: what is being loaded, how far it has come, and
+   the way out of it. */
+.list-progress {
+  display: flex; flex-direction: column; gap: 7px; flex: none;
+  padding: 10px 12px; background: var(--panel); border-bottom: 1px solid var(--border);
+}
+.list-progress[hidden] { display: none; }
+.lp-head { display: flex; align-items: center; gap: 9px; }
+.lp-spinner { width: 15px; height: 15px; flex: none; border: 2px solid var(--border); border-top-color: var(--accent); border-radius: 50%; animation: spin .9s linear infinite; }
+.lp-title { flex: 1; min-width: 0; font-size: 12.5px; font-weight: 550; overflow-wrap: anywhere; }
+.lp-head button { flex: none; padding: 3px 10px; font-size: 11.5px; }
+.lp-status { display: flex; align-items: baseline; justify-content: space-between; gap: 10px; }
+.lp-text { min-width: 0; color: var(--muted); font-size: 11.5px; font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
+.lp-percent { flex: none; color: var(--muted); font-size: 11.5px; font-variant-numeric: tabular-nums; }
+@media (prefers-reduced-motion: reduce) { .lp-spinner { animation: none; } }
+
 .list-loading { display: flex; align-items: center; justify-content: center; gap: 10px; }
 .list-spinner, .fact-spinner { width: 20px; height: 20px; flex: none; border: 2px solid var(--border); border-top-color: var(--accent); border-radius: 50%; animation: spin .8s linear infinite; }
 @media (prefers-reduced-motion: reduce) { .list-spinner, .fact-spinner { animation: none; } }
@@ -693,6 +710,26 @@ dialog::backdrop { background: rgba(5, 6, 10, .66); backdrop-filter: blur(2px); 
 .field span code { background: var(--panel-2); padding: 1px 4px; border-radius: 4px; }
 .field span { color: var(--muted); font-size: 11.5px; }
 .field input, .field select { background: var(--panel-2); border: 1px solid var(--border); border-radius: 8px; padding: 7px 9px; outline: none; width: 100%; }
+
+/* The password and the eye that shows it, in one field-shaped box. */
+.field-reveal { position: relative; display: block; }
+.field-reveal input { padding-right: 38px; }
+.field-reveal button {
+  position: absolute; right: 4px; top: 50%; transform: translateY(-50%);
+  display: grid; place-items: center; width: 30px; height: 30px; padding: 0;
+  border: 0; border-radius: 7px; background: transparent; color: var(--muted); cursor: pointer;
+}
+.field-reveal button:hover { color: var(--text); background: var(--row-hover); }
+.field-reveal button.on { color: var(--accent-2); }
+.field-reveal button:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; }
+.field-reveal svg { width: 17px; height: 17px; fill: none; stroke: currentColor; stroke-width: 1.6; stroke-linecap: round; stroke-linejoin: round; }
+
+/* Where the details come from, said inside the dialog: it is modal, so the
+   top bar's own Help cannot be reached while it is open. */
+.setup-help { display: inline-flex; align-items: baseline; gap: 5px; margin-left: 4px; color: var(--accent-ink); text-decoration: none; white-space: nowrap; }
+.setup-help:hover { text-decoration: underline; }
+.setup-help:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; border-radius: 4px; }
+.setup-help svg { width: 12px; height: 12px; fill: none; stroke: currentColor; stroke-width: 1.7; stroke-linecap: round; stroke-linejoin: round; }
 .field input:focus, .field select:focus { border-color: var(--accent); }
 .grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; }
 .grid[hidden] { display: none; }         /* an explicit display beats [hidden], see .crumbs */
@@ -800,14 +837,6 @@ dialog::backdrop { background: rgba(5, 6, 10, .66); backdrop-filter: blur(2px); 
   .setup .grid .field:nth-child(n+4) { grid-column: 1 / -1; }
 }
 
-.progress { padding: 18px; width: min(360px, calc(100vw - 36px)); }
-.progress-head { gap: 10px; margin-bottom: 12px; }
-.progress-mark { width: 20px; height: 20px; flex: none; display: grid; place-items: center; }
-.progress-spinner { width: 18px; height: 18px; border: 2px solid var(--border); border-top-color: var(--accent); border-radius: 50%; animation: spin .9s linear infinite; }
-.progress .progress-title { font-size: 14px; overflow-wrap: anywhere; }
-.progress-status { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; margin-bottom: 8px; }
-.progress-text { min-width: 0; color: var(--muted); font-size: 12px; font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
-.progress-percent { flex: none; color: var(--muted); font-size: 12px; font-variant-numeric: tabular-nums; }
 .bar { height: 4px; background: var(--border); border-radius: 99px; overflow: hidden; }
 /* The bar is scaled rather than widened: changing width and margin would
    force a re-layout on every frame, and an indeterminate load spins for
@@ -824,10 +853,8 @@ dialog::backdrop { background: rgba(5, 6, 10, .66); backdrop-filter: blur(2px); 
   0% { transform: translateX(-35%) scaleX(.35); }
   100% { transform: translateX(100%) scaleX(.35); }
 }
-.progress .setup-actions { margin-top: 14px; }
-.progress #p-cancel { min-width: 76px; }
 @media (prefers-reduced-motion: reduce) {
-  .progress-spinner, .bar.indeterminate .bar-fill { animation: none; }
+  .bar.indeterminate .bar-fill { animation: none; }
   .bar-fill { transition: none; }
   .bar.indeterminate .bar-fill { transform: scaleX(.35); }
 }

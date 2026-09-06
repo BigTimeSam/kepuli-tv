@@ -44,9 +44,10 @@ const el = {
   setup: $('setup'), setupTabs: $('setup-tabs'), setupNote: $('setup-note'), setupNoteText: $('setup-note-text'),
   sublook: $('btn-sublook'), sublookPop: $('sublook-pop'),
   more: $('btn-more'), morePop: $('more-pop'),
-  progress: $('progress'),
+  listProgress: $('list-progress'),
   epg: $('epg'), epgPreview: $('epg-preview'),
-  pTitle: $('p-title'), pFill: $('p-fill'), pText: $('p-text'), pPercent: $('p-percent'), toast: $('toast'), toastText: $('toast-text'),
+  lpTitle: $('lp-title'), lpFill: $('lp-fill'), lpText: $('lp-text'), lpPercent: $('lp-percent'),
+  toast: $('toast'), toastText: $('toast-text'),
 };
 
 const TYPE_OF_TAB = { live: 'live', movie: 'movie', series: 'series' };
@@ -826,7 +827,7 @@ async function loadGroupItems(type, groupName, current = () => true) {
       onProgress: (done, total) => {
         if (!heavy || !current()) return;
         fillBar(done / total);
-        el.pText.textContent = t('progress.categories', { done, total });
+        el.lpText.textContent = t('progress.categories', { done, total });
       },
     });
   } finally {
@@ -1029,6 +1030,8 @@ function renderEmptyState() {
   const existing = el.list.querySelector('.empty');
   if (existing) existing.remove();
   if (state.rows.length > 0) return;
+  // The strip above says it already, and with a bar and a way out.
+  if (state.listLoading && !el.listProgress.hidden) return;
   if (state.listLoading) {
     const loading = document.createElement('div');
     loading.className = 'empty list-loading';
@@ -2563,35 +2566,48 @@ setInterval(() => {
 
 /** A known fraction (0…1), or null while the total is unknown. */
 function fillBar(ratio) {
-  const bar = el.pFill.parentElement;
+  const bar = el.lpFill.parentElement;
   const known = Number.isFinite(ratio);
   bar.classList.toggle('indeterminate', !known);
-  el.pPercent.hidden = !known;
+  el.lpPercent.hidden = !known;
   if (!known) {
     bar.removeAttribute('aria-valuenow');
-    el.pPercent.textContent = '';
-    el.pFill.style.removeProperty('transform');
+    el.lpPercent.textContent = '';
+    el.lpFill.style.removeProperty('transform');
     return;
   }
   const clamped = Math.min(1, Math.max(0, ratio || 0));
   const percent = Math.round(clamped * 100);
-  el.pFill.style.transform = `scaleX(${clamped.toFixed(4)})`;
-  el.pPercent.textContent = `${nf.format(percent)} %`;
+  el.lpFill.style.transform = `scaleX(${clamped.toFixed(4)})`;
+  el.lpPercent.textContent = `${nf.format(percent)} %`;
   bar.setAttribute('aria-valuenow', String(percent));
 }
 
-// The load behind the dialog is cancellable: every request made while it
-// is open carries this controller's signal, and Cancel or Esc aborts them.
+// The load under the strip is cancellable: every request made while it is
+// showing carries this controller's signal, and Cancel or Esc aborts them.
 let progressCtrl = null;
 const progressSignal = () => (progressCtrl ? progressCtrl.signal : undefined);
 
+/**
+ * The strip above the list, for a fetch the list is waiting on.
+ *
+ * This used to be a modal dialog over the whole app. Nothing about a list
+ * arriving needs the player stopped: a search — which needs the type's whole
+ * list, hundreds of kilobytes of it — was started by three letters typed into
+ * a box, and took the volume, the subtitle selector and full screen with it
+ * until it finished. The strip sits where the rows will appear, says the same
+ * three things the dialog said, and leaves the rest of the window alone.
+ */
 function showProgress(title, text, ratio = null) {
-  el.pTitle.textContent = title;
-  el.pText.textContent = text || '';
+  el.lpTitle.textContent = title;
+  el.lpText.textContent = text || '';
   fillBar(ratio);
-  if (!el.progress.open) {
+  if (el.listProgress.hidden) {
     progressCtrl = new AbortController();
-    el.progress.showModal();
+    el.listProgress.hidden = false;
+    // The list was emptied before this strip appeared, so it is showing a
+    // spinner of its own by now. One statement of the same fact is enough.
+    renderEmptyState();
   }
 }
 
@@ -2602,16 +2618,19 @@ function cancelProgress() {
 function updateProgress(received, total) {
   if (total > 0) {
     fillBar(received / total);
-    el.pText.textContent = t('progress.bytes', { received: megabytes(received), total: megabytes(total) });
+    el.lpText.textContent = t('progress.bytes', { received: megabytes(received), total: megabytes(total) });
   } else {
     fillBar(null);
-    el.pText.textContent = t('progress.received', { received: megabytes(received) });
+    el.lpText.textContent = t('progress.received', { received: megabytes(received) });
   }
 }
 
 function hideProgress() {
   progressCtrl = null;
-  if (el.progress.open) el.progress.close();
+  if (el.listProgress.hidden) return;
+  el.listProgress.hidden = true;
+  // A load that goes on without the strip gets the plain spinner back.
+  renderEmptyState();
 }
 
 /* ============================================================== settings */
@@ -2651,6 +2670,9 @@ function openSetup({ section } = {}) {
   el.setup.classList.toggle('firstrun', first);
   el.setupTabs.hidden = first;
   $('setup-title').textContent = t(first ? 'setup.title.connect' : 'setup.title');
+  // The first run is the one moment the dialog has to say what it is for.
+  $('connection-intro').textContent = t(first ? 'setup.first.intro' : 'setup.connection.intro');
+  showPassword(false);
   showSetupSection(first ? 'connection' : (section || 'connection'));
   if (!el.setup.open) el.setup.showModal();
   focusSetupSection();
@@ -2755,8 +2777,28 @@ function showSetupSection(name) {
  */
 function focusSetupSection() {
   const panel = document.querySelector('.setup-panel:not([hidden])');
-  const field = panel && [...panel.querySelectorAll('input:not([type="radio"]), select')].find((node) => node.getClientRects().length);
+  if (!panel) return;
+  const shown = (node) => node.getClientRects().length;
+  // A field to type in before a menu to choose from: on the connection
+  // panel the first control is the protocol, which almost nobody changes,
+  // and starting there put the caret one Tab away from the server address
+  // every single time.
+  const field = [...panel.querySelectorAll('input:not([type="radio"])')].find(shown)
+    ?? [...panel.querySelectorAll('select')].find(shown);
   if (field) field.focus();
+}
+
+/** The password in the clear, or back behind its dots. */
+function showPassword(on) {
+  const input = $('f-password');
+  const button = $('f-password-show');
+  input.type = on ? 'text' : 'password';
+  button.setAttribute('aria-pressed', String(on));
+  button.classList.toggle('on', on);
+  const label = t(on ? 'setup.password.hide' : 'setup.password.show');
+  button.title = label;
+  button.setAttribute('aria-label', label);
+  button.dataset.i18nLabel = button.dataset.i18nTitle = on ? 'setup.password.hide' : 'setup.password.show';
 }
 
 /**
@@ -2893,6 +2935,7 @@ function wireSetup() {
     $('f-host').focus();
   });
   $('f-host').addEventListener('change', splitServerField);
+  $('f-password-show').addEventListener('click', () => showPassword($('f-password').type === 'password'));
   wireModal(el.setup, closeSetup);
   $('f-done').addEventListener('click', () => { if (!setupSaving) el.setup.close(); });
   $('f-keep').addEventListener('click', () => { $('setup-discard').hidden = true; focusSetupSection(); });
@@ -3234,6 +3277,20 @@ function starFocusedRow(box, star) {
   toast(t(back.classList.contains('on') ? 'fav.added' : 'fav.removed', { name }));
 }
 
+/**
+ * Delete drops the history row the cursor is on. The × at the end of the row
+ * is out of the tab order for the same reason the star is — a list of
+ * thousands would put thousands of buttons in it — so without this the only
+ * way to remove one entry from the keyboard was to clear the lot.
+ */
+function removeAtCursor() {
+  if (state.tab !== 'recent' || state.detail || state.cursor < 0) return;
+  const item = state.rows[state.cursor];
+  if (!item) return;
+  removeFromHistory(item);
+  toast(t('row.removed.history', { name: item.displayName || item.n }));
+}
+
 function moveCursor(delta) {
   if (state.rows.length === 0) return;
   state.cursor = Math.max(0, Math.min(state.rows.length - 1, state.cursor + delta));
@@ -3330,6 +3387,11 @@ function wireUi() {
     e.stopPropagation();
   });
 
+  // The filter panel used to open itself on every visit to Movies and
+  // Series and take about 140 px off the top of the list, whether or not
+  // anyone was filtering. It starts closed and stays however it was left.
+  $('media-filters').addEventListener('toggle', () => store.saveUiState({ filtersOpen: $('media-filters').open }));
+
   let filterTimer = null;
   el.categoryFilter.addEventListener('input', () => {
     clearTimeout(filterTimer);
@@ -3354,11 +3416,9 @@ function wireUi() {
   });
 
   $('btn-settings').addEventListener('click', openSetup);
-  // Esc does not close the dialog by itself — a closed dialog would look as
-  // if the loading had finished — it cancels the load, and the dialog goes
-  // once the load has stopped.
-  wireModal(el.progress, cancelProgress);
-  $('p-cancel').addEventListener('click', cancelProgress);
+  // The strip goes when the load stops, not when the key is pressed: a strip
+  // that vanished on Esc would look as if the loading had finished.
+  $('lp-cancel').addEventListener('click', cancelProgress);
 
   el.mode.addEventListener('change', () => {
     store.saveConfig({ streamMode: el.mode.value });
@@ -3460,12 +3520,15 @@ function wireUi() {
     if (e.target === el.search && e.key === 'Escape') {
       clearSearch(); el.search.blur(); return;
     }
+    // The list's own load answers Escape wherever the focus is, which the
+    // dialog used to do for us by being modal.
+    if (e.key === 'Escape' && !el.listProgress.hidden) { cancelProgress(); return; }
     // The video's own controls take the keys while the video has the
     // focus — after a click on the picture — except f, which used to be
     // the browser's full-screen key there and is now the app's.
     if (e.target === el.video && e.key === 'f' && plain) { toggleFullscreen(); return; }
     if (typing || e.target === el.video) return;
-    if (el.setup.open || el.progress.open || $('channel-editor').open) return;
+    if (el.setup.open || $('channel-editor').open) return;
     if (!plain) return;
     // A focused button takes Space and Enter itself; every other key is the player's.
     if (tag === 'BUTTON' && (e.key === ' ' || e.key === 'Enter')) return;
@@ -3486,6 +3549,7 @@ function wireUi() {
       case 'm': el.video.muted = !el.video.muted; break;
       case 'a': cycleAudio(); break;
       case 's': toggleFavoriteAtCursor(); break;
+      case 'Delete': removeAtCursor(); break;
       case 'n': playRelative(1); break;
       case 'p': playRelative(-1); break;
       case 'g': toggleGuide(); break;
@@ -3593,6 +3657,7 @@ async function init() {
   storedSub = start.sub ?? null;
   $('channel-tools').hidden = state.tab !== 'live';
   if (typeof ui.subcatsHeight === 'number') state.subcatsHeight = ui.subcatsHeight;
+  $('media-filters').open = ui.filtersOpen === true;
   markTabs(state.tab);
 
   window.addEventListener('hashchange', onAddressChanged);

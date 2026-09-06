@@ -107,6 +107,7 @@ const STRINGS = {
     'row.fav.add': 'Add to favourites',
     'row.fav.remove': 'Remove from favourites',
     'row.remove.history': 'Remove from history',
+    'row.removed.history': '{name} removed from history',
     'row.watched': 'Watched {stamp}',
     'row.archive': '{days} d',
     'row.archive.title': 'Catch-up: programmes from the past {days} days',
@@ -336,6 +337,14 @@ const STRINGS = {
     'setup.general.intro': 'Language and everyday viewing preferences.',
     'setup.subs.intro': 'The preview scales to fit. Playback uses your selected text size.',
     'setup.connection.intro': 'Your provider’s address and credentials.',
+    // The first run explains what the app is asking for and where it comes
+    // from: the dialog opens before there is anything else on screen to
+    // explain it, and a viewer who has just installed a player does not
+    // necessarily know what "Xtream Codes" is.
+    'setup.first.intro': 'Kepuli-TV plays an IPTV subscription you already have — it comes with no channels of its own. Your provider gives you either one long subscription URL to paste, or a server address, port, user name and password to enter separately.',
+    'setup.help': 'Where to find these details',
+    'setup.password.show': 'Show the password',
+    'setup.password.hide': 'Hide the password',
     'setup.account.intro': 'Subscription details and stored data.',
     'setup.maintenance': 'Manage stored data',
     'setup.maintenance.pending': 'Save or discard your changes before managing stored data.',
@@ -528,6 +537,7 @@ const STRINGS = {
     'row.fav.add': 'Lisää suosikkeihin',
     'row.fav.remove': 'Poista suosikeista',
     'row.remove.history': 'Poista historiasta',
+    'row.removed.history': '{name} poistettiin historiasta',
     'row.watched': 'Katsottu {stamp}',
     'row.archive': '{days} vrk',
     'row.archive.title': 'Catchup: ohjelmat {days} vuorokauden ajalta',
@@ -753,6 +763,10 @@ const STRINGS = {
     'setup.general.intro': 'Kieli ja päivittäisen katselun asetukset.',
     'setup.subs.intro': 'Esikatselu sovitetaan tilaan. Videossa käytetään valitsemaasi tekstikokoa.',
     'setup.connection.intro': 'Palveluntarjoajasi osoite ja kirjautumistiedot.',
+    'setup.first.intro': 'Kepuli-TV toistaa IPTV-tilauksen, joka sinulla jo on — omia kanavia siinä ei ole. Palveluntarjoajalta saat joko yhden pitkän tilausosoitteen liitettäväksi tai palvelimen, portin, käyttäjätunnuksen ja salasanan erikseen.',
+    'setup.help': 'Mistä nämä tiedot löytyvät',
+    'setup.password.show': 'Näytä salasana',
+    'setup.password.hide': 'Piilota salasana',
     'setup.account.intro': 'Tilauksen tiedot ja tallennettujen tietojen hallinta.',
     'setup.maintenance': 'Tallennettujen tietojen hallinta',
     'setup.maintenance.pending': 'Tallenna tai hylkää muutokset ennen tallennettujen tietojen hallintaa.',

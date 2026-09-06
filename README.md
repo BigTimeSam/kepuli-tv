@@ -71,7 +71,10 @@ switching audio tracks, pausing playback and entering full screen.
 1. Open the player using the Kepuli-TV icon in your browser toolbar.
 2. Paste your provider's M3U subscription URL, or enter the server address,
    port, username and password separately. You need your own subscription:
-   the app does not include channels or content.
+   the app does not include channels or content. The dialog says as much on a
+   first run and links to this section; the caret starts in **Server**, and
+   the eye at the end of the password field shows what was typed — a
+   provider's password is long, random and entered by hand exactly once.
 3. Connect to the service. You can change your connection details and the
    interface language later in **Settings**.
 
@@ -127,20 +130,25 @@ the player actually arrives.
 
 ### Closing dialogs and cancelling loading
 
-Settings, the channel-list editor, loading and enlarged covers use the same
-dialog style, with an **X** close button at the top right. You can also press
-**Esc** or click outside the dialog. Player keyboard shortcuts are inactive
-while a dialog is open.
+Settings, the channel-list editor and enlarged covers use the same dialog
+style, with an **X** close button at the top right. You can also press **Esc**
+or click outside the dialog. Player keyboard shortcuts are inactive while a
+dialog is open.
 
 - In **Settings**, X, Esc and clicking outside ask before discarding unsaved
   changes. **Cancel** discards the draft; **Save** applies it.
 - In **Organize channels**, X, Esc, clicking outside and **Cancel** discard
   the draft. **Save** applies the changes to the current account.
-- During loading, X, Esc, clicking outside and **Cancel** stop the request.
-  The dialog closes when cancellation finishes, and an interrupted channel-list
-  load restores the previous list. The compact loading dialog shows a spinner,
-  the current country/category and progress when the total is known.
 - Enlarged covers close immediately without changing playback.
+
+Loading a list is not a dialog at all. It used to be one, over everything, and
+that meant typing three letters into the search box — a search needs the whole
+list of its type — stopped the volume, the subtitle selector and full screen
+until it was over. It is a strip at the top of the list column instead, saying
+what is being fetched, how far it has come when the total is known, and
+carrying its own **Cancel**; **Esc** cancels it from wherever the focus is.
+Everything else keeps working while it runs, the picture included, and an
+interrupted channel-list load restores the previous list.
 
 ### Playback and cover images
 
@@ -526,6 +534,7 @@ the guide, so one spelling works everywhere a name is typed.
 | `m` | mute |
 | `a` | the next audio track, when the file has more than one |
 | `s` | star what the cursor is on — a list row, or the sidebar row or topic chip the keyboard stands on |
+| `Delete` | drop the history row the cursor is on |
 | `n` `p` | next / previous |
 | `g` | open and close the programme guide |
 | `x` | hand over to an external player, after a confirmation over the picture |

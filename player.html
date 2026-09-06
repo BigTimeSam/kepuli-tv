@@ -72,7 +72,24 @@
     <div class="subcats-grip" id="subcats-grip" role="separator" aria-orientation="horizontal"
          tabindex="0" data-i18n-title="subcats.resize.title" hidden></div>
     <div class="detail" id="detail" hidden></div>
-    <details class="media-filters" id="media-filters" open hidden></details>
+    <details class="media-filters" id="media-filters" hidden></details>
+    <!-- Loading a list happens where the list is. It used to be a modal
+         dialog over the whole app, which meant that typing three letters into
+         the search box — a search needs the type's whole list — stopped the
+         player's own controls until it was over or cancelled. Here the fetch
+         has a place of its own, and everything else stays live. -->
+    <div class="list-progress" id="list-progress" hidden>
+      <div class="lp-head">
+        <span class="lp-spinner" aria-hidden="true"></span>
+        <span class="lp-title" id="lp-title"></span>
+        <button type="button" id="lp-cancel" class="ghost" data-i18n="progress.cancel">Cancel</button>
+      </div>
+      <div class="lp-status">
+        <span class="lp-text" id="lp-text" role="status"></span>
+        <span class="lp-percent" id="lp-percent" aria-hidden="true" hidden></span>
+      </div>
+      <div class="bar" role="progressbar" aria-labelledby="lp-title" aria-describedby="lp-text" aria-valuemin="0" aria-valuemax="100"><div class="bar-fill" id="lp-fill"></div></div>
+    </div>
     <div class="list" id="list" tabindex="0" role="listbox" data-i18n-label="list.aria"></div>
     <div class="listinfo" id="listinfo"></div>
   </section>
@@ -330,7 +347,17 @@ on two lines as well.</div></div>
          the credentials are parsed from. The choice steers only the form —
          behind it lie the same server and the same credentials either way. -->
     <section class="setup-panel" id="panel-connection" role="tabpanel" aria-labelledby="tab-connection">
-      <p class="setup-intro" data-i18n="setup.connection.intro">Your provider’s address and credentials.</p>
+      <!-- The link rides on the end of the explanation rather than taking a
+           row of its own: the dialog is modal, so the top bar's Help cannot
+           be reached while it is open, and the security note below must stay
+           above the fold on a first run. -->
+      <p class="setup-intro">
+        <span id="connection-intro" data-i18n="setup.connection.intro">Your provider’s address and credentials.</span>
+        <a class="setup-help" href="https://github.com/BigTimeSam/kepuli-tv#getting-started" target="_blank" rel="noopener noreferrer" data-i18n-title="btn.help.title">
+          <span data-i18n="setup.help">Where to find these details</span>
+          <svg viewBox="0 0 20 20" aria-hidden="true"><path d="M11 3h6v6M17 3l-8 8M8 4H4a1 1 0 0 0-1 1v11a1 1 0 0 0 1 1h11a1 1 0 0 0 1-1v-4"/></svg>
+        </a>
+      </p>
       <div class="field">
         <span data-i18n="setup.source">Connection</span>
         <div class="radios">
@@ -358,8 +385,16 @@ on two lines as well.</div></div>
         <label class="field"><span data-i18n="setup.username">Username</span>
           <input id="f-username" type="text" autocomplete="off" spellcheck="false">
         </label>
+        <!-- A provider's password is long and random and typed by hand once.
+             Without a way to look at it, a typo is found only by the
+             connection failing, which names the wrong culprit. -->
         <label class="field"><span data-i18n="setup.password">Password</span>
-          <input id="f-password" type="password" autocomplete="off">
+          <span class="field-reveal">
+            <input id="f-password" type="password" autocomplete="off">
+            <button type="button" id="f-password-show" aria-pressed="false" data-i18n-label="setup.password.show" data-i18n-title="setup.password.show">
+              <svg viewBox="0 0 20 20" aria-hidden="true"><path d="M1.8 10S4.6 5 10 5s8.2 5 8.2 5-2.8 5-8.2 5-8.2-5-8.2-5Z"/><circle cx="10" cy="10" r="2.3"/></svg>
+            </button>
+          </span>
         </label>
       </div>
 
@@ -411,26 +446,6 @@ on two lines as well.</div></div>
       <button type="submit" id="f-save" class="primary" data-i18n="setup.save">Save</button>
     </div>
   </form>
-</dialog>
-
-<dialog id="progress" aria-labelledby="p-title" aria-describedby="p-text">
-  <div class="progress">
-    <div class="progress-head modal-head">
-      <div class="progress-mark" aria-hidden="true"><span class="progress-spinner"></span></div>
-      <h2 class="progress-title" id="p-title" data-i18n="progress.loading">Loading…</h2>
-      <button type="button" id="p-close" data-modal-close data-i18n-label="modal.close"></button>
-    </div>
-    <div class="progress-meter">
-      <div class="progress-status">
-        <div class="progress-text" id="p-text" role="status">…</div>
-        <span class="progress-percent" id="p-percent" aria-hidden="true" hidden></span>
-      </div>
-      <div class="bar" role="progressbar" aria-labelledby="p-title" aria-describedby="p-text" aria-valuemin="0" aria-valuemax="100"><div class="bar-fill" id="p-fill"></div></div>
-    </div>
-    <div class="setup-actions modal-actions">
-      <button type="button" id="p-cancel" class="ghost" data-i18n="progress.cancel">Cancel</button>
-    </div>
-  </div>
 </dialog>
 
 <!-- The message strip. All three icons live here; the toast's kind class
