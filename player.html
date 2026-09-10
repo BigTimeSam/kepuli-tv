@@ -2,6 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Kepuli-TV</title>
 <link rel="icon" type="image/png" sizes="32x32" href="icons/icon32.png">
 <link rel="icon" type="image/png" sizes="128x128" href="icons/icon128.png">
@@ -23,10 +24,11 @@
     <button type="button" role="tab" id="tab-recent" aria-selected="false" aria-controls="listcol" tabindex="-1" data-tab="recent" data-i18n="tab.recent">History</button>
   </nav>
 
-  <label class="search">
+  <div class="search">
     <svg viewBox="0 0 20 20" aria-hidden="true"><circle cx="9" cy="9" r="6"/><path d="M13.5 13.5 18 18"/></svg>
-    <input id="search" type="search" data-i18n-placeholder="search.placeholder" data-i18n-label="search.placeholder" autocomplete="off" spellcheck="false">
-  </label>
+    <input id="search" type="search" autocomplete="off" spellcheck="false" aria-controls="list">
+    <button type="button" id="search-clear" class="search-clear" hidden>×</button>
+  </div>
 
   <div class="topbar-end">
     <button type="button" id="btn-refresh" class="ghost" data-i18n="btn.refresh" data-i18n-title="btn.refresh.title">Refresh lists</button>
@@ -39,6 +41,10 @@
 </header>
 
 <main id="main">
+  <nav class="compact-nav" data-i18n-label="layout.views">
+    <button type="button" id="compact-browse" aria-controls="listcol" aria-pressed="true" data-i18n="layout.browse">Browse</button>
+    <button type="button" id="compact-player" aria-controls="player-stage" aria-pressed="false" data-i18n="layout.player">Player</button>
+  </nav>
   <div class="guide-header">
     <button type="button" id="epg-close" class="guide-back" aria-controls="epg">
       <svg viewBox="0 0 20 20" aria-hidden="true"><path d="m8 4-6 6 6 6M2 10h16"/></svg>
@@ -81,6 +87,7 @@
          tabindex="0" data-i18n-title="subcats.resize.title" hidden></div>
     <div class="detail" id="detail" hidden></div>
     <details class="media-filters" id="media-filters" hidden></details>
+    <div class="active-filters" id="active-media-filters" data-i18n-label="filters.active" role="group" hidden></div>
     <!-- Loading a list happens where the list is. It used to be a modal
          dialog over the whole app, which meant that typing three letters into
          the search box — a search needs the type's whole list — stopped the
@@ -102,7 +109,7 @@
     <div class="listinfo" id="listinfo"></div>
   </section>
 
-  <section class="stage">
+  <section class="stage" id="player-stage">
     <div class="videowrap" id="videowrap">
       <!-- The subtitles are drawn into the layer by js/subdisplay.js; the
            video's own full-screen button would take the bare video and

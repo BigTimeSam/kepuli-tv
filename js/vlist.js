@@ -46,7 +46,7 @@ export class VirtualList {
    * @param {HTMLElement} viewport the scrolling container
    * @param {number} rowHeight default row height in pixels
    * @param {(index:number)=>HTMLElement} renderRow
-   * @param {{overscan?:number, onVisible?:(first:number,last:number)=>void}} [options]
+   * @param {{overscan?:number, onVisible?:(first:number,last:number)=>void, onPaint?:()=>void}} [options]
    */
   constructor(viewport, rowHeight, renderRow, options = {}) {
     this.viewport = viewport;
@@ -54,6 +54,7 @@ export class VirtualList {
     this.renderRow = renderRow;
     this.overscan = options.overscan ?? 6;
     this.onVisible = options.onVisible || null;
+    this.onPaint = options.onPaint || null;
     this.count = 0;
     this.offsets = null;      // null = every row is the same height
     this.ticking = false;
@@ -108,6 +109,7 @@ export class VirtualList {
     this.window.replaceChild(fresh, this.nodes.get(index));
     this.nodes.set(index, fresh);
     if (held?.index === index) descend(fresh, held.path)?.focus?.({ preventScroll: true });
+    this.onPaint?.();
   }
 
   offsetOf(index) {
@@ -168,6 +170,7 @@ export class VirtualList {
       // from under the scroll that caused this paint.
       descend(this.nodes.get(held.index), held.path)?.focus?.({ preventScroll: true });
     }
+    this.onPaint?.();
     if (this.onVisible) this.onVisible(first, last);
   }
 

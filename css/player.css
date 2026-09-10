@@ -103,9 +103,17 @@ h2, h3 { font-weight: 600; }
 
 .search { position: relative; display: flex; align-items: center; flex: 1 1 200px; min-width: 190px; max-width: 380px; }
 .search svg { position: absolute; left: 10px; width: 14px; height: 14px; fill: none; stroke: var(--muted); stroke-width: 1.8; stroke-linecap: round; pointer-events: none; }
-.search input { width: 100%; padding: 7px 10px 7px 30px; background: var(--panel-2); border: 1px solid var(--border); border-radius: 8px; outline: none; }
+.search input { width: 100%; padding: 7px 34px 7px 30px; background: var(--panel-2); border: 1px solid var(--border); border-radius: 8px; outline: none; }
 .search input:focus { border-color: var(--accent); }
-.search input::-webkit-search-cancel-button { filter: invert(0.6); }
+.search input::-webkit-search-cancel-button { display: none; }
+.search-clear { position: absolute; right: 3px; width: 30px; height: 30px; padding: 0; border: 0; border-radius: 5px; background: transparent; color: var(--muted); cursor: pointer; font-size: 1.125rem; }
+.search-clear:hover { color: var(--text); background: var(--row-hover); }
+.search-clear[hidden] { display: none; }
+.compact-nav { display: none; }
+.active-filters { display: flex; flex-wrap: wrap; gap: 6px; padding: 8px 10px; border-bottom: 1px solid var(--border); }
+.active-filters[hidden] { display: none; }
+.filter-chip { border: 1px solid var(--border); border-radius: 6px; padding: 5px 8px; color: var(--text); background: var(--panel-2); cursor: pointer; font-size: .75rem; }
+.filter-chip:hover { border-color: var(--accent); }
 
 .topbar-end { margin-left: auto; display: flex; align-items: center; flex: none; gap: 8px; }
 
@@ -1164,4 +1172,32 @@ dialog::backdrop { background: rgba(5, 6, 10, .66); backdrop-filter: blur(2px); 
   main > .stage { grid-column: 2; }
   .group-picker { display: block; }
   main.guide { grid-template-columns: minmax(0, 1fr) minmax(0, 40vw); }
+}
+
+/* A single useful pane at narrow widths, including a zoomed desktop window.
+   The video stays mounted and playing while the viewer browses. */
+@media (max-width: 600px) {
+  .topbar { gap: 8px; padding: 8px 10px; }
+  .tabs { max-width: 100%; overflow-x: auto; }
+  .tabs button { padding-inline: 8px; }
+  .search { max-width: none; flex-basis: 100%; }
+  main, main.guide { grid-template-columns: minmax(0, 1fr); grid-template-rows: minmax(0, 1fr); }
+  main > .listcol { grid-area: 1 / 1; border-right: 0; }
+  main > .stage { grid-area: 1 / 1; display: none; }
+  main.compact-watch:not(.guide) > .listcol { display: none; }
+  main.compact-watch:not(.guide) > .stage { display: flex; }
+  main.has-playback:not(.guide) { grid-template-rows: auto minmax(0, 1fr); }
+  main.has-playback > .compact-nav { display: flex; grid-area: 1 / 1; gap: 4px; padding: 6px 10px; background: var(--panel); border-bottom: 1px solid var(--border); }
+  .compact-nav button { flex: 1; padding: 8px 12px; border: 0; border-radius: 6px; background: transparent; color: var(--muted); cursor: pointer; }
+  .compact-nav button[aria-pressed="true"] { background: var(--panel-2); color: var(--text); }
+  main.has-playback:not(.guide) > .listcol, main.has-playback:not(.guide) > .stage { grid-area: 2 / 1; }
+  .stage .nowbar { flex: none; }
+  .stage .infostrip { max-height: 25vh; flex-shrink: 1; }
+  main.guide { grid-template-rows: auto minmax(0, 1fr) minmax(0, 30%); }
+  main.guide > .compact-nav { display: none; }
+  main.guide > .guide-header { grid-area: 1 / 1; gap: 8px; padding: 6px 10px; }
+  main.guide > .epg { grid-area: 2 / 1; }
+  main.guide > .epgview { grid-area: 3 / 1; border-left: 0; border-top: 1px solid var(--border); }
+  main.guide > .stage { display: none; }
+  main > .stage:has(:fullscreen) { display: flex; }
 }

@@ -42,8 +42,9 @@ export function filterMedia(entries, filters) {
 
 /** Session-only experiments: movies and series keep separate choices. */
 export class MediaFilters {
-  constructor(host, onChange, detailsFor = item => item.details) {
+  constructor(host, onChange, detailsFor = item => item.details, activeHost = null) {
     this.host = host;
+    this.activeHost = activeHost;
     this.onChange = onChange;
     this.detailsFor = detailsFor;
     this.values = { movie: emptyFilters(), series: emptyFilters() };
@@ -104,6 +105,7 @@ export class MediaFilters {
     this.type = type;
     this.rows = rows;
     this.host.hidden = !type;
+    if (this.activeHost) this.activeHost.hidden = !type;
     if (!type) return rows;
     const filters = this.values[type];
     // Movie genres are selected through the provider's categories. Sparse
@@ -147,6 +149,33 @@ export class MediaFilters {
     // gone on Movies needs to say why rather than leave it to be noticed.
     this.note.textContent = [type === 'movie' ? t('filters.genre.movie') : '', missing ? t('filters.incomplete') : '']
       .filter(Boolean).join(' ');
+    this.renderActive(filters);
     return results;
+  }
+
+  // These remain visible when the filter form is collapsed, so the result
+  // count can always be understood and each restriction removed directly.
+  renderActive(filters) {
+    if (!this.activeHost) return;
+    const buttons = [];
+    for (const [key, value] of Object.entries(filters)) {
+      if (!value) continue;
+      const field = this.fields[key];
+      const label = `${field.text.textContent}: ${field.select.selectedOptions[0]?.textContent || value}`;
+      const button = document.createElement('button');
+      button.type = 'button';
+      button.className = 'filter-chip';
+      button.textContent = `${label} ×`;
+      button.setAttribute('aria-label', t('filters.remove', { filter: label }));
+      button.addEventListener('click', async () => {
+        const heldFocus = document.activeElement === button;
+        filters[key] = '';
+        await this.onChange();
+        if (heldFocus && document.activeElement === document.body) this.summary.focus();
+      });
+      buttons.push(button);
+    }
+    this.activeHost.replaceChildren(...buttons);
+    this.activeHost.hidden = !buttons.length;
   }
 }

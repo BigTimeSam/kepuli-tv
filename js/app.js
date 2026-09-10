@@ -3,6 +3,9 @@ import { Library, sortItems } from './library.js';
 import { Epg } from './epg.js';
 import { Playback } from './playback.js';
 import { VirtualList, watchLength } from './vlist.js';
+import { ListNavigation, rowDomId } from './listnavigation.js';
+import { CatalogueSearch } from './cataloguesearch.js';
+import { PlayerLayout } from './playerlayout.js';
 import { itemRow, categoryRow, chipRow, favCategoryRow, sectionHeader, emptyState } from './rows.js';
 import { nameCleaner, searchNameCleaner, searchKey, searchTerms, matchesTerms } from './name.js';
 import { poster } from './poster.js';
@@ -77,6 +80,8 @@ const kindGroup = (k) => (k === 3 ? 2 : k);
 let ROW_H = 50;
 let SEP_H = 26;
 
+const listNavigation = new ListNavigation(el.list);
+
 const state = {
   config: null, settings: null, account: null,
   source: null, lib: null, epg: null,
@@ -90,7 +95,9 @@ const state = {
   listError: null,
   listRequest: 0,
   kind: null,             // a collection's type filter, null = all
-  rows: [], rowIndex: new Map(), sections: new Map(), cursor: -1,
+  rows: [], rowIndex: new Map(), sections: new Map(),
+  get cursor() { return listNavigation.index; },
+  set cursor(index) { listNavigation.select(index); },
   groupCursor: null,      // where the arrows stand in the sidebar, null = on whatever is chosen
   // A drill-down into the list. A series and a favourite category share the
   // same place and the same back button, so they are one state with two
@@ -110,11 +117,20 @@ const state = {
   favorites: new Map(), recents: [], resume: new Map(),
   channelPrefs: channelPreferences(),
   lastGroup: {}, lastKind: {},
-  searchReturn: null,     // the group a search took over from, restored when the search ends
   subcatsHeight: null,    // the topic bar's height when dragged, null = automatic
 };
 
 const isCollection = () => COLLECTIONS.has(state.tab);
+const catalogueSearch = new CatalogueSearch(el.search, $('search-clear'), {
+  state, refresh: () => refreshRows(), renderSidebar, isCollection,
+  onSearch: () => { if (!guideOpen) playerLayout.showBrowse(); },
+});
+const playerLayout = new PlayerLayout(el.main, {
+  browse: $('compact-browse'), watch: $('compact-player'), list: el.list, video: el.video, closeGuide,
+});
+function updatePlayerLayout() {
+  playerLayout.update({ connected: Boolean(state.lib), playing: Boolean(state.playing) });
+}
 
 // The topic the last session ended on, waiting for the library. It belongs
 // to the restore that follows the load, not to every tab switch after it,
@@ -335,13 +351,20 @@ function currentRoute() {
   // runs, so the address stays on the group it took over from — which is
   // where clearing the search returns, and where a reload should therefore
   // arrive rather than on the whole list the search was reading.
-  const searching = state.query && state.searchReturn?.tab === state.tab ? state.searchReturn : null;
+  let searchOrigin = catalogueSearch.returnView;
+  // Drilling into a search result suspends the query, but its parent group
+  // still belongs in the reloadable address.
+  for (let detail = state.detail; detail; detail = detail.back) {
+    if (detail.returnSearch?.returnView) searchOrigin = detail.returnSearch.returnView;
+  }
+  const searching = searchOrigin?.tab === state.tab ? searchOrigin : null;
   if (!isCollection()) {
     view.group = searching ? searching.group : state.group;
     const sub = searching ? searching.sub : state.sub;
     if (sub != null) view.sub = sub;
   }
-  if (state.kind != null) view.kind = state.kind;
+  const kind = searching ? searching.kind : state.kind;
+  if (kind != null) view.kind = kind;
   // A series opened from a favourite category is inside it, and both
   // belong to the address: the back button returns to the category.
   for (let detail = state.detail; detail; detail = detail.back) {
@@ -422,9 +445,7 @@ function onAddressChanged() {
 
 async function goToRoute(route) {
   if (guideOpen) closeGuide();
-  el.search.value = '';
-  state.query = '';
-  state.searchReturn = null;
+  catalogueSearch.reset({ restore: false });
   if (route.group === undefined) delete state.lastGroup[route.tab];
   else state.lastGroup[route.tab] = route.group;
   if (route.kind === undefined) delete state.lastKind[route.tab];
@@ -501,6 +522,8 @@ function markTabs(tab) {
 }
 
 async function activateTab(tab, { restore = false } = {}) {
+  catalogueSearch.reset();
+  playerLayout.showBrowse();
   state.tab = tab;
   $('channel-tools').hidden = tab !== 'live';
   markTabs(tab);
@@ -543,7 +566,7 @@ async function activateTab(tab, { restore = false } = {}) {
   await refreshRows();
 }
 
-async function refreshRows({ keepScroll = false } = {}) {
+async function refreshRows({ keepScroll = false, returnPosition = null, restoreFocus = false } = {}) {
   const type = tabType();
   const library = state.lib;
   const request = beginListLoad({ keepScroll });
@@ -587,7 +610,7 @@ async function refreshRows({ keepScroll = false } = {}) {
     return false;
   }
 
-  if (state.query && isCollection()) {
+  if (state.query && (isCollection() || state.detail)) {
     // The collections are searched here rather than in the library: they are
     // the viewer's own rows and never went through its index.
     const terms = searchTerms(state.query);
@@ -609,6 +632,9 @@ async function refreshRows({ keepScroll = false } = {}) {
   const filterType = !isCollection() && !state.detail && (type === 'movie' || type === 'series') ? type : null;
   rows = mediaFilters.apply(rows, filterType);
   showRows(rows, { keepScroll });
+  if (returnPosition) listNavigation.restore(vlist, returnPosition, {
+    focus: typeof restoreFocus === 'function' ? restoreFocus() : restoreFocus,
+  });
   // The view is stored where it has arrived, not where it was heading: a
   // group whose list failed or was cancelled is restored below and stored
   // from there instead.
@@ -618,8 +644,8 @@ async function refreshRows({ keepScroll = false } = {}) {
 
 const mediaFilters = new MediaFilters($('media-filters'), () => {
   state.cursor = -1;
-  refreshRows();
-}, item => item.details || state.lib?.details.get(`${item.k === 1 ? 'vod' : 'series'}:v2:${item.id}`));
+  return refreshRows();
+}, item => item.details || state.lib?.details.get(`${item.k === 1 ? 'vod' : 'series'}:v2:${item.id}`), $('active-media-filters'));
 
 /**
  * The rows on screen. Everything painted from them follows in one call, so
@@ -629,6 +655,7 @@ function showRows(rows, { keepScroll = false, loading = false } = {}) {
   state.listLoading = loading;
   el.list.setAttribute('aria-busy', String(loading));
   programmeSearch.clear();
+  listNavigation.setRows(rows, { loading, keepSelection: keepScroll });
   state.rows = rows;
   state.catCounts = categoryCountsFor(rows);
   state.rowIndex = new Map(rows.map((it, i) => [`${it.k}:${it.id}`, i]));
@@ -643,6 +670,8 @@ function showRows(rows, { keepScroll = false, loading = false } = {}) {
   renderSubcats();
   renderListInfo();
   renderEmptyState();
+  catalogueSearch.render();
+  updatePlayerLayout();
 }
 
 /* ============================================================ collections */
@@ -740,7 +769,10 @@ function categoryCountsFor(rows) {
 async function openFavCategory(entry) {
   if (!state.lib) { toast(t('error.noserver'), { kind: 'warn' }); return; }
   const back = state.detail;
-  state.detail = { view: 'category', entry, items: [], back, loading: true };
+  const returnPosition = listNavigation.capture(vlist);
+  const returnSearch = catalogueSearch.snapshot();
+  catalogueSearch.reset({ restore: false });
+  state.detail = { view: 'category', entry, items: [], back, returnPosition, returnSearch, loading: true };
   state.cursor = -1;
   renderDetail();
   updateAddress();
@@ -756,7 +788,12 @@ async function openFavCategory(entry) {
     await refreshRows();
   } catch (err) {
     if (state.detail !== open) return;
-    if (state.detail === open) { state.detail = back; renderDetail(); await refreshRows(); }
+    if (state.detail === open) {
+      state.detail = back;
+      catalogueSearch.restore(returnSearch);
+      renderDetail();
+      await refreshRows({ returnPosition });
+    }
     showListError(err, () => openFavCategory(entry));
   }
 }
@@ -1217,6 +1254,7 @@ function renderKinds() {
 }
 
 async function selectKind(kind) {
+  catalogueSearch.reset();
   state.kind = kind;
   // A sidebar choice concerns the collection, not the list drilled into
   // from it — otherwise the tap would appear to do nothing.
@@ -1296,6 +1334,7 @@ function fillGroupPicker(options, chosen) {
 }
 
 async function selectGroup(name) {
+  catalogueSearch.reset();
   programmeSearch.clear();
   const before = { group: state.group, sub: state.sub, rows: state.rows, groupItems: state.groupItems };
   const library = state.lib;
@@ -1366,29 +1405,6 @@ async function openChannelEditor() {
     { group: state.group, sort: state.settings.channelSort });
 }
 
-/**
- * The group a search took over from, back in place once the search is
- * over — cleared or cancelled. Without this, a search from "Finland" ends
- * in the whole list with "All" lit.
- */
-function returnFromSearch() {
-  const back = state.searchReturn;
-  state.searchReturn = null;
-  if (!back || back.tab !== state.tab || state.group != null) return;
-  state.group = back.group;
-  state.sub = back.sub;
-  state.lastGroup[state.tab] = back.group;
-  renderSidebar();
-}
-
-/** Ends the search: the field emptied, the group restored, the rows refreshed. */
-function clearSearch() {
-  el.search.value = '';
-  state.query = '';
-  returnFromSearch();
-  refreshRows();
-}
-
 /* ================================================================== rows */
 
 /** The list's own geometry, and the same again whenever the reader's font
@@ -1403,6 +1419,7 @@ function watchRowHeights() {
 }
 
 const vlist = new VirtualList(el.list, ROW_H, renderRow, {
+  onPaint: () => listNavigation.sync(),
   onVisible: (first, last) => {
     // In guide mode the list is hidden, and its visible rows would take the
     // programme-data queue away from the grid.
@@ -1542,23 +1559,29 @@ function stripItem(item) {
 /* ================================================================ series */
 
 async function openItem(item) {
+  if (!item) return;
   if (item.k === 'c') return openFavCategory(item);
   if (item.k === 2) return openSeries(item);
   await playItem(item);
 }
 
 async function openSeries(item) {
+  // A retry belongs to the same drill-down and keeps its original parent.
+  const retry = state.detail?.view === 'series' && state.detail.item.id === item.id ? state.detail : null;
+  const returnPosition = retry?.returnPosition || listNavigation.capture(vlist);
+  const returnSearch = retry?.returnSearch || catalogueSearch.snapshot();
+  catalogueSearch.reset({ restore: false });
   mediaFilters.apply([], null);
   // A series opened from a favourite category stays inside the category:
   // going back returns to the list it was chosen from.
-  const back = state.detail && state.detail.view === 'category' ? state.detail : null;
+  const back = retry ? retry.back : state.detail?.view === 'category' ? state.detail : null;
   // Keep the parent list's rules: the episode list is a different set and
   // must not infer new prefixes from its repeated series title.
   const sourceItem = item;
   const parentCleaner = state.cleanName;
   const cleanName = parentCleaner ? name => parentCleaner(name, sourceItem) : null;
   item = { ...item, displayName: cleanName ? cleanName(item.n) : item.displayName || item.n };
-  state.detail = { view: 'series', item, info: null, season: null, back, cleanName, loading: true };
+  state.detail = { view: 'series', item, info: null, season: null, back, cleanName, returnPosition, returnSearch, loading: true };
   const open = state.detail;
   renderDetail();
   updateAddress();
@@ -1603,6 +1626,7 @@ function episodesOfSeason() {
 }
 
 function renderDetail() {
+  catalogueSearch.render();
   const detail = state.detail;
   // A category has neither a plot nor a cover — its contents are a list, and
   // the breadcrumb is enough to say where we are.
@@ -1691,11 +1715,17 @@ function crumbLabel(entry) {
 }
 
 function closeDetail() {
-  state.detail = (state.detail && state.detail.back) || null;
+  const detail = state.detail;
+  if (!detail) return;
+  const focus = document.activeElement;
+  const restoreFocus = focus === document.body || el.crumbs.contains(focus) || el.list.contains(focus);
+  state.detail = detail.back || null;
+  catalogueSearch.restore(detail.returnSearch);
   state.cursor = -1;
   renderDetail();
   updateAddress();
-  refreshRows();
+  refreshRows({ returnPosition: detail.returnPosition, restoreFocus: () => restoreFocus
+    && (document.activeElement === focus || document.activeElement === document.body || document.activeElement === el.list) });
 }
 
 /* ============================================================== playback */
@@ -1887,6 +1917,8 @@ async function playItem(item, { startAt, allowSilent } = {}) {
   };
 
   state.playing = item;
+  updatePlayerLayout();
+  playerLayout.showPlayer();
   state.playingSpec = spec;
   state.playbackInfoLoading = !live;
   item.detailsLoading = item.k === 1 && !item.details;
@@ -2129,6 +2161,7 @@ function toggleMoreMenu(open, { focusButton = false } = {}) {
  */
 function enterFullscreen() {
   if (document.fullscreenElement) return;
+  if (state.playing) playerLayout.showPlayer();
   el.videowrap.requestFullscreen().catch(() => {});
 }
 
@@ -2529,6 +2562,8 @@ function playCatchup(item, programme) {
   const minutes = Math.max(1, Math.ceil((programme.stop - programme.start) / 60000));
   const url = timeshiftUrl(state.config, item.id, programme.start, minutes, state.account.serverUtcOffsetMs || 0);
   state.playing = item;
+  updatePlayerLayout();
+  playerLayout.showPlayer();
   state.playingSpec = { url, live: false, catchup: true, ext: 'ts', mode: 'ts' };
   state.catchup = { ...programme, channel: item };
   renderSubtitles([], null);
@@ -3377,16 +3412,7 @@ function removeAtCursor() {
   toast(t('row.removed.history', { name: item.displayName || item.n }));
 }
 
-function moveCursor(delta) {
-  if (state.rows.length === 0) return;
-  state.cursor = Math.max(0, Math.min(state.rows.length - 1, state.cursor + delta));
-  vlist.scrollToIndex(state.cursor);
-  vlist.refresh();
-  el.list.setAttribute('aria-activedescendant', rowDomId(state.cursor));
-}
-
-/** The id of a row's node, for the list box to point at. */
-const rowDomId = (index) => `row-${index}`;
+function moveCursor(delta) { listNavigation.move(delta, vlist); }
 
 function playRelative(delta) {
   if (!state.playing) return;
@@ -3426,34 +3452,6 @@ function wireUi() {
     if (!button) return;
     closeGuide();
     activateTab(button.dataset.tab, { restore: true });
-  });
-
-  let searchTimer = null;
-  el.search.addEventListener('input', () => {
-    clearTimeout(searchTimer);
-    searchTimer = setTimeout(() => {
-      state.query = el.search.value.trim();
-      // The search covers the whole list: the category and type filters are
-      // cleared visibly, so that an absence of matches is never left
-      // unexplained. The group comes back when the search ends.
-      if (state.query && state.group != null) {
-        state.searchReturn = { tab: state.tab, group: state.group, sub: state.sub };
-        state.group = null;
-        state.sub = null;
-        state.lastGroup[state.tab] = null;
-        renderSidebar();
-      }
-      if (state.query && state.kind != null) {
-        state.kind = null;
-        state.lastKind[state.tab] = null;
-        renderSidebar();
-      }
-      if (!state.query) returnFromSearch();
-      refreshRows().then((ok) => {
-        // The list the search needs did not arrive: the search is over.
-        if (ok === false && state.query) clearSearch();
-      });
-    }, 180);
   });
 
   el.groups.addEventListener('keydown', (e) => {
@@ -3614,7 +3612,7 @@ function wireUi() {
     if (!el.morePop.hidden && el.morePop.contains(e.target)) return;
     if (e.key === '/' && !typing && plain) { e.preventDefault(); el.search.focus(); el.search.select(); return; }
     if (e.target === el.search && e.key === 'Escape') {
-      clearSearch(); el.search.blur(); return;
+      e.preventDefault(); catalogueSearch.clear(); el.list.focus(); return;
     }
     // The list's own load answers Escape wherever the focus is, which the
     // dialog used to do for us by being modal.
@@ -3638,7 +3636,7 @@ function wireUi() {
       case 'ArrowUp': e.preventDefault(); moveCursor(-1); break;
       case 'PageDown': e.preventDefault(); moveCursor(10); break;
       case 'PageUp': e.preventDefault(); moveCursor(-10); break;
-      case 'Enter': if (state.cursor >= 0) openItem(state.rows[state.cursor]); break;
+      case 'Enter': if (state.rows[state.cursor]) openItem(state.rows[state.cursor]); break;
       case 'Backspace': if (state.detail) closeDetail(); break;
       case ' ': e.preventDefault(); el.video.paused ? el.video.play().catch(() => {}) : el.video.pause(); break;
       case 'f': toggleFullscreen(); break;
@@ -3671,6 +3669,7 @@ async function applyLanguage(lang) {
   setLanguage(lang);
   setLocale(localeTag());
   applyStatic();
+  catalogueSearch.render();
   renderSidebar();
   renderNowSub();
   renderDetail();
@@ -3718,6 +3717,8 @@ async function init() {
   setLanguage(state.settings.lang);
   setLocale(localeTag());
   applyStatic();
+  catalogueSearch.render();
+  updatePlayerLayout();
 
   watchRowHeights();
   wireSetup();

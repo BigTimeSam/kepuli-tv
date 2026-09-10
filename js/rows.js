@@ -41,20 +41,23 @@ function remove(title, onRemove) {
   return button;
 }
 
+function listOption(className, ctx) {
+  const row = el('div', className);
+  row.setAttribute('role', 'option');
+  row.setAttribute('aria-selected', String(Boolean(ctx.selected)));
+  if (ctx.domId) row.id = ctx.domId;
+  if (ctx.selected) row.classList.add('selected');
+  return row;
+}
+
 /**
  * @param {object} item
  * @param {object} ctx { label, playing, selected, favorite, epg, resume, tag, onOpen,
  *                       onFavorite, onRemove, showEpisodeCover }
  */
 export function itemRow(item, ctx) {
-  const row = el('div', 'row');
-  // An option of the list box: the list points at the one the cursor is on
-  // (aria-activedescendant), so a screen reader follows the arrows.
-  row.setAttribute('role', 'option');
-  row.setAttribute('aria-selected', ctx.selected ? 'true' : 'false');
-  if (ctx.domId) row.id = ctx.domId;
+  const row = listOption('row', ctx);
   if (ctx.playing) row.classList.add('playing');
-  if (ctx.selected) row.classList.add('selected');
 
   row.appendChild(star(ctx.favorite, ctx.onFavorite));
 
@@ -239,8 +242,7 @@ const LIST_ICON = '<svg viewBox="0 0 20 20" aria-hidden="true"><path d="M3.5 6h1
  * @param {object} ctx { subtitle, count, selected, onOpen, onFavorite }
  */
 export function favCategoryRow(entry, ctx) {
-  const row = el('div', 'row row-cat');
-  if (ctx.selected) row.classList.add('selected');
+  const row = listOption('row row-cat', ctx);
   row.appendChild(star(true, ctx.onFavorite));
 
   const icon = el('div', 'row-cat-icon');
