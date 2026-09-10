@@ -1,13 +1,13 @@
 # Firefox Add-ons publication
 
 Prepared on 2026-09-05 for the first public desktop Firefox listing on
-addons.mozilla.org (AMO). Version 1.0.7 was submitted on 2026-09-05 with its
-matching reviewer source archive and is **Awaiting Review**. The released
-GitHub 1.0.6 packages remain unchanged. HTTP support is retained at the
-owner's request; its acceptance awaits Mozilla's reviewer determination.
+addons.mozilla.org (AMO). **The listing has been published.** It is public and
+serves version 1.1.0 for Firefox 140 or newer, updated on 2026-09-06. Review
+opened with the 1.0.7 submission of 2026-09-05 and its matching reviewer
+source archive. HTTP support, retained at the owner's request, is in the
+version that was approved.
 
-- Listing: https://addons.mozilla.org/en-GB/firefox/addon/kepuli-tv/
-  (currently visible only with developer access, not yet public).
+- Listing: https://addons.mozilla.org/en-GB/firefox/addon/kepuli-tv/ (public).
 - Version editor: https://addons.mozilla.org/en-GB/developers/addon/kepuli-tv/versions/6463530
 - Five Firefox 155 screenshots and English captions were uploaded and
   verified in the listing preview. Originals and captions are in
@@ -76,6 +76,16 @@ Completed:
    URL and signed XPI after submission/signing. The initial GitHub ZIP is
    unsigned and is not a permanent Firefox installation.
 
+### Outcome
+
+Review ended in approval and the listing went public on 2026-09-06 with
+version 1.1.0. The transport determination asked for in point 2 therefore
+went the owner's way: the add-on ships with its HTTP support and the
+connection form's explanation of what HTTP does not encrypt. Desktop only,
+Firefox 140 or newer, as submitted. What is still unrecorded here is the
+signed XPI's own address; the store installs it, and this project's GitHub
+ZIPs stay unsigned.
+
 Sources checked:
 
 - https://extensionworkshop.com/documentation/develop/firefox-builtin-data-consent/
@@ -99,8 +109,9 @@ This is why source provenance and the decoder build instructions are supplied.
 
 ## Copyable store fields
 
-These are drafts for the 1.0.7 candidate. Firefox 140+ is required; the player
-continues to support HTTP and HTTPS services supplied by the user.
+These are the fields the published listing carries, first drafted for the
+1.0.7 candidate. Firefox 140+ is required; the player continues to support
+HTTP and HTTPS services supplied by the user.
 
 Name:
 

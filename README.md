@@ -10,11 +10,11 @@ for straightforward installation and automatic updates.
 | Browser | Extension store | Availability |
 | --- | --- | --- |
 | Google Chrome | [Chrome Web Store](https://chromewebstore.google.com/detail/kepuli-tv/okkgclcakhjhldkdcblgagoaibghpfmi) | Available |
-| Mozilla Firefox | [Firefox Add-ons](https://addons.mozilla.org/en-GB/firefox/addon/kepuli-tv/) | Awaiting Mozilla approval; not yet available for public installation |
+| Mozilla Firefox | [Firefox Add-ons](https://addons.mozilla.org/en-GB/firefox/addon/kepuli-tv/) | Available; requires Firefox 140 or newer |
 
-The Firefox listing will become publicly accessible after approval. Packages
-in GitHub Releases are intended for manual installation and testing; most
-users should use their browser's store version once available.
+Both listings are public and update themselves. Packages in GitHub Releases
+are intended for manual installation and testing; most users should use their
+browser's store version.
 
 ## Intended use
 
@@ -35,9 +35,8 @@ The software is provided as is, without warranty; see LICENSE.
 ## Installation
 
 For regular use, choose your browser's extension store from the table above.
-The Chrome version is available now; the Firefox store version is awaiting
-approval. After installation, click the toolbar icon to open the player and
-configure your connection.
+Both browsers' versions are available now. After installation, click the
+toolbar icon to open the player and configure your connection.
 
 For development or manual installation from this repository:
 
@@ -54,12 +53,11 @@ states.
 
 In Firefox: `node firefox/build.mjs`, then `about:debugging` → **This
 Firefox** → **Load Temporary Add-on** → `firefox/dist/manifest.json`. Firefox
-140 or newer is required for the upcoming AMO version, including Firefox's
-built-in consent for sending credentials to the user's own service. A
-temporary add-on lasts until Firefox closes; the permanent
-route is a signed package from AMO, see `FIREFOX.md`. The same code runs in
-both browsers — `firefox/` holds only the Firefox manifest and the tools that
-assemble the package from it.
+140 or newer is what the AMO version requires, including Firefox's built-in
+consent for sending credentials to the user's own service. A temporary add-on
+lasts until Firefox closes; the permanent route is the signed package from
+AMO, see `FIREFOX.md`. The same code runs in both browsers — `firefox/` holds
+only the Firefox manifest and the tools that assemble the package from it.
 
 ## User guide
 

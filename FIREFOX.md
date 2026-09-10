@@ -48,7 +48,9 @@ Reproduce with `KEPULI_BROWSER=firefox node dev/playcheck.mjs` and
 `firefox/playcheck-driver.mjs` for actual WebDriver input and the Firefox
 extension API namespace. The checks use test media and a mock provider;
 the installable GitHub Firefox ZIP remains unsigned and requires AMO
-signing for permanent installation.
+signing for permanent installation. A permanent one without that step comes
+from the [Firefox Add-ons
+listing](https://addons.mozilla.org/en-GB/firefox/addon/kepuli-tv/).
 
 ## The shape
 
@@ -295,8 +297,11 @@ browser, as they are for Chrome.
 
 ## Publishing on AMO
 
-The current submission plan, validation results, copyable store fields and
-remaining release decisions are in [firefox/AMO-PUBLISH.md](firefox/AMO-PUBLISH.md).
+The add-on is published: the
+[Firefox Add-ons listing](https://addons.mozilla.org/en-GB/firefox/addon/kepuli-tv/)
+is public and serves 1.1.0 for Firefox 140 or newer, from 2026-09-06. The
+submission plan, validation results, store fields as published and the review
+outcome are in [firefox/AMO-PUBLISH.md](firefox/AMO-PUBLISH.md).
 The reviewer source package is built with `node firefox/amo-source.mjs` after
 committing the preparation files; `--worktree` makes an explicitly uncommitted
 preview. It includes FFmpeg's full source and [English build
@@ -319,6 +324,6 @@ instructions](firefox/AMO-BUILD.md). Runtime release packages come from
   file of our own, and `vendor/ffaudio/LICENSE` states FFmpeg's tag and the
   replaceability LGPL 2.1 §6 requires.
 - **Review and signing.** AMO validates the upload and may perform further
-  review. Validation alone does not establish policy compliance or guarantee
-  publication; the consent declaration and secure transport must be addressed
-  before this project's first submission.
+  review. Validation alone establishes neither policy compliance nor
+  publication: what carried the first submission through was the consent
+  declaration and the disclosed transport behaviour, not the lint result.

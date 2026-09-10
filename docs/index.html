@@ -187,14 +187,14 @@ for straightforward installation and automatic updates.</p>
   <thead><tr><th>Browser</th><th>Extension store</th><th>Availability</th></tr></thead>
   <tbody>
     <tr><td>Google Chrome</td><td><a href="https://chromewebstore.google.com/detail/kepuli-tv/okkgclcakhjhldkdcblgagoaibghpfmi">Chrome Web Store</a></td><td>Available</td></tr>
-    <tr><td>Mozilla Firefox</td><td><a href="https://addons.mozilla.org/en-GB/firefox/addon/kepuli-tv/">Firefox Add-ons</a></td><td>Awaiting Mozilla approval; not yet available for public installation</td></tr>
+    <tr><td>Mozilla Firefox</td><td><a href="https://addons.mozilla.org/en-GB/firefox/addon/kepuli-tv/">Firefox Add-ons</a></td><td>Available; requires Firefox 140 or newer</td></tr>
   </tbody>
 </table>
 </div>
 
-<p>The Firefox listing will become publicly accessible after approval. Packages
-in GitHub Releases are intended for manual installation and testing; most
-users should use their browser's store version once available.</p>
+<p>Both listings are public and update themselves. Packages in GitHub Releases
+are intended for manual installation and testing; most users should use their
+browser's store version.</p>
 
 <nav class="toc" aria-label="Contents">
 <ul>
@@ -235,9 +235,8 @@ subscriptions, and does not answer questions about them. Such issues are closed.
 <h2 id="installation">Installation</h2>
 
 <p>For regular use, choose your browser's extension store from the table above.
-The Chrome version is available now; the Firefox store version is awaiting
-approval. After installation, click the toolbar icon to open the player and
-configure your connection.</p>
+Both browsers' versions are available now. After installation, click the
+toolbar icon to open the player and configure your connection.</p>
 
 <p>For development or manual installation from this repository:</p>
 
@@ -256,12 +255,11 @@ states.</p>
 
 <p>In Firefox: <code>node firefox/build.mjs</code>, then <code>about:debugging</code> → <strong>This
 Firefox</strong> → <strong>Load Temporary Add-on</strong> → <code>firefox/dist/manifest.json</code>. Firefox
-140 or newer is required for the upcoming AMO version, including Firefox's
-built-in consent for sending credentials to the user's own service. A
-temporary add-on lasts until Firefox closes; the permanent
-route is a signed package from AMO, see <code>FIREFOX.md</code>. The same code runs in
-both browsers — <code>firefox/</code> holds only the Firefox manifest and the tools that
-assemble the package from it.</p>
+140 or newer is what the AMO version requires, including Firefox's built-in
+consent for sending credentials to the user's own service. A temporary add-on
+lasts until Firefox closes; the permanent route is the signed package from
+AMO, see <code>FIREFOX.md</code>. The same code runs in both browsers — <code>firefox/</code> holds
+only the Firefox manifest and the tools that assemble the package from it.</p>
 
 <h2 id="user-guide">User guide</h2>
 
