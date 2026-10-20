@@ -1201,3 +1201,23 @@ dialog::backdrop { background: rgba(5, 6, 10, .66); backdrop-filter: blur(2px); 
   main.guide > .stage { display: none; }
   main > .stage:has(:fullscreen) { display: flex; }
 }
+
+/* The selectors draw their own chevron. The browser's sits against the
+   right edge whatever the padding, so a menu with room on the left had none
+   on the right; this one stands as far in from the edge as the text does.
+   Last in the file and one class strong, so that it outlasts every
+   selector's own background shorthand above. */
+select:not([multiple]) {
+  appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'%3E%3Cpath d='M1 1l4 4 4-4' fill='none' stroke='%238d95aa' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 10px center;
+  background-size: 10px 6px;
+  padding-right: 28px;
+}
+.media-filter-controls select:not([multiple]) { background-position: right 7px center; padding-right: 21px; }
+@media (prefers-contrast: more) {
+  select:not([multiple]) {
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'%3E%3Cpath d='M1 1l4 4 4-4' fill='none' stroke='%23b6bdcd' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+  }
+}
