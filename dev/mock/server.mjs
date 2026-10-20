@@ -397,6 +397,58 @@ function sendFile(req, res, name, type) {
   if (cut) out.on('end', () => res.destroy());
 }
 
+/* ------------------------------------------------------------- connections */
+
+// The account allows one connection, and a real server goes on counting one
+// for a while after the player has closed it. The count is reported as
+// active_cons in any case, and every stream asked for while another was
+// still open is kept, for dev/playcheck.mjs to find the player's overlaps.
+// KEPULI_MOCK_LIMIT turns the limit on: a stream asked for while the count
+// is full is refused with 400, as the provider refuses it.
+// KEPULI_MOCK_RELEASE_MS keeps a closed stream counted that long.
+// The playlists and segments of the live channel are not counted: the
+// provider counts an HLS viewer by session, not by request.
+const MAX_CONNECTIONS = 1;
+// The browser's abort reaches the server a moment after the next request
+// may have: within this a full count is waited on, not refused.
+const ABORT_GRACE_MS = 300;
+let connections;
+
+function resetConnections() {
+  connections = { open: new Set(), lingering: 0, peak: 0, refused: [], overlaps: [] };
+}
+resetConnections();
+
+/** What the server has seen of the streams, for dev/playcheck.mjs. */
+export function connectionStats() {
+  return { open: connections.open.size, counted: counted(), peak: connections.peak,
+    refused: connections.refused.slice(), overlaps: connections.overlaps.slice() };
+}
+
+const counted = () => connections.open.size + connections.lingering;
+
+async function admit(req, res) {
+  const max = process.env.KEPULI_MOCK_LIMIT ? MAX_CONNECTIONS : Infinity;
+  const at = Date.now();
+  while (connections.open.size && Date.now() - at < ABORT_GRACE_MS) await new Promise((r) => setTimeout(r, 25));
+  const range = req.headers.range || 'whole';
+  if (connections.open.size) connections.overlaps.push(`${req.url} ${range} over ${[...connections.open].join(', ')}`);
+  if (counted() >= max) {
+    connections.refused.push(`${req.url} ${range} at ${counted()}/${max}`);
+    send(res, 400, 'every connection is in use', 'text/plain');
+    return false;
+  }
+  const name = `${req.url} ${range}`;
+  connections.open.add(name);
+  connections.peak = Math.max(connections.peak, connections.open.size);
+  res.on('close', () => {
+    connections.open.delete(name);
+    const lag = Number(process.env.KEPULI_MOCK_RELEASE_MS || 0);
+    if (lag > 0) { connections.lingering++; setTimeout(() => { connections.lingering--; }, lag); }
+  });
+  return true;
+}
+
 /* ------------------------------------------------------------ live channel */
 
 // The segments from dev/mock/media.sh, with their durations from the VOD
@@ -476,8 +528,8 @@ function account(req) {
   return {
     user_info: {
       username: USER, password: PASS, message: 'Demo server — nothing here is real', auth: 1, status: 'Active',
-      exp_date: secs(T0 + 200 * 86400e3), is_trial: '0', active_cons: '0', created_at: secs(T0 - 120 * 86400e3),
-      max_connections: '1', allowed_output_formats: ['ts', 'm3u8'],
+      exp_date: secs(T0 + 200 * 86400e3), is_trial: '0', active_cons: String(counted()), created_at: secs(T0 - 120 * 86400e3),
+      max_connections: String(MAX_CONNECTIONS), allowed_output_formats: ['ts', 'm3u8'],
     },
     server_info: {
       url: host, port: port || (proto === 'https' ? '443' : '80'), https_port: proto === 'https' ? (port || '443') : '',
@@ -572,24 +624,27 @@ function handle(req, res) {
   }
   if (/^\/live\/.*\.m3u8$/.test(path)) return send(res, 200, livePlaylist(), 'application/vnd.apple.mpegurl');
   if (/^\/live\/.*\.ts$/.test(path)) return send(res, 404, 'the demo channel is HLS; the player falls back to it', 'text/plain');
-  if (path.startsWith('/timeshift/')) return sendTimeshift(req, res);
-  if ((m = /^\/(movie|series)\/.*\.(\w+)$/.exec(path))) {
-    if (m[2] === 'mkv') {
-      const id = path.slice(path.lastIndexOf('/') + 1, -4);
-      const variant = (set, file) => (set.has(id) && existsSync(join(MEDIA, file)) ? file : null);
-      const file = variant(AC3_EPISODES, 'episode-ac3.mkv')
-                || variant(MULTI_EPISODES, 'episode-multi.mkv')
-                || 'episode.mkv';
-      return sendFile(req, res, file, 'video/x-matroska');
-    }
-    if (m[2] === 'mp4') return sendFile(req, res, 'movie.mp4', 'video/mp4');
-    return send(res, 404, `the demo server has no ${m[2]} files`, 'text/plain');
-  }
+  if (path.startsWith('/timeshift/')) return admit(req, res).then((ok) => ok && sendTimeshift(req, res));
+  if ((m = /^\/(movie|series)\/.*\.(\w+)$/.exec(path))) return admit(req, res).then((ok) => ok && sendMedia(req, res, path, m[2]));
   send(res, 404, 'not found', 'text/plain');
+}
+
+function sendMedia(req, res, path, ext) {
+  if (ext === 'mkv') {
+    const id = path.slice(path.lastIndexOf('/') + 1, -4);
+    const variant = (set, file) => (set.has(id) && existsSync(join(MEDIA, file)) ? file : null);
+    const file = variant(AC3_EPISODES, 'episode-ac3.mkv')
+              || variant(MULTI_EPISODES, 'episode-multi.mkv')
+              || 'episode.mkv';
+    return sendFile(req, res, file, 'video/x-matroska');
+  }
+  if (ext === 'mp4') return sendFile(req, res, 'movie.mp4', 'video/mp4');
+  return send(res, 404, `the demo server has no ${ext} files`, 'text/plain');
 }
 
 export function startMockServer(port = PORT) {
   return new Promise((resolve, reject) => {
+    resetConnections();
     const server = createServer(handle);
     server.on('error', reject);
     server.listen(port, HOST, () => resolve(server));

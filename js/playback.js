@@ -71,6 +71,11 @@ const RECONNECT_MAX_MS = 8000;
 // the viewer would never learn that the fault is in the source.
 const STABLE_MS = 30000;
 
+// How long the server may go on counting a connection after we have closed
+// it. Measured on the provider's panel it is seconds; this is the outer
+// bound within which a full account is suspected to be counting our own.
+const RELEASE_LAG_MS = 30000;
+
 export class Playback {
   /**
    * @param {HTMLVideoElement} video
@@ -93,6 +98,31 @@ export class Playback {
     this.recovering = false;
     this.recoverTimer = null;
     this.stableTimer = null;
+    this.probing = null;        // the header read under way, cut with the attempt
+    // When a stream of ours was last let go. The server counts a closed
+    // connection for a while after it has gone, so a full account just
+    // after this moment may be counting our own previous stream.
+    this.releasedAt = 0;
+    this.openedAt = 0;
+    this.releasedBeforeOpen = 0;
+  }
+
+  /** Whether a stream or a header read of ours may be holding a connection. */
+  get holding() { return Boolean(this.engine || this.probing); }
+
+  /**
+   * Whether the latest attempt asked for its connection soon after one of
+   * ours had been let go — then a full account may be the server still
+   * counting the one we closed.
+   */
+  get followedRelease() {
+    return this.releasedBeforeOpen > 0 && this.openedAt - this.releasedBeforeOpen < RELEASE_LAG_MS;
+  }
+
+  /** The moment an attempt asks for a connection, against the last release. */
+  noteOpen() {
+    this.openedAt = Date.now();
+    this.releasedBeforeOpen = this.releasedAt;
   }
 
   /** The label of the engine in use, in the interface language. */
@@ -107,12 +137,14 @@ export class Playback {
     this.wantPlaying = false;
     this.recovering = false;
     if (this.cleanup) { this.cleanup(); this.cleanup = null; }
+    this.cutProbe();
     const engine = this.engine;
     this.engine = null;
     this.engineKey = null;
     this.spec = null;
     this.reconnects = 0;
     if (engine) {
+      this.releasedAt = Date.now();
       try {
         if (engine.destroy) engine.destroy();
         if (engine.detachMediaElement) engine.detachMediaElement();
@@ -142,9 +174,10 @@ export class Playback {
     this.detachGuards();
     clearTimeout(this.stableTimer);
     if (this.cleanup) { this.cleanup(); this.cleanup = null; }
+    this.cutProbe();
     const engine = this.engine;
     this.engine = null;
-    if (engine) { try { engine.destroy(); } catch { /* purettu */ } }
+    if (engine) { this.releasedAt = Date.now(); try { engine.destroy(); } catch { /* purettu */ } }
     this.video.removeAttribute('src');
     this.video.load();
     this.token++;
@@ -163,6 +196,7 @@ export class Playback {
 
   async start(spec, token) {
     let chain = buildChain(spec);
+    this.noteOpen();
     // An extension is no proof of the container. Measured, the library's
     // .ts files are Matroska without exception (10/10 in the sample), which
     // would leave mpegts.js waiting out a 20-second timeout before the
@@ -203,13 +237,28 @@ export class Playback {
    */
   async inspect(spec, token) {
     this.onState({ status: 'probing' });
-    const info = await probe(spec.url);
+    // Left running, a stale read would hold the connection under the next
+    // attempt — and the next attempt need not read a header at all.
+    const ctrl = new AbortController();
+    this.probing = ctrl;
+    const info = await probe(spec.url, { signal: ctrl.signal });
+    if (this.probing === ctrl) this.probing = null;
+    // A read that went to the network has just let go of its connection.
+    if (!info.error && Date.now() - info.at < 1000) this.releasedAt = Date.now();
     if (token !== this.token) return null;
     const known = verdict(info);
     spec.probe = info;
     spec.verdict = known;
     this.onState({ status: 'metadata' });
     return known;
+  }
+
+  /** The header read of an attempt that is being given up. */
+  cutProbe() {
+    if (!this.probing) return;
+    this.releasedAt = Date.now();
+    this.probing.abort();
+    this.probing = null;
   }
 
   refuse(known, extra = {}) {
@@ -241,6 +290,7 @@ export class Playback {
   runAttempt(name, spec, token, onFail) {
     const video = this.video;
     let settled = false;
+    this.noteOpen();
 
     const finish = (ok, why) => {
       if (token !== this.token) return;
@@ -267,6 +317,8 @@ export class Playback {
         return;
       }
       console.warn('[iptv] engine %s did not start: %s', name, why);
+      // An attempt that never started is not counted as a release: it may
+      // have been refused outright, and a wait would then be for nothing.
       const engine = this.engine;
       this.engine = null;
       if (engine) { try { engine.destroy(); } catch { /* purettu */ } }
@@ -327,7 +379,7 @@ export class Playback {
     if (this.cleanup) { this.cleanup(); this.cleanup = null; }
     const engine = this.engine;
     this.engine = null;
-    if (engine) { try { engine.destroy(); } catch { /* purettu */ } }
+    if (engine) { this.releasedAt = Date.now(); try { engine.destroy(); } catch { /* purettu */ } }
     const reason = /failed to fetch|networkerror|network error/i.test(String(why)) ? t('playback.reason.network') : why;
     this.onState({ status: 'error', message: t('playback.died', { reason }), verdict: this.spec.verdict });
   }

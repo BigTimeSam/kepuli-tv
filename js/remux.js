@@ -235,6 +235,10 @@ export class Remuxer {
    */
   async openRange(from, to, { pinned = false } = {}) {
     if (!pinned && this.cuesLoading) await this.cuesLoading;
+    // destroy() ends the seek-table read quietly, and the wait above then
+    // returns as if all were well: opening now would hold a connection
+    // under the next playback.
+    if (this.destroyed) throw new DOMException('the unpacker is gone', 'AbortError');
     this.closeConnection();
     if (this.stream) {
       try { this.stream.ctrl.abort(); } catch { /* jo suljettu */ }

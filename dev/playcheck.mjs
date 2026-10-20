@@ -44,6 +44,15 @@
 //                                     before its metadata arrived for an
 //                                     episode, does not drag the episode to
 //                                     its position
+//   node dev/playcheck.mjs connections the account's one connection: an
+//                                     episode started over and over, another
+//                                     one, a film and seeks never ask for a second
+//                                     stream while one is open; a server that
+//                                     counts the closed stream for a few
+//                                     seconds is waited out and playback
+//                                     starts by itself; and another tab of
+//                                     the player holding the connection is
+//                                     named, and Play here takes it over
 //   node dev/playcheck.mjs reconnect  the download breaks once and resumes:
 //                                     playback must carry on across the break
 //   node dev/playcheck.mjs accounts   a favourite made under one account is
@@ -91,7 +100,7 @@
 // the rate in bytes per second (60 kB/s). Exit code 0 when every scenario
 // passes, 1 otherwise.
 
-import { startMockServer, MULTI_EPISODES, PORT as MOCK_PORT } from './mock/server.mjs';
+import { startMockServer, connectionStats, MULTI_EPISODES, PORT as MOCK_PORT } from './mock/server.mjs';
 // Run the same scenarios in Firefox with KEPULI_BROWSER=firefox.
 const { ensureChrome, openPlayer, session, sleep } = await import(
   process.env.KEPULI_BROWSER === 'firefox' ? '../firefox/playcheck-driver.mjs' : './screenshot.mjs');
@@ -522,6 +531,115 @@ async function resume(page) {
   const st = await videoState(page);
   process.env.KEPULI_MOCK_THROTTLE = '';
   return { ok: st.t < 30, detail: `the episode is at ${st.t} s (the film's resume position was 60 s)` };
+}
+
+/**
+ * The account allows one connection, and the mock now holds the player to
+ * it: a stream asked for while another is open is refused, and every
+ * overlap is recorded. Three rounds.
+ *
+ * Strict: the episode is started five times in quick succession, then the
+ * next one, then a seek. No stream may have been asked for over another.
+ *
+ * Lagging: the server goes on counting a closed stream for a few seconds,
+ * as the provider's does. Started over, the episode is first refused; the
+ * player must wait for the release and start by itself, never showing the
+ * failure.
+ *
+ * Another tab: a stand-in tab holds the stream and answers the player's
+ * channel. The failure must name the tab and offer Play here, which ends
+ * the other tab's stream and plays.
+ */
+async function connections(page, { requests }) {
+  const OVERLAY_TITLE = `(document.getElementById('overlay').hidden ? '' : document.getElementById('overlay-title').textContent)`;
+  const notes = [];
+  process.env.KEPULI_MOCK_LIMIT = '1';
+  try {
+    // Strict.
+    await playEpisode(page);
+    const stream = requests.find((u) => /^\/series\/.*\.mkv/.test(u));
+    if (!stream) throw new Error('no episode stream was requested');
+    for (let i = 0; i < 5; i++) {
+      await evaluate(page, `document.querySelectorAll('#list .row')[0].click()`, { gesture: true });
+      await sleep(i % 2 ? 1500 : 300);
+    }
+    await waitFor(page, PLAYING, 'the episode after the restarts', 40000);
+    await evaluate(page, `document.querySelectorAll('#list .row')[1].click()`, { gesture: true });
+    await waitFor(page, PLAYING, 'the second episode', 40000);
+    await sleep(2000);
+    await evaluate(page, `document.getElementById('video').currentTime = 60`);
+    await waitFor(page, `document.getElementById('video').currentTime > 61`, 'playback after the seek', 40000);
+    // A film goes through the browser's own player, which asks for its
+    // ranges by itself: started over too, it must keep to one as well.
+    await evaluate(page, `document.querySelector('#tabs [data-tab="movie"]').click()`);
+    await click(page, '#groups', 'Nordic');
+    for (let i = 0; i < 3; i++) {
+      await click(page, '#list', 'Northern Lights', { gesture: true });
+      await sleep(i === 1 ? 1500 : 400);
+    }
+    await waitFor(page, PLAYING, 'the film after the restarts', 40000);
+    await evaluate(page, `document.getElementById('video').currentTime = 60`);
+    await waitFor(page, `document.getElementById('video').currentTime > 61`, 'the film after the seek', 40000);
+    const strict = connectionStats();
+    if (strict.overlaps.length || strict.refused.length) {
+      return { ok: false, detail: `strict: ${strict.overlaps.length} overlap(s) ${strict.overlaps.slice(0, 3).join(' | ')}; refused ${strict.refused.slice(0, 3).join(' | ')}` };
+    }
+    notes.push(`strict: no overlap in ${requests.filter((u) => /^\/(series|movie)\//.test(u)).length} stream requests, peak ${strict.peak}`);
+
+    // Lagging.
+    process.env.KEPULI_MOCK_RELEASE_MS = '5000';
+    await evaluate(page, `(() => { window.__titles = [];
+      new MutationObserver(() => window.__titles.push(${OVERLAY_TITLE})).observe(document.getElementById('overlay'), { attributes: true, childList: true, subtree: true });
+      return true; })()`);
+    const refusedBefore = connectionStats().refused.length;
+    await evaluate(page, `document.querySelectorAll('#list .row')[0].click()`, { gesture: true });
+    await waitFor(page, PLAYING, 'the episode after the server let go', 40000);
+    const titles = [...new Set(await evaluate(page, 'window.__titles'))].filter(Boolean);
+    const refusedLag = connectionStats().refused.length - refusedBefore;
+    if (!titles.includes('Waiting for the connection') || titles.includes('Playback failed') || !refusedLag) {
+      return { ok: false, detail: `lagging: ${refusedLag} refused, overlay titles ${JSON.stringify(titles)}` };
+    }
+    notes.push(`lagging: ${refusedLag} refused, waited (${titles.join(' → ')}) and played`);
+
+    // Another tab: the page itself stands in for it, the stream held by a
+    // fetch of its own and the channel answered as the player's would.
+    process.env.KEPULI_MOCK_RELEASE_MS = '';
+    await page.call('Page.reload');
+    await sleep(1000);
+    await waitFor(page, CONNECTED, 'the connection after the reload');
+    await sleep(500);
+    await evaluate(page, `(() => { const ctrl = new AbortController(); window.__other = { yielded: false };
+      fetch(${JSON.stringify(`http://127.0.0.1:${MOCK_PORT}`)} + ${JSON.stringify(stream)}, { signal: ctrl.signal })
+        .then((r) => r.body.getReader()).then(async (reader) => { for (;;) { const { done } = await reader.read(); if (done) break; } }).catch(() => {});
+      const tab = new BroadcastChannel('kepuli-playback');
+      tab.onmessage = ({ data }) => {
+        if (window.__other.yielded) return;
+        if (data.type === 'ask') tab.postMessage({ type: 'holding', id: data.id });
+        if (data.type === 'yield') { ctrl.abort(); window.__other.yielded = true; tab.postMessage({ type: 'yielded', id: data.id }); }
+      };
+      return true; })()`);
+    await sleep(1000);
+    await playEpisodeRow(page, 0);
+    await waitFor(page, `[...document.querySelectorAll('#overlay button')].some((b) => b.textContent === 'Play here')`, 'Play here', 40000);
+    const named = (await videoState(page)).overlay;
+    if (!/another tab/.test(named)) return { ok: false, detail: `another tab: the failure says "${named}"` };
+    await evaluate(page, `[...document.querySelectorAll('#overlay button')].find((b) => b.textContent === 'Play here').click()`, { gesture: true });
+    await waitFor(page, PLAYING, 'the episode taken over from the other tab', 40000);
+    notes.push(`another tab: "${named}", taken over`);
+    return { ok: true, detail: notes.join('; ') };
+  } finally {
+    process.env.KEPULI_MOCK_LIMIT = '';
+    process.env.KEPULI_MOCK_RELEASE_MS = '';
+  }
+}
+
+/** A row of the demo series' episode list clicked, without waiting for playback. */
+async function playEpisodeRow(page, index) {
+  await evaluate(page, `document.querySelector('#tabs [data-tab="series"]').click()`);
+  await click(page, '#groups', 'Nordic Noir');
+  await click(page, '#list', 'Silent Fjord');
+  await waitFor(page, `!document.getElementById('detail').hidden && document.querySelectorAll('#list .row').length > ${index}`, 'the series page');
+  await evaluate(page, `document.querySelectorAll('#list .row')[${index}].click()`, { gesture: true });
 }
 
 /**
@@ -1549,12 +1667,12 @@ async function catalogUi(page) {
   return {ok:true,detail:'movie duration, rating filter/sort/reset, native playback, IMDb/facts, series cover expansion, history, failed/missing logo fallback and guide return'};
 }
 
-const SCENARIOS = { catalogUi, setupClarity, fullscreenControl, organize, restore, programmes, catchup, seek, death, cancel, timeout, search, paste, keys, switching, resume, reconnect, accounts, listerror, a11y, subtitles, audio, settings };
+const SCENARIOS = { catalogUi, setupClarity, fullscreenControl, organize, restore, programmes, catchup, seek, death, cancel, timeout, search, paste, keys, switching, resume, connections, reconnect, accounts, listerror, a11y, subtitles, audio, settings };
 // The mock's whole-list answers stall for these, longer than the request limit.
 const SLOW_LIST_MS = { cancel: 60000, timeout: 60000 };
 // The media is sent slowly for these: the seek targets must lie outside the
 // buffer, and the download must still be under way when the server is cut.
-const THROTTLED = new Set(['seek', 'death', 'reconnect']);
+const THROTTLED = new Set(['seek', 'death', 'reconnect', 'connections']);
 
 /* -------------------------------------------------------------------- main */
 

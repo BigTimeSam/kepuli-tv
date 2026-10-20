@@ -1792,6 +1792,13 @@ function onPlaybackState(s) {
     el.overlayTitle.textContent = t('player.waiting');
     el.overlayText.textContent = s.message;
   } else if (s.status === 'error') {
+    // Soon after a stream of ours was let go, a full account may be the
+    // server still counting it: the account is asked before any failure
+    // is shown, and a release waited for rather than reported.
+    if (!s.checked && state.playingSpec && !state.playingSpec.awaitedRelease && playback.followedRelease) {
+      checkBeforeFailing(s);
+      return;
+    }
     state.playbackInfoLoading = false;
     renderInfoStrip();
     el.overlay.hidden = false;
@@ -1850,10 +1857,14 @@ function accountProblem(account, { busy = false } = {}) {
   if (account.status && !/^active$/i.test(String(account.status).trim())) {
     return t('account.inactive', { status: account.status });
   }
-  if (busy && account.maxConnections && account.activeConnections >= account.maxConnections) {
+  if (busy && connectionsFull(account)) {
     return t('account.busy', { active: account.activeConnections, max: account.maxConnections });
   }
   return null;
+}
+
+function connectionsFull(account) {
+  return Boolean(account && account.maxConnections && account.activeConnections >= account.maxConnections);
 }
 
 /**
@@ -1862,12 +1873,12 @@ function accountProblem(account, { busy = false } = {}) {
  * matters is the one that just failed. One small request, and only after a
  * failure — never on the way to playing something.
  */
-async function accountTrouble() {
+async function freshAccount() {
   if (!state.source) return null;
   try {
     const account = await state.source.account();
     state.account = account;
-    return accountProblem(account, { busy: true });
+    return account;
   } catch { return null; }        // the account cannot say; the stream's own error stands
 }
 
@@ -1875,24 +1886,153 @@ async function accountTrouble() {
  * The account's answer, added to a failure once it arrives. The message is
  * left alone if the situation has moved on in the meantime — the same check
  * offerAccess makes.
+ *
+ * A full account is not taken at its word, because the count may be of
+ * this player's own connections: another tab of it, or the stream it closed
+ * a moment ago, which the server goes on counting for a while. The first is
+ * named and offered to be ended; the second is waited out once and the
+ * playback started again, so that "in use" is said only when it is someone
+ * else's.
  */
 async function explainFailure(message) {
-  const trouble = await accountTrouble();
-  if (!trouble || el.overlay.hidden || el.overlayText.textContent !== message) return;
-  el.overlayText.textContent = `${message} ${trouble}`;
+  const spec = state.playingSpec;
+  const shown = () => !el.overlay.hidden && el.overlayText.textContent === message && state.playingSpec === spec;
+  const account = await freshAccount();
+  if (!account || !shown()) return;
+  // An account that has run out or been shut says so whatever the count.
+  const trouble = accountProblem(account) || accountProblem(account, { busy: true });
+  if (!trouble) return;
+  if (accountProblem(account)) { el.overlayText.textContent = `${message} ${trouble}`; return; }
+  const figures = { active: account.activeConnections, max: account.maxConnections };
+  if (await otherTabPlaying()) {
+    if (!shown()) return;
+    el.overlayText.textContent = `${message} ${t('account.othertab', figures)}`;
+    addOverlayAction({ label: t('player.playhere'), onClick: () => takeOver(spec, message) }, { first: true });
+    return;
+  }
+  el.overlayText.textContent = `${message} ${spec && spec.awaitedRelease ? t('account.busy.waited', figures) : trouble}`;
+}
+
+const RELEASE_WAIT_MS = 20000;
+const RELEASE_POLL_MS = 2000;
+
+/** A failure that came soon after a release, held back while the account is asked. */
+async function checkBeforeFailing(failure) {
+  const spec = state.playingSpec;
+  const account = await freshAccount();
+  if (state.playingSpec !== spec) return;
+  if (connectionsFull(account) && !accountProblem(account) && !(await otherTabPlaying())) {
+    if (state.playingSpec !== spec) return;
+    awaitRelease(spec, failure, { active: account.activeConnections, max: account.maxConnections });
+    return;
+  }
+  if (state.playingSpec === spec) onPlaybackState({ ...failure, checked: true });
+}
+
+/**
+ * The server is still counting a connection this player has closed: the
+ * account is asked again every couple of seconds, and the playback starts
+ * once a connection is free. Waited out, the failure is shown as it was,
+ * now saying that the connection is not ours.
+ */
+async function awaitRelease(spec, failure, figures) {
+  spec.awaitedRelease = true;
+  el.overlay.classList.add('loading');
+  el.overlayTitle.textContent = t('account.releasing.title');
+  el.overlayText.textContent = t('account.releasing', figures);
+  showOverlayActions(null);
+  const until = Date.now() + RELEASE_WAIT_MS;
+  while (Date.now() < until) {
+    await new Promise((resolve) => setTimeout(resolve, RELEASE_POLL_MS));
+    if (state.playingSpec !== spec) return;           // the viewer moved on
+    const account = await freshAccount();
+    if (state.playingSpec !== spec) return;
+    if (account && !connectionsFull(account)) { replay(); return; }
+  }
+  onPlaybackState({ ...failure, checked: true });
+}
+
+/** The same thing again, without a second wait should it fail the same way. */
+function replay() {
+  retryPlayback();
+  if (state.playingSpec) state.playingSpec.awaitedRelease = true;
+}
+
+/* ------------------------------------------------ the player's other tabs */
+
+// Every tab of the player shares the account's connections, and a tab can
+// ask the others whether one of them holds one: a tab of our own can be
+// named and ended, where another device can only be guessed at.
+const tabs = typeof BroadcastChannel === 'function' ? new BroadcastChannel('kepuli-playback') : null;
+const TAB_ANSWER_MS = 400;
+
+if (tabs) {
+  tabs.addEventListener('message', ({ data }) => {
+    if (!data || !playback.holding) return;
+    if (data.type === 'ask') tabs.postMessage({ type: 'holding', id: data.id });
+    else if (data.type === 'yield') { playback.stop(); showMovedAway(); tabs.postMessage({ type: 'yielded', id: data.id }); }
+  });
+}
+
+/** Whether another tab of the player answers that it holds a connection. */
+function otherTabPlaying() {
+  return tabMessage('ask', 'holding');
+}
+
+function tabMessage(type, answer) {
+  if (!tabs) return Promise.resolve(false);
+  const id = `${Date.now()}:${Math.random()}`;
+  return new Promise((resolve) => {
+    const listen = ({ data }) => { if (data && data.type === answer && data.id === id) done(true); };
+    const timer = setTimeout(() => done(false), TAB_ANSWER_MS);
+    function done(value) {
+      clearTimeout(timer);
+      tabs.removeEventListener('message', listen);
+      resolve(value);
+    }
+    tabs.addEventListener('message', listen);
+    tabs.postMessage({ type, id });
+  });
+}
+
+/** The other tab stops, and this one plays once the server has let go. */
+async function takeOver(spec, message) {
+  if (state.playingSpec !== spec) return;
+  await tabMessage('yield', 'yielded');
+  if (state.playingSpec !== spec) return;
+  const account = await freshAccount();
+  if (state.playingSpec !== spec) return;
+  if (account && connectionsFull(account)) {
+    awaitRelease(spec, { status: 'error', message }, { active: account.activeConnections, max: account.maxConnections });
+  } else {
+    replay();
+  }
+}
+
+function showMovedAway() {
+  state.playbackInfoLoading = false;
+  renderInfoStrip();
+  el.overlay.hidden = false;
+  el.overlay.classList.remove('loading');
+  el.overlayTitle.textContent = t('player.elsewhere');
+  el.overlayText.textContent = t('player.elsewhere.text');
+  showOverlayActions([{ label: t('player.playhere'), onClick: retryPlayback }]);
 }
 
 function showOverlayActions(actions) {
   el.overlayActions.replaceChildren();
   el.overlayActions.hidden = !actions || !actions.length;
-  for (const action of actions || []) {
-    const button = document.createElement('button');
-    button.type = 'button';
-    button.className = 'ghost';
-    button.textContent = action.label;
-    button.addEventListener('click', action.onClick);
-    el.overlayActions.appendChild(button);
-  }
+  for (const action of actions || []) addOverlayAction(action);
+}
+
+function addOverlayAction(action, { first = false } = {}) {
+  const button = document.createElement('button');
+  button.type = 'button';
+  button.className = 'ghost';
+  button.textContent = action.label;
+  button.addEventListener('click', action.onClick);
+  if (first) el.overlayActions.prepend(button); else el.overlayActions.appendChild(button);
+  el.overlayActions.hidden = false;
 }
 
 async function playItem(item, { startAt, allowSilent } = {}) {
