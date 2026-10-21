@@ -3044,6 +3044,7 @@ const sourceMode = () => (document.querySelector('input[name="source"]:checked')
 async function renderAccountBox() {
   const box = $('account-box');
   const a = state.account;
+  $('app-version').textContent = `Kepuli-TV ${api.runtime.getManifest().version}`;
   // A section that is simply empty tells the viewer nothing about why.
   $('account-none').hidden = Boolean(a);
   if (!a) { box.hidden = true; return; }
