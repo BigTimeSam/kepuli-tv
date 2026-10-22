@@ -11,7 +11,7 @@ browsers as it is. `js/browser.js` holds the one line that differs, and
 `firefox/` holds the Firefox manifest and the tools that assemble the package
 from the shared files. There is no second copy of anything to keep in step.
 
-## Viewing aids verification
+## Release 1.2.0 verification
 
 Checked on 2026-10-22 in Firefox 157 and Chrome on macOS, against the mock
 provider. The five new scenarios pass in both: `lastchannel` (the previous
