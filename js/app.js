@@ -1561,8 +1561,8 @@ function toggleFavorite(item) {
 
 /** Only the fields the list needs for painting are kept. */
 function stripItem(item) {
-  const { id, k, n, logo, ext, season, episode, archive, epgId, direct, cats, durationSec, seriesCover, seriesName, displayName, rating, ratingScale } = item;
-  return { id, k, n, logo, ext, season, episode, archive, epgId, direct, cats, durationSec, seriesCover, seriesName, displayName, rating, ratingScale };
+  const { id, k, n, logo, ext, season, episode, archive, epgId, direct, cats, durationSec, seriesCover, seriesName, seriesId, displayName, rating, ratingScale } = item;
+  return { id, k, n, logo, ext, season, episode, archive, epgId, direct, cats, durationSec, seriesCover, seriesName, seriesId, displayName, rating, ratingScale };
 }
 
 /* ================================================================ series */
@@ -1610,6 +1610,7 @@ async function openSeries(item) {
         displayName: cleanName ? cleanName(episode.n) : episode.n,
         seriesCover: info.cover || item.logo || '',
         seriesName: cleanName ? cleanName(item.n) : item.displayName || item.n,
+        seriesId: item.id,
       })),
     };
     const seasons = seasonNumbers(info.episodes);
@@ -2065,6 +2066,7 @@ async function playItem(item, { startAt, allowSilent } = {}) {
     startAt: startAt ?? (state.settings.resumeEnabled && !live && saved ? saved.position : 0),
   };
 
+  cancelAutoNext();
   if (live) noteChannel(item);
   state.playing = item;
   updatePlayerLayout();
@@ -2754,6 +2756,7 @@ function playCatchup(item, programme) {
   if (!catchupAvailable(item, programme)) { toast(t('guide.norecording'), { kind: 'warn' }); return; }
   const minutes = Math.max(1, Math.ceil((programme.stop - programme.start) / 60000));
   const url = timeshiftUrl(state.config, item.id, programme.start, minutes, state.account.serverUtcOffsetMs || 0);
+  cancelAutoNext();
   state.playing = item;
   updatePlayerLayout();
   playerLayout.showPlayer();
@@ -2785,7 +2788,76 @@ function retryPlayback() {
 let lastResumeSave = 0;
 el.video.addEventListener('ended', () => {
   if (state.catchup) toast(t('guide.archiveended'), { long: true });
+  else if (state.playing?.k === 3 && state.settings.autoNext) startAutoNext(state.playing);
 });
+// Going back into the episode that just ended takes the countdown away.
+el.video.addEventListener('seeking', () => { if (autoNext && !el.video.ended) cancelAutoNext(); });
+
+/* ------------------------------------------------------- the next episode */
+
+/**
+ * The episode after this one, in the series' own order — the same order
+ * as its list, season by season. The episode carries its series' id from
+ * the list it was opened in (and through history and favourites), so the
+ * series need not be open; its episodes are usually cached in any case.
+ */
+async function nextEpisode(item) {
+  if (item.k !== 3 || item.seriesId == null || !state.lib) return null;
+  const open = state.detail?.view === 'series' && String(state.detail.item.id) === String(item.seriesId) ? state.detail.info : null;
+  const episodes = open ? open.episodes : (await state.lib.seriesEpisodes(item.seriesId)).episodes;
+  const at = episodes.findIndex((episode) => String(episode.id) === String(item.id));
+  const next = at < 0 ? null : episodes[at + 1];
+  if (!next) return null;
+  return { seriesCover: item.seriesCover, seriesName: item.seriesName, seriesId: item.seriesId, ...next };
+}
+
+async function playEpisode(episode) {
+  const index = state.rowIndex.get(`3:${episode.id}`);
+  if (index != null) { state.cursor = index; vlist.scrollToIndex(index); }
+  await playItem(episode);
+}
+
+const AUTONEXT_SECONDS = 10;
+let autoNext = null;   // { timer, episode } while the countdown runs
+
+/**
+ * The countdown over the last picture of an episode. It is the overlay's
+ * own, with a way to start at once and a way to stay: a viewer who has
+ * dozed off is not taken through the whole season, because the countdown
+ * starts only from an episode that ran to its end.
+ */
+async function startAutoNext(item) {
+  cancelAutoNext();
+  let episode = null;
+  try { episode = await nextEpisode(item); } catch { return; }
+  if (!episode || state.playing !== item || !el.video.ended) return;
+  const label = `S${episode.season} E${episode.episode} · ${episode.displayName || episode.n}`;
+  let left = AUTONEXT_SECONDS;
+  const paint = () => { el.overlayText.textContent = t('player.next.text', { episode: label, seconds: left }); };
+  el.overlay.hidden = false;
+  el.overlay.classList.remove('loading');
+  el.overlayTitle.textContent = t('player.next.title');
+  paint();
+  showOverlayActions([
+    { label: t('player.next.now'), onClick: () => playEpisode(episode) },
+    { label: t('player.next.cancel'), onClick: () => { cancelAutoNext(); el.overlay.hidden = true; } },
+  ]);
+  autoNext = {
+    episode,
+    timer: setInterval(() => {
+      left -= 1;
+      if (left > 0) { paint(); return; }
+      playEpisode(episode);
+    }, 1000),
+  };
+}
+
+function cancelAutoNext() {
+  if (!autoNext) return;
+  clearInterval(autoNext.timer);
+  autoNext = null;
+  showOverlayActions(null);
+}
 el.video.addEventListener('timeupdate', () => {
   const item = state.playing;
   if (!item || item.k === 0 || !state.settings.resumeEnabled) return;
@@ -2924,6 +2996,7 @@ function openSetup({ section } = {}) {
   $('f-channelsort').value = state.settings.channelSort;
   $('f-epg').checked = state.settings.epgEnabled;
   $('f-resume').checked = state.settings.resumeEnabled;
+  $('f-autonext').checked = state.settings.autoNext;
   $('f-stats').checked = state.settings.statsEnabled;
   setupInitial = { ...state.settings, subtitleStyle: subtitleLook(state.settings).style, subtitleSize: subtitleLook(state.settings).size };
   applySubtitleLook(state.settings);
@@ -2956,6 +3029,7 @@ function readSetupSettings() {
     channelSort: $('f-channelsort').value,
     epgEnabled: $('f-epg').checked,
     resumeEnabled: $('f-resume').checked,
+    autoNext: $('f-autonext').checked,
     statsEnabled: $('f-stats').checked,
     subtitleStyle: $('f-substyle').value,
     subtitleSize: Number($('f-subsize').value),
@@ -3641,7 +3715,13 @@ function moveCursor(delta) { listNavigation.move(delta, vlist); }
 function playRelative(delta) {
   if (!state.playing) return;
   const index = state.rowIndex.get(`${state.playing.k}:${state.playing.id}`);
-  if (index == null) return;
+  // An episode played from History or Favourites is not in the list on
+  // screen; the next one is still the series' own next.
+  if (index == null) {
+    const item = state.playing;
+    if (delta === 1 && item.k === 3) nextEpisode(item).then((episode) => episode && state.playing === item && playEpisode(episode)).catch(() => {});
+    return;
+  }
   const next = index + delta;
   if (next < 0 || next >= state.rows.length) return;
   state.cursor = next;

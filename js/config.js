@@ -49,6 +49,9 @@ function browserLanguage() {
 const SETTINGS_DEFAULTS = {
   epgEnabled: true,
   resumeEnabled: true,
+  // When an episode ends, the next one starts after a countdown that can
+  // be cancelled.
+  autoNext: true,
   // The technical read-out over the picture — resolution, bit rate, the
   // engine carrying the stream. Diagnostics rather than viewing, so it is
   // asked for rather than given: see the stat badge in js/app.js.
