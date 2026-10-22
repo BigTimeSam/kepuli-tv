@@ -48,6 +48,13 @@ RARELY
   • Category, language, homepage, support URL, privacy policy URL, test
     instructions: leave them unless the thing they describe has moved.
 
+FOR 1.2.0 SPECIFICALLY
+  Diffing the manifests, only "version" changed again. The update notice uses
+  runtime.onUpdateAvailable and runtime.reload, which need no permission. So:
+  upload the package, replace all five screenshots (the player now shows films
+  as covers, and the top bar has changed), paste the detailed description
+  below, whose FEATURES gained five lines. Nothing else on the form changes.
+
 FOR 1.1.0 SPECIFICALLY
   Diffing the manifests, only "version" changed: no permission, no CSP and no
   description difference between 1.0.9 and 1.1.0. So: upload the package,
@@ -89,7 +96,7 @@ work is light and seeking behaves normally.
 The audio decides more often than the container: more than half of the
 episodes carry a surround-sound track that the browser cannot decode. Those
 tracks are decoded on the spot and encoded back with the browser's own
-encoder: AAC, or Opus where the browser has no AAC encoder.
+encoder: AAC, or Opus where it has no AAC encoder.
 
 Measured on a sample of 23,628 episodes: without this, 44.6% would work; with
 it, 93.7%.
@@ -159,7 +166,14 @@ FEATURES
 • A full-window programme guide, with catch-up where an archive exists
 • Matroska and its subtitles without an external player
 • Series by season, with cover art and episode descriptions; movies with
-  their plot and rating
+  their plot and rating; both shown as covers, or as a list if you prefer
+• What was left halfway waits at the top of the history and wherever
+  nothing is playing yet, the next episode starts after a short countdown,
+  and the previous channel is a key away
+• A reminder a minute before a programme starts, set from the grid
+• The media keys and the system's own media controls, which show what is on
+• An update Chrome has fetched is offered rather than held back silently
+  while the tab is open
 • Files that cannot be shown are marked before you click, and their address
   can be handed to a desktop application with the resume position
 • Casting to a Chromecast
@@ -258,7 +272,7 @@ Screenshots:           brand/screenshots/01-channels.png … 05-movie.png
     02  the programme guide
     03  a series: cover, plot, seasons, episodes
     04  an MKV episode with English subtitles on screen
-    05  a movie with its details below the player
+    05  a movie with its details below the player, the films as covers
   All content on them is invented: they come from the mock server in
   dev/mock/, via node dev/store-screenshots.mjs (see the README). The same
   walk makes the Firefox Add-ons set in brand/firefox-screenshots/ with

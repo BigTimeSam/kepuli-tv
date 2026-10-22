@@ -24,6 +24,12 @@ add-on: the player closed, and background.js opened it again at the address
 it had left. Chrome's DevTools-loaded extension does not come back from
 `runtime.reload()`, so that path has no automatic check there.
 
+The same release redraws the player: films and series as covers, larger
+channel logos, progress bars that line up, an empty player that offers what
+was left halfway, and marks in the top bar. In Chrome the whole suite passed
+again; in Firefox 157 `catalogUi` (covers, then the list) and
+`continuewatching` passed, and both stores' screenshots were taken again.
+
 ## Release 1.0.9 verification
 
 The shared dialog changes were checked on 2026-09-06 in Firefox 155 on macOS
