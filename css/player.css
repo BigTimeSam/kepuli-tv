@@ -332,6 +332,19 @@ body.resizing { user-select: none; }
 .chip.active .chip-star:hover { color: #fff; }
 .chip.active .chip-star.on { color: #ffd884; }
 
+/* With a mouse, an empty star waits for the pointer: one on every country,
+   every topic and every row was a column of the same mark repeated down the
+   screen, and it said nothing until it was wanted. A favourite keeps its
+   star, and so does the row the keyboard stands on. A touch screen has no
+   hover, and a viewer who has asked for more contrast keeps every star in
+   sight, as both did before. */
+@media (hover: hover) and (pointer: fine) and (prefers-contrast: no-preference) {
+  .row-star:not(.on), .group-star:not(.on), .chip-star:not(.on) { opacity: 0; transition: opacity .12s; }
+  .row:hover .row-star, .row.selected .row-star,
+  .group:hover .group-star, .groups-list:focus-visible .group.cursor .group-star,
+  .chip:hover .chip-star { opacity: 1; }
+}
+
 /* --------------------------------------------------- sarjan tiedot */
 
 .detail { border-bottom: 1px solid var(--border); background: var(--panel); }
@@ -419,25 +432,27 @@ button.series-favorite { flex: none; width: 32px; height: 32px; padding: 0; disp
 .row-cat .row-name { font-weight: 550; }
 .row-cat:hover .row-cat-icon svg { stroke: var(--text); }
 
-.row-logo { width: 30px; height: 24px; flex: none; object-fit: contain; border-radius: 3px; }
-.row-poster { width: 26px; height: 38px; flex: none; object-fit: cover; border-radius: 3px; background: var(--panel-2); }
+/* A channel is recognised by its logo before its name is read, which takes
+   a logo large enough to be one: at 30x24 a wide logo was a smudge. */
+.row-logo { width: 44px; height: 30px; flex: none; object-fit: contain; border-radius: 4px; }
+.row-poster { width: 30px; height: 44px; flex: none; object-fit: cover; border-radius: 4px; background: var(--panel-2); }
 
 .row-body { flex: 1; min-width: 0; }
 .row-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .row-sub { display: flex; align-items: center; gap: 6px; font-size: 0.6875rem; color: var(--dim); margin-top: 2px; }
 .row-sub .txt { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.row-progress { flex: none; width: 42px; height: 3px; border-radius: 2px; background: #262c3d; overflow: hidden; }
+.row-progress { width: min(140px, 100%); height: 3px; margin-top: 5px; border-radius: 2px; background: #262c3d; overflow: hidden; }
 .row-progress i { display: block; height: 100%; background: var(--accent); }
+.row-progress.resume i { background: var(--accent-2); }
 
 .row-badge { font-size: 0.6875rem; color: var(--muted); background: var(--panel-2); border: 1px solid var(--border); padding: 1px 6px; border-radius: 5px; white-space: nowrap; flex: none; }
 .row-badge.warn { color: var(--warn); border-color: #3d3627; }
 .row-time { display: inline-flex; align-items: center; gap: 4px; }
 .row-time svg { width: 13px; height: 13px; flex: none; fill: none; stroke: currentColor; stroke-width: 1.5; stroke-linecap: round; stroke-linejoin: round; }
-.row-badge.archive { color: var(--accent-2); border-color: #1f3a42; }
+.row-badge.archive { display: inline-flex; align-items: center; gap: 3px; color: var(--accent-2); border-color: #1f3a42; }
+.row-badge.archive svg { width: 12px; height: 12px; flex: none; fill: none; stroke: currentColor; stroke-width: 1.6; stroke-linecap: round; stroke-linejoin: round; }
 .row-ep { font-size: 0.6875rem; color: var(--muted); font-variant-numeric: tabular-nums; white-space: nowrap; flex: none; }
 .row-chevron { color: #4b5368; flex: none; }
-.row-resume { flex: none; width: 34px; height: 3px; border-radius: 2px; background: #262c3d; overflow: hidden; }
-.row-resume i { display: block; height: 100%; background: var(--accent-2); }
 
 /* Dimmer than the star beside it — it is the rarer gesture and must not
    compete — but present: on hover alone it was the only way to drop a

@@ -74,6 +74,8 @@ export function itemRow(item, ctx) {
 
   const sub = subLine(item, ctx);
   if (sub) body.appendChild(sub);
+  const bar = progressBar(item, ctx);
+  if (bar) body.appendChild(bar);
   row.appendChild(body);
 
   for (const badge of badges(item, ctx)) row.appendChild(badge);
@@ -95,14 +97,6 @@ function subLine(item, ctx) {
     if (!entry || !entry.now) return null;
     const sub = el('div', 'row-sub');
     sub.appendChild(el('span', 'txt', `${clock(entry.now.start)} ${entry.now.title}`));
-    const share = progressOf(entry.now);
-    if (share != null) {
-      const bar = el('div', 'row-progress');
-      const fill = document.createElement('i');
-      fill.style.width = `${Math.round(share * 100)}%`;
-      bar.appendChild(fill);
-      sub.appendChild(bar);
-    }
     return sub;
   }
 
@@ -123,19 +117,31 @@ function subLine(item, ctx) {
     if (aired) bits.push(aired);
   }
 
-  const resume = ctx.resume;
-  if (!bits.length && !resume) return null;
-
+  if (!bits.length) return null;
   const sub = el('div', 'row-sub');
-  if (bits.length) sub.appendChild(el('span', 'txt', bits.join(' · ')));
-  if (resume && resume.duration > 0) {
-    const bar = el('div', 'row-resume');
-    const fill = document.createElement('i');
-    fill.style.width = `${Math.min(100, Math.round((resume.position / resume.duration) * 100))}%`;
-    bar.appendChild(fill);
-    sub.appendChild(bar);
-  }
+  sub.appendChild(el('span', 'txt', bits.join(' · ')));
   return sub;
+}
+
+/**
+ * How far the programme on air has got, or how far a film was watched. A
+ * line of its own under the text, the same length on every row: beside the
+ * text it began wherever the title happened to end, and a column of bars
+ * that each start somewhere else cannot be compared at a glance.
+ */
+function progressBar(item, ctx) {
+  let share = null, cls = 'row-progress';
+  if (item.k === 0) share = ctx.epg?.now ? progressOf(ctx.epg.now) : null;
+  else if (ctx.resume && ctx.resume.duration > 0) {
+    share = Math.min(1, ctx.resume.position / ctx.resume.duration);
+    cls = 'row-progress resume';
+  }
+  if (share == null) return null;
+  const bar = el('div', cls);
+  const fill = document.createElement('i');
+  fill.style.width = `${Math.round(share * 100)}%`;
+  bar.appendChild(fill);
+  return bar;
 }
 
 /**
@@ -151,10 +157,21 @@ function explained(node, sentence) {
   return node;
 }
 
+function icon(paths) {
+  const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+  svg.setAttribute('viewBox', '0 0 20 20');
+  svg.setAttribute('aria-hidden', 'true');
+  svg.innerHTML = paths;
+  return svg;
+}
+
 function badges(item, ctx) {
   const out = [];
   if (item.k === 0 && item.archive > 0) {
+    // A clock turning back: the days alone were a number with a unit that
+    // said nothing about what was counted.
     const badge = el('div', 'row-badge archive', t('row.archive', { days: item.archive }));
+    badge.prepend(icon('<path d="M4.5 10a5.5 5.5 0 1 0 1.6-3.9"/><path d="M4.2 3.6v3h3"/><path d="M10 7v3.2l2.2 1.3"/>'));
     out.push(explained(badge, t('row.archive.title', { days: item.archive })));
   }
   if (item.k === 1) {
@@ -176,11 +193,7 @@ function badges(item, ctx) {
     const node = el('div', 'row-badge', ctx.tag.text);
     if (ctx.tag.icon === 'clock') {
       node.classList.add('row-time');
-      const icon = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
-      icon.setAttribute('viewBox', '0 0 20 20');
-      icon.setAttribute('aria-hidden', 'true');
-      icon.innerHTML = '<circle cx="10" cy="10" r="6.5"/><path d="M10 6.4V10l2.6 1.6"/>';
-      node.prepend(icon);
+      node.prepend(icon('<circle cx="10" cy="10" r="6.5"/><path d="M10 6.4V10l2.6 1.6"/>'));
     }
     if (ctx.tag.title) node.title = ctx.tag.title;
     out.push(node);
