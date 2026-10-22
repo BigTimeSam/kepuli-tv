@@ -122,6 +122,9 @@
           <div class="overlay-title" id="overlay-title" data-i18n="player.idle">Nothing playing</div>
           <div class="overlay-text" id="overlay-text" data-i18n="player.idle.text" aria-live="polite">Pick a channel from the list.</div>
           <div class="overlay-actions" id="overlay-actions" hidden></div>
+          <!-- What an empty player can offer instead of black: the films and
+               episodes left halfway, and the channels watched last. -->
+          <div class="idle-home" id="idle-home" hidden></div>
         </div>
       </div>
       <div class="statbadge" id="statbadge" hidden></div>
@@ -134,7 +137,7 @@
 
     <div class="nowbar">
       <div class="now">
-        <div class="now-title" id="now-title">—</div>
+        <div class="now-title" id="now-title"></div>
         <div class="now-sub" id="now-sub" data-i18n="player.disconnected">Not connected</div>
       </div>
       <!-- Above the row rather than inside it: the row is full, and the

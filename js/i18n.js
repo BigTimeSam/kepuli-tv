@@ -204,6 +204,9 @@ const STRINGS = {
     /* ---------------------------------------------------------- player */
     'player.idle': 'Nothing playing',
     'player.idle.text': 'Pick a channel from the list.',
+    'player.idle.home': 'Carry on where you left off, or pick something from the list.',
+    'player.idle.continue': 'Continue watching',
+    'player.idle.channels': 'Watched lately',
     'player.disconnected': 'Not connected',
     'player.mode.title': 'Playback mode',
     'player.audio.title': 'Audio track',
@@ -694,6 +697,9 @@ const STRINGS = {
     /* ---------------------------------------------------------- player */
     'player.idle': 'Ei toistoa',
     'player.idle.text': 'Valitse kanava listalta.',
+    'player.idle.home': 'Jatka siitä, mihin jäit, tai valitse jotain listalta.',
+    'player.idle.continue': 'Jatka katselua',
+    'player.idle.channels': 'Viimeksi katsotut',
     'player.disconnected': 'Ei yhteyttä',
     'player.mode.title': 'Toistotapa',
     'player.audio.title': 'Ääniraita',

@@ -42,6 +42,7 @@ const el = {
   video: $('video'), videowrap: $('videowrap'), subdisplay: $('subdisplay'),
   overlay: $('overlay'), overlayTitle: $('overlay-title'),
   overlayText: $('overlay-text'), overlayActions: $('overlay-actions'), statbadge: $('statbadge'),
+  idleHome: $('idle-home'),
   infostrip: $('infostrip'), nowTitle: $('now-title'), nowSub: $('now-sub'), mode: $('mode'),
   subs: $('subs'), audio: $('audio'), cast: $('btn-cast'),
   setup: $('setup'), setupTabs: $('setup-tabs'), setupNote: $('setup-note'), setupNoteText: $('setup-note-text'),
@@ -174,6 +175,7 @@ async function connect({ silent = false } = {}) {
     // than leaving the first stream to fail and explain it.
     const problem = accountProblem(state.account);
     if (problem) toast(problem, { long: true, kind: 'warn' });
+    if (!state.playing && !el.overlay.hidden) renderIdleOverlay();
     return true;
   } catch (err) {
     hideProgress();
@@ -847,6 +849,7 @@ function sectionsFor(rows) {
 
 async function removeFromHistory(item) {
   state.recents = await store.removeRecent(`${item.k}:${item.id}`);
+  if (!state.playing && !el.idleHome.hidden) renderIdleOverlay();
   renderSidebar();
   await refreshRows({ keepScroll: true });
 }
@@ -854,6 +857,7 @@ async function removeFromHistory(item) {
 async function clearHistory() {
   await store.clearRecents();
   state.recents = [];
+  if (!state.playing && !el.idleHome.hidden) renderIdleOverlay();
   state.kind = null;
   state.lastKind.recent = null;
   renderSidebar();
@@ -2030,6 +2034,8 @@ function showMovedAway() {
 }
 
 function showOverlayActions(actions) {
+  // Whatever the overlay says now, it is no longer the empty player's.
+  el.idleHome.hidden = true;
   el.overlayActions.replaceChildren();
   el.overlayActions.hidden = !actions || !actions.length;
   for (const action of actions || []) addOverlayAction(action);
@@ -4107,7 +4113,77 @@ async function applyLanguage(lang) {
 function renderIdleOverlay() {
   const welcome = !state.config.host;
   el.overlayTitle.textContent = welcome ? t('setup.welcome') : t('player.idle');
-  el.overlayText.textContent = welcome ? t('setup.welcome.text') : t('player.idle.text');
+  const home = welcome ? false : renderIdleHome();
+  el.overlayText.textContent = welcome ? t('setup.welcome.text') : t(home ? 'player.idle.home' : 'player.idle.text');
+}
+
+const IDLE_CONTINUE = 4;
+const IDLE_CHANNELS = 6;
+
+/**
+ * The empty player's own page. The picture's place was 60 % of the window
+ * in black with one sentence in it; what was left halfway and the channels
+ * watched last are a click from playing, and they are already in storage.
+ * Nothing is fetched for it — a channel's programme would cost a request
+ * per tile, and the list beside it shows that anyway.
+ *
+ * @returns {boolean} whether there was anything to show
+ */
+function renderIdleHome() {
+  const home = el.idleHome;
+  home.replaceChildren();
+  if (state.playing || !state.lib) { home.hidden = true; return false; }
+  const unfinished = state.recents.filter(isUnfinished).slice(0, IDLE_CONTINUE);
+  const channels = state.recents.filter((item) => item.k === 0).slice(0, IDLE_CHANNELS);
+  if (unfinished.length) {
+    home.appendChild(idleSection('player.idle.continue', 'idle-cards', unfinished.map((item) => {
+      const card = idleTile('idle-card', item, () => playItem(item));
+      const cover = poster('idle-cover', (item.k === 3 && item.seriesCover) || item.logo, item.k === 3 ? 'series' : 'movie');
+      const resume = state.resume.get(`${item.k}:${item.id}`);
+      const bar = document.createElement('div');
+      bar.className = 'row-progress resume';
+      const fill = document.createElement('i');
+      fill.style.width = `${Math.round(Math.min(1, resume.position / resume.duration) * 100)}%`;
+      bar.appendChild(fill);
+      const name = document.createElement('span');
+      name.className = 'idle-name';
+      name.textContent = item.k === 3 ? `${item.seriesName || ''} S${item.season} E${item.episode}`.trim() : item.displayName || item.n;
+      card.append(cover, name, bar);
+      return card;
+    })));
+  }
+  if (channels.length) {
+    home.appendChild(idleSection('player.idle.channels', 'idle-channels', channels.map((item) => {
+      const tile = idleTile('idle-channel', item, () => playItem(item));
+      const name = document.createElement('span');
+      name.className = 'idle-name';
+      name.textContent = item.displayName || item.n;
+      tile.append(poster('idle-logo', item.logo, 'channel'), name);
+      return tile;
+    })));
+  }
+  home.hidden = !home.childElementCount;
+  return !home.hidden;
+}
+
+function idleSection(titleKey, listClass, tiles) {
+  const section = document.createElement('section');
+  const heading = document.createElement('h3');
+  heading.textContent = t(titleKey);
+  const list = document.createElement('div');
+  list.className = listClass;
+  list.append(...tiles);
+  section.append(heading, list);
+  return section;
+}
+
+function idleTile(className, item, onClick) {
+  const tile = document.createElement('button');
+  tile.type = 'button';
+  tile.className = className;
+  tile.title = item.n;
+  tile.addEventListener('click', onClick);
+  return tile;
 }
 
 /* ================================================================== start */
