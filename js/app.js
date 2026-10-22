@@ -2565,6 +2565,7 @@ const grid = new EpgGrid({
   onActivate: activateProgramme,
   onChannel: (channel) => channel && playItem(channel),
   onWindow: (items, from, to) => state.epg && state.epg.setVisibleWindow(items, from, to),
+  reminded: (channel, programme) => reminders.has(reminderKey(channel, programme)),
 });
 
 let guideOpen = false;
@@ -2715,6 +2716,10 @@ function renderGuidePreview(channel, programme) {
     buttons.unshift({ label: t(programme.stop > now ? 'guide.startover' : 'guide.watch.recording'), primary: true, onClick: () => playCatchup(channel, programme) });
     buttons[1].primary = false;
   }
+  if (programme && programme.start > now) {
+    const set = reminders.has(reminderKey(channel, programme));
+    buttons.push({ label: t(set ? 'guide.remind.cancel' : 'guide.remind'), onClick: () => toggleReminder(channel, programme) });
+  }
   actions.replaceChildren(...buttons.map(({ label, primary, onClick }) => {
     const button = document.createElement('button');
     button.type = 'button';
@@ -2735,7 +2740,9 @@ function activateProgramme(channel, programme) {
     return;
   }
   if (programme && programme.start > now) {
-    toast(t('guide.starts', { title: programme.title, time: clock(programme.start) }));
+    const action = reminders.has(reminderKey(channel, programme)) ? null
+      : { label: t('guide.remind'), onClick: () => toggleReminder(channel, programme) };
+    toast(t('guide.starts', { title: programme.title, time: clock(programme.start) }), { action });
     return;
   }
   playItem(channel);
@@ -2750,6 +2757,73 @@ function relativeSoon(start, now) {
   const minutes = Math.round((start - now) / 60000);
   if (minutes < 60) return t('guide.minutes', { minutes });
   return t('guide.at', { time: clock(start) });
+}
+
+/* ------------------------------------------------------------ reminders */
+
+// A programme to be reminded of, a minute before it starts. Only while a
+// player is open: a reminder from a closed one would take a background
+// timer and the notifications permission, and Chrome disables an extension
+// on update until a new permission like that has been accepted.
+const REMIND_AHEAD = 60 * 1000;
+const reminderKey = (channel, programme) => `${channel.id}:${programme.start}`;
+let reminders = new Map();
+let reminderTimer = null;
+
+async function loadReminders() {
+  const now = Date.now();
+  reminders = new Map((await store.loadReminders())
+    .filter((r) => r.stop > now)
+    .map((r) => [reminderKey(r.channel, r), r]));
+  armReminders();
+}
+
+function saveReminders() { store.saveReminders([...reminders.values()]); }
+
+function toggleReminder(channel, programme) {
+  const key = reminderKey(channel, programme);
+  if (reminders.has(key)) reminders.delete(key);
+  else {
+    reminders.set(key, { channel: stripItem(channel), title: programme.title, start: programme.start, stop: programme.stop });
+    toast(t('guide.remind.set', { title: programme.title, time: clock(programme.start) }), { long: true });
+  }
+  saveReminders();
+  armReminders();
+  if (guideOpen) { grid.invalidate(); renderGuidePreview(channel, programme); }
+}
+
+/** One timer, for the reminder due first. A hidden tab's timers run late, by up to a minute. */
+function armReminders() {
+  clearTimeout(reminderTimer);
+  const due = [...reminders.values()].map((r) => r.start - REMIND_AHEAD);
+  if (!due.length) return;
+  reminderTimer = setTimeout(fireReminders, Math.max(0, Math.min(...due) - Date.now()));
+}
+
+/**
+ * Every reminder that is due is said and forgotten. One due while the tab
+ * was out of sight waits until it is looked at again, for as long as the
+ * programme is still on: a message nobody saw has reminded nobody.
+ */
+function fireReminders() {
+  if (document.hidden) {
+    document.addEventListener('visibilitychange', fireReminders, { once: true });
+    return;
+  }
+  const now = Date.now();
+  const due = [...reminders.entries()].filter(([, r]) => r.start - REMIND_AHEAD <= now);
+  for (const [key] of due) reminders.delete(key);
+  const showing = due.map(([, r]) => r).filter((r) => r.stop > now).sort((a, b) => b.start - a.start)[0];
+  if (due.length) saveReminders();
+  armReminders();
+  if (!showing) return;
+  const channel = showing.channel;
+  const name = channel.displayName || channel.n;
+  const text = showing.start > now
+    ? t('guide.remind.soon', { title: showing.title, time: clock(showing.start), channel: name })
+    : t('guide.remind.started', { title: showing.title, channel: name });
+  toast(text, { action: { label: t('guide.watch'), onClick: () => playItem(channel) }, duration: Math.max(REMIND_AHEAD, 15000) });
+  if (guideOpen) grid.invalidate();
 }
 
 function playCatchup(item, programme) {
@@ -3382,6 +3456,7 @@ function wireSetup() {
         state.resume = await store.loadResume();
         state.channelPrefs = await store.loadChannelPreferences();
         lastChannel = previousChannel = null;
+        await loadReminders();
         await connect();
       } else {
         toast(t('setup.saved'));
@@ -3491,7 +3566,7 @@ let toastTimer = null;
  * own tone. Each kind brings its own icon, so the colour is never the only
  * thing that separates a failure from a note.
  */
-function toast(text, { long = false, kind = 'info', action = null } = {}) {
+function toast(text, { long = false, kind = 'info', action = null, duration = null } = {}) {
   el.toastText.textContent = text;
   // A message that names what is wrong can carry the thing that fixes it:
   // "Programme data is switched off in settings" said so and then left the
@@ -3513,7 +3588,7 @@ function toast(text, { long = false, kind = 'info', action = null } = {}) {
   clearTimeout(toastTimer);
   // An error deserves the time it takes to read it, and so does a message
   // with something in it to press.
-  toastTimer = setTimeout(() => { el.toast.hidden = true; }, long || action ? 7000 : 2800);
+  toastTimer = setTimeout(() => { el.toast.hidden = true; }, duration ?? (long || action ? 7000 : 2800));
 }
 
 async function copyUrl() {
@@ -4055,6 +4130,7 @@ async function init() {
   state.recents = await store.loadRecents();
   state.resume = await store.loadResume();
   state.channelPrefs = await store.loadChannelPreferences();
+  await loadReminders();
   el.mode.value = state.config.streamMode || 'auto';
   applySubtitleLook(state.settings);
   new SubtitleDisplay(el.video, el.subdisplay, el.videowrap);

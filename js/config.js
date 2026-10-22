@@ -216,6 +216,14 @@ export async function clearRecents() {
   await writePersonal('recents', []);
 }
 
+/* ----------------------------------------------------------- reminders */
+
+// Programmes the viewer asked to be reminded of: { channel, title, start, stop }.
+// The channel ids are the account's own, so the list is too.
+export async function loadReminders() { return readPersonal('reminders', []); }
+
+export async function saveReminders(list) { await writePersonal('reminders', list); }
+
 /* ------------------------------------------------------- resume points */
 
 export async function loadResume() {

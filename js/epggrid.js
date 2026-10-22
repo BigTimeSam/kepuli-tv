@@ -45,7 +45,7 @@ export function archiveDays(channels) {
 export class EpgGrid {
   /**
    * @param {object} refs { scroll, canvas, timesInner, chansInner, corner, days, clock }
-   * @param {object} opts { label, onSelect, onActivate, onChannel, onWindow }
+   * @param {object} opts { label, onSelect, onActivate, onChannel, onWindow, reminded }
    */
   constructor(refs, opts = {}) {
     this.el = refs;
@@ -71,6 +71,7 @@ export class EpgGrid {
     this.onActivate = opts.onActivate || (() => {});
     this.onChannel = opts.onChannel || (() => {});
     this.onWindow = opts.onWindow || (() => {});
+    this.reminded = opts.reminded || (() => false);
 
     this.nowLine = document.createElement('div');
     this.nowLine.className = 'epg-nowline';
@@ -266,7 +267,8 @@ export class EpgGrid {
     node.className = 'epg-prog'
       + (live ? ' live' : p.stop <= now ? ' past' : '')
       + (this.isSelected(row, p) ? ' sel' : '')
-      + (catchupAvailable(ch, p, now) ? ' rec' : '');
+      + (catchupAvailable(ch, p, now) ? ' rec' : '')
+      + (p.start > now && this.reminded(ch, p) ? ' remind' : '');
     node.style.left = `${left}px`;
     node.style.width = `${width}px`;
     node.style.top = `${row * ROW_H + 3}px`;
