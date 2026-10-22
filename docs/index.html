@@ -748,7 +748,20 @@ browser cannot do — see below</li>
 device through the Remote Playback API, and for the rest the menu explains how
 Chrome's own tab casting does it — see below</li>
   <li><strong>Resume positions remembered</strong> for movies and episodes, with a progress bar
-on the row</li>
+on the row; what was left halfway heads the history under <strong>Continue
+watching</strong></li>
+  <li><strong>The next episode</strong> after a ten-second countdown when one ends, with <strong>Play
+now</strong> and <strong>Cancel</strong> over the picture; a switch under <strong>Viewing</strong> turns it off</li>
+  <li><strong>The previous channel</strong> with <code>l</code>, as a television's own button has it</li>
+  <li><strong>Programme reminders</strong> from the guide: a minute before the programme starts,
+a message names it with <strong>Watch</strong> — while the player is open</li>
+  <li><strong>Media keys</strong> and the system's media controls: the programme and channel,
+or the title and series, are named there, next and previous step as <code>n</code> and
+<code>p</code> do, and the seek keys move a film or a recording</li>
+  <li><strong>Updates offered</strong> rather than held back silently: the browser does not
+take an update while the player is open, so the player says one is ready
+and takes it on request, reopening where it was. <strong>Account &amp; data</strong> names
+the version running</li>
   <li><strong>Favourites</strong> and <strong>history</strong> as tabs of their own — a whole category can be
 a favourite too, see below</li>
   <li><strong>Two languages</strong>: English and Finnish, switched in the settings without a
@@ -778,7 +791,8 @@ answer no question about what to watch</li>
     <tr><td><code>a</code></td><td>the next audio track, when the file has more than one</td></tr>
     <tr><td><code>s</code></td><td>star what the cursor is on — a list row, or the sidebar row or topic chip the keyboard stands on</td></tr>
     <tr><td><code>Delete</code></td><td>drop the history row the cursor is on</td></tr>
-    <tr><td><code>n</code> <code>p</code></td><td>next / previous</td></tr>
+    <tr><td><code>n</code> <code>p</code></td><td>next / previous; from a list that does not hold the episode, <code>n</code> plays the series' next one</td></tr>
+    <tr><td><code>l</code></td><td>the previous channel; from a film or a recording, the last channel</td></tr>
     <tr><td><code>g</code></td><td>open and close the programme guide</td></tr>
     <tr><td><code>x</code></td><td>hand over to an external player, after a confirmation over the picture</td></tr>
     <tr><td><code>c</code></td><td>cast to a Chromecast</td></tr>
@@ -888,9 +902,9 @@ language at all, and there the count stands instead, beside the warning.</p>
   <thead><tr><th>Section</th><th>Holds</th></tr></thead>
   <tbody>
     <tr><td><strong>Connection</strong></td><td>the provider address and credentials, entered as Xtream Codes fields or an M3U address</td></tr>
-    <tr><td><strong>Viewing</strong></td><td>interface language, the channel order, automatic programme data, remembered playback positions and the technical read-out over the picture</td></tr>
+    <tr><td><strong>Viewing</strong></td><td>interface language, the channel order, automatic programme data, remembered playback positions, the next episode and the technical read-out over the picture</td></tr>
     <tr><td><strong>Subtitles</strong></td><td>style and size, with a local preview</td></tr>
-    <tr><td><strong>Account &amp; data</strong></td><td>subscription details and cache information; an expandable <strong>Manage stored data</strong> section contains cache clearing and reset</td></tr>
+    <tr><td><strong>Account &amp; data</strong></td><td>subscription details and cache information; an expandable <strong>Manage stored data</strong> section contains cache clearing and reset; the version running, and the update when one is waiting</td></tr>
   </tbody>
 </table>
 </div>
@@ -975,6 +989,16 @@ provider durations are bounded to one year. Past programmes are
 dimmed; those the channel's archive reaches get a <strong>Watch the recording</strong>
 button. A programme continuing past the left edge is marked with <code>‹</code> and its
 name is nudged into view.</p>
+
+<p>An upcoming programme offers <strong>Remind me</strong>, and pressing <code>Enter</code> on one offers
+it in the message that says when it starts. A bell marks the programme in the
+grid. A minute before it starts, a message names the programme and its
+channel, with <strong>Watch</strong>. Reminders belong to the account and are kept with
+it, but they are said only while a player is open: one from a closed player
+would need a background timer and the notifications permission, and Chrome
+disables an extension on update until a new permission like that has been
+accepted. A reminder that falls due in a hidden tab waits until the tab is
+looked at again, for as long as the programme is still on.</p>
 
 <p><strong>Start from beginning</strong> is offered for an ongoing programme on an archive
 channel. Whether the provider makes that programme available before it ends

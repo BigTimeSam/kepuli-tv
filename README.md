@@ -533,7 +533,20 @@ the guide, so one spelling works everywhere a name is typed.
   device through the Remote Playback API, and for the rest the menu explains how
   Chrome's own tab casting does it — see below
 - **Resume positions remembered** for movies and episodes, with a progress bar
-  on the row
+  on the row; what was left halfway heads the history under **Continue
+  watching**
+- **The next episode** after a ten-second countdown when one ends, with **Play
+  now** and **Cancel** over the picture; a switch under **Viewing** turns it off
+- **The previous channel** with `l`, as a television's own button has it
+- **Programme reminders** from the guide: a minute before the programme starts,
+  a message names it with **Watch** — while the player is open
+- **Media keys** and the system's media controls: the programme and channel,
+  or the title and series, are named there, next and previous step as `n` and
+  `p` do, and the seek keys move a film or a recording
+- **Updates offered** rather than held back silently: the browser does not
+  take an update while the player is open, so the player says one is ready
+  and takes it on request, reopening where it was. **Account & data** names
+  the version running
 - **Favourites** and **history** as tabs of their own — a whole category can be
   a favourite too, see below
 - **Two languages**: English and Finnish, switched in the settings without a
@@ -560,7 +573,8 @@ the guide, so one spelling works everywhere a name is typed.
 | `a` | the next audio track, when the file has more than one |
 | `s` | star what the cursor is on — a list row, or the sidebar row or topic chip the keyboard stands on |
 | `Delete` | drop the history row the cursor is on |
-| `n` `p` | next / previous |
+| `n` `p` | next / previous; from a list that does not hold the episode, `n` plays the series' next one |
+| `l` | the previous channel; from a film or a recording, the last channel |
 | `g` | open and close the programme guide |
 | `x` | hand over to an external player, after a confirmation over the picture |
 | `c` | cast to a Chromecast |
@@ -660,9 +674,9 @@ Settings always opens on **Connection**, with four focused tabs:
 | Section | Holds |
 | --- | --- |
 | **Connection** | the provider address and credentials, entered as Xtream Codes fields or an M3U address |
-| **Viewing** | interface language, the channel order, automatic programme data, remembered playback positions and the technical read-out over the picture |
+| **Viewing** | interface language, the channel order, automatic programme data, remembered playback positions, the next episode and the technical read-out over the picture |
 | **Subtitles** | style and size, with a local preview |
-| **Account & data** | subscription details and cache information; an expandable **Manage stored data** section contains cache clearing and reset |
+| **Account & data** | subscription details and cache information; an expandable **Manage stored data** section contains cache clearing and reset; the version running, and the update when one is waiting |
 
 Changes on every tab remain drafts until **Save**. Switching tabs keeps the
 draft; **Cancel** discards it. The cross, Escape and a backdrop click ask
@@ -739,6 +753,16 @@ provider durations are bounded to one year. Past programmes are
 dimmed; those the channel's archive reaches get a **Watch the recording**
 button. A programme continuing past the left edge is marked with `‹` and its
 name is nudged into view.
+
+An upcoming programme offers **Remind me**, and pressing `Enter` on one offers
+it in the message that says when it starts. A bell marks the programme in the
+grid. A minute before it starts, a message names the programme and its
+channel, with **Watch**. Reminders belong to the account and are kept with
+it, but they are said only while a player is open: one from a closed player
+would need a background timer and the notifications permission, and Chrome
+disables an extension on update until a new permission like that has been
+accepted. A reminder that falls due in a hidden tab waits until the tab is
+looked at again, for as long as the programme is still on.
 
 **Start from beginning** is offered for an ongoing programme on an archive
 channel. Whether the provider makes that programme available before it ends

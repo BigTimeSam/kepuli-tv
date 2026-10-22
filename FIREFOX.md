@@ -11,6 +11,19 @@ browsers as it is. `js/browser.js` holds the one line that differs, and
 `firefox/` holds the Firefox manifest and the tools that assemble the package
 from the shared files. There is no second copy of anything to keep in step.
 
+## Viewing aids verification
+
+Checked on 2026-10-22 in Firefox 157 and Chrome on macOS, against the mock
+provider. The five new scenarios pass in both: `lastchannel` (the previous
+channel with `l`, and the Media Session's title and artist), `nextepisode`
+(the countdown, Cancel, and `n` from a list without the series),
+`continuewatching`, `reminders` (set in the guide, kept, said when due, Watch)
+and `update` (the message and the version line). In Chrome the whole suite of
+29 passed. The update's reload itself was checked in Firefox with a temporary
+add-on: the player closed, and background.js opened it again at the address
+it had left. Chrome's DevTools-loaded extension does not come back from
+`runtime.reload()`, so that path has no automatic check there.
+
 ## Release 1.0.9 verification
 
 The shared dialog changes were checked on 2026-09-06 in Firefox 155 on macOS

@@ -84,6 +84,23 @@
 //                                     wrapper to full screen with the
 //                                     layer; a file without subtitles says
 //                                     so in the details
+//   node dev/playcheck.mjs lastchannel l returns to the channel before, and
+//                                     again to the one after it; the media
+//                                     session names the programme and the
+//                                     channel
+//   node dev/playcheck.mjs nextepisode an episode played to its end counts
+//                                     down to the next one and plays it;
+//                                     Cancel stays on the ended one, and n
+//                                     finds the next episode from a list
+//                                     that does not hold the series
+//   node dev/playcheck.mjs continuewatching a film left halfway heads the
+//                                     history under its own heading
+//   node dev/playcheck.mjs reminders  a reminder set in the guide marks the
+//                                     programme, is kept, and when due says
+//                                     so with Watch, which plays the channel
+//   node dev/playcheck.mjs update     an update the browser holds back is
+//                                     offered in a message and on the
+//                                     version line
 //
 // The driver is the one dev/store-screenshots.mjs uses, from the same
 // profile (KEPULI_DEV_PROFILE) and port (KEPULI_DEV_PORT), and it needs the
@@ -211,7 +228,7 @@ async function freshPlayer(target, page) {
   const visibility = await evaluate(page, 'document.visibilityState');
   if (visibility !== 'visible') throw new Error('the player tab is not visible; raise the dev Chrome window or run headless');
   // The personal lists are kept per account, so every account's copy goes.
-  await evaluate(page, `chrome.storage.local.get(null).then((all) => chrome.storage.local.remove(Object.keys(all).filter((k) => /^(favorites|recents|resume|channels)(:|$)/.test(k))))`);
+  await evaluate(page, `chrome.storage.local.get(null).then((all) => chrome.storage.local.remove(Object.keys(all).filter((k) => /^(favorites|recents|resume|channels|reminders)(:|$)/.test(k))))`);
   await evaluate(page, `chrome.storage.local.set({
     config: { scheme: 'http', host: '127.0.0.1', port: '${MOCK_PORT}', username: 'demo', password: 'demo', sourceMode: 'xtream', streamMode: 'auto' },
     settings: { lang: 'en', epgEnabled: true, resumeEnabled: false, subtitleLang: 'eng' },
@@ -1667,7 +1684,119 @@ async function catalogUi(page) {
   return {ok:true,detail:'movie duration, rating filter/sort/reset, native playback, IMDb/facts, series cover expansion, history, failed/missing logo fallback and guide return'};
 }
 
-const SCENARIOS = { catalogUi, setupClarity, fullscreenControl, organize, restore, programmes, catchup, seek, death, cancel, timeout, search, paste, keys, switching, resume, connections, reconnect, accounts, listerror, a11y, subtitles, audio, settings };
+/* ----------------------------------------------------------- viewing aids */
+
+const NOW_TITLE = `document.getElementById('now-title').textContent`;
+
+async function lastchannel(page) {
+  await openLiveList(page, 4);
+  await evaluate(page, `document.getElementById('list').focus()`);
+  await pressKey(page, 'l', 'KeyL', 76);
+  await sleep(300);
+  const none = await evaluate(page, `!document.getElementById('toast').hidden`);
+  await evaluate(page, `document.querySelectorAll('#list .row')[0].click()`, { gesture: true });
+  await waitFor(page, PLAYING, 'the first channel');
+  const first = await evaluate(page, NOW_TITLE);
+  await evaluate(page, `document.querySelectorAll('#list .row')[3].click()`, { gesture: true });
+  await waitFor(page, `${NOW_TITLE} !== ${JSON.stringify(first)}`, 'the fourth channel');
+  const fourth = await evaluate(page, NOW_TITLE);
+  await evaluate(page, `document.getElementById('list').focus()`);
+  await pressKey(page, 'l', 'KeyL', 76);
+  await waitFor(page, `${NOW_TITLE} === ${JSON.stringify(first)}`, 'l back to the first channel');
+  await pressKey(page, 'l', 'KeyL', 76);
+  await waitFor(page, `${NOW_TITLE} === ${JSON.stringify(fourth)}`, 'l back to the fourth channel');
+  await waitFor(page, PLAYING, 'the fourth channel again');
+  const meta = await evaluate(page, `({ title: navigator.mediaSession.metadata?.title, artist: navigator.mediaSession.metadata?.artist })`);
+  const ok = none && meta.artist === fourth && Boolean(meta.title);
+  return { ok, detail: `nothing before the first: ${none}; ${first} ⇄ ${fourth}; media session "${meta.title}" / "${meta.artist}"` };
+}
+
+async function nextepisode(page) {
+  await playEpisode(page, 0);
+  const first = await evaluate(page, NOW_TITLE);
+  const toEnd = `(v => { v.currentTime = v.duration - 1.5; })(document.getElementById('video'))`;
+  await evaluate(page, toEnd);
+  await waitFor(page, `document.getElementById('overlay-title').textContent === ${JSON.stringify('Next episode')} && !document.getElementById('overlay').hidden`, 'the countdown', 30000);
+  const countdown = await evaluate(page, `document.getElementById('overlay-text').textContent`);
+  await waitFor(page, `${NOW_TITLE} !== ${JSON.stringify(first)}`, 'the next episode', 20000);
+  await waitFor(page, PLAYING, 'the next episode playing');
+  const second = await evaluate(page, NOW_TITLE);
+  await sleep(1000);
+  await evaluate(page, toEnd);
+  await waitFor(page, `!document.getElementById('overlay').hidden && document.getElementById('overlay-actions').children.length === 2`, 'the second countdown', 30000);
+  await evaluate(page, `document.querySelectorAll('#overlay-actions button')[1].click()`);
+  await sleep(11000);
+  const stayed = await evaluate(page, `${NOW_TITLE} === ${JSON.stringify(second)} && document.getElementById('overlay').hidden`);
+  await openLiveList(page);
+  await evaluate(page, `document.getElementById('list').focus()`);
+  await pressKey(page, 'n', 'KeyN', 78);
+  // The demo's episode names repeat, so the number tells them apart.
+  await waitFor(page, `/\\bE3\\b/.test(document.getElementById('now-sub').textContent)`, 'n to the third episode', 15000);
+  const third = await evaluate(page, `${NOW_TITLE} + ' ' + document.getElementById('now-sub').textContent`);
+  return { ok: stayed, detail: `"${countdown}"; ${first} → ${second}, Cancel stayed: ${stayed}; n from the channels: ${third}` };
+}
+
+async function continuewatching(page) {
+  await evaluate(page, `chrome.storage.local.get('settings').then((got) => chrome.storage.local.set({ settings: { ...got.settings, resumeEnabled: true } }))`);
+  await page.call('Page.reload');
+  await waitFor(page, CONNECTED, 'the connection after the reload');
+  await evaluate(page, `document.querySelector('#tabs [data-tab="movie"]').click()`);
+  await click(page, '#groups', 'Nordic');
+  await click(page, '#list', 'Northern Lights', { gesture: true });
+  await waitFor(page, PLAYING, 'the film');
+  await evaluate(page, `document.getElementById('video').currentTime = 40`);
+  await sleep(6000);
+  await evaluate(page, `document.getElementById('video').currentTime = 45`);
+  await sleep(1000);
+  await playFirstChannel(page);
+  await evaluate(page, `document.querySelector('#tabs [data-tab="recent"]').click()`);
+  await waitFor(page, `document.querySelectorAll('#list .row').length >= 2`, 'the history');
+  const order = await evaluate(page, `[...document.querySelectorAll('#list .rowgroup > :first-child, #list .row')]
+    .map((node) => (node.classList.contains('row') ? '' : '# ') + node.textContent.trim().slice(0, 24))`);
+  const ok = /^# Continue watching/.test(order[0]) && /Northern Lights/.test(order[1]) && order[2]?.startsWith('# ');
+  return { ok, detail: order.join(' | ') };
+}
+
+async function reminders(page) {
+  await openLiveList(page, 2);
+  await evaluate(page, `document.getElementById('list').focus()`);
+  await pressKey(page, 'g', 'KeyG', 71);
+  await waitFor(page, `document.getElementById('main').classList.contains('guide') && document.querySelectorAll('.epg-prog').length > 0`, 'the guide');
+  await pressKey(page, 'ArrowRight', 'ArrowRight', 39);
+  await waitFor(page, `[...document.querySelectorAll('#epgv-actions button')].some((b) => b.textContent === 'Remind me')`, 'Remind me on an upcoming programme');
+  await evaluate(page, `[...document.querySelectorAll('#epgv-actions button')].find((b) => b.textContent === 'Remind me').click()`);
+  await waitFor(page, `document.querySelectorAll('.epg-prog.remind').length === 1`, 'the bell in the grid');
+  const stored = await evaluate(page, `chrome.storage.local.get(null).then((all) => Object.entries(all).find(([key]) => key.startsWith('reminders')))`);
+  if (!stored || stored[1].length !== 1) return { ok: false, detail: `stored: ${JSON.stringify(stored)}` };
+  // Due in half a minute: the reload finds it inside its minute and says it.
+  const [key, list] = stored;
+  list[0].start = Date.now() + 30000;
+  list[0].stop = Date.now() + 600000;
+  await evaluate(page, `chrome.storage.local.set({ ${JSON.stringify(key)}: ${JSON.stringify(list)} })`);
+  await page.call('Page.reload');
+  await waitFor(page, CONNECTED, 'the connection after the reload');
+  await waitFor(page, `!document.getElementById('toast').hidden && document.getElementById('toast-text').textContent.includes(${JSON.stringify(list[0].title)})`, 'the reminder');
+  const said = await evaluate(page, `document.getElementById('toast-text').textContent`);
+  await evaluate(page, `document.querySelector('#toast .toast-action').click()`, { gesture: true });
+  await waitFor(page, PLAYING, 'the channel from Watch');
+  const left = await evaluate(page, `chrome.storage.local.get(${JSON.stringify(key)}).then((got) => got[${JSON.stringify(key)}].length)`);
+  const playing = await evaluate(page, NOW_TITLE);
+  return { ok: left === 0 && playing === list[0].channel.n, detail: `"${said}"; Watch played ${playing}; reminders left ${left}` };
+}
+
+async function update(page) {
+  await evaluate(page, `chrome.storage.local.set({ updateReady: '99.0.0' })`);
+  await waitFor(page, `!document.getElementById('toast').hidden && document.getElementById('toast-text').textContent.includes('99.0.0')`, 'the update message');
+  const said = await evaluate(page, `document.getElementById('toast-text').textContent`);
+  await evaluate(page, `document.getElementById('btn-settings').click(); document.getElementById('tab-account').click()`);
+  const line = await evaluate(page, `document.getElementById('app-version').textContent`);
+  const running = await evaluate(page, `chrome.runtime.getManifest().version`);
+  await evaluate(page, `chrome.storage.local.remove('updateReady'); document.getElementById('f-done').click()`);
+  return { ok: line === `Kepuli-TV ${running} Update to 99.0.0`, detail: `"${said}"; "${line}"` };
+}
+
+const SCENARIOS = { catalogUi, setupClarity, fullscreenControl, organize, restore, programmes, catchup, seek, death, cancel, timeout, search, paste, keys, switching, resume, connections, reconnect, accounts, listerror, a11y, subtitles, audio, settings,
+  lastchannel, nextepisode, continuewatching, reminders, update };
 // The mock's whole-list answers stall for these, longer than the request limit.
 const SLOW_LIST_MS = { cancel: 60000, timeout: 60000 };
 // The media is sent slowly for these: the seek targets must lie outside the
