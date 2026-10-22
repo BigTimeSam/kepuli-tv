@@ -2351,9 +2351,52 @@ function renderSeriesFavorite() {
   button.setAttribute('aria-label', button.title);
 }
 
+/* ---------------------------------------------------------- media keys */
+
+// The keyboard's and the headphones' media keys, and the system's own media
+// controls, reach the page through the Media Session. Without it they did
+// play and pause and nothing else, and the system's panel named the tab
+// rather than what was on. Painted with the info strip, which already
+// follows the item, the archive programme and the programme data.
+const mediaSession = navigator.mediaSession || null;
+
+function renderMediaSession() {
+  if (!mediaSession) return;
+  const item = state.playing;
+  if (!item) { mediaSession.metadata = null; return; }
+  const name = item.displayName || item.n;
+  let title = name, artist = '';
+  if (state.catchup) { title = state.catchup.title; artist = name; }
+  else if (item.k === 0) {
+    const now = state.epg ? state.epg.nowNext(item.id)?.now : null;
+    if (now) { title = now.title; artist = name; }
+  } else if (item.k === 3) artist = item.seriesName || '';
+  const art = (item.k === 3 && item.seriesCover) || item.logo;
+  mediaSession.metadata = new MediaMetadata({ title, artist, album: 'Kepuli-TV', artwork: art ? [{ src: art }] : [] });
+  // A live stream has nothing to seek in: without handlers the controls
+  // offer no seeking either.
+  const seekable = item.k !== 0 || Boolean(state.catchup);
+  const seek = (offset) => () => { el.video.currentTime = Math.max(0, el.video.currentTime + offset); };
+  setMediaAction('seekbackward', seekable ? seek(-10) : null);
+  setMediaAction('seekforward', seekable ? seek(30) : null);
+  setMediaAction('seekto', seekable ? ({ seekTime }) => { el.video.currentTime = seekTime; } : null);
+}
+
+/** An action the browser does not know throws; it is simply not offered then. */
+function setMediaAction(action, handler) {
+  try { mediaSession.setActionHandler(action, handler); } catch { /* not supported here */ }
+}
+
+function wireMediaSession() {
+  if (!mediaSession) return;
+  setMediaAction('nexttrack', () => playRelative(1));
+  setMediaAction('previoustrack', () => playRelative(-1));
+}
+
 /* ---------------------------------------------------------- info panel */
 
 function renderInfoStrip() {
+  renderMediaSession();
   const item = state.playing;
   if (!item) { el.infostrip.hidden = true; return; }
 
@@ -3892,6 +3935,7 @@ async function init() {
   watchRowHeights();
   wireSetup();
   wireUi();
+  wireMediaSession();
   wireSubcatsResize();
   state.favorites = await store.loadFavorites();
   state.recents = await store.loadRecents();
