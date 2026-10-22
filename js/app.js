@@ -2056,6 +2056,7 @@ async function playItem(item, { startAt, allowSilent } = {}) {
     startAt: startAt ?? (state.settings.resumeEnabled && !live && saved ? saved.position : 0),
   };
 
+  if (live) noteChannel(item);
   state.playing = item;
   updatePlayerLayout();
   playerLayout.showPlayer();
@@ -3297,6 +3298,7 @@ function wireSetup() {
         state.recents = await store.loadRecents();
         state.resume = await store.loadResume();
         state.channelPrefs = await store.loadChannelPreferences();
+        lastChannel = previousChannel = null;
         await connect();
       } else {
         toast(t('setup.saved'));
@@ -3372,6 +3374,7 @@ const SHORTCUTS = [
   ['a', 'help.key.audio'],
   ['s', 'help.key.star'],
   ['n  p', 'help.key.nextprev'],
+  ['l', 'help.key.lastchannel'],
   ['g', 'help.key.guide'],
   ['x', 'help.key.external'],
   ['c', 'help.key.cast'],
@@ -3637,6 +3640,27 @@ function playRelative(delta) {
   openItem(state.rows[next]);
 }
 
+// The channel before this one, as a television's own "previous" button
+// has it: two channels watched in turn are a key apart, wherever in the
+// list either of them is. lastChannel is the live channel played most
+// recently, previousChannel the one before it.
+let lastChannel = null;
+let previousChannel = null;
+
+function noteChannel(item) {
+  if (lastChannel && String(lastChannel.id) !== String(item.id)) previousChannel = lastChannel;
+  lastChannel = item;
+}
+
+/** From a channel, the one before it; from a film, an episode or a recording, the last channel. */
+function playLastChannel() {
+  const target = state.playing?.k === 0 && !state.catchup ? previousChannel : lastChannel;
+  if (!target) { toast(t('player.nolastchannel')); return; }
+  const index = state.rowIndex.get(`0:${target.id}`);
+  if (index != null) { state.cursor = index; vlist.scrollToIndex(index); }
+  playItem(target);
+}
+
 function wireUi() {
   // The arrows walk the strip and Home and End reach its ends, which is what
   // a tab strip promises the moment it calls itself one. The same keys are
@@ -3859,6 +3883,7 @@ function wireUi() {
       case 'Delete': removeAtCursor(); break;
       case 'n': playRelative(1); break;
       case 'p': playRelative(-1); break;
+      case 'l': playLastChannel(); break;
       case 'g': toggleGuide(); break;
       case 'x': askExternal(); break;
       case 'c': castCurrent(); break;
