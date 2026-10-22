@@ -372,7 +372,7 @@ button.poster:disabled { cursor: default; }
 .detail-cover { width: 76px; height: 114px; flex: none; object-fit: cover; border-radius: 7px; background: var(--panel-2); }
 .detail-body { min-width: 0; flex: 1; }
 .detail-heading { display: flex; align-items: flex-start; gap: 8px; margin-bottom: 3px; }
-.detail-title { flex: 1; min-width: 0; font-weight: 600; font-size: 0.875rem; overflow-wrap: anywhere; }
+.detail-title { flex: 1; min-width: 0; font-weight: 650; font-size: 1rem; letter-spacing: -0.005em; overflow-wrap: anywhere; }
 button.series-favorite { flex: none; width: 32px; height: 32px; padding: 0; display: grid; place-items: center; font-size: 1.1875rem; line-height: 1; }
 .series-favorite:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 /* Labelled facts separate catalogue metadata from playback diagnostics. */
@@ -443,7 +443,8 @@ button.series-favorite { flex: none; width: 32px; height: 32px; padding: 0; disp
 .row-poster { width: 30px; height: 44px; flex: none; object-fit: cover; border-radius: 4px; background: var(--panel-2); }
 
 .row-body { flex: 1; min-width: 0; }
-.row-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.row-name { font-weight: 500; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.row.playing .row-name { font-weight: 600; }
 .row-sub { display: flex; align-items: center; gap: 6px; font-size: 0.6875rem; color: var(--dim); margin-top: 2px; }
 .row-sub .txt { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .row-progress { width: min(140px, 100%); height: 3px; margin-top: 5px; border-radius: 2px; background: #262c3d; overflow: hidden; }
@@ -483,8 +484,13 @@ button.series-favorite { flex: none; width: 32px; height: 32px; padding: 0; disp
 .listinfo button { background: none; border: 0; padding: 0; font: inherit; color: var(--muted); cursor: pointer; text-decoration: underline; text-underline-offset: 2px; }
 .listinfo button:hover { color: var(--text); }
 .listinfo button.armed { color: var(--danger); }
-.empty { padding: 34px 20px; color: var(--muted); text-align: center; }
-.empty strong { display: block; color: var(--text); margin-bottom: 6px; font-weight: 600; }
+.empty { padding: 48px 28px; color: var(--muted); text-align: center; max-width: 340px; margin: 0 auto; line-height: 1.5; }
+.empty strong { display: block; color: var(--text); margin-bottom: 6px; font-weight: 600; font-size: 0.9375rem; }
+.empty-icon {
+  display: block; width: 26px; height: 26px; margin: 0 auto 14px; padding: 12px; box-sizing: content-box;
+  border-radius: 50%; background: var(--panel-2); color: var(--accent-ink);
+  fill: none; stroke: currentColor; stroke-width: 1.5; stroke-linecap: round; stroke-linejoin: round;
+}
 .empty button { margin-top: 12px; }
 /* The list's own loading strip, above the rows it is fetching. It carries
    what the dialog used to: what is being loaded, how far it has come, and
@@ -632,7 +638,7 @@ body[data-substyle="contrast"] video::cue { background: #000; }
 .overlay { position: absolute; inset: 0; display: grid; place-items: center; background: radial-gradient(circle at 50% 45%, #12151f, #06070a 70%); text-align: center; padding: 24px; }
 .overlay[hidden] { display: none; }
 .overlay-inner { max-width: 480px; }
-.overlay-title { font-size: 0.9375rem; font-weight: 600; margin-bottom: 6px; }
+.overlay-title { font-size: 1.0625rem; font-weight: 650; letter-spacing: -0.005em; margin-bottom: 6px; }
 .overlay-text { color: var(--muted); }
 .overlay-actions { margin-top: 14px; display: flex; gap: 8px; justify-content: center; }
 .now-title:empty { display: none; }
@@ -675,7 +681,7 @@ body[data-substyle="contrast"] video::cue { background: #000; }
 .infostrip[hidden] { display: none; }
 .epgnow { display: flex; align-items: baseline; gap: 8px; }
 .epgnow-time { color: var(--accent-2); font-variant-numeric: tabular-nums; flex: none; font-size: 0.71875rem; }
-.epgnow-title { font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.epgnow-title { font-weight: 600; font-size: 0.875rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .epgbar { height: 3px; background: #262c3d; border-radius: 2px; margin: 6px 0; overflow: hidden; }
 .epgbar i { display: block; height: 100%; background: linear-gradient(90deg, var(--accent), var(--accent-2)); }
 .epgdesc { color: var(--muted); font-size: 0.75rem; }
@@ -707,7 +713,9 @@ body[data-substyle="contrast"] video::cue { background: #000; }
    and if even they do not fit on one line they wrap among themselves. */
 .nowbar { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; padding: 9px 12px; background: var(--panel); border-top: 1px solid var(--border); }
 .now { min-width: 0; flex: 1; }
-.now-title { font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+/* What is playing is the largest words on the page after the brand: at
+   the body's 13 px it was the same size as every row name in the list. */
+.now-title { font-weight: 650; font-size: 0.9375rem; letter-spacing: -0.005em; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .now-sub { color: var(--muted); font-size: 0.71875rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 /* The buttons are never dropped and never wrap: what gives when the row
    runs short is the two track selectors, which is why the actions may

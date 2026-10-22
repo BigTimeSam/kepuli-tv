@@ -1106,14 +1106,14 @@ function renderEmptyState() {
   const type = tabType();
   const browse = { label: t('empty.browse'), onClick: () => activateTab('live') };
   let node;
-  if (mediaFilters.filtering) node = emptyState(t('filters.nohits'), t('filters.nohits.text'), { label: t('filters.reset'), onClick: () => mediaFilters.clear() });
-  else if (state.query) node = emptyState(t('empty.nohits'), t('empty.nohits.text', { query: state.query }));
+  if (mediaFilters.filtering) node = emptyState(t('filters.nohits'), t('filters.nohits.text'), { label: t('filters.reset'), onClick: () => mediaFilters.clear() }, 'search');
+  else if (state.query) node = emptyState(t('empty.nohits'), t('empty.nohits.text', { query: state.query }), null, 'search');
   else if (state.detail && state.detail.view === 'category') {
     node = emptyState(t('empty.category'), t('empty.category.text'));
   } else if (state.tab === 'fav') {
-    node = emptyState(t('empty.fav'), t('empty.fav.text'), browse);
+    node = emptyState(t('empty.fav'), t('empty.fav.text'), browse, 'star');
   } else if (state.tab === 'recent') {
-    node = emptyState(t('empty.recent'), t('empty.recent.text'), browse);
+    node = emptyState(t('empty.recent'), t('empty.recent.text'), browse, 'history');
   } else node = emptyState(t('empty.plain'), t('empty.plain.text'));
   el.list.appendChild(node);
 }

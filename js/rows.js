@@ -284,8 +284,21 @@ export function favCategoryRow(entry, ctx) {
   return row;
 }
 
-export function emptyState(title, text, action) {
+// A mark above an empty list's words, so the state is told apart before it
+// is read: a star where favourites gather, a clock for history, a lens for
+// a search that found nothing.
+const EMPTY_ICONS = {
+  star: '<path d="M10 2.8l2.2 4.6 5 .7-3.6 3.5.9 5-4.5-2.4-4.5 2.4.9-5L2.8 8.1l5-.7z"/>',
+  history: '<path d="M3.5 10a6.5 6.5 0 1 0 1.9-4.6"/><path d="M3.2 3.2v3.4h3.4"/><path d="M10 6.5v3.8l2.6 1.5"/>',
+  search: '<circle cx="9" cy="9" r="5.5"/><path d="m13.2 13.2 4 4"/>',
+  list: '<path d="M4 5.5h12M4 10h12M4 14.5h7"/>',
+};
+
+export function emptyState(title, text, action, iconName = 'list') {
   const box = el('div', 'empty');
+  const mark = icon(EMPTY_ICONS[iconName] || EMPTY_ICONS.list);
+  mark.classList.add('empty-icon');
+  box.appendChild(mark);
   box.appendChild(el('strong', null, title));
   box.appendChild(el('div', null, text));
   if (action) {
