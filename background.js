@@ -13,18 +13,44 @@
 const api = globalThis.browser ?? globalThis.chrome;
 const PLAYER_URL = api.runtime.getURL('player.html');
 
-api.action.onClicked.addListener(async () => {
-  // Every page of ours in a tab, rather than documentUrls: [PLAYER_URL]:
-  // the player writes the place it is in into its address (js/route.js), so
-  // the document's URL is player.html#/live/Finland rather than the bare
-  // one, and a filter that asks for the bare URL finds nothing and opens a
-  // second player beside the first.
+// Every page of ours in a tab, rather than documentUrls: [PLAYER_URL]: the
+// player writes the place it is in into its address (js/route.js), so the
+// document's URL is player.html#/live/Finland rather than the bare one, and
+// a filter that asks for the bare URL finds nothing and opens a second
+// player beside the first.
+async function playerTab() {
   const contexts = await api.runtime.getContexts({ contextTypes: ['TAB'] });
-  const open = contexts.find((context) => String(context.documentUrl).split('#')[0] === PLAYER_URL);
+  return contexts.find((context) => String(context.documentUrl).split('#')[0] === PLAYER_URL) || null;
+}
+
+api.action.onClicked.addListener(async () => {
+  const open = await playerTab();
   if (open) {
     await api.tabs.update(open.tabId, { active: true });
     await api.windows.update(open.windowId, { focused: true });
   } else {
     await api.tabs.create({ url: PLAYER_URL });
+  }
+});
+
+// An update the browser has fetched waits while a player tab is open, and
+// the tab goes on running the old version without a word: 1.1.1 was
+// installed while the tab still drew 1.1.0's menus. With no player open
+// the update is taken at once — Firefox would otherwise hold it until the
+// browser restarts, because this listener exists. With one open, the
+// player is told, and it offers the reload itself (js/app.js).
+api.runtime.onUpdateAvailable.addListener(async ({ version }) => {
+  if (!(await playerTab())) { api.runtime.reload(); return; }
+  await api.storage.local.set({ updateReady: version });
+});
+
+// The reload closes every page of the extension, the player among them.
+// The player left its address behind before asking for the reload, and the
+// new version opens it again where the viewer was.
+api.runtime.onInstalled.addListener(async () => {
+  const { reopenAfterUpdate } = await api.storage.local.get('reopenAfterUpdate');
+  await api.storage.local.remove(['updateReady', 'reopenAfterUpdate']);
+  if (typeof reopenAfterUpdate === 'string' && !(await playerTab())) {
+    await api.tabs.create({ url: PLAYER_URL + reopenAfterUpdate });
   }
 });

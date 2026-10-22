@@ -3044,7 +3044,7 @@ const sourceMode = () => (document.querySelector('input[name="source"]:checked')
 async function renderAccountBox() {
   const box = $('account-box');
   const a = state.account;
-  $('app-version').textContent = `Kepuli-TV ${api.runtime.getManifest().version}`;
+  renderVersion();
   // A section that is simply empty tells the viewer nothing about why.
   $('account-none').hidden = Boolean(a);
   if (!a) { box.hidden = true; return; }
@@ -3085,6 +3085,34 @@ async function renderAccountBox() {
  * group — corresponds to nothing after the wipe, and a fresh load starts
  * from the welcome view.
  */
+/**
+ * The version line under Account & data, and the update when one is waiting:
+ * the line names what this page runs, the button takes what the browser has
+ * fetched.
+ */
+function renderVersion() {
+  const line = $('app-version');
+  line.textContent = `Kepuli-TV ${store.runningVersion()}`;
+  if (!updateReady) return;
+  const button = document.createElement('button');
+  button.type = 'button';
+  button.className = 'ghost';
+  button.textContent = t('update.install', { version: updateReady });
+  button.addEventListener('click', applyUpdate);
+  line.append(' ', button);
+}
+
+let updateReady = null;
+
+function offerUpdate(version) {
+  if (!version || version === store.runningVersion()) return;
+  updateReady = version;
+  renderVersion();
+  toast(t('update.ready', { version }), { action: { label: t('update.now'), onClick: applyUpdate } });
+}
+
+function applyUpdate() { store.reloadForUpdate(location.hash); }
+
 async function resetEverything() {
   playback.stop();
   await api.storage.local.clear();
@@ -3902,6 +3930,8 @@ async function init() {
 
   window.addEventListener('hashchange', onAddressChanged);
   updateAddress();
+  store.watchUpdateReady(offerUpdate);
+  offerUpdate(await store.loadUpdateReady());
 
   if (!state.config.host) {
     renderIdleOverlay();

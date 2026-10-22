@@ -224,3 +224,27 @@ export async function saveResume(map) {
   const entries = [...map.entries()].sort((a, b) => b[1].at - a[1].at).slice(0, MAX_RESUME);
   await writePersonal('resume', Object.fromEntries(entries));
 }
+
+/* -------------------------------------------------------------- updates */
+
+/** The version this page is running, which an update waiting to be taken does not change. */
+export const runningVersion = () => api.runtime.getManifest().version;
+
+/**
+ * The version background.js has been told is waiting, or null. Read at
+ * start-up for an update that arrived before this page opened, and watched
+ * for one that arrives while it is open.
+ */
+export async function loadUpdateReady() { return read('updateReady', null); }
+
+export function watchUpdateReady(onReady) {
+  api.storage.onChanged.addListener((changes, area) => {
+    if (area === 'local' && changes.updateReady?.newValue) onReady(changes.updateReady.newValue);
+  });
+}
+
+/** Takes the update. The reload closes this page; background.js opens it again at `hash`. */
+export async function reloadForUpdate(hash) {
+  await api.storage.local.set({ reopenAfterUpdate: hash });
+  api.runtime.reload();
+}
