@@ -589,6 +589,10 @@ async function refreshRows({ keepScroll = false, returnPosition = null, restoreF
       // Array.sort is stable, so grouping by type does not disturb the
       // collection's own order within a type.
       else if (state.tab === 'fav') rows = [...rows].sort((a, b) => kindIndex(a) - kindIndex(b));
+      // What was left halfway comes first, under a heading of its own: the
+      // resume point was kept so the film could be finished, and a day
+      // heading three screens down is not where it is looked for.
+      if (state.tab === 'recent') rows = [...rows.filter(isUnfinished), ...rows.filter((it) => !isUnfinished(it))];
     } else if (state.query) {
       if (!(await ensureFull(type, t('progress.reason.search'), current)) || !current()) return false;
       rows = state.lib.search(type, state.query, null);
@@ -693,6 +697,10 @@ function favoritesNewestFirst() {
 }
 
 const kindIndex = (item) => KIND_INDEX.get(kindGroup(item.k)) ?? KIND_ORDER.length;
+
+/** A film or an episode with a resume point: started, and not yet watched to the end. */
+const isUnfinished = (item) => state.settings.resumeEnabled && (item.k === 1 || item.k === 3)
+  && state.resume.has(`${item.k}:${item.id}`);
 
 /* ------------------------------------------------ favourite categories */
 
@@ -814,7 +822,7 @@ function toggleFavCategory(entry) {
 
 /**
  * Section headings: row index → the heading above it. History splits into
- * days, favourites into types — in both, the heading says what the rows do
+ * what was left unfinished and then days, favourites into types — in both, the heading says what the rows do
  * not show themselves. A type filter makes the favourites' headings
  * pointless.
  */
@@ -825,7 +833,8 @@ function sectionsFor(rows) {
 
   let previous = null;
   for (let i = 0; i < rows.length; i++) {
-    const label = state.tab === 'recent' ? dayLabel(rows[i].watchedAt) : kindLabel(kindGroup(rows[i].k));
+    const label = state.tab !== 'recent' ? kindLabel(kindGroup(rows[i].k))
+      : isUnfinished(rows[i]) ? t('history.continue') : dayLabel(rows[i].watchedAt);
     if (label && label !== previous) sections.set(i, label);
     previous = label;
   }

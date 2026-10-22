@@ -136,6 +136,7 @@ const STRINGS = {
     'history.clear': 'Clear history',
     'history.clear.confirm': 'Confirm clearing',
     'history.cleared': 'History cleared',
+    'history.continue': 'Continue watching',
 
     /* ------------------------------------------------------------- rows */
     'row.fav.add': 'Add to favourites',
@@ -615,6 +616,7 @@ const STRINGS = {
     'history.clear': 'Tyhjennä historia',
     'history.clear.confirm': 'Varmista tyhjennys',
     'history.cleared': 'Historia tyhjennetty',
+    'history.continue': 'Jatka katselua',
 
     /* ------------------------------------------------------------- rows */
     'row.fav.add': 'Lisää suosikkeihin',
