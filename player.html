@@ -31,12 +31,15 @@
   </div>
 
   <div class="topbar-end">
-    <button type="button" id="btn-refresh" class="ghost" data-i18n="btn.refresh" data-i18n-title="btn.refresh.title">Refresh lists</button>
+    <!-- Refresh and Help are wanted now and then, so they are marks with
+         their names in the label and the tooltip; Settings keeps its word
+         where there is room for it. -->
+    <button type="button" id="btn-refresh" class="ghost icon-button" data-i18n-label="btn.refresh" data-i18n-title="btn.refresh.title"><svg viewBox="0 0 20 20" aria-hidden="true"><path d="M15.6 7.2A6 6 0 1 0 16 12"/><path d="M16 3.5v4h-4"/></svg></button>
     <!-- Help opens here rather than in a new tab. It used to send the viewer
          to an 83 kB page written for whoever builds the thing, at the moment
          they were least sure of themselves. -->
-    <button type="button" id="btn-help" class="ghost" data-i18n="btn.help" data-i18n-title="btn.help.title">Help</button>
-    <button type="button" id="btn-settings" class="ghost" data-i18n="btn.settings">Settings</button>
+    <button type="button" id="btn-help" class="ghost icon-button" data-i18n-label="btn.help" data-i18n-title="btn.help.title"><svg viewBox="0 0 20 20" aria-hidden="true"><circle cx="10" cy="10" r="7.2"/><path d="M7.9 7.8a2.2 2.2 0 1 1 3 2.1c-.6.3-.9.8-.9 1.4v.4"/><circle cx="10" cy="14.4" r=".9" fill="currentColor" stroke="none"/></svg></button>
+    <button type="button" id="btn-settings" class="ghost icon-button labelled"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/><circle cx="12" cy="12" r="3"/></svg><span class="button-label" data-i18n="btn.settings">Settings</span></button>
   </div>
 </header>
 
