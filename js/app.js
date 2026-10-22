@@ -6,7 +6,7 @@ import { VirtualList, watchLength } from './vlist.js';
 import { ListNavigation, rowDomId } from './listnavigation.js';
 import { CatalogueSearch } from './cataloguesearch.js';
 import { PlayerLayout } from './playerlayout.js';
-import { itemRow, categoryRow, chipRow, favCategoryRow, sectionHeader, emptyState } from './rows.js';
+import { itemRow, posterCard, categoryRow, chipRow, favCategoryRow, sectionHeader, emptyState } from './rows.js';
 import { nameCleaner, searchNameCleaner, searchKey, searchTerms, matchesTerms } from './name.js';
 import { poster } from './poster.js';
 import { wireModal } from './modal.js';
@@ -666,6 +666,7 @@ function showRows(rows, { keepScroll = false, loading = false } = {}) {
   state.catCounts = categoryCountsFor(rows);
   state.rowIndex = new Map(rows.map((it, i) => [`${it.k}:${it.id}`, i]));
   state.sections = sectionsFor(rows);
+  applyListLayout();
   vlist.setCount(rows.length, {
     keepScroll,
     heightAt: state.sections.size ? (i) => ROW_H + (state.sections.has(i) ? SEP_H : 0) : null,
@@ -1164,6 +1165,11 @@ function renderListInfo() {
     spacer.className = 'spacer';
     el.listinfo.append(spacer, clearHistoryButton());
   }
+  if ((state.tab === 'movie' || state.tab === 'series') && !state.detail && state.lib) {
+    const spacer = document.createElement('span');
+    spacer.className = 'spacer';
+    el.listinfo.append(spacer, viewToggle());
+  }
 }
 
 /**
@@ -1424,6 +1430,7 @@ async function openChannelEditor() {
  *  setting moves it. */
 function watchRowHeights() {
   const resize = () => {
+    if (usesGrid()) return;
     vlist.setRowHeight(ROW_H, state.sections.size ? (i) => ROW_H + (state.sections.has(i) ? SEP_H : 0) : null);
   };
   ROW_H = watchLength('--row-h', ROW_H, (px) => { ROW_H = px; resize(); });
@@ -1455,9 +1462,103 @@ const vlist = new VirtualList(el.list, ROW_H, renderRow, {
   },
 });
 
+/* ------------------------------------------------------------ covers */
+
+// Films and series as covers rather than rows. A cover is what a film is
+// recognised by, and at 30x44 in a row it was a thumbnail of one. The
+// virtual list stands the covers side by side, as many as the column has
+// room for, so a catalogue of 55,000 still paints only what is in sight.
+const CARD_MIN = 108;     // the narrowest a cover may be, in pixels
+const CARD_GAP = 10;
+const CARD_TEXT = 48;     // the name and the line under it
+let listView = 'grid';    // 'grid' | 'list', for films and series
+let gridColumns = 1;
+
+/** The browsing lists of films and series; collections and episodes stay rows. */
+const usesGrid = () => listView === 'grid' && !isCollection() && !state.detail
+  && (state.tab === 'movie' || state.tab === 'series');
+
+/** How many covers fit across the list, and how tall a line of them is. */
+function gridGeometry() {
+  const width = el.list.clientWidth - 2 * CARD_GAP;
+  const columns = Math.max(2, Math.floor((width + CARD_GAP) / (CARD_MIN + CARD_GAP)));
+  const card = (width - (columns - 1) * CARD_GAP) / columns;
+  return { columns, lineHeight: Math.round(card * 1.5 + CARD_TEXT + CARD_GAP) };
+}
+
+function applyListLayout() {
+  const grid = usesGrid();
+  el.list.classList.toggle('covers', grid);
+  if (!grid) {
+    gridColumns = 1;
+    vlist.setColumns(1, ROW_H);
+    return;
+  }
+  const { columns, lineHeight } = gridGeometry();
+  gridColumns = columns;
+  el.list.style.setProperty('--grid-cols', String(columns));
+  vlist.setColumns(columns, lineHeight);
+}
+
+/** A narrower or wider column takes a different number of covers. */
+function watchGridWidth() {
+  let last = '';
+  new ResizeObserver(() => {
+    if (!usesGrid()) return;
+    const { columns, lineHeight } = gridGeometry();
+    const key = `${columns}:${lineHeight}`;
+    if (key === last) return;
+    last = key;
+    applyListLayout();
+    vlist.refresh();
+  }).observe(el.list);
+}
+
+async function setListView(view) {
+  if (view === listView) return;
+  listView = view;
+  store.saveUiState({ listView: view });
+  const position = listNavigation.capture(vlist);
+  showRows(state.rows, { keepScroll: true });
+  listNavigation.restore(vlist, position);
+}
+
+/** List or covers: two marks at the foot of the films' and series' lists. */
+function viewToggle() {
+  const box = document.createElement('span');
+  box.className = 'view-toggle';
+  box.setAttribute('role', 'group');
+  for (const [view, paths] of [
+    ['list', '<path d="M4 5.5h12M4 10h12M4 14.5h12"/>'],
+    ['grid', '<rect x="3.5" y="3.5" width="5" height="5" rx="1"/><rect x="11.5" y="3.5" width="5" height="5" rx="1"/><rect x="3.5" y="11.5" width="5" height="5" rx="1"/><rect x="11.5" y="11.5" width="5" height="5" rx="1"/>'],
+  ]) {
+    const button = document.createElement('button');
+    button.type = 'button';
+    button.title = t(`view.${view}`);
+    button.setAttribute('aria-label', button.title);
+    button.setAttribute('aria-pressed', String(listView === view));
+    button.innerHTML = `<svg viewBox="0 0 20 20" aria-hidden="true">${paths}</svg>`;
+    button.addEventListener('click', () => setListView(view));
+    box.appendChild(button);
+  }
+  return box;
+}
+
 function renderRow(index) {
   const item = state.rows[index];
   const key = `${item.k}:${item.id}`;
+  if (usesGrid() && (item.k === 1 || item.k === 2)) {
+    return posterCard(item, {
+      label: state.cleanName ? state.cleanName(item.n, item) : null,
+      playing: state.playing && `${state.playing.k}:${state.playing.id}` === key,
+      selected: index === state.cursor,
+      domId: rowDomId(index),
+      favorite: state.favorites.has(key),
+      resume: state.resume.get(key),
+      onOpen: () => { state.cursor = index; openItem(item); },
+      onFavorite: () => toggleFavorite(item),
+    });
+  }
   const row = item.k === 'c' ? favCategoryRow(item, {
     subtitle: favCategorySubtitle(item),
     count: state.catCounts && state.catCounts.has(key) ? nf.format(state.catCounts.get(key)) : null,
@@ -4038,10 +4139,13 @@ function wireUi() {
       if (grid.handleKey(e)) { e.preventDefault(); return; }
     }
     switch (e.key) {
-      case 'ArrowDown': e.preventDefault(); moveCursor(1); break;
-      case 'ArrowUp': e.preventDefault(); moveCursor(-1); break;
-      case 'PageDown': e.preventDefault(); moveCursor(10); break;
-      case 'PageUp': e.preventDefault(); moveCursor(-10); break;
+      // Among covers, up and down go a line and left and right a cover.
+      case 'ArrowDown': e.preventDefault(); moveCursor(gridColumns); break;
+      case 'ArrowUp': e.preventDefault(); moveCursor(-gridColumns); break;
+      case 'ArrowRight': if (gridColumns > 1) { e.preventDefault(); moveCursor(1); } break;
+      case 'ArrowLeft': if (gridColumns > 1) { e.preventDefault(); moveCursor(-1); } break;
+      case 'PageDown': e.preventDefault(); moveCursor(gridColumns > 1 ? gridColumns * 3 : 10); break;
+      case 'PageUp': e.preventDefault(); moveCursor(gridColumns > 1 ? -gridColumns * 3 : -10); break;
       case 'Enter': if (state.rows[state.cursor]) openItem(state.rows[state.cursor]); break;
       case 'Backspace': if (state.detail) closeDetail(); break;
       case ' ': e.preventDefault(); el.video.paused ? el.video.play().catch(() => {}) : el.video.pause(); break;
@@ -4235,6 +4339,8 @@ async function init() {
   storedSub = start.sub ?? null;
   $('channel-tools').hidden = state.tab !== 'live';
   if (typeof ui.subcatsHeight === 'number') state.subcatsHeight = ui.subcatsHeight;
+  if (ui.listView === 'list' || ui.listView === 'grid') listView = ui.listView;
+  watchGridWidth();
   $('media-filters').open = ui.filtersOpen === true;
   markTabs(state.tab);
 

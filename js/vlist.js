@@ -5,6 +5,11 @@
 // division. Collection views need section headings, so a row may be
 // taller than the others when it wants to: then the heights are summed
 // once up front and the range is found by binary search.
+//
+// The same list can stand its items side by side, as covers in a grid:
+// with more than one column every line holds that many items, the lines
+// are all one height, and the indices stay the items' own — a caller asks
+// for item 37 and gets the line it stands on.
 
 /**
  * A CSS length as the browser has resolved it, in pixels.
@@ -56,6 +61,7 @@ export class VirtualList {
     this.onVisible = options.onVisible || null;
     this.onPaint = options.onPaint || null;
     this.count = 0;
+    this.columns = 1;         // items side by side on one line
     this.offsets = null;      // null = every row is the same height
     this.ticking = false;
     this.nodes = new Map();   // index → element, kept for reuse
@@ -84,8 +90,8 @@ export class VirtualList {
    */
   setCount(count, { keepScroll = false, heightAt = null } = {}) {
     this.count = count;
-    this.offsets = heightAt ? buildOffsets(count, heightAt) : null;
-    this.spacer.style.height = `${this.offsetOf(count)}px`;
+    this.offsets = heightAt && this.columns === 1 ? buildOffsets(count, heightAt) : null;
+    this.spacer.style.height = `${this.totalHeight()}px`;
     if (!keepScroll) this.viewport.scrollTop = 0;
     this.paint();
   }
@@ -96,9 +102,25 @@ export class VirtualList {
   setRowHeight(rowHeight, heightAt = null) {
     if (rowHeight === this.rowHeight && !heightAt) return;
     this.rowHeight = rowHeight;
-    this.offsets = heightAt ? buildOffsets(this.count, heightAt) : null;
-    this.spacer.style.height = `${this.offsetOf(this.count)}px`;
+    this.offsets = heightAt && this.columns === 1 ? buildOffsets(this.count, heightAt) : null;
+    this.spacer.style.height = `${this.totalHeight()}px`;
     this.paint();
+  }
+
+  /**
+   * Items side by side: `columns` to a line, every line `lineHeight` tall.
+   * One column is the ordinary list. Nothing is painted here; setCount or
+   * refresh follows.
+   */
+  setColumns(columns, lineHeight) {
+    this.columns = Math.max(1, columns);
+    this.rowHeight = lineHeight;
+    if (this.columns > 1) this.offsets = null;
+    this.spacer.style.height = `${this.totalHeight()}px`;
+  }
+
+  totalHeight() {
+    return this.offsets ? this.offsets[this.count] : Math.ceil(this.count / this.columns) * this.rowHeight;
   }
 
   /** Repaints one row if it is visible, keeping the focus it holds. */
@@ -106,14 +128,14 @@ export class VirtualList {
     if (!this.nodes.has(index)) return;
     const held = this.heldFocus();
     const fresh = this.renderRow(index);
-    this.window.replaceChild(fresh, this.nodes.get(index));
+    this.nodes.get(index).replaceWith(fresh);
     this.nodes.set(index, fresh);
     if (held?.index === index) descend(fresh, held.path)?.focus?.({ preventScroll: true });
     this.onPaint?.();
   }
 
   offsetOf(index) {
-    return this.offsets ? this.offsets[index] : index * this.rowHeight;
+    return this.offsets ? this.offsets[index] : Math.floor(index / this.columns) * this.rowHeight;
   }
 
   heightOf(index) {
@@ -122,7 +144,7 @@ export class VirtualList {
 
   /** The first row whose bottom edge passes the given offset. */
   indexAt(px) {
-    if (!this.offsets) return Math.floor(px / this.rowHeight);
+    if (!this.offsets) return Math.floor(px / this.rowHeight) * this.columns;
     let lo = 0;
     let hi = this.count;
     while (lo < hi) {
@@ -144,8 +166,9 @@ export class VirtualList {
 
   visibleRange() {
     const { scrollTop, clientHeight } = this.viewport;
-    const first = Math.max(0, this.indexAt(scrollTop) - this.overscan);
-    const last = Math.min(this.count, this.indexAt(scrollTop + clientHeight) + 1 + this.overscan);
+    const cols = this.columns;
+    const first = Math.max(0, this.indexAt(scrollTop) - this.overscan * cols);
+    const last = Math.min(this.count, this.indexAt(scrollTop + clientHeight) + (1 + this.overscan) * cols);
     return [first, last];
   }
 
@@ -158,10 +181,18 @@ export class VirtualList {
     const held = this.heldFocus();
     const frag = document.createDocumentFragment();
     this.nodes.clear();
+    let line = null;
     for (let i = first; i < last; i++) {
       const node = this.renderRow(i);
       this.nodes.set(i, node);
-      frag.appendChild(node);
+      if (this.columns === 1) { frag.appendChild(node); continue; }
+      if ((i - first) % this.columns === 0) {
+        line = document.createElement('div');
+        line.className = 'vlist-line';
+        line.style.height = `${this.rowHeight}px`;
+        frag.appendChild(line);
+      }
+      line.appendChild(node);
     }
     this.window.replaceChildren(frag);
     this.window.style.transform = `translateY(${this.offsetOf(first)}px)`;

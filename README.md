@@ -117,6 +117,10 @@ the player actually arrives.
 - Click a channel or movie to start playback. For a series, choose a season
   and then an episode. **Back** restores the parent list's scroll position,
   selected item and search, including when the series is inside a favourite category.
+- Movies and series show as covers, as many across as the column has room
+  for; the two marks at the foot of the list switch between covers and a
+  list, and the choice is remembered. Among covers the arrows move left,
+  right and a line up or down.
 - Movie and series filters let you narrow titles by release year or rating
   and change their sort order. Filters use the available metadata, so some
   titles may be missing particular details. Active filters remain visible as
@@ -124,7 +128,10 @@ the player actually arrives.
 - **Programme guide**, above the channel list on the **Channels** tab, opens
   the TV programme guide. Catch-up playback is available
   when your provider supports recordings for that channel.
-- The star button adds an item to **Favourites**. **History** lists the
+- The star button adds an item to **Favourites**. With a mouse, an empty star
+  shows on the row under the pointer or the keyboard cursor; favourites keep
+  theirs, and a touch screen or a system asking for more contrast shows every
+  star. **History** lists the
   channels, movies and episodes you have recently started. Each account keeps
   up to 60 entries; older entries are removed as new ones are added.
 
@@ -170,7 +177,8 @@ interrupted channel-list load restores the previous list.
 
 ### If something goes wrong
 
-- **Refresh lists** fetches the content lists again from the server.
+- **Refresh lists** (the circular arrow in the top bar) fetches the content
+  lists again from the server.
 - If the connection fails, check the address and credentials in **Settings**
   and make sure your subscription is still active.
 - If cached information is outdated, clear the cache in Settings. Resetting
@@ -516,6 +524,8 @@ the guide, so one spelling works everywhere a name is typed.
 - **Programme search** by title and description, with a choice of shown or all
   visible channels and past/upcoming programmes
 - **Personal channel lists**: hide and reorder live channels and categories
+- **An empty player** offers what was left halfway, as covers, and the
+  channels watched lately, as logos — each a click from playing
 - **Series** by season, with cover art and plots from TMDB
 - **Movie details**: plot, running time, rating, codec
 - **MKV plays** without an external player: the container is unpacked on the
@@ -615,8 +625,10 @@ the timeline's scale, `Enter` starts playback and `Esc` closes.
 
 ### The buttons
 
-The top bar holds the five tabs, the search box, **Refresh lists**, **Help**
-and **Settings** at the far right. **Refresh lists** fetches the categories and
+The top bar holds the five tabs, the search box, **Refresh lists** (a
+circular arrow), **Help** (a question mark) and **Settings** at the far right;
+in a window 600px wide or less, Settings is a cog alone and the three share
+the brand's row. **Refresh lists** fetches the categories and
 the lists already loaded from the server again and empties the programme
 cache. **Help** opens this user guide. The **⛶** button is over the
 picture at the top right, with video statistics at the top left. It enters

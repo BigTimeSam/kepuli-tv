@@ -86,6 +86,46 @@ export function itemRow(item, ctx) {
   return row;
 }
 
+/**
+ * A film or a series as a cover in the grid. The same option as a row —
+ * the same id, the same selection, the same star and the same click — so
+ * the list's keyboard, its screen-reader names and its tests do not care
+ * which of the two it is showing. The cover carries the progress of a film
+ * left halfway along its foot.
+ *
+ * @param {object} ctx as for itemRow
+ */
+export function posterCard(item, ctx) {
+  const card = listOption('row card', ctx);
+  if (ctx.playing) card.classList.add('playing');
+  const cover = poster('card-poster', item.logo, item.k === 2 ? 'series' : 'movie');
+  if (ctx.resume && ctx.resume.duration > 0) {
+    const bar = el('div', 'row-progress resume');
+    const fill = document.createElement('i');
+    fill.style.width = `${Math.round(Math.min(1, ctx.resume.position / ctx.resume.duration) * 100)}%`;
+    bar.appendChild(fill);
+    cover.appendChild(bar);
+  }
+  card.appendChild(cover);
+  card.appendChild(star(ctx.favorite, ctx.onFavorite, 'row-star card-star'));
+
+  const name = el('div', 'row-name card-name', ctx.label || item.n);
+  name.title = item.n;
+  card.appendChild(name);
+
+  const bits = [];
+  // A provider's name often carries the year already: "Iron Tide (2009)".
+  if (item.year && !String(ctx.label || item.n).includes(String(item.year))) bits.push(item.year);
+  const rating = ratingText(item.details) || ratingText(item);
+  if (rating) bits.push(rating);
+  const seconds = item.k === 1 ? item.details?.durationSec || item.durationSec || ctx.resume?.duration : 0;
+  if (Number.isFinite(seconds) && seconds > 0) bits.push(duration(seconds, { compact: true }));
+  card.appendChild(el('div', 'card-meta', bits.join(' · ') || '\u00a0'));
+
+  card.addEventListener('click', ctx.onOpen);
+  return card;
+}
+
 /** A section heading in the list: a history day or a favourites type. */
 export function sectionHeader(label) {
   return el('div', 'daysep', label);

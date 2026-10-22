@@ -22,6 +22,8 @@ const STRINGS = {
   en: {
     "setup.m3u.hint": "Paste the complete get.php URL from your provider. Protocol, server, port, username and password are filled automatically.",
     "organize.title": "Organize channels",
+    "view.list": "Show as a list",
+    "view.grid": "Show as covers",
     "organize.help": "Uncheck to hide. Drag a row by its handle to move it, or focus the handle and use the arrows, Home and End. Hidden categories hide their channels everywhere. Save applies changes to this account.",
     "organize.kind": "Items to organize",
     "organize.hide": "Hide all listed",
@@ -515,6 +517,8 @@ const STRINGS = {
   fi: {
     "setup.m3u.hint": "Liitä palveluntarjoajan lähettämä koko get.php-osoite. Protokolla, palvelin, portti, käyttäjätunnus ja salasana täytetään automaattisesti.",
     "organize.title": "Muokkaa kanavalistaa",
+    "view.list": "Näytä listana",
+    "view.grid": "Näytä kansikuvina",
     "organize.help": "Poista valinta piilottaaksesi. Siirrä riviä raahaamalla sen kahvasta tai valitse kahva ja käytä nuolia, Home- ja End-näppäimiä. Piilotettu kategoria piilottaa kanavansa kaikista näkymistä. Tallenna ottaa muutokset käyttöön tällä tilillä.",
     "organize.kind": "Muokattavat kohteet",
     "organize.hide": "Piilota listatut",
