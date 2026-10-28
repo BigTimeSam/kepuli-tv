@@ -53,7 +53,8 @@ FOR 1.2.0 SPECIFICALLY
   runtime.onUpdateAvailable and runtime.reload, which need no permission. So:
   upload the package, replace all five screenshots (the player now shows films
   as covers, and the top bar has changed), paste the detailed description
-  below, whose FEATURES gained five lines. Nothing else on the form changes.
+  below, which was rewritten short for this release. Nothing else on the form
+  changes.
 
 FOR 1.1.0 SPECIFICALLY
   Diffing the manifests, only "version" changed: no permission, no CSP and no
@@ -73,158 +74,59 @@ Plays your own Xtream Codes IPTV account in the browser, with a programme guide 
 
 --- LONG DESCRIPTION (field "Detailed description", max 16,000 characters) --
 
-Kepuli-TV plays the contents of your own Xtream Codes IPTV account straight in
-Chrome. No separate application and no media server: you give the server
-address and your credentials, and your live channels, movies and series appear
-in the sidebar.
+Watch your own IPTV subscription in Chrome without fighting the app.
+Kepuli-TV is an Xtream Codes player built around one idea: a huge catalogue
+should feel small.
 
-PLEASE NOTE: The extension contains, distributes and relays no content, and it
-comes with no provider. You need your own Xtream Codes IPTV account, which you
-have obtained yourself. Kepuli-TV is a player and nothing else, and it is
-intended solely for viewing content you have the right to view. You are
-responsible for ensuring that the service you use is lawful in your own
-country.
+→ Channels open in a second or two, even from an enormous catalogue
+→ Hundreds of messy categories become a tidy list of countries
+→ A full-window programme guide (EPG) with catch-up where offered
+→ MKV movies and episodes play right in the browser, subtitles and surround
+  sound included
 
 
-MATROSKA ON THE FLY
+WHY I MADE IT
 
-Chrome will not open a Matroska file, even when the picture inside it would be
-fine. Kepuli-TV unpacks the MKV container on the fly into a form the built-in
-video element accepts. The picture is neither decoded nor re-encoded, so the
-work is light and seeking behaves normally.
-
-The audio decides more often than the container: more than half of the
-episodes carry a surround-sound track that the browser cannot decode. Those
-tracks are decoded on the spot and encoded back with the browser's own
-encoder: AAC, or Opus where it has no AAC encoder.
-
-Measured on a sample of 23,628 episodes: without this, 44.6% would work; with
-it, 93.7%.
+I got tired of IPTV apps that made me fight them: endless category lists,
+dialogs that froze everything while a catalogue loaded, and files that simply
+would not play. So I built the one I wanted to use every evening.
+- Samuli, developer of Kepuli-TV
 
 
-SUBTITLES
+WHAT YOU GET
 
-Subtitle tracks are picked up during the unpacking and drawn over the picture
-by the player, in full-screen mode too. Below the picture there is a language
-selector in alphabetical order, and beside it an Aa button that sets how the
-text looks against what is on screen rather than against a preview in a
-dialog. Five looks - shadow, outline, yellow, box and high contrast - and the
-size in pixels from a slider. The chosen language is remembered and carries
-over to the next episode.
-
-Text formats such as SRT show. Bitmap formats are images and cannot be shown.
-
-
-FAST EVEN WITH ENORMOUS CATALOGUES
-
-A typical catalogue is tens of megabytes and hundreds of thousands of lines.
-Kepuli-TV does not load it in one go. It fetches only what you are browsing at
-the time: the categories when the connection opens, a country's channels only
-when you click it, the whole catalogue only if you search it. One typically
-opens within a second or two.
-
-Everything loaded once stays in a local cache, so the next open is instant. The
-cache can be cleared from the settings.
-
-Nothing waits behind a dialog while it arrives. A fetch reports itself in a
-strip above the rows it is filling, with what it is loading and a way to stop
-it, and what is playing carries on while it runs.
+• Paste the M3U link your provider sent you and the settings fill themselves.
+• Search that ignores accents and word order.
+• Whatever you left halfway waits at the top, and the next episode starts by
+  itself.
+• Nothing blocks the screen while data loads, and what is playing keeps
+  playing.
+• Movies and series as covers, with plots, ratings and seasons.
+• Favourites, viewing history and resume positions.
+• Cast to a Chromecast, use the media keys, and get a reminder before a
+  programme starts.
+• The keyboard reaches everything, and the layout follows your browser's text
+  size and contrast settings.
+• In English and Finnish.
 
 
-CATEGORIES IN A SENSIBLE SHAPE
+PRIVATE BY DESIGN
 
-Providers pack two levels into a single name, such as "Sweden - Sport". They
-are split, which condenses hundreds of muddled categories into dozens of
-countries in the sidebar and moves the subjects into topic buttons along the
-top.
-
-Everything is sorted alphabetically, numbers as numbers included: Rocky 2 comes
-before Rocky 10. The sidebar filter matches the second level too: with the word
-"sport" you find the places that have a sports category even when their name
-lacks the word.
-
-Searching folds the marks off a name and takes the words in whatever order they
-were typed, because a catalogue written in a dozen languages is read on a
-single keyboard: elain finds Elainkanava spelled with its umlaut, and a name
-found with its words the wrong way round still ranks below one that reads as
-it was typed.
+No tracking, no ads, no sign-up. Kepuli-TV talks only to your own server and
+asks permission for that one address, nothing else.
 
 
-PROGRAMME GUIDE AND ARCHIVE
+PLEASE NOTE
 
-The guide gives the grid the height of the window: channels as rows, time on
-the horizontal axis and a moving now line, with what is selected and the
-video itself in a column beside it rather than in a band across the top. On a
-1024-by-700 window that is nine rows where a band left four. The timeline runs
-from two days back to five days forward, and where the provider keeps an
-archive, a past programme can be started straight from the guide.
+Kepuli-TV contains no channels or content and comes with no provider. Bring
+an Xtream Codes account of your own, use it only for content you have the
+right to watch, and make sure the service is lawful where you live.
 
 
-FEATURES
+GET STARTED
 
-• What is on air, with a progress bar, on every row
-• A full-window programme guide, with catch-up where an archive exists
-• Matroska and its subtitles without an external player
-• Series by season, with cover art and episode descriptions; movies with
-  their plot and rating; both shown as covers, or as a list if you prefer
-• What was left halfway waits at the top of the history and wherever
-  nothing is playing yet, the next episode starts after a short countdown,
-  and the previous channel is a key away
-• A reminder a minute before a programme starts, set from the grid
-• The media keys and the system's own media controls, which show what is on
-• An update Chrome has fetched is offered rather than held back silently
-  while the tab is open
-• Files that cannot be shown are marked before you click, and their address
-  can be handed to a desktop application with the resume position
-• Casting to a Chromecast
-• Resume positions remembered for everything on demand
-• Favourites and viewing history as tabs of their own, and a favourite can be
-  a whole section
-• Automatic reconnection when a live stream drops, and where the account
-  itself is the reason a stream will not come - the subscription run out, or
-  every connection it allows already in use - the message says so
-• Technical details over the video, and the subscription's own details
-  under Account & data
-• Every key listed under Help, or behind the ? key
-• The interface in English and Finnish, opening in whichever the browser asks
-  for
-
-
-LIVE AND ON DEMAND
-
-Live channels arrive as a transport stream and, when needed, as HLS. Automatic
-mode tries the transport stream first for its lower latency and falls back to
-HLS if it does not start.
-
-On-demand files in the common containers open, MKV included. Left out are the
-AVI container and a couple of video codecs with no decoder on board. Those
-files are marked before you click, and their address goes to a desktop player
-or to the clipboard with a single button.
-
-
-WITHIN REACH
-
-The keyboard reaches everything: a single tab stop for each of the three
-places that hold a cursor of their own, the arrows inside them, and a key for
-whatever the mouse can do. Text sizes follow the setting in your browser rather
-than ignoring it, and the rows grow with them. A system asking for more
-contrast is answered. Below 760 pixels of width the sidebar becomes a menu at
-the top of the list, which is what a window on half a screen - or a screen at
-200 per cent - actually has.
-
-
-PRIVACY AND PERMISSIONS
-
-• All data stays on your own machine. The extension sends your details
-  nowhere: network requests go only to your own server. The exception is
-  logos and cover art, which are fetched from wherever your provider points.
-• No tracking, no analytics, no advertising, no user accounts.
-• Installation asks for access to no site at all. Chrome asks for the
-  permission only when you enter your own server address, and only for that
-  one.
-• There are no content scripts: the extension does not touch the pages you
-  browse.
-• Credentials are stored locally on this machine.
+Click the toolbar icon, enter your server, username and password, and your
+channels appear.
 
 
 --- THE OTHER FIELDS ON THE STORE FORM -------------------------------------
