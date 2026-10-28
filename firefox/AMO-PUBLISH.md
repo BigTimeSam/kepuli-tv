@@ -116,13 +116,13 @@ HTTP and HTTPS services supplied by the user.
 Name:
 
 ```text
-Kepuli-TV
+Kepuli-TV – IPTV Player
 ```
 
 Summary:
 
 ```text
-Plays your own Xtream Codes IPTV account in the browser, with a programme guide and MKV subtitles.
+Watch your own Xtream Codes IPTV in your browser without fighting the app. Channels open in seconds, and MKV plays with subtitles.
 ```
 
 Description:

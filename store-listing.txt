@@ -48,6 +48,16 @@ RARELY
   • Category, language, homepage, support URL, privacy policy URL, test
     instructions: leave them unless the thing they describe has moved.
 
+FOR 1.2.1 SPECIFICALLY
+  The manifests changed "name", "description" and "version". The name is now
+  "Kepuli-TV – IPTV Player", so the store's search can match what the player
+  is and not only what it is called; the toolbar button keeps its short
+  tooltip through action.default_title. The short description now opens with
+  the same promise as the detailed one. So: upload the package and nothing
+  else. The title and the short description follow the manifest by
+  themselves; the detailed description, screenshots and every other field
+  stay as 1.2.0 left them.
+
 FOR 1.2.0 SPECIFICALLY
   Diffing the manifests, only "version" changed again. The update notice uses
   runtime.onUpdateAvailable and runtime.reload, which need no permission. So:
@@ -66,10 +76,10 @@ FOR 1.1.0 SPECIFICALLY
 
 --- SHORT DESCRIPTION (field "Description", max 132 characters) ------------
 The same text is in manifest.json and firefox/manifest.json, from which the
-store reads it automatically. Length 98 characters. A sentence on purpose:
+store reads it automatically. Length 130 characters. A sentence on purpose:
 a colon followed by a comma-separated run of nouns reads as a keyword list.
 
-Plays your own Xtream Codes IPTV account in the browser, with a programme guide and MKV subtitles.
+Watch your own Xtream Codes IPTV in your browser without fighting the app. Channels open in seconds, and MKV plays with subtitles.
 
 
 --- LONG DESCRIPTION (field "Detailed description", max 16,000 characters) --
