@@ -23,8 +23,11 @@ Most of this file is written once and left alone. What a release actually
 touches in the dashboard, and what it does not:
 
 ALWAYS
-  • Package (Package → Upload new package): the ZIP from
-    node dev/package.mjs --zip. Chrome takes the version from the manifest;
+  • Package (Package → Upload new package): kepuli-tv-chrome-<version>.zip
+    from node dev/package.mjs --zip — never the firefox one beside it. Chrome
+    accepts the Firefox package without a word, but its manifest has
+    background.scripts, which Chrome ignores: no service worker runs, and the
+    toolbar button does nothing. Chrome takes the version from the manifest;
     there is no version field to type and no release-notes field at all.
 
 WHEN THE PLAYER LOOKS DIFFERENT
@@ -47,6 +50,12 @@ ONLY WHEN THE MANIFEST CHANGES
 RARELY
   • Category, language, homepage, support URL, privacy policy URL, test
     instructions: leave them unless the thing they describe has moved.
+
+FOR 1.2.2 SPECIFICALLY
+  Only "version" changed. The store's 1.2.1 was the Firefox package, so the
+  player would not open from the toolbar in Chrome; the store does not take
+  the same version twice, hence 1.2.2. So: upload kepuli-tv-chrome-1.2.2.zip
+  and nothing else.
 
 FOR 1.2.1 SPECIFICALLY
   The manifests changed "name", "description" and "version". The name is now
