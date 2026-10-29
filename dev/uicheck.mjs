@@ -63,6 +63,19 @@ try {
     window.addEventListener('unhandledrejection', e => uiErrors.push(String(e.reason)));`);
   await viewport(1280);
   await click('#groups .group'); // All series, long enough to scroll.
+  // A slow scroll keeps the covers already in sight: building them again
+  // made each one a new <img>, hidden until it loaded, and they blinked.
+  const kept = await evaluate(`(async () => {
+    const list = document.querySelector('#list');
+    const before = new Set(list.querySelectorAll('.card-poster img'));
+    list.scrollTop += 6;
+    await new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r)));
+    const after = [...list.querySelectorAll('.card-poster img')];
+    return { before: before.size, rebuilt: after.filter(img => !before.has(img)).length };
+  })()`);
+  assert(kept.before > 0, 'the series list shows covers');
+  assert.equal(kept.rebuilt, 0, 'a small scroll builds no cover again');
+  await evaluate(`document.querySelector('#list').scrollTop = 0`);
   await evaluate(`document.querySelector('#list').focus()`);
   for (let i = 0; i < 18; i++) await key('ArrowDown');
   const before = await evaluate(`({ scroll: document.querySelector('#list').scrollTop,

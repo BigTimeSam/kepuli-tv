@@ -51,6 +51,11 @@ RARELY
   • Category, language, homepage, support URL, privacy policy URL, test
     instructions: leave them unless the thing they describe has moved.
 
+FOR 1.2.3 SPECIFICALLY
+  Only "version" changed in the manifests; the fix is in the list's code
+  (covers no longer blink while the list scrolls slowly). So: upload
+  kepuli-tv-chrome-1.2.3.zip and nothing else.
+
 FOR 1.2.2 SPECIFICALLY
   Only "version" changed. The store's 1.2.1 was the Firefox package, so the
   player would not open from the toolbar in Chrome; the store does not take

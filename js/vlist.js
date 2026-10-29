@@ -73,13 +73,15 @@ export class VirtualList {
     this.spacer.appendChild(this.window);
     viewport.appendChild(this.spacer);
 
+    // A scroll or a resize moves the range, not what the rows say, so the
+    // rows still in it are kept rather than built again — see paint.
     this.onScroll = () => {
       if (this.ticking) return;
       this.ticking = true;
-      requestAnimationFrame(() => { this.ticking = false; this.paint(); });
+      requestAnimationFrame(() => { this.ticking = false; this.paint({ reuse: true }); });
     };
     viewport.addEventListener('scroll', this.onScroll, { passive: true });
-    this.resizeObserver = new ResizeObserver(() => this.paint());
+    this.resizeObserver = new ResizeObserver(() => this.paint({ reuse: true }));
     this.resizeObserver.observe(viewport);
   }
 
@@ -172,18 +174,27 @@ export class VirtualList {
     return [first, last];
   }
 
-  paint() {
+  /**
+   * @param {{reuse?:boolean}} [options] reuse keeps the rows already painted
+   *   and builds only those that came into range. A cover built again is a
+   *   new <img>, hidden until its load event even when the picture is in the
+   *   cache, so building every row on every scroll frame made the covers in
+   *   sight blink while the list moved slowly.
+   */
+  paint({ reuse = false } = {}) {
     const [first, last] = this.visibleRange();
-    // Every paint builds the rows again, so a control the viewer is using
-    // would lose the focus under it — and a paint is queued by a scroll,
-    // which is exactly what moving a row with the keyboard causes. The
-    // place the focus held is found again in the row that replaces it.
+    // Moving the rows into the new window takes them out of the document,
+    // so a control the viewer is using would lose the focus under it — and
+    // a paint is queued by a scroll, which is exactly what moving a row with
+    // the keyboard causes. The place the focus held is found again in the
+    // row that now stands there.
     const held = this.heldFocus();
     const frag = document.createDocumentFragment();
-    this.nodes.clear();
+    const painted = reuse ? this.nodes : new Map();
+    this.nodes = new Map();
     let line = null;
     for (let i = first; i < last; i++) {
-      const node = this.renderRow(i);
+      const node = painted.get(i) || this.renderRow(i);
       this.nodes.set(i, node);
       if (this.columns === 1) { frag.appendChild(node); continue; }
       if ((i - first) % this.columns === 0) {
