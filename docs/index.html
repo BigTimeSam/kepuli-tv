@@ -173,7 +173,7 @@
 
 <main>
 <h1>Kepuli-TV</h1>
-<p class="meta">The README of the Kepuli-TV browser extension · Version 1.2.3 · <a href="https://github.com/BigTimeSam/kepuli-tv">Source on GitHub</a></p>
+<p class="meta">The README of the Kepuli-TV browser extension · Version 1.2.4 · <a href="https://github.com/BigTimeSam/kepuli-tv">Source on GitHub</a></p>
 
 <p>A Chrome and Firefox extension (Manifest V3) that plays Xtream Codes IPTV straight in the
 browser. Data is fetched from the <code>player_api.php</code> API lazily: only what you
@@ -1062,6 +1062,14 @@ but trails the live edge by a segment length.</p>
 unplayable ones, <strong>Copy address</strong> and <strong>Open in an external player</strong> are
 offered.</p>
 
+<p>How far ahead a film or an episode is read depends on the route. The browser's
+own player decides for itself, some 15–20 seconds measured. The MKV unpacking
+and mpegts.js both read a minute ahead and drop what was watched behind it. For
+mpegts.js the minute is its lazy load: without it, a film was read at the
+server's full speed until Chrome's MediaSource quota was full, and mpegts.js
+then cut the connection and never resumed, so the picture froze when the
+buffer ran out. Live channels and the archive are read as they come.</p>
+
 <h3 id="external-player">External player</h3>
 
 <p>Unpacking and wasm audio cover most of the library, but not all of it: the AVI
@@ -1130,7 +1138,7 @@ is. <code>js/mkv.js</code> demuxes the clusters from the stream, <code>js/mp4.js
 frames into fMP4 segments and <code>js/remux.js</code> feeds them to MediaSource. The
 picture is neither decoded nor re-encoded — only the container changes.</p>
 
-<p>Three points needed care:</p>
+<p>Four points needed care:</p>
 
 <ul>
   <li><strong>Decode time.</strong> Matroska stores only the presentation time. Because of
@@ -1146,6 +1154,13 @@ an hour.</li>
 is read from the same stream playback continues from. Seeking cuts the stream
 and opens a new one at the offset the Cues table points to; the table is at
 the end of the file, so it is fetched only if a seek happens.</li>
+  <li><strong>One buffer operation at a time.</strong> The download stays about a minute
+ahead of the picture, and what has been watched is removed half a minute
+behind it. A <code>SourceBuffer</code> does one thing at a time, so the removals go
+through the same queue as the appends: run beside it, the first removal
+some 35 seconds in met an append on a high-bitrate film, the append threw
+<em>SourceBuffer rejected the segment</em>, and the picture stopped once the
+buffered minute had played out. <code>dev/unitcheck.mjs</code> holds the case.</li>
 </ul>
 
 <p>An interrupted download resumes from the start of the last complete cluster. If

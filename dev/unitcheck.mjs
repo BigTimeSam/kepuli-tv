@@ -629,6 +629,45 @@ for (const [text, least] of [['dim', 4.5], ['muted', 4.5], ['text', 7]]) {
   }
 }
 
+/* ------------------------------------- remux.js: one operation at a time */
+
+// A SourceBuffer does one thing at a time, and an append issued while a
+// removal is under way throws. The eviction once ran beside the append
+// queue: some 35 seconds into a high-bitrate film the two met, the append
+// threw "SourceBuffer rejected the segment", and the picture stopped when
+// the minute already buffered ran out. The fake buffer below throws as
+// Chrome's does, and takes a few milliseconds over each operation.
+{
+  const { Remuxer } = await import('../js/remux.js');
+  class FakeBuffer extends EventTarget {
+    constructor() { super(); this.updating = false; this.ranges = [[0, 160]]; this.calls = []; }
+    get buffered() { const r = this.ranges; return { length: r.length, start: (i) => r[i][0], end: (i) => r[i][1] }; }
+    work(name, then) {
+      if (this.updating) throw new DOMException(`${name} while updating`, 'InvalidStateError');
+      this.updating = true;
+      this.calls.push(name);
+      setTimeout(() => { then(); this.updating = false; this.dispatchEvent(new Event('updateend')); }, 3);
+    }
+    appendBuffer() { this.work('append', () => {}); }
+    remove(from, to) { this.work('remove', () => { this.ranges = [[Math.max(this.ranges[0][0], to), this.ranges[0][1]]]; }); }
+  }
+  const errors = [];
+  const remuxer = new Remuxer({ currentTime: 100 }, 'http://x/', { onError: (err) => errors.push(err.message) });
+  remuxer.ms = { readyState: 'open', duration: 200 };
+  const sb = new FakeBuffer();
+  remuxer.buffers.video = sb;
+  // The order the pump and the wait for room produce them in under load:
+  // an eviction starts, appends arrive while it runs, another eviction
+  // comes in among them, and a seek clears the lot.
+  const work = [remuxer.evict('video'), remuxer.append('video', new Uint8Array(1)), remuxer.append('video', new Uint8Array(1)),
+    remuxer.evict('video'), remuxer.append('video', new Uint8Array(1))];
+  await Promise.all(work);
+  check('appends and evictions take turns on the buffer', { errors, calls: sb.calls }, { errors: [], calls: ['remove', 'append', 'append', 'append'] });
+  check('the eviction keeps the half-minute behind the playback position', sb.ranges, [[70, 160]]);
+  await Promise.all([remuxer.append('video', new Uint8Array(1)), remuxer.clear()]);
+  check('a seek clears the buffer after the append in flight, not over it', { errors, calls: sb.calls.slice(4) }, { errors: [], calls: ['append', 'remove'] });
+}
+
 /* ------------------------------------------------------------------ done */
 
 console.log(failed ? `${failed} of ${count} cases failed` : `PASS: ${count} cases`);

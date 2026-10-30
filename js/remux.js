@@ -571,14 +571,26 @@ export class Remuxer {
 
   /** Drops the sound, and only the sound: the picture stays buffered. */
   async clearAudio() {
-    const sb = this.buffers.audio;
-    if (!timeRanges(sb)) return;
-    await new Promise((resolve) => {
-      const done = () => { sb.removeEventListener('updateend', done); resolve(); };
-      sb.addEventListener('updateend', done);
-      try { sb.remove(0, this.ms.duration || Infinity); } catch { done(); }
+    await this.remove('audio', () => [0, Infinity]);
+  }
+
+  /**
+   * Removes a stretch of a buffer in turn with the appends. A SourceBuffer
+   * does one thing at a time: an append issued while a remove is under way
+   * throws, and an append that throws stops playback. Run beside the queue,
+   * the first eviction — some 35 seconds in — ended films with "SourceBuffer
+   * rejected the segment", and the picture stopped once the minute already
+   * buffered had played out. The stretch is asked for when its turn comes,
+   * so that it is measured against the position of that moment.
+   */
+  remove(kind, span) {
+    const sb = this.buffers[kind];
+    if (!sb) return Promise.resolve();
+    this.queues[kind] = this.queues[kind].then(() => {
+      const [from, to] = span() || [];
+      return from == null ? undefined : removeNow(sb, from, to);
     });
-    this.queues.audio = Promise.resolve();
+    return this.queues[kind];
   }
 
   /** Appends queued per track: a SourceBuffer accepts one at a time. */
@@ -592,7 +604,10 @@ export class Remuxer {
         await this.appendOnce(sb, data);
       } catch (err) {
         if (err && err.name === 'QuotaExceededError') {
-          await this.evict(kind, true);
+          // In the queue already: removed at once rather than queued
+          // behind this very append.
+          const span = this.evictable(kind, true);
+          if (span) await removeNow(sb, ...span);
           try { await this.appendOnce(sb, data); } catch (retry) { this.fail(retry); }
         } else this.fail(err);
       }
@@ -612,19 +627,17 @@ export class Remuxer {
 
   /** Removes the watched part from the buffer, so memory does not grow
    *  without bound. */
-  async evict(kind, aggressive = false) {
-    const sb = this.buffers[kind];
-    const ranges = timeRanges(sb);
-    if (!ranges) return;
-    const now = this.video.currentTime;
-    const keepFrom = Math.max(0, now - (aggressive ? 5 : BUFFER_BEHIND));
+  evict(kind) {
+    return this.remove(kind, () => this.evictable(kind));
+  }
+
+  /** The watched stretch of a buffer that can go, or null. */
+  evictable(kind, aggressive = false) {
+    const ranges = timeRanges(this.buffers[kind]);
+    if (!ranges) return null;
+    const keepFrom = Math.max(0, this.video.currentTime - (aggressive ? 5 : BUFFER_BEHIND));
     const start = ranges.start(0);
-    if (keepFrom - start < 5) return;
-    await new Promise((resolve) => {
-      const done = () => { sb.removeEventListener('updateend', done); resolve(); };
-      sb.addEventListener('updateend', done);
-      try { sb.remove(start, keepFrom); } catch { done(); }
-    });
+    return keepFrom - start < 5 ? null : [start, keepFrom];
   }
 
   /* ---------------------------------------------------------------- pumppu */
@@ -1045,18 +1058,23 @@ export class Remuxer {
   }
 
   async clear() {
-    for (const kind of ['video', 'audio']) {
-      const sb = this.buffers[kind];
-      if (!timeRanges(sb)) continue;
-      await new Promise((resolve) => {
-        const done = () => { sb.removeEventListener('updateend', done); resolve(); };
-        sb.addEventListener('updateend', done);
-        try { sb.remove(0, this.ms.duration || Infinity); } catch { done(); }
-      });
-    }
-    this.queues.video = Promise.resolve();
-    this.queues.audio = Promise.resolve();
+    await this.remove('video', () => [0, Infinity]);
+    await this.remove('audio', () => [0, Infinity]);
   }
+}
+
+/**
+ * Removes a stretch of a buffer and waits for it to be gone. Never throws:
+ * a buffer that cannot be read or has left its MediaSource has nothing to
+ * remove.
+ */
+function removeNow(sb, from, to) {
+  if (!timeRanges(sb)) return Promise.resolve();
+  return new Promise((resolve) => {
+    const done = () => { sb.removeEventListener('updateend', done); resolve(); };
+    sb.addEventListener('updateend', done);
+    try { sb.remove(from, to); } catch { done(); }
+  });
 }
 
 /* ------------------------------------------------------------- apurit */

@@ -821,6 +821,14 @@ In the test material 54% of the movies are `.mp4` and 44% `.mkv`. For
 unplayable ones, **Copy address** and **Open in an external player** are
 offered.
 
+How far ahead a film or an episode is read depends on the route. The browser's
+own player decides for itself, some 15–20 seconds measured. The MKV unpacking
+and mpegts.js both read a minute ahead and drop what was watched behind it. For
+mpegts.js the minute is its lazy load: without it, a film was read at the
+server's full speed until Chrome's MediaSource quota was full, and mpegts.js
+then cut the connection and never resumed, so the picture froze when the
+buffer ran out. Live channels and the archive are read as they come.
+
 ### External player
 
 Unpacking and wasm audio cover most of the library, but not all of it: the AVI
@@ -889,7 +897,7 @@ is. `js/mkv.js` demuxes the clusters from the stream, `js/mp4.js` packs the
 frames into fMP4 segments and `js/remux.js` feeds them to MediaSource. The
 picture is neither decoded nor re-encoded — only the container changes.
 
-Three points needed care:
+Four points needed care:
 
 - **Decode time.** Matroska stores only the presentation time. Because of
   B-frames the two differ — in a measured episode 740 of 1569 frames had a PTS
@@ -904,6 +912,13 @@ Three points needed care:
   is read from the same stream playback continues from. Seeking cuts the stream
   and opens a new one at the offset the Cues table points to; the table is at
   the end of the file, so it is fetched only if a seek happens.
+- **One buffer operation at a time.** The download stays about a minute
+  ahead of the picture, and what has been watched is removed half a minute
+  behind it. A `SourceBuffer` does one thing at a time, so the removals go
+  through the same queue as the appends: run beside it, the first removal
+  some 35 seconds in met an append on a high-bitrate film, the append threw
+  *SourceBuffer rejected the segment*, and the picture stopped once the
+  buffered minute had played out. `dev/unitcheck.mjs` holds the case.
 
 An interrupted download resumes from the start of the last complete cluster. If
 the file is broken instead — the library held an episode followed by three

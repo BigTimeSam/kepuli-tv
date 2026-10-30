@@ -42,6 +42,23 @@ const MPEGTS_CONFIG = {
   lazyLoad: false,
 };
 
+// A film or an episode as MPEG-TS is read a minute ahead, as the MKV
+// unpacking reads it, and the download waits until half a minute is left.
+// Read without the limit, mpegts.js took a 5 Mbit/s film at the server's
+// full speed until Chrome's MediaSource quota was full — 194 MB, nearly
+// four minutes, in half a minute — then cut the connection and never
+// opened another: its suspension on a full buffer has no resume, only
+// the lazy load's has. The picture froze without a word when the buffer
+// ran out, and at 1080p bit rates the quota holds only a minute or two.
+// A minute stays far below the quota at any of those rates. The archive
+// keeps the old reading: resuming asks for a byte range, which the
+// catch-up address is not known to answer.
+const MPEGTS_VOD_CONFIG = {
+  lazyLoad: true,
+  lazyLoadMaxDuration: 60,
+  lazyLoadRecoverDuration: 30,
+};
+
 const HLS_CONFIG = {
   enableWorker: false,        // same reason as above
   lowLatencyMode: false,
@@ -351,7 +368,7 @@ export class Playback {
     this.cleanup = drop;
 
     try {
-      if (name === 'mpegts') this.startMpegts(spec.url, spec.live, finish);
+      if (name === 'mpegts') this.startMpegts(spec.url, spec.live, finish, { vod: !spec.live && !spec.catchup });
       else if (name === 'hls') this.startHls(spec.hlsUrl || spec.url, finish);
       else if (name === 'remux') this.startRemux(spec, finish);
       else this.startNative(spec);
@@ -384,10 +401,10 @@ export class Playback {
     this.onState({ status: 'error', message: t('playback.died', { reason }), verdict: this.spec.verdict });
   }
 
-  startMpegts(url, isLive, finish) {
+  startMpegts(url, isLive, finish, { vod = false } = {}) {
     if (typeof mpegts === 'undefined' || !mpegts.isSupported()) return finish(false, 'mpegts.js not supported');
     const player = mpegts.createPlayer({ type: 'mpegts', isLive, url }, {
-      ...MPEGTS_CONFIG, liveBufferLatencyChasing: isLive,
+      ...MPEGTS_CONFIG, liveBufferLatencyChasing: isLive, ...(vod ? MPEGTS_VOD_CONFIG : {}),
     });
     this.engine = player;
     player.on(mpegts.Events.ERROR, (type, detail) => finish(false, `${type}/${detail}`));

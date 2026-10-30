@@ -51,6 +51,11 @@ RARELY
   • Category, language, homepage, support URL, privacy policy URL, test
     instructions: leave them unless the thing they describe has moved.
 
+FOR 1.2.4 SPECIFICALLY
+  Only "version" changed in the manifests; the fix is in playback (films
+  and episodes no longer stop a minute or two in). So: upload
+  kepuli-tv-chrome-1.2.4.zip and nothing else.
+
 FOR 1.2.3 SPECIFICALLY
   Only "version" changed in the manifests; the fix is in the list's code
   (covers no longer blink while the list scrolls slowly). So: upload
