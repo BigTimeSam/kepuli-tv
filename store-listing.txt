@@ -51,6 +51,13 @@ RARELY
   • Category, language, homepage, support URL, privacy policy URL, test
     instructions: leave them unless the thing they describe has moved.
 
+FOR 1.2.5 SPECIFICALLY
+  Only "version" changed in the manifests; the changes are in the player
+  (a click on the picture pauses a film or an episode, episodes show the
+  series' year, genre and rating, and the "·" separators are gone). So:
+  upload kepuli-tv-chrome-1.2.5.zip and nothing else. The screenshots still
+  show the old separators; they can wait for the next retake.
+
 FOR 1.2.4 SPECIFICALLY
   Only "version" changed in the manifests; the fix is in playback (films
   and episodes no longer stop a minute or two in). So: upload

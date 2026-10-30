@@ -318,7 +318,7 @@ export class ChannelEditor {
       sub.textContent = where;
       body.append(sub);
     }
-    label.title = where ? `${item.n} · ${where}` : item.n;
+    label.title = where ? `${item.n} (${where})` : item.n;
     // Categories have no logo of their own, and a placeholder television
     // beside every one of them is noise rather than information.
     label.append(checkbox);

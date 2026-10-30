@@ -120,7 +120,7 @@ export function posterCard(item, ctx) {
   if (rating) bits.push(rating);
   const seconds = item.k === 1 ? item.details?.durationSec || item.durationSec || ctx.resume?.duration : 0;
   if (Number.isFinite(seconds) && seconds > 0) bits.push(duration(seconds, { compact: true }));
-  card.appendChild(el('div', 'card-meta', bits.join(' · ') || '\u00a0'));
+  card.appendChild(el('div', 'card-meta', bits.join(', ') || '\u00a0'));
 
   card.addEventListener('click', ctx.onOpen);
   return card;
@@ -159,7 +159,7 @@ function subLine(item, ctx) {
 
   if (!bits.length) return null;
   const sub = el('div', 'row-sub');
-  sub.appendChild(el('span', 'txt', bits.join(' · ')));
+  sub.appendChild(el('span', 'txt', bits.join(', ')));
   return sub;
 }
 

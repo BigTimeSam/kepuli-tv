@@ -740,7 +740,7 @@ function favCategorySubtitle(entry) {
     const group = state.lib ? state.lib.group(entry.t, entry.g) : null;
     if (group && group.cats.length > 1) bits.push(t('list.topics', { n: group.cats.length }));
   } else if (entry.g && entry.g !== entry.n) bits.push(entry.g);
-  return bits.join(' · ');
+  return bits.join(', ');
 }
 
 /**
@@ -1146,10 +1146,10 @@ function renderListInfo() {
     const group = state.lib.group(type, state.group);
     parts.push(state.sub
       ? state.lib.categoryName(type, state.sub)
-      : `${state.group}${group && group.cats.length > 1 ? ` · ${t('list.topics', { n: group.cats.length })}` : ''}`);
+      : `${state.group}${group && group.cats.length > 1 ? ` (${t('list.topics', { n: group.cats.length })})` : ''}`);
   }
 
-  el.listinfo.replaceChildren(document.createTextNode(parts.join(' · ')));
+  el.listinfo.replaceChildren(document.createTextNode(parts.join(', ')));
   if (state.tab === 'live' && state.lib) {
     const spacer = document.createElement('span');
     spacer.className = 'spacer';
@@ -1872,7 +1872,7 @@ function onPlaybackState(s) {
     el.overlay.hidden = false;
     el.overlay.classList.add('loading');
     el.overlayTitle.textContent = t('player.dropped');
-    el.overlayText.textContent = (s.reason ? `${s.reason} · ` : '') + t('player.retrying', { attempt: s.attempt, max: s.max });
+    el.overlayText.textContent = (s.reason ? `${s.reason}, ` : '') + t('player.retrying', { attempt: s.attempt, max: s.max });
   } else if (s.status === 'notice') {
     // Playback continues, but the viewer had better know why it will end
     // early.
@@ -2180,7 +2180,7 @@ async function playItem(item, { startAt, allowSilent } = {}) {
   playerLayout.showPlayer();
   state.playingSpec = spec;
   state.playbackInfoLoading = !live;
-  item.detailsLoading = item.k === 1 && !item.details;
+  item.detailsLoading = hasDetails(item) && !item.details;
   state.catchup = null;
   $('btn-live').hidden = true;
   el.mode.disabled = false;
@@ -2218,7 +2218,7 @@ function renderNowSub() {
   if (item.cats && item.cats.length && state.lib && type) bits.push(state.lib.categoryName(type, item.cats[0]));
   if (item.k === 3) bits.push(`S${item.season} E${item.episode}`);
   if (cast.connected) bits.push(t('cast.playing'));
-  el.nowSub.textContent = bits.filter(Boolean).join(' · ') || '—';
+  el.nowSub.textContent = bits.filter(Boolean).join(', ') || '—';
 }
 
 /* ------------------------------------------------------------ subtitles */
@@ -2252,7 +2252,7 @@ function renderSubtitles(tracks, active) {
       const option = document.createElement('option');
       option.value = String(track.number);
       option.textContent = track.label;
-      option.title = `${track.language} · ${track.format}`;
+      option.title = `${track.language} (${track.format})`;
       options.push(option);
     }
     select.replaceChildren(...options);
@@ -2284,7 +2284,7 @@ function renderAudio(tracks, active) {
       const option = document.createElement('option');
       option.value = String(track.number);
       option.textContent = audioLabel(track);
-      option.title = `${track.language} · ${track.codec || '?'}`;
+      option.title = `${track.language} (${track.codec || '?'})`;
       return option;
     }));
   }
@@ -2427,6 +2427,58 @@ function enterFullscreen() {
 function toggleFullscreen() {
   if (document.fullscreenElement) document.exitFullscreen().catch(() => {});
   else enterFullscreen();
+}
+
+// A click on the picture of a film or an episode pauses it or plays it on,
+// as on YouTube. The first click of a double click must not pause — the
+// double click is for full screen — so the click waits a moment for a
+// second one; should a slow double click come after the pause already
+// happened, the second click takes the pause back. A live channel is left
+// alone: there is nothing to come back to after a pause. The strip at the
+// bottom is Chrome's control bar, whose buttons sit up to some 70 px from
+// the bottom: the listener runs in the capture phase, ahead of them, and
+// leaves that strip to them.
+//
+// Firefox does the same by itself and keeps it to itself: its controls
+// pause on a click and go to full screen on a double click without
+// pausing, and measured, no press or click over the picture reaches the
+// page at all — only the mouse moves do. So the listener stays out of it
+// there, lest a later version deliver the click and two toggles cancel
+// out, and a click pauses a live channel in Firefox too, which the page
+// cannot prevent while the element has the browser's controls.
+const CLICK_WAIT_MS = 250;
+const CONTROL_BAR_PX = 80;
+const BROWSER_TOGGLES = /Firefox\//.test(navigator.userAgent);
+let pendingClick = null;
+
+function clickPicture(e) {
+  const video = el.video;
+  if (BROWSER_TOGGLES || e.target !== video || e.button !== 0) return;
+  if (e.offsetY > video.clientHeight - CONTROL_BAR_PX) return;
+  e.stopPropagation();
+  const item = state.playing;
+  if (!item || item.k === 0 || !video.currentSrc) return;
+  if (e.detail > 1) {
+    if (pendingClick && pendingClick.timer) clearTimeout(pendingClick.timer);
+    else if (pendingClick && pendingClick.spec === state.playingSpec) togglePause();
+    pendingClick = null;
+    return;
+  }
+  const click = { spec: state.playingSpec, timer: null };
+  click.timer = setTimeout(() => {
+    click.timer = null;
+    if (click.spec !== state.playingSpec) return;
+    togglePause();
+    // A second click can still arrive within the browser's double-click
+    // interval and take the pause back; after that the pause stands.
+    setTimeout(() => { if (pendingClick === click) pendingClick = null; }, 500);
+  }, CLICK_WAIT_MS);
+  pendingClick = click;
+}
+
+function togglePause() {
+  if (el.video.paused) el.video.play().catch(() => {});
+  else el.video.pause();
 }
 
 /** The same control enters and leaves full screen, including after Esc. */
@@ -2590,16 +2642,18 @@ function renderInfoStrip() {
   box.appendChild(poster('info-cover', cover, item.k === 1 ? 'movie' : 'series', { expand: true, title: item.seriesName || item.displayName || item.n }));
   const body = document.createElement('div');
   body.className = 'vodinfo-body';
-  if (item.k === 1) {
-    body.appendChild(titleFacts(info || item, { movie: true }));
-    body.appendChild(externalLinks(item, info));
-  }
+  // A part with nothing to say is left out rather than left empty: the
+  // file's facts then head the strip, level with the cover, without the
+  // line that divides them from the title's.
+  const add = (part) => { if (part.childElementCount) body.appendChild(part); };
+  add(titleFacts(info || item, { duration: true }));
+  add(externalLinks(item, info));
   // A header that has been read is more precise than the API's data: it
   // knows the audio track and the subtitles, neither of which the API
   // reports.
   const probed = probeFor(item);
   const header = probed && !probed.error ? probed : null;
-  const video = header?.video || info?.video;
+  const video = header?.video || info?.video || item.video;
   const audio = audioDetails(header, { active: state.activeAudio, language: state.settings.audioLang });
   const subtitles = subtitleDetails(item, probed);
   body.appendChild(playbackFacts({
@@ -2612,7 +2666,6 @@ function renderInfoStrip() {
       audio: !audio && !header && state.playbackInfoLoading,
       subtitles: !subtitles && state.playbackInfoLoading,
     },
-    durationSec: item.k !== 1 ? info?.durationSec : undefined,
   }));
   if (info && info.plot) {
     const plot = document.createElement('div');
@@ -2645,19 +2698,39 @@ function subtitleDetails(item, probed) {
 }
 
 async function loadVodDetails(item) {
-  if (item.k !== 1 || item.details) return;
+  if (item.details || !hasDetails(item)) return;
   item.detailsLoading = true;
   try {
-    const info = await state.lib.movieDetails(item.id);
-    item.details = info;
-    item.durationSec = info.durationSec;
-    const index = state.rowIndex.get(`1:${item.id}`);
-    if (index != null) vlist.refreshRow(index);
+    if (item.k === 3) {
+      item.details = episodeDetails(item, await state.lib.seriesEpisodes(item.seriesId));
+    } else {
+      const info = await state.lib.movieDetails(item.id);
+      item.details = info;
+      item.durationSec = info.durationSec;
+      const index = state.rowIndex.get(`1:${item.id}`);
+      if (index != null) vlist.refreshRow(index);
+    }
   } catch { /* the extra details are optional */ }
   finally {
     item.detailsLoading = false;
     if (state.playing === item) renderInfoStrip();
   }
+}
+
+/** Whether the strip has a title's facts to fetch for the item. */
+const hasDetails = (item) => item.k === 1 || (item.k === 3 && Boolean(item.seriesId));
+
+/**
+ * What the strip says about an episode: the series' year, genre, rating
+ * and links, as a film shows its own, with the episode's own length, plot
+ * and picture format. An episode reopened from the history carries little
+ * of its own, so it is looked up in the series by its id.
+ */
+function episodeDetails(item, series) {
+  const own = series.episodes.find((episode) => episode.id === item.id) || item;
+  const { episodes, plot, cover, ...facts } = series;
+  return { ...facts, title: item.seriesName || '', durationSec: own.durationSec || item.durationSec || 0,
+    plot: own.plot || item.plot || '', video: own.video || item.video || null };
 }
 
 /* ------------------------------------------------------ programme guide */
@@ -2780,7 +2853,7 @@ function renderGuidePreview(channel, programme) {
   $('epgv-logo').replaceWith(logo);
 
   $('epgv-name').textContent = channel.num
-    ? `${String(channel.num).padStart(4, '0')} · ${channel.n}`
+    ? `${String(channel.num).padStart(4, '0')} ${channel.n}`
     : channel.n;
 
   const now = Date.now();
@@ -2793,7 +2866,7 @@ function renderGuidePreview(channel, programme) {
     if (programme.stop <= now) meta.push(t('guide.ended'));
     else if (programme.start > now) meta.push(t('guide.startsin', { when: relativeSoon(programme.start, now) }));
   }
-  $('epgv-meta').textContent = meta.join(' · ');
+  $('epgv-meta').textContent = meta.join(', ');
 
   const slot = $('epgv-slot');
   slot.replaceChildren();
@@ -2815,7 +2888,7 @@ function renderGuidePreview(channel, programme) {
     $('epgv-name').textContent,
     programme ? `${clock(programme.start)}–${clock(programme.stop)}` : null,
     programme ? programme.title : t('guide.noepg.channel'),
-  ].filter(Boolean).join(' · ');
+  ].filter(Boolean).join(', ');
 
   const actions = $('epgv-actions');
   const buttons = [{ label: t('guide.watch'), primary: true, onClick: () => playItem(channel) }];
@@ -3012,7 +3085,7 @@ async function startAutoNext(item) {
   let episode = null;
   try { episode = await nextEpisode(item); } catch { return; }
   if (!episode || state.playing !== item || !el.video.ended) return;
-  const label = `S${episode.season} E${episode.episode} · ${episode.displayName || episode.n}`;
+  const label = `S${episode.season} E${episode.episode}: ${episode.displayName || episode.n}`;
   let left = AUTONEXT_SECONDS;
   const paint = () => { el.overlayText.textContent = t('player.next.text', { episode: label, seconds: left }); };
   el.overlay.hidden = false;
@@ -3069,7 +3142,7 @@ function renderStatBadge() {
     `${stats.width}×${stats.height}`,
     stats.kbps ? `${nf.format(stats.kbps)} kbit/s` : null,
     stats.engine,
-  ].filter(Boolean).join(' · ');
+  ].filter(Boolean).join(', ');
 }
 
 // The bit rate is measured, not reported, so it is read again rather than
@@ -4036,6 +4109,7 @@ function wireUi() {
   // The double click that the browser's controls used to take for the bare
   // video; preventDefault keeps the browser from acting on it as well.
   el.video.addEventListener('dblclick', (e) => { e.preventDefault(); toggleFullscreen(); });
+  el.videowrap.addEventListener('click', clickPicture, true);
   $('btn-reload').addEventListener('click', retryPlayback);
   $('btn-live').addEventListener('click', () => state.catchup && playItem(state.catchup.channel));
   $('btn-guide').addEventListener('click', toggleGuide);
@@ -4148,7 +4222,7 @@ function wireUi() {
       case 'PageUp': e.preventDefault(); moveCursor(gridColumns > 1 ? -gridColumns * 3 : -10); break;
       case 'Enter': if (state.rows[state.cursor]) openItem(state.rows[state.cursor]); break;
       case 'Backspace': if (state.detail) closeDetail(); break;
-      case ' ': e.preventDefault(); el.video.paused ? el.video.play().catch(() => {}) : el.video.pause(); break;
+      case ' ': e.preventDefault(); togglePause(); break;
       case 'f': toggleFullscreen(); break;
       case 'm': el.video.muted = !el.video.muted; break;
       case 'a': cycleAudio(); break;

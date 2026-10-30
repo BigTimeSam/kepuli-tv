@@ -163,6 +163,13 @@ interrupted channel-list load restores the previous list.
 
 ### Playback and cover images
 
+- Click the picture of a film or an episode to pause it, and again to play
+  on. A double click goes to full screen without pausing. On a live channel
+  a click does nothing in Chrome; Firefox's own controls keep the click to
+  themselves, and pause live channels too.
+- Below the player a film or an episode shows its year, genre, rating and
+  length, for an episode the series' own, followed by the file's format,
+  picture, sound and subtitles. A part with nothing to show is left out.
 - Use the selectors below the player to choose audio and subtitles when
   the file offers selectable tracks. Set your preferred languages and
   subtitle appearance in **Settings**.
@@ -577,7 +584,7 @@ the guide, so one spelling works everywhere a name is typed.
 | `↑` `↓` `PgUp` `PgDn` | move in the list |
 | `Enter` | play / open a series |
 | `Backspace` | back to the series list |
-| `space` | pause |
+| `space` | pause (a click on the picture of a film or an episode does the same) |
 | `f` | full screen |
 | `m` | mute |
 | `a` | the next audio track, when the file has more than one |
@@ -1035,9 +1042,9 @@ written, so the track's name is read as well — `Commentary`,
 `kommenttiraita`, `kuvailutulkkaus`.
 
 The name in the selector is built from the language, the track's own name
-and the format: *Finnish · AC3 5.1*, *English · Commentary · AAC stereo*. A
+and the format: *Finnish (AC3 5.1)*, *English (Commentary, AAC stereo)*. A
 name that only repeats the language is left out, so a Finnish track called
-`Suomi` does not read *Finnish · Suomi*.
+`Suomi` does not read *Finnish (Suomi)*.
 
 ### Changing the audio track
 

@@ -78,7 +78,7 @@ export class ProgrammeSearch {
     this.run.abort();
     this.run = null;
     $('programme-cancel').hidden = true;
-    $('programme-status').textContent += ` · ${t('progress.cancelled')}`;
+    $('programme-status').textContent += `. ${t('progress.cancelled')}`;
   }
 
   clear() {
@@ -115,8 +115,8 @@ export class ProgrammeSearch {
           this.results = results;
           this.list.setCount(results.length, { keepScroll: true });
           $('programme-status').textContent = t('programmes.status', { count: results.length, done, total })
-            + (failed ? ` · ${t('programmes.failed', { count: failed })}` : '')
-            + (done === total ? ` · ${t('programmes.complete')}` : '');
+            + (failed ? `. ${t('programmes.failed', { count: failed })}` : '')
+            + (done === total ? `. ${t('programmes.complete')}` : '');
         } });
     } catch (err) {
       if (!run.signal.aborted) $('programme-status').textContent = t('programmes.error');
@@ -133,7 +133,7 @@ export class ProgrammeSearch {
     const title = document.createElement('strong');
     title.textContent = programme.title;
     const meta = document.createElement('span');
-    meta.textContent = `${channel.n} · ${stampFmt.format(new Date(programme.start))}`;
+    meta.textContent = `${channel.n}, ${stampFmt.format(new Date(programme.start))}`;
     row.append(title, meta);
     row.addEventListener('click', () => this.onSelect(channel, programme));
     row.addEventListener('dblclick', () => this.onActivate(channel, programme));

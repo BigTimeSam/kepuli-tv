@@ -4,7 +4,10 @@ import { titleLinks } from './titlelinks.js';
 import { languageSummary, orderedLanguageNames, shortLanguage } from './lang.js';
 import { ratingText } from './rating.js';
 
-export function titleFacts(info, { episodes, seasons, movie = false } = {}) {
+/** "H264 (720p)", "AAC (2 ch)": the format, and what it carries in brackets. */
+const qualified = (main, detail) => (main && detail ? `${main} (${detail})` : main || detail || '');
+
+export function titleFacts(info, { episodes, seasons, duration: withDuration = false } = {}) {
   const list = document.createElement('dl');
   list.className = 'title-facts';
   const add = (key, value, title) => {
@@ -27,7 +30,7 @@ export function titleFacts(info, { episodes, seasons, movie = false } = {}) {
     if (seasons > 1) add('seasonsEpisodes', `${nf.format(seasons)} / ${nf.format(episodes)}`);
     else add('episodes', nf.format(episodes));
   }
-  if (movie && Number(info.durationSec) > 0) add('duration', duration(info.durationSec));
+  if (withDuration && Number(info.durationSec) > 0) add('duration', duration(info.durationSec));
   return list;
 }
 
@@ -83,8 +86,8 @@ export function playbackFacts({ ext, video, audio, subtitles, durationSec, loadi
   };
   if (durationSec) add('duration', duration(durationSec));
   if (ext) add('format', ext.toUpperCase());
-  add('video', video && [video.codec?.toUpperCase(), video.height ? `${video.height}p` : ''].filter(Boolean).join(' · '));
-  add('audio', audio && [audio.codec?.toUpperCase(), audio.channels ? t('audio.channels', { n: audio.channels }) : ''].filter(Boolean).join(' · '), { unsupported: audio?.supported === false });
+  add('video', video && qualified(video.codec?.toUpperCase(), video.height ? `${video.height}p` : ''));
+  add('audio', audio && qualified(audio.codec?.toUpperCase(), audio.channels ? t('audio.channels', { n: audio.channels }) : ''), { unsupported: audio?.supported === false });
   if (subtitles) {
     const { total, shown } = subtitles;
     // Bitmap tracks are counted but never named, and an mp4's tracks are

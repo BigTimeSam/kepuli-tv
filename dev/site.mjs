@@ -383,13 +383,13 @@ function page({ title, description, main }, version) {
 
 <main>
 <h1>${esc(title)}</h1>
-<p class="meta">The README of the Kepuli-TV browser extension · Version ${esc(version)} · <a href="${REPO}">Source on GitHub</a></p>
+<p class="meta">The README of the Kepuli-TV browser extension, version ${esc(version)}. <a href="${REPO}">Source on GitHub</a></p>
 
 ${main}
 </main>
 
 <footer>
-  <p>Kepuli-TV · © 2026 Samuli Vainio · MIT licence · <a href="privacy/">Privacy Policy</a> · <a href="terms/">Terms of Use</a></p>
+  <p>Kepuli-TV, © 2026 Samuli Vainio, MIT licence. <a href="privacy/">Privacy Policy</a>, <a href="terms/">Terms of Use</a></p>
   <p>This page is the repository's README.md, rendered by dev/site.mjs.</p>
 </footer>
 

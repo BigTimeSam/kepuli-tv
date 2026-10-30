@@ -457,25 +457,25 @@ pick('TrueHD alone', [track(1, 'A_TRUEHD', { lang: 'eng' })], 'auto', null);
 pick('TrueHD default + AC-3', [track(1, 'A_TRUEHD', { lang: 'eng', isDefault: true }), track(2, 'A_AC3', { lang: 'eng' })], 'auto', 2);
 
 const named = (codecId, extra) => label(describe(track(1, codecId, extra)));
-check('label: language and format', named('A_AC3', { lang: 'fin', channels: 6 }), 'Finnish · AC3 5.1');
+check('label: language and format', named('A_AC3', { lang: 'fin', channels: 6 }), 'Finnish (AC3 5.1)');
 check('label: a name that only repeats the language is left out',
-      named('A_AAC', { lang: 'fin', channels: 2, name: 'Suomi' }), 'Finnish · AAC stereo');
+      named('A_AAC', { lang: 'fin', channels: 2, name: 'Suomi' }), 'Finnish (AAC stereo)');
 check('label: a name that says something is kept',
-      named('A_AAC', { lang: 'eng', channels: 2, name: 'Original' }), 'English · Original · AAC stereo');
+      named('A_AAC', { lang: 'eng', channels: 2, name: 'Original' }), 'English (Original, AAC stereo)');
 check('label: the flag is not spelled twice',
-      named('A_AAC', { lang: 'eng', channels: 2, name: 'Commentary' }), 'English · Commentary · AAC stereo');
+      named('A_AAC', { lang: 'eng', channels: 2, name: 'Commentary' }), 'English (Commentary, AAC stereo)');
 check('label: the flag is spelled when the name does not',
-      named('A_AC3', { lang: 'eng', channels: 6, commentary: true }), 'English · commentary · AC3 5.1');
+      named('A_AC3', { lang: 'eng', channels: 6, commentary: true }), 'English (commentary, AC3 5.1)');
 check('label: an unknown language falls back to the name',
-      named('A_AAC', { lang: 'und', channels: 2, name: 'Track 1' }), 'Track 1 · AAC stereo');
+      named('A_AAC', { lang: 'und', channels: 2, name: 'Track 1' }), 'Track 1 (AAC stereo)');
 check('label: an unknown language with no name says so',
-      named('A_AAC', { lang: 'und', channels: 2 }), 'Unknown language · AAC stereo');
+      named('A_AAC', { lang: 'und', channels: 2 }), 'Unknown language (AAC stereo)');
 // Matroska's own default for a track that states no language at all.
 check('label: no language element at all is English',
-      named('A_AAC', { channels: 2 }), 'English · AAC stereo');
+      named('A_AAC', { channels: 2 }), 'English (AAC stereo)');
 // BCP 47 and ISO 639-2 name the same language, and both occur in files
 // from the same library.
-check('label: BCP 47 with a region', named('A_AAC', { langBcp: 'sv-SE', channels: 2 }), 'Swedish · AAC stereo');
+check('label: BCP 47 with a region', named('A_AAC', { langBcp: 'sv-SE', channels: 2 }), 'Swedish (AAC stereo)');
 
 /* ------------------------------------------------- lang.js: the languages */
 

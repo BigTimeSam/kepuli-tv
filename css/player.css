@@ -729,6 +729,7 @@ body[data-substyle="contrast"] video::cue { background: #000; }
 .info-cover { width: 54px; height: 80px; border-radius: 5px; flex: none; }
 .playback-facts { display: flex; flex-wrap: wrap; gap: 10px 20px; margin: 0 0 8px; padding-top: 8px; border-top: 1px solid var(--border); }
 .playback-facts:empty { display: none; }
+.vodinfo-body > .playback-facts:first-child { padding-top: 0; border-top: 0; }
 .playback-facts > div { min-width: 0; }
 .playback-facts dt { color: var(--muted); font-size: 0.6875rem; margin-bottom: 3px; }
 .playback-facts dd { display: flex; align-items: baseline; flex-wrap: wrap; gap: 4px 6px; margin: 0; color: var(--text); font-size: 0.71875rem; overflow-wrap: anywhere; }
@@ -755,8 +756,8 @@ body[data-substyle="contrast"] video::cue { background: #000; }
 .now-actions { display: flex; gap: 6px; align-items: center; flex: 0 1 auto; min-width: 0; }
 .now-actions > :not(.trackpick) { flex: none; }
 .now-actions select { background: var(--panel-2); border: 1px solid var(--border); border-radius: 8px; padding: 6px 8px; }
-/* A track name can be long ("Swedish · Forced Narrative", "English ·
-   Commentary · AC3 5.1"): a selector must not push the other buttons off
+/* A track name can be long ("Swedish (Forced Narrative)", "English
+   (Commentary, AC3 5.1)"): a selector must not push the other buttons off
    the row. It is given the width it asks for up to a ceiling, and taken
    back down to a readable stub before anything else on the row goes — the
    whole name is still in the menu it opens, and in its tooltip. */

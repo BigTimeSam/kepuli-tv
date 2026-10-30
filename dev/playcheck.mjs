@@ -84,6 +84,12 @@
 //                                     wrapper to full screen with the
 //                                     layer; a file without subtitles says
 //                                     so in the details
+//   node dev/playcheck.mjs clickpause a click on the picture pauses an episode
+//                                     and plays it on; a double click goes to
+//                                     full screen without pausing; the control
+//                                     bar and a live channel are left alone
+//                                     (in Chrome; Firefox's own controls
+//                                     keep the clicks to themselves)
 //   node dev/playcheck.mjs lastchannel l returns to the channel before, and
 //                                     again to the one after it; the media
 //                                     session names the programme and the
@@ -511,7 +517,7 @@ async function switching(page, { requests }) {
   // list stands follows it: a window of tabs says which one is the player
   // and what it is playing without being opened.
   const titled = await evaluate(page, `(() => { const name = document.getElementById('now-title').textContent;
-    return { ok: document.title.startsWith(name + ' · Channels › '), title: document.title }; })()`);
+    return { ok: document.title.startsWith(name + ' (Channels › '), title: document.title }; })()`);
   if (!titled.ok) return { ok: false, detail: `the title does not name what is playing: ${JSON.stringify(titled.title)}` };
   return { ok: ts.length === 1, detail: `${ts.length} stream request(s) after the switch: ${ts.join(' ')}; title ${JSON.stringify(titled.title)}` };
 }
@@ -813,6 +819,67 @@ async function a11y(page) {
 }
 
 /** The control stays with the video and preserves the subtitle overlay. */
+/**
+ * A click on the picture pauses a film or an episode and plays it on, the
+ * first click of a double click does not pause on its way to full screen,
+ * a click on the control bar is left to the browser, and on a live channel
+ * a click changes nothing — in Firefox too, whose own controls would
+ * toggle playback on any click.
+ */
+async function clickpause(page) {
+  const paused = () => evaluate(page, `document.getElementById('video').paused`);
+  const spot = (fromBottom = null) => evaluate(page, `(() => { const r = document.getElementById('video').getBoundingClientRect();
+    return { x: r.left + r.width / 2, y: ${fromBottom === null ? 'r.top + r.height * 0.4' : `r.bottom - ${fromBottom}`} }; })()`);
+  const press = async ({ x, y }, count = 1) => {
+    await page.call('Input.dispatchMouseEvent', { type: 'mouseMoved', x, y });
+    for (let i = 1; i <= count; i++) {
+      await page.call('Input.dispatchMouseEvent', { type: 'mousePressed', x, y, button: 'left', clickCount: i });
+      await page.call('Input.dispatchMouseEvent', { type: 'mouseReleased', x, y, button: 'left', clickCount: i });
+    }
+  };
+  const doubleClick = async (at) => (page.doubleClick ? page.doubleClick(at.x, at.y) : press(at, 2));
+  const seen = [];
+
+  await playEpisode(page);
+  const center = await spot();
+  await press(center); await sleep(700);
+  seen.push(`click ${await paused() ? 'paused' : 'played on'}`);
+  const pausedByClick = await paused();
+  await press(center); await sleep(700);
+  seen.push(`again ${await paused() ? 'paused' : 'played on'}`);
+  const resumedByClick = !(await paused());
+  await doubleClick(center);
+  // Firefox's own controls can take the double click and put the video
+  // element itself in full screen, as the subtitles scenario allows too.
+  await waitFor(page, `['videowrap', 'video'].includes(document.fullscreenElement?.id)`, 'full screen from a double click');
+  await sleep(700);
+  const doubleKeptPlaying = !(await paused());
+  seen.push(`double click ${doubleKeptPlaying ? 'kept playing' : 'paused'} in full screen`);
+  await evaluate(page, `document.exitFullscreen()`);
+  await waitFor(page, `!document.fullscreenElement`, 'leaving full screen');
+  if (await paused()) await evaluate(page, `document.getElementById('video').play()`, { gesture: true });
+  // Within the control bar's strip the app does nothing: whatever happens
+  // there is the browser's button, and an empty part of the bar stays as
+  // it was.
+  const bar = await spot(20);
+  await press(bar); await sleep(700);
+  const barLeftAlone = !(await paused());
+  seen.push(`control bar ${barLeftAlone ? 'left alone' : 'paused'}`);
+
+  await playFirstChannel(page);
+  const live = await spot();
+  await press(live); await sleep(700);
+  const liveKeptPlaying = !(await paused());
+  seen.push(`live click ${liveKeptPlaying ? 'kept playing' : 'paused'}`);
+
+  // Firefox's own controls keep the clicks to themselves, live channels
+  // included, and the page never sees them: there the click on a live
+  // channel and on the bar are the browser's, and are only reported.
+  const firefox = process.env.KEPULI_BROWSER === 'firefox';
+  const ok = pausedByClick && resumedByClick && doubleKeptPlaying && (firefox || (barLeftAlone && liveKeptPlaying));
+  return { ok, detail: seen.join(', ') };
+}
+
 async function fullscreenControl(page) {
   const assert = (ok, detail) => { if (!ok) throw new Error(detail); };
   assert(await evaluate(page, `document.getElementById('btn-fullscreen').hidden && document.getElementById('btn-fullscreen').getClientRects().length === 0`), 'empty player exposes fullscreen');
@@ -1002,7 +1069,7 @@ async function audio(page, { requests, target }) {
   }
   await page.call('Emulation.setDeviceMetricsOverride', { width: 1280, height: 800, deviceScaleFactor: 1, mobile: false });
   await sleep(300);
-  if (!/^English · AAC/.test(menu.options[0]) || !/^Finnish · AAC/.test(menu.options[1]) || !/Commentary/.test(menu.options[2])) {
+  if (!/^English \(AAC/.test(menu.options[0]) || !/^Finnish \(AAC/.test(menu.options[1]) || !/Commentary/.test(menu.options[2])) {
     return { ok: false, detail: `the selector names them ${JSON.stringify(menu.options)}` };
   }
 
@@ -1798,7 +1865,7 @@ async function update(page) {
   return { ok: line === `Kepuli-TV ${running} Update to 99.0.0`, detail: `"${said}"; "${line}"` };
 }
 
-const SCENARIOS = { catalogUi, setupClarity, fullscreenControl, organize, restore, programmes, catchup, seek, death, cancel, timeout, search, paste, keys, switching, resume, connections, reconnect, accounts, listerror, a11y, subtitles, audio, settings,
+const SCENARIOS = { catalogUi, setupClarity, fullscreenControl, clickpause, organize, restore, programmes, catchup, seek, death, cancel, timeout, search, paste, keys, switching, resume, connections, reconnect, accounts, listerror, a11y, subtitles, audio, settings,
   lastchannel, nextepisode, continuewatching, reminders, update };
 // The mock's whole-list answers stall for these, longer than the request limit.
 const SLOW_LIST_MS = { cancel: 60000, timeout: 60000 };

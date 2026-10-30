@@ -292,8 +292,8 @@ const clean = (text) => text.replace(/[ \t]+\n/g, '\n').replace(/\n{3,}/g, '\n\n
 
 /* ------------------------------------------------------------------ names */
 
-/** The name shown in the selector: "Finnish", "Finnish · forced",
- *  "Swedish · SDH". The pieces are shared with the audio selector, see
+/** The name shown in the selector: "Finnish", "Finnish (forced)",
+ *  "Swedish (SDH)". The pieces are shared with the audio selector, see
  *  lang.js. */
 function label(track, language) {
   const code = shortLanguage(language);
@@ -304,5 +304,5 @@ function label(track, language) {
   // "Full", "Songs".
   if (track.name && !sameish(track.name, base)) extras.push(shorten(track.name));
   if (track.forced) extras.push(t('subs.forced'));
-  return extras.length ? `${base} · ${extras.join(' · ')}` : base;
+  return extras.length ? `${base} (${extras.join(', ')})` : base;
 }

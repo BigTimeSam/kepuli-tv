@@ -173,7 +173,7 @@
 
 <main>
 <h1>Kepuli-TV</h1>
-<p class="meta">The README of the Kepuli-TV browser extension · Version 1.2.4 · <a href="https://github.com/BigTimeSam/kepuli-tv">Source on GitHub</a></p>
+<p class="meta">The README of the Kepuli-TV browser extension, version 1.2.5. <a href="https://github.com/BigTimeSam/kepuli-tv">Source on GitHub</a></p>
 
 <p>A Chrome and Firefox extension (Manifest V3) that plays Xtream Codes IPTV straight in the
 browser. Data is fetched from the <code>player_api.php</code> API lazily: only what you
@@ -372,6 +372,13 @@ interrupted channel-list load restores the previous list.</p>
 <h3 id="playback-and-cover-images">Playback and cover images</h3>
 
 <ul>
+  <li>Click the picture of a film or an episode to pause it, and again to play
+on. A double click goes to full screen without pausing. On a live channel
+a click does nothing in Chrome; Firefox's own controls keep the click to
+themselves, and pause live channels too.</li>
+  <li>Below the player a film or an episode shows its year, genre, rating and
+length, for an episode the series' own, followed by the file's format,
+picture, sound and subtitles. A part with nothing to show is left out.</li>
   <li>Use the selectors below the player to choose audio and subtitles when
 the file offers selectable tracks. Set your preferred languages and
 subtitle appearance in <strong>Settings</strong>.</li>
@@ -795,7 +802,7 @@ answer no question about what to watch</li>
     <tr><td><code>↑</code> <code>↓</code> <code>PgUp</code> <code>PgDn</code></td><td>move in the list</td></tr>
     <tr><td><code>Enter</code></td><td>play / open a series</td></tr>
     <tr><td><code>Backspace</code></td><td>back to the series list</td></tr>
-    <tr><td><code>space</code></td><td>pause</td></tr>
+    <tr><td><code>space</code></td><td>pause (a click on the picture of a film or an episode does the same)</td></tr>
     <tr><td><code>f</code></td><td>full screen</td></tr>
     <tr><td><code>m</code></td><td>mute</td></tr>
     <tr><td><code>a</code></td><td>the next audio track, when the file has more than one</td></tr>
@@ -1287,9 +1294,9 @@ written, so the track's name is read as well — <code>Commentary</code>,
 <code>kommenttiraita</code>, <code>kuvailutulkkaus</code>.</p>
 
 <p>The name in the selector is built from the language, the track's own name
-and the format: <em>Finnish · AC3 5.1</em>, <em>English · Commentary · AAC stereo</em>. A
+and the format: <em>Finnish (AC3 5.1)</em>, <em>English (Commentary, AAC stereo)</em>. A
 name that only repeats the language is left out, so a Finnish track called
-<code>Suomi</code> does not read <em>Finnish · Suomi</em>.</p>
+<code>Suomi</code> does not read <em>Finnish (Suomi)</em>.</p>
 
 <h3 id="changing-the-audio-track">Changing the audio track</h3>
 
@@ -1634,7 +1641,7 @@ LGPL 2.1 §6 is possible.</p>
 </main>
 
 <footer>
-  <p>Kepuli-TV · © 2026 Samuli Vainio · MIT licence · <a href="privacy/">Privacy Policy</a> · <a href="terms/">Terms of Use</a></p>
+  <p>Kepuli-TV, © 2026 Samuli Vainio, MIT licence. <a href="privacy/">Privacy Policy</a>, <a href="terms/">Terms of Use</a></p>
   <p>This page is the repository's README.md, rendered by dev/site.mjs.</p>
 </footer>
 

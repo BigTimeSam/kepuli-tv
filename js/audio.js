@@ -134,8 +134,8 @@ const LAYOUT = { 1: 'mono', 2: 'stereo', 6: '5.1', 7: '6.1', 8: '7.1' };
 const layout = (channels) => (channels ? LAYOUT[channels] || t('audio.channels', { n: channels }) : null);
 
 /**
- * The name shown in the selector: "Finnish · AC-3 5.1", "English ·
- * Commentary · AAC stereo". The language comes first because that is what
+ * The name shown in the selector: "Finnish (AC-3 5.1)", "English
+ * (Commentary, AAC stereo)". The language comes first because that is what
  * the choice is about; the codec comes last because it is the part the
  * viewer reads only when two tracks share a language.
  *
@@ -154,13 +154,13 @@ export function label(entry) {
   if (named) extras.push(shorten(entry.name));
   // The flag is spelled out only when the name does not already spell it —
   // whether the name stands as the label's own base or beside it.
-  // "Commentary · commentary" tells the viewer nothing twice.
+  // "Commentary (commentary)" tells the viewer nothing twice.
   const spelled = Boolean(entry.name) && (named || sameish(entry.name, base));
   if (entry.commentary && !(spelled && COMMENTARY.test(entry.name))) extras.push(t('audio.commentary'));
   if (entry.described && !(spelled && DESCRIBED.test(entry.name))) extras.push(t('audio.described'));
   const tech = [entry.codec ? entry.codec.toUpperCase() : null, layout(entry.channels)].filter(Boolean).join(' ');
   if (tech) extras.push(tech);
-  return extras.length ? `${base} · ${extras.join(' · ')}` : base;
+  return extras.length ? `${base} (${extras.join(', ')})` : base;
 }
 
 // An untouched track before a decoded one; then the track the file itself
