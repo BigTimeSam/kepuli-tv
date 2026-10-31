@@ -20,7 +20,9 @@
 // click and the f key take the wrapper instead. Firefox ignores controlslist:
 // when the viewer takes the video itself to full screen there, the browser's
 // drawing is switched back on for the duration — with the chosen look
-// approximated in ::cue as far as ::cue goes.
+// approximated in ::cue as far as ::cue goes, and the chosen height written
+// into the cues themselves (see placeNative), as the browser would otherwise
+// keep them at the bottom whatever the setting.
 //
 // The browser's own drawing also lifted the subtitles above the controls
 // while those were on show, and the controls' visibility is not readable
@@ -39,11 +41,12 @@ export const DEFAULT_STYLE = 'shadow';
 // to be pixels, the same in both, and measured on a 1080p screen the 24 px
 // default came to 2.2 % of the picture in full screen — half of what the
 // browsers' own default (5 %) and the BBC's guidance (a line of some 8 %)
-// give, and a footnote rather than a subtitle. 5.5 % of the picture's
-// height is the size at 100 %; the slider runs from half that to two and
-// a half times it. Below 14 px a line stops being readable, whatever the
-// window: that is the floor.
-export const SIZE_SHARE = 0.055;
+// give, and a footnote rather than a subtitle. 5 % of the picture's height
+// is the size at 100 %, the browsers' own; 5.5 % for a while, and that read
+// a size too large. The slider runs from half of it to two and a half
+// times it. Below 14 px a line stops being readable, whatever the window:
+// that is the floor.
+export const SIZE_SHARE = 0.05;
 export const MIN_PX = 14;
 export const MIN_SCALE = 50;
 export const MAX_SCALE = 250;
@@ -179,7 +182,7 @@ export class SubtitleDisplay {
 
   /** The active cues of every showing track, as boxes in the layer. */
   paint() {
-    if (document.body.dataset.subrender === 'native') { this.layer.replaceChildren(); return; }
+    if (document.body.dataset.subrender === 'native') { this.layer.replaceChildren(); this.placeNative(); return; }
     const cues = [];
     for (const track of this.video.textTracks) {
       if (track.mode !== 'showing' || !track.activeCues) continue;
@@ -193,6 +196,30 @@ export class SubtitleDisplay {
     this.key = key;
     this.layer.replaceChildren(...cues.map(cueBox));
     for (const box of this.layer.children) fit(box);
+  }
+
+  /**
+   * The height for the browser's own drawing. A cue's line, as a share of
+   * the video element with its bars, set where the layer would put the
+   * lowest line: the bar under the picture and the viewer's share of the
+   * picture above it. The browser then holds it there, controls or not.
+   */
+  placeNative() {
+    const box = this.video.clientHeight;
+    if (!(box > 0)) return;
+    const picture = pictureHeight(this.video.clientWidth, box, this.video.videoWidth, this.video.videoHeight);
+    const lift = parseFloat(getComputedStyle(document.body).getPropertyValue('--sub-lift'));
+    const rest = (box - picture) / 2 + picture * (Number.isFinite(lift) ? lift : DEFAULT_LIFT / 100);
+    const line = Math.round(Math.min(100, Math.max(0, 100 - rest / box * 100)) * 10) / 10;
+    for (const track of this.video.textTracks) {
+      if (track.mode !== 'showing' || !track.cues) continue;
+      for (const cue of track.cues) {
+        if (cue.line === line && !cue.snapToLines) continue;
+        cue.snapToLines = false;
+        cue.lineAlign = 'end';
+        cue.line = line;
+      }
+    }
   }
 
   /* --------------------------------------------------------- controls */

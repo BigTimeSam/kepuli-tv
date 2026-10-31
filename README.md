@@ -1017,7 +1017,7 @@ background, so no look could be built on it. The layer gives one box per cue and
 five looks to choose from in the settings, with a preview: shadow — the default,
 no box — outline, yellow, box and high contrast. The size is a share of the
 picture's height, as television's is, and so the same in a window and in full
-screen: 100 % is 5.5 % of the picture (the bars of a letterboxed film not
+screen: 100 % is 5 % of the picture, the browsers' own default (the bars of a letterboxed film not
 counted), and the slider runs from 50 % to 250 %, with **Default** beside it to
 come back. `+` and `−` change it by ten while watching. 14 px is the floor,
 for a small window. It used to be pixels, the same in a window and in full

@@ -829,7 +829,7 @@ video::-webkit-media-controls-timeline { margin-right: -46px; }
   font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
   /* A share of the picture's height (js/subdisplay.js): --pic-h is the
      picture without its bars, --sub-scale the viewer's size, 1 at 100 %. */
-  font-size: max(14px, calc(var(--pic-h, 450px) * var(--sub-scale, 1) * 0.055)); font-weight: 500; line-height: 1.3;
+  font-size: max(14px, calc(var(--pic-h, 450px) * var(--sub-scale, 1) * 0.05)); font-weight: 500; line-height: 1.3;
   transition: bottom .2s ease;
 }
 /* Above the browser's controls while they are likely on show, see wake()
@@ -895,7 +895,7 @@ video::cue {
   color: #fff; background: rgba(0, 0, 0, .62); line-height: 1.25;
   /* The browser draws only for a bare <video> taken full screen, which is
      then the whole screen: the same share, of the screen's height. */
-  font-size: calc(var(--sub-scale, 1) * 5.5vh);
+  font-size: calc(var(--sub-scale, 1) * 5vh);
   font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
 }
 body[data-substyle="shadow"] video::cue {

@@ -1116,14 +1116,21 @@ async function subtitles(page) {
   await sleep(1000);
   const full = await evaluate(page, `(() => ({ element: document.fullscreenElement && document.fullscreenElement.id,
     boxes: document.querySelectorAll('#subdisplay .cue').length, render: document.body.dataset.subrender,
-    nativeCues: [...document.getElementById('video').textTracks].filter(t => t.mode === 'showing').reduce((n,t) => n + (t.activeCues?.length || 0), 0) }))()`);
+    nativeCues: [...document.getElementById('video').textTracks].filter(t => t.mode === 'showing').reduce((n,t) => n + (t.activeCues?.length || 0), 0),
+    // The browser's drawing holds the viewer's height only if it is in the
+    // cue: the line is where the layer would put the lowest line.
+    lines: [...document.getElementById('video').textTracks].filter(t => t.mode === 'showing').flatMap(t => [...(t.activeCues || [])]).map(c => [c.snapToLines, c.lineAlign, c.line]),
+    expected: (() => { const v = document.getElementById('video'), h = v.clientHeight, pic = Math.min(h, v.clientWidth * v.videoHeight / v.videoWidth);
+      const lift = parseFloat(getComputedStyle(document.body).getPropertyValue('--sub-lift'));
+      return Math.round((100 - ((h - pic) / 2 + pic * lift) / h * 100) * 10) / 10; })() }))()`);
   await evaluate(page, `document.fullscreenElement && document.exitFullscreen()`);
   await sleep(600);
   const wrapper = full.element === 'videowrap' && full.boxes === 1 && full.render === 'overlay';
   // Firefox's native video controls can own the double click. Its native
   // text track must then render the cue; the overlay returns on exit.
   const native = process.env.KEPULI_BROWSER === 'firefox' && full.element === 'video'
-    && full.render === 'native' && full.nativeCues > 0;
+    && full.render === 'native' && full.nativeCues > 0
+    && full.lines.every(([snap, align, line]) => snap === false && align === 'end' && Math.abs(line - full.expected) < 0.2);
   if (!wrapper && !native) return { ok: false, detail: `full screen: ${JSON.stringify(full)}` };
   if (!await evaluate(page, `document.body.dataset.subrender === 'overlay' && document.querySelectorAll('#subdisplay .cue').length === 1`)) {
     return { ok: false, detail: 'subtitle overlay did not return after full screen' };

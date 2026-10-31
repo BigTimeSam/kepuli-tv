@@ -228,9 +228,10 @@ export async function ensureFirefox() {
   // -no-remote keeps this apart from a Firefox the user has open with their
   // own profile; -marionette is what opens the port; and the chrome context
   // (where WebExtensionPolicy answers the add-on's URL) is refused unless
-  // system access is allowed on the command line — measured on 154.
+  // system access is allowed on the command line — measured on 154. 159
+  // wants the environment variable as well, and refuses without it.
   spawn(binary, ['-marionette', '-remote-allow-system-access', '-no-remote', '-profile', PROFILE, 'about:blank'],
-        { detached: true, stdio: 'ignore' }).unref();
+        { detached: true, stdio: 'ignore', env: { ...process.env, MOZ_REMOTE_ALLOW_SYSTEM_ACCESS: '1' } }).unref();
   for (let i = 0; i < 120; i++) { if (await isRunning()) return true; await sleep(250); }
   throw new Error('Firefox did not answer within 30 seconds.');
 }
