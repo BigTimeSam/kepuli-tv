@@ -174,19 +174,42 @@ SETTING THE LANGUAGES IN THE CHROME WEB STORE
      through the review with the package.
 
 SETTING THE LANGUAGES ON ADDONS.MOZILLA.ORG
-  1. Upload the version (the Firefox zip and its source). AMO reads the
-     localised name and summary from _locales/ in the package; check them
-     on the listing afterwards, and if one is missing, paste it from
-     dist/listings/<locale>.txt ("SHORT DESCRIPTION" goes to Summary,
-     250 characters at most).
-  2. Developer Hub → the add-on → Edit Product Page. Under the page title
-     there is a language menu for the translation being edited: pick one.
-     Norwegian is "Norsk bokmål" (nb-NO) there, Portuguese "Português (do
-     Brasil)".
-  3. Edit the Describe Add-on section and paste "DETAILED DESCRIPTION" into
-     Description. Save Changes, and repeat for every language. A listing
-     change is not a new version and needs no upload.
+  AMO does not take the name and the summary from _locales/ in the package
+  (1.3.0 went live with English alone), and a listing change is not a new
+  version: it needs no upload and no review, and shows as soon as it is
+  saved.
+  1. Developer Hub → the add-on → Edit Product Page. "Localize for:" at the
+     top right is the language being edited; its menu lists the languages
+     the listing has, and below them every language AMO offers, to add one.
+  2. For each language: Describe Add-on → Edit, and fill in all three
+     fields — Name "Kepuli-TV – IPTV Player", Summary from "SHORT
+     DESCRIPTION" in dist/listings/<file> (250 characters at most), and
+     Description from "DETAILED DESCRIPTION". Save Changes.
+  3. Images → Edit, in the same language: the five screenshot captions, in
+     brand/firefox-screenshots/README.md. The pictures are shared by every
+     language; only the captions are per language. Save Changes.
 
+  The languages, as AMO's menu names them:
+    English (British)      en-GB  en.txt    the default
+    suomi                  fi     fi.txt
+    Svenska                sv-SE  sv.txt
+    Norsk bokmål           nb-NO  no.txt
+    Deutsch                de     de.txt
+    Nederlands             nl     nl.txt
+    Français               fr     fr.txt
+    Español (de España)    es-ES  es.txt    not the Argentinian, Chilean or
+                                            Mexican Spanish beside it
+    Português (do Brasil)  pt-BR  pt_BR.txt
+    Português (Europeu)    pt-PT  pt_BR.txt the Brazilian text: readable in
+                                            Portugal, and better than English
+    Italiano               it     it.txt
+    Polski                 pl     pl.txt
+    Türkçe                 tr     tr.txt
+  Danish is not among AMO's languages, so there is no Danish listing:
+  Danish readers get the English one. The extension itself still speaks
+  Danish in Firefox, and Firefox's add-on manager shows the name and the
+  summary from _locales/da. English (US) can stay empty; it falls back to
+  the default.
 
 --- THE OTHER FIELDS ON THE STORE FORM -------------------------------------
 
