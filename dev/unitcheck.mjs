@@ -743,8 +743,8 @@ check('the national topics in the providers\' languages',
 /* ----------------------------------------------- dev/listings.mjs */
 
 check('a wrapped paragraph is one line for the store',
-  unwrap('Watch your own\nsubscription.\n\nWHAT YOU GET\n\n• A bullet that\n  goes on.\n• Another.\n- Samuli'),
-  'Watch your own subscription.\n\nWHAT YOU GET\n\n• A bullet that goes on.\n• Another.\n- Samuli');
+  unwrap('Watch your own\nsubscription.\n\n\nWHAT YOU GET\n\n• A bullet that\n  goes on.\n• Another.\n- Samuli\n\n\nSEE IT\n\nA tour:\nhttps://example.com/v'),
+  'Watch your own subscription.\n\nWHAT YOU GET\n\n• A bullet that goes on.\n• Another.\n- Samuli\n\nSEE IT\n\nA tour: https://example.com/v');
 check('a word five times is a keyword list; short words and four times are not',
   repeats('stream stream stream stream stream and and and and and IPTV IPTV IPTV IPTV'), [['stream', 5]]);
 check('every listing is within the store\'s limits, and _locales is in step', checkListings(), []);

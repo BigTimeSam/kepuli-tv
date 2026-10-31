@@ -65,5 +65,4 @@ listen karşına çıkar.
 NASIL ÇALIŞTIĞINI GÖRÜN
 
 Tüm özellikleri demo içerikle gösteren kısa bir video (İngilizce):
-
 https://www.youtube.com/watch?v=JUljsUuZqDI

@@ -93,7 +93,9 @@ export function readListings() {
  * wrapped at 78 columns to be read and diffed, but both stores keep every
  * line break they are given, so a paragraph pasted as it stands shows up
  * ragged. Here a paragraph is one line again; a bullet (•, →, -) starts a
- * line of its own, and its indented continuation joins it.
+ * line of its own, and its indented continuation joins it. The two empty
+ * lines the source puts before a section are one in the store, where the
+ * heading in capitals marks the section well enough.
  */
 export function unwrap(text) {
   const out = [];
@@ -103,7 +105,7 @@ export function unwrap(text) {
     if (!line.trim() || !previous || !previous.trim() || starts || /^[\p{Lu}\d ,.'’&-]+$/u.test(previous.trim())) out.push(line.trim() ? line.replace(/^ {2}/, '') : '');
     else out[out.length - 1] = `${previous} ${line.trim()}`;
   }
-  return out.join('\n');
+  return out.join('\n').replace(/\n{3,}/g, '\n\n');
 }
 
 /** One listing as it is pasted into the stores' forms. */
