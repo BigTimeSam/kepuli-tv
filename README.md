@@ -1205,7 +1205,11 @@ js/channeleditor.js  draft editor for live channels and categories
 js/modal.js         shared close buttons, Escape and backdrop dismissal
 js/db.js            IndexedDB: a TTL cache
 js/config.js        settings, favourites, history, resume points, the remembered view
-js/i18n.js          the interface language: dictionaries, t() and static HTML
+js/i18n.js          the interface language: English and Finnish, t() and static HTML
+js/locales/         the other eleven languages, one module each, loaded when chosen
+js/picker.js        the drop-down lists with a filter field
+js/international.js  which channels are in many countries' lists
+js/theme.js         the dark and light theme
 js/playback.js      engine selection, fallbacks, watchdog
 js/probe.js         reading the file header: container, codecs, subtitles
 js/audio.js         which audio track is played, and what it is called
@@ -1289,14 +1293,29 @@ vendor/ffaudio/     FFmpeg 7.1.1's ac3, eac3 and dca decoders as wasm
 
 ## Language
 
-The interface is in English and Finnish. It opens in whichever of the two the
-browser says its owner reads — the first match in `navigator.languages` — and
-in English when it names neither; the choice is then made in the settings.
-The subtitle language starts from the same answer rather than from a fixed
-`fi`, which used to give an English interface offering Finnish subtitles to
-someone who had asked for neither. The dictionaries live in one file (`js/i18n.js`), and
-English is at the same time the list missing keys fall back to — a Finnish
-string left undone shows as English text rather than as a key name.
+The interface speaks thirteen languages: English, Finnish, Swedish, Norwegian
+(Bokmål), Danish, German, Dutch, French, Spanish, Brazilian Portuguese,
+Italian, Polish and Turkish. Settings > Language starts on **Browser
+language**, which names the language it comes to: the first one in
+`navigator.languages` the app speaks (`no` and `nn` count as Bokmål), English
+when there is none. It stays a following setting, not a copy — the stored
+value is `auto`, so a settings save made for some other reason (the theme, a
+subtitle language) does not freeze the language the browser happened to ask
+for that day, and a browser switched to another language takes the app with
+it. A language picked from the list is stored as itself and kept for good.
+The subtitle language starts from the browser's answer too, rather than from
+a fixed `fi`, which used to give an English interface offering Finnish
+subtitles to someone who had asked for neither.
+
+English and Finnish are written in `js/i18n.js`; the eleven others are in
+`js/locales/`, one module each, and only the one in use is loaded — at start
+and when the setting changes. English is at the same time the list missing
+keys fall back to: a string left undone shows as English text rather than as
+a key name. `dev/unitcheck.mjs` loads every language and proves that each has
+every key, no stale ones, and the same `{placeholders}` as the English.
+Plurals take the language's own forms from `Intl.PluralRules`: Polish has
+`.one`, `.few` and `.many` where English has `.one` and `.other` (1 kanał,
+2 kanały, 5 kanałów).
 
 The language changes without a page reload. That works because the app repaints
 its views from state anyway: the switch needs only a pass over the texts written
@@ -1304,9 +1323,24 @@ into the markup (`data-i18n`), a rebuild of the `Intl` formatters, and the same
 paint calls that produce the views normally.
 
 The choice steers the formatting too: the clock, the date, the thousands
-separator and the alphabetical order of lists come from the `en-GB` or `fi-FI`
-tag. `en-GB` rather than `en`, because in this app the time is 21:30 and not
-9:30 PM.
+separator and the alphabetical order of lists come from the language's tag
+(`en-GB`, `fi-FI`, `pt-BR` and so on). `en-GB` rather than `en`, because in
+this app the time is 21:30 and not 9:30 PM.
+
+### Drop-down lists
+
+Every drop-down opens the app's own list (`js/picker.js`). One of seven
+choices or more has a filter field on top that narrows it by the words typed,
+wherever they sit in a choice's name and without the marks a keyboard lacks
+(*suo* finds Suomi, *deu* Deutsch, *swe* Sweden among the guide's countries);
+a shorter one is read at a glance and has none. The arrows, Page Up/Down,
+Enter and Escape work in it, and typing on a closed list opens it with what
+was typed. The `<select>` stays the control: its label, value, styles and
+listeners are untouched, only its opening is taken over, and a choice is
+written back with the input and change events the browser would have sent —
+so a select added later, such as the media filters', is covered without
+being registered. The list is a popover in the top layer, over a dialog,
+and Escape in it closes the list and leaves the dialog open.
 
 ## Connection mode
 

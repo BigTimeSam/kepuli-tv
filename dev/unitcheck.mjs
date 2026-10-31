@@ -21,7 +21,7 @@ import { cueText } from '../js/subs.js';
 import { subtitleLook, STYLES, MIN_SIZE, MAX_SIZE, DEFAULT_SIZE } from '../js/subdisplay.js';
 import { describe, describeAll, label, preferred, route } from '../js/audio.js';
 import { languageSummary, orderedLanguageNames, trackLanguage } from '../js/lang.js';
-import { LANGUAGES, keysOf, setLanguage, t } from '../js/i18n.js';
+import { LANGUAGES, keysOf, setLanguage, loadLanguage, supportedLanguage, t } from '../js/i18n.js';
 import { channelPreferences, visibilityFilter, ordered, moveInOrder, placeInOrder, arrangeOrder, sortChannels, CHANNEL_SORTS } from '../js/channelprefs.js';
 import { catchupAvailable, archiveDays } from '../js/epggrid.js';
 import { searchProgrammes } from '../js/programmesearch.js';
@@ -533,13 +533,37 @@ check('orderedLanguageNames: an unknown language is named, and last',
 // markup can reach a screen.
 {
   const langs = Object.keys(LANGUAGES);
-  const first = keysOf(langs[0]);
+  for (const lang of langs) await loadLanguage(lang);
+  // A plural is one key whatever forms the language has: Polish carries
+  // .few and .many where English has only .one and .other.
+  const PLURAL = /\.(?:zero|one|two|few|many|other)$/;
+  const base = (lang) => [...new Set(keysOf(lang).map((k) => k.replace(PLURAL, '')))];
+  const first = base(langs[0]);
+  setLanguage(langs[0]);
+  const english = Object.fromEntries(keysOf(langs[0]).map((k) => [k, t(k)]));
+  const holes = (text) => [...String(text).matchAll(/\{(\w+)\}/g)].map((m) => m[1]).sort().join(',');
   for (const lang of langs.slice(1)) {
-    const theirs = new Set(keysOf(lang));
+    const theirs = new Set(base(lang));
     const mine = new Set(first);
     check(`i18n: ${lang} has every key ${langs[0]} has`, first.filter((k) => !theirs.has(k)), []);
-    check(`i18n: ${lang} has no key ${langs[0]} lacks`, keysOf(lang).filter((k) => !mine.has(k)), []);
+    check(`i18n: ${lang} has no key ${langs[0]} lacks`, base(lang).filter((k) => !mine.has(k)), []);
+    setLanguage(lang);
+    check(`i18n: ${lang} keeps every placeholder`, keysOf(lang).filter((k) => {
+      const source = english[k] ?? english[k.replace(PLURAL, '.other')];
+      return source != null && holes(t(k)) !== holes(source);
+    }), []);
+    check(`i18n: ${lang} has the .other of every plural`, keysOf(lang).filter((k) => PLURAL.test(k) && !keysOf(lang).includes(k.replace(PLURAL, '.other'))), []);
   }
+  setLanguage('pl');
+  if (keysOf('pl').includes('unit.live.few')) {
+    check('i18n: Polish counts in its own three forms',
+      [1, 2, 5, 22].map((count) => t('unit.live', { count, n: count })),
+      [t('unit.live.one', { n: 1 }), t('unit.live.few', { n: 2 }), t('unit.live.many', { n: 5 }), t('unit.live.few', { n: 22 })]);
+  }
+  setLanguage('en');
+  check('i18n: English counts in two', [1, 2].map((count) => t('unit.live', { count, n: count })), ['1 channel', '2 channels']);
+  check('i18n: the browser\'s tags the app speaks', ['fi-FI', 'nb', 'no', 'nn-NO', 'pt-BR', 'pt-PT', 'ja', ''].map(supportedLanguage),
+    ['fi', 'nb', 'nb', 'nb', 'pt', 'pt', null, null]);
   const html = (await import('node:fs')).readFileSync(new URL('../player.html', import.meta.url), 'utf8');
   const used = [...new Set([...html.matchAll(/data-i18n(?:-title|-placeholder|-label)?="([^"]+)"/g)].map((m) => m[1]))];
   for (const lang of langs) {

@@ -1,8 +1,11 @@
 // The interface language.
 //
-// Two languages, one dictionary. English is the default and at the same
-// time the list that missing keys fall back to: if a Finnish string is left
-// undone, the screen shows English text rather than a key name.
+// English is the default and at the same time the list that missing keys
+// fall back to: if a string is left undone, the screen shows English text
+// rather than a key name. English and Finnish are written here; the other
+// languages are in js/locales/, one module each, and only the one in use
+// is loaded (loadLanguage) — eleven dictionaries would otherwise be parsed
+// at every start for the one that is read.
 //
 // The language changes without reloading the page. That works because the
 // app repaints its views from state anyway — all that is needed on top is
@@ -11,12 +14,31 @@
 // The formatters (js/format.js) do not live here, but they follow the same
 // choice: localeTag() gives them an Intl tag.
 
-export const LANGUAGES = { en: 'English', fi: 'Suomi' };
+// Each language by its own name, as a reader looking for theirs knows it.
+export const LANGUAGES = {
+  en: 'English', fi: 'Suomi', sv: 'Svenska', nb: 'Norsk bokmål', da: 'Dansk', de: 'Deutsch',
+  nl: 'Nederlands', fr: 'Français', es: 'Español', pt: 'Português (Brasil)', it: 'Italiano',
+  pl: 'Polski', tr: 'Türkçe',
+};
 export const DEFAULT_LANGUAGE = 'en';
 
 // en-GB rather than en: in an IPTV app the time is 21:30, not 9:30 PM, and
 // the day comes before the month.
-const LOCALE_TAG = { en: 'en-GB', fi: 'fi-FI' };
+const LOCALE_TAG = {
+  en: 'en-GB', fi: 'fi-FI', sv: 'sv-SE', nb: 'nb-NO', da: 'da-DK', de: 'de-DE', nl: 'nl-NL',
+  fr: 'fr-FR', es: 'es-ES', pt: 'pt-BR', it: 'it-IT', pl: 'pl-PL', tr: 'tr-TR',
+};
+
+// What a browser may call a language the app speaks under another code:
+// Norwegian comes as no, nb or nn, and the app writes Bokmål.
+const ALIASES = { no: 'nb', nn: 'nb' };
+
+/** The app's code for a browser's language tag, or null if it does not speak it. */
+export function supportedLanguage(tag) {
+  const base = String(tag || '').toLowerCase().split('-')[0];
+  const code = ALIASES[base] || base;
+  return Object.hasOwn(LANGUAGES, code) ? code : null;
+}
 
 const STRINGS = {
   en: {
@@ -439,6 +461,9 @@ const STRINGS = {
     'setup.resume': 'Remember where movies and episodes were left',
     'setup.autonext': 'Play the next episode when one ends',
     'setup.stats': 'Show stream statistics over the picture',
+    'setup.language.auto': 'Browser language ({name})',
+    'picker.filter': 'Filter…',
+    'picker.none': 'Nothing matches',
     'setup.international': 'Show international channels in each country\'s list',
     'setup.international.hint': 'Channels found in four or more countries\' lists, such as CNN, Discovery and Stingray. Each country\'s main channels always stay.',
     'setup.stats.hint': 'Resolution, bit rate and the engine playing the stream, in the corner of the picture. For working out why a stream stutters.',
@@ -930,6 +955,9 @@ const STRINGS = {
     'setup.resume': 'Muista elokuvien ja jaksojen katselukohta',
     'setup.autonext': 'Toista seuraava jakso, kun edellinen päättyy',
     'setup.stats': 'Näytä lähetyksen tekniset tiedot kuvan päällä',
+    'setup.language.auto': 'Selaimen kieli ({name})',
+    'picker.filter': 'Suodata…',
+    'picker.none': 'Ei osumia',
     'setup.international': 'Näytä kansainväliset kanavat maiden listoissa',
     'setup.international.hint': 'Kanavat, jotka löytyvät vähintään neljän maan listalta, kuten CNN, Discovery ja Stingray. Maan pääkanavat näkyvät aina.',
     'setup.stats.hint': 'Tarkkuus, bittinopeus ja lähetystä toistava moottori kuvan nurkassa. Pätkivän lähetyksen selvittämiseen.',
@@ -1012,6 +1040,19 @@ const STRINGS = {
 
 let current = DEFAULT_LANGUAGE;
 
+/**
+ * Brings a language's dictionary in, if it is one of the modules. Called
+ * before setLanguage; a language that fails to load leaves English.
+ */
+export async function loadLanguage(lang) {
+  if (STRINGS[lang] || !Object.hasOwn(LANGUAGES, lang)) return;
+  try {
+    STRINGS[lang] = (await import(`./locales/${lang}.js`)).default;
+  } catch (err) {
+    console.warn('[iptv] language not loaded:', lang, err);
+  }
+}
+
 export function setLanguage(lang) {
   current = STRINGS[lang] ? lang : DEFAULT_LANGUAGE;
   // The dev checks load this module in Node, where there is no document.
@@ -1029,17 +1070,25 @@ export function localeTag() { return LOCALE_TAG[current] || LOCALE_TAG[DEFAULT_L
 /**
  * The translation for a key.
  *
- * The plural is chosen by params.count when the key has .one/.other pairs:
- * t('unit.live', { count: 1 }) → "1 channel". Finnish and English share the
- * same plural rule here (1 vs. anything else), so the language does not
- * have to be consulted separately.
+ * The plural is chosen by params.count when the key has plural forms:
+ * t('unit.live', { count: 1 }) → "1 channel". The forms are the language's
+ * own, by Intl.PluralRules — Polish says 1 kanał, 2 kanały, 5 kanałów — and
+ * a dictionary that has only .one and .other gets one of those two.
  */
+const pluralRules = new Map();
+function pluralForms(count) {
+  let rules = pluralRules.get(current);
+  if (!rules) pluralRules.set(current, rules = new Intl.PluralRules(localeTag()));
+  return [rules.select(count), count === 1 ? 'one' : 'other'];
+}
+
 export function t(key, params) {
   const dict = STRINGS[current];
   let resolved = key;
   if (params && typeof params.count === 'number') {
-    const plural = `${key}.${params.count === 1 ? 'one' : 'other'}`;
-    if (dict[plural] || STRINGS[DEFAULT_LANGUAGE][plural]) resolved = plural;
+    const forms = pluralForms(params.count).map((form) => `${key}.${form}`);
+    resolved = forms.find((plural) => dict[plural] != null)
+      ?? forms.find((plural) => STRINGS[DEFAULT_LANGUAGE][plural] != null) ?? key;
   }
   const text = dict[resolved] ?? STRINGS[DEFAULT_LANGUAGE][resolved];
   if (text == null) return key;

@@ -30,8 +30,9 @@ import { SubtitleDisplay, subtitleLook } from './subdisplay.js';
 import { pickEncoder } from './transcode.js';
 import * as store from './config.js';
 import { applyTheme, earlyTheme } from './theme.js';
+import { wirePickers } from './picker.js';
 import { nf, dateTimeFmt, dateFmt, stampFmt, dayLabel, clock, megabytes, duration, progressOf, setLocale } from './format.js';
-import { t, applyStatic, setLanguage, localeTag, LANGUAGES } from './i18n.js';
+import { t, applyStatic, setLanguage, loadLanguage, localeTag, LANGUAGES } from './i18n.js';
 
 const $ = (id) => document.getElementById(id);
 const el = {
@@ -3324,7 +3325,8 @@ function openSetup({ section } = {}) {
   for (const f of FIELDS) $(`f-${f}`).value = state.config[f] ?? '';
   $('f-paste').value = '';
   showPlaylistError(false);
-  $('f-lang').value = state.settings.lang;
+  renderLanguageOptions();
+  $('f-lang').value = state.settings.lang in LANGUAGES ? state.settings.lang : 'auto';
   $('f-channelsort').value = state.settings.channelSort;
   $('f-epg').checked = state.settings.epgEnabled;
   $('f-resume').checked = state.settings.resumeEnabled;
@@ -3597,14 +3599,22 @@ function splitServerField() {
   for (const f of FIELDS) if (parsed[f] != null) $(`f-${f}`).value = parsed[f];
 }
 
+/**
+ * The languages, each in its own name, after the one that follows the
+ * browser: that one says which language it comes to now, in the language
+ * of the interface, since the viewer may not know what the browser asks for.
+ */
+function renderLanguageOptions() {
+  const option = (value, label) => Object.assign(document.createElement('option'), { value, textContent: label });
+  const languages = Object.entries(LANGUAGES).sort((a, b) => a[1].localeCompare(b[1], localeTag()));
+  $('f-lang').replaceChildren(
+    option('auto', t('setup.language.auto', { name: LANGUAGES[store.browserLanguage()] })),
+    ...languages.map(([value, label]) => option(value, label)),
+  );
+}
+
 function wireSetup() {
   new ResizeObserver(fitSubtitlePreview).observe(document.querySelector('#panel-subs .sublook-preview'));
-  $('f-lang').replaceChildren(...Object.entries(LANGUAGES).map(([value, label]) => {
-    const option = document.createElement('option');
-    option.value = value;
-    option.textContent = label;
-    return option;
-  }));
   // Dialog controls edit a draft. Only the local subtitle sample previews it.
   for (const event of ['input', 'change']) {
     el.setup.querySelector('form').addEventListener(event, () => {
@@ -3706,7 +3716,7 @@ function wireSetup() {
       if (state.epg) state.epg.enabled = state.settings.epgEnabled;
       applySubtitleLook(state.settings);
       renderStatBadge();
-      if (settingsPatch.lang) await applyLanguage(state.settings.lang);
+      if (settingsPatch.lang) await applyLanguage(store.interfaceLanguage(state.settings));
       // A new starting order, or the international channels shown or
       // hidden, repaints the channel list where it stands; a changed
       // connection is about to load it again anyway.
@@ -4341,6 +4351,7 @@ function wireUi() {
  * painting route of its own — only the call.
  */
 async function applyLanguage(lang) {
+  await loadLanguage(lang);
   setLanguage(lang);
   setLocale(localeTag());
   applyStatic();
@@ -4457,12 +4468,15 @@ function idleTile(className, item, onClick) {
 /* ================================================================== start */
 
 applyTheme(earlyTheme());
+wirePickers();
 
 async function init() {
   state.config = await store.loadConfig();
   state.settings = await store.loadSettings();
   renderTheme();
-  setLanguage(state.settings.lang);
+  const lang = store.interfaceLanguage(state.settings);
+  await loadLanguage(lang);
+  setLanguage(lang);
   setLocale(localeTag());
   applyStatic();
   catalogueSearch.render();

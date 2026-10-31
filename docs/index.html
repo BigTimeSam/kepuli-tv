@@ -1460,7 +1460,11 @@ js/channeleditor.js  draft editor for live channels and categories
 js/modal.js         shared close buttons, Escape and backdrop dismissal
 js/db.js            IndexedDB: a TTL cache
 js/config.js        settings, favourites, history, resume points, the remembered view
-js/i18n.js          the interface language: dictionaries, t() and static HTML
+js/i18n.js          the interface language: English and Finnish, t() and static HTML
+js/locales/         the other eleven languages, one module each, loaded when chosen
+js/picker.js        the drop-down lists with a filter field
+js/international.js  which channels are in many countries' lists
+js/theme.js         the dark and light theme
 js/playback.js      engine selection, fallbacks, watchdog
 js/probe.js         reading the file header: container, codecs, subtitles
 js/audio.js         which audio track is played, and what it is called
@@ -1545,14 +1549,29 @@ it is dropped as the list is read and never requested.</li>
 
 <h2 id="language">Language</h2>
 
-<p>The interface is in English and Finnish. It opens in whichever of the two the
-browser says its owner reads — the first match in <code>navigator.languages</code> — and
-in English when it names neither; the choice is then made in the settings.
-The subtitle language starts from the same answer rather than from a fixed
-<code>fi</code>, which used to give an English interface offering Finnish subtitles to
-someone who had asked for neither. The dictionaries live in one file (<code>js/i18n.js</code>), and
-English is at the same time the list missing keys fall back to — a Finnish
-string left undone shows as English text rather than as a key name.</p>
+<p>The interface speaks thirteen languages: English, Finnish, Swedish, Norwegian
+(Bokmål), Danish, German, Dutch, French, Spanish, Brazilian Portuguese,
+Italian, Polish and Turkish. Settings &gt; Language starts on <strong>Browser
+language</strong>, which names the language it comes to: the first one in
+<code>navigator.languages</code> the app speaks (<code>no</code> and <code>nn</code> count as Bokmål), English
+when there is none. It stays a following setting, not a copy — the stored
+value is <code>auto</code>, so a settings save made for some other reason (the theme, a
+subtitle language) does not freeze the language the browser happened to ask
+for that day, and a browser switched to another language takes the app with
+it. A language picked from the list is stored as itself and kept for good.
+The subtitle language starts from the browser's answer too, rather than from
+a fixed <code>fi</code>, which used to give an English interface offering Finnish
+subtitles to someone who had asked for neither.</p>
+
+<p>English and Finnish are written in <code>js/i18n.js</code>; the eleven others are in
+<code>js/locales/</code>, one module each, and only the one in use is loaded — at start
+and when the setting changes. English is at the same time the list missing
+keys fall back to: a string left undone shows as English text rather than as
+a key name. <code>dev/unitcheck.mjs</code> loads every language and proves that each has
+every key, no stale ones, and the same <code>{placeholders}</code> as the English.
+Plurals take the language's own forms from <code>Intl.PluralRules</code>: Polish has
+<code>.one</code>, <code>.few</code> and <code>.many</code> where English has <code>.one</code> and <code>.other</code> (1 kanał,
+2 kanały, 5 kanałów).</p>
 
 <p>The language changes without a page reload. That works because the app repaints
 its views from state anyway: the switch needs only a pass over the texts written
@@ -1560,9 +1579,24 @@ into the markup (<code>data-i18n</code>), a rebuild of the <code>Intl</code> for
 paint calls that produce the views normally.</p>
 
 <p>The choice steers the formatting too: the clock, the date, the thousands
-separator and the alphabetical order of lists come from the <code>en-GB</code> or <code>fi-FI</code>
-tag. <code>en-GB</code> rather than <code>en</code>, because in this app the time is 21:30 and not
-9:30 PM.</p>
+separator and the alphabetical order of lists come from the language's tag
+(<code>en-GB</code>, <code>fi-FI</code>, <code>pt-BR</code> and so on). <code>en-GB</code> rather than <code>en</code>, because in
+this app the time is 21:30 and not 9:30 PM.</p>
+
+<h3 id="drop-down-lists">Drop-down lists</h3>
+
+<p>Every drop-down opens the app's own list (<code>js/picker.js</code>). One of seven
+choices or more has a filter field on top that narrows it by the words typed,
+wherever they sit in a choice's name and without the marks a keyboard lacks
+(<em>suo</em> finds Suomi, <em>deu</em> Deutsch, <em>swe</em> Sweden among the guide's countries);
+a shorter one is read at a glance and has none. The arrows, Page Up/Down,
+Enter and Escape work in it, and typing on a closed list opens it with what
+was typed. The <code>&lt;select&gt;</code> stays the control: its label, value, styles and
+listeners are untouched, only its opening is taken over, and a choice is
+written back with the input and change events the browser would have sent —
+so a select added later, such as the media filters', is covered without
+being registered. The list is a popover in the top layer, over a dialog,
+and Escape in it closes the list and leaves the dialog open.</p>
 
 <h2 id="connection-mode">Connection mode</h2>
 

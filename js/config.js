@@ -16,7 +16,7 @@
 // the first time it is asked for.
 
 import { api } from './browser.js';
-import { LANGUAGES, DEFAULT_LANGUAGE } from './i18n.js';
+import { LANGUAGES, DEFAULT_LANGUAGE, supportedLanguage } from './i18n.js';
 import { cacheClear } from './db.js';
 import { channelPreferences } from './channelprefs.js';
 
@@ -37,13 +37,25 @@ const CONNECTION_DEFAULTS = {
  * been told which languages its owner reads; the first of them the app
  * speaks is the answer, and English is what is left when it speaks none.
  */
-function browserLanguage() {
+export function browserLanguage() {
   const tags = navigator.languages?.length ? navigator.languages : [navigator.language || ''];
   for (const tag of tags) {
-    const base = String(tag).toLowerCase().split('-')[0];
-    if (Object.hasOwn(LANGUAGES, base)) return base;
+    const code = supportedLanguage(tag);
+    if (code) return code;
   }
   return DEFAULT_LANGUAGE;
+}
+
+/**
+ * The interface language a setting stands for. 'auto' — what every
+ * viewer has until they choose one in Settings — follows the browser, and
+ * keeps following it: a setting saved for some other reason (the theme, a
+ * subtitle language) writes 'auto' back rather than the language it
+ * happened to resolve to. A language chosen by hand is kept for good.
+ */
+export function interfaceLanguage(settings) {
+  const lang = settings?.lang;
+  return lang && lang !== 'auto' && Object.hasOwn(LANGUAGES, lang) ? lang : browserLanguage();
 }
 
 const SETTINGS_DEFAULTS = {
@@ -158,8 +170,7 @@ export async function saveChannelPreferences(value) {
  * setting overrides both in any case.
  */
 function settingsDefaults() {
-  const lang = browserLanguage();
-  return { ...SETTINGS_DEFAULTS, lang, subtitleLang: lang };
+  return { ...SETTINGS_DEFAULTS, lang: 'auto', subtitleLang: browserLanguage() };
 }
 
 export async function loadSettings() {

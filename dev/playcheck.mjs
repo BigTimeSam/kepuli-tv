@@ -90,6 +90,12 @@
 //                                     bar and a live channel are left alone
 //                                     (in Chrome; Firefox's own controls
 //                                     keep the clicks to themselves)
+//   node dev/playcheck.mjs pickers    a drop-down opens the app's own list:
+//                                     a long one with a filter that narrows
+//                                     it, a short one without; Escape closes
+//                                     the list and leaves the dialog open,
+//                                     and a choice reaches the select's
+//                                     listeners
 //   node dev/playcheck.mjs lastchannel l returns to the channel before, and
 //                                     again to the one after it; the media
 //                                     session names the programme and the
@@ -826,6 +832,50 @@ async function a11y(page) {
  * a click changes nothing — in Firefox too, whose own controls would
  * toggle playback on any click.
  */
+/**
+ * The drop-downs (js/picker.js): a press on a select opens the app's list
+ * rather than the browser's, in a dialog as well, and what is chosen there
+ * is what the select's own listeners hear.
+ */
+async function pickers(page) {
+  const assert = (ok, detail) => { if (!ok) throw new Error(detail); };
+  const pop = () => evaluate(page, `(() => { const p = document.querySelector('.picker-pop');
+    return p ? { open: p.matches(':popover-open'), filter: !!p.querySelector('.picker-filter'), shown: [...p.querySelectorAll('.picker-option:not([hidden])')].map((li) => li.textContent),
+      focus: document.activeElement === p.querySelector('.picker-filter') } : null; })()`);
+  await evaluate(page, `document.querySelector('#tabs [data-tab="live"]').click()`);
+  await waitFor(page, `document.querySelectorAll('#list .row').length > 0`, 'the channel rows');
+  await evaluate(page, `document.getElementById('btn-settings').click()`);
+  await waitFor(page, `document.getElementById('setup').open`, 'settings');
+  await evaluate(page, `document.getElementById('tab-general').click()`);
+  await sleep(300);
+  const before = await evaluate(page, `document.getElementById('f-lang').value`);
+  await mouseClick(page, '#f-lang');
+  await sleep(300);
+  const long = await pop();
+  assert(long?.open && long.filter && long.focus && long.shown.length >= 13, `the language list: ${JSON.stringify(long)}`);
+  await evaluate(page, `(() => { const f = document.querySelector('.picker-filter'); f.value = 'deut'; f.dispatchEvent(new Event('input', { bubbles: true })); })()`);
+  await sleep(150);
+  const narrowed = await pop();
+  assert(narrowed.shown.length === 1 && narrowed.shown[0] === 'Deutsch', `the filter: ${JSON.stringify(narrowed.shown)}`);
+  await pressKey(page, 'Escape', 'Escape', 27);
+  await sleep(300);
+  assert(!(await pop()) && await evaluate(page, `document.getElementById('setup').open && document.getElementById('f-lang').value === ${JSON.stringify(before)}`),
+    'Escape closed more than the list, or changed the choice');
+  await evaluate(page, `window.__picked = []; document.getElementById('f-channelsort').addEventListener('change', (e) => __picked.push(e.target.value), { once: true })`);
+  await mouseClick(page, '#f-channelsort');
+  await sleep(300);
+  const short = await pop();
+  assert(short?.open && !short.filter && short.shown.length === 3, `the order list: ${JSON.stringify(short)}`);
+  await mouseClick(page, '.picker-option:nth-child(3)');
+  await sleep(300);
+  const picked = await evaluate(page, `({ value: document.getElementById('f-channelsort').value, heard: __picked, open: !!document.querySelector('.picker-pop') })`);
+  assert(picked.value === 'num' && picked.heard[0] === 'num' && !picked.open, `the choice: ${JSON.stringify(picked)}`);
+  // Cancel discards the draft: the choice above was never saved.
+  await evaluate(page, `document.getElementById('f-done').click()`);
+  await waitFor(page, `!document.getElementById('setup').open`, 'settings closed');
+  return { ok: true, detail: `long list filtered to ${narrowed.shown[0]}; Escape kept the dialog; short list without a filter chose ${picked.value}` };
+}
+
 async function clickpause(page) {
   const paused = () => evaluate(page, `document.getElementById('video').paused`);
   const spot = (fromBottom = null) => evaluate(page, `(() => { const r = document.getElementById('video').getBoundingClientRect();
@@ -1865,7 +1915,7 @@ async function update(page) {
   return { ok: line === `Kepuli-TV ${running} Update to 99.0.0`, detail: `"${said}"; "${line}"` };
 }
 
-const SCENARIOS = { catalogUi, setupClarity, fullscreenControl, clickpause, organize, restore, programmes, catchup, seek, death, cancel, timeout, search, paste, keys, switching, resume, connections, reconnect, accounts, listerror, a11y, subtitles, audio, settings,
+const SCENARIOS = { catalogUi, setupClarity, fullscreenControl, clickpause, pickers, organize, restore, programmes, catchup, seek, death, cancel, timeout, search, paste, keys, switching, resume, connections, reconnect, accounts, listerror, a11y, subtitles, audio, settings,
   lastchannel, nextepisode, continuewatching, reminders, update };
 // The mock's whole-list answers stall for these, longer than the request limit.
 const SLOW_LIST_MS = { cancel: 60000, timeout: 60000 };
