@@ -57,3 +57,10 @@ KOM I GANG
 
 Klik på ikonet på værktøjslinjen, indtast server, brugernavn og adgangskode, så
 dukker din liste op.
+
+
+SE DET I BRUG
+
+En kort videorundtur i alle funktionerne med demoindhold (på engelsk):
+
+https://www.youtube.com/watch?v=JUljsUuZqDI

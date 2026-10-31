@@ -64,3 +64,11 @@ POUR COMMENCER
 
 Clique sur l'icône de la barre d'outils, saisis ton serveur, ton nom
 d'utilisateur et ton mot de passe, et ta liste apparaît.
+
+
+EN VIDÉO
+
+Une courte visite vidéo de toutes les fonctions, avec du contenu de
+démonstration (en anglais) :
+
+https://www.youtube.com/watch?v=JUljsUuZqDI

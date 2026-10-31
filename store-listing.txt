@@ -243,6 +243,19 @@ Screenshots:           brand/screenshots/01-channels.png … 05-movie.png
   Retake them for any release that changes what the player looks like. The
   1.0.9 set showed a layout that release had already left behind.
 
+Promo video:           https://www.youtube.com/watch?v=JUljsUuZqDI
+  The demo on YouTube: every feature in under three minutes, in English,
+  with the mock server's invented content (node dev/demo-video.mjs).
+  • Chrome Web Store: Store listing → Graphic assets → the YouTube video
+    URL field ("Global promo video"). One video serves every language; the
+    field has a version per language too, which can stay empty.
+  • addons.mozilla.org has no video field. The link is the last section of
+    every detailed description in store/listings/ instead ("SEE IT IN
+    ACTION" and its translations), so it reaches both stores' pages with
+    the descriptions; AMO turns it into a link through its redirect.
+  A new video means a new address: change it here and in all thirteen
+  listings, and paste the descriptions again.
+
 
 --- TEST INSTRUCTIONS (Privacy practices → Test instructions) --------------
 The extension needs the user's own account. No hosted demo is offered.

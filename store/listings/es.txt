@@ -61,3 +61,11 @@ PRIMEROS PASOS
 
 Haz clic en el icono de la barra de herramientas, introduce tu servidor, tu
 usuario y tu contraseña, y aparecerá tu lista.
+
+
+MÍRALO EN ACCIÓN
+
+Un breve recorrido en vídeo por todas las funciones, con contenido de
+demostración (en inglés):
+
+https://www.youtube.com/watch?v=JUljsUuZqDI

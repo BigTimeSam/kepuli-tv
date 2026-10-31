@@ -59,3 +59,10 @@ GET STARTED
 
 Click the toolbar icon, enter your server, username and password, and your
 list appears.
+
+
+SEE IT IN ACTION
+
+A short video tour of every feature, shown with demo content:
+
+https://www.youtube.com/watch?v=JUljsUuZqDI
