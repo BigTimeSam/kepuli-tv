@@ -63,6 +63,14 @@ RARELY
   • Category, language, homepage, support URL, privacy policy URL, test
     instructions: leave them unless the thing they describe has moved.
 
+FOR 1.3.2 SPECIFICALLY
+  Only "version" changed in the manifests; the fix is in playback (a live
+  channel refused while the provider still counts the last one is waited
+  for, instead of falling back to HLS and leaving the account full). So:
+  upload kepuli-tv-chrome-1.3.2.zip and nothing else. If 1.3.1 is still in
+  review, cancel that submission first (Package → Cancel review); 1.3.2
+  carries everything 1.3.1 and 1.3.0 did.
+
 FOR 1.3.1 SPECIFICALLY
   Only "version" changed in the manifests; the fix is in the player (the
   subtitles keep their chosen height in Firefox's own full screen, and are
