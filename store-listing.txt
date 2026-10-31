@@ -34,6 +34,14 @@ ALWAYS
     manifest; there is no version field to type and no release-notes field
     at all.
 
+AFTER THE REVIEW, EVERY TIME
+  • Read the manifest of the package the store now serves, with the
+    commands under "Publishing to the stores" in README.md. It must show
+    the new version and "service_worker", and no "gecko". "gecko" means the
+    Firefox zip was uploaded: publish the next version with the Chrome zip.
+  • Install from the store on another machine and click the toolbar button:
+    the player must open.
+
 WHEN THE PLAYER LOOKS DIFFERENT
   • Screenshots (Store listing → Graphic assets): all five, from
     node dev/store-screenshots.mjs. Delete the old ones first — the store

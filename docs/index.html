@@ -1629,6 +1629,56 @@ and <code>dist/</code> are in <code>.gitignore</code>. AMO signs the Firefox pac
 <code>FIREFOX.md</code>. <code>firefox/build.mjs</code> remains the development loop's assembler of
 <code>firefox/dist/</code> from the checkout, for <code>firefox/dev.mjs</code> to reload.</p>
 
+<h3 id="publishing-to-the-stores">Publishing to the stores</h3>
+
+<p>Each store takes one package, and the two zips lie side by side in the
+project root with names that differ by one word:</p>
+
+<div class="table-scroll">
+<table>
+  <thead><tr><th>Store</th><th>Upload</th><th>Never</th></tr></thead>
+  <tbody>
+    <tr><td>Chrome Web Store</td><td><code>kepuli-tv-chrome-&lt;version&gt;.zip</code></td><td>the firefox zip</td></tr>
+    <tr><td>Firefox Add-ons (AMO)</td><td><code>kepuli-tv-firefox-&lt;version&gt;.zip</code>, and <code>kepuli-tv-firefox-&lt;version&gt;-amo-source.zip</code> in the source field</td><td>the chrome zip</td></tr>
+  </tbody>
+</table>
+</div>
+
+<p>The Chrome Web Store has twice been given the Firefox package, in 1.2.1 and
+in 1.2.5, and accepted it without a word. At the time the Firefox manifest
+started its background script with <code>background.scripts</code>, which Chrome ignores
+in Manifest V3, so no service worker ran and the toolbar button did nothing
+for every Chrome user until the next version. The source was right both
+times. Only the upload was wrong, and the store does not take the same
+version twice, so each time cost a version (1.2.2, 1.2.6).</p>
+
+<p>Three things now stand against it:</p>
+
+<ul>
+  <li><strong>The packages forgive the mix-up.</strong> Since 1.2.6 the Firefox manifest
+names <code>background.service_worker</code> beside <code>background.scripts</code>. Chrome takes
+the service worker and ignores the scripts, and Firefox does the opposite,
+so either zip starts in Chrome. <code>dev/package.mjs</code> refuses a Firefox
+manifest without the same <code>service_worker</code> as the Chrome one. Do not
+remove that key to quiet an AMO warning about it.</li>
+  <li><strong>Check the file name in the upload dialog.</strong> It must say <code>chrome</code> for the
+Chrome Web Store and <code>firefox</code> for AMO. <code>store-listing.txt</code> says the same
+under <em>Publishing a new version</em>.</li>
+  <li><strong>Check what the store actually published.</strong> Once the Chrome Web Store has
+approved a version, read the manifest of the package it serves. It must
+show the new version and <code>"service_worker"</code>, and no <code>gecko</code>:</li>
+</ul>
+
+<pre><code>  mkdir -p /tmp/kepuli-store &amp;&amp; cd /tmp/kepuli-store
+  curl -sL -o store.crx "https://clients2.google.com/service/update2/crx?response=redirect&amp;prodversion=150.0&amp;acceptformat=crx3&amp;x=id%3Dokkgclcakhjhldkdcblgagoaibghpfmi%26uc"
+  unzip -o -q store.crx manifest.json; grep -E '"version"|service_worker|gecko' manifest.json</code></pre>
+
+<p>  <code>unzip</code> warns about extra bytes at the start, which is the CRX header and
+  harmless. If the version is the old one, the review is not finished yet. If
+  <code>gecko</code> shows up, the Firefox zip went to the Chrome store: publish the next
+  version with the Chrome zip at once. An install from the store on another
+  machine is the final test: the toolbar button must open the player.</p>
+
 <h2 id="licence">Licence</h2>
 
 <p>The project's own code is MIT licensed, see <a href="https://github.com/BigTimeSam/kepuli-tv/blob/main/LICENSE">LICENSE</a>. The <code>vendor/</code>
