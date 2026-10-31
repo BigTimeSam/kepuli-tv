@@ -99,9 +99,11 @@ export function pictureHeight(width, height, videoWidth, videoHeight) {
   return Math.max(0, Math.min(height, width / ratio));
 }
 
-// How long the controls stay on show after the pointer stops, and how far
-// from the bottom edge the pointer counts as resting on the controls.
-const CONTROLS_LINGER_MS = 3000;
+// How long the controls stay on show after the pointer stops — Chrome's
+// own bar starts to fade after 2.5 s, and the fullscreen button laid over
+// it has to go with it — and how far from the bottom edge the pointer
+// counts as resting on the controls.
+const CONTROLS_LINGER_MS = 2500;
 const CONTROLS_BAND_PX = 132;
 
 export class SubtitleDisplay {

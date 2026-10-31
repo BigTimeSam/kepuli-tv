@@ -80,6 +80,7 @@ export default {
  "theme.to.dark": "Bytt til mørkt tema",
  "help.title": "Hjelp",
  "help.shortcuts": "Hurtigtaster",
+ "help.more": "Flere hurtigtaster",
  "help.key.search": "Gå til søkefeltet",
  "help.key.move": "Flytt i listen",
  "help.key.open": "Spill av, eller åpne en serie",

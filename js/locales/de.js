@@ -80,6 +80,7 @@ export default {
  "theme.to.dark": "Zum dunklen Design wechseln",
  "help.title": "Hilfe",
  "help.shortcuts": "Tastenkürzel",
+ "help.more": "Weitere Tastenkürzel",
  "help.key.search": "Zum Suchfeld springen",
  "help.key.move": "In der Liste bewegen",
  "help.key.open": "Abspielen oder eine Serie öffnen",

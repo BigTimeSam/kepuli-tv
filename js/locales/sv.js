@@ -80,6 +80,7 @@ export default {
  "theme.to.dark": "Byt till mörkt tema",
  "help.title": "Hjälp",
  "help.shortcuts": "Kortkommandon",
+ "help.more": "Fler kortkommandon",
  "help.key.search": "Gå till sökfältet",
  "help.key.move": "Flytta i listan",
  "help.key.open": "Spela upp eller öppna en serie",

@@ -80,6 +80,7 @@ export default {
  "theme.to.dark": "Koyu temaya geç",
  "help.title": "Yardım",
  "help.shortcuts": "Klavye kısayolları",
+ "help.more": "Diğer kısayollar",
  "help.key.search": "Arama kutusuna git",
  "help.key.move": "Listede gezin",
  "help.key.open": "Oynat veya diziyi aç",

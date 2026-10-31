@@ -80,6 +80,7 @@ export default {
  "theme.to.dark": "Overschakelen naar het donkere thema",
  "help.title": "Help",
  "help.shortcuts": "Sneltoetsen",
+ "help.more": "Meer sneltoetsen",
  "help.key.search": "Naar het zoekveld gaan",
  "help.key.move": "Door de lijst bewegen",
  "help.key.open": "Afspelen, of een serie openen",

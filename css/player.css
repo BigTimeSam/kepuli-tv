@@ -571,7 +571,15 @@ button.series-favorite { flex: none; width: 32px; height: 32px; padding: 0; disp
 
 /* ------------------------------------------------------------- list */
 
-.list { flex: 1; overflow-y: auto; outline: none; position: relative; }
+/* The focus ring is the frame's, laid over the list rather than drawn by
+   it: a hovered, chosen or playing row paints its ground across anything
+   the list draws itself, and left the ring in pieces. */
+.list-frame { flex: 1; min-height: 0; display: flex; flex-direction: column; position: relative; }
+.list-frame:has(> .list:focus-visible)::after {
+  content: ''; position: absolute; inset: 0; z-index: 1; pointer-events: none;
+  box-shadow: inset 0 0 0 2px var(--accent);
+}
+.list { flex: 1; min-height: 0; overflow-y: auto; outline: none; position: relative; }
 .vlist-spacer { position: relative; width: 100%; }
 .vlist-window { position: absolute; top: 0; left: 0; right: 0; will-change: transform; }
 
@@ -778,20 +786,27 @@ video[controlslist~="nofullscreen"]::-webkit-media-controls-fullscreen-button { 
    Firefox refuses a second request without a fresh press. */
 /* Room at the right end of Chrome's bar, both its rows, for the button. */
 video::-webkit-media-controls-panel { padding-right: 46px; }
+video::-webkit-media-controls-timeline { margin-right: -46px; }
 .video-fullscreen {
-  position: absolute; right: 6px; bottom: 26px; z-index: 2;
+  /* Centred on the row of Chrome's own buttons and as tall as their
+     marks, measured from screenshots: the row stands 48.5 px above the
+     bottom in a window, its marks 13 px tall; 56.5 px and 19 px in full
+     screen. */
+  position: absolute; right: 6px; bottom: 30.5px; z-index: 2;
   display: grid; place-items: center; width: 36px; height: 36px; padding: 0;
   color: #fff; background: transparent; border: 0;
   border-radius: 50%; cursor: pointer; opacity: 0; pointer-events: none;
-  transition: opacity .15s ease, background .15s ease;
+  /* Fades in and out with Chrome's bar, which takes .3 s either way. */
+  transition: opacity .3s ease-in-out, background .15s ease;
   filter: drop-shadow(0 0 2px rgba(0, 0, 0, .8));
 }
-.video-fullscreen svg { width: 22px; height: 22px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+.video-fullscreen svg { width: 19px; height: 19px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
 .video-fullscreen[hidden] { display: none; }
 .videowrap.controls .video-fullscreen, .video-fullscreen:focus-visible { opacity: 1; pointer-events: auto; }
 .video-fullscreen:hover { background: rgba(255, 255, 255, .16); }
-/* Chrome's bar stands taller in full screen: the row of buttons is higher up. */
-.videowrap:fullscreen .video-fullscreen { bottom: 39px; }
+/* Chrome's bar stands taller in full screen, its marks larger. */
+.videowrap:fullscreen .video-fullscreen { bottom: 38.5px; }
+.videowrap:fullscreen .video-fullscreen svg { width: 27px; height: 27px; stroke-width: 2.2; }
 .video-fullscreen:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 @supports (-moz-appearance: none) { .video-fullscreen { display: none; } }
 
@@ -1302,10 +1317,18 @@ dialog::backdrop { background: var(--backdrop); backdrop-filter: blur(2px); }
 #help { width: min(560px, calc(100vw - 32px)); max-height: calc(100dvh - 32px); }
 .help-content { padding: 24px; display: flex; flex-direction: column; gap: 12px; max-height: calc(100dvh - 34px); overflow-y: auto; }
 .help-content h3 { margin: 4px 0 0; font-size: 0.75rem; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
-.help-keys { display: grid; grid-template-columns: minmax(88px, auto) 1fr; gap: 6px 14px; margin: 0; align-items: baseline; }
+/* One width for the key column in both lists, folded or not, so that they
+   read as one: the widest key, ↑ ↓ PgUp PgDn, fits. */
+.help-keys { display: grid; grid-template-columns: 7.25rem 1fr; gap: 6px 14px; margin: 0; align-items: baseline; }
 .help-keys dt { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 0.71875rem; color: var(--text); background: var(--panel-2); border: 1px solid var(--border); border-radius: 6px; padding: 3px 7px; justify-self: start; white-space: nowrap; }
 .help-keys dd { margin: 0; color: var(--muted); }
 .help-note { margin: 0; color: var(--muted); line-height: 1.5; }
+/* The rest of the keys, folded under the heading every fold in the app
+   wears, its edge lined up with the list above. */
+.help-more { margin: 0 -12px; border-top: 1px solid var(--border); border-bottom: 1px solid var(--border); }
+.help-more[open] { padding: 0 12px 12px; }
+.help-more[open] > .section-toggle { margin: 0 -12px; width: calc(100% + 24px); }
+.help-more .help-keys { margin: 6px 0 14px; }
 
 /* The countries the viewer watches and what they have hidden
    (js/channelchoices.js). */
@@ -1425,7 +1448,11 @@ select.epg-earlier { font: inherit; padding-right: 26px; background-position: ri
 
 .epg-scroll { grid-area: 2 / 2; overflow: auto; outline: none; }
 /* The keyboard's whereabouts: the container that takes the arrows shows it. */
-#list:focus-visible, .epg-scroll:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; }
+.epg-scroll:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; }
+/* Inside the ring, a row's own mark at the left edge steps in beside it
+   rather than under it. */
+#list:focus-visible .row.selected { box-shadow: inset 5px 0 0 var(--accent-2); }
+#list:focus-visible .row.playing { box-shadow: inset 4px 0 0 var(--accent); }
 /* The sidebar's own focus ring, and inside it the row the arrows are on.
    Two different things: .active is the group being shown, .cursor is where
    the keyboard stands, and either can be on a row the other is not. */

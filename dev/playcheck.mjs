@@ -1028,12 +1028,12 @@ async function fullscreenControl(page) {
   }
   await waitFor(page, `document.querySelectorAll('#subdisplay .cue').length > 0`, 'a subtitle cue');
   await evaluate(page, `document.getElementById('video').pause()`);
-  await sleep(250);
+  await sleep(450);   // the button fades in over .3 s, as Chrome's bar does
   const bounds = await evaluate(page, `(() => {
     const b = document.getElementById('btn-fullscreen'), r = b.getBoundingClientRect(), w = document.getElementById('videowrap').getBoundingClientRect();
     const cues = [...document.querySelectorAll('#subdisplay .cue')].map(c => c.getBoundingClientRect());
     return { inside: b.parentElement.id === 'videowrap' && r.left >= w.left && r.top >= w.top && r.right <= w.right && r.bottom <= w.bottom,
-      bottomRight: Math.abs(w.bottom - r.bottom - 26) < 1 && Math.abs(w.right - r.right - 6) < 1,
+      bottomRight: Math.abs(w.bottom - r.bottom - 30.5) < 1 && Math.abs(w.right - r.right - 6) < 1,
       visible: getComputedStyle(b).opacity === '1', clear: cues.every(c => c.bottom <= r.top || c.top >= r.bottom || c.right <= r.left || c.left >= r.right), label: b.getAttribute('aria-label') };
   })()`);
   assert(bounds.inside && bounds.bottomRight && bounds.visible && bounds.clear && bounds.label === 'Full screen', `overlay control: ${JSON.stringify(bounds)}`);

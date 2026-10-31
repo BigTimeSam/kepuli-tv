@@ -80,6 +80,7 @@ export default {
  "theme.to.dark": "Passa al tema scuro",
  "help.title": "Aiuto",
  "help.shortcuts": "Scorciatoie da tastiera",
+ "help.more": "Altre scorciatoie",
  "help.key.search": "Vai alla casella di ricerca",
  "help.key.move": "Muoviti nell'elenco",
  "help.key.open": "Riproduci, o apri una serie",

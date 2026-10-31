@@ -2900,15 +2900,10 @@ function renderInfoStrip() {
       const title = document.createElement('span');
       title.className = 'epgnow-title';
       title.textContent = entry.now.title;
+      // Starting the programme over is the guide's to offer, with the
+      // archive and the rest of the day around it; beside the title here
+      // it was a button wanted once in a long while and in the way always.
       head.append(time, title);
-      if (!state.catchup && catchupAvailable(item, entry.now)) {
-        const start = document.createElement('button');
-        start.type = 'button';
-        start.className = 'ghost';
-        start.textContent = t('guide.startover');
-        start.addEventListener('click', () => playCatchup(item, entry.now));
-        head.append(start);
-      }
       frag.appendChild(head);
 
       const share = progressOf(entry.now);
@@ -4104,27 +4099,29 @@ function wireSetup() {
 /* ================================================================== help */
 
 /**
- * The shortcuts, in the order the hands find them: the list first, then the
- * picture, then the things done now and then. The key column is written out
- * rather than translated — ↑ is ↑ in every language — and the sentence beside
- * it is not.
+ * The shortcuts, the few that nearly everyone needs first — the picture,
+ * then finding something to watch — and the rest behind a fold. The key
+ * column is written out rather than translated — ↑ is ↑ in every language —
+ * and the sentence beside it is not.
  */
 const SHORTCUTS = [
+  ['Space', 'help.key.pause'],
+  ['f', 'help.key.fullscreen'],
+  ['m', 'help.key.mute'],
   ['/', 'help.key.search'],
   ['↑ ↓ PgUp PgDn', 'help.key.move'],
   ['Enter', 'help.key.open'],
   ['Backspace', 'help.key.back'],
-  ['Delete', 'help.key.remove'],
-  ['Space', 'help.key.pause'],
-  ['f', 'help.key.fullscreen'],
-  ['m', 'help.key.mute'],
-  ['a', 'help.key.audio'],
-  ['s', 'help.key.star'],
-  ['+  −', 'help.key.subsize'],
-  ['Shift+F10', 'help.key.menu'],
+  ['g', 'help.key.guide'],
+];
+const MORE_SHORTCUTS = [
   ['n  p', 'help.key.nextprev'],
   ['l', 'help.key.lastchannel'],
-  ['g', 'help.key.guide'],
+  ['a', 'help.key.audio'],
+  ['+  −', 'help.key.subsize'],
+  ['s', 'help.key.star'],
+  ['Shift+F10', 'help.key.menu'],
+  ['Delete', 'help.key.remove'],
   ['x', 'help.key.external'],
   ['c', 'help.key.cast'],
   ['?', 'help.key.help'],
@@ -4137,14 +4134,15 @@ const SHORTCUTS = [
  * were named nowhere the player itself could show them.
  */
 function openHelp() {
-  const keys = $('help-keys');
-  keys.replaceChildren(...SHORTCUTS.flatMap(([key, id]) => {
+  const rows = (list) => list.flatMap(([key, id]) => {
     const dt = document.createElement('dt');
     dt.textContent = key;
     const dd = document.createElement('dd');
     dd.textContent = t(id);
     return [dt, dd];
-  }));
+  });
+  $('help-keys').replaceChildren(...rows(SHORTCUTS));
+  $('help-keys-more').replaceChildren(...rows(MORE_SHORTCUTS));
   if (!$('help').open) $('help').showModal();
 }
 

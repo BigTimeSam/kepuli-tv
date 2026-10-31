@@ -80,6 +80,7 @@ export default {
  "theme.to.dark": "Passer au thème sombre",
  "help.title": "Aide",
  "help.shortcuts": "Raccourcis clavier",
+ "help.more": "Autres raccourcis",
  "help.key.search": "Aller au champ de recherche",
  "help.key.move": "Se déplacer dans la liste",
  "help.key.open": "Lire, ou ouvrir une série",

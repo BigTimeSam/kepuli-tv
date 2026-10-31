@@ -133,7 +133,10 @@
       </div>
       <div class="bar" role="progressbar" aria-labelledby="lp-title" aria-describedby="lp-text" aria-valuemin="0" aria-valuemax="100"><div class="bar-fill" id="lp-fill"></div></div>
     </div>
-    <div class="list" id="list" tabindex="0" role="listbox" data-i18n-label="list.aria"></div>
+    <!-- The frame draws the list's focus ring over the rows; see .list-frame. -->
+    <div class="list-frame">
+      <div class="list" id="list" tabindex="0" role="listbox" data-i18n-label="list.aria"></div>
+    </div>
     <div class="listinfo" id="listinfo"></div>
   </section>
 
@@ -568,7 +571,14 @@ on two lines as well.</div></div>
     </div>
     <h3 data-i18n="help.shortcuts">Keyboard shortcuts</h3>
     <dl class="help-keys" id="help-keys"></dl>
-    <p class="help-note" data-i18n="help.guide.keys"></p>
+    <details class="help-more">
+      <summary class="section-toggle">
+        <span class="section-label" data-i18n="help.more">More shortcuts</span>
+        <svg class="section-chevron" viewBox="0 0 20 20" aria-hidden="true"><path d="m6 8 4 4 4-4"/></svg>
+      </summary>
+      <dl class="help-keys" id="help-keys-more"></dl>
+      <p class="help-note" data-i18n="help.guide.keys"></p>
+    </details>
     <p class="help-note" data-i18n="help.back"></p>
     <a class="setup-help" href="https://github.com/BigTimeSam/kepuli-tv#user-guide" target="_blank" rel="noopener noreferrer">
       <span data-i18n="help.full">The full user guide</span>

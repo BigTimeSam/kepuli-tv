@@ -84,6 +84,7 @@ export default {
  "theme.to.dark": "Przełącz na ciemny motyw",
  "help.title": "Pomoc",
  "help.shortcuts": "Skróty klawiszowe",
+ "help.more": "Więcej skrótów",
  "help.key.search": "Przejdź do pola wyszukiwania",
  "help.key.move": "Poruszanie się po liście",
  "help.key.open": "Odtwórz lub otwórz serial",

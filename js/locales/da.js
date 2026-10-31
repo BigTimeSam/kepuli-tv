@@ -80,6 +80,7 @@ export default {
  "theme.to.dark": "Skift til mørkt tema",
  "help.title": "Hjælp",
  "help.shortcuts": "Tastaturgenveje",
+ "help.more": "Flere genveje",
  "help.key.search": "Gå til søgefeltet",
  "help.key.move": "Flyt i listen",
  "help.key.open": "Afspil, eller åbn en serie",
