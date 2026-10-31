@@ -77,7 +77,13 @@ export function itemRow(item, ctx) {
 
   row.appendChild(star(ctx.favorite, ctx.onFavorite));
 
-  if (item.k === 0) row.appendChild(poster('row-logo', item.logo, 'channel'));
+  if (ctx.compact) {
+    // The favourites and the history mix every kind: one square for all of
+    // them, a cover cropped into it and a logo set in it, so that the names
+    // start in one column and no picture outweighs the next.
+    const kind = item.k === 0 ? 'channel' : item.k === 1 ? 'movie' : 'series';
+    row.appendChild(poster('row-thumb', item.k === 3 ? item.seriesCover || item.logo : item.logo, kind));
+  } else if (item.k === 0) row.appendChild(poster('row-logo', item.logo, 'channel'));
   else if (item.k === 1 || item.k === 2) row.appendChild(poster('row-poster', item.logo, item.k === 2 ? 'series' : 'movie'));
   else if (item.k === 3 && ctx.showEpisodeCover) row.appendChild(poster('row-poster', item.seriesCover || item.logo, 'series'));
 
@@ -94,9 +100,11 @@ export function itemRow(item, ctx) {
   if (bar) body.appendChild(bar);
   row.appendChild(body);
 
-  for (const badge of badges(item, ctx)) row.appendChild(badge);
+  // A compact row keeps the name whole: what the badges said is on the
+  // line under it, and what the buttons did is in the menu.
+  if (!ctx.compact) for (const badge of badges(item, ctx)) row.appendChild(badge);
   if (item.k === 2) row.appendChild(el('div', 'row-chevron', '›'));
-  if (ctx.onRemove) row.appendChild(remove(ctx.removeTitle || t('row.remove.history'), ctx.onRemove));
+  if (ctx.onRemove && !ctx.compact) row.appendChild(remove(ctx.removeTitle || t('row.remove.history'), ctx.onRemove));
   if (ctx.onMenu) {
     row.appendChild(more(ctx.onMenu));
     row.addEventListener('contextmenu', (e) => { e.preventDefault(); ctx.onMenu({ x: e.clientX, y: e.clientY }); });
@@ -147,11 +155,25 @@ export function posterCard(item, ctx) {
 }
 
 /** A section heading in the list: a history day or a favourites type. */
-export function sectionHeader(label) {
-  return el('div', 'daysep', label);
+export function sectionHeader(label, paths = null) {
+  const head = el('div', 'daysep');
+  if (paths) {
+    const mark = icon(paths);
+    mark.classList.add('daysep-icon');
+    head.append(mark);
+  }
+  head.append(el('span', 'daysep-label', label));
+  return head;
 }
 
+/** The headings' marks in the history: what was left halfway, and a day. */
+export const HISTORY_ICONS = {
+  continue: '<circle cx="10" cy="10" r="7.2"/><path d="m8.4 7.2 4.4 2.8-4.4 2.8z"/>',
+  day: '<rect x="3" y="4.5" width="14" height="12.5" rx="1.8"/><path d="M3 8.5h14M7 2.8v3.4M13 2.8v3.4"/>',
+};
+
 function subLine(item, ctx) {
+  if (ctx.compact && item.k !== 0) return compactLine(item, ctx);
   if (item.k === 0) {
     const entry = ctx.epg;
     if (!entry || !entry.now) return null;
@@ -177,6 +199,23 @@ function subLine(item, ctx) {
     if (aired) bits.push(aired);
   }
 
+  if (!bits.length) return null;
+  const sub = el('div', 'row-sub');
+  sub.appendChild(el('span', 'txt', bits.join(', ')));
+  return sub;
+}
+
+/** The badges' facts as the line under a compact row's name. */
+function compactLine(item, ctx) {
+  const bits = [];
+  const rating = ratingText(item.details) || ratingText(item);
+  if (item.k === 3) bits.push(`S${item.season} E${item.episode}`);
+  if (item.k === 1 || item.k === 2) { if (item.year) bits.push(item.year); }
+  if (item.k === 2 && item.genre) bits.push(item.genre.split(',')[0].trim());
+  if (rating && item.k !== 3) bits.push(rating);
+  const seconds = item.k === 1 ? item.details?.durationSec || item.durationSec || ctx.resume?.duration
+    : item.k === 3 ? item.durationSec : 0;
+  if (Number.isFinite(seconds) && seconds > 0) bits.push(duration(seconds, { compact: true }));
   if (!bits.length) return null;
   const sub = el('div', 'row-sub');
   sub.appendChild(el('span', 'txt', bits.join(', ')));
@@ -224,16 +263,26 @@ function icon(paths) {
   svg.innerHTML = paths;
   return svg;
 }
+const svgIcon = icon;
+
+/**
+ * The marks of the kinds of thing a collection holds — the same as the
+ * tabs' in the top bar, so that a channel, a film and a series are the same
+ * mark wherever they are counted.
+ */
+export const KIND_ICONS = {
+  all: '<rect x="3" y="3" width="6" height="6" rx="1.2"/><rect x="11" y="3" width="6" height="6" rx="1.2"/><rect x="3" y="11" width="6" height="6" rx="1.2"/><rect x="11" y="11" width="6" height="6" rx="1.2"/>',
+  c: '<path d="M2.8 6V4.6c0-.6.5-1.1 1.1-1.1h3.6l1.6 1.9h7c.6 0 1.1.5 1.1 1.1V15c0 .6-.5 1.1-1.1 1.1H3.9c-.6 0-1.1-.5-1.1-1.1z"/>',
+  0: '<rect x="2.5" y="5" width="15" height="10.5" rx="1.8"/><path d="M7 2.5 10 5l3-2.5M6.5 18h7"/>',
+  1: '<rect x="3" y="3" width="14" height="14" rx="1.8"/><path d="M7 3v14M13 3v14M3 7h4M3 13h4M13 7h4M13 13h4M3 10h14"/>',
+  2: '<rect x="2.5" y="6" width="13" height="10.5" rx="1.8"/><path d="M5.5 3.5h11a1.5 1.5 0 0 1 1.5 1.5v8.5"/><path d="m8 9 4 2.25L8 13.5z"/>',
+};
 
 function badges(item, ctx) {
   const out = [];
-  if (item.k === 0 && item.archive > 0) {
-    // A clock turning back: the days alone were a number with a unit that
-    // said nothing about what was counted.
-    const badge = el('div', 'row-badge archive', t('row.archive', { days: item.archive }));
-    badge.prepend(icon('<path d="M4.5 10a5.5 5.5 0 1 0 1.6-3.9"/><path d="M4.2 3.6v3h3"/><path d="M10 7v3.2l2.2 1.3"/>'));
-    out.push(explained(badge, t('row.archive.title', { days: item.archive })));
-  }
+  // A channel's archive is not said here: it is used from the programme
+  // guide, which marks it on the channel, and on a list row the badge only
+  // raised the question of what to do with it.
   if (item.k === 1) {
     const seconds = item.details?.durationSec || item.durationSec || ctx.resume?.duration;
     if (Number.isFinite(seconds) && seconds > 0) {
@@ -266,7 +315,7 @@ function badges(item, ctx) {
  * groups — a collection's type filters are not something that could be
  * marked as a favourite.
  */
-export function categoryRow({ id, name, count, active, all, favorite, onFavorite, indent }, onSelect) {
+export function categoryRow({ id, name, count, active, all, favorite, onFavorite, indent, icon }, onSelect) {
   const row = el('div', 'group' + (active ? ' active' : '') + (all ? ' all' : ''));
   // An option of the sidebar's listbox. It used to be a list item with a
   // tabindex — a role that tells a screen reader "not interactive" on an
@@ -279,6 +328,11 @@ export function categoryRow({ id, name, count, active, all, favorite, onFavorite
   // its name does not start at a different offset from the rest.
   if (onFavorite) row.appendChild(star(favorite, onFavorite, 'group-star'));
   else if (indent) row.appendChild(el('div', 'group-star'));
+  if (icon) {
+    const mark = svgIcon(icon);
+    mark.classList.add('group-icon');
+    row.appendChild(mark);
+  }
   const label = el('div', 'group-name', name);
   label.title = name;
   row.appendChild(label);

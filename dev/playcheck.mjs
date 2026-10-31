@@ -97,7 +97,11 @@
 //                                     countries chosen thin the sidebar
 //   node dev/playcheck.mjs home       the logo goes back to the start: the
 //                                     channels, the top of the list, with
-//                                     what is playing still playing
+//                                     what is playing still playing; what is
+//                                     paused makes way for the empty
+//                                     player's page
+//   node dev/playcheck.mjs resumemkv  an episode started again from where it
+//                                     was left plays on from there
 //   node dev/playcheck.mjs pickers    a drop-down opens the app's own list:
 //                                     a long one with a filter that narrows
 //                                     it, a short one without; Escape closes
@@ -906,7 +910,47 @@ async function home(page) {
     top: document.getElementById('list').scrollTop, playing: !document.getElementById('video').paused, title: document.getElementById('now-title')?.textContent || '',
     label: document.getElementById('btn-home').getAttribute('aria-label') })`);
   assert(at.group && !at.query && at.top === 0 && at.playing && at.title === playing && at.label === 'Kepuli-TV, back to the start', `the start: ${JSON.stringify(at)}`);
-  return { ok: true, detail: `from a series page and the guide to the channels of ${at.group}, the top of the list, with ${playing} still playing` };
+
+  // Not playing — a film paused halfway — and the logo makes way for the
+  // empty player's page, the film among what is left halfway.
+  await evaluate(page, `chrome.storage.local.get('settings').then((got) => chrome.storage.local.set({ settings: { ...got.settings, resumeEnabled: true } }))`);
+  await page.call('Page.reload');
+  await waitFor(page, CONNECTED, 'the connection after the reload');
+  await evaluate(page, `document.querySelector('#tabs [data-tab="movie"]').click()`);
+  await click(page, '#groups', 'Nordic');
+  await click(page, '#list', 'Northern Lights', { gesture: true });
+  await waitFor(page, PLAYING, 'the film');
+  await evaluate(page, `document.getElementById('video').currentTime = 45`);
+  await sleep(1500);
+  await evaluate(page, `document.getElementById('video').pause()`);
+  await mouseClick(page, '#btn-home');
+  await waitFor(page, `!document.getElementById('overlay').hidden && !document.getElementById('idle-home').hidden`, 'the empty player\'s page');
+  const idle = await evaluate(page, `({ title: document.getElementById('now-title').textContent, cards: [...document.querySelectorAll('.idle-card:not([hidden]) .idle-name')].map((n) => n.textContent),
+    tab: document.querySelector('#tabs [aria-selected="true"]').dataset.tab, src: Boolean(document.getElementById('video').currentSrc && !document.getElementById('video').paused) })`);
+  assert(!idle.title && idle.cards.some((c) => /Northern Lights/.test(c)) && idle.tab === 'live' && !idle.src, `the start without playback: ${JSON.stringify(idle)}`);
+  return { ok: true, detail: `from a series page and the guide to the channels of ${at.group}, the top of the list, with ${playing} still playing; a paused film makes way for the empty player's page, the film under Continue watching` };
+}
+
+/**
+ * An episode — Matroska, unpacked into MediaSource — started again from
+ * where it was left. The reading began at the right cluster, but nothing
+ * moved the picture there: it stood at 0 in front of a buffer that began
+ * at 48 s and said "Connecting…" for good.
+ */
+async function resumemkv(page) {
+  await evaluate(page, `chrome.storage.local.get('settings').then((got) => chrome.storage.local.set({ settings: { ...got.settings, resumeEnabled: true } }))`);
+  await page.call('Page.reload');
+  await waitFor(page, CONNECTED, 'the connection after the reload');
+  await playEpisode(page);
+  await evaluate(page, `document.getElementById('video').currentTime = 45`);
+  await sleep(7000);
+  await evaluate(page, `document.getElementById('video').pause()`);
+  await evaluate(page, `document.querySelectorAll('#list .row')[0].click()`, { gesture: true });
+  await waitFor(page, `document.getElementById('video').currentTime > 40 && !document.getElementById('video').paused && document.getElementById('overlay').hidden`, 'the episode from its resume point');
+  const t0 = await evaluate(page, `document.getElementById('video').currentTime`);
+  await sleep(2000);
+  const t1 = await evaluate(page, `document.getElementById('video').currentTime`);
+  return { ok: t1 > t0 + 1, detail: `started again at ${t0.toFixed(1)} s and went on to ${t1.toFixed(1)} s` };
 }
 
 async function clickpause(page) {
@@ -1425,10 +1469,10 @@ async function channels(page) {
   // The list paints what fits, and the folded favourites take a row of its height.
   const after = await names();
   assert(after.length > 4 && JSON.stringify(after) === JSON.stringify(before.slice(0, after.length)), `a favourite moved in the list: ${JSON.stringify({ before, after })}`);
-  const strip = () => evaluate(page, `({ shown: !document.getElementById('fav-strip').hidden, label: document.getElementById('fav-strip-label').textContent,
+  const strip = () => evaluate(page, `({ shown: !document.getElementById('fav-strip').hidden, label: document.getElementById('fav-strip-count').textContent,
     open: document.getElementById('fav-strip-toggle').getAttribute('aria-expanded'), tiles: [...document.querySelectorAll('#fav-strip-items .fav-tile')].map((b) => b.title) })`);
   let favs = await strip();
-  assert(favs.shown && favs.label === 'Favourites (2)' && favs.open === 'false' && !favs.tiles.length, `the folded favourites: ${JSON.stringify(favs)}`);
+  assert(favs.shown && favs.label === '2' && favs.open === 'false' && !favs.tiles.length, `the folded favourites: ${JSON.stringify(favs)}`);
   await mouseClick(page, '#fav-strip-toggle');
   await sleep(200);
   favs = await strip();
@@ -1437,7 +1481,7 @@ async function channels(page) {
   await evaluate(page, `document.querySelector('.row-menu .popitem').click()`);
   await sleep(300);
   favs = await strip();
-  assert(favs.label === 'Favourites (1)' && JSON.stringify(favs.tiles) === JSON.stringify([before[4]]), `a favourite taken off: ${JSON.stringify(favs)}`);
+  assert(favs.label === '1' && JSON.stringify(favs.tiles) === JSON.stringify([before[4]]), `a favourite taken off: ${JSON.stringify(favs)}`);
   await mouseClick(page, '#fav-strip-items .fav-tile');
   await waitFor(page, `document.getElementById('now-title').textContent && !document.getElementById('video').paused || document.getElementById('overlay').classList.contains('loading')`, 'the favourite playing');
 
@@ -1481,10 +1525,11 @@ async function channels(page) {
   await sleep(300);
   const chosen = await groupsShown();
   assert(chosen.includes('Sweden') && !chosen.includes('Finland') && chosen.length < allGroups.length, `the sidebar after choosing Sweden: ${JSON.stringify(chosen)}`);
-  assert(await evaluate(page, `document.getElementById('btn-countries-text').textContent === '1 country chosen'`), 'the button does not say what is chosen');
+  assert(await evaluate(page, `(() => { const text = document.getElementById('btn-countries-text').textContent; return text.startsWith('1/') && text.endsWith(' countries chosen'); })()`), 'the button does not say what is chosen');
   await evaluate(page, `document.getElementById('btn-countries').click()`);
   await waitFor(page, `document.getElementById('countries').open`, 'the countries dialog again');
-  await evaluate(page, `document.getElementById('countries-all').click(); document.getElementById('countries-save').click()`);
+  // Select all ticks every country, which is all of them again.
+  await evaluate(page, `document.getElementById('countries-toggle').click(); if (!document.getElementById('countries-toggle').checked) document.getElementById('countries-toggle').click(); document.getElementById('countries-save').click()`);
   await waitFor(page, `!document.getElementById('countries').open`, 'all countries saved');
   await sleep(300);
   assert(JSON.stringify(await groupsShown()) === JSON.stringify(allGroups), 'Show all did not bring every country back');
@@ -1695,7 +1740,9 @@ async function programmes(page, { requests }) {
   await openLiveList(page, 3);
   await evaluate(page, `document.getElementById('btn-guide').click()`);
   await waitFor(page, `document.getElementById('main').classList.contains('guide')`, 'guide');
-  assert(await evaluate(page, `document.querySelectorAll('#epg-days button').length >= 8`), 'archive duration did not extend guide history');
+  // Yesterday on are buttons; the archive's older days are in the Earlier menu.
+  assert(await evaluate(page, `document.querySelectorAll('#epg-days button').length + Math.max(0, (document.querySelector('#epg-days .epg-earlier')?.options.length || 1) - 1) >= 8
+    && document.querySelector('#epg-days button')?.textContent === 'yesterday'`), 'archive duration did not extend guide history');
   const search = async (query, period = 'upcoming') => {
     await evaluate(page, `document.getElementById('programme-query').value=${JSON.stringify(query)}; document.getElementById('programme-period').value=${JSON.stringify(period)}; document.getElementById('programme-form').requestSubmit()`);
     await waitFor(page, `document.getElementById('programme-status').textContent.includes('Search finished')`, 'programme search');
@@ -1967,7 +2014,7 @@ async function update(page) {
   return { ok: line === `Kepuli-TV ${running} Update to 99.0.0`, detail: `"${said}"; "${line}"` };
 }
 
-const SCENARIOS = { catalogUi, setupClarity, fullscreenControl, clickpause, pickers, channels, home, restore, programmes, catchup, seek, death, cancel, timeout, search, paste, keys, switching, resume, connections, reconnect, accounts, listerror, a11y, subtitles, audio, settings,
+const SCENARIOS = { catalogUi, setupClarity, fullscreenControl, clickpause, pickers, channels, home, resumemkv, restore, programmes, catchup, seek, death, cancel, timeout, search, paste, keys, switching, resume, connections, reconnect, accounts, listerror, a11y, subtitles, audio, settings,
   lastchannel, nextepisode, continuewatching, reminders, update };
 // The mock's whole-list answers stall for these, longer than the request limit.
 const SLOW_LIST_MS = { cancel: 60000, timeout: 60000 };

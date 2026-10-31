@@ -29,12 +29,24 @@ export class CountryPicker {
     wireModal(this.dialog, () => this.dialog.close());
     $('countries-cancel').addEventListener('click', () => this.dialog.close());
     $('countries-filter').addEventListener('input', () => this.filter());
-    $('countries-all').addEventListener('click', () => { this.chosen.clear(); this.render(); });
+    $('countries-toggle').addEventListener('change', () => {
+      const tick = $('countries-toggle').checked;
+      for (const row of $('countries-list').children) {
+        if (row.hidden) continue;
+        const box = row.querySelector('input');
+        box.checked = tick;
+        const name = row.dataset.name;
+        if (tick) this.chosen.add(name); else this.chosen.delete(name);
+      }
+      this.status();
+    });
     $('countries-save').addEventListener('click', async () => {
       const button = $('countries-save');
       button.disabled = true;
       try {
-        await this.onSave([...this.chosen]);
+        // Every country ticked is the same as none: all of them, and a
+        // country the provider adds later shows too.
+        await this.onSave(this.chosen.size >= this.groups.length ? [] : [...this.chosen]);
         this.dialog.close();
       } catch {
         $('countries-status').textContent = t('organize.savefailed');
@@ -70,6 +82,7 @@ export class CountryPicker {
       const row = document.createElement('label');
       row.className = 'choice-row';
       row.dataset.key = searchKey(group.name);
+      row.dataset.name = group.name;
       const box = document.createElement('input');
       box.type = 'checkbox';
       box.checked = this.chosen.has(group.name);
@@ -97,19 +110,27 @@ export class CountryPicker {
       return row;
     }));
     this.filter();
-    this.status();
   }
 
   filter() {
     const terms = searchTerms($('countries-filter').value);
     for (const row of $('countries-list').children) row.hidden = terms.length > 0 && !matchesTerms(row.dataset.key, terms);
+    $('countries-toggle-label').textContent = t(terms.length ? 'countries.toggle.shown' : 'countries.toggle');
+    this.status();
   }
 
   status() {
     $('countries-status').textContent = this.chosen.size
-      ? t('countries.chosen', { count: this.chosen.size, n: nf.format(this.chosen.size) })
+      ? t('countries.chosen', { count: this.chosen.size, n: nf.format(this.chosen.size), total: nf.format(this.groups.length) })
       : t('countries.all');
-    $('countries-all').disabled = !this.chosen.size;
+    // The box over the list says what the rows it reaches hold: all of
+    // them ticked, none, or some (the dash).
+    const shown = [...$('countries-list').children].filter((row) => !row.hidden);
+    const ticked = shown.filter((row) => this.chosen.has(row.dataset.name)).length;
+    const toggle = $('countries-toggle');
+    toggle.disabled = !shown.length;
+    toggle.checked = shown.length > 0 && ticked === shown.length;
+    toggle.indeterminate = ticked > 0 && ticked < shown.length;
   }
 }
 

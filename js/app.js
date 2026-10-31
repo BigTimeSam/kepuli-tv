@@ -6,7 +6,7 @@ import { VirtualList, watchLength } from './vlist.js';
 import { ListNavigation, rowDomId } from './listnavigation.js';
 import { CatalogueSearch } from './cataloguesearch.js';
 import { PlayerLayout } from './playerlayout.js';
-import { itemRow, posterCard, categoryRow, chipRow, favCategoryRow, sectionHeader, emptyState } from './rows.js';
+import { itemRow, posterCard, categoryRow, chipRow, favCategoryRow, sectionHeader, emptyState, KIND_ICONS, HISTORY_ICONS } from './rows.js';
 import { nameCleaner, searchNameCleaner, searchKey, searchTerms, matchesTerms, labelCodes } from './name.js';
 import { poster } from './poster.js';
 import { wireModal } from './modal.js';
@@ -27,7 +27,7 @@ import { Cast, supported as castSupported } from './cast.js';
 import { warmCache, peek, badge as probeBadge, subtitleSummary, audioDetails } from './probe.js';
 import { shortLanguage } from './lang.js';
 import { label as audioLabel } from './audio.js';
-import { SubtitleDisplay, subtitleLook, stepScale, pictureHeight, DEFAULT_SCALE } from './subdisplay.js';
+import { SubtitleDisplay, subtitleLook, stepScale, pictureHeight, DEFAULT_SCALE, DEFAULT_LIFT } from './subdisplay.js';
 import { pickEncoder } from './transcode.js';
 import * as store from './config.js';
 import { applyTheme, earlyTheme, onSystemTheme } from './theme.js';
@@ -82,7 +82,7 @@ const kindGroup = (k) => (k === 3 ? 2 : k);
 // pixels is therefore the browser's answer rather than a number written here,
 // and it is asked again when the setting changes under a running page.
 let ROW_H = 50;
-let SEP_H = 26;
+let SEP_H = 32;
 
 const listNavigation = new ListNavigation(el.list);
 
@@ -668,21 +668,31 @@ const mediaFilters = new MediaFilters($('media-filters'), () => {
  * country of six hundred channels holds the viewer's five somewhere in it,
  * and this finds them without taking them out of the order below. Only in
  * a list being browsed — a search, a page opened from the list and the
- * collections are lists of their own. Open or folded is remembered.
+ * collections are lists of their own. Open or folded is remembered. Its
+ * heading is there with none in it as well, saying how one gets there: a
+ * strip that appeared with the first star pushed the whole list down under
+ * the hand that gave it.
  */
 let favStripOpen = false;
 
 function renderFavStrip(rows) {
   const strip = $('fav-strip');
   const browsing = !isCollection() && !state.detail && !state.query && !state.listLoading;
-  const favs = browsing ? rows.filter((item) => state.favorites.has(`${item.k}:${item.id}`)) : [];
-  strip.hidden = !favs.length;
+  strip.hidden = !browsing || !['live', 'movie', 'series'].includes(state.tab);
   const items = $('fav-strip-items');
-  if (!favs.length) { items.replaceChildren(); return; }
-  $('fav-strip-label').textContent = t('favs.section', { n: nf.format(favs.length) });
+  if (strip.hidden) { items.replaceChildren(); return; }
+  const favs = rows.filter((item) => state.favorites.has(`${item.k}:${item.id}`));
+  $('fav-strip-count').textContent = nf.format(favs.length);
   $('fav-strip-toggle').setAttribute('aria-expanded', String(favStripOpen));
   items.hidden = !favStripOpen;
   if (!favStripOpen) { items.replaceChildren(); return; }
+  if (!favs.length) {
+    const hint = document.createElement('p');
+    hint.className = 'fav-strip-empty';
+    hint.textContent = t('favs.empty');
+    items.replaceChildren(hint);
+    return;
+  }
   const playing = state.playing ? `${state.playing.k}:${state.playing.id}` : null;
   items.replaceChildren(...favs.map((item) => {
     const tile = document.createElement('button');
@@ -891,9 +901,12 @@ function sectionsFor(rows) {
 
   let previous = null;
   for (let i = 0; i < rows.length; i++) {
+    const unfinished = state.tab === 'recent' && isUnfinished(rows[i]);
     const label = state.tab !== 'recent' ? kindLabel(kindGroup(rows[i].k))
-      : isUnfinished(rows[i]) ? t('history.continue') : dayLabel(rows[i].watchedAt);
-    if (label && label !== previous) sections.set(i, label);
+      : unfinished ? t('history.continue') : dayLabel(rows[i].watchedAt);
+    const icon = state.tab !== 'recent' ? KIND_ICONS[kindGroup(rows[i].k)]
+      : unfinished ? HISTORY_ICONS.continue : HISTORY_ICONS.day;
+    if (label && label !== previous) sections.set(i, { label, icon });
     previous = label;
   }
   // A single type heading atop the whole list organises nothing, and the
@@ -1274,7 +1287,7 @@ function renderCountriesButton() {
   if (button.hidden) return;
   const chosen = chosenCountries();
   $('btn-countries-text').textContent = chosen
-    ? t('countries.button.chosen', { count: chosen.size, n: nf.format(chosen.size) })
+    ? t('countries.button.chosen', { count: chosen.size, n: nf.format(chosen.size), total: nf.format(state.lib.groups.live.length) })
     : t('countries.button');
 }
 
@@ -1324,14 +1337,14 @@ function renderKinds() {
 
   const frag = document.createDocumentFragment();
   frag.appendChild(categoryRow(
-    { id: null, name: t('groups.all'), count: items.length, active: state.kind == null, all: true },
+    { id: null, name: t('groups.all'), count: items.length, active: state.kind == null, all: true, icon: KIND_ICONS.all },
     selectKind,
   ));
   for (const kind of KIND_ORDER) {
     const count = counts.get(kind) || 0;
     if (count === 0) continue;
     frag.appendChild(categoryRow(
-      { id: kind, name: kindLabel(kind), count, active: state.kind === kind },
+      { id: kind, name: kindLabel(kind), count, active: state.kind === kind, icon: KIND_ICONS[kind] },
       selectKind,
     ));
   }
@@ -1585,19 +1598,23 @@ async function openHiddenList() {
     (id) => state.lib.categoryName('live', id));
 }
 
-/** The actions on a channel's row: a favourite or not, and hide. */
-function openChannelMenu(item, at) {
+/**
+ * The actions on a row: a favourite or not, out of the history when it is
+ * in it, and a channel hidden.
+ */
+function openItemMenu(item, at) {
   const prefs = state.channelPrefs;
   const id = String(item.id);
-  const name = state.cleanName ? state.cleanName(item.n, item) : item.n;
+  const name = state.cleanName ? state.cleanName(item.n, item) : item.displayName || item.n;
   const favorite = state.favorites.has(`${item.k}:${item.id}`);
-  const items = [
-    { label: t(favorite ? 'row.fav.remove' : 'row.fav.add'), onClick: () => toggleFavorite(item) },
-    {
+  const items = [{ label: t(favorite ? 'row.fav.remove' : 'row.fav.add'), onClick: () => toggleFavorite(item) }];
+  if (state.tab === 'recent' && !state.detail) items.push({ label: t('row.remove.history'), onClick: () => removeFromHistory(item) });
+  if (item.k === 0) {
+    items.push({
       label: t('row.hide'), danger: true,
       onClick: () => changeChannelChoices({ ...prefs, hiddenChannels: [...prefs.hiddenChannels, id] }, t('row.hidden', { name })),
-    },
-  ];
+    });
+  }
   openRowMenu(at, items, { label: name, returnFocus: el.list });
 }
 
@@ -1764,23 +1781,27 @@ function renderRow(index) {
     favorite: state.favorites.has(key),
     epg: item.k === 0 && state.epg ? state.epg.nowNext(item.id) : null,
     resume: state.resume.get(key),
-    tag: tagFor(item),
+    // The favourites and the history mix the kinds: one picture for all, the
+    // facts under the name and the actions in the menu (compactLine in
+    // js/rows.js). The time of day went: the day's heading says when.
+    compact: isCollection() && !state.detail,
+    tag: isCollection() && !state.detail ? null : tagFor(item),
     showEpisodeCover: state.tab === 'recent',
     probe: probeFor(item),
     onOpen: () => { state.cursor = index; openItem(item); },
     onFavorite: () => toggleFavorite(item),
     onRemove: state.tab === 'recent' ? () => removeFromHistory(item) : null,
-    onMenu: item.k === 0 ? (at) => { state.cursor = index; openChannelMenu(item, at); } : null,
+    onMenu: item.k === 0 || (isCollection() && !state.detail) ? (at) => { state.cursor = index; openItemMenu(item, at); } : null,
     removeTitle: t('row.remove.history'),
   });
 
-  const label = state.sections.get(index);
-  if (!label) return row;
+  const section = state.sections.get(index);
+  if (!section) return row;
   // The heading travels with the row in the same node, which keeps the
   // virtualisation index-based and spares state.rows any heading entries.
   const group = document.createElement('div');
   group.className = 'rowgroup';
-  group.append(sectionHeader(label), row);
+  group.append(sectionHeader(section.label, section.icon), row);
   return group;
 }
 
@@ -2546,20 +2567,27 @@ const LOOK_FORMS = ['f', 'p'];
 /** A size as the slider says it: 100 % is the size the picture asks for. */
 const sizeText = (scale) => new Intl.NumberFormat(localeTag(), { style: 'percent' }).format(scale / 100);
 
-/** One form's size controls: the slider, what it says, and the way back to 100 %. */
-function showSubtitleSize(form, scale) {
-  $(`${form}-subsize`).value = String(scale);
-  $(`${form}-subsize-value`).textContent = sizeText(scale);
-  $(`${form}-subsize-reset`).hidden = scale === DEFAULT_SCALE;
+/** One form's size and height controls: the sliders, what they say, and the ways back to the defaults. */
+function showSubtitleSize(form, look) {
+  $(`${form}-subsize`).value = String(look.scale);
+  $(`${form}-subsize-value`).textContent = sizeText(look.scale);
+  $(`${form}-subsize-reset`).hidden = look.scale === DEFAULT_SCALE;
+  $(`${form}-sublift`).value = String(look.lift);
+  $(`${form}-sublift-value`).textContent = sizeText(look.lift);
+  $(`${form}-sublift-reset`).hidden = look.lift === DEFAULT_LIFT;
 }
+
+/** The look as one form's controls hold it. */
+const lookOf = (form) => ({ subtitleStyle: $(`${form}-substyle`).value, subtitleScale: Number($(`${form}-subsize`).value), subtitleLift: Number($(`${form}-sublift`).value) });
 
 function applySubtitleLook(settings) {
   const look = subtitleLook(settings);
   document.body.dataset.substyle = look.style;
   document.body.style.setProperty('--sub-scale', String(look.scale / 100));
+  document.body.style.setProperty('--sub-lift', String(look.lift / 100));
   for (const form of LOOK_FORMS) {
     $(`${form}-substyle`).value = look.style;
-    showSubtitleSize(form, look.scale);
+    showSubtitleSize(form, look);
   }
 }
 
@@ -2568,26 +2596,75 @@ function applySubtitleLook(settings) {
  * use previewSetupLook and wait for Save.
  */
 async function chooseSubtitleLook(form) {
-  const patch = { subtitleStyle: $(`${form}-substyle`).value, subtitleScale: Number($(`${form}-subsize`).value) };
+  const patch = lookOf(form);
   applySubtitleLook(patch);
   state.settings = await store.saveSettings(patch);
 }
 
 /**
+ * What is on the picture let go of, and the empty player's page in its
+ * place: the paused film's place kept for Continue watching, the details,
+ * the title and the address cleared.
+ */
+function leavePlayback() {
+  const item = state.playing;
+  if (item && item.k !== 0 && state.settings.resumeEnabled) {
+    const { currentTime, duration: total } = el.video;
+    if (Number.isFinite(total) && total > 0 && currentTime >= 20 && currentTime < total * 0.96) {
+      state.resume.set(`${item.k}:${item.id}`, { position: currentTime, duration: total, at: Date.now() });
+      store.saveResume(state.resume);
+    }
+  }
+  cancelAutoNext();
+  playback.stop();
+  state.playing = null;
+  state.playingSpec = null;
+  state.catchup = null;
+  state.playbackInfoLoading = false;
+  state.subtitleInfo = null;
+  renderSubtitles([], null);
+  renderAudio([], null);
+  $('btn-live').hidden = true;
+  el.nowTitle.textContent = '';
+  el.nowTitle.removeAttribute('title');
+  renderNowSub();
+  renderInfoStrip();
+  renderStatBadge();
+  renderFullscreenButton();
+  if (guideOpen) grid.setPlaying(null);
+  el.overlay.hidden = false;
+  el.overlay.classList.remove('loading');
+  showOverlayActions(null);
+  renderIdleOverlay();
+  updatePlayerLayout();
+  updateAddress();
+  vlist.refresh();
+}
+
+/**
  * The logo: back to the start. The channels, the first country chosen (or
  * the one the channels were last on, when none is), its first topic and
- * the top of its list; the search, the guide and any page opened from the
- * list are closed. What is playing goes on — this is a way back, not a
- * stop. Pressed where the start already is, it only takes the list up.
+ * the top of its list; the search, the filters, the guide and any page
+ * opened from the list are cleared. What is playing goes on — this is a
+ * way back, not a stop. What is not playing — paused, ended, failed, or
+ * nothing at all — makes way for the empty player's page, with what was
+ * left halfway and the channels watched last.
  */
 async function goHome() {
   if (guideOpen) closeGuide();
   playerLayout.showBrowse();
+  const playing = state.playing && !el.video.paused && !el.video.ended;
+  const loading = state.playing && el.overlay.classList.contains('loading') && !el.overlay.hidden;
+  if (!playing && !loading) leavePlayback();
+  mediaFilters.resetAll();
+  state.categoryFilter = '';
+  el.categoryFilter.value = '';
   const groups = visibleGroups('live');
   const group = chosenCountries() ? groups[0]?.name
     : (groups.some((g) => g.name === state.lastGroup.live) ? state.lastGroup.live : groups[0]?.name) ?? null;
   if (state.tab !== 'live') await activateTab('live');
   if (state.group !== group || state.sub || state.detail || state.query) await selectGroup(group);
+  else renderSidebar();
   state.cursor = -1;
   el.list.scrollTop = 0;
 }
@@ -2597,7 +2674,7 @@ async function stepSubtitleSize(direction) {
   const look = subtitleLook(state.settings);
   const scale = stepScale(look.scale, direction);
   if (scale === look.scale) return;
-  applySubtitleLook({ subtitleStyle: look.style, subtitleScale: scale });
+  applySubtitleLook({ subtitleStyle: look.style, subtitleScale: scale, subtitleLift: look.lift });
   toast(t('subs.size.now', { size: sizeText(scale) }));
   state.settings = await store.saveSettings({ subtitleScale: scale });
 }
@@ -3544,7 +3621,7 @@ function openSetup({ section } = {}) {
   $('f-autonext').checked = state.settings.autoNext;
   $('f-stats').checked = state.settings.statsEnabled;
   $('f-international').checked = state.settings.showInternational;
-  setupInitial = { ...state.settings, subtitleStyle: subtitleLook(state.settings).style, subtitleScale: subtitleLook(state.settings).scale };
+  setupInitial = { ...state.settings, subtitleStyle: subtitleLook(state.settings).style, subtitleScale: subtitleLook(state.settings).scale, subtitleLift: subtitleLook(state.settings).lift };
   applySubtitleLook(state.settings);
   previewSetupLook();
   $('setup-error').hidden = true;
@@ -3581,6 +3658,7 @@ function readSetupSettings() {
     showInternational: $('f-international').checked,
     subtitleStyle: $('f-substyle').value,
     subtitleScale: Number($('f-subsize').value),
+    subtitleLift: Number($('f-sublift').value),
   };
 }
 
@@ -3617,7 +3695,8 @@ function previewSetupLook() {
   const preview = document.querySelector('#panel-subs .sublook');
   preview.dataset.substyle = look.style;
   preview.style.setProperty('--sub-scale', String(look.scale / 100));
-  showSubtitleSize('f', look.scale);
+  preview.style.setProperty('--sub-lift', String(look.lift / 100));
+  showSubtitleSize('f', look);
   fitSubtitlePreview();
 }
 
@@ -3842,8 +3921,17 @@ function wireSetup() {
   }
   // The player's Aa popover remains a direct adjustment during playback.
   $('p-substyle').addEventListener('change', () => chooseSubtitleLook('p'));
+  $('p-sublift').addEventListener('input', () => applySubtitleLook(lookOf('p')));
+  $('p-sublift').addEventListener('change', () => chooseSubtitleLook('p'));
+  $('p-sublift-reset').addEventListener('click', () => { $('p-sublift').value = String(DEFAULT_LIFT); chooseSubtitleLook('p'); $('p-sublift').focus(); });
+  $('f-sublift-reset').addEventListener('click', () => {
+    const slider = $('f-sublift');
+    slider.value = String(DEFAULT_LIFT);
+    slider.dispatchEvent(new Event('input', { bubbles: true }));
+    slider.focus();
+  });
   $('p-subsize').addEventListener('input', () => applySubtitleLook({
-    subtitleStyle: $('p-substyle').value, subtitleScale: Number($('p-subsize').value),
+    subtitleStyle: $('p-substyle').value, subtitleScale: Number($('p-subsize').value), subtitleLift: Number($('p-sublift').value),
   }));
   $('p-subsize').addEventListener('change', () => chooseSubtitleLook('p'));
   // Back to the size the picture asks for: in the player at once, in the
@@ -4545,10 +4633,10 @@ function wireUi() {
     // Shift+F10 where a keyboard has none.
     if (e.key === 'ContextMenu' || (e.key === 'F10' && e.shiftKey)) {
       const item = state.rows[state.cursor];
-      if (item?.k === 0) {
+      if (item && (item.k === 0 || (isCollection() && !state.detail && item.k !== 'c'))) {
         e.preventDefault();
         const node = vlist.nodes.get(state.cursor);
-        openChannelMenu(item, node?.querySelector('.row-more') || node || el.list);
+        openItemMenu(item, node?.querySelector('.row-more') || node || el.list);
       }
       return;
     }

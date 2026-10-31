@@ -19,7 +19,7 @@ import { channelKey, internationalChannels, isNationalTopic } from '../js/intern
 import { unwrap, repeats, check as checkListings } from './listings.mjs';
 import { channelLogo, slugify } from '../js/logos.js';
 import { cueText } from '../js/subs.js';
-import { subtitleLook, stepScale, pictureHeight, STYLES, MIN_SCALE, MAX_SCALE, DEFAULT_SCALE, SCALE_STEP, SIZE_SHARE } from '../js/subdisplay.js';
+import { subtitleLook, stepScale, pictureHeight, STYLES, MIN_SCALE, MAX_SCALE, DEFAULT_SCALE, SCALE_STEP, SIZE_SHARE, MIN_LIFT, MAX_LIFT, DEFAULT_LIFT } from '../js/subdisplay.js';
 import { describe, describeAll, label, preferred, route } from '../js/audio.js';
 import { languageSummary, orderedLanguageNames, trackLanguage } from '../js/lang.js';
 import { LANGUAGES, keysOf, setLanguage, loadLanguage, supportedLanguage, t } from '../js/i18n.js';
@@ -372,13 +372,14 @@ ass('drops a drawing', '0,0,Default,,0,0,0,,{\\p1}m 0 0 l 100 0', '');
 
 /* ---------------------------------------------- subdisplay.js: the look */
 
-check('subtitleLook defaults', subtitleLook({}), { style: 'shadow', scale: DEFAULT_SCALE });
-check('subtitleLook defaults on nothing', subtitleLook(null), { style: 'shadow', scale: DEFAULT_SCALE });
-check('subtitleLook keeps a known choice', subtitleLook({ subtitleStyle: 'yellow', subtitleScale: 135 }), { style: 'yellow', scale: 135 });
+check('subtitleLook defaults', subtitleLook({}), { style: 'shadow', scale: DEFAULT_SCALE, lift: DEFAULT_LIFT });
+check('subtitleLook defaults on nothing', subtitleLook(null), { style: 'shadow', scale: DEFAULT_SCALE, lift: DEFAULT_LIFT });
+check('subtitleLook keeps a known choice', subtitleLook({ subtitleStyle: 'yellow', subtitleScale: 135, subtitleLift: 12 }), { style: 'yellow', scale: 135, lift: 12 });
+check('the height keeps 0, rounds, and holds to the bounds', [0, 7.6, -4, 99, 'x'].map((lift) => subtitleLook({ subtitleLift: lift }).lift), [0, 8, MIN_LIFT, MAX_LIFT, DEFAULT_LIFT]);
 check('subtitleLook takes a size written as text', subtitleLook({ subtitleScale: '140' }).scale, 140);
 check('subtitleLook rounds a size to the slider\'s step', subtitleLook({ subtitleScale: 121 }).scale, 120);
 check('subtitleLook holds a size to the bounds', [subtitleLook({ subtitleScale: 1 }).scale, subtitleLook({ subtitleScale: 900 }).scale], [MIN_SCALE, MAX_SCALE]);
-check('subtitleLook replaces an unknown choice', subtitleLook({ subtitleStyle: 'neon', subtitleScale: 'huge' }), { style: 'shadow', scale: DEFAULT_SCALE });
+check('subtitleLook replaces an unknown choice', subtitleLook({ subtitleStyle: 'neon', subtitleScale: 'huge' }), { style: 'shadow', scale: DEFAULT_SCALE, lift: DEFAULT_LIFT });
 // The pixels of the older versions become the same share of their default:
 // whoever had made the text larger still has it larger.
 check('subtitleLook reads the older pixels', [24, 36, 18, 72].map((px) => subtitleLook({ subtitleSize: px }).scale), [100, 150, 75, 250]);
@@ -408,6 +409,8 @@ check('no picture yet: taken as 16:9', pictureHeight(1920, 1200, 0, 0), 1080);
     check(`player.html offers the looks in the module's order (${form})`, offered, STYLES);
     const slider = html.match(new RegExp(`<input id="${form}-subsize" type="range" min="(\\d+)" max="(\\d+)" step="(\\d+)" value="(\\d+)"`));
     check(`player.html's slider has the module's bounds, step and default (${form})`, slider && slider.slice(1).map(Number), [MIN_SCALE, MAX_SCALE, SCALE_STEP, DEFAULT_SCALE]);
+    const lift = html.match(new RegExp(`<input id="${form}-sublift" type="range" min="(\\d+)" max="(\\d+)" step="1" value="(\\d+)"`));
+    check(`player.html's height slider has the module's bounds and default (${form})`, lift && lift.slice(1).map(Number), [MIN_LIFT, MAX_LIFT, DEFAULT_LIFT]);
   }
   // The same for the channel order: a value the settings offer but the
   // sorting does not know would silently leave the list alphabetical.

@@ -55,6 +55,17 @@ const NAMED_SIZE = { small: 18, medium: 24, large: 34 };
 
 const clampScale = (n) => Math.min(MAX_SCALE, Math.max(MIN_SCALE, Math.round(n / SCALE_STEP) * SCALE_STEP));
 
+// How high the lowest line stands: a share of the picture's height above
+// the picture's own bottom edge, not the box's. It was 6 % of the box, and
+// on a 16:10 screen a 16:9 film has a bar of some 65 px under it — 6 % of
+// the box is 59 px, and the subtitles sat in the bar. SMPTE's title-safe
+// area, which Netflix points to, keeps text 5 % in from the picture's
+// edges; 8 % is inside it with room to spare. The viewer may set 0–30 %.
+export const MIN_LIFT = 0;
+export const MAX_LIFT = 30;
+export const DEFAULT_LIFT = 8;
+const clampLift = (n) => Math.min(MAX_LIFT, Math.max(MIN_LIFT, Math.round(n)));
+
 /**
  * The look from the settings, with anything unknown replaced by the default.
  * A size kept in pixels by an older version becomes the same share of the
@@ -68,7 +79,12 @@ export function subtitleLook(settings) {
     const px = NAMED_SIZE[s.subtitleSize] ?? Number(s.subtitleSize);
     scale = Number.isFinite(px) && px > 0 ? px / OLD_DEFAULT_PX * 100 : DEFAULT_SCALE;
   }
-  return { style: STYLES.includes(s.subtitleStyle) ? s.subtitleStyle : DEFAULT_STYLE, scale: clampScale(scale) };
+  const lift = Number(s.subtitleLift);
+  return {
+    style: STYLES.includes(s.subtitleStyle) ? s.subtitleStyle : DEFAULT_STYLE,
+    scale: clampScale(scale),
+    lift: Number.isFinite(lift) && s.subtitleLift !== '' && s.subtitleLift != null ? clampLift(lift) : DEFAULT_LIFT,
+  };
 }
 
 /** One step larger (+1) or smaller (-1), within the bounds. */
@@ -130,10 +146,14 @@ export class SubtitleDisplay {
     this.mode();
   }
 
-  /** The picture's height, for the text size to be a share of (--pic-h). */
+  /** The picture's height (--pic-h), for the text size to be a share of, and
+   *  the bar under it (--pic-bar), for the height to be measured from the
+   *  picture rather than from the box. */
   measure() {
     const h = pictureHeight(this.wrap.clientWidth, this.wrap.clientHeight, this.video.videoWidth, this.video.videoHeight);
-    if (h > 0) this.wrap.style.setProperty('--pic-h', `${Math.round(h)}px`);
+    if (!(h > 0)) return;
+    this.wrap.style.setProperty('--pic-h', `${Math.round(h)}px`);
+    this.wrap.style.setProperty('--pic-bar', `${Math.round(Math.max(0, (this.wrap.clientHeight - h) / 2))}px`);
   }
 
   bind(track) {

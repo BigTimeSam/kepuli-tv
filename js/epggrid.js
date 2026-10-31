@@ -147,10 +147,28 @@ export class EpgGrid {
     this.el.timesInner.appendChild(this.nowHead);
   }
 
+  /**
+   * Yesterday, today and the days ahead as buttons; the archive's older
+   * days in one menu before them. With a button for every day the strip
+   * began a week back, and today and tomorrow — what the guide is opened
+   * for — sat behind a scroll at its far end.
+   */
   renderDays() {
     const frag = document.createDocumentFragment();
     this.dayButtons = [];
-    for (let at = this.origin; at < this.end; at = startOfDay(at, 1)) {
+    const yesterday = startOfDay(new Date().setHours(0, 0, 0, 0), -1);
+    this.earlier = null;
+    if (this.origin < yesterday) {
+      const select = document.createElement('select');
+      select.className = 'epg-day epg-earlier';
+      select.setAttribute('aria-label', t('guide.earlier.label'));
+      select.append(new Option(t('guide.earlier'), ''));
+      for (let at = startOfDay(yesterday, -1); at >= this.origin; at = startOfDay(at, -1)) select.append(new Option(shortDay(at), String(at)));
+      select.addEventListener('change', () => { if (select.value) this.goDay(Number(select.value)); });
+      this.earlier = { select, before: yesterday };
+      frag.appendChild(select);
+    }
+    for (let at = Math.max(this.origin, yesterday); at < this.end; at = startOfDay(at, 1)) {
       const day = at;
       const button = document.createElement('button');
       button.type = 'button';
@@ -192,6 +210,12 @@ export class EpgGrid {
     this.el.corner.textContent = shortDay(from);
     for (const day of this.dayButtons) {
       day.node.classList.toggle('active', from >= day.at && from < startOfDay(day.at, 1));
+    }
+    if (this.earlier) {
+      const { select, before } = this.earlier;
+      const shown = from < before ? String(startOfDay(new Date(from).setHours(0, 0, 0, 0), 0)) : '';
+      if (select.value !== shown && [...select.options].some((o) => o.value === shown)) select.value = shown;
+      select.classList.toggle('active', from < before);
     }
 
     const key = `${first}:${last}:${Math.round(from / 6e5)}:${Math.round(to / 6e5)}`;

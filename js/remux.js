@@ -888,10 +888,36 @@ export class Remuxer {
     const samples = list.map((frame, i) => ({
       data: frame.data, dts: dts[i], cts: cts[i], duration: durs[i], keyframe: frame.keyframe,
     }));
-    this.append('video', mediaSegment(this.sequence++, 1, samples));
+    const appended = this.append('video', mediaSegment(this.sequence++, 1, samples));
     this.state.segments++;
     this.resumes = 0;
-    if (!this.started) { this.started = true; this.onFirstAppend(); }
+    if (!this.started) {
+      this.started = true;
+      if (this.startAt > 1) appended.then(() => this.toStart(generation));
+      else this.onFirstAppend();
+    }
+  }
+
+  /**
+   * A resume point: the reading began at the cluster it falls in, and the
+   * picture is taken there once that cluster is in the buffer. Nothing else
+   * moved it — the element stood at 0 in front of a buffer that began at
+   * 48 s, waited for data that would never come, and said "Connecting…" for
+   * good. The position is held inside what is buffered, so that the seek
+   * this makes finds its data there and fetches nothing.
+   */
+  toStart(generation) {
+    if (this.destroyed || generation !== this.generation) return;
+    // The picture's own buffer, as isBuffered reads it: the element's is
+    // where picture and sound overlap, and the sound has not come yet.
+    const ranges = timeRanges(this.buffers.video);
+    if (ranges && ranges.length) {
+      const start = ranges.start(0);
+      const end = ranges.end(ranges.length - 1);
+      const at = Math.min(Math.max(this.startAt, start), Math.max(start, end - 0.6));
+      try { this.video.currentTime = at; } catch { /* the element refused; playing from the buffer's start will do */ }
+    }
+    this.onFirstAppend();
   }
 
   /**

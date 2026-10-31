@@ -823,7 +823,10 @@ The timeline runs back as far as the longest advertised channel archive in the
 current view, with at least two days of history, and five days forward. Invalid
 provider durations are bounded to one year. Past programmes are
 dimmed; those the channel's archive reaches get a **Watch the recording**
-button. A programme continuing past the left edge is marked with `‹` and its
+button. The day strip above the grid has buttons from yesterday on — today and
+tomorrow are what the guide is opened for, and with a button for each day of
+a week's archive they sat behind a scroll at the strip's far end — and the
+archive's older days in an **Earlier** menu before them. A programme continuing past the left edge is marked with `‹` and its
 name is nudged into view.
 
 An upcoming programme offers **Remind me**, and pressing `Enter` on one offers

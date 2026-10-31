@@ -100,7 +100,12 @@ function show(select, typed = '') {
     input.setAttribute('aria-expanded', 'true');
     input.autocomplete = 'off';
     input.spellcheck = false;
-    pop.append(input);
+    // A magnifier, as every search field in the app has.
+    const field = document.createElement('span');
+    field.className = 'search-field';
+    field.innerHTML = '<svg viewBox="0 0 20 20" aria-hidden="true"><circle cx="9" cy="9" r="6"/><path d="M13.5 13.5 18 18"/></svg>';
+    field.append(input);
+    pop.append(field);
   }
   const list = document.createElement('ul');
   list.className = 'picker-list';

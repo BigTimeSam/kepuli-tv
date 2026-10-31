@@ -33,7 +33,12 @@ function deadline(signal, ms = REQUEST_MS) {
 function networkError(err) {
   if (err && err.name === 'AbortError') return err;
   if (err && err.name === 'TimeoutError') return new ApiError('verkko', t('api.timeout', { seconds: REQUEST_MS / 1000 }));
-  return new ApiError('verkko', t('api.unreachable', { message: err && err.message ? err.message : String(err) }));
+  // The browser's own words for it — "Failed to fetch", "NetworkError when
+  // attempting to fetch resource" — are English in every language and say
+  // no more than that the server was not reached, and a failed fetch has no
+  // number to give. The sentence says it; the words go to the console.
+  console.warn('[iptv] the server could not be reached:', err);
+  return new ApiError('verkko', t('api.unreachable'));
 }
 
 /** base64 → UTF-8. A bare atob() would mangle non-ASCII letters. */
@@ -69,7 +74,7 @@ export class XtreamApi {
       if (res.status === 512 || res.status === 401 || res.status === 403) {
         throw new ApiError('tunnistus', t('api.rejected'));
       }
-      if (!res.ok) throw new ApiError('http', t('api.status', { status: res.status, statusText: res.statusText }));
+      if (!res.ok) throw new ApiError('http', t('api.status', { status: res.status }));
       text = await res.text();
     } catch (err) {
       if (err instanceof ApiError) throw err;
@@ -150,7 +155,7 @@ export class XtreamApi {
       if (res.status === 512 || res.status === 401 || res.status === 403) {
         throw new ApiError('tunnistus', t('api.rejected'));
       }
-      if (!res.ok) throw new ApiError('http', t('api.status', { status: res.status, statusText: res.statusText }));
+      if (!res.ok) throw new ApiError('http', t('api.status', { status: res.status }));
 
       total = Number(res.headers.get('content-length')) || 0;
       const reader = res.body.getReader();

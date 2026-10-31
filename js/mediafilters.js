@@ -49,12 +49,18 @@ export class MediaFilters {
     this.detailsFor = detailsFor;
     this.values = { movie: emptyFilters(), series: emptyFilters() };
     this.type = null;
+    // The same heading as the favourites above the list: a mark, the name,
+    // what it counts and the fold, see .section-toggle in player.css.
     this.summary = document.createElement('summary');
+    this.summary.className = 'section-toggle';
+    this.summary.insertAdjacentHTML('afterbegin', '<svg class="section-icon" viewBox="0 0 20 20" aria-hidden="true"><path d="M3 4.5h14l-5.5 6.2v4.8l-3 1.5v-6.3z"/></svg>');
     this.caption = document.createElement('span');
+    this.caption.className = 'section-label';
     this.count = document.createElement('span');
-    this.count.className = 'media-filter-count';
+    this.count.className = 'section-count';
     this.count.setAttribute('aria-live', 'polite');
     this.summary.append(this.caption, this.count);
+    this.summary.insertAdjacentHTML('beforeend', '<svg class="section-chevron" viewBox="0 0 20 20" aria-hidden="true"><path d="m6 8 4 4 4-4"/></svg>');
     const controls = document.createElement('div');
     controls.className = 'media-filter-controls';
     this.fields = {};
@@ -90,6 +96,12 @@ export class MediaFilters {
     if (!this.type) return;
     this.values[this.type] = emptyFilters();
     this.onChange();
+  }
+
+  /** Both types back to no filter, folded: the start the logo goes back to. The list is the caller's to repaint. */
+  resetAll() {
+    this.values = { movie: emptyFilters(), series: emptyFilters() };
+    this.host.open = false;
   }
 
   metadataChanged() {

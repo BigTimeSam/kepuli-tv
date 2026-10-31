@@ -21,7 +21,7 @@
   --warn: #e0a458;
   --danger: #ff5c7a;
   --row-h: 3.125rem;          /* the same number as ROW_H in app.js */
-  --sep-h: 1.625rem;          /* the same number as SEP_H in app.js */
+  --sep-h: 2rem;              /* the same number as SEP_H in app.js */
   --topbar-h: 3.25rem;
   --epg-row: 3rem;
   --epg-chan-w: 210px;
@@ -210,7 +210,9 @@ h2, h3 { font-weight: 600; }
 
 .brand {
   display: flex; align-items: center; gap: 8px; font: inherit; font-weight: 650; letter-spacing: -0.01em; white-space: nowrap;
-  color: var(--text); background: none; border: 0; padding: 4px 6px; margin: -4px -6px; border-radius: 7px; cursor: pointer;
+  /* The same size and corners as a tab beside it, so that the logo lights
+     up as the chosen tab does. */
+  color: var(--text); background: none; border: 0; padding: 5px 11px; margin: -5px -11px; border-radius: 6px; cursor: pointer;
 }
 .brand:hover { background: var(--row-hover); }
 .brand:focus-visible { outline: 2px solid var(--accent); outline-offset: 0; }
@@ -334,7 +336,7 @@ main.guide #btn-copy { display: none; }
 .groups-filter { position: relative; padding: 8px; border-bottom: 1px solid var(--border); }
 /* The same magnifier as the search in the top bar: this field searches too,
    among the countries and their topics. */
-.groups-filter svg { position: absolute; left: 17px; top: 50%; translate: 0 -50%; width: 13px; height: 13px; fill: none; stroke: var(--muted); stroke-width: 1.8; stroke-linecap: round; pointer-events: none; }
+.groups-filter svg { position: absolute; left: 17px; top: 50%; translate: 0 -50%; width: 14px; height: 14px; fill: none; stroke: var(--muted); stroke-width: 1.8; stroke-linecap: round; pointer-events: none; }
 .groups-filter input {
   width: 100%; padding: 5px 8px 5px 27px; background: var(--panel-2);
   border: 1px solid var(--border); border-radius: 7px; outline: none; font-size: 0.75rem;
@@ -355,6 +357,8 @@ main.guide #btn-copy { display: none; }
 .group { display: flex; align-items: center; gap: 8px; padding: 6px 9px; border-radius: 7px; cursor: pointer; color: var(--muted); }
 .group:hover { background: var(--panel-2); color: var(--text); }
 .group-name { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+/* The kinds in the favourites and the history carry the tabs' marks. */
+.group-icon { width: 16px; height: 16px; flex: none; fill: none; stroke: currentColor; stroke-width: 1.6; stroke-linecap: round; stroke-linejoin: round; }
 .group-count { font-size: 0.6875rem; color: var(--dim); font-variant-numeric: tabular-nums; }
 .group.all { color: var(--text); font-weight: 550; }
 /* The same highlight as on the tabs and the topic chips: the selection is
@@ -389,11 +393,28 @@ button.group-star:hover { color: var(--text); background: var(--track); }
 .channel-guide-arrow { margin-left: auto; color: var(--muted); font-size: 1.125rem; line-height: 1; }
 .channel-guide:hover { border-color: var(--accent); background: var(--row-hover); }
 .channel-guide:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
-.media-filters { flex: none; padding: 0 10px 10px; border-bottom: 1px solid var(--border); background: var(--panel); }
+/* The folding headings over the list — the filters, the favourites: the
+   same mark, gap, type and fold, so that the two read as one family. */
+.section-toggle {
+  display: flex; align-items: center; gap: 8px; width: 100%; min-height: 36px; padding: 8px 12px;
+  border: 0; background: none; color: var(--text); font: inherit; font-size: 0.78125rem; font-weight: 600;
+  text-align: left; cursor: pointer; list-style: none;
+}
+.section-toggle::-webkit-details-marker { display: none; }
+.section-toggle:hover { background: var(--row-hover); }
+.section-toggle:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; }
+.section-icon { width: 15px; height: 15px; flex: none; fill: none; stroke: var(--muted); stroke-width: 1.6; stroke-linecap: round; stroke-linejoin: round; }
+.section-icon.fav-star { fill: var(--gold); stroke: var(--gold); }
+.section-label { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.section-count { flex: none; color: var(--muted); font-weight: 400; font-size: 0.71875rem; font-variant-numeric: tabular-nums; }
+.section-chevron { width: 14px; height: 14px; flex: none; fill: none; stroke: var(--muted); stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; transition: rotate .15s; }
+.section-toggle[aria-expanded="true"] .section-chevron, details[open] > .section-toggle .section-chevron { rotate: 180deg; }
+
+.media-filters { flex: none; border-bottom: 1px solid var(--border); background: var(--panel); }
 .media-filters[hidden] { display: none; }
-.media-filters:not([open]) { padding-bottom: 0; }
-.media-filters > summary { padding: 10px 0; color: var(--text); font-size: 0.75rem; cursor: pointer; }
-.media-filter-count { float: right; color: var(--muted); font-size: 0.6875rem; font-variant-numeric: tabular-nums; }
+.media-filters[open] { padding-bottom: 10px; }
+.media-filters > :not(summary) { margin-inline: 12px; }
+.media-filters[open] > summary { margin-bottom: 6px; }
 .media-filter-controls { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
 .media-filter-controls label { display: grid; gap: 4px; min-width: 0; color: var(--muted); font-size: 0.6875rem; }
 .media-filter-controls label[hidden] { display: none; }
@@ -589,6 +610,12 @@ button.series-favorite { flex: none; width: 32px; height: 32px; padding: 0; disp
    a logo large enough to be one: at 30x24 a wide logo was a smudge. */
 .row-logo { width: 44px; height: 30px; flex: none; object-fit: contain; border-radius: 4px; }
 .row-poster { width: 30px; height: 44px; flex: none; object-fit: cover; border-radius: 4px; background: var(--panel-2); }
+/* The one picture of the favourites and the history, whatever the kind: a
+   square, the cover cropped into it and the logo set in it on the same
+   ground, so that every name starts in the same column. */
+.row-thumb { width: 40px; height: 40px; flex: none; border-radius: 6px; }
+.row-thumb.channel-logo, .row-thumb.channel-logo.loaded { background: var(--panel-2); box-shadow: inset 0 0 0 1px var(--border); border-radius: 6px; }
+.row-thumb.channel-logo > img { inset: 4px; width: calc(100% - 8px); height: calc(100% - 8px); }
 
 .row-body { flex: 1; min-width: 0; }
 .row-name { font-weight: 500; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
@@ -603,8 +630,6 @@ button.series-favorite { flex: none; width: 32px; height: 32px; padding: 0; disp
 .row-badge.warn { color: var(--warn); border-color: var(--warn-line); }
 .row-time { display: inline-flex; align-items: center; gap: 4px; }
 .row-time svg { width: 13px; height: 13px; flex: none; fill: none; stroke: currentColor; stroke-width: 1.5; stroke-linecap: round; stroke-linejoin: round; }
-.row-badge.archive { display: inline-flex; align-items: center; gap: 3px; color: var(--accent-2); border-color: var(--archive-line); }
-.row-badge.archive svg { width: 12px; height: 12px; flex: none; fill: none; stroke: currentColor; stroke-width: 1.6; stroke-linecap: round; stroke-linejoin: round; }
 .row-ep { font-size: 0.6875rem; color: var(--muted); font-variant-numeric: tabular-nums; white-space: nowrap; flex: none; }
 .row-chevron { color: var(--chevron); flex: none; }
 
@@ -635,24 +660,19 @@ button.series-favorite { flex: none; width: 32px; height: 32px; padding: 0; disp
 .rowgroup { display: flow-root; }
 .daysep {
   height: var(--sep-h); display: flex; align-items: center; gap: 8px;
-  padding: 0 10px; font-size: 0.6875rem; letter-spacing: .06em; text-transform: uppercase;
+  padding: 0 12px; font-size: 0.6875rem; letter-spacing: .06em; text-transform: uppercase;
   color: var(--dim); background: var(--panel); border-bottom: 1px solid var(--border);
 }
-.daysep::after { content: ""; flex: 1; height: 1px; background: var(--border); }
+.daysep::after { content: ""; flex: 1; height: 1px; margin-left: 2px; background: var(--border); }
+.daysep-icon { width: 14px; height: 14px; flex: none; fill: none; stroke: currentColor; stroke-width: 1.6; stroke-linecap: round; stroke-linejoin: round; }
 
 /* The list's favourites, folded away above it (renderFavStrip in js/app.js). */
 .fav-strip { flex: none; border-bottom: 1px solid var(--border); background: var(--panel); }
-.fav-strip-toggle {
-  display: flex; align-items: center; gap: 8px; width: 100%; padding: 8px 12px;
-  border: 0; background: none; color: var(--text); font: inherit; font-size: 0.78125rem; font-weight: 600;
-  text-align: left; cursor: pointer;
-}
-.fav-strip-toggle:hover { background: var(--row-hover); }
-.fav-strip-toggle:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; }
-.fav-strip-star { color: var(--gold); }
-.fav-strip-chevron { margin-left: auto; width: 14px; height: 14px; fill: none; stroke: var(--muted); stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; transition: rotate .15s; }
-.fav-strip-toggle[aria-expanded="true"] .fav-strip-chevron { rotate: 180deg; }
-.fav-strip-items { display: flex; gap: 8px; overflow-x: auto; padding: 2px 12px 10px; }
+.fav-strip-items { display: flex; gap: 8px; overflow-x: auto; padding: 10px 12px; }
+/* With no favourite yet, a line saying how one gets here, with the same
+   space above and below it as the tiles have. It used to keep the tiles'
+   height in waiting, which read as an empty box. */
+.fav-strip-empty { margin: 0; color: var(--muted); font-size: 0.75rem; line-height: 1.45; }
 .fav-tile {
   flex: none; display: flex; flex-direction: column; align-items: center; gap: 5px; width: 96px; padding: 6px;
   border: 1px solid var(--border); border-radius: 8px; background: var(--panel-2); color: var(--text);
@@ -785,7 +805,10 @@ video::-webkit-media-controls-panel { padding-right: 46px; }
 .videowrap:fullscreen { background: #000; }
 
 .subdisplay {
-  position: absolute; left: 5%; right: 5%; bottom: 6%;
+  /* From the picture's bottom edge, the bar under a letterboxed film not
+     counted: --sub-lift is the viewer's height, a share of the picture. */
+  --sub-rest: calc(var(--pic-bar, 0px) + var(--pic-h, 450px) * var(--sub-lift, 0.08));
+  position: absolute; left: 5%; right: 5%; bottom: var(--sub-rest);
   display: flex; flex-direction: column; align-items: center; justify-content: flex-end; gap: .3em;
   pointer-events: none; text-align: center;
   font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
@@ -796,11 +819,11 @@ video::-webkit-media-controls-panel { padding-right: 46px; }
 }
 /* Above the browser's controls while they are likely on show, see wake()
    in js/subdisplay.js. */
-.videowrap.controls .subdisplay { bottom: max(6%, 132px); }
+.videowrap.controls .subdisplay { bottom: max(var(--sub-rest), 132px); }
 /* And above the subtitle-look popover while that is open: it is opened to
    judge the subtitles by, so it is the one thing that must not cover
    them. */
-.videowrap.looking .subdisplay { bottom: max(6%, 210px); }
+.videowrap.looking .subdisplay { bottom: max(var(--sub-rest), 210px); }
 
 /* One box per cue, lines and all. The measures are in em, so that the
    padding and the corners follow the text. Line breaks come from the file;
@@ -1127,11 +1150,11 @@ dialog::backdrop { background: var(--backdrop); backdrop-filter: blur(2px); }
     linear-gradient(165deg, #55648a, #1a2030 55%, #0a0c11);
 }
 .sublook-preview .subdisplay {
-  left: 50%; right: auto; bottom: 16px; width: max-content;
+  left: 50%; right: auto; width: max-content;
   transform: translateX(-50%) scale(var(--sub-preview-scale, 1)); transform-origin: bottom center;
 }
 .sublook-preview .subdisplay .cue { max-width: none; white-space: pre; }
-.sublook-fields { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; flex-shrink: 0; }
+.sublook-fields { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 10px; flex-shrink: 0; }
 .field-hint { font-size: 0.75rem; color: var(--muted); line-height: 1.45; }
 .setup-row { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
 .setup-row > button { flex: none; }
@@ -1299,6 +1322,8 @@ dialog::backdrop { background: var(--backdrop); backdrop-filter: blur(2px); }
 .choice-filter svg { position: absolute; left: 10px; top: 50%; translate: 0 -50%; width: 14px; height: 14px; fill: none; stroke: var(--muted); stroke-width: 1.8; stroke-linecap: round; pointer-events: none; }
 .choice-filter input { width: 100%; padding: 7px 9px 7px 30px; color: var(--text); background: var(--panel-2); border: 1px solid var(--border); border-radius: 8px; outline: none; }
 .choice-filter input:focus { border-color: var(--accent); }
+.choice-all { border: 1px solid var(--border); border-radius: 8px; font-weight: 600; }
+.choice-all input:disabled + .choice-name { color: var(--dim); }
 .choice-list { min-height: 0; max-height: min(56vh, 560px); overflow-y: auto; border: 1px solid var(--border); border-radius: 8px; }
 .choice-list:empty { display: none; }
 .choice-row { display: flex; align-items: center; gap: 10px; min-height: 42px; padding: 5px 12px; border-bottom: 1px solid var(--row-line); cursor: pointer; }
@@ -1351,6 +1376,9 @@ label.choice-row:hover { background: var(--row-hover); }
 }
 .epg-day:hover { color: var(--text); background: var(--panel-2); }
 .epg-day.active { background: var(--panel-2); border-color: var(--border); color: var(--text); }
+/* The archive's older days, in one menu before yesterday. */
+.epg-days { align-items: center; }
+select.epg-earlier { font: inherit; padding-right: 26px; background-position: right 8px center; }
 .epg-clock { color: var(--muted); font-size: 0.71875rem; font-variant-numeric: tabular-nums; white-space: nowrap; }
 
 .epg-body {
@@ -1559,6 +1587,14 @@ select:not([multiple]) {
   background: var(--panel); color: var(--text); border: 1px solid var(--border-strong);
   border-radius: 9px; box-shadow: 0 14px 34px rgba(0, 0, 0, .45); font-size: 0.8125rem;
 }
+/* A search field's magnifier, where the field has no frame of its own to
+   carry it: the guide's programme search, the drop-downs' filter. The same
+   mark at the same size as the top bar's search, the sidebar's and the
+   countries'. */
+.search-field { position: relative; display: flex; flex: 1; min-width: 0; }
+.search-field > svg { position: absolute; left: 10px; top: 50%; translate: 0 -50%; width: 14px; height: 14px; fill: none; stroke: var(--muted); stroke-width: 1.8; stroke-linecap: round; pointer-events: none; }
+.search-field > input { width: 100%; padding-left: 30px !important; }
+.programme-form .search-field { min-width: 180px; }
 .picker-filter {
   flex: none; width: 100%; padding: 6px 8px; border: 1px solid var(--border); border-radius: 6px;
   background: var(--panel-2); color: var(--text); outline: none;

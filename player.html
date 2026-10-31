@@ -108,10 +108,11 @@
          press away, while the list below keeps them in their places in the
          order. See renderFavStrip in js/app.js. -->
     <section class="fav-strip" id="fav-strip" hidden>
-      <button type="button" id="fav-strip-toggle" class="fav-strip-toggle" aria-expanded="false" aria-controls="fav-strip-items">
-        <span class="fav-strip-star" aria-hidden="true">★</span>
-        <span id="fav-strip-label">Favourites</span>
-        <svg class="fav-strip-chevron" viewBox="0 0 20 20" aria-hidden="true"><path d="m6 8 4 4 4-4"/></svg>
+      <button type="button" id="fav-strip-toggle" class="section-toggle" aria-expanded="false" aria-controls="fav-strip-items">
+        <svg class="section-icon fav-star" viewBox="0 0 20 20" aria-hidden="true"><path d="m10 2.8 2.2 4.5 5 .7-3.6 3.5.9 4.9L10 14.1l-4.5 2.3.9-4.9L2.8 8l5-.7z"/></svg>
+        <span class="section-label" data-i18n="favs.title">Favourites</span>
+        <span class="section-count" id="fav-strip-count">0</span>
+        <svg class="section-chevron" viewBox="0 0 20 20" aria-hidden="true"><path d="m6 8 4 4 4-4"/></svg>
       </button>
       <div class="fav-strip-items" id="fav-strip-items" hidden></div>
     </section>
@@ -182,6 +183,12 @@
         <label class="field">
           <span class="range-label"><span data-i18n="setup.subs.size">Size</span><output id="p-subsize-value" for="p-subsize">100 %</output><button type="button" id="p-subsize-reset" class="range-reset" data-i18n="subs.size.reset" data-i18n-title="subs.size.reset.title" hidden>Default</button></span>
           <input id="p-subsize" type="range" min="50" max="250" step="5" value="100" data-i18n-label="setup.subs.size">
+        </label>
+        <!-- How high the lowest line stands, a share of the picture above its
+             bottom edge; the bounds are MIN_LIFT and MAX_LIFT in js/subdisplay.js. -->
+        <label class="field">
+          <span class="range-label"><span data-i18n="setup.subs.lift">Height</span><output id="p-sublift-value" for="p-sublift">8 %</output><button type="button" id="p-sublift-reset" class="range-reset" data-i18n="subs.size.reset" data-i18n-title="subs.lift.reset.title" hidden>Default</button></span>
+          <input id="p-sublift" type="range" min="0" max="30" step="1" value="8" data-i18n-label="setup.subs.lift">
         </label>
       </div>
       <!-- The handful of actions a viewer wants now and then rather than
@@ -262,7 +269,9 @@
       <span class="epg-clock" id="epg-clock"></span>
     </div>
     <form id="programme-form" class="programme-form">
-      <input id="programme-query" type="search" data-i18n-placeholder="programmes.placeholder" data-i18n-label="programmes.placeholder" autocomplete="off">
+      <span class="search-field"><svg viewBox="0 0 20 20" aria-hidden="true"><circle cx="9" cy="9" r="6"/><path d="M13.5 13.5 18 18"/></svg>
+        <input id="programme-query" type="search" data-i18n-placeholder="programmes.placeholder" data-i18n-label="programmes.placeholder" autocomplete="off">
+      </span>
       <select id="programme-scope" data-i18n-label="programmes.scope">
         <option value="group" data-i18n="programmes.group">Shown channels</option>
         <option value="all" data-i18n="programmes.all">All visible channels</option>
@@ -318,10 +327,15 @@
       <svg viewBox="0 0 20 20" aria-hidden="true"><circle cx="9" cy="9" r="6"/><path d="M13.5 13.5 18 18"/></svg>
       <input id="countries-filter" type="search" data-i18n-placeholder="countries.filter" data-i18n-label="countries.filter" autocomplete="off" spellcheck="false">
     </div>
+    <!-- Every row the filter leaves, ticked or cleared at once: after the
+         filter has narrowed the list to a region, or to undo a long choice. -->
+    <label class="choice-row choice-all" id="countries-all-row">
+      <input type="checkbox" id="countries-toggle">
+      <span class="choice-name" id="countries-toggle-label" data-i18n="countries.toggle">Select all</span>
+    </label>
     <div id="countries-list" class="choice-list" role="group" aria-labelledby="countries-title"></div>
     <div class="choice-actions modal-actions">
       <span id="countries-status" role="status"></span>
-      <button type="button" id="countries-all" class="ghost" data-i18n="countries.showall">Show all</button>
       <button type="button" id="countries-cancel" class="ghost" data-i18n="progress.cancel">Cancel</button>
       <button type="button" id="countries-save" class="primary" data-i18n="setup.save">Save</button>
     </div>
@@ -423,6 +437,12 @@
           <label class="field">
             <span class="range-label"><span data-i18n="setup.subs.size">Size</span><output id="f-subsize-value" for="f-subsize">100 %</output><button type="button" id="f-subsize-reset" class="range-reset" data-i18n="subs.size.reset" data-i18n-title="subs.size.reset.title" hidden>Default</button></span>
             <input id="f-subsize" type="range" min="50" max="250" step="5" value="100" data-i18n-label="setup.subs.size">
+          </label>
+          <!-- How high the lowest line stands, a share of the picture above its
+               bottom edge; the bounds are MIN_LIFT and MAX_LIFT in js/subdisplay.js. -->
+          <label class="field">
+            <span class="range-label"><span data-i18n="setup.subs.lift">Height</span><output id="f-sublift-value" for="f-sublift">8 %</output><button type="button" id="f-sublift-reset" class="range-reset" data-i18n="subs.size.reset" data-i18n-title="subs.lift.reset.title" hidden>Default</button></span>
+            <input id="f-sublift" type="range" min="0" max="30" step="1" value="8" data-i18n-label="setup.subs.lift">
           </label>
         </div>
         <div class="sublook-preview" aria-hidden="true">

@@ -97,6 +97,10 @@ try {
   // hand out that server's addresses. The databases can only be deleted
   // once the app has let go of them, so that is done from a page of the
   // extension's origin that runs no app at all.
+  // Whatever the development profile was left with — countries chosen,
+  // channels hidden, favourites and history per account — goes first: the
+  // pictures show the app as a new viewer meets it.
+  await evaluate(page, `chrome.storage.local.get(null).then((all) => chrome.storage.local.remove(Object.keys(all).filter((k) => k.includes(':'))))`);
   await evaluate(page, `chrome.storage.local.set({
     config: { ...${JSON.stringify(connection)}, username: ${JSON.stringify(USER)}, password: ${JSON.stringify(PASS)}, sourceMode: 'xtream', streamMode: 'auto' },
     settings: { lang: 'en', epgEnabled: true, resumeEnabled: true, subtitleLang: 'eng' },
