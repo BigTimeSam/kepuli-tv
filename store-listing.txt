@@ -25,10 +25,14 @@ touches in the dashboard, and what it does not:
 ALWAYS
   • Package (Package → Upload new package): kepuli-tv-chrome-<version>.zip
     from node dev/package.mjs --zip — never the firefox one beside it. Chrome
-    accepts the Firefox package without a word, but its manifest has
-    background.scripts, which Chrome ignores: no service worker runs, and the
-    toolbar button does nothing. Chrome takes the version from the manifest;
-    there is no version field to type and no release-notes field at all.
+    accepts the Firefox package without a word. Up to 1.2.5 its manifest had
+    background.scripts alone, which Chrome ignores: no service worker ran,
+    and the toolbar button did nothing (1.2.1 and 1.2.5 went out that way).
+    Since 1.2.6 the Firefox manifest carries background.service_worker too,
+    so a mix-up no longer breaks the extension, but the store would still
+    show Firefox's keys as unrecognised. Chrome takes the version from the
+    manifest; there is no version field to type and no release-notes field
+    at all.
 
 WHEN THE PLAYER LOOKS DIFFERENT
   • Screenshots (Store listing → Graphic assets): all five, from
@@ -50,6 +54,12 @@ ONLY WHEN THE MANIFEST CHANGES
 RARELY
   • Category, language, homepage, support URL, privacy policy URL, test
     instructions: leave them unless the thing they describe has moved.
+
+FOR 1.2.6 SPECIFICALLY
+  The store's 1.2.5 was the Firefox package again (background.scripts), so
+  the extension did not start in Chrome. Upload kepuli-tv-chrome-1.2.6.zip
+  and nothing else. The Firefox manifest now also names the service worker,
+  and dev/package.mjs insists on it, so the wrong package would still work.
 
 FOR 1.2.5 SPECIFICALLY
   Only "version" changed in the manifests; the changes are in the player
