@@ -16,13 +16,14 @@ import { safeUrl } from '../js/api.js';
 import { nameCleaner, labelCodes, countryCodes, searchKey, searchTerms, matchesTerms } from '../js/name.js';
 import { Library, buildGroups } from '../js/library.js';
 import { channelKey, internationalChannels, isNationalTopic } from '../js/international.js';
+import { unwrap, repeats, check as checkListings } from './listings.mjs';
 import { channelLogo, slugify } from '../js/logos.js';
 import { cueText } from '../js/subs.js';
-import { subtitleLook, STYLES, MIN_SIZE, MAX_SIZE, DEFAULT_SIZE } from '../js/subdisplay.js';
+import { subtitleLook, stepScale, pictureHeight, STYLES, MIN_SCALE, MAX_SCALE, DEFAULT_SCALE, SCALE_STEP, SIZE_SHARE } from '../js/subdisplay.js';
 import { describe, describeAll, label, preferred, route } from '../js/audio.js';
 import { languageSummary, orderedLanguageNames, trackLanguage } from '../js/lang.js';
 import { LANGUAGES, keysOf, setLanguage, loadLanguage, supportedLanguage, t } from '../js/i18n.js';
-import { channelPreferences, visibilityFilter, ordered, moveInOrder, placeInOrder, arrangeOrder, sortChannels, CHANNEL_SORTS } from '../js/channelprefs.js';
+import { channelPreferences, visibilityFilter, sortChannels, CHANNEL_SORTS } from '../js/channelprefs.js';
 import { catchupAvailable, archiveDays } from '../js/epggrid.js';
 import { searchProgrammes } from '../js/programmesearch.js';
 import { formatRoute, parseRoute } from '../js/route.js';
@@ -40,21 +41,13 @@ function check(what, actual, expected) {
 
 /* ------------------------------------------------ xtream.js: parseServer */
 
-const preferences = channelPreferences({ hiddenChannels: [1, '1'], hiddenCategories: ['sport'], channelOrder: ['3', '2'] });
+const preferences = channelPreferences({ hiddenChannels: [1, '1'], hiddenCategories: ['sport'], pinned: ['3'], countries: ['Finland'], channelOrder: ['9'] });
+check('preferences keep ids as strings, once, and drop what is no longer kept',
+  preferences, { hiddenChannels: ['1'], hiddenCategories: ['sport'], countries: ['Finland'] });
 const channelRows = [{ k: 0, id: '1', cats: ['news'] }, { k: 0, id: '2', cats: ['sport', 'news'] },
   { k: 0, id: '3', cats: ['news'] }, { k: 1, id: '1' }, { k: 0, id: '4', cats: ['new'] }];
 check('hidden channels and categories also filter overlapping categories, without hiding movies',
   channelRows.filter(visibilityFilter(preferences)).map((i) => `${i.k}:${i.id}`), ['0:3', '1:1', '0:4']);
-check('new channels remain after the custom order', ordered(channelRows.filter((c) => c.k === 0), preferences.channelOrder).map((c) => c.id), ['3', '2', '1', '4']);
-check('filtered reorder retains unseen and stale IDs', moveInOrder(['a', 'hidden', 'b', 'gone', 'c'], ['a', 'c'], 'c', -1), ['c', 'hidden', 'b', 'gone', 'a']);
-check('first move keeps the displayed default order', moveInOrder([], ['z', 'a', 'b'], 'a', -1), ['a', 'z', 'b']);
-check('moving past an edge does nothing', moveInOrder(['a'], ['a'], 'a', -1), ['a']);
-check('a drop travels the whole list at once', placeInOrder([], ['a', 'b', 'c', 'd'], 'd', 0), ['d', 'a', 'b', 'c']);
-check('a drop back where it started changes nothing', placeInOrder(['a', 'b'], ['a', 'b'], 'b', 1), ['a', 'b']);
-check('a drop keeps IDs the filter left out in their own slots',
-  placeInOrder(['a', 'hidden', 'b', 'c'], ['a', 'b', 'c'], 'a', 2), ['b', 'hidden', 'c', 'a']);
-check('a whole new displayed order is written into the saved slots',
-  arrangeOrder(['a', 'hidden', 'b', 'c'], ['a', 'b', 'c'], ['c', 'a', 'b']), ['c', 'hidden', 'a', 'b']);
 
 // The list comes in alphabetically, so A–Z is what came in and Z–A its mirror.
 const sortable = [{ id: '30', n: 'Alfa', num: 3 }, { id: '10', n: 'Beta', num: 1 }, { id: '20', n: 'Gamma', num: 2 }];
@@ -66,6 +59,16 @@ check('a provider that sends no number leaves the stream id to stand for it',
 check('equal numbers keep the alphabetical order',
   sortChannels([{ id: 'x', n: 'Alfa' }, { id: 'y', n: 'Beta' }], 'num').map((c) => c.n), ['Alfa', 'Beta']);
 check('an unknown sort is the library order', sortChannels(sortable, undefined).map((c) => c.n), ['Alfa', 'Beta', 'Gamma']);
+{
+  // The visible name decides: "FI: Yle" is Yle once the tag is off, and
+  // goes after an untagged Alfa rather than before it.
+  const tagged = [{ id: '1', n: 'FI: Yle TV1', num: 1 }, { id: '2', n: 'Alfa TV', num: 2 }, { id: '3', n: 'FI: MTV3', num: 3 }];
+  const visible = (name) => name.replace(/^FI: /, '');
+  check('the visible name puts the list in order', sortChannels(tagged, 'az', visible).map((c) => c.id), ['2', '3', '1']);
+  check('and in reverse', sortChannels(tagged, 'za', visible).map((c) => c.id), ['1', '3', '2']);
+  check('the channel number is not the name', sortChannels(tagged, 'num', visible).map((c) => c.id), ['1', '2', '3']);
+  check('a label is handed the item as well', sortChannels(tagged, 'az', (name, item) => String(9 - Number(item.id))).map((c) => c.id), ['3', '2', '1']);
+}
 
 const now = Date.UTC(2026, 8, 6, 12);
 check('archive duration extends the guide', archiveDays([{ archive: 3 }, { archive: 7 }, { archive: Infinity }]), 7);
@@ -369,21 +372,29 @@ ass('drops a drawing', '0,0,Default,,0,0,0,,{\\p1}m 0 0 l 100 0', '');
 
 /* ---------------------------------------------- subdisplay.js: the look */
 
-check('subtitleLook defaults', subtitleLook({}), { style: 'shadow', size: DEFAULT_SIZE });
-check('subtitleLook defaults on nothing', subtitleLook(null), { style: 'shadow', size: DEFAULT_SIZE });
-check('subtitleLook keeps a known choice', subtitleLook({ subtitleStyle: 'yellow', subtitleSize: 31 }), { style: 'yellow', size: 31 });
-check('subtitleLook takes a size written as text', subtitleLook({ subtitleSize: '40' }).size, 40);
-check('subtitleLook rounds a size', subtitleLook({ subtitleSize: 20.6 }).size, 21);
-check('subtitleLook holds a size to the bounds', [subtitleLook({ subtitleSize: 1 }).size, subtitleLook({ subtitleSize: 900 }).size], [MIN_SIZE, MAX_SIZE]);
-check('subtitleLook replaces an unknown choice', subtitleLook({ subtitleStyle: 'neon', subtitleSize: 'huge' }), { style: 'shadow', size: DEFAULT_SIZE });
-check('subtitleLook replaces a size that is not a number', [subtitleLook({ subtitleSize: NaN }).size, subtitleLook({ subtitleSize: -5 }).size], [DEFAULT_SIZE, DEFAULT_SIZE]);
-// The named sizes of the older settings, at what they measured in a window.
-check('subtitleLook reads the older sizes', ['small', 'medium', 'large'].map((s) => subtitleLook({ subtitleSize: s }).size), [18, 24, 34]);
+check('subtitleLook defaults', subtitleLook({}), { style: 'shadow', scale: DEFAULT_SCALE });
+check('subtitleLook defaults on nothing', subtitleLook(null), { style: 'shadow', scale: DEFAULT_SCALE });
+check('subtitleLook keeps a known choice', subtitleLook({ subtitleStyle: 'yellow', subtitleScale: 135 }), { style: 'yellow', scale: 135 });
+check('subtitleLook takes a size written as text', subtitleLook({ subtitleScale: '140' }).scale, 140);
+check('subtitleLook rounds a size to the slider\'s step', subtitleLook({ subtitleScale: 121 }).scale, 120);
+check('subtitleLook holds a size to the bounds', [subtitleLook({ subtitleScale: 1 }).scale, subtitleLook({ subtitleScale: 900 }).scale], [MIN_SCALE, MAX_SCALE]);
+check('subtitleLook replaces an unknown choice', subtitleLook({ subtitleStyle: 'neon', subtitleScale: 'huge' }), { style: 'shadow', scale: DEFAULT_SCALE });
+// The pixels of the older versions become the same share of their default:
+// whoever had made the text larger still has it larger.
+check('subtitleLook reads the older pixels', [24, 36, 18, 72].map((px) => subtitleLook({ subtitleSize: px }).scale), [100, 150, 75, 250]);
+check('subtitleLook reads the oldest names', ['small', 'medium', 'large'].map((s) => subtitleLook({ subtitleSize: s }).scale), [75, 100, 140]);
+check('a size of its own outranks the older pixels', subtitleLook({ subtitleScale: 90, subtitleSize: 40 }).scale, 90);
+check('+ and − step by ten, within the bounds', [stepScale(100, 1), stepScale(100, -1), stepScale(MAX_SCALE, 1), stepScale(MIN_SCALE, -1)], [110, 90, MAX_SCALE, MIN_SCALE]);
+check('the picture without its bars: a film on a 16:10 screen', Math.round(pictureHeight(1512, 982, 1920, 1080)), 851);
+check('the picture fills a box of its own shape', pictureHeight(1280, 720, 1280, 720), 720);
+check('a box narrower than the picture: the height is the box\'s', pictureHeight(800, 1000, 1920, 1080), 450);
+check('no picture yet: taken as 16:9', pictureHeight(1920, 1200, 0, 0), 1080);
 // Every look has a rule in the stylesheet and an option in the menu, in the
 // same order; the slider's bounds are the module's.
 {
   const html = (await import('node:fs')).readFileSync(new URL('../player.html', import.meta.url), 'utf8');
   const sheet = (await import('node:fs')).readFileSync(new URL('../css/player.css', import.meta.url), 'utf8');
+  check('player.css sizes the layer with the module\'s share', sheet.includes(`* var(--sub-scale, 1) * ${SIZE_SHARE})`), true);
   for (const style of STYLES) {
     check(`player.css draws the look "${style}"`, sheet.includes(`body[data-substyle="${style}"] .videowrap .subdisplay .cue`), true);
   }
@@ -395,8 +406,8 @@ check('subtitleLook reads the older sizes', ['small', 'medium', 'large'].map((s)
     const menu = html.match(new RegExp(`<select id="${form}-substyle">([^]*?)</select>`));
     const offered = menu && [...menu[1].matchAll(/<option value="(\w+)" data-i18n="subs\.style\.\w+">/g)].map((m) => m[1]);
     check(`player.html offers the looks in the module's order (${form})`, offered, STYLES);
-    const slider = html.match(new RegExp(`<input id="${form}-subsize" type="range" min="(\\d+)" max="(\\d+)" step="1" value="(\\d+)">`));
-    check(`player.html's slider has the module's bounds and default (${form})`, slider && slider.slice(1).map(Number), [MIN_SIZE, MAX_SIZE, DEFAULT_SIZE]);
+    const slider = html.match(new RegExp(`<input id="${form}-subsize" type="range" min="(\\d+)" max="(\\d+)" step="(\\d+)" value="(\\d+)"`));
+    check(`player.html's slider has the module's bounds, step and default (${form})`, slider && slider.slice(1).map(Number), [MIN_SCALE, MAX_SCALE, SCALE_STEP, DEFAULT_SCALE]);
   }
   // The same for the channel order: a value the settings offer but the
   // sorting does not know would silently leave the list alphabetical.
@@ -725,6 +736,15 @@ check('the national topics in the providers\' languages',
   check('a dated event is the country\'s own broadcast', found.has('event0'), false);
   check('outside a country\'s list nothing is thinned', found.has('music'), false);
 }
+
+/* ----------------------------------------------- dev/listings.mjs */
+
+check('a wrapped paragraph is one line for the store',
+  unwrap('Watch your own\nsubscription.\n\nWHAT YOU GET\n\n• A bullet that\n  goes on.\n• Another.\n- Samuli'),
+  'Watch your own subscription.\n\nWHAT YOU GET\n\n• A bullet that goes on.\n• Another.\n- Samuli');
+check('a word five times is a keyword list; short words and four times are not',
+  repeats('stream stream stream stream stream and and and and and IPTV IPTV IPTV IPTV'), [['stream', 5]]);
+check('every listing is within the store\'s limits, and _locales is in step', checkListings(), []);
 
 /* ------------------------------------------------------------------ done */
 

@@ -54,7 +54,9 @@ function sortKey(name) {
 export function sortItems(items, label) {
   if (!items || items.length < 2) return items;
   const compare = collator();
-  const keyed = items.map((item, i) => [sortKey(label ? label(item.n) : item.n), i, item]);
+  // The label is handed the item as well as its name: a name's tidy form
+  // can depend on where the item is filed (js/name.js, searchNameCleaner).
+  const keyed = items.map((item, i) => [sortKey(label ? label(item.n, item) : item.n), i, item]);
   keyed.sort((a, b) => compare.compare(a[0], b[0]) || a[1] - b[1]);
   return keyed.map((entry) => entry[2]);
 }

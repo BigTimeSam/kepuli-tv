@@ -7,14 +7,15 @@ import { ListNavigation, rowDomId } from './listnavigation.js';
 import { CatalogueSearch } from './cataloguesearch.js';
 import { PlayerLayout } from './playerlayout.js';
 import { itemRow, posterCard, categoryRow, chipRow, favCategoryRow, sectionHeader, emptyState } from './rows.js';
-import { nameCleaner, searchNameCleaner, searchKey, searchTerms, matchesTerms } from './name.js';
+import { nameCleaner, searchNameCleaner, searchKey, searchTerms, matchesTerms, labelCodes } from './name.js';
 import { poster } from './poster.js';
 import { wireModal } from './modal.js';
 import { MediaFilters } from './mediafilters.js';
 import { titleFacts, externalLinks, playbackFacts } from './titleinfo.js';
 import { EpgGrid, catchupAvailable } from './epggrid.js';
-import { ChannelEditor } from './channeleditor.js';
-import { channelPreferences, visibilityFilter, ordered, sortChannels } from './channelprefs.js';
+import { CountryPicker, HiddenList } from './channelchoices.js';
+import { openRowMenu } from './rowmenu.js';
+import { channelPreferences, visibilityFilter, sortChannels } from './channelprefs.js';
 import { ProgrammeSearch } from './programmesearch.js';
 import { cacheClear, wipeStorage, storageEstimate } from './db.js';
 import { parsePlaylistUrl, streamUrl, timeshiftUrl, baseUrl, parseServer } from './xtream.js';
@@ -26,10 +27,10 @@ import { Cast, supported as castSupported } from './cast.js';
 import { warmCache, peek, badge as probeBadge, subtitleSummary, audioDetails } from './probe.js';
 import { shortLanguage } from './lang.js';
 import { label as audioLabel } from './audio.js';
-import { SubtitleDisplay, subtitleLook } from './subdisplay.js';
+import { SubtitleDisplay, subtitleLook, stepScale, pictureHeight, DEFAULT_SCALE } from './subdisplay.js';
 import { pickEncoder } from './transcode.js';
 import * as store from './config.js';
-import { applyTheme, earlyTheme } from './theme.js';
+import { applyTheme, earlyTheme, onSystemTheme } from './theme.js';
 import { wirePickers } from './picker.js';
 import { nf, dateTimeFmt, dateFmt, stampFmt, dayLabel, clock, megabytes, duration, progressOf, setLocale } from './format.js';
 import { t, applyStatic, setLanguage, loadLanguage, localeTag, LANGUAGES } from './i18n.js';
@@ -178,6 +179,7 @@ async function connect({ silent = false } = {}) {
     const problem = accountProblem(state.account);
     if (problem) toast(problem, { long: true, kind: 'warn' });
     if (!state.playing && !el.overlay.hidden) renderIdleOverlay();
+    askCountriesOnce();
     return true;
   } catch (err) {
     hideProgress();
@@ -634,13 +636,14 @@ async function refreshRows({ keepScroll = false, returnPosition = null, restoreF
   // shows.
   state.cleanName = nameCleanerFor(rows);
   // Episode order comes from season/episode numbers, even when names are tidied.
-  if (state.cleanName && !state.query && state.detail?.view !== 'series') rows = sortItems(rows, item => state.cleanName(item.n, item));
+  const channelList = (type === 'live' || state.detail?.entry?.t === 'live') && !state.query;
+  if (!channelList && state.cleanName && !state.query && state.detail?.view !== 'series') rows = sortItems(rows, (name, item) => state.cleanName(name, item));
   rows = visibleRows(rows);
   if (type === 'live' && !state.query && !state.detail && !isCollection()) rows = withoutInternational(rows);
   // The setting says where the list starts; the personal arrangement, made
   // in Organize channels, has the last word over it.
-  if ((type === 'live' || state.detail?.entry?.t === 'live') && !state.query) {
-    rows = ordered(sortChannels(rows, state.settings.channelSort), state.channelPrefs.channelOrder);
+  if (channelList) {
+    rows = sortChannels(rows, state.settings.channelSort, channelLabel());
   }
   const filterType = !isCollection() && !state.detail && (type === 'movie' || type === 'series') ? type : null;
   rows = mediaFilters.apply(rows, filterType);
@@ -659,6 +662,50 @@ const mediaFilters = new MediaFilters($('media-filters'), () => {
   state.cursor = -1;
   return refreshRows();
 }, item => item.details || state.lib?.details.get(`${item.k === 1 ? 'vod' : 'series'}:v2:${item.id}`), $('active-media-filters'));
+
+/**
+ * The favourites among the rows on screen, folded away above the list: a
+ * country of six hundred channels holds the viewer's five somewhere in it,
+ * and this finds them without taking them out of the order below. Only in
+ * a list being browsed — a search, a page opened from the list and the
+ * collections are lists of their own. Open or folded is remembered.
+ */
+let favStripOpen = false;
+
+function renderFavStrip(rows) {
+  const strip = $('fav-strip');
+  const browsing = !isCollection() && !state.detail && !state.query && !state.listLoading;
+  const favs = browsing ? rows.filter((item) => state.favorites.has(`${item.k}:${item.id}`)) : [];
+  strip.hidden = !favs.length;
+  const items = $('fav-strip-items');
+  if (!favs.length) { items.replaceChildren(); return; }
+  $('fav-strip-label').textContent = t('favs.section', { n: nf.format(favs.length) });
+  $('fav-strip-toggle').setAttribute('aria-expanded', String(favStripOpen));
+  items.hidden = !favStripOpen;
+  if (!favStripOpen) { items.replaceChildren(); return; }
+  const playing = state.playing ? `${state.playing.k}:${state.playing.id}` : null;
+  items.replaceChildren(...favs.map((item) => {
+    const tile = document.createElement('button');
+    tile.type = 'button';
+    tile.className = 'fav-tile' + (playing === `${item.k}:${item.id}` ? ' playing' : '');
+    const name = state.cleanName ? state.cleanName(item.n, item) : item.n;
+    tile.title = item.n;
+    const picture = item.k === 0 ? poster('fav-logo', item.logo, 'channel')
+      : poster('fav-cover', item.logo, item.k === 2 ? 'series' : 'movie');
+    const label = document.createElement('span');
+    label.className = 'fav-name';
+    label.textContent = name;
+    tile.append(picture, label);
+    tile.addEventListener('click', () => openItem(item));
+    return tile;
+  }));
+}
+
+async function toggleFavStrip() {
+  favStripOpen = !favStripOpen;
+  renderFavStrip(state.rows);
+  await store.saveUiState({ favStripOpen });
+}
 
 /**
  * The rows on screen. Everything painted from them follows in one call, so
@@ -682,6 +729,7 @@ function showRows(rows, { keepScroll = false, loading = false } = {}) {
   // narrow it without a filter of its own.
   if (guideOpen && state.tab === 'live') grid.setChannels(rows.filter((it) => it.k === 0));
   renderSubcats();
+  renderFavStrip(rows);
   renderListInfo();
   renderEmptyState();
   catalogueSearch.render();
@@ -924,7 +972,7 @@ function renderSubcats() {
     if (!a.sub !== !b.sub) return a.sub ? 1 : -1;
     return (a.sub || '').localeCompare(b.sub || '', 'fi');
   });
-  if (type === 'live') cats = ordered(cats.filter((c) => !state.channelPrefs.hiddenCategories.includes(c.id)), state.channelPrefs.categoryOrder);
+  if (type === 'live') cats = cats.filter((c) => !state.channelPrefs.hiddenCategories.includes(c.id));
 
   const frag = document.createDocumentFragment();
   // "All" is the whole group, and its star is on the sidebar row — two
@@ -1157,14 +1205,15 @@ function renderListInfo() {
   }
 
   el.listinfo.replaceChildren(document.createTextNode(parts.join(', ')));
-  if (state.tab === 'live' && state.lib) {
+  const hidden = state.channelPrefs.hiddenChannels.length + state.channelPrefs.hiddenCategories.length;
+  if (state.tab === 'live' && state.lib && hidden) {
     const spacer = document.createElement('span');
     spacer.className = 'spacer';
     const button = document.createElement('button');
     button.type = 'button';
-    button.id = 'btn-organize';
-    button.textContent = t('organize.title');
-    button.addEventListener('click', openChannelEditor);
+    button.id = 'btn-hidden';
+    button.textContent = t('hidden.count', { n: nf.format(hidden) });
+    button.addEventListener('click', openHiddenList);
     el.listinfo.append(spacer, button);
   }
   if (state.tab === 'recent' && state.recents.length) {
@@ -1215,6 +1264,18 @@ function renderSidebar() {
   if (isCollection()) renderKinds();
   else renderCategories();
   markGroups();
+  renderCountriesButton();
+}
+
+/** "Choose countries", or how many are chosen, under the channels' sidebar. */
+function renderCountriesButton() {
+  const button = $('btn-countries');
+  button.hidden = state.tab !== 'live' || !state.lib;
+  if (button.hidden) return;
+  const chosen = chosenCountries();
+  $('btn-countries-text').textContent = chosen
+    ? t('countries.button.chosen', { count: chosen.size, n: nf.format(chosen.size) })
+    : t('countries.button');
 }
 
 /**
@@ -1392,19 +1453,48 @@ function visibleGroups(type) {
   const groups = state.lib?.groups[type] || [];
   if (type !== 'live') return groups;
   const hidden = new Set(state.channelPrefs.hiddenCategories);
-  const rank = new Map(state.channelPrefs.categoryOrder.map((id, i) => [id, i]));
+  const chosen = chosenCountries();
   return groups.map((g) => ({ ...g, cats: g.cats.filter((c) => !hidden.has(c.id)) }))
-    .filter((g) => g.cats.length)
-    .sort((a, b) => Math.min(...a.cats.map((c) => rank.get(c.id) ?? Infinity))
-      - Math.min(...b.cats.map((c) => rank.get(c.id) ?? Infinity)));
+    .filter((g) => g.cats.length && (!chosen || chosen.has(g.name)));
 }
 
+/**
+ * The live groups the viewer watches, or null for all of them. A chosen
+ * country the provider no longer has does not count: were it the only
+ * one, nothing at all would be shown.
+ */
+function chosenCountries() {
+  const names = state.channelPrefs.countries;
+  const groups = state.lib?.groups.live;
+  if (!names.length || !groups) return null;
+  const chosen = new Set(names.filter((name) => groups.some((g) => g.name === name)));
+  return chosen.size ? chosen : null;
+}
+
+const groupOfCategory = new WeakMap();
+/** Category id → the name of the live group it is in. */
+function liveGroupOf() {
+  const groups = state.lib?.groups.live || [];
+  let map = groupOfCategory.get(groups);
+  if (!map) groupOfCategory.set(groups, map = new Map(groups.flatMap((g) => g.cats.map((c) => [c.id, g.name]))));
+  return map;
+}
+
+/**
+ * The rows the viewer's choices leave: hidden channels and categories out
+ * everywhere, and the countries not chosen out of the browsing, the search
+ * and the guide — but not out of the favourites and the history, which
+ * hold what was picked by hand.
+ */
 function visibleRows(rows) {
   const prefs = state.channelPrefs;
   const visible = visibilityFilter(prefs);
   const groups = new Set(visibleGroups('live').map((g) => g.name));
+  const chosen = isCollection() ? null : chosenCountries();
+  const groupOf = chosen ? liveGroupOf() : null;
   return rows.filter((item) => {
     if (!visible(item)) return false;
+    if (chosen && item.k === 0 && !(item.cats || []).some((id) => chosen.has(groupOf.get(id)))) return false;
     if (item.k !== 'c' || item.t !== 'live' || !prefs.hiddenCategories.length) return true;
     if (item.c != null) return !prefs.hiddenCategories.includes(item.c);
     return groups.has(item.g);
@@ -1423,24 +1513,105 @@ function withoutInternational(rows) {
   return global?.size ? rows.filter((item) => item.k !== 0 || !global.has(String(item.id))) : rows;
 }
 
-const channelEditor = new ChannelEditor(async (prefs) => {
+/**
+ * The viewer's channel choices saved and shown: the sidebar, the topics,
+ * the guide's groups and the list follow at once. A group that has just
+ * been left out is left, for the first one still shown.
+ */
+async function saveChannelChoices(prefs) {
   await store.saveChannelPreferences(prefs);
   state.channelPrefs = channelPreferences(prefs);
-  if (state.group && !visibleGroups('live').some((g) => g.name === state.group)) {
+  if (state.tab === 'live' && state.group && !visibleGroups('live').some((g) => g.name === state.group)) {
     state.group = visibleGroups('live')[0]?.name ?? null;
     state.sub = null;
   }
   if (state.channelPrefs.hiddenCategories.includes(state.sub)) state.sub = null;
-  state.lastGroup.live = state.group;
+  if (state.tab === 'live') state.lastGroup.live = state.group;
   renderSidebar();
   renderGuideGroups();
-  await refreshRows();
-});
+  await refreshRows({ keepScroll: true });
+}
 
-async function openChannelEditor() {
-  if (!state.lib || !await ensureFull('live', t('organize.loading'))) return;
-  channelEditor.show(state.lib.full.live, state.lib.groups.live, state.channelPrefs,
-    { group: state.group, sort: state.settings.channelSort });
+/** A change to the choices, with Undo in the message that says it was made. */
+async function changeChannelChoices(prefs, message) {
+  const before = state.channelPrefs;
+  await saveChannelChoices(prefs);
+  toast(message, { action: { label: t('row.undo'), onClick: () => saveChannelChoices(before) } });
+}
+
+const countryPicker = new CountryPicker((countries) => saveChannelChoices({ ...state.channelPrefs, countries }));
+const hiddenList = new HiddenList((prefs) => saveChannelChoices({ ...state.channelPrefs, ...prefs }));
+
+// The language a browser speaks, and the country whose list it most
+// likely wants first; English says nothing about where its reader is.
+const LANGUAGE_COUNTRY = { fi: 'fi', sv: 'se', nb: 'no', da: 'dk', de: 'de', nl: 'nl', fr: 'fr', es: 'es', pt: 'br', it: 'it', pl: 'pl', tr: 'tr' };
+
+function openCountryPicker({ first = false } = {}) {
+  if (!state.lib) return;
+  const code = LANGUAGE_COUNTRY[store.browserLanguage()];
+  const suggested = code ? state.lib.groups.live.filter((g) => labelCodes(g.name).includes(code)).map((g) => g.name) : [];
+  countryPicker.show({
+    groups: state.lib.groups.live,
+    counts: state.lib.groupCounts('live'),
+    chosen: state.channelPrefs.countries,
+    suggested,
+    first,
+  });
+}
+
+/**
+ * Asked once per account, after the first connection, when the provider
+ * has so many countries that a list of all of them is in the way. The
+ * answer — or Cancel — is not asked for again; the sidebar keeps the way
+ * back in.
+ */
+const ASK_COUNTRIES_FROM = 20;
+async function askCountriesOnce() {
+  if (!state.lib || state.channelPrefs.countries.length) return;
+  if (state.lib.groups.live.length < ASK_COUNTRIES_FROM) return;
+  const asked = (await store.loadUiState()).countriesAsked || [];
+  const account = `${state.config.host}:${state.config.port}/${state.config.username}`;
+  if (asked.includes(account)) return;
+  await store.saveUiState({ countriesAsked: [...asked, account] });
+  if (document.querySelector('dialog[open]')) return;
+  openCountryPicker({ first: true });
+}
+
+async function openHiddenList() {
+  if (!state.lib) return;
+  if (state.channelPrefs.hiddenChannels.length && !await ensureFull('live', t('hidden.loading'))) return;
+  const full = state.lib.full.live || [];
+  hiddenList.show(state.channelPrefs, (id) => full.find((item) => String(item.id) === id) || null,
+    (id) => state.lib.categoryName('live', id));
+}
+
+/** The actions on a channel's row: a favourite or not, and hide. */
+function openChannelMenu(item, at) {
+  const prefs = state.channelPrefs;
+  const id = String(item.id);
+  const name = state.cleanName ? state.cleanName(item.n, item) : item.n;
+  const favorite = state.favorites.has(`${item.k}:${item.id}`);
+  const items = [
+    { label: t(favorite ? 'row.fav.remove' : 'row.fav.add'), onClick: () => toggleFavorite(item) },
+    {
+      label: t('row.hide'), danger: true,
+      onClick: () => changeChannelChoices({ ...prefs, hiddenChannels: [...prefs.hiddenChannels, id] }, t('row.hidden', { name })),
+    },
+  ];
+  openRowMenu(at, items, { label: name, returnFocus: el.list });
+}
+
+/**
+ * The name a channel is put in order by, in the list and in the channel
+ * editor alike: the visible one, tidied by its own group's rules. One
+ * function for both, because the editor saves its order for every channel
+ * at once, and a list sorted by other names would show the untouched ones
+ * in another order than the editor did. Until the whole list is in, the
+ * view's own tidier stands in; the editor always has the whole list.
+ */
+function channelLabel() {
+  const lib = state.lib;
+  return lib?.full.live ? searchNameCleaner(lib.groups.live, lib.full.live) : state.cleanName;
 }
 
 /* ================================================================== rows */
@@ -1599,6 +1770,7 @@ function renderRow(index) {
     onOpen: () => { state.cursor = index; openItem(item); },
     onFavorite: () => toggleFavorite(item),
     onRemove: state.tab === 'recent' ? () => removeFromHistory(item) : null,
+    onMenu: item.k === 0 ? (at) => { state.cursor = index; openChannelMenu(item, at); } : null,
     removeTitle: t('row.remove.history'),
   });
 
@@ -1688,7 +1860,7 @@ function toggleFavorite(item) {
   else state.favorites.set(key, { ...stripItem(item), addedAt: Date.now() });
   store.saveFavorites(state.favorites);
   if (state.tab === 'fav') { renderSidebar(); refreshRows({ keepScroll: true }); }
-  else vlist.refresh();
+  else { vlist.refresh(); renderFavStrip(state.rows); }
   renderSeriesFavorite();
 }
 
@@ -2371,14 +2543,23 @@ function chooseSubtitle() {
 // player's Aa button. The dialog renders its draft in a separate preview.
 const LOOK_FORMS = ['f', 'p'];
 
+/** A size as the slider says it: 100 % is the size the picture asks for. */
+const sizeText = (scale) => new Intl.NumberFormat(localeTag(), { style: 'percent' }).format(scale / 100);
+
+/** One form's size controls: the slider, what it says, and the way back to 100 %. */
+function showSubtitleSize(form, scale) {
+  $(`${form}-subsize`).value = String(scale);
+  $(`${form}-subsize-value`).textContent = sizeText(scale);
+  $(`${form}-subsize-reset`).hidden = scale === DEFAULT_SCALE;
+}
+
 function applySubtitleLook(settings) {
   const look = subtitleLook(settings);
   document.body.dataset.substyle = look.style;
-  document.body.style.setProperty('--sub-size', `${look.size}px`);
+  document.body.style.setProperty('--sub-scale', String(look.scale / 100));
   for (const form of LOOK_FORMS) {
     $(`${form}-substyle`).value = look.style;
-    $(`${form}-subsize`).value = String(look.size);
-    $(`${form}-subsize-value`).textContent = `${look.size} px`;
+    showSubtitleSize(form, look.scale);
   }
 }
 
@@ -2387,9 +2568,38 @@ function applySubtitleLook(settings) {
  * use previewSetupLook and wait for Save.
  */
 async function chooseSubtitleLook(form) {
-  const patch = { subtitleStyle: $(`${form}-substyle`).value, subtitleSize: Number($(`${form}-subsize`).value) };
+  const patch = { subtitleStyle: $(`${form}-substyle`).value, subtitleScale: Number($(`${form}-subsize`).value) };
   applySubtitleLook(patch);
   state.settings = await store.saveSettings(patch);
+}
+
+/**
+ * The logo: back to the start. The channels, the first country chosen (or
+ * the one the channels were last on, when none is), its first topic and
+ * the top of its list; the search, the guide and any page opened from the
+ * list are closed. What is playing goes on — this is a way back, not a
+ * stop. Pressed where the start already is, it only takes the list up.
+ */
+async function goHome() {
+  if (guideOpen) closeGuide();
+  playerLayout.showBrowse();
+  const groups = visibleGroups('live');
+  const group = chosenCountries() ? groups[0]?.name
+    : (groups.some((g) => g.name === state.lastGroup.live) ? state.lastGroup.live : groups[0]?.name) ?? null;
+  if (state.tab !== 'live') await activateTab('live');
+  if (state.group !== group || state.sub || state.detail || state.query) await selectGroup(group);
+  state.cursor = -1;
+  el.list.scrollTop = 0;
+}
+
+/** + and − while watching: a step larger or smaller, said in a message. */
+async function stepSubtitleSize(direction) {
+  const look = subtitleLook(state.settings);
+  const scale = stepScale(look.scale, direction);
+  if (scale === look.scale) return;
+  applySubtitleLook({ subtitleStyle: look.style, subtitleScale: scale });
+  toast(t('subs.size.now', { size: sizeText(scale) }));
+  state.settings = await store.saveSettings({ subtitleScale: scale });
 }
 
 /**
@@ -3328,12 +3538,13 @@ function openSetup({ section } = {}) {
   renderLanguageOptions();
   $('f-lang').value = state.settings.lang in LANGUAGES ? state.settings.lang : 'auto';
   $('f-channelsort').value = state.settings.channelSort;
+  $('f-theme').value = ['dark', 'light', 'system'].includes(state.settings.theme) ? state.settings.theme : 'dark';
   $('f-epg').checked = state.settings.epgEnabled;
   $('f-resume').checked = state.settings.resumeEnabled;
   $('f-autonext').checked = state.settings.autoNext;
   $('f-stats').checked = state.settings.statsEnabled;
   $('f-international').checked = state.settings.showInternational;
-  setupInitial = { ...state.settings, subtitleStyle: subtitleLook(state.settings).style, subtitleSize: subtitleLook(state.settings).size };
+  setupInitial = { ...state.settings, subtitleStyle: subtitleLook(state.settings).style, subtitleScale: subtitleLook(state.settings).scale };
   applySubtitleLook(state.settings);
   previewSetupLook();
   $('setup-error').hidden = true;
@@ -3362,13 +3573,14 @@ function readSetupSettings() {
   return {
     lang: $('f-lang').value,
     channelSort: $('f-channelsort').value,
+    theme: $('f-theme').value,
     epgEnabled: $('f-epg').checked,
     resumeEnabled: $('f-resume').checked,
     autoNext: $('f-autonext').checked,
     statsEnabled: $('f-stats').checked,
     showInternational: $('f-international').checked,
     subtitleStyle: $('f-substyle').value,
-    subtitleSize: Number($('f-subsize').value),
+    subtitleScale: Number($('f-subsize').value),
   };
 }
 
@@ -3404,17 +3616,22 @@ function previewSetupLook() {
   const look = subtitleLook(readSetupSettings());
   const preview = document.querySelector('#panel-subs .sublook');
   preview.dataset.substyle = look.style;
-  preview.style.setProperty('--sub-size', `${look.size}px`);
-  $('f-subsize-value').textContent = `${look.size} px`;
+  preview.style.setProperty('--sub-scale', String(look.scale / 100));
+  showSubtitleSize('f', look.scale);
   fitSubtitlePreview();
 }
 
-/** Keep the two-line sample intact even at 72 px or in a narrow dialog.
- * Only this decorative preview is scaled; stored and playback sizes stay put. */
+/**
+ * The frame stands in for the picture: the sample is the same share of its
+ * height as the subtitles will be of the film's. Only a sample too wide
+ * for a narrow frame is scaled down to fit.
+ */
 function fitSubtitlePreview() {
   const frame = document.querySelector('#panel-subs .sublook-preview');
   const sample = frame.querySelector('.subdisplay');
-  if (!frame.clientWidth || !frame.clientHeight || !sample.offsetWidth) return;
+  if (!frame.clientWidth || !frame.clientHeight) return;
+  frame.style.setProperty('--pic-h', `${Math.round(pictureHeight(frame.clientWidth, frame.clientHeight))}px`);
+  if (!sample.offsetWidth) return;
   const scale = Math.min(1, Math.max(0, frame.clientWidth - 32) / sample.offsetWidth,
     Math.max(0, frame.clientHeight - 32) / sample.offsetHeight);
   frame.style.setProperty('--sub-preview-scale', String(scale));
@@ -3626,9 +3843,18 @@ function wireSetup() {
   // The player's Aa popover remains a direct adjustment during playback.
   $('p-substyle').addEventListener('change', () => chooseSubtitleLook('p'));
   $('p-subsize').addEventListener('input', () => applySubtitleLook({
-    subtitleStyle: $('p-substyle').value, subtitleSize: Number($('p-subsize').value),
+    subtitleStyle: $('p-substyle').value, subtitleScale: Number($('p-subsize').value),
   }));
   $('p-subsize').addEventListener('change', () => chooseSubtitleLook('p'));
+  // Back to the size the picture asks for: in the player at once, in the
+  // settings as part of the draft, like the slider beside it.
+  $('p-subsize-reset').addEventListener('click', () => { $('p-subsize').value = String(DEFAULT_SCALE); chooseSubtitleLook('p'); $('p-subsize').focus(); });
+  $('f-subsize-reset').addEventListener('click', () => {
+    const slider = $('f-subsize');
+    slider.value = String(DEFAULT_SCALE);
+    slider.dispatchEvent(new Event('input', { bubbles: true }));
+    slider.focus();
+  });
   el.sublook.addEventListener('click', () => toggleSubtitleLook());
 
   for (const radio of document.querySelectorAll('input[name="source"]')) {
@@ -3716,6 +3942,7 @@ function wireSetup() {
       if (state.epg) state.epg.enabled = state.settings.epgEnabled;
       applySubtitleLook(state.settings);
       renderStatBadge();
+      if (settingsPatch.theme) renderTheme();
       if (settingsPatch.lang) await applyLanguage(store.interfaceLanguage(state.settings));
       // A new starting order, or the international channels shown or
       // hidden, repaints the channel list where it stands; a changed
@@ -3805,6 +4032,8 @@ const SHORTCUTS = [
   ['m', 'help.key.mute'],
   ['a', 'help.key.audio'],
   ['s', 'help.key.star'],
+  ['+  −', 'help.key.subsize'],
+  ['Shift+F10', 'help.key.menu'],
   ['n  p', 'help.key.nextprev'],
   ['l', 'help.key.lastchannel'],
   ['g', 'help.key.guide'],
@@ -4183,8 +4412,16 @@ function wireUi() {
 
   $('btn-settings').addEventListener('click', openSetup);
   $('btn-help').addEventListener('click', openHelp);
+  $('btn-home').addEventListener('click', goHome);
+  $('fav-strip-toggle').addEventListener('click', toggleFavStrip);
+  $('btn-countries').addEventListener('click', () => openCountryPicker());
+  $('f-countries').addEventListener('click', () => openCountryPicker());
+  new ResizeObserver(() => fitIdleHome()).observe(el.overlay);
+  onSystemTheme(renderTheme);
+  // The button turns what is on screen into the other one, and so leaves
+  // "the system's" for a choice of its own; Settings has the way back.
   $('btn-theme').addEventListener('click', async () => {
-    const theme = state.settings.theme === 'light' ? 'dark' : 'light';
+    const theme = document.documentElement.dataset.theme === 'light' ? 'dark' : 'light';
     state.settings = { ...state.settings, theme };
     renderTheme();
     state.settings = await store.saveSettings({ theme });
@@ -4278,7 +4515,7 @@ function wireUi() {
   });
 
   document.addEventListener('keydown', (e) => {
-    if ($('channel-editor').open) return;
+    if ($('countries').open || $('hidden').open) return;
     const tag = e.target.tagName;
     const typing = tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT';
     // A key pressed with Ctrl, Cmd or Alt down belongs to the browser or to
@@ -4303,7 +4540,18 @@ function wireUi() {
     // the browser's full-screen key there and is now the app's.
     if (e.target === el.video && e.key === 'f' && plain) { toggleFullscreen(); return; }
     if (typing || e.target === el.video) return;
-    if (el.setup.open || $('channel-editor').open || $('help').open) return;
+    if (el.setup.open || $('countries').open || $('hidden').open || $('help').open) return;
+    // The menu of the row the list stands on: the context-menu key, or
+    // Shift+F10 where a keyboard has none.
+    if (e.key === 'ContextMenu' || (e.key === 'F10' && e.shiftKey)) {
+      const item = state.rows[state.cursor];
+      if (item?.k === 0) {
+        e.preventDefault();
+        const node = vlist.nodes.get(state.cursor);
+        openChannelMenu(item, node?.querySelector('.row-more') || node || el.list);
+      }
+      return;
+    }
     if (!plain) return;
     // A focused button takes Space and Enter itself; every other key is the player's.
     if (tag === 'BUTTON' && (e.key === ' ' || e.key === 'Enter')) return;
@@ -4327,6 +4575,8 @@ function wireUi() {
       case 'm': el.video.muted = !el.video.muted; break;
       case 'a': cycleAudio(); break;
       case 's': toggleFavoriteAtCursor(); break;
+      case '+': case '=': e.preventDefault(); stepSubtitleSize(1); break;
+      case '-': e.preventDefault(); stepSubtitleSize(-1); break;
       case '?': openHelp(); break;
       case 'Delete': removeAtCursor(); break;
       case 'n': playRelative(1); break;
@@ -4396,8 +4646,9 @@ function renderIdleOverlay() {
   el.overlayText.textContent = welcome ? t('setup.welcome.text') : t(home ? 'player.idle.home' : 'player.idle.text');
 }
 
-const IDLE_CONTINUE = 4;
-const IDLE_CHANNELS = 6;
+// Enough for the widest window; fitIdleHome shows what the window has room for.
+const IDLE_CONTINUE = 12;
+const IDLE_CHANNELS = 24;
 
 /**
  * The empty player's own page. The picture's place was 60 % of the window
@@ -4412,8 +4663,17 @@ function renderIdleHome() {
   const home = el.idleHome;
   home.replaceChildren();
   if (state.playing || !state.lib) { home.hidden = true; return false; }
-  const unfinished = state.recents.filter(isUnfinished).slice(0, IDLE_CONTINUE);
-  const channels = state.recents.filter((item) => item.k === 0).slice(0, IDLE_CHANNELS);
+  // A series is one card, its latest episode left halfway: four episodes of
+  // the same show side by side say nothing the first does not.
+  const seen = new Set();
+  const once = (item) => {
+    const key = item.k === 3 && item.seriesId ? `series:${item.seriesId}` : `${item.k}:${item.id}`;
+    if (seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  };
+  const unfinished = state.recents.filter(isUnfinished).filter(once).slice(0, IDLE_CONTINUE);
+  const channels = state.recents.filter((item) => item.k === 0).filter(once).slice(0, IDLE_CHANNELS);
   if (unfinished.length) {
     home.appendChild(idleSection('player.idle.continue', 'idle-cards', unfinished.map((item) => {
       const card = idleTile('idle-card', item, () => playItem(item));
@@ -4442,7 +4702,35 @@ function renderIdleHome() {
     })));
   }
   home.hidden = !home.childElementCount;
+  if (!home.hidden) requestAnimationFrame(fitIdleHome);
   return !home.hidden;
+}
+
+/**
+ * As much of the empty player's page as the window has room for: one row
+ * of covers, and as many rows of channels as fit under them. The rest is
+ * hidden rather than scrolled to — a page that opens half off-screen reads
+ * as broken — and comes back when the window grows. The overlay still
+ * scrolls, for a window too low for even one row of each.
+ */
+function fitIdleHome() {
+  const home = el.idleHome;
+  if (home.hidden || el.overlay.hidden) return;
+  const lists = [...home.querySelectorAll('.idle-cards, .idle-channels')];
+  for (const list of lists) for (const tile of list.children) tile.hidden = false;
+  const style = getComputedStyle(el.overlay);
+  const bottom = el.overlay.getBoundingClientRect().bottom - parseFloat(style.paddingBottom);
+  for (const list of lists) {
+    const tiles = [...list.children];
+    const columns = getComputedStyle(list).gridTemplateColumns.split(' ').filter(Boolean).length || 1;
+    let rows = 1;
+    if (list.classList.contains('idle-channels') && tiles.length) {
+      const gap = parseFloat(getComputedStyle(list).rowGap) || 0;
+      const height = tiles[0].getBoundingClientRect().height + gap;
+      rows = Math.max(1, Math.floor((bottom - list.getBoundingClientRect().top + gap) / height));
+    }
+    tiles.forEach((tile, i) => { tile.hidden = i >= columns * rows; });
+  }
 }
 
 function idleSection(titleKey, listClass, tiles) {
@@ -4498,6 +4786,7 @@ async function init() {
   renderCastState();
 
   const ui = await store.loadUiState();
+  favStripOpen = Boolean(ui.favStripOpen);
   // The address names this tab's place; the stored view names the place any
   // tab last settled on. A reload has an address and takes it, drill-down
   // and all. A player opened fresh from the toolbar icon has none, and the

@@ -81,6 +81,12 @@ export class VirtualList {
       requestAnimationFrame(() => { this.ticking = false; this.paint({ reuse: true }); });
     };
     viewport.addEventListener('scroll', this.onScroll, { passive: true });
+    // The list places its own rows and sets its own scroll. The browser's
+    // scroll anchoring, which holds a node in place while the content
+    // around it changes, moved the scroll position under it when the rows
+    // were swapped: a keyboard move to the end of the channel editor came
+    // back at the top now and then, with the focus gone.
+    viewport.style.overflowAnchor = 'none';
     this.resizeObserver = new ResizeObserver(() => this.paint({ reuse: true }));
     this.resizeObserver.observe(viewport);
   }

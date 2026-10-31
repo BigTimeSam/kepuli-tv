@@ -24,7 +24,6 @@
   --sep-h: 1.625rem;          /* the same number as SEP_H in app.js */
   --topbar-h: 3.25rem;
   --epg-row: 3rem;
-  --organize-row-h: 2.75rem;   /* the same number as ROW_H in channeleditor.js */         /* the same number as ROW_H in epggrid.js */
   --epg-chan-w: 210px;
   --epg-line: #1b2030;
   /* The tones between the ones above, named so that the light theme can
@@ -138,6 +137,11 @@
 }
 
 * { box-sizing: border-box; }
+/* hidden hides, whatever display a class gives the element: the browser's
+   own rule for it is the weakest there is, and a class with a display
+   outranked it — the empty player's page stayed on screen under
+   "Connecting…" that way, spilling over the picture. */
+[hidden] { display: none !important; }
 
 /* A viewer who has asked the system for more contrast gets it: the borders
    that separate one panel from the next are the first thing to go at low
@@ -204,13 +208,25 @@ h2, h3 { font-weight: 600; }
   background: var(--panel); border-bottom: 1px solid var(--border);
 }
 
-.brand { display: flex; align-items: center; gap: 8px; font-weight: 650; letter-spacing: -0.01em; white-space: nowrap; }
+.brand {
+  display: flex; align-items: center; gap: 8px; font: inherit; font-weight: 650; letter-spacing: -0.01em; white-space: nowrap;
+  color: var(--text); background: none; border: 0; padding: 4px 6px; margin: -4px -6px; border-radius: 7px; cursor: pointer;
+}
+.brand:hover { background: var(--row-hover); }
+.brand:focus-visible { outline: 2px solid var(--accent); outline-offset: 0; }
 /* The same television as in the extension icon. A 48px source, so the mark
    stays sharp on a high-density display too. */
 .brand-mark { width: 18px; height: 18px; background: url("../icons/icon48.png") center / contain no-repeat; }
 
 .tabs { display: flex; gap: 2px; background: var(--panel-2); padding: 3px; border-radius: 9px; }
-.tabs button { border: 0; background: transparent; color: var(--muted); padding: 5px 11px; border-radius: 6px; cursor: pointer; white-space: nowrap; }
+.tabs button { border: 0; background: transparent; color: var(--muted); padding: 5px 11px; border-radius: 6px; cursor: pointer; white-space: nowrap;
+  display: inline-flex; align-items: center; gap: 6px; }
+.tab-icon { width: 15px; height: 15px; flex: none; fill: none; stroke: currentColor; stroke-width: 1.6; stroke-linecap: round; stroke-linejoin: round; }
+/* The marks take some 100 px. Between the narrow layout, where the tabs
+   have a row of their own, and about 1100 px they would push the buttons
+   on the right onto a second row; there the names alone stay. Measured
+   in all thirteen languages: the longest fits on one row from 1080 px. */
+@media (min-width: 601px) and (max-width: 1099px) { .tab-icon { display: none; } }
 .tabs button:hover { color: var(--text); }
 .tabs button.active { background: var(--accent); color: #fff; }
 
@@ -315,13 +331,26 @@ main.guide #btn-pip,
 main.guide #btn-copy { display: none; }
 
 .groups { background: var(--panel); border-right: 1px solid var(--border); display: flex; flex-direction: column; }
-.groups-filter { padding: 8px; border-bottom: 1px solid var(--border); }
+.groups-filter { position: relative; padding: 8px; border-bottom: 1px solid var(--border); }
+/* The same magnifier as the search in the top bar: this field searches too,
+   among the countries and their topics. */
+.groups-filter svg { position: absolute; left: 17px; top: 50%; translate: 0 -50%; width: 13px; height: 13px; fill: none; stroke: var(--muted); stroke-width: 1.8; stroke-linecap: round; pointer-events: none; }
 .groups-filter input {
-  width: 100%; padding: 5px 8px; background: var(--panel-2);
+  width: 100%; padding: 5px 8px 5px 27px; background: var(--panel-2);
   border: 1px solid var(--border); border-radius: 7px; outline: none; font-size: 0.75rem;
 }
 .groups-filter input:focus { border-color: var(--accent); }
 .groups-list { flex: 1; overflow-y: auto; padding: 6px; }
+/* The countries the viewer watches, under the sidebar on the channels. */
+.groups-foot {
+  flex: none; display: flex; align-items: center; gap: 8px; width: 100%;
+  padding: 9px 14px; border: 0; border-top: 1px solid var(--border); background: var(--panel);
+  color: var(--muted); font: inherit; font-size: 0.75rem; text-align: left; cursor: pointer;
+}
+.groups-foot[hidden] { display: none; }
+.groups-foot:hover { color: var(--text); background: var(--row-hover); }
+.groups-foot:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; }
+.groups-foot svg { width: 15px; height: 15px; flex: none; fill: none; stroke: currentColor; stroke-width: 1.5; stroke-linecap: round; stroke-linejoin: round; }
 
 .group { display: flex; align-items: center; gap: 8px; padding: 6px 9px; border-radius: 7px; cursor: pointer; color: var(--muted); }
 .group:hover { background: var(--panel-2); color: var(--text); }
@@ -462,7 +491,8 @@ body.resizing { user-select: none; }
    hover, and a viewer who has asked for more contrast keeps every star in
    sight, as both did before. */
 @media (hover: hover) and (pointer: fine) and (prefers-contrast: no-preference) {
-  .row-star:not(.on), .group-star:not(.on), .chip-star:not(.on) { opacity: 0; transition: opacity .12s; }
+  .row-star:not(.on), .group-star:not(.on), .chip-star:not(.on), .row-more { opacity: 0; transition: opacity .12s; }
+  .row:hover .row-more, .row.selected .row-more,
   .row:hover .row-star, .row.selected .row-star,
   .group:hover .group-star, .groups-list:focus-visible .group.cursor .group-star,
   .chip:hover .chip-star { opacity: 1; }
@@ -587,6 +617,19 @@ button.series-favorite { flex: none; width: 32px; height: 32px; padding: 0; disp
   border-radius: 5px; font-size: 0.875rem; line-height: 1;
 }
 .row-x:hover { color: var(--danger); background: var(--danger-soft); }
+/* The row's own menu (js/rowmenu.js): waits for the pointer like the star. */
+.row-more { width: 24px; height: 24px; flex: none; display: grid; place-items: center; border: 0; padding: 0; background: transparent; color: var(--star); cursor: pointer; border-radius: 5px; }
+.row-more svg { width: 16px; height: 16px; fill: currentColor; }
+.row-more:hover { color: var(--text); background: var(--track); }
+.row-menu {
+  position: fixed; inset: auto; margin: 0; padding: 6px; min-width: 200px;
+  display: flex; flex-direction: column; gap: 2px;
+  background: var(--panel); color: var(--text); border: 1px solid var(--border-strong);
+  border-radius: 10px; box-shadow: 0 14px 34px rgba(0, 0, 0, .45);
+}
+.popitem.danger { color: var(--danger); }
+.row-menu .popitem:focus { background: var(--row-hover); outline: none; }
+.row-menu .popitem:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; }
 
 /* Day and type headings in the favourites and the history. */
 .rowgroup { display: flow-root; }
@@ -596,6 +639,31 @@ button.series-favorite { flex: none; width: 32px; height: 32px; padding: 0; disp
   color: var(--dim); background: var(--panel); border-bottom: 1px solid var(--border);
 }
 .daysep::after { content: ""; flex: 1; height: 1px; background: var(--border); }
+
+/* The list's favourites, folded away above it (renderFavStrip in js/app.js). */
+.fav-strip { flex: none; border-bottom: 1px solid var(--border); background: var(--panel); }
+.fav-strip-toggle {
+  display: flex; align-items: center; gap: 8px; width: 100%; padding: 8px 12px;
+  border: 0; background: none; color: var(--text); font: inherit; font-size: 0.78125rem; font-weight: 600;
+  text-align: left; cursor: pointer;
+}
+.fav-strip-toggle:hover { background: var(--row-hover); }
+.fav-strip-toggle:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; }
+.fav-strip-star { color: var(--gold); }
+.fav-strip-chevron { margin-left: auto; width: 14px; height: 14px; fill: none; stroke: var(--muted); stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; transition: rotate .15s; }
+.fav-strip-toggle[aria-expanded="true"] .fav-strip-chevron { rotate: 180deg; }
+.fav-strip-items { display: flex; gap: 8px; overflow-x: auto; padding: 2px 12px 10px; }
+.fav-tile {
+  flex: none; display: flex; flex-direction: column; align-items: center; gap: 5px; width: 96px; padding: 6px;
+  border: 1px solid var(--border); border-radius: 8px; background: var(--panel-2); color: var(--text);
+  font: inherit; font-size: 0.6875rem; cursor: pointer;
+}
+.fav-tile:hover { background: var(--row-hover); border-color: var(--border-strong); }
+.fav-tile:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.fav-tile.playing { border-color: var(--accent); }
+.fav-name { max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.fav-logo { width: 64px; height: 36px; border-radius: 4px; }
+.fav-cover { width: 56px; aspect-ratio: 2 / 3; border-radius: 4px; }
 
 .listinfo { padding: 7px 10px; border-top: 1px solid var(--border); color: var(--muted); font-size: 0.71875rem; background: var(--panel); font-variant-numeric: tabular-nums; display: flex; align-items: center; gap: 8px; }
 .listinfo .spacer { flex: 1; }
@@ -677,26 +745,43 @@ video { width: 100%; height: 100%; display: block; background: #000; }
 /* Chromium may leave a disabled native icon despite nofullscreen. */
 video[controlslist~="nofullscreen"]::-webkit-media-controls-fullscreen-button { display: none; }
 
-/* Top right, inside the element taken full screen. */
+/* Bottom right, in the browser's own control bar, where a video's full
+   screen button is everywhere else: viewers looked for it there and did
+   not find it in the top corner where it used to be. It is the app's own
+   because the browser's takes the bare <video> full screen, without the
+   subtitle layer over it. Chrome's ⋮ menu held the same corner; what it
+   offered — speed, picture in picture, captions — is under the app's ☰ and
+   its subtitle selector. Firefox draws a button of its own there and keeps
+   it whatever the page asks, so this one stands aside: Firefox's takes the
+   bare <video> full screen, where the browser draws the subtitles itself
+   (js/subdisplay.js, mode). Sending it on to the wrapper was tried, and
+   Firefox refuses a second request without a fresh press. */
+/* Room at the right end of Chrome's bar, both its rows, for the button. */
+video::-webkit-media-controls-panel { padding-right: 46px; }
 .video-fullscreen {
-  position: absolute; right: 12px; top: 12px; z-index: 2;
-  display: grid; place-items: center; width: 44px; height: 44px; padding: 0;
-  color: #fff; background: rgba(0, 0, 0, .72); border: 1px solid rgba(255, 255, 255, .3);
-  border-radius: 8px; cursor: pointer; opacity: 0; pointer-events: none;
+  position: absolute; right: 6px; bottom: 26px; z-index: 2;
+  display: grid; place-items: center; width: 36px; height: 36px; padding: 0;
+  color: #fff; background: transparent; border: 0;
+  border-radius: 50%; cursor: pointer; opacity: 0; pointer-events: none;
   transition: opacity .15s ease, background .15s ease;
+  filter: drop-shadow(0 0 2px rgba(0, 0, 0, .8));
 }
-.video-fullscreen svg { width: 22px; height: 22px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+.video-fullscreen svg { width: 22px; height: 22px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
 .video-fullscreen[hidden] { display: none; }
 .videowrap.controls .video-fullscreen, .video-fullscreen:focus-visible { opacity: 1; pointer-events: auto; }
-.video-fullscreen:hover { background: rgba(0, 0, 0, .92); border-color: #fff; }
-.video-fullscreen:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; }
+.video-fullscreen:hover { background: rgba(255, 255, 255, .16); }
+/* Chrome's bar stands taller in full screen: the row of buttons is higher up. */
+.videowrap:fullscreen .video-fullscreen { bottom: 39px; }
+.video-fullscreen:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+@supports (-moz-appearance: none) { .video-fullscreen { display: none; } }
 
 /* --------------------------------------------------------- subtitles */
 
 /* The subtitles are drawn by the app in a layer over the picture, see
-   js/subdisplay.js. The size is the viewer's, in pixels, and comes as
-   --sub-size in the body's style; it is the same in full screen, where the
-   wrapper goes and the layer with it. */
+   js/subdisplay.js. The size is a share of the picture's height, so the
+   same in a window and in full screen, where the wrapper goes and the
+   layer with it: --sub-scale in the body's style is the viewer's choice,
+   --pic-h on the wrapper the picture's height. */
 .videowrap:fullscreen { background: #000; }
 
 .subdisplay {
@@ -704,7 +789,9 @@ video[controlslist~="nofullscreen"]::-webkit-media-controls-fullscreen-button { 
   display: flex; flex-direction: column; align-items: center; justify-content: flex-end; gap: .3em;
   pointer-events: none; text-align: center;
   font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
-  font-size: var(--sub-size, 24px); font-weight: 500; line-height: 1.3;
+  /* A share of the picture's height (js/subdisplay.js): --pic-h is the
+     picture without its bars, --sub-scale the viewer's size, 1 at 100 %. */
+  font-size: max(14px, calc(var(--pic-h, 450px) * var(--sub-scale, 1) * 0.055)); font-weight: 500; line-height: 1.3;
   transition: bottom .2s ease;
 }
 /* Above the browser's controls while they are likely on show, see wake()
@@ -768,7 +855,9 @@ body[data-subrender="overlay"] video::cue { visibility: hidden; opacity: 0; }
 body[data-subrender="overlay"] video::-webkit-media-text-track-container { display: none; }
 video::cue {
   color: #fff; background: rgba(0, 0, 0, .62); line-height: 1.25;
-  font-size: var(--sub-size, 24px);
+  /* The browser draws only for a bare <video> taken full screen, which is
+     then the whole screen: the same share, of the screen's height. */
+  font-size: calc(var(--sub-scale, 1) * 5.5vh);
   font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
 }
 body[data-substyle="shadow"] video::cue {
@@ -793,12 +882,23 @@ body[data-substyle="contrast"] video::cue { background: #000; }
 .now-title:empty { display: none; }
 
 /* The empty player's page: covers to carry on with, then channels. */
-.overlay:has(.idle-home:not([hidden])) { overflow-y: auto; place-items: start center; padding-top: 7vh; }
-.overlay-inner:has(.idle-home:not([hidden])) { max-width: 640px; width: 100%; }
+/* The whole of the player's area, rather than a column down its middle;
+   what does not fit is hidden by fitIdleHome in js/app.js, and the overlay
+   scrolls for a window too low for even one row. */
+.overlay:has(.idle-home:not([hidden])) { overflow-y: auto; place-items: start center; padding: clamp(16px, 5vh, 48px) clamp(16px, 3vw, 40px); }
+.overlay-inner:has(.idle-home:not([hidden])) { max-width: 1200px; width: 100%; }
 .idle-home { margin-top: 22px; display: grid; gap: 22px; text-align: left; }
+/* The display above outranks the browser's own rule for [hidden]: without
+   this the page stayed on screen, narrow and spilling over the picture,
+   under "Connecting…" and "Examining the file", which hide it. */
+.idle-home[hidden] { display: none; }
 .idle-home h3 { margin: 0 0 10px; font-size: 0.6875rem; font-weight: 600; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
-.idle-cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(118px, 1fr)); gap: 12px; }
-.idle-channels { display: grid; grid-template-columns: repeat(auto-fill, minmax(190px, 1fr)); gap: 8px; }
+/* A cover's width follows the height there is: a low window gets small
+   covers and still room for the channels under them. */
+.idle-home { --idle-card: clamp(92px, calc((100dvh - 330px) * 0.26), 168px); }
+.idle-cards { display: grid; grid-template-columns: repeat(auto-fill, var(--idle-card)); gap: 12px; }
+.idle-channels { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 8px; }
+.idle-card[hidden], .idle-channel[hidden] { display: none; }
 .idle-card, .idle-channel {
   display: flex; min-width: 0; border: 1px solid var(--border); background: var(--panel); color: var(--text);
   font: inherit; text-align: left; cursor: pointer; border-radius: 9px;
@@ -943,7 +1043,7 @@ dialog::backdrop { background: var(--backdrop); backdrop-filter: blur(2px); }
 /* .tabs sets display: flex, and an explicit display beats [hidden] — the
    first run has no sections to offer and the rail has to go. */
 .setup-tabs[hidden] { display: none; }
-.setup-tabs button { flex: 1; text-align: center; }
+.setup-tabs button { flex: 1; justify-content: center; text-align: center; }
 /* One section at a time; only its contents scroll in a short window. */
 .setup-panel { display: flex; flex-direction: column; gap: 14px; }
 .setup-panel[hidden] { display: none; }
@@ -995,7 +1095,7 @@ dialog::backdrop { background: var(--backdrop); backdrop-filter: blur(2px); }
 .grid .field:nth-child(n+4) { grid-column: span 2; }
 /* Two fields that belong together on one line, as .grid does for the
    connection form; below 520px they go one above the other. */
-.field-pair { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.field-pair { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 10px; }
 
 /* Choosing the connection mode. Chips would be too light here: the choice
    changes the whole form, so it may look like a choice. */
@@ -1011,11 +1111,13 @@ dialog::backdrop { background: var(--backdrop); backdrop-filter: blur(2px); }
 
 /* The subtitle look, with a preview: the choice is judged by eye, and the
    picture is not always there to judge it on. The same rules draw the
-   preview as the layer, at the same size in pixels. The ground is a
-   stand-in for a bright, uneven picture — the case a look has to survive. */
+   preview as the layer, and the frame stands in for the picture: the text
+   is the same share of its height as it will be of the film's. The ground
+   is a stand-in for a bright, uneven picture — the case a look has to
+   survive. */
 .sublook { display: flex; flex-direction: column; gap: 12px; flex: 1; min-height: 0; }
-/* Controls keep their place above a bounded preview. Only the sample is
-   scaled to fit the frame, never the selected size used in playback. */
+/* Controls keep their place above a bounded preview. A sample too wide
+   for a narrow frame is scaled down to fit; nothing else is. */
 .sublook-preview {
   position: relative; flex: 1; min-height: 0; overflow: hidden;
   border: 1px solid var(--border); border-radius: 9px;
@@ -1031,10 +1133,16 @@ dialog::backdrop { background: var(--backdrop); backdrop-filter: blur(2px); }
 .sublook-preview .subdisplay .cue { max-width: none; white-space: pre; }
 .sublook-fields { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; flex-shrink: 0; }
 .field-hint { font-size: 0.75rem; color: var(--muted); line-height: 1.45; }
+.setup-row { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+.setup-row > button { flex: none; }
 /* Two classes, to beat the muted colour .field gives every span in it. */
 .field .playlist-status { color: var(--danger); }
 .radios { flex-wrap: wrap; }
-.range-label { display: flex; justify-content: space-between; }
+.range-label { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; }
+.range-label > span:first-child { flex: 1; }
+/* Back to 100 %: a word beside the number, there only when it is not 100. */
+.range-reset { border: 0; background: none; padding: 0; font: inherit; font-size: 0.75rem; color: var(--accent-ink); cursor: pointer; text-decoration: underline; text-underline-offset: 2px; }
+.range-reset[hidden] { display: none; }
 .range-label output { font-variant-numeric: tabular-nums; }
 .field input[type="range"] { padding: 0; border: 0; background: none; height: 33px; accent-color: var(--accent); cursor: pointer; }
 
@@ -1176,43 +1284,36 @@ dialog::backdrop { background: var(--backdrop); backdrop-filter: blur(2px); }
 .help-keys dd { margin: 0; color: var(--muted); }
 .help-note { margin: 0; color: var(--muted); line-height: 1.5; }
 
-#channel-editor { width: min(760px, calc(100vw - 32px)); max-height: calc(100dvh - 32px); }
-.editor-content { padding: 24px; display: flex; flex-direction: column; gap: 14px; max-height: calc(100dvh - 34px); }
+/* The countries the viewer watches and what they have hidden
+   (js/channelchoices.js). */
+#countries, #hidden { width: min(560px, calc(100vw - 32px)); max-height: calc(100dvh - 32px); }
+.choice-content { padding: 24px; display: flex; flex-direction: column; gap: 14px; max-height: calc(100dvh - 34px); }
 .editor-help { margin: 0; color: var(--muted); line-height: 1.5; }
-.editor-toolbar, .programme-form, .programme-summary { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
-.editor-toolbar input, .programme-form input { flex: 1; min-width: 150px; }
-.editor-toolbar input, .editor-toolbar select, .programme-form input, .programme-form select {
+.editor-help[hidden] { display: none; }
+.programme-form, .programme-summary { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.programme-form input { flex: 1; min-width: 150px; }
+.programme-form input, .programme-form select {
   color: var(--text); background: var(--panel-2); border: 1px solid var(--border); border-radius: 6px; padding: 7px 9px; min-width: 0;
 }
-.editor-toolbar select { max-width: 45%; }
-/* As many rows as the window will carry: reordering hundreds of channels
-   seven at a time is a scrollbar, not a tool. */
-.organize-list { height: min(52vh, 616px); min-height: 132px; overflow-y: auto; border: 1px solid var(--border); border-radius: 8px; }
-.organize-row { height: var(--organize-row-h); display: flex; align-items: center; gap: 8px; padding: 4px 10px; border-bottom: 1px solid var(--border); background: var(--panel); }
-.organize-row label { display: flex; align-items: center; gap: 10px; flex: 1; min-width: 0; cursor: pointer; }
-.organize-body { display: grid; min-width: 0; line-height: 1.25; }
-.organize-name, .organize-where { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.organize-where { color: var(--muted); font-size: 0.6875rem; }
-.organize-logo { width: 30px; height: 22px; flex: none; }
-.organize-row input { accent-color: var(--accent); flex-shrink: 0; }
-.organize-row.is-hidden label span { color: var(--muted); text-decoration: line-through; }
+.choice-filter { position: relative; }
+.choice-filter svg { position: absolute; left: 10px; top: 50%; translate: 0 -50%; width: 14px; height: 14px; fill: none; stroke: var(--muted); stroke-width: 1.8; stroke-linecap: round; pointer-events: none; }
+.choice-filter input { width: 100%; padding: 7px 9px 7px 30px; color: var(--text); background: var(--panel-2); border: 1px solid var(--border); border-radius: 8px; outline: none; }
+.choice-filter input:focus { border-color: var(--accent); }
+.choice-list { min-height: 0; max-height: min(56vh, 560px); overflow-y: auto; border: 1px solid var(--border); border-radius: 8px; }
+.choice-list:empty { display: none; }
+.choice-row { display: flex; align-items: center; gap: 10px; min-height: 42px; padding: 5px 12px; border-bottom: 1px solid var(--row-line); cursor: pointer; }
+.choice-row:last-child { border-bottom: 0; }
+.choice-row[hidden] { display: none; }
+div.choice-row { cursor: default; }
+label.choice-row:hover { background: var(--row-hover); }
+.choice-row input { accent-color: var(--accent); flex: none; width: 16px; height: 16px; }
+.choice-name { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.choice-count { color: var(--muted); font-size: 0.75rem; font-variant-numeric: tabular-nums; flex: none; }
+.choice-tag { color: var(--accent-ink); font-size: 0.6875rem; font-weight: 600; border: 1px solid currentColor; border-radius: 5px; padding: 0 5px; flex: none; }
+.choice-logo { width: 30px; height: 22px; flex: none; }
+.choice-row .ghost { padding: 4px 10px; flex: none; }
+.choice-actions span { flex: 1; color: var(--muted); font-size: 0.75rem; }
 
-/* The drag handle. touch-action keeps a finger on it from scrolling the
-   list instead of picking the row up. */
-.organize-grip { display: grid; place-items: center; flex: none; width: 30px; height: 34px; padding: 0;
-  border: 0; border-radius: 7px; background: transparent; color: var(--muted); cursor: grab; touch-action: none; }
-.organize-grip > svg { display: block; width: 16px; height: 16px; fill: currentColor; }
-.organize-grip:hover:enabled { color: var(--text); background: var(--panel-2); }
-.organize-grip:disabled { opacity: .3; cursor: default; }
-.organize-grip:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; }
-.organize-list.is-dragging { user-select: none; }
-.organize-list.is-dragging .organize-grip { cursor: grabbing; }
-/* The row the floating copy came from: a gap that shows where it would land. */
-.organize-row.is-dragging { background: var(--panel-2); }
-.organize-row.is-dragging > * { opacity: .25; }
-.organize-ghost { position: fixed; z-index: 3; pointer-events: none; border: 1px solid var(--accent);
-  border-radius: 8px; box-shadow: 0 14px 34px rgba(0, 0, 0, .55); }
-.editor-actions span { flex: 1; color: var(--muted); font-size: 0.75rem; }
 .programme-form { padding: 8px 10px; border-bottom: 1px solid var(--border); background: var(--panel); }
 .programme-form input { min-width: 180px; }
 .programme-panel { display: flex; flex: 1; flex-direction: column; min-height: 0; }
@@ -1228,11 +1329,10 @@ dialog::backdrop { background: var(--backdrop); backdrop-filter: blur(2px); }
 .epg-days { min-width: 0; max-width: 34vw; overflow-x: auto; }
 
 @media (max-width: 600px) {
-  .editor-content { padding: 16px; gap: 10px; }
+  .choice-content { padding: 16px; gap: 10px; }
   .editor-help { font-size: 0.75rem; line-height: 1.4; }
-  .editor-toolbar input { flex: 1 0 100%; }
-  .editor-actions { justify-content: flex-end; padding-top: 10px; }
-  .editor-actions span { flex-basis: 100%; }
+  .choice-actions { padding-top: 10px; }
+  .choice-actions span { flex-basis: 100%; }
 }
 
 .epg-bar {

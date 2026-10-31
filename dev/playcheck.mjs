@@ -90,6 +90,14 @@
 //                                     bar and a live channel are left alone
 //                                     (in Chrome; Firefox's own controls
 //                                     keep the clicks to themselves)
+//   node dev/playcheck.mjs channels   the channel order setting; a channel's
+//                                     menu makes it a favourite, gathered
+//                                     folded above the list, and hides it
+//                                     with Undo; Hidden gives it back; the
+//                                     countries chosen thin the sidebar
+//   node dev/playcheck.mjs home       the logo goes back to the start: the
+//                                     channels, the top of the list, with
+//                                     what is playing still playing
 //   node dev/playcheck.mjs pickers    a drop-down opens the app's own list:
 //                                     a long one with a filter that narrows
 //                                     it, a short one without; Escape closes
@@ -876,6 +884,31 @@ async function pickers(page) {
   return { ok: true, detail: `long list filtered to ${narrowed.shown[0]}; Escape kept the dialog; short list without a filter chose ${picked.value}` };
 }
 
+/**
+ * The logo is the way back to the start: from a series page with a search
+ * in it and the guide open, to the channels, the first country, the top
+ * of the list — with what is playing still playing.
+ */
+async function home(page) {
+  const assert = (ok, detail) => { if (!ok) throw new Error(detail); };
+  await playFirstChannel(page);
+  const playing = await evaluate(page, `document.getElementById('now-title')?.textContent || ''`);
+  await evaluate(page, `document.querySelector('#tabs [data-tab="series"]').click()`);
+  await click(page, '#groups', 'Nordic Noir');
+  await click(page, '#list', 'Silent Fjord');
+  await waitFor(page, `!document.getElementById('detail').hidden`, 'the series page');
+  await evaluate(page, `document.getElementById('btn-guide').click()`);
+  await sleep(300);
+  await mouseClick(page, '#btn-home');
+  await waitFor(page, `document.querySelector('#tabs [data-tab="live"]').getAttribute('aria-selected') === 'true' && document.getElementById('detail').hidden
+    && !document.getElementById('main').classList.contains('guide') && document.getElementById('list').getAttribute('aria-busy') === 'false'`, 'the start');
+  const at = await evaluate(page, `({ group: document.querySelector('#groups .group[aria-selected="true"] .group-name')?.textContent, query: document.getElementById('search').value,
+    top: document.getElementById('list').scrollTop, playing: !document.getElementById('video').paused, title: document.getElementById('now-title')?.textContent || '',
+    label: document.getElementById('btn-home').getAttribute('aria-label') })`);
+  assert(at.group && !at.query && at.top === 0 && at.playing && at.title === playing && at.label === 'Kepuli-TV, back to the start', `the start: ${JSON.stringify(at)}`);
+  return { ok: true, detail: `from a series page and the guide to the channels of ${at.group}, the top of the list, with ${playing} still playing` };
+}
+
 async function clickpause(page) {
   const paused = () => evaluate(page, `document.getElementById('video').paused`);
   const spot = (fromBottom = null) => evaluate(page, `(() => { const r = document.getElementById('video').getBoundingClientRect();
@@ -934,6 +967,21 @@ async function fullscreenControl(page) {
   const assert = (ok, detail) => { if (!ok) throw new Error(detail); };
   assert(await evaluate(page, `document.getElementById('btn-fullscreen').hidden && document.getElementById('btn-fullscreen').getClientRects().length === 0`), 'empty player exposes fullscreen');
   await playEpisode(page);
+  if (process.env.KEPULI_BROWSER === 'firefox') {
+    // Firefox keeps its own button in the control bar and ours stands aside;
+    // a double click takes the picture full screen with its subtitles, the
+    // bare <video> drawing them itself or the wrapper drawing them in the layer.
+    assert(await evaluate(page, `document.getElementById('btn-fullscreen').getClientRects().length === 0`), 'Firefox shows a second full screen button');
+    // A real double click on the picture: Firefox takes the bare video full
+    // screen by itself, and a script may not ask without a gesture.
+    const at = await evaluate(page, `(() => { const r = document.getElementById('video').getBoundingClientRect(); return { x: r.left + r.width / 2, y: r.top + r.height * 0.4 }; })()`);
+    await page.doubleClick(at.x, at.y);
+    await waitFor(page, `['video', 'videowrap'].includes(document.fullscreenElement?.id)`, 'full screen from a double click');
+    const subs = await evaluate(page, `document.fullscreenElement.id + ' ' + document.body.dataset.subrender`);
+    assert(subs === 'video native' || subs === 'videowrap overlay', `the subtitles in full screen: ${subs}`);
+    await evaluate(page, `document.exitFullscreen()`);
+    return { ok: true, detail: `Firefox: its own button stays and ours stands aside; a double click goes full screen with the subtitles (${subs})` };
+  }
   await waitFor(page, `document.querySelectorAll('#subdisplay .cue').length > 0`, 'a subtitle cue');
   await evaluate(page, `document.getElementById('video').pause()`);
   await sleep(250);
@@ -941,10 +989,10 @@ async function fullscreenControl(page) {
     const b = document.getElementById('btn-fullscreen'), r = b.getBoundingClientRect(), w = document.getElementById('videowrap').getBoundingClientRect();
     const cues = [...document.querySelectorAll('#subdisplay .cue')].map(c => c.getBoundingClientRect());
     return { inside: b.parentElement.id === 'videowrap' && r.left >= w.left && r.top >= w.top && r.right <= w.right && r.bottom <= w.bottom,
-      topRight: Math.abs(r.top - w.top - 12) < 1 && Math.abs(w.right - r.right - 12) < 1,
+      bottomRight: Math.abs(w.bottom - r.bottom - 26) < 1 && Math.abs(w.right - r.right - 6) < 1,
       visible: getComputedStyle(b).opacity === '1', clear: cues.every(c => c.bottom <= r.top || c.top >= r.bottom || c.right <= r.left || c.left >= r.right), label: b.getAttribute('aria-label') };
   })()`);
-  assert(bounds.inside && bounds.topRight && bounds.visible && bounds.clear && bounds.label === 'Full screen', `overlay control: ${JSON.stringify(bounds)}`);
+  assert(bounds.inside && bounds.bottomRight && bounds.visible && bounds.clear && bounds.label === 'Full screen', `overlay control: ${JSON.stringify(bounds)}`);
   if (process.env.KEPULI_FULLSCREEN_CAPTURE) {
     const { data } = await page.call('Page.captureScreenshot', { format: 'png' });
     (await import('node:fs')).writeFileSync(process.env.KEPULI_FULLSCREEN_CAPTURE, Buffer.from(data, 'base64'));
@@ -971,7 +1019,7 @@ async function fullscreenControl(page) {
   // same fullscreenchange path through the browser's exit API.
   await evaluate(page, `document.exitFullscreen()`);
   await waitFor(page, `!document.fullscreenElement && document.getElementById('btn-fullscreen').title === 'Full screen'`, 'browser exit restores the button state');
-  return { ok: true, detail: 'overlay is clear of subtitles; click enters/exits with subtitles and paused state preserved; fades during playback; keyboard focus and Enter work; browser exit restores the label' };
+  return { ok: true, detail: 'bottom right in the control bar, clear of subtitles; click enters/exits with subtitles and paused state preserved; fades during playback; keyboard focus and Enter work; browser exit restores the label' };
 }
 
 async function subtitles(page) {
@@ -1172,7 +1220,7 @@ async function settings(page, { requests, target }) {
   await change('f-epg', false, true);
   await change('f-lang', 'fi');
   await tab('subs');
-  await change('f-subsize', '36');
+  await change('f-subsize', '150');
   await change('f-substyle', 'yellow');
   await press('f-close');
   assert(await evaluate(page, `document.getElementById('setup').open && !document.getElementById('setup-discard').hidden`), 'X discarded unsaved settings without confirmation');
@@ -1181,11 +1229,11 @@ async function settings(page, { requests, target }) {
   assert(await evaluate(page, `document.documentElement.lang === 'en' && document.body.dataset.substyle === 'shadow' && document.querySelector('#panel-subs .sublook').dataset.substyle === 'yellow'`), 'draft changed runtime or failed to preview');
   await press('f-done');
   await open();
-  assert(await evaluate(page, `document.getElementById('f-epg').checked && document.getElementById('f-lang').value === 'en' && document.getElementById('f-subsize').value === '24'`), 'Cancel retained a draft');
+  assert(await evaluate(page, `document.getElementById('f-epg').checked && document.getElementById('f-lang').value === 'en' && document.getElementById('f-subsize').value === '100'`), 'Cancel retained a draft');
   await tab('general');
   await change('f-epg', false, true);
   await tab('subs');
-  await change('f-subsize', '36');
+  await change('f-subsize', '150');
   // A failed write must keep the dialog and draft without persisting either key.
   await evaluate(page, `window.originalSettingsSet = chrome.storage.local.set; chrome.storage.local.set = async () => { throw new Error('simulated write failure'); };`);
   await press('f-save');
@@ -1195,7 +1243,7 @@ async function settings(page, { requests, target }) {
   await press('f-save');
   await waitFor(page, `!document.getElementById('setup').open`, 'saved settings');
   const committed = await saved();
-  assert(committed.settings.epgEnabled === false && committed.settings.subtitleSize === 36, 'Save did not commit all tabs');
+  assert(committed.settings.epgEnabled === false && committed.settings.subtitleScale === 150, 'Save did not commit all tabs');
   const calls = requests.slice(from).filter((u) => u.includes('player_api.php')).length;
   assert(calls === 0, `preference save made ${calls} API calls`);
   await open();
@@ -1288,16 +1336,16 @@ async function settings(page, { requests, target }) {
   await playEpisode(page);
   await waitFor(page, `!document.getElementById('btn-sublook').hidden`, 'the Aa button', 10000);
   await evaluate(page, `document.getElementById('btn-sublook').click()`, { gesture: true });
-  await evaluate(page, `(() => { const r = document.getElementById('p-subsize'); r.value = '40'; r.dispatchEvent(new Event('input')); r.dispatchEvent(new Event('change')); })()`);
+  await evaluate(page, `(() => { const r = document.getElementById('p-subsize'); r.value = '140'; r.dispatchEvent(new Event('input')); r.dispatchEvent(new Event('change')); })()`);
   await waitFor(page, `document.querySelectorAll('#subdisplay .cue').length > 0`, 'a cue on screen');
   await sleep(400);
   const look = await evaluate(page, `(() => { const pop = document.getElementById('sublook-pop').getBoundingClientRect();
     const cues = [...document.querySelectorAll('#subdisplay .cue')].map((c) => c.getBoundingClientRect());
-    return { size: getComputedStyle(document.body).getPropertyValue('--sub-size').trim(),
+    return { size: getComputedStyle(document.body).getPropertyValue('--sub-scale').trim(),
       mirror: document.getElementById('f-subsize').value,
       covered: cues.filter((c) => c.bottom > pop.top && c.right > pop.left && c.left < pop.right).length, cues: cues.length }; })()`);
-  const savedSize = await evaluate(page, `chrome.storage.local.get('settings').then((d) => d.settings.subtitleSize)`);
-  if (look.size !== '40px' || savedSize !== 40 || look.mirror !== '40') return { ok: false, detail: `the popover left ${JSON.stringify(look)}, stored ${savedSize}` };
+  const savedSize = await evaluate(page, `chrome.storage.local.get('settings').then((d) => d.settings.subtitleScale)`);
+  if (look.size !== '1.4' || savedSize !== 140 || look.mirror !== '140') return { ok: false, detail: `the popover left ${JSON.stringify(look)}, stored ${savedSize}` };
   if (!look.cues || look.covered) return { ok: false, detail: `the popover covers ${look.covered} of ${look.cues} cue(s)` };
 
   // Without credentials the dialog is not settings at all: there is nothing
@@ -1314,17 +1362,9 @@ async function settings(page, { requests, target }) {
 
 
 /** Personal presentation survives reload, cancels cleanly and can be restored. */
-async function organize(page, { target }) {
+async function channels(page) {
   const assert = (ok, message) => { if (!ok) throw new Error(message); };
   await openLiveList(page, 3);
-  const open = async () => {
-    await evaluate(page, `document.getElementById('btn-organize').click()`);
-    await waitFor(page, `document.getElementById('channel-editor').open`, 'channel editor');
-  };
-  const save = async () => {
-    await evaluate(page, `document.getElementById('channel-editor-save').click()`);
-    await waitFor(page, `!document.getElementById('channel-editor').open`, 'saved channel editor');
-  };
   const names = () => evaluate(page, `[...document.querySelectorAll('#list .row-name')].map((n) => n.title)`);
 
   // Where the list starts is a setting; the arrangement made below then has
@@ -1360,92 +1400,104 @@ async function organize(page, { target }) {
   await setSort('az');
   assert(JSON.stringify(await ends()) === JSON.stringify(az), 'the alphabetical order did not come back');
 
-  await open();
-  const original = await evaluate(page, `[...document.querySelectorAll('.organize-row')].map((n) => ({id:n.dataset.id,name:n.querySelector('.organize-name').textContent}))`);
-  await checkModal(page, '#channel-editor', 'channels');
-  await page.call('Emulation.setDeviceMetricsOverride', { width: 390, height: 720, deviceScaleFactor: 1, mobile: false });
-  await checkModal(page, '#channel-editor', 'channels-narrow');
-  await page.call('Emulation.setDeviceMetricsOverride', { width: 1280, height: 800, deviceScaleFactor: 1, mobile: false });
-  for (const control of ['channel-editor-close', 'Escape']) {
-    await evaluate(page, `document.querySelector('.organize-row input').click()`);
-    if (control === 'Escape') await pressKey(page, 'Escape', 'Escape', 27);
-    else await evaluate(page, `document.getElementById('${control}').click()`);
-    assert(await evaluate(page, `!document.getElementById('channel-editor').open`), `${control} did not close channel editor`);
-    await open();
-    assert(await evaluate(page, `document.querySelector('.organize-row input').checked`), `${control} retained an unsaved channel draft`);
-  }
-  // Drag row 1 onto row 0's place: the rows underneath shuffle live and the
-  // floating copy goes when it is let go.
-  const grip = async (index) => evaluate(page, `(() => { const r = document.querySelectorAll('.organize-row')[${index}].querySelector('[data-action="move"]').getBoundingClientRect();
-    return { x: Math.round(r.left + r.width / 2), y: Math.round(r.top + r.height / 2) }; })()`);
-  const mouse = (type, x, y, buttons = 1) => page.call('Input.dispatchMouseEvent', { type, x, y, button: 'left', buttons, clickCount: 1 });
-  const shown = () => evaluate(page, `[...document.querySelectorAll('.organize-row')].map((n) => n.dataset.id)`);
-  const from = await grip(1);
-  const drag = async (dy) => {
-    await mouse('mouseMoved', from.x, from.y, 0);
-    await mouse('mousePressed', from.x, from.y);
-    await mouse('mouseMoved', from.x, from.y - 20);
-    assert(await evaluate(page, `document.querySelectorAll('.organize-ghost').length === 1`), 'no floating copy while dragging');
-    await mouse('mouseMoved', from.x, from.y - dy);
-    assert((await shown())[0] === original[1].id, 'the dragged row did not follow the pointer');
+  // A channel's own menu, from a right click: a favourite or not, and
+  // hide with Undo in the message.
+  const menu = async (index) => {
+    await evaluate(page, `document.getElementById('list').scrollTop = 0`);
+    await sleep(200);
+    await evaluate(page, `document.querySelectorAll('#list .row')[${index}].dispatchEvent(new MouseEvent('contextmenu', { bubbles: true, cancelable: true, clientX: 400, clientY: 300 }))`);
+    await waitFor(page, `document.querySelector('.row-menu:popover-open')`, 'the row menu');
+    return evaluate(page, `[...document.querySelectorAll('.row-menu .popitem')].map((b) => b.textContent)`);
   };
-  // Escape puts the row back and leaves the editor open; the release that
-  // follows belongs to a drag that is already over.
-  await drag(52);
-  await pressKey(page, 'Escape', 'Escape', 27);
-  assert(await evaluate(page, `document.getElementById('channel-editor').open && !document.querySelector('.organize-ghost')`),
-    'Escape during a drag closed the editor or left the floating copy behind');
-  assert((await shown())[0] === original[0].id, 'Escape during a drag kept the move');
-  await mouse('mouseReleased', from.x, from.y - 52, 0);
-  await drag(52);
-  await mouse('mouseReleased', from.x, from.y - 52, 0);
-  assert(await evaluate(page, `!document.querySelector('.organize-ghost')`), 'the floating copy outlived the drop');
-  assert((await shown()).slice(0, 2).join() === [original[1].id, original[0].id].join(), 'the drop did not hold');
-  await evaluate(page, `document.querySelectorAll('.organize-row')[1].querySelector('input').click()`);
-  await save();
-  assert((await names())[0] === original[1].name, 'custom order not applied to channel list');
-  assert(!(await names()).includes(original[0].name), 'hidden channel remained in the channel list');
-  await page.call('Page.navigate', { url: bare(target.url) });
-  await waitFor(page, CONNECTED, 'reload with preferences');
-  await waitFor(page, `document.querySelectorAll('#list .row').length > 0`, 'reloaded list');
-  assert((await names())[0] === original[1].name, 'custom order lost on reload');
-  await open();
-  assert(await evaluate(page, `!document.querySelector('.organize-row[data-id="${original[0].id}"] input').checked`), 'hidden channel cannot be restored from editor');
-  await evaluate(page, `document.querySelector('.organize-row[data-id="${original[0].id}"] input').click(); document.getElementById('channel-editor-cancel').click()`);
-  assert(!(await names()).includes(original[0].name), 'Cancel committed the draft');
-  await open();
-  await evaluate(page, `document.getElementById('channel-editor-show').click(); document.getElementById('channel-editor-reset').click()`);
-  await save();
-  assert((await names()).includes(original[0].name), 'restoring hidden channels failed');
-  await open();
-  await evaluate(page, `document.getElementById('channel-editor-kind').value='categories'; document.getElementById('channel-editor-kind').dispatchEvent(new Event('input'))`);
-  const group = await evaluate(page, `document.getElementById('channel-editor-group').value`);
-  await evaluate(page, `document.getElementById('channel-editor-hide').click()`);
-  await save();
-  assert(!(await evaluate(page, `[...document.querySelectorAll('#groups .group')].some((g) => g.textContent.includes(${JSON.stringify(group)}))`)), 'fully hidden category group remained in sidebar');
-  await open();
-  await evaluate(page, `document.getElementById('channel-editor-kind').value='categories'; document.getElementById('channel-editor-group').value=''; document.getElementById('channel-editor-kind').dispatchEvent(new Event('input')); document.getElementById('channel-editor-show').click()`);
-  await save();
-  assert(await evaluate(page, `[...document.querySelectorAll('#groups .group')].some((g) => g.textContent.includes(${JSON.stringify(group)}))`), 'hidden category group was not restorable');
-
-  // The keyboard reaches the whole list without a drag: End takes the
-  // handle's row to the bottom and Home brings it back, the focus travelling
-  // with it. Nothing here is saved.
+  const choose = async (label) => {
+    await evaluate(page, `[...document.querySelectorAll('.row-menu .popitem')].find((b) => b.textContent === ${JSON.stringify(label)}).click()`);
+    await waitFor(page, `!document.querySelector('.row-menu') && document.getElementById('list').getAttribute('aria-busy') === 'false'`, `the list after ${label}`);
+    await sleep(200);
+  };
   const before = await names();
-  await open();
-  const move = (index, key) => evaluate(page, `document.querySelectorAll('.organize-row')[${index}]
-    .querySelector('[data-action="move"]').dispatchEvent(new KeyboardEvent('keydown', { key: ${JSON.stringify(key)}, bubbles: true }))`);
-  assert(await evaluate(page, `document.getElementById('channel-editor-reset').disabled`), 'Reset order was offered with nothing arranged');
-  const top = (await shown())[0];
-  await move(0, 'End');
-  assert((await shown()).at(-1) === top, 'End did not take the row to the bottom');
-  assert(await evaluate(page, `document.activeElement.dataset.action === 'move'`), 'the handle lost the focus after a keyboard move');
-  assert(!(await evaluate(page, `document.getElementById('channel-editor-reset').disabled`)), 'Reset order stayed off after an arrangement');
-  await move((await shown()).length - 1, 'Home');
-  assert((await shown())[0] === top, 'Home did not bring the row back to the top');
-  await evaluate(page, `document.getElementById('channel-editor-cancel').click()`);
-  assert((await names()).join() === before.join(), 'a cancelled keyboard move reached the channel list');
-  return { ok: true, detail: 'channel order from Settings (A-Z, Z-A, channel number); drag and drop with a live shuffle; End/Home from the handle; hide/save/reload; Cancel preserves saved data; hidden channels and categories restored' };
+  const home = await evaluate(page, `document.querySelector('#groups .group[aria-selected="true"] .group-name')?.textContent`);
+  const items = await menu(2);
+  assert(JSON.stringify(items) === JSON.stringify(['Add to favourites', 'Hide channel']), `the menu of a channel: ${JSON.stringify(items)}`);
+  await choose('Add to favourites');
+  await menu(4);
+  await choose('Add to favourites');
+  // The favourites stay in their places in the list, and gather folded above it.
+  // The list paints what fits, and the folded favourites take a row of its height.
+  const after = await names();
+  assert(after.length > 4 && JSON.stringify(after) === JSON.stringify(before.slice(0, after.length)), `a favourite moved in the list: ${JSON.stringify({ before, after })}`);
+  const strip = () => evaluate(page, `({ shown: !document.getElementById('fav-strip').hidden, label: document.getElementById('fav-strip-label').textContent,
+    open: document.getElementById('fav-strip-toggle').getAttribute('aria-expanded'), tiles: [...document.querySelectorAll('#fav-strip-items .fav-tile')].map((b) => b.title) })`);
+  let favs = await strip();
+  assert(favs.shown && favs.label === 'Favourites (2)' && favs.open === 'false' && !favs.tiles.length, `the folded favourites: ${JSON.stringify(favs)}`);
+  await mouseClick(page, '#fav-strip-toggle');
+  await sleep(200);
+  favs = await strip();
+  assert(favs.open === 'true' && JSON.stringify(favs.tiles) === JSON.stringify([before[2], before[4]]), `the open favourites: ${JSON.stringify(favs)}`);
+  assert(JSON.stringify(await menu(2)) === JSON.stringify(['Remove from favourites', 'Hide channel']), 'the menu of a favourite');
+  await evaluate(page, `document.querySelector('.row-menu .popitem').click()`);
+  await sleep(300);
+  favs = await strip();
+  assert(favs.label === 'Favourites (1)' && JSON.stringify(favs.tiles) === JSON.stringify([before[4]]), `a favourite taken off: ${JSON.stringify(favs)}`);
+  await mouseClick(page, '#fav-strip-items .fav-tile');
+  await waitFor(page, `document.getElementById('now-title').textContent && !document.getElementById('video').paused || document.getElementById('overlay').classList.contains('loading')`, 'the favourite playing');
+
+  // The keyboard: Shift+F10 on the row the list stands on, Escape back.
+  await evaluate(page, `document.getElementById('list').focus()`);
+  // WebDriver has no F10 to press; Firefox gets the key as the page would.
+  if (process.env.KEPULI_BROWSER === 'firefox') await evaluate(page, `document.getElementById('list').dispatchEvent(new KeyboardEvent('keydown', { key: 'F10', shiftKey: true, bubbles: true }))`);
+  else await pressKey(page, 'F10', 'F10', 121, 8);
+  await waitFor(page, `document.querySelector('.row-menu:popover-open') && document.activeElement.classList.contains('popitem')`, 'the menu from the keyboard');
+  await pressKey(page, 'Escape', 'Escape', 27);
+  await waitFor(page, `!document.querySelector('.row-menu') && document.activeElement.id === 'list'`, 'Escape back to the list');
+
+  // Hide, Undo, hide again, and back from Hidden.
+  const hide = (await names())[3];
+  await menu(3);
+  await choose('Hide channel');
+  assert(!(await names()).includes(hide), 'the hidden channel is still listed');
+  await evaluate(page, `document.querySelector('#toast .toast-action').click()`);
+  await waitFor(page, `[...document.querySelectorAll('#list .row-name')].some((n) => n.title === ${JSON.stringify(hide)})`, 'Undo bringing the channel back');
+  await menu(3);
+  await choose('Hide channel');
+  assert(await evaluate(page, `document.getElementById('btn-hidden')?.textContent === 'Hidden (1)'`), 'no Hidden (1) under the list');
+  await evaluate(page, `document.getElementById('btn-hidden').click()`);
+  await waitFor(page, `document.getElementById('hidden').open && document.querySelectorAll('#hidden-list .choice-row').length === 1`, 'the Hidden dialog');
+  await checkModal(page, '#hidden', 'hidden');
+  await evaluate(page, `document.querySelector('#hidden-list .choice-row button').click()`);
+  await waitFor(page, `!document.getElementById('hidden').open && !document.getElementById('btn-hidden')`, 'Show again closing an emptied Hidden');
+  assert((await names()).includes(hide), 'Show again did not bring the channel back');
+
+  // The countries: one chosen, the rest out of the sidebar; all again.
+  const groupsShown = () => evaluate(page, `[...document.querySelectorAll('#groups .group-name')].map((n) => n.textContent)`);
+  const allGroups = await groupsShown();
+  await evaluate(page, `document.getElementById('btn-countries').click()`);
+  await waitFor(page, `document.getElementById('countries').open`, 'the countries dialog');
+  await checkModal(page, '#countries', 'countries');
+  await evaluate(page, `(() => { const f = document.getElementById('countries-filter'); f.value = 'swe'; f.dispatchEvent(new Event('input')); })()`);
+  const filtered = await evaluate(page, `[...document.querySelectorAll('#countries-list .choice-row:not([hidden]) .choice-name')].map((n) => n.textContent)`);
+  assert(JSON.stringify(filtered) === '["Sweden"]', `the filter: ${JSON.stringify(filtered)}`);
+  await evaluate(page, `document.querySelector('#countries-list .choice-row:not([hidden]) input').click(); document.getElementById('countries-save').click()`);
+  await waitFor(page, `!document.getElementById('countries').open`, 'the countries saved');
+  await sleep(300);
+  const chosen = await groupsShown();
+  assert(chosen.includes('Sweden') && !chosen.includes('Finland') && chosen.length < allGroups.length, `the sidebar after choosing Sweden: ${JSON.stringify(chosen)}`);
+  assert(await evaluate(page, `document.getElementById('btn-countries-text').textContent === '1 country chosen'`), 'the button does not say what is chosen');
+  await evaluate(page, `document.getElementById('btn-countries').click()`);
+  await waitFor(page, `document.getElementById('countries').open`, 'the countries dialog again');
+  await evaluate(page, `document.getElementById('countries-all').click(); document.getElementById('countries-save').click()`);
+  await waitFor(page, `!document.getElementById('countries').open`, 'all countries saved');
+  await sleep(300);
+  assert(JSON.stringify(await groupsShown()) === JSON.stringify(allGroups), 'Show all did not bring every country back');
+
+  // The favourites, open, outlast a reload.
+  await page.call('Page.reload');
+  await waitFor(page, CONNECTED, 'the connection after the reload');
+  await openLiveList(page, 3);
+  await evaluate(page, `[...document.querySelectorAll('#groups .group')].find((g) => g.querySelector('.group-name')?.textContent === ${JSON.stringify(home)})?.click()`);
+  await sleep(500);
+  favs = await strip();
+  assert(favs.open === 'true' && JSON.stringify(favs.tiles) === JSON.stringify([before[4]]), `the favourites after a reload: ${JSON.stringify(favs)}`);
+  return { ok: true, detail: 'channel order from Settings (A-Z, Z-A, number); favourites from the menu, folded above the list and in their places in it; the menu from a right click and Shift+F10; hide with Undo, Hidden and Show again; countries chosen and all again; the open favourites kept over a reload' };
 }
 
 /**
@@ -1727,7 +1779,7 @@ async function setupClarity(page) {
   await press('f-done');
   await press('btn-settings');
   await evaluate(page, `document.querySelector('#setup-tabs [data-panel="subs"]').click()`);
-  await change('f-subsize', '72');
+  await change('f-subsize', '250');
   for (const [width,height] of [[1280,800],[390,844],[320,568],[640,420]]) {
     await page.call('Emulation.setDeviceMetricsOverride', {width,height,deviceScaleFactor:1,mobile:false});
     for (const style of ['shadow','box','contrast']) {
@@ -1742,16 +1794,16 @@ async function setupClarity(page) {
         return {inside:sample.left>=frame.left && sample.right<=frame.right && sample.top>=frame.top && sample.bottom<=frame.bottom,
           controlsAbove:controls.bottom<=frame.top,visible:controls.top>=panel.top && frame.bottom<=panel.bottom+1,
           footer:save.bottom<=innerHeight, size:document.getElementById('f-subsize').value,
-          runtime:document.body.style.getPropertyValue('--sub-size')};})()`);
-      assert(fit.inside && fit.controlsAbove && fit.visible && fit.footer && fit.size==='72' && fit.runtime==='24px', `${width}x${height} ${style}: ${JSON.stringify(fit)}`);
-      if(style==='box') await capture(`subtitles-72-${width}`);
+          runtime:document.body.style.getPropertyValue('--sub-scale')};})()`);
+      assert(fit.inside && fit.controlsAbove && fit.visible && fit.footer && fit.size==='250' && fit.runtime==='1', `${width}x${height} ${style}: ${JSON.stringify(fit)}`);
+      if(style==='box') await capture(`subtitles-250-${width}`);
     }
   }
   await page.call('Emulation.setDeviceMetricsOverride', {width:1280,height:800,deviceScaleFactor:1,mobile:false});
   await press('f-save');
-  await waitFor(page, `!document.getElementById('setup').open`, 'saved 72px subtitles');
-  assert(await evaluate(page, `chrome.storage.local.get('settings').then(d=>d.settings.subtitleSize===72 && document.body.style.getPropertyValue('--sub-size')==='72px')`), 'preview scaling changed saved or playback size');
-  return {ok:true, detail:'a pasted subscription URL opens the fields it decoded into, without saving; an incomplete one says so; controls above an unclipped 72px preview at 320–1280px; playback saves 72px'};
+  await waitFor(page, `!document.getElementById('setup').open`, 'saved 250 % subtitles');
+  assert(await evaluate(page, `chrome.storage.local.get('settings').then(d=>d.settings.subtitleScale===250 && document.body.style.getPropertyValue('--sub-scale')==='2.5')`), 'preview scaling changed saved or playback size');
+  return {ok:true, detail:'a pasted subscription URL opens the fields it decoded into, without saving; an incomplete one says so; controls above an unclipped 250 % preview at 320–1280px; playback saves 250 %'};
 }
 
 
@@ -1764,7 +1816,7 @@ async function catalogUi(page) {
   await waitFor(page, `document.querySelector('#list.covers .row.card') && [...document.querySelectorAll('#list .card-meta')].some((n) => /\\d+ ?min|\\dh/.test(n.textContent))`, 'movie duration on a cover');
   await evaluate(page, `document.querySelector('.view-toggle button[aria-pressed="false"]').click()`);
   await waitFor(page, `!document.getElementById('list').classList.contains('covers') && document.querySelector('#list .row-duration')`, 'movie duration metadata');
-  assert(await evaluate(page, `!document.getElementById('media-filters').hidden && document.getElementById('channel-tools').hidden && document.querySelector('.topbar-end').lastElementChild.id === 'btn-theme'`), 'movie navigation/filters');
+  assert(await evaluate(page, `!document.getElementById('media-filters').hidden && document.getElementById('channel-tools').hidden && document.querySelector('.topbar-end').lastElementChild.id === 'btn-settings'`), 'movie navigation/filters');
   const apply = (key,value) => evaluate(page, `(() => {const f=document.querySelector('#media-filters [name="${key}"]');f.value=${JSON.stringify(value)};f.dispatchEvent(new Event('change'));})()`);
   await apply('rating','8');
   await waitFor(page, `document.getElementById('list-progress').hidden && document.querySelectorAll('#list .row').length > 0`, 'rating filter');
@@ -1915,7 +1967,7 @@ async function update(page) {
   return { ok: line === `Kepuli-TV ${running} Update to 99.0.0`, detail: `"${said}"; "${line}"` };
 }
 
-const SCENARIOS = { catalogUi, setupClarity, fullscreenControl, clickpause, pickers, organize, restore, programmes, catchup, seek, death, cancel, timeout, search, paste, keys, switching, resume, connections, reconnect, accounts, listerror, a11y, subtitles, audio, settings,
+const SCENARIOS = { catalogUi, setupClarity, fullscreenControl, clickpause, pickers, channels, home, restore, programmes, catchup, seek, death, cancel, timeout, search, paste, keys, switching, resume, connections, reconnect, accounts, listerror, a11y, subtitles, audio, settings,
   lastchannel, nextepisode, continuewatching, reminders, update };
 // The mock's whole-list answers stall for these, longer than the request limit.
 const SLOW_LIST_MS = { cancel: 60000, timeout: 60000 };

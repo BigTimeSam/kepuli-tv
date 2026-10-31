@@ -1,0 +1,64 @@
+=== NAME ===
+Kepuli-TV – IPTV Player
+=== SHORT DESCRIPTION ===
+Katso omaa Xtream Codes -IPTV:täsi selaimessa. Kanavat aukeavat sekunneissa, ja MKV toimii tekstityksineen.
+=== DETAILED DESCRIPTION ===
+Katso omaa IPTV-tilaustasi selaimessa ilman sovelluksen kanssa painimista.
+Kepuli-TV on Xtream Codes -soitin, joka on rakennettu yhden ajatuksen
+ympärille: valtavan valikoiman pitää tuntua pieneltä.
+
+→ Kanavat aukeavat sekunnissa tai parissa, vaikka valikoima olisi valtava
+→ Sadat sekavat kategoriat muuttuvat siistiksi maaluetteloksi
+→ Koko ikkunan ohjelmaopas (EPG) ja katsominen jälkikäteen, kun palvelu sen
+  tarjoaa
+→ MKV-elokuvat ja -jaksot toistuvat suoraan selaimessa, tekstitykset ja
+  surround-ääni mukaan lukien
+
+
+MIKSI TEIN SEN
+
+Kyllästyin IPTV-sovelluksiin, joiden kanssa piti tapella: loputtomiin
+kategorialistoihin, ikkunoihin, jotka jäädyttivät kaiken luettelon latautuessa,
+ja tiedostoihin, jotka eivät yksinkertaisesti toistuneet. Niinpä tein
+sellaisen, jota halusin käyttää joka ilta.
+- Samuli, Kepuli-TV:n kehittäjä
+
+
+MITÄ SAAT
+
+• Liitä palveluntarjoajasi lähettämä M3U-linkki, niin asetukset täyttyvät
+  itsestään.
+• Haku, joka ei välitä aksenteista eikä sanajärjestyksestä, ja suodatin
+  jokaisessa valikossa.
+• Puolivälissä jäänyt odottaa ylhäällä, ja seuraava jakso alkaa itsestään.
+• Mikään ei tuki ruutua tietojen latautuessa, ja se mitä katsot, jatkuu
+  katkeamatta.
+• Elokuvat ja sarjat kansina, juonikuvauksineen, arvosteluineen ja kausineen.
+• Suosikit, katseluhistoria ja jatkokohdat.
+• Piilota maailmanlaajuiset brändit maan listalta, niin maan omat kanavat
+  löytyvät helposti.
+• Lähetä kuva Chromecastiin, käytä mediapainikkeita ja saa muistutus ennen
+  ohjelman alkua.
+• Tumma tai vaalea ulkoasu, ja kaikkeen pääsee näppäimistöllä; asettelu
+  noudattaa tekstikokoa ja kontrastiasetuksia.
+• Kolmellatoista kielellä. Se puhuu selaimesi kieltä, kunnes valitset toisen.
+
+
+YKSITYISYYS RAKENNETTU SISÄÄN
+
+Ei seurantaa, ei mainoksia, ei rekisteröitymistä. Kepuli-TV keskustelee vain
+oman palvelimesi kanssa ja pyytää luvan vain siihen yhteen osoitteeseen, ei
+muuhun.
+
+
+HUOM
+
+Laajennus ei sisällä mitään aineistoa eikä mukana tule palveluntarjoajaa. Tuo
+oma Xtream Codes -tilisi, käytä sitä vain sisältöön, jonka katsomiseen sinulla
+on oikeus, ja varmista, että palvelu on laillinen asuinmaassasi.
+
+
+ALKUUN
+
+Napsauta työkalupalkin kuvaketta, syötä palvelimesi, käyttäjätunnuksesi ja
+salasanasi, niin listasi ilmestyy.

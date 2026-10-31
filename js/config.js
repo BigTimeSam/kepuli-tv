@@ -90,7 +90,9 @@ const SETTINGS_DEFAULTS = {
   audioLang: 'auto',
   // How the subtitles are drawn — the looks and the sizes are in js/subdisplay.js.
   subtitleStyle: 'shadow',  // shadow | outline | yellow | box | contrast
-  subtitleSize: 24,         // CSS pixels; older settings hold small | medium | large
+  // subtitleScale, the size as a percentage of the default (100), is not
+  // here: js/subdisplay.js reads it, and turns the pixels an older version
+  // kept in subtitleSize into the same proportion.
 };
 
 const MAX_RECENTS = 60;

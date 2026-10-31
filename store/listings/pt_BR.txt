@@ -1,0 +1,62 @@
+=== NAME ===
+Kepuli-TV – IPTV Player
+=== SHORT DESCRIPTION ===
+Assista ao seu IPTV Xtream Codes no navegador sem brigar com o app. Os canais abrem em segundos e o MKV toca com legendas.
+=== DETAILED DESCRIPTION ===
+Assista à sua própria assinatura de IPTV no navegador sem brigar com o app.
+O Kepuli-TV é um player Xtream Codes criado em torno de uma ideia: um
+catálogo enorme deve parecer pequeno.
+
+→ Os canais abrem em um ou dois segundos, mesmo num catálogo gigantesco
+→ Centenas de categorias bagunçadas viram uma lista organizada de países
+→ Um guia de programação (EPG) em tela cheia, com reprise quando o provedor
+  oferece
+→ Filmes e episódios em MKV tocam direto aqui, com legendas e som surround
+
+
+POR QUE EU FIZ
+
+Cansei de apps de IPTV que me faziam brigar com eles: listas de categorias
+sem fim, janelas que travavam tudo enquanto um catálogo carregava e arquivos
+que simplesmente não tocavam. Então fiz o app que eu queria usar toda noite.
+- Samuli, desenvolvedor do Kepuli-TV
+
+
+O QUE VOCÊ TEM
+
+• Cole o link M3U que seu provedor enviou e as configurações se preenchem
+  sozinhas.
+• Uma busca que ignora acentos e a ordem das palavras, e um filtro em todos
+  os menus.
+• O que você deixou pela metade espera lá no topo, e o próximo episódio
+  começa sozinho.
+• Nada trava a tela enquanto os dados carregam, e o que está tocando
+  continua tocando.
+• Filmes e séries como capas, com sinopses, avaliações e temporadas.
+• Favoritos, histórico e pontos para retomar de onde você parou.
+• Esconda as marcas globais da lista de um país, e as emissoras locais ficam
+  fáceis de achar.
+• Transmita para um Chromecast, use as teclas de mídia e receba um lembrete
+  antes de um programa começar.
+• Visual escuro ou claro, e o teclado alcança tudo; o layout acompanha o
+  tamanho do texto e o contraste definidos no seu navegador.
+• Em treze idiomas. Ele fala o do seu navegador até você escolher outro.
+
+
+PRIVADO POR PROJETO
+
+Sem rastreamento, sem anúncios, sem cadastro. O Kepuli-TV só fala com o seu
+próprio servidor e pede permissão para esse único endereço, nada mais.
+
+
+AVISO
+
+Esta extensão não contém conteúdo e não vem com nenhum provedor. Traga uma
+conta Xtream Codes sua, use-a apenas para conteúdo que você tem o direito de
+assistir e confira se o serviço é legal onde você mora.
+
+
+COMO COMEÇAR
+
+Clique no ícone da barra de ferramentas, informe seu servidor, usuário e
+senha, e a sua lista aparece.

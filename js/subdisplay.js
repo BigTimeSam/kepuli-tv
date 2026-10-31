@@ -34,21 +34,53 @@
 export const STYLES = ['shadow', 'outline', 'yellow', 'box', 'contrast'];
 export const DEFAULT_STYLE = 'shadow';
 
-// The text size in CSS pixels, from a slider, and the same in a window and
-// in full screen: the viewer sets what reads well on their screen, and a
-// larger picture does not turn it into a larger text. The three named
-// sizes of the older settings are taken at what they measured in a window.
-export const MIN_SIZE = 12;
-export const MAX_SIZE = 72;
-export const DEFAULT_SIZE = 24;
+// The text size follows the picture, as television's does: a share of the
+// picture's height, the same share in a window and in full screen. It used
+// to be pixels, the same in both, and measured on a 1080p screen the 24 px
+// default came to 2.2 % of the picture in full screen — half of what the
+// browsers' own default (5 %) and the BBC's guidance (a line of some 8 %)
+// give, and a footnote rather than a subtitle. 5.5 % of the picture's
+// height is the size at 100 %; the slider runs from half that to two and
+// a half times it. Below 14 px a line stops being readable, whatever the
+// window: that is the floor.
+export const SIZE_SHARE = 0.055;
+export const MIN_PX = 14;
+export const MIN_SCALE = 50;
+export const MAX_SCALE = 250;
+export const SCALE_STEP = 5;
+export const DEFAULT_SCALE = 100;
+// What the older settings held: pixels (24 the default), and before them three names.
+const OLD_DEFAULT_PX = 24;
 const NAMED_SIZE = { small: 18, medium: 24, large: 34 };
 
-/** The look from the settings, with anything unknown replaced by the default. */
+const clampScale = (n) => Math.min(MAX_SCALE, Math.max(MIN_SCALE, Math.round(n / SCALE_STEP) * SCALE_STEP));
+
+/**
+ * The look from the settings, with anything unknown replaced by the default.
+ * A size kept in pixels by an older version becomes the same share of the
+ * old default: 24 px was 100 %, 36 px is 150 %, so a viewer who had made
+ * the text larger still has it larger.
+ */
 export function subtitleLook(settings) {
   const s = settings || {};
-  const raw = NAMED_SIZE[s.subtitleSize] ?? Number(s.subtitleSize);
-  const size = Number.isFinite(raw) && raw > 0 ? Math.min(MAX_SIZE, Math.max(MIN_SIZE, Math.round(raw))) : DEFAULT_SIZE;
-  return { style: STYLES.includes(s.subtitleStyle) ? s.subtitleStyle : DEFAULT_STYLE, size };
+  let scale = Number(s.subtitleScale);
+  if (!Number.isFinite(scale) || scale <= 0) {
+    const px = NAMED_SIZE[s.subtitleSize] ?? Number(s.subtitleSize);
+    scale = Number.isFinite(px) && px > 0 ? px / OLD_DEFAULT_PX * 100 : DEFAULT_SCALE;
+  }
+  return { style: STYLES.includes(s.subtitleStyle) ? s.subtitleStyle : DEFAULT_STYLE, scale: clampScale(scale) };
+}
+
+/** One step larger (+1) or smaller (-1), within the bounds. */
+export const stepScale = (scale, direction) => clampScale(scale + direction * 10);
+
+/**
+ * The height of the picture inside a box, without the bars: a film is
+ * letterboxed on a 16:10 screen, and its subtitles are sized to the film.
+ */
+export function pictureHeight(width, height, videoWidth, videoHeight) {
+  const ratio = videoWidth > 0 && videoHeight > 0 ? videoWidth / videoHeight : 16 / 9;
+  return Math.max(0, Math.min(height, width / ratio));
 }
 
 // How long the controls stay on show after the pointer stops, and how far
@@ -80,9 +112,11 @@ export class SubtitleDisplay {
     video.addEventListener('emptied', () => this.paint());
     document.addEventListener('fullscreenchange', () => this.mode());
     // The boxes are fitted to their lines in pixels (see fit), so a new
-    // size (the --sub-size property in the body's style) or a new look —
-    // padding and all — means fitting them again.
-    new ResizeObserver(() => this.repaint()).observe(wrap);
+    // size (the --sub-scale property in the body's style, or a picture of
+    // another height) or a new look — padding and all — means fitting them
+    // again.
+    new ResizeObserver(() => { this.measure(); this.repaint(); }).observe(wrap);
+    video.addEventListener('resize', () => { this.measure(); this.repaint(); });
     new MutationObserver(() => this.repaint())
       .observe(document.body, { attributes: true, attributeFilter: ['data-substyle', 'style'] });
 
@@ -92,7 +126,14 @@ export class SubtitleDisplay {
     video.addEventListener('pause', () => this.wake());
     video.addEventListener('play', () => this.wake());
     video.addEventListener('ended', () => this.wake());
+    this.measure();
     this.mode();
+  }
+
+  /** The picture's height, for the text size to be a share of (--pic-h). */
+  measure() {
+    const h = pictureHeight(this.wrap.clientWidth, this.wrap.clientHeight, this.video.videoWidth, this.video.videoHeight);
+    if (h > 0) this.wrap.style.setProperty('--pic-h', `${Math.round(h)}px`);
   }
 
   bind(track) {

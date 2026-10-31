@@ -1,0 +1,61 @@
+=== NAME ===
+Kepuli-TV – IPTV Player
+=== SHORT DESCRIPTION ===
+Watch your own Xtream Codes IPTV in your browser without fighting the app. Channels open in seconds, and MKV plays with subtitles.
+=== DETAILED DESCRIPTION ===
+Watch your own IPTV subscription in your browser without fighting the app.
+Kepuli-TV is an Xtream Codes player built around one idea: a huge catalogue
+should feel small.
+
+→ Channels open in a second or two, even from an enormous catalogue
+→ Hundreds of messy categories become a tidy list of countries
+→ A full-window programme guide (EPG) with catch-up where offered
+→ MKV movies and episodes play right in the browser, subtitles and surround
+  sound included
+
+
+WHY I MADE IT
+
+I got tired of IPTV apps that made me fight them: endless category lists,
+dialogs that froze everything while a catalogue loaded, and files that simply
+would not play. So I built the one I wanted to use every evening.
+- Samuli, developer of Kepuli-TV
+
+
+WHAT YOU GET
+
+• Paste the M3U link your provider sent you and the settings fill themselves.
+• Search that ignores accents and word order, and a filter in every menu.
+• Whatever you left halfway waits at the top, and the next episode starts by
+  itself.
+• Nothing blocks the screen while data loads, and what is playing keeps
+  playing.
+• Movies and series as covers, with plots, ratings and seasons.
+• Favourites, viewing history and resume positions.
+• Hide the global brands from a country's list, and its own stations are
+  easy to find.
+• Cast to a Chromecast, use the media keys, and get a reminder before a
+  programme starts.
+• A dark or a light look, and the keyboard reaches everything; the layout
+  follows your text size and contrast settings.
+• In thirteen languages. It speaks your browser's language until you choose
+  another.
+
+
+PRIVATE BY DESIGN
+
+No tracking, no ads, no sign-up. Kepuli-TV talks only to your own server and
+asks permission for that one address, nothing else.
+
+
+PLEASE NOTE
+
+The extension contains no content and comes with no provider. Bring an Xtream
+Codes account of your own, use it only for content you have the right to
+watch, and make sure the service is lawful where you live.
+
+
+GET STARTED
+
+Click the toolbar icon, enter your server, username and password, and your
+list appears.

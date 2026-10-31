@@ -33,12 +33,13 @@ import { execFileSync } from 'node:child_process';
 import { cpSync, existsSync, mkdirSync, readdirSync, readFileSync, renameSync, rmSync, statSync } from 'node:fs';
 import { dirname, join, relative, resolve } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
+import { check as checkListings } from './listings.mjs';
 
 export const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 export const DIST = join(ROOT, 'dist');
 
 // The runtime, identical in both packages.
-export const SHARED = ['player.html', 'background.js', 'js', 'css', 'vendor', 'icons'];
+export const SHARED = ['player.html', 'background.js', 'js', 'css', 'vendor', 'icons', '_locales'];
 
 // What is the browser's own: its manifest. It goes into the package as
 // manifest.json whatever it is called here.
@@ -50,7 +51,7 @@ export const TARGETS = {
 // Manifest keys the two browsers must agree on, and the keys each browser
 // has of its own. A key that is neither stops the build, so a new key
 // cannot land in one manifest and silently miss the other.
-const SHARED_KEYS = ['manifest_version', 'name', 'version', 'description', 'content_security_policy',
+const SHARED_KEYS = ['manifest_version', 'name', 'default_locale', 'version', 'description', 'content_security_policy',
                      'permissions', 'optional_host_permissions', 'action', 'icons'];
 const OWN_KEYS = {
   chrome: ['background', 'minimum_chrome_version'],
@@ -161,6 +162,11 @@ export function build(target, source = gitSource()) {
   if (!TARGETS[target]) throw new Error(`unknown target ${target}; the choices are ${Object.keys(TARGETS).join(' and ')}`);
   const problems = check(source);
   if (problems.length) throw new Error('the manifests disagree:\n  ' + problems.join('\n  '));
+  // The name and the short description are the store's title and summary,
+  // in every language: they must be within its limits and in step with
+  // store/listings/.
+  const listings = checkListings();
+  if (listings.length) throw new Error('the store listings:\n  ' + listings.join('\n  '));
   const { manifest } = TARGETS[target];
   const dir = join(DIST, target);
   rmSync(dir, { recursive: true, force: true });
@@ -170,6 +176,8 @@ export function build(target, source = gitSource()) {
     renameSync(join(dir, manifest), join(dir, 'manifest.json'));
     rmSync(join(dir, dirname(manifest)), { recursive: true });
   }
+  // The Chrome Web Store calls Norwegian "no", Firefox nb_NO (dev/listings.mjs).
+  if (target === 'firefox' && existsSync(join(dir, '_locales', 'no'))) renameSync(join(dir, '_locales', 'no'), join(dir, '_locales', 'nb_NO'));
   const files = listFiles(dir);
   const missing = references(dir).filter((p) => !files.includes(p));
   if (missing.length) throw new Error(`${target}: the manifest or player.html refers to files the package lacks:\n  ` + missing.join('\n  '));

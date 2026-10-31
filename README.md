@@ -148,8 +148,8 @@ dialog is open.
 
 - In **Settings**, X, Esc and clicking outside ask before discarding unsaved
   changes. **Cancel** discards the draft; **Save** applies it.
-- In **Organize channels**, X, Esc, clicking outside and **Cancel** discard
-  the draft. **Save** applies the changes to the current account.
+- In **Choose countries**, X, Esc, clicking outside and **Cancel** leave the
+  choice as it was; **Save** applies it.
 - Enlarged covers close immediately without changing playback.
 
 Loading a list is not a dialog at all. It used to be one, over everything, and
@@ -412,32 +412,40 @@ numbering, and where a provider sends none, the stream id in its place. It is
 the answer to a list of hundreds: choose the order that already suits, then
 move the few favourites where they belong. Movies and series are unaffected.
 
-**Organize channels**, at the right below the channel list, opens a personal
-live-TV editor. Switch between channels and categories, choose a country or
-*All*, and filter by name. Uncheck an item to hide it, or apply **Hide shown /
-Show shown** to the filtered set. Hidden items remain in the editor and can
-always be restored.
+**Choose countries**, under the sidebar on the channels (and in Settings >
+Viewing), asks which countries the viewer watches: every live group with a
+box and a filter field, the browser's own country first and marked as the
+suggestion. The rest are left out of the sidebar, the lists, the search and
+the guide; the favourites and the history keep what was picked by hand.
+What is stored is the list of what to show, not of what to hide, so a
+country the provider adds later does not turn up uninvited; **Show all**
+clears it. The question is asked by itself once per account, after the first
+connection, when the provider has twenty groups or more.
 
-Drag a row by the handle at its left to move it. The rows underneath shuffle as
-it passes and the list scrolls when the row is held near an edge, so a channel
-can travel the whole way in one drag; Escape during a drag puts the row back.
-The handle also takes the keyboard: the arrows move the row one place, **Home**
-and **End** take it to the top or the bottom, and the focus travels with it.
-Moving a row within one country does not move that country ahead of the others.
+Every channel row has a menu — the ⋯ at its right end, a right click, or the
+context-menu key and Shift+F10 on the row the list stands on: **Add to
+favourites** (or **Remove from favourites**) and **Hide channel**. Hiding
+applies at once, and the message that says so carries **Undo**. **Hidden
+(n)** under the list opens what has been hidden, each with **Show again**.
 
-**Reset order** returns to the order Settings chose, for channels or categories
-depending on the selected type; it keeps visibility, and it is offered only
-once something has been arranged by hand. Changes stay in the editor until
-**Save**; **Cancel**, the top-right **X**, Escape and clicking outside discard
-them.
+**Favourites (n)**, folded above the list, gathers the favourites among the
+rows on screen — the channels of a country, the films of a genre, the
+series of a category — as a row of logos or covers, a press away. The list
+below keeps them in their places in its order; nothing is taken out of it,
+and nothing moves. It shows only when the list holds a favourite, and only
+while a list is browsed: a search, a page opened from the list and the
+favourites and the history are lists of their own. Open or folded is
+remembered. It took the place of pinning channels to the top of their list,
+which did nearly the same thing a second way: two near-identical means to
+the same end were one too many.
 
-Hiding a live category hides its channels in browsing, search, favourites,
-history and the guide, including channels that also belong to another category.
-The personal channel order applies to browsing and the guide; name search keeps
-its relevance ranking and favourites/history keep their collection order.
-Category order also determines country order in the sidebar. Movies and series
-are unaffected. These preferences belong to the server and account and survive
-cache clearing, reloading and switching away from the account and back.
+These replace the channel editor, a dialog that arranged every channel and
+every category, hidden or shown, into an order of its own. It could do
+everything and was used for nothing: nobody drags five hundred rows. The
+channels and categories it hid stay hidden and are listed under Hidden; the
+order it made is no longer applied. The choices belong to the server and the
+account and survive cache clearing, reloading and switching away from the
+account and back.
 
 **Show international channels in each country's list**, in Settings >
 Viewing, is on by default. Turned off, a country's list keeps its own channels
@@ -464,7 +472,7 @@ the channels apart takes the whole list, so with the setting off a country
 loads it first. The filter applies to browsing, the counts and the guide;
 a search, the favourites and the history find every channel.
 
-The sidebar filter matches sub-categories too: the query *sport* brings up the
+The sidebar filter — a magnifier and *Country or topic* on the channels, *Genre or topic* on films and series — matches sub-categories too: the query *sport* brings up the
 countries that have sports channels even when the country's name lacks the
 word.
 
@@ -542,7 +550,7 @@ as "there is no such channel" rather than as "type the umlaut". *cnn news*
 finds "News CNN" as well as "CNN News" — but the one that reads the way the
 query was typed still comes first, so the looser rule costs the exact match
 nothing. The same folding is used by the country and topic filter beside the
-list, by the filter in **Organize channels**, and by the programme search in
+list, by the filter in **Choose countries**, and by the programme search in
 the guide, so one spelling works everywhere a name is typed.
 
 ## Features
@@ -615,6 +623,8 @@ the guide, so one spelling works everywhere a name is typed.
 | `m` | mute |
 | `a` | the next audio track, when the file has more than one |
 | `s` | star what the cursor is on — a list row, or the sidebar row or topic chip the keyboard stands on |
+| `+` `−` | subtitles larger or smaller, by ten per cent of the size the picture asks for |
+| `Shift`+`F10` | the menu of the channel the list stands on: a favourite or not, or hide it; the context-menu key does the same |
 | `Delete` | drop the history row the cursor is on |
 | `n` `p` | next / previous; from a list that does not hold the episode, `n` plays the series' next one |
 | `l` | the previous channel; from a film or a recording, the last channel |
@@ -658,19 +668,25 @@ the timeline's scale, `Enter` starts playback and `Esc` closes.
 
 ### The buttons
 
-The top bar holds the five tabs, the search box, **Refresh lists** (a
-circular arrow), **Help** (a question mark), **Settings** and, at the far
-right, the theme: a sun in the dark theme switches to the light one and a
-moon in the light theme back. Dark is the default. The picture and the bar
+The top bar starts with the logo, which goes back to the start — the channels, the first country chosen, the top of its list — closing the search, the guide and any page opened from the list, while what is playing goes on. Then the five tabs, each with its mark before its name (the marks step aside between 600 and 1100 px, where they would push the buttons onto a second row), the search box, **Refresh lists** (a
+circular arrow), **Help** (a question mark), the theme — a sun in the dark
+theme switches to the light one and a moon in the light theme back — and
+**Settings** at the far right. The sun and moon is the quick switch; Settings > Viewing > Appearance also offers *Same as the system*, which follows the operating system's light or dark mode while the player is open, and a press of the switch then picks the other of what is on screen. Dark is the default. The picture and the bar
 under it stay dark in either, and the choice is kept with the settings and
 copied to `localStorage`, so a light theme does not flash dark at start
 (`js/theme.js`);
 in a window 600px wide or less, Settings is a cog alone and the three share
 the brand's row. **Refresh lists** fetches the categories and
 the lists already loaded from the server again and empties the programme
-cache. **Help** opens this user guide. The **⛶** button is over the
-picture at the top right, with video statistics at the top left. It enters
-and exits full screen with the subtitles included. It appears on pointer movement, touch or keyboard focus,
+cache. **Help** opens this user guide. The **⛶** button is at the
+right end of the browser's control bar, where a video's full screen button is
+everywhere else; viewers did not find it at the top right, where it used to
+be. It is the app's own, because the browser's takes the bare video full
+screen without the subtitle layer: in Chrome the bar is given room at its
+right end for it. Firefox's bar keeps a button of its own there, so the
+app's stands aside: that one takes the bare video full screen, where the
+browser draws the subtitles itself. Video statistics are at
+the top left. It enters and exits full screen with the subtitles included. It appears on pointer movement, touch or keyboard focus,
 stays visible while paused and fades during uninterrupted playback. It is
 hidden until a video is loaded; an empty player has no full-screen button.
 The remaining player controls are below the picture:
@@ -724,7 +740,7 @@ Settings always opens on **Connection**, with four focused tabs:
 | Section | Holds |
 | --- | --- |
 | **Connection** | the provider address and credentials, entered as Xtream Codes fields or an M3U address |
-| **Viewing** | interface language, the channel order, the international channels, automatic programme data, remembered playback positions, the next episode and the technical read-out over the picture |
+| **Viewing** | interface language, the channel order, the appearance (dark, light, or the system's), the countries, the international channels, automatic programme data, remembered playback positions, the next episode and the technical read-out over the picture |
 | **Subtitles** | style and size, with a local preview |
 | **Account & data** | subscription details and cache information; an expandable **Manage stored data** section contains cache clearing and reset; the version running, and the update when one is waiting |
 
@@ -743,10 +759,10 @@ actions, with a separate confirmation for reset.
 Before credentials exist, the tabs are hidden and **Connect** saves the initial
 connection. Otherwise the same **Save** action is available from every tab.
 
-In **Subtitles**, the style and size controls sit above the preview. The sample
-keeps its two lines and scales down to fit the available space, including at
-72 px and in narrow windows. This scaling affects only the preview: playback
-and the saved setting use the exact selected size.
+In **Subtitles**, the style and size controls sit above the preview. The
+preview's frame stands in for the picture, so the sample is the same share of
+its height as the subtitles will be of the film's; only a sample too wide for
+a narrow dialog is scaled down to fit.
 
 The look of the subtitles is also under the player's own **Aa** button, which
 appears beside the subtitle selector on a file that carries subtitles. It
@@ -996,11 +1012,19 @@ and fell short in two ways — a two-line line of dialogue came out as two boxes
 with a gap between them, and `::cue` takes only a colour, a font, a shadow and a
 background, so no look could be built on it. The layer gives one box per cue and
 five looks to choose from in the settings, with a preview: shadow — the default,
-no box — outline, yellow, box and high contrast. The size is set in pixels with
-a slider and is the same in full screen: the viewer sets what reads well on
-their screen, and a larger picture does not turn it into a larger text. The
-small, medium and large of the earlier settings are read as the pixels they
-measured in a window. The looks are written into `::cue` as well, as far as
+no box — outline, yellow, box and high contrast. The size is a share of the
+picture's height, as television's is, and so the same in a window and in full
+screen: 100 % is 5.5 % of the picture (the bars of a letterboxed film not
+counted), and the slider runs from 50 % to 250 %, with **Default** beside it to
+come back. `+` and `−` change it by ten while watching. 14 px is the floor,
+for a small window. It used to be pixels, the same in a window and in full
+screen, and measured on a 1080p screen the 24 px default came to 2.2 % of the
+picture in full screen — half of the browsers' own default of 5 % and of the
+BBC's guidance, a line of some 8 % of the picture. At 100 % the text is now
+21 px in a 1280×800 window, 47 px in full screen on a 14-inch MacBook Pro, 59 px
+on a 1080p screen and 79 px at 1440p. A size kept in pixels by an older version
+becomes the same proportion of the old default: 24 px is 100 %, 36 px 150 %,
+and the small, medium and large of earlier still are 75, 100 and 140 %. The looks are written into `::cue` as well, as far as
 `::cue` goes, for the one case where the browser still draws (below).
 
 Full screen is therefore the picture's wrapper rather than the bare video
@@ -1201,7 +1225,8 @@ js/epg.js           programme data on a queue, 4 concurrent requests
 js/epggrid.js       the guide grid, virtualised in both directions
 js/programmesearch.js  cancellable programme search and virtualised results
 js/channelprefs.js  per-account channel visibility and ordering helpers
-js/channeleditor.js  draft editor for live channels and categories
+js/channelchoices.js  the countries the viewer watches, and what is hidden
+js/rowmenu.js       a row's menu: a favourite or not, hide
 js/modal.js         shared close buttons, Escape and backdrop dismissal
 js/db.js            IndexedDB: a TTL cache
 js/config.js        settings, favourites, history, resume points, the remembered view
@@ -1210,6 +1235,8 @@ js/locales/         the other eleven languages, one module each, loaded when cho
 js/picker.js        the drop-down lists with a filter field
 js/international.js  which channels are in many countries' lists
 js/theme.js         the dark and light theme
+store/listings/     the store texts, one file per language (dev/listings.mjs)
+_locales/           the manifest's name and description per language, written from them
 js/playback.js      engine selection, fallbacks, watchdog
 js/probe.js         reading the file header: container, codecs, subtitles
 js/audio.js         which audio track is played, and what it is called
@@ -1494,6 +1521,23 @@ Three things now stand against it:
   `gecko` shows up, the Firefox zip went to the Chrome store: publish the next
   version with the Chrome zip at once. An install from the store on another
   machine is the final test: the toolbar button must open the player.
+
+
+#### The listings in thirteen languages
+
+The store texts are in `store/listings/<locale>.txt`, one file per language:
+the name, the short description and the detailed description. The name is
+the brand and is not translated — "Kepuli-TV – IPTV Player" in every language,
+which `dev/listings.mjs` insists on.
+`node dev/listings.mjs` checks them against the Chrome Web Store's limits
+and keyword policy and writes `_locales/<locale>/messages.json`, from which
+the manifest takes its name and description (`__MSG_appName__`,
+`__MSG_appDesc__`) — the only way either store shows a translated title and
+summary — and `dist/listings/<locale>.txt`, the texts unwrapped, to paste
+into the stores' description fields. `dev/package.mjs` refuses a package
+whose `_locales/` is out of step, and renames Norwegian from the Chrome
+store's `no` to Firefox's `nb_NO`. How to enter the languages in each store
+is in `store-listing.txt`.
 
 ## Licence
 

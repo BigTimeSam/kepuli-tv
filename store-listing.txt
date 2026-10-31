@@ -50,8 +50,8 @@ WHEN THE PLAYER LOOKS DIFFERENT
   • Detailed description, if a section of it has stopped being true.
 
 ONLY WHEN THE MANIFEST CHANGES
-  • Short description — it is read from the manifest's description field, so
-    it changes only when that string does.
+  • Name and short description — read from _locales/ through the manifest,
+    in every language, so they change only when store/listings/ does.
   • Permission justifications and the single-purpose text — only if
     permissions, host permissions or the single purpose changed. Adding a
     permission puts the submission into a longer review; changing neither
@@ -62,6 +62,17 @@ ONLY WHEN THE MANIFEST CHANGES
 RARELY
   • Category, language, homepage, support URL, privacy policy URL, test
     instructions: leave them unless the thing they describe has moved.
+
+FOR THE NEXT VERSION (the first with _locales/)
+  The manifests changed: "name" and "description" are now __MSG_appName__
+  and __MSG_appDesc__, read from _locales/, and "default_locale" is "en".
+  The English name and short description are what they were. No permission
+  changed. Upload kepuli-tv-chrome-<version>.zip, then add the twelve
+  languages as "SETTING THE LANGUAGES IN THE CHROME WEB STORE" below says,
+  and replace the English detailed description with dist/listings/en.txt —
+  it now speaks of thirteen languages, the light theme and the filter in
+  every menu. After the review, check that the store's page shows the name
+  and not "__MSG_appName__".
 
 FOR 1.2.6 SPECIFICALLY
   The store's 1.2.5 was the Firefox package again (background.scripts), so
@@ -118,69 +129,56 @@ FOR 1.1.0 SPECIFICALLY
   weigh.
 
 
---- SHORT DESCRIPTION (field "Description", max 132 characters) ------------
-The same text is in manifest.json and firefox/manifest.json, from which the
-store reads it automatically. Length 130 characters. A sentence on purpose:
-a colon followed by a comma-separated run of nouns reads as a keyword list.
+--- THE TEXTS, IN THIRTEEN LANGUAGES ---------------------------------------
+The name, the short description and the detailed description live in
+store/listings/<locale>.txt, one file per language, and nowhere else. The
+English one is store/listings/en.txt. Run
 
-Watch your own Xtream Codes IPTV in your browser without fighting the app. Channels open in seconds, and MKV plays with subtitles.
+  node dev/listings.mjs
 
+after editing any of them. The name is the brand, "Kepuli-TV – IPTV Player" in
+every language, never translated. It checks each against the store's limits and the
+keyword policy above (name 45 characters, short description 132, detailed
+16,000, no word of five letters or more — nor IPTV, MKV and the like — five
+times or more), writes _locales/<locale>/messages.json, which is where both
+stores read the name and the short description from, and writes
+dist/listings/<locale>.txt, the same texts with each paragraph on one line,
+ready to paste. Paste from there, not from store/listings/: that is wrapped
+at 78 columns for reading, and the stores keep every line break.
+dev/package.mjs refuses to build when _locales/ is out of step.
 
---- LONG DESCRIPTION (field "Detailed description", max 16,000 characters) --
-
-Watch your own IPTV subscription in Chrome without fighting the app.
-Kepuli-TV is an Xtream Codes player built around one idea: a huge catalogue
-should feel small.
-
-→ Channels open in a second or two, even from an enormous catalogue
-→ Hundreds of messy categories become a tidy list of countries
-→ A full-window programme guide (EPG) with catch-up where offered
-→ MKV movies and episodes play right in the browser, subtitles and surround
-  sound included
-
-
-WHY I MADE IT
-
-I got tired of IPTV apps that made me fight them: endless category lists,
-dialogs that froze everything while a catalogue loaded, and files that simply
-would not play. So I built the one I wanted to use every evening.
-- Samuli, developer of Kepuli-TV
+The locale codes are the Chrome Web Store's: pt_BR, and "no" for Norwegian.
+Firefox looks for Norwegian Bokmål under nb_NO, and the Firefox package
+renames the folder (dev/package.mjs).
 
 
-WHAT YOU GET
+SETTING THE LANGUAGES IN THE CHROME WEB STORE
+  1. Upload the package that carries _locales/ (Package → Upload new
+     package). From then on the store shows the name and the short
+     description from _locales/ in each reader's language by itself; there
+     is no field to type them into, in any language.
+  2. Store listing → the language menu at the top right of the form (it
+     says English). Pick a language — the menu offers the locales the
+     package has.
+  3. Paste "DETAILED DESCRIPTION" from dist/listings/<locale>.txt into
+     Description. Screenshots and the promo tiles may be left empty: a
+     language without its own falls back to the English ones.
+  4. Repeat for every language, then Submit for review. The descriptions go
+     through the review with the package.
 
-• Paste the M3U link your provider sent you and the settings fill themselves.
-• Search that ignores accents and word order.
-• Whatever you left halfway waits at the top, and the next episode starts by
-  itself.
-• Nothing blocks the screen while data loads, and what is playing keeps
-  playing.
-• Movies and series as covers, with plots, ratings and seasons.
-• Favourites, viewing history and resume positions.
-• Cast to a Chromecast, use the media keys, and get a reminder before a
-  programme starts.
-• The keyboard reaches everything, and the layout follows your browser's text
-  size and contrast settings.
-• In English and Finnish.
-
-
-PRIVATE BY DESIGN
-
-No tracking, no ads, no sign-up. Kepuli-TV talks only to your own server and
-asks permission for that one address, nothing else.
-
-
-PLEASE NOTE
-
-Kepuli-TV contains no channels or content and comes with no provider. Bring
-an Xtream Codes account of your own, use it only for content you have the
-right to watch, and make sure the service is lawful where you live.
-
-
-GET STARTED
-
-Click the toolbar icon, enter your server, username and password, and your
-channels appear.
+SETTING THE LANGUAGES ON ADDONS.MOZILLA.ORG
+  1. Upload the version (the Firefox zip and its source). AMO reads the
+     localised name and summary from _locales/ in the package; check them
+     on the listing afterwards, and if one is missing, paste it from
+     dist/listings/<locale>.txt ("SHORT DESCRIPTION" goes to Summary,
+     250 characters at most).
+  2. Developer Hub → the add-on → Edit Product Page. Under the page title
+     there is a language menu for the translation being edited: pick one.
+     Norwegian is "Norsk bokmål" (nb-NO) there, Portuguese "Português (do
+     Brasil)".
+  3. Edit the Describe Add-on section and paste "DETAILED DESCRIPTION" into
+     Description. Save Changes, and repeat for every language. A listing
+     change is not a new version and needs no upload.
 
 
 --- THE OTHER FIELDS ON THE STORE FORM -------------------------------------
@@ -191,9 +189,10 @@ options in the Productivity group (Workflow & Planning, Tools, Developer
 Tools) do not fit.
 
 Language:
-English. The listing is written in it, and the player uses it for anyone whose
-browser language it does not speak; a Finnish browser opens in Finnish, and
-either can be chosen in the settings.
+English, as the default. The other twelve are added through the language
+menu (see "SETTING THE LANGUAGES" above); the player speaks the same
+thirteen, and opens in the browser's language until another is chosen in the
+settings.
 
 Single purpose, permissions, remote code and data usage:
 In a section of their own at the end of this file — the fields in copyable

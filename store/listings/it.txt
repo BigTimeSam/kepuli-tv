@@ -1,0 +1,65 @@
+=== NAME ===
+Kepuli-TV – IPTV Player
+=== SHORT DESCRIPTION ===
+Guarda il tuo IPTV Xtream Codes nel browser senza litigare con l'app. I canali si aprono in un attimo e l'MKV va con i sottotitoli.
+=== DETAILED DESCRIPTION ===
+Guarda il tuo abbonamento IPTV nel browser senza litigare con l'app.
+Kepuli-TV è un lettore Xtream Codes costruito attorno a un'idea: un catalogo
+enorme deve sembrare piccolo.
+
+→ I canali si aprono in un secondo o due, anche con un catalogo gigantesco
+→ Centinaia di categorie caotiche diventano un elenco ordinato di paesi
+→ Una guida ai programmi (EPG) a tutta finestra, con riascolto dove previsto
+→ Film ed episodi in MKV si guardano direttamente qui, con sottotitoli e
+  audio surround
+
+
+PERCHÉ L'HO FATTO
+
+Ero stufo delle app IPTV con cui dovevo litigare: elenchi di categorie
+infiniti, finestre che bloccavano tutto mentre un catalogo si caricava e file
+che semplicemente non partivano. Così ho creato quella che volevo usare ogni
+sera.
+- Samuli, sviluppatore di Kepuli-TV
+
+
+COSA OTTIENI
+
+• Incolla il link M3U che ti ha mandato il fornitore e le impostazioni si
+  compilano da sole.
+• Una ricerca che ignora gli accenti e l'ordine delle parole, e un filtro in
+  ogni menu.
+• Quello che hai lasciato a metà ti aspetta in alto, e l'episodio successivo
+  parte da solo.
+• Niente blocca lo schermo mentre i dati si caricano, e ciò che è in
+  riproduzione continua.
+• Film e serie come copertine, con trame, voti e stagioni.
+• Preferiti, cronologia e punti da cui riprendere.
+• Nascondi i marchi globali dall'elenco di un paese, e le sue emittenti si
+  trovano facilmente.
+• Trasmetti su un Chromecast, usa i tasti multimediali e ricevi un promemoria
+  prima che inizi un programma.
+• Un aspetto scuro o chiaro, e la tastiera arriva dappertutto; l'interfaccia
+  segue la dimensione del testo e il contrasto impostati nel browser.
+• In tredici lingue. Parla quella del tuo browser finché non ne scegli
+  un'altra.
+
+
+PRIVATO PER SCELTA
+
+Niente tracciamento, niente pubblicità, niente registrazione. Kepuli-TV parla
+solo con il tuo server e chiede il permesso per quell'unico indirizzo, nient'
+altro.
+
+
+DA SAPERE
+
+Questa estensione non contiene contenuti e non include alcun fornitore. Porta
+un account Xtream Codes tuo, usalo solo per contenuti che hai il diritto di
+guardare e assicurati che il servizio sia legale dove vivi.
+
+
+PER INIZIARE
+
+Clicca sull'icona nella barra degli strumenti, inserisci server, nome utente
+e password, e la tua lista appare.

@@ -1,8 +1,9 @@
 {
   "manifest_version": 3,
-  "name": "Kepuli-TV – IPTV Player",
+  "name": "__MSG_appName__",
+  "default_locale": "en",
   "version": "1.2.6",
-  "description": "Watch your own Xtream Codes IPTV in your browser without fighting the app. Channels open in seconds, and MKV plays with subtitles.",
+  "description": "__MSG_appDesc__",
   "browser_specific_settings": {
     "gecko": {
       "id": "kepuli-tv@bigtimesam.github.io",

@@ -1,0 +1,60 @@
+=== NAME ===
+Kepuli-TV – IPTV Player
+=== SHORT DESCRIPTION ===
+Se din egen Xtream Codes-IPTV i nettleseren uten styr. Kanalene åpnes på sekunder, og MKV kan spilles med undertekster.
+=== DETAILED DESCRIPTION ===
+Se ditt eget IPTV-abonnement i nettleseren uten å slåss med appen.
+Kepuli-TV er en Xtream Codes-spiller bygget rundt én idé: et stort utvalg
+skal føles lite.
+
+→ Kanaler åpnes på et sekund eller to, selv fra et enormt utvalg
+→ Hundrevis av rotete kategorier blir en ryddig liste over land
+→ En programguide (EPG) i fullt vindu, med catch-up der det tilbys
+→ MKV-filmer og episoder spilles rett i nettleseren, med undertekster og
+  surroundlyd
+
+
+HVORFOR JEG LAGET DEN
+
+Jeg ble lei av IPTV-apper som fikk meg til å slåss: endeløse kategorilister,
+dialogvinduer som frøs alt mens utvalget lastet, og filer som rett og slett
+ikke ville fungere. Så jeg bygde den jeg selv ville bruke hver kveld.
+- Samuli, utvikleren av Kepuli-TV
+
+
+HVA DU FÅR
+
+• Lim inn M3U-lenken du fikk av leverandøren, så fyller innstillingene seg
+  selv.
+• Søk som ignorerer aksenter og ordrekkefølge, og et filter i hver meny.
+• Det du lot ligge halvveis venter øverst, og neste episode starter av seg
+  selv.
+• Ingenting blokkerer skjermen mens data lastes, og det som spilles, fortsetter.
+• Filmer og serier som omslag, med handling, vurderinger og sesonger.
+• Favoritter, visningshistorikk og posisjoner å fortsette fra.
+• Skjul de globale merkevarene fra et lands liste, så er landets egne kanaler
+  enkle å finne.
+• Cast til en Chromecast, bruk mediatastene og få en påminnelse før et
+  program starter.
+• Mørkt eller lyst utseende, og tastaturet når alt; oppsettet følger
+  tekststørrelsen og kontrastinnstillingene.
+• På tretten språk. Den snakker nettleserens språk til du velger et annet.
+
+
+PRIVAT FRA GRUNNEN AV
+
+Ingen sporing, ingen annonser, ingen registrering. Kepuli-TV snakker bare med
+din egen server og ber om tillatelse for akkurat den adressen, ingenting annet.
+
+
+MERK
+
+Utvidelsen har ikke noe eget materiale, og ingen leverandør følger med. Ta med
+din egen Xtream Codes-konto, bruk den bare til innhold du har rett til å se,
+og sørg for at tjenesten er lovlig der du bor.
+
+
+KOM I GANG
+
+Klikk på ikonet i verktøylinjen, skriv inn server, brukernavn og passord, så
+dukker listen din opp.

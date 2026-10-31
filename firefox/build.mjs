@@ -20,7 +20,7 @@
 // own zip, as the Chrome package does.
 
 import { execFileSync } from 'node:child_process';
-import { cpSync, existsSync, mkdirSync, readFileSync, readdirSync, rmSync, statSync, writeFileSync } from 'node:fs';
+import { cpSync, existsSync, mkdirSync, readFileSync, readdirSync, renameSync, rmSync, statSync, writeFileSync } from 'node:fs';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 
@@ -30,11 +30,11 @@ export const DIST = join(HERE, 'dist');
 
 // What the Chrome package ships, minus its manifest. The same list, so the
 // two packages cannot drift apart in content either.
-const SHARED = ['player.html', 'background.js', 'js', 'css', 'vendor', 'icons'];
+const SHARED = ['player.html', 'background.js', 'js', 'css', 'vendor', 'icons', '_locales'];
 
 // Keys the two manifests must agree on. The rest is browser-specific:
 // background, minimum_chrome_version, browser_specific_settings.
-const SHARED_KEYS = ['manifest_version', 'name', 'version', 'description', 'content_security_policy',
+const SHARED_KEYS = ['manifest_version', 'name', 'default_locale', 'version', 'description', 'content_security_policy',
                      'permissions', 'optional_host_permissions', 'action', 'icons'];
 
 const readJson = (path) => JSON.parse(readFileSync(path, 'utf8'));
@@ -77,7 +77,17 @@ export function build() {
     cpSync(from, join(DIST, name), { recursive: true, filter: skip });
   }
   cpSync(join(HERE, 'manifest.json'), join(DIST, 'manifest.json'));
+  firefoxLocales(DIST);
   return summarise(DIST);
+}
+
+/**
+ * The Chrome Web Store calls Norwegian "no"; Firefox looks for nb_NO and
+ * would show a Norwegian reader the English name (dev/listings.mjs).
+ */
+export function firefoxLocales(dir) {
+  const from = join(dir, '_locales', 'no');
+  if (existsSync(from)) renameSync(from, join(dir, '_locales', 'nb_NO'));
 }
 
 function summarise(dir) {

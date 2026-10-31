@@ -41,6 +41,22 @@ function remove(title, onRemove) {
   return button;
 }
 
+/**
+ * The row's own actions — a favourite or not, hide — behind one mark, out of the tab order like the star: the keyboard opens the same
+ * menu with the context-menu key on the row it stands on.
+ */
+function more(onMenu) {
+  const button = el('button', 'row-more');
+  button.type = 'button';
+  button.title = t('row.menu');
+  button.setAttribute('aria-label', button.title);
+  button.setAttribute('aria-haspopup', 'menu');
+  button.tabIndex = -1;
+  button.innerHTML = '<svg viewBox="0 0 20 20" aria-hidden="true"><circle cx="4.5" cy="10" r="1.5"/><circle cx="10" cy="10" r="1.5"/><circle cx="15.5" cy="10" r="1.5"/></svg>';
+  button.addEventListener('click', (e) => { e.stopPropagation(); onMenu(button); });
+  return button;
+}
+
 function listOption(className, ctx) {
   const row = el('div', className);
   row.setAttribute('role', 'option');
@@ -53,7 +69,7 @@ function listOption(className, ctx) {
 /**
  * @param {object} item
  * @param {object} ctx { label, playing, selected, favorite, epg, resume, tag, onOpen,
- *                       onFavorite, onRemove, showEpisodeCover }
+ *                       onFavorite, onRemove, showEpisodeCover, onMenu }
  */
 export function itemRow(item, ctx) {
   const row = listOption('row', ctx);
@@ -81,6 +97,10 @@ export function itemRow(item, ctx) {
   for (const badge of badges(item, ctx)) row.appendChild(badge);
   if (item.k === 2) row.appendChild(el('div', 'row-chevron', '›'));
   if (ctx.onRemove) row.appendChild(remove(ctx.removeTitle || t('row.remove.history'), ctx.onRemove));
+  if (ctx.onMenu) {
+    row.appendChild(more(ctx.onMenu));
+    row.addEventListener('contextmenu', (e) => { e.preventDefault(); ctx.onMenu({ x: e.clientX, y: e.clientY }); });
+  }
 
   row.addEventListener('click', ctx.onOpen);
   return row;
