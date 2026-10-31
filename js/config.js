@@ -59,6 +59,14 @@ const SETTINGS_DEFAULTS = {
   // Where the channel list starts, before a personal arrangement:
   // az | za | num, see CHANNEL_SORTS in js/channelprefs.js.
   channelSort: 'az',
+  // The global brands in a country's channel list — CNN, Discovery,
+  // Stingray — beside its own; see js/international.js for how they are
+  // told apart. Shown, because the provider files them there and a Finnish
+  // feed of a global channel cannot be told from the channel itself.
+  showInternational: true,
+  // dark | light, from the button at the right end of the header. Dark
+  // first: the app is for watching television, mostly in the evening.
+  theme: 'dark',
   // The interface language and the subtitle language are not here: both
   // start from the browser's own, see settingsDefaults(). The subtitle one
   // is chosen once and applies to later episodes; 'off' = no subtitles,

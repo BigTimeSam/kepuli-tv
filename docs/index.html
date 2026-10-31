@@ -653,6 +653,31 @@ Category order also determines country order in the sidebar. Movies and series
 are unaffected. These preferences belong to the server and account and survive
 cache clearing, reloading and switching away from the account and back.</p>
 
+<p><strong>Show international channels in each country's list</strong>, in Settings &gt;
+Viewing, is on by default. Turned off, a country's list keeps its own channels
+and drops the world's: a provider files every channel it sells in a country
+under that country, so <em>Finland</em> holds <code>FI: Stingray Djazz</code> beside the same
+channel in Sweden, Norway and Denmark, and <code>FI: CNN</code> beside thirty other
+countries' CNN. Nothing in the list says which is which, so <code>js/international.js</code>
+reads it from the list as a whole: a channel whose name — without the country
+tag, the picture quality and the provider's bracketed notes — turns up in four
+or more groups is international. On one provider's 31,000 channels that takes
+some 40 ms, and <em>Finland</em> goes from 696 channels to 608.</p>
+
+<p>Three things keep the rule from overreaching. A country's national topic
+(<em>Kansalliset</em>, <em>Nationella</em>, <em>Nationale</em>, <em>Öffentlich</em> and their kin) and its
+category with no topic at all, where the main channels are kept, are its own
+by the provider's word, so <code>FI: TV5</code> stays though TV5 Monde is everywhere, and
+<code>UK: ITV</code> stays at home. A dated broadcast slot (<code>[DisneyFI] (31/10) 18:45 …</code>)
+or an <em>Event</em> channel is the country's own feed of a match shown in many
+places, and is left alone. And only a country's list is thinned: under <em>Music</em>
+or <em>24-7 Channels</em> the global names are the point. What the rule cannot see is
+a national feed of a global brand — <code>FI: Eurosport 1</code> has Finnish commentary
+and looks exactly like Eurosport — which is why the setting starts on. Telling
+the channels apart takes the whole list, so with the setting off a country
+loads it first. The filter applies to browsing, the counts and the guide;
+a search, the favourites and the history find every channel.</p>
+
 <p>The sidebar filter matches sub-categories too: the query <em>sport</em> brings up the
 countries that have sports channels even when the country's name lacks the
 word.</p>
@@ -679,11 +704,12 @@ Finnish, to the codes providers use. The prefixes come in either order (<code>US
 NHL …</code>, <code>NHL US: …</code>), so the passes are repeated until nothing matches any
 more, and the whole name is always in the row's title text.</p>
 
-<p>Only a filtered view is tidied. In search, in the favourites and in the history
-the rows come from different groups, so there the prefix is what tells them
-apart and it stays put. Inside a favourite category the filter is known even
-though the sidebar does not show it, and the names tidy up as in the browsing
-view.</p>
+<p>A search and <em>All</em> mix the countries, and there each row is tidied by the
+rules of its own group: <code>FI: Liiga 1 FHD</code> reads <code>Liiga 1 FHD</code> in the results
+just as it does under <em>Finland</em>, and the guide shows the names the list does.
+In the favourites and in the history the prefix stays put. Inside a favourite
+category the filter is known even though the sidebar does not show it, and
+the names tidy up as in the browsing view.</p>
 
 <h3 id="a-category-as-a-favourite">A category as a favourite</h3>
 
@@ -854,7 +880,12 @@ the timeline's scale, <code>Enter</code> starts playback and <code>Esc</code> cl
 <h3 id="the-buttons">The buttons</h3>
 
 <p>The top bar holds the five tabs, the search box, <strong>Refresh lists</strong> (a
-circular arrow), <strong>Help</strong> (a question mark) and <strong>Settings</strong> at the far right;
+circular arrow), <strong>Help</strong> (a question mark), <strong>Settings</strong> and, at the far
+right, the theme: a sun in the dark theme switches to the light one and a
+moon in the light theme back. Dark is the default. The picture and the bar
+under it stay dark in either, and the choice is kept with the settings and
+copied to <code>localStorage</code>, so a light theme does not flash dark at start
+(<code>js/theme.js</code>);
 in a window 600px wide or less, Settings is a cog alone and the three share
 the brand's row. <strong>Refresh lists</strong> fetches the categories and
 the lists already loaded from the server again and empties the programme
@@ -921,7 +952,7 @@ language at all, and there the count stands instead, beside the warning.</p>
   <thead><tr><th>Section</th><th>Holds</th></tr></thead>
   <tbody>
     <tr><td><strong>Connection</strong></td><td>the provider address and credentials, entered as Xtream Codes fields or an M3U address</td></tr>
-    <tr><td><strong>Viewing</strong></td><td>interface language, the channel order, automatic programme data, remembered playback positions, the next episode and the technical read-out over the picture</td></tr>
+    <tr><td><strong>Viewing</strong></td><td>interface language, the channel order, the international channels, automatic programme data, remembered playback positions, the next episode and the technical read-out over the picture</td></tr>
     <tr><td><strong>Subtitles</strong></td><td>style and size, with a local preview</td></tr>
     <tr><td><strong>Account &amp; data</strong></td><td>subscription details and cache information; an expandable <strong>Manage stored data</strong> section contains cache clearing and reset; the version running, and the update when one is waiting</td></tr>
   </tbody>
@@ -1001,6 +1032,12 @@ description. The grid shows the same set of channels as the list, so the group
 selection and the search narrow the guide as well.
 <strong>Back to channels</strong> at the top left returns to the channel list. You can
 also close the guide with <code>Esc</code> or <code>g</code>.</p>
+
+<p>A click on a channel's name chooses the channel: the column shows its name,
+<strong>Watch the channel</strong>, the programme on now with its description and, under
+them, the next ten programmes with their times and titles. A double click on
+the name plays the channel straight away. The channels carry their names as
+the list shows them, without the provider's running number.</p>
 
 <p>The timeline runs back as far as the longest advertised channel archive in the
 current view, with at least two days of history, and five days forward. Invalid

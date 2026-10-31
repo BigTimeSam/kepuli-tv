@@ -1714,7 +1714,7 @@ async function catalogUi(page) {
   await waitFor(page, `document.querySelector('#list.covers .row.card') && [...document.querySelectorAll('#list .card-meta')].some((n) => /\\d+ ?min|\\dh/.test(n.textContent))`, 'movie duration on a cover');
   await evaluate(page, `document.querySelector('.view-toggle button[aria-pressed="false"]').click()`);
   await waitFor(page, `!document.getElementById('list').classList.contains('covers') && document.querySelector('#list .row-duration')`, 'movie duration metadata');
-  assert(await evaluate(page, `!document.getElementById('media-filters').hidden && document.getElementById('channel-tools').hidden && document.querySelector('.topbar-end').lastElementChild.id === 'btn-settings'`), 'movie navigation/filters');
+  assert(await evaluate(page, `!document.getElementById('media-filters').hidden && document.getElementById('channel-tools').hidden && document.querySelector('.topbar-end').lastElementChild.id === 'btn-theme'`), 'movie navigation/filters');
   const apply = (key,value) => evaluate(page, `(() => {const f=document.querySelector('#media-filters [name="${key}"]');f.value=${JSON.stringify(value)};f.dispatchEvent(new Event('change'));})()`);
   await apply('rating','8');
   await waitFor(page, `document.getElementById('list-progress').hidden && document.querySelectorAll('#list .row').length > 0`, 'rating filter');

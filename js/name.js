@@ -53,7 +53,7 @@ const COUNTRIES = [
   [['de', 'ger', 'deu'], 'germany', 'deutschland', 'saksa'],
   [['at', 'aut'], 'austria', 'österreich', 'itävalta'],
   [['ch', 'sui', 'swi', 'che'], 'switzerland', 'schweiz', 'suisse', 'sveitsi'],
-  [['nl', 'ned', 'nld'], 'netherlands', 'nederland', 'holland', 'alankomaat', 'hollanti'],
+  [['nl', 'ned', 'nld'], 'netherlands', 'netherland', 'nederland', 'holland', 'alankomaat', 'hollanti'],
   [['be', 'bel'], 'belgium', 'belgië', 'belgique', 'belgia'],
   [['fr', 'fra'], 'france', 'ranska'],
   [['es', 'esp', 'spa'], 'spain', 'españa', 'espanja'],

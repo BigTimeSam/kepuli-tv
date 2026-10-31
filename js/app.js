@@ -29,6 +29,7 @@ import { label as audioLabel } from './audio.js';
 import { SubtitleDisplay, subtitleLook } from './subdisplay.js';
 import { pickEncoder } from './transcode.js';
 import * as store from './config.js';
+import { applyTheme, earlyTheme } from './theme.js';
 import { nf, dateTimeFmt, dateFmt, stampFmt, dayLabel, clock, megabytes, duration, progressOf, setLocale } from './format.js';
 import { t, applyStatic, setLanguage, localeTag, LANGUAGES } from './i18n.js';
 
@@ -602,6 +603,10 @@ async function refreshRows({ keepScroll = false, returnPosition = null, restoreF
       if (!(await ensureFull(type, t('progress.reason.all'), current)) || !current()) return false;
       rows = state.lib.full[type];
     } else {
+      // Telling the world's channels from a country's own takes every
+      // country's list, see js/international.js.
+      if (type === 'live' && !state.settings.showInternational
+        && (!(await ensureFull(type, t('progress.reason.international'), current)) || !current())) return false;
       const items = await loadGroupItems(type, state.group, current);
       if (!current()) return false;
       state.groupItems = items;
@@ -630,6 +635,7 @@ async function refreshRows({ keepScroll = false, returnPosition = null, restoreF
   // Episode order comes from season/episode numbers, even when names are tidied.
   if (state.cleanName && !state.query && state.detail?.view !== 'series') rows = sortItems(rows, item => state.cleanName(item.n, item));
   rows = visibleRows(rows);
+  if (type === 'live' && !state.query && !state.detail && !isCollection()) rows = withoutInternational(rows);
   // The setting says where the list starts; the personal arrangement, made
   // in Organize channels, has the last word over it.
   if ((type === 'live' || state.detail?.entry?.t === 'live') && !state.query) {
@@ -906,7 +912,7 @@ function renderSubcats() {
     return;
   }
   const counts = new Map();
-  const visibleItems = type === 'live' ? visibleRows(state.groupItems) : state.groupItems;
+  const visibleItems = type === 'live' ? withoutInternational(visibleRows(state.groupItems)) : state.groupItems;
   for (const item of visibleItems) {
     for (const cat of item.cats) counts.set(cat, (counts.get(cat) || 0) + 1);
   }
@@ -1298,7 +1304,7 @@ function renderCategories() {
 
   let counts = state.lib.groupCounts(type);
   const full = state.lib.full[type];
-  const visible = type === 'live' && full ? visibleRows(full) : full;
+  const visible = type === 'live' && full ? withoutInternational(visibleRows(full)) : full;
   if (type === 'live' && full) {
     const groupOf = new Map(visibleGroups(type).flatMap((g) => g.cats.map((c) => [c.id, g.name])));
     counts = new Map();
@@ -1402,6 +1408,18 @@ function visibleRows(rows) {
     if (item.c != null) return !prefs.hiddenCategories.includes(item.c);
     return groups.has(item.g);
   });
+}
+
+/**
+ * The channels found in many countries' lists taken out of a country's,
+ * when the viewer has asked for that in Settings › Viewing. Browsing only:
+ * a search, a favourite or a recent channel was asked for by name. Until
+ * the whole list is in, nothing can be told apart and nothing goes.
+ */
+function withoutInternational(rows) {
+  if (state.settings.showInternational) return rows;
+  const global = state.lib?.international();
+  return global?.size ? rows.filter((item) => item.k !== 0 || !global.has(String(item.id))) : rows;
 }
 
 const channelEditor = new ChannelEditor(async (prefs) => {
@@ -1602,7 +1620,11 @@ function renderRow(index) {
 function nameCleanerFor(rows) {
   if (state.detail?.view === 'series') return state.detail.cleanName;
   const type = tabType();
-  if (state.query && !state.detail && (type === 'movie' || type === 'series') && state.lib?.full[type]) {
+  // A search, and every channel at once, mix the countries: each row is
+  // tidied by the rules of its own group, so "FI: Liiga 1" reads "Liiga 1"
+  // in the results just as it does under Finland.
+  const mixed = state.query || (type === 'live' && state.group == null && !isCollection());
+  if (mixed && !state.detail && type && state.lib?.full[type]) {
     return searchNameCleaner(state.lib.groups[type], state.lib.full[type]);
   }
   // Inside a favourite category the filter is known even though the sidebar
@@ -1652,6 +1674,11 @@ function onEpgUpdated(ids) {
   }
   if (state.playing && state.playing.k === 0 && ids.includes(String(state.playing.id))) renderInfoStrip();
   if (guideOpen) grid.invalidate();
+  // The clicked channel's list fills in as its programmes arrive.
+  if (guideOpen && guideChannel && ids.includes(guideChannel)) {
+    const channel = grid.channels.find((c) => String(c.id) === guideChannel);
+    if (channel) showGuideChannel(channel);
+  }
 }
 
 function toggleFavorite(item) {
@@ -2740,10 +2767,11 @@ const grid = new EpgGrid({
   timesInner: $('epg-times-inner'), chansInner: $('epg-chans-inner'),
   corner: $('epg-corner'), days: $('epg-days'), clock: $('epg-clock'),
 }, {
-  label: (channel) => (state.cleanName ? state.cleanName(channel.n) : channel.n),
+  label: (channel) => (state.cleanName ? state.cleanName(channel.n, channel) : channel.n),
   onSelect: renderGuidePreview,
   onActivate: activateProgramme,
-  onChannel: (channel) => channel && playItem(channel),
+  onChannel: (channel) => channel && showGuideChannel(channel),
+  onPlay: (channel) => channel && playItem(channel),
   onWindow: (items, from, to) => state.epg && state.epg.setVisibleWindow(items, from, to),
   reminded: (channel, programme) => reminders.has(reminderKey(channel, programme)),
 });
@@ -2829,6 +2857,21 @@ function closeGuide() {
 }
 
 /** A group selector for the guide: the sidebar is hidden in guide mode. */
+/**
+ * The theme in force, and the button that changes it: the button shows
+ * and names the theme it leads to, a sun in the dark and a moon in the
+ * light, so that its label says what a press will do.
+ */
+function renderTheme() {
+  const theme = applyTheme(state.settings.theme);
+  const button = $('btn-theme');
+  const next = theme === 'light' ? 'dark' : 'light';
+  button.dataset.next = next;
+  button.dataset.i18nLabel = button.dataset.i18nTitle = `theme.to.${next}`;
+  button.setAttribute('aria-label', t(`theme.to.${next}`));
+  button.title = t(`theme.to.${next}`);
+}
+
 function renderGuideGroups() {
   const select = $('epg-group');
   const frag = document.createDocumentFragment();
@@ -2846,15 +2889,50 @@ function renderGuideGroups() {
   select.value = state.group ?? '';
 }
 
-function renderGuidePreview(channel, programme) {
+// The channel whose name was clicked in the guide: its panel lists what
+// comes after the programme on now. Any other choice in the grid — a
+// programme, an arrow key — is about one programme, and the list goes.
+let guideChannel = null;
+const UPCOMING = 10;
+
+function showGuideChannel(channel) {
+  guideChannel = String(channel.id);
+  // The guide's own window is some twelve hours of programmes, which is
+  // the ten that come next on all but the shortest of slots.
+  state.epg?.want(channel, { priority: true, mode: 'grid' });
+  renderGuidePreview(channel, state.epg?.nowNext(channel.id)?.now || null, { upcoming: true });
+}
+
+/** The programmes after the one shown, times and titles only. */
+function renderUpcoming(channel, programme) {
+  const list = $('epgv-next');
+  const now = Date.now();
+  const after = programme ? programme.stop : now;
+  const items = (state.epg?.listings(channel.id) || []).filter((p) => p.start >= after).slice(0, UPCOMING);
+  list.replaceChildren(...items.map((p) => {
+    const li = document.createElement('li');
+    const time = document.createElement('span');
+    time.className = 'epgv-next-time';
+    time.textContent = `${clock(p.start)}–${clock(p.stop)}`;
+    const title = document.createElement('span');
+    title.className = 'epgv-next-title';
+    title.textContent = p.title;
+    li.append(time, title);
+    return li;
+  }));
+  list.hidden = !items.length;
+}
+
+function renderGuidePreview(channel, programme, { upcoming = false } = {}) {
   if (!channel) return;
+  if (!upcoming) guideChannel = null;
+  if (upcoming) renderUpcoming(channel, programme);
+  else $('epgv-next').hidden = true;
   const logo = poster('epgv-logo', channel.logo, 'channel');
   logo.id = 'epgv-logo';
   $('epgv-logo').replaceWith(logo);
 
-  $('epgv-name').textContent = channel.num
-    ? `${String(channel.num).padStart(4, '0')} ${channel.n}`
-    : channel.n;
+  $('epgv-name').textContent = state.cleanName ? state.cleanName(channel.n, channel) : channel.n;
 
   const now = Date.now();
   const meta = [];
@@ -3252,6 +3330,7 @@ function openSetup({ section } = {}) {
   $('f-resume').checked = state.settings.resumeEnabled;
   $('f-autonext').checked = state.settings.autoNext;
   $('f-stats').checked = state.settings.statsEnabled;
+  $('f-international').checked = state.settings.showInternational;
   setupInitial = { ...state.settings, subtitleStyle: subtitleLook(state.settings).style, subtitleSize: subtitleLook(state.settings).size };
   applySubtitleLook(state.settings);
   previewSetupLook();
@@ -3285,6 +3364,7 @@ function readSetupSettings() {
     resumeEnabled: $('f-resume').checked,
     autoNext: $('f-autonext').checked,
     statsEnabled: $('f-stats').checked,
+    showInternational: $('f-international').checked,
     subtitleStyle: $('f-substyle').value,
     subtitleSize: Number($('f-subsize').value),
   };
@@ -3627,9 +3707,13 @@ function wireSetup() {
       applySubtitleLook(state.settings);
       renderStatBadge();
       if (settingsPatch.lang) await applyLanguage(state.settings.lang);
-      // A new starting order repaints the channel list where it stands; a
-      // changed connection is about to load it again anyway.
-      if (settingsPatch.channelSort && !changed) await refreshRows({ keepScroll: true });
+      // A new starting order, or the international channels shown or
+      // hidden, repaints the channel list where it stands; a changed
+      // connection is about to load it again anyway.
+      if ((settingsPatch.channelSort || 'showInternational' in settingsPatch) && !changed) {
+        if ('showInternational' in settingsPatch) renderSidebar();
+        await refreshRows({ keepScroll: true });
+      }
       if (changed) {
         state.favorites = await store.loadFavorites();
         state.recents = await store.loadRecents();
@@ -4089,6 +4173,12 @@ function wireUi() {
 
   $('btn-settings').addEventListener('click', openSetup);
   $('btn-help').addEventListener('click', openHelp);
+  $('btn-theme').addEventListener('click', async () => {
+    const theme = state.settings.theme === 'light' ? 'dark' : 'light';
+    state.settings = { ...state.settings, theme };
+    renderTheme();
+    state.settings = await store.saveSettings({ theme });
+  });
   wireModal($('help'), () => $('help').close());
   // The strip goes when the load stops, not when the key is pressed: a strip
   // that vanished on Esc would look as if the loading had finished.
@@ -4366,9 +4456,12 @@ function idleTile(className, item, onClick) {
 
 /* ================================================================== start */
 
+applyTheme(earlyTheme());
+
 async function init() {
   state.config = await store.loadConfig();
   state.settings = await store.loadSettings();
+  renderTheme();
   setLanguage(state.settings.lang);
   setLocale(localeTag());
   applyStatic();

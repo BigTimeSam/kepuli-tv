@@ -27,7 +27,114 @@
   --organize-row-h: 2.75rem;   /* the same number as ROW_H in channeleditor.js */         /* the same number as ROW_H in epggrid.js */
   --epg-chan-w: 210px;
   --epg-line: #1b2030;
+  /* The tones between the ones above, named so that the light theme can
+     give its own: a stronger border, a progress track, the resting star,
+     the gold of a favourite and of a rating, the selected row. */
+  --border-strong: #333a4f;
+  --track: #262c3d;
+  --star: #707b96;
+  --faint: #5a6480;
+  --chevron: #4b5368;
+  --gold: #ffc857;
+  --gold-line: #4a4230;
+  --list-bg: #0d1016;
+  --selected: #202538;
+  --row-line: rgba(35, 40, 56, .45);
+  --danger-soft: #2b2230;
+  --warn-line: #3d3627;
+  --archive-line: #1f3a42;
+  --accent-soft: #211b39;
+  --accent-soft-hover: #30244f;
+  --toast-warn: #241d13;
+  --toast-warn-line: #5b4526;
+  --toast-error: #27141b;
+  --toast-error-line: #6d2b3e;
+  --epg-bg: #0b0e14;
+  --tick-hour: #2b3247;
+  --prog-past: #10131b;
+  --prog-live: #1d2333;
+  --prog-live-line: #39415c;
+  --prog-sel: #2a2350;
+  --scroll-thumb: #262c3d;
+  --scroll-thumb-hover: #333b52;
+  --backdrop: rgba(5, 6, 10, .66);
+  color-scheme: dark;
   font-synthesis-weight: none;
+}
+
+/* The light theme, from the sun and moon button at the right of the header (see
+   js/theme.js). The same roles in daylight colours; every text colour is
+   4.5:1 or more on the grounds it sits on, the accent's text colours
+   included: the cyan of the times is darkened to teal to be read on white.
+   The picture and its controls stay dark, below, as a cinema does. */
+:root[data-theme="light"] {
+  --bg: #f3f4f8;
+  --panel: #ffffff;
+  --panel-2: #eef0f5;
+  --row-hover: #e5e8f0;
+  --border: #d6dae4;
+  --text: #161925;
+  --muted: #555d70;
+  --dim: #5b6377;
+  --accent-ink: #5537d6;
+  --accent-2: #09687a;
+  --warn: #8f5a0b;
+  --danger: #c41d3d;
+  --epg-line: #e2e5ed;
+  --border-strong: #b8bfcd;
+  --track: #dce0e9;
+  --star: #7b8498;
+  --faint: #8a92a5;
+  --chevron: #a0a7b6;
+  --gold: #805600;
+  --gold-line: #e2cf9f;
+  --list-bg: #fafbfd;
+  --selected: #e2e6f3;
+  --row-line: rgba(22, 25, 37, .08);
+  --danger-soft: #fbe5ea;
+  --warn-line: #ead7b0;
+  --archive-line: #b3dce5;
+  --accent-soft: #ece7fe;
+  --accent-soft-hover: #ddd4fd;
+  --toast-warn: #fff4df;
+  --toast-warn-line: #e6c88d;
+  --toast-error: #fde8ed;
+  --toast-error-line: #eaa2b3;
+  --epg-bg: #f7f8fb;
+  --tick-hour: #c7ccd9;
+  --prog-past: #eceef3;
+  --prog-live: #e6eaf6;
+  --prog-live-line: #b7bfd8;
+  --prog-sel: #e7e1fd;
+  --scroll-thumb: #c9ced9;
+  --scroll-thumb-hover: #a9b0bf;
+  --backdrop: rgba(22, 25, 37, .35);
+  color-scheme: light;
+}
+
+/* The stage — the picture, its overlay and the bar under it — is dark in
+   either theme: a white frame around a film is a light left on in the
+   cinema. */
+:root[data-theme="light"] .stage {
+  --bg: #0a0c11;
+  --panel: #11141c;
+  --panel-2: #161a24;
+  --row-hover: #1c2130;
+  --border: #232838;
+  --text: #e7eaf2;
+  --muted: #8d95aa;
+  --dim: #868fa3;
+  --accent-ink: #a48cff;
+  --accent-2: #22d3ee;
+  --warn: #e0a458;
+  --danger: #ff5c7a;
+  --border-strong: #333a4f;
+  --track: #262c3d;
+  --gold: #ffc857;
+  --gold-line: #4a4230;
+  --selected: #202538;
+  color-scheme: dark;
+  color: var(--text);
 }
 
 * { box-sizing: border-box; }
@@ -37,14 +144,20 @@
    contrast, and the muted text is the next. The palette is otherwise the
    same, so nothing moves. */
 @media (prefers-contrast: more) {
-  :root {
+  :root:not([data-theme="light"]) {
     --border: #626f94;      /* 3.7:1 on the panel, 3.2:1 on the darker one */
     --muted: #b6bdcd;
     --dim: #b0b8c8;
     --panel-2: #1b2130;
     --row-hover: #232a3c;
   }
-  .row-star, .row-x, .group-star, .chip-star { color: #97a1ba; }
+  :root:not([data-theme="light"]) :is(.row-star, .row-x, .group-star, .chip-star) { color: #97a1ba; }
+  :root[data-theme="light"] {
+    --border: #8b93a7;
+    --muted: #3f4657;
+    --dim: #434a5b;
+  }
+  :root[data-theme="light"] :is(.row-star, .row-x, .group-star, .chip-star) { color: #5d6579; }
   .row { border-bottom-color: var(--border); }
 }
 
@@ -121,15 +234,16 @@ h2, h3 { font-weight: 600; }
 .icon-button:not(.labelled) { padding: 0; width: 34px; }
 .icon-button svg { width: 17px; height: 17px; flex: none; fill: none; stroke: currentColor; stroke-width: 1.6; stroke-linecap: round; stroke-linejoin: round; }
 .icon-button .button-label { color: var(--text); }
+.theme-button[data-next="light"] .theme-moon, .theme-button[data-next="dark"] .theme-sun { display: none; }
 
 button.ghost {
   background: var(--panel-2); border: 1px solid var(--border);
   border-radius: 8px; padding: 6px 11px; cursor: pointer;
 }
-button.ghost:hover { background: var(--row-hover); border-color: #333a4f; }
+button.ghost:hover { background: var(--row-hover); border-color: var(--border-strong); }
 button.ghost:disabled { opacity: .4; cursor: default; }
 button.ghost.danger { color: var(--danger); }
-button.ghost.on { color: #ffc857; border-color: #4a4230; }
+button.ghost.on { color: var(--gold); border-color: var(--gold-line); }
 button.primary { background: var(--accent); border: 1px solid var(--accent); color: #fff; border-radius: 8px; padding: 6px 14px; cursor: pointer; font-weight: 550; }
 button.primary:hover { filter: brightness(1.1); }
 
@@ -165,9 +279,9 @@ main.guide {
 .guide-header { display: none; }
 main.guide > .guide-header { grid-area: 1 / 1 / 2 / 3; display: flex; align-items: center; gap: 16px; padding: 8px 14px; background: var(--panel); border-bottom: 1px solid var(--border); }
 .guide-header h1 { margin: 0; font-size: 0.875rem; font-weight: 600; }
-.guide-back { display: inline-flex; align-items: center; gap: 8px; flex: none; padding: 8px 12px; border: 1px solid var(--accent); border-radius: 7px; background: #211b39; color: var(--text); font-weight: 550; cursor: pointer; }
+.guide-back { display: inline-flex; align-items: center; gap: 8px; flex: none; padding: 8px 12px; border: 1px solid var(--accent); border-radius: 7px; background: var(--accent-soft); color: var(--text); font-weight: 550; cursor: pointer; }
 .guide-back > svg { width: 18px; height: 18px; fill: none; stroke: currentColor; stroke-width: 1.5; stroke-linecap: round; stroke-linejoin: round; }
-.guide-back:hover { background: #30244f; }
+.guide-back:hover { background: var(--accent-soft-hover); }
 .guide-back:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 main.guide > .groups, main.guide > .listcol { display: none; }
 main.guide > .epgview { grid-area: 2 / 2; border-left: 1px solid var(--border); border-bottom: 0; }
@@ -188,6 +302,10 @@ main.guide .epgv-head { flex-wrap: wrap; }
 main.guide .epgv-actions { flex: 1 0 100%; flex-direction: column; }
 main.guide .epgv-actions button { width: 100%; }
 main.guide .epgv-desc { flex: 1; }
+/* With the timetable under it, the description keeps to its own length
+   and the timetable follows straight after; the empty space goes below. */
+main.guide .epgv-desc:has(+ .epgv-next:not([hidden])) { flex: 0 1 auto; }
+main.guide .epgv-next { overflow-y: auto; min-height: 0; flex: 0 1 auto; align-content: start; }
 main.guide > .epg { grid-area: 2 / 1 / 4 / 2; }
 /* The programme data shows in the guide's own panel, and six buttons do not
    fit in the narrow player box. */
@@ -224,18 +342,18 @@ main.guide #btn-copy { display: none; }
    on the start edge instead of the centre, so the star sat 3px right. */
 .group-star {
   width: 18px; height: 18px; flex: none; display: grid; place-items: center;
-  border: 0; padding: 0; background: transparent; color: #707b96; cursor: pointer;
+  border: 0; padding: 0; background: transparent; color: var(--star); cursor: pointer;
   border-radius: 5px; font-size: 0.75rem; line-height: 1;
 }
 /* Only the button reacts: the reservation on a starless row is an empty
    div, and no highlight may light up behind which there is no button. */
-button.group-star:hover { color: var(--text); background: #262c3d; }
-.group-star.on { color: #ffc857; }
+button.group-star:hover { color: var(--text); background: var(--track); }
+.group-star.on { color: var(--gold); }
 .group.active .group-star { color: rgba(255, 255, 255, .6); }
 .group.active .group-star:hover { background: rgba(0, 0, 0, .18); color: #fff; }
 .group.active .group-star.on { color: #ffd884; }
 
-.listcol { display: flex; flex-direction: column; border-right: 1px solid var(--border); min-width: 0; background: #0d1016; }
+.listcol { display: flex; flex-direction: column; border-right: 1px solid var(--border); min-width: 0; background: var(--list-bg); }
 .channel-tools { flex: none; padding: 8px 10px; border-bottom: 1px solid var(--border); background: var(--panel); }
 .channel-guide { display: flex; align-items: center; gap: 9px; width: 100%; padding: 8px 10px; border: 1px solid var(--border); border-radius: 7px; background: var(--panel-2); color: var(--text); font-weight: 550; text-align: left; cursor: pointer; }
 .channel-guide > svg { width: 18px; height: 18px; flex: none; fill: none; stroke: var(--accent-2); stroke-width: 1.5; stroke-linecap: round; stroke-linejoin: round; }
@@ -317,7 +435,7 @@ body.resizing { user-select: none; }
   background: var(--panel-2); border: 1px solid var(--border); border-radius: 99px;
   color: var(--muted); font-size: 0.75rem; white-space: nowrap;
 }
-.chip:hover { color: var(--text); border-color: #333a4f; }
+.chip:hover { color: var(--text); border-color: var(--border-strong); }
 .chip.active { background: var(--accent); border-color: var(--accent); color: #fff; }
 .chip-main {
   background: none; border: 0; border-radius: 99px; padding: 3px 4px 3px 11px;
@@ -329,10 +447,10 @@ body.resizing { user-select: none; }
    takes costs a row's height across the whole bar. */
 .chip-star {
   border: 0; background: none; padding: 0 7px 0 0;
-  color: #707b96; cursor: pointer; font-size: 0.6875rem; line-height: 1;
+  color: var(--star); cursor: pointer; font-size: 0.6875rem; line-height: 1;
 }
 .chip-star:hover { color: var(--text); }
-.chip-star.on { color: #ffc857; }
+.chip-star.on { color: var(--gold); }
 .chip.active .chip-star { color: rgba(255, 255, 255, .55); }
 .chip.active .chip-star:hover { color: #fff; }
 .chip.active .chip-star.on { color: #ffd884; }
@@ -380,12 +498,12 @@ button.series-favorite { flex: none; width: 32px; height: 32px; padding: 0; disp
 .title-facts > div { min-width: 0; }
 .title-facts dt { font-size: 0.6875rem; color: var(--muted); margin-bottom: 3px; }
 .title-facts dd { margin: 0; font-size: 0.75rem; font-weight: 550; color: var(--text); overflow-wrap: anywhere; }
-.title-fact-rating dd { color: #ffc857; font-variant-numeric: tabular-nums; }
+.title-fact-rating dd { color: var(--gold); font-variant-numeric: tabular-nums; }
 .row-duration { flex: none; color: var(--muted); font-size: 0.6875rem; font-variant-numeric: tabular-nums; white-space: nowrap; }
 .title-links { display: flex; align-items: flex-start; flex-wrap: wrap; gap: 6px; margin-top: 12px; }
 .title-links a { display: inline-flex; align-items: center; gap: 6px; padding: 5px 8px; border: 1px solid var(--border); border-radius: 6px; font-size: 0.6875rem; line-height: 1.4; color: var(--text); background: var(--panel-2); text-decoration: none; cursor: pointer; }
 .title-links a > span { color: var(--muted); }
-.title-links a:hover { border-color: var(--accent); color: #fff; }
+.title-links a:hover { border-color: var(--accent); color: var(--text); }
 .title-links a:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 .vodinfo-body { min-width: 0; flex: 1; }
 .vodinfo .title-links { margin-top: 0; margin-bottom: 10px; }
@@ -409,19 +527,19 @@ button.series-favorite { flex: none; width: 32px; height: 32px; padding: 0; disp
 .row {
   display: flex; align-items: center; gap: 9px;
   height: var(--row-h); padding: 0 10px; cursor: pointer;
-  border-bottom: 1px solid rgba(35, 40, 56, .45);
+  border-bottom: 1px solid var(--row-line);
 }
 .row:hover { background: var(--row-hover); }
-.row.selected { background: #202538; box-shadow: inset 3px 0 0 var(--accent-2); }
+.row.selected { background: var(--selected); box-shadow: inset 3px 0 0 var(--accent-2); }
 .row.playing { background: linear-gradient(90deg, rgba(124, 92, 255, .2), transparent 70%); box-shadow: inset 2px 0 0 var(--accent); }
 .row.unplayable .row-name { color: var(--dim); }
 
 /* 3.2:1 even on the selected row, where the ground is lightest. At the old
    #394052 it was 1.84:1 against the list and 1.47:1 on that row — a control
    that could not be seen, and the only way into the Favourites tab. */
-.row-star { width: 22px; height: 22px; flex: none; display: grid; place-items: center; border: 0; padding: 0; background: transparent; color: #707b96; cursor: pointer; border-radius: 5px; font-size: 0.8125rem; }
-.row-star:hover { color: var(--text); background: #262c3d; }
-.row-star.on { color: #ffc857; }
+.row-star { width: 22px; height: 22px; flex: none; display: grid; place-items: center; border: 0; padding: 0; background: transparent; color: var(--star); cursor: pointer; border-radius: 5px; font-size: 0.8125rem; }
+.row-star:hover { color: var(--text); background: var(--track); }
+.row-star.on { color: var(--gold); }
 
 /* A favourite category is not a playable item but a door into a list: in
    the logo's place there are stacked lines, and at the end of the row a
@@ -447,28 +565,28 @@ button.series-favorite { flex: none; width: 32px; height: 32px; padding: 0; disp
 .row.playing .row-name { font-weight: 600; }
 .row-sub { display: flex; align-items: center; gap: 6px; font-size: 0.6875rem; color: var(--dim); margin-top: 2px; }
 .row-sub .txt { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.row-progress { width: min(140px, 100%); height: 3px; margin-top: 5px; border-radius: 2px; background: #262c3d; overflow: hidden; }
+.row-progress { width: min(140px, 100%); height: 3px; margin-top: 5px; border-radius: 2px; background: var(--track); overflow: hidden; }
 .row-progress i { display: block; height: 100%; background: var(--accent); }
 .row-progress.resume i { background: var(--accent-2); }
 
 .row-badge { font-size: 0.6875rem; color: var(--muted); background: var(--panel-2); border: 1px solid var(--border); padding: 1px 6px; border-radius: 5px; white-space: nowrap; flex: none; }
-.row-badge.warn { color: var(--warn); border-color: #3d3627; }
+.row-badge.warn { color: var(--warn); border-color: var(--warn-line); }
 .row-time { display: inline-flex; align-items: center; gap: 4px; }
 .row-time svg { width: 13px; height: 13px; flex: none; fill: none; stroke: currentColor; stroke-width: 1.5; stroke-linecap: round; stroke-linejoin: round; }
-.row-badge.archive { display: inline-flex; align-items: center; gap: 3px; color: var(--accent-2); border-color: #1f3a42; }
+.row-badge.archive { display: inline-flex; align-items: center; gap: 3px; color: var(--accent-2); border-color: var(--archive-line); }
 .row-badge.archive svg { width: 12px; height: 12px; flex: none; fill: none; stroke: currentColor; stroke-width: 1.6; stroke-linecap: round; stroke-linejoin: round; }
 .row-ep { font-size: 0.6875rem; color: var(--muted); font-variant-numeric: tabular-nums; white-space: nowrap; flex: none; }
-.row-chevron { color: #4b5368; flex: none; }
+.row-chevron { color: var(--chevron); flex: none; }
 
 /* Dimmer than the star beside it — it is the rarer gesture and must not
    compete — but present: on hover alone it was the only way to drop a
    single history row, and unreachable by touch. */
 .row-x {
   width: 20px; height: 20px; flex: none; display: grid; place-items: center;
-  border: 0; background: transparent; color: #5a6480; cursor: pointer;
+  border: 0; background: transparent; color: var(--faint); cursor: pointer;
   border-radius: 5px; font-size: 0.875rem; line-height: 1;
 }
-.row-x:hover { color: var(--danger); background: #2b2230; }
+.row-x:hover { color: var(--danger); background: var(--danger-soft); }
 
 /* Day and type headings in the favourites and the history. */
 .rowgroup { display: flow-root; }
@@ -687,7 +805,7 @@ body[data-substyle="contrast"] video::cue { background: #000; }
 }
 .idle-card { flex-direction: column; gap: 7px; padding: 7px; }
 .idle-channel { align-items: center; gap: 10px; padding: 8px 10px; }
-.idle-card:hover, .idle-channel:hover { background: var(--row-hover); border-color: #333a4f; }
+.idle-card:hover, .idle-channel:hover { background: var(--row-hover); border-color: var(--border-strong); }
 .idle-card:focus-visible, .idle-channel:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 .idle-cover { width: 100%; aspect-ratio: 2 / 3; border-radius: 6px; }
 .idle-logo { width: 44px; height: 30px; flex: none; border-radius: 4px; }
@@ -713,7 +831,7 @@ body[data-substyle="contrast"] video::cue { background: #000; }
 .epgnow { display: flex; align-items: baseline; gap: 8px; }
 .epgnow-time { color: var(--accent-2); font-variant-numeric: tabular-nums; flex: none; font-size: 0.71875rem; }
 .epgnow-title { font-weight: 600; font-size: 0.875rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.epgbar { height: 3px; background: #262c3d; border-radius: 2px; margin: 6px 0; overflow: hidden; }
+.epgbar { height: 3px; background: var(--track); border-radius: 2px; margin: 6px 0; overflow: hidden; }
 .epgbar i { display: block; height: 100%; background: linear-gradient(90deg, var(--accent), var(--accent-2)); }
 .epgdesc { color: var(--muted); font-size: 0.75rem; }
 /* The programme on next reads in the same two columns as the one on now,
@@ -735,7 +853,7 @@ body[data-substyle="contrast"] video::cue { background: #000; }
 .playback-facts dd { display: flex; align-items: baseline; flex-wrap: wrap; gap: 4px 6px; margin: 0; color: var(--text); font-size: 0.71875rem; overflow-wrap: anywhere; }
 .playback-facts dd.playback-pending { align-items: center; min-width: 86px; color: var(--muted); }
 .playback-pending .fact-spinner { width: 14px; height: 14px; }
-.playback-warning { color: #ffc857; font-size: 0.6875rem; }
+.playback-warning { color: var(--gold); font-size: 0.6875rem; }
 .vodinfo .plot { color: var(--muted); font-size: 0.75rem; }
 
 /* Three selectors and seven buttons do not fit beside the title in a
@@ -774,7 +892,7 @@ body[data-substyle="contrast"] video::cue { background: #000; }
   border-radius: 12px; box-shadow: 0 18px 44px rgba(0, 0, 0, .55);
 }
 .pop[hidden] { display: none; }
-#btn-sublook[aria-expanded="true"], #btn-more[aria-expanded="true"] { color: var(--text); background: var(--row-hover); border-color: #333a4f; }
+#btn-sublook[aria-expanded="true"], #btn-more[aria-expanded="true"] { color: var(--text); background: var(--row-hover); border-color: var(--border-strong); }
 
 /* The menu of the actions that are wanted now and then. Same panel, but a
    list rather than a form: no padding of its own, so a row can light up
@@ -789,7 +907,7 @@ body[data-substyle="contrast"] video::cue { background: #000; }
 .popitem:hover { background: var(--row-hover); }
 .popitem:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; }
 /* The same gold as the row's own Cast button had while a device plays. */
-.popitem.on { color: #ffc857; }
+.popitem.on { color: var(--gold); }
 .popitem svg { flex: none; width: 16px; height: 16px; fill: none; stroke: currentColor; stroke-width: 1.7; stroke-linecap: round; stroke-linejoin: round; }
 
 /* A button with a drawn symbol: the same height as the ones with a word. */
@@ -798,7 +916,7 @@ body[data-substyle="contrast"] video::cue { background: #000; }
 /* --------------------------------------------------------- dialogit */
 
 dialog { border: 1px solid var(--border); background: var(--panel); color: var(--text); border-radius: 14px; padding: 0; box-shadow: 0 24px 70px rgba(0, 0, 0, .6); }
-dialog::backdrop { background: rgba(5, 6, 10, .66); backdrop-filter: blur(2px); }
+dialog::backdrop { background: var(--backdrop); backdrop-filter: blur(2px); }
 .modal-head { display: flex; align-items: center; gap: 12px; flex-shrink: 0; }
 .modal-head h2 { flex: 1; min-width: 0; margin: 0; font-size: 1rem; font-weight: 600; line-height: 1.4; }
 .modal-close { display: grid; place-items: center; flex: none; width: 32px; height: 32px; padding: 0; border: 1px solid var(--border); border-radius: 7px; background: transparent; color: var(--muted); cursor: pointer; }
@@ -887,7 +1005,7 @@ dialog::backdrop { background: rgba(5, 6, 10, .66); backdrop-filter: blur(2px); 
   padding: 7px 12px; border: 1px solid var(--border); border-radius: 9px;
   background: var(--panel-2); color: var(--muted);
 }
-.radio:hover { color: var(--text); border-color: #333a4f; }
+.radio:hover { color: var(--text); border-color: var(--border-strong); }
 .radio input { accent-color: var(--accent); width: 15px; height: 15px; margin: 0; }
 .radio:has(input:checked) { border-color: var(--accent); color: var(--text); }
 
@@ -1006,7 +1124,7 @@ dialog::backdrop { background: rgba(5, 6, 10, .66); backdrop-filter: blur(2px); 
   color: var(--text); background: transparent; border: 1px solid var(--border);
   border-radius: 7px; font: inherit; font-weight: 550;
 }
-.toast-action:hover { background: var(--row-hover); border-color: #333a4f; }
+.toast-action:hover { background: var(--row-hover); border-color: var(--border-strong); }
 .toast-action:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 /* Only the icon of the message's own kind is shown; the other two wait. */
 .toast > svg { display: none; flex: none; width: 16px; height: 16px; fill: none; stroke: currentColor; stroke-width: 1.7; stroke-linecap: round; stroke-linejoin: round; }
@@ -1015,8 +1133,8 @@ dialog::backdrop { background: rgba(5, 6, 10, .66); backdrop-filter: blur(2px); 
 .toast.error > svg[data-kind="error"] { display: block; color: var(--danger); }
 /* The colour carries the same weight as the icon: a warning is yellow, an
    error red, and the text stays at full contrast on both grounds. */
-.toast.warn { background: #241d13; border-color: #5b4526; }
-.toast.error { background: #27141b; border-color: #6d2b3e; }
+.toast.warn { background: var(--toast-warn); border-color: var(--toast-warn-line); }
+.toast.error { background: var(--toast-error); border-color: var(--toast-error-line); }
 
 /* --------------------------------------------------- ohjelmaopas */
 
@@ -1037,8 +1155,16 @@ dialog::backdrop { background: rgba(5, 6, 10, .66); backdrop-filter: blur(2px); 
 .epgv-slot { color: var(--accent-2); font-variant-numeric: tabular-nums; font-size: 0.75rem; margin-top: 4px; }
 .epgv-slot b { color: var(--text); font-weight: 600; font-size: 0.8125rem; margin-left: 8px; }
 .epgv-desc { color: var(--muted); font-size: 0.75rem; overflow-y: auto; min-height: 0; }
+/* What comes after, under the programme on now: a timetable, so the
+   times stand in one column and the titles in the next. */
+.epgv-next { list-style: none; margin: 4px 0 0; padding: 8px 0 0; border-top: 1px solid var(--border);
+  display: grid; grid-template-columns: auto 1fr; column-gap: 10px; row-gap: 4px; font-size: 0.75rem; flex: none; }
+.epgv-next[hidden] { display: none; }
+.epgv-next li { display: contents; }
+.epgv-next-time { color: var(--accent-2); font-variant-numeric: tabular-nums; }
+.epgv-next-title { color: var(--text); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 
-.epg { display: flex; flex-direction: column; background: #0b0e14; }
+.epg { display: flex; flex-direction: column; background: var(--epg-bg); }
 
 /* Personal channel list and programme search share the player's controls. */
 /* The help, which is mostly a two-column list of keys and what they do. */
@@ -1150,7 +1276,7 @@ dialog::backdrop { background: rgba(5, 6, 10, .66); backdrop-filter: blur(2px); 
   padding-left: 7px; color: var(--muted); font-size: 0.71875rem;
   font-variant-numeric: tabular-nums; border-left: 1px solid var(--epg-line);
 }
-.epg-tick.hour { border-left-color: #2b3247; color: var(--text); }
+.epg-tick.hour { border-left-color: var(--tick-hour); color: var(--text); }
 .epg-tick.day { border-left-color: var(--accent); color: var(--accent-2); font-weight: 600; }
 
 .epg-chans { grid-area: 2 / 1; overflow: hidden; position: relative; background: var(--panel); border-right: 1px solid var(--border); }
@@ -1158,16 +1284,16 @@ dialog::backdrop { background: rgba(5, 6, 10, .66); backdrop-filter: blur(2px); 
 .epg-chan {
   position: absolute; left: 0; right: 0; height: var(--epg-row);
   display: flex; align-items: center; gap: 8px; padding: 0 9px;
-  border-bottom: 1px solid rgba(35, 40, 56, .45); cursor: pointer;
+  border-bottom: 1px solid var(--row-line); cursor: pointer;
 }
 .epg-chan:hover { background: var(--row-hover); }
-.epg-chan.cursor { background: #202538; box-shadow: inset 3px 0 0 var(--accent-2); }
+.epg-chan.cursor { background: var(--selected); box-shadow: inset 3px 0 0 var(--accent-2); }
 .epg-chan.playing { background: linear-gradient(90deg, rgba(124, 92, 255, .22), transparent); box-shadow: inset 2px 0 0 var(--accent); }
 .epg-chan-logo { width: 30px; height: 24px; flex: none; object-fit: contain; border-radius: 3px; }
 .epg-chan-body { min-width: 0; flex: 1; display: flex; align-items: baseline; gap: 6px; }
 .epg-chan-num { color: var(--dim); font-size: 0.6875rem; font-variant-numeric: tabular-nums; flex: none; }
 .epg-chan-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 0.78125rem; }
-.epg-chan-rec { flex: none; font-size: 0.6875rem; color: var(--accent-2); border: 1px solid #1f3a42; border-radius: 5px; padding: 0 4px; }
+.epg-chan-rec { flex: none; font-size: 0.6875rem; color: var(--accent-2); border: 1px solid var(--archive-line); border-radius: 5px; padding: 0 4px; }
 
 .epg-scroll { grid-area: 2 / 2; overflow: auto; outline: none; }
 /* The keyboard's whereabouts: the container that takes the arrows shows it. */
@@ -1183,7 +1309,7 @@ dialog::backdrop { background: rgba(5, 6, 10, .66); backdrop-filter: blur(2px); 
 .epg-canvas {
   position: relative;
   background-image:
-    repeating-linear-gradient(90deg, #2b3247 0 1px, transparent 1px var(--hour, 300px)),
+    repeating-linear-gradient(90deg, var(--tick-hour) 0 1px, transparent 1px var(--hour, 300px)),
     repeating-linear-gradient(90deg, var(--epg-line) 0 1px, transparent 1px var(--slot, 150px)),
     repeating-linear-gradient(0deg, transparent 0 calc(var(--epg-row) - 1px), var(--epg-line) calc(var(--epg-row) - 1px) var(--epg-row));
 }
@@ -1194,13 +1320,13 @@ dialog::backdrop { background: rgba(5, 6, 10, .66); backdrop-filter: blur(2px); 
   background: var(--panel-2); border: 1px solid var(--border); border-radius: 6px;
   cursor: pointer; font-size: 0.75rem;
 }
-.epg-prog:hover { background: var(--row-hover); border-color: #333a4f; }
+.epg-prog:hover { background: var(--row-hover); border-color: var(--border-strong); }
 .epg-prog-label { padding: 0 8px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .epg-prog.clipped::before { content: "‹"; position: absolute; left: calc(var(--clip, 0px) + 5px); color: var(--dim); }
-.epg-prog.past { background: #10131b; color: var(--dim); }
-.epg-prog.past.rec { color: var(--muted); border-color: #1f3a42; }
-.epg-prog.live { background: #1d2333; border-color: #39415c; }
-.epg-prog.sel { outline: 2px solid var(--accent); outline-offset: -2px; background: #2a2350; color: var(--text); }
+.epg-prog.past { background: var(--prog-past); color: var(--dim); }
+.epg-prog.past.rec { color: var(--muted); border-color: var(--archive-line); }
+.epg-prog.live { background: var(--prog-live); border-color: var(--prog-live-line); }
+.epg-prog.sel { outline: 2px solid var(--accent); outline-offset: -2px; background: var(--prog-sel); color: var(--text); }
 .epg-prog.remind { border-color: var(--accent); }
 /* A bell ahead of the title of a programme with a reminder: the border
    alone would be a colour doing the work of a mark. */
@@ -1227,8 +1353,8 @@ dialog::backdrop { background: rgba(5, 6, 10, .66); backdrop-filter: blur(2px); 
 .epg-nowhead[hidden] { display: none; }
 
 ::-webkit-scrollbar { width: 10px; height: 10px; }
-::-webkit-scrollbar-thumb { background: #262c3d; border-radius: 99px; border: 2px solid transparent; background-clip: content-box; }
-::-webkit-scrollbar-thumb:hover { background: #333b52; background-clip: content-box; }
+::-webkit-scrollbar-thumb { background: var(--scroll-thumb); border-radius: 99px; border: 2px solid transparent; background-clip: content-box; }
+::-webkit-scrollbar-thumb:hover { background: var(--scroll-thumb-hover); background-clip: content-box; }
 ::-webkit-scrollbar-track { background: transparent; }
 
 @media (max-width: 1180px) {

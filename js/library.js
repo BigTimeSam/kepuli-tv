@@ -13,6 +13,7 @@
 import { cacheGet, cachePut, cacheAge, cacheClear } from './db.js';
 import { localeTag } from './i18n.js';
 import { channelLogo } from './logos.js';
+import { internationalChannels } from './international.js';
 import { labelCodes, searchKey, searchTerms } from './name.js';
 
 export const TYPES = ['live', 'movie', 'series'];
@@ -74,6 +75,7 @@ export class Library {
     this.keys = { live: null, movie: null, series: null };
     this.fullAt = { live: null, movie: null, series: null };
     this.catCodes = new Map();       // category id → the country codes it names
+    this.globalIds = null;           // the international channels' ids, see international()
     this.byCategory = new Map();     // "live:3" → items (in memory)
     this.pending = new Map();        // concurrent calls share one promise
     this.details = new Map();        // extra details for a series/movie
@@ -106,6 +108,7 @@ export class Library {
       const codes = labelCodes(group.name);
       if (codes.length) for (const cat of group.cats) this.catCodes.set(cat.id, codes);
     }
+    this.globalIds = null;
     return this.categories;
   }
 
@@ -226,6 +229,18 @@ export class Library {
     // visible stutter.
     this.keys[type] = this.full[type].map((it) => searchKey(it.n));
     this.byCategory.clear();
+    if (type === 'live') this.globalIds = null;
+  }
+
+  /**
+   * The ids of the live channels that are in many countries' lists, out of
+   * the whole list (js/international.js); null until it is loaded. Worked
+   * out once per list: 31,000 channels take some 40 ms.
+   */
+  international() {
+    if (!this.full.live) return null;
+    if (!this.globalIds) this.globalIds = internationalChannels(this.full.live, this.groups.live);
+    return this.globalIds;
   }
 
   /**
@@ -374,6 +389,7 @@ export class Library {
     this.keys = { live: null, movie: null, series: null };
     this.fullAt = { live: null, movie: null, series: null };
     this.catCodes.clear();
+    this.globalIds = null;
     this.byCategory.clear();
     this.details.clear();
     this.movieQueue = [];

@@ -14,7 +14,8 @@ globalThis.MediaSource = { isTypeSupported: (type) => /mp4a\.40/.test(type) };
 import { parseServer, parsePlaylistUrl } from '../js/xtream.js';
 import { safeUrl } from '../js/api.js';
 import { nameCleaner, labelCodes, countryCodes, searchKey, searchTerms, matchesTerms } from '../js/name.js';
-import { Library } from '../js/library.js';
+import { Library, buildGroups } from '../js/library.js';
+import { channelKey, internationalChannels, isNationalTopic } from '../js/international.js';
 import { channelLogo, slugify } from '../js/logos.js';
 import { cueText } from '../js/subs.js';
 import { subtitleLook, STYLES, MIN_SIZE, MAX_SIZE, DEFAULT_SIZE } from '../js/subdisplay.js';
@@ -666,6 +667,39 @@ for (const [text, least] of [['dim', 4.5], ['muted', 4.5], ['text', 7]]) {
   check('the eviction keeps the half-minute behind the playback position', sb.ranges, [[70, 160]]);
   await Promise.all([remuxer.append('video', new Uint8Array(1)), remuxer.clear()]);
   check('a seek clears the buffer after the append in flight, not over it', { errors, calls: sb.calls.slice(4) }, { errors: [], calls: ['append', 'remove'] });
+}
+
+/* ------------------------------------------------- international.js */
+
+check('a channel is one key in every country\'s list',
+  ['FI: Stingray Djazz', 'SE: Stingray Djazz HD', '|DK| Stingray Djazz [Multi-Sub]', 'NO: Stingray Djazz (F)'].map(channelKey),
+  ['stingray djazz', 'stingray djazz', 'stingray djazz', 'stingray djazz']);
+check('the national topics in the providers\' languages',
+  ['Kansalliset', 'Nationella', 'Nasjonale', 'Nationale', 'Öffentlich', 'Generalistas', 'Urheilu', 'Musik'].map(isNationalTopic),
+  [true, true, true, true, true, true, false, false]);
+{
+  const countries = ['Finland', 'Sweden', 'Norway', 'Denmark'];
+  const cats = [{ id: 'music', name: 'Music' }];
+  for (const c of countries) cats.push({ id: `${c}-nat`, name: `${c} - National` }, { id: `${c}-music`, name: `${c} - Music` });
+  cats.push({ id: 'uk', name: 'United Kingdom' }, { id: 'uk-news', name: 'United Kingdom - News' });
+  const items = [];
+  const add = (id, n, cat) => items.push({ k: 0, id, n, cats: [cat] });
+  countries.forEach((c, i) => add(`djazz${i}`, `${c.slice(0, 2).toUpperCase()}: Stingray Djazz`, `${c}-music`));
+  countries.forEach((c, i) => add(`tv5${i}`, `${c.slice(0, 2).toUpperCase()}: TV5`, i ? `${c}-music` : `${c}-nat`));
+  countries.slice(0, 3).forEach((c, i) => add(`local${i}`, `${c.slice(0, 2).toUpperCase()}: Nordic Jazz`, `${c}-music`));
+  countries.forEach((c, i) => add(`event${i}`, `[Disney${i}] (31/10) 18:45 Chelsea vs. Benfica`, `${c}-music`));
+  add('music', 'Stingray Djazz', 'music');
+  add('itv', 'UK: ITV', 'uk');
+  countries.slice(1).forEach((c, i) => add(`itv${i}`, `${c.slice(0, 2).toUpperCase()}: ITV HD`, `${c}-music`));
+  add('ukjazz', 'UK: Stingray Djazz', 'uk-news');
+  const found = internationalChannels(items, buildGroups(cats));
+  check('a channel in four countries\' lists is international, in each of them',
+    ['djazz0', 'djazz1', 'djazz2', 'djazz3', 'ukjazz'].every((id) => found.has(id)), true);
+  check('three countries are not enough', found.has('local0'), false);
+  check('a national topic keeps a name that collides with foreign ones', [found.has('tv50'), found.has('tv51')], [false, true]);
+  check('a country\'s topic-less category is its own channels', [found.has('itv'), found.has('itv0')], [false, true]);
+  check('a dated event is the country\'s own broadcast', found.has('event0'), false);
+  check('outside a country\'s list nothing is thinned', found.has('music'), false);
 }
 
 /* ------------------------------------------------------------------ done */

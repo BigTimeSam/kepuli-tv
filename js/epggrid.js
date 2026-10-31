@@ -45,7 +45,7 @@ export function archiveDays(channels) {
 export class EpgGrid {
   /**
    * @param {object} refs { scroll, canvas, timesInner, chansInner, corner, days, clock }
-   * @param {object} opts { label, onSelect, onActivate, onChannel, onWindow, reminded }
+   * @param {object} opts { label, onSelect, onActivate, onChannel, onPlay, onWindow, reminded }
    */
   constructor(refs, opts = {}) {
     this.el = refs;
@@ -70,6 +70,7 @@ export class EpgGrid {
     this.onSelect = opts.onSelect || (() => {});
     this.onActivate = opts.onActivate || (() => {});
     this.onChannel = opts.onChannel || (() => {});
+    this.onPlay = opts.onPlay || (() => {});
     this.onWindow = opts.onWindow || (() => {});
     this.reminded = opts.reminded || (() => false);
 
@@ -83,9 +84,17 @@ export class EpgGrid {
     this.resizeObserver.observe(this.el.scroll);
     this.el.canvas.addEventListener('click', (e) => this.pick(e, false));
     this.el.canvas.addEventListener('dblclick', (e) => this.pick(e, true));
+    // A click on a channel's name chooses the channel, with what is on now;
+    // a double click plays it, as the name alone used to.
     this.el.chansInner.addEventListener('click', (e) => {
       const row = e.target.closest('[data-row]');
-      if (row) this.onChannel(this.channels[Number(row.dataset.row)]);
+      if (!row) return;
+      this.selectAt(Number(row.dataset.row), Date.now());
+      this.onChannel(this.channels[Number(row.dataset.row)]);
+    });
+    this.el.chansInner.addEventListener('dblclick', (e) => {
+      const row = e.target.closest('[data-row]');
+      if (row) this.onPlay(this.channels[Number(row.dataset.row)]);
     });
   }
 
@@ -208,12 +217,6 @@ export class EpgGrid {
 
       const body = document.createElement('div');
       body.className = 'epg-chan-body';
-      if (ch.num) {
-        const num = document.createElement('span');
-        num.className = 'epg-chan-num';
-        num.textContent = String(ch.num).padStart(4, '0');
-        body.appendChild(num);
-      }
       const name = document.createElement('span');
       name.className = 'epg-chan-name';
       name.textContent = this.label(ch);

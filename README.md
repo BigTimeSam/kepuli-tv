@@ -439,6 +439,31 @@ Category order also determines country order in the sidebar. Movies and series
 are unaffected. These preferences belong to the server and account and survive
 cache clearing, reloading and switching away from the account and back.
 
+**Show international channels in each country's list**, in Settings >
+Viewing, is on by default. Turned off, a country's list keeps its own channels
+and drops the world's: a provider files every channel it sells in a country
+under that country, so *Finland* holds `FI: Stingray Djazz` beside the same
+channel in Sweden, Norway and Denmark, and `FI: CNN` beside thirty other
+countries' CNN. Nothing in the list says which is which, so `js/international.js`
+reads it from the list as a whole: a channel whose name — without the country
+tag, the picture quality and the provider's bracketed notes — turns up in four
+or more groups is international. On one provider's 31,000 channels that takes
+some 40 ms, and *Finland* goes from 696 channels to 608.
+
+Three things keep the rule from overreaching. A country's national topic
+(*Kansalliset*, *Nationella*, *Nationale*, *Öffentlich* and their kin) and its
+category with no topic at all, where the main channels are kept, are its own
+by the provider's word, so `FI: TV5` stays though TV5 Monde is everywhere, and
+`UK: ITV` stays at home. A dated broadcast slot (`[DisneyFI] (31/10) 18:45 …`)
+or an *Event* channel is the country's own feed of a match shown in many
+places, and is left alone. And only a country's list is thinned: under *Music*
+or *24-7 Channels* the global names are the point. What the rule cannot see is
+a national feed of a global brand — `FI: Eurosport 1` has Finnish commentary
+and looks exactly like Eurosport — which is why the setting starts on. Telling
+the channels apart takes the whole list, so with the setting off a country
+loads it first. The filter applies to browsing, the counts and the guide;
+a search, the favourites and the history find every channel.
+
 The sidebar filter matches sub-categories too: the query *sport* brings up the
 countries that have sports channels even when the country's name lacks the
 word.
@@ -465,11 +490,12 @@ Finnish, to the codes providers use. The prefixes come in either order (`US:
 NHL …`, `NHL US: …`), so the passes are repeated until nothing matches any
 more, and the whole name is always in the row's title text.
 
-Only a filtered view is tidied. In search, in the favourites and in the history
-the rows come from different groups, so there the prefix is what tells them
-apart and it stays put. Inside a favourite category the filter is known even
-though the sidebar does not show it, and the names tidy up as in the browsing
-view.
+A search and *All* mix the countries, and there each row is tidied by the
+rules of its own group: `FI: Liiga 1 FHD` reads `Liiga 1 FHD` in the results
+just as it does under *Finland*, and the guide shows the names the list does.
+In the favourites and in the history the prefix stays put. Inside a favourite
+category the filter is known even though the sidebar does not show it, and
+the names tidy up as in the browsing view.
 
 ### A category as a favourite
 
@@ -633,7 +659,12 @@ the timeline's scale, `Enter` starts playback and `Esc` closes.
 ### The buttons
 
 The top bar holds the five tabs, the search box, **Refresh lists** (a
-circular arrow), **Help** (a question mark) and **Settings** at the far right;
+circular arrow), **Help** (a question mark), **Settings** and, at the far
+right, the theme: a sun in the dark theme switches to the light one and a
+moon in the light theme back. Dark is the default. The picture and the bar
+under it stay dark in either, and the choice is kept with the settings and
+copied to `localStorage`, so a light theme does not flash dark at start
+(`js/theme.js`);
 in a window 600px wide or less, Settings is a cog alone and the three share
 the brand's row. **Refresh lists** fetches the categories and
 the lists already loaded from the server again and empties the programme
@@ -693,7 +724,7 @@ Settings always opens on **Connection**, with four focused tabs:
 | Section | Holds |
 | --- | --- |
 | **Connection** | the provider address and credentials, entered as Xtream Codes fields or an M3U address |
-| **Viewing** | interface language, the channel order, automatic programme data, remembered playback positions, the next episode and the technical read-out over the picture |
+| **Viewing** | interface language, the channel order, the international channels, automatic programme data, remembered playback positions, the next episode and the technical read-out over the picture |
 | **Subtitles** | style and size, with a local preview |
 | **Account & data** | subscription details and cache information; an expandable **Manage stored data** section contains cache clearing and reset; the version running, and the update when one is waiting |
 
@@ -765,6 +796,12 @@ description. The grid shows the same set of channels as the list, so the group
 selection and the search narrow the guide as well.
 **Back to channels** at the top left returns to the channel list. You can
 also close the guide with `Esc` or `g`.
+
+A click on a channel's name chooses the channel: the column shows its name,
+**Watch the channel**, the programme on now with its description and, under
+them, the next ten programmes with their times and titles. A double click on
+the name plays the channel straight away. The channels carry their names as
+the list shows them, without the provider's running number.
 
 The timeline runs back as far as the longest advertised channel archive in the
 current view, with at least two days of history, and five days forward. Invalid
