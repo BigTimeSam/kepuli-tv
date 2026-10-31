@@ -309,7 +309,7 @@ export class Playback {
     let settled = false;
     this.noteOpen();
 
-    const finish = (ok, why) => {
+    const finish = (ok, why, { refused = false } = {}) => {
       if (token !== this.token) return;
       // The engine keeps reporting after the start has been settled, and a
       // failure then is a different event from a failed start.
@@ -339,6 +339,16 @@ export class Playback {
       const engine = this.engine;
       this.engine = null;
       if (engine) { try { engine.destroy(); } catch { /* purettu */ } }
+      // The server answered and said no. For a live channel that is the
+      // account's connections far more often than the format: the
+      // provider goes on counting the stream just closed for a while, and a
+      // zap lands inside that. Falling back to HLS then would trade a wait
+      // of seconds for a session the provider holds until it times out —
+      // there is no connection of HLS to close — and the next zap would
+      // find the account full. The failure goes to the account check and
+      // the wait for the release instead, and the same stream is asked for
+      // again.
+      if (refused && spec.live) return void this.explain(spec, token);
       onFail();
     };
 
@@ -407,7 +417,13 @@ export class Playback {
       ...MPEGTS_CONFIG, liveBufferLatencyChasing: isLive, ...(vod ? MPEGTS_VOD_CONFIG : {}),
     });
     this.engine = player;
-    player.on(mpegts.Events.ERROR, (type, detail) => finish(false, `${type}/${detail}`));
+    // An HTTP status other than "not found" is the server refusing, not the
+    // stream failing to be MPEG-TS; see finish() in runAttempt.
+    player.on(mpegts.Events.ERROR, (type, detail, info) => {
+      const status = Number(info && info.code);
+      const refused = detail === 'HttpStatusCodeInvalid' && status >= 400 && status !== 404 && status !== 410;
+      finish(false, `${type}/${detail}${status ? ` ${status}` : ''}`, { refused });
+    });
     // A live source does not end by itself: this means the server cut the
     // connection. The buffer is still played to the end, and the ended
     // watchdog handles the reconnect — that way the viewer sees all the

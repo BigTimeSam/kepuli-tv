@@ -674,6 +674,46 @@ async function connections(page, { requests }) {
   }
 }
 
+/**
+ * Zapping live channels the way a provider serves them: each channel one
+ * endless MPEG-TS connection, one connection on the account, the closed one
+ * counted on for a few seconds, and an HLS viewer counted by session. A zap
+ * into the counted seconds is refused; the player must wait for the release
+ * and ask for the same stream again, never fall back to HLS, whose session
+ * the provider would go on counting with nothing to close.
+ */
+async function livezap(page) {
+  process.env.KEPULI_MOCK_LIVE_TS = '1';
+  process.env.KEPULI_MOCK_LIMIT = '1';
+  process.env.KEPULI_MOCK_RELEASE_MS = '3000';
+  try {
+    await evaluate(page, `document.querySelector('#tabs [data-tab="live"]').click()`);
+    await click(page, '#groups', 'Finland');
+    await waitFor(page, `document.querySelectorAll('#list .row').length > 5`, 'the channels');
+    const before = connectionStats();
+    await evaluate(page, `document.querySelectorAll('#list .row')[0].click()`, { gesture: true });
+    await waitFor(page, PLAYING, 'the first channel', 40000);
+    for (const [i, pause] of [[1, 300], [2, 1500], [3, 300], [4, 2500], [5, 800]]) {
+      await evaluate(page, `document.querySelectorAll('#list .row')[${i}].click()`, { gesture: true });
+      await sleep(pause);
+    }
+    await waitFor(page, PLAYING, 'the last channel after the zaps', 40000);
+    await sleep(1500);
+    const after = connectionStats();
+    const hls = after.hls - before.hls;
+    const refused = after.refused.length - before.refused.length;
+    const overlaps = after.overlaps.length - before.overlaps.length;
+    if (hls || overlaps || after.open !== 1) {
+      return { ok: false, detail: `${hls} HLS playlist(s), ${overlaps} overlap(s), ${after.open} open at the end; refused ${after.refused.slice(-3).join(' | ')}` };
+    }
+    return { ok: true, detail: `6 channels, ${refused} refused while the server still counted the last, waited for and played over MPEG-TS; no HLS, no overlap, 1 open` };
+  } finally {
+    process.env.KEPULI_MOCK_LIVE_TS = '';
+    process.env.KEPULI_MOCK_LIMIT = '';
+    process.env.KEPULI_MOCK_RELEASE_MS = '';
+  }
+}
+
 /** A row of the demo series' episode list clicked, without waiting for playback. */
 async function playEpisodeRow(page, index) {
   await evaluate(page, `document.querySelector('#tabs [data-tab="series"]').click()`);
@@ -2021,7 +2061,7 @@ async function update(page) {
   return { ok: line === `Kepuli-TV ${running} Update to 99.0.0`, detail: `"${said}"; "${line}"` };
 }
 
-const SCENARIOS = { catalogUi, setupClarity, fullscreenControl, clickpause, pickers, channels, home, resumemkv, restore, programmes, catchup, seek, death, cancel, timeout, search, paste, keys, switching, resume, connections, reconnect, accounts, listerror, a11y, subtitles, audio, settings,
+const SCENARIOS = { catalogUi, setupClarity, fullscreenControl, clickpause, pickers, channels, home, resumemkv, restore, programmes, catchup, seek, death, cancel, timeout, search, paste, keys, switching, resume, connections, livezap, reconnect, accounts, listerror, a11y, subtitles, audio, settings,
   lastchannel, nextepisode, continuewatching, reminders, update };
 // The mock's whole-list answers stall for these, longer than the request limit.
 const SLOW_LIST_MS = { cancel: 60000, timeout: 60000 };

@@ -16,7 +16,9 @@
 //
 // The live channel is HLS: a playlist that slides over the same segments
 // forever, so that it never ends. The .ts address answers 404 and the player
-// falls back to HLS on its own. The catch-up stream is the same segments
+// falls back to HLS on its own — unless KEPULI_MOCK_LIVE_TS is set, when it
+// is one endless MPEG-TS connection as a provider's is, counted against the
+// account, and an HLS viewer is counted by session. The catch-up stream is the same segments
 // back to back, played out at real time.
 
 import { createServer } from 'node:http';
@@ -406,26 +408,51 @@ function sendFile(req, res, name, type) {
 // KEPULI_MOCK_LIMIT turns the limit on: a stream asked for while the count
 // is full is refused with 400, as the provider refuses it.
 // KEPULI_MOCK_RELEASE_MS keeps a closed stream counted that long.
-// The playlists and segments of the live channel are not counted: the
-// provider counts an HLS viewer by session, not by request.
+// The playlists and segments of the live channel are not counted by
+// request: the provider counts an HLS viewer by session (see admitHls,
+// with KEPULI_MOCK_LIVE_TS).
 const MAX_CONNECTIONS = 1;
 // The browser's abort reaches the server a moment after the next request
 // may have: within this a full count is waited on, not refused.
 const ABORT_GRACE_MS = 300;
 let connections;
+const hlsSessions = new Map();     // HLS viewers: channel id → the time of its last request
 
 function resetConnections() {
-  connections = { open: new Set(), lingering: 0, peak: 0, refused: [], overlaps: [] };
+  connections = { open: new Set(), lingering: 0, peak: 0, refused: [], overlaps: [], hls: 0 };
+  hlsSessions.clear();
 }
 resetConnections();
 
 /** What the server has seen of the streams, for dev/playcheck.mjs. */
 export function connectionStats() {
-  return { open: connections.open.size, counted: counted(), peak: connections.peak,
+  return { open: connections.open.size, counted: counted(), peak: connections.peak, hls: connections.hls,
     refused: connections.refused.slice(), overlaps: connections.overlaps.slice() };
 }
 
-const counted = () => connections.open.size + connections.lingering;
+// With KEPULI_MOCK_LIVE_TS the HLS viewer is counted too, as a provider
+// counts it: by session, from its first playlist until no request has come
+// for HLS_SESSION_MS. There is no connection to close, so leaving a channel
+// leaves its session counted until then.
+const HLS_SESSION_MS = 15000;
+const hlsCounted = () => {
+  for (const [id, at] of hlsSessions) if (Date.now() - at > HLS_SESSION_MS) hlsSessions.delete(id);
+  return hlsSessions.size;
+};
+const counted = () => connections.open.size + connections.lingering + hlsCounted();
+
+/** A playlist request of an HLS viewer: its session kept, or a new one admitted. */
+function admitHls(req, res, id) {
+  if (!process.env.KEPULI_MOCK_LIVE_TS) return true;
+  const max = process.env.KEPULI_MOCK_LIMIT ? MAX_CONNECTIONS : Infinity;
+  if (!hlsSessions.has(id) && counted() >= max) {
+    connections.refused.push(`${req.url} hls at ${counted()}/${max}`);
+    send(res, 400, 'every connection is in use', 'text/plain');
+    return false;
+  }
+  hlsSessions.set(id, Date.now());
+  return true;
+}
 
 async function admit(req, res) {
   const max = process.env.KEPULI_MOCK_LIMIT ? MAX_CONNECTIONS : Infinity;
@@ -622,7 +649,15 @@ function handle(req, res) {
   if ((m = /^\/live\/[^/]+\/[^/]+\/seg\/(\d+)\.ts$/.exec(path))) {
     return sendFile(req, res, SEGMENTS[Number(m[1]) % SEGMENTS.length].file, 'video/mp2t');
   }
+  if ((m = /^\/live\/[^/]+\/[^/]+\/(\d+)\.m3u8$/.exec(path))) {
+    if (!admitHls(req, res, m[1])) return;
+    connections.hls++;
+    return send(res, 200, livePlaylist(), 'application/vnd.apple.mpegurl');
+  }
   if (/^\/live\/.*\.m3u8$/.test(path)) return send(res, 200, livePlaylist(), 'application/vnd.apple.mpegurl');
+  // KEPULI_MOCK_LIVE_TS serves the channel as a provider does: one endless
+  // MPEG-TS connection, counted against the account like a film.
+  if (/^\/live\/.*\.ts$/.test(path) && process.env.KEPULI_MOCK_LIVE_TS) return admit(req, res).then((ok) => ok && sendTimeshift(req, res));
   if (/^\/live\/.*\.ts$/.test(path)) return send(res, 404, 'the demo channel is HLS; the player falls back to it', 'text/plain');
   if (path.startsWith('/timeshift/')) return admit(req, res).then((ok) => ok && sendTimeshift(req, res));
   if ((m = /^\/(movie|series)\/.*\.(\w+)$/.exec(path))) return admit(req, res).then((ok) => ok && sendMedia(req, res, path, m[2]));
