@@ -182,5 +182,8 @@ console.log('adding the release notes and the notes to reviewer…');
 await call(creds, 'PATCH', `${addon}/versions/${version.id}/`, {
   json: { release_notes: { [LOCALE]: files.release }, approval_notes: files.notes },
 });
-const done = await call(creds, 'GET', `${addon}/versions/${version.id}/`);
-console.log(`${done.version}: ${done.file && done.file.status}, source ${done.source ? 'attached' : 'MISSING'}`);
+// Translated fields come back only for the language asked for.
+const done = await call(creds, 'GET', `${addon}/versions/${version.id}/?lang=${LOCALE}`);
+const notesIn = done.release_notes && done.release_notes[LOCALE];
+console.log(`${done.version}: ${done.file && done.file.status}, source ${done.source ? 'attached' : 'MISSING'}, `
+  + `release notes ${notesIn ? 'set' : 'MISSING'}, notes to reviewer ${(done.approval_notes || '').length} characters`);
