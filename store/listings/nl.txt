@@ -32,6 +32,8 @@ WAT JE KRIJGT
   aflevering start vanzelf.
 • Niets blokkeert het scherm terwijl gegevens laden, en wat speelt, blijft
   spelen.
+• Gemaakt voor accounts met één verbinding: bij het wisselen van zender wacht
+  het tot de provider die vrijgeeft, in plaats van te mislukken.
 • Films en series als covers, met verhaal, beoordelingen en seizoenen.
 • Favorieten, kijkgeschiedenis en hervatposities.
 • Verberg de wereldwijde merken in de lijst van een land, dan vind je de
@@ -47,7 +49,9 @@ WAT JE KRIJGT
 PRIVÉ VANAF HET BEGIN
 
 Geen tracking, geen advertenties, geen account. De extensie praat alleen met
-jouw server en vraagt toestemming voor dat ene adres, verder niets.
+jouw server en vraagt alleen toestemming voor dat adres — bredere toegang
+alleen als jij dat toestaat, wanneer je provider de streams naar een ander
+adres doorstuurt.
 
 
 LET OP

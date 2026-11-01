@@ -30,6 +30,8 @@ VAD DU FÅR
 • Det du lämnade halvvägs väntar högst upp, och nästa avsnitt startar av sig
   självt.
 • Inget blockerar skärmen medan data laddas, och det som spelas fortsätter.
+• Byggd för konton med en anslutning: vid kanalbyte väntar den på att
+  leverantören släpper den i stället för att misslyckas.
 • Filmer och serier som omslag, med handling, betyg och säsonger.
 • Favoriter, visningshistorik och återupptagningspositioner.
 • Dölj de globala varumärkena i ett lands lista, så är landets egna kanaler
@@ -44,7 +46,9 @@ VAD DU FÅR
 PRIVAT FRÅN GRUNDEN
 
 Ingen spårning, inga annonser, ingen registrering. Kepuli-TV pratar bara med
-din egen server och ber om tillstånd för just den adressen, inget annat.
+din egen server och ber om tillstånd för just den adressen — bredare åtkomst
+bara om du själv tillåter det, när din leverantör skickar strömmar någon
+annanstans.
 
 
 OBS

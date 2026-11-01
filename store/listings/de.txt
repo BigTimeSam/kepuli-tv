@@ -33,6 +33,8 @@ WAS DU BEKOMMST
   von selbst.
 • Nichts blockiert den Bildschirm, während Daten laden, und was läuft, läuft
   weiter.
+• Gemacht für Konten mit einer Verbindung: Beim Senderwechsel wartet die
+  Erweiterung, bis der Anbieter sie freigibt, statt zu scheitern.
 • Filme und Serien als Cover, mit Handlung, Bewertungen und Staffeln.
 • Favoriten, Verlauf und Wiedergabepositionen.
 • Blende die globalen Marken in der Liste eines Landes aus, dann sind die
@@ -47,9 +49,10 @@ WAS DU BEKOMMST
 
 PRIVATSPHÄRE VON ANFANG AN
 
-Kein Tracking, keine Werbung, keine Anmeldung. Die Erweiterung spricht nur
-mit deinem eigenen Server und bittet nur um Erlaubnis für diese eine Adresse,
-sonst nichts.
+Kein Tracking, keine Werbung, keine Anmeldung. Die Erweiterung spricht nur mit
+deinem eigenen Server und bittet nur um Erlaubnis für diese Adresse — weiteren
+Zugriff nur, wenn du ihn erlaubst, falls dein Anbieter Streams anderswohin
+leitet.
 
 
 BITTE BEACHTEN

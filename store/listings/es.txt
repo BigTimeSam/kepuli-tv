@@ -33,6 +33,8 @@ QUÉ OBTIENES
   solo.
 • Nada bloquea la pantalla mientras se cargan los datos, y lo que estás
   viendo sigue sonando.
+• Pensado para cuentas con una sola conexión: al cambiar de canal espera a que
+  la conexión quede libre en lugar de fallar.
 • Películas y series como carátulas, con sinopsis, valoraciones y temporadas.
 • Favoritos, historial y posiciones para retomar donde lo dejaste.
 • Oculta las marcas globales de la lista de un país, y sus propias emisoras
@@ -47,7 +49,8 @@ QUÉ OBTIENES
 PRIVADO POR DISEÑO
 
 Sin rastreo, sin anuncios, sin registro. Kepuli-TV solo habla con tu propio
-servidor y pide permiso para esa única dirección, nada más.
+servidor y pide permiso solo para esa dirección; un acceso más amplio, solo si
+tú lo permites, cuando tu proveedor envía las emisiones a otro sitio.
 
 
 ANTES DE EMPEZAR

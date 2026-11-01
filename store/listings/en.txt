@@ -30,6 +30,8 @@ WHAT YOU GET
   itself.
 • Nothing blocks the screen while data loads, and what is playing keeps
   playing.
+• Made for accounts with one connection: switching channels waits for the
+  provider to free it instead of failing.
 • Movies and series as covers, with plots, ratings and seasons.
 • Favourites, viewing history and resume positions.
 • Hide the global brands from a country's list, and its own stations are
@@ -45,7 +47,8 @@ WHAT YOU GET
 PRIVATE BY DESIGN
 
 No tracking, no ads, no sign-up. Kepuli-TV talks only to your own server and
-asks permission for that one address, nothing else.
+asks permission for that address alone — wider access only if you allow it,
+when your provider sends streams elsewhere.
 
 
 PLEASE NOTE

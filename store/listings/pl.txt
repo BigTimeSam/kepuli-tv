@@ -32,6 +32,8 @@ CO DOSTAJESZ
 • To, co przerwałeś w połowie, czeka na górze, a następny odcinek włącza się
   sam.
 • Nic nie blokuje ekranu podczas ładowania danych, a to, co leci, leci dalej.
+• Stworzony dla kont z jednym połączeniem: przy zmianie kanału czeka, aż
+  dostawca je zwolni, zamiast zgłaszać błąd.
 • Filmy i seriale jako okładki, z opisami, ocenami i sezonami.
 • Ulubione, historia oglądania i miejsca wznowienia.
 • Ukryj globalne marki na liście kraju, a jego własne stacje łatwo znaleźć.
@@ -46,7 +48,8 @@ CO DOSTAJESZ
 PRYWATNOŚĆ OD PODSTAW
 
 Bez śledzenia, bez reklam, bez rejestracji. Rozszerzenie łączy się tylko z
-Twoim własnym serwerem i prosi o zgodę na ten jeden adres, na nic więcej.
+Twoim własnym serwerem i prosi o zgodę tylko na ten adres — szerszy dostęp
+wyłącznie za Twoją zgodą, gdy dostawca przekierowuje strumienie gdzie indziej.
 
 
 UWAGA

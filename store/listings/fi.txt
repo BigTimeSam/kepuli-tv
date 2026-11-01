@@ -33,6 +33,8 @@ MITÄ SAAT
 • Puolivälissä jäänyt odottaa ylhäällä, ja seuraava jakso alkaa itsestään.
 • Mikään ei tuki ruutua tietojen latautuessa, ja se mitä katsot, jatkuu
   katkeamatta.
+• Tehty tileille, joilla on yksi yhteys: kanavaa vaihdettaessa odotetaan, että
+  palveluntarjoaja vapauttaa sen, eikä vaihto epäonnistu.
 • Elokuvat ja sarjat kansina, juonikuvauksineen, arvosteluineen ja kausineen.
 • Suosikit, katseluhistoria ja jatkokohdat.
 • Piilota maailmanlaajuiset brändit maan listalta, niin maan omat kanavat
@@ -47,8 +49,9 @@ MITÄ SAAT
 YKSITYISYYS RAKENNETTU SISÄÄN
 
 Ei seurantaa, ei mainoksia, ei rekisteröitymistä. Kepuli-TV keskustelee vain
-oman palvelimesi kanssa ja pyytää luvan vain siihen yhteen osoitteeseen, ei
-muuhun.
+oman palvelimesi kanssa ja pyytää luvan vain siihen osoitteeseen — laajemman
+pääsyn vain, jos itse sallit sen, kun palveluntarjoajasi ohjaa lähetykset
+muualle.
 
 
 HUOM

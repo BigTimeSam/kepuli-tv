@@ -33,6 +33,8 @@ COSA OTTIENI
   parte da solo.
 • Niente blocca lo schermo mentre i dati si caricano, e ciò che è in
   riproduzione continua.
+• Pensato per gli account con una sola connessione: cambiando canale aspetta
+  che il provider la liberi invece di fallire.
 • Film e serie come copertine, con trame, voti e stagioni.
 • Preferiti, cronologia e punti da cui riprendere.
 • Nascondi i marchi globali dall'elenco di un paese, e le sue emittenti si
@@ -48,8 +50,9 @@ COSA OTTIENI
 PRIVATO PER SCELTA
 
 Niente tracciamento, niente pubblicità, niente registrazione. Kepuli-TV parla
-solo con il tuo server e chiede il permesso per quell'unico indirizzo, nient'
-altro.
+solo con il tuo server e chiede il permesso solo per quell'indirizzo — un
+accesso più ampio solo se lo consenti tu, quando il tuo provider invia i
+flussi altrove.
 
 
 DA SAPERE

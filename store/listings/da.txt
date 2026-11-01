@@ -29,6 +29,8 @@ HVAD DU FÅR
 • Det, du lod ligge halvvejs, venter øverst, og næste afsnit starter af sig
   selv.
 • Intet blokerer skærmen, mens data indlæses, og det, der afspilles, fortsætter.
+• Lavet til konti med én forbindelse: ved kanalskift venter den på, at
+  udbyderen frigiver den, i stedet for at fejle.
 • Film og serier som covers med handling, anmeldelser og sæsoner.
 • Favoritter, visningshistorik og genoptagelsespunkter.
 • Skjul de globale mærker fra et lands liste, så er landets egne kanaler nemme
@@ -43,7 +45,8 @@ HVAD DU FÅR
 PRIVAT FRA GRUNDEN
 
 Ingen sporing, ingen reklamer, ingen tilmelding. Kepuli-TV taler kun med din
-egen server og beder om tilladelse til netop den adresse, intet andet.
+egen server og beder om tilladelse til netop den adresse — bredere adgang kun
+hvis du selv tillader det, når din udbyder sender streams et andet sted hen.
 
 
 BEMÆRK

@@ -32,6 +32,8 @@ O QUE VOCÊ TEM
   começa sozinho.
 • Nada trava a tela enquanto os dados carregam, e o que está tocando
   continua tocando.
+• Feito para contas com uma só conexão: ao trocar de canal, ele espera a
+  conexão ficar livre em vez de falhar.
 • Filmes e séries como capas, com sinopses, avaliações e temporadas.
 • Favoritos, histórico e pontos para retomar de onde você parou.
 • Esconda as marcas globais da lista de um país, e as emissoras locais ficam
@@ -46,7 +48,9 @@ O QUE VOCÊ TEM
 PRIVADO POR PROJETO
 
 Sem rastreamento, sem anúncios, sem cadastro. O Kepuli-TV só fala com o seu
-próprio servidor e pede permissão para esse único endereço, nada mais.
+próprio servidor e pede permissão só para esse endereço — acesso mais amplo
+apenas se você permitir, quando o seu provedor envia as transmissões para
+outro lugar.
 
 
 AVISO

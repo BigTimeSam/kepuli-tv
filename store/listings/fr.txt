@@ -33,6 +33,8 @@ CE QUE TU OBTIENS
   tout seul.
 • Rien ne bloque l'écran pendant le chargement, et ce qui est en cours de
   lecture continue.
+• Pensé pour les comptes à une seule connexion : en changeant de chaîne, il
+  attend que le fournisseur la libère au lieu d'échouer.
 • Films et séries en jaquettes, avec résumés, notes et saisons.
 • Favoris, historique et reprise là où tu t'étais arrêté.
 • Masque les marques mondiales dans la liste d'un pays, et ses propres
@@ -48,8 +50,9 @@ CE QUE TU OBTIENS
 CONÇU POUR LA VIE PRIVÉE
 
 Pas de suivi, pas de pub, pas d'inscription. Kepuli-TV ne parle qu'à ton
-propre serveur et ne demande l'autorisation que pour cette seule adresse,
-rien d'autre.
+propre serveur et ne demande l'autorisation que pour cette adresse — un accès
+plus large seulement si tu l'autorises, quand ton fournisseur envoie les flux
+ailleurs.
 
 
 À SAVOIR
