@@ -1,5 +1,5 @@
 import { XtreamApi, ApiError } from './api.js';
-import { Library, sortItems } from './library.js';
+import { Library, sortItems, cacheTtl as libraryCacheTtl } from './library.js';
 import { Epg } from './epg.js';
 import { Playback } from './playback.js';
 import { VirtualList, watchLength } from './vlist.js';
@@ -12,19 +12,19 @@ import { poster } from './poster.js';
 import { wireModal } from './modal.js';
 import { MediaFilters } from './mediafilters.js';
 import { titleFacts, externalLinks, playbackFacts } from './titleinfo.js';
-import { EpgGrid, catchupAvailable } from './epggrid.js';
+import { EpgGrid, catchupAvailable, reminderDelay, sameChannels } from './epggrid.js';
 import { CountryPicker, HiddenList } from './channelchoices.js';
 import { openRowMenu } from './rowmenu.js';
 import { channelPreferences, visibilityFilter, sortChannels } from './channelprefs.js';
 import { ProgrammeSearch } from './programmesearch.js';
-import { cacheClear, wipeStorage, storageEstimate } from './db.js';
+import { cacheClear, cachePurge, wipeStorage, storageEstimate } from './db.js';
 import { parsePlaylistUrl, streamUrl, timeshiftUrl, baseUrl, parseServer } from './xtream.js';
 import { formatRoute, parseRoute } from './route.js';
-import { api } from './browser.js';
-import { requestAccess, hasAccess } from './permissions.js';
+import { api, isGecko } from './browser.js';
+import { requestAccess, hasAccess, hasAccessEverywhere, requestAccessEverywhere, redirects } from './permissions.js';
 import { externalLabel, handOff } from './external.js';
 import { Cast, supported as castSupported } from './cast.js';
-import { warmCache, peek, badge as probeBadge, subtitleSummary, audioDetails } from './probe.js';
+import { warmCache, peek, badge as probeBadge, subtitleSummary, audioDetails, probeCacheTtl } from './probe.js';
 import { shortLanguage } from './lang.js';
 import { label as audioLabel } from './audio.js';
 import { SubtitleDisplay, subtitleLook, stepScale, pictureHeight, DEFAULT_SCALE, DEFAULT_LIFT } from './subdisplay.js';
@@ -144,18 +144,35 @@ const takeStoredSub = () => { const id = storedSub; storedSub = null; return id;
 
 /* ============================================================ connection */
 
+// Every connect() takes a number, and only the latest may write: Save in
+// Settings, Clear cache and Retry can each start one while another is still
+// waiting on the server, and the older one, finishing last, used to put its
+// account, its library — or its failure — over the newer one's.
+let connectRun = 0;
+let connecting = false;
+
 async function connect({ silent = false } = {}) {
+  const run = ++connectRun;
+  const stale = () => run !== connectRun;
   programmeSearch.clear();
   if (guideOpen) closeGuide();
+  // The strip of a connection being replaced: its requests are let go,
+  // and the new one gets a strip of its own to cancel.
+  if (connecting && progressCtrl) { progressCtrl.abort(); hideProgress(); }
   const config = state.config;
   try {
-    if (!config.host || !config.username || !config.password) { openSetup(); return false; }
-    state.source = new XtreamApi(config);
+    if (!config.host || !config.username || !config.password) { connecting = false; openSetup(); return false; }
+    connecting = true;
+    const source = new XtreamApi(config);
+    state.source = source;
     dropConnectedView();
 
     if (!silent) showProgress(t('progress.connecting'), config.host);
-    state.account = await state.source.account({ signal: progressSignal() });
-    state.lib = new Library(state.source);
+    const account = await source.account({ signal: progressSignal() });
+    if (stale()) return false;
+    state.account = account;
+    const lib = new Library(source, store.accountKey(config));
+    state.lib = lib;
     // Which audio encoder the browser has is asked now, so that the answer
     // is in by the time the first list paints: a row whose AC-3 track the
     // player can decode is marked playable only where the decoded audio
@@ -165,15 +182,22 @@ async function connect({ silent = false } = {}) {
     // File headers read earlier into memory, so that list rows can show the
     // result without a network request while painting.
     await warmCache();
-    state.epg = new Epg(state.source, onEpgUpdated);
-    state.epg.enabled = state.settings.epgEnabled;
-    await state.lib.loadCategories({ signal: progressSignal() });
+    if (stale()) return false;
+    const epg = new Epg(source, onEpgUpdated);
+    state.epg = epg;
+    epg.enabled = state.settings.epgEnabled;
+    await lib.loadCategories({ signal: progressSignal() });
+    if (stale()) return false;
+    connecting = false;
     hideProgress();
 
     renderNowSub();
     renderSidebar();
+    const arrival = landing(state.tab);
     await activateTab(state.tab, { restore: true });
-    await restoreDetail();
+    if (stale()) return false;
+    await restoreDetail(arrival);
+    if (stale()) return false;
     // A subscription that has already run out is worth saying now, rather
     // than leaving the first stream to fail and explain it.
     const problem = accountProblem(state.account);
@@ -182,6 +206,8 @@ async function connect({ silent = false } = {}) {
     askCountriesOnce();
     return true;
   } catch (err) {
+    if (stale()) return false;
+    connecting = false;
     hideProgress();
     // The list was emptied for a connection that never arrived: it must not
     // be left spinning for one.
@@ -294,10 +320,29 @@ function showConnectionError(err) {
  * that is down, so the cause cannot be deduced — check the permission and
  * offer to grant it only when it really is missing.
  */
-async function offerAccess(url, actions, onGranted) {
-  if (!url || await hasAccess(url)) return;
-  if (el.overlay.hidden) return;            // tilanne ehti vaihtua
-  showOverlayActions([grantAction(url, onGranted), ...actions]);
+async function offerAccess(url, actions, onGranted, { stream = false } = {}) {
+  if (!url) return;
+  if (!(await hasAccess(url))) {
+    if (el.overlay.hidden) return;            // tilanne ehti vaihtua
+    showOverlayActions([grantAction(url, onGranted), ...actions]);
+    return;
+  }
+  // The stream's own host is granted, and the stream may still have come
+  // from another one: see redirects() in js/permissions.js. Asked only
+  // after a failure, and only while the overlay still shows it.
+  if (!stream || await hasAccessEverywhere()) return;
+  const spec = state.playingSpec;
+  const message = el.overlayText.textContent;
+  if (!(await redirects(url))) return;
+  if (el.overlay.hidden || state.playingSpec !== spec || !el.overlayText.textContent.startsWith(message)) return;
+  addOverlayAction({
+    label: t('error.grant.all'),
+    title: t('error.grant.all.why'),
+    onClick: async () => {
+      if (await requestAccessEverywhere()) await onGranted();
+      else toast(t('error.grant.denied'), { kind: 'error' });
+    },
+  }, { first: true });
 }
 
 /** A button that asks for the host permission and continues if granted. */
@@ -313,6 +358,144 @@ function grantAction(url, onGranted) {
       else toast(t('error.grant.denied'), { kind: 'error' });
     },
   };
+}
+
+/* ============================================== the account in this tab */
+
+// Each open tab of the player shows the account it connected with, and
+// keeps showing it when another tab switches the stored one: favourites,
+// history and resume points in memory, the stream playing and the
+// addresses of everything in the list all belong to that account. The
+// lists in storage are shared, though, and every change to them is one
+// entry read, changed and written back (js/config.js); what another tab
+// changes arrives here through storage.onChanged and is shown.
+
+/** The lists of the account this tab shows, read from storage. */
+async function loadLists() {
+  state.favorites = await store.loadFavorites();
+  state.recents = await store.loadRecents();
+  state.resume = await store.loadResume();
+  state.channelPrefs = await store.loadChannelPreferences();
+  await loadReminders();
+}
+
+/**
+ * The tab moves to another account. What is playing stops first: its
+ * address, its Retry, its resume point and the history entry it makes all
+ * belong to the account being left, and the resume point is saved there.
+ */
+async function adoptAccount(config) {
+  if (state.playing) leavePlayback();
+  state.config = config;
+  store.useAccount(config);
+  lastChannel = previousChannel = null;
+  await loadLists();
+}
+
+const same = (a, b) => JSON.stringify(a) === JSON.stringify(b);
+
+/**
+ * A list of this account's changed in storage — by another tab, or by this
+ * one, whose own change is then already on screen and nothing is redrawn.
+ * Applied rather than skipped either way: a change of this tab's own, read
+ * and written under the lock, can carry another tab's that arrived here a
+ * moment before it.
+ */
+function showStoredList(name, value) {
+  if (resetting) return;
+  const connected = Boolean(state.lib);
+  if (name === 'favorites') {
+    const list = value || [];
+    if (same(list, [...state.favorites.values()])) return;
+    state.favorites = new Map(list.map((item) => [store.itemKey(item), item]));
+    if (connected) {
+      if (state.tab === 'fav') { renderSidebar(); refreshRows({ keepScroll: true }); }
+      else { vlist.refresh(); renderFavStrip(state.rows); renderCategories(); renderSubcats(); }
+      renderSeriesFavorite();
+    }
+  } else if (name === 'recents') {
+    const list = value || [];
+    if (same(list, state.recents)) return;
+    state.recents = list;
+    if (connected && state.tab === 'recent') { renderSidebar(); refreshRows({ keepScroll: true }); }
+  } else if (name === 'resume') {
+    const points = value || {};
+    if (same(points, store.resumeObject(Object.fromEntries(state.resume)))) return;
+    state.resume = new Map(Object.entries(points));
+    vlist.refresh();
+  } else if (name === 'reminders') {
+    if (same((value || []).filter((r) => r.stop > Date.now()), [...reminders.values()])) return;
+    showReminders(value);
+    if (guideOpen) grid.invalidate();
+  } else if (name === 'channels') {
+    const prefs = channelPreferences(value);
+    if (same(prefs, state.channelPrefs)) return;
+    state.channelPrefs = prefs;
+    if (connected) showChannelChoices();
+  }
+  if (!state.playing && !el.idleHome.hidden) renderIdleOverlay();
+}
+
+/**
+ * Another tab saved another account. This one stays with its own — the
+ * viewer may be watching something on it — and says so, with the way to
+ * follow. A tab that has not connected to anything has nothing to keep.
+ */
+function accountChangedElsewhere(config) {
+  if (resetting) return;
+  if (!configured()) {
+    if (el.setup.open && !setupDirty()) el.setup.close();
+    followAccount();
+    return;
+  }
+  toast(t('account.elsewhere', { host: config.host }), {
+    long: true, action: { label: t('account.elsewhere.follow'), onClick: followAccount },
+  });
+}
+
+async function followAccount() {
+  const config = await store.loadConfig();
+  if (store.accountKey(config) === store.currentAccount()) return;
+  await adoptAccount(config);
+  el.mode.value = state.config.streamMode || 'auto';
+  await connect();
+}
+
+/**
+ * Reset everything in another tab: storage has been emptied under this one.
+ * What it holds in memory would be written straight back — the next resume
+ * point, a favourite — so it starts again as well, empty.
+ */
+function storageCleared() {
+  if (resetting) return;
+  resetting = true;
+  playback.stop();
+  location.reload();
+}
+
+/**
+ * A provider that moves — another domain, port or scheme — is the same
+ * account to the viewer, but its lists are kept by address. The same user
+ * name at a new address that has nothing of its own is offered the old
+ * address's lists; they are copied, and stay under the old address too.
+ */
+async function offerLists(previous, config) {
+  if (!previous.host || previous.username !== config.username) return;
+  if (await store.accountHasLists(config) || !(await store.accountHasLists(previous))) return;
+  toast(t('setup.lists.left', { host: previous.host }), {
+    long: true,
+    action: {
+      label: t('setup.lists.bring'),
+      onClick: async () => {
+        if (store.accountKey(state.config) !== store.accountKey(config)) return;
+        await store.copyAccountLists(previous, config);
+        await loadLists();
+        if (state.lib) { await showChannelChoices(); renderFavStrip(state.rows); }
+        if (!state.playing && !el.idleHome.hidden) renderIdleOverlay();
+        toast(t('setup.lists.brought'));
+      },
+    },
+  });
 }
 
 /* ================================================================= views */
@@ -458,8 +641,9 @@ async function goToRoute(route) {
   else state.lastKind[route.tab] = route.kind;
   storedSub = route.sub ?? null;
   routeDetail = route.series || route.cat ? { series: route.series ?? null, cat: route.cat ?? null } : null;
+  const arrival = landing(route.tab);
   await activateTab(route.tab, { restore: true });
-  await restoreDetail();
+  await restoreDetail(arrival);
 }
 
 // The drill-down an address carried, waiting for the list it belongs to.
@@ -475,27 +659,56 @@ const takeRouteDetail = () => { const detail = routeDetail; routeDetail = null; 
  * the same way a missing group is — the list underneath it is a place of
  * its own, and the address is rewritten from where we actually arrive.
  */
-async function restoreDetail() {
+async function restoreDetail(arrival) {
   const pending = takeRouteDetail();
   if (!pending) return;
-  if (pending.cat) {
+  // The list underneath is the restore's own only if nothing else has been
+  // asked for since: a reload is slow on a big account, and a viewer who
+  // clicked another tab, group or series meanwhile is not taken back into
+  // the series the address named.
+  if (!untouched(arrival)) return;
+  // What the series opens over: the list itself, or the favourite category.
+  let base = null;
+  // A favourite category is a row of the favourites, and nothing else.
+  if (pending.cat && state.tab === 'fav') {
     const entry = state.favorites.get(`c:${pending.cat}`);
-    if (entry) await openFavCategory(entry);
+    if (entry) {
+      await openFavCategory(entry);
+      // Anything the viewer did while the category loaded took its place.
+      if (state.detail?.view !== 'category' || state.detail.entry !== entry || state.query) return;
+      base = state.detail;
+    }
   }
-  if (pending.series) {
+  if (pending.series && state.detail === base) {
     const item = findLoaded(2, pending.series);
     if (item) await openSeries(item);
   }
   updateAddress();
 }
 
-/** An item of a type and id, from whatever the restore has in memory. */
+/**
+ * Where the list stands as a restore sets off: the tab it is going to, the
+ * library, and the number of the last list load. activateTab() makes
+ * exactly one load of its own (refreshRows); one more is someone else's —
+ * a click on another tab, group or row while the list was on its way.
+ */
+const landing = (tab) => ({ tab, request: state.listRequest, lib: state.lib });
+const untouched = (arrival) => state.lib === arrival.lib && state.tab === arrival.tab
+  && state.listRequest === arrival.request + 1 && !state.detail && !state.query;
+
+/**
+ * An item of a type and id, from whatever the restore has in memory — of
+ * the tab the address names. A series is found in the series lists, or in
+ * the favourites or the history when that is the tab; one of them standing
+ * in another tab's address is not opened over that tab's list.
+ */
 function findLoaded(kind, id) {
   const same = (it) => it.k === kind && String(it.id) === String(id);
+  if (state.tab === 'fav') return state.rows.find(same) || [...state.favorites.values()].find(same) || null;
+  if (state.tab === 'recent') return state.rows.find(same) || state.recents.find(same) || null;
   const type = tabType();
   const full = (type && state.lib.full[type]) || [];
-  return state.rows.find(same) || state.groupItems.find(same) || full.find(same)
-    || [...state.favorites.values()].find(same) || state.recents.find(same) || null;
+  return state.rows.find(same) || state.groupItems.find(same) || full.find(same) || null;
 }
 
 /**
@@ -572,11 +785,23 @@ async function activateTab(tab, { restore = false } = {}) {
   await refreshRows();
 }
 
+/**
+ * The list on screen, from the state. Resolves to false when the list
+ * failed or was cancelled — what was asked for is not there, and the caller
+ * may put back what was — and to null when a newer load took over: that
+ * one owns the list now, and what this one was asked for is still asked
+ * for. Told apart because a search must not be cleared for the second: a
+ * filter changed, or a favourite starred, while the search's whole list was
+ * still on its way used to throw the typed words away (js/cataloguesearch.js).
+ */
 async function refreshRows({ keepScroll = false, returnPosition = null, restoreFocus = false } = {}) {
   const type = tabType();
   const library = state.lib;
   const request = beginListLoad({ keepScroll });
   const current = () => state.listRequest === request && state.lib === library;
+  // ensureFull() is false both when the list failed and when a newer load
+  // took over while it was coming; which it was is the current() check.
+  const notLoaded = () => (current() ? false : null);
   let rows = [];
   renderDetail();   // the detail panel follows the state on a tab change too
   if (state.detail?.loading) return;
@@ -600,25 +825,25 @@ async function refreshRows({ keepScroll = false, returnPosition = null, restoreF
       // heading three screens down is not where it is looked for.
       if (state.tab === 'recent') rows = [...rows.filter(isUnfinished), ...rows.filter((it) => !isUnfinished(it))];
     } else if (state.query) {
-      if (!(await ensureFull(type, t('progress.reason.search'), current)) || !current()) return false;
+      if (!(await ensureFull(type, t('progress.reason.search'), current)) || !current()) return notLoaded();
       rows = state.lib.search(type, state.query, null);
     } else if (state.group == null) {
-      if (!(await ensureFull(type, t('progress.reason.all'), current)) || !current()) return false;
+      if (!(await ensureFull(type, t('progress.reason.all'), current)) || !current()) return notLoaded();
       rows = state.lib.full[type];
     } else {
       // Telling the world's channels from a country's own takes every
       // country's list, see js/international.js.
       if (type === 'live' && !state.settings.showInternational
-        && (!(await ensureFull(type, t('progress.reason.international'), current)) || !current())) return false;
+        && (!(await ensureFull(type, t('progress.reason.international'), current)) || !current())) return notLoaded();
       const items = await loadGroupItems(type, state.group, current);
-      if (!current()) return false;
+      if (!current()) return null;
       state.groupItems = items;
       rows = state.sub
         ? state.groupItems.filter((it) => it.cats.includes(state.sub))
         : state.groupItems;
     }
   } catch (err) {
-    if (!current()) return false;
+    if (!current()) return null;
     hideProgress();
     if (isAbort(err)) showListCancelled(() => refreshRows()); else showListError(err, () => refreshRows());
     return false;
@@ -724,7 +949,10 @@ async function toggleFavStrip() {
 function showRows(rows, { keepScroll = false, loading = false } = {}) {
   state.listLoading = loading;
   el.list.setAttribute('aria-busy', String(loading));
-  programmeSearch.clear();
+  // The programme search reads the channels on show, and another set of
+  // them ends it. The same set repainted — a star, the language, the
+  // catalogue refreshed in the background — leaves it, and the guide, alone.
+  if (!sameChannels(state.rows, rows)) programmeSearch.clear();
   listNavigation.setRows(rows, { loading, keepSelection: keepScroll });
   state.rows = rows;
   state.catCounts = categoryCountsFor(rows);
@@ -883,7 +1111,7 @@ function toggleFavCategory(entry) {
   const key = `${entry.k}:${entry.id}`;
   if (state.favorites.has(key)) state.favorites.delete(key);
   else state.favorites.set(key, { ...entry, addedAt: Date.now() });
-  store.saveFavorites(state.favorites);
+  store.setFavorite(key, state.favorites.get(key) || null);
   if (state.tab === 'fav') { renderSidebar(); refreshRows({ keepScroll: true }); }
   else { renderCategories(); renderSubcats(); }
 }
@@ -917,14 +1145,16 @@ function sectionsFor(rows) {
 }
 
 async function removeFromHistory(item) {
-  state.recents = await store.removeRecent(`${item.k}:${item.id}`);
+  const recents = await store.removeRecent(`${item.k}:${item.id}`);
+  if (!recents) return;
+  state.recents = recents;
   if (!state.playing && !el.idleHome.hidden) renderIdleOverlay();
   renderSidebar();
   await refreshRows({ keepScroll: true });
 }
 
 async function clearHistory() {
-  await store.clearRecents();
+  if (!(await store.clearRecents())) return;
   state.recents = [];
   if (!state.playing && !el.idleHome.hidden) renderIdleOverlay();
   state.kind = null;
@@ -932,6 +1162,79 @@ async function clearHistory() {
   renderSidebar();
   await refreshRows();
   toast(t('history.cleared'));
+}
+
+/**
+ * The catalogue fetched again, and the view on screen repainted from it
+ * where it stands: the same scroll, the same row chosen, the same page
+ * opened from the list. The library drops the categories and groups it
+ * kept from earlier in the session (js/library.js, refresh), and the one on
+ * screen is asked for again here before the list is repainted, so that the
+ * repaint finds it in memory rather than emptying the list to wait for it.
+ *
+ * Quiet is the refresh nobody asked for — a tab come back to after its
+ * lists went stale. It shows no strip and says nothing, keeps the
+ * programme data the rows are showing (it goes stale by itself, see
+ * js/epg.js), and leaves a failure to the next time.
+ */
+let refreshing = null;
+async function refreshCatalogue({ quiet = false } = {}) {
+  // One at a time. A quiet one already running is enough for another quiet
+  // one; Refresh pressed meanwhile waits for it and then does its own, with
+  // the strip and the word at the end that the viewer is owed.
+  if (refreshing) {
+    if (quiet) return refreshing;
+    await refreshing;
+  }
+  const lib = state.lib;
+  if (!lib) return false;
+  const run = (async () => {
+    if (!quiet) showProgress(t('progress.refresh'));
+    const signal = quiet ? undefined : progressSignal();
+    try {
+      await lib.refresh({ signal, onProgress: quiet ? undefined : updateProgress });
+      const type = tabType();
+      if (type && state.group && !state.query && !isCollection() && !lib.isFull(type)) {
+        state.groupItems = await lib.groupItems(type, state.group, { signal });
+      }
+      // A favourite category opened from the list holds its own copy of the
+      // category's contents, and so does one further back in the chain.
+      for (let detail = state.detail; detail; detail = detail.back) {
+        if (detail.view !== 'category') continue;
+        const { entry } = detail;
+        detail.items = entry.c == null ? await lib.groupItems(entry.t, entry.g, { signal })
+          : await lib.categoryItems(entry.t, entry.c, { signal });
+      }
+      if (state.lib !== lib) return false;
+      if (state.epg && !quiet) state.epg.clear();
+      renderSidebar();
+      await refreshRows({ keepScroll: true });
+      if (!quiet) toast(t('toast.refreshed'));
+      return true;
+    } catch (err) {
+      if (state.lib !== lib) return false;
+      if (quiet) console.warn('[iptv] refreshing the stale lists failed', err);
+      else if (isAbort(err)) toast(t('progress.cancelled'));
+      else showListError(err, null);
+      return false;
+    } finally {
+      if (!quiet) hideProgress();
+    }
+  })();
+  refreshing = run;
+  try { return await run; } finally { refreshing = null; }
+}
+
+/**
+ * A tab left open never asked about its lists again: the categories and
+ * channels fetched in the morning were the ones shown at night, whatever
+ * the provider had changed. Coming back to the tab is the moment to look —
+ * nothing on screen is being read while the tab is hidden — and only when
+ * what is in memory is older than the cache would have kept it.
+ */
+function refreshWhenStale() {
+  if (document.visibilityState !== 'visible' || !state.lib || connecting) return;
+  if (state.lib.isStale()) refreshCatalogue({ quiet: true });
 }
 
 /**
@@ -1534,6 +1837,11 @@ function withoutInternational(rows) {
 async function saveChannelChoices(prefs) {
   await store.saveChannelPreferences(prefs);
   state.channelPrefs = channelPreferences(prefs);
+  await showChannelChoices();
+}
+
+/** The choices in state.channelPrefs on screen — this tab's own, or another tab's. */
+async function showChannelChoices() {
   if (state.tab === 'live' && state.group && !visibleGroups('live').some((g) => g.name === state.group)) {
     state.group = visibleGroups('live')[0]?.name ?? null;
     state.sub = null;
@@ -1583,8 +1891,13 @@ async function askCountriesOnce() {
   if (!state.lib || state.channelPrefs.countries.length) return;
   if (state.lib.groups.live.length < ASK_COUNTRIES_FROM) return;
   const asked = (await store.loadUiState()).countriesAsked || [];
-  const account = `${state.config.host}:${state.config.port}/${state.config.username}`;
-  if (asked.includes(account)) return;
+  // The account as the rest of the player names it (js/config.js), so that
+  // "example.tv" and "Example.TV:80" are asked once between them. The
+  // older form, host:port/user as typed, still counts as asked: a viewer
+  // who answered under it is not asked again by an update.
+  const account = store.accountKey(state.config);
+  const typed = `${state.config.host}:${state.config.port}/${state.config.username}`;
+  if (asked.includes(account) || asked.includes(typed)) return;
   await store.saveUiState({ countriesAsked: [...asked, account] });
   if (document.querySelector('dialog[open]')) return;
   openCountryPicker({ first: true });
@@ -1879,10 +2192,86 @@ function toggleFavorite(item) {
   const key = `${item.k}:${item.id}`;
   if (state.favorites.has(key)) state.favorites.delete(key);
   else state.favorites.set(key, { ...stripItem(item), addedAt: Date.now() });
-  store.saveFavorites(state.favorites);
+  store.setFavorite(key, state.favorites.get(key) || null);
   if (state.tab === 'fav') { renderSidebar(); refreshRows({ keepScroll: true }); }
   else { vlist.refresh(); renderFavStrip(state.rows); }
   renderSeriesFavorite();
+}
+
+/**
+ * What a stored copy says about where and how its stream is fetched, and
+ * what the guide reads for it. A favourite and a history entry are copies
+ * made when they were saved, and the provider moves on: a film re-encoded
+ * from .mkv to .mp4, a channel given another guide id or catch-up window.
+ */
+const ADDRESS_FIELDS = ['ext', 'direct', 'epgId', 'archive'];
+
+/**
+ * The item as the library holds it now, when the library has it in memory:
+ * a whole list loaded, a category or group opened this session, a series'
+ * episodes. Nothing is fetched for it — playing from the favourites must
+ * not wait on a list — so null means "not known", not "gone".
+ */
+function freshItem(item) {
+  const lib = state.lib;
+  if (!lib) return null;
+  const id = String(item.id);
+  if (item.k === 3) {
+    const info = item.seriesId != null ? lib.details.get(`series:v2:${item.seriesId}`) : null;
+    return info?.episodes?.find((episode) => String(episode.id) === id) || null;
+  }
+  const type = ITEM_TYPES[item.k];
+  if (!type) return null;
+  const same = (it) => it.k === item.k && String(it.id) === id;
+  if (lib.full[type]) return lib.full[type].find(same) || null;
+  for (const [key, items] of lib.byCategory) {
+    if (!key.startsWith(`${type}:`) && !key.startsWith(`group:${type}:`)) continue;
+    const hit = items.find(same);
+    if (hit) return hit;
+  }
+  return null;
+}
+const ITEM_TYPES = { 0: 'live', 1: 'movie', 2: 'series' };
+
+/** The address fields in which `fresh` differs from `item`, or null when none does. */
+function addressChanges(item, fresh) {
+  if (!fresh || fresh === item) return null;
+  const patch = {};
+  for (const field of ADDRESS_FIELDS) {
+    if (!(field in fresh) || fresh[field] === undefined) continue;
+    if ((fresh[field] ?? null) !== (item[field] ?? null)) patch[field] = fresh[field];
+  }
+  return Object.keys(patch).length ? patch : null;
+}
+
+/**
+ * The item to play: the stored copy with the library's current address
+ * fields over it, when the library knows better, and the stored favourite
+ * and history entry brought up to date with them — so that the next play
+ * from the favourites or Continue watching is right even before anything
+ * is loaded. The stored copy stands as it is when the library does not
+ * have the item in memory.
+ */
+function withCurrentAddress(item) {
+  const patch = addressChanges(item, freshItem(item));
+  if (!patch) return item;
+  updateStoredItem(item, patch);
+  return { ...item, ...patch };
+}
+
+/** A favourite's and a history entry's address fields brought up to date. */
+async function updateStoredItem(item, patch) {
+  const key = `${item.k}:${item.id}`;
+  const favorite = state.favorites.get(key);
+  if (favorite && addressChanges(favorite, { ...favorite, ...patch })) {
+    const updated = { ...favorite, ...patch };
+    state.favorites.set(key, updated);
+    store.setFavorite(key, updated);
+  }
+  if (state.recents.some((entry) => `${entry.k}:${entry.id}` === key)) {
+    const recents = await store.patchRecent(key, patch);
+    if (recents) state.recents = recents;
+  }
 }
 
 /** Only the fields the list needs for painting are kept. */
@@ -2114,6 +2503,11 @@ function onPlaybackState(s) {
     renderInfoStrip();
   } else if (s.status === 'metadata') {
     renderInfoStrip();
+  } else if (s.status === 'stable') {
+    // Playback has held since the wait for a release: a later failure is a
+    // new one, and the server may be counting our own stream again, so it
+    // is worth a wait of its own.
+    if (state.playingSpec) state.playingSpec.awaitedRelease = false;
   } else if (s.status === 'probing') {
     state.playbackInfoLoading = true;
     renderInfoStrip();
@@ -2128,6 +2522,10 @@ function onPlaybackState(s) {
     el.overlayTitle.textContent = t('player.waiting');
     el.overlayText.textContent = s.message;
   } else if (s.status === 'error') {
+    // Where a film or an archive programme stopped, for Retry to start
+    // from there rather than from wherever the resume point last was —
+    // or, for the archive, from the programme's beginning.
+    if (state.playingSpec && s.position > 0) state.playingSpec.reached = s.position;
     // Soon after a stream of ours was let go, a full account may be the
     // server still counting it: the account is asked before any failure
     // is shown, and a release waited for rather than reported.
@@ -2163,8 +2561,9 @@ function onPlaybackState(s) {
     // A stream may point at a different server from the API, so the
     // permission is checked against this stream's own origin.
     if (state.playingSpec) {
-      offerAccess(state.playingSpec.url, actions,
-                  retryPlayback);
+      // A refused stream is the account, not a redirect — and a probe
+      // would only hold another connection while it is full.
+      offerAccess(state.playingSpec.url, actions, retryPlayback, { stream: !s.refused });
     }
   }
 }
@@ -2262,6 +2661,15 @@ async function checkBeforeFailing(failure) {
     awaitRelease(spec, failure, { active: account.activeConnections, max: account.maxConnections });
     return;
   }
+  // A live stream refused, cut or left silent while the account was full,
+  // and by now the account has room: the stream it was counting has gone —
+  // the start timeout alone outlasts the provider's count — and the same
+  // stream is asked for once more. The replay is marked as waited, so it
+  // is the only one.
+  if (failure.refused && account && !accountProblem(account) && !connectionsFull(account)) {
+    replay();
+    return;
+  }
   if (state.playingSpec === spec) onPlaybackState({ ...failure, checked: true });
 }
 
@@ -2273,20 +2681,34 @@ async function checkBeforeFailing(failure) {
  */
 async function awaitRelease(spec, failure, figures) {
   spec.awaitedRelease = true;
+  const wait = { spec };
+  releaseWait = wait;
   el.overlay.classList.add('loading');
   el.overlayTitle.textContent = t('account.releasing.title');
   el.overlayText.textContent = t('account.releasing', figures);
   showOverlayActions(null);
-  const until = Date.now() + RELEASE_WAIT_MS;
-  while (Date.now() < until) {
-    await new Promise((resolve) => setTimeout(resolve, RELEASE_POLL_MS));
-    if (state.playingSpec !== spec) return;           // the viewer moved on
-    const account = await freshAccount();
-    if (state.playingSpec !== spec) return;
-    if (account && !connectionsFull(account)) { replay(); return; }
+  // The viewer moving on ends the wait, and so does another tab that was
+  // given the connection meanwhile.
+  const over = () => state.playingSpec !== spec || releaseWait !== wait;
+  try {
+    const until = Date.now() + RELEASE_WAIT_MS;
+    while (Date.now() < until) {
+      await new Promise((resolve) => setTimeout(resolve, RELEASE_POLL_MS));
+      if (over()) return;
+      const account = await freshAccount();
+      if (over()) return;
+      if (account && !connectionsFull(account)) { replay(); return; }
+    }
+    onPlaybackState({ ...failure, checked: true });
+  } finally {
+    if (releaseWait === wait) releaseWait = null;
   }
-  onPlaybackState({ ...failure, checked: true });
 }
+
+// The wait for a release under way, if any. It holds no connection yet, but
+// it will take one when it ends: to the other tabs it is holding, and one
+// that asks for the connection ends it.
+let releaseWait = null;
 
 /** The same thing again, without a second wait should it fail the same way. */
 function replay() {
@@ -2302,11 +2724,20 @@ function replay() {
 const tabs = typeof BroadcastChannel === 'function' ? new BroadcastChannel('kepuli-playback') : null;
 const TAB_ANSWER_MS = 400;
 
+// The messages name the account they are about: a tab on another account
+// holds none of this account's connections, and must neither be named as
+// the one in the way nor stopped to make room.
 if (tabs) {
   tabs.addEventListener('message', ({ data }) => {
-    if (!data || !playback.holding) return;
+    if (!data || !(playback.holding || releaseWait)) return;
+    if (data.account !== store.currentAccount()) return;
     if (data.type === 'ask') tabs.postMessage({ type: 'holding', id: data.id });
-    else if (data.type === 'yield') { playback.stop(); showMovedAway(); tabs.postMessage({ type: 'yielded', id: data.id }); }
+    else if (data.type === 'yield') {
+      releaseWait = null;
+      playback.stop();
+      showMovedAway();
+      tabs.postMessage({ type: 'yielded', id: data.id });
+    }
   });
 }
 
@@ -2327,7 +2758,7 @@ function tabMessage(type, answer) {
       resolve(value);
     }
     tabs.addEventListener('message', listen);
-    tabs.postMessage({ type, id });
+    tabs.postMessage({ type, id, account: store.currentAccount() });
   });
 }
 
@@ -2368,6 +2799,7 @@ function addOverlayAction(action, { first = false } = {}) {
   button.type = 'button';
   button.className = 'ghost';
   button.textContent = action.label;
+  if (action.title) button.title = action.title;
   button.addEventListener('click', action.onClick);
   if (first) el.overlayActions.prepend(button); else el.overlayActions.appendChild(button);
   el.overlayActions.hidden = false;
@@ -2376,7 +2808,7 @@ function addOverlayAction(action, { first = false } = {}) {
 async function playItem(item, { startAt, allowSilent } = {}) {
   // Snapshot the visible name so later browsing cannot rename playback.
   const displayName = item.displayName || (state.rows.includes(item) && state.cleanName ? state.cleanName(item.n, item) : item.n);
-  item = { ...item, displayName };
+  item = withCurrentAddress({ ...item, displayName });
   const live = item.k === 0;
   const url = streamUrl(state.config, item, 'ts');
   if (!url) { toast(t('player.nourl'), { kind: 'error' }); return; }
@@ -2422,7 +2854,9 @@ async function playItem(item, { startAt, allowSilent } = {}) {
   if (live && state.epg) state.epg.want(item, { priority: true });
   renderInfoStrip();
   if (!live) loadVodDetails(item);
-  state.recents = await store.pushRecent(stripItem(item));
+  const recents = await store.pushRecent(stripItem(item));
+  if (!recents) return;
+  state.recents = recents;
   if (state.tab === 'recent') { renderSidebar(); refreshRows({ keepScroll: true }); }
 }
 
@@ -2611,8 +3045,9 @@ function leavePlayback() {
   if (item && item.k !== 0 && state.settings.resumeEnabled) {
     const { currentTime, duration: total } = el.video;
     if (Number.isFinite(total) && total > 0 && currentTime >= 20 && currentTime < total * 0.96) {
-      state.resume.set(`${item.k}:${item.id}`, { position: currentTime, duration: total, at: Date.now() });
-      store.saveResume(state.resume);
+      const key = `${item.k}:${item.id}`;
+      state.resume.set(key, { position: currentTime, duration: total, at: Date.now() });
+      store.setResume(key, state.resume.get(key));
     }
   }
   cancelAutoNext();
@@ -2763,7 +3198,10 @@ function toggleFullscreen() {
 // cannot prevent while the element has the browser's controls.
 const CLICK_WAIT_MS = 250;
 const CONTROL_BAR_PX = 80;
-const BROWSER_TOGGLES = /Firefox\//.test(navigator.userAgent);
+// Gecko is told by what it is, not by what its user agent says: forks
+// name themselves otherwise and a spoofed agent names another browser.
+// The same test the style sheet makes for Firefox's own full screen.
+const BROWSER_TOGGLES = isGecko();
 let pendingClick = null;
 
 function clickPicture(e) {
@@ -3012,10 +3450,23 @@ async function loadVodDetails(item) {
   item.detailsLoading = true;
   try {
     if (item.k === 3) {
-      item.details = episodeDetails(item, await state.lib.seriesEpisodes(item.seriesId));
+      const series = await state.lib.seriesEpisodes(item.seriesId);
+      item.details = episodeDetails(item, series);
+      // Opened from Continue watching, the episode is the copy the history
+      // made; its series' list, read for the details anyway, says whether
+      // the file is still where the copy says.
+      const patch = addressChanges(item, series.episodes.find((episode) => String(episode.id) === String(item.id)));
+      if (patch) updateStoredItem(item, patch);
     } else {
       const info = await state.lib.movieDetails(item.id);
       item.details = info;
+      // The film's own answer names its container; an empty one says
+      // nothing, and a whole list in memory is the fresher word (its cache
+      // lasts hours, a film's details a week).
+      if (info.ext && !freshItem(item)) {
+        const patch = addressChanges(item, { ext: info.ext });
+        if (patch) updateStoredItem(item, patch);
+      }
       item.durationSec = info.durationSec;
       const index = state.rowIndex.get(`1:${item.id}`);
       if (index != null) vlist.refreshRow(index);
@@ -3307,19 +3758,22 @@ function relativeSoon(start, now) {
 // timer and the notifications permission, and Chrome disables an extension
 // on update until a new permission like that has been accepted.
 const REMIND_AHEAD = 60 * 1000;
-const reminderKey = (channel, programme) => `${channel.id}:${programme.start}`;
+const reminderKey = (channel, programme) => store.reminderKey({ channel, start: programme.start });
 let reminders = new Map();
 let reminderTimer = null;
 
 async function loadReminders() {
-  const now = Date.now();
-  reminders = new Map((await store.loadReminders())
-    .filter((r) => r.stop > now)
-    .map((r) => [reminderKey(r.channel, r), r]));
-  armReminders();
+  showReminders(await store.loadReminders());
 }
 
-function saveReminders() { store.saveReminders([...reminders.values()]); }
+/** The stored list in memory and the timer set for it: at start, and when another tab changes it. */
+function showReminders(list) {
+  const now = Date.now();
+  reminders = new Map((list || [])
+    .filter((r) => r.stop > now)
+    .map((r) => [store.reminderKey(r), r]));
+  armReminders();
+}
 
 function toggleReminder(channel, programme) {
   const key = reminderKey(channel, programme);
@@ -3328,35 +3782,49 @@ function toggleReminder(channel, programme) {
     reminders.set(key, { channel: stripItem(channel), title: programme.title, start: programme.start, stop: programme.stop });
     toast(t('guide.remind.set', { title: programme.title, time: clock(programme.start) }), { long: true });
   }
-  saveReminders();
+  store.setReminder(key, reminders.get(key) || null);
   armReminders();
   if (guideOpen) { grid.invalidate(); renderGuidePreview(channel, programme); }
 }
 
-/** One timer, for the reminder due first. A hidden tab's timers run late, by up to a minute. */
+/**
+ * One timer, for the reminder due first. A hidden tab's timers run late, by
+ * up to a minute. A timer takes at most 2^31-1 ms, some 24.8 days, and a
+ * longer one fires at once — a reminder that far ahead, its programme from
+ * a guide that reaches weeks on, would have the timer fire, find nothing
+ * due and arm itself again without end. So the wait is a day at most, and
+ * then it is measured again.
+ */
 function armReminders() {
   clearTimeout(reminderTimer);
   const due = [...reminders.values()].map((r) => r.start - REMIND_AHEAD);
   if (!due.length) return;
-  reminderTimer = setTimeout(fireReminders, Math.max(0, Math.min(...due) - Date.now()));
+  reminderTimer = setTimeout(fireReminders, reminderDelay(Math.min(...due), Date.now()));
 }
 
 /**
  * Every reminder that is due is said and forgotten. One due while the tab
  * was out of sight waits until it is looked at again, for as long as the
  * programme is still on: a message nobody saw has reminded nobody.
+ *
+ * Every open player holds the same reminders and arms the same timer. The
+ * stored list decides which one says it: the reminders are taken out of it
+ * under the lock that every change to it goes through, and a tab that finds
+ * them already gone — another said them first — says nothing.
  */
-function fireReminders() {
+async function fireReminders() {
   if (document.hidden) {
     document.addEventListener('visibilitychange', fireReminders, { once: true });
     return;
   }
   const now = Date.now();
-  const due = [...reminders.entries()].filter(([, r]) => r.start - REMIND_AHEAD <= now);
-  for (const [key] of due) reminders.delete(key);
-  const showing = due.map(([, r]) => r).filter((r) => r.stop > now).sort((a, b) => b.start - a.start)[0];
-  if (due.length) saveReminders();
+  const local = [...reminders.entries()].filter(([, r]) => r.start - REMIND_AHEAD <= now);
+  for (const [key] of local) reminders.delete(key);
   armReminders();
+  if (!local.length) return;
+  const due = await store.takeDueReminders(now + REMIND_AHEAD);
+  if (guideOpen) grid.invalidate();
+  const showing = due.filter((r) => r.stop > now).sort((a, b) => b.start - a.start)[0];
   if (!showing) return;
   const channel = showing.channel;
   const name = channel.displayName || channel.n;
@@ -3364,18 +3832,25 @@ function fireReminders() {
     ? t('guide.remind.soon', { title: showing.title, time: clock(showing.start), channel: name })
     : t('guide.remind.started', { title: showing.title, channel: name });
   toast(text, { action: { label: t('guide.watch'), onClick: () => playItem(channel) }, duration: Math.max(REMIND_AHEAD, 15000) });
-  if (guideOpen) grid.invalidate();
 }
 
-function playCatchup(item, programme) {
+/**
+ * A programme from the archive. from, in seconds into the programme, starts
+ * it further on — Retry after the stream stopped mid-programme. The archive
+ * address names its start in whole minutes, so the start is the minute the
+ * position falls in, and the picture's clock counts from there.
+ */
+function playCatchup(item, programme, { from = 0 } = {}) {
   if (!catchupAvailable(item, programme)) { toast(t('guide.norecording'), { kind: 'warn' }); return; }
-  const minutes = Math.max(1, Math.ceil((programme.stop - programme.start) / 60000));
-  const url = timeshiftUrl(state.config, item.id, programme.start, minutes, state.account.serverUtcOffsetMs || 0);
+  const length = programme.stop - programme.start;
+  const skip = Math.max(0, Math.min(Math.floor(from / 60) * 60000, length - 60000));
+  const minutes = Math.max(1, Math.ceil((length - skip) / 60000));
+  const url = timeshiftUrl(state.config, item.id, programme.start + skip, minutes, state.account.serverUtcOffsetMs || 0, state.account.serverZone);
   cancelAutoNext();
   state.playing = item;
   updatePlayerLayout();
   playerLayout.showPlayer();
-  state.playingSpec = { url, live: false, catchup: true, ext: 'ts', mode: 'ts' };
+  state.playingSpec = { url, live: false, catchup: true, ext: 'ts', mode: 'ts', skipped: skip / 1000 };
   state.catchup = { ...programme, channel: item };
   renderSubtitles([], null);
   renderAudio([], null);
@@ -3393,9 +3868,15 @@ function playCatchup(item, programme) {
   if (programme.stop > Date.now()) toast(t('guide.startover.note'), { long: true, kind: 'warn' });
 }
 
+/**
+ * The same thing again. After a film or a programme stopped part-way —
+ * the download broke for good, the picture froze — from where it stopped.
+ */
 function retryPlayback() {
-  if (state.catchup) playCatchup(state.catchup.channel, state.catchup);
-  else if (state.playing) playItem(state.playing);
+  const spec = state.playingSpec;
+  const reached = spec && spec.reached > 0 ? spec.reached : 0;
+  if (state.catchup) playCatchup(state.catchup.channel, state.catchup, { from: reached ? (spec.skipped || 0) + reached : 0 });
+  else if (state.playing) playItem(state.playing, reached ? { startAt: Math.floor(reached) } : {});
 }
 
 /* ------------------------------------------------- katselukohta & stats */
@@ -3484,7 +3965,7 @@ el.video.addEventListener('timeupdate', () => {
   const key = `${item.k}:${item.id}`;
   if (currentTime > total * 0.96) state.resume.delete(key);
   else state.resume.set(key, { position: currentTime, duration: total, at: now });
-  store.saveResume(state.resume);
+  store.setResume(key, state.resume.get(key) || null);
 });
 
 /**
@@ -3867,7 +4348,11 @@ function offerUpdate(version) {
 
 function applyUpdate() { store.reloadForUpdate(location.hash); }
 
+// Set while this tab wipes everything, or reloads because another tab did.
+let resetting = false;
+
 async function resetEverything() {
+  resetting = true;
   playback.stop();
   await api.storage.local.clear();
   await wipeStorage();
@@ -4017,10 +4502,16 @@ function wireSetup() {
         setupError('setup.nogrant');
         return;
       }
+      const previous = state.config;
       const next = await store.saveSetup(connectionEdited ? patch : null, settingsPatch);
-      state.config = next.config;
-      state.settings = next.settings;
       saved = true;
+      // Another account: what is playing stops before anything else of
+      // the new one is in place, so that no retry, wait or history entry
+      // of the old stream is made against the new account.
+      const moved = Boolean(next.config) && store.accountKey(next.config) !== store.accountKey(previous);
+      if (moved) await adoptAccount(next.config);
+      else if (next.config) state.config = next.config;
+      state.settings = next.settings;
       el.setup.close();
       if (state.epg) state.epg.enabled = state.settings.epgEnabled;
       applySubtitleLook(state.settings);
@@ -4035,13 +4526,8 @@ function wireSetup() {
         await refreshRows({ keepScroll: true });
       }
       if (changed) {
-        state.favorites = await store.loadFavorites();
-        state.recents = await store.loadRecents();
-        state.resume = await store.loadResume();
-        state.channelPrefs = await store.loadChannelPreferences();
-        lastChannel = previousChannel = null;
-        await loadReminders();
         await connect();
+        if (moved) offerLists(previous, state.config);
       } else {
         toast(t('setup.saved'));
       }
@@ -4180,10 +4666,22 @@ function toast(text, { long = false, kind = 'info', action = null, duration = nu
   toastTimer = setTimeout(() => { el.toast.hidden = true; }, duration ?? (long || action ? 7000 : 2800));
 }
 
+/**
+ * The address carries the account's user name and password in it, so the
+ * message says so: it is about to be pasted somewhere. A write the browser
+ * refuses — the page not in focus, the permission withheld — is said too,
+ * rather than left looking like a copy that worked.
+ */
 async function copyUrl() {
   if (!state.playingSpec) return;
-  await navigator.clipboard.writeText(state.playingSpec.url);
-  toast(t('player.copied'));
+  try {
+    await navigator.clipboard.writeText(state.playingSpec.url);
+  } catch (err) {
+    console.warn('[iptv] the clipboard refused the address:', err);
+    toast(t('player.copyfailed'), { kind: 'error' });
+    return;
+  }
+  toast(t('player.copied'), { long: true });
 }
 
 /* -------------------------------------------------- external player */
@@ -4479,22 +4977,8 @@ function wireUi() {
     filterTimer = setTimeout(() => { state.categoryFilter = el.categoryFilter.value; renderCategories(); }, 120);
   });
 
-  $('btn-refresh').addEventListener('click', async () => {
-    if (!state.lib) return connect();
-    showProgress(t('progress.refresh'));
-    try {
-      await state.lib.loadCategories({ force: true, signal: progressSignal() });
-      for (const type of ['live', 'movie', 'series']) {
-        if (state.lib.isFull(type)) await state.lib.ensureFull(type, { force: true, onProgress: updateProgress, signal: progressSignal() });
-      }
-      if (state.epg) state.epg.clear();
-      renderSidebar();
-      await refreshRows({ keepScroll: true });
-      toast(t('toast.refreshed'));
-    } catch (err) {
-      if (isAbort(err)) toast(t('progress.cancelled')); else showListError(err, null);
-    } finally { hideProgress(); }
-  });
+  $('btn-refresh').addEventListener('click', () => (state.lib ? refreshCatalogue() : connect()));
+  document.addEventListener('visibilitychange', refreshWhenStale);
 
   $('btn-settings').addEventListener('click', openSetup);
   $('btn-help').addEventListener('click', openHelp);
@@ -4714,7 +5198,11 @@ async function applyLanguage(lang) {
     $('setup-title').textContent = t(configured() ? 'setup.title' : 'setup.title.connect');
     showSetupSection(setupSection);
   }
-  if (guideOpen) { renderGuideGroups(); grid.invalidate(); }
+  // The guide's time axis, day buttons and Earlier menu are written once
+  // and kept; the programme search's line says what it found in words.
+  if (guideOpen) { renderGuideGroups(); grid.relayout(); grid.invalidate(); }
+  programmeSearch.renderStatus();
+  programmeSearch.list.refresh();
   // Before a connection there is no list to repaint, and refreshRows would
   // set off to fetch it from a server that does not exist yet.
   if (state.lib) await refreshRows({ keepScroll: true });
@@ -4846,6 +5334,8 @@ wirePickers();
 
 async function init() {
   state.config = await store.loadConfig();
+  await store.migrateAccountKeys(state.config);
+  store.useAccount(state.config);
   state.settings = await store.loadSettings();
   renderTheme();
   const lang = store.interfaceLanguage(state.settings);
@@ -4861,11 +5351,8 @@ async function init() {
   wireUi();
   wireMediaSession();
   wireSubcatsResize();
-  state.favorites = await store.loadFavorites();
-  state.recents = await store.loadRecents();
-  state.resume = await store.loadResume();
-  state.channelPrefs = await store.loadChannelPreferences();
-  await loadReminders();
+  await loadLists();
+  store.watchStorage({ onList: showStoredList, onAccount: accountChangedElsewhere, onCleared: storageCleared });
   el.mode.value = state.config.streamMode || 'auto';
   applySubtitleLook(state.settings);
   new SubtitleDisplay(el.video, el.subdisplay, el.videowrap);
@@ -4905,6 +5392,10 @@ async function init() {
   store.watchUpdateReady(offerUpdate);
   offerUpdate(await store.loadUpdateReady());
 
+  // The cache's expired rows go a while after the start, out of the way of
+  // the connection and the first list, which read from the same database.
+  setTimeout(() => cachePurge((key) => probeCacheTtl(key) ?? libraryCacheTtl(key)), CACHE_PURGE_DELAY_MS);
+
   if (!state.config.host) {
     renderIdleOverlay();
     openSetup();
@@ -4912,5 +5403,7 @@ async function init() {
   }
   await connect();
 }
+
+const CACHE_PURGE_DELAY_MS = 20000;
 
 init();

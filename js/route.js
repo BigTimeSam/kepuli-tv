@@ -27,6 +27,10 @@
 
 export const TABS = ['live', 'movie', 'series', 'fav', 'recent'];
 
+// Where each drill-down can be made, see parseRoute.
+const CATEGORY_TABS = ['fav'];
+const SERIES_TABS = ['series', 'fav', 'recent'];
+
 // A collection's type filter: the same values as KIND_ORDER in app.js.
 const KINDS = ['c', 0, 1, 2];
 
@@ -87,9 +91,14 @@ export function parseRoute(hash) {
     const value = KINDS.find((k) => String(k) === kind);
     if (value !== undefined) view.kind = value;
   }
+  // A drill-down belongs to the tabs it can be made in: a favourite
+  // category to the favourites, a series to the series and the two
+  // collections that hold them. Anywhere else it is an address put
+  // together by hand or by an older version, and following it would open
+  // a page over a list it was never part of.
   const cat = params.get('cat');
-  if (cat) view.cat = cat;
+  if (cat && CATEGORY_TABS.includes(tab)) view.cat = cat;
   const series = params.get('series');
-  if (series) view.series = series;
+  if (series && SERIES_TABS.includes(tab)) view.series = series;
   return view;
 }

@@ -179,13 +179,18 @@ interrupted channel-list load restores the previous list.
   it. Close the image with the close button, by clicking outside it or by
   pressing Esc.
 - If playback fails in the browser, copy the address with the **URL** button
-  and open it in a player such as VLC. The external player button can also
-  hand playback directly to the player selected in your settings.
+  and open it in a player such as VLC. The address contains your username
+  and password, so do not paste it anywhere others can see it. The external
+  player button can also hand playback directly to the player selected in
+  your settings.
 
 ### If something goes wrong
 
 - **Refresh lists** (the circular arrow in the top bar) fetches the content
-  lists again from the server.
+  lists again from the server, including the countries and categories
+  already opened, and shows the new list where you were. A tab left open
+  checks by itself when you come back to it, once its lists are older than
+  the cache keeps them.
 - If the connection fails, check the address and credentials in **Settings**
   and make sure your subscription is still active.
 - If cached information is outdated, clear the cache in Settings. Resetting
@@ -677,8 +682,13 @@ copied to `localStorage`, so a light theme does not flash dark at start
 (`js/theme.js`);
 in a window 600px wide or less, Settings is a cog alone and the three share
 the brand's row. **Refresh lists** fetches the categories and
-the lists already loaded from the server again and empties the programme
-cache. **Help** opens this user guide. The **⛶** button is at the
+the lists already loaded from the server again — the whole lists, and the
+categories and groups opened this session, which used to stay as first
+fetched until a reload — drops the series' episode lists, and empties the
+programme cache; the list on screen is repainted in place. The same refresh
+runs quietly, without the strip or the programme cache, when a tab is
+shown again after its lists have outlived their cache time (categories a
+day, lists six hours). **Help** opens this user guide. The **⛶** button is at the
 right end of the browser's control bar, where a video's full screen button is
 everywhere else; viewers did not find it at the top right, where it used to
 be. It is the app's own, because the browser's takes the bare video full
@@ -779,6 +789,19 @@ first, so another server's listing — or another account's on the same server
 — never shows under the new one. The password is not part of the comparison,
 so correcting it costs nothing.
 
+Rows whose time is up are deleted a little after the player starts:
+categories after a day, whole lists after six hours, a series' episodes after
+a day, a film's details after a week, a file's header after 90 days. The rows
+are indexed by the time they were written, so finding the old ones reads no
+list's contents.
+
+A favourite and a history entry are copies made when they were saved. When
+the library has the same title in memory — a list or category loaded, a
+series' episodes read — playback takes the container, guide id and catch-up
+window from there, and the stored copy is brought up to date, so that a
+provider re-encoding a film from `.mkv` to `.mp4` does not break it in the
+favourites or Continue watching.
+
 ## The programme guide
 
 The guide is a grid with a column beside it: the programme's own details on
@@ -853,6 +876,11 @@ categories. Only channels with programme identifiers can be searched. The
 period selector includes upcoming programmes, past programmes or both.
 Search is explicit rather than triggered by every keystroke, makes at most four
 search requests in parallel, and reuses full programme tables in the guide cache.
+That cache keeps the 200 most recently fetched full tables and programme data
+for 5,000 channels at most, so a search of thousands of channels does not keep
+every table it read. A search of all channels when more than 500 of them have
+programme data asks first, with a **Search all** button, since each channel
+costs its whole programme table.
 Results and channel progress appear as answers arrive; failed channels are
 counted separately. **Stop search** keeps partial results. Selecting a result
 shows its description and live/catch-up actions; **Back to guide** restores the
@@ -1302,6 +1330,12 @@ vendor/ffaudio/     FFmpeg 7.1.1's ac3, eac3 and dca decoders as wasm
   server address is saved, and only for that server's origin. A missing
   permission shows up as a network error, alongside which there is a button for
   granting it. There are no content scripts.
+- A stream the server redirects to another host fails the same way even when
+  the server's own host is granted. After a failed stream the player asks the
+  address once more with a `HEAD` request that does not follow redirects; if
+  it is a redirect, **Allow all addresses** is offered beside Retry. The
+  browser hides where a redirect leads, so the one host it needs cannot be
+  named, and the permission asked for covers every address.
 - Access is needed only for fetch/XHR requests: `player_api.php` and the segment
   requests of hls.js and mpegts.js. Natively played VOD (`<video src>`) and
   channel logos (`<img>`) work without it.
@@ -1478,7 +1512,9 @@ the package, and lists the zip against the previous one of the same browser,
 so a file that went missing or crept in shows up before the upload. `*.zip`
 and `dist/` are in `.gitignore`. AMO signs the Firefox package; see
 `FIREFOX.md`. `firefox/build.mjs` remains the development loop's assembler of
-`firefox/dist/` from the checkout, for `firefox/dev.mjs` to reload.
+`firefox/dist/` from the checkout, for `firefox/dev.mjs` to reload; its
+`--zip` names its archive `kepuli-tv-firefox-<version>-dev.zip`, so a zip of
+the working folder is never mistaken for the release package.
 
 ### Publishing to the stores
 

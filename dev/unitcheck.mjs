@@ -11,10 +11,11 @@
 // through as it is, nothing else does.
 globalThis.MediaSource = { isTypeSupported: (type) => /mp4a\.40/.test(type) };
 
-import { parseServer, parsePlaylistUrl } from '../js/xtream.js';
-import { safeUrl } from '../js/api.js';
+import { parseServer, parsePlaylistUrl, directSource, serverStamp, timeshiftUrl, streamUrl } from '../js/xtream.js';
+import { safeUrl, decodeField, XtreamApi, ApiError } from '../js/api.js';
+import { playlist } from '../js/external.js';
 import { nameCleaner, labelCodes, countryCodes, searchKey, searchTerms, matchesTerms } from '../js/name.js';
-import { Library, buildGroups } from '../js/library.js';
+import { Library, buildGroups, cacheTtl } from '../js/library.js';
 import { channelKey, internationalChannels, isNationalTopic } from '../js/international.js';
 import { unwrap, repeats, check as checkListings } from './listings.mjs';
 import { channelLogo, slugify } from '../js/logos.js';
@@ -24,8 +25,10 @@ import { describe, describeAll, label, preferred, route } from '../js/audio.js';
 import { languageSummary, orderedLanguageNames, trackLanguage } from '../js/lang.js';
 import { LANGUAGES, keysOf, setLanguage, loadLanguage, supportedLanguage, t } from '../js/i18n.js';
 import { channelPreferences, visibilityFilter, sortChannels, CHANNEL_SORTS } from '../js/channelprefs.js';
-import { catchupAvailable, archiveDays } from '../js/epggrid.js';
-import { searchProgrammes } from '../js/programmesearch.js';
+import { catchupAvailable, archiveDays, reminderDelay, sameChannels } from '../js/epggrid.js';
+import { searchProgrammes, mergeSorted, searchableChannels } from '../js/programmesearch.js';
+import { Epg } from '../js/epg.js';
+import { probeCacheTtl } from '../js/probe.js';
 import { formatRoute, parseRoute } from '../js/route.js';
 
 let failed = 0;
@@ -82,7 +85,8 @@ check('invalid programme has no archive action', catchupAvailable({ archive: 7 }
 
 {
   let active = 0, peak = 0, calls = 0;
-  const fakeEpg = { cache: new Map(), isStale(id) { return !this.cache.has(String(id)); }, markUpdated() {}, api: {
+  const fakeEpg = { cache: new Map(), isStale(id) { return !this.cache.has(String(id)); }, markUpdated() {},
+    remember(id, entry) { this.cache.set(id, entry); }, api: {
     async fullEpg(id, { signal }) {
       calls++; active++; peak = Math.max(peak, active);
       await new Promise((resolve) => setTimeout(resolve, 2));
@@ -305,7 +309,7 @@ picks('an empty name', '', ['fi'], null);
 const stored = {};
 const clone = (v) => JSON.parse(JSON.stringify(v));
 globalThis.chrome = { storage: { local: {
-  async get(keys) { const out = {}; for (const k of [].concat(keys)) if (k in stored) out[k] = clone(stored[k]); return out; },
+  async get(keys) { const out = {}; for (const k of keys == null ? Object.keys(stored) : [].concat(keys)) if (k in stored) out[k] = clone(stored[k]); return out; },
   async set(obj) { for (const [k, v] of Object.entries(obj)) stored[k] = clone(v); },
   async remove(keys) { for (const k of [].concat(keys)) delete stored[k]; },
   async clear() { for (const k of Object.keys(stored)) delete stored[k]; },
@@ -315,13 +319,15 @@ const accountA = { scheme: 'http', host: 'a.example', port: '8080', username: 'a
 const accountB = { scheme: 'http', host: 'b.example', port: '8080', username: 'bob', password: 'y' };
 const item = (k, id, n) => ({ k, id, n });
 const favs = async () => [...(await store.loadFavorites()).values()].map((i) => i.n);
+// The tab's account is the one it connects with, as js/app.js does it.
+const connectTab = async () => store.useAccount(await store.loadConfig());
 
 // Before this version there was one set of lists, whoever the account was;
 // the account in use adopts it and the old key is retired.
 stored.config = accountA;
 stored.favorites = [item(0, '1', 'Yle TV1')];
 stored.resume = { '1:5': { position: 60, duration: 120, at: 1 } };
-await store.loadConfig();
+await connectTab();
 check('the old favourites are adopted by the account in use', await favs(), ['Yle TV1']);
 check('the old key is retired', 'favorites' in stored, false);
 check('the account key holds them', Object.keys(stored).filter((k) => k.startsWith('favorites:')), ['favorites:http://a.example:8080/ann']);
@@ -329,18 +335,18 @@ check('the old resume points are adopted too', [...(await store.loadResume()).ke
 
 // Another account sees nothing of the first, and its own lists go under its own key.
 stored.config = accountB;
-await store.loadConfig();
+await connectTab();
 check('another account starts with no favourites', await favs(), []);
 check('another account starts with no resume points', (await store.loadResume()).size, 0);
 check('another account starts with no history', await store.loadRecents(), []);
-await store.saveFavorites(new Map([['0:9', item(0, '9', 'SVT1')]]));
+await store.setFavorite('0:9', item(0, '9', 'SVT1'));
 await store.pushRecent(item(1, '7', 'Film'));
 check('its favourites are its own', await favs(), ['SVT1']);
 check('its history is its own', (await store.loadRecents()).map((r) => r.n), ['Film']);
 
 // Back to the first account: everything is where it was left.
 stored.config = accountA;
-await store.loadConfig();
+await connectTab();
 check('switching back finds the favourites again', await favs(), ['Yle TV1']);
 check('and the resume points', [...(await store.loadResume()).keys()], ['1:5']);
 check('and no history from the other account', await store.loadRecents(), []);
@@ -349,11 +355,92 @@ await store.saveConfig({ streamMode: 'hls' });
 check('a playback-mode change keeps the lists', await favs(), ['Yle TV1']);
 await store.saveChannelPreferences(preferences);
 stored.config = accountB;
-await store.loadConfig();
+await connectTab();
 check('channel presentation belongs to its account', await store.loadChannelPreferences(), channelPreferences());
 stored.config = accountA;
-await store.loadConfig();
+await connectTab();
 check('switching back restores hidden channels and their order', await store.loadChannelPreferences(), preferences);
+
+// Another tab switching the stored account does not move this one: its
+// next resume point and favourite still go to the account it shows.
+{
+  stored.config = accountA;
+  await connectTab();
+  stored.config = { ...accountB };                    // saved by another tab
+  await store.saveConfig({ streamMode: 'auto' });
+  await store.setResume('1:6', { position: 30, duration: 90, at: 2 });
+  check('a resume point saved after another tab switched stays with this tab\'s account', Object.keys(stored['resume:http://a.example:8080/ann']).sort(), ['1:5', '1:6']);
+  check('and the other account\'s resume points are untouched', stored['resume:http://b.example:8080/bob'], undefined);
+  const settingsOnly = await store.saveSetup(null, { theme: 'light' });
+  check('a settings-only save hands back no configuration to take over', settingsOnly.config, null);
+  check('and leaves the stored one alone', stored.config.host, 'b.example');
+  stored.config = accountA;
+}
+
+// One change at a time, from the stored list: what another tab added in the
+// meantime is kept.
+{
+  await connectTab();
+  await store.setFavorite('0:2', item(0, '2', 'Yle TV2'));       // "another tab"
+  const memory = new Map([['0:3', item(0, '3', 'MTV3')]]);    // this tab never saw TV2
+  await store.setFavorite('0:3', memory.get('0:3'));
+  check('a favourite added in one tab survives another\'s', await favs(), ['Yle TV1', 'Yle TV2', 'MTV3']);
+  await store.setFavorite('0:2', null);
+  check('a favourite taken away takes only itself', await favs(), ['Yle TV1', 'MTV3']);
+  const [first, second] = await Promise.all([store.pushRecent(item(0, '1', 'Yle TV1')), store.pushRecent(item(0, '3', 'MTV3'))]);
+  check('two history entries at once both land', (await store.loadRecents()).map((r) => r.n).slice(0, 2), ['MTV3', 'Yle TV1']);
+  check('each change resolves to the list it wrote', [first.length, second.length], [1, 2]);
+  const now = Date.now();
+  const reminder = (id, start) => ({ channel: item(0, id, 'C' + id), title: 'P' + id, start, stop: start + 3600e3 });
+  await store.setReminder('5:' + (now + 1000), reminder('5', now + 1000));
+  await store.setReminder('6:' + (now + 9e6), reminder('6', now + 9e6));
+  check('the reminders due are taken once', (await store.takeDueReminders(now + 60e3)).map((r) => r.title), ['P5']);
+  check('and a second tab finds them gone', (await store.takeDueReminders(now + 60e3)).length, 0);
+  check('the rest stay', (await store.loadReminders()).map((r) => r.title), ['P6']);
+}
+
+// The account key: one spelling for one address.
+check('accountKey: the host in any case, a blank port as the scheme\'s own', [
+  store.accountKey({ scheme: 'http', host: 'Example.TV', port: '', username: 'Ann' }),
+  store.accountKey({ scheme: 'HTTPS', host: 'example.tv ', port: '443', username: 'Ann' }),
+  store.accountKey({ scheme: 'http', host: 'example.tv', port: '080', username: 'Ann' }),
+  store.accountKey({ scheme: 'http', host: 'example.tv', port: '8080', username: 'Ann' }),
+], ['http://example.tv:80/Ann', 'https://example.tv:443/Ann', 'http://example.tv:80/Ann', 'http://example.tv:8080/Ann']);
+{
+  const data = {
+    'favorites:http://Example.tv:/ann': ['blank port'],
+    'favorites:http://example.tv:80/ann': ['already normal'],
+    'recents:http://Example.tv:/ann': ['typed'],
+    'recents:http://example.tv:80/ann': ['pasted'],
+    'resume:https://Other.tv:/bob': { '1:1': {} },
+    'channels:http://example.tv:8080/ann': {},
+    'favorites': ['bare, adopted elsewhere'],
+    'settings': {},
+  };
+  const moved = store.accountKeyMigration(data, 'http://Example.tv:/ann');
+  check('migration: old spellings are removed', moved.remove.sort(), ['favorites:http://Example.tv:/ann', 'recents:http://Example.tv:/ann', 'resume:https://Other.tv:/bob']);
+  check('migration: the spelling in use wins over one already normal', moved.set['favorites:http://example.tv:80/ann'], ['blank port']);
+  check('migration: and over another', moved.set['recents:http://example.tv:80/ann'], ['typed']);
+  check('migration: another account moves on its own', moved.set['resume:https://other.tv:443/bob'], { '1:1': {} });
+  check('migration: a key already normal is not rewritten', 'channels:http://example.tv:8080/ann' in moved.set, false);
+  const other = store.accountKeyMigration(data, 'http://example.tv:80/ann');
+  check('migration: with the normal one in use, it stays', 'favorites:http://example.tv:80/ann' in other.set, false);
+  check('migration: and the other spelling keeps its lists rather than losing them', other.remove.includes('favorites:http://Example.tv:/ann'), false);
+  for (const key of Object.keys(stored)) delete stored[key];
+  Object.assign(stored, clone(data), { config: { scheme: 'http', host: 'Example.tv', port: '', username: 'ann', password: 'p' } });
+  await store.migrateAccountKeys(stored.config);
+  await connectTab();
+  check('migrated: a tab connecting with the old spelling finds its lists', stored['favorites:http://example.tv:80/ann'], ['blank port']);
+  check('migrated: the history under the normal key', await store.loadRecents(), ['typed']);
+  check('migrated: no old spelling left', Object.keys(stored).filter((k) => k.includes('Example') || k.includes('Other')), []);
+  // The same user at a provider's new address: the lists are offered and copied.
+  const moving = { scheme: 'https', host: 'new.example.tv', port: '', username: 'ann', password: 'p' };
+  check('a new address starts without lists', await store.accountHasLists(moving), false);
+  check('the old one has them', await store.accountHasLists(stored.config), true);
+  await store.copyAccountLists(stored.config, moving);
+  check('copied to the new address', stored['recents:https://new.example.tv:443/ann'], ['typed']);
+  check('and kept under the old one', stored['recents:http://example.tv:80/ann'], ['typed']);
+}
 
 /* ---------------------------------------------------- subs.js: cueText */
 
@@ -707,6 +794,92 @@ for (const [text, least] of [['dim', 4.5], ['muted', 4.5], ['text', 7]]) {
   check('a seek clears the buffer after the append in flight, not over it', { errors, calls: sb.calls.slice(4) }, { errors: [], calls: ['append', 'remove'] });
 }
 
+// The browser's limit is in bytes, and a high-bitrate film reaches it with
+// less than the minute ahead the download aims for. A full buffer once
+// ended the film: appendBuffer's QuotaExceededError was turned into
+// "SourceBuffer rejected the segment" before anything looked at it. The
+// fake below holds 40 seconds and throws as Chrome does when it is full.
+// The unpacker's own warnings are kept out of the report.
+const quietly = async (work) => {
+  const warn = console.warn;
+  console.warn = () => {};
+  try { await work(); } finally { console.warn = warn; }
+};
+await quietly(async () => {
+  const { Remuxer } = await import('../js/remux.js');
+  class FullBuffer extends EventTarget {
+    constructor() { super(); this.updating = false; this.ranges = [[0, 40]]; this.appended = 0; this.refused = 0; }
+    get buffered() { const r = this.ranges; return { length: r.length, start: (i) => r[i][0], end: (i) => r[i][1] }; }
+    settle(then) { this.updating = true; setTimeout(() => { then(); this.updating = false; this.dispatchEvent(new Event('updateend')); }, 2); }
+    appendBuffer() {
+      if (this.ranges[0][1] - this.ranges[0][0] >= 40) { this.refused++; throw new DOMException('the buffer is full', 'QuotaExceededError'); }
+      this.settle(() => { this.ranges[0][1] += 2; this.appended++; });
+    }
+    remove(from, to) { this.settle(() => { this.ranges = [[Math.max(this.ranges[0][0], to), this.ranges[0][1]]]; }); }
+  }
+  const errors = [];
+  const video = { currentTime: 2 };
+  const remuxer = new Remuxer(video, 'http://x/', { onError: (err) => errors.push(err.message) });
+  remuxer.ms = { readyState: 'open', duration: 200 };
+  const sb = new FullBuffer();
+  remuxer.buffers.video = sb;
+  const appended = remuxer.append('video', new Uint8Array(10));
+  await new Promise((resolve) => setTimeout(resolve, 100));
+  check('a full buffer holds the append back rather than ending the film',
+    { errors, appended: sb.appended, waiting: remuxer.quotaWaits, queued: remuxer.queued },
+    { errors: [], appended: 0, waiting: 1, queued: 10 });
+  video.currentTime = 20;     // playback moves on, and the watched part can go
+  await appended;
+  check('once playback has moved on, the watched part goes and the append gets in',
+    { errors, appended: sb.appended, waiting: remuxer.quotaWaits, queued: remuxer.queued, kept: sb.ranges[0][0] },
+    { errors: [], appended: 1, waiting: 0, queued: 0, kept: 15 });
+  check('the read-ahead is held a quarter below what the full buffer held', remuxer.readAhead().ahead, 28);
+
+  // Seconds turned into bytes: a 1080p remux at 30 Mbit/s holds some 25
+  // seconds in the budget, the demo episode's 175 kbit/s the full minute.
+  const heavy = new Remuxer({ currentTime: 0 }, 'http://x/');
+  heavy.rate = { bytes: 30e6 / 8 * 10, seconds: 10 };
+  const light = new Remuxer({ currentTime: 0 }, 'http://x/');
+  light.rate = { bytes: 175e3 / 8 * 10, seconds: 10 };
+  const round = ({ ahead, behind }) => ({ ahead: Math.round(ahead), behind: Math.round(behind) });
+  check('a high bit rate reads less far ahead and keeps less behind', round(heavy.readAhead()), { ahead: 19, behind: 6 });
+  check('a low bit rate keeps the minute ahead and the half-minute behind', round(light.readAhead()), { ahead: 60, behind: 30 });
+});
+
+// One failed read of the seek table once cost the whole film its seeking.
+// The read follows a seek's cut connection, and a provider still counting
+// that one refuses it: it is asked again, and only an answer — a table or
+// bytes that are none, a range past the end — ends the asking for good.
+await quietly(async () => {
+  const { Remuxer } = await import('../js/remux.js');
+  const realFetch = globalThis.fetch;
+  const answers = [];
+  globalThis.fetch = async () => {
+    const next = answers.shift();
+    if (next instanceof Error) throw next;
+    return new Response(next.body || null, { status: next.status });
+  };
+  const table = () => {
+    const remuxer = new Remuxer({ currentTime: 0 }, 'http://x/');
+    remuxer.header = { cuesPosition: 1000, segmentStart: 40, timestampScale: 1e6 };
+    remuxer.videoTrack = { number: 1 };
+    return remuxer;
+  };
+  try {
+    const refused = table();
+    answers.push(new TypeError('Failed to fetch'), { status: 400 }, { status: 206, body: new Uint8Array([1, 2, 3]) });
+    await refused.loadCues();
+    check('a refused read of the seek table is asked again until it is answered',
+      { left: answers.length, tried: refused.cuesTried }, { left: 0, tried: true });
+    const past = table();
+    answers.push({ status: 416 });
+    await past.loadCues();
+    check('a table past the end of the file is given up on at once', { left: answers.length, tried: past.cuesTried }, { left: 0, tried: true });
+  } finally {
+    globalThis.fetch = realFetch;
+  }
+});
+
 /* ------------------------------------------------- international.js */
 
 check('a channel is one key in every country\'s list',
@@ -739,6 +912,174 @@ check('the national topics in the providers\' languages',
   check('a dated event is the country\'s own broadcast', found.has('event0'), false);
   check('outside a country\'s list nothing is thinned', found.has('music'), false);
 }
+
+/* ------------------------------ xtream.js: catch-up across a DST change */
+
+// Helsinki leaves summer time at 04:00 local on 2026-10-25 (01:00 UTC). An
+// offset measured after the change (+2 h) once moved every programme from
+// before it an hour early in the timeshift path.
+{
+  const cfg = { scheme: 'http', host: 'tv.example', port: '8080', username: 'u', password: 'p' };
+  const before = Date.UTC(2026, 9, 24, 18, 0);      // 21:00 summer time
+  const after = Date.UTC(2026, 9, 26, 18, 0);       // 20:00 winter time
+  const winter = 2 * 3600e3;
+  check('a programme before the change gets the summer offset from the zone',
+    serverStamp(before, 'Europe/Helsinki', winter), '2026-10-24:21-00');
+  check('a programme after the change gets the winter offset',
+    serverStamp(after, 'Europe/Helsinki', winter), '2026-10-26:20-00');
+  check('the hour that repeats reads the same on the wall clock both times, as the server\'s does',
+    [Date.UTC(2026, 9, 25, 0, 30), Date.UTC(2026, 9, 25, 1, 30)].map((ms) => serverStamp(ms, 'Europe/Helsinki')),
+    ['2026-10-25:03-30', '2026-10-25:03-30']);
+  check('midnight is 00, not 24', serverStamp(Date.UTC(2026, 9, 25, 22, 0), 'Europe/Helsinki'), '2026-10-26:00-00');
+  check('without a zone the measured offset stands',
+    serverStamp(before, null, winter), '2026-10-24:20-00');
+  check('a zone the browser does not know falls back to the measured offset',
+    serverStamp(before, 'Mars/Olympus_Mons', winter), '2026-10-24:20-00');
+  check('with neither, there is no answer', serverStamp(before, 'Mars/Olympus_Mons', null), null);
+  check('the catch-up address keeps its form, with the zone',
+    timeshiftUrl(cfg, 42, before, 59.6, winter, 'Europe/Helsinki'),
+    'http://tv.example:8080/timeshift/u/p/60/2026-10-24:21-00/42.ts');
+  check('and without it, as before',
+    timeshiftUrl(cfg, 42, before, 60, winter),
+    'http://tv.example:8080/timeshift/u/p/60/2026-10-24:20-00/42.ts');
+}
+
+/* --------------------------------- xtream.js, external.js: direct_source */
+
+check('an http(s) direct_source is taken',
+  ['https://cdn.example/a.m3u8', ' http://cdn.example/b.ts '].map(directSource),
+  ['https://cdn.example/a.m3u8', 'http://cdn.example/b.ts']);
+check('anything else is dropped: other schemes, line breaks, spaces, junk',
+  ['javascript:alert(1)', 'file:///etc/passwd', 'http://a.example/x\r\n#EXTVLCOPT:foo', 'http://a b', '', '[]', null, 5].map(directSource),
+  [null, null, null, null, null, null, null, null]);
+check('a cached item with a bad direct_source plays from the server\'s own address',
+  streamUrl({ host: 'tv.example', username: 'u', password: 'p' }, { k: 1, id: '7', ext: 'mkv', direct: 'http://x\n#EXTINF' }),
+  'http://tv.example/movie/u/p/7.mkv');
+check('a line break in the address adds no line to the playlist',
+  playlist({ url: 'http://a.example/x.ts\r\n#EXTVLCOPT:evil' }, 'Name\nTwo').split('\n'),
+  ['#EXTM3U', '#EXTINF:-1,Name Two', 'http://a.example/x.ts#EXTVLCOPT:evil', '']);
+
+/* ---------------------------------------------- api.js: EPG text decoding */
+
+check('a base64 title is decoded as UTF-8', decodeField(Buffer.from('Uutiset – Äänestys').toString('base64')), 'Uutiset – Äänestys');
+check('a plain title that happens to be valid base64 stays as it came', ['News', 'Golf'].map(decodeField), ['News', 'Golf']);
+check('a title that is no base64 at all stays too', decodeField('Ylen uutiset'), 'Ylen uutiset');
+
+/* ------------------------------------------ api.js: what a status means */
+
+{
+  const realFetch = globalThis.fetch;
+  const api = new XtreamApi({ host: 'tv.example', username: 'u', password: 'p' });
+  const kindOf = async (status) => {
+    globalThis.fetch = async () => new Response('{}', { status });
+    try { await api.call(''); return 'ok'; } catch (err) { return err instanceof ApiError ? `${err.kind}:${err.message}` : String(err); }
+  };
+  const results = [];
+  for (const status of [401, 512, 403, 500]) results.push(await kindOf(status));
+  globalThis.fetch = realFetch;
+  check('401 and 512 are the credentials; 403 is a refusal of access, not of the password',
+    results.map((r) => r.split(':')[0]), ['tunnistus', 'tunnistus', 'http', 'http']);
+  check('and 403 says so in its own words', results[2].slice(5), t('api.denied'));
+
+  // The zone is trusted only when it agrees with the server's own clock.
+  const zoneOf = async (timezone, timeNow) => {
+    globalThis.fetch = async () => new Response(JSON.stringify({
+      user_info: { auth: 1 },
+      server_info: { timezone, timestamp_now: String(Date.UTC(2026, 9, 31, 10, 0) / 1000), time_now: timeNow },
+    }));
+    try { return (await api.account()).serverZone; } finally { globalThis.fetch = realFetch; }
+  };
+  check('a zone that agrees with time_now is kept; one that does not, or is unknown, is not',
+    [await zoneOf('Europe/Helsinki', '2026-10-31 12:00:00'), await zoneOf('Europe/Ljubljana', '2026-10-31 12:00:00'),
+      await zoneOf('Mars/Olympus_Mons', '2026-10-31 12:00:00'), await zoneOf(undefined, '2026-10-31 12:00:00')],
+    ['Europe/Helsinki', null, null, null]);
+}
+
+/* ------------------------------------------ epggrid.js: reminder timer */
+
+{
+  const now = Date.UTC(2026, 9, 31, 12, 0);
+  check('a reminder due soon waits until then', reminderDelay(now + 60000, now), 60000);
+  check('one already due fires at once', reminderDelay(now - 5000, now), 0);
+  check('one weeks ahead waits a day and is measured again, within a timer\'s limit',
+    reminderDelay(now + 40 * 24 * 3600e3, now), 24 * 3600e3);
+}
+
+/* ------------------------------- the catalogue kept fresh, and bounded */
+
+// Refresh used to leave the categories and groups opened earlier in the
+// session as they were first fetched: the visible list stayed old after
+// "Lists refreshed". Without IndexedDB here the cache reads miss, so every
+// read goes to the fake server.
+await quietly(async () => {
+  let served = 0;
+  const api = {
+    categories: async () => [{ id: '1', name: 'Finland' }],
+    streams: async (type, cat) => { served++; return [{ id: String(served), k: 0, n: `Channel ${served}`, cats: [cat || '1'] }]; },
+  };
+  const lib = new Library(api, 'acc');
+  await lib.loadCategories();
+  const before = (await lib.categoryItems('live', '1')).map((it) => it.n);
+  const again = (await lib.categoryItems('live', '1')).map((it) => it.n);
+  check('a category opened twice is fetched once', [before, again], [['Channel 1'], ['Channel 1']]);
+  await lib.groupItems('live', 'Finland');
+  lib.details.set('series:v2:7', { episodes: [] });
+  lib.details.set('vod:v2:8', { durationSec: 60 });
+  await lib.refresh();
+  const after = (await lib.categoryItems('live', '1')).map((it) => it.n);
+  check('Refresh fetches a category opened earlier again', after, ['Channel 3']);
+  check('Refresh forgets the series\' episodes and keeps the films\' details',
+    [lib.details.has('series:v2:7'), lib.details.has('vod:v2:8')], [false, true]);
+  const now = Date.now();
+  check('lists just fetched are not stale', lib.isStale(now), false);
+  check('categories older than a day are', lib.isStale(now + 25 * 3600e3), true);
+  lib.categoriesAt = now;
+  check('a category list older than six hours is', lib.isStale(now + 7 * 3600e3), true);
+  lib.listsAt = null;
+  check('nothing opened, nothing stale but the categories', lib.isStale(now + 7 * 3600e3), false);
+  lib.setFull('live', [{ id: '1', k: 0, n: 'One', cats: ['1'] }], now - 7 * 3600e3);
+  check('a whole list older than six hours is stale', lib.isStale(now), true);
+});
+
+check('each cached row has its time: categories, lists, episodes, details, file headers',
+  ['acc|cats:live', 'acc|full:movie', 'acc|series:v2:1', 'acc|vod:v2:1', 'probe:h:movie:1.mkv', 'other']
+    .map((key) => probeCacheTtl(key) ?? cacheTtl(key)),
+  [24 * 3600e3, 6 * 3600e3, 24 * 3600e3, 7 * 24 * 3600e3, 90 * 24 * 3600e3, null]);
+
+{
+  // A search of all channels used to keep every whole table it read.
+  const epg = new Epg(null, () => {});
+  for (let i = 0; i < 250; i++) epg.remember(String(i), { listings: [], at: 0, mode: 'full' });
+  epg.remember('x', { listings: [], at: 0, mode: 'short' });
+  epg.remember('10', { listings: [], at: 0, mode: 'full' });
+  const full = [...epg.cache.values()].filter((e) => e.mode === 'full').length;
+  check('the programme cache keeps 200 whole tables, the newest, and the short lists',
+    [full, epg.fullTables, epg.cache.has('0'), epg.cache.has('49'), epg.cache.has('50'), epg.cache.has('10'), epg.cache.has('x')],
+    [200, 200, false, false, false, true, true]);
+  epg.clear();
+  check('clearing the cache clears the count', epg.fullTables, 0);
+}
+
+{
+  const order = (a, b) => a.k - b.k;
+  const merged = mergeSorted([{ k: 1, s: 'a' }, { k: 3, s: 'a' }], [{ k: 0, s: 'b' }, { k: 3, s: 'b' }, { k: 4, s: 'b' }], order);
+  check('results found later merge into place, earlier ones first among equals',
+    merged.map((r) => `${r.k}${r.s}`), ['0b', '1a', '3a', '3b', '4b']);
+  check('nothing new leaves the list as it was', mergeSorted([{ k: 1 }], [], order).length, 1);
+  check('a channel listed twice is searched once, one without programme data not at all',
+    searchableChannels([{ id: 1, epgId: 'a' }, { id: '1', epgId: 'a' }, { id: 2 }]).map((c) => String(c.id)), ['1']);
+}
+
+check('the same channels in another order are the same set',
+  sameChannels([{ id: 1 }, { id: 2 }], [{ id: '2' }, { id: '1' }]), true);
+check('one channel more is another set', sameChannels([{ id: 1 }], [{ id: 1 }, { id: 2 }]), false);
+check('another channel is another set', sameChannels([{ id: 1 }, { id: 2 }], [{ id: 1 }, { id: 3 }]), false);
+check('an empty list is never the same set', sameChannels([], []), false);
+
+check('a series named in the channels\' address is dropped', parseRoute('#/live/Finland?series=12'), { tab: 'live', group: 'Finland' });
+check('a favourite category belongs to the favourites alone',
+  parseRoute('#/series/Drama?cat=live%3A1&series=5'), { tab: 'series', group: 'Drama', series: '5' });
+check('the history may hold a series', parseRoute('#/recent?series=5'), { tab: 'recent', series: '5' });
 
 /* ----------------------------------------------- dev/listings.mjs */
 

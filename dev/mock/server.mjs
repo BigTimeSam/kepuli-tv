@@ -129,6 +129,16 @@ const live = { categories: [], channels: [] };
   });
 }
 
+// KEPULI_MOCK_EXTRA_CHANNEL: while set, Finland's own category holds one
+// channel more — a provider adding a channel while a player has the list
+// open, for Refresh to find.
+const EXTRA_CHANNEL = {
+  num: 9999, name: 'Aurora Newcomer', stream_type: 'live', stream_id: 9999, stream_icon: '/img/logo/9999.svg',
+  epg_channel_id: '', added: secs(T0), category_id: live.categories[0].category_id,
+  category_ids: [Number(live.categories[0].category_id)], custom_sid: '', tv_archive: 0, direct_source: '', tv_archive_duration: 0, topic: 'General',
+};
+const liveChannels = () => (process.env.KEPULI_MOCK_EXTRA_CHANNEL ? [...live.channels, EXTRA_CHANNEL] : live.channels);
+
 const epgCache = new Map();
 function programmes(channel) {
   if (epgCache.has(channel.stream_id)) return epgCache.get(channel.stream_id);
@@ -408,6 +418,10 @@ function sendFile(req, res, name, type) {
 // KEPULI_MOCK_LIMIT turns the limit on: a stream asked for while the count
 // is full is refused with 400, as the provider refuses it.
 // KEPULI_MOCK_RELEASE_MS keeps a closed stream counted that long.
+// KEPULI_MOCK_FULL says how a full count answers instead of the 400:
+// 'silent' accepts the stream and sends nothing until the player closes it,
+// 'close' accepts it and ends it at once, empty — both of them providers'
+// ways too. Neither stream is counted.
 // The playlists and segments of the live channel are not counted by
 // request: the provider counts an HLS viewer by session (see admitHls,
 // with KEPULI_MOCK_LIVE_TS).
@@ -461,8 +475,14 @@ async function admit(req, res) {
   const range = req.headers.range || 'whole';
   if (connections.open.size) connections.overlaps.push(`${req.url} ${range} over ${[...connections.open].join(', ')}`);
   if (counted() >= max) {
-    connections.refused.push(`${req.url} ${range} at ${counted()}/${max}`);
-    send(res, 400, 'every connection is in use', 'text/plain');
+    const full = process.env.KEPULI_MOCK_FULL;
+    connections.refused.push(`${req.url} ${range} at ${counted()}/${max}${full ? ` ${full}` : ''}`);
+    if (full === 'silent' || full === 'close') {
+      res.writeHead(200, { ...CORS, 'Content-Type': 'video/mp2t', 'Cache-Control': 'no-store' });
+      if (full === 'close') res.end();
+    } else {
+      send(res, 400, 'every connection is in use', 'text/plain');
+    }
     return false;
   }
   const name = `${req.url} ${range}`;
@@ -527,17 +547,24 @@ function livePlaylist() {
  * after a burst — served whole, the download would finish in a second and
  * the player would take the end of it for a dropped source.
  */
-async function sendTimeshift(req, res) {
+async function sendTimeshift(req, res, { archive = false } = {}) {
   const total = SEGMENTS.reduce((sum, s) => sum + statSync(s.file).size, 0);
   const bytesPerSecond = total / LOOP_SECONDS * 1.25;
   const BURST = 2 * 1024 * 1024;
   res.writeHead(200, { ...CORS, 'Content-Type': 'video/mp2t', 'Cache-Control': 'no-store' });
   if (req.method === 'HEAD') return res.end();
+  // KEPULI_MOCK_HANG_AT, bytes: the next archive stream stops sending there
+  // and keeps the connection open, saying nothing more — a server gone
+  // quiet under an open socket, which raises no error in the player. Once
+  // only; the stream asked for after it is served whole.
+  const hangAt = archive ? Number(process.env.KEPULI_MOCK_HANG_AT || 0) : 0;
+  if (hangAt > 0) process.env.KEPULI_MOCK_HANG_AT = '';
   const t0 = Date.now();
   let sent = 0;
   for (const segment of SEGMENTS) {
     const data = readFileSync(segment.file);
     for (let offset = 0; offset < data.length && !res.destroyed; offset += 32 * 1024) {
+      if (hangAt > 0 && sent >= hangAt) return;
       const chunk = data.subarray(offset, offset + 32 * 1024);
       sent += chunk.length;
       res.write(chunk);
@@ -585,7 +612,7 @@ function api(req, res, url) {
     case 'get_live_categories': return send(res, 200, live.categories);
     case 'get_vod_categories': return send(res, 200, vod.categories);
     case 'get_series_categories': return send(res, 200, series.categories);
-    case 'get_live_streams': return sendList(withCategory(live.channels).map((c) => publicChannel(origin, c)));
+    case 'get_live_streams': return sendList(withCategory(liveChannels()).map((c) => publicChannel(origin, c)));
     case 'get_vod_streams': return sendList(withCategory(vod.movies).map((m) => publicMovie(origin, m)));
     case 'get_series': return sendList(withCategory(series.list).map((s) => publicSeries(origin, s)));
     case 'get_series_info': {
@@ -659,7 +686,7 @@ function handle(req, res) {
   // MPEG-TS connection, counted against the account like a film.
   if (/^\/live\/.*\.ts$/.test(path) && process.env.KEPULI_MOCK_LIVE_TS) return admit(req, res).then((ok) => ok && sendTimeshift(req, res));
   if (/^\/live\/.*\.ts$/.test(path)) return send(res, 404, 'the demo channel is HLS; the player falls back to it', 'text/plain');
-  if (path.startsWith('/timeshift/')) return admit(req, res).then((ok) => ok && sendTimeshift(req, res));
+  if (path.startsWith('/timeshift/')) return admit(req, res).then((ok) => ok && sendTimeshift(req, res, { archive: true }));
   if ((m = /^\/(movie|series)\/.*\.(\w+)$/.exec(path))) return admit(req, res).then((ok) => ok && sendMedia(req, res, path, m[2]));
   send(res, 404, 'not found', 'text/plain');
 }

@@ -268,15 +268,27 @@ function onListKey(e) {
   }
 }
 
+/**
+ * The choice, written into the select by its value. The <option> the list
+ * was built from may be gone by now: the app rebuilds some menus while
+ * they are open — the media filters fill in years and genres as the
+ * visible films' details arrive — and selecting a detached option changed
+ * nothing, so the viewer's choice was dropped without a word. The value is
+ * what the choice means; the select's current option with it is chosen.
+ */
 function choose(option) {
   const { select } = open;
-  const changed = !option.selected;
   close({ focus: true });
-  if (!changed) return;
-  option.selected = true;
+  const current = option.isConnected && option.parentElement && select.contains(option) ? option
+    : [...select.options].find((o) => o.value === option.value && !o.disabled);
+  if (!current || current.selected) return;
+  current.selected = true;
   select.dispatchEvent(new Event('input', { bubbles: true }));
   select.dispatchEvent(new Event('change', { bubbles: true }));
 }
+
+/** Whether the app's list is open for this select, for code that would rebuild its options. */
+export const isPicking = (select) => open?.select === select;
 
 function close({ focus = false } = {}) {
   if (!open) return;

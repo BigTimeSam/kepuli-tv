@@ -13,8 +13,13 @@ import { t } from './i18n.js';
 import { externalMetadata } from './titlelinks.js';
 import { releaseYear } from './mediafilters.js';
 import { providerRating } from './rating.js';
+import { directSource, serverStamp } from './xtream.js';
 
-const TEXT_DECODER = new TextDecoder();
+// Fatal, so that bytes which are no UTF-8 throw instead of turning into
+// replacement characters: a plain title that happens to be valid base64
+// ("News", "Golf") decodes to such bytes, and the throw is what tells it
+// apart from a real base64 title and keeps the words as they came.
+const TEXT_DECODER = new TextDecoder('utf-8', { fatal: true });
 
 // A request that gets no answer within this is given up: a server that
 // accepts the connection and then goes quiet raises no error by itself,
@@ -39,6 +44,18 @@ function networkError(err) {
   // number to give. The sentence says it; the words go to the console.
   console.warn('[iptv] the server could not be reached:', err);
   return new ApiError('verkko', t('api.unreachable'));
+}
+
+/**
+ * The statuses that say something about the account. 512 and 401 are the
+ * credentials: Xtream's own refusal and the standard one. 403 is not —
+ * it is what a firewall in front of the server, Cloudflare, a block by
+ * country or a ban for too many requests answer with, and telling the
+ * viewer to check a password that is right sends them the wrong way.
+ */
+function rejected(status) {
+  if (status === 512 || status === 401) throw new ApiError('tunnistus', t('api.rejected'));
+  if (status === 403) throw new ApiError('http', t('api.denied'));
 }
 
 /** base64 → UTF-8. A bare atob() would mangle non-ASCII letters. */
@@ -71,9 +88,7 @@ export class XtreamApi {
     let text;
     try {
       res = await fetch(this.url(action, params), { signal: deadline(signal), cache: 'no-store', credentials: 'omit' });
-      if (res.status === 512 || res.status === 401 || res.status === 403) {
-        throw new ApiError('tunnistus', t('api.rejected'));
-      }
+      rejected(res.status);
       if (!res.ok) throw new ApiError('http', t('api.status', { status: res.status }));
       text = await res.text();
     } catch (err) {
@@ -98,6 +113,7 @@ export class XtreamApi {
     if (String(data.user_info.auth) !== '1') throw new ApiError('tunnistus', t('api.authfailed'));
     const u = data.user_info;
     const s = data.server_info || {};
+    const utcOffset = serverUtcOffset(s);
     return {
       status: u.status,
       trial: u.is_trial === '1',
@@ -110,7 +126,12 @@ export class XtreamApi {
       serverTimeOffsetMs: s.timestamp_now ? Number(s.timestamp_now) * 1000 - Date.now() : 0,
       // The catch-up URL's timestamp is the server's local time; the offset
       // comes from comparing the time_now string with the unix timestamp.
-      serverUtcOffsetMs: serverUtcOffset(s),
+      serverUtcOffsetMs: utcOffset,
+      // The zone gives the offset at any instant, the measured one only at
+      // this one. It is used only when it agrees with the server's own clock
+      // now: a zone the browser does not know, or one the panel names while
+      // the clock keeps another, would move every catch-up address.
+      serverZone: zoneAgrees(s.timezone, utcOffset, Number(s.timestamp_now) * 1000) ? s.timezone : null,
     };
   }
 
@@ -152,9 +173,7 @@ export class XtreamApi {
       const res = await fetch(this.url(action, params), {
         signal: signal ? AbortSignal.any([signal, ctrl.signal]) : ctrl.signal, cache: 'no-store', credentials: 'omit',
       });
-      if (res.status === 512 || res.status === 401 || res.status === 403) {
-        throw new ApiError('tunnistus', t('api.rejected'));
-      }
+      rejected(res.status);
       if (!res.ok) throw new ApiError('http', t('api.status', { status: res.status }));
 
       total = Number(res.headers.get('content-length')) || 0;
@@ -207,7 +226,7 @@ export class XtreamApi {
           video: codecInfo(meta.video),
           audio: codecInfo(meta.audio),
           bitrate: Number(meta.bitrate) || 0,
-          direct: ep.direct_source || null,
+          direct: directSource(ep.direct_source),
         });
       }
     }
@@ -326,6 +345,16 @@ function serverUtcOffset(s) {
   return asUtc - Number(s.timestamp_now) * 1000;
 }
 
+/** Whether the named zone's wall clock at the instant is the one the server reported. */
+function zoneAgrees(zone, offsetMs, atMs) {
+  if (typeof zone !== 'string' || !zone || !Number.isFinite(atMs) || atMs <= 0) return false;
+  // The two clock readings may be taken a moment apart; offsets come in
+  // quarter hours.
+  const offset = Math.round(offsetMs / 900000) * 900000;
+  const named = serverStamp(atMs, zone, null);
+  return named !== null && named === serverStamp(atMs, null, offset);
+}
+
 function normalizeProgramme(p) {
   return {
     id: String(p.id || ''),
@@ -345,7 +374,7 @@ function normalizeLive(s) {
     cats: categoryIds(s),
     epgId: s.epg_channel_id || null,
     archive: String(s.tv_archive) === '1' ? Number(s.tv_archive_duration) || 0 : 0,
-    direct: s.direct_source || null,
+    direct: directSource(s.direct_source),
     num: Number(s.num) || 0,
   };
 }
@@ -363,7 +392,7 @@ function normalizeMovie(s) {
     genre: s.genre || '',
     rating: providerRating(s),
     ratingScale: 10,
-    direct: s.direct_source || null,
+    direct: directSource(s.direct_source),
     num: Number(s.num) || 0,
   };
 }

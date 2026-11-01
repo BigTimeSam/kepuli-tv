@@ -78,6 +78,10 @@ export class CatalogueSearch {
     }
     if (!state.query) this.restoreFilters();
     this.render();
+    // false is a list that failed or was cancelled, and the search goes
+    // with it. null is a newer load that took over — a filter changed, a
+    // favourite starred, the language switched — which repaints the same
+    // search, so the words typed stay where they are.
     const ok = await this.refresh();
     if (generation === this.generation && ok === false && state.query) this.clear();
   }

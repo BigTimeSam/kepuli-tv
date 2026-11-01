@@ -49,11 +49,31 @@ export function parseServer(text) {
 }
 
 /**
+ * A provider's direct_source, when it is an address to play. The value
+ * goes into the video element, onto the clipboard and into the .m3u
+ * handed to an external player, and a provider's catalogue is not to be
+ * trusted with any of those: anything but http(s), and anything with
+ * white space in it — a line break would add lines of its own to the
+ * playlist — is dropped, and the stream is played from the server's own
+ * address instead.
+ */
+export function directSource(value) {
+  if (typeof value !== 'string') return null;
+  const trimmed = value.trim();
+  if (!/^https?:\/\/[^\s]+$/i.test(trimmed)) return null;
+  try { new URL(trimmed); } catch { return null; }
+  return trimmed;
+}
+
+/**
  * Playback URL for an item that came from the API.
  * @param {'ts'|'m3u8'} format live channels only
  */
 export function streamUrl(cfg, item, format = 'ts') {
-  if (item.direct) return item.direct;
+  // Checked here too: a list cached before the check was made carries the
+  // value as the provider sent it.
+  const direct = directSource(item.direct);
+  if (direct) return direct;
   const base = `${baseUrl(cfg)}`;
   const auth = `${encodeURIComponent(cfg.username)}/${encodeURIComponent(cfg.password)}`;
   if (item.k === 0) return `${base}/live/${auth}/${item.id}.${format}`;
@@ -63,15 +83,37 @@ export function streamUrl(cfg, item, format = 'ts') {
 }
 
 /**
+ * The server's wall clock at an instant, as "YYYY-MM-DD:HH-MM" — the form
+ * the timeshift path takes. The server's time zone, when it named one the
+ * browser knows, gives the offset in force at that instant; a programme
+ * from before a change of daylight saving time is an hour off otherwise.
+ * Without one, the offset measured at connecting has to stand for every
+ * instant; with no offset either (null), the answer is null.
+ */
+export function serverStamp(ms, timeZone, fallbackOffsetMs = 0) {
+  const pad = (n) => String(n).padStart(2, '0');
+  if (timeZone) {
+    let parts = null;
+    try {
+      parts = Object.fromEntries(new Intl.DateTimeFormat('en-US', {
+        timeZone, hourCycle: 'h23', year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit',
+      }).formatToParts(new Date(ms)).map((p) => [p.type, p.value]));
+    } catch { /* a zone the browser does not know: the measured offset stands */ }
+    if (parts) return `${parts.year}-${parts.month}-${parts.day}:${parts.hour}-${parts.minute}`;
+  }
+  if (fallbackOffsetMs == null) return null;
+  const d = new Date(ms + fallbackOffsetMs);
+  return `${d.getUTCFullYear()}-${pad(d.getUTCMonth() + 1)}-${pad(d.getUTCDate())}:` +
+         `${pad(d.getUTCHours())}-${pad(d.getUTCMinutes())}`;
+}
+
+/**
  * Catch-up URL. The timestamp is in the server's local time, which can
  * differ from the browser's zone (here Europe/Ljubljana vs.
- * Europe/Helsinki = one hour), so it is derived from the server offset.
+ * Europe/Helsinki = one hour); see serverStamp.
  */
-export function timeshiftUrl(cfg, streamId, startMs, durationMinutes, serverUtcOffsetMs = 0) {
-  const d = new Date(startMs + serverUtcOffsetMs);
-  const pad = (n) => String(n).padStart(2, '0');
-  const stamp = `${d.getUTCFullYear()}-${pad(d.getUTCMonth() + 1)}-${pad(d.getUTCDate())}:` +
-                `${pad(d.getUTCHours())}-${pad(d.getUTCMinutes())}`;
+export function timeshiftUrl(cfg, streamId, startMs, durationMinutes, serverUtcOffsetMs = 0, serverTimezone = null) {
+  const stamp = serverStamp(startMs, serverTimezone, serverUtcOffsetMs);
   const auth = `${encodeURIComponent(cfg.username)}/${encodeURIComponent(cfg.password)}`;
   return `${baseUrl(cfg)}/timeshift/${auth}/${Math.round(durationMinutes)}/${stamp}/${streamId}.ts`;
 }

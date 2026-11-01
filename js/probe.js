@@ -37,12 +37,15 @@ const memory = new Map();
 
 export async function warmCache() {
   try {
-    for (const [key, value] of await cacheGetAll(CACHE_PREFIX)) memory.set(key, value);
+    for (const [key, value] of await cacheGetAll(CACHE_PREFIX, CACHE_TTL)) memory.set(key, value);
   } catch (err) {
     console.warn('[iptv] probe-välimuistin lataus epäonnistui', err);
   }
   return memory.size;
 }
+
+/** How long a cached row is good for, for db.js's cachePurge(); null for a key that is not a probe's. */
+export const probeCacheTtl = (key) => (String(key).startsWith(CACHE_PREFIX) ? CACHE_TTL : null);
 
 /** A ready result without touching the network, or undefined. */
 export function peek(url) {

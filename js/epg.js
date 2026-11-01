@@ -28,12 +28,24 @@ const PAST_SLACK_MS = 60e3;
 
 const RANK = { short: 0, grid: 1, full: 2 };
 
+// How many channels' whole programme tables are kept. A search of all
+// channels reads thousands of them, 50–150 kB each, and every one stayed in
+// memory for as long as the tab was open; the guide on screen needs a few
+// dozen. The ones fetched longest ago go first, and a channel that needs its
+// table again fetches it again.
+const MAX_FULL_TABLES = 200;
+// And how many channels' programme data of any depth: a short list is
+// small, but scrolling through a catalogue of tens of thousands of channels
+// would keep every one.
+const MAX_CHANNELS = 5000;
+
 export class Epg {
   /** @param {(streamIds: string[]) => void} onUpdate */
   constructor(api, onUpdate) {
     this.api = api;
     this.onUpdate = onUpdate;
-    this.cache = new Map();     // streamId → { listings, at, mode }
+    this.cache = new Map();     // streamId → { listings, at, mode }, oldest first
+    this.fullTables = 0;        // how many of them are whole tables
     this.failedUntil = new Map();
     this.queue = [];            // [{ id, mode }]
     this.queued = new Map();    // streamId → mode
@@ -170,7 +182,7 @@ export class Epg {
           // get_simple_data_table returns the rows in arbitrary order;
           // the guide relies on them being in time order.
           listings.sort((a, b) => a.start - b.start);
-          this.cache.set(id, { listings, at: Date.now(), mode });
+          this.remember(id, { listings, at: Date.now(), mode });
           this.failedUntil.delete(id);
           this.markUpdated(id);
         })
@@ -178,6 +190,31 @@ export class Epg {
           if (err.name !== 'AbortError') this.failedUntil.set(id, Date.now() + RETRY_AFTER_MS);
         })
         .finally(() => { this.active--; this.pump(); });
+    }
+  }
+
+  /**
+   * One channel's programme data into the cache, as its newest entry; the
+   * oldest go when there are more than the limits above. The Map keeps the
+   * order things were written in, so the oldest are found from its start.
+   */
+  remember(id, entry) {
+    const key = String(id);
+    const previous = this.cache.get(key);
+    if (previous) {
+      this.cache.delete(key);
+      if (previous.mode === 'full') this.fullTables--;
+    }
+    this.cache.set(key, entry);
+    if (entry.mode === 'full') this.fullTables++;
+    if (this.fullTables <= MAX_FULL_TABLES && this.cache.size <= MAX_CHANNELS) return;
+    for (const [oldKey, old] of this.cache) {
+      if (this.fullTables <= MAX_FULL_TABLES && this.cache.size <= MAX_CHANNELS) break;
+      if (oldKey === key) continue;
+      if (this.cache.size > MAX_CHANNELS || old.mode === 'full') {
+        this.cache.delete(oldKey);
+        if (old.mode === 'full') this.fullTables--;
+      }
     }
   }
 
@@ -195,6 +232,7 @@ export class Epg {
 
   clear() {
     this.cache.clear();
+    this.fullTables = 0;
     this.failedUntil.clear();
     this.queue = [];
     this.queued.clear();

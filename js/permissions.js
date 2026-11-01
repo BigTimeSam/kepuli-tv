@@ -63,3 +63,55 @@ export async function requestAccess(url) {
     return false;
   }
 }
+
+// Every web address: the widest the optional permissions go.
+const EVERYWHERE = ['http://*/*', 'https://*/*'];
+
+/** Has every address been granted? For showing state only, as hasAccess. */
+export async function hasAccessEverywhere() {
+  try {
+    return await api.permissions.contains({ origins: EVERYWHERE });
+  } catch {
+    return false;
+  }
+}
+
+/** Requests every address. Must be called straight from a user gesture, as requestAccess. */
+export async function requestAccessEverywhere() {
+  try {
+    return await api.permissions.request({ origins: EVERYWHERE });
+  } catch (err) {
+    console.warn('[iptv] permission request failed', EVERYWHERE, err);
+    return false;
+  }
+}
+
+/**
+ * Whether the address answers by sending the request on to another one.
+ *
+ * A provider may answer a stream's address with a redirect to another
+ * server — a load balancer, a CDN — and the permission granted for the
+ * first host does not cover the second: the request fails there as a
+ * network error, the same as a server that is down, and the player has
+ * no way to read the address it was sent to. A request with redirect
+ * 'manual' stops at the redirect and says only that there was one
+ * (an "opaqueredirect" response, its Location hidden by the browser), so
+ * the host to ask for cannot be named — only that one is needed.
+ *
+ * HEAD, so that a stream that does not redirect is not opened as a
+ * connection the account counts; a server that refuses HEAD answers
+ * "no redirect", and nothing more is said than before.
+ */
+export async function redirects(url, { timeout = 5000 } = {}) {
+  const ctrl = new AbortController();
+  const timer = setTimeout(() => ctrl.abort(), timeout);
+  try {
+    const res = await fetch(url, { method: 'HEAD', redirect: 'manual', credentials: 'omit', cache: 'no-store', signal: ctrl.signal });
+    return res.type === 'opaqueredirect';
+  } catch {
+    return false;
+  } finally {
+    clearTimeout(timer);
+    ctrl.abort();
+  }
+}

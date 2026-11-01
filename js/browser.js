@@ -1,4 +1,4 @@
-// The extension API namespace.
+// The extension API namespace, and which engine runs the page.
 //
 // Chrome knows chrome; Firefox knows both chrome and browser, but only
 // browser returns promises there — `await chrome.storage.local.get(key)`
@@ -13,3 +13,13 @@
 // APIs, which is why the Firefox package (firefox/) is the same files with
 // a manifest of its own.
 export const api = globalThis.browser ?? globalThis.chrome;
+
+/**
+ * Whether the page runs in Gecko — Firefox and its forks. Asked of the
+ * engine rather than the user agent, which a fork names otherwise and a
+ * spoofer names as another browser; it is the test css/player.css makes
+ * with @supports (-moz-appearance: none).
+ */
+export function isGecko() {
+  return typeof CSS !== 'undefined' && CSS.supports('-moz-appearance', 'none');
+}

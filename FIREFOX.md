@@ -329,8 +329,10 @@ instructions](firefox/AMO-BUILD.md). Runtime release packages come from
 
 - **Signing is mandatory.** Release Firefox will not install an unsigned
   extension permanently. A signature can be had from AMO without a public
-  listing too (self-distribution). `node firefox/build.mjs --zip` makes the
-  package to upload.
+  listing too (self-distribution). The package to upload is the one
+  `node dev/package.mjs firefox --zip` makes from the committed tree;
+  `node firefox/build.mjs --zip` zips the working folder as
+  `kepuli-tv-firefox-<version>-dev.zip`, for trying it out only.
 - **Minified code.** AMO requires the source to be submitted when *you*
   minify or bundle. `vendor/hls.js` and `vendor/mpegts.js` are the
   libraries' own release files, covered by the third-party library policy:

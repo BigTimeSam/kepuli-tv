@@ -33,10 +33,31 @@ const CUES_BYTES = 4 * 1024 * 1024;
 const BUFFER_AHEAD = 60;
 // How much of what has been watched is left behind before cleaning up.
 const BUFFER_BEHIND = 30;
+// The two above are in seconds, and what the browser limits is bytes:
+// Chrome holds some 150 MB of picture in a SourceBuffer, and Firefox a
+// similar amount. The demo episode's minute is barely a megabyte; a 1080p remux
+// at 30 Mbit/s is 225 MB, and a 4K one twice that, so a minute ahead plus
+// half a minute behind fills the buffer long before the download waits.
+// The seconds are therefore cut down to what this many bytes of the film's
+// own bit rate hold, measured from the segments as they go in — with a
+// floor, so that a burst of high bit rate does not leave the picture
+// living from hand to mouth.
+const BUFFER_BYTES = 90 * 1024 * 1024;
+const MIN_AHEAD = 10;
+const MIN_BEHIND = 5;
 // How many bytes the network may run ahead of the demuxer. A block larger
 // than this still gets through: the demuxer says what it waits for, see
 // BufferedBytes.hasRoom.
 const MAX_PENDING_BYTES = 8 * 1024 * 1024;
+// How many bytes of finished segments may wait in the append queues. The
+// queues are held back by nothing else: while an append waits for room in
+// a full buffer, the demuxer would go on queueing the rest of the film in
+// memory behind it.
+const MAX_QUEUED_BYTES = 16 * 1024 * 1024;
+// How often an append the buffer had no room for is tried again, once the
+// watched part has been dropped and playback has had time to use some of
+// what lies ahead.
+const QUOTA_RETRY_MS = 1000;
 
 // A video segment is cut at a keyframe, but only once it holds enough
 // frames: too short a segment would make the moof headers disproportionately
@@ -51,6 +72,13 @@ const AUDIO_SEGMENT_FRAMES = 100;
 // -12909 and playback does not recover.
 const MAX_RESUMES = 6;
 const RESUME_DELAY_MS = 700;
+
+// The seek table is read again after a failure, on the same growing delays
+// as a resume, but within this time: a seek waits for the table, and a
+// viewer waiting longer than this had rather see the file read through to
+// the target. A failure that outlasts it leaves the table unread rather
+// than missing, and the next seek asks for it again.
+const CUES_RETRY_MS = 20000;
 
 // A read that yields nothing for this long is a dead connection: the server
 // accepted and went quiet, or the network went away under an open socket,
@@ -75,11 +103,16 @@ export class Remuxer {
    * @param {HTMLVideoElement} video
    * @param {string} url
    * @param {{onError:Function, onFirstAppend:Function, onNotice:Function,
-   *          onSubtitles:Function, onAudio:Function, startAt:number,
-   *          subtitleLang:string|null, audioLang:string|null}} opts
+   *          onSubtitles:Function, onAudio:Function, onOpen:Function,
+   *          startAt:number, subtitleLang:string|null,
+   *          audioLang:string|null}} opts
+   *
+   * onOpen(again) is called as each request goes out; again says that one
+   * of ours was let go just before it, so that the server may still be
+   * counting that one when it answers this.
    */
   constructor(video, url, {
-    onError, onFirstAppend, onNotice, onSubtitles, onAudio, startAt = 0, subtitleLang = null,
+    onError, onFirstAppend, onNotice, onSubtitles, onAudio, onOpen, startAt = 0, subtitleLang = null,
     audioLang = null,
   } = {}) {
     this.video = video;
@@ -89,6 +122,8 @@ export class Remuxer {
     this.onNotice = onNotice || (() => {});
     this.onSubtitles = onSubtitles || (() => {});
     this.onAudio = onAudio || (() => {});
+    this.onOpen = onOpen || (() => {});
+    this.opened = false;          // whether a request of ours has gone out before
     this.startAt = startAt;
     this.subtitleLang = subtitleLang;
     this.audioLang = audioLang;
@@ -120,6 +155,14 @@ export class Remuxer {
     this.cuesLoading = null;      // the fetch in flight, shared by every seek that waits for it
     this.pinned = null;           // its controller: closeConnection() leaves it alone
     this.noticedCues = false;
+    this.noticedCuesFailed = false;
+    // What the picture costs, for turning the read-ahead's seconds into
+    // bytes: the bytes and the seconds of the recent video segments, each
+    // older one weighing less, see readAhead().
+    this.rate = { bytes: 0, seconds: 0 };
+    this.quotaAhead = Infinity;   // the read-ahead the buffer turned out to hold, once it was full
+    this.quotaWaits = 0;          // appends waiting for the buffer to make room
+    this.queued = 0;              // bytes in the append queues
     this.stream = null;
     this.started = false;
     this.onSeeking = () => this.handleSeek();
@@ -188,8 +231,17 @@ export class Remuxer {
       if (target != null) offset = target;
       else this.startAt = 0;
     }
-    this.pump(offset, generation).catch((err) => this.fail(err));
+    this.startPump(offset, generation);
   }
+
+  /**
+   * Whether the download is between connections: a break or a refused
+   * request is being retried, and nothing has got through since. The
+   * picture may stand still meanwhile, and the player's own watch for a
+   * frozen picture leaves it to the retries — they end in playback or in
+   * an error of their own.
+   */
+  get recovering() { return this.resumes > 0; }
 
   destroy() {
     this.destroyed = true;
@@ -247,10 +299,33 @@ export class Remuxer {
     const ctrl = new AbortController();
     if (pinned) this.pinned = ctrl; else this.connection = ctrl;
     const range = to != null ? `bytes=${from}-${to}` : `bytes=${from}-`;
-    const res = await within(fetch(this.url, {
-      signal: ctrl.signal, cache: 'no-store', credentials: 'omit', headers: { Range: range },
-    }), ctrl);
-    if (!res.ok) throw new Error(`the server answered ${res.status}`);
+    // Every request but the first follows one of ours that has just been
+    // let go, and a provider goes on counting a closed connection for a few
+    // seconds: the player is told, so that a refusal now is taken for that
+    // count before it is taken for someone else's stream.
+    this.onOpen(this.opened);
+    this.opened = true;
+    let res;
+    try {
+      res = await within(fetch(this.url, {
+        signal: ctrl.signal, cache: 'no-store', credentials: 'omit', headers: { Range: range },
+      }), ctrl);
+    } catch (err) {
+      if (err && err.name !== 'AbortError') err.connection = true;
+      throw err;
+    }
+    if (!res.ok) {
+      // Marked as the connection's failure rather than the file's: a
+      // refusal is most often the account's one connection still counted,
+      // and worth asking again after a moment, see startPump().
+      const err = new Error(`the server answered ${res.status}`);
+      err.status = res.status;
+      err.connection = true;
+      try { ctrl.abort(); } catch { /* jo suljettu */ }
+      if (this.connection === ctrl) this.connection = null;
+      if (this.pinned === ctrl) this.pinned = null;
+      throw err;
+    }
     return { res, ctrl };
   }
 
@@ -566,7 +641,7 @@ export class Remuxer {
     // they are.
     const offset = (await this.clusterFor(this.video.currentTime)) ?? 0;
     if (this.destroyed || generation !== this.generation) return;
-    this.pump(offset, generation).catch((err) => this.fail(err));
+    this.startPump(offset, generation);
   }
 
   /** Drops the sound, and only the sound: the picture stays buffered. */
@@ -598,21 +673,92 @@ export class Remuxer {
     const sb = this.buffers[kind];
     if (!sb) return Promise.resolve();
     const generation = this.generation;
+    const size = data.byteLength || 0;
+    this.queued += size;
     this.queues[kind] = this.queues[kind].then(async () => {
-      if (this.destroyed || generation !== this.generation || !this.ms || this.ms.readyState !== 'open') return;
       try {
-        await this.appendOnce(sb, data);
-      } catch (err) {
-        if (err && err.name === 'QuotaExceededError') {
-          // In the queue already: removed at once rather than queued
-          // behind this very append.
-          const span = this.evictable(kind, true);
-          if (span) await removeNow(sb, ...span);
-          try { await this.appendOnce(sb, data); } catch (retry) { this.fail(retry); }
-        } else this.fail(err);
+        await this.appendFitting(kind, sb, data, generation);
+      } finally {
+        this.queued -= size;
       }
     });
     return this.queues[kind];
+  }
+
+  /**
+   * One append, waiting for room when the buffer is full.
+   *
+   * A full buffer is not a failure: the browser's limit is in bytes, and a
+   * film of a high enough bit rate reaches it with less than the minute
+   * ahead that the download aims for. It once ended the film — the watched
+   * part was dropped, the append tried once more, and the picture stopped
+   * with "SourceBuffer rejected the segment" when that did not free enough.
+   * Now the read-ahead is cut down to what the buffer turned out to hold,
+   * the watched part goes, and the append waits for playback to use up
+   * some of what lies ahead, trying again every second. The download waits
+   * meanwhile (see waitForRoom); a server that closes the idle connection
+   * under it is resumed like any other break.
+   */
+  async appendFitting(kind, sb, data, generation) {
+    const stale = () => this.destroyed || generation !== this.generation || !this.ms
+      || this.ms.readyState !== 'open' || this.buffers[kind] !== sb;
+    let waiting = false;
+    try {
+      for (let tries = 0; ; tries++) {
+        if (stale()) return;
+        try {
+          await this.appendOnce(sb, data);
+          return;
+        } catch (err) {
+          if (!err || err.name !== 'QuotaExceededError') { this.fail(err); return; }
+          if (!tries) this.noteQuota(kind);
+          if (!waiting) { waiting = true; this.quotaWaits++; }
+          this.state.phase = `the ${kind} buffer is full, waiting for playback to make room`;
+          // In the queue already: removed at once rather than queued
+          // behind this very append. Once the watched part is gone, only
+          // playback moving on makes more room.
+          // The first time the append is tried again at once; after that
+          // only after a pause, or a removal that frees nothing would spin.
+          const span = this.evictable(kind, true);
+          if (span) await removeNow(sb, ...span);
+          if (tries || !span) await new Promise((resolve) => setTimeout(resolve, QUOTA_RETRY_MS));
+        }
+      }
+    } finally {
+      if (waiting) this.quotaWaits--;
+    }
+  }
+
+  /**
+   * The buffer was full with this much ahead of the picture: the read-ahead
+   * is held a quarter below it from now on, so that the download waits
+   * before the buffer fills rather than after.
+   */
+  noteQuota(kind) {
+    const ahead = this.bufferedAhead();
+    const fits = Math.max(MIN_AHEAD, Math.floor(ahead * 0.75));
+    if (fits < this.quotaAhead) {
+      console.warn('[iptv] the %s buffer is full at %d s ahead; reading %d s ahead from now on', kind, Math.round(ahead), fits);
+      this.quotaAhead = fits;
+    }
+  }
+
+  /**
+   * How far ahead to read and how much of the watched part to keep, in
+   * seconds: BUFFER_AHEAD and BUFFER_BEHIND, or as much of them as
+   * BUFFER_BYTES holds at the film's bit rate, and never more than the
+   * buffer turned out to hold.
+   */
+  readAhead() {
+    let ahead = BUFFER_AHEAD;
+    let behind = BUFFER_BEHIND;
+    const perSecond = this.rate.seconds > 0 ? this.rate.bytes / this.rate.seconds : 0;
+    if (perSecond > 0) {
+      const fits = BUFFER_BYTES / perSecond;
+      behind = Math.min(BUFFER_BEHIND, Math.max(MIN_BEHIND, fits / 4));
+      ahead = Math.min(BUFFER_AHEAD, Math.max(MIN_AHEAD, fits - behind));
+    }
+    return { ahead: Math.min(ahead, this.quotaAhead), behind };
   }
 
   appendOnce(sb, data) {
@@ -621,7 +767,17 @@ export class Remuxer {
       const bad = () => { sb.removeEventListener('updateend', done); sb.removeEventListener('error', bad); reject(new Error('SourceBuffer rejected the segment')); };
       sb.addEventListener('updateend', done);
       sb.addEventListener('error', bad);
-      try { sb.appendBuffer(data); } catch (err) { bad(); reject(err); }
+      // What appendBuffer throws is passed on as it is: QuotaExceededError
+      // is the full buffer, which is waited out rather than reported. Run
+      // through bad() it became "rejected the segment", and a full buffer
+      // ended the film.
+      try {
+        sb.appendBuffer(data);
+      } catch (err) {
+        sb.removeEventListener('updateend', done);
+        sb.removeEventListener('error', bad);
+        reject(err);
+      }
     });
   }
 
@@ -631,13 +787,14 @@ export class Remuxer {
     return this.remove(kind, () => this.evictable(kind));
   }
 
-  /** The watched stretch of a buffer that can go, or null. */
+  /** The watched stretch of a buffer that can go, or null. Aggressive is
+   *  for a full buffer: then all but a few seconds go, a second at a time. */
   evictable(kind, aggressive = false) {
     const ranges = timeRanges(this.buffers[kind]);
     if (!ranges) return null;
-    const keepFrom = Math.max(0, this.video.currentTime - (aggressive ? 5 : BUFFER_BEHIND));
+    const keepFrom = Math.max(0, this.video.currentTime - (aggressive ? MIN_BEHIND : this.readAhead().behind));
     const start = ranges.start(0);
-    return keepFrom - start < 5 ? null : [start, keepFrom];
+    return keepFrom - start < (aggressive ? 1 : 5) ? null : [start, keepFrom];
   }
 
   /* ---------------------------------------------------------------- pumppu */
@@ -811,6 +968,28 @@ export class Remuxer {
   }
 
   /**
+   * A pump whose first request may be turned away. Seeking or changing the
+   * audio track cuts the one connection and asks for another at once, and
+   * a provider that goes on counting the closed one for a few seconds
+   * refuses it: on a one-connection account a drag of the scrubber ended
+   * the film with "the server answered 400". The request is asked again on
+   * the resume's growing delays instead, and only when those run out is it
+   * reported — by then the player knows the request followed one of ours
+   * (onOpen), and asks the account before it blames another viewer.
+   * Anything but the connection failing is reported at once.
+   */
+  startPump(offset, generation) {
+    this.pump(offset, generation)
+      .catch((err) => {
+        if (!err || !err.connection || this.destroyed || generation !== this.generation) throw err;
+        console.warn('[iptv] the download could not be opened, asking again', err);
+        this.state.netError = err.message || String(err);
+        return this.resume(generation, offset);
+      })
+      .catch((err) => this.fail(err));
+  }
+
+  /**
    * Resumes downloading from the start of the last complete cluster. A
    * successful resume clears the counter, so a long film survives several
    * drops — only consecutive failures stop the retrying.
@@ -818,7 +997,12 @@ export class Remuxer {
   async resume(generation, from = this.clusterAt) {
     if (this.resumes >= MAX_RESUMES) {
       this.state.phase = 'broke for good';
-      this.onError(new Error('the download broke repeatedly'));
+      // Said to the viewer (playback.died), so in their language, and with
+      // the last thing that broke it: "repeatedly" alone left them nothing
+      // to tell a server gone from a network that drops.
+      this.onError(new Error(t('playback.reason.broke', {
+        count: this.resumes, cause: this.state.netError || t('playback.reason.network'),
+      })));
       return;
     }
     this.resumes++;
@@ -844,13 +1028,17 @@ export class Remuxer {
   }
 
   /** Waits until there is room in the buffer. Stops the whole file being
-   *  downloaded. */
+   *  downloaded. Room is counted three ways: the seconds buffered ahead of
+   *  the picture (see readAhead), the segments still waiting in the append
+   *  queues, and no append waiting for a full buffer — while one does,
+   *  every byte read would only pile up in memory behind it. */
   async waitForRoom(bytes, generation) {
     for (;;) {
       if (this.destroyed || generation !== this.generation) return;
       const ahead = this.bufferedAhead();
-      if (bytes.hasRoom(MAX_PENDING_BYTES) && ahead < BUFFER_AHEAD) return;
-      this.state.phase = `waiting for room (${Math.round(ahead)} s buffered, ${Math.round(bytes.available / 1024)} kB queued)`;
+      if (bytes.hasRoom(MAX_PENDING_BYTES) && ahead < this.readAhead().ahead
+          && !this.quotaWaits && this.queued < MAX_QUEUED_BYTES) return;
+      this.state.phase = `waiting for room (${Math.round(ahead)} s buffered, ${Math.round(bytes.available / 1024)} kB pending, ${Math.round(this.queued / 1024)} kB queued${this.quotaWaits ? ', buffer full' : ''})`;
       await this.evict('video');
       await this.evict('audio');
       await new Promise((resolve) => setTimeout(resolve, 250));
@@ -888,7 +1076,16 @@ export class Remuxer {
     const samples = list.map((frame, i) => ({
       data: frame.data, dts: dts[i], cts: cts[i], duration: durs[i], keyframe: frame.keyframe,
     }));
-    const appended = this.append('video', mediaSegment(this.sequence++, 1, samples));
+    const segment = mediaSegment(this.sequence++, 1, samples);
+    // The bit rate the read-ahead is measured against: recent segments
+    // count the most, so that a film whose picture grows heavier halfway
+    // through is soon read less far ahead.
+    const seconds = durs.reduce((sum, d) => sum + d, 0) / VIDEO_TIMESCALE;
+    if (seconds > 0) {
+      this.rate.bytes = this.rate.bytes * 0.9 + segment.byteLength;
+      this.rate.seconds = this.rate.seconds * 0.9 + seconds;
+    }
+    const appended = this.append('video', segment);
     this.state.segments++;
     this.resumes = 0;
     if (!this.started) {
@@ -979,7 +1176,8 @@ export class Remuxer {
    * seek happens. Seeks that arrive while the fetch is in flight — a
    * scrubber drag, two arrow presses — share the one fetch: cutting it
    * would lose the table for the rest of the file, and with it every later
-   * seek.
+   * seek. Only a table that is really not there is given up on for good;
+   * one that could not be read is asked for again by the next seek.
    */
   loadCues() {
     if (this.cues || this.cuesTried) return Promise.resolve(this.cues);
@@ -989,20 +1187,53 @@ export class Remuxer {
     return this.cuesLoading;
   }
 
+  /**
+   * One failed read once cost the whole film its seeking: the table was
+   * marked as tried, every later seek read the file from the start, and
+   * "Continue watching" began at 0:00. The read is the first request after
+   * a seek has let the connection go, so a provider still counting that
+   * one refuses it — the commonest failure is the most passing one. It is
+   * therefore asked again on the resume's growing delays, for as long as
+   * CUES_RETRY_MS allows, and a failure past that leaves the table to the
+   * next seek. What ends the asking for good is an answer: a table read
+   * and parsed, bytes that are not one, or a range past the end of the
+   * file.
+   */
   async fetchCues() {
     if (this.header.cuesPosition == null) { this.cuesTried = true; return null; }
     const from = this.header.segmentStart + this.header.cuesPosition;
-    try {
-      const bytes = await this.readRange(from, from + CUES_BYTES - 1, { pinned: true });
-      this.cues = parseCues(bytes, this.header.timestampScale, this.videoTrack.number);
-    } catch (err) {
-      // Only destroy() aborts a pinned read, and then nothing follows.
-      if (err && err.name === 'AbortError') return null;
-      console.warn('[iptv] reading the seek table failed', err);
-      this.cues = null;
+    const until = Date.now() + CUES_RETRY_MS;
+    for (let attempt = 1; ; attempt++) {
+      let bytes;
+      try {
+        bytes = await this.readRange(from, from + CUES_BYTES - 1, { pinned: true });
+      } catch (err) {
+        // Only destroy() aborts a pinned read, and then nothing follows.
+        if (this.destroyed || (err && err.name === 'AbortError')) return null;
+        if (err && err.status === 416) {
+          console.warn('[iptv] the seek table lies past the end of the file');
+          this.cuesTried = true;
+          return null;
+        }
+        const delay = RESUME_DELAY_MS * attempt;
+        if (attempt >= MAX_RESUMES || Date.now() + delay > until) {
+          console.warn('[iptv] reading the seek table failed; the next seek asks again', err);
+          return null;
+        }
+        console.warn('[iptv] reading the seek table failed, asking again (%d/%d)', attempt, MAX_RESUMES, err);
+        await new Promise((resolve) => setTimeout(resolve, delay));
+        if (this.destroyed) return null;
+        continue;
+      }
+      try {
+        this.cues = parseCues(bytes, this.header.timestampScale, this.videoTrack.number);
+      } catch (err) {
+        console.warn('[iptv] the seek table could not be read', err);
+        this.cues = null;
+      }
+      this.cuesTried = true;
+      return this.cues;
     }
-    this.cuesTried = true;
-    return this.cues;
   }
 
   /**
@@ -1059,9 +1290,15 @@ export class Remuxer {
       // current cluster when the target is ahead, from the start when it is
       // behind. Slow, but it arrives — and the viewer is told why.
       offset = target >= this.state.lastPts && this.clusterAt != null ? this.clusterAt : 0;
-      if (!this.noticedCues) {
+      // A table that is not there is said once. One that could not be
+      // read just now is said once too, in its own words: the next seek
+      // asks for it again (see fetchCues), and is quick again if it comes.
+      if (this.cuesTried && !this.noticedCues) {
         this.noticedCues = true;
         this.onNotice(t('remux.nocues'));
+      } else if (!this.cuesTried && !this.noticedCuesFailed) {
+        this.noticedCuesFailed = true;
+        this.onNotice(t('remux.cuesfailed'));
       }
     }
     // Drop the old segments around the seek point, or the buffer
@@ -1071,7 +1308,7 @@ export class Remuxer {
     this.sequence++;
     this.audioDts = null;
     this.resumes = 0;
-    this.pump(offset, generation).catch((err) => this.fail(err));
+    this.startPump(offset, generation);
   }
 
   isBuffered(time) {

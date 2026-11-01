@@ -72,6 +72,15 @@ const HLS_CONFIG = {
 // when the account's concurrent-connection limit is full — in which case no
 // error event ever arrives.
 const TIMEOUT_MS = { mpegts: 20000, hls: 20000, native: 30000, remux: 30000 };
+// A live MPEG-TS stream from which not one byte has arrived by this time is
+// taken for a full account that took the connection and says nothing (see
+// finish() in runAttempt), and the account is asked then, rather than after
+// the whole start timeout — some 21 seconds of a black picture on every
+// zap into a full account. A channel that is merely slow to start is not
+// cut short by it: a provider's stream starts sending at once, and what
+// takes a slow channel its time is the first keyframe and the buffer
+// behind it — once bytes are arriving, the full timeout above applies.
+const LIVE_SILENCE_MS = 10000;
 // The library engines are named as they are; the browser's own player and
 // the MKV unpacking get a translated label, resolved when read so that a
 // language switch mid-playback shows in the badge too.
@@ -79,8 +88,18 @@ const engineLabel = (name) => ({ mpegts: 'mpegts.js', hls: 'hls.js' })[name] || 
 
 const STALL_CHECK_MS = 4000;
 const STALL_LIMIT_MS = 14000;
+// A film, an episode or an archive programme has no reconnecting of its
+// own here, and a picture that stops is reported instead, with Retry —
+// after longer than a live stream's limit, because a file's engines have
+// slow work of their own to finish first: Chrome's loader asking again
+// for a range, mpegts.js reopening after its lazy-load pause, the MKV
+// unpacker's own resumes (see startProgressWatch).
+const VOD_STALL_LIMIT_MS = 30000;
 const MAX_RECONNECTS = 4;
-const RECONNECT_STEP_MS = 1000;
+// The first reconnect waits a few seconds, not one: the stream is let go as
+// the wait begins, and the provider goes on counting it for a few seconds
+// more. Asked for again within that, a one-connection account refuses it.
+const RECONNECT_STEP_MS = 2500;
 const RECONNECT_MAX_MS = 8000;
 
 // How long playback has to run before the attempt counter is reset.
@@ -122,10 +141,17 @@ export class Playback {
     this.releasedAt = 0;
     this.openedAt = 0;
     this.releasedBeforeOpen = 0;
+    this.sourceDone = false;    // a file's source has been read to its end
+    this.lastTick = 0;
   }
 
-  /** Whether a stream or a header read of ours may be holding a connection. */
-  get holding() { return Boolean(this.engine || this.probing); }
+  /**
+   * Whether a stream or a header read of ours may be holding a connection —
+   * or is about to take one again: a live stream waiting to reconnect has
+   * let its connection go, but another tab that started in the meantime
+   * would find the account full when the wait ends.
+   */
+  get holding() { return Boolean(this.engine || this.probing || this.recovering); }
 
   /**
    * Whether the latest attempt asked for its connection soon after one of
@@ -192,14 +218,19 @@ export class Playback {
     clearTimeout(this.stableTimer);
     if (this.cleanup) { this.cleanup(); this.cleanup = null; }
     this.cutProbe();
-    const engine = this.engine;
-    this.engine = null;
-    if (engine) { this.releasedAt = Date.now(); try { engine.destroy(); } catch { /* purettu */ } }
+    this.dropEngine();
     this.video.removeAttribute('src');
     this.video.load();
     this.token++;
     this.spec = spec;
     this.begin(spec, this.token);
+  }
+
+  /** The engine let go of, and the moment noted as a release. */
+  dropEngine() {
+    const engine = this.engine;
+    this.engine = null;
+    if (engine) { this.releasedAt = Date.now(); try { engine.destroy(); } catch { /* purettu */ } }
   }
 
   /** start() without the caller having to mind the returned promise. */
@@ -293,10 +324,13 @@ export class Playback {
    * format or in the source — a bare "it did not work" would leave the user
    * guessing. A live stream is not probed: reading it would take the single
    * allowed connection and would say nothing the extension does not.
+   *
+   * refused marks a live stream the server would not give: the app asks the
+   * account before it shows the failure, and may ask for the stream again.
    */
-  async explain(spec, token) {
+  async explain(spec, token, { refused = false } = {}) {
     const generic = t('playback.nosource');
-    if (spec.live || spec.catchup || spec.probe) { this.onState({ status: 'error', message: generic, verdict: spec.verdict }); return; }
+    if (spec.live || spec.catchup || spec.probe) { this.onState({ status: 'error', message: generic, verdict: spec.verdict, refused }); return; }
     const known = await this.inspect(spec, token);
     if (!known) return;
     if (known.path === 'silent') return this.refuse(known, { canSilent: true });
@@ -308,6 +342,7 @@ export class Playback {
     const video = this.video;
     let settled = false;
     this.noteOpen();
+    this.sourceDone = false;
 
     const finish = (ok, why, { refused = false } = {}) => {
       if (token !== this.token) return;
@@ -321,8 +356,7 @@ export class Playback {
         this.wantPlaying = true;
         // The attempt counter resets only once playback has really held:
         // reset immediately, a flaky source would never reach the limit.
-        clearTimeout(this.stableTimer);
-        this.stableTimer = setTimeout(() => { this.reconnects = 0; }, STABLE_MS);
+        this.armStable(token);
         this.onState({ status: 'playing' });
         this.bindGuards(token);
         this.startWatchdog(token);
@@ -347,8 +381,14 @@ export class Playback {
       // there is no connection of HLS to close — and the next zap would
       // find the account full. The failure goes to the account check and
       // the wait for the release instead, and the same stream is asked for
-      // again.
-      if (refused && spec.live) return void this.explain(spec, token);
+      // again. A full account need not say no, either: it may take the
+      // connection and send nothing, or close it at once — so for the live
+      // MPEG-TS attempt a start that times out, a source that ends before
+      // the picture and a network failure count as refused too (see
+      // startMpegts), and only what speaks of the format falls back. The
+      // archive has no second engine to fall back to: whatever stops it
+      // goes to explain() in any case, and from there to the same check.
+      if (refused && spec.live) return void this.explain(spec, token, { refused: true });
       onFail();
     };
 
@@ -365,12 +405,20 @@ export class Playback {
     const nudge = setInterval(() => {
       if (video.paused && video.currentTime === 0) this.tryPlay();
     }, 500);
-    const timer = setTimeout(() => finish(false, t('playback.reason.timeout')), TIMEOUT_MS[name]);
+    // A live MPEG-TS stream that stays silent is a full account far more
+    // often than a format the engine cannot read; see finish().
+    const liveTs = name === 'mpegts' && spec.live;
+    const timer = setTimeout(() => finish(false, t('playback.reason.timeout'), { refused: liveTs }), TIMEOUT_MS[name]);
+    let flowing = false;
+    const silence = liveTs ? setTimeout(() => {
+      if (!flowing) finish(false, t('playback.reason.timeout'), { refused: true });
+    }, LIVE_SILENCE_MS) : null;
 
     video.addEventListener('playing', onPlaying);
     video.addEventListener('error', onError);
     const drop = () => {
       clearTimeout(timer);
+      clearTimeout(silence);
       clearInterval(nudge);
       video.removeEventListener('playing', onPlaying);
       video.removeEventListener('error', onError);
@@ -378,7 +426,11 @@ export class Playback {
     this.cleanup = drop;
 
     try {
-      if (name === 'mpegts') this.startMpegts(spec.url, spec.live, finish, { vod: !spec.live && !spec.catchup });
+      if (name === 'mpegts') {
+        this.startMpegts(spec.url, spec.live, finish, {
+          vod: !spec.live && !spec.catchup, started: () => settled, onData: () => { flowing = true; },
+        });
+      }
       else if (name === 'hls') this.startHls(spec.hlsUrl || spec.url, finish);
       else if (name === 'remux') this.startRemux(spec, finish);
       else this.startNative(spec);
@@ -400,36 +452,54 @@ export class Playback {
   died(name, why, token) {
     if (token !== this.token || !this.spec || this.spec.live) return;
     console.warn('[iptv] engine %s failed after start: %s', name, why);
+    // Taken before the engine goes: tearing it down empties the element,
+    // and Retry is to start from here.
+    const position = this.video.currentTime;
     this.stopWatchdog();
     this.detachGuards();
     clearTimeout(this.stableTimer);
     if (this.cleanup) { this.cleanup(); this.cleanup = null; }
-    const engine = this.engine;
-    this.engine = null;
-    if (engine) { this.releasedAt = Date.now(); try { engine.destroy(); } catch { /* purettu */ } }
+    this.dropEngine();
     const reason = /failed to fetch|networkerror|network error/i.test(String(why)) ? t('playback.reason.network') : why;
-    this.onState({ status: 'error', message: t('playback.died', { reason }), verdict: this.spec.verdict });
+    this.onState({ status: 'error', message: t('playback.died', { reason }), verdict: this.spec.verdict, position });
   }
 
-  startMpegts(url, isLive, finish, { vod = false } = {}) {
+  startMpegts(url, isLive, finish, { vod = false, started = () => true, onData = () => {} } = {}) {
     if (typeof mpegts === 'undefined' || !mpegts.isSupported()) return finish(false, 'mpegts.js not supported');
     const player = mpegts.createPlayer({ type: 'mpegts', isLive, url }, {
       ...MPEGTS_CONFIG, liveBufferLatencyChasing: isLive, ...(vod ? MPEGTS_VOD_CONFIG : {}),
     });
     this.engine = player;
     // An HTTP status other than "not found" is the server refusing, not the
-    // stream failing to be MPEG-TS; see finish() in runAttempt.
+    // stream failing to be MPEG-TS; see finish() in runAttempt. For a live
+    // channel any failure of the connection itself counts so — a full
+    // account may drop it rather than answer with a status — and only a
+    // media error, or a channel that is not there, says the format or the
+    // address is wrong.
+    // Bytes arriving, for the silence check in runAttempt: the stream's
+    // description, parsed from its first packets, or a download speed
+    // above nothing in the statistics the player reports twice a second.
+    player.on(mpegts.Events.MEDIA_INFO, () => onData());
+    player.on(mpegts.Events.STATISTICS_INFO, (info) => { if (info && info.speed > 0) onData(); });
     player.on(mpegts.Events.ERROR, (type, detail, info) => {
       const status = Number(info && info.code);
-      const refused = detail === 'HttpStatusCodeInvalid' && status >= 400 && status !== 404 && status !== 410;
+      const gone = status === 404 || status === 410;
+      const refused = !gone && ((detail === 'HttpStatusCodeInvalid' && status >= 400)
+        || (isLive && type === mpegts.ErrorTypes.NETWORK_ERROR));
       finish(false, `${type}/${detail}${status ? ` ${status}` : ''}`, { refused });
     });
     // A live source does not end by itself: this means the server cut the
     // connection. The buffer is still played to the end, and the ended
     // watchdog handles the reconnect — that way the viewer sees all the
-    // picture that arrived.
+    // picture that arrived. Cut before the picture ever started, it is the
+    // server turning the stream away, and waiting out the start timeout
+    // would only delay the account check.
     player.on(mpegts.Events.LOADING_COMPLETE, () => {
-      if (isLive) console.info('[iptv] source ended mid-live-stream');
+      // A file or a programme read to its end: a picture that stops at the
+      // end of the buffer now is the end, not a freeze.
+      if (!isLive) { this.sourceDone = true; return; }
+      if (!started()) { finish(false, t('playback.reason.ended'), { refused: true }); return; }
+      console.info('[iptv] source ended mid-live-stream');
     });
     player.attachMediaElement(this.video);
     player.load();
@@ -459,6 +529,17 @@ export class Playback {
   startRemux(spec, finish) {
     const remuxer = new Remuxer(this.video, spec.url, {
       startAt: spec.startAt || 0,
+      // Each request after the first follows one of the unpacker's own,
+      // let go a moment before — a seek's, a resume's. It counts as an
+      // attempt asking for its connection, so that a failure soon after it
+      // goes to the account check and the wait for a release (see
+      // followedRelease) rather than straight to "every connection is in
+      // use", which would blame another viewer for our own stream.
+      onOpen: (again) => {
+        if (this.engine !== remuxer) return;
+        if (again) this.releasedAt = Date.now();
+        this.noteOpen();
+      },
       subtitleLang: spec.subtitleLang || null,
       audioLang: spec.audioLang || null,
       onFirstAppend: () => this.tryPlay(),
@@ -473,6 +554,14 @@ export class Playback {
 
   startNative(spec) {
     const video = this.video;
+    // The browser's own player holds its connection through the element,
+    // and an engine of its own makes it count like the others: it is
+    // holding while it plays, its stop is a release, and a failed start
+    // lets go of the file before explain() reads its header — left set,
+    // the element would go on asking for it beside the read.
+    this.engine = {
+      destroy: () => { video.removeAttribute('src'); video.load(); },
+    };
     if (spec.startAt > 0) {
       // The listener belongs to this attempt. Abandoned before the metadata
       // arrived — the viewer switched while the connection was busy — it
@@ -524,6 +613,27 @@ export class Playback {
     });
   }
 
+  /**
+   * The attempt counter resets once playback has really held, and so does
+   * the app's one wait for a release (the 'stable' state). Held means the
+   * picture advanced most of STABLE_MS, not that the time passed: a stream
+   * that plays for a quarter of a minute and then freezes has not held.
+   * Until it has, the check is made again.
+   */
+  armStable(token) {
+    clearTimeout(this.stableTimer);
+    const from = this.video.currentTime;
+    this.stableTimer = setTimeout(() => {
+      if (token !== this.token) return;
+      if (this.video.currentTime - from >= STABLE_MS / 1000 * 0.75) {
+        this.reconnects = 0;
+        this.onState({ status: 'stable' });
+      } else {
+        this.armStable(token);
+      }
+    }, STABLE_MS);
+  }
+
   /* --------------------------------------------------------- itsekorjaus */
 
   /**
@@ -564,6 +674,15 @@ export class Playback {
     this.recovering = true;
     this.stopWatchdog();
     this.detachGuards();
+    // The picture stopped before playback had held: the reset of the
+    // counter would otherwise still come, and a stream that freezes every
+    // half a minute would reconnect for ever.
+    clearTimeout(this.stableTimer);
+    // The stream is let go now rather than when the wait ends: the buffer
+    // has played out or the picture has frozen, so nothing is lost, and the
+    // provider's count of the closed connection runs out during the wait
+    // instead of after it.
+    this.dropEngine();
 
     if (this.reconnects >= MAX_RECONNECTS) {
       this.recovering = false;
@@ -596,7 +715,8 @@ export class Playback {
   /** The picture freezing — case 3 above. */
   startWatchdog(token) {
     this.stopWatchdog();
-    if (!this.spec || !this.spec.live) return;
+    if (!this.spec) return;
+    if (!this.spec.live) { this.startProgressWatch(token); return; }
     this.lastTime = this.video.currentTime;
     this.lastProgressAt = Date.now();
     this.watchdog = setInterval(() => {
@@ -620,6 +740,65 @@ export class Playback {
       if (Date.now() - this.lastProgressAt < STALL_LIMIT_MS) return;
       this.recover(t('playback.reason.frozen'));
     }, STALL_CHECK_MS);
+  }
+
+  /**
+   * The same freeze in a film, an episode or an archive programme, which
+   * had no watch at all: the picture stopped at the end of the buffer and
+   * stayed there without a word. The archive is the case that showed it.
+   * It is read without mpegts.js's lazy load, whose resume asks for a byte
+   * range the catch-up address is not known to answer, and so at the
+   * server's full speed; once the buffer is full mpegts.js suspends the
+   * download, and only the lazy load's suspension has a way back. A server
+   * that keeps the connection open and stops sending ends the same way.
+   *
+   * Nothing is repaired here — a file has no live edge to rejoin, and the
+   * engines' own retries have had their turn — but the viewer is told, and
+   * Retry starts again from the position reached (see died()). The picture
+   * standing still is not a freeze while the viewer has paused it, while
+   * it seeks, at its end, while the tab is hidden and the browser holds
+   * back its timers, or while the MKV unpacker is still retrying a
+   * connection.
+   */
+  startProgressWatch(token) {
+    const video = this.video;
+    this.lastTime = video.currentTime;
+    this.lastProgressAt = Date.now();
+    this.lastTick = Date.now();
+    this.lastBuffered = 0;
+    this.watchdog = setInterval(() => {
+      if (token !== this.token) return this.stopWatchdog();
+      const now = Date.now();
+      // A tick that comes late is a tab the browser throttled or a
+      // computer that slept: the time in between says nothing about the
+      // picture.
+      const late = now - this.lastTick > STALL_CHECK_MS * 3;
+      this.lastTick = now;
+      const moved = Math.abs(video.currentTime - this.lastTime) > 0.05;
+      this.lastTime = video.currentTime;
+      // Data still arriving is a slow connection, not a frozen one: the
+      // picture waits for it, and it is not ours to give up on.
+      const ranges = video.buffered;
+      const buffered = ranges.length ? ranges.end(ranges.length - 1) : 0;
+      const arriving = buffered - this.lastBuffered > 0.05;
+      this.lastBuffered = buffered;
+      if (moved || arriving || late || video.paused || video.ended || video.seeking || document.hidden
+          || this.atEnd() || (this.engine && this.engine.recovering)) {
+        this.lastProgressAt = now;
+        return;
+      }
+      if (now - this.lastProgressAt < VOD_STALL_LIMIT_MS) return;
+      this.died(this.engineKey, t('playback.reason.frozen'), token);
+    }, STALL_CHECK_MS);
+  }
+
+  /** Whether the picture stands at the end of what there is to play. */
+  atEnd() {
+    const video = this.video;
+    if (Number.isFinite(video.duration) && video.duration - video.currentTime < 1) return true;
+    if (!this.sourceDone) return false;
+    const ranges = video.buffered;
+    return !ranges.length || ranges.end(ranges.length - 1) - video.currentTime < 1;
   }
 
   stopWatchdog() {

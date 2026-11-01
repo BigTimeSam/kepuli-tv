@@ -53,6 +53,11 @@
 //                                     starts by itself; and another tab of
 //                                     the player holding the connection is
 //                                     named, and Play here takes it over
+//   node dev/playcheck.mjs livequiet  zapping live MPEG-TS on a full account
+//                                     that does not say no: the stream is
+//                                     taken and left silent, or ended at
+//                                     once, and the player must ask for it
+//                                     again rather than fall back to HLS
 //   node dev/playcheck.mjs reconnect  the download breaks once and resumes:
 //                                     playback must carry on across the break
 //   node dev/playcheck.mjs accounts   a favourite made under one account is
@@ -102,6 +107,29 @@
 //                                     player's page
 //   node dev/playcheck.mjs resumemkv  an episode started again from where it
 //                                     was left plays on from there
+//   node dev/playcheck.mjs seeklag    a seek on a one-connection account whose
+//                                     server counts the closed stream for a few
+//                                     seconds: the seek table and the new
+//                                     download are refused at first, and the
+//                                     seek must arrive by waiting rather than
+//                                     end the episode or lose the table
+//   node dev/playcheck.mjs cuesretry  the seek table cannot be read during one
+//                                     seek, which reads the file through; the
+//                                     next seek must read the table and jump
+//                                     straight to its cluster
+//   node dev/playcheck.mjs quota      the source buffer is full long before
+//                                     the minute ahead: playback must wait for
+//                                     room and play the episode to its end
+//                                     rather than stop with an error
+//   node dev/playcheck.mjs catchupfreeze an archive programme whose server goes
+//                                     quiet under an open connection: no error
+//                                     while the viewer has paused, then the
+//                                     frozen picture is reported with Retry,
+//                                     which plays the programme again
+//   node dev/playcheck.mjs catchupfull an archive programme read faster than
+//                                     it plays fills the buffer, and mpegts.js
+//                                     stops reading for good: the freeze is
+//                                     reported rather than left silent
 //   node dev/playcheck.mjs pickers    a drop-down opens the app's own list:
 //                                     a long one with a filter that narrows
 //                                     it, a short one without; Escape closes
@@ -122,9 +150,27 @@
 //   node dev/playcheck.mjs reminders  a reminder set in the guide marks the
 //                                     programme, is kept, and when due says
 //                                     so with Watch, which plays the channel
+//   node dev/playcheck.mjs twotabs    two players open on one account: a
+//                                     favourite made in one survives a change
+//                                     in the other; another account saved in
+//                                     one is said in the other, which writes
+//                                     nothing into it and follows on request
+//   node dev/playcheck.mjs switchstop another account saved in Settings while
+//                                     a channel plays stops the channel
+//   node dev/playcheck.mjs resettabs  Reset everything with a second tab open:
+//                                     both start again empty, and the cache
+//                                     opens again after it (Chrome only)
 //   node dev/playcheck.mjs update     an update the browser holds back is
 //                                     offered in a message and on the
 //                                     version line
+//   node dev/playcheck.mjs refresh    Refresh shows a channel the provider
+//                                     added to a group opened earlier; the
+//                                     cache's expired rows are purged
+//   node dev/playcheck.mjs restorenav a reload naming a series does not open
+//                                     it over a group chosen meanwhile
+//   node dev/playcheck.mjs guidekeep  the guide keeps its scroll and row over
+//                                     a language switch, and its days and the
+//                                     programme search's line follow it
 //
 // The driver is the one dev/store-screenshots.mjs uses, from the same
 // profile (KEPULI_DEV_PROFILE) and port (KEPULI_DEV_PORT), and it needs the
@@ -143,8 +189,10 @@
 
 import { startMockServer, connectionStats, MULTI_EPISODES, PORT as MOCK_PORT } from './mock/server.mjs';
 // Run the same scenarios in Firefox with KEPULI_BROWSER=firefox.
-const { ensureChrome, openPlayer, session, sleep } = await import(
+const { ensureChrome, openPlayer, session, sleep, PORT: CHROME_PORT } = await import(
   process.env.KEPULI_BROWSER === 'firefox' ? '../firefox/playcheck-driver.mjs' : './screenshot.mjs');
+// The DevTools port, for opening a second tab; the Firefox driver has none.
+const DEVTOOLS_PORT = process.env.KEPULI_BROWSER === 'firefox' ? null : CHROME_PORT;
 
 const THROTTLE = Number(process.env.KEPULI_THROTTLE || 60 * 1024);
 const CUES_DELAY_MS = 1500;
@@ -587,6 +635,10 @@ async function resume(page) {
  * player must wait for the release and start by itself, never showing the
  * failure.
  *
+ * Lagging, a film: the browser's own player holds its stream as the other
+ * engines do — another tab asking is answered — and started over under the
+ * lag, the film plays again without a failure or a second stream.
+ *
  * Another tab: a stand-in tab holds the stream and answers the player's
  * channel. The failure must name the tab and offer Play here, which ends
  * the other tab's stream and plays.
@@ -641,6 +693,50 @@ async function connections(page, { requests }) {
       return { ok: false, detail: `lagging: ${refusedLag} refused, overlay titles ${JSON.stringify(titles)}` };
     }
     notes.push(`lagging: ${refusedLag} refused, waited (${titles.join(' → ')}) and played`);
+
+    // Lagging, a film. A fresh page has let nothing go, and the episode's
+    // count runs out before the film is asked for: only the film's own
+    // release can be what the server is counting when it is started over.
+    // Playing, the film must be what the tab holds — another tab asking is
+    // answered — and started over, it must play again without a failure
+    // shown or a second stream. Chrome's own loader asks again by itself
+    // for a range that is refused, so there the wait need not be seen.
+    await page.call('Page.reload');
+    await sleep(1000);
+    await waitFor(page, CONNECTED, 'the connection after the reload');
+    await sleep(5500);
+    await evaluate(page, `document.querySelector('#tabs [data-tab="movie"]').click()`);
+    await click(page, '#groups', 'Nordic');
+    await click(page, '#list', 'Northern Lights', { gesture: true });
+    await waitFor(page, PLAYING, 'the film', 40000);
+    await sleep(1000);
+    // A channel of the page's own reaches the player's, as another tab's would.
+    const answered = await evaluate(page, `new Promise((resolve) => { const tab = new BroadcastChannel('kepuli-playback'); const id = 'film-' + Date.now();
+      tab.onmessage = ({ data }) => { if (data.type === 'holding' && data.id === id) { tab.close(); resolve(true); } };
+      setTimeout(() => { tab.close(); resolve(false); }, 1000);
+      tab.postMessage({ type: 'ask', id, account: ${JSON.stringify(`http://127.0.0.1:${MOCK_PORT}/demo`)} }); })`);
+    if (!answered) return { ok: false, detail: 'lagging film: the tab playing a film does not answer that it holds the connection' };
+    // A tab on another account holds none of this one's connections.
+    const otherAccount = await evaluate(page, `new Promise((resolve) => { const tab = new BroadcastChannel('kepuli-playback'); const id = 'other-' + Date.now();
+      tab.onmessage = ({ data }) => { if (data.type === 'holding' && data.id === id) { tab.close(); resolve(true); } };
+      setTimeout(() => { tab.close(); resolve(false); }, 1000);
+      tab.postMessage({ type: 'ask', id, account: 'http://elsewhere.example:80/demo' }); })`);
+    if (otherAccount) return { ok: false, detail: 'lagging film: the tab answered a tab of another account that it holds the connection' };
+    await evaluate(page, `(() => { window.__titles = [];
+      new MutationObserver(() => window.__titles.push(${OVERLAY_TITLE})).observe(document.getElementById('overlay'), { attributes: true, childList: true, subtree: true });
+      return true; })()`);
+    const refusedFilm = connectionStats().refused.length;
+    const overlapsFilm = connectionStats().overlaps.length;
+    await click(page, '#list', 'Northern Lights', { gesture: true });
+    await sleep(500);
+    await waitFor(page, PLAYING, 'the film after the server let go', 40000);
+    const filmTitles = [...new Set(await evaluate(page, 'window.__titles'))].filter(Boolean);
+    const filmRefused = connectionStats().refused.length - refusedFilm;
+    const filmOverlaps = connectionStats().overlaps.length - overlapsFilm;
+    if (filmTitles.includes('Playback failed') || filmOverlaps) {
+      return { ok: false, detail: `lagging film: ${filmRefused} refused, ${filmOverlaps} overlap(s) ${connectionStats().overlaps.slice(-2).join(' | ')}, overlay titles ${JSON.stringify(filmTitles)}` };
+    }
+    notes.push(`lagging film: holding answered; ${filmRefused} refused, played again (${filmTitles.join(' → ')})`);
 
     // Another tab: the page itself stands in for it, the stream held by a
     // fetch of its own and the channel answered as the player's would.
@@ -711,6 +807,72 @@ async function livezap(page) {
     process.env.KEPULI_MOCK_LIVE_TS = '';
     process.env.KEPULI_MOCK_LIMIT = '';
     process.env.KEPULI_MOCK_RELEASE_MS = '';
+  }
+}
+
+/**
+ * A full account that does not refuse: the provider takes the connection
+ * and sends nothing, or ends it at once. Either way the zap must not fall
+ * back to HLS — the session it opened would be counted with nothing to
+ * close — but ask the account and for the same stream again. Silent, the
+ * start timeout passes before anything is known; by then the count has
+ * run out and the stream is asked for once more. Ended, the account is
+ * still counting the channel before and the release is waited for — and
+ * while it is, the tab tells another that asks that it holds the connection.
+ */
+async function livequiet(page) {
+  const OVERLAY_TITLE = `(document.getElementById('overlay').hidden ? '' : document.getElementById('overlay-title').textContent)`;
+  process.env.KEPULI_MOCK_LIVE_TS = '1';
+  process.env.KEPULI_MOCK_LIMIT = '1';
+  process.env.KEPULI_MOCK_RELEASE_MS = '3000';
+  const notes = [];
+  try {
+    await evaluate(page, `document.querySelector('#tabs [data-tab="live"]').click()`);
+    await click(page, '#groups', 'Finland');
+    await waitFor(page, `document.querySelectorAll('#list .row').length > 3`, 'the channels');
+    await evaluate(page, `document.querySelectorAll('#list .row')[0].click()`, { gesture: true });
+    await waitFor(page, PLAYING, 'the first channel', 40000);
+    await evaluate(page, `(() => { window.__titles = [];
+      new MutationObserver(() => window.__titles.push(${OVERLAY_TITLE})).observe(document.getElementById('overlay'), { attributes: true, childList: true, subtree: true });
+      return true; })()`);
+    for (const [row, mode, limit] of [[1, 'silent', 60000], [2, 'close', 40000]]) {
+      process.env.KEPULI_MOCK_FULL = mode;
+      await sleep(4000);    // the channel before is not still counted from its start
+      await evaluate(page, 'window.__titles = []');
+      const before = connectionStats();
+      const t0 = Date.now();
+      await evaluate(page, `document.querySelectorAll('#list .row')[${row}].click()`, { gesture: true });
+      await sleep(500);
+      // Waiting for the release, the tab holds no stream but will take one:
+      // another tab asking is told so.
+      let answered = null;
+      if (mode === 'close') {
+        await waitFor(page, `${OVERLAY_TITLE} === 'Waiting for the connection'`, 'the wait for the release', 15000);
+        answered = await evaluate(page, `new Promise((resolve) => { const tab = new BroadcastChannel('kepuli-playback'); const id = 'wait-' + Date.now();
+          tab.onmessage = ({ data }) => { if (data.type === 'holding' && data.id === id) { tab.close(); resolve(true); } };
+          setTimeout(() => { tab.close(); resolve(false); }, 1000);
+          tab.postMessage({ type: 'ask', id, account: ${JSON.stringify(`http://127.0.0.1:${MOCK_PORT}/demo`)} }); })`);
+        if (!answered) return { ok: false, detail: `${notes.join('; ')}; close: the tab waiting for the release does not answer that it holds the connection` };
+      }
+      await waitFor(page, PLAYING, `the channel after a ${mode} full account`, limit);
+      const after = connectionStats();
+      const hls = after.hls - before.hls;
+      const quiet = after.refused.slice(before.refused.length).filter((r) => r.endsWith(mode)).length;
+      const titles = [...new Set(await evaluate(page, 'window.__titles'))].filter(Boolean);
+      if (hls || !quiet || titles.includes('Playback failed') || after.overlaps.length > before.overlaps.length) {
+        return { ok: false, detail: `${mode}: ${hls} HLS playlist(s), ${quiet} ${mode} answer(s), overlay titles ${JSON.stringify(titles)}, overlaps ${after.overlaps.slice(-2).join(' | ')}` };
+      }
+      notes.push(`${mode}: ${quiet} answer(s), played again over MPEG-TS in ${((Date.now() - t0) / 1000).toFixed(0)} s (${titles.join(' → ')})${answered ? ', holding while it waited' : ''}`);
+    }
+    await sleep(1500);
+    const open = connectionStats().open;
+    if (open !== 1) return { ok: false, detail: `${open} streams open at the end; ${notes.join('; ')}` };
+    return { ok: true, detail: `${notes.join('; ')}; no HLS, 1 open` };
+  } finally {
+    process.env.KEPULI_MOCK_LIVE_TS = '';
+    process.env.KEPULI_MOCK_LIMIT = '';
+    process.env.KEPULI_MOCK_RELEASE_MS = '';
+    process.env.KEPULI_MOCK_FULL = '';
   }
 }
 
@@ -922,10 +1084,22 @@ async function pickers(page) {
   await sleep(300);
   const picked = await evaluate(page, `({ value: document.getElementById('f-channelsort').value, heard: __picked, open: !!document.querySelector('.picker-pop') })`);
   assert(picked.value === 'num' && picked.heard[0] === 'num' && !picked.open, `the choice: ${JSON.stringify(picked)}`);
+  // The options rebuilt while the list is open, as the media filters do
+  // when a film's details arrive: the choice is made by its value, not
+  // lost on an <option> that is no longer in the select.
+  await evaluate(page, `window.__picked = []; document.getElementById('f-channelsort').addEventListener('change', (e) => __picked.push(e.target.value), { once: true })`);
+  await mouseClick(page, '#f-channelsort');
+  await sleep(300);
+  await evaluate(page, `(() => { const s = document.getElementById('f-channelsort');
+    s.replaceChildren(...[...s.options].map((o) => new Option(o.textContent, o.value, false, o.selected))); })()`);
+  await mouseClick(page, '.picker-option:nth-child(2)');
+  await sleep(300);
+  const rebuilt = await evaluate(page, `({ value: document.getElementById('f-channelsort').value, heard: __picked, open: !!document.querySelector('.picker-pop') })`);
+  assert(rebuilt.value === 'za' && rebuilt.heard[0] === 'za' && !rebuilt.open, `the choice after a rebuild: ${JSON.stringify(rebuilt)}`);
   // Cancel discards the draft: the choice above was never saved.
   await evaluate(page, `document.getElementById('f-done').click()`);
   await waitFor(page, `!document.getElementById('setup').open`, 'settings closed');
-  return { ok: true, detail: `long list filtered to ${narrowed.shown[0]}; Escape kept the dialog; short list without a filter chose ${picked.value}` };
+  return { ok: true, detail: `long list filtered to ${narrowed.shown[0]}; Escape kept the dialog; short list without a filter chose ${picked.value}, and ${rebuilt.value} with its options rebuilt under it` };
 }
 
 /**
@@ -1811,8 +1985,123 @@ async function programmes(page, { requests }) {
   return { ok: true, detail: 'archive-length guide; title/description search, cached repeat, empty results, past results and return to grid' };
 }
 
-async function catchup(page, { requests }) {
+/**
+ * Refresh brings in what the provider added to a list already opened this
+ * session, in place; and the cache's expired rows go, read by their time
+ * alone (js/db.js, cachePurge), while a prefix read takes only its own.
+ */
+async function refresh(page) {
   const assert = (ok, message) => { if (!ok) throw new Error(message); };
+  const names = () => evaluate(page, `[...document.querySelectorAll('#list .row')].map((r) => r.textContent)`);
+  await openLiveList(page, 1);
+  await evaluate(page, `[...document.querySelectorAll('#groups .group')].find((g) => g.textContent.includes('Finland')).click()`);
+  await waitFor(page, `${ACTIVE_GROUP}.includes('Finland') && document.querySelectorAll('#list .row').length > 1`, 'Finland');
+  const before = await names();
+  assert(!before.some((n) => n.includes('Aurora Newcomer')), 'the new channel is there before it was added');
+  // Another group and back: Finland's list is the one kept from earlier.
+  await evaluate(page, `[...document.querySelectorAll('#groups .group')].find((g) => g.textContent.includes('Sweden')).click()`);
+  await waitFor(page, `${ACTIVE_GROUP}.includes('Sweden')`, 'Sweden');
+  await evaluate(page, `[...document.querySelectorAll('#groups .group')].find((g) => g.textContent.includes('Finland')).click()`);
+  await waitFor(page, `${ACTIVE_GROUP}.includes('Finland') && document.querySelectorAll('#list .row').length > 1`, 'Finland again');
+  process.env.KEPULI_MOCK_EXTRA_CHANNEL = '1';
+  try {
+    await evaluate(page, `document.getElementById('btn-refresh').click()`);
+    await waitFor(page, `[...document.querySelectorAll('#list .row')].some((r) => r.textContent.includes('Aurora Newcomer'))`, 'the new channel after Refresh', 15000);
+  } finally {
+    process.env.KEPULI_MOCK_EXTRA_CHANNEL = '';
+  }
+  assert((await evaluate(page, ACTIVE_GROUP)).includes('Finland'), 'Refresh left the group');
+
+  const purge = await evaluate(page, `(async () => {
+    const db = await import('/js/db.js');
+    const day = 24 * 3600e3, now = Date.now();
+    const raw = await new Promise((resolve, reject) => { const r = indexedDB.open('kepuli-tv'); r.onsuccess = () => resolve(r.result); r.onerror = () => reject(r.error); });
+    await new Promise((resolve) => { const t = raw.transaction('cache', 'readwrite'); const s = t.objectStore('cache');
+      s.put({ value: 1, at: now - 8 * day }, 'x|vod:v2:old'); s.put({ value: 2, at: now - day }, 'x|vod:v2:new');
+      s.put({ value: 3, at: now - 2 * day }, 'probe:h:movie:1.mkv'); s.put({ value: 4, at: now - 30 * day }, 'other');
+      t.oncomplete = resolve; });
+    raw.close();
+    const ttl = (key) => (key.startsWith('probe:') ? 90 * day : key.includes('|vod:') ? 7 * day : null);
+    const deleted = await db.cachePurge(ttl);
+    const keys = await db.cacheSummary();
+    const probes = (await db.cacheGetAll('probe:')).map(([k]) => k);
+    return { deleted, old: keys.includes('x|vod:v2:old'), kept: ['x|vod:v2:new', 'probe:h:movie:1.mkv', 'other'].every((k) => keys.includes(k)), probes };
+  })()`);
+  assert(purge.deleted === 1 && !purge.old && purge.kept, `the purge: ${JSON.stringify(purge)}`);
+  assert(JSON.stringify(purge.probes) === '["probe:h:movie:1.mkv"]', `the prefix read: ${JSON.stringify(purge.probes)}`);
+  return { ok: true, detail: `Refresh showed the added channel in Finland's list opened earlier (${before.length} rows before); the purge deleted the one expired row and the prefix read took only the probe` };
+}
+
+/**
+ * A reload whose address names a series opens it — unless the viewer has
+ * gone somewhere else while the list underneath was on its way.
+ */
+async function restorenav(page, { target }) {
+  const assert = (ok, message) => { if (!ok) throw new Error(message); };
+  const id = await evaluate(page, `fetch('http://127.0.0.1:${MOCK_PORT}/player_api.php?username=demo&password=demo&action=get_series').then((r) => r.json()).then((l) => String(l[0].series_id))`);
+  process.env.KEPULI_MOCK_SLOW_LIST = '5000';
+  try {
+    await evaluate(page, `history.replaceState(null, '', '#/series/-?series=${id}')`);
+    await page.call('Page.reload');
+    await sleep(1000);
+    await waitFor(page, `document.querySelectorAll('#groups .group').length > 1 && document.querySelector('#tabs [aria-selected="true"]')?.dataset.tab === 'series'`, 'the series sidebar');
+    // A group chosen while the whole list is still coming.
+    const chosen = await evaluate(page, `(() => { const g = [...document.querySelectorAll('#groups .group')].find((n) => !/^All/.test(n.textContent.trim())); g.click(); return g.textContent.trim().replace(/\s*\d+$/, ''); })()`);
+    await sleep(7000);
+    const at = await evaluate(page, `({ hash: location.hash, crumb: ((document.querySelector('#crumbs span') || {}).textContent || '').trim(), group: ${ACTIVE_GROUP}, rows: document.querySelectorAll('#list .row').length })`);
+    assert(!at.hash.includes('series=') && !at.crumb && at.group === chosen && at.rows > 0, `the restore went over the viewer's choice: ${JSON.stringify({ chosen, ...at })}`);
+    return { ok: true, detail: `group ${chosen} chosen during the restore stayed, the series ${id} was not opened over it (${at.hash})` };
+  } finally {
+    process.env.KEPULI_MOCK_SLOW_LIST = '';
+  }
+}
+
+/**
+ * The guide keeps its place when the list repaints with the same channels
+ * — a change of language here — and says its days and the programme
+ * search's line in the new language.
+ */
+async function guidekeep(page) {
+  const assert = (ok, message) => { if (!ok) throw new Error(message); };
+  const language = async (lang) => {
+    await evaluate(page, `document.getElementById('btn-settings').click()`, { gesture: true });
+    await waitFor(page, `document.getElementById('setup').open`, 'the settings dialog', 5000);
+    await evaluate(page, `document.querySelector('#setup-tabs [data-panel="general"]').click()`);
+    await evaluate(page, `(() => { const c = document.getElementById('f-lang'); c.value = '${lang}'; c.dispatchEvent(new Event('input', { bubbles: true })); c.dispatchEvent(new Event('change', { bubbles: true })); })()`);
+    await evaluate(page, `document.getElementById('f-save').click()`, { gesture: true });
+    await waitFor(page, `document.documentElement.lang === '${lang}' && !document.getElementById('setup').open`, `the language ${lang}`);
+    await sleep(800);
+  };
+  await openLiveList(page, 3);
+  await evaluate(page, `document.getElementById('btn-guide').click()`);
+  await waitFor(page, `document.getElementById('main').classList.contains('guide')`, 'guide');
+  await evaluate(page, `(() => { const s = document.getElementById('epg-group'); s.value = ''; s.dispatchEvent(new Event('change', { bubbles: true })); })()`);
+  await waitFor(page, `document.querySelectorAll('#epg-chans-inner .epg-chan').length > 8 && document.getElementById('list-progress').hidden`, 'all channels in the guide');
+  await sleep(500);
+  await evaluate(page, `document.getElementById('epg-scroll').scrollTop = 300`);
+  await sleep(400);
+  await evaluate(page, `document.querySelector('#epg-chans-inner [data-row="9"]').click()`);
+  await sleep(300);
+  const place = () => evaluate(page, `({ top: document.getElementById('epg-scroll').scrollTop,
+    cursor: document.querySelector('#epg-chans-inner .epg-chan.cursor')?.title || null,
+    day: document.querySelector('#epg-days button')?.textContent })`);
+  const before = await place();
+  assert(before.top > 100 && before.cursor && before.day === 'yesterday', `the guide before: ${JSON.stringify(before)}`);
+  await language('fi');
+  const after = await place();
+  assert(Math.abs(after.top - before.top) < 2 && after.cursor === before.cursor, `the repaint moved the guide: ${JSON.stringify({ before, after })}`);
+  assert(after.day === 'eilen', `the day buttons kept the old language: ${JSON.stringify(after)}`);
+  await evaluate(page, `document.getElementById('programme-query').value = 'News'; document.getElementById('programme-scope').value = 'group'; document.getElementById('programme-form').requestSubmit()`);
+  await waitFor(page, `document.getElementById('programme-status').textContent.includes('Haku päättynyt')`, 'the Finnish programme search', 60000);
+  await language('en');
+  const status = await evaluate(page, `({ text: document.getElementById('programme-status').textContent, shown: !document.getElementById('programme-panel').hidden })`);
+  assert(status.shown && status.text.includes('Search finished'), `the programme search after the switch: ${JSON.stringify(status)}`);
+  await evaluate(page, `document.getElementById('programme-clear').click()`);
+  return { ok: true, detail: `scroll ${before.top} px and ${before.cursor} kept over a language switch; days said "${after.day}"; the search line followed back to English` };
+}
+
+/** A channel with an archive, its current programme started over. */
+async function startCatchup(page) {
   await openLiveList(page, 3);
   await evaluate(page, `(async () => {
     const {XtreamApi}=await import('./js/api.js');
@@ -1828,6 +2117,11 @@ async function catchup(page, { requests }) {
   await waitFor(page, `[...document.querySelectorAll('#epgv-actions button')].some(b=>b.textContent==='Start from beginning')`, 'start-over action');
   await click(page, '#epgv-actions', 'Start from beginning', { gesture: true });
   await waitFor(page, PLAYING, 'start-over playback');
+}
+
+async function catchup(page, { requests }) {
+  const assert = (ok, message) => { if (!ok) throw new Error(message); };
+  await startCatchup(page);
   assert(requests.some((r) => r.startsWith('/timeshift/')), 'start over did not request the archive');
   const archiveCount = () => requests.filter((r) => r.startsWith('/timeshift/')).length;
   let before = archiveCount();
@@ -2032,15 +2326,23 @@ async function reminders(page) {
   await waitFor(page, `[...document.querySelectorAll('#epgv-actions button')].some((b) => b.textContent === 'Remind me')`, 'Remind me on an upcoming programme');
   await evaluate(page, `[...document.querySelectorAll('#epgv-actions button')].find((b) => b.textContent === 'Remind me').click()`);
   await waitFor(page, `document.querySelectorAll('.epg-prog.remind').length === 1`, 'the bell in the grid');
-  const stored = await evaluate(page, `chrome.storage.local.get(null).then((all) => Object.entries(all).find(([key]) => key.startsWith('reminders')))`);
+  const findStored = `chrome.storage.local.get(null).then((all) => Object.entries(all).find(([key]) => key.startsWith('reminders')))`;
+  await waitFor(page, findStored, 'the reminder in storage', 5000).catch(() => {});
+  const stored = await evaluate(page, findStored);
   if (!stored || stored[1].length !== 1) return { ok: false, detail: `stored: ${JSON.stringify(stored)}` };
   // Due in half a minute: the reload finds it inside its minute and says it.
+  // The open player sees the stored list change and may say it first — the
+  // change is another tab's to it — and then the reload finds it said.
   const [key, list] = stored;
   list[0].start = Date.now() + 30000;
   list[0].stop = Date.now() + 600000;
   await evaluate(page, `chrome.storage.local.set({ ${JSON.stringify(key)}: ${JSON.stringify(list)} })`);
-  await page.call('Page.reload');
-  await waitFor(page, CONNECTED, 'the connection after the reload');
+  const sayingIt = `!document.getElementById('toast').hidden && document.getElementById('toast-text').textContent.includes(${JSON.stringify(list[0].title)})`;
+  await sleep(1000);
+  if (!await evaluate(page, sayingIt)) {
+    await page.call('Page.reload');
+    await waitFor(page, CONNECTED, 'the connection after the reload');
+  }
   await waitFor(page, `!document.getElementById('toast').hidden && document.getElementById('toast-text').textContent.includes(${JSON.stringify(list[0].title)})`, 'the reminder');
   const said = await evaluate(page, `document.getElementById('toast-text').textContent`);
   await evaluate(page, `document.querySelector('#toast .toast-action').click()`, { gesture: true });
@@ -2061,13 +2363,375 @@ async function update(page) {
   return { ok: line === `Kepuli-TV ${running} Update to 99.0.0`, detail: `"${said}"; "${line}"` };
 }
 
-const SCENARIOS = { catalogUi, setupClarity, fullscreenControl, clickpause, pickers, channels, home, resumemkv, restore, programmes, catchup, seek, death, cancel, timeout, search, paste, keys, switching, resume, connections, livezap, reconnect, accounts, listerror, a11y, subtitles, audio, settings,
-  lastchannel, nextepisode, continuewatching, reminders, update };
+/* ------------------------------------------- seeking, full buffers, freezes */
+
+const OVERLAY_TITLE = `(document.getElementById('overlay').hidden ? '' : document.getElementById('overlay-title').textContent)`;
+
+/** Records the overlay's titles and the toasts from now on. */
+const watchMessages = (page) => evaluate(page, `(() => { window.__titles = []; window.__toasts = [];
+  new MutationObserver(() => window.__titles.push(${OVERLAY_TITLE})).observe(document.getElementById('overlay'), { attributes: true, childList: true, subtree: true });
+  new MutationObserver(() => { const t = document.getElementById('toast'); if (!t.hidden) window.__toasts.push(t.textContent.trim()); })
+    .observe(document.getElementById('toast'), { attributes: true, childList: true, subtree: true, characterData: true });
+  return true; })()`);
+const messagesSeen = async (page) => ({
+  titles: [...new Set(await evaluate(page, 'window.__titles'))].filter(Boolean),
+  toasts: [...new Set(await evaluate(page, 'window.__toasts'))],
+});
+
+/** Every Range the page asks the media for, with the answer's status, in window.__ranges. */
+const recordRanges = (page) => evaluate(page, `(() => { window.__ranges = []; const orig = window.fetch.bind(window);
+  window.fetch = async (url, init) => { const range = init && init.headers && init.headers.Range;
+    try { const res = await orig(url, init); if (range) window.__ranges.push(range + ' ' + res.status); return res; }
+    catch (err) { if (range) window.__ranges.push(range + ' ' + err.name); throw err; } };
+  return true; })()`);
+
+/**
+ * #7 and #8 together, as a viewer meets them: one connection on the
+ * account, the server counting a closed stream for four seconds, and a seek
+ * outside the buffer. The seek lets the connection go and asks at once for
+ * the seek table, then for the download from the target's cluster; both
+ * are refused while the count runs. The seek must arrive by asking again —
+ * not end the episode with "the server answered 400", and not give the
+ * table up, which would read the file through to the target.
+ */
+async function seeklag(page) {
+  process.env.KEPULI_MOCK_LIMIT = '1';
+  try {
+    await recordRanges(page);
+    await playEpisode(page);
+    process.env.KEPULI_MOCK_RELEASE_MS = '4000';
+    await watchMessages(page);
+    const before = connectionStats();
+    const from = await evaluate(page, 'window.__ranges.length');
+    const T = 90;
+    await evaluate(page, `document.getElementById('video').currentTime = ${T}`);
+    let last = null;
+    const t0 = Date.now();
+    while (Date.now() - t0 < 60000) {
+      last = await videoState(page);
+      if (last.t > T + 2 && !last.paused) break;
+      if (last.overlay && /failed|stopped/i.test(last.overlay)) break;
+      await sleep(1000);
+    }
+    const after = connectionStats();
+    const refused = after.refused.length - before.refused.length;
+    const ranges = (await evaluate(page, 'window.__ranges')).slice(from);
+    const { titles, toasts } = await messagesSeen(page);
+    const readThrough = ranges.some((r) => /^bytes=0-\s/.test(r));
+    const tableLost = toasts.some((m) => /seek table/.test(m));
+    const ok = last.t > T + 2 && !last.paused && refused > 0 && !titles.includes('Playback failed') && !readThrough && !tableLost
+      && after.overlaps.length === before.overlaps.length;
+    return { ok, detail: `${refused} refused; at ${last.t} s after ${((Date.now() - t0) / 1000).toFixed(0)} s; ranges ${ranges.join(', ')}; titles ${JSON.stringify(titles)}; toasts ${JSON.stringify(toasts)}` };
+  } finally {
+    process.env.KEPULI_MOCK_LIMIT = '';
+    process.env.KEPULI_MOCK_RELEASE_MS = '';
+  }
+}
+
+/**
+ * #8 on its own: the seek table cannot be read at all during one seek —
+ * every read fails as a dropped network does — so that seek reads the file
+ * through, and says why. The next seek must ask for the table again, and
+ * jump to the target's cluster rather than read the file from the start.
+ */
+async function cuesretry(page) {
+  await evaluate(page, `(() => { window.__failCues = false; window.__ranges = []; const orig = window.fetch.bind(window);
+    window.fetch = async (url, init) => { const range = init && init.headers && init.headers.Range;
+      if (range && /^bytes=\\d+-\\d+$/.test(range) && window.__failCues) { window.__ranges.push(range + ' failed'); throw new TypeError('Failed to fetch'); }
+      const res = await orig(url, init); if (range) window.__ranges.push(range + ' ' + res.status); return res; };
+    return true; })()`);
+  await playEpisode(page);
+  await watchMessages(page);
+  await evaluate(page, `window.__failCues = true; document.getElementById('video').currentTime = 90`);
+  await waitFor(page, `window.__toasts.some((m) => /seek table/.test(m))`, 'the notice that the table could not be read', 40000);
+  const failed = (await evaluate(page, 'window.__ranges')).filter((r) => r.endsWith('failed')).length;
+  await evaluate(page, `window.__failCues = false`);
+  const from = await evaluate(page, 'window.__ranges.length');
+  const T = 10;
+  await evaluate(page, `document.getElementById('video').currentTime = ${T}`);
+  let last = null;
+  const t0 = Date.now();
+  while (Date.now() - t0 < 40000) {
+    last = await videoState(page);
+    if (last.t > T + 2 && !last.paused) break;
+    await sleep(1000);
+  }
+  const ranges = (await evaluate(page, 'window.__ranges')).slice(from);
+  const { toasts } = await messagesSeen(page);
+  const table = ranges.some((r) => /^bytes=\d+-\d+ 206$/.test(r));
+  const jumped = ranges.some((r) => /^bytes=[1-9]\d*- 206$/.test(r)) && !ranges.some((r) => /^bytes=0-/.test(r));
+  const ok = failed > 1 && table && jumped && last.t > T + 2 && !last.paused && !toasts.some((m) => /has no seek table/.test(m));
+  return { ok, detail: `${failed} failed table reads in the first seek; the second seek asked ${ranges.join(', ')} and is at ${last.t} s; toasts ${JSON.stringify(toasts)}` };
+}
+
+/**
+ * #9: the buffer is full long before the minute the download aims for, as
+ * a 1080p remux fills Chrome's 150 MB. The page's own SourceBuffer is made
+ * to throw QuotaExceededError once it holds 25 seconds, as the browser
+ * throws it. Playback must wait for room and reach the end of the episode,
+ * rather than stop with "SourceBuffer rejected the segment".
+ */
+async function quota(page) {
+  await evaluate(page, `(() => { window.__quota = 0; const orig = SourceBuffer.prototype.appendBuffer;
+    SourceBuffer.prototype.appendBuffer = function (data) {
+      const b = this.buffered; let held = 0;
+      for (let i = 0; i < b.length; i++) held += b.end(i) - b.start(i);
+      if (held > 25) { window.__quota++; throw new DOMException('The SourceBuffer is full, and cannot free space to append additional buffers.', 'QuotaExceededError'); }
+      return orig.call(this, data); };
+    return true; })()`);
+  await playEpisode(page);
+  await watchMessages(page);
+  await evaluate(page, `document.getElementById('video').playbackRate = 4`);
+  let last = null;
+  const t0 = Date.now();
+  while (Date.now() - t0 < 60000) {
+    last = await videoState(page);
+    if (last.t > 110 || last.overlay) break;
+    await sleep(1000);
+  }
+  const full = await evaluate(page, 'window.__quota');
+  const { titles } = await messagesSeen(page);
+  const held = await evaluate(page, `(() => { const b = document.getElementById('video').buffered; let h = 0; for (let i = 0; i < b.length; i++) h += b.end(i) - b.start(i); return Math.round(h); })()`);
+  const ok = full > 0 && last.t > 110 && !titles.includes('Playback failed');
+  return { ok, detail: `${full} full-buffer refusals; reached ${last.t} s in ${((Date.now() - t0) / 1000).toFixed(0)} s holding ${held} s; titles ${JSON.stringify(titles)}` };
+}
+
+/**
+ * #22: an archive programme whose server stops sending and keeps the
+ * connection open, which raises nothing in mpegts.js. Paused by the viewer
+ * meanwhile, nothing may be said; played on, the picture runs out the
+ * buffer and stops, and the player must say so with Retry — which plays
+ * the programme again — rather than leave a still picture.
+ */
+async function catchupfreeze(page, { requests }) {
+  process.env.KEPULI_MOCK_HANG_AT = String(3 * 1024 * 1024);
+  try {
+    await startCatchup(page);
+    await watchMessages(page);
+    await evaluate(page, `document.getElementById('video').pause()`);
+    await sleep(40000);
+    const paused = await videoState(page);
+    if (paused.overlay) return { ok: false, detail: `paused, the player said "${paused.overlay}"` };
+    await evaluate(page, `document.getElementById('video').play()`, { gesture: true });
+    const t0 = Date.now();
+    await waitFor(page, `${OVERLAY_TITLE} === 'Playback failed'`, 'the frozen picture reported', 90000);
+    const said = await videoState(page);
+    const took = ((Date.now() - t0) / 1000).toFixed(0);
+    if (!/froze/.test(said.overlay) || !said.actions.includes('Try again')) return { ok: false, detail: `after ${took} s: "${said.overlay}" ${said.actions.join(' / ')}` };
+    const archive = requests.filter((r) => r.startsWith('/timeshift/')).length;
+    await evaluate(page, `[...document.querySelectorAll('#overlay button')].find((b) => b.textContent === 'Try again').click()`, { gesture: true });
+    await waitFor(page, PLAYING, 'the programme after Try again', 40000);
+    const again = requests.filter((r) => r.startsWith('/timeshift/')).length - archive;
+    return { ok: again > 0, detail: `no word while paused 40 s; played on, "${said.overlay}" after ${took} s, with ${said.actions.join(' / ')}; Try again asked the archive ${again} time(s) and plays` };
+  } finally {
+    process.env.KEPULI_MOCK_HANG_AT = '';
+  }
+}
+
+/**
+ * #22 as the audit found it: an archive programme is read without
+ * mpegts.js's lazy load, faster than it plays, and the buffer fills. The
+ * page's SourceBuffer is made full at 20 seconds, as Chrome's is at some
+ * 150 MB; mpegts.js then suspends its reading, and nothing resumes it. The
+ * picture must not be left still without a word.
+ */
+async function catchupfull(page) {
+  await evaluate(page, `(() => { window.__quota = 0; const orig = SourceBuffer.prototype.appendBuffer;
+    SourceBuffer.prototype.appendBuffer = function (data) {
+      const b = this.buffered; let held = 0;
+      for (let i = 0; i < b.length; i++) held += b.end(i) - b.start(i);
+      if (held > 20) { window.__quota++; throw new DOMException('The SourceBuffer is full, and cannot free space to append additional buffers.', 'QuotaExceededError'); }
+      return orig.call(this, data); };
+    return true; })()`);
+  await startCatchup(page);
+  await watchMessages(page);
+  const t0 = Date.now();
+  let last = null;
+  let frozeAt = null;
+  while (Date.now() - t0 < 100000) {
+    last = await videoState(page);
+    if (last.overlay && /Playback stopped/.test(last.overlay)) break;
+    if (frozeAt == null && last.t > 0 && last.readyState < 3) frozeAt = last.t;
+    await sleep(1000);
+  }
+  const full = await evaluate(page, 'window.__quota');
+  const ok = Boolean(full && last.overlay && /froze/.test(last.overlay) && last.actions.includes('Try again'));
+  return { ok, detail: `${full} full-buffer refusals; picture stopped near ${frozeAt ?? last.t} s; after ${((Date.now() - t0) / 1000).toFixed(0)} s: ${last.overlay ? `"${last.overlay}" ${last.actions.join(' / ')}` : 'no word'}` };
+}
+
+/* ------------------------------------------------------ several open tabs */
+
+// A second player in a frame of the page: modules of its own, the same
+// storage, the same BroadcastChannel — another tab, as far as the player
+// can tell, and one that the Firefox driver can reach as well.
+const FRAME = `document.getElementById('second-player')`;
+const inFrame = (expression) => `((document) => ${expression})(${FRAME}.contentDocument)`;
+
+async function openSecondPlayer(page, target) {
+  await evaluate(page, `(() => { const f = document.createElement('iframe'); f.id = 'second-player'; f.src = ${JSON.stringify(bare(target.url))};
+    f.style.cssText = 'position:fixed;left:0;top:0;width:1280px;height:800px;border:0;z-index:-1;'; document.body.appendChild(f); return true; })()`);
+  await waitFor(page, `(() => { const d = ${FRAME} && ${FRAME}.contentDocument; return Boolean(d && d.querySelectorAll('#groups .group').length > 1 && d.getElementById('list-progress').hidden); })()`, 'the second player');
+}
+
+const starRow = (page, index, frame = false) => evaluate(page, (frame ? inFrame : (e) => e)(`(() => {
+  document.querySelector('#tabs [data-tab="live"]').click();
+  return new Promise((resolve) => { const t0 = Date.now(); (function poll() {
+    const row = document.querySelectorAll('#list .row')[${index}];
+    if (row && row.querySelector('button')) { row.querySelector('button').click(); resolve(true); }
+    else if (Date.now() - t0 > 10000) resolve(false); else setTimeout(poll, 200); })(); }); })()`));
+
+const favRows = async (page, frame = false) => {
+  await evaluate(page, (frame ? inFrame : (e) => e)(`document.querySelector('#tabs [data-tab="fav"]').click()`));
+  await sleep(600);
+  return evaluate(page, (frame ? inFrame : (e) => e)(`document.querySelectorAll('#list .row').length`));
+};
+
+const storedKey = (page, key) => evaluate(page, `chrome.storage.local.get(${JSON.stringify(key)}).then((got) => got[${JSON.stringify(key)}] ?? null)`);
+
+/**
+ * Two players open on one account: a favourite added in one survives a
+ * change in the other, and each shows the other's. Then the other switches
+ * the stored account: this one says so, keeps its own, writes nothing into
+ * the new account's lists — not with a favourite, not with a change of the
+ * playback mode — and follows only when asked.
+ */
+async function twotabs(page, { target }) {
+  const OTHER_PORT = MOCK_PORT + 1;
+  const other = await startMockServer(OTHER_PORT);
+  const otherRequests = [];
+  other.on('request', (req) => otherRequests.push(req.url));
+  const here = `favorites:http://127.0.0.1:${MOCK_PORT}/demo`;
+  const there = `favorites:http://127.0.0.1:${OTHER_PORT}/demo`;
+  try {
+    await openSecondPlayer(page, target);
+    if (!await starRow(page, 0, true)) throw new Error('the second player has no channel to star');
+    await sleep(400);
+    if (!await starRow(page, 1)) throw new Error('no channel to star');
+    await sleep(600);
+    const stored = (await storedKey(page, here) || []).length;
+    const shownHere = await favRows(page);
+    const shownThere = await favRows(page, true);
+    if (stored !== 2 || shownHere !== 2 || shownThere !== 2) {
+      return { ok: false, detail: `favourites from two tabs: ${stored} stored, ${shownHere} shown here, ${shownThere} in the other tab` };
+    }
+
+    // The other tab saves another account.
+    await evaluate(page, `chrome.storage.local.get('config').then((got) => chrome.storage.local.set({ config: { ...got.config, port: '${OTHER_PORT}' } }))`);
+    await waitFor(page, `!document.getElementById('toast').hidden && /Another tab/.test(document.getElementById('toast-text').textContent)`, 'word of the other tab\'s switch', 5000);
+    const said = await evaluate(page, `document.getElementById('toast-text').textContent`);
+    if (!await starRow(page, 2)) throw new Error('no third channel to star');
+    await evaluate(page, `(() => { const m = document.getElementById('mode'); m.value = m.value === 'auto' ? 'hls' : 'auto'; m.dispatchEvent(new Event('change')); return true; })()`);
+    await sleep(800);
+    const after = { here: (await storedKey(page, here) || []).length, there: await storedKey(page, there), port: (await storedKey(page, 'config')).port };
+    if (after.here !== 3 || after.there !== null || after.port !== String(OTHER_PORT)) {
+      return { ok: false, detail: `after the other tab's switch: ${after.here} favourites on this account, ${JSON.stringify(after.there)} on the other's, stored port ${after.port}` };
+    }
+    const offered = await evaluate(page, `(() => { const b = document.querySelector('#toast .toast-action'); if (!b || document.getElementById('toast').hidden) return false; b.click(); return true; })()`, { gesture: true });
+    if (!offered) return { ok: false, detail: `"${said}" no longer offers to follow` };
+    await sleep(500);
+    await waitFor(page, CONNECTED, 'the connection on the other account');
+    const followed = await favRows(page);
+    const asked = otherRequests.some((u) => u.includes('player_api'));
+    return {
+      ok: followed === 0 && asked,
+      detail: `two tabs: 2 favourites kept and shown in both; "${said}"; this tab then wrote 3 to its own account and none to the other's; following showed ${followed} favourites${asked ? ' from the other server' : ' but never asked the other server'}`,
+    };
+  } finally {
+    await evaluate(page, `${FRAME} && ${FRAME}.remove()`).catch(() => {});
+    other.closeAllConnections();
+    await new Promise((resolve) => other.close(resolve));
+  }
+}
+
+/** Another account saved in Settings while a channel plays: the stream stops before the new account connects. */
+async function switchstop(page) {
+  const OTHER_PORT = MOCK_PORT + 1;
+  const other = await startMockServer(OTHER_PORT);
+  try {
+    await playFirstChannel(page);
+    const channel = await evaluate(page, NOW_TITLE);
+    await evaluate(page, `chrome.permissions.request = async () => true; document.getElementById('btn-settings').click()`, { gesture: true });
+    await waitFor(page, `document.getElementById('setup').open`, 'the settings dialog', 5000);
+    await evaluate(page, `(() => { const c = document.getElementById('f-port'); c.value = '${OTHER_PORT}'; c.dispatchEvent(new Event('input', { bubbles: true })); c.dispatchEvent(new Event('change', { bubbles: true })); return true; })()`);
+    await evaluate(page, `document.getElementById('f-save').click()`, { gesture: true });
+    await waitFor(page, `!document.getElementById('setup').open`, 'the saved settings', 10000);
+    await waitFor(page, CONNECTED, 'the other account');
+    await sleep(1500);
+    const st = await evaluate(page, `({ title: ${NOW_TITLE}, playing: ${PLAYING}, src: Boolean(document.getElementById('video').currentSrc) && !document.getElementById('video').paused })`);
+    const recents = await storedKey(page, `recents:http://127.0.0.1:${OTHER_PORT}/demo`);
+    const ok = !st.title && !st.playing && !st.src && !(recents || []).some((r) => r.n === channel);
+    const detail = `"${channel}" playing, account saved: title "${st.title}", ${st.playing ? 'still playing' : 'stopped'}; the new account's history ${JSON.stringify((recents || []).map((r) => r.n))}`;
+    if (!ok) return { ok, detail };
+    // The same user name at a new address: the old address's lists are
+    // offered, and brought over only when asked.
+    const offer = await evaluate(page, `document.getElementById('toast').hidden ? '' : document.getElementById('toast-text').textContent`);
+    if (!/stayed with the old address/.test(offer)) return { ok: false, detail: `${detail}; no offer of the old lists, toast "${offer}"` };
+    await evaluate(page, `document.querySelector('#toast .toast-action').click()`, { gesture: true });
+    await sleep(800);
+    const brought = await storedKey(page, `recents:http://127.0.0.1:${OTHER_PORT}/demo`);
+    const kept = await storedKey(page, `recents:http://127.0.0.1:${MOCK_PORT}/demo`);
+    const copied = (brought || []).some((r) => r.n === channel) && (kept || []).some((r) => r.n === channel);
+    return { ok: copied, detail: `${detail}; "${offer}" brought ${JSON.stringify((brought || []).map((r) => r.n))} over, the old address keeping ${JSON.stringify((kept || []).map((r) => r.n))}` };
+  } finally {
+    other.closeAllConnections();
+    await new Promise((resolve) => other.close(resolve));
+  }
+}
+
+/**
+ * Reset everything with another player tab open, connected and holding the
+ * cache: both start again empty, and the one reset connects again once
+ * given an account, its cache opening rather than waiting on the other tab.
+ * A real second tab: a frame would be reloaded with the page. Chrome only —
+ * the Firefox driver holds one tab.
+ */
+async function resettabs(page, { target }) {
+  if (!DEVTOOLS_PORT) return { ok: true, detail: 'skipped in Firefox: needs a second browser tab, which the Marionette driver does not open' };
+  const opened = await fetch(`http://127.0.0.1:${DEVTOOLS_PORT}/json/new?${bare(target.url)}`, { method: 'PUT' }).then((r) => r.json());
+  const second = session(opened.webSocketDebuggerUrl);
+  try {
+    await waitFor(second, CONNECTED, 'the second tab');
+    // Something the second tab would write back if it went on running.
+    await starRow(second, 0);
+    await sleep(500);
+    await evaluate(page, `document.getElementById('btn-settings').click()`, { gesture: true });
+    await waitFor(page, `document.getElementById('setup').open`, 'the settings dialog', 5000);
+    await evaluate(page, `document.querySelector('#setup-tabs [data-panel="account"]').click()`);
+    await evaluate(page, `document.getElementById('f-reset').click()`, { gesture: true });
+    await evaluate(page, `document.getElementById('f-reset').click()`, { gesture: true });
+    await sleep(1500);
+    await waitFor(page, `document.getElementById('setup').open && document.readyState === 'complete'`, 'the first-run dialog after the reset', 15000);
+    await waitFor(second, `document.getElementById('setup').open && document.readyState === 'complete'`, 'the second tab starting again', 15000);
+    await sleep(1000);
+    const left = await evaluate(page, `chrome.storage.local.get(null).then((all) => Object.keys(all).filter((k) => /^(config|favorites|recents|resume|channels|reminders)/.test(k)))`);
+    await evaluate(page, `chrome.storage.local.set({
+      config: { scheme: 'http', host: '127.0.0.1', port: '${MOCK_PORT}', username: 'demo', password: 'demo', sourceMode: 'xtream', streamMode: 'auto' },
+      settings: { lang: 'en', epgEnabled: true, resumeEnabled: false, subtitleLang: 'eng' } })`);
+    const t0 = Date.now();
+    await page.call('Page.navigate', { url: bare(target.url) });
+    await sleep(500);
+    await waitFor(page, CONNECTED, 'the connection after the reset');
+    const took = Date.now() - t0;
+    const cached = await evaluate(page, `new Promise((resolve) => { const req = indexedDB.open('kepuli-tv'); req.onsuccess = () => { const db = req.result;
+      const keys = db.objectStoreNames.contains('cache') ? db.transaction('cache').objectStore('cache').getAllKeys() : null;
+      if (!keys) { db.close(); resolve({ version: db.version, rows: 0 }); return; }
+      keys.onsuccess = () => { db.close(); resolve({ version: db.version, rows: keys.result.length }); }; }; req.onerror = () => resolve(null); })`);
+    const ok = !left.length && cached && cached.rows > 0;
+    return { ok, detail: `both tabs started again; left behind ${JSON.stringify(left)}; connected again in ${(took / 1000).toFixed(1)} s with the cache at version ${cached?.version}, ${cached?.rows} rows` };
+  } finally {
+    second.close();
+    await fetch(`http://127.0.0.1:${DEVTOOLS_PORT}/json/close/${opened.id}`).catch(() => {});
+  }
+}
+
+const SCENARIOS = { catalogUi, setupClarity, fullscreenControl, clickpause, pickers, channels, home, resumemkv, restore, programmes, catchup, seek, death, cancel, timeout, search, paste, keys, switching, resume, connections, livezap, livequiet, reconnect, accounts, listerror, a11y, subtitles, audio, settings,
+  lastchannel, nextepisode, continuewatching, reminders, update, seeklag, cuesretry, quota, catchupfreeze, catchupfull, twotabs, switchstop, resettabs,
+  refresh, restorenav, guidekeep };
 // The mock's whole-list answers stall for these, longer than the request limit.
 const SLOW_LIST_MS = { cancel: 60000, timeout: 60000 };
 // The media is sent slowly for these: the seek targets must lie outside the
 // buffer, and the download must still be under way when the server is cut.
-const THROTTLED = new Set(['seek', 'death', 'reconnect', 'connections']);
+const THROTTLED = new Set(['seek', 'death', 'reconnect', 'connections', 'seeklag', 'cuesretry']);
 
 /* -------------------------------------------------------------------- main */
 

@@ -27,6 +27,14 @@ const MARGIN_MIN = 90;         // buffer painted outside the visible area
 const LEAD_MIN = 15;           // how much of the past shows at the "Now" position
 const TICK_MS = 20e3;
 
+// A day: well inside the 2^31-1 ms a timer takes before it fires at once.
+const REMINDER_WAIT_MAX = 24 * 3600e3;
+
+/** How long the reminder timer waits for the first due time: never below zero, never above a day. */
+export function reminderDelay(dueMs, now = Date.now()) {
+  return Math.min(REMINDER_WAIT_MAX, Math.max(0, dueMs - now));
+}
+
 /** Is the programme watchable from the channel's catch-up window? */
 export function catchupAvailable(channel, programme, now = Date.now()) {
   if (!channel || !programme || !(Number(channel.archive) > 0)) return false;
@@ -540,22 +548,52 @@ export class EpgGrid {
 
   /* ----------------------------------------------------------------- tila */
 
+  /**
+   * The channels the grid shows. The list repaints for many reasons that
+   * leave its channels as they were — a favourite starred, the language
+   * switched, the catalogue refreshed in the background — and each repaint
+   * hands its rows here. A new set starts at the top; the same set keeps
+   * the row chosen, by its channel rather than its number, and the scroll,
+   * which used to go back to the first channel every time.
+   */
   setChannels(items) {
     const anchor = this.width ? this.timeAt(this.el.scroll.scrollLeft) : Date.now();
+    const same = sameChannels(this.channels, items);
+    const chosen = same ? this.channels[this.cursorRow] : null;
     this.channels = items;
     const days = archiveDays(items);
     if (days !== this.pastDays) {
       this.pastDays = days;
       if (this.open) { this.layout(); this.scrollToTime(anchor); }
     }
-    this.cursorRow = 0;
-    this.selection = null;
     this.lastWindowKey = '';
     const height = `${Math.max(1, items.length) * ROW_H}px`;
     this.el.canvas.style.height = height;
     this.el.chansInner.style.height = height;
-    this.el.scroll.scrollTop = 0;
+    if (same) {
+      const row = chosen ? items.findIndex((c) => String(c.id) === String(chosen.id)) : -1;
+      this.cursorRow = Math.max(0, row);
+      if (this.selection) this.selection = { ...this.selection, row: this.cursorRow };
+    } else {
+      this.cursorRow = 0;
+      this.selection = null;
+      this.el.scroll.scrollTop = 0;
+    }
     this.paint();
+  }
+
+  /**
+   * The time axis, the day buttons and the Earlier menu written again, for
+   * a change of language: they are written only when the guide opens, the
+   * zoom changes or the day turns, and stayed in the language they were
+   * written in. The scroll and the selection stay where they are.
+   */
+  relayout() {
+    if (!this.open) return;
+    this.layout();
+    this.paint();
+    const sel = this.selection;
+    if (sel && this.channels[sel.row]) this.onSelect(this.channels[sel.row], sel.programme);
   }
 
   setPlaying(streamId) {
@@ -605,6 +643,16 @@ export class EpgGrid {
     }
     this.paint();
   }
+}
+
+/**
+ * Whether two lists hold the same channels, in whatever order: a new sort
+ * order is the same set, a group switched or a search typed is another.
+ */
+export function sameChannels(a, b) {
+  if (!a || !b || a.length !== b.length || !a.length) return false;
+  const ids = new Set(a.map((c) => String(c.id)));
+  return b.every((c) => ids.has(String(c.id)));
 }
 
 /** The start of the day n days from now. Under daylight saving a day is

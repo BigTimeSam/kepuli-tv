@@ -47,7 +47,9 @@ export function playlist(spec, name) {
   // VLC's own extension: start position in seconds. Other players skip an
   // unknown hash line, so it breaks nothing.
   if (spec.startAt > 0) lines.push(`#EXTVLCOPT:start-time=${Math.floor(spec.startAt)}`);
-  lines.push(spec.url, '');
+  // The address goes on a line of its own; a line break inside it would
+  // add lines the player then reads as playlist entries or options.
+  lines.push(String(spec.url).replace(/[\r\n]+/g, ''), '');
   return lines.join('\n');
 }
 

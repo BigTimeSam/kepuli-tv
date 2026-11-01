@@ -1,5 +1,6 @@
 import { t, localeTag } from './i18n.js';
 import { ratingValue } from './rating.js';
+import { isPicking } from './picker.js';
 
 export function releaseYear(value, name = '') {
   const explicit = /^(18\d{2}|19\d{2}|20\d{2}|21\d{2})(?:$|-)/.exec(String(value || '').trim());
@@ -49,6 +50,10 @@ export class MediaFilters {
     this.detailsFor = detailsFor;
     this.values = { movie: emptyFilters(), series: emptyFilters() };
     this.type = null;
+    // Each row's facts, kept with the details they were read from: a film's
+    // details arriving rescans the list for the menus, and reading 55,000
+    // titles' facts afresh each time was the cost of it.
+    this.facts = new WeakMap();
     // The same heading as the favourites above the list: a mark, the name,
     // what it counts and the fold, see .section-toggle in player.css.
     this.summary = document.createElement('summary');
@@ -104,6 +109,15 @@ export class MediaFilters {
     this.host.open = false;
   }
 
+  factsOf(item) {
+    const details = this.detailsFor(item);
+    const known = this.facts.get(item);
+    if (known && known.details === details) return known.facts;
+    const facts = mediaFacts(item, details);
+    this.facts.set(item, { details, facts });
+    return facts;
+  }
+
   metadataChanged() {
     clearTimeout(this.metadataTimer);
     this.metadataTimer = setTimeout(() => {
@@ -123,7 +137,7 @@ export class MediaFilters {
     // Movie genres are selected through the provider's categories. Sparse
     // per-title genre metadata must not narrow those results a second time.
     if (type === 'movie') filters.genre = '';
-    const entries = rows.map(item => ({ item, facts: mediaFacts(item, this.detailsFor(item)) }));
+    const entries = rows.map(item => ({ item, facts: this.factsOf(item) }));
     const results = filterMedia(entries, filters);
     const years = [...new Set(entries.map(e => e.facts.year).filter(Boolean))].sort((a, b) => b - a);
     const decades = [...new Set(years.map(y => Math.floor(y / 10) * 10))];
@@ -141,6 +155,10 @@ export class MediaFilters {
       const list = options[key];
       // Keep an active choice visible even in a category with no matches.
       if (!list.some(([value]) => value === filters[key])) list.push([filters[key], filters[key].replace(':', '–')]);
+      // A menu open in the app's own list (js/picker.js) is left as it is:
+      // its choices are what the viewer is reading, and a rebuild under
+      // them moves the one about to be clicked. The next apply fills it in.
+      if (isPicking(field.select)) continue;
       field.select.replaceChildren(...list.map(([value, text]) => {
         const option = document.createElement('option');
         option.value = value;

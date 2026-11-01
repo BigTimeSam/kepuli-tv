@@ -97,6 +97,14 @@ export class VirtualList {
    *   heightAt is given only when the rows differ in height.
    */
   setCount(count, { keepScroll = false, heightAt = null } = {}) {
+    // The spacer is one element as tall as every row together, and a
+    // browser caps an element's size: Firefox near 17.9 million pixels,
+    // Chrome near 33.5 million. A row is 3.125rem — 50 px at the default
+    // font size — so the largest list, a provider's whole film catalogue of
+    // 55,000 titles, is 2.75 million px, and even 100,000 titles at twice
+    // the font size stay under Firefox's cap. Past it the end of the list
+    // could not be scrolled to; no catalogue measured comes near, so the
+    // spacer is not scaled.
     this.count = count;
     this.offsets = heightAt && this.columns === 1 ? buildOffsets(count, heightAt) : null;
     this.spacer.style.height = `${this.totalHeight()}px`;

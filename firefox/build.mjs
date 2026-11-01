@@ -10,7 +10,7 @@
 // firefox/dist/, which is what Firefox loads and what the zip is made of.
 //
 //   node firefox/build.mjs            → firefox/dist/
-//   node firefox/build.mjs --zip      … and kepuli-tv-firefox-<version>.zip in the project root
+//   node firefox/build.mjs --zip      … and kepuli-tv-firefox-<version>-dev.zip in the project root
 //   node firefox/build.mjs --check    the manifest comparison alone, for the release checklist
 //
 // The two manifests are compared on every run: the version and every key
@@ -103,10 +103,16 @@ function summarise(dir) {
   return { files, bytes, version: readJson(join(dir, 'manifest.json')).version };
 }
 
-/** The package for AMO: firefox/dist/ zipped, named like the Chrome one. */
+/**
+ * firefox/dist/ zipped, for trying the working folder as a package. It is
+ * not the release package: that one, kepuli-tv-firefox-<version>.zip, is
+ * made by node dev/package.mjs firefox --zip from what is committed, with
+ * that script's checks. This one is built from whatever the folder holds
+ * now, so it carries a name of its own, lest it be uploaded in its place.
+ */
 export function zip() {
   const { version } = summarise(DIST);
-  const out = join(ROOT, `kepuli-tv-firefox-${version}.zip`);
+  const out = join(ROOT, `kepuli-tv-firefox-${version}-dev.zip`);
   rmSync(out, { force: true });
   execFileSync('zip', ['-rq', out, '.', '-x', '*.DS_Store'], { cwd: DIST });
   return { out, bytes: statSync(out).size };

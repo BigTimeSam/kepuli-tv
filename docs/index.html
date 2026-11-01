@@ -388,15 +388,20 @@ the player reads the file's metadata.</li>
 it. Close the image with the close button, by clicking outside it or by
 pressing Esc.</li>
   <li>If playback fails in the browser, copy the address with the <strong>URL</strong> button
-and open it in a player such as VLC. The external player button can also
-hand playback directly to the player selected in your settings.</li>
+and open it in a player such as VLC. The address contains your username
+and password, so do not paste it anywhere others can see it. The external
+player button can also hand playback directly to the player selected in
+your settings.</li>
 </ul>
 
 <h3 id="if-something-goes-wrong">If something goes wrong</h3>
 
 <ul>
   <li><strong>Refresh lists</strong> (the circular arrow in the top bar) fetches the content
-lists again from the server.</li>
+lists again from the server, including the countries and categories
+already opened, and shows the new list where you were. A tab left open
+checks by itself when you come back to it, once its lists are older than
+the cache keeps them.</li>
   <li>If the connection fails, check the address and credentials in <strong>Settings</strong>
 and make sure your subscription is still active.</li>
   <li>If cached information is outdated, clear the cache in Settings. Resetting
@@ -898,8 +903,13 @@ copied to <code>localStorage</code>, so a light theme does not flash dark at sta
 (<code>js/theme.js</code>);
 in a window 600px wide or less, Settings is a cog alone and the three share
 the brand's row. <strong>Refresh lists</strong> fetches the categories and
-the lists already loaded from the server again and empties the programme
-cache. <strong>Help</strong> opens this user guide. The <strong>⛶</strong> button is at the
+the lists already loaded from the server again — the whole lists, and the
+categories and groups opened this session, which used to stay as first
+fetched until a reload — drops the series' episode lists, and empties the
+programme cache; the list on screen is repainted in place. The same refresh
+runs quietly, without the strip or the programme cache, when a tab is
+shown again after its lists have outlived their cache time (categories a
+day, lists six hours). <strong>Help</strong> opens this user guide. The <strong>⛶</strong> button is at the
 right end of the browser's control bar, where a video's full screen button is
 everywhere else; viewers did not find it at the top right, where it used to
 be. It is the app's own, because the browser's takes the bare video full
@@ -1010,6 +1020,19 @@ first, so another server's listing — or another account's on the same server
 — never shows under the new one. The password is not part of the comparison,
 so correcting it costs nothing.</p>
 
+<p>Rows whose time is up are deleted a little after the player starts:
+categories after a day, whole lists after six hours, a series' episodes after
+a day, a film's details after a week, a file's header after 90 days. The rows
+are indexed by the time they were written, so finding the old ones reads no
+list's contents.</p>
+
+<p>A favourite and a history entry are copies made when they were saved. When
+the library has the same title in memory — a list or category loaded, a
+series' episodes read — playback takes the container, guide id and catch-up
+window from there, and the stored copy is brought up to date, so that a
+provider re-encoding a film from <code>.mkv</code> to <code>.mp4</code> does not break it in the
+favourites or Continue watching.</p>
+
 <h2 id="the-programme-guide">The programme guide</h2>
 
 <p>The guide is a grid with a column beside it: the programme's own details on
@@ -1089,6 +1112,11 @@ categories. Only channels with programme identifiers can be searched. The
 period selector includes upcoming programmes, past programmes or both.
 Search is explicit rather than triggered by every keystroke, makes at most four
 search requests in parallel, and reuses full programme tables in the guide cache.
+That cache keeps the 200 most recently fetched full tables and programme data
+for 5,000 channels at most, so a search of thousands of channels does not keep
+every table it read. A search of all channels when more than 500 of them have
+programme data asks first, with a <strong>Search all</strong> button, since each channel
+costs its whole programme table.
 Results and channel progress appear as answers arrive; failed channels are
 counted separately. <strong>Stop search</strong> keeps partial results. Selecting a result
 shows its description and live/catch-up actions; <strong>Back to guide</strong> restores the
@@ -1557,6 +1585,12 @@ installation asks for access to nothing. Access is asked for only when the
 server address is saved, and only for that server's origin. A missing
 permission shows up as a network error, alongside which there is a button for
 granting it. There are no content scripts.</li>
+  <li>A stream the server redirects to another host fails the same way even when
+the server's own host is granted. After a failed stream the player asks the
+address once more with a <code>HEAD</code> request that does not follow redirects; if
+it is a redirect, <strong>Allow all addresses</strong> is offered beside Retry. The
+browser hides where a redirect leads, so the one host it needs cannot be
+named, and the permission asked for covers every address.</li>
   <li>Access is needed only for fetch/XHR requests: <code>player_api.php</code> and the segment
 requests of hls.js and mpegts.js. Natively played VOD (<code>&lt;video src&gt;</code>) and
 channel logos (<code>&lt;img&gt;</code>) work without it.</li>
@@ -1728,7 +1762,9 @@ the package, and lists the zip against the previous one of the same browser,
 so a file that went missing or crept in shows up before the upload. <code>*.zip</code>
 and <code>dist/</code> are in <code>.gitignore</code>. AMO signs the Firefox package; see
 <code>FIREFOX.md</code>. <code>firefox/build.mjs</code> remains the development loop's assembler of
-<code>firefox/dist/</code> from the checkout, for <code>firefox/dev.mjs</code> to reload.</p>
+<code>firefox/dist/</code> from the checkout, for <code>firefox/dev.mjs</code> to reload; its
+<code>--zip</code> names its archive <code>kepuli-tv-firefox-&lt;version&gt;-dev.zip</code>, so a zip of
+the working folder is never mistaken for the release package.</p>
 
 <h3 id="publishing-to-the-stores">Publishing to the stores</h3>
 

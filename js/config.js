@@ -112,30 +112,60 @@ async function read(key, fallback) {
  * switch: its categories, covers and programme data would show until the
  * user found Clear cache. The password and the playback mode are not part
  * of it.
+ *
+ * Written the same way however the address was given: a host name is the
+ * same in any case, and a port left blank is the scheme's own — an address
+ * pasted from an M3U link says ':80' where a typed one says nothing, and
+ * the viewer's lists must not vanish over that.
  */
-const serverKey = (c) => `${c.scheme}://${c.host}:${c.port}/${c.username}`;
+const DEFAULT_PORTS = { http: '80', https: '443' };
 
-// The account in use, as loadConfig() and saveConfig() last saw it.
+export function accountKey(c) {
+  const scheme = String(c.scheme || 'http').trim().toLowerCase();
+  const host = String(c.host || '').trim().toLowerCase();
+  const port = String(c.port ?? '').trim().replace(/^0+(?=\d)/, '') || DEFAULT_PORTS[scheme] || '';
+  return `${scheme}://${host}:${port}/${c.username || ''}`;
+}
+
+// The account this tab shows, set by useAccount() when the tab connects
+// with a configuration — and only then. Reading or saving the stored
+// configuration does not change it: another tab may have switched the
+// stored one to another account, and this tab's favourites, history and
+// resume points in memory are still the ones it connected with. Taken from
+// storage instead, the next resume point saved here would have gone into
+// the other account's lists.
 let account = null;
+// The account key this tab itself last wrote into the stored
+// configuration, so that its own write is not taken for another tab's
+// switch when the storage event arrives before useAccount().
+let writtenAccount = null;
+
+export function useAccount(config) {
+  account = accountKey(config);
+  writtenAccount = null;
+  return account;
+}
+
+export const currentAccount = () => account;
 
 export async function loadConfig() {
-  const config = { ...CONNECTION_DEFAULTS, ...(await read('config', {})) };
-  account = serverKey(config);
-  return config;
+  return { ...CONNECTION_DEFAULTS, ...(await read('config', {})) };
 }
 
 export async function saveConfig(patch) {
   const prev = await loadConfig();
   const next = { ...prev, ...patch };
-  if (serverKey(next) !== serverKey(prev)) await cacheClear();
+  if (accountKey(next) !== accountKey(prev)) await cacheClear();
+  writtenAccount = accountKey(next);
   await api.storage.local.set({ config: next });
-  account = serverKey(next);
   return next;
 }
 
 /* ------------------------------------------------------ personal lists */
 
-const personalKey = (name) => (account ? `${name}:${account}` : name);
+const PERSONAL = ['favorites', 'recents', 'resume', 'reminders', 'channels'];
+
+const personalKey = (name, key = account) => (key ? `${name}:${key}` : name);
 
 /**
  * The account's own copy of a list. A copy from before the lists were
@@ -143,8 +173,7 @@ const personalKey = (name) => (account ? `${name}:${account}` : name);
  * and the bare name retired, so that nothing the viewer collected is
  * lost in the update.
  */
-async function readPersonal(name, fallback) {
-  const key = personalKey(name);
+async function readPersonal(name, fallback, key = personalKey(name)) {
   const data = await api.storage.local.get([key, name]);
   if (data[key] !== undefined) return data[key];
   if (key !== name && data[name] !== undefined) {
@@ -156,6 +185,138 @@ async function readPersonal(name, fallback) {
 }
 
 const writePersonal = (name, value) => api.storage.local.set({ [personalKey(name)]: value });
+
+/**
+ * One change to one stored list: read, changed, written back, with no other
+ * change of the player's — in this tab or another — in between. Each tab
+ * used to write its whole list from memory, so two open tabs undid each
+ * other's favourites and history: the last to save won. The lock is the
+ * browser's, shared by every tab of the extension and let go when a tab
+ * closes.
+ *
+ * The key is taken when the change is asked for, not when it runs, so that
+ * a resume point saved on the way out of an account lands in that account.
+ * Resolves to the new list, or null when the tab has moved to another
+ * account meanwhile and the list changed is no longer the one it shows.
+ */
+const LOCK = 'kepuli-tv-lists';
+let queue = Promise.resolve();
+function exclusive(task) {
+  if (globalThis.navigator?.locks) return navigator.locks.request(LOCK, task);
+  const run = queue.then(task, task);
+  queue = run.catch(() => {});
+  return run;
+}
+
+function updatePersonal(name, fallback, change) {
+  const owner = account;
+  const key = personalKey(name, owner);
+  return exclusive(async () => {
+    const next = change(await readPersonal(name, fallback, key));
+    await api.storage.local.set({ [key]: next });
+    return account === owner ? next : null;
+  });
+}
+
+/**
+ * Another tab's changes, as they are stored: the lists of the account this
+ * tab shows, a switch of the stored configuration to another account, and
+ * the configuration taken away — the reset in Settings.
+ */
+export function watchStorage({ onList, onAccount, onCleared }) {
+  api.storage.onChanged.addListener((changes, area) => {
+    if (area !== 'local') return;
+    if (changes.config) {
+      const config = changes.config.newValue;
+      if (config === undefined) { onCleared(); return; }
+      const next = { ...CONNECTION_DEFAULTS, ...config };
+      const key = accountKey(next);
+      if (key !== account && key !== writtenAccount) onAccount(next);
+    }
+    if (!account) return;
+    for (const name of PERSONAL) {
+      const change = changes[personalKey(name)];
+      if (change) onList(name, change.newValue);
+    }
+  });
+}
+
+/* ------------------------------------------------- the account's address */
+
+/** "scheme://host:port/user" back into its parts, or null. */
+function parseAccountKey(text) {
+  const m = /^([^:/]+):\/\/([^/]*)\/(.*)$/s.exec(text);
+  if (!m) return null;
+  const colon = m[2].lastIndexOf(':');
+  if (colon < 0) return null;
+  return { scheme: m[1], host: m[2].slice(0, colon), port: m[2].slice(colon + 1), username: m[3] };
+}
+
+/**
+ * The lists stored under an account key from before the keys were written
+ * the one way, moved to the key they have now. Where two spellings of one
+ * account both hold a list, the one the configuration in use was written
+ * with wins — that is the copy the viewer has been looking at. `inUse` is
+ * the configuration's key as the older versions wrote it.
+ * Returns what to write and what to remove; reads nothing itself.
+ */
+export function accountKeyMigration(data, inUse) {
+  const set = {};
+  const remove = [];
+  for (const key of Object.keys(data)) {
+    const colon = key.indexOf(':');
+    const name = key.slice(0, colon);
+    if (colon < 0 || !PERSONAL.includes(name)) continue;
+    const parsed = parseAccountKey(key.slice(colon + 1));
+    if (!parsed) continue;
+    const target = `${name}:${accountKey(parsed)}`;
+    if (target === key) continue;
+    // Two spellings of one account: the one in use wins the normalised
+    // key. The other is left where it is rather than dropped — lists are
+    // the viewer's, and a key nothing reads costs nothing.
+    const taken = target in set || target in data;
+    if (taken && key.slice(colon + 1) !== inUse) continue;
+    remove.push(key);
+    set[target] = data[key];
+  }
+  return { set, remove };
+}
+
+export async function migrateAccountKeys(config) {
+  const inUse = `${config.scheme}://${config.host}:${config.port}/${config.username}`;
+  const { set, remove } = accountKeyMigration(await api.storage.local.get(null), inUse);
+  if (Object.keys(set).length) await api.storage.local.set(set);
+  if (remove.length) await api.storage.local.remove(remove);
+}
+
+/**
+ * The lists of one account, for bringing over to another: the same user
+ * at a provider's new address. Copied only into lists the new address
+ * does not have yet, and left in place under the old one.
+ */
+export async function accountHasLists(config) {
+  const key = accountKey(config);
+  const data = await api.storage.local.get(PERSONAL.map((name) => personalKey(name, key)));
+  return PERSONAL.some((name) => {
+    const value = data[personalKey(name, key)];
+    if (name === 'channels') return value != null && Object.values(channelPreferences(value)).some((ids) => ids.length);
+    return value != null && Object.keys(value).length > 0;
+  });
+}
+
+export async function copyAccountLists(from, to) {
+  const source = accountKey(from);
+  const target = accountKey(to);
+  await exclusive(async () => {
+    const data = await api.storage.local.get(PERSONAL.flatMap((name) => [personalKey(name, source), personalKey(name, target)]));
+    const set = {};
+    for (const name of PERSONAL) {
+      const value = data[personalKey(name, source)];
+      if (value !== undefined && data[personalKey(name, target)] === undefined) set[personalKey(name, target)] = value;
+    }
+    if (Object.keys(set).length) await api.storage.local.set(set);
+  });
+}
 
 export async function loadChannelPreferences() {
   return channelPreferences(await readPersonal('channels', {}));
@@ -185,14 +346,23 @@ export async function saveSettings(patch) {
   return next;
 }
 
-/** Commit all dialog changes together after Save. No draft reaches storage. */
+/**
+ * Commit all dialog changes together after Save. No draft reaches storage.
+ * Without a connection patch the stored configuration is left as it is and
+ * none is returned: another tab may have switched it meanwhile, and a save
+ * of the subtitle size here is no reason to take that tab's account over.
+ */
 export async function saveSetup(configPatch, settingsPatch) {
+  const settings = { ...(await loadSettings()), ...settingsPatch };
+  if (!configPatch) {
+    await api.storage.local.set({ settings });
+    return { config: null, settings };
+  }
   const prev = await loadConfig();
   const config = { ...prev, ...configPatch };
-  const settings = { ...(await loadSettings()), ...settingsPatch };
-  if (serverKey(config) !== serverKey(prev)) await cacheClear();
+  if (accountKey(config) !== accountKey(prev)) await cacheClear();
+  writtenAccount = accountKey(config);
   await api.storage.local.set({ config, settings });
-  account = serverKey(config);
   return { config, settings };
 }
 
@@ -210,31 +380,41 @@ export async function loadFavorites() {
   return new Map(list.map((item) => [itemKey(item), item]));
 }
 
-export async function saveFavorites(map) {
-  await writePersonal('favorites', [...map.values()]);
+/** One favourite added (item) or taken away (null), see updatePersonal. */
+export function setFavorite(key, item) {
+  return updatePersonal('favorites', [], (list) => {
+    const at = list.findIndex((entry) => itemKey(entry) === key);
+    if (!item) { if (at >= 0) list.splice(at, 1); }
+    else if (at >= 0) list[at] = item;
+    else list.push(item);
+    return list;
+  });
 }
 
 /* ------------------------------------------------------------- history */
 
 export async function loadRecents() { return readPersonal('recents', []); }
 
-export async function pushRecent(item) {
+export function pushRecent(item) {
   const key = itemKey(item);
-  const list = (await loadRecents()).filter((r) => itemKey(r) !== key);
-  list.unshift({ ...item, watchedAt: Date.now() });
-  const trimmed = list.slice(0, MAX_RECENTS);
-  await writePersonal('recents', trimmed);
-  return trimmed;
+  return updatePersonal('recents', [], (list) => {
+    const rest = list.filter((r) => itemKey(r) !== key);
+    rest.unshift({ ...item, watchedAt: Date.now() });
+    return rest.slice(0, MAX_RECENTS);
+  });
 }
 
-export async function removeRecent(key) {
-  const list = (await loadRecents()).filter((r) => itemKey(r) !== key);
-  await writePersonal('recents', list);
-  return list;
+/** Fields of one history entry brought up to date, where it stands in the list. */
+export function patchRecent(key, patch) {
+  return updatePersonal('recents', [], (list) => list.map((r) => (itemKey(r) === key ? { ...r, ...patch } : r)));
 }
 
-export async function clearRecents() {
-  await writePersonal('recents', []);
+export function removeRecent(key) {
+  return updatePersonal('recents', [], (list) => list.filter((r) => itemKey(r) !== key));
+}
+
+export function clearRecents() {
+  return updatePersonal('recents', [], () => []);
 }
 
 /* ----------------------------------------------------------- reminders */
@@ -243,7 +423,31 @@ export async function clearRecents() {
 // The channel ids are the account's own, so the list is too.
 export async function loadReminders() { return readPersonal('reminders', []); }
 
-export async function saveReminders(list) { await writePersonal('reminders', list); }
+export const reminderKey = (r) => `${r.channel.id}:${r.start}`;
+
+/** One reminder set (reminder) or cleared (null); those whose programme has ended go too. */
+export function setReminder(key, reminder) {
+  const now = Date.now();
+  return updatePersonal('reminders', [], (list) => {
+    const rest = list.filter((r) => r.stop > now && reminderKey(r) !== key);
+    if (reminder) rest.push(reminder);
+    return rest;
+  });
+}
+
+/**
+ * The reminders due by `until`, taken out of the list. Every open tab arms
+ * the same timer, and the one that takes a reminder is the one that says
+ * it: the others find it gone.
+ */
+export async function takeDueReminders(until) {
+  let due = [];
+  const left = await updatePersonal('reminders', [], (list) => {
+    due = list.filter((r) => r.start <= until);
+    return list.filter((r) => r.start > until);
+  });
+  return left ? due : [];
+}
 
 /* ------------------------------------------------------- resume points */
 
@@ -251,10 +455,18 @@ export async function loadResume() {
   return new Map(Object.entries(await readPersonal('resume', {})));
 }
 
-export async function saveResume(map) {
-  // The oldest are dropped so that storage does not grow without bound.
-  const entries = [...map.entries()].sort((a, b) => b[1].at - a[1].at).slice(0, MAX_RESUME);
-  await writePersonal('resume', Object.fromEntries(entries));
+/** The resume points as stored: the oldest dropped, so that storage does not grow without bound. */
+export function resumeObject(points) {
+  const entries = Object.entries(points).sort((a, b) => b[1].at - a[1].at).slice(0, MAX_RESUME);
+  return Object.fromEntries(entries);
+}
+
+/** One resume point kept (point) or forgotten (null). */
+export function setResume(key, point) {
+  return updatePersonal('resume', {}, (points) => {
+    if (point) points[key] = point; else delete points[key];
+    return resumeObject(points);
+  });
 }
 
 /* -------------------------------------------------------------- updates */

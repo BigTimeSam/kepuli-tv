@@ -10,7 +10,7 @@
 // memory only, because they are cheap to fetch again and then cannot hang
 // around stale.
 
-import { cacheGet, cachePut, cacheAge, cacheClear } from './db.js';
+import { cacheGet, cacheEntry, cachePut, cacheClear } from './db.js';
 import { localeTag } from './i18n.js';
 import { channelLogo } from './logos.js';
 import { internationalChannels } from './international.js';
@@ -68,14 +68,37 @@ const TTL = {
   vodInfo: 7 * 24 * 3600e3,
 };
 
+/**
+ * How long a cached row of the library's is good for, by its key — or null
+ * for a key that is not the library's. For db.js's cachePurge(): a row past
+ * its time is never read again, since every read asks for a fresher one.
+ */
+export function cacheTtl(key) {
+  const name = String(key).slice(String(key).indexOf('|') + 1);
+  if (name.startsWith('cats:')) return TTL.categories;
+  if (name.startsWith('full:')) return TTL.full;
+  if (name.startsWith('series:')) return TTL.seriesInfo;
+  if (name.startsWith('vod:')) return TTL.vodInfo;
+  return null;
+}
+
 export class Library {
-  constructor(api) {
+  /**
+   * @param {string} [account] the account the catalogue is cached under,
+   *        see accountKey() in js/config.js. A request still running for the
+   *        previous account, or another tab on another account, writes
+   *        under its own name and cannot hand this one its lists.
+   */
+  constructor(api, account = '') {
     this.api = api;
+    this.scope = account ? `${account}|` : '';
     this.categories = { live: [], movie: [], series: [] };
     this.groups = { live: [], movie: [], series: [] };
     this.full = { live: null, movie: null, series: null };
     this.keys = { live: null, movie: null, series: null };
     this.fullAt = { live: null, movie: null, series: null };
+    this.categoriesAt = null;        // when the oldest of the categories was fetched
+    this.listsAt = null;             // when the oldest list in byCategory was fetched
     this.catCodes = new Map();       // category id → the country codes it names
     this.globalIds = null;           // the international channels' ids, see international()
     this.byCategory = new Map();     // "live:3" → items (in memory)
@@ -89,16 +112,18 @@ export class Library {
   /* ------------------------------------------------------------ categories */
 
   async loadCategories({ force = false, signal } = {}) {
-    await Promise.all(TYPES.map(async (type) => {
-      const key = `cats:${type}`;
+    const times = await Promise.all(TYPES.map(async (type) => {
+      const key = `${this.scope}cats:${type}`;
       if (!force) {
-        const cached = await cacheGet(key, TTL.categories);
-        if (cached) { this.categories[type] = cached; return; }
+        const cached = await cacheEntry(key, TTL.categories);
+        if (cached) { this.categories[type] = cached.value; return cached.at; }
       }
       const cats = await this.api.categories(type, { signal });
       this.categories[type] = cats;
       await cachePut(key, cats);
+      return Date.now();
     }));
+    this.categoriesAt = Math.min(...times);
     for (const type of TYPES) this.groups[type] = buildGroups(this.categories[type]);
     // The channel logos need to know which country a channel belongs to,
     // and the column it is filed under is where that is written down. The
@@ -140,8 +165,9 @@ export class Library {
     const hit = this.byCategory.get(key);
     if (hit) return hit;
     return this.share(key, async () => {
+      const at = Date.now();
       const items = await this.fetchCategories(type, group.cats.map((c) => c.id), onProgress, signal);
-      this.byCategory.set(key, items);
+      this.keepList(key, items, at);
       return items;
     });
   }
@@ -202,20 +228,27 @@ export class Library {
     const hit = this.byCategory.get(key);
     if (hit) return hit;
     return this.share(key, async () => {
+      const at = Date.now();
       const items = sortItems(this.withLogos(type, await this.api.streams(type, categoryId, { signal })));
-      this.byCategory.set(key, items);
+      this.keepList(key, items, at);
       return items;
     });
+  }
+
+  /** A category's or a group's list, kept in memory with the time it was asked for. */
+  keepList(key, items, at) {
+    this.byCategory.set(key, items);
+    if (this.listsAt == null || at < this.listsAt) this.listsAt = at;
   }
 
   /** A type's whole list. Returns at once if already loaded or cached. */
   async ensureFull(type, { onProgress, force = false, signal } = {}) {
     if (this.full[type] && !force) return this.full[type];
     return this.share(`full:${type}`, async () => {
-      const key = `full:${type}`;
+      const key = `${this.scope}full:${type}`;
       if (!force) {
-        const cached = await cacheGet(key, TTL.full);
-        if (cached) { this.setFull(type, cached, await cacheAge(key)); return this.full[type]; }
+        const cached = await cacheEntry(key, TTL.full);
+        if (cached) { this.setFull(type, cached.value, cached.at); return this.full[type]; }
       }
       const items = await this.api.streams(type, null, { onProgress, signal });
       this.setFull(type, items, Date.now());
@@ -231,7 +264,42 @@ export class Library {
     // visible stutter.
     this.keys[type] = this.full[type].map((it) => searchKey(it.n));
     this.byCategory.clear();
+    this.listsAt = null;
     if (type === 'live') this.globalIds = null;
+  }
+
+  /**
+   * Everything the viewer can see the catalogue through, fetched again: the
+   * categories, the whole lists already loaded, and — the part Refresh
+   * used to miss — the categories and groups opened this session, which
+   * stayed in memory as they were first fetched. They are dropped rather
+   * than fetched here: the caller asks again for the one on screen, and the
+   * rest are fetched when they are next opened.
+   *
+   * The series' episode lists go too, from memory and from the cache: a
+   * series still running is where new things appear. A film's details are
+   * kept; they are a title's facts and do not change.
+   */
+  async refresh({ signal, onProgress } = {}) {
+    await this.loadCategories({ force: true, signal });
+    for (const type of TYPES) {
+      if (this.full[type]) await this.ensureFull(type, { force: true, onProgress, signal });
+    }
+    this.byCategory.clear();
+    this.listsAt = null;
+    for (const key of [...this.details.keys()]) if (key.startsWith('series:')) this.details.delete(key);
+    await cacheClear(`${this.scope}series:`);
+  }
+
+  /**
+   * Whether anything in memory is older than the cache would have let it
+   * be: a tab left open for a day still shows the day-old lists, because
+   * nothing in memory is asked about again by itself.
+   */
+  isStale(now = Date.now()) {
+    if (this.categoriesAt != null && now - this.categoriesAt > TTL.categories) return true;
+    if (this.listsAt != null && now - this.listsAt > TTL.full) return true;
+    return TYPES.some((type) => this.fullAt[type] != null && now - this.fullAt[type] > TTL.full);
   }
 
   /**
@@ -290,8 +358,8 @@ export class Library {
     const key = `series:v2:${seriesId}`;
     if (this.details.has(key)) return this.details.get(key);
     return this.share(key, async () => {
-      let info = await cacheGet(key, TTL.seriesInfo);
-      if (!info) { info = await this.api.seriesInfo(seriesId); await cachePut(key, info); }
+      let info = await cacheGet(this.scope + key, TTL.seriesInfo);
+      if (!info) { info = await this.api.seriesInfo(seriesId); await cachePut(this.scope + key, info); }
       this.details.set(key, info);
       return info;
     });
@@ -301,8 +369,8 @@ export class Library {
     const key = `vod:v2:${vodId}`;
     if (this.details.has(key)) return this.details.get(key);
     return this.share(key, async () => {
-      let info = await cacheGet(key, TTL.vodInfo);
-      if (!info) { info = await this.api.vodInfo(vodId); await cachePut(key, info); }
+      let info = await cacheGet(this.scope + key, TTL.vodInfo);
+      if (!info) { info = await this.api.vodInfo(vodId); await cachePut(this.scope + key, info); }
       this.details.set(key, info);
       return info;
     });
@@ -390,6 +458,8 @@ export class Library {
     this.full = { live: null, movie: null, series: null };
     this.keys = { live: null, movie: null, series: null };
     this.fullAt = { live: null, movie: null, series: null };
+    this.categoriesAt = null;
+    this.listsAt = null;
     this.catCodes.clear();
     this.globalIds = null;
     this.byCategory.clear();
