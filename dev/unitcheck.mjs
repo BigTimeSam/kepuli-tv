@@ -1116,6 +1116,14 @@ check('the history may hold a series', parseRoute('#/recent?series=5'), { tab: '
   large.set([0x6d, 0x64, 0x61, 0x74], 4);
   new DataView(large.buffer).setUint32(8, 1);
   new DataView(large.buffer).setUint32(12, 16);
+  // A damaged index claiming more samples than its box holds is refused
+  // before anything is allocated for it.
+  const damaged = moov.slice();
+  const stszAt = (() => { for (let i = 0; i < damaged.length - 4; i++) if (String.fromCharCode(...damaged.subarray(i, i + 4)) === 'stsz') return i - 4; return -1; })();
+  new DataView(damaged.buffer).setUint32(stszAt + 12 + 4, 0xfffffff0);
+  let refused = null;
+  try { parseMoov(damaged); } catch (err) { refused = err.message; }
+  check('mp4: a sample count larger than its table is refused', refused, 'the MP4 index is damaged (stsz)');
   check('mp4: a 64-bit box size is read whole', boxHeader(large, 0), { type: 'mdat', size: 4294967312, header: 16 });
 }
 

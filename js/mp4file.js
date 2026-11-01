@@ -135,6 +135,19 @@ function editShift(bytes, view, trak, timescale, movieScale) {
   return 0;
 }
 
+// The most samples a track may claim. A three-hour film at 60 frames a
+// second has some 650,000 pictures and its AAC sound some 500,000 frames;
+// a file claiming more is broken or made to exhaust memory, and is not
+// allocated for.
+export const MAX_SAMPLES = 2_000_000;
+
+/** A table's entry count, checked against the box that holds it. */
+function entries(view, box, at, width) {
+  const n = view.getUint32(at);
+  if (n > MAX_SAMPLES || at + 4 + n * width > box.end) throw new Error(`the MP4 index is damaged (${box.type})`);
+  return n;
+}
+
 function sampleTables(bytes, view, stbl) {
   const box = (type) => child(bytes, stbl, type);
   const stsz = box('stsz');
@@ -149,13 +162,15 @@ function sampleTables(bytes, view, stbl) {
   let size;
   if (stsz) {
     const fixed = view.getUint32(stsz.body + 4);
-    count = view.getUint32(stsz.body + 8);
+    count = fixed ? view.getUint32(stsz.body + 8) : entries(view, stsz, stsz.body + 8, 4);
+    if (count > MAX_SAMPLES) throw new Error('the MP4 index is damaged (stsz)');
     size = new Uint32Array(count);
     if (fixed) size.fill(fixed);
     else for (let i = 0; i < count; i++) size[i] = view.getUint32(stsz.body + 12 + i * 4);
   } else {
     const field = bytes[stz2.body + 7];
-    count = view.getUint32(stz2.body + 8);
+    if (field !== 4 && field !== 8 && field !== 16) throw new Error('the MP4 index is damaged (stz2)');
+    count = entries(view, stz2, stz2.body + 8, field / 8);
     size = new Uint32Array(count);
     for (let i = 0; i < count; i++) {
       const at = stz2.body + 12;
@@ -166,18 +181,21 @@ function sampleTables(bytes, view, stbl) {
 
   // Offsets, chunk by chunk.
   const wide = stco.type === 'co64';
-  const chunks = view.getUint32(stco.body + 4);
+  const chunks = entries(view, stco, stco.body + 4, wide ? 8 : 4);
   const chunkOffset = (c) => (wide
     ? view.getUint32(stco.body + 8 + c * 8) * 4294967296 + view.getUint32(stco.body + 12 + c * 8)
     : view.getUint32(stco.body + 8 + c * 4));
-  const runs = view.getUint32(stsc.body + 4);
+  const runs = entries(view, stsc, stsc.body + 4, 12);
   const offset = new Float64Array(count);
   let sample = 0;
   for (let r = 0; r < runs && sample < count; r++) {
     const at = stsc.body + 8 + r * 12;
     const firstChunk = view.getUint32(at) - 1;
     const perChunk = view.getUint32(at + 4);
-    const lastChunk = r + 1 < runs ? view.getUint32(at + 12) - 1 : chunks;
+    // A run's chunks end where the next run's begin, and never past the
+    // chunk table: a run of empty chunks claimed to go on for ever would
+    // otherwise spin here.
+    const lastChunk = Math.min(chunks, r + 1 < runs ? view.getUint32(at + 12) - 1 : chunks);
     for (let c = firstChunk; c < lastChunk && sample < count; c++) {
       let pos = chunkOffset(c);
       for (let k = 0; k < perChunk && sample < count; k++) {
@@ -193,10 +211,10 @@ function sampleTables(bytes, view, stbl) {
   const dts = new Float64Array(count);
   const duration = new Uint32Array(count);
   {
-    const entries = view.getUint32(stts.body + 4);
+    const runs = entries(view, stts, stts.body + 4, 8);
     let t = 0;
     let i = 0;
-    for (let e = 0; e < entries && i < count; e++) {
+    for (let e = 0; e < runs && i < count; e++) {
       const n = view.getUint32(stts.body + 8 + e * 8);
       const delta = view.getUint32(stts.body + 12 + e * 8);
       for (let k = 0; k < n && i < count; k++) { dts[i] = t; duration[i] = delta; t += delta; i++; }
@@ -209,9 +227,9 @@ function sampleTables(bytes, view, stbl) {
   const ctts = box('ctts');
   if (ctts) {
     const v = bytes[ctts.body];
-    const entries = view.getUint32(ctts.body + 4);
+    const runs = entries(view, ctts, ctts.body + 4, 8);
     let i = 0;
-    for (let e = 0; e < entries && i < count; e++) {
+    for (let e = 0; e < runs && i < count; e++) {
       const n = view.getUint32(ctts.body + 8 + e * 8);
       const value = v === 1 ? view.getInt32(ctts.body + 12 + e * 8) : view.getUint32(ctts.body + 12 + e * 8) | 0;
       for (let k = 0; k < n && i < count; k++) cts[i++] = value;
@@ -223,8 +241,8 @@ function sampleTables(bytes, view, stbl) {
   const stss = box('stss');
   if (stss) {
     sync = new Uint8Array(count);
-    const entries = view.getUint32(stss.body + 4);
-    for (let e = 0; e < entries; e++) {
+    const marks = entries(view, stss, stss.body + 4, 4);
+    for (let e = 0; e < marks; e++) {
       const n = view.getUint32(stss.body + 8 + e * 4) - 1;
       if (n >= 0 && n < count) sync[n] = 1;
     }
