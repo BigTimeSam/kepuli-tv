@@ -63,6 +63,14 @@ RARELY
   • Category, language, homepage, support URL, privacy policy URL, test
     instructions: leave them unless the thing they describe has moved.
 
+FOR 1.4.2 SPECIFICALLY
+  Only "version" changed in the manifests; the listings are those set up
+  for 1.4.0. The fixes are in playback: MP4 films over plain HTTP play in
+  Firefox, and Chrome's own full screen button is back. So: upload
+  kepuli-tv-chrome-1.4.2.zip and nothing else. If 1.4.1 or 1.4.0 is still
+  in review, cancel that submission first (Package → Cancel review); 1.4.2
+  carries everything they did.
+
 FOR 1.4.1 SPECIFICALLY
   Only "version" changed in the manifests; the listings are those set up
   for 1.4.0. The fix is in playback: a title the provider answers with
