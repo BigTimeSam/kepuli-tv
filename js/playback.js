@@ -254,6 +254,7 @@ export class Playback {
     if (chain.length === 0 || (!spec.live && !spec.catchup && chain[0] === 'mpegts')) {
       const known = await this.inspect(spec, token);
       if (!known) return;
+      if (known.path === 'empty') return this.nothingThere(spec);
       if (known.path === 'native') chain = ['native'];
       else if (known.path === 'mpegts') chain = ['mpegts'];
       else if (known.path === 'remux') chain = ['remux'];
@@ -309,6 +310,18 @@ export class Playback {
     this.probing = null;
   }
 
+  /**
+   * The provider answered and sent nothing: it has no file for the title.
+   * Said at once and as it is — content, not the account: the account is
+   * not asked (see content in js/app.js), since our own read of the empty
+   * answer may still be counted there and would blame another viewer.
+   */
+  nothingThere(spec) {
+    const verdict = { path: 'empty', reason: t('probe.empty') };
+    spec.verdict = verdict;
+    this.onState({ status: 'error', message: t('playback.empty'), verdict, content: true });
+  }
+
   refuse(known, extra = {}) {
     this.onState({
       status: 'error',
@@ -333,6 +346,7 @@ export class Playback {
     if (spec.live || spec.catchup || spec.probe) { this.onState({ status: 'error', message: generic, verdict: spec.verdict, refused }); return; }
     const known = await this.inspect(spec, token);
     if (!known) return;
+    if (known.path === 'empty') return this.nothingThere(spec);
     if (known.path === 'silent') return this.refuse(known, { canSilent: true });
     if (known.path === 'remux' || known.path === 'none') return this.refuse(known);
     this.onState({ status: 'error', message: generic, verdict: known });
@@ -344,7 +358,7 @@ export class Playback {
     this.noteOpen();
     this.sourceDone = false;
 
-    const finish = (ok, why, { refused = false } = {}) => {
+    const finish = (ok, why, { refused = false, empty = false } = {}) => {
       if (token !== this.token) return;
       // The engine keeps reporting after the start has been settled, and a
       // failure then is a different event from a failed start.
@@ -373,6 +387,9 @@ export class Playback {
       const engine = this.engine;
       this.engine = null;
       if (engine) { try { engine.destroy(); } catch { /* purettu */ } }
+      // The server answered OK with nothing in it: no other engine gets a
+      // picture out of that, see emptyAnswer() in js/probe.js.
+      if (empty) return void this.nothingThere(spec);
       // The server answered and said no. For a live channel that is the
       // account's connections far more often than the format: the
       // provider goes on counting the stream just closed for a while, and a
@@ -549,7 +566,7 @@ export class Playback {
       onError: (err) => finish(false, err && err.message ? err.message : t('playback.reason.demux')),
     });
     this.engine = remuxer;
-    remuxer.start().catch((err) => finish(false, err && err.message ? err.message : String(err)));
+    remuxer.start().catch((err) => finish(false, err && err.message ? err.message : String(err), { empty: Boolean(err && err.empty) }));
   }
 
   startNative(spec) {

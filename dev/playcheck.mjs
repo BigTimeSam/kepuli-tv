@@ -171,6 +171,14 @@
 //   node dev/playcheck.mjs guidekeep  the guide keeps its scroll and row over
 //                                     a language switch, and its days and the
 //                                     programme search's line follow it
+//   node dev/playcheck.mjs emptyfile  a title the provider answers with "200
+//                                     OK" and no bytes says so at once, not
+//                                     that the account's connections are full
+//   node dev/playcheck.mjs longfilm   with KEPULI_MOCK_LONG set to a folder of
+//                                     long.mkv/.mp4/.ts (KEPULI_MOCK_EPISODE_EXT
+//                                     picks one), a feature-length file plays
+//                                     on with its own duration for
+//                                     KEPULI_LONG_SECS; skipped without it
 //
 // The driver is the one dev/store-screenshots.mjs uses, from the same
 // profile (KEPULI_DEV_PROFILE) and port (KEPULI_DEV_PORT), and it needs the
@@ -361,6 +369,61 @@ async function playEpisode(page, index = 0) {
 }
 
 /* -------------------------------------------------------------- scenarios */
+
+/**
+ * A feature-length file read through: KEPULI_MOCK_LONG serves every episode
+ * from a long file (see the server), KEPULI_MOCK_EPISODE_EXT picks its
+ * format. The duration must stay the file's own and the picture must keep
+ * going for KEPULI_LONG_SECS, the download fetched part by part behind it.
+ */
+async function emptyfile(page) {
+  process.env.KEPULI_MOCK_EMPTY = '1';
+  try {
+    await evaluate(page, `document.querySelector('#tabs [data-tab="series"]').click()`);
+    await click(page, '#groups', 'Nordic Noir');
+    await click(page, '#list', 'Silent Fjord');
+    await waitFor(page, `!document.getElementById('detail').hidden && document.querySelectorAll('#list .row').length > 0`, 'the series page');
+    const t0 = Date.now();
+    await evaluate(page, `document.querySelectorAll('#list .row')[0].click()`, { gesture: true });
+    let text = '';
+    for (let i = 0; i < 160; i++) {
+      text = await evaluate(page, `document.getElementById('overlay').hidden ? '' : document.getElementById('overlay-text').textContent`);
+      if (/provider sent nothing/i.test(text)) break;
+      await sleep(250);
+    }
+    const secs = ((Date.now() - t0) / 1000).toFixed(1);
+    // Our own empty read may still be counted at the provider: the account
+    // must not be asked, nor another viewer blamed.
+    await sleep(3000);
+    const after = await evaluate(page, `document.getElementById('overlay-text').textContent`);
+    const buttons = await evaluate(page, `[...document.querySelectorAll('#overlay button')].map((b) => b.textContent.trim()).filter(Boolean).join(' / ')`);
+    const ok = /provider sent nothing/i.test(after) && !/connection|in use/i.test(after) && Number(secs) < 10;
+    return { ok, detail: `after ${secs} s: "${after}" [${buttons}]` };
+  } finally {
+    process.env.KEPULI_MOCK_EMPTY = '';
+  }
+}
+
+async function longfilm(page) {
+  if (!process.env.KEPULI_MOCK_LONG) return { ok: true, detail: 'skipped: KEPULI_MOCK_LONG names no folder of long files' };
+  const secs = Number(process.env.KEPULI_LONG_SECS || 240);
+  await playEpisode(page);
+  const first = await evaluate(page, `document.getElementById('video').duration`);
+  const samples = [];
+  const t0 = Date.now();
+  let bad = null;
+  while (Date.now() - t0 < secs * 1000) {
+    await sleep(5000);
+    const s = await evaluate(page, `(() => { const v = document.getElementById('video'); const b = v.buffered;
+      return { at: Math.round((Date.now() - ${t0}) / 1000), t: +v.currentTime.toFixed(1), d: +(+v.duration).toFixed(1), end: b.length ? +b.end(b.length - 1).toFixed(1) : 0,
+        ended: v.ended, paused: v.paused, overlay: document.getElementById('overlay').hidden ? '' : document.getElementById('overlay').innerText.replace(/\s+/g, ' ').slice(0, 100) }; })()`);
+    samples.push(s);
+    if (s.d < first - 1 || s.ended || s.overlay) { bad = s; break; }
+  }
+  const last = samples[samples.length - 1];
+  const ok = !bad && last.t > Math.min(secs * 0.8, first - 5);
+  return { ok, detail: `duration ${first} s; ${samples.map((s) => `${s.at}s:t=${s.t}/d=${s.d}/buf=${s.end}${s.paused ? ' paused' : ''}${s.overlay ? ' "' + s.overlay + '"' : ''}`).join(' ')}` };
+}
 
 async function seek(page) {
   const T1 = 90, T2 = 100;
@@ -2724,14 +2787,14 @@ async function resettabs(page, { target }) {
   }
 }
 
-const SCENARIOS = { catalogUi, setupClarity, fullscreenControl, clickpause, pickers, channels, home, resumemkv, restore, programmes, catchup, seek, death, cancel, timeout, search, paste, keys, switching, resume, connections, livezap, livequiet, reconnect, accounts, listerror, a11y, subtitles, audio, settings,
+const SCENARIOS = { emptyfile, longfilm, catalogUi, setupClarity, fullscreenControl, clickpause, pickers, channels, home, resumemkv, restore, programmes, catchup, seek, death, cancel, timeout, search, paste, keys, switching, resume, connections, livezap, livequiet, reconnect, accounts, listerror, a11y, subtitles, audio, settings,
   lastchannel, nextepisode, continuewatching, reminders, update, seeklag, cuesretry, quota, catchupfreeze, catchupfull, twotabs, switchstop, resettabs,
   refresh, restorenav, guidekeep };
 // The mock's whole-list answers stall for these, longer than the request limit.
 const SLOW_LIST_MS = { cancel: 60000, timeout: 60000 };
 // The media is sent slowly for these: the seek targets must lie outside the
 // buffer, and the download must still be under way when the server is cut.
-const THROTTLED = new Set(['seek', 'death', 'reconnect', 'connections', 'seeklag', 'cuesretry']);
+const THROTTLED = new Set(['longfilm', 'seek', 'death', 'reconnect', 'connections', 'seeklag', 'cuesretry']);
 
 /* -------------------------------------------------------------------- main */
 

@@ -287,7 +287,7 @@ export const MULTI_EPISODES = new Set();
           if (ac3) AC3_EPISODES.add(String(epId));
           if (multi) MULTI_EPISODES.add(String(epId));
           episodes[String(s)].push({
-            id: String(epId), episode_num: e, title: pick(r, EPISODE_TITLES), container_extension: mkv || ac3 || multi ? 'mkv' : 'mp4',
+            id: String(epId), episode_num: e, title: pick(r, EPISODE_TITLES), container_extension: process.env.KEPULI_MOCK_EPISODE_EXT || (mkv || ac3 || multi ? 'mkv' : 'mp4'),
             info: {
               movie_image: entry.cover, plot: plotFor(r), duration_secs: mins * 60 + between(r, 0, 59), duration: `00:${mins}:00`,
               air_date: `${year + s - 1}-${String(between(r, 9, 12)).padStart(2, '0')}-${String(between(r, 1, 28)).padStart(2, '0')}`,
@@ -692,6 +692,21 @@ function handle(req, res) {
 }
 
 function sendMedia(req, res, path, ext) {
+  // KEPULI_MOCK_EMPTY: every film and episode is answered the way a real
+  // provider answers a title it has no file for — "200 OK", text/html and
+  // not one byte, where a playable title is a redirect and a 206.
+  if (process.env.KEPULI_MOCK_EMPTY) {
+    res.writeHead(200, { ...CORS, 'Content-Type': 'text/html; charset=UTF-8', 'Transfer-Encoding': 'chunked' });
+    return res.end();
+  }
+  // KEPULI_MOCK_LONG, a folder: every film and episode is served from its
+  // long.<ext> there instead (long.mkv, long.mp4, long.ts) — for a feature
+  // length file, which the demo media are not, read through to its end.
+  const long = process.env.KEPULI_MOCK_LONG;
+  if (long && existsSync(join(long, `long.${ext}`))) {
+    const types = { mkv: 'video/x-matroska', mp4: 'video/mp4', ts: 'video/mp2t' };
+    return sendFile(req, res, join(long, `long.${ext}`), types[ext] || 'application/octet-stream');
+  }
   if (ext === 'mkv') {
     const id = path.slice(path.lastIndexOf('/') + 1, -4);
     const variant = (set, file) => (set.has(id) && existsSync(join(MEDIA, file)) ? file : null);

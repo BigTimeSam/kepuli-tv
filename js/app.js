@@ -2529,7 +2529,9 @@ function onPlaybackState(s) {
     // Soon after a stream of ours was let go, a full account may be the
     // server still counting it: the account is asked before any failure
     // is shown, and a release waited for rather than reported.
-    if (!s.checked && state.playingSpec && !state.playingSpec.awaitedRelease && playback.followedRelease) {
+    // An answer with nothing in it (s.content) is the provider having no
+    // file for the title: neither a wait nor the account would change it.
+    if (!s.checked && !s.content && state.playingSpec && !state.playingSpec.awaitedRelease && playback.followedRelease) {
       checkBeforeFailing(s);
       return;
     }
@@ -2541,7 +2543,10 @@ function onPlaybackState(s) {
     el.overlayText.textContent = s.message;
     // Right here an external player is worth the most: the browser has
     // already given up.
-    const actions = [
+    const actions = s.content ? [
+      { label: t('player.retry'), onClick: retryPlayback },
+      { label: t('player.copyurl'), onClick: copyUrl },
+    ] : [
       { label: t('player.retry'), onClick: retryPlayback },
       { label: t('ext.title'), onClick: playExternal },
       { label: t('player.copyurl'), onClick: copyUrl },
@@ -2555,6 +2560,7 @@ function onPlaybackState(s) {
       });
     }
     showOverlayActions(actions);
+    if (s.content) return;
     // Why it failed, when the account can say: a subscription that has run
     // out, or every connection already in use.
     explainFailure(s.message);

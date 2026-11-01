@@ -98,6 +98,10 @@ export async function probe(url, { signal, force } = {}) {
     container: 'unknown',
     error: err && err.message ? err.message : String(err),
   })));
+  // An empty answer is the provider saying it has no file for the title,
+  // not a busy connection, and not worth remembering either: the file may
+  // turn up. See emptyAnswer().
+  if (info.empty) info.error = t('probe.empty');
   info.at = Date.now();
   // A network error is not worth remembering: it may come from the single
   // connection being busy.
@@ -145,8 +149,17 @@ async function readHeader(url, signal) {
 
 /* ------------------------------------------------------------------ tunnistus */
 
+/**
+ * Whether an answer that said OK carried nothing to play. Measured on a
+ * provider: a title it has no file for is answered "200 OK", text/html and
+ * an empty body, where a playable one is a redirect to the file's server and
+ * a 206. Nothing about the account is wrong then, and no engine or retry
+ * will get a picture out of it.
+ */
+export const emptyAnswer = (bytes) => bytes.length < 16;
+
 function parse(bytes) {
-  if (bytes.length < 16) return { container: 'unknown', error: 'liian vähän tavuja' };
+  if (emptyAnswer(bytes)) return { container: 'unknown', error: 'empty', empty: true };
   if (bytes[0] === 0x1a && bytes[1] === 0x45 && bytes[2] === 0xdf && bytes[3] === 0xa3) {
     return parseMatroska(bytes);
   }
@@ -358,6 +371,7 @@ function codecBox(fourcc, out) {
  *   unknown   the header did not say enough
  */
 export function verdict(info) {
+  if (info && info.empty) return { path: 'empty', reason: t('probe.empty') };
   if (!info || info.error) {
     return { path: 'unknown', reason: info && info.error ? t('probe.unread', { error: info.error }) : t('probe.untested') };
   }

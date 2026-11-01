@@ -21,7 +21,7 @@ import { parseHeader, ID, Reader } from './ebml.js';
 import { t } from './i18n.js';
 import { BufferedBytes, frames } from './mkv.js';
 import { initSegment, mediaSegment, decodeTimes, durations, VIDEO_TIMESCALE } from './mp4.js';
-import { videoMime } from './probe.js';
+import { emptyAnswer, videoMime } from './probe.js';
 import { describeAll, passthroughMime, preferred as preferredAudio } from './audio.js';
 import { AudioTranscoder, encoderSetup, RATE as DECODED_RATE, CHANNELS as DECODED_CHANNELS } from './transcode.js';
 import { SubtitleTracks, isSubtitle, isTextSubtitle, preferred as preferredSubtitle } from './subs.js';
@@ -371,6 +371,12 @@ export class Remuxer {
     let at = 0;
     for (const chunk of chunks) { bytes.set(chunk, at); at += chunk.byteLength; }
 
+    if (emptyAnswer(bytes)) {
+      try { ctrl.abort(); } catch { /* jo suljettu */ }
+      const err = new Error(t('probe.empty'));
+      err.empty = true;
+      throw err;
+    }
     const header = parseHeader(bytes);
     if (!header.ok) {
       try { ctrl.abort(); } catch { /* jo suljettu */ }
