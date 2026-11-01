@@ -1,0 +1,24 @@
+Kepuli-TV is a player for an Xtream Codes account supplied by the user. It contains no media, provider addresses or bundled credentials. It runs in its own extension tab and has no content scripts, analytics or developer backend.
+
+Changes in 1.4.4: playback errors only. A file refused by the provider's file server, a refused channel, or a server silent for five seconds is reported at once, not as a full account. 1.4.3 caps the counts of the MP4 index reader added in 1.4.2. 1.4.2: Firefox upgrades an extension page's http:// media to https://, so MP4 films on a plain-HTTP port failed in <video>; such a file is now read with fetch() and its samples repackaged (js/mp4play.js, js/mp4file.js) into fragments for MediaSource, as MKV already is; nothing in it is executed. Since 1.4.0 (only the version changed in the manifest, no new permission): if a stream fails although its host is granted and a HEAD request without credentials shows a redirect, an "Allow all addresses" button is offered; only a click on it calls permissions.request for the already-declared optional http://*/* and https://*/*.
+
+For review, the source archive includes a local mock server. With native FFmpeg installed, run sh dev/mock/media.sh and node dev/mock/server.mjs (see README.md). No paid account is needed.
+
+Local test connection:
+Server: 127.0.0.1
+Protocol: HTTP
+Port: 8790
+Username: demo
+Password: demo
+
+Click the toolbar icon. In Settings, select Xtream Codes, enter the connection above and Connect; grant host access when asked. Pick Finland and a channel; press G for the guide. Open Series, Nordic Noir, Silent Fjord, episode 1 for MKV with subtitles; episode 2 tests AC-3 audio. Seek to 60 s and confirm playback continues.
+
+The manifest requires Firefox 140 and declares authenticationInfo because the user's credentials are sent to their configured service. The developer receives no data. HTTP is kept for user-supplied services, and Settings explains that HTTP sends credentials unencrypted and recommends HTTPS. We request a determination under the user-supplied-service cases in Mozilla's policy Q&A: https://discourse.mozilla.org/t/add-ons-policy-changes-2021-q-a/89654
+
+All executable code ships inside the ZIP. vendor/hls.js is the unmodified dist/hls.min.js of hls.js 1.6.5; vendor/mpegts.js the unmodified dist/mpegts.js of mpegts.js 1.8.0, both compared byte for byte with npm:
+https://www.npmjs.com/package/hls.js/v/1.6.5
+https://www.npmjs.com/package/mpegts.js/v/1.8.0
+
+vendor/ffaudio is our Emscripten 6.0.9 build of FFmpeg n7.1.1. The source ZIP contains the full FFmpeg source, our C wrapper and the exact build commands in its README.md. LGPL-2.1-or-later; no GPL or nonfree flags.
+
+The innerHTML warning in js/rows.js is a fixed SVG constant, LIST_ICON, with no user or provider input. Function-constructor warnings come from the unchanged upstream mpegts.js; the CSP forbids string evaluation. No remote code is loaded.

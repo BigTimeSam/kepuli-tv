@@ -1545,6 +1545,14 @@ version, uploads it and submits it for review (`--replace` cancels a submission
 still in review first, `status` shows what the store holds). The one-time setup
 of its credentials is in `store-listing.txt`, under "PUBLISHING THROUGH THE API".
 
+`node dev/amo-publish.mjs` does the same for AMO through its API (v5): it checks
+that the zip is the Firefox package of the current version, has AMO validate it,
+makes the version with its source archive, and adds the release notes (the
+GitHub release's text) and the notes to reviewer (`firefox/reviewer-notes.txt`,
+held to 3000 characters). `status`, `check` and `validate` send no version. Its
+key is made at https://addons.mozilla.org/developers/addon/api/key/ and kept in
+`~/.config/kepuli-tv/amo.json` as `{ "issuer": "user:…", "secret": "…" }`, mode 600.
+
 The Chrome Web Store has twice been given the Firefox package, in 1.2.1 and
 in 1.2.5, and accepted it without a word. At the time the Firefox manifest
 started its background script with `background.scripts`, which Chrome ignores

@@ -220,3 +220,14 @@ vendor/ffaudio is our build of FFmpeg n7.1.1 using Emscripten 6.0.9. The attache
 
 The innerHTML warning in js/rows.js is a fixed SVG constant named LIST_ICON. It contains no user or provider input. Function-constructor warnings come from the unchanged upstream mpegts.js release; the extension's CSP does not allow string evaluation. No remote code is loaded.
 ```
+
+## Publishing through the API
+
+`node dev/amo-publish.mjs` submits `kepuli-tv-firefox-<version>.zip` as a new
+listed version with `kepuli-tv-firefox-<version>-amo-source.zip` attached, the
+release notes taken from the GitHub release of the same version, and the notes
+to reviewer from `firefox/reviewer-notes.txt` — update that file for each
+version; the script refuses it above 3000 characters (counted with CRLF line
+breaks) and warns when it does not mention the version. `status` lists the
+latest versions and their review state; `validate` runs AMO's validation alone.
+The key lives in `~/.config/kepuli-tv/amo.json` (see the script's head).
