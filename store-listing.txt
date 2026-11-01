@@ -33,6 +33,11 @@ ALWAYS
     show Firefox's keys as unrecognised. Chrome takes the version from the
     manifest; there is no version field to type and no release-notes field
     at all.
+  • Or from here, with no dashboard at all: node dev/cws-publish.mjs uploads
+    that zip and submits it for review, after checking that it is the
+    Chrome package of the current version (--replace cancels a submission
+    still in review first; status shows what the store holds). It needs
+    the credentials below, under PUBLISHING THROUGH THE API.
 
 AFTER THE REVIEW, EVERY TIME
   • Read the manifest of the package the store now serves, with the
@@ -219,6 +224,48 @@ dev/package.mjs refuses to build when _locales/ is out of step.
 The locale codes are the Chrome Web Store's: pt_BR, and "no" for Norwegian.
 Firefox looks for Norwegian Bokmål under nb_NO, and the Firefox package
 renames the folder (dev/package.mjs).
+
+
+PUBLISHING THROUGH THE API
+  dev/cws-publish.mjs talks to the Chrome Web Store API (V2). The package
+  and its submission go through it; the listing (descriptions, images, the
+  video) does not, and stays the dashboard's. Set up once:
+
+  1. The developer account needs 2-step verification on, or the API may
+     not publish.
+  2. https://console.cloud.google.com → create a project (any name, for
+     instance kepuli-tv-publish) → APIs & Services → Library → "Chrome Web
+     Store API" → Enable.
+  3. APIs & Services → OAuth consent screen: user type External, an app
+     name and your email; under Audience add your own address as a test
+     user. Then press "Publish app" (In production): while the app is in
+     Testing, Google lets its refresh tokens lapse after seven days. An
+     unverified app is fine for your own account; Google warns about it
+     once when you sign in.
+  4. APIs & Services → Credentials → Create credentials → OAuth client ID →
+     type "Web application", authorised redirect URI
+     https://developers.google.com/oauthplayground → Create. Keep the
+     client ID and the client secret.
+  5. https://developers.google.com/oauthplayground → the cog at the top
+     right → "Use your own OAuth credentials" → paste the client ID and
+     secret. In step 1 type the scope
+     https://www.googleapis.com/auth/chromewebstore → Authorize APIs →
+     sign in with the developer account. In step 2 press "Exchange
+     authorization code for tokens" and keep the refresh token.
+  6. The publisher ID: Chrome Web Store Developer Dashboard → Publisher →
+     Settings (the ID shown there, not the extension's).
+  7. Write them to ~/.config/kepuli-tv/cws.json, outside the project:
+       { "clientId": "…", "clientSecret": "…",
+         "refreshToken": "…", "publisherId": "…" }
+     and chmod 600 ~/.config/kepuli-tv/cws.json — the script refuses a
+     file others can read. The environment (CWS_CLIENT_ID,
+     CWS_CLIENT_SECRET, CWS_REFRESH_TOKEN, CWS_PUBLISHER_ID) works too.
+  8. node dev/cws-publish.mjs check — reads the store's status and sends
+     nothing. If it answers, a release is node dev/cws-publish.mjs.
+
+  The extension's ID (okkgclcakhjhldkdcblgagoaibghpfmi) is in the script.
+  A refresh token stops working if it is revoked, if the client secret is
+  reset, or after six months unused; step 5 again gives a new one.
 
 
 SETTING THE LANGUAGES IN THE CHROME WEB STORE

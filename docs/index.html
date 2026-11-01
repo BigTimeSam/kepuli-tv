@@ -1799,6 +1799,12 @@ project root with names that differ by one word:</p>
 </table>
 </div>
 
+<p><code>node dev/cws-publish.mjs</code> sends the Chrome package through the store's
+publishing API: it checks that the zip is the Chrome package of the current
+version, uploads it and submits it for review (<code>--replace</code> cancels a submission
+still in review first, <code>status</code> shows what the store holds). The one-time setup
+of its credentials is in <code>store-listing.txt</code>, under "PUBLISHING THROUGH THE API".</p>
+
 <p>The Chrome Web Store has twice been given the Firefox package, in 1.2.1 and
 in 1.2.5, and accepted it without a word. At the time the Firefox manifest
 started its background script with <code>background.scripts</code>, which Chrome ignores

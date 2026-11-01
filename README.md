@@ -1539,6 +1539,12 @@ project root with names that differ by one word:
 | Chrome Web Store | `kepuli-tv-chrome-<version>.zip` | the firefox zip |
 | Firefox Add-ons (AMO) | `kepuli-tv-firefox-<version>.zip`, and `kepuli-tv-firefox-<version>-amo-source.zip` in the source field | the chrome zip |
 
+`node dev/cws-publish.mjs` sends the Chrome package through the store's
+publishing API: it checks that the zip is the Chrome package of the current
+version, uploads it and submits it for review (`--replace` cancels a submission
+still in review first, `status` shows what the store holds). The one-time setup
+of its credentials is in `store-listing.txt`, under "PUBLISHING THROUGH THE API".
+
 The Chrome Web Store has twice been given the Firefox package, in 1.2.1 and
 in 1.2.5, and accepted it without a word. At the time the Firefox manifest
 started its background script with `background.scripts`, which Chrome ignores
