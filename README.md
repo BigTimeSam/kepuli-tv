@@ -166,7 +166,8 @@ interrupted channel-list load restores the previous list.
 - Click the picture of a film or an episode to pause it, and again to play
   on. A double click goes to full screen without pausing. On a live channel
   a click does nothing in Chrome; Firefox's own controls keep the click to
-  themselves, and pause live channels too.
+  themselves, and pause live channels too. Both are the browser's own
+  controls doing it.
 - Below the player a film or an episode shows its year, genre, rating and
   length, for an episode the series' own, followed by the file's format,
   picture, sound and subtitles. A part with nothing to show is left out.
@@ -688,18 +689,12 @@ fetched until a reload — drops the series' episode lists, and empties the
 programme cache; the list on screen is repainted in place. The same refresh
 runs quietly, without the strip or the programme cache, when a tab is
 shown again after its lists have outlived their cache time (categories a
-day, lists six hours). **Help** opens this user guide. The **⛶** button is at the
-right end of the browser's control bar, where a video's full screen button is
-everywhere else; viewers did not find it at the top right, where it used to
-be. It is the app's own, because the browser's takes the bare video full
-screen without the subtitle layer: in Chrome the bar is given room at its
-right end for it. Firefox's bar keeps a button of its own there, so the
-app's stands aside: that one takes the bare video full screen, where the
-browser draws the subtitles itself. Video statistics are at
-the top left. It enters and exits full screen with the subtitles included. It appears on pointer movement, touch or keyboard focus,
-stays visible while paused and fades during uninterrupted playback. It is
-hidden until a video is loaded; an empty player has no full-screen button.
-The remaining player controls are below the picture:
+day, lists six hours). **Help** opens this user guide. Full screen is the
+browser's own button at the right end of its control bar, in Chrome and
+Firefox alike: it takes the bare video full screen, where the browser draws the
+subtitles itself, at the chosen height. `f` takes the picture full screen with
+the player's own subtitle layer. Video statistics are at the top left. The
+remaining player controls are below the picture:
 
 | Button | Action |
 | --- | --- |
@@ -899,7 +894,8 @@ browsed.
 | --- | --- |
 | Live (MPEG-TS) | mpegts.js → MediaSource |
 | Live (`.m3u8`), or the fallback from TS | hls.js |
-| VOD `.mp4` `.m4v` `.mov` `.webm` | the browser's own player |
+| VOD `.mp4` `.m4v` `.mov` | the browser's own player; in Firefox over `http://`, the file read in parts into MediaSource (see FIREFOX.md) |
+| VOD `.webm` | the browser's own player |
 | VOD `.ts` `.flv` | the header decides — the extension does not hold |
 | VOD `.mkv` | Matroska unpacked into fMP4 → MediaSource |
 | VOD `.avi` | not supported |
@@ -1058,13 +1054,13 @@ becomes the same proportion of the old default: 24 px is 100 %, 36 px 150 %,
 and the small, medium and large of earlier still are 75, 100 and 140 %. The looks are written into `::cue` as well, as far as
 `::cue` goes, for the one case where the browser still draws (below).
 
-Full screen is therefore the picture's wrapper rather than the bare video
-element, which would leave the layer behind: the button over the picture,
-a double click on the picture and `f` all take the wrapper, and the browser's
-own full-screen button is removed from the controls (`controlslist`). Firefox
-does not know `controlslist` and keeps its button; when that takes the video
-itself to full screen, the browser's drawing is switched back on for the
-duration. The browser also lifted the subtitles above the controls while those
+The layer goes to full screen only with the picture's wrapper, which `f`
+takes. The browser's own full-screen button, and its double click, take the
+bare video and would leave the layer behind; while the video itself is full
+screen, the browser's drawing is switched back on for the duration, the chosen
+height written into the cues. Chrome on a Mac draws them in the system's caption
+style — by default a dark rounded box behind every look, set in System Settings
+› Accessibility › Captions — which no page style overrides. The browser also lifted the subtitles above the controls while those
 were on show, and their visibility cannot be read from outside, so the rule is
 imitated: the video is paused, or the pointer moved over the picture within the
 last three seconds.

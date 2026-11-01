@@ -162,7 +162,23 @@ keeps its button, which takes the video itself to full screen and leaves the
 layer behind. For that case the browser's own drawing is switched back on for
 the duration — `document.fullscreenElement === video` flips `data-subrender` on
 the body — with the chosen look approximated in `::cue` as far as `::cue` goes:
-no padding, no corners, each line a box of its own. Nothing else differs.
+no padding, no corners, each line a box of its own.
+
+### MP4 films over plain HTTP
+
+An extension page is a secure context, and Firefox upgrades the images, audio
+and video such a page loads from `http://` to `https://` — with no fallback.
+A provider's port 8080 speaks no TLS, so `<video src="http://…/movie.mp4">`
+fails with "Failed to open media" while Chrome plays the same address.
+`fetch()` is not upgraded. In Firefox an `http://` MP4 is therefore read with
+`fetch()` and fed to MediaSource (`js/mp4play.js`): the file's index (`moov`,
+before or after the media) becomes sample tables (`js/mp4file.js`), and the
+samples go in as fragments behind the file's own sample entry, read a minute
+ahead, one connection at a time, resumed when the download breaks, a seek
+reading from the keyframe before the target. Chrome keeps the browser's own
+player. The loopback address is not
+upgraded, so the mock server alone would never have shown it:
+`KEPULI_MOCK_HOST=0.0.0.0` and the machine's own LAN address do.
 
 ## What was measured
 

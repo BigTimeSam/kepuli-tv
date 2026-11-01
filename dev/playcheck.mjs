@@ -421,8 +421,20 @@ async function longfilm(page) {
     if (s.d < first - 1 || s.ended || s.overlay) { bad = s; break; }
   }
   const last = samples[samples.length - 1];
-  const ok = !bad && last.t > Math.min(secs * 0.8, first - 5);
-  return { ok, detail: `duration ${first} s; ${samples.map((s) => `${s.at}s:t=${s.t}/d=${s.d}/buf=${s.end}${s.paused ? ' paused' : ''}${s.overlay ? ' "' + s.overlay + '"' : ''}`).join(' ')}` };
+  // Then to the last quarter minute, and on to the end: the seek reads from
+  // the keyframe before it, and the film ends where it ends.
+  let end = null;
+  if (!bad) {
+    await evaluate(page, `document.getElementById('video').currentTime = ${Math.max(0, first - 15)}`);
+    for (let i = 0; i < 90 && !end; i++) {
+      await sleep(1000);
+      const s = await evaluate(page, `(() => { const v = document.getElementById('video'); return { t: +v.currentTime.toFixed(1), d: +(+v.duration).toFixed(1), ended: v.ended }; })()`);
+      if (s.ended) end = s;
+    }
+  }
+  const engine = await evaluate(page, `document.getElementById('video').src.split(':')[0]`);
+  const ok = !bad && last.t > Math.min(secs * 0.8, first - 5) && end && Math.abs(end.t - first) < 2 && Math.abs(end.d - first) < 2;
+  return { ok, detail: `engine "${engine}"; end ${JSON.stringify(end)}; duration ${first} s; ${samples.map((s) => `${s.at}s:t=${s.t}/d=${s.d}/buf=${s.end}${s.paused ? ' paused' : ''}${s.overlay ? ' "' + s.overlay + '"' : ''}`).join(' ')}` };
 }
 
 async function seek(page) {
@@ -1286,61 +1298,53 @@ async function clickpause(page) {
 
 async function fullscreenControl(page) {
   const assert = (ok, detail) => { if (!ok) throw new Error(detail); };
-  assert(await evaluate(page, `document.getElementById('btn-fullscreen').hidden && document.getElementById('btn-fullscreen').getClientRects().length === 0`), 'empty player exposes fullscreen');
+  const firefox = process.env.KEPULI_BROWSER === 'firefox';
+  assert(!(await evaluate(page, `document.getElementById('btn-fullscreen')`)), 'the player still has a full screen button of its own');
+  assert(!(await evaluate(page, `(document.getElementById('video').getAttribute('controlslist') || '').includes('nofullscreen')`)), 'the browser\'s full screen button is hidden');
   await playEpisode(page);
-  if (process.env.KEPULI_BROWSER === 'firefox') {
-    // Firefox keeps its own button in the control bar and ours stands aside;
-    // a double click takes the picture full screen with its subtitles, the
-    // bare <video> drawing them itself or the wrapper drawing them in the layer.
-    assert(await evaluate(page, `document.getElementById('btn-fullscreen').getClientRects().length === 0`), 'Firefox shows a second full screen button');
-    // A real double click on the picture: Firefox takes the bare video full
-    // screen by itself, and a script may not ask without a gesture.
-    const at = await evaluate(page, `(() => { const r = document.getElementById('video').getBoundingClientRect(); return { x: r.left + r.width / 2, y: r.top + r.height * 0.4 }; })()`);
-    await page.doubleClick(at.x, at.y);
-    await waitFor(page, `['video', 'videowrap'].includes(document.fullscreenElement?.id)`, 'full screen from a double click');
-    const subs = await evaluate(page, `document.fullscreenElement.id + ' ' + document.body.dataset.subrender`);
-    assert(subs === 'video native' || subs === 'videowrap overlay', `the subtitles in full screen: ${subs}`);
+  await waitFor(page, `document.querySelectorAll('#subdisplay .cue').length > 0 || document.body.dataset.subrender === 'native'`, 'a subtitle cue');
+  // The browser's own button takes the bare video, as a script asking the
+  // video does: the browser draws the subtitles for the duration, at the
+  // chosen height, and the layer stands empty.
+  if (!firefox) {
+    await evaluate(page, `document.getElementById('video').requestFullscreen()`, { gesture: true });
+    await waitFor(page, `document.fullscreenElement?.id === 'video'`, 'the bare video full screen');
+    await waitFor(page, `document.body.dataset.subrender === 'native'`, 'the browser drawing the subtitles');
+    const native = await evaluate(page, `(() => { const v = document.getElementById('video');
+      const shown = [...v.textTracks].find((t) => t.mode === 'showing');
+      const cue = shown && shown.cues && shown.cues[0];
+      return { layer: document.querySelectorAll('#subdisplay .cue').length, line: cue ? cue.line : null, snap: cue ? cue.snapToLines : null }; })()`);
+    assert(native.layer === 0 && typeof native.line === 'number' && native.snap === false, `the bare video's subtitles: ${JSON.stringify(native)}`);
     await evaluate(page, `document.exitFullscreen()`);
-    return { ok: true, detail: `Firefox: its own button stays and ours stands aside; a double click goes full screen with the subtitles (${subs})` };
+    await waitFor(page, `!document.fullscreenElement && document.body.dataset.subrender === 'overlay'`, 'the layer back after full screen');
   }
-  await waitFor(page, `document.querySelectorAll('#subdisplay .cue').length > 0`, 'a subtitle cue');
-  await evaluate(page, `document.getElementById('video').pause()`);
-  await sleep(450);   // the button fades in over .3 s, as Chrome's bar does
-  const bounds = await evaluate(page, `(() => {
-    const b = document.getElementById('btn-fullscreen'), r = b.getBoundingClientRect(), w = document.getElementById('videowrap').getBoundingClientRect();
-    const cues = [...document.querySelectorAll('#subdisplay .cue')].map(c => c.getBoundingClientRect());
-    return { inside: b.parentElement.id === 'videowrap' && r.left >= w.left && r.top >= w.top && r.right <= w.right && r.bottom <= w.bottom,
-      bottomRight: Math.abs(w.bottom - r.bottom - 30.5) < 1 && Math.abs(w.right - r.right - 6) < 1,
-      visible: getComputedStyle(b).opacity === '1', clear: cues.every(c => c.bottom <= r.top || c.top >= r.bottom || c.right <= r.left || c.left >= r.right), label: b.getAttribute('aria-label') };
-  })()`);
-  assert(bounds.inside && bounds.bottomRight && bounds.visible && bounds.clear && bounds.label === 'Full screen', `overlay control: ${JSON.stringify(bounds)}`);
-  if (process.env.KEPULI_FULLSCREEN_CAPTURE) {
-    const { data } = await page.call('Page.captureScreenshot', { format: 'png' });
-    (await import('node:fs')).writeFileSync(process.env.KEPULI_FULLSCREEN_CAPTURE, Buffer.from(data, 'base64'));
+  // A double click on the picture: the browser's controls take the bare
+  // video by themselves, and a script may not ask without a gesture.
+  const at = await evaluate(page, `(() => { const r = document.getElementById('video').getBoundingClientRect(); return { x: r.left + r.width / 2, y: r.top + r.height * 0.4 }; })()`);
+  if (page.doubleClick) await page.doubleClick(at.x, at.y);
+  else {
+    await page.call('Input.dispatchMouseEvent', { type: 'mouseMoved', ...at });
+    for (let i = 1; i <= 2; i++) {
+      await page.call('Input.dispatchMouseEvent', { type: 'mousePressed', ...at, button: 'left', clickCount: i });
+      await page.call('Input.dispatchMouseEvent', { type: 'mouseReleased', ...at, button: 'left', clickCount: i });
+    }
   }
-  await mouseClick(page, '#btn-fullscreen');
-  await waitFor(page, `document.fullscreenElement?.id === 'videowrap' && document.getElementById('btn-fullscreen').getAttribute('aria-label') === 'Exit full screen'`, 'overlay fullscreen');
-  assert(await evaluate(page, `document.body.dataset.subrender === 'overlay' && document.querySelectorAll('#subdisplay .cue').length > 0 && document.getElementById('video').paused`), 'fullscreen lost subtitles or changed playback');
-  await mouseClick(page, '#btn-fullscreen');
-  await waitFor(page, `!document.fullscreenElement && document.getElementById('btn-fullscreen').getAttribute('aria-label') === 'Full screen'`, 'exit via the same button');
-
-  // Keyboard focus reveals the control even after the pointer controls fade.
-  await evaluate(page, `document.getElementById('video').play()`);
-  const center = await evaluate(page, `(() => {const r=document.getElementById('video').getBoundingClientRect(); return {x:r.left+r.width/2,y:r.top+r.height/3};})()`);
-  await page.call('Input.dispatchMouseEvent', { type: 'mouseMoved', ...center });
-  await waitFor(page, `getComputedStyle(document.getElementById('btn-fullscreen')).opacity === '0'`, 'control fades during playback', 6000);
-  await pressKey(page, 'Tab', 'Tab', 9);
-  await evaluate(page, `document.getElementById('btn-fullscreen').focus()`);
-  await waitFor(page, `getComputedStyle(document.getElementById('btn-fullscreen')).opacity === '1'`, 'keyboard focus reveals the control');
-  // Native buttons activate on the Enter keypress, so include its text.
-  await page.call('Input.dispatchKeyEvent', { type: 'keyDown', key: 'Enter', code: 'Enter', windowsVirtualKeyCode: 13, text: '\r' });
-  await page.call('Input.dispatchKeyEvent', { type: 'keyUp', key: 'Enter', code: 'Enter', windowsVirtualKeyCode: 13 });
-  await waitFor(page, `document.fullscreenElement?.id === 'videowrap'`, 'keyboard fullscreen');
-  // Browser-owned Escape is not dispatched by headless CDP; exercise the
-  // same fullscreenchange path through the browser's exit API.
+  await waitFor(page, `['video', 'videowrap'].includes(document.fullscreenElement?.id)`, 'full screen from a double click');
+  const subs = await evaluate(page, `document.fullscreenElement.id + ' ' + document.body.dataset.subrender`);
+  assert(subs === 'video native' || subs === 'videowrap overlay', `the subtitles in full screen: ${subs}`);
   await evaluate(page, `document.exitFullscreen()`);
-  await waitFor(page, `!document.fullscreenElement && document.getElementById('btn-fullscreen').title === 'Full screen'`, 'browser exit restores the button state');
-  return { ok: true, detail: 'bottom right in the control bar, clear of subtitles; click enters/exits with subtitles and paused state preserved; fades during playback; keyboard focus and Enter work; browser exit restores the label' };
+  await waitFor(page, `!document.fullscreenElement`, 'out of full screen');
+  // f takes the wrapper, the subtitle layer with it.
+  let key = 'not tried';
+  if (!firefox) {
+    await pressKey(page, 'f', 'KeyF', 70);
+    await waitFor(page, `document.fullscreenElement?.id === 'videowrap'`, 'full screen from f');
+    key = await evaluate(page, `document.fullscreenElement.id + ' ' + document.body.dataset.subrender + ' ' + document.querySelectorAll('#subdisplay .cue').length`);
+    assert(/^videowrap overlay [1-9]/.test(key), `f: ${key}`);
+    await evaluate(page, `document.exitFullscreen()`);
+    await waitFor(page, `!document.fullscreenElement`, 'out of full screen');
+  }
+  return { ok: true, detail: `no button of the player's own, the browser's shown; ${firefox ? '' : 'the browser\'s full screen draws the subtitles itself at the chosen height; '}a double click goes full screen with the subtitles (${subs}); f: ${key}` };
 }
 
 async function subtitles(page) {
@@ -1383,7 +1387,7 @@ async function subtitles(page) {
       const range = document.createRange(); range.selectNodeContents(boxes[0]);
       r({ boxes: boxes.length, lines: new Set([...range.getClientRects()].map((x) => Math.round(x.top))).size }); }, 500)); })()`);
   if (box.boxes !== 1 || box.lines !== 2) return { ok: false, detail: `a two-line cue: ${JSON.stringify(box)}` };
-  // A double click takes the wrapper to full screen, and the layer with it.
+  // A double click takes the picture to full screen with its subtitles.
   const at = await evaluate(page, `(() => { const r = document.getElementById('video').getBoundingClientRect(); return { x: r.left + r.width / 2, y: r.top + r.height / 2 }; })()`);
   if (page.doubleClick) await page.doubleClick(at.x, at.y);
   else for (const clickCount of [1, 2]) {
@@ -1403,9 +1407,10 @@ async function subtitles(page) {
   await evaluate(page, `document.fullscreenElement && document.exitFullscreen()`);
   await sleep(600);
   const wrapper = full.element === 'videowrap' && full.boxes === 1 && full.render === 'overlay';
-  // Firefox's native video controls can own the double click. Its native
-  // text track must then render the cue; the overlay returns on exit.
-  const native = process.env.KEPULI_BROWSER === 'firefox' && full.element === 'video'
+  // The browser's controls own the double click and take the bare video:
+  // its own text track must then draw the cue, at the viewer's height; the
+  // layer returns on exit.
+  const native = full.element === 'video'
     && full.render === 'native' && full.nativeCues > 0
     && full.lines.every(([snap, align, line]) => snap === false && align === 'end' && Math.abs(line - full.expected) < 0.2);
   if (!wrapper && !native) return { ok: false, detail: `full screen: ${JSON.stringify(full)}` };

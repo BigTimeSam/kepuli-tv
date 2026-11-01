@@ -16,6 +16,8 @@ import { isPlayableExtension } from './xtream.js';
 import { t } from './i18n.js';
 import { probe, verdict } from './probe.js';
 import { Remuxer } from './remux.js';
+import { Mp4Player } from './mp4play.js';
+import { isGecko } from './browser.js';
 
 const MPEGTS_CONFIG = {
   enableWorker: false,        // the extension page's CSP blocks blob: workers
@@ -71,7 +73,7 @@ const HLS_CONFIG = {
 // The server may accept the connection and then go quiet — for instance
 // when the account's concurrent-connection limit is full — in which case no
 // error event ever arrives.
-const TIMEOUT_MS = { mpegts: 20000, hls: 20000, native: 30000, remux: 30000 };
+const TIMEOUT_MS = { mpegts: 20000, hls: 20000, native: 30000, remux: 30000, mp4: 30000 };
 // A live MPEG-TS stream from which not one byte has arrived by this time is
 // taken for a full account that took the connection and says nothing (see
 // finish() in runAttempt), and the account is asked then, rather than after
@@ -255,7 +257,7 @@ export class Playback {
       const known = await this.inspect(spec, token);
       if (!known) return;
       if (known.path === 'empty') return this.nothingThere(spec);
-      if (known.path === 'native') chain = ['native'];
+      if (known.path === 'native') chain = nativeChain(spec);
       else if (known.path === 'mpegts') chain = ['mpegts'];
       else if (known.path === 'remux') chain = ['remux'];
       // The audio track is AC-3 or DTS: the picture would do, but silent
@@ -450,6 +452,7 @@ export class Playback {
       }
       else if (name === 'hls') this.startHls(spec.hlsUrl || spec.url, finish);
       else if (name === 'remux') this.startRemux(spec, finish);
+      else if (name === 'mp4') this.startMp4(spec, finish);
       else this.startNative(spec);
     } catch (err) {
       finish(false, String(err && err.message));
@@ -567,6 +570,23 @@ export class Playback {
     });
     this.engine = remuxer;
     remuxer.start().catch((err) => finish(false, err && err.message ? err.message : String(err), { empty: Boolean(err && err.empty) }));
+  }
+
+  /** MP4 through MediaSource, see nativeChain() and js/mp4play.js. */
+  startMp4(spec, finish) {
+    const player = new Mp4Player(this.video, spec.url, {
+      startAt: spec.startAt || 0,
+      onOpen: (again) => {
+        if (this.engine !== player) return;
+        if (again) this.releasedAt = Date.now();
+        this.noteOpen();
+      },
+      onFirstAppend: () => this.tryPlay(),
+      onNotice: (message) => this.onState({ status: 'notice', message }),
+      onError: (err) => finish(false, err && err.message ? err.message : t('playback.reason.demux')),
+    });
+    this.engine = player;
+    player.start().catch((err) => finish(false, err && err.message ? err.message : String(err), { empty: Boolean(err && err.empty) }));
   }
 
   startNative(spec) {
@@ -838,6 +858,18 @@ export class Playback {
   }
 }
 
+/**
+ * A file the browser plays itself. Firefox upgrades an extension page's
+ * http:// media to https:// and never falls back, so on a provider's
+ * plain-HTTP port <video> does not open the film at all: there MP4 is read
+ * with fetch() and fed to MediaSource instead (js/mp4play.js). The
+ * browser's own player is no fallback there: it would fail the same way,
+ * and in failing take a connection from the account check that follows.
+ */
+function nativeChain(spec) {
+  return isGecko() && /^http:/i.test(spec.url) ? ['mp4'] : ['native'];
+}
+
 function buildChain(spec) {
   if (/\.m3u8($|\?)/i.test(spec.url)) return ['hls'];
   if (spec.live) {
@@ -846,6 +878,7 @@ function buildChain(spec) {
     return spec.hlsUrl ? ['mpegts', 'hls'] : ['mpegts'];
   }
   if (/\.(ts|flv)($|\?)/i.test(spec.url)) return ['mpegts'];
-  if (isPlayableExtension(spec.ext) || /\.(mp4|m4v|mov|webm|ogv)($|\?)/i.test(spec.url)) return ['native'];
+  if (/\.(mp4|m4v|mov)($|\?)/i.test(spec.url) || /^(mp4|m4v|mov)$/i.test(spec.ext || '')) return nativeChain(spec);
+  if (isPlayableExtension(spec.ext) || /\.(webm|ogv)($|\?)/i.test(spec.url)) return ['native'];
   return [];
 }

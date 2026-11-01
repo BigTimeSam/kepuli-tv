@@ -233,8 +233,6 @@ const STRINGS = {
     'player.subs.look': 'Subtitle look',
     'player.subs.title': 'Subtitles',
     'player.subs.off': 'No subtitles',
-    'player.fullscreen.title': 'Full screen',
-    'player.fullscreen.exit': 'Exit full screen',
     'player.reload.title': 'Reload the stream',
     'player.more': 'More actions',
     'player.pip.title': 'Picture in picture',
@@ -287,6 +285,7 @@ const STRINGS = {
     'playback.died': 'Playback stopped: {reason}.',
     'engine.native': 'native',
     'engine.remux': 'MKV remux',
+    'engine.mp4': 'MP4 remux',
 
     /* ---------------------------------------------------------- detail */
     'info.next': 'Next',
@@ -787,8 +786,6 @@ const STRINGS = {
     'player.subs.look': 'Tekstityksen ulkoasu',
     'player.subs.title': 'Tekstitys',
     'player.subs.off': 'Ei tekstitystä',
-    'player.fullscreen.title': 'Koko näyttö',
-    'player.fullscreen.exit': 'Poistu koko näytöstä',
     'player.reload.title': 'Lataa virta uudelleen',
     'player.more': 'Lisää toimintoja',
     'player.pip.title': 'Kuva kuvassa',
@@ -837,6 +834,7 @@ const STRINGS = {
     'playback.died': 'Toisto pysähtyi: {reason}.',
     'engine.native': 'natiivi',
     'engine.remux': 'MKV-purku',
+    'engine.mp4': 'MP4-purku',
 
     /* ---------------------------------------------------------- detail */
     'info.next': 'Seuraavaksi',

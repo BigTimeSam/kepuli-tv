@@ -146,7 +146,7 @@
            video's own full-screen button would take the bare video and
            leave the layer behind, so the wrapper goes to full screen
            instead, from the button over the picture. -->
-      <video id="video" controls controlslist="nofullscreen" playsinline preload="none"></video>
+      <video id="video" controls playsinline preload="none"></video>
       <div class="subdisplay" id="subdisplay" aria-hidden="true"></div>
       <div class="overlay" id="overlay">
         <div class="overlay-inner">
@@ -159,9 +159,6 @@
         </div>
       </div>
       <div class="statbadge" id="statbadge" hidden></div>
-      <button type="button" id="btn-fullscreen" class="video-fullscreen" data-i18n-title="player.fullscreen.title" data-i18n-label="player.fullscreen.title" aria-controls="videowrap" hidden>
-        <svg viewBox="0 0 20 20" aria-hidden="true"><path d="M3 8V3h5M12 3h5v5M17 12v5h-5M8 17H3v-5"/></svg>
-      </button>
     </div>
 
     <div class="infostrip" id="infostrip" hidden></div>

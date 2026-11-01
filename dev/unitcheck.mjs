@@ -30,6 +30,8 @@ import { searchProgrammes, mergeSorted, searchableChannels } from '../js/program
 import { Epg } from '../js/epg.js';
 import { probeCacheTtl } from '../js/probe.js';
 import { formatRoute, parseRoute } from '../js/route.js';
+import { boxHeader, parseMoov } from '../js/mp4file.js';
+import { readFileSync } from 'node:fs';
 
 let failed = 0;
 let count = 0;
@@ -1080,6 +1082,42 @@ check('a series named in the channels\' address is dropped', parseRoute('#/live/
 check('a favourite category belongs to the favourites alone',
   parseRoute('#/series/Drama?cat=live%3A1&series=5'), { tab: 'series', group: 'Drama', series: '5' });
 check('the history may hold a series', parseRoute('#/recent?series=5'), { tab: 'recent', series: '5' });
+
+/* ------------------------------------------------------- js/mp4file.js */
+
+{
+  // The demo film, as the mock serves it: H.264 and AAC, the index first.
+  const file = new Uint8Array(readFileSync(new URL('./mock/media/movie.mp4', import.meta.url)));
+  let at = 0;
+  let moov = null;
+  while (at < file.length) {
+    const h = boxHeader(file, at);
+    if (h.type === 'moov') { moov = file.subarray(at, at + h.size); break; }
+    at += h.size;
+  }
+  const movie = parseMoov(moov);
+  const video = movie.tracks.find((tr) => tr.kind === 'video');
+  const audio = movie.tracks.find((tr) => tr.kind === 'audio');
+  check('mp4: the film is two minutes long', Math.round(movie.duration), 120);
+  check('mp4: the video track is H.264 with its profile and level', /^avc1\.[0-9a-f]{6}$/.test(video.codec), true);
+  check('mp4: the audio track is AAC-LC', audio.codec, 'mp4a.40.2');
+  check('mp4: the sample entry is the file\'s own', String.fromCharCode(...video.entry.subarray(4, 8)), 'avc1');
+  check('mp4: the first video sample is a keyframe', video.sync ? video.sync[0] : 1, 1);
+  check('mp4: the samples lie in the media, in order',
+    [video, audio].every((tr) => tr.offset[0] > at && tr.offset.every((o, i) => !i || o > tr.offset[i - 1])), true);
+  check('mp4: the samples reach the end of the file and no further',
+    Math.max(...[video, audio].map((tr) => tr.offset[tr.count - 1] + tr.size[tr.count - 1])) <= file.length, true);
+  check('mp4: the edit list puts the first picture at nought',
+    Math.abs((video.dts[0] + video.cts[0] - video.shift) / video.timescale) < 0.05, true);
+  check('mp4: the samples\' decode times add up to the track\'s length',
+    Math.round((video.dts[video.count - 1] + video.duration[video.count - 1]) / video.timescale), 120);
+  const large = new Uint8Array(16);
+  new DataView(large.buffer).setUint32(0, 1);
+  large.set([0x6d, 0x64, 0x61, 0x74], 4);
+  new DataView(large.buffer).setUint32(8, 1);
+  new DataView(large.buffer).setUint32(12, 16);
+  check('mp4: a 64-bit box size is read whole', boxHeader(large, 0), { type: 'mdat', size: 4294967312, header: 16 });
+}
 
 /* ----------------------------------------------- dev/listings.mjs */
 

@@ -20,7 +20,7 @@ import { ProgrammeSearch } from './programmesearch.js';
 import { cacheClear, cachePurge, wipeStorage, storageEstimate } from './db.js';
 import { parsePlaylistUrl, streamUrl, timeshiftUrl, baseUrl, parseServer } from './xtream.js';
 import { formatRoute, parseRoute } from './route.js';
-import { api, isGecko } from './browser.js';
+import { api } from './browser.js';
 import { requestAccess, hasAccess, hasAccessEverywhere, requestAccessEverywhere, redirects } from './permissions.js';
 import { externalLabel, handOff } from './external.js';
 import { Cast, supported as castSupported } from './cast.js';
@@ -3071,7 +3071,6 @@ function leavePlayback() {
   renderNowSub();
   renderInfoStrip();
   renderStatBadge();
-  renderFullscreenButton();
   if (guideOpen) grid.setPlaying(null);
   el.overlay.hidden = false;
   el.overlay.classList.remove('loading');
@@ -3185,78 +3184,32 @@ function toggleFullscreen() {
   else enterFullscreen();
 }
 
-// A click on the picture of a film or an episode pauses it or plays it on,
-// as on YouTube. The first click of a double click must not pause — the
-// double click is for full screen — so the click waits a moment for a
-// second one; should a slow double click come after the pause already
-// happened, the second click takes the pause back. A live channel is left
-// alone: there is nothing to come back to after a pause. The strip at the
-// bottom is Chrome's control bar, whose buttons sit up to some 70 px from
-// the bottom: the listener runs in the capture phase, ahead of them, and
-// leaves that strip to them.
-//
-// Firefox does the same by itself and keeps it to itself: its controls
-// pause on a click and go to full screen on a double click without
-// pausing, and measured, no press or click over the picture reaches the
-// page at all — only the mouse moves do. So the listener stays out of it
-// there, lest a later version deliver the click and two toggles cancel
-// out, and a click pauses a live channel in Firefox too, which the page
-// cannot prevent while the element has the browser's controls.
-const CLICK_WAIT_MS = 250;
+// A click on the picture pauses a film or an episode and plays it on, and a
+// double click takes the picture full screen: the browser's own controls do
+// both, in Chrome as in Firefox, now that Chrome's full screen button is
+// back (see js/subdisplay.js). A live channel is the exception: there is
+// nothing to come back to after a pause, so its click is stopped before the
+// controls see it — in the capture phase, outside the strip at the bottom
+// where Chrome's buttons sit, up to some 70 px from the bottom. Firefox's
+// controls keep the click to themselves, and measured, no press or click
+// over the picture reaches the page there: a click pauses a live channel in
+// Firefox, which the page cannot prevent while the element has the
+// browser's controls.
 const CONTROL_BAR_PX = 80;
-// Gecko is told by what it is, not by what its user agent says: forks
-// name themselves otherwise and a spoofed agent names another browser.
-// The same test the style sheet makes for Firefox's own full screen.
-const BROWSER_TOGGLES = isGecko();
-let pendingClick = null;
 
 function clickPicture(e) {
   const video = el.video;
-  if (BROWSER_TOGGLES || e.target !== video || e.button !== 0) return;
+  if (e.target !== video || e.button !== 0) return;
   if (e.offsetY > video.clientHeight - CONTROL_BAR_PX) return;
-  e.stopPropagation();
   const item = state.playing;
-  if (!item || item.k === 0 || !video.currentSrc) return;
-  if (e.detail > 1) {
-    if (pendingClick && pendingClick.timer) clearTimeout(pendingClick.timer);
-    else if (pendingClick && pendingClick.spec === state.playingSpec) togglePause();
-    pendingClick = null;
-    return;
-  }
-  const click = { spec: state.playingSpec, timer: null };
-  click.timer = setTimeout(() => {
-    click.timer = null;
-    if (click.spec !== state.playingSpec) return;
-    togglePause();
-    // A second click can still arrive within the browser's double-click
-    // interval and take the pause back; after that the pause stands.
-    setTimeout(() => { if (pendingClick === click) pendingClick = null; }, 500);
-  }, CLICK_WAIT_MS);
-  pendingClick = click;
+  if (!item || item.k !== 0) return;
+  e.preventDefault();
+  e.stopPropagation();
 }
 
 function togglePause() {
   if (el.video.paused) el.video.play().catch(() => {});
   else el.video.pause();
-}
-
-/** The same control enters and leaves full screen, including after Esc. */
-function renderFullscreenButton() {
-  const full = document.fullscreenElement === el.videowrap;
-  const button = $('btn-fullscreen');
-  const hasVideo = el.video.readyState >= HTMLMediaElement.HAVE_CURRENT_DATA
-    && el.video.videoWidth > 0 && !el.video.error;
-  // Pausing keeps the picture available. An empty player has no action,
-  // but full screen must always retain its exit button if playback fails.
-  button.hidden = !full && !hasVideo;
-  const label = full ? 'player.fullscreen.exit' : 'player.fullscreen.title';
-  button.dataset.i18nTitle = label;
-  button.dataset.i18nLabel = label;
-  button.title = t(label);
-  button.setAttribute('aria-label', t(label));
-  button.querySelector('path').setAttribute('d', full
-    ? 'M3 8h5V3M12 3v5h5M17 12h-5v5M8 17v-5H3'
-    : 'M3 8V3h5M12 3h5v5M17 12v5h-5M8 17H3v-5');
 }
 
 /**
@@ -5013,15 +4966,6 @@ function wireUi() {
   });
   el.subs.addEventListener('change', chooseSubtitle);
   el.audio.addEventListener('change', chooseAudio);
-  $('btn-fullscreen').addEventListener('click', toggleFullscreen);
-  document.addEventListener('fullscreenchange', renderFullscreenButton);
-  for (const event of ['loadeddata', 'playing', 'resize', 'emptied', 'error']) {
-    el.video.addEventListener(event, renderFullscreenButton);
-  }
-  renderFullscreenButton();
-  // The double click that the browser's controls used to take for the bare
-  // video; preventDefault keeps the browser from acting on it as well.
-  el.video.addEventListener('dblclick', (e) => { e.preventDefault(); toggleFullscreen(); });
   el.videowrap.addEventListener('click', clickPicture, true);
   $('btn-reload').addEventListener('click', retryPlayback);
   $('btn-live').addEventListener('click', () => state.catchup && playItem(state.catchup.channel));

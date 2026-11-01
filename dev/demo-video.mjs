@@ -527,7 +527,8 @@ async function walk() {
   const { x: vx, y: vy } = await centre(`document.getElementById('video')`);
   await move(vx, vy, 700);
   await move(vx + 40, vy + 20, 300);
-  await click(`document.getElementById('btn-fullscreen')`, { pause: 0 });
+  // A double click on the picture: full screen with the subtitle layer.
+  await click(`document.getElementById('video')`, { pause: 0, double: true });
   recorder.screenshots();
   await waitFor(`!!document.fullscreenElement`, 'full screen', 5000);
   await raise();

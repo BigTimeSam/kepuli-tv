@@ -14,15 +14,17 @@
 // track stays "showing" and the browser's subtitle menu keeps working.
 //
 // The layer sits in the video's wrapper, so it goes to full screen only with
-// the wrapper. The video's own full-screen button would take the bare video
-// and leave the layer behind; the button is therefore removed from the
-// controls (controlslist="nofullscreen") and the app's own button, the double
-// click and the f key take the wrapper instead. Firefox ignores controlslist:
-// when the viewer takes the video itself to full screen there, the browser's
-// drawing is switched back on for the duration — with the chosen look
-// approximated in ::cue as far as ::cue goes, and the chosen height written
-// into the cues themselves (see placeNative), as the browser would otherwise
-// keep them at the bottom whatever the setting.
+// the wrapper: the double click and the f key take the wrapper. The
+// browser's own full-screen button, where viewers look for it, takes the
+// bare video and leaves the layer behind — so while the video itself is full
+// screen, the browser's drawing is switched back on for the duration, in
+// Chrome and Firefox alike: with the chosen look approximated in ::cue as
+// far as ::cue goes, and the chosen height written into the cues themselves
+// (see placeNative), as the browser would otherwise keep them at the bottom
+// whatever the setting. Chrome on a Mac puts the system's caption style
+// round them besides — by default a dark rounded box — which no page style
+// takes away; raising the wrapper over the video instead was tried, and
+// Chrome refuses it, its button having used up the press.
 //
 // The browser's own drawing also lifted the subtitles above the controls
 // while those were on show, and the controls' visibility is not readable
@@ -103,9 +105,9 @@ export function pictureHeight(width, height, videoWidth, videoHeight) {
 }
 
 // How long the controls stay on show after the pointer stops — Chrome's
-// own bar starts to fade after 2.5 s, and the fullscreen button laid over
-// it has to go with it — and how far from the bottom edge the pointer
-// counts as resting on the controls.
+// own bar starts to fade after 2.5 s, and the subtitles come down with it —
+// and how far from the bottom edge the pointer counts as resting on the
+// controls.
 const CONTROLS_LINGER_MS = 2500;
 const CONTROLS_BAND_PX = 132;
 

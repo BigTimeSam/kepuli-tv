@@ -149,7 +149,9 @@ function trak(track) {
   const dinf = box('dinf', dref);
 
   const stbl = box('stbl',
-    box('stsd', join([u32(0, 1), sampleEntry(track)])),
+    // A track taken from an MP4 file keeps the file's own sample entry,
+    // codec configuration and all (see js/mp4file.js).
+    box('stsd', join([u32(0, 1), track.entry || sampleEntry(track)])),
     box('stts', u32(0, 0)),
     box('stsc', u32(0, 0)),
     box('stsz', u32(0, 0, 0)),
