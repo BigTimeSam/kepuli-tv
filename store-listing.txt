@@ -63,6 +63,14 @@ RARELY
   • Category, language, homepage, support URL, privacy policy URL, test
     instructions: leave them unless the thing they describe has moved.
 
+FOR 1.4.4 SPECIFICALLY
+  Only "version" changed in the manifests; the listings are those set up
+  for 1.4.0. The fixes are in playback: a refused file or channel and a
+  server that does not answer are said at once, instead of a wait for the
+  account's connection. So: upload kepuli-tv-chrome-1.4.4.zip and nothing
+  else. If an earlier 1.4.x is still in review, cancel that submission
+  first (Package → Cancel review); 1.4.4 carries everything it did.
+
 FOR 1.4.3 SPECIFICALLY
   Only "version" changed in the manifests; the listings are those set up
   for 1.4.0. The fix hardens Firefox's new MP4 reader against a damaged
