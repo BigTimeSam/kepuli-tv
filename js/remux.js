@@ -21,7 +21,7 @@ import { parseHeader, ID, Reader } from './ebml.js';
 import { t } from './i18n.js';
 import { BufferedBytes, frames } from './mkv.js';
 import { initSegment, mediaSegment, decodeTimes, durations, VIDEO_TIMESCALE } from './mp4.js';
-import { emptyAnswer, videoMime } from './probe.js';
+import { emptyAnswer, refusedByFileServer, videoMime } from './probe.js';
 import { describeAll, passthroughMime, preferred as preferredAudio } from './audio.js';
 import { AudioTranscoder, encoderSetup, RATE as DECODED_RATE, CHANNELS as DECODED_CHANNELS } from './transcode.js';
 import { SubtitleTracks, isSubtitle, isTextSubtitle, preferred as preferredSubtitle } from './subs.js';
@@ -87,6 +87,10 @@ const CUES_RETRY_MS = 20000;
 // then fails the resume, and that is reported. Without the limit the
 // picture would run out the buffer and stop without a word.
 const STALL_MS = 15000;
+// A request the server has not answered at all within this time is given
+// up as a break, see ANSWER_MS in js/playback.js: measured, a provider
+// answers within a second, refusals included.
+const ANSWER_MS = 5000;
 
 const AAC_FRAME_LENGTHS = [960, 1024, 1920, 2048];
 
@@ -112,7 +116,7 @@ export class Remuxer {
    * counting that one when it answers this.
    */
   constructor(video, url, {
-    onError, onFirstAppend, onNotice, onSubtitles, onAudio, onOpen, startAt = 0, subtitleLang = null,
+    onError, onFirstAppend, onNotice, onSubtitles, onAudio, onOpen, onAnswer, startAt = 0, subtitleLang = null,
     audioLang = null,
   } = {}) {
     this.video = video;
@@ -123,6 +127,7 @@ export class Remuxer {
     this.onSubtitles = onSubtitles || (() => {});
     this.onAudio = onAudio || (() => {});
     this.onOpen = onOpen || (() => {});
+    this.onAnswer = onAnswer || (() => {});
     this.opened = false;          // whether a request of ours has gone out before
     this.startAt = startAt;
     this.subtitleLang = subtitleLang;
@@ -309,18 +314,23 @@ export class Remuxer {
     try {
       res = await within(fetch(this.url, {
         signal: ctrl.signal, cache: 'no-store', credentials: 'omit', headers: { Range: range },
-      }), ctrl);
+      }), ctrl, ANSWER_MS);
     } catch (err) {
       if (err && err.name !== 'AbortError') err.connection = true;
       throw err;
     }
+    this.onAnswer();
     if (!res.ok) {
       // Marked as the connection's failure rather than the file's: a
       // refusal is most often the account's one connection still counted,
       // and worth asking again after a moment, see startPump().
       const err = new Error(`the server answered ${res.status}`);
       err.status = res.status;
-      err.connection = true;
+      // Refused after the redirect, by the server that holds the file: the
+      // file's fault, not a connection still counted, see
+      // refusedByFileServer().
+      if (refusedByFileServer(res)) err.unavailable = res.status;
+      else err.connection = true;
       try { ctrl.abort(); } catch { /* jo suljettu */ }
       if (this.connection === ctrl) this.connection = null;
       if (this.pinned === ctrl) this.pinned = null;
@@ -987,7 +997,10 @@ export class Remuxer {
   startPump(offset, generation) {
     this.pump(offset, generation)
       .catch((err) => {
-        if (!err || !err.connection || this.destroyed || generation !== this.generation) throw err;
+        // Past the header, a file server's refusal is asked again like a
+        // connection's: the file was there a moment ago, see
+        // refusedByFileServer().
+        if (!err || !(err.connection || err.unavailable) || this.destroyed || generation !== this.generation) throw err;
         console.warn('[iptv] the download could not be opened, asking again', err);
         this.state.netError = err.message || String(err);
         return this.resume(generation, offset);
@@ -1360,7 +1373,7 @@ const formatClock = (seconds) => {
  * itself. Past the limit the controller is aborted, so the underlying
  * request ends too, and the rejection says why.
  */
-function within(promise, ctrl) {
+function within(promise, ctrl, ms = STALL_MS) {
   let timer;
   const stalled = new Promise((_, reject) => {
     timer = setTimeout(() => {
@@ -1368,7 +1381,7 @@ function within(promise, ctrl) {
       err.stalled = true;
       reject(err);
       try { ctrl.abort(); } catch { /* jo suljettu */ }
-    }, STALL_MS);
+    }, ms);
   });
   return Promise.race([promise, stalled]).finally(() => clearTimeout(timer));
 }

@@ -25,7 +25,7 @@
 import { t } from './i18n.js';
 import { initSegment, mediaSegment } from './mp4.js';
 import { boxHeader, parseMoov } from './mp4file.js';
-import { emptyAnswer } from './probe.js';
+import { emptyAnswer, refusedByFileServer } from './probe.js';
 
 const BUFFER_AHEAD = 60;
 const BUFFER_BEHIND = 30;
@@ -39,6 +39,8 @@ const AUDIO_SEGMENT_SAMPLES = 100;
 const MAX_RESUMES = 6;
 const RESUME_DELAY_MS = 700;
 const STALL_MS = 15000;
+// A request not answered at all within this time is a break, see js/remux.js.
+const ANSWER_MS = 5000;
 // An index larger than this is not a film's: a two-hour film's is a few
 // megabytes.
 const MAX_MOOV_BYTES = 64 * 1024 * 1024;
@@ -51,13 +53,14 @@ export class Mp4Player {
    * @param {{onError:Function, onFirstAppend:Function, onNotice:Function,
    *          onOpen:Function, startAt:number}} opts
    */
-  constructor(video, url, { onError, onFirstAppend, onNotice, onOpen, startAt = 0 } = {}) {
+  constructor(video, url, { onError, onFirstAppend, onNotice, onOpen, onAnswer, startAt = 0 } = {}) {
     this.video = video;
     this.url = url;
     this.onError = onError || (() => {});
     this.onFirstAppend = onFirstAppend || (() => {});
     this.onNotice = onNotice || (() => {});
     this.onOpen = onOpen || (() => {});
+    this.onAnswer = onAnswer || (() => {});
     this.startAt = startAt;
     this.opened = false;
     this.destroyed = false;
@@ -248,15 +251,19 @@ export class Mp4Player {
       res = await within(fetch(this.url, {
         signal: ctrl.signal, cache: 'no-store', credentials: 'omit',
         headers: { Range: to != null ? `bytes=${from}-${to}` : `bytes=${from}-` },
-      }), ctrl);
+      }), ctrl, ANSWER_MS);
     } catch (err) {
       if (err && err.name !== 'AbortError') err.connection = true;
       throw err;
     }
+    this.onAnswer();
     if (!res.ok) {
       const err = new Error(`the server answered ${res.status}`);
       err.status = res.status;
-      err.connection = true;
+      // Refused by the file's own server, after the redirect: see
+      // refusedByFileServer(); asking again would not change it.
+      if (refusedByFileServer(res)) err.unavailable = res.status;
+      else err.connection = true;
       try { ctrl.abort(); } catch { /* jo suljettu */ }
       throw err;
     }
@@ -273,7 +280,9 @@ export class Mp4Player {
       try {
         return await this.open(from, to);
       } catch (err) {
-        if (!err || !err.connection || this.destroyed || generation !== this.generation || attempt >= MAX_RESUMES) throw err;
+        // The first request is not asked again (see readIndex); after it a
+        // file server's refusal is, like a connection's: the file was there.
+        if (!err || !(err.connection || err.unavailable) || this.destroyed || generation !== this.generation || attempt >= MAX_RESUMES) throw err;
         console.warn('[iptv] the MP4 request could not be opened, asking again', err);
         await sleep(RESUME_DELAY_MS * (attempt + 1));
         if (this.destroyed || generation !== this.generation) throw new DOMException('superseded', 'AbortError');
@@ -631,7 +640,7 @@ class ByteStream {
 const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
 /** A step of a download with a stall limit, see the one in js/remux.js. */
-function within(promise, ctrl) {
+function within(promise, ctrl, ms = STALL_MS) {
   let timer;
   const stalled = new Promise((_, reject) => {
     timer = setTimeout(() => {
@@ -640,7 +649,7 @@ function within(promise, ctrl) {
       err.connection = true;
       reject(err);
       try { ctrl.abort(); } catch { /* jo suljettu */ }
-    }, STALL_MS);
+    }, ms);
   });
   return Promise.race([promise, stalled]).finally(() => clearTimeout(timer));
 }

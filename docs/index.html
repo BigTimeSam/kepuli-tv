@@ -1149,6 +1149,28 @@ but trails the live edge by a segment length.</p>
 unplayable ones, <strong>Copy address</strong> and <strong>Open in an external player</strong> are
 offered.</p>
 
+<p>What a provider answers decides what the player says. Measured against a real
+one-connection provider on 1 November 2026:</p>
+
+<div class="table-scroll">
+<table>
+  <thead><tr><th>Situation</th><th>The provider's answer</th><th>The player</th></tr></thead>
+  <tbody>
+    <tr><td>A title it has no file for</td><td><code>200 OK</code>, <code>text/html</code>, an empty body</td><td>says so at once</td></tr>
+    <tr><td>A file its file server cannot give</td><td><code>302</code> to the file server, then <code>400</code></td><td>says so at once</td></tr>
+    <tr><td>A channel outside the subscription or off the air</td><td><code>407</code> at once, before any redirect — which the browser turns into a network error</td><td>says so at once</td></tr>
+    <tr><td>A second stream on a full account</td><td>let through; the oldest stream is cut a few seconds later</td><td>—</td></tr>
+    <tr><td>A stream closed a moment ago</td><td>let through again at once</td><td>—</td></tr>
+  </tbody>
+</table>
+</div>
+
+<p>None of them was slow: every answer came within a second. A source that has
+answered nothing within five seconds is given up, rather than after the 20–30
+seconds of the start timeout. The account check and the wait for a released
+connection stay for providers that do refuse a stream with a status while
+they still count the last one.</p>
+
 <p>How far ahead a film or an episode is read depends on the route. The browser's
 own player decides for itself, some 15–20 seconds measured. The MKV unpacking
 and mpegts.js both read a minute ahead and drop what was watched behind it. For

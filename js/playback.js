@@ -74,15 +74,28 @@ const HLS_CONFIG = {
 // when the account's concurrent-connection limit is full — in which case no
 // error event ever arrives.
 const TIMEOUT_MS = { mpegts: 20000, hls: 20000, native: 30000, remux: 30000, mp4: 30000 };
-// A live MPEG-TS stream from which not one byte has arrived by this time is
-// taken for a full account that took the connection and says nothing (see
-// finish() in runAttempt), and the account is asked then, rather than after
-// the whole start timeout — some 21 seconds of a black picture on every
-// zap into a full account. A channel that is merely slow to start is not
-// cut short by it: a provider's stream starts sending at once, and what
-// takes a slow channel its time is the first keyframe and the buffer
-// behind it — once bytes are arriving, the full timeout above applies.
-const LIVE_SILENCE_MS = 10000;
+// A source from which nothing at all has come by this time — no answer to
+// the request, not one byte of a stream — is given up rather than waited on
+// for the whole start timeout. Measured against a real provider, every
+// answer came within a second, a refusal included; one that has said
+// nothing in five has gone quiet. A live MPEG-TS stream that stays silent
+// is still taken for a full account that took the connection and says
+// nothing (see finish() in runAttempt), and the account is asked. A
+// channel that is merely slow to start is not cut short by it: what takes
+// it its time is the first keyframe and the buffer behind it, and once
+// bytes are arriving, the full timeout above applies.
+const ANSWER_MS = 5000;
+// A live channel the provider will not give at all. Measured: refused at
+// once, before any redirect, with 407 — for channels outside the
+// subscription or off the air, every time, and never for a full account,
+// whose provider let the new stream through and cut the oldest. A browser
+// does not hand a 407 to the page (it is the proxy's status): fetch() fails
+// as a network error. So a live stream that fails on the network before a
+// single byte is a channel the provider will not give, as is a 407 that
+// does come through. A channel not there as MPEG-TS (404, 410) may still be
+// there as HLS and is tried as that; not there as HLS either, it is not
+// there.
+const CHANNEL_REFUSED = { mpegts: new Set([407]), hls: new Set([404, 407, 410]) };
 // The library engines are named as they are; the browser's own player and
 // the MKV unpacking get a translated label, resolved when read so that a
 // language switch mid-playback shows in the badge too.
@@ -257,6 +270,7 @@ export class Playback {
       const known = await this.inspect(spec, token);
       if (!known) return;
       if (known.path === 'empty') return this.nothingThere(spec);
+      if (known.path === 'unavailable') return this.fileRefused(spec, spec.probe.unavailable);
       if (known.path === 'native') chain = nativeChain(spec);
       else if (known.path === 'mpegts') chain = ['mpegts'];
       else if (known.path === 'remux') chain = ['remux'];
@@ -324,6 +338,29 @@ export class Playback {
     this.onState({ status: 'error', message: t('playback.empty'), verdict, content: true });
   }
 
+  /**
+   * The file's own server refused the file, after the provider's server had
+   * let the request through: see refusedByFileServer() in js/probe.js. Said
+   * at once and as it is, like nothingThere(): the account is not asked,
+   * and no wait for a connection would bring the file.
+   */
+  fileRefused(spec, status) {
+    const verdict = { path: 'unavailable', reason: t('probe.unavailable', { status }) };
+    spec.verdict = verdict;
+    this.onState({ status: 'error', message: t('playback.unavailable', { status }), verdict, content: true });
+  }
+
+  /**
+   * A live channel the provider will not give, see CHANNEL_REFUSED: said at
+   * once and as it is, and the account is not asked — the provider would
+   * have let a stream through on a full account.
+   */
+  channelRefused(spec) {
+    const verdict = { path: 'unavailable', reason: t('playback.channelrefused') };
+    spec.verdict = verdict;
+    this.onState({ status: 'error', message: t('playback.channelrefused'), verdict, content: true });
+  }
+
   refuse(known, extra = {}) {
     this.onState({
       status: 'error',
@@ -349,6 +386,7 @@ export class Playback {
     const known = await this.inspect(spec, token);
     if (!known) return;
     if (known.path === 'empty') return this.nothingThere(spec);
+    if (known.path === 'unavailable') return this.fileRefused(spec, spec.probe.unavailable);
     if (known.path === 'silent') return this.refuse(known, { canSilent: true });
     if (known.path === 'remux' || known.path === 'none') return this.refuse(known);
     this.onState({ status: 'error', message: generic, verdict: known });
@@ -360,7 +398,7 @@ export class Playback {
     this.noteOpen();
     this.sourceDone = false;
 
-    const finish = (ok, why, { refused = false, empty = false } = {}) => {
+    const finish = (ok, why, { refused = false, empty = false, unavailable = 0, channel = 0 } = {}) => {
       if (token !== this.token) return;
       // The engine keeps reporting after the start has been settled, and a
       // failure then is a different event from a failed start.
@@ -392,6 +430,8 @@ export class Playback {
       // The server answered OK with nothing in it: no other engine gets a
       // picture out of that, see emptyAnswer() in js/probe.js.
       if (empty) return void this.nothingThere(spec);
+      if (unavailable) return void this.fileRefused(spec, unavailable);
+      if (channel) return void this.channelRefused(spec);
       // The server answered and said no. For a live channel that is the
       // account's connections far more often than the format: the
       // provider goes on counting the stream just closed for a while, and a
@@ -429,15 +469,21 @@ export class Playback {
     const liveTs = name === 'mpegts' && spec.live;
     const timer = setTimeout(() => finish(false, t('playback.reason.timeout'), { refused: liveTs }), TIMEOUT_MS[name]);
     let flowing = false;
-    const silence = liveTs ? setTimeout(() => {
-      if (!flowing) finish(false, t('playback.reason.timeout'), { refused: true });
-    }, LIVE_SILENCE_MS) : null;
+    const answered = () => { flowing = true; };
+    const silence = setTimeout(() => {
+      if (!flowing) finish(false, t('playback.reason.timeout'), { refused: liveTs });
+    }, ANSWER_MS);
+    // The browser's own player says nothing of the request: metadata or
+    // bytes arriving are its answer.
+    const nativeAnswers = ['loadedmetadata', 'progress', 'loadeddata'];
+    if (name === 'native') for (const event of nativeAnswers) video.addEventListener(event, answered);
 
     video.addEventListener('playing', onPlaying);
     video.addEventListener('error', onError);
     const drop = () => {
       clearTimeout(timer);
       clearTimeout(silence);
+      for (const event of nativeAnswers) video.removeEventListener(event, answered);
       clearInterval(nudge);
       video.removeEventListener('playing', onPlaying);
       video.removeEventListener('error', onError);
@@ -447,12 +493,12 @@ export class Playback {
     try {
       if (name === 'mpegts') {
         this.startMpegts(spec.url, spec.live, finish, {
-          vod: !spec.live && !spec.catchup, started: () => settled, onData: () => { flowing = true; },
+          vod: !spec.live && !spec.catchup, started: () => settled, onData: answered,
         });
       }
-      else if (name === 'hls') this.startHls(spec.hlsUrl || spec.url, finish);
-      else if (name === 'remux') this.startRemux(spec, finish);
-      else if (name === 'mp4') this.startMp4(spec, finish);
+      else if (name === 'hls') this.startHls(spec.hlsUrl || spec.url, finish, { live: spec.live, onData: answered });
+      else if (name === 'remux') this.startRemux(spec, finish, answered);
+      else if (name === 'mp4') this.startMp4(spec, finish, answered);
       else this.startNative(spec);
     } catch (err) {
       finish(false, String(err && err.message));
@@ -499,14 +545,21 @@ export class Playback {
     // Bytes arriving, for the silence check in runAttempt: the stream's
     // description, parsed from its first packets, or a download speed
     // above nothing in the statistics the player reports twice a second.
-    player.on(mpegts.Events.MEDIA_INFO, () => onData());
-    player.on(mpegts.Events.STATISTICS_INFO, (info) => { if (info && info.speed > 0) onData(); });
+    let flowing = false;
+    const data = () => { flowing = true; onData(); };
+    player.on(mpegts.Events.MEDIA_INFO, data);
+    player.on(mpegts.Events.STATISTICS_INFO, (info) => { if (info && info.speed > 0) data(); });
     player.on(mpegts.Events.ERROR, (type, detail, info) => {
       const status = Number(info && info.code);
+      const why = `${type}/${detail}${status ? ` ${status}` : ''}`;
+      if (isLive && (CHANNEL_REFUSED.mpegts.has(status)
+        || (type === mpegts.ErrorTypes.NETWORK_ERROR && detail !== 'HttpStatusCodeInvalid' && !flowing))) {
+        return finish(false, why, { channel: true });
+      }
       const gone = status === 404 || status === 410;
       const refused = !gone && ((detail === 'HttpStatusCodeInvalid' && status >= 400)
         || (isLive && type === mpegts.ErrorTypes.NETWORK_ERROR));
-      finish(false, `${type}/${detail}${status ? ` ${status}` : ''}`, { refused });
+      finish(false, why, { refused });
     });
     // A live source does not end by itself: this means the server cut the
     // connection. The buffer is still played to the end, and the ended
@@ -526,12 +579,16 @@ export class Playback {
     this.tryPlay();
   }
 
-  startHls(url, finish) {
+  startHls(url, finish, { live = false, onData = () => {} } = {}) {
     if (typeof Hls === 'undefined' || !Hls.isSupported()) return finish(false, 'hls.js not supported');
     const hls = new Hls(HLS_CONFIG);
     this.engine = hls;
     let recovered = 0;
+    hls.on(Hls.Events.MANIFEST_LOADED, () => onData());
     hls.on(Hls.Events.ERROR, (_e, data) => {
+      const status = Number(data.response && data.response.code);
+      const unreached = data.details === Hls.ErrorDetails.MANIFEST_LOAD_ERROR && !status;
+      if (live && (CHANNEL_REFUSED.hls.has(status) || unreached)) { finish(false, `${data.type}/${data.details} ${status}`, { channel: true }); return; }
       if (!data.fatal) return;
       if (data.type === Hls.ErrorTypes.MEDIA_ERROR && recovered < 2) { recovered++; hls.recoverMediaError(); return; }
       finish(false, `${data.type}/${data.details}`);
@@ -546,9 +603,10 @@ export class Playback {
    * demuxing and feeding the segments; life cycle and error forwarding are
    * enough here.
    */
-  startRemux(spec, finish) {
+  startRemux(spec, finish, onAnswer = () => {}) {
     const remuxer = new Remuxer(this.video, spec.url, {
       startAt: spec.startAt || 0,
+      onAnswer,
       // Each request after the first follows one of the unpacker's own,
       // let go a moment before — a seek's, a resume's. It counts as an
       // attempt asking for its connection, so that a failure soon after it
@@ -569,13 +627,14 @@ export class Playback {
       onError: (err) => finish(false, err && err.message ? err.message : t('playback.reason.demux')),
     });
     this.engine = remuxer;
-    remuxer.start().catch((err) => finish(false, err && err.message ? err.message : String(err), { empty: Boolean(err && err.empty) }));
+    remuxer.start().catch((err) => finish(false, err && err.message ? err.message : String(err), { empty: Boolean(err && err.empty), unavailable: (err && err.unavailable) || 0 }));
   }
 
   /** MP4 through MediaSource, see nativeChain() and js/mp4play.js. */
-  startMp4(spec, finish) {
+  startMp4(spec, finish, onAnswer = () => {}) {
     const player = new Mp4Player(this.video, spec.url, {
       startAt: spec.startAt || 0,
+      onAnswer,
       onOpen: (again) => {
         if (this.engine !== player) return;
         if (again) this.releasedAt = Date.now();
@@ -586,7 +645,7 @@ export class Playback {
       onError: (err) => finish(false, err && err.message ? err.message : t('playback.reason.demux')),
     });
     this.engine = player;
-    player.start().catch((err) => finish(false, err && err.message ? err.message : String(err), { empty: Boolean(err && err.empty) }));
+    player.start().catch((err) => finish(false, err && err.message ? err.message : String(err), { empty: Boolean(err && err.empty), unavailable: (err && err.unavailable) || 0 }));
   }
 
   startNative(spec) {

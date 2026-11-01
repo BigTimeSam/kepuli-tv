@@ -271,6 +271,8 @@ const STRINGS = {
     'playback.hint.copy': '{reason} Copy the address from the \u2630 menu and open it in VLC, for example.',
     'playback.nosource': 'The source did not answer or the format is not supported.',
     'playback.empty': 'The provider sent nothing for this title: it has no file for it on its server right now. Try again later, or let your provider know.',
+    'playback.unavailable': 'The provider\'s file server would not send this title (error {status}): the file is missing or damaged there. Try again later, or let your provider know.',
+    'playback.channelrefused': 'The provider would not give this channel: it may be off the air or outside your subscription.',
     'playback.autoplay': 'The browser blocked autoplay — press play.',
     'playback.gaveup': 'The stream stopped ({reason}) and did not recover in {max} attempts. ',
     'playback.gaveup.hint': 'Try again or change the playback mode.',
@@ -557,6 +559,7 @@ const STRINGS = {
     /* ------------------------------------------------------------ file */
     'probe.unread': 'The header could not be read: {error}',
     'probe.empty': 'The server answered with nothing to play.',
+    'probe.unavailable': 'The file server refused the file (error {status}).',
     'probe.untested': 'The file has not been examined.',
     'probe.mp4': 'MP4 — the browser’s own player.',
     'probe.mpegts': 'MPEG-TS — mpegts.js.',
@@ -820,6 +823,8 @@ const STRINGS = {
     'playback.hint.copy': '{reason} Kopioi osoite \u2630-valikosta ja avaa se esimerkiksi VLC:ssä.',
     'playback.nosource': 'Lähde ei vastannut tai muoto ei ole tuettu.',
     'playback.empty': 'Palveluntarjoaja ei lähettänyt tälle nimikkeelle mitään: sen palvelimella ei ole nyt tiedostoa sille. Yritä myöhemmin uudelleen tai kerro asiasta palveluntarjoajallesi.',
+    'playback.unavailable': 'Palveluntarjoajan tiedostopalvelin ei lähettänyt tätä nimikettä (virhe {status}): tiedosto puuttuu sieltä tai on vioittunut. Yritä myöhemmin uudelleen tai kerro asiasta palveluntarjoajallesi.',
+    'playback.channelrefused': 'Palveluntarjoaja ei antanut tätä kanavaa: se voi olla poissa lähetyksestä tai tilauksesi ulkopuolella.',
     'playback.autoplay': 'Selain esti automaattisen toiston — paina play.',
     'playback.gaveup': 'Virta katkesi ({reason}) eikä palautunut {max} yrityksellä. ',
     'playback.gaveup.hint': 'Kokeile uudelleen tai vaihda toistotapaa.',
@@ -1096,6 +1101,7 @@ const STRINGS = {
     /* ------------------------------------------------------------ file */
     'probe.unread': 'Otsikkoa ei saatu luettua: {error}',
     'probe.empty': 'Palvelin vastasi, mutta ei lähettänyt mitään toistettavaa.',
+    'probe.unavailable': 'Tiedostopalvelin torjui tiedoston (virhe {status}).',
     'probe.untested': 'Tiedostoa ei ole tutkittu.',
     'probe.mp4': 'MP4 — selaimen oma toistin.',
     'probe.mpegts': 'MPEG-TS — mpegts.js.',

@@ -908,6 +908,23 @@ In the test material 54% of the movies are `.mp4` and 44% `.mkv`. For
 unplayable ones, **Copy address** and **Open in an external player** are
 offered.
 
+What a provider answers decides what the player says. Measured against a real
+one-connection provider on 1 November 2026:
+
+| Situation | The provider's answer | The player |
+| --- | --- | --- |
+| A title it has no file for | `200 OK`, `text/html`, an empty body | says so at once |
+| A file its file server cannot give | `302` to the file server, then `400` | says so at once |
+| A channel outside the subscription or off the air | `407` at once, before any redirect — which the browser turns into a network error | says so at once |
+| A second stream on a full account | let through; the oldest stream is cut a few seconds later | — |
+| A stream closed a moment ago | let through again at once | — |
+
+None of them was slow: every answer came within a second. A source that has
+answered nothing within five seconds is given up, rather than after the 20–30
+seconds of the start timeout. The account check and the wait for a released
+connection stay for providers that do refuse a stream with a status while
+they still count the last one.
+
 How far ahead a film or an episode is read depends on the route. The browser's
 own player decides for itself, some 15–20 seconds measured. The MKV unpacking
 and mpegts.js both read a minute ahead and drop what was watched behind it. For

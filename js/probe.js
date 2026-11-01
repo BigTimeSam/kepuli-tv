@@ -26,6 +26,7 @@ import { shortLanguage, trackLanguage } from './lang.js';
 
 const HEADER_BYTES = 256 * 1024;
 const TIMEOUT_MS = 15000;
+const ANSWER_MS = 5000;
 const CACHE_PREFIX = 'probe:';
 const CACHE_TTL = 90 * 24 * 60 * 60 * 1000;   // the container does not change under the file
 
@@ -97,6 +98,7 @@ export async function probe(url, { signal, force } = {}) {
   const info = await serialize(() => readHeader(url, signal).then(parse, (err) => ({
     container: 'unknown',
     error: err && err.message ? err.message : String(err),
+    ...(err && err.unavailable ? { unavailable: err.unavailable } : {}),
   })));
   // An empty answer is the provider saying it has no file for the title,
   // not a busy connection, and not worth remembering either: the file may
@@ -117,14 +119,24 @@ async function readHeader(url, signal) {
     signal.addEventListener('abort', relay, { once: true });
   }
   const timer = setTimeout(() => ctrl.abort(), TIMEOUT_MS);
+  // The server must answer within ANSWER_MS, the header itself may take
+  // the whole TIMEOUT_MS to arrive: see ANSWER_MS in js/playback.js.
+  let late = false;
+  const unanswered = setTimeout(() => { late = true; ctrl.abort(); }, ANSWER_MS);
   try {
     const res = await fetch(url, {
       signal: ctrl.signal,
       cache: 'no-store',
       credentials: 'omit',
       headers: { Range: `bytes=0-${HEADER_BYTES - 1}` },
-    });
-    if (!res.ok) throw new Error(`palvelin vastasi ${res.status}`);
+    }).catch((err) => {
+      throw late ? new Error(t('playback.reason.timeout')) : err;
+    }).finally(() => clearTimeout(unanswered));
+    if (!res.ok) {
+      const err = new Error(`palvelin vastasi ${res.status}`);
+      if (refusedByFileServer(res)) err.unavailable = res.status;
+      throw err;
+    }
     const reader = res.body.getReader();
     const parts = [];
     let total = 0;
@@ -157,6 +169,17 @@ async function readHeader(url, signal) {
  * will get a picture out of it.
  */
 export const emptyAnswer = (bytes) => bytes.length < 16;
+
+/**
+ * Whether a refusal came from the file's own server. The provider's server
+ * decides whether the account may open a stream, and a request it lets
+ * through is redirected to the server that holds the file. Measured: a
+ * title whose file that server cannot give is a 302 and then a 400, every
+ * time, while the account's own refusal of a stream it still counts comes
+ * before any redirect. A refusal after a redirect is the file's, and
+ * waiting for a connection would not change it.
+ */
+export const refusedByFileServer = (res) => !res.ok && res.redirected;
 
 function parse(bytes) {
   if (emptyAnswer(bytes)) return { container: 'unknown', error: 'empty', empty: true };
@@ -372,6 +395,7 @@ function codecBox(fourcc, out) {
  */
 export function verdict(info) {
   if (info && info.empty) return { path: 'empty', reason: t('probe.empty') };
+  if (info && info.unavailable) return { path: 'unavailable', reason: t('probe.unavailable', { status: info.unavailable }) };
   if (!info || info.error) {
     return { path: 'unknown', reason: info && info.error ? t('probe.unread', { error: info.error }) : t('probe.untested') };
   }

@@ -174,6 +174,13 @@
 //   node dev/playcheck.mjs emptyfile  a title the provider answers with "200
 //                                     OK" and no bytes says so at once, not
 //                                     that the account's connections are full
+//   node dev/playcheck.mjs refusedfile a title let through and redirected, then
+//                                     refused by the file server, says so at
+//                                     once, not that the connections are full
+//   node dev/playcheck.mjs channelrefused a channel refused with 407 says so
+//                                     at once, not that the account is full
+//   node dev/playcheck.mjs noanswer   a server that never answers is given up
+//                                     within seconds, an episode and a channel
 //   node dev/playcheck.mjs longfilm   with KEPULI_MOCK_LONG set to a folder of
 //                                     long.mkv/.mp4/.ts (KEPULI_MOCK_EPISODE_EXT
 //                                     picks one), a feature-length file plays
@@ -401,6 +408,98 @@ async function emptyfile(page) {
     return { ok, detail: `after ${secs} s: "${after}" [${buttons}]` };
   } finally {
     process.env.KEPULI_MOCK_EMPTY = '';
+  }
+}
+
+async function refusedfile(page) {
+  process.env.KEPULI_MOCK_REFUSED_FILE = '1';
+  try {
+    await evaluate(page, `document.querySelector('#tabs [data-tab="series"]').click()`);
+    await click(page, '#groups', 'Nordic Noir');
+    await click(page, '#list', 'Silent Fjord');
+    await waitFor(page, `!document.getElementById('detail').hidden && document.querySelectorAll('#list .row').length > 0`, 'the series page');
+    const t0 = Date.now();
+    await evaluate(page, `document.querySelectorAll('#list .row')[0].click()`, { gesture: true });
+    let text = '';
+    for (let i = 0; i < 160; i++) {
+      text = await evaluate(page, `document.getElementById('overlay').hidden ? '' : document.getElementById('overlay-text').textContent`);
+      if (/file server would not send/i.test(text)) break;
+      await sleep(250);
+    }
+    const secs = ((Date.now() - t0) / 1000).toFixed(1);
+    // Our own empty read may still be counted at the provider: the account
+    // must not be asked, nor another viewer blamed.
+    await sleep(3000);
+    const after = await evaluate(page, `document.getElementById('overlay-text').textContent`);
+    const buttons = await evaluate(page, `[...document.querySelectorAll('#overlay button')].map((b) => b.textContent.trim()).filter(Boolean).join(' / ')`);
+    const ok = /file server would not send/i.test(after) && !/connection|in use/i.test(after) && Number(secs) < 10;
+    return { ok, detail: `after ${secs} s: "${after}" [${buttons}]` };
+  } finally {
+    process.env.KEPULI_MOCK_REFUSED_FILE = '';
+  }
+}
+
+/**
+ * How long the overlay takes to say a start failed, and what it says: the
+ * row is clicked, and the overlay's title read until it gives up.
+ */
+async function failureAfterClick(page, clickRow, limitMs) {
+  await clickRow();
+  const t0 = Date.now();
+  let title = '';
+  while (Date.now() - t0 < limitMs) {
+    title = await evaluate(page, OVERLAY_TITLE);
+    if (/failed/i.test(title)) break;
+    await sleep(250);
+  }
+  const text = await evaluate(page, `document.getElementById('overlay').hidden ? '' : document.getElementById('overlay-text').textContent`);
+  return { secs: (Date.now() - t0) / 1000, title, text };
+}
+
+const clickFirstChannel = (page) => async () => {
+  await openLiveList(page, 2);
+  await evaluate(page, `document.querySelectorAll('#list .row')[0].click()`, { gesture: true });
+};
+const clickFirstEpisode = (page) => async () => {
+  await evaluate(page, `document.querySelector('#tabs [data-tab="series"]').click()`);
+  await click(page, '#groups', 'Nordic Noir');
+  await click(page, '#list', 'Silent Fjord');
+  await waitFor(page, `!document.getElementById('detail').hidden && document.querySelectorAll('#list .row').length > 0`, 'the series page');
+  await evaluate(page, `document.querySelectorAll('#list .row')[0].click()`, { gesture: true });
+};
+
+/**
+ * A channel the provider will not give — 407 at once, before any redirect,
+ * as a real provider answers for one outside the subscription — is said to
+ * be so at once, and neither waited on nor blamed on the connections.
+ */
+async function channelrefused(page) {
+  process.env.KEPULI_MOCK_CHANNEL_REFUSED = '1';
+  try {
+    const got = await failureAfterClick(page, clickFirstChannel(page), 20000);
+    await sleep(3000);
+    const after = await evaluate(page, `document.getElementById('overlay-text').textContent`);
+    const ok = /would not give this channel/.test(after) && !/connection|in use/i.test(after) && got.secs < 5;
+    return { ok, detail: `after ${got.secs.toFixed(1)} s "${got.title}": "${after}"` };
+  } finally {
+    process.env.KEPULI_MOCK_CHANNEL_REFUSED = '';
+  }
+}
+
+/**
+ * A server that takes the request and never answers: an episode and a
+ * channel are given up within seconds, not the half minute of the start
+ * timeout.
+ */
+async function noanswer(page) {
+  process.env.KEPULI_MOCK_NO_ANSWER = '1';
+  try {
+    const episode = await failureAfterClick(page, clickFirstEpisode(page), 40000);
+    const channel = await failureAfterClick(page, clickFirstChannel(page), 40000);
+    const ok = /failed/i.test(episode.title) && /failed/i.test(channel.title) && episode.secs < 13 && channel.secs < 13;
+    return { ok, detail: `episode after ${episode.secs.toFixed(1)} s: "${episode.title}: ${episode.text}"; channel after ${channel.secs.toFixed(1)} s: "${channel.title}: ${channel.text}"` };
+  } finally {
+    process.env.KEPULI_MOCK_NO_ANSWER = '';
   }
 }
 
@@ -2792,7 +2891,7 @@ async function resettabs(page, { target }) {
   }
 }
 
-const SCENARIOS = { emptyfile, longfilm, catalogUi, setupClarity, fullscreenControl, clickpause, pickers, channels, home, resumemkv, restore, programmes, catchup, seek, death, cancel, timeout, search, paste, keys, switching, resume, connections, livezap, livequiet, reconnect, accounts, listerror, a11y, subtitles, audio, settings,
+const SCENARIOS = { emptyfile, refusedfile, channelrefused, noanswer, longfilm, catalogUi, setupClarity, fullscreenControl, clickpause, pickers, channels, home, resumemkv, restore, programmes, catchup, seek, death, cancel, timeout, search, paste, keys, switching, resume, connections, livezap, livequiet, reconnect, accounts, listerror, a11y, subtitles, audio, settings,
   lastchannel, nextepisode, continuewatching, reminders, update, seeklag, cuesretry, quota, catchupfreeze, catchupfull, twotabs, switchstop, resettabs,
   refresh, restorenav, guidekeep };
 // The mock's whole-list answers stall for these, longer than the request limit.

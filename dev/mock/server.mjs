@@ -681,12 +681,20 @@ function handle(req, res) {
     connections.hls++;
     return send(res, 200, livePlaylist(), 'application/vnd.apple.mpegurl');
   }
+  // KEPULI_MOCK_CHANNEL_REFUSED: every live channel is refused with 407 at
+  // once, before any redirect — what a real provider answers for a channel
+  // outside the subscription or off the air.
+  if (process.env.KEPULI_MOCK_CHANNEL_REFUSED && /^\/live\//.test(path)) return send(res, 407, '', 'text/html; charset=UTF-8');
+  // KEPULI_MOCK_NO_ANSWER: a stream or a file is accepted and never
+  // answered — no status, no byte — until the player gives up on it.
+  if (process.env.KEPULI_MOCK_NO_ANSWER && /^\/(live|movie|series)\//.test(path)) return;
   if (/^\/live\/.*\.m3u8$/.test(path)) return send(res, 200, livePlaylist(), 'application/vnd.apple.mpegurl');
   // KEPULI_MOCK_LIVE_TS serves the channel as a provider does: one endless
   // MPEG-TS connection, counted against the account like a film.
   if (/^\/live\/.*\.ts$/.test(path) && process.env.KEPULI_MOCK_LIVE_TS) return admit(req, res).then((ok) => ok && sendTimeshift(req, res));
   if (/^\/live\/.*\.ts$/.test(path)) return send(res, 404, 'the demo channel is HLS; the player falls back to it', 'text/plain');
   if (path.startsWith('/timeshift/')) return admit(req, res).then((ok) => ok && sendTimeshift(req, res, { archive: true }));
+  if (path.startsWith('/files/refused/')) return send(res, 400, '', 'video/mp4');
   if ((m = /^\/(movie|series)\/.*\.(\w+)$/.exec(path))) return admit(req, res).then((ok) => ok && sendMedia(req, res, path, m[2]));
   send(res, 404, 'not found', 'text/plain');
 }
@@ -695,6 +703,14 @@ function sendMedia(req, res, path, ext) {
   // KEPULI_MOCK_EMPTY: every film and episode is answered the way a real
   // provider answers a title it has no file for — "200 OK", text/html and
   // not one byte, where a playable title is a redirect and a 206.
+  // KEPULI_MOCK_REFUSED_FILE: every film and episode is let through and
+  // redirected, and the "file server" behind the redirect refuses it with
+  // a 400 — what a real provider does with a title whose file it cannot
+  // give, and unlike its refusal of a connection it still counts.
+  if (process.env.KEPULI_MOCK_REFUSED_FILE) {
+    res.writeHead(302, { ...CORS, Location: `/files/refused${path}` });
+    return res.end();
+  }
   if (process.env.KEPULI_MOCK_EMPTY) {
     res.writeHead(200, { ...CORS, 'Content-Type': 'text/html; charset=UTF-8', 'Transfer-Encoding': 'chunked' });
     return res.end();
