@@ -68,6 +68,12 @@ RARELY
   • Category, language, homepage, support URL, privacy policy URL, test
     instructions: leave them unless the thing they describe has moved.
 
+FOR 1.4.5 SPECIFICALLY
+  Only "version" changed in the manifests, and nothing in the extension's
+  code: 1.4.5 is the first version sent to both stores through their APIs
+  (dev/cws-publish.mjs --replace, dev/amo-publish.mjs). The listings are
+  those set up for 1.4.0.
+
 FOR 1.4.4 SPECIFICALLY
   Only "version" changed in the manifests; the listings are those set up
   for 1.4.0. The fixes are in playback: a refused file or channel and a
