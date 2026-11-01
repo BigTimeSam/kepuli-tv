@@ -71,14 +71,19 @@ export function parseMoov(bytes) {
       : view.getUint32(mvhd.body + 16);
   }
   const tracks = [];
-  for (const trak of children(bytes, moov.body, moov.end).filter((c) => c.type === 'trak')) {
-    const track = parseTrak(bytes, view, trak, movieScale);
+  // What the whole index may claim, across its tracks: a film has two or
+  // three, and a file claiming hundreds of full ones is not allocated for.
+  const budget = { samples: MAX_TOTAL_SAMPLES };
+  const traks = children(bytes, moov.body, moov.end).filter((c) => c.type === 'trak');
+  if (traks.length > MAX_TRACKS) throw new Error('the MP4 index is damaged (trak)');
+  for (const trak of traks) {
+    const track = parseTrak(bytes, view, trak, movieScale, budget);
     if (track) tracks.push(track);
   }
   return { duration: movieScale ? duration / movieScale : 0, tracks };
 }
 
-function parseTrak(bytes, view, trak, movieScale) {
+function parseTrak(bytes, view, trak, movieScale, budget) {
   const tkhd = child(bytes, trak, 'tkhd');
   const mdia = child(bytes, trak, 'mdia');
   if (!tkhd || !mdia) return null;
@@ -102,7 +107,7 @@ function parseTrak(bytes, view, trak, movieScale) {
   const entry = bytes.slice(first.start, first.end);
   const described = describeEntry(entry, kind);
 
-  const tables = sampleTables(bytes, view, stbl);
+  const tables = sampleTables(bytes, view, stbl, budget);
   if (!tables) return null;
   return {
     id, kind, timescale, entry, ...described, ...tables,
@@ -140,6 +145,8 @@ function editShift(bytes, view, trak, timescale, movieScale) {
 // a file claiming more is broken or made to exhaust memory, and is not
 // allocated for.
 export const MAX_SAMPLES = 2_000_000;
+const MAX_TOTAL_SAMPLES = 4_000_000;
+const MAX_TRACKS = 32;
 
 /** A table's entry count, checked against the box that holds it. */
 function entries(view, box, at, width) {
@@ -148,7 +155,7 @@ function entries(view, box, at, width) {
   return n;
 }
 
-function sampleTables(bytes, view, stbl) {
+function sampleTables(bytes, view, stbl, budget) {
   const box = (type) => child(bytes, stbl, type);
   const stsz = box('stsz');
   const stz2 = box('stz2');
@@ -179,6 +186,9 @@ function sampleTables(bytes, view, stbl) {
     }
   }
 
+  if (count > budget.samples) throw new Error('the MP4 index is damaged (too many samples)');
+  budget.samples -= count;
+
   // Offsets, chunk by chunk.
   const wide = stco.type === 'co64';
   const chunks = entries(view, stco, stco.body + 4, wide ? 8 : 4);
@@ -188,13 +198,17 @@ function sampleTables(bytes, view, stbl) {
   const runs = entries(view, stsc, stsc.body + 4, 12);
   const offset = new Float64Array(count);
   let sample = 0;
+  let previous = -1;
   for (let r = 0; r < runs && sample < count; r++) {
     const at = stsc.body + 8 + r * 12;
     const firstChunk = view.getUint32(at) - 1;
     const perChunk = view.getUint32(at + 4);
-    // A run's chunks end where the next run's begin, and never past the
-    // chunk table: a run of empty chunks claimed to go on for ever would
-    // otherwise spin here.
+    // The runs follow one another through the chunk table and never past
+    // it, so all of them together visit each chunk at most once: runs that
+    // went back, or on for ever, would otherwise spin here.
+    if (firstChunk <= previous) throw new Error('the MP4 index is damaged (stsc)');
+    previous = firstChunk;
+    if (firstChunk >= chunks) break;
     const lastChunk = Math.min(chunks, r + 1 < runs ? view.getUint32(at + 12) - 1 : chunks);
     for (let c = firstChunk; c < lastChunk && sample < count; c++) {
       let pos = chunkOffset(c);
