@@ -63,6 +63,15 @@ RARELY
   • Category, language, homepage, support URL, privacy policy URL, test
     instructions: leave them unless the thing they describe has moved.
 
+FOR 1.4.1 SPECIFICALLY
+  Only "version" changed in the manifests; the listings are those set up
+  for 1.4.0. The fix is in playback: a title the provider answers with
+  "200 OK" and nothing in it is said to have no file at once, instead of
+  being blamed on the account's connections. So: upload
+  kepuli-tv-chrome-1.4.1.zip and nothing else. If 1.4.0 is still in
+  review, cancel that submission first (Package → Cancel review); 1.4.1
+  carries everything 1.4.0 did, and its descriptions stay as they are.
+
 FOR 1.4.0 SPECIFICALLY
   Only "version" changed in the manifests; no permission, name or short
   description changed. So:
