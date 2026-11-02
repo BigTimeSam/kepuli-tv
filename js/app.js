@@ -2251,7 +2251,7 @@ function toggleFavorite(item) {
  * made when they were saved, and the provider moves on: a film re-encoded
  * from .mkv to .mp4, a channel given another guide id or catch-up window.
  */
-const ADDRESS_FIELDS = ['ext', 'direct', 'epgId', 'archive'];
+const ADDRESS_FIELDS = ['ext', 'direct', 'epgId', 'archive', 'cu'];
 
 /**
  * The item as the library holds it now, when the library has it in memory:
@@ -2271,6 +2271,10 @@ function freshItem(item) {
   if (!type) return null;
   const same = (it) => it.k === item.k && String(it.id) === id;
   if (lib.full[type]) return lib.full[type].find(same) || null;
+  // A playlist's whole catalogue is in memory from the start: a favourite
+  // that came through sync without its address (js/sync.js) finds it here.
+  const playlist = state.source?.catalogue?.items?.[type];
+  if (playlist) { const hit = playlist.find(same); if (hit) return hit; }
   for (const [key, items] of lib.byCategory) {
     if (!key.startsWith(`${type}:`) && !key.startsWith(`group:${type}:`)) continue;
     const hit = items.find(same);

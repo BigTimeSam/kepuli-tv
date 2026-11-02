@@ -64,13 +64,47 @@ const chunkKey = (name, i) => `${rowKey(name)}_${i}`;
 const itemKey = (item) => `${item.k}:${item.id}`;
 const hasCredentialsInAddress = (url) => /[?&](password|pass|pwd|token|key)=/i.test(String(url || '')) || /\/\/[^/@]+:[^/@]+@/.test(String(url || ''));
 
-/** The accounts as they go up: without passwords unless asked for. */
+/**
+ * The accounts as they go up: without passwords unless asked for. Without,
+ * an Xtream account goes with its password blank, a guide address that
+ * carries credentials goes blank, and a playlist whose own address carries
+ * them does not go at all — nor do its lists (localRecords).
+ */
 export function outgoingAccounts(accounts, passwords) {
   if (passwords) return accounts;
   return accounts
     .filter((a) => a.type !== 'm3u' || !hasCredentialsInAddress(a.url))
-    .map((a) => (a.type === 'm3u' ? a : { ...a, password: '' }));
+    .map((a) => {
+      const out = a.type === 'm3u' ? { ...a } : { ...a, password: '' };
+      if (hasCredentialsInAddress(out.epgUrl)) out.epgUrl = '';
+      return out;
+    });
 }
+
+/**
+ * A list's items as they go up without passwords: the stream addresses
+ * left behind (direct, an archive's cu), since a provider's carry the user
+ * name and the password in their path. The computer they come to finds them
+ * again in its own catalogue when the item is played (withCurrentAddress in
+ * js/app.js). A reminder's channel the same.
+ */
+export function strippedItems(list, value) {
+  const strip = (item) => {
+    if (!item || typeof item !== 'object') return item;
+    const { direct, cu, ...rest } = item;
+    return rest;
+  };
+  if (list === 'favorites' || list === 'recents') return (value || []).map(strip);
+  if (list === 'reminders') return (value || []).map((r) => (r && r.channel ? { ...r, channel: strip(r.channel) } : r));
+  return value;
+}
+
+/**
+ * The name a list goes up under: the list and a hash of the account's key,
+ * never the key itself — a playlist's key is its address, and an Xtream
+ * account's names the server and the user.
+ */
+export const syncName = (list, key) => `${list}:${shortHash(key)}`;
 
 /**
  * The accounts as they come down, joined with the ones here: a password
@@ -240,14 +274,21 @@ export class Sync {
     const accounts = Array.isArray(data.accounts) ? data.accounts : [];
     const out = new Map();
     const want = (name) => !names || names.includes(name);
-    if (want('accounts')) out.set('accounts', outgoingAccounts(accounts.filter(isConfiguredLoose), this.prefs.passwords));
+    const going = outgoingAccounts(accounts.filter(isConfiguredLoose), this.prefs.passwords);
+    if (want('accounts')) out.set('accounts', going);
     if (want('settings') && data.settings) out.set('settings', data.settings);
-    const keys = new Set(accounts.map((a) => accountKey(a)));
+    // The lists of the accounts that go, and only those: a playlist kept
+    // back for the credentials in its address keeps its lists back too.
+    const keys = new Set(going.map((a) => accountKey(a)));
     for (const key of Object.keys(data)) {
       const colon = key.indexOf(':');
       const list = key.slice(0, colon);
-      if (colon < 0 || !PERSONAL.includes(list) || !keys.has(key.slice(colon + 1))) continue;
-      if (want(key)) out.set(key, trimmed(list, data[key]));
+      const account = key.slice(colon + 1);
+      if (colon < 0 || !PERSONAL.includes(list) || !keys.has(account)) continue;
+      const name = syncName(list, account);
+      if (!want(name)) continue;
+      const value = trimmed(list, data[key]);
+      out.set(name, this.prefs.passwords ? value : strippedItems(list, value));
     }
     return out;
   }
@@ -289,20 +330,36 @@ export class Sync {
     const remote = await area().get(null);
     const local = await api.storage.local.get(null);
     const set = {};
-    for (const [key, meta] of Object.entries(remote)) {
-      if (!/^r[0-9a-z]+$/.test(key) || !meta || !meta.n) continue;
+    // The accounts first: a list's name says only a hash of its account's
+    // key, and the key it is kept under here is found among the accounts.
+    const metas = Object.entries(remote)
+      .filter(([key, meta]) => /^r[0-9a-z]+$/.test(key) && meta && meta.n)
+      .sort(([, a], [, b]) => (b.n === 'accounts') - (a.n === 'accounts'));
+    for (const [, meta] of metas) {
       const name = meta.n;
       const mine = this.state[name];
       if (mine && (mine.h === meta.h || mine.at >= meta.at)) continue;
+      const target = name === 'accounts' || name === 'settings' ? name : this.localKey(name, set.accounts || local.accounts);
+      if (!target) continue;          // an account this computer does not have
       let text = '';
       for (let i = 0; i < meta.c; i++) text += remote[chunkKey(name, i)] || '';
       let value;
       try { value = await unpack(text); } catch { continue; }      // half written: the rest is on its way
-      set[name] = this.merge(name, value, local[name], { join: join || !mine });
+      set[target] = this.merge(target, value, local[target], { join: join || !mine });
       this.state[name] = { at: meta.at, h: meta.h };
     }
     if (Object.keys(set).length) await api.storage.local.set(set);
     await this.ok();
+  }
+
+  /** The storage.local key of a list that came down under its sync name, or null. */
+  localKey(name, accounts) {
+    const colon = name.indexOf(':');
+    const list = name.slice(0, colon);
+    const hash = name.slice(colon + 1);
+    if (!PERSONAL.includes(list)) return null;
+    const account = (accounts || []).map((a) => accountKey(a)).find((key) => shortHash(key) === hash);
+    return account ? `${list}:${account}` : null;
   }
 
   /** What a record becomes here, from what came down and what was here. */
@@ -310,21 +367,39 @@ export class Sync {
     if (name === 'accounts') return incomingAccounts(remote || [], local || [], { join });
     if (name === 'settings') return { ...(local || {}), ...(remote || {}) };
     const list = name.slice(0, name.indexOf(':'));
-    if (list === 'recents') return joinRecents(remote, local);
+    if (list === 'recents') return joinRecents(keepAddresses(list, remote, local), local);
     if (list === 'resume') return joinResume(local, remote);
-    if (list === 'favorites' && join) return joinFavorites(local, remote);
-    return remote;
+    if (list === 'favorites' && join) return joinFavorites(local, keepAddresses(list, remote, local));
+    return keepAddresses(list, remote, local);
   }
+}
+
+/**
+ * Items that came without their stream addresses (strippedItems) given back
+ * the ones this computer already knows for them.
+ */
+export function keepAddresses(list, remote, local) {
+  if (!Array.isArray(remote) || !Array.isArray(local)) return remote;
+  const known = new Map();
+  const of = (entry) => (list === 'reminders' ? entry && entry.channel : entry);
+  for (const entry of local) { const item = of(entry); if (item && item.direct) known.set(itemKey(item), item); }
+  if (!known.size) return remote;
+  const fill = (item) => {
+    if (!item || item.direct) return item;
+    const had = known.get(itemKey(item));
+    return had ? { ...item, direct: had.direct, ...(had.cu ? { cu: had.cu } : {}) } : item;
+  };
+  return remote.map((entry) => (list === 'reminders' ? (entry && entry.channel ? { ...entry, channel: fill(entry.channel) } : entry) : fill(entry)));
 }
 
 /** A configuration with somewhere to go, password or not. */
 const isConfiguredLoose = (a) => isConfigured({ ...a, password: a.password || 'x' });
 
-/** The record a storage.local key belongs to, or null. */
+/** The record a storage.local key goes up as, or null. */
 function recordOf(key) {
   if (key === 'accounts' || key === 'settings') return key;
   const colon = key.indexOf(':');
-  if (colon > 0 && PERSONAL.includes(key.slice(0, colon))) return key;
+  if (colon > 0 && PERSONAL.includes(key.slice(0, colon))) return syncName(key.slice(0, colon), key.slice(colon + 1));
   return null;
 }
 

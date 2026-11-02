@@ -1136,7 +1136,7 @@ check('the history may hold a series', parseRoute('#/recent?series=5'), { tab: '
 // find the faked extension API above when it is first imported.
 const { buildCatalogue } = await import('../js/m3usource.js');
 const { accountKey, accountLabel, isConfigured } = await import('../js/config.js');
-const { outgoingAccounts, incomingAccounts, joinRecents, joinResume, joinFavorites } = await import('../js/sync.js');
+const { outgoingAccounts, incomingAccounts, joinRecents, joinResume, joinFavorites, strippedItems, keepAddresses, syncName } = await import('../js/sync.js');
 
 {
   // The forms providers and players write, each of them once.
@@ -1289,6 +1289,15 @@ check('accounts: what it takes to connect', [isConfigured({ type: 'm3u', url: 'h
   check('sync: without passwords the password stays, and an address with credentials stays too',
     outgoingAccounts(accounts, false).map((a) => [a.id, a.password ?? null]), [['a', ''], ['c', null]]);
   check('sync: with passwords everything goes', outgoingAccounts(accounts, true).length, 3);
+  check('sync: a guide address with credentials goes blank without passwords',
+    outgoingAccounts([{ id: 'g', type: 'm3u', url: 'http://p/list.m3u', epgUrl: 'http://p/xmltv.php?username=u&password=p' }], false)[0].epgUrl, '');
+  check('sync: a list goes up under a hash of its account, never the address', syncName('favorites', 'm3u:http://p/get.php?username=u&password=p').includes('password'), false);
+  check('sync: without passwords the stream addresses stay behind',
+    [strippedItems('favorites', [{ k: 0, id: '1', n: 'A', direct: 'http://p/u/p/1', cu: { mode: 'xc' } }]), strippedItems('reminders', [{ title: 'T', channel: { k: 0, id: '1', direct: 'http://p/u/p/1' } }])],
+    [[{ k: 0, id: '1', n: 'A' }], [{ title: 'T', channel: { k: 0, id: '1' } }]]);
+  check('sync: an item that came without its address gets back the one known here',
+    keepAddresses('favorites', [{ k: 0, id: '1', n: 'A' }, { k: 0, id: '2', n: 'B' }], [{ k: 0, id: '1', direct: 'http://p/1', cu: { mode: 'xc' } }]),
+    [{ k: 0, id: '1', n: 'A', direct: 'http://p/1', cu: { mode: 'xc' } }, { k: 0, id: '2', n: 'B' }]);
   const local = [{ id: 'a', type: 'xtream', host: 'h', port: '80', scheme: 'http', username: 'u', password: 'secret' }, { id: 'd', type: 'm3u', url: 'http://only/here' }];
   const remote = [{ id: 'a', type: 'xtream', host: 'h', port: '80', scheme: 'http', username: 'u', password: '' }, { id: 'c', type: 'm3u', url: 'http://p/list.m3u' }];
   check('sync: an account coming down keeps the password known here', incomingAccounts(remote, local)[0].password, 'secret');

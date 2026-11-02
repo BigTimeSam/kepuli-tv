@@ -3225,7 +3225,10 @@ async function sync(page, { target }) {
   const assert = (ok, message) => { if (!ok) throw new Error(message); };
   if (!(await evaluate(page, `Boolean(chrome.storage.sync)`))) return { ok: true, detail: 'no storage.sync in this browser' };
   const favKey = `favorites:m3u:${M3U_ACCOUNT.url}`;
-  await evaluate(page, `chrome.storage.local.set({ config: ${JSON.stringify(XTREAM_ACCOUNT)}, accounts: ${JSON.stringify([XTREAM_ACCOUNT, M3U_ACCOUNT])}, ${JSON.stringify(favKey)}: [{ k: 0, id: 'x1', n: 'Synced favourite' }] })`);
+  // A playlist whose address carries credentials stays home without
+  // "Include passwords", and its lists with it.
+  const secret = { type: 'm3u', url: `http://127.0.0.1:${MOCK_PORT}/get.m3u?username=demo&password=secret`, id: 'psecret', sourceMode: 'm3u' };
+  await evaluate(page, `chrome.storage.local.set({ config: ${JSON.stringify(XTREAM_ACCOUNT)}, accounts: ${JSON.stringify([XTREAM_ACCOUNT, M3U_ACCOUNT, secret])}, ${JSON.stringify(favKey)}: [{ k: 0, id: 'x1', n: 'Synced favourite', direct: 'http://127.0.0.1/live/demo/demo/1.m3u8' }], ${JSON.stringify('favorites:m3u:' + secret.url)}: [{ k: 0, id: 's1', n: 'Kept home' }] })`);
   await page.call('Page.navigate', { url: bare(target.url) });
   await sleep(1000);
   await waitFor(page, CONNECTED, 'the connection');
@@ -3234,8 +3237,12 @@ async function sync(page, { target }) {
   await evaluate(page, `document.getElementById('f-sync').click()`, { gesture: true });
   await waitFor(page, `chrome.storage.sync.get(null).then((d) => Object.values(d).filter((v) => v && v.n).length >= 3)`, 'the records in storage.sync', 20000);
   const names = await evaluate(page, `chrome.storage.sync.get(null).then((d) => Object.values(d).filter((v) => v && v.n).map((v) => v.n).sort())`);
-  assert(names.includes('accounts') && names.includes('settings') && names.includes(favKey), `the records synced: ${names.join(', ')}`);
+  // A list goes up under a hash of its account's key, never the address.
+  assert(names.includes('accounts') && names.includes('settings') && names.some((n) => /^favorites:[0-9a-z]+$/.test(n)) && !names.some((n) => n.includes('http')), `the records synced: ${names.join(', ')}`);
   await waitFor(page, `/\\d/.test(document.getElementById('sync-status').textContent)`, 'the sync status line');
+  const raw = await evaluate(page, `chrome.storage.sync.get(null).then((d) => JSON.stringify(d))`);
+  assert(!raw.includes('secret') && !raw.includes('get.m3u'), 'the playlist with credentials in its address went to sync');
+  assert(names.filter((n) => n.startsWith('favorites:')).length === 1, `favourites of an account kept home went: ${names.join(', ')}`);
   // A new computer. Emptied from a page that is not the player, which
   // would take the emptying for a reset in another tab and reload.
   const origin = target.url.match(/^(?:chrome|moz)-extension:\/\/[^/]+/)[0];
@@ -3246,11 +3253,12 @@ async function sync(page, { target }) {
   await sleep(1000);
   await waitFor(page, `chrome.storage.local.get('accounts').then((d) => (d.accounts || []).length === 2)`, 'the accounts from sync', 20000);
   await waitFor(page, CONNECTED, 'the account that can connect', 30000);
-  const after = await evaluate(page, `chrome.storage.local.get(null).then((d) => ({ inUse: d.config && d.config.id, passwords: d.accounts.map((a) => a.password || ''), fav: (d[${JSON.stringify(favKey)}] || []).map((f) => f.n) }))`);
+  const after = await evaluate(page, `chrome.storage.local.get(null).then((d) => ({ inUse: d.config && d.config.id, passwords: d.accounts.map((a) => a.password || ''), fav: (d[${JSON.stringify(favKey)}] || []).map((f) => f.n), direct: (d[${JSON.stringify(favKey)}] || []).some((f) => f.direct) }))`);
   assert(after.inUse === 'pm3u', `the new computer uses ${after.inUse}, not the playlist that needs no password`);
   assert(after.passwords.every((p) => !p), 'a password came through sync');
   assert(after.fav.includes('Synced favourite'), 'the favourite did not come through');
-  return { ok: true, detail: `synced ${names.length} records without passwords; the new computer took the playlist account and the favourite` };
+  assert(!after.direct, 'a stream address came through sync without "Include passwords"');
+  return { ok: true, detail: `synced ${names.length} records without passwords, stream addresses or the playlist with credentials in its address; the new computer took the playlist account and the favourite` };
 }
 
 

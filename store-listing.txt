@@ -68,6 +68,13 @@ RARELY
   • Category, language, homepage, support URL, privacy policy URL, test
     instructions: leave them unless the thing they describe has moved.
 
+FOR 1.5.1 SPECIFICALLY
+  1.5.0 replaced in both stores before review: without "Include passwords",
+  sync now leaves behind the lists of a playlist kept home, the stream
+  addresses of favourites and history, and a guide address with credentials,
+  and names the lists by a hash of the account. Chrome's 1.5.0 was replaced
+  (--replace); on AMO 1.5.0 was disabled before review.
+
 FOR 1.5.0 SPECIFICALLY
   Only "version" changed in the manifests; no new permission (storage.sync
   is the existing "storage", runtime.setUninstallURL needs none). New:
