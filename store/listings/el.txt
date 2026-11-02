@@ -1,5 +1,5 @@
 === NAME ===
-Kepuli-TV – IPTV Player
+Kepuli-TV – Πρόγραμμα αναπαραγωγής IPTV
 === SHORT DESCRIPTION ===
 Δες το δικό σου IPTV Xtream Codes στον browser, χωρίς κόπο. Κανάλια σε δευτερόλεπτα και MKV με υπότιτλους.
 === DETAILED DESCRIPTION ===

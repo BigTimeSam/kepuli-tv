@@ -1,5 +1,5 @@
 === NAME ===
-Kepuli-TV – IPTV Player
+Kepuli-TV – IPTV Oynatıcı
 === SHORT DESCRIPTION ===
 Kendi Xtream Codes IPTV'ni tarayıcıda uygulamayla uğraşmadan izle. Kanallar saniyeler içinde açılır, MKV altyazılarıyla oynar.
 === DETAILED DESCRIPTION ===

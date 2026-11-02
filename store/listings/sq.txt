@@ -1,5 +1,5 @@
 === NAME ===
-Kepuli-TV – IPTV Player
+Kepuli-TV – Luajtës IPTV
 === SHORT DESCRIPTION ===
 Shiko IPTV-në tënde Xtream Codes në shfletues pa u grindur me aplikacionin. Kanalet hapen për sekonda dhe MKV luhet me titra.
 === DETAILED DESCRIPTION ===

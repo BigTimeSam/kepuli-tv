@@ -1,5 +1,5 @@
 === NAME ===
-Kepuli-TV – IPTV Player
+Kepuli-TV – IPTV-Player
 === SHORT DESCRIPTION ===
 Sieh dein eigenes Xtream Codes IPTV im Browser, ohne Ärger mit der App. Sender öffnen sich in Sekunden, MKV läuft mit Untertiteln.
 === DETAILED DESCRIPTION ===

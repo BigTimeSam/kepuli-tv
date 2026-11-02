@@ -1,6 +1,6 @@
 {
   "appName": {
-    "message": "Kepuli-TV – IPTV Player",
+    "message": "Kepuli-TV – Trình phát IPTV",
     "description": "The extension's name in the store and the browser. Written from store/listings/ by dev/listings.mjs."
   },
   "appDesc": {

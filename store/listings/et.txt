@@ -1,5 +1,5 @@
 === NAME ===
-Kepuli-TV – IPTV Player
+Kepuli-TV – IPTV-mängija
 === SHORT DESCRIPTION ===
 Vaata oma Xtream Codesi IPTV-d brauseris, ilma rakendusega vaeva nägemata. Kanalid avanevad sekunditega, MKV mängib subtiitritega.
 === DETAILED DESCRIPTION ===

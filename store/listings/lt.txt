@@ -1,5 +1,5 @@
 === NAME ===
-Kepuli-TV – IPTV Player
+Kepuli-TV – IPTV grotuvas
 === SHORT DESCRIPTION ===
 Žiūrėk savo IPTV su Xtream Codes naršyklėje be kovos su programa. Kanalai atsidaro per sekundes, o MKV groja su subtitrais.
 === DETAILED DESCRIPTION ===

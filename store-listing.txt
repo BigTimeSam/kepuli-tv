@@ -68,6 +68,12 @@ RARELY
   • Category, language, homepage, support URL, privacy policy URL, test
     instructions: leave them unless the thing they describe has moved.
 
+NEXT RELEASE
+  The name is localised: "Kepuli-TV – " and "IPTV player" in each language
+  (store/listings/*.txt, written into _locales/ by dev/listings.mjs). The
+  name comes from the package in both stores, so it changes with the next
+  version; node dev/amo-publish.mjs listing sends AMO's at the same time.
+
 FOR 1.5.2 SPECIFICALLY
   1.5.1 replaced in both stores before review, as 1.5.0 was: turning
   "Include passwords" off sends every list again in the stripped form, and a

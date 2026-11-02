@@ -1,5 +1,5 @@
 === NAME ===
-Kepuli-TV – IPTV Player
+Kepuli-TV – Trình phát IPTV
 === SHORT DESCRIPTION ===
 Xem IPTV Xtream Codes của bạn ngay trên trình duyệt, chẳng rườm rà. Kênh mở trong vài giây, MKV phát cả phụ đề.
 === DETAILED DESCRIPTION ===
@@ -10,7 +10,7 @@ khổng lồ cũng phải gọn nhẹ khi dùng.
 → Kênh mở sau một, hai giây, kể cả với kho kênh đồ sộ
 → Hàng trăm danh mục lộn xộn gọn lại thành danh sách theo quốc gia
 → Lịch phát sóng (EPG) cỡ toàn cửa sổ, có catch-up nếu nhà cung cấp hỗ trợ
-→ Phim và tập MKV phát ngay trong trình duyệt, đủ phụ đề và âm thanh vòm
+→ Phim và tập MKV phát ngay tại đây, đủ phụ đề và âm thanh vòm
 
 
 VÌ SAO TÔI LÀM RA NÓ

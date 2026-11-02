@@ -1,5 +1,5 @@
 === NAME ===
-Kepuli-TV – IPTV Player
+Kepuli-TV – IPTV-soitin
 === SHORT DESCRIPTION ===
 Katso omaa Xtream Codes -IPTV:täsi selaimessa. Kanavat aukeavat sekunneissa, ja MKV toimii tekstityksineen.
 === DETAILED DESCRIPTION ===

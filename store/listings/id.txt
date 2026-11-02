@@ -1,5 +1,5 @@
 === NAME ===
-Kepuli-TV – IPTV Player
+Kepuli-TV – Pemutar IPTV
 === SHORT DESCRIPTION ===
 Tonton langganan Xtream Codes milikmu di peramban tanpa ribet. Saluran terbuka dalam hitungan detik, MKV lengkap dengan subtitel.
 === DETAILED DESCRIPTION ===

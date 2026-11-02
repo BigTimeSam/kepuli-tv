@@ -1,5 +1,5 @@
 === NAME ===
-Kepuli-TV – IPTV Player
+Kepuli-TV – IPTV-spiller
 === SHORT DESCRIPTION ===
 Se din egen Xtream Codes-IPTV i nettleseren uten styr. Kanalene åpnes på sekunder, og MKV kan spilles med undertekster.
 === DETAILED DESCRIPTION ===

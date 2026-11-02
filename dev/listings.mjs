@@ -69,13 +69,18 @@ export function repeats(text) {
   return [...counts].filter(([, n]) => n > MAX_REPEAT).sort((a, b) => b[1] - a[1]);
 }
 
-// The name is the brand, and a brand is not translated: the same in every
-// store, every language and every browser's list of extensions.
-export const NAME = 'Kepuli-TV – IPTV Player';
+// The name is the brand and what it is: "Kepuli-TV", the same in every
+// language — a brand is not translated — and then "IPTV player" in the
+// listing's own language, which is what a store's search in that language
+// is typed as ("Kepuli-TV – IPTV-soitin", "Kepuli-TV – Lecteur IPTV").
+// The word IPTV stays in every one, so that an English search finds it too.
+export const BRAND = 'Kepuli-TV – ';
 
 export function checkListing(listing) {
   const problems = [];
-  if (listing.name !== NAME) problems.push(`the name is "${listing.name}"; it is "${NAME}" in every language`);
+  if (!listing.name.startsWith(BRAND) || !listing.name.includes('IPTV')) {
+    problems.push(`the name is "${listing.name}"; it starts "${BRAND}" and says IPTV in every language`);
+  }
   for (const [part, limit] of Object.entries(LIMITS)) {
     const length = [...listing[part]].length;
     if (length > limit) problems.push(`${part} is ${length} characters, the limit is ${limit}`);

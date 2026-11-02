@@ -173,7 +173,7 @@
 
 <main>
 <h1>Kepuli-TV</h1>
-<p class="meta">The README of the Kepuli-TV browser extension, version 1.5.1. <a href="https://github.com/BigTimeSam/kepuli-tv">Source on GitHub</a></p>
+<p class="meta">The README of the Kepuli-TV browser extension, version 1.5.2. <a href="https://github.com/BigTimeSam/kepuli-tv">Source on GitHub</a></p>
 
 <p>A Chrome and Firefox extension (Manifest V3) that plays Xtream Codes IPTV straight in the
 browser. Data is fetched from the <code>player_api.php</code> API lazily: only what you
@@ -2015,8 +2015,10 @@ show the new version and <code>"service_worker"</code>, and no <code>gecko</code
 
 <p>The store texts are in <code>store/listings/&lt;locale&gt;.txt</code>, one file per language:
 the name, the short description and the detailed description. The name is
-the brand and is not translated — "Kepuli-TV – IPTV Player" in every language,
-which <code>dev/listings.mjs</code> insists on.
+"Kepuli-TV", the same in every language, and then "IPTV player" in the
+listing's own language — "Kepuli-TV – IPTV-soitin", "Kepuli-TV – Lecteur
+IPTV" — which is what a store's search in that language is typed as; the
+word IPTV stays in every one. <code>dev/listings.mjs</code> insists on both.
 <code>node dev/listings.mjs</code> checks them against the Chrome Web Store's limits
 and keyword policy and writes <code>_locales/&lt;locale&gt;/messages.json</code>, from which
 the manifest takes its name and description (<code>__MSG_appName__</code>,

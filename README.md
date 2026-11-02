@@ -1749,8 +1749,10 @@ Three things now stand against it:
 
 The store texts are in `store/listings/<locale>.txt`, one file per language:
 the name, the short description and the detailed description. The name is
-the brand and is not translated — "Kepuli-TV – IPTV Player" in every language,
-which `dev/listings.mjs` insists on.
+"Kepuli-TV", the same in every language, and then "IPTV player" in the
+listing's own language — "Kepuli-TV – IPTV-soitin", "Kepuli-TV – Lecteur
+IPTV" — which is what a store's search in that language is typed as; the
+word IPTV stays in every one. `dev/listings.mjs` insists on both.
 `node dev/listings.mjs` checks them against the Chrome Web Store's limits
 and keyword policy and writes `_locales/<locale>/messages.json`, from which
 the manifest takes its name and description (`__MSG_appName__`,

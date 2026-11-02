@@ -1,5 +1,5 @@
 === NAME ===
-Kepuli-TV – IPTV Player
+Kepuli-TV – IPTV atskaņotājs
 === SHORT DESCRIPTION ===
 Skaties savu Xtream Codes IPTV pārlūkā bez cīņas ar lietotni. Kanāli atveras sekundēs, un MKV atskan ar subtitriem.
 === DETAILED DESCRIPTION ===

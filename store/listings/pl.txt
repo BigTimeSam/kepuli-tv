@@ -1,5 +1,5 @@
 === NAME ===
-Kepuli-TV – IPTV Player
+Kepuli-TV – Odtwarzacz IPTV
 === SHORT DESCRIPTION ===
 Oglądaj własne IPTV z Xtream Codes w przeglądarce, bez walki z aplikacją. Kanały otwierają się w sekundy, a MKV gra z napisami.
 === DETAILED DESCRIPTION ===

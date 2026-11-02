@@ -1,5 +1,5 @@
 === NAME ===
-Kepuli-TV – IPTV Player
+Kepuli-TV – Leitor IPTV
 === SHORT DESCRIPTION ===
 Vê o teu IPTV Xtream Codes no navegador sem lutar com a app. Os canais abrem em segundos e o MKV reproduz com legendas.
 === DETAILED DESCRIPTION ===
