@@ -17,7 +17,7 @@ catálogo enorme deve parecer pequeno.
 
 PORQUE O FIZ
 
-Estava farto de apps de IPTV que me obrigavam a lutar com elas: listas de
+Estava farto de apps que me obrigavam a lutar com elas: listas de
 categorias sem fim, janelas que bloqueavam tudo enquanto um catálogo
 carregava e ficheiros que simplesmente não reproduziam. Por isso criei a que
 eu queria usar todas as noites.

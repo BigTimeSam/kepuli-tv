@@ -16,7 +16,7 @@ idei: un catalog uriaș trebuie să pară mic.
 
 DE CE L-AM FĂCUT
 
-M-am săturat de aplicațiile IPTV cu care trebuie să te cerți: liste nesfârșite
+M-am săturat de aplicațiile cu care trebuie să te cerți: liste nesfârșite
 de categorii, ferestre care blocau totul cât se încărca oferta și fișiere
 care pur și simplu nu voiau să ruleze. Așa că am construit-o pe cea pe care
 vreau s-o folosesc în fiecare seară.

@@ -16,7 +16,7 @@ skal føles lille.
 
 HVORFOR JEG LAVEDE DEN
 
-Jeg blev træt af IPTV-apps, der fik mig til at kæmpe: endeløse kategorilister,
+Jeg blev træt af apps, der fik mig til at kæmpe: endeløse kategorilister,
 dialogbokse, der frøs alt, mens udvalget blev indlæst, og filer, der simpelthen
 ikke ville virke. Så jeg byggede den, jeg selv ville bruge hver aften.
 - Samuli, udvikleren af Kepuli-TV

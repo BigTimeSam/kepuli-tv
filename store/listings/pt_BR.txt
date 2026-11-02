@@ -16,7 +16,7 @@ catálogo enorme deve parecer pequeno.
 
 POR QUE EU FIZ
 
-Cansei de apps de IPTV que me faziam brigar com eles: listas de categorias
+Cansei de apps que me faziam brigar com eles: listas de categorias
 sem fim, janelas que travavam tudo enquanto um catálogo carregava e arquivos
 que simplesmente não tocavam. Então fiz o app que eu queria usar toda noite.
 - Samuli, desenvolvedor do Kepuli-TV

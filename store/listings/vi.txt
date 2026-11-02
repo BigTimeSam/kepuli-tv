@@ -15,7 +15,7 @@ khổng lồ cũng phải gọn nhẹ khi dùng.
 
 VÌ SAO TÔI LÀM RA NÓ
 
-Tôi chán những ứng dụng IPTV cứ bắt mình vật lộn: danh mục dài bất tận, hộp
+Tôi chán những ứng dụng cứ bắt mình vật lộn: danh mục dài bất tận, hộp
 thoại làm đứng cả màn hình mỗi khi tải kho kênh, và những tệp nhất quyết
 chẳng chịu phát. Thế nên tôi tự làm ra ứng dụng mà mình muốn dùng mỗi tối.
 - Samuli, tác giả Kepuli-TV

@@ -16,7 +16,7 @@ enorme deve sembrare piccolo.
 
 PERCHÉ L'HO FATTO
 
-Ero stufo delle app IPTV con cui dovevo litigare: elenchi di categorie
+Ero stufo delle app con cui dovevo litigare: elenchi di categorie
 infiniti, finestre che bloccavano tutto mentre un catalogo si caricava e file
 che semplicemente non partivano. Così ho creato quella che volevo usare ogni
 sera.

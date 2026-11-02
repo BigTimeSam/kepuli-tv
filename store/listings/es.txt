@@ -17,7 +17,7 @@ catálogo enorme debería sentirse pequeño.
 
 POR QUÉ LO HICE
 
-Me cansé de las apps de IPTV con las que tenía que pelearme: listas de
+Me cansé de las apps con las que tenía que pelearme: listas de
 categorías interminables, ventanas que lo congelaban todo mientras cargaba un
 catálogo y archivos que sencillamente no se reproducían. Así que hice la que
 yo quería usar cada noche.

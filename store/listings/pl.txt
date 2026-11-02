@@ -17,7 +17,7 @@ ogromny katalog ma sprawiać wrażenie małego.
 
 DLACZEGO TO ZROBIŁEM
 
-Miałem dość aplikacji IPTV, z którymi trzeba było walczyć: niekończących się
+Miałem dość aplikacji, z którymi trzeba było walczyć: niekończących się
 list kategorii, okien blokujących wszystko, gdy ładował się katalog, i plików,
 które po prostu nie chciały się odtworzyć. Zbudowałem więc taką, z jakiej sam
 chcę korzystać każdego wieczoru.

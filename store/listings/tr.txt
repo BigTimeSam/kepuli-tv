@@ -16,7 +16,7 @@ devasa bir katalog küçük hissettirmeli.
 
 NEDEN YAPTIM
 
-Beni kendileriyle uğraştıran IPTV uygulamalarından bıkmıştım: bitmeyen
+Beni kendileriyle uğraştıran uygulamalardan bıkmıştım: bitmeyen
 kategori listeleri, katalog yüklenirken her şeyi donduran pencereler ve
 bir türlü oynamayan dosyalar. Ben de her akşam kullanmak isteyeceğim
 uygulamayı kendim yaptım.

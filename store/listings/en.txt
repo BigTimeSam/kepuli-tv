@@ -16,7 +16,7 @@ should feel small.
 
 WHY I MADE IT
 
-I got tired of IPTV apps that made me fight them: endless category lists,
+I got tired of apps that made me fight them: endless category lists,
 dialogs that froze everything while a catalogue loaded, and files that simply
 would not play. So I built the one I wanted to use every evening.
 - Samuli, developer of Kepuli-TV

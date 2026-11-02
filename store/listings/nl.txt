@@ -16,7 +16,7 @@ catalogus moet klein aanvoelen.
 
 WAAROM IK HET MAAKTE
 
-Ik was het zat dat IPTV-apps me dwarszaten: eindeloze categorielijsten,
+Ik was het zat dat apps me dwarszaten: eindeloze categorielijsten,
 vensters die alles blokkeerden terwijl een catalogus laadde, en bestanden die
 gewoon niet wilden spelen. Dus bouwde ik de speler die ik zelf elke avond wil
 gebruiken.

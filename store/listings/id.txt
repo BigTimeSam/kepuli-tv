@@ -16,7 +16,7 @@ pun harus terasa ringan.
 
 KENAPA SAYA MEMBUATNYA
 
-Saya bosan memakai aplikasi IPTV yang bikin kesal: daftar kategori tak
+Saya bosan memakai aplikasi yang bikin kesal: daftar kategori tak
 berujung, dialog yang membekukan layar selama katalog dimuat, dan file yang
 tidak mau diputar. Jadi saya buat sendiri aplikasi yang ingin saya pakai
 setiap malam.

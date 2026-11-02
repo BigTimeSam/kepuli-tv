@@ -102,8 +102,10 @@ await page.call('Page.bringToFront');
 
 /** Waits until the edit page shows its description field. */
 async function open() {
-  const href = await page.run(() => location.href);
-  if (!href.startsWith(EDIT)) await page.run((u) => { location.href = u; }, EDIT);
+  // The listing page itself: the dashboard's other pages of the item
+  // (…/edit/status, …/edit/package) begin with the same address.
+  const href = await page.run(() => location.href.split(/[?#]/)[0].replace(/\/$/, ''));
+  if (href !== EDIT) await page.run((u) => { location.href = u; }, EDIT);
   for (let i = 0; i < 60; i++) {
     await sleep(500);
     const state = await page.run(() => ({ href: location.href, ready: !!document.querySelector('textarea') && [...document.querySelectorAll('[role=combobox]')].some((e) => /Language/.test(e.innerText)) })).catch(() => ({}));
@@ -195,7 +197,7 @@ async function save() {
       return { error: `no word from the dashboard after Save draft (${said.join(' | ')})` };
     } finally { watch.disconnect(); }
   });
-  if (said.error) fail(`saving the draft: ${said.error}`);
+  if (said.error) throw new Error(said.error);
 }
 
 /* ---------------------------------------------------------------- run */
@@ -215,11 +217,25 @@ if (dry) {
   process.exit(0);
 }
 
+// After a save the dashboard sometimes ignores the next language's edit
+// and leaves Save draft disabled (measured on a rejected draft): the page is
+// loaded again and the language tried once more before giving up.
 for (const l of differ) {
-  if (norm(await pick(l.code)) === norm(l.text)) { console.log(`${l.code.padEnd(5)} already as listed`); continue; }
-  await type(l.text);
-  await save();
-  console.log(`${l.code.padEnd(5)} filled and saved`);
+  for (let attempt = 0; ; attempt++) {
+    if (norm(await pick(l.code)) === norm(l.text)) { console.log(`${l.code.padEnd(5)} already as listed`); break; }
+    await type(l.text);
+    try {
+      await save();
+      console.log(`${l.code.padEnd(5)} filled and saved`);
+      break;
+    } catch (err) {
+      if (attempt >= 1) fail(`saving the draft: ${err.message}`);
+      console.log(`${l.code.padEnd(5)} not taken (${err.message}); the page loaded again`);
+      await page.run(() => location.reload());
+      await sleep(2000);
+      await open();
+    }
+  }
 }
 
 // Read everything back from a fresh page, so what is recorded is what the

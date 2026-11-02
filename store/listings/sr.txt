@@ -17,7 +17,7 @@ katalog treba da deluje malo.
 
 ZAŠTO SAM GA NAPRAVIO
 
-Dosadile su mi IPTV aplikacije sa kojima si stalno u sukobu: beskrajne liste
+Dosadile su mi aplikacije sa kojima si stalno u sukobu: beskrajne liste
 kategorija, prozori koji zamrznu sve dok se katalog učitava i datoteke koje
 jednostavno neće da krenu. Zato sam napravio onu koju sam sâm želeo da
 koristim svako veče.

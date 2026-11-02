@@ -16,7 +16,7 @@ idée : un énorme catalogue doit paraître petit.
 
 POURQUOI JE L'AI CRÉÉ
 
-J'en avais assez des applis IPTV contre lesquelles je devais me battre : des
+J'en avais assez des applis contre lesquelles je devais me battre : des
 listes de catégories interminables, des fenêtres qui bloquaient tout pendant
 le chargement d'un catalogue, et des fichiers qui refusaient tout simplement
 de se lire. Alors j'ai fait celle que j'avais envie d'utiliser chaque soir.

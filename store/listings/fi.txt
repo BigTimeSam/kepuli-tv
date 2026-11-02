@@ -17,7 +17,7 @@ ympärille: valtavan valikoiman pitää tuntua pieneltä.
 
 MIKSI TEIN SEN
 
-Kyllästyin IPTV-sovelluksiin, joiden kanssa piti tapella: loputtomiin
+Kyllästyin sovelluksiin, joiden kanssa piti tapella: loputtomiin
 kategorialistoihin, ikkunoihin, jotka jäädyttivät kaiken luettelon latautuessa,
 ja tiedostoihin, jotka eivät yksinkertaisesti toistuneet. Niinpä tein
 sellaisen, jota halusin käyttää joka ilta.

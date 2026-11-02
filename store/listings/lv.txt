@@ -17,7 +17,7 @@ katalogam jāliekas mazam.
 
 KAPĒC TO RADĪJU
 
-Man apnika IPTV lietotnes, ar kurām jācīnās: bezgalīgi kategoriju saraksti,
+Man apnika lietotnes, ar kurām jācīnās: bezgalīgi kategoriju saraksti,
 logi, kas visu iesaldē, kamēr ielādējas katalogs, un faili, kas vienkārši
 neatskanēja. Tāpēc uztaisīju tādu, kādu pats gribu lietot katru vakaru.
 - Samuli, Kepuli-TV izstrādātājs

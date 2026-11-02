@@ -17,7 +17,7 @@ katalóg má pôsobiť malo.
 
 PREČO SOM TO UROBIL
 
-Unavili ma aplikácie na IPTV, s ktorými som musel bojovať: nekonečné zoznamy
+Unavili ma aplikácie, s ktorými som musel bojovať: nekonečné zoznamy
 kategórií, okná, ktoré všetko zasekli, kým sa načítaval katalóg, a súbory, čo
 sa jednoducho nechceli prehrať. Tak som postavil takú, akú chcem používať sám
 každý večer.

@@ -16,7 +16,7 @@ valik peab tunduma väike.
 
 MIKS MA SEDA TEGIN
 
-Mul sai villand IPTV-rakendustest, millega tuli maadelda: lõputud kategooriate
+Mul sai villand rakendustest, millega tuli maadelda: lõputud kategooriate
 nimekirjad, dialoogid, mis külmutasid kõik, kuni kataloog laadis, ja failid,
 mis lihtsalt ei tahtnud mängida. Ehitasin siis sellise, mida ise igal õhtul
 kasutada tahan.

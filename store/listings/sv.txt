@@ -16,7 +16,7 @@ utbud ska kännas litet.
 
 VARFÖR JAG GJORDE DEN
 
-Jag tröttnade på IPTV-appar som fick mig att kämpa: ändlösa kategorilistor,
+Jag tröttnade på appar som fick mig att kämpa: ändlösa kategorilistor,
 dialogrutor som frös allt medan utbudet lästes in, och filer som helt enkelt
 inte ville fungera. Så jag byggde den jag själv ville använda varje kväll.
 - Samuli, Kepuli-TV:s utvecklare

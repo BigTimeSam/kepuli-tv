@@ -17,7 +17,7 @@ velikanski katalog naj deluje majhen.
 
 ZAKAJ SEM GA NAREDIL
 
-Naveličan sem bil aplikacij IPTV, s katerimi sem se moral prepirati:
+Naveličan sem bil aplikacij, s katerimi sem se moral prepirati:
 neskončnih seznamov kategorij, oken, ki so ustavila vse, medtem ko se je
 nalagal katalog, in datotek, ki se preprosto niso hotele predvajati. Zato sem
 naredil tisto, ki jo sam z veseljem odprem vsak večer.

@@ -17,7 +17,7 @@ didžiulis katalogas turi jaustis mažas.
 
 DĖL KO TAI SUKŪRIAU
 
-Man atsibodo IPTV programėlės, su kuriomis tekdavo kovoti: begaliniai
+Man atsibodo programėlės, su kuriomis tekdavo kovoti: begaliniai
 kategorijų sąrašai, langai, užšaldantys viską, kol kraunamas katalogas, ir
 failai, kurie tiesiog negrodavo. Tad sukūriau tokią, kokią pats noriu
 naudoti kiekvieną vakarą.
