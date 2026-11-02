@@ -1640,9 +1640,14 @@ records it.
 The listings reach the stores at release. `node dev/amo-publish.mjs` sends
 the name, summary and description of every language to addons.mozilla.org
 through its API, wherever they differ (`listing --dry` shows what would
-change). The Chrome Web Store has no API for the detailed description: it is
-filled into the dashboard, language by language, and
-`store/cws-listing.json` records what was last put there.
+change). The Chrome Web Store has no API for the detailed description, and
+extensions are kept off its pages, so `node dev/cws-listing-fill.mjs` drives
+a Chrome of its own over the DevTools protocol (a profile kept for it in
+`~/.config/kepuli-tv/cws-chrome`, signed in to the publisher's Google account
+by hand once): it compares every language's description in the dashboard,
+types in the ones that differ, saves the draft, reads them all back from a
+reloaded page and records what matches in `store/cws-listing.json` (`--dry`
+compares only, `--only <locales>` limits it). It does not submit.
 `node dev/cws-publish.mjs listing` names the languages behind, and a
 submission is refused while one is, unless `--listing-later` is given.
 

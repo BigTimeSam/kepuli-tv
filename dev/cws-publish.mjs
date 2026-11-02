@@ -185,7 +185,7 @@ if (command === 'listing') {
   } else {
     const behind = listingBehind();
     console.log(behind.length
-      ? `the dashboard's detailed description is behind in: ${behind.map((l) => l.locale).join(' ')}\npaste from dist/listings/<locale>.txt (node dev/listings.mjs writes them), then: node dev/cws-publish.mjs listing --done <locales>`
+      ? `the dashboard's detailed description is behind in: ${behind.map((l) => l.locale).join(' ')}\nfill them in: node dev/cws-listing-fill.mjs (or paste from dist/listings/<locale>.txt, then: node dev/cws-publish.mjs listing --done <locales>)`
       : 'the dashboard has every language as store/listings/ says');
   }
   process.exit(0);
@@ -204,7 +204,7 @@ if (command === 'status' || command === 'check') process.exit(0);
 // whose description is behind would go out as it stands.
 const behindListing = command === 'upload' ? [] : listingBehind();
 if (behindListing.length && !args.includes('--listing-later')) {
-  fail(`the dashboard's detailed description is behind in ${behindListing.map((l) => l.locale).join(' ')}: fill it in (node dev/cws-publish.mjs listing), or pass --listing-later`);
+  fail(`the dashboard's detailed description is behind in ${behindListing.map((l) => l.locale).join(' ')}: fill it in (node dev/cws-listing-fill.mjs), or pass --listing-later`);
 }
 
 const pending = before.submittedItemRevisionStatus && before.submittedItemRevisionStatus.state === 'PENDING_REVIEW';

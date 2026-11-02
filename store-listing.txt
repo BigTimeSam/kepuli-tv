@@ -72,7 +72,7 @@ FOR 1.4.7 SPECIFICALLY
   Only "version" changed in the manifests. The package carries 17 new
   languages in _locales/ (Albanian left out of the Chrome one), so the
   Chrome draft was uploaded first (dev/cws-publish.mjs upload), every
-  language's detailed description filled in the dashboard, then
+  language's detailed description filled in by dev/cws-listing-fill.mjs, then
   submitted (dev/cws-publish.mjs submit). AMO's listing and the
   screenshots' captions (never set before) went up through its API in
   the 25 of its languages AMO offers. The player also shows a shorter wait card.
@@ -258,11 +258,14 @@ AT EVERY RELEASE
      detailed description in the dashboard is behind. A release that adds
      languages first uploads the package as the draft (node
      dev/cws-publish.mjs upload): the dashboard's language menu offers a
-     language only once the package carries it. Fill the behind ones in
-     the dashboard (Store listing → language → Description, from
-     dist/listings/<locale>.txt), save the draft, then
-     node dev/cws-publish.mjs listing --done <locales>, and
-     node dev/cws-publish.mjs submit (or, with nothing uploaded first,
+     language only once the package carries it. Then
+     node dev/cws-listing-fill.mjs types every behind description into the
+     dashboard, saves the draft, reads it back and records it (the first
+     time it opens its own Chrome at Google's sign-in: sign in to the
+     publisher's account there and run it again). By hand instead: Store
+     listing → language → Description, from dist/listings/<locale>.txt,
+     save the draft, node dev/cws-publish.mjs listing --done <locales>.
+     Then node dev/cws-publish.mjs submit (or, with nothing uploaded first,
      node dev/cws-publish.mjs, which uploads and submits). The submission
      is refused while any language is behind.
   4. Firefox: node dev/amo-publish.mjs sends every language's name, summary
