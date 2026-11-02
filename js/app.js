@@ -4276,15 +4276,7 @@ const configured = () => store.isConfigured(state.config);
  * it; Save commits it and Cancel discards it.
  */
 function openSetup({ section, adding = false } = {}) {
-  // Adding an account is the connection form for a blank one; the account
-  // in use stays connected until the new one is saved.
-  setupAdding = adding;
-  setupBase = adding ? store.blankConfig() : state.config;
-  for (const f of FIELDS) $(`f-${f}`).value = setupBase[f] ?? '';
-  $('f-name').value = setupBase.name || '';
-  $('f-paste').value = setupBase.type === 'm3u' ? setupBase.url || '' : '';
-  $('f-epgurl').value = setupBase.epgUrl || '';
-  showPlaylistError(false);
+  editAccount(adding ? 'new' : 'current', { render: false });
   renderLanguageOptions();
   $('f-lang').value = state.settings.lang in LANGUAGES ? state.settings.lang : 'auto';
   $('f-channelsort').value = state.settings.channelSort;
@@ -4302,15 +4294,13 @@ function openSetup({ section, adding = false } = {}) {
   $('setup-error').hidden = true;
   $('setup-discard').hidden = true;
   document.querySelector('.setup-maintenance').open = false;
-  showSourceMode(setupBase.type === 'm3u' ? 'm3u' : setupBase.sourceMode);
   renderAccountBox();
   const first = !configured();
-  el.setup.classList.toggle('firstrun', first || adding);
-  el.setupTabs.hidden = first || adding;
-  $('setup-title').textContent = t(first ? 'setup.title.connect' : adding ? 'accounts.add.title' : 'setup.title');
+  el.setup.classList.toggle('firstrun', first);
+  el.setupTabs.hidden = first;
+  $('setup-title').textContent = t(first ? 'setup.title.connect' : 'setup.title');
   // The first run is the one moment the dialog has to say what it is for.
   $('connection-intro').textContent = t(first ? 'setup.first.intro' : 'setup.connection.intro');
-  $('adding-account').hidden = !adding || first;
   renderAccountList();
   showPassword(false);
   showSetupSection(first ? 'connection' : (section || 'connection'));
@@ -4320,10 +4310,51 @@ function openSetup({ section, adding = false } = {}) {
 
 // Every open starts with the connection; edits survive tab changes only.
 let setupSection = 'connection';
-// Whether the form is for a new account, and the configuration it edits:
-// the one in use, or a blank one.
+// Which account the connection form shows, picked in the list above it:
+// 'current' (the one in use), 'new' (one being added) or another one's id;
+// setupBase is its configuration, a blank one for a new account.
+let setupEditing = 'current';
 let setupAdding = false;
 let setupBase = null;
+
+/** The configuration the form edits for a choice in the list. */
+function accountFor(target) {
+  if (target === 'new') return store.blankConfig();
+  if (target === 'current') return state.config;
+  return (state.accounts || []).find((a) => a.id === target) || state.config;
+}
+
+/** Whether the form is on an account of the list other than the one in use. */
+const editingOther = () => setupEditing !== 'current' && setupEditing !== 'new' && setupEditing !== state.config.id;
+
+/**
+ * The connection form on one account of the list: the one in use, a new
+ * one, or another — the list above it is the way between them, so there is
+ * no view of its own to find the way back from.
+ */
+function editAccount(target, { render = true } = {}) {
+  setupEditing = target === state.config.id ? 'current' : target;
+  setupAdding = setupEditing === 'new';
+  setupBase = accountFor(setupEditing);
+  for (const f of FIELDS) $(`f-${f}`).value = setupBase[f] ?? '';
+  $('f-name').value = setupBase.name || '';
+  $('f-paste').value = setupBase.type === 'm3u' ? setupBase.url || '' : '';
+  $('f-epgurl').value = setupBase.epgUrl || '';
+  showPlaylistError(false);
+  showSourceMode(setupBase.type === 'm3u' ? 'm3u' : setupBase.sourceMode);
+  showPassword(false);
+  if (!render) return;
+  $('setup-error').hidden = true;
+  renderAccountList();
+  updateSetupActions();
+  focusSetupSection();
+}
+
+/** Another account picked in the list: the form follows, unless it has edits unsaved. */
+function pickAccount(target) {
+  if (setupConnectionChanged()) { setupError('setup.maintenance.pending'); return; }
+  editAccount(target);
+}
 let setupInitial = null;
 let setupSaving = false;
 
@@ -4545,22 +4576,35 @@ function renderAccountList() {
   const box = $('accounts');
   const list = $('account-list');
   const accounts = state.accounts || [];
-  box.hidden = setupAdding || !configured() || !accounts.length;
+  box.hidden = !configured() || !accounts.length;
   list.replaceChildren();
+  $('f-add-account').hidden = setupAdding;
   if (box.hidden) return;
-  for (const a of accounts) {
+  const row = (a, { isNew = false } = {}) => {
     const li = document.createElement('li');
-    li.className = 'account-row';
-    const main = document.createElement('div');
+    const inUse = !isNew && a.id === state.config.id;
+    const selected = isNew ? setupAdding : (inUse ? setupEditing === 'current' : setupEditing === a.id);
+    li.className = 'account-row' + (selected ? ' selected' : '') + (inUse ? ' current' : '');
+    // The row itself picks the account for the form below; its buttons act.
+    const main = document.createElement('button');
+    main.type = 'button';
     main.className = 'account-main';
+    main.setAttribute('aria-pressed', String(selected));
     const name = document.createElement('b');
-    name.textContent = store.accountLabel(a);
+    name.textContent = isNew ? t('accounts.new') : store.accountLabel(a);
     const where = document.createElement('span');
-    where.textContent = accountWhere(a);
+    where.textContent = isNew ? t('accounts.new.hint') : accountWhere(a);
     main.append(name, where);
+    if (!isNew) main.addEventListener('click', () => pickAccount(inUse ? 'current' : a.id));
     li.append(main);
-    if (a.id === state.config.id) {
-      li.classList.add('current');
+    if (isNew) {
+      const cancel = document.createElement('button');
+      cancel.type = 'button';
+      cancel.className = 'ghost';
+      cancel.textContent = t('progress.cancel');
+      cancel.addEventListener('click', () => editAccount('current'));
+      li.append(cancel);
+    } else if (inUse) {
       const badge = document.createElement('span');
       badge.className = 'account-current';
       badge.textContent = t('accounts.current');
@@ -4589,13 +4633,16 @@ function renderAccountList() {
         clearTimeout(armed);
         state.accounts = await store.removeAccount(a.id);
         toast(t('accounts.removed', { name: store.accountLabel(a) }));
-        renderAccountList();
+        if (setupEditing === a.id) editAccount('current');
+        else renderAccountList();
         renderAccountSwitcher();
       });
       li.append(use, remove);
     }
-    list.append(li);
-  }
+    return li;
+  };
+  for (const a of accounts) list.append(row(a));
+  if (setupAdding) list.append(row(null, { isNew: true }));
 }
 
 /** The header's account button: there once there is more than one account. */
@@ -4898,11 +4945,7 @@ function wireSetup() {
     $('f-host').focus();
   });
   $('f-host').addEventListener('change', splitServerField);
-  $('f-add-account').addEventListener('click', () => {
-    if (setupDirty()) { setupError('setup.maintenance.pending'); return; }
-    openSetup({ adding: true });
-  });
-  $('f-add-cancel').addEventListener('click', () => openSetup());
+  $('f-add-account').addEventListener('click', () => pickAccount('new'));
   $('btn-account').addEventListener('click', openAccountMenu);
   // Sync is a choice about this browser and acts at once (see player.html).
   $('f-sync').addEventListener('change', async (e) => {
@@ -4941,6 +4984,7 @@ function wireSetup() {
   el.setup.querySelector('form').addEventListener('submit', async (event) => {
     event.preventDefault();
     if (setupSaving || (configured() && !setupAdding && !setupDirty())) return;
+    const other = editingOther();
     const connectionEdited = setupConnectionChanged() || !configured() || setupAdding;
     // An Xtream account entered as its address can save other preferences
     // without pasting the address again. Any newly entered address must be
@@ -4984,8 +5028,11 @@ function wireSetup() {
       const previous = state.config;
       // A new account is a whole configuration of its own, with an id of
       // its own; the one in use keeps its id and is changed in place.
-      const configPatch = setupAdding ? { ...store.blankConfig(), ...patch } : connectionEdited ? patch : null;
+      // Another account of the list is changed in the list only: the one
+      // in use stays, and nothing reconnects.
+      const configPatch = other ? null : setupAdding ? { ...store.blankConfig(), ...patch } : connectionEdited ? patch : null;
       const next = await store.saveSetup(configPatch, settingsPatch, { replace: setupAdding });
+      if (other && connectionEdited) await store.recordAccount({ ...setupBase, ...patch });
       saved = true;
       // Another account: what is playing stops before anything else of
       // the new one is in place, so that no retry, wait or history entry
@@ -5003,17 +5050,17 @@ function wireSetup() {
       // A new starting order, or the international channels shown or
       // hidden, repaints the channel list where it stands; a changed
       // connection is about to load it again anyway.
-      if ((settingsPatch.channelSort || 'showInternational' in settingsPatch) && !changed) {
+      if ((settingsPatch.channelSort || 'showInternational' in settingsPatch) && (!changed || other)) {
         if ('showInternational' in settingsPatch) renderSidebar();
         await refreshRows({ keepScroll: true });
       }
       state.accounts = await store.loadAccounts();
       renderAccountSwitcher();
-      if (changed) {
+      if (changed && !other) {
         await connect();
         if (moved && !setupAdding) offerLists(previous, state.config);
       } else {
-        toast(t('setup.saved'));
+        toast(other ? t('accounts.saved', { name: store.accountLabel({ ...setupBase, ...patch }) }) : t('setup.saved'));
       }
     } catch (err) {
       console.error('[iptv] settings save failed', err);

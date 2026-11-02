@@ -492,9 +492,10 @@ on two lines as well.</div></div>
           <svg viewBox="0 0 20 20" aria-hidden="true"><path d="M11 3h6v6M17 3l-8 8M8 4H4a1 1 0 0 0-1 1v11a1 1 0 0 0 1 1h11a1 1 0 0 0 1-1v-4"/></svg>
         </a>
       </p>
-      <!-- Every account added, the one in use marked. Switching and
-           removing act at once, like the buttons under Account & data; the
-           fields below are the account in use, or the one being added. -->
+      <!-- Every account added, the one in use marked. A row picks the
+           account the fields below show; "Add account" puts a new one in
+           the list. Use and Remove act at once, like the buttons under
+           Account & data. -->
       <div class="accounts" id="accounts" hidden>
         <div class="accounts-head">
           <span data-i18n="accounts.title">Accounts</span>
@@ -502,7 +503,6 @@ on two lines as well.</div></div>
         </div>
         <ul class="account-list" id="account-list"></ul>
       </div>
-      <p class="adding-account" id="adding-account" hidden><span data-i18n="accounts.adding">A new account. Saving connects to it; the others stay in the list.</span> <button type="button" id="f-add-cancel" class="link-button" data-i18n="accounts.adding.cancel">Back to the account in use</button></p>
       <label class="field"><span data-i18n="setup.name">Name (optional)</span>
         <input id="f-name" type="text" autocomplete="off" spellcheck="false" data-i18n-placeholder="setup.name.placeholder" placeholder="e.g. Provider name">
       </label>

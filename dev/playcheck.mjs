@@ -3355,9 +3355,50 @@ async function flakyserver(page) {
   }
 }
 
+
+/**
+ * Accounts in Settings → Connection: the list above the form is the way
+ * between them. "Add account" puts a new row in the list and Cancel takes
+ * it out; picking another account shows its details, and saving it keeps
+ * the account in use as it is; an incomplete Xtream server says what a
+ * playlist without sign-in is entered as.
+ */
+async function accountform(page, { target }) {
+  const assert = (ok, message) => { if (!ok) throw new Error(message); };
+  const press = (expr) => evaluate(page, expr, { gesture: true });
+  await evaluate(page, `chrome.storage.local.set({ config: ${JSON.stringify(XTREAM_ACCOUNT)}, accounts: ${JSON.stringify([XTREAM_ACCOUNT, M3U_ACCOUNT])} })`);
+  await page.call('Page.navigate', { url: bare(target.url) });
+  await sleep(1000);
+  await waitFor(page, CONNECTED, 'the connection');
+  await evaluate(page, `document.querySelector('dialog[open]')?.close()`);
+  const rows = () => evaluate(page, `[...document.querySelectorAll('#account-list .account-row')].map((r) => (r.classList.contains('selected') ? '>' : '') + r.querySelector('.account-main b').textContent)`);
+  await press(`document.getElementById('btn-settings').click()`);
+  await waitFor(page, `document.getElementById('setup').open`, 'the settings');
+  assert(JSON.stringify(await rows()) === JSON.stringify(['>Demo server', 'Demo playlist']), `opened: ${JSON.stringify(await rows())}`);
+  await press(`document.getElementById('f-add-account').click()`);
+  assert((await rows()).join() === 'Demo server,Demo playlist,>New account' && await evaluate(page, `document.getElementById('f-host').value === '' && document.getElementById('f-save').textContent === 'Connect'`), `adding: ${JSON.stringify(await rows())}`);
+  await press(`[...document.querySelectorAll('#account-list .account-row')].pop().querySelector('button.ghost').click()`);
+  assert((await rows()).join() === '>Demo server,Demo playlist', `cancelled: ${JSON.stringify(await rows())}`);
+  await press(`[...document.querySelectorAll('#account-list .account-main')][1].click()`);
+  assert(await evaluate(page, `document.getElementById('f-paste').value === ${JSON.stringify(M3U_ACCOUNT.url)}`), 'the other account\'s details are not in the form');
+  await evaluate(page, `(() => { const f = document.getElementById('f-name'); f.value = 'Renamed playlist'; f.dispatchEvent(new Event('input', { bubbles: true })); })()`);
+  await press(`document.getElementById('f-save').click()`);
+  await waitFor(page, `chrome.storage.local.get('accounts').then((d) => d.accounts.some((a) => a.name === 'Renamed playlist'))`, 'the other account saved');
+  const inUse = await evaluate(page, `chrome.storage.local.get('config').then((d) => d.config.id)`);
+  assert(inUse === XTREAM_ACCOUNT.id, `saving another account switched to it: ${inUse}`);
+  await press(`document.getElementById('btn-settings').click()`);
+  await waitFor(page, `document.getElementById('setup').open`, 'the settings again');
+  await press(`document.getElementById('f-add-account').click()`);
+  await evaluate(page, `(() => { const f = document.getElementById('f-host'); f.value = 'example.tv'; f.dispatchEvent(new Event('input', { bubbles: true })); })()`);
+  await press(`document.getElementById('f-save').click()`);
+  const error = await evaluate(page, `document.getElementById('setup-error').textContent`);
+  assert(/Paste subscription URL \(M3U\)/.test(error), `the incomplete server: "${error}"`);
+  return { ok: true, detail: `added and cancelled in the list, the other account edited and saved without a switch; "${error}"` };
+}
+
 const SCENARIOS = { buffering, livebuffering, filmbuffering, emptyfile, tsasmp4, refusedfile, badgateway, livebadgateway, channelrefused, noanswer, longfilm, catalogUi, setupClarity, fullscreenControl, clickpause, pickers, channels, home, resumemkv, restore, programmes, catchup, seek, death, cancel, timeout, search, paste, keys, switching, resume, connections, livezap, livequiet, reconnect, accounts, listerror, a11y, subtitles, audio, settings,
   lastchannel, nextepisode, continuewatching, reminders, update, seeklag, cuesretry, quota, catchupfreeze, catchupfull, twotabs, switchstop, resettabs,
-  refresh, restorenav, guidekeep, m3u, sync, holes, picks, flakyserver };
+  refresh, restorenav, guidekeep, m3u, sync, holes, picks, flakyserver, accountform };
 // The mock's whole-list answers stall for these, longer than the request limit.
 const SLOW_LIST_MS = { cancel: 60000, timeout: 60000 };
 // The media is sent slowly for these: the seek targets must lie outside the

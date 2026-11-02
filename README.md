@@ -79,10 +79,14 @@ switching audio tracks, pausing playback and entering full screen.
 
 ### Several accounts
 
-**Settings → Connection** lists every account added, the one in use marked.
-**Add account** opens the form for a new one — an Xtream server or an M3U
-playlist, with a name of your choosing ("Home", "Sports") — and saving connects
-to it; the others stay in the list. Once there are two, the top bar carries the
+**Settings → Connection** lists every account added, the one in use marked,
+above the form: a click on an account shows its details in the form, and saving
+changes it without switching to it. **Add account** puts a new row in the list
+with an empty form under it — an Xtream server or an M3U playlist, with a name
+of your choosing — and saving connects to it; **Cancel** in its row takes it
+away again. An Xtream server needs its server, user name and password; a
+playlist that needs no sign-in, such as a free one, goes under **Paste
+subscription URL (M3U)**. Once there are two, the top bar carries the
 name of the account in use, and a click on it lists the others: one click
 switches. Each account keeps its own favourites, history, resume points,
 reminders and channel lists, and its own catalogue in the cache, so switching

@@ -173,7 +173,7 @@
 
 <main>
 <h1>Kepuli-TV</h1>
-<p class="meta">The README of the Kepuli-TV browser extension, version 1.5.2. <a href="https://github.com/BigTimeSam/kepuli-tv">Source on GitHub</a></p>
+<p class="meta">The README of the Kepuli-TV browser extension, version 1.5.3. <a href="https://github.com/BigTimeSam/kepuli-tv">Source on GitHub</a></p>
 
 <p>A Chrome and Firefox extension (Manifest V3) that plays Xtream Codes IPTV straight in the
 browser. Data is fetched from the <code>player_api.php</code> API lazily: only what you
@@ -283,10 +283,14 @@ interface language later in <strong>Settings</strong>.</li>
 
 <h3 id="several-accounts">Several accounts</h3>
 
-<p><strong>Settings → Connection</strong> lists every account added, the one in use marked.
-<strong>Add account</strong> opens the form for a new one — an Xtream server or an M3U
-playlist, with a name of your choosing ("Home", "Sports") — and saving connects
-to it; the others stay in the list. Once there are two, the top bar carries the
+<p><strong>Settings → Connection</strong> lists every account added, the one in use marked,
+above the form: a click on an account shows its details in the form, and saving
+changes it without switching to it. <strong>Add account</strong> puts a new row in the list
+with an empty form under it — an Xtream server or an M3U playlist, with a name
+of your choosing — and saving connects to it; <strong>Cancel</strong> in its row takes it
+away again. An Xtream server needs its server, user name and password; a
+playlist that needs no sign-in, such as a free one, goes under <strong>Paste
+subscription URL (M3U)</strong>. Once there are two, the top bar carries the
 name of the account in use, and a click on it lists the others: one click
 switches. Each account keeps its own favourites, history, resume points,
 reminders and channel lists, and its own catalogue in the cache, so switching
