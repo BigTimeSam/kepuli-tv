@@ -194,7 +194,8 @@
 //                                     ten seconds the time waited and Cancel;
 //                                     a seek on a connection slower than the
 //                                     film shows the stall over the picture,
-//                                     says the connection is too slow, and
+//                                     shows its speed against the film's on
+//                                     an amber bar, and
 //                                     leaves once the picture moves
 //   node dev/playcheck.mjs livebuffering a live MPEG-TS channel sent slower
 //                                     than it plays: the start shows the bytes
@@ -415,10 +416,11 @@ async function playEpisode(page, index = 0) {
 const WAIT_VIEW = `(() => { const $ = (id) => document.getElementById(id);
   const shown = (id) => !$(id).hidden;
   return { overlay: shown('overlay'), stall: $('overlay').classList.contains('stall'),
-    title: $('overlay-title').textContent, load: shown('overlay-load'),
+    title: $('overlay-title').textContent, text: $('overlay-text').textContent, load: shown('overlay-load'),
     bar: shown('overlay-bar') ? parseFloat($('overlay-bar-fill').style.width) : null,
+    amber: shown('overlay-bar') && $('overlay-bar').classList.contains('slow'),
     figures: shown('overlay-figures') ? $('overlay-figures').textContent : '',
-    slow: shown('overlay-slow') ? $('overlay-slow').textContent : '',
+    slow: shown('overlay-slow') ? [$('overlay-speed').textContent, $('overlay-need').textContent].filter(Boolean).join(' | ') : '',
     elapsed: shown('overlay-elapsed') ? $('overlay-elapsed').textContent : '',
     actions: [...$('overlay-actions').querySelectorAll('button')].map((b) => b.textContent),
     t: $('video').currentTime }; })()`;
@@ -449,8 +451,12 @@ async function buffering(page) {
   if (seen.some((v) => v.title === 'Connecting…' && v.figures)) problems.push('Connecting showed the figures of the step before');
   if (shares.some((v, i) => i && v < shares[i - 1])) problems.push(`the share went back: ${shares.join(', ')}`);
   if (!seen.some((v) => v.bar > 0)) problems.push('no bar');
-  if (!seen.some((v) => / \/ .* · .*\/s$/.test(v.figures))) problems.push(`no bytes against a total with a speed: ${[...new Set(seen.map((v) => v.figures))].slice(-3).join(' | ')}`);
-  if (!seen.some((v) => /^Waited 1\d s$/.test(v.elapsed))) problems.push('no time waited after ten seconds');
+  // The speed stands with the bytes, or — the film's bit rate known —
+  // under them against what the film needs.
+  if (!seen.some((v) => / \/ /.test(v.figures) && (/ · .*\/s$/.test(v.figures) || / Mbit\/s \| needs .* Mbit\/s$/.test(v.slow)))) {
+    problems.push(`no bytes against a total with a speed: ${[...new Set(seen.map((v) => `${v.figures} ${v.slow}`))].slice(-3).join(' | ')}`);
+  }
+  if (!seen.some((v) => /^1\d s$/.test(v.elapsed))) problems.push('no time waited after ten seconds');
   if (!seen.some((v) => v.actions.includes('Cancel'))) problems.push('no Cancel after ten seconds');
   if (seen.some((v) => v.stall)) problems.push('the start was shown as a stall');
   const after = await evaluate(page, WAIT_VIEW);
@@ -474,8 +480,9 @@ async function buffering(page) {
   if (!stalled.length) problems.push('the seek showed no stall');
   if (stalled.some((v) => v.title !== 'Buffering…')) problems.push(`the stall's title: ${[...new Set(stalled.map((v) => v.title))].join(', ')}`);
   if (stalled.some((v) => v.actions.length)) problems.push('the stall offered buttons');
-  if (!stalled.some((v) => /^The connection is slower than the video needs \(0[.,]\d+ \/ 0[.,]\d+ Mbit\/s\)/.test(v.slow))) {
-    problems.push(`no slow connection said: ${[...new Set(stalled.map((v) => v.slow))].join(' | ')}`);
+  if (stalled.some((v) => v.text)) problems.push(`the stall had a line of text: ${stalled.find((v) => v.text).text}`);
+  if (!stalled.some((v) => /^0[.,]\d+ Mbit\/s \| needs 0[.,]\d+ Mbit\/s$/.test(v.slow) && v.amber && v.bar < 100)) {
+    problems.push(`no slow connection shown: ${[...new Set(stalled.map((v) => `${v.slow} (bar ${v.bar}${v.amber ? ' amber' : ''})`))].join(' | ')}`);
   }
   const last = seen.at(-1) || {};
   return {
@@ -510,7 +517,7 @@ async function livebuffering(page) {
     const stalled = seen.filter((v) => v.overlay && v.stall);
     if (!stalled.length) problems.push('no stall was shown');
     if (!stalled.some((v) => /\d+ kB\/s/.test(v.figures))) problems.push(`the stall showed no speed: ${[...new Set(stalled.map((v) => v.figures))].join(' | ')}`);
-    if (!stalled.some((v) => v.slow === 'The connection is not keeping up with the video, so playback may pause.')) problems.push(`no slow connection said in 40 s: ${[...new Set(stalled.map((v) => v.slow))].join(' | ')}`);
+    if (!stalled.some((v) => v.slow === 'Connection too slow')) problems.push(`no slow connection said in 40 s: ${[...new Set(stalled.map((v) => v.slow))].join(' | ')}`);
     // Between the stalls the picture plays without the overlay. Firefox
     // waits for more of the stream before it plays on, and at this pace
     // that is longer than the scenario looks.

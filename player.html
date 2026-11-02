@@ -150,18 +150,22 @@
       <div class="subdisplay" id="subdisplay" aria-hidden="true"></div>
       <div class="overlay" id="overlay">
         <div class="overlay-inner">
-          <div class="overlay-title" id="overlay-title" data-i18n="player.idle">Nothing playing</div>
+          <!-- The title, and beside it, past ten seconds, how long the wait
+               has lasted. -->
+          <div class="overlay-head">
+            <div class="overlay-title" id="overlay-title" data-i18n="player.idle">Nothing playing</div>
+            <div class="overlay-elapsed" id="overlay-elapsed" hidden></div>
+          </div>
           <div class="overlay-text" id="overlay-text" data-i18n="player.idle.text" aria-live="polite">Pick a channel from the list.</div>
-          <!-- How a start or a stall is coming along: the share of the bytes
-               the picture waits for, when they are known, the download's
-               speed, a connection too slow for the film, and how long the
-               wait has lasted. Not a live region: it changes twice a
-               second. -->
+          <!-- How a start or a stall is coming along. The bar is the share
+               of the bytes the picture waits for, when they are known, or
+               else the download's speed against the film's bit rate; under
+               it the bytes, and the speed against what the film needs. Not
+               a live region: it changes twice a second. -->
           <div class="overlay-load" id="overlay-load" hidden>
             <div class="overlay-bar" id="overlay-bar" role="progressbar" aria-valuemin="0" aria-valuemax="100" hidden><div class="overlay-bar-fill" id="overlay-bar-fill"></div></div>
             <div class="overlay-figures" id="overlay-figures"></div>
-            <div class="overlay-slow" id="overlay-slow" hidden></div>
-            <div class="overlay-elapsed" id="overlay-elapsed" hidden></div>
+            <div class="overlay-slow" id="overlay-slow" hidden><span class="overlay-speed" id="overlay-speed"></span><span class="overlay-need" id="overlay-need"></span></div>
           </div>
           <div class="overlay-actions" id="overlay-actions" hidden></div>
           <!-- What an empty player can offer instead of black: the films and

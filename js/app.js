@@ -47,6 +47,7 @@ const el = {
   overlayText: $('overlay-text'), overlayActions: $('overlay-actions'), statbadge: $('statbadge'),
   overlayLoad: $('overlay-load'), overlayBar: $('overlay-bar'), overlayBarFill: $('overlay-bar-fill'),
   overlayFigures: $('overlay-figures'), overlaySlow: $('overlay-slow'), overlayElapsed: $('overlay-elapsed'),
+  overlaySpeed: $('overlay-speed'), overlayNeed: $('overlay-need'),
   idleHome: $('idle-home'),
   infostrip: $('infostrip'), nowTitle: $('now-title'), nowSub: $('now-sub'), mode: $('mode'),
   subs: $('subs'), audio: $('audio'), cast: $('btn-cast'),
@@ -2840,6 +2841,7 @@ function showWait(phase, title, text) {
     loadView.figures = null;
     loadView.clock = setInterval(renderLoadView, 1000);
   }
+  el.overlay.classList.add('waiting');
   el.overlay.classList.toggle('stall', phase === 'stall');
   el.overlayTitle.textContent = title;
   el.overlayText.textContent = text;
@@ -2850,7 +2852,7 @@ function renderBuffering(s) {
   if (s.phase === 'stall') {
     el.overlay.hidden = false;
     el.overlay.classList.add('loading');
-    showWait('stall', t('player.buffering'), t('player.stalled.text'));
+    showWait('stall', t('player.buffering'), '');
   } else if (s.phase === 'probe') {
     el.overlay.hidden = false;
     el.overlay.classList.add('loading');
@@ -2870,41 +2872,55 @@ function renderBuffering(s) {
 }
 
 /**
- * The figures under the title: the bar and the bytes against their total
- * when the total is known, the download's speed, the picture buffered
- * ahead when bytes are not counted, a connection too slow for the film,
- * and — past WAIT_SHOW_MS — the time waited and, for a start, Cancel.
+ * The figures of the wait. The bar is the share of the bytes the picture
+ * waits for when their total is known, or else the download's speed
+ * against the film's bit rate — amber when the connection is too slow.
+ * Under it the bytes, and the speed against what the film needs; without
+ * a bit rate the speed stands with the bytes, and a connection too slow
+ * is said in words. Past WAIT_SHOW_MS the time waited shows beside the
+ * title and, for a start, Cancel.
  */
 function renderLoadView() {
   if (!loadView.phase) return;
   const f = loadView.figures;
+  const rate = f && f.bitrate && f.speed != null;
   const parts = [];
   if (f) {
     if (f.total) parts.push(`${amount(f.loaded)} / ${amount(f.total)}`);
     else if (f.loaded > 0) parts.push(amount(f.loaded));
-    if (f.speed != null) parts.push(speedText(f.speed));
+    if (f.speed != null && !rate) parts.push(speedText(f.speed));
     if (f.loaded == null && f.ahead > 0.05) parts.push(t('player.buffered', { seconds: secondsText(f.ahead) }));
   }
   el.overlayFigures.textContent = parts.join(' · ');
   el.overlayFigures.hidden = !parts.length;
-  const share = f && f.total ? Math.min(1, f.loaded / f.total) : null;
+  const slow = Boolean(f && f.slow);
+  const share = f && f.total ? Math.min(1, f.loaded / f.total)
+    : rate ? Math.min(1, (f.speed * 8) / f.bitrate) : null;
   el.overlayBar.hidden = share == null;
+  el.overlayBar.classList.toggle('slow', share != null && !f.total && slow);
   if (share != null) {
     el.overlayBarFill.style.width = `${(share * 100).toFixed(1)}%`;
     el.overlayBar.setAttribute('aria-valuenow', String(Math.round(share * 100)));
   }
-  const slow = f && f.slow
-    ? (f.bitrate && f.speed != null
-      ? t('player.slow.rate', { speed: mbits(f.speed * 8), need: mbits(f.bitrate) })
-      : t('player.slow'))
-    : '';
-  el.overlaySlow.textContent = slow;
-  el.overlaySlow.hidden = !slow;
+  if (rate) {
+    // The speed's figure alone is amber, not its unit: "0,40 Mbit/s".
+    const [before, after] = t('player.rate', { speed: '\u0000' }).split('\u0000');
+    const value = document.createElement('span');
+    value.className = slow ? 'value slow' : 'value';
+    value.textContent = mbits(f.speed * 8);
+    el.overlaySpeed.replaceChildren(before, value, after);
+    el.overlayNeed.textContent = t('player.need', { need: mbits(f.bitrate) });
+  } else {
+    el.overlaySpeed.textContent = slow ? t('player.slow') : '';
+    el.overlayNeed.textContent = '';
+  }
+  el.overlaySlow.classList.toggle('only', !rate && slow);
+  el.overlaySlow.hidden = !rate && !slow;
   const waited = Date.now() - loadView.since;
   const long = waited >= WAIT_SHOW_MS;
   el.overlayElapsed.hidden = !long;
   if (long) el.overlayElapsed.textContent = t('player.waited', { seconds: Math.floor(waited / 1000) });
-  el.overlayLoad.hidden = !parts.length && !slow && !long && share == null;
+  el.overlayLoad.hidden = el.overlayFigures.hidden && el.overlaySlow.hidden && el.overlayBar.hidden;
   // A stall is left to the player's own controls; a start that has gone
   // on this long may be given up.
   if (long && loadView.phase === 'start' && !loadView.cancel) {
@@ -2921,10 +2937,11 @@ function clearLoadView() {
   loadView.figures = null;
   loadView.cancel = false;
   el.overlayLoad.hidden = true;
+  el.overlayElapsed.hidden = true;
   // Emptied as well as hidden: the overlay's next account reads cleaner
   // without the last wait's figures left in it.
-  for (const line of [el.overlayFigures, el.overlaySlow, el.overlayElapsed]) line.textContent = '';
-  el.overlay.classList.remove('stall');
+  for (const line of [el.overlayFigures, el.overlaySpeed, el.overlayNeed, el.overlayElapsed]) line.textContent = '';
+  el.overlay.classList.remove('stall', 'waiting');
   stopCountdown();
 }
 

@@ -883,7 +883,8 @@ body[data-substyle="contrast"] { --cue-back: #000; }
 .overlay { position: absolute; inset: 0; display: grid; place-items: center; background: radial-gradient(circle at 50% 45%, #12151f, #06070a 70%); text-align: center; padding: 24px; }
 .overlay[hidden] { display: none; }
 .overlay-inner { max-width: 480px; }
-.overlay-title { font-size: 1.0625rem; font-weight: 650; letter-spacing: -0.005em; margin-bottom: 6px; }
+.overlay-head { margin-bottom: 6px; }
+.overlay-title { font-size: 1.0625rem; font-weight: 650; letter-spacing: -0.005em; }
 .overlay-text { color: var(--muted); }
 .overlay-actions { margin-top: 14px; display: flex; gap: 8px; justify-content: center; }
 .now-title:empty { display: none; }
@@ -925,16 +926,25 @@ body[data-substyle="contrast"] { --cue-back: #000; }
 }
 @keyframes spin { to { transform: rotate(360deg); } }
 
-/* A start's or a stall's progress. The bar shows only when the bytes the
-   picture waits for are known; the figures are tabular so that a count
-   going up twice a second does not shake the line. */
-.overlay-load { margin-top: 12px; display: grid; gap: 6px; justify-items: center; font-size: 0.8125rem; }
+/* A start's or a stall's progress, in a column of its own width: the
+   title with the time waited at its right, the bar, and under it the
+   figures, the speed at the left and what the film needs at the right.
+   The figures are tabular so that a count going up twice a second does
+   not shake the line. */
+.overlay.waiting .overlay-inner { width: min(320px, 80vw); text-align: left; }
+.overlay.waiting .overlay-head { display: flex; align-items: baseline; justify-content: space-between; gap: 16px; }
+.overlay.waiting .overlay-actions { justify-content: flex-start; }
+.overlay-elapsed { flex: none; color: var(--dim); font-variant-numeric: tabular-nums; }
+.overlay-elapsed[hidden] { display: none; }
+.overlay-text:empty { display: none; }
+.overlay-load { margin-top: 10px; display: grid; gap: 6px; font-size: 0.8125rem; }
 .overlay-load[hidden], .overlay-load [hidden] { display: none; }
-.overlay-bar { width: min(260px, 70vw); height: 4px; border-radius: 2px; background: var(--track); overflow: hidden; }
+.overlay-bar { height: 4px; border-radius: 2px; background: var(--track); overflow: hidden; }
 .overlay-bar-fill { height: 100%; width: 0; background: var(--accent); transition: width .45s linear; }
-.overlay-figures, .overlay-elapsed { color: var(--muted); font-variant-numeric: tabular-nums; }
-.overlay-elapsed { color: var(--dim); }
-.overlay-slow { color: var(--warn); max-width: 380px; }
+.overlay-bar.slow .overlay-bar-fill { background: var(--warn); }
+.overlay-figures, .overlay-slow { color: var(--muted); font-variant-numeric: tabular-nums; }
+.overlay-slow { display: flex; justify-content: space-between; gap: 16px; }
+.overlay-slow.only, .overlay-speed .value.slow { color: var(--warn); }
 /* Stopped mid-film, the picture stays in sight around the account, which
    sits on a card of its own: dimming alone left the words on top of
    whatever the frozen frame held. Clicks go through to the controls. */
