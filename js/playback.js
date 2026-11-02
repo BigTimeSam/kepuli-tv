@@ -14,7 +14,7 @@
 
 import { isPlayableExtension } from './xtream.js';
 import { t } from './i18n.js';
-import { probe, verdict } from './probe.js';
+import { probe, verdict, serverFault, providerError } from './probe.js';
 import { Remuxer } from './remux.js';
 import { Mp4Player } from './mp4play.js';
 import { isGecko } from './browser.js';
@@ -117,6 +117,23 @@ const MAX_RECONNECTS = 4;
 const RECONNECT_STEP_MS = 2500;
 const RECONNECT_MAX_MS = 8000;
 
+// The account of a start or a stall given to the viewer (the 'buffering'
+// state): how often it is told, over how long a span the download speed is
+// measured, and how much of that span has to have passed before the speed
+// is set against the film's bit rate — the first second of a download says
+// little about the rest.
+const METER_MS = 500;
+const SPEED_WINDOW_MS = 4000;
+const SLOW_AFTER_MS = 3000;
+// A picture that stops for less than this is not worth an overlay: a seek
+// inside the buffer, a hiccup of the decoder.
+const STALL_SHOW_MS = 700;
+// Without a bit rate to set the speed against, a picture that has stopped
+// to wait for data twice within this span is taken for a connection too
+// slow for it.
+const STALL_MEMORY_MS = 120000;
+const SLOW_STALLS = 2;
+
 // How long playback has to run before the attempt counter is reset.
 // Without this, a stream that dies every 48 seconds would retry forever and
 // the viewer would never learn that the fault is in the source.
@@ -158,6 +175,13 @@ export class Playback {
     this.releasedBeforeOpen = 0;
     this.sourceDone = false;    // a file's source has been read to its end
     this.lastTick = 0;
+    this.meter = null;          // the timer of the 'buffering' account, see startMeter
+    this.meterPhase = null;     // 'probe' | 'start' | 'stall' while it runs
+    this.samples = [];          // [time, bytes] of the download, for its speed
+    this.sampleSource = null;   // whose bytes they count
+    this.stalls = [];           // when the picture last stopped to wait for data
+    this.libLoad = null;        // the bytes mpegts.js or hls.js has read, see loadInfo
+    this.probeLoad = null;      // the header read's, while it runs
   }
 
   /**
@@ -188,6 +212,8 @@ export class Playback {
 
   stop() {
     this.token++;
+    this.stopMeter();
+    this.stalls = [];
     this.stopWatchdog();
     this.detachGuards();
     clearTimeout(this.stableTimer);
@@ -226,6 +252,7 @@ export class Playback {
   restart() {
     if (!this.spec) return;
     const spec = this.spec;
+    this.stopMeter();
     this.stopWatchdog();
     // Detach the watchdogs before touching the video element: load() fires
     // a pause event that would look like the viewer pausing.
@@ -286,14 +313,35 @@ export class Playback {
       // have failed on the busy connection, which says nothing about the
       // file.
     }
+    spec.tried = new Set();
+    this.runChain(chain, spec, token);
+  }
+
+  /** The engines in turn, then explain() once every one has failed. */
+  runChain(chain, spec, token) {
     const attempt = (i) => {
       if (token !== this.token) return;
       if (i >= chain.length) return void this.explain(spec, token);
       const name = chain[i];
+      spec.tried.add(name);
       this.onState({ status: 'loading', attempt: i });
       this.runAttempt(name, spec, token, () => attempt(i + 1));
     };
     attempt(0);
+  }
+
+  /**
+   * The engines the header asks for that this playback has not tried yet.
+   * An extension is trusted to spare the start a header read, and it can
+   * lie: measured, a provider's ".mp4" film was MPEG-TS. The browser's own
+   * player refuses that at once, and without this the failure would go on
+   * to the account — whose count still has the header read just closed in
+   * it — and to a wait for a connection that would bring nothing.
+   */
+  untried(known, spec) {
+    const chain = known.path === 'native' ? nativeChain(spec)
+      : known.path === 'mpegts' || known.path === 'remux' ? [known.path] : [];
+    return chain.filter((name) => !spec.tried || !spec.tried.has(name));
   }
 
   /**
@@ -306,7 +354,17 @@ export class Playback {
     // attempt — and the next attempt need not read a header at all.
     const ctrl = new AbortController();
     this.probing = ctrl;
-    const info = await probe(spec.url, { signal: ctrl.signal });
+    // On a slow connection the header's quarter of a megabyte takes its
+    // time too, and is told like the start's bytes.
+    this.probeLoad = null;
+    const onProgress = (loaded, need) => {
+      if (token !== this.token || this.probing !== ctrl) return;
+      this.probeLoad = { loaded, stage: 'probe', from: 0, need, bitrate: null };
+      this.startMeter(token, 'probe');
+    };
+    const info = await probe(spec.url, { signal: ctrl.signal, onProgress });
+    if (this.meterPhase === 'probe') this.stopMeter();
+    this.probeLoad = null;
     if (this.probing === ctrl) this.probing = null;
     // A read that went to the network has just let go of its connection.
     if (!info.error && Date.now() - info.at < 1000) this.releasedAt = Date.now();
@@ -347,7 +405,7 @@ export class Playback {
   fileRefused(spec, status) {
     const verdict = { path: 'unavailable', reason: t('probe.unavailable', { status }) };
     spec.verdict = verdict;
-    this.onState({ status: 'error', message: t('playback.unavailable', { status }), verdict, content: true });
+    this.onState({ status: 'error', message: t('playback.servererror', { status }), verdict, content: true });
   }
 
   /**
@@ -387,6 +445,10 @@ export class Playback {
     if (!known) return;
     if (known.path === 'empty') return this.nothingThere(spec);
     if (known.path === 'unavailable') return this.fileRefused(spec, spec.probe.unavailable);
+    // The file is not what its name said: the engine for what it is, once.
+    // Failing again, explain() finds the header read and stops there.
+    const next = this.untried(known, spec);
+    if (next.length) return void this.runChain(next, spec, token);
     if (known.path === 'silent') return this.refuse(known, { canSilent: true });
     if (known.path === 'remux' || known.path === 'none') return this.refuse(known);
     this.onState({ status: 'error', message: generic, verdict: known });
@@ -397,6 +459,7 @@ export class Playback {
     let settled = false;
     this.noteOpen();
     this.sourceDone = false;
+    this.libLoad = null;
 
     const finish = (ok, why, { refused = false, empty = false, unavailable = 0, channel = 0 } = {}) => {
       if (token !== this.token) return;
@@ -418,7 +481,8 @@ export class Playback {
         // session, so that a media error mid-film reaches died() too.
         const onLater = () => finish(false, t('playback.reason.media', { code: video.error ? video.error.code : '?' }));
         video.addEventListener('error', onLater);
-        this.cleanup = () => video.removeEventListener('error', onLater);
+        const unwatch = this.watchStalls(token);
+        this.cleanup = () => { video.removeEventListener('error', onLater); unwatch(); };
         return;
       }
       console.warn('[iptv] engine %s did not start: %s', name, why);
@@ -469,7 +533,12 @@ export class Playback {
     const liveTs = name === 'mpegts' && spec.live;
     const timer = setTimeout(() => finish(false, t('playback.reason.timeout'), { refused: liveTs }), TIMEOUT_MS[name]);
     let flowing = false;
-    const answered = () => { flowing = true; };
+    // The server has answered: from here on the wait is for the picture's
+    // bytes, and the viewer is told how they are coming.
+    const answered = () => {
+      flowing = true;
+      if (!settled && token === this.token) this.startMeter(token, 'start');
+    };
     const silence = setTimeout(() => {
       if (!flowing) finish(false, t('playback.reason.timeout'), { refused: liveTs });
     }, ANSWER_MS);
@@ -481,6 +550,7 @@ export class Playback {
     video.addEventListener('playing', onPlaying);
     video.addEventListener('error', onError);
     const drop = () => {
+      this.stopMeter();
       clearTimeout(timer);
       clearTimeout(silence);
       for (const event of nativeAnswers) video.removeEventListener(event, answered);
@@ -521,6 +591,7 @@ export class Playback {
     // Taken before the engine goes: tearing it down empties the element,
     // and Retry is to start from here.
     const position = this.video.currentTime;
+    this.stopMeter();
     this.stopWatchdog();
     this.detachGuards();
     clearTimeout(this.stableTimer);
@@ -548,10 +619,24 @@ export class Playback {
     let flowing = false;
     const data = () => { flowing = true; onData(); };
     player.on(mpegts.Events.MEDIA_INFO, data);
-    player.on(mpegts.Events.STATISTICS_INFO, (info) => { if (info && info.speed > 0) data(); });
+    // The library counts its bytes but does not say the count, only the
+    // speed of the last second: the bytes are summed from that.
+    const load = { loaded: 0, at: Date.now() };
+    this.libLoad = () => ({ loaded: Math.round(load.loaded), need: null, bitrate: null });
+    player.on(mpegts.Events.STATISTICS_INFO, (info) => {
+      const now = Date.now();
+      if (info && info.speed > 0) {
+        load.loaded += info.speed * 1024 * Math.min(2, (now - load.at) / 1000);
+        data();
+      }
+      load.at = now;
+    });
     player.on(mpegts.Events.ERROR, (type, detail, info) => {
       const status = Number(info && info.code);
       const why = `${type}/${detail}${status ? ` ${status}` : ''}`;
+      // The provider's server failing, or a film it says is not there: said
+      // as it is, and the account is not asked — see providerError().
+      if (serverFault(status) || (!isLive && providerError(status))) return finish(false, why, { unavailable: status });
       if (isLive && (CHANNEL_REFUSED.mpegts.has(status)
         || (type === mpegts.ErrorTypes.NETWORK_ERROR && detail !== 'HttpStatusCodeInvalid' && !flowing))) {
         return finish(false, why, { channel: true });
@@ -584,6 +669,26 @@ export class Playback {
     const hls = new Hls(HLS_CONFIG);
     this.engine = hls;
     let recovered = 0;
+    // The segment being read says its size as it comes: until the picture
+    // starts, the first segment is what the start waits for.
+    const load = { done: 0, frag: null };
+    this.libLoad = () => {
+      const stats = load.frag && load.frag.stats;
+      const partial = stats ? stats.loaded || 0 : 0;
+      const level = hls.levels && hls.levels[hls.loadLevel >= 0 ? hls.loadLevel : hls.currentLevel];
+      const known = stats && stats.total > 0;
+      return {
+        loaded: load.done + partial,
+        ...(known ? { stage: 'media', from: load.done, need: load.done + stats.total } : {}),
+        bitrate: level && level.bitrate ? level.bitrate : null,
+      };
+    };
+    hls.on(Hls.Events.FRAG_LOADING, (_e, data) => { load.frag = data.frag; });
+    hls.on(Hls.Events.FRAG_LOADED, (_e, data) => {
+      const stats = data.frag && data.frag.stats;
+      load.done += stats ? stats.loaded || 0 : 0;
+      if (load.frag === data.frag) load.frag = null;
+    });
     hls.on(Hls.Events.MANIFEST_LOADED, () => onData());
     hls.on(Hls.Events.ERROR, (_e, data) => {
       const status = Number(data.response && data.response.code);
@@ -591,6 +696,7 @@ export class Playback {
       if (live && (CHANNEL_REFUSED.hls.has(status) || unreached)) { finish(false, `${data.type}/${data.details} ${status}`, { channel: true }); return; }
       if (!data.fatal) return;
       if (data.type === Hls.ErrorTypes.MEDIA_ERROR && recovered < 2) { recovered++; hls.recoverMediaError(); return; }
+      if (serverFault(status) || (!live && providerError(status))) { finish(false, `${data.type}/${data.details} ${status}`, { unavailable: status }); return; }
       finish(false, `${data.type}/${data.details}`);
     });
     hls.on(Hls.Events.MANIFEST_PARSED, () => this.tryPlay());
@@ -768,6 +874,7 @@ export class Playback {
   recover(reason) {
     if (!this.spec || !this.spec.live || this.recovering) return;
     this.recovering = true;
+    this.stopMeter();
     this.stopWatchdog();
     this.detachGuards();
     // The picture stopped before playback had held: the reset of the
@@ -789,11 +896,13 @@ export class Playback {
       return;
     }
     this.reconnects++;
-    this.onState({ status: 'reconnecting', attempt: this.reconnects, max: MAX_RECONNECTS, reason });
     // Backing off lets the server release the previous connection: the
     // account allows only a few at a time, and a request repeated at once
     // is refused.
     const delay = Math.min(RECONNECT_MAX_MS, RECONNECT_STEP_MS * this.reconnects);
+    // The moment of the next attempt goes with the state, for the viewer to
+    // see it counted down.
+    this.onState({ status: 'reconnecting', attempt: this.reconnects, max: MAX_RECONNECTS, reason, at: Date.now() + delay });
     // The wait belongs to this channel: stop() clears it, and should the
     // viewer have switched channel meanwhile, the token says so and the
     // new channel is left alone — a restart on top of its fresh attempt
@@ -899,6 +1008,160 @@ export class Playback {
 
   stopWatchdog() {
     if (this.watchdog) { clearInterval(this.watchdog); this.watchdog = null; }
+  }
+
+  /* ------------------------------------------------------------ lataus */
+
+  /**
+   * What the download has come to, from whichever engine plays: the bytes
+   * read; the step of the start under way when its size is known — what
+   * it is (stage), and from which count of bytes to which (from, need);
+   * the bit rate of what it reads when it knows that; and the seconds of
+   * picture buffered ahead, the one figure the browser's own player gives.
+   *
+   * A start whose whole size is known at once has one step. One that
+   * learns it as it goes — a film's index first, and from the index the
+   * bytes to its first picture — has a step for each, so that the share
+   * shown never goes back as the next size comes to be known.
+   */
+  loadInfo() {
+    const engine = this.engine;
+    let info = { loaded: null, need: null, bitrate: null };
+    if (this.meterPhase === 'probe' && this.probeLoad) info = this.probeLoad;
+    else if (engine && typeof engine.progress === 'function') info = engine.progress();
+    else if (this.libLoad) info = this.libLoad();
+    const video = this.video;
+    const ranges = video.buffered;
+    let ahead = 0;
+    for (let i = 0; i < ranges.length; i++) {
+      if (ranges.start(i) <= video.currentTime + 0.1 && ranges.end(i) > video.currentTime) ahead = ranges.end(i) - video.currentTime;
+    }
+    return { ...info, ahead };
+  }
+
+  /**
+   * The account of a start (from the server's answer to the picture), of
+   * the file header's read before it ('probe'), or of a stall (from the
+   * picture stopping to wait for data to it moving again), told as the
+   * 'buffering' state every METER_MS.
+   */
+  startMeter(token, phase) {
+    if (this.meterPhase === phase) return;
+    this.stopMeter();
+    this.meterPhase = phase;
+    const tick = () => {
+      if (token !== this.token || this.recovering) return this.stopMeter();
+      if (phase === 'stall' && this.stallOver()) {
+        this.stopMeter();
+        this.onState({ status: 'flowing' });
+        return;
+      }
+      this.onState({ status: 'buffering', phase, ...this.measure(phase) });
+    };
+    this.meter = setInterval(tick, METER_MS);
+    tick();
+  }
+
+  stopMeter() {
+    if (this.meter) { clearInterval(this.meter); this.meter = null; }
+    this.meterPhase = null;
+  }
+
+  /**
+   * The figures of one tick. The bytes and their total are a start's: in a
+   * stall the count since the start says nothing. A connection is called
+   * too slow when its speed, measured over long enough, is below the bit
+   * rate of what it carries — or, without a bit rate, when the picture has
+   * stopped for data more than once lately.
+   */
+  measure(phase) {
+    const info = this.loadInfo();
+    const now = Date.now();
+    let speed = null;
+    let measured = 0;
+    // The samples outlive one stall: a live stream that stops every other
+    // second would otherwise never be measured over a whole one. They are
+    // the count of one source, though — the header read's and an engine's
+    // start from nothing each.
+    const source = phase === 'probe' ? 'probe' : this.engine;
+    if (source !== this.sampleSource) { this.samples = []; this.sampleSource = source; }
+    if (info.loaded != null) {
+      this.samples.push([now, info.loaded]);
+      while (this.samples.length > 2 && now - this.samples[1][0] >= SPEED_WINDOW_MS) this.samples.shift();
+      const [from, bytes] = this.samples[0];
+      measured = now - from;
+      if (measured >= 1000) speed = ((info.loaded - bytes) * 1000) / measured;
+    }
+    const bitrate = info.bitrate > 0 ? info.bitrate : null;
+    const slow = bitrate
+      ? speed != null && measured >= SLOW_AFTER_MS && speed * 8 < bitrate
+      : this.recentStalls() >= SLOW_STALLS;
+    const start = phase !== 'stall';
+    // A step under way: its own bytes against its own size.
+    const step = start && info.need > 0 && info.loaded != null && info.need > info.loaded;
+    const from = step ? info.from || 0 : 0;
+    return {
+      loaded: start ? info.loaded - from : null,
+      total: step ? info.need - from : null,
+      stage: step ? info.stage || 'media' : null,
+      speed,
+      bitrate,
+      slow,
+      // The picture buffered ahead says something only where nothing else
+      // does: the browser's own player counts no bytes.
+      ahead: speed == null ? info.ahead : 0,
+    };
+  }
+
+  recentStalls() {
+    const now = Date.now();
+    this.stalls = this.stalls.filter((at) => now - at < STALL_MEMORY_MS);
+    return this.stalls.length;
+  }
+
+  /** Whether a stalled picture has what it needs again, or no longer wants it. */
+  stallOver() {
+    const video = this.video;
+    if (video.ended || video.error) return true;
+    if (video.seeking) return false;
+    return video.paused || video.readyState >= 3;
+  }
+
+  /**
+   * The picture stopping to wait for data once it has played: the element
+   * says so with 'waiting', and a seek outside the buffer with 'seeking'.
+   * A wait shorter than STALL_SHOW_MS is let pass. Returns the undoing.
+   */
+  watchStalls(token) {
+    const video = this.video;
+    let timer = null;
+    const onWait = () => {
+      if (token !== this.token || timer || this.meterPhase) return;
+      const seeking = video.seeking;
+      timer = setTimeout(() => {
+        timer = null;
+        if (token !== this.token || this.recovering || this.meterPhase || this.stallOver()) return;
+        // A seek is the viewer's own doing, not the connection falling
+        // behind, and is not counted against it.
+        if (!seeking && !video.seeking) this.stalls.push(Date.now());
+        this.startMeter(token, 'stall');
+      }, STALL_SHOW_MS);
+    };
+    const onPlaying = () => {
+      if (token !== this.token || this.meterPhase !== 'stall') return;
+      this.stopMeter();
+      this.onState({ status: 'flowing' });
+    };
+    video.addEventListener('waiting', onWait);
+    video.addEventListener('seeking', onWait);
+    video.addEventListener('playing', onPlaying);
+    return () => {
+      clearTimeout(timer);
+      video.removeEventListener('waiting', onWait);
+      video.removeEventListener('seeking', onWait);
+      video.removeEventListener('playing', onPlaying);
+      if (this.meterPhase === 'stall') this.stopMeter();
+    };
   }
 
   /** Technical details to display: resolution, engine, bitrate. */

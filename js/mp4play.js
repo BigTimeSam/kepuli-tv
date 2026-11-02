@@ -75,6 +75,47 @@ export class Mp4Player {
     this.appended = false;
     this.from = null;             // where the running download started, see handleSeek
     this.onSeeking = () => this.handleSeek();
+    // For the player's account of the start-up, see progress().
+    this.received = 0;
+    this.step = null;
+    this.bitrate = null;
+    this.countBytes = (n) => { this.received += n; };
+  }
+
+  /**
+   * What the download has come to: the bytes read; the step of the start
+   * under way, each of a size known to the byte — the index ('index'),
+   * whose box header gives it, then the media up to the samples that
+   * complete the first segment of each track ('media'), which the index
+   * gives; and the film's bit rate, from the index.
+   */
+  progress() {
+    return { loaded: this.received, ...this.step, bitrate: this.bitrate };
+  }
+
+  /** A step of the start: `size` bytes from here, `held` of them already in. */
+  stepOf(stage, size, held = 0) {
+    const from = this.received - held;
+    this.step = { stage, from, need: from + Math.max(0, size) };
+  }
+
+  /**
+   * Where in the file the start's reading ends: at the sample that
+   * completes the first video segment (the keyframe after
+   * MIN_SEGMENT_FRAMES) and the first audio segment, whichever lies later.
+   */
+  startEnd(plan) {
+    const video = this.tracks[0];
+    let v = plan.skip[0] + MIN_SEGMENT_FRAMES;
+    while (v < video.count && video.sync && !video.sync[v]) v++;
+    v = Math.min(v, video.count - 1);
+    let end = video.offset[v] + video.size[v];
+    const audio = this.tracks[1];
+    if (audio && audio.count) {
+      const a = Math.min(plan.skip[1] + AUDIO_SEGMENT_SAMPLES, audio.count - 1);
+      end = Math.max(end, audio.offset[a] + audio.size[a]);
+    }
+    return end;
   }
 
   /** Whether the download is between connections, see Remuxer.recovering. */
@@ -106,15 +147,26 @@ export class Mp4Player {
     }
     this.buildOrder();
     this.video.addEventListener('seeking', this.onSeeking);
+    if (movie.duration > 0) {
+      let bytes = 0;
+      for (const track of this.tracks) for (let i = 0; i < track.count; i++) bytes += track.size[i];
+      this.bitrate = (bytes * 8) / movie.duration;
+    }
 
     if (this.startAt > 1) {
       // The resume point: read from its keyframe, and the picture moved
       // there once something is buffered (see append).
       if (stream) stream.close();
       this.video.currentTime = this.startAt;
-      this.run(this.plan(this.startAt), generation);
+      const plan = this.plan(this.startAt);
+      this.stepOf('media', this.startEnd(plan) - this.offsetAt(plan.pos));
+      this.run(plan, generation);
     } else {
-      this.run({ pos: 0, skip: this.tracks.map(() => 0) }, generation, stream);
+      const plan = { pos: 0, skip: this.tracks.map(() => 0) };
+      const end = this.startEnd(plan);
+      if (stream) this.stepOf('media', end - stream.pos, stream.have);
+      else this.stepOf('media', end - this.offsetAt(0));
+      this.run(plan, generation, stream);
     }
   }
 
@@ -190,6 +242,11 @@ export class Mp4Player {
     for (let i = 0; i < video.count; i++) if (!video.sync || video.sync[i]) keys.push(i);
     this.keyIndex = Uint32Array.from(keys);
     this.keyTime = Float64Array.from(keys, (i) => this.timeOf(video, i));
+  }
+
+  /** Where the sample at a place in the file order lies. */
+  offsetAt(pos) {
+    return this.tracks[this.orderTrack[pos]].offset[this.orderIndex[pos]];
   }
 
   /** A sample's presentation time in seconds. */
@@ -269,7 +326,7 @@ export class Mp4Player {
     }
     // A server that ignores the range sends the file from its start; it is
     // read through to the place, slowly but correctly.
-    const stream = new ByteStream(res.body.getReader(), ctrl, res.status === 206 || from === 0 ? from : 0);
+    const stream = new ByteStream(res.body.getReader(), ctrl, res.status === 206 || from === 0 ? from : 0, this.countBytes);
     if (stream.pos < from && !(await stream.skip(from - stream.pos))) throw Object.assign(new Error('the file ended early'), { connection: true });
     return stream;
   }
@@ -314,8 +371,13 @@ export class Mp4Player {
       if (!(await stream.fill(16))) break;
       const header = boxHeader(stream.peek(16), 0);
       if (!header || header.size < header.header) break;
+      // Not a box at all: the file is not MP4 whatever its name says —
+      // measured, a provider's ".mp4" was MPEG-TS, whose first bytes read
+      // as a 1.2 GB box and sent the index search past the file's end.
+      if (!/^[\x20-\x7e]{4}$/.test(header.type)) break;
       if (header.type === 'moov') {
         if (header.size > MAX_MOOV_BYTES) break;
+        this.stepOf('index', header.size, stream.have);
         const moov = await stream.take(header.size);
         if (!moov) break;
         return { moov, stream };
@@ -340,6 +402,7 @@ export class Mp4Player {
       if (!header || header.size < header.header) break;
       if (header.type === 'moov') {
         if (header.size > MAX_MOOV_BYTES) break;
+        this.stepOf('index', header.size);
         const moov = await this.readRange(at, at + header.size - 1, generation);
         if (moov && moov.length === header.size) return moov;
         break;
@@ -571,10 +634,11 @@ export class Mp4Player {
 
 /** The bytes of a response read in order, from a known place in the file. */
 class ByteStream {
-  constructor(reader, ctrl, pos) {
+  constructor(reader, ctrl, pos, onBytes = () => {}) {
     this.reader = reader;
     this.ctrl = ctrl;
     this.pos = pos;
+    this.onBytes = onBytes;
     this.chunks = [];
     this.have = 0;
     this.done = false;
@@ -585,7 +649,7 @@ class ByteStream {
     while (this.have < n && !this.done) {
       const { done, value } = await within(this.reader.read(), this.ctrl);
       if (done) { this.done = true; break; }
-      if (value && value.byteLength) { this.chunks.push(value); this.have += value.byteLength; }
+      if (value && value.byteLength) { this.chunks.push(value); this.have += value.byteLength; this.onBytes(value.byteLength); }
     }
     return this.have >= n;
   }

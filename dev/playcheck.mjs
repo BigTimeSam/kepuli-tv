@@ -177,10 +177,38 @@
 //   node dev/playcheck.mjs refusedfile a title let through and redirected, then
 //                                     refused by the file server, says so at
 //                                     once, not that the connections are full
+//   node dev/playcheck.mjs badgateway a title answered "502 Bad Gateway" says
+//                                     the error at once, not the connections
+//   node dev/playcheck.mjs livebadgateway the same for a live channel
+//   node dev/playcheck.mjs tsasmp4    a ".mp4" film that is MPEG-TS is played
+//                                     over mpegts.js, without a wait for a
+//                                     connection or a failure between
 //   node dev/playcheck.mjs channelrefused a channel refused with 407 says so
 //                                     at once, not that the account is full
 //   node dev/playcheck.mjs noanswer   a server that never answers is given up
 //                                     within seconds, an episode and a channel
+//   node dev/playcheck.mjs buffering  the wait for the picture is told as it
+//                                     goes: sent slowly, the episode's start
+//                                     shows a share of known bytes that grows,
+//                                     a bar, the bytes and the speed, and past
+//                                     ten seconds the time waited and Cancel;
+//                                     a seek on a connection slower than the
+//                                     film shows the stall over the picture,
+//                                     says the connection is too slow, and
+//                                     leaves once the picture moves
+//   node dev/playcheck.mjs livebuffering a live MPEG-TS channel sent slower
+//                                     than it plays: the start shows the bytes
+//                                     without a share, the
+//                                     picture's stalls show over it with the
+//                                     speed, and the
+//                                     second stall says the connection is not
+//                                     keeping up
+//   node dev/playcheck.mjs filmbuffering the MP4 film sent slowly: in Firefox,
+//                                     which reads it itself, the index and
+//                                     then the samples to the first picture
+//                                     each show a share that never goes
+//                                     back; in Chrome, whose own
+//                                     player says no bytes, no share at all
 //   node dev/playcheck.mjs longfilm   with KEPULI_MOCK_LONG set to a folder of
 //                                     long.mkv/.mp4/.ts (KEPULI_MOCK_EPISODE_EXT
 //                                     picks one), a feature-length file plays
@@ -383,6 +411,160 @@ async function playEpisode(page, index = 0) {
  * format. The duration must stay the file's own and the picture must keep
  * going for KEPULI_LONG_SECS, the download fetched part by part behind it.
  */
+/** What the overlay says of a wait, for the buffering scenario. */
+const WAIT_VIEW = `(() => { const $ = (id) => document.getElementById(id);
+  const shown = (id) => !$(id).hidden;
+  return { overlay: shown('overlay'), stall: $('overlay').classList.contains('stall'),
+    title: $('overlay-title').textContent, load: shown('overlay-load'),
+    bar: shown('overlay-bar') ? parseFloat($('overlay-bar-fill').style.width) : null,
+    figures: shown('overlay-figures') ? $('overlay-figures').textContent : '',
+    slow: shown('overlay-slow') ? $('overlay-slow').textContent : '',
+    elapsed: shown('overlay-elapsed') ? $('overlay-elapsed').textContent : '',
+    actions: [...$('overlay-actions').querySelectorAll('button')].map((b) => b.textContent),
+    t: $('video').currentTime }; })()`;
+
+async function buffering(page) {
+  const problems = [];
+  // Slower than the header takes to read within ten seconds: the share
+  // grows over the 256 kB the unpacker reads first, and the wait outlasts
+  // the moment the time waited and Cancel come in.
+  process.env.KEPULI_MOCK_THROTTLE = String(22 * 1024);
+  await playEpisodeRow(page, 0);
+  const seen = [];
+  const t0 = Date.now();
+  for (;;) {
+    const view = await evaluate(page, WAIT_VIEW);
+    if (await evaluate(page, PLAYING)) break;
+    if (Date.now() - t0 > 40000) throw new Error(`no picture in 40 s; the overlay said "${view.title}"`);
+    seen.push(view);
+    await sleep(250);
+  }
+  if (process.env.KEPULI_TRACE) console.log(seen.map((v) => `${v.title} | ${v.figures} | ${v.elapsed}`).filter((x, i, all) => x !== all[i - 1]).join('\n'));
+  const shares = seen.filter((v) => /^Buffering \d/.test(v.title)).map((v) => parseFloat(v.title.replace(/^Buffering /, '')));
+  if (shares.length < 3) problems.push(`the start showed a share ${shares.length} times`);
+  // The header read before it, on the same slow connection, is told too.
+  const examined = seen.filter((v) => /^Examining the file \d/.test(v.title)).length;
+  if (examined < 3) problems.push(`the header read showed a share ${examined} times`);
+  // A step without figures of its own shows none of the step before.
+  if (seen.some((v) => v.title === 'Connecting…' && v.figures)) problems.push('Connecting showed the figures of the step before');
+  if (shares.some((v, i) => i && v < shares[i - 1])) problems.push(`the share went back: ${shares.join(', ')}`);
+  if (!seen.some((v) => v.bar > 0)) problems.push('no bar');
+  if (!seen.some((v) => / \/ .* · .*\/s$/.test(v.figures))) problems.push(`no bytes against a total with a speed: ${[...new Set(seen.map((v) => v.figures))].slice(-3).join(' | ')}`);
+  if (!seen.some((v) => /^Waited 1\d s$/.test(v.elapsed))) problems.push('no time waited after ten seconds');
+  if (!seen.some((v) => v.actions.includes('Cancel'))) problems.push('no Cancel after ten seconds');
+  if (seen.some((v) => v.stall)) problems.push('the start was shown as a stall');
+  const after = await evaluate(page, WAIT_VIEW);
+  if (after.overlay || after.load) problems.push('the account stayed after the picture started');
+  // A seek far outside the buffer on a connection slower than the film
+  // (its bit rate is some 21 kB/s): the stall shows over the picture,
+  // says the connection is too slow, and goes once the picture moves.
+  process.env.KEPULI_MOCK_THROTTLE = String(10 * 1024);
+  await evaluate(page, `document.getElementById('video').currentTime = 80`);
+  const stalls = [];
+  const t1 = Date.now();
+  for (;;) {
+    const view = await evaluate(page, WAIT_VIEW);
+    if (view.t > 81 && !view.overlay) break;
+    if (Date.now() - t1 > 45000) throw new Error(`the seek did not play on in 45 s; the overlay said "${view.title}" (${view.figures})`);
+    stalls.push(view);
+    await sleep(250);
+  }
+  process.env.KEPULI_MOCK_THROTTLE = '';
+  const stalled = stalls.filter((v) => v.overlay && v.stall);
+  if (!stalled.length) problems.push('the seek showed no stall');
+  if (stalled.some((v) => v.title !== 'Buffering…')) problems.push(`the stall's title: ${[...new Set(stalled.map((v) => v.title))].join(', ')}`);
+  if (stalled.some((v) => v.actions.length)) problems.push('the stall offered buttons');
+  if (!stalled.some((v) => /^The connection is slower than the video needs \(0[.,]\d+ \/ 0[.,]\d+ Mbit\/s\)/.test(v.slow))) {
+    problems.push(`no slow connection said: ${[...new Set(stalled.map((v) => v.slow))].join(' | ')}`);
+  }
+  const last = seen.at(-1) || {};
+  return {
+    ok: !problems.length,
+    detail: problems.length ? problems.join('; ') : `start ${shares[0]}…${shares.at(-1)} % over ${seen.length} looks ("${last.figures}"), ${(stalled.length / 4).toFixed(1)} s stalled ("${stalled.at(-1)?.slow}")`,
+  };
+}
+
+async function livebuffering(page) {
+  const problems = [];
+  process.env.KEPULI_MOCK_LIVE_TS = '1';
+  // A second of the channel comes in two and a half: every second played
+  // is followed by a stall long enough to be shown.
+  process.env.KEPULI_MOCK_TS_PACE = '0.4';
+  try {
+    await openLiveList(page, 2);
+    await evaluate(page, `document.querySelectorAll('#list .row')[0].click()`, { gesture: true });
+    const seen = [];
+    const t0 = Date.now();
+    for (;;) {
+      const view = await evaluate(page, WAIT_VIEW);
+      seen.push({ ...view, at: Date.now() - t0 });
+      if (Date.now() - t0 > 40000) break;
+      if (view.slow && view.stall) break;
+      await sleep(250);
+    }
+    if (process.env.KEPULI_TRACE) console.log(seen.map((v) => `${v.at} ${v.overlay ? '' : '(hidden) '}${v.stall ? 'stall ' : ''}${v.title} | ${v.figures} | ${v.slow}`).filter((x, i, all) => x.replace(/^\d+ /, '') !== all[i - 1]?.replace(/^\d+ /, '')).join('\n'));
+    const start = seen.filter((v) => v.overlay && !v.stall && /^Buffering/.test(v.title));
+    if (start.some((v) => v.bar != null || v.title !== 'Buffering…')) problems.push('the live start showed a share, which it cannot know');
+    // The start is over within a second here, too soon for a speed.
+    if (!start.some((v) => /^\d+ kB( · \d+ kB\/s)?$/.test(v.figures))) problems.push(`the live start showed no bytes: ${[...new Set(start.map((v) => v.figures))].join(' | ')}`);
+    const stalled = seen.filter((v) => v.overlay && v.stall);
+    if (!stalled.length) problems.push('no stall was shown');
+    if (!stalled.some((v) => /\d+ kB\/s/.test(v.figures))) problems.push(`the stall showed no speed: ${[...new Set(stalled.map((v) => v.figures))].join(' | ')}`);
+    if (!stalled.some((v) => v.slow === 'The connection is not keeping up with the video, so playback may pause.')) problems.push(`no slow connection said in 40 s: ${[...new Set(stalled.map((v) => v.slow))].join(' | ')}`);
+    // Between the stalls the picture plays without the overlay. Firefox
+    // waits for more of the stream before it plays on, and at this pace
+    // that is longer than the scenario looks.
+    const between = seen.findIndex((v, i) => i > 0 && !v.overlay && seen.slice(0, i).some((w) => w.stall));
+    if (between < 0 && process.env.KEPULI_BROWSER !== 'firefox') problems.push('the overlay never left between the stalls');
+    return { ok: !problems.length, detail: problems.length ? problems.join('; ') : `start "${start.at(-1)?.figures}", ${stalled.length / 4} s stalled, said "${stalled.at(-1)?.slow}"` };
+  } finally {
+    process.env.KEPULI_MOCK_LIVE_TS = '';
+    process.env.KEPULI_MOCK_TS_PACE = '';
+  }
+}
+
+async function filmbuffering(page) {
+  const firefox = process.env.KEPULI_BROWSER === 'firefox';
+  process.env.KEPULI_MOCK_THROTTLE = String(30 * 1024);
+  try {
+    await evaluate(page, `document.querySelector('#tabs [data-tab="movie"]').click()`);
+    await click(page, '#groups', 'Nordic');
+    await click(page, '#list', 'Northern Lights', { gesture: true });
+    const seen = [];
+    const t0 = Date.now();
+    for (;;) {
+      if (await evaluate(page, PLAYING)) break;
+      if (Date.now() - t0 > 40000) throw new Error('no picture in 40 s');
+      seen.push(await evaluate(page, WAIT_VIEW));
+      await sleep(250);
+    }
+    if (process.env.KEPULI_TRACE) console.log(seen.map((v) => `${v.title} | ${v.figures}`).filter((x, i, all) => x !== all[i - 1]).join('\n'));
+    const shareOf = (label) => seen.filter((v) => v.title.startsWith(`${label} `) && /\d/.test(v.title))
+      .map((v) => parseFloat(v.title.slice(label.length + 1)));
+    const index = shareOf('Reading the file’s index');
+    const shares = shareOf('Buffering');
+    const problems = [];
+    if (firefox) {
+      // Two steps, each of a size known to the byte: the index, then the
+      // samples to the first picture. Neither share may go back.
+      if (index.length < 2) problems.push(`the index read showed a share ${index.length} times`);
+      if (shares.length < 2) problems.push(`the start showed a share ${shares.length} times`);
+      for (const [name, list] of [['index', index], ['start', shares]]) {
+        if (list.some((v, i) => i && v < list[i - 1])) problems.push(`the ${name}'s share went back: ${list.join(', ')}`);
+      }
+      const steps = seen.map((v) => (/^Reading.*\d/.test(v.title) ? 'index' : /^Buffering \d/.test(v.title) ? 'start' : null)).filter(Boolean);
+      if (steps.lastIndexOf('index') > steps.indexOf('start')) problems.push('the index was read after the start');
+    } else if (shares.length || index.length || seen.some((v) => v.bar != null)) {
+      problems.push('the browser\'s own player showed a share it cannot know');
+    }
+    const after = await evaluate(page, WAIT_VIEW);
+    if (after.overlay || after.load) problems.push('the account stayed after the picture started');
+    return { ok: !problems.length, detail: problems.length ? problems.join('; ') : `${seen.length} looks, ${index.length ? `index ${index[0]}…${index.at(-1)} %, ` : ''}${shares.length ? `start ${shares[0]}…${shares.at(-1)} %` : 'no share'}, last "${seen.at(-1)?.title} ${seen.at(-1)?.figures}"` };
+  } finally {
+    process.env.KEPULI_MOCK_THROTTLE = '';
+  }
+}
+
 async function emptyfile(page) {
   process.env.KEPULI_MOCK_EMPTY = '1';
   try {
@@ -395,7 +577,7 @@ async function emptyfile(page) {
     let text = '';
     for (let i = 0; i < 160; i++) {
       text = await evaluate(page, `document.getElementById('overlay').hidden ? '' : document.getElementById('overlay-text').textContent`);
-      if (/provider sent nothing/i.test(text)) break;
+      if (/server sent nothing/i.test(text)) break;
       await sleep(250);
     }
     const secs = ((Date.now() - t0) / 1000).toFixed(1);
@@ -404,10 +586,34 @@ async function emptyfile(page) {
     await sleep(3000);
     const after = await evaluate(page, `document.getElementById('overlay-text').textContent`);
     const buttons = await evaluate(page, `[...document.querySelectorAll('#overlay button')].map((b) => b.textContent.trim()).filter(Boolean).join(' / ')`);
-    const ok = /provider sent nothing/i.test(after) && !/connection|in use/i.test(after) && Number(secs) < 10;
+    const ok = /server sent nothing/i.test(after) && !/connection|in use/i.test(after) && Number(secs) < 10;
     return { ok, detail: `after ${secs} s: "${after}" [${buttons}]` };
   } finally {
     process.env.KEPULI_MOCK_EMPTY = '';
+  }
+}
+
+async function tsasmp4(page) {
+  process.env.KEPULI_MOCK_TS_AS_MP4 = '1';
+  try {
+    await evaluate(page, `document.querySelector('#tabs [data-tab="movie"]').click()`);
+    await click(page, '#groups', 'Nordic');
+    await click(page, '#list', 'Northern Lights', { gesture: true });
+    const titles = new Set();
+    const t0 = Date.now();
+    let playing = false;
+    while (Date.now() - t0 < 30000) {
+      if ((playing = await evaluate(page, PLAYING))) break;
+      titles.add(await evaluate(page, OVERLAY_TITLE));
+      await sleep(250);
+    }
+    const secs = ((Date.now() - t0) / 1000).toFixed(1);
+    // The film is not what its name says: the header is read and the
+    // engine for MPEG-TS started, with no wait for a connection between.
+    const waited = [...titles].some((x) => /waiting for the connection|failed/i.test(x));
+    return { ok: playing && !waited, detail: `${playing ? 'playing' : 'no picture'} after ${secs} s; titles ${[...titles].filter(Boolean).join(' / ') || 'none'}` };
+  } finally {
+    process.env.KEPULI_MOCK_TS_AS_MP4 = '';
   }
 }
 
@@ -423,7 +629,7 @@ async function refusedfile(page) {
     let text = '';
     for (let i = 0; i < 160; i++) {
       text = await evaluate(page, `document.getElementById('overlay').hidden ? '' : document.getElementById('overlay-text').textContent`);
-      if (/file server would not send/i.test(text)) break;
+      if (/answered with error 400/i.test(text)) break;
       await sleep(250);
     }
     const secs = ((Date.now() - t0) / 1000).toFixed(1);
@@ -432,10 +638,38 @@ async function refusedfile(page) {
     await sleep(3000);
     const after = await evaluate(page, `document.getElementById('overlay-text').textContent`);
     const buttons = await evaluate(page, `[...document.querySelectorAll('#overlay button')].map((b) => b.textContent.trim()).filter(Boolean).join(' / ')`);
-    const ok = /file server would not send/i.test(after) && !/connection|in use/i.test(after) && Number(secs) < 10;
+    const ok = /answered with error 400/i.test(after) && !/connection|in use/i.test(after) && Number(secs) < 10;
     return { ok, detail: `after ${secs} s: "${after}" [${buttons}]` };
   } finally {
     process.env.KEPULI_MOCK_REFUSED_FILE = '';
+  }
+}
+
+async function badgateway(page) {
+  process.env.KEPULI_MOCK_BAD_GATEWAY = '1';
+  try {
+    await evaluate(page, `document.querySelector('#tabs [data-tab="series"]').click()`);
+    await click(page, '#groups', 'Nordic Noir');
+    await click(page, '#list', 'Silent Fjord');
+    await waitFor(page, `!document.getElementById('detail').hidden && document.querySelectorAll('#list .row').length > 0`, 'the series page');
+    const t0 = Date.now();
+    await evaluate(page, `document.querySelectorAll('#list .row')[0].click()`, { gesture: true });
+    let text = '';
+    for (let i = 0; i < 160; i++) {
+      text = await evaluate(page, `document.getElementById('overlay').hidden ? '' : document.getElementById('overlay-text').textContent`);
+      if (/answered with error 502/i.test(text)) break;
+      await sleep(250);
+    }
+    const secs = ((Date.now() - t0) / 1000).toFixed(1);
+    // Our own empty read may still be counted at the provider: the account
+    // must not be asked, nor another viewer blamed.
+    await sleep(3000);
+    const after = await evaluate(page, `document.getElementById('overlay-text').textContent`);
+    const buttons = await evaluate(page, `[...document.querySelectorAll('#overlay button')].map((b) => b.textContent.trim()).filter(Boolean).join(' / ')`);
+    const ok = /answered with error 502/i.test(after) && !/connection|in use/i.test(after) && Number(secs) < 10;
+    return { ok, detail: `after ${secs} s: "${after}" [${buttons}]` };
+  } finally {
+    process.env.KEPULI_MOCK_BAD_GATEWAY = '';
   }
 }
 
@@ -473,13 +707,26 @@ const clickFirstEpisode = (page) => async () => {
  * as a real provider answers for one outside the subscription — is said to
  * be so at once, and neither waited on nor blamed on the connections.
  */
+async function livebadgateway(page) {
+  process.env.KEPULI_MOCK_LIVE_BAD_GATEWAY = '1';
+  try {
+    const got = await failureAfterClick(page, clickFirstChannel(page), 20000);
+    await sleep(3000);
+    const after = await evaluate(page, `document.getElementById('overlay-text').textContent`);
+    const ok = /answered with error 502/i.test(after) && !/connection|in use/i.test(after) && got.secs < 5;
+    return { ok, detail: `after ${got.secs.toFixed(1)} s "${got.title}": "${after}"` };
+  } finally {
+    process.env.KEPULI_MOCK_LIVE_BAD_GATEWAY = '';
+  }
+}
+
 async function channelrefused(page) {
   process.env.KEPULI_MOCK_CHANNEL_REFUSED = '1';
   try {
     const got = await failureAfterClick(page, clickFirstChannel(page), 20000);
     await sleep(3000);
     const after = await evaluate(page, `document.getElementById('overlay-text').textContent`);
-    const ok = /would not give this channel/.test(after) && !/connection|in use/i.test(after) && got.secs < 5;
+    const ok = /would not give this channel/i.test(after) && !/connection|in use/i.test(after) && got.secs < 5;
     return { ok, detail: `after ${got.secs.toFixed(1)} s "${got.title}": "${after}"` };
   } finally {
     process.env.KEPULI_MOCK_CHANNEL_REFUSED = '';
@@ -2891,7 +3138,7 @@ async function resettabs(page, { target }) {
   }
 }
 
-const SCENARIOS = { emptyfile, refusedfile, channelrefused, noanswer, longfilm, catalogUi, setupClarity, fullscreenControl, clickpause, pickers, channels, home, resumemkv, restore, programmes, catchup, seek, death, cancel, timeout, search, paste, keys, switching, resume, connections, livezap, livequiet, reconnect, accounts, listerror, a11y, subtitles, audio, settings,
+const SCENARIOS = { buffering, livebuffering, filmbuffering, emptyfile, tsasmp4, refusedfile, badgateway, livebadgateway, channelrefused, noanswer, longfilm, catalogUi, setupClarity, fullscreenControl, clickpause, pickers, channels, home, resumemkv, restore, programmes, catchup, seek, death, cancel, timeout, search, paste, keys, switching, resume, connections, livezap, livequiet, reconnect, accounts, listerror, a11y, subtitles, audio, settings,
   lastchannel, nextepisode, continuewatching, reminders, update, seeklag, cuesretry, quota, catchupfreeze, catchupfull, twotabs, switchstop, resettabs,
   refresh, restorenav, guidekeep };
 // The mock's whole-list answers stall for these, longer than the request limit.

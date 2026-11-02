@@ -86,16 +86,19 @@ function serialize(task) {
 
 /**
  * @param {string} url
- * @param {{signal?: AbortSignal, force?: boolean}} opts
+ * @param {{signal?: AbortSignal, force?: boolean,
+ *          onProgress?: (loaded:number, total:number) => void}} opts
+ *        onProgress is told the bytes of the header read as they come, and
+ *        how many the read is after.
  * @returns {Promise<object>} see describe() — always an object, errors included
  */
-export async function probe(url, { signal, force } = {}) {
+export async function probe(url, { signal, force, onProgress } = {}) {
   const key = cacheKey(url);
   if (!force) {
     const hit = memory.get(key) ?? await cacheGet(key, CACHE_TTL);
     if (hit) { memory.set(key, hit); return hit; }
   }
-  const info = await serialize(() => readHeader(url, signal).then(parse, (err) => ({
+  const info = await serialize(() => readHeader(url, signal, onProgress).then(parse, (err) => ({
     container: 'unknown',
     error: err && err.message ? err.message : String(err),
     ...(err && err.unavailable ? { unavailable: err.unavailable } : {}),
@@ -111,7 +114,7 @@ export async function probe(url, { signal, force } = {}) {
   return info;
 }
 
-async function readHeader(url, signal) {
+async function readHeader(url, signal, onProgress = () => {}) {
   const ctrl = new AbortController();
   const relay = () => ctrl.abort();
   if (signal) {
@@ -133,18 +136,23 @@ async function readHeader(url, signal) {
       throw late ? new Error(t('playback.reason.timeout')) : err;
     }).finally(() => clearTimeout(unanswered));
     if (!res.ok) {
-      const err = new Error(`palvelin vastasi ${res.status}`);
+      const err = new Error(`the server answered ${res.status}`);
       if (refusedByFileServer(res)) err.unavailable = res.status;
       throw err;
     }
     const reader = res.body.getReader();
     const parts = [];
     let total = 0;
+    // A file shorter than the header read says so in the answer's length.
+    const length = Number(res.headers.get('content-length'));
+    const wanted = length > 0 ? Math.min(HEADER_BYTES, length) : HEADER_BYTES;
+    onProgress(0, wanted);
     while (total < HEADER_BYTES) {
       const { done, value } = await reader.read();
       if (done) break;
       parts.push(value);
       total += value.byteLength;
+      onProgress(total, wanted);
     }
     // The connection must be released before returning, or the next request
     // is refused.
@@ -179,7 +187,26 @@ export const emptyAnswer = (bytes) => bytes.length < 16;
  * before any redirect. A refusal after a redirect is the file's, and
  * waiting for a connection would not change it.
  */
-export const refusedByFileServer = (res) => !res.ok && res.redirected;
+export const refusedByFileServer = (res) => !res.ok && (res.redirected || providerError(res.status));
+
+/**
+ * Whether an answer is the provider's server failing rather than the
+ * account being refused. Measured: a film's address answered "502 Bad
+ * Gateway" from the provider's proxy, before any redirect, while the
+ * account had room — the fault was behind the proxy, and the account's
+ * count, read after it, only had our own failed request in it. An account
+ * that is full is refused with a 4xx. 509 is left out: some panels use
+ * "Bandwidth Limit Exceeded" to say the connections are used up.
+ */
+export const serverFault = (status) => status >= 500 && status !== 509;
+
+/**
+ * Whether a status before any redirect is the provider's answer about the
+ * title rather than about the account: a server fault, or a film or
+ * episode it says is not there. Not for a live channel, whose 404 may
+ * still be there as HLS (see CHANNEL_REFUSED in js/playback.js).
+ */
+export const providerError = (status) => serverFault(status) || status === 404 || status === 410;
 
 function parse(bytes) {
   if (emptyAnswer(bytes)) return { container: 'unknown', error: 'empty', empty: true };

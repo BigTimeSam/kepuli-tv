@@ -549,8 +549,12 @@ function livePlaylist() {
  */
 async function sendTimeshift(req, res, { archive = false } = {}) {
   const total = SEGMENTS.reduce((sum, s) => sum + statSync(s.file).size, 0);
-  const bytesPerSecond = total / LOOP_SECONDS * 1.25;
-  const BURST = 2 * 1024 * 1024;
+  // KEPULI_MOCK_TS_PACE, a multiple of real time: below 1 the stream comes
+  // slower than it plays, without the opening burst — a connection that
+  // cannot keep up with the channel, for dev/playcheck.mjs.
+  const pace = Number(process.env.KEPULI_MOCK_TS_PACE || 0);
+  const bytesPerSecond = total / LOOP_SECONDS * (pace > 0 ? pace : 1.25);
+  const BURST = pace > 0 && pace < 1 ? 0 : 2 * 1024 * 1024;
   res.writeHead(200, { ...CORS, 'Content-Type': 'video/mp2t', 'Cache-Control': 'no-store' });
   if (req.method === 'HEAD') return res.end();
   // KEPULI_MOCK_HANG_AT, bytes: the next archive stream stops sending there
@@ -684,6 +688,8 @@ function handle(req, res) {
   // KEPULI_MOCK_CHANNEL_REFUSED: every live channel is refused with 407 at
   // once, before any redirect — what a real provider answers for a channel
   // outside the subscription or off the air.
+  // KEPULI_MOCK_LIVE_BAD_GATEWAY: every live channel is a "502 Bad Gateway".
+  if (process.env.KEPULI_MOCK_LIVE_BAD_GATEWAY && /^\/live\//.test(path)) return send(res, 502, '', 'text/html');
   if (process.env.KEPULI_MOCK_CHANNEL_REFUSED && /^\/live\//.test(path)) return send(res, 407, '', 'text/html; charset=UTF-8');
   // KEPULI_MOCK_NO_ANSWER: a stream or a file is accepted and never
   // answered — no status, no byte — until the player gives up on it.
@@ -711,6 +717,12 @@ function sendMedia(req, res, path, ext) {
     res.writeHead(302, { ...CORS, Location: `/files/refused${path}` });
     return res.end();
   }
+  // KEPULI_MOCK_TS_AS_MP4: every .mp4 film is MPEG-TS under its name, sent
+  // as video/mp4 — what a real provider did with a film, measured.
+  // KEPULI_MOCK_BAD_GATEWAY: every film and episode is a "502 Bad Gateway"
+  // from the provider's proxy, before any redirect — measured on a real one.
+  if (process.env.KEPULI_MOCK_BAD_GATEWAY) return send(res, 502, '', 'text/html');
+  if (process.env.KEPULI_MOCK_TS_AS_MP4 && ext === 'mp4') return sendFile(req, res, 'hls/000.ts', 'video/mp4');
   if (process.env.KEPULI_MOCK_EMPTY) {
     res.writeHead(200, { ...CORS, 'Content-Type': 'text/html; charset=UTF-8', 'Transfer-Encoding': 'chunked' });
     return res.end();

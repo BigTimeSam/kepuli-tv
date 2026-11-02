@@ -9,9 +9,13 @@
 import { t, localeTag } from './i18n.js';
 
 export let nf, timeFmt, dateTimeFmt, dateFmt, dayFmt, weekdayFmt, stampFmt;
+let oneDecimal, twoDecimals, percentFmt;
 
 export function setLocale(tag = localeTag()) {
   nf = new Intl.NumberFormat(tag);
+  oneDecimal = new Intl.NumberFormat(tag, { minimumFractionDigits: 1, maximumFractionDigits: 1 });
+  twoDecimals = new Intl.NumberFormat(tag, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  percentFmt = new Intl.NumberFormat(tag, { style: 'percent', minimumFractionDigits: 1, maximumFractionDigits: 1 });
   timeFmt = new Intl.DateTimeFormat(tag, { hour: '2-digit', minute: '2-digit' });
   dateTimeFmt = new Intl.DateTimeFormat(tag, { dateStyle: 'short', timeStyle: 'short' });
   dateFmt = new Intl.DateTimeFormat(tag, { dateStyle: 'medium' });
@@ -39,6 +43,39 @@ export function calendarDate(value) {
 export function megabytes(bytes) {
   if (bytes < 1024 * 1024) return t('size.kb', { n: Math.round(bytes / 1024) });
   return t('size.mb', { n: (bytes / 1048576).toFixed(1) });
+}
+
+/**
+ * An amount of a download, in the language's own decimals: kilobytes below
+ * a megabyte, megabytes with one decimal above — "17,3 Mt" moves visibly as
+ * a slow download goes on, where whole megabytes would stand still.
+ */
+export function amount(bytes) {
+  if (bytes < 1024 * 1024) return t('size.kb', { n: nf.format(Math.round(bytes / 1024)) });
+  return t('size.mb', { n: oneDecimal.format(bytes / 1048576) });
+}
+
+/** A download speed, bytes a second. */
+export function speed(bytesPerSecond) {
+  return t('size.rate', { amount: amount(bytesPerSecond) });
+}
+
+/** A bit rate as megabits a second, the figure a connection is sold by. */
+export function mbits(bitsPerSecond) {
+  const value = bitsPerSecond / 1e6;
+  // Below a megabit one decimal would round a film's rate and a slower
+  // connection's to the same figure.
+  return value < 1 ? twoDecimals.format(value) : oneDecimal.format(value);
+}
+
+/** A share, 0 to 1, as a percentage with one decimal: "12,3 %". */
+export function percent(share) {
+  return percentFmt.format(share);
+}
+
+/** Seconds with one decimal, for the picture buffered ahead. */
+export function seconds(value) {
+  return oneDecimal.format(value);
 }
 
 export function duration(totalSeconds, { compact = false } = {}) {

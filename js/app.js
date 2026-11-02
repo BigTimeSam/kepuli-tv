@@ -32,7 +32,7 @@ import { pickEncoder } from './transcode.js';
 import * as store from './config.js';
 import { applyTheme, earlyTheme, onSystemTheme } from './theme.js';
 import { wirePickers } from './picker.js';
-import { nf, dateTimeFmt, dateFmt, stampFmt, dayLabel, clock, megabytes, duration, progressOf, setLocale } from './format.js';
+import { nf, dateTimeFmt, dateFmt, stampFmt, dayLabel, clock, megabytes, duration, progressOf, setLocale, amount, speed as speedText, mbits, percent, seconds as secondsText } from './format.js';
 import { t, applyStatic, setLanguage, loadLanguage, localeTag, LANGUAGES } from './i18n.js';
 
 const $ = (id) => document.getElementById(id);
@@ -45,6 +45,8 @@ const el = {
   video: $('video'), videowrap: $('videowrap'), subdisplay: $('subdisplay'),
   overlay: $('overlay'), overlayTitle: $('overlay-title'),
   overlayText: $('overlay-text'), overlayActions: $('overlay-actions'), statbadge: $('statbadge'),
+  overlayLoad: $('overlay-load'), overlayBar: $('overlay-bar'), overlayBarFill: $('overlay-bar-fill'),
+  overlayFigures: $('overlay-figures'), overlaySlow: $('overlay-slow'), overlayElapsed: $('overlay-elapsed'),
   idleHome: $('idle-home'),
   infostrip: $('infostrip'), nowTitle: $('now-title'), nowSub: $('now-sub'), mode: $('mode'),
   subs: $('subs'), audio: $('audio'), cast: $('btn-cast'),
@@ -2459,6 +2461,7 @@ const playback = new Playback(el.video, onPlaybackState);
 
 function onPlaybackState(s) {
   if (s.status === 'playing') {
+    clearLoadView();
     state.playbackInfoLoading = false;
     el.overlay.hidden = true;
     el.overlay.classList.remove('loading');
@@ -2475,14 +2478,25 @@ function onPlaybackState(s) {
     renderInfoStrip();
     el.overlay.hidden = false;
     el.overlay.classList.add('loading');
-    el.overlayTitle.textContent = t('progress.connecting');
-    el.overlayText.textContent = state.playing ? state.playing.displayName || state.playing.n : '';
-    showOverlayActions(null);
+    // A new step: the figures of the one before — the header read, an
+    // engine that gave up — are not this one's.
+    loadView.figures = null;
+    showWait('start', t('progress.connecting'), playingName());
+  } else if (s.status === 'buffering') {
+    renderBuffering(s);
+  } else if (s.status === 'flowing') {
+    // The stalled picture moves again.
+    if (loadView.phase === 'stall') {
+      clearLoadView();
+      el.overlay.hidden = true;
+      el.overlay.classList.remove('loading');
+    }
   } else if (s.status === 'reconnecting') {
+    showOverlayActions(null);
     el.overlay.hidden = false;
     el.overlay.classList.add('loading');
     el.overlayTitle.textContent = t('player.dropped');
-    el.overlayText.textContent = (s.reason ? `${s.reason}, ` : '') + t('player.retrying', { attempt: s.attempt, max: s.max });
+    showCountdown(s);
   } else if (s.status === 'notice') {
     // Playback continues, but the viewer had better know why it will end
     // early.
@@ -2513,10 +2527,10 @@ function onPlaybackState(s) {
     renderInfoStrip();
     el.overlay.hidden = false;
     el.overlay.classList.add('loading');
-    el.overlayTitle.textContent = t('player.probing');
-    el.overlayText.textContent = t('player.probing.text');
-    showOverlayActions(null);
+    loadView.figures = null;
+    showWait('start', t('player.probing'), t('player.probing.text'));
   } else if (s.status === 'blocked') {
+    showOverlayActions(null);
     el.overlay.hidden = false;
     el.overlay.classList.remove('loading');
     el.overlayTitle.textContent = t('player.waiting');
@@ -2526,6 +2540,9 @@ function onPlaybackState(s) {
     // from there rather than from wherever the resume point last was —
     // or, for the archive, from the programme's beginning.
     if (state.playingSpec && s.position > 0) state.playingSpec.reached = s.position;
+    // The download's figures stop with it; while the account is asked
+    // below, only the time waited goes on.
+    if (loadView.phase) { loadView.figures = null; renderLoadView(); }
     // Soon after a stream of ours was let go, a full account may be the
     // server still counting it: the account is asked before any failure
     // is shown, and a release waited for rather than reported.
@@ -2792,8 +2809,148 @@ function showMovedAway() {
   showOverlayActions([{ label: t('player.playhere'), onClick: retryPlayback }]);
 }
 
+/* --------------------------------------------- how the wait is going */
+
+// After this long a wait is counted on screen and a start may be
+// cancelled: the viewer sees it has not stuck, and has a way out of it.
+const WAIT_SHOW_MS = 10000;
+
+// The wait the overlay is telling of: a start (from the first request to
+// the picture, across the engines tried) or a stall mid-playback. Its
+// clock runs once a second for the time waited; the figures come with the
+// player's 'buffering' state.
+const loadView = { phase: null, since: 0, clock: null, cancel: false, figures: null };
+const countdown = { timer: null };
+
+function playingName() {
+  return state.playing ? state.playing.displayName || state.playing.n : '';
+}
+
+/**
+ * A wait begun or carried on: the title and text say its step, and the
+ * time waited is kept from the step that began it.
+ */
+function showWait(phase, title, text) {
+  if (loadView.phase !== phase) {
+    // Any other account the overlay had — and its buttons — goes first.
+    showOverlayActions(null);
+    loadView.phase = phase;
+    loadView.since = Date.now();
+    loadView.cancel = false;
+    loadView.figures = null;
+    loadView.clock = setInterval(renderLoadView, 1000);
+  }
+  el.overlay.classList.toggle('stall', phase === 'stall');
+  el.overlayTitle.textContent = title;
+  el.overlayText.textContent = text;
+  renderLoadView();
+}
+
+function renderBuffering(s) {
+  if (s.phase === 'stall') {
+    el.overlay.hidden = false;
+    el.overlay.classList.add('loading');
+    showWait('stall', t('player.buffering'), t('player.stalled.text'));
+  } else if (s.phase === 'probe') {
+    el.overlay.hidden = false;
+    el.overlay.classList.add('loading');
+    const title = s.total ? t('player.probing.pct', { pct: percent(s.loaded / s.total) }) : t('player.probing');
+    showWait('start', title, t('player.probing.text'));
+  } else {
+    el.overlay.hidden = false;
+    el.overlay.classList.add('loading');
+    const pct = s.total ? percent(s.loaded / s.total) : null;
+    const title = !pct ? t('player.buffering')
+      : s.stage === 'index' ? t('player.index.pct', { pct })
+        : t('player.buffering.pct', { pct });
+    showWait('start', title, playingName());
+  }
+  loadView.figures = s;
+  renderLoadView();
+}
+
+/**
+ * The figures under the title: the bar and the bytes against their total
+ * when the total is known, the download's speed, the picture buffered
+ * ahead when bytes are not counted, a connection too slow for the film,
+ * and — past WAIT_SHOW_MS — the time waited and, for a start, Cancel.
+ */
+function renderLoadView() {
+  if (!loadView.phase) return;
+  const f = loadView.figures;
+  const parts = [];
+  if (f) {
+    if (f.total) parts.push(`${amount(f.loaded)} / ${amount(f.total)}`);
+    else if (f.loaded > 0) parts.push(amount(f.loaded));
+    if (f.speed != null) parts.push(speedText(f.speed));
+    if (f.loaded == null && f.ahead > 0.05) parts.push(t('player.buffered', { seconds: secondsText(f.ahead) }));
+  }
+  el.overlayFigures.textContent = parts.join(' · ');
+  el.overlayFigures.hidden = !parts.length;
+  const share = f && f.total ? Math.min(1, f.loaded / f.total) : null;
+  el.overlayBar.hidden = share == null;
+  if (share != null) {
+    el.overlayBarFill.style.width = `${(share * 100).toFixed(1)}%`;
+    el.overlayBar.setAttribute('aria-valuenow', String(Math.round(share * 100)));
+  }
+  const slow = f && f.slow
+    ? (f.bitrate && f.speed != null
+      ? t('player.slow.rate', { speed: mbits(f.speed * 8), need: mbits(f.bitrate) })
+      : t('player.slow'))
+    : '';
+  el.overlaySlow.textContent = slow;
+  el.overlaySlow.hidden = !slow;
+  const waited = Date.now() - loadView.since;
+  const long = waited >= WAIT_SHOW_MS;
+  el.overlayElapsed.hidden = !long;
+  if (long) el.overlayElapsed.textContent = t('player.waited', { seconds: Math.floor(waited / 1000) });
+  el.overlayLoad.hidden = !parts.length && !slow && !long && share == null;
+  // A stall is left to the player's own controls; a start that has gone
+  // on this long may be given up.
+  if (long && loadView.phase === 'start' && !loadView.cancel) {
+    loadView.cancel = true;
+    addOverlayAction({ label: t('progress.cancel'), onClick: leavePlayback });
+  }
+}
+
+/** The wait is over, whichever way: its account leaves the overlay. */
+function clearLoadView() {
+  if (loadView.clock) clearInterval(loadView.clock);
+  loadView.phase = null;
+  loadView.clock = null;
+  loadView.figures = null;
+  loadView.cancel = false;
+  el.overlayLoad.hidden = true;
+  // Emptied as well as hidden: the overlay's next account reads cleaner
+  // without the last wait's figures left in it.
+  for (const line of [el.overlayFigures, el.overlaySlow, el.overlayElapsed]) line.textContent = '';
+  el.overlay.classList.remove('stall');
+  stopCountdown();
+}
+
+/** The reconnect's wait, counted down to the next attempt. */
+function showCountdown(s) {
+  clearLoadView();
+  const render = () => {
+    const left = Math.ceil(((s.at || 0) - Date.now()) / 1000);
+    const retry = left > 0
+      ? t('player.retrying.in', { seconds: left, attempt: s.attempt, max: s.max })
+      : t('player.retrying', { attempt: s.attempt, max: s.max });
+    el.overlayText.textContent = (s.reason ? `${s.reason}, ` : '') + retry;
+    if (left <= 0) stopCountdown();
+  };
+  render();
+  if (s.at > Date.now()) countdown.timer = setInterval(render, 250);
+}
+
+function stopCountdown() {
+  if (countdown.timer) { clearInterval(countdown.timer); countdown.timer = null; }
+}
+
 function showOverlayActions(actions) {
-  // Whatever the overlay says now, it is no longer the empty player's.
+  // Whatever the overlay says now, it is no longer the empty player's —
+  // nor the account of a wait, which sets its own buttons after this.
+  clearLoadView();
   el.idleHome.hidden = true;
   el.overlayActions.replaceChildren();
   el.overlayActions.hidden = !actions || !actions.length;

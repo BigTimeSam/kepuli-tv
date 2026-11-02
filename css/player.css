@@ -925,6 +925,26 @@ body[data-substyle="contrast"] { --cue-back: #000; }
 }
 @keyframes spin { to { transform: rotate(360deg); } }
 
+/* A start's or a stall's progress. The bar shows only when the bytes the
+   picture waits for are known; the figures are tabular so that a count
+   going up twice a second does not shake the line. */
+.overlay-load { margin-top: 12px; display: grid; gap: 6px; justify-items: center; font-size: 0.8125rem; }
+.overlay-load[hidden], .overlay-load [hidden] { display: none; }
+.overlay-bar { width: min(260px, 70vw); height: 4px; border-radius: 2px; background: var(--track); overflow: hidden; }
+.overlay-bar-fill { height: 100%; width: 0; background: var(--accent); transition: width .45s linear; }
+.overlay-figures, .overlay-elapsed { color: var(--muted); font-variant-numeric: tabular-nums; }
+.overlay-elapsed { color: var(--dim); }
+.overlay-slow { color: var(--warn); max-width: 380px; }
+/* Stopped mid-film, the picture stays in sight around the account, which
+   sits on a card of its own: dimming alone left the words on top of
+   whatever the frozen frame held. Clicks go through to the controls. */
+.overlay.stall { background: rgba(6, 7, 10, .3); pointer-events: none; }
+.overlay.stall .overlay-inner {
+  background: rgba(10, 12, 17, .9); border: 1px solid var(--border);
+  border-radius: 10px; padding: 14px 20px;
+}
+@media (prefers-reduced-motion: reduce) { .overlay-bar-fill { transition: none; } }
+
 .statbadge {
   position: absolute; top: 12px; left: 12px;
   max-width: calc(100% - 80px); overflow-wrap: anywhere;

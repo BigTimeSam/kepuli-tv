@@ -176,6 +176,27 @@ export class Remuxer {
     this.state = { phase: 'alku', pending: 0, lastPts: 0, segments: 0, reading: false, resumes: 0 };
     this.clusterAt = null;        // where the latest cluster sits in the file
     this.resumes = 0;
+    // For the player's account of the start-up, see progress(): the bytes
+    // this unpacker has had from the network, and the step of the start
+    // whose size is known — from which count to which, and what it is.
+    this.received = 0;
+    this.step = null;
+    this.size = 0;                // the whole file's, when the first answer says it
+  }
+
+  /**
+   * What the download has come to: the bytes read; the step of the start
+   * whose size is known — the header's quarter of a megabyte, the seek
+   * table a resume point waits for — and none after it, since the first
+   * segment ends at a keyframe nothing says the place of; and the file's
+   * bit rate when its size and length are known, for telling a connection
+   * too slow for the film.
+   */
+  progress() {
+    const duration = this.header && this.header.duration;
+    let bitrate = this.size && duration ? (this.size * 8) / duration : null;
+    if (!bitrate && this.rate.seconds > 0) bitrate = (this.rate.bytes * 8) / this.rate.seconds;
+    return { loaded: this.received, ...this.step, bitrate };
   }
 
   /* ------------------------------------------------------------ elinkaari */
@@ -350,6 +371,7 @@ export class Remuxer {
       if (done) break;
       parts.push(value);
       total += value.byteLength;
+      this.received += value.byteLength;
     }
     try { ctrl.abort(); } catch { /* the body had already ended */ }
     if (this.connection === ctrl) this.connection = null;
@@ -367,7 +389,16 @@ export class Remuxer {
    * one — the server cut the second after a few seconds.
    */
   async readHeader() {
+    const from = this.received;
+    this.step = { stage: 'media', from, need: from + HEADER_BYTES };
     const { res, ctrl } = await this.openRange(0, null);
+    // Asked from the first byte to the last, the length of the answer is
+    // the length of the file.
+    const length = Number(res.headers.get('content-length'));
+    if (length > 0) {
+      this.size = length;
+      this.step.need = from + Math.min(HEADER_BYTES, length);
+    }
     const reader = res.body.getReader();
     const chunks = [];
     let total = 0;
@@ -376,6 +407,7 @@ export class Remuxer {
       if (done) break;
       chunks.push(value);
       total += value.byteLength;
+      this.received += value.byteLength;
     }
     const bytes = new Uint8Array(total);
     let at = 0;
@@ -824,6 +856,8 @@ export class Remuxer {
     let reader;
     let ctrl;
     const bytes = new BufferedBytes();
+    // Past the header the start's size is not known.
+    this.step = null;
     if (this.stream && this.stream.offset === offset) {
       // The stream that read the header continues from here; the bytes
       // already read are handed to the demuxer again, because it starts
@@ -846,6 +880,7 @@ export class Remuxer {
           await this.waitForRoom(bytes, generation);
           const { done, value } = await within(reader.read(), ctrl);
           if (done) { complete = true; break; }
+          this.received += value.byteLength;
           bytes.push(value);
         }
       } catch (err) {
@@ -1224,6 +1259,12 @@ export class Remuxer {
     const until = Date.now() + CUES_RETRY_MS;
     for (let attempt = 1; ; attempt++) {
       let bytes;
+      // A resume point waits for the table before its picture: the table is
+      // then what the start is waiting for.
+      if (!this.started) {
+        const span = this.size ? Math.max(0, Math.min(CUES_BYTES, this.size - from)) : CUES_BYTES;
+        this.step = { stage: 'index', from: this.received, need: this.received + span };
+      }
       try {
         bytes = await this.readRange(from, from + CUES_BYTES - 1, { pinned: true });
       } catch (err) {
