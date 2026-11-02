@@ -139,6 +139,26 @@ export async function cachePut(key, value) {
 }
 
 /**
+ * Many rows in one transaction: [[key, value], …]. An M3U playlist's
+ * episodes and a guide's programmes are thousands of rows, and a
+ * transaction each would take seconds. Resolves to whether they were kept.
+ */
+export async function cachePutMany(entries) {
+  try {
+    const db = await openDB();
+    const { t, done } = tx(db, ['cache'], 'readwrite');
+    const store = t.objectStore('cache');
+    const at = Date.now();
+    for (const [key, value] of entries) store.put({ value, at }, key);
+    await done;
+    return true;
+  } catch (err) {
+    console.warn('[iptv] cache write failed', entries.length, 'rows', err);
+    return false;
+  }
+}
+
+/**
  * Every key–value pair with the prefix, fresher than maxAgeMs. For warming
  * the cache. Only the prefix's rows are read: reading the whole store to
  * pick them out deserialised every whole list in it on every connect.

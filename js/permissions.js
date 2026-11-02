@@ -64,6 +64,22 @@ export async function requestAccess(url) {
   }
 }
 
+/**
+ * Requests several origins in one dialog — an M3U playlist's and its
+ * programme guide's, which are often on different hosts. Must be called
+ * straight from a user gesture, as requestAccess.
+ */
+export async function requestAccessFor(urls) {
+  const origins = [...new Set(urls.map(originPattern).filter(Boolean))];
+  if (!origins.length) return true;
+  try {
+    return await api.permissions.request({ origins });
+  } catch (err) {
+    console.warn('[iptv] permission request failed', origins, err);
+    return false;
+  }
+}
+
 // Every web address: the widest the optional permissions go.
 const EVERYWHERE = ['http://*/*', 'https://*/*'];
 

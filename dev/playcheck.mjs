@@ -101,10 +101,9 @@
 //                                     with Undo; Hidden gives it back; the
 //                                     countries chosen thin the sidebar
 //   node dev/playcheck.mjs home       the logo goes back to the start: the
-//                                     channels, the top of the list, with
-//                                     what is playing still playing; what is
-//                                     paused makes way for the empty
-//                                     player's page
+//                                     channels, the top of the list and the
+//                                     empty player's page, what was playing
+//                                     stopped and a click away there
 //   node dev/playcheck.mjs resumemkv  an episode started again from where it
 //                                     was left plays on from there
 //   node dev/playcheck.mjs seeklag    a seek on a one-connection account whose
@@ -345,6 +344,8 @@ async function freshPlayer(target, page) {
   if (visibility !== 'visible') throw new Error('the player tab is not visible; raise the dev Chrome window or run headless');
   // The personal lists are kept per account, so every account's copy goes.
   await evaluate(page, `chrome.storage.local.get(null).then((all) => chrome.storage.local.remove(Object.keys(all).filter((k) => /^(favorites|recents|resume|channels|reminders)(:|$)/.test(k))))`);
+  // The accounts and sync of an earlier scenario (m3u, sync) go too.
+  await evaluate(page, `Promise.all([chrome.storage.local.remove(['accounts', 'sync', 'syncState', 'syncStatus']), chrome.storage.sync ? chrome.storage.sync.clear() : null])`);
   await evaluate(page, `chrome.storage.local.set({
     config: { scheme: 'http', host: '127.0.0.1', port: '${MOCK_PORT}', username: 'demo', password: 'demo', sourceMode: 'xtream', streamMode: 'auto' },
     settings: { lang: 'en', epgEnabled: true, resumeEnabled: false, subtitleLang: 'eng' },
@@ -1114,7 +1115,8 @@ async function connections(page, { requests }) {
       return true; })()`);
     const refusedBefore = connectionStats().refused.length;
     await evaluate(page, `document.querySelectorAll('#list .row')[0].click()`, { gesture: true });
-    await waitFor(page, PLAYING, 'the episode after the server let go', 40000);
+    try { await waitFor(page, PLAYING, 'the episode after the server let go', 40000); }
+    catch (err) { throw new Error(`${err.message}: titles ${JSON.stringify(await evaluate(page, 'window.__titles'))}, text "${await evaluate(page, "document.getElementById('overlay-text').textContent")}", refused ${JSON.stringify(connectionStats().refused.slice(refusedBefore))}`); }
     const titles = [...new Set(await evaluate(page, 'window.__titles'))].filter(Boolean);
     const refusedLag = connectionStats().refused.length - refusedBefore;
     if (!titles.includes('Waiting for the connection') || titles.includes('Playback failed') || !refusedLag) {
@@ -1533,7 +1535,9 @@ async function pickers(page) {
 /**
  * The logo is the way back to the start: from a series page with a search
  * in it and the guide open, to the channels, the first country, the top
- * of the list — with what is playing still playing.
+ * of the list, and the empty player's page — what was playing stopped, the
+ * channel first under Watched lately; a film playing stopped too, its place
+ * kept under Continue watching.
  */
 async function home(page) {
   const assert = (ok, detail) => { if (!ok) throw new Error(detail); };
@@ -1549,12 +1553,13 @@ async function home(page) {
   await waitFor(page, `document.querySelector('#tabs [data-tab="live"]').getAttribute('aria-selected') === 'true' && document.getElementById('detail').hidden
     && !document.getElementById('main').classList.contains('guide') && document.getElementById('list').getAttribute('aria-busy') === 'false'`, 'the start');
   const at = await evaluate(page, `({ group: document.querySelector('#groups .group[aria-selected="true"] .group-name')?.textContent, query: document.getElementById('search').value,
-    top: document.getElementById('list').scrollTop, playing: !document.getElementById('video').paused, title: document.getElementById('now-title')?.textContent || '',
-    label: document.getElementById('btn-home').getAttribute('aria-label') })`);
-  assert(at.group && !at.query && at.top === 0 && at.playing && at.title === playing && at.label === 'Kepuli-TV, back to the start', `the start: ${JSON.stringify(at)}`);
+    top: document.getElementById('list').scrollTop, playing: Boolean(document.getElementById('video').currentSrc && !document.getElementById('video').paused), title: document.getElementById('now-title')?.textContent || '',
+    label: document.getElementById('btn-home').getAttribute('aria-label'), idle: !document.getElementById('idle-home').hidden,
+    watched: [...document.querySelectorAll('.idle-channel:not([hidden]) .idle-name')].map((n) => n.textContent) })`);
+  assert(at.group && !at.query && at.top === 0 && !at.playing && !at.title && at.idle && at.watched[0] === playing && at.label === 'Kepuli-TV, to the start page', `the start: ${JSON.stringify(at)}`);
 
-  // Not playing — a film paused halfway — and the logo makes way for the
-  // empty player's page, the film among what is left halfway.
+  // A film playing — not paused — stops as well, its place kept among what
+  // is left halfway.
   await evaluate(page, `chrome.storage.local.get('settings').then((got) => chrome.storage.local.set({ settings: { ...got.settings, resumeEnabled: true } }))`);
   await page.call('Page.reload');
   await waitFor(page, CONNECTED, 'the connection after the reload');
@@ -1564,13 +1569,12 @@ async function home(page) {
   await waitFor(page, PLAYING, 'the film');
   await evaluate(page, `document.getElementById('video').currentTime = 45`);
   await sleep(1500);
-  await evaluate(page, `document.getElementById('video').pause()`);
   await mouseClick(page, '#btn-home');
   await waitFor(page, `!document.getElementById('overlay').hidden && !document.getElementById('idle-home').hidden`, 'the empty player\'s page');
   const idle = await evaluate(page, `({ title: document.getElementById('now-title').textContent, cards: [...document.querySelectorAll('.idle-card:not([hidden]) .idle-name')].map((n) => n.textContent),
     tab: document.querySelector('#tabs [aria-selected="true"]').dataset.tab, src: Boolean(document.getElementById('video').currentSrc && !document.getElementById('video').paused) })`);
   assert(!idle.title && idle.cards.some((c) => /Northern Lights/.test(c)) && idle.tab === 'live' && !idle.src, `the start without playback: ${JSON.stringify(idle)}`);
-  return { ok: true, detail: `from a series page and the guide to the channels of ${at.group}, the top of the list, with ${playing} still playing; a paused film makes way for the empty player's page, the film under Continue watching` };
+  return { ok: true, detail: `from a series page and the guide to the channels of ${at.group}, the top of the list and the empty player's page, ${playing} stopped and first under Watched lately; a playing film stopped, under Continue watching` };
 }
 
 /**
@@ -1951,7 +1955,7 @@ async function settings(page, { requests, target }) {
   await evaluate(page, `document.querySelector('#setup-tabs [data-panel="subs"]').click()`);
   await sleep(300);
   const at = await evaluate(page, `(() => { const r = document.getElementById('f-subsize').getBoundingClientRect(), d = document.querySelector('.setup').getBoundingClientRect();
-    return { x: Math.round(r.left + r.width / 2), y: Math.round(r.top + r.height / 2), outX: Math.round(d.right + 60), outY: Math.round(d.bottom + 40) }; })()`);
+    return { x: Math.round(r.left + r.width / 2), y: Math.round(r.top + r.height / 2), outX: Math.round(Math.min(d.right + 60, innerWidth - 4)), outY: Math.round(Math.min(d.bottom + 40, innerHeight - 4)) }; })()`);
   const mouse = (type, x, y) => page.call('Input.dispatchMouseEvent', { type, x, y, button: 'left', clickCount: 1 });
   await mouse('mousePressed', at.x, at.y);
   await mouse('mouseMoved', at.outX, at.outY);
@@ -2577,8 +2581,12 @@ async function setupClarity(page) {
   const before = await evaluate(page, `chrome.storage.local.get(['config','settings'])`);
   await press('btn-settings');
   await evaluate(page, `document.querySelector('input[name="source"][value="m3u"]').click()`);
+  // Text that is no address says so; an address without credentials is a
+  // playlist of its own, kept as it is, with the guide's field beside it.
+  await change('f-paste', 'example test');
+  assert(await evaluate(page, `!document.getElementById('playlist-status').hidden && !document.getElementById('src-m3u').hidden`), 'text that is no address was accepted');
   await change('f-paste', 'http://example.test:8080/get.php?username=%3Cusername%3E');
-  assert(await evaluate(page, `!document.getElementById('playlist-status').hidden && !document.getElementById('src-m3u').hidden`), 'an address without a password was accepted');
+  assert(await evaluate(page, `document.getElementById('playlist-status').hidden && !document.getElementById('src-m3u').hidden && !document.getElementById('src-epg').hidden`), 'an address without credentials was not taken as a playlist');
   await paste('f-paste', 'http://example.test:8080/get.php?username=%3Cusername%3E&password=%3Cpassword%3E&type=m3u_plus&output=ts');
   const fields = await evaluate(page, `['scheme','host','port','username','password'].map(f=>document.getElementById('f-'+f).value)`);
   assert(JSON.stringify(fields) === JSON.stringify(['http','example.test','8080','<username>','<password>']), 'pasted URL was not decoded into visible fields');
@@ -2612,7 +2620,7 @@ async function setupClarity(page) {
   await press('f-save');
   await waitFor(page, `!document.getElementById('setup').open`, 'saved 250 % subtitles');
   assert(await evaluate(page, `chrome.storage.local.get('settings').then(d=>d.settings.subtitleScale===250 && document.body.style.getPropertyValue('--sub-scale')==='2.5')`), 'preview scaling changed saved or playback size');
-  return {ok:true, detail:'a pasted subscription URL opens the fields it decoded into, without saving; an incomplete one says so; controls above an unclipped 250 % preview at 320–1280px; playback saves 250 %'};
+  return {ok:true, detail:'a pasted subscription URL opens the fields it decoded into, without saving; text that is no address says so, an address without credentials is a playlist with a guide field; controls above an unclipped 250 % preview at 320–1280px; playback saves 250 %'};
 }
 
 
@@ -3145,9 +3153,198 @@ async function resettabs(page, { target }) {
   }
 }
 
+
+/* --------------------------------------------- M3U accounts and sync */
+
+const M3U_ACCOUNT = { type: 'm3u', url: `http://127.0.0.1:${MOCK_PORT}/playlist.m3u`, epgUrl: '', name: 'Demo playlist', id: 'pm3u', sourceMode: 'm3u', streamMode: 'auto' };
+const XTREAM_ACCOUNT = { type: 'xtream', scheme: 'http', host: '127.0.0.1', port: String(MOCK_PORT), username: 'demo', password: 'demo', name: 'Demo server', id: 'pxt', sourceMode: 'xtream', streamMode: 'auto' };
+
+/**
+ * The mock's catalogue as an M3U playlist with its gzipped XMLTV guide: the
+ * channels with their programmes from the guide, a channel playing from its
+ * own address, start-over through the playlist's catch-up (catchup="xc"),
+ * a series of its episodes, and the switch to the Xtream account from the
+ * account menu and back.
+ */
+async function m3u(page, { target, requests }) {
+  const assert = (ok, message) => { if (!ok) throw new Error(message); };
+  await evaluate(page, `chrome.storage.local.set({ config: ${JSON.stringify(M3U_ACCOUNT)}, accounts: ${JSON.stringify([M3U_ACCOUNT, XTREAM_ACCOUNT])}, ui: { tab: 'live' } })`);
+  // Only what the playlist account asks counts: the fresh player before it
+  // connected to the Xtream account.
+  requests.length = 0;
+  await page.call('Page.navigate', { url: bare(target.url) });
+  await sleep(1000);
+  await waitFor(page, CONNECTED, 'the playlist');
+  assert(requests.includes('/playlist.m3u'), 'the playlist was not fetched');
+  assert(!requests.some((r) => r.startsWith('/player_api.php')), 'a playlist account asked the Xtream API');
+  await openLiveList(page, 2);
+  // A programme line under a row: the guide was read and matched.
+  await waitFor(page, `[...document.querySelectorAll('#list .row')].some((r) => /\\d{1,2}[.:]\\d{2}/.test(r.textContent))`, 'a programme from the guide', 20000);
+  assert(requests.includes('/guide.xml.gz'), 'the guide the playlist names was not fetched');
+  await evaluate(page, `(async () => {
+    const names = [...document.querySelectorAll('#list .row-name')];
+    const text = await (await fetch('${M3U_ACCOUNT.url}')).text();
+    const archived = new Set([...text.matchAll(/catchup-days="\\d+",(.+)/g)].map((m) => m[1].trim()));
+    const row = names.find((n) => archived.has(n.title));
+    if (!row) throw new Error('no archived channel in view');
+    row.closest('.row').click();
+  })()`, { gesture: true });
+  await waitFor(page, PLAYING, 'a playlist channel');
+  assert(requests.some((r) => /^\/live\/demo\/demo\/\d+\.m3u8/.test(r)), 'the channel did not play from its playlist address');
+  await evaluate(page, `document.getElementById('btn-guide').click()`);
+  await waitFor(page, `[...document.querySelectorAll('#epgv-actions button')].some(b=>b.textContent==='Start from beginning')`, 'start-over action');
+  await click(page, '#epgv-actions', 'Start from beginning', { gesture: true });
+  await waitFor(page, PLAYING, 'start-over playback');
+  assert(requests.some((r) => /^\/timeshift\/demo\/demo\/\d+\/\d{4}-\d\d-\d\d:\d\d-\d\d\/\d+\.ts$/.test(r)), 'start over did not build the xc archive address');
+  await evaluate(page, `document.querySelector('#epg-back, [data-guide-back], #guide-back')?.click()`);
+  await evaluate(page, `document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }))`);
+  await sleep(500);
+  await evaluate(page, `document.querySelector('#tabs [data-tab="series"]').click()`);
+  await click(page, '#groups', 'Nordic Noir');
+  await click(page, '#list', 'Silent Fjord');
+  await waitFor(page, `!document.getElementById('detail').hidden && document.querySelectorAll('#list .row').length > 5`, 'the episodes');
+  const episodes = await evaluate(page, `document.querySelectorAll('#list .row').length`);
+  // The account menu: shown with two accounts, and a click switches.
+  assert(await evaluate(page, `!document.getElementById('btn-account').hidden && document.getElementById('btn-account-label').textContent === 'Demo playlist'`), 'the account button is not there');
+  await evaluate(page, `document.getElementById('btn-account').click()`, { gesture: true });
+  await evaluate(page, `[...document.querySelectorAll('.row-menu .popitem')].find((b) => b.textContent === 'Demo server').click()`, { gesture: true });
+  await waitFor(page, `document.getElementById('btn-account-label').textContent === 'Demo server' && ${CONNECTED}`, 'the Xtream account');
+  assert(requests.some((r) => r.startsWith('/player_api.php')), 'the switch did not reach the Xtream account');
+  const config = await evaluate(page, `chrome.storage.local.get('config').then((d) => d.config.id)`);
+  assert(config === 'pxt', `the stored account in use is ${config}`);
+  return { ok: true, detail: `playlist and gzipped guide read, programmes in the list, a channel played from its address, start over through catchup="xc", ${episodes} episodes, switched to the Xtream account` };
+}
+
+/**
+ * Sync: turned on in Settings, it writes the accounts, settings and
+ * favourites to storage.sync without the password; a "new computer" — the
+ * local storage emptied, the sync kept — gets them back, takes the account
+ * that can connect, and keeps the password it is told nothing about.
+ */
+async function sync(page, { target }) {
+  const assert = (ok, message) => { if (!ok) throw new Error(message); };
+  if (!(await evaluate(page, `Boolean(chrome.storage.sync)`))) return { ok: true, detail: 'no storage.sync in this browser' };
+  const favKey = `favorites:m3u:${M3U_ACCOUNT.url}`;
+  await evaluate(page, `chrome.storage.local.set({ config: ${JSON.stringify(XTREAM_ACCOUNT)}, accounts: ${JSON.stringify([XTREAM_ACCOUNT, M3U_ACCOUNT])}, ${JSON.stringify(favKey)}: [{ k: 0, id: 'x1', n: 'Synced favourite' }] })`);
+  await page.call('Page.navigate', { url: bare(target.url) });
+  await sleep(1000);
+  await waitFor(page, CONNECTED, 'the connection');
+  await evaluate(page, `document.getElementById('btn-settings').click()`, { gesture: true });
+  await evaluate(page, `document.querySelector('.setup-tabs [data-panel=account]').click()`, { gesture: true });
+  await evaluate(page, `document.getElementById('f-sync').click()`, { gesture: true });
+  await waitFor(page, `chrome.storage.sync.get(null).then((d) => Object.values(d).filter((v) => v && v.n).length >= 3)`, 'the records in storage.sync', 20000);
+  const names = await evaluate(page, `chrome.storage.sync.get(null).then((d) => Object.values(d).filter((v) => v && v.n).map((v) => v.n).sort())`);
+  assert(names.includes('accounts') && names.includes('settings') && names.includes(favKey), `the records synced: ${names.join(', ')}`);
+  await waitFor(page, `/\\d/.test(document.getElementById('sync-status').textContent)`, 'the sync status line');
+  // A new computer. Emptied from a page that is not the player, which
+  // would take the emptying for a reset in another tab and reload.
+  const origin = target.url.match(/^(?:chrome|moz)-extension:\/\/[^/]+/)[0];
+  await page.call('Page.navigate', { url: `${origin}/css/player.css` });
+  await sleep(500);
+  await evaluate(page, `chrome.storage.local.clear().then(() => chrome.storage.local.set({ sync: { enabled: true, passwords: false } }))`);
+  await page.call('Page.navigate', { url: bare(target.url) });
+  await sleep(1000);
+  await waitFor(page, `chrome.storage.local.get('accounts').then((d) => (d.accounts || []).length === 2)`, 'the accounts from sync', 20000);
+  await waitFor(page, CONNECTED, 'the account that can connect', 30000);
+  const after = await evaluate(page, `chrome.storage.local.get(null).then((d) => ({ inUse: d.config && d.config.id, passwords: d.accounts.map((a) => a.password || ''), fav: (d[${JSON.stringify(favKey)}] || []).map((f) => f.n) }))`);
+  assert(after.inUse === 'pm3u', `the new computer uses ${after.inUse}, not the playlist that needs no password`);
+  assert(after.passwords.every((p) => !p), 'a password came through sync');
+  assert(after.fav.includes('Synced favourite'), 'the favourite did not come through');
+  return { ok: true, detail: `synced ${names.length} records without passwords; the new computer took the playlist account and the favourite` };
+}
+
+
+/**
+ * A film with a stretch of zeros in it (KEPULI_MOCK_HOLE), as a provider's
+ * copy of one was measured to have: the reading goes on past it, the
+ * duration stays the file's own rather than the end of the buffer, the
+ * picture jumps the hole, and the viewer is told why once it does.
+ */
+async function holes(page) {
+  const assert = (ok, message) => { if (!ok) throw new Error(message); };
+  await evaluate(page, `(() => { window.__toasts = []; const el = document.getElementById('toast'); setInterval(() => { const t = el.hidden ? '' : el.textContent.trim(); if (t && window.__toasts[window.__toasts.length - 1] !== t) window.__toasts.push(t); }, 100); })()`);
+  await playEpisode(page, 0);
+  try {
+    await waitFor(page, `document.getElementById('video').currentTime > 70`, 'the picture past the hole', 90000);
+  } catch (err) {
+    const v = await evaluate(page, `(() => { const v = document.getElementById('video'); const b = []; for (let i = 0; i < v.buffered.length; i++) b.push(v.buffered.start(i).toFixed(1) + '-' + v.buffered.end(i).toFixed(1)); return { t: v.currentTime, d: v.duration, b: b.join(','), rs: v.readyState, paused: v.paused, ended: v.ended, toasts: window.__toasts }; })()`);
+    throw new Error(`${err.message}: ${JSON.stringify(v)}`);
+  }
+  const st = await evaluate(page, `({ duration: document.getElementById('video').duration, time: document.getElementById('video').currentTime, toasts: window.__toasts })`);
+  assert(st.duration > 110, `the duration is ${st.duration}`);
+  assert(st.toasts.some((m) => /empty parts/.test(m)), `the viewer was not told: ${JSON.stringify(st.toasts)}`);
+  return { ok: true, detail: `duration ${st.duration.toFixed(0)} s kept, at ${st.time.toFixed(0)} s past the hole, told "${st.toasts.find((m) => /empty parts/.test(m))}"` };
+}
+
+
+/**
+ * The picks on the empty player's page (js/picks.js): from the favourite
+ * and recently watched channels' programme data, a programme watched before
+ * first and said so, one on now with its progress, and a click on a later
+ * one setting its reminder.
+ */
+async function picks(page, { target }) {
+  const assert = (ok, message) => { if (!ok) throw new Error(message); };
+  const key = `http://127.0.0.1:${MOCK_PORT}/demo`;
+  const ch = (id, n, epg) => ({ id: String(id), k: 0, n, epgId: epg, logo: `http://127.0.0.1:${MOCK_PORT}/img/logo/${id}.svg` });
+  // What Aurora News 24 shows next, so that it can be "watched before".
+  const next = await evaluate(page, `fetch('http://127.0.0.1:${MOCK_PORT}/player_api.php?username=demo&password=demo&action=get_short_epg&stream_id=1002&limit=3').then((r) => r.json()).then((d) => (d.epg_listings || []).map((p) => decodeURIComponent(escape(atob(p.title)))))`);
+  const later = next.find((title, i) => i > 0);
+  const interests = { [later.toLowerCase().replace(/\s*·\s*episode.*$/, '').replace(/[^\p{L}\p{N}]+/gu, ' ').trim()]: { t: later, n: 2, at: Date.now() - 86400e3 } };
+  await evaluate(page, `chrome.storage.local.set({ ui: { tab: 'live' }, ${JSON.stringify('favorites:' + key)}: [${JSON.stringify(ch(1000, 'Aurora One', 'auroraone.demo'))}], ${JSON.stringify('recents:' + key)}: [${JSON.stringify({ ...ch(1002, 'Aurora News 24', 'auroranews24.demo'), watchedAt: Date.now() - 3600e3 })}], ${JSON.stringify('interests:' + key)}: ${JSON.stringify(interests)} })`);
+  await page.call('Page.navigate', { url: bare(target.url) });
+  await sleep(1000);
+  await waitFor(page, CONNECTED, 'the connection');
+  await evaluate(page, `document.querySelector('dialog[open]')?.close()`);
+  await waitFor(page, `document.querySelectorAll('.idle-pick:not([hidden])').length >= 2`, 'the picks', 20000);
+  const cards = await evaluate(page, `[...document.querySelectorAll('.idle-pick:not([hidden])')].map((c) => ({ text: c.innerText.replace(/\\n/g, ' | '), on: c.classList.contains('on') }))`);
+  assert(cards[0].text.includes(later.replace(/\s*·.*$/, '')) && /Watched before/.test(cards[0].text), `the first pick is not the one watched before: ${JSON.stringify(cards)}`);
+  assert(cards.some((c) => c.on && /On now/.test(c.text)), `no pick on now: ${JSON.stringify(cards)}`);
+  await evaluate(page, `document.querySelector('.idle-pick:not(.on)').click()`, { gesture: true });
+  await waitFor(page, `document.querySelectorAll('.idle-pick.reminded').length === 1`, 'the reminder from a pick');
+  const reminders = await evaluate(page, `chrome.storage.local.get(${JSON.stringify('reminders:' + key)}).then((d) => (Object.values(d)[0] || []).length)`);
+  assert(reminders === 1, `the reminder was not stored: ${reminders}`);
+  return { ok: true, detail: `${cards.length} picks, "${cards[0].text}" first; one on now; a click on a later one set its reminder` };
+}
+
+
+/**
+ * A server that fails only now and then: the film's header was read
+ * earlier and is in the cache, and then the provider's proxy answers 502
+ * (measured on a real provider). The failure must name the 502, found by
+ * asking the server once more — not ask the account, whose count would
+ * hold only our own request, nor blame another viewer.
+ */
+async function flakyserver(page) {
+  const url = await evaluate(page, `fetch('http://127.0.0.1:${MOCK_PORT}/player_api.php?username=demo&password=demo&action=get_vod_streams').then((r) => r.json()).then((list) => {
+    const m = list.find((x) => /^Northern Lights/.test(x.name)); return 'http://127.0.0.1:${MOCK_PORT}/movie/demo/demo/' + m.stream_id + '.' + m.container_extension; })`);
+  // The header read of an earlier visit, kept as the player keeps it.
+  await evaluate(page, `import('./js/probe.js').then((m) => m.probe(${JSON.stringify(url)})).then((info) => info.container)`);
+  process.env.KEPULI_MOCK_BAD_GATEWAY = '1';
+  try {
+    await evaluate(page, `document.querySelector('#tabs [data-tab="movie"]').click()`);
+    await click(page, '#groups', 'Nordic');
+    const t0 = Date.now();
+    await click(page, '#list', 'Northern Lights', { gesture: true });
+    let text = '';
+    for (let i = 0; i < 160; i++) {
+      text = await evaluate(page, `document.getElementById('overlay').hidden ? '' : document.getElementById('overlay-text').textContent`);
+      if (/answered with error 502/i.test(text)) break;
+      await sleep(250);
+    }
+    const secs = ((Date.now() - t0) / 1000).toFixed(1);
+    await sleep(3000);
+    const after = await evaluate(page, `document.getElementById('overlay-text').textContent`);
+    const ok = /answered with error 502/i.test(after) && !/connection|in use|another device/i.test(after);
+    return { ok, detail: `after ${secs} s: "${after}"` };
+  } finally {
+    process.env.KEPULI_MOCK_BAD_GATEWAY = '';
+  }
+}
+
 const SCENARIOS = { buffering, livebuffering, filmbuffering, emptyfile, tsasmp4, refusedfile, badgateway, livebadgateway, channelrefused, noanswer, longfilm, catalogUi, setupClarity, fullscreenControl, clickpause, pickers, channels, home, resumemkv, restore, programmes, catchup, seek, death, cancel, timeout, search, paste, keys, switching, resume, connections, livezap, livequiet, reconnect, accounts, listerror, a11y, subtitles, audio, settings,
   lastchannel, nextepisode, continuewatching, reminders, update, seeklag, cuesretry, quota, catchupfreeze, catchupfull, twotabs, switchstop, resettabs,
-  refresh, restorenav, guidekeep };
+  refresh, restorenav, guidekeep, m3u, sync, holes, picks, flakyserver };
 // The mock's whole-list answers stall for these, longer than the request limit.
 const SLOW_LIST_MS = { cancel: 60000, timeout: 60000 };
 // The media is sent slowly for these: the seek targets must lie outside the
@@ -3169,6 +3366,7 @@ try {
     // before the scenario begins (see KEPULI_MOCK_THROTTLE in the server).
     process.env.KEPULI_MOCK_THROTTLE = THROTTLED.has(name) ? String(THROTTLE) : '';
     process.env.KEPULI_MOCK_SLOW_LIST = String(SLOW_LIST_MS[name] || '');
+    process.env.KEPULI_MOCK_HOLE = name === 'holes' ? '0.35-0.5' : '';
     const server = await startMockServer(MOCK_PORT);
     const requests = [];
     server.on('request', (req) => requests.push(req.url));

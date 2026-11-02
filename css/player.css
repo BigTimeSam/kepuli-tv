@@ -919,6 +919,38 @@ body[data-substyle="contrast"] { --cue-back: #000; }
 .idle-logo { width: 44px; height: 30px; flex: none; border-radius: 4px; }
 .idle-name { font-size: 0.8125rem; font-weight: 550; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .idle-card .row-progress { width: 100%; margin-top: 0; }
+/* The picks (js/picks.js): a programme per card, its channel's logo beside
+   it. One row of them, as many as the window is wide for (fitIdleHome). */
+.idle-picks { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 10px; }
+.idle-pick[hidden] { display: none; }
+.idle-pick {
+  position: relative; display: flex; align-items: flex-start; gap: 10px; min-width: 0; padding: 10px 12px 12px;
+  border: 1px solid var(--border); background: var(--panel); color: var(--text);
+  font: inherit; text-align: left; cursor: pointer; border-radius: 9px; overflow: hidden;
+}
+.idle-pick:hover { background: var(--row-hover); border-color: var(--border-strong); }
+.idle-pick:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.idle-pick-logo { width: 44px; height: 30px; flex: none; border-radius: 4px; margin-top: 2px; }
+.idle-pick-body { display: flex; flex-direction: column; gap: 3px; min-width: 0; }
+.idle-pick-when { display: flex; align-items: center; gap: 5px; font-size: 0.6875rem; font-weight: 600; color: var(--muted); }
+.idle-pick.on .idle-pick-when { color: var(--accent); }
+.idle-pick-title {
+  font-size: 0.875rem; font-weight: 600; line-height: 1.3;
+  display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;
+}
+.idle-pick-where { font-size: 0.71875rem; color: var(--muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.idle-pick .row-progress { position: absolute; left: 0; right: 0; bottom: 0; width: auto; margin: 0; border-radius: 0; }
+/* A bell before a later programme's time: hollow until a reminder is set. */
+.idle-pick-bell {
+  width: 11px; height: 11px; flex: none; background: currentColor;
+  -webkit-mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20' fill='none' stroke='black' stroke-width='1.8' stroke-linejoin='round'%3E%3Cpath d='M5 8a5 5 0 0 1 10 0v4l1.5 2.5h-13L5 12z'/%3E%3Cpath d='M8 16.5a2 2 0 0 0 4 0'/%3E%3C/svg%3E") center / contain no-repeat;
+  mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20' fill='none' stroke='black' stroke-width='1.8' stroke-linejoin='round'%3E%3Cpath d='M5 8a5 5 0 0 1 10 0v4l1.5 2.5h-13L5 12z'/%3E%3Cpath d='M8 16.5a2 2 0 0 0 4 0'/%3E%3C/svg%3E") center / contain no-repeat;
+}
+.idle-pick.reminded .idle-pick-when { color: var(--accent); }
+.idle-pick.reminded .idle-pick-bell {
+  -webkit-mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20' fill='black' stroke='black' stroke-width='1.8' stroke-linejoin='round'%3E%3Cpath d='M5 8a5 5 0 0 1 10 0v4l1.5 2.5h-13L5 12z'/%3E%3Cpath d='M8 16.5a2 2 0 0 0 4 0' fill='none'/%3E%3C/svg%3E");
+  mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20' fill='black' stroke='black' stroke-width='1.8' stroke-linejoin='round'%3E%3Cpath d='M5 8a5 5 0 0 1 10 0v4l1.5 2.5h-13L5 12z'/%3E%3Cpath d='M8 16.5a2 2 0 0 0 4 0' fill='none'/%3E%3C/svg%3E");
+}
 .overlay.loading .overlay-title::after {
   content: ""; display: inline-block; width: 12px; height: 12px; margin-left: 8px;
   border: 2px solid var(--accent); border-right-color: transparent; border-radius: 50%;
@@ -1202,10 +1234,14 @@ dialog::backdrop { background: var(--backdrop); backdrop-filter: blur(2px); }
 .setup-actions .armed { color: #fff; background: var(--danger); border-color: var(--danger); }
 
 /* A stable frame keeps navigation and the shared save action in place. */
-#setup { width: min(642px, calc(100vw - 32px)); max-height: calc(100dvh - 32px); }
+#setup { width: min(760px, calc(100vw - 32px)); max-height: calc(100dvh - 32px); }
 .setup { width: 100%; max-height: calc(100dvh - 34px); padding: 24px; gap: 20px; }
 .setup-head, .setup-tabs, .setup > .setup-actions { flex-shrink: 0; }
-.setup-panel { min-height: 0; height: 320px; overflow-y: auto; padding: 2px; }
+/* As tall as the window allows, up to a point: the connection section
+   holds the accounts above the form, and 320 px showed only the list. The
+   height is still one for every section, so that the rail and Save stay
+   put when the section changes; a short window shrinks it (min-height 0). */
+.setup-panel { min-height: 0; height: clamp(320px, calc(100dvh - 290px), 620px); overflow-y: auto; padding: 2px; }
 #panel-subs { overflow: hidden; }
 .setup-intro { margin: 0 0 2px; color: var(--muted); font-size: 0.8125rem; line-height: 1.5; }
 /* A hint belongs to the field above it, not to the space between fields. */
@@ -1637,3 +1673,44 @@ select:not([multiple]) {
 .picker-option[aria-disabled="true"] { color: var(--dim); cursor: default; }
 .picker-group { padding: 8px 9px 3px; color: var(--muted); font-size: 0.6875rem; font-weight: 600; text-transform: uppercase; letter-spacing: .04em; }
 .picker-empty { margin: 0; padding: 8px 9px; color: var(--muted); }
+
+/* ----------------------------------------------------------- accounts */
+
+/* The header's account button (js/app.js, renderAccountSwitcher): the name
+   of the account in use, cut short rather than pushing the bar about. */
+.account-button { display: inline-flex; align-items: center; gap: 6px; max-width: 220px; }
+.account-button svg { width: 18px; height: 18px; flex: none; fill: none; stroke: currentColor; stroke-width: 1.6; stroke-linecap: round; stroke-linejoin: round; }
+.account-button .account-chevron { width: 14px; height: 14px; opacity: .7; }
+.account-button .button-label { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0; }
+
+/* The account menu's marks: the account in use, and the line above Add. */
+.row-menu .popitem.radio { position: relative; padding-left: 28px; }
+.row-menu .popitem.radio[aria-checked="true"]::before {
+  content: ""; position: absolute; left: 11px; top: 50%; width: 8px; height: 8px;
+  margin-top: -4px; border-radius: 50%; background: var(--accent);
+}
+.row-menu .popitem.separated { margin-top: 5px; border-top: 1px solid var(--border); padding-top: 9px; border-radius: 0 0 6px 6px; }
+
+/* Settings → Connection: the accounts above the form. */
+.accounts { margin-bottom: 14px; }
+.accounts-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 8px; font-weight: 600; font-size: 0.8125rem; }
+.account-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 6px; }
+.account-row { display: flex; align-items: center; gap: 10px; padding: 8px 12px; background: var(--panel-2); border: 1px solid var(--border); border-radius: 10px; }
+.account-row.current { border-color: var(--accent); }
+.account-main { display: flex; flex-direction: column; min-width: 0; margin-right: auto; }
+.account-main b { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.account-main span { color: var(--muted); font-size: 0.71875rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.account-current { color: var(--accent); font-size: 0.75rem; font-weight: 600; white-space: nowrap; }
+.account-row button { flex: none; white-space: nowrap; }
+.account-row button.armed { color: #fff; background: var(--danger); border-color: var(--danger); }
+.adding-account { margin: 0 0 12px; padding: 8px 12px; border-radius: 10px; background: var(--panel-2); border: 1px solid var(--accent); font-size: 0.78125rem; }
+.link-button { border: 0; padding: 0; background: none; color: var(--accent); cursor: pointer; font: inherit; text-decoration: underline; }
+
+/* Settings → Account & data: sync between computers. */
+.sync-box { margin: 4px 0 14px; padding: 12px 14px; background: var(--panel-2); border: 1px solid var(--border); border-radius: 10px; }
+.sync-box h3 { margin: 0 0 8px; font-size: 0.8125rem; font-weight: 600; }
+.sync-box .toggles { margin: 0; }
+.sync-box .field-hint { margin: 6px 0 0; }
+.sync-status { margin: 6px 0 0; font-size: 0.71875rem; color: var(--muted); }
+.sync-status.error { color: var(--danger); }
+.sync-status:empty { display: none; }

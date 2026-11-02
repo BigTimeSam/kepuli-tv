@@ -173,7 +173,7 @@
 
 <main>
 <h1>Kepuli-TV</h1>
-<p class="meta">The README of the Kepuli-TV browser extension, version 1.4.7. <a href="https://github.com/BigTimeSam/kepuli-tv">Source on GitHub</a></p>
+<p class="meta">The README of the Kepuli-TV browser extension, version 1.5.0. <a href="https://github.com/BigTimeSam/kepuli-tv">Source on GitHub</a></p>
 
 <p>A Chrome and Firefox extension (Manifest V3) that plays Xtream Codes IPTV straight in the
 browser. Data is fetched from the <code>player_api.php</code> API lazily: only what you
@@ -270,8 +270,9 @@ switching audio tracks, pausing playback and entering full screen.</p>
 
 <ol>
   <li>Open the player using the Kepuli-TV icon in your browser toolbar.</li>
-  <li>Paste your provider's M3U subscription URL, or enter the server address,
-port, username and password separately. You need your own subscription:
+  <li>Paste your provider's M3U subscription URL or any M3U playlist address, or
+enter the server address, port, username and password separately. You need
+your own subscription:
 the app does not include channels or content. The dialog says as much on a
 first run and links to this section; the caret starts in <strong>Server</strong>, and
 the eye at the end of the password field shows what was typed — a
@@ -279,6 +280,29 @@ provider's password is long, random and entered by hand exactly once.</li>
   <li>Connect to the service. You can change your connection details and the
 interface language later in <strong>Settings</strong>.</li>
 </ol>
+
+<h3 id="several-accounts">Several accounts</h3>
+
+<p><strong>Settings → Connection</strong> lists every account added, the one in use marked.
+<strong>Add account</strong> opens the form for a new one — an Xtream server or an M3U
+playlist, with a name of your choosing ("Home", "Sports") — and saving connects
+to it; the others stay in the list. Once there are two, the top bar carries the
+name of the account in use, and a click on it lists the others: one click
+switches. Each account keeps its own favourites, history, resume points,
+reminders and channel lists, and its own catalogue in the cache, so switching
+back is quick. <strong>Remove</strong> takes an account and its lists away, after asking twice.</p>
+
+<h3 id="sync-between-computers">Sync between computers</h3>
+
+<p><strong>Settings → Account &amp; data → Sync between computers</strong> carries the accounts, the
+settings, and each account's favourites, channel lists, reminders and the newest
+of its history and resume points to every computer signed in to the same browser
+account — Chrome's Google account or Firefox's account — through the browser's
+own sync. Nothing goes to Kepuli-TV. It is off until it is turned on, and
+passwords go only when <strong>Include passwords</strong> is ticked as well: without it, a
+computer receives an Xtream account without its password and asks for it once.
+A computer turning sync on for the first time joins its accounts and favourites
+with the others' rather than replacing them.</p>
 
 <h3 id="where-the-player-opens">Where the player opens</h3>
 
@@ -788,6 +812,12 @@ visible channels and past/upcoming programmes</li>
   <li><strong>Personal channel lists</strong>: hide and reorder live channels and categories</li>
   <li><strong>An empty player</strong> offers what was left halfway, as covers, and the
 channels watched lately, as logos — each a click from playing</li>
+  <li><strong>Coming up for you</strong> on the empty player's page: what is on now and in the
+next hours on the favourite and recently watched channels, a programme
+watched before first, each with the reason it was picked; one on now starts
+with a click, a later one sets its reminder (<code>js/picks.js</code>). What was
+watched is learnt from the programmes watched for five minutes or more, kept
+per account in this browser, and synced with the other lists when sync is on</li>
   <li><strong>Series</strong> by season, with cover art and plots from TMDB</li>
   <li><strong>Movie details</strong>: plot, running time, rating, codec</li>
   <li><strong>MKV plays</strong> without an external player: the container is unpacked on the
@@ -822,6 +852,14 @@ the version running</li>
   <li><strong>Favourites</strong> and <strong>history</strong> as tabs of their own — a whole category can be
 a favourite too, see below</li>
   <li><strong>Thirty languages</strong>, switched in the settings without a page reload</li>
+  <li><strong>M3U playlists and XMLTV guides</strong> as well as Xtream servers: a playlist's
+channels, films and series, its programme guide and catch-up — see
+<a href="#connection-mode">Connection mode</a></li>
+  <li><strong>Several accounts</strong>, switched from the top bar, each with its own lists</li>
+  <li><strong>Sync between computers</strong> through the browser's own sync, off until asked for</li>
+  <li><strong>A one-question form when the extension is removed</strong> (<code>runtime.setUninstallURL</code> in
+<code>background.js</code>): why the viewer left, one click and Submit, on Google Forms. The
+address carries only the version, the browser and the interface language, pre-filled</li>
   <li><strong>Automatic reconnection</strong> when a live stream drops — the death of a source
 is recognised in three ways: the server cuts the connection, the buffer is
 played out, or the picture freezes while the connection stays open. The
@@ -894,7 +932,7 @@ the timeline's scale, <code>Enter</code> starts playback and <code>Esc</code> cl
 
 <h3 id="the-buttons">The buttons</h3>
 
-<p>The top bar starts with the logo, which goes back to the start — the channels, the first country chosen, the top of its list — closing the search, the guide and any page opened from the list, while what is playing goes on. Then the five tabs, each with its mark before its name (the marks step aside between 600 and 1100 px, where they would push the buttons onto a second row), the search box, <strong>Refresh lists</strong> (a
+<p>The top bar starts with the logo, which goes back to the start — the channels, the first country chosen, the top of its list — closing the search, the guide and any page opened from the list, and stops what is playing for the empty player's page: a film's place is kept under <strong>Continue watching</strong> and a channel heads <strong>Watched lately</strong>, each a click from playing again. Then the five tabs, each with its mark before its name (the marks step aside between 600 and 1100 px, where they would push the buttons onto a second row), the search box, <strong>Refresh lists</strong> (a
 circular arrow), <strong>Help</strong> (a question mark), the theme — a sun in the dark
 theme switches to the light one and a moon in the light theme back — and
 <strong>Settings</strong> at the far right. The sun and moon is the quick switch; Settings &gt; Viewing &gt; Appearance also offers <em>Same as the system</em>, which follows the operating system's light or dark mode while the player is open, and a press of the switch then picks the other of what is on screen. Dark is the default. The picture and the bar
@@ -1523,6 +1561,13 @@ player.html         the whole interface on one page
 css/player.css
 js/api.js           player_api.php client, base64 EPG, time zones
 js/xtream.js        building the Xtream URLs, parsing a pasted M3U address
+js/m3u.js           reading M3U playlists, what a row is, catch-up addresses
+js/xmltv.js         reading XMLTV guides as they download
+js/m3usource.js     an M3U playlist as a catalogue, the same questions api.js answers
+js/guide.js         an XMLTV guide kept per channel, matched to a playlist's channels
+js/fetchtext.js     a long text download read in pieces, gunzipped when it is gzip
+js/sync.js          sync between computers through the browser's storage.sync
+js/picks.js         the picks on the empty player's page, and what the viewer watches
 js/library.js       the lazy data layer: grouping, cache, search
 js/epg.js           programme data on a queue, 4 concurrent requests
 js/epggrid.js       the guide grid, virtualised in both directions
@@ -1575,7 +1620,8 @@ dev/site.mjs        renders README.md into docs/index.html, the Pages front page
 dev/logos.mjs       regenerates js/logoindex.js from the tv-logos repository
 dev/screenshot.mjs  a 1280x800 store screenshot of the player, over the DevTools protocol
 dev/store-screenshots.mjs  the five store screenshots, from the mock server's content
-dev/mock/           a fake Xtream Codes server with invented content, and its media;
+dev/mock/           a fake Xtream Codes server with invented content, and its media —
+                    the same as an M3U playlist and XMLTV guide too (/playlist.m3u, /guide.xml.gz);
                     local development, screenshots and review fixtures only
 firefox/            the Firefox version: its manifest, the build that assembles
                     firefox/dist/ from the shared source, and its development loop
@@ -1590,7 +1636,9 @@ vendor/ffaudio/     FFmpeg 7.1.1's ac3, eac3 and dca decoders as wasm</code></pr
 <h2 id="things-worth-knowing">Things worth knowing</h2>
 
 <ul>
-  <li>Credentials are stored in the clear in <code>chrome.storage.local</code> on this machine.
+  <li>Credentials are stored in the clear in <code>chrome.storage.local</code> on this machine,
+and in the browser's sync storage only when sync and <strong>Include passwords</strong> are
+both turned on.
 In Xtream the credentials are also part of every stream URL.</li>
   <li><strong>Settings → Reset everything</strong> removes it all: credentials, settings,
 favourites, history, resume points and the entire IndexedDB database. The
@@ -1697,15 +1745,111 @@ and Escape in it closes the list and leaves the dialog open.</p>
 <h2 id="connection-mode">Connection mode</h2>
 
 <p>The settings offer <strong>Enter fields (Xtream Codes)</strong> and <strong>Paste subscription URL
-(M3U)</strong>. The latter accepts the complete HTTP or HTTPS <code>get.php</code> address supplied
-by the provider, including its query parameters. Protocol, server, port, username
-and password are extracted automatically, including URL-encoded characters.
-A pasted address then hands the dialog over to <strong>Enter fields (Xtream Codes)</strong>
-with the values in place, which both shows what was understood and leaves it
-open to correction; only an address that cannot be read says so instead.
+(M3U)</strong>. The latter takes two kinds of address.</p>
+
+<p><strong>An Xtream subscription's address</strong> — the HTTP or HTTPS <code>get.php</code> address with
+<code>username</code> and <code>password</code> in it — is read into the fields: protocol, server,
+port, username and password, URL-encoded characters included. The dialog then
+hands over to <strong>Enter fields (Xtream Codes)</strong> with the values in place, which
+both shows what was understood and leaves it open to correction. Such an account
+is used through the Xtream API, one list at a time, rather than as the playlist
+the same address would also give.</p>
+
+<p><strong>Any other address is an M3U playlist</strong>, kept as it is, with an optional
+<strong>Programme guide address (XMLTV)</strong> for a playlist that does not name its own.
 Pasting does not save or connect; <strong>Save</strong> (or <strong>Connect</strong> on first use) does
-that. The choice changes only the form:
-both use the same Xtream API, rather than downloading a generic M3U playlist.</p>
+that, and asks the browser for access to the playlist's host and the guide's in
+one prompt.</p>
+
+<h3 id="m3u-playlists">M3U playlists</h3>
+
+<p><code>js/m3u.js</code> reads the extended M3U that providers' panels and IPTV players
+write, the format having no specification of its own beyond what VLC, Kodi's
+IPTV Simple Client and TiviMate agree on:</p>
+
+<ul>
+  <li>the header's guide addresses as <code>url-tvg</code>, <code>x-tvg-url</code> or <code>tvg-url</code>, several
+with commas between them, and its <code>catchup</code>, <code>catchup-days</code>, <code>catchup-source</code></li>
+  <li><code>#EXTINF</code> attributes in any case (<code>tvg-ID</code>), quoted with <code>"</code> or <code>'</code> or bare,
+and a title that holds commas — the title is what follows the first comma
+outside quotes</li>
+  <li><code>#EXTGRP</code> for a group when there is no <code>group-title</code>, <code>#EXTVLCOPT</code>
+user agent and referrer kept with the entry, addresses relative to the
+playlist's own, a byte order mark, <code>\r\n</code> line ends, and plain M3U with no
+<code>#EXTINF</code> at all</li>
+  <li>headings in the list ("===== Sweden =====") left out</li>
+</ul>
+
+<p>The playlist is read as it downloads, a piece at a time, so a provider's 78 MB
+list of 286,000 lines (measured) is never one string; it takes about three
+seconds to download and read in Chrome, and is then kept in the cache for twelve
+hours (<code>js/m3usource.js</code>). What a row is comes from its address — a panel's
+<code>/movie/</code> and <code>/series/</code>, or a film's file type — and an episode is gathered
+under its series by its name, "Show S01 E02" or "Show 1x02". The category is
+<code>group-title</code>, so "Sweden - News" splits into a group and a topic as an Xtream
+category does. An item's id is a hash of its name and group rather than of its
+address: a provider that puts a token in its addresses changes them daily, and
+favourites and resume points must still find the item. Each series' episodes
+are a row of the cache of their own, so twelve thousand series are not held in
+memory to show one.</p>
+
+<h3 id="xmltv-guides">XMLTV guides</h3>
+
+<p><code>js/xmltv.js</code> reads the guide as it downloads too: only <code>&lt;channel&gt;</code> and
+<code>&lt;programme&gt;</code> elements, found by their tags, with times as <code>YYYYMMDDhhmmss</code>
+and an offset (<code>+0100</code>, <code>+01:00</code>, or none for UTC), titles in the reader's
+language where there are several, entities, numeric references and CDATA. A
+gzip file is recognised by its first two bytes, since <code>guide.xml.gz</code> usually
+arrives without a <code>Content-Encoding</code> (<code>js/fetchtext.js</code>). The provider's 24 MB
+guide, 79,000 programmes, reads in about a quarter of a second. Each channel's
+programmes are a row of the cache, kept twelve hours (<code>js/guide.js</code>); a playlist
+channel finds its guide channel by <code>tvg-id</code>, in any case, or by its name
+against the guide's display names with country prefixes and HD, FHD and the like
+folded away, and <code>tvg-shift</code> moves its times.</p>
+
+<h3 id="catch-up-from-a-playlist">Catch-up from a playlist</h3>
+
+<p>A channel with <code>catchup</code> and <code>catchup-days</code> (its own or the header's) has an
+archive, and the address of a past programme is built the way its mode says
+(<code>catchupAddress</code> in <code>js/m3u.js</code>):</p>
+
+<div class="table-scroll">
+<table>
+  <thead><tr><th>Mode</th><th>The address</th></tr></thead>
+  <tbody>
+    <tr><td><code>default</code></td><td><code>catchup-source</code> with <code>{utc}</code>, <code>${start}</code>, <code>{utcend}</code>, <code>{duration}</code>, <code>{lutc}</code>, <code>{offset}</code>, <code>{Y}</code>…<code>{S}</code> and <code>{utc:Y-m-d}</code> filled in</td></tr>
+    <tr><td><code>append</code></td><td>the same template after the channel's own address</td></tr>
+    <tr><td><code>shift</code></td><td>the channel's address with <code>utc=</code> and <code>lutc=</code> added</td></tr>
+    <tr><td><code>flussonic</code></td><td><code>…/index-&lt;start&gt;-&lt;duration&gt;.m3u8</code>, or <code>…/timeshift_abs-&lt;start&gt;.ts</code></td></tr>
+    <tr><td><code>xc</code></td><td>an Xtream panel's <code>/timeshift/&lt;user&gt;/&lt;pass&gt;/&lt;minutes&gt;/&lt;date&gt;/&lt;id&gt;.ts</code></td></tr>
+  </tbody>
+</table>
+</div>
+
+<h3 id="accounts">Accounts</h3>
+
+<p>Every account is a whole configuration with an id of its own, in the
+<code>accounts</code> list of <code>storage.local</code>; <code>config</code> is the one in use. A version from
+before there was a list has only <code>config</code>, which becomes the first account the
+first time the list is read. The lists of an account — favourites, history,
+resume points, reminders, channels — were already kept by the account's key
+(<code>accountKey</code> in <code>js/config.js</code>: the server and user for Xtream, the address
+for a playlist), and so is the catalogue cache, which is why a switch no longer
+clears the cache: the account left keeps its catalogue for the switch back, and
+expired rows go by themselves.</p>
+
+<h3 id="sync">Sync</h3>
+
+<p><code>js/sync.js</code> uses <code>storage.sync</code>, which is small and rationed: 100 kB in all, 8
+kB a row, 120 writes a minute. Each record — the accounts, the settings, one list
+of one account — is JSON, deflated and base64'd into rows of 7,000 characters,
+with a row of its own naming it, its time and its hash; history goes up as its
+newest 25 and resume points as their newest 100. Writes wait three seconds and
+go together, the history and resume points a minute. Only one open player tab
+syncs: the one holding a Web Lock. The later write of a record wins, except that
+history and resume points are joined entry by entry, and a computer's first sync
+joins its accounts and favourites with the others'. <strong>Reset everything</strong> clears
+the extension's sync storage too.</p>
 
 <h2 id="brand-graphics">Brand graphics</h2>
 

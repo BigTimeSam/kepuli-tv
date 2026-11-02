@@ -1,4 +1,8 @@
 import { XtreamApi, ApiError } from './api.js';
+import { M3uSource } from './m3usource.js';
+import { playlistAddress } from './m3u.js';
+import { Sync, loadSyncInfo, syncAvailable } from './sync.js';
+import { pickProgrammes, programmeKey } from './picks.js';
 import { Library, sortItems, cacheTtl as libraryCacheTtl } from './library.js';
 import { Epg } from './epg.js';
 import { Playback } from './playback.js';
@@ -21,7 +25,7 @@ import { cacheClear, cachePurge, wipeStorage, storageEstimate } from './db.js';
 import { parsePlaylistUrl, streamUrl, timeshiftUrl, baseUrl, parseServer } from './xtream.js';
 import { formatRoute, parseRoute } from './route.js';
 import { api } from './browser.js';
-import { requestAccess, hasAccess, hasAccessEverywhere, requestAccessEverywhere, redirects } from './permissions.js';
+import { requestAccess, requestAccessFor, hasAccess, hasAccessEverywhere, requestAccessEverywhere, redirects } from './permissions.js';
 import { externalLabel, handOff } from './external.js';
 import { Cast, supported as castSupported } from './cast.js';
 import { warmCache, peek, badge as probeBadge, subtitleSummary, audioDetails, probeCacheTtl } from './probe.js';
@@ -122,6 +126,8 @@ const state = {
   playbackInfoLoading: false,
   subtitleInfo: null,     // what the file being played holds, once the player has looked: { tracks, bitmap }
   favorites: new Map(), recents: [], resume: new Map(),
+  accounts: [],           // every account added, see loadAccounts() in js/config.js
+  interests: {},          // the programmes watched, by title, for the picks (js/picks.js)
   channelPrefs: channelPreferences(),
   lastGroup: {}, lastKind: {},
   subcatsHeight: null,    // the topic bar's height when dragged, null = automatic
@@ -164,13 +170,17 @@ async function connect({ silent = false } = {}) {
   if (connecting && progressCtrl) { progressCtrl.abort(); hideProgress(); }
   const config = state.config;
   try {
-    if (!config.host || !config.username || !config.password) { connecting = false; openSetup(); return false; }
+    if (!store.isConfigured(config)) { connecting = false; openSetup(); return false; }
     connecting = true;
-    const source = new XtreamApi(config);
+    const playlist = config.type === 'm3u';
+    // A playlist is the whole catalogue in one file, read once and kept
+    // (js/m3usource.js); an Xtream server is asked one list at a time.
+    const source = playlist ? new M3uSource(config, `${store.accountKey(config)}|`) : new XtreamApi(config);
     state.source = source;
     dropConnectedView();
 
-    if (!silent) showProgress(t('progress.connecting'), config.host);
+    if (!silent) showProgress(t(playlist ? 'progress.playlist' : 'progress.connecting'), store.accountLabel(config));
+    if (playlist && !silent) source.onProgress = (received, total) => { if (!stale()) updateProgress(received, total); };
     const account = await source.account({ signal: progressSignal() });
     if (stale()) return false;
     state.account = account;
@@ -207,6 +217,7 @@ async function connect({ silent = false } = {}) {
     if (problem) toast(problem, { long: true, kind: 'warn' });
     if (!state.playing && !el.overlay.hidden) renderIdleOverlay();
     askCountriesOnce();
+    if (playlist) warmGuide(source);
     return true;
   } catch (err) {
     if (stale()) return false;
@@ -218,6 +229,35 @@ async function connect({ silent = false } = {}) {
     if (isAbort(err)) showCancelled(); else showConnectionError(err);
     return false;
   }
+}
+
+/**
+ * A playlist's guide, read now rather than when the first row asks for it.
+ * The guide a playlist names in its header was not known when access was
+ * asked for at Save, and its host may be another one: a guide that cannot
+ * be read for want of access offers the access, which is all it needs.
+ */
+async function warmGuide(source) {
+  const guide = source.guide;
+  if (!guide?.available || !state.settings.epgEnabled) return;
+  if (await guide.ready().catch(() => false)) return;
+  if (state.source !== source) return;
+  const url = guide.urls.find(Boolean);
+  if (!url || await hasAccess(url)) return;
+  let host = url;
+  try { host = new URL(url).host; } catch { /* the address as it is */ }
+  toast(t('m3u.guide.access', { host }), {
+    long: true,
+    action: {
+      label: t('error.grant', { origin: host }),
+      onClick: async () => {
+        if (!(await requestAccess(url))) { toast(t('error.grant.denied'), { kind: 'error' }); return; }
+        if (state.source !== source || !(await guide.ready({ force: true }).catch(() => false))) return;
+        state.epg?.clear();
+        refreshRows({ keepScroll: true });
+      },
+    },
+  });
 }
 
 /**
@@ -312,9 +352,8 @@ function showConnectionError(err) {
     { label: t('btn.settings'), onClick: openSetup },
   ];
   showOverlayActions(actions);
-  if (state.config.host) {
-    offerAccess(baseUrl(state.config), actions, () => connect());
-  }
+  const address = state.config.type === 'm3u' ? state.config.url : state.config.host ? baseUrl(state.config) : null;
+  if (address) offerAccess(address, actions, () => connect());
   console.error('[iptv] yhteysvirhe', err);
 }
 
@@ -379,6 +418,7 @@ async function loadLists() {
   state.recents = await store.loadRecents();
   state.resume = await store.loadResume();
   state.channelPrefs = await store.loadChannelPreferences();
+  state.interests = await store.loadInterests();
   await loadReminders();
 }
 
@@ -393,6 +433,7 @@ async function adoptAccount(config) {
   store.useAccount(config);
   lastChannel = previousChannel = null;
   await loadLists();
+  renderAccountSwitcher();
 }
 
 const same = (a, b) => JSON.stringify(a) === JSON.stringify(b);
@@ -430,6 +471,8 @@ function showStoredList(name, value) {
     if (same((value || []).filter((r) => r.stop > Date.now()), [...reminders.values()])) return;
     showReminders(value);
     if (guideOpen) grid.invalidate();
+  } else if (name === 'interests') {
+    state.interests = value || {};
   } else if (name === 'channels') {
     const prefs = channelPreferences(value);
     if (same(prefs, state.channelPrefs)) return;
@@ -451,7 +494,7 @@ function accountChangedElsewhere(config) {
     followAccount();
     return;
   }
-  toast(t('account.elsewhere', { host: config.host }), {
+  toast(t('account.elsewhere', { host: store.accountLabel(config) }), {
     long: true, action: { label: t('account.elsewhere.follow'), onClick: followAccount },
   });
 }
@@ -2178,6 +2221,7 @@ function probeFor(item) {
 }
 
 function onEpgUpdated(ids) {
+  if (pickIds.size && ids.some((id) => pickIds.has(String(id)))) refreshIdleSoon();
   for (const id of ids) {
     const index = state.rowIndex.get(`0:${id}`);
     if (index != null) vlist.refreshRow(index);
@@ -2279,8 +2323,10 @@ async function updateStoredItem(item, patch) {
 
 /** Only the fields the list needs for painting are kept. */
 function stripItem(item) {
-  const { id, k, n, logo, ext, season, episode, archive, epgId, direct, cats, durationSec, seriesCover, seriesName, seriesId, displayName, rating, ratingScale } = item;
-  return { id, k, n, logo, ext, season, episode, archive, epgId, direct, cats, durationSec, seriesCover, seriesName, seriesId, displayName, rating, ratingScale };
+  // cu, tvgName and shift are a playlist channel's (js/m3usource.js): its
+  // archive's address and what its guide is found by.
+  const { id, k, n, logo, ext, season, episode, archive, epgId, direct, cats, durationSec, seriesCover, seriesName, seriesId, displayName, rating, ratingScale, cu, tvgName, shift } = item;
+  return { id, k, n, logo, ext, season, episode, archive, epgId, direct, cats, durationSec, seriesCover, seriesName, seriesId, displayName, rating, ratingScale, cu, tvgName, shift };
 }
 
 /* ================================================================ series */
@@ -2501,7 +2547,7 @@ function onPlaybackState(s) {
   } else if (s.status === 'notice') {
     // Playback continues, but the viewer had better know why it will end
     // early.
-    toast(s.message, { kind: 'warn' });
+    toast(s.message, { kind: 'warn', long: true });
   } else if (s.status === 'subtitles') {
     // The same list comes with every change of track; the details are
     // repainted for a new list only.
@@ -2549,7 +2595,7 @@ function onPlaybackState(s) {
     // is shown, and a release waited for rather than reported.
     // An answer with nothing in it (s.content) is the provider having no
     // file for the title: neither a wait nor the account would change it.
-    if (!s.checked && !s.content && state.playingSpec && !state.playingSpec.awaitedRelease && playback.followedRelease) {
+    if (!s.checked && !s.content && !s.reachable && state.playingSpec && !state.playingSpec.awaitedRelease && playback.followedRelease) {
       checkBeforeFailing(s);
       return;
     }
@@ -2578,7 +2624,9 @@ function onPlaybackState(s) {
       });
     }
     showOverlayActions(actions);
-    if (s.content) return;
+    // The server let a request for the file through just now (reachable):
+    // the account had room, and its count would only hold our own request.
+    if (s.content || s.reachable) return;
     // Why it failed, when the account can say: a subscription that has run
     // out, or every connection already in use.
     explainFailure(s.message);
@@ -3259,17 +3307,18 @@ function leavePlayback() {
  * The logo: back to the start. The channels, the first country chosen (or
  * the one the channels were last on, when none is), its first topic and
  * the top of its list; the search, the filters, the guide and any page
- * opened from the list are cleared. What is playing goes on — this is a
- * way back, not a stop. What is not playing — paused, ended, failed, or
- * nothing at all — makes way for the empty player's page, with what was
- * left halfway and the channels watched last.
+ * opened from the list are cleared — and what is playing stops, for the
+ * empty player's page: the picks, what was left halfway and the channels
+ * watched last. A home button that left the film running led nowhere the
+ * eye could see, the start page showing only when nothing plays. Nothing
+ * is lost by it: a film's place is kept and heads Continue watching, a
+ * channel is the first of Watched lately, each a click from playing again,
+ * and the account's one connection is let go at once.
  */
 async function goHome() {
   if (guideOpen) closeGuide();
   playerLayout.showBrowse();
-  const playing = state.playing && !el.video.paused && !el.video.ended;
-  const loading = state.playing && el.overlay.classList.contains('loading') && !el.overlay.hidden;
-  if (!playing && !loading) leavePlayback();
+  if (state.playing) leavePlayback();
   mediaFilters.resetAll();
   state.categoryFilter = '';
   el.categoryFilter.value = '';
@@ -3978,7 +4027,12 @@ function playCatchup(item, programme, { from = 0 } = {}) {
   const length = programme.stop - programme.start;
   const skip = Math.max(0, Math.min(Math.floor(from / 60) * 60000, length - 60000));
   const minutes = Math.max(1, Math.ceil((length - skip) / 60000));
-  const url = timeshiftUrl(state.config, item.id, programme.start + skip, minutes, state.account.serverUtcOffsetMs || 0, state.account.serverZone);
+  // A playlist's channel says itself how its archive is addressed
+  // (catchupAddress in js/m3u.js); an Xtream server has one way for all.
+  const url = state.source?.catchupUrl
+    ? state.source.catchupUrl(item, programme.start + skip, minutes)
+    : timeshiftUrl(state.config, item.id, programme.start + skip, minutes, state.account.serverUtcOffsetMs || 0, state.account.serverZone);
+  if (!url) { toast(t('guide.norecording'), { kind: 'warn' }); return; }
   cancelAutoNext();
   state.playing = item;
   updatePlayerLayout();
@@ -4206,7 +4260,7 @@ function hideProgress() {
 const FIELDS = ['scheme', 'host', 'port', 'username', 'password'];
 
 /** Whether there is anything to connect with yet. */
-const configured = () => Boolean(state.config.host && state.config.username && state.config.password);
+const configured = () => store.isConfigured(state.config);
 
 /**
  * The settings, or — before there are any credentials — the one thing
@@ -4217,9 +4271,15 @@ const configured = () => Boolean(state.config.host && state.config.username && s
  * Every open reads a fresh draft from saved values. Tab changes retain
  * it; Save commits it and Cancel discards it.
  */
-function openSetup({ section } = {}) {
-  for (const f of FIELDS) $(`f-${f}`).value = state.config[f] ?? '';
-  $('f-paste').value = '';
+function openSetup({ section, adding = false } = {}) {
+  // Adding an account is the connection form for a blank one; the account
+  // in use stays connected until the new one is saved.
+  setupAdding = adding;
+  setupBase = adding ? store.blankConfig() : state.config;
+  for (const f of FIELDS) $(`f-${f}`).value = setupBase[f] ?? '';
+  $('f-name').value = setupBase.name || '';
+  $('f-paste').value = setupBase.type === 'm3u' ? setupBase.url || '' : '';
+  $('f-epgurl').value = setupBase.epgUrl || '';
   showPlaylistError(false);
   renderLanguageOptions();
   $('f-lang').value = state.settings.lang in LANGUAGES ? state.settings.lang : 'auto';
@@ -4238,14 +4298,16 @@ function openSetup({ section } = {}) {
   $('setup-error').hidden = true;
   $('setup-discard').hidden = true;
   document.querySelector('.setup-maintenance').open = false;
-  showSourceMode(state.config.sourceMode);
+  showSourceMode(setupBase.type === 'm3u' ? 'm3u' : setupBase.sourceMode);
   renderAccountBox();
   const first = !configured();
-  el.setup.classList.toggle('firstrun', first);
-  el.setupTabs.hidden = first;
-  $('setup-title').textContent = t(first ? 'setup.title.connect' : 'setup.title');
+  el.setup.classList.toggle('firstrun', first || adding);
+  el.setupTabs.hidden = first || adding;
+  $('setup-title').textContent = t(first ? 'setup.title.connect' : adding ? 'accounts.add.title' : 'setup.title');
   // The first run is the one moment the dialog has to say what it is for.
   $('connection-intro').textContent = t(first ? 'setup.first.intro' : 'setup.connection.intro');
+  $('adding-account').hidden = !adding || first;
+  renderAccountList();
   showPassword(false);
   showSetupSection(first ? 'connection' : (section || 'connection'));
   if (!el.setup.open) el.setup.showModal();
@@ -4254,6 +4316,10 @@ function openSetup({ section } = {}) {
 
 // Every open starts with the connection; edits survive tab changes only.
 let setupSection = 'connection';
+// Whether the form is for a new account, and the configuration it edits:
+// the one in use, or a blank one.
+let setupAdding = false;
+let setupBase = null;
 let setupInitial = null;
 let setupSaving = false;
 
@@ -4278,9 +4344,41 @@ function setupSettingsPatch() {
   return Object.fromEntries(Object.entries(readSetupSettings()).filter(([key, value]) => value !== setupInitial?.[key]));
 }
 
+/**
+ * The connection as the form has it: an Xtream server from the fields, or
+ * — in the M3U form, with an address that is not an Xtream subscription —
+ * a playlist. An Xtream subscription's address is read into the fields, as
+ * it always was: its server answers one list at a time, which a playlist
+ * of the same account cannot.
+ */
+function readConnection() {
+  const name = $('f-name').value.trim();
+  const pasted = $('f-paste').value.trim();
+  if (sourceMode() === 'm3u' && pasted && !parsePlaylistUrl(pasted)) {
+    return { type: 'm3u', url: playlistAddress(pasted) || pasted, epgUrl: $('f-epgurl').value.trim(), name, sourceMode: 'm3u' };
+  }
+  return { type: 'xtream', ...readSetup(), name, sourceMode: sourceMode() };
+}
+
+/** The keys that say where the connection goes, for the form's kind. */
+const connectionKeys = (c) => ['type', ...(c.type === 'm3u' ? ['url', 'epgUrl'] : FIELDS)];
+
+/** Whether the form points somewhere else than the configuration it edits. */
+function connectionTargetChanged() {
+  const c = readConnection();
+  const base = setupBase || state.config;
+  return connectionKeys(c).some((key) => String(c[key] ?? '') !== String((key === 'type' ? base.type || 'xtream' : base[key]) ?? ''));
+}
+
 function setupConnectionChanged() {
-  return FIELDS.some((key) => $(`f-${key}`).value.trim() !== String(state.config[key] ?? ''))
-    || sourceMode() !== state.config.sourceMode || Boolean($('f-paste').value.trim());
+  const base = setupBase || state.config;
+  if (setupAdding) {
+    const c = readConnection();
+    return Boolean(c.name || (c.type === 'm3u' ? c.url : c.host || c.username || c.password) || $('f-paste').value.trim());
+  }
+  return connectionTargetChanged() || $('f-name').value.trim() !== (base.name || '')
+    || sourceMode() !== (base.type === 'm3u' ? 'm3u' : base.sourceMode)
+    || (base.type !== 'm3u' && Boolean($('f-paste').value.trim()));
 }
 
 function setupDirty() {
@@ -4290,10 +4388,9 @@ function setupDirty() {
 function updateSetupActions() {
   const dirty = setupDirty();
   const first = !configured();
-  const connection = readSetup();
-  const reconnect = FIELDS.some((key) => connection[key] !== state.config[key]);
+  const reconnect = setupAdding || connectionTargetChanged();
   $('f-save').disabled = setupSaving || (!first && !dirty);
-  $('f-save').textContent = t(setupSaving ? 'setup.saving' : first ? 'setup.connect' : 'setup.save');
+  $('f-save').textContent = t(setupSaving ? 'setup.saving' : first || setupAdding ? 'setup.connect' : 'setup.save');
   // Account & data holds the only two controls in the dialog that act at
   // once, so the line under them must not promise that nothing does.
   el.setupNoteText.textContent = t(dirty ? (reconnect && !first ? 'setup.reconnect' : 'setup.pending')
@@ -4371,7 +4468,9 @@ function focusSetupSection() {
   // panel the first control is the protocol, which almost nobody changes,
   // and starting there put the caret one Tab away from the server address
   // every single time.
-  const field = [...panel.querySelectorAll('input:not([type="radio"])')].find(shown)
+  // The account's name is optional and comes first only to sit above
+  // the fields it names; the caret goes to the first one that matters.
+  const field = [...panel.querySelectorAll('input:not([type="radio"]):not(#f-name)')].find(shown)
     ?? [...panel.querySelectorAll('select')].find(shown);
   if (field) field.focus();
 }
@@ -4401,21 +4500,205 @@ function showSourceMode(mode) {
   }
   $('src-xtream').hidden = m3u;
   $('src-m3u').hidden = !m3u;
+  showGuideField();
+}
+
+/** The guide's address belongs to a playlist, not to an Xtream subscription's address. */
+function showGuideField() {
+  const pasted = $('f-paste').value.trim();
+  $('src-epg').hidden = sourceMode() !== 'm3u' || !pasted || Boolean(parsePlaylistUrl(pasted));
 }
 
 /** The M3U field says only what is wrong; what is right, it shows. */
 function showPlaylistError(bad) {
   $('playlist-status').textContent = bad ? t('setup.m3u.bad') : '';
+  showGuideField();
   $('playlist-status').hidden = !bad;
   $('f-paste').setAttribute('aria-invalid', String(bad));
 }
 
 const sourceMode = () => (document.querySelector('input[name="source"]:checked') || {}).value || 'xtream';
 
+/* ------------------------------------------------------------ accounts */
+
+/** What kind of account, and where: "Xtream Codes · example.tv". */
+function accountWhere(a) {
+  if (a.type === 'm3u') {
+    let host = a.url;
+    try { host = new URL(a.url).hostname; } catch { /* the address as it is */ }
+    return `${t('accounts.kind.m3u')} · ${host}`;
+  }
+  return `${t('accounts.kind.xtream')} · ${a.host}`;
+}
+
+/**
+ * The accounts in Settings, each with what can be done with it: the one in
+ * use is marked, the others can be switched to or removed. Removing asks
+ * twice, like Reset everything, since an account's favourites and history
+ * go with it.
+ */
+function renderAccountList() {
+  const box = $('accounts');
+  const list = $('account-list');
+  const accounts = state.accounts || [];
+  box.hidden = setupAdding || !configured() || !accounts.length;
+  list.replaceChildren();
+  if (box.hidden) return;
+  for (const a of accounts) {
+    const li = document.createElement('li');
+    li.className = 'account-row';
+    const main = document.createElement('div');
+    main.className = 'account-main';
+    const name = document.createElement('b');
+    name.textContent = store.accountLabel(a);
+    const where = document.createElement('span');
+    where.textContent = accountWhere(a);
+    main.append(name, where);
+    li.append(main);
+    if (a.id === state.config.id) {
+      li.classList.add('current');
+      const badge = document.createElement('span');
+      badge.className = 'account-current';
+      badge.textContent = t('accounts.current');
+      li.append(badge);
+    } else {
+      const use = document.createElement('button');
+      use.type = 'button';
+      use.className = 'ghost';
+      use.textContent = t('accounts.use');
+      use.addEventListener('click', () => {
+        if (setupDirty()) { setupError('setup.maintenance.pending'); return; }
+        switchAccount(a.id);
+      });
+      const remove = document.createElement('button');
+      remove.type = 'button';
+      remove.className = 'ghost danger';
+      remove.textContent = t('accounts.remove');
+      let armed = null;
+      remove.addEventListener('click', async () => {
+        if (!armed) {
+          remove.textContent = t('accounts.remove.confirm');
+          remove.classList.add('armed');
+          armed = setTimeout(() => { armed = null; remove.textContent = t('accounts.remove'); remove.classList.remove('armed'); }, 4000);
+          return;
+        }
+        clearTimeout(armed);
+        state.accounts = await store.removeAccount(a.id);
+        toast(t('accounts.removed', { name: store.accountLabel(a) }));
+        renderAccountList();
+        renderAccountSwitcher();
+      });
+      li.append(use, remove);
+    }
+    list.append(li);
+  }
+}
+
+/** The header's account button: there once there is more than one account. */
+function renderAccountSwitcher() {
+  const button = $('btn-account');
+  const accounts = state.accounts || [];
+  button.hidden = accounts.length < 2 || !configured();
+  $('btn-account-label').textContent = store.accountLabel(state.config);
+}
+
+function openAccountMenu() {
+  const button = $('btn-account');
+  const items = (state.accounts || []).map((a) => ({
+    label: store.accountLabel(a),
+    checked: a.id === state.config.id,
+    onClick: () => switchAccount(a.id),
+  }));
+  items.push({ label: t('accounts.add'), separator: true, onClick: () => openSetup({ adding: true }) });
+  items.push({ label: t('accounts.manage'), onClick: () => openSetup() });
+  openRowMenu(button, items, { label: t('accounts.switch'), returnFocus: button });
+}
+
+/**
+ * Another account of the list in use: what is playing stops, the lists
+ * are the other account's, and the catalogue is its own — from the cache
+ * when it was opened lately, since each account's is kept apart.
+ */
+async function switchAccount(id) {
+  const target = (state.accounts || []).find((a) => a.id === id);
+  if (!target || target.id === state.config.id) return;
+  if (el.setup.open) el.setup.close();
+  const config = await store.switchConfig(target);
+  await adoptAccount(config);
+  el.mode.value = state.config.streamMode || 'auto';
+  renderAccountSwitcher();
+  toast(t('accounts.switched', { name: store.accountLabel(config) }));
+  await connect();
+}
+
+/* ---------------------------------------------------------------- sync */
+
+const sync = new Sync({ onStatus: () => renderSyncBox() });
+
+/** The sync section of Account & data: the two switches, and how it went. */
+async function renderSyncBox() {
+  const box = $('sync-box');
+  box.hidden = !syncAvailable();
+  if (box.hidden) return;
+  const { prefs, status } = await loadSyncInfo();
+  $('f-sync').checked = prefs.enabled;
+  $('f-sync-passwords').checked = prefs.passwords;
+  $('f-sync-passwords').disabled = !prefs.enabled;
+  const line = $('sync-status');
+  line.classList.toggle('error', Boolean(prefs.enabled && status.error));
+  line.textContent = !prefs.enabled ? ''
+    : status.error ? t(status.error === 'quota' ? 'sync.status.quota' : 'sync.status.error', { message: status.error })
+    : status.at ? t('sync.status.at', { time: dateTimeFmt.format(new Date(status.at)) })
+    : t('sync.status.waiting');
+}
+
+/**
+ * Settings that arrived from another computer (js/sync.js) or another tab,
+ * applied where they show: the theme, the language, the subtitles.
+ */
+async function showStoredSettings(next) {
+  if (!next || resetting) return;
+  const before = state.settings;
+  const settings = await store.loadSettings();
+  if (same(settings, before)) return;
+  state.settings = settings;
+  if (settings.theme !== before.theme) renderTheme();
+  if (settings.lang !== before.lang || settings.clock !== before.clock) await applyLanguage(store.interfaceLanguage(settings));
+  applySubtitleLook(settings);
+  renderStatBadge();
+  if (state.epg) state.epg.enabled = settings.epgEnabled;
+}
+
+/**
+ * A computer that has no account of its own yet takes one that came from
+ * sync: the first that can connect as it is, or — when every one is an
+ * Xtream account that came without its password — the first, in the form,
+ * waiting for the password.
+ */
+async function adoptSyncedAccount(accounts) {
+  if (configured() || !accounts.length || resetting) return false;
+  if (el.setup.open && setupDirty()) return false;
+  // Only what sync brought: without sync, a list with no account in use is
+  // a reset in another tab half-way done, not an account to take.
+  if (!(await loadSyncInfo()).prefs.enabled) return false;
+  const ready = accounts.find((a) => store.isConfigured(a));
+  const config = await store.switchConfig(ready || accounts[0]);
+  await adoptAccount(config);
+  if (!ready) {
+    openSetup();
+    toast(t('sync.password.needed', { name: store.accountLabel(config) }), { long: true });
+    return true;
+  }
+  if (el.setup.open) el.setup.close();
+  await connect();
+  return true;
+}
+
 async function renderAccountBox() {
   const box = $('account-box');
   const a = state.account;
   renderVersion();
+  renderSyncBox();
   // A section that is simply empty tells the viewer nothing about why.
   $('account-none').hidden = Boolean(a);
   if (!a) { box.hidden = true; return; }
@@ -4424,13 +4707,22 @@ async function renderAccountBox() {
   box.innerHTML = '';
   const head = document.createElement('div');
   const status = document.createElement('b');
-  status.textContent = a.status + (a.trial ? t('account.trial') : '');
+  status.textContent = a.kind === 'm3u' ? t('accounts.kind.m3u') : a.status + (a.trial ? t('account.trial') : '');
   head.append(`${t('account.title')} `, status);
   box.appendChild(head);
   const cols = document.createElement('div');
   cols.className = 'cols';
   const loaded = ['live', 'movie', 'series'].filter((type) => state.lib && state.lib.isFull(type));
-  const rows = [
+  // A playlist has no subscription to describe: what it holds, where its
+  // guide comes from and when it was read are what there is to say.
+  const rows = a.kind === 'm3u' ? [
+    [t('account.channels'), nf.format(a.counts.live)],
+    [t('account.movies'), nf.format(a.counts.movie)],
+    [t('account.series'), nf.format(a.counts.series)],
+    [t('account.guide'), a.guide.length ? a.guide.map((url) => { try { return new URL(url).hostname; } catch { return url; } }).join(', ') : t('account.none')],
+    [t('account.read'), a.loadedAt ? dateTimeFmt.format(new Date(a.loadedAt)) : '–'],
+    [t('account.cache'), estimate ? megabytes(estimate.usage || 0) : '–'],
+  ] : [
     [t('account.connections.label'), a.maxConnections ? `${a.activeConnections} / ${a.maxConnections}` : '–'],
     [t('account.valid.label'), a.expiresAt ? dateFmt.format(new Date(a.expiresAt)) : '–'],
     [t('account.formats'), a.outputFormats.join(', ') || '–'],
@@ -4491,6 +4783,9 @@ async function resetEverything() {
   resetting = true;
   playback.stop();
   await api.storage.local.clear();
+  // What sync put in the browser's account goes too: "everything" is
+  // everything the player stored, here or carried elsewhere.
+  await api.storage.sync?.clear().catch(() => {});
   await wipeStorage();
   location.reload();
 }
@@ -4585,7 +4880,9 @@ function wireSetup() {
   // dialog goes there rather than reporting the fill and offering a button.
   $('f-paste').addEventListener('input', (e) => {
     const parsed = parsePlaylistUrl(e.target.value);
-    showPlaylistError(Boolean(e.target.value.trim()) && !parsed);
+    // An address with no credentials in it is a playlist of its own, kept
+    // as it is; only text that is no address at all is wrong.
+    showPlaylistError(Boolean(e.target.value.trim()) && !parsed && !playlistAddress(e.target.value));
     if (!parsed) return;
     for (const f of FIELDS) if (parsed[f] != null) $(`f-${f}`).value = parsed[f];
     // An address that arrived whole has been said in full. One being typed
@@ -4597,6 +4894,21 @@ function wireSetup() {
     $('f-host').focus();
   });
   $('f-host').addEventListener('change', splitServerField);
+  $('f-add-account').addEventListener('click', () => {
+    if (setupDirty()) { setupError('setup.maintenance.pending'); return; }
+    openSetup({ adding: true });
+  });
+  $('f-add-cancel').addEventListener('click', () => openSetup());
+  $('btn-account').addEventListener('click', openAccountMenu);
+  // Sync is a choice about this browser and acts at once (see player.html).
+  $('f-sync').addEventListener('change', async (e) => {
+    await sync.setPrefs({ enabled: e.target.checked });
+    renderSyncBox();
+  });
+  $('f-sync-passwords').addEventListener('change', async (e) => {
+    await sync.setPrefs({ passwords: e.target.checked });
+    renderSyncBox();
+  });
   $('f-password-show').addEventListener('click', () => showPassword($('f-password').type === 'password'));
   wireModal(el.setup, closeSetup);
   $('f-done').addEventListener('click', () => { if (!setupSaving) el.setup.close(); });
@@ -4624,19 +4936,26 @@ function wireSetup() {
   });
   el.setup.querySelector('form').addEventListener('submit', async (event) => {
     event.preventDefault();
-    if (setupSaving || (configured() && !setupDirty())) return;
-    const connectionEdited = setupConnectionChanged() || !configured();
-    // An existing M3U account can save other preferences without pasting
-    // its address again. Any newly entered address must be complete.
-    if (sourceMode() === 'm3u' && (connectionEdited || $('f-paste').value.trim())) {
-      const parsed = parsePlaylistUrl($('f-paste').value);
-      if (!parsed) { setupError('setup.m3u.bad', 'f-paste'); return; }
-      for (const f of FIELDS) if (parsed[f] != null) $(`f-${f}`).value = parsed[f];
+    if (setupSaving || (configured() && !setupAdding && !setupDirty())) return;
+    const connectionEdited = setupConnectionChanged() || !configured() || setupAdding;
+    // An Xtream account entered as its address can save other preferences
+    // without pasting the address again. Any newly entered address must be
+    // complete: an Xtream subscription's is read into the fields, any other
+    // is a playlist.
+    const pasted = $('f-paste').value.trim();
+    if (sourceMode() === 'm3u' && (connectionEdited || pasted)) {
+      const parsed = parsePlaylistUrl(pasted);
+      if (parsed) {
+        for (const f of FIELDS) if (parsed[f] != null) $(`f-${f}`).value = parsed[f];
+      } else if (!playlistAddress(pasted)) { setupError('setup.m3u.bad', 'f-paste'); return; }
+      const guide = $('f-epgurl').value.trim();
+      if (!parsed && guide && !playlistAddress(guide)) { setupError('setup.epgurl.bad', 'f-epgurl'); return; }
     }
-    const patch = { ...readSetup(), sourceMode: sourceMode() };
-    const changed = FIELDS.some((key) => patch[key] !== state.config[key]);
-    if (connectionEdited && (!patch.host || !patch.username || !patch.password)) {
-      setupError('setup.incomplete', !patch.host ? 'f-host' : !patch.username ? 'f-username' : 'f-password');
+    const patch = readConnection();
+    const changed = setupAdding || connectionTargetChanged();
+    if (connectionEdited && !store.isConfigured(patch)) {
+      if (patch.type === 'm3u') setupError('setup.m3u.bad', 'f-paste');
+      else setupError('setup.incomplete', !patch.host ? 'f-host' : !patch.username ? 'f-username' : 'f-password');
       return;
     }
     const settingsPatch = setupSettingsPatch();
@@ -4649,12 +4968,20 @@ function wireSetup() {
     try {
       // Permission must be requested before the first await, while the
       // submit still carries the user's gesture. Denial leaves the draft.
-      if (changed && !(await requestAccess(baseUrl(patch)))) {
+      // A playlist and its guide are often on different hosts: one dialog
+      // asks for both.
+      const granted = !changed || (patch.type === 'm3u'
+        ? await requestAccessFor([patch.url, patch.epgUrl].filter(Boolean))
+        : await requestAccess(baseUrl(patch)));
+      if (!granted) {
         setupError('setup.nogrant');
         return;
       }
       const previous = state.config;
-      const next = await store.saveSetup(connectionEdited ? patch : null, settingsPatch);
+      // A new account is a whole configuration of its own, with an id of
+      // its own; the one in use keeps its id and is changed in place.
+      const configPatch = setupAdding ? { ...store.blankConfig(), ...patch } : connectionEdited ? patch : null;
+      const next = await store.saveSetup(configPatch, settingsPatch, { replace: setupAdding });
       saved = true;
       // Another account: what is playing stops before anything else of
       // the new one is in place, so that no retry, wait or history entry
@@ -4676,9 +5003,11 @@ function wireSetup() {
         if ('showInternational' in settingsPatch) renderSidebar();
         await refreshRows({ keepScroll: true });
       }
+      state.accounts = await store.loadAccounts();
+      renderAccountSwitcher();
       if (changed) {
         await connect();
-        if (moved) offerLists(previous, state.config);
+        if (moved && !setupAdding) offerLists(previous, state.config);
       } else {
         toast(t('setup.saved'));
       }
@@ -5362,10 +5691,140 @@ async function applyLanguage(lang) {
 
 /** The player's idle state: either a welcome or a prompt to pick a channel. */
 function renderIdleOverlay() {
-  const welcome = !state.config.host;
+  const welcome = !configured();
   el.overlayTitle.textContent = welcome ? t('setup.welcome') : t('player.idle');
   const home = welcome ? false : renderIdleHome();
-  el.overlayText.textContent = welcome ? t('setup.welcome.text') : t(home ? 'player.idle.home' : 'player.idle.text');
+  el.overlayText.textContent = welcome ? t('setup.welcome.text')
+    : t(!home ? 'player.idle.text' : el.idleHome.querySelector('.idle-picks') ? 'player.idle.picks.text' : 'player.idle.home');
+}
+
+/* ------------------------------------------------------------- the picks */
+
+// What is on now and coming up on the viewer's channels (js/picks.js): the
+// favourites and the channels watched lately, as many as PICK_CHANNELS.
+const PICK_CHANNELS = 24;
+const PICK_RECENT = 12;
+const PICKS = 8;
+// The channels the picks were last worked out from, for onEpgUpdated: a
+// channel's programmes arriving repaint the page.
+let pickIds = new Set();
+let idleRefresh = null;
+let idleTicker = null;
+
+function pickChannels() {
+  const out = new Map();
+  for (const item of state.favorites.values()) if (item.k === 0) out.set(String(item.id), { item, favorite: true, rank: null });
+  let rank = 0;
+  for (const item of state.recents) {
+    if (item.k !== 0) continue;
+    const id = String(item.id);
+    const had = out.get(id);
+    if (had) { if (had.rank == null) had.rank = rank; }
+    else if (rank < PICK_RECENT) out.set(id, { item, favorite: false, rank });
+    rank++;
+  }
+  return [...out.values()].slice(0, PICK_CHANNELS);
+}
+
+/**
+ * The picks, from the programme data in memory; the channels whose data is
+ * not there yet are asked for it, and the page is drawn again when it
+ * arrives (onEpgUpdated). With the programme data switched off there are
+ * none.
+ */
+function currentPicks() {
+  const epg = state.epg;
+  if (!epg || !epg.enabled) { pickIds = new Set(); return []; }
+  const channels = pickChannels();
+  pickIds = new Set(channels.map((c) => String(c.item.id)));
+  epg.keep(channels.map((c) => c.item));
+  const reminded = new Set([...reminders.values()].map((r) => programmeKey(r.title)));
+  return pickProgrammes({ channels, listings: (item) => epg.listings(item.id), notes: state.interests, reminded, limit: PICKS });
+}
+
+/** The page drawn again a moment after programme data arrives, once for a burst. */
+function refreshIdleSoon() {
+  // Only the idle page is drawn again: the overlay may be saying something
+  // else — an error, a wait — and that is not to be painted over.
+  const idle = () => !state.playing && !el.overlay.hidden && !el.overlay.classList.contains('loading') && el.overlayTitle.textContent === t('player.idle');
+  if (idleRefresh || !idle()) return;
+  idleRefresh = setTimeout(() => {
+    idleRefresh = null;
+    if (idle()) renderIdleOverlay();
+  }, 400);
+}
+
+/** A pick: the programme, its channel, when, and why it was picked. */
+function pickCard(pick) {
+  const { channel, programme, on, why } = pick;
+  const card = document.createElement('button');
+  card.type = 'button';
+  card.className = 'idle-pick' + (on ? ' on' : '');
+  const reminded = reminders.has(reminderKey(channel, programme));
+  if (reminded) card.classList.add('reminded');
+  const name = channel.displayName || channel.n;
+  card.title = on ? t('picks.play', { channel: name }) : t(reminded ? 'picks.reminded' : 'picks.remind');
+  const logo = poster('idle-pick-logo', channel.logo, 'channel');
+  const body = document.createElement('span');
+  body.className = 'idle-pick-body';
+  const when = document.createElement('span');
+  when.className = 'idle-pick-when';
+  when.textContent = on ? t('picks.now', { time: clock(programme.stop) })
+    : dayLabel(programme.start) === t('day.today') ? t('picks.today', { time: clock(programme.start) })
+    : `${dayLabel(programme.start)} ${clock(programme.start)}`;
+  if (!on) {
+    const bell = document.createElement('i');
+    bell.className = 'idle-pick-bell';
+    bell.setAttribute('aria-hidden', 'true');
+    when.prepend(bell);
+  }
+  const title = document.createElement('span');
+  title.className = 'idle-pick-title';
+  title.textContent = programme.title;
+  const where = document.createElement('span');
+  where.className = 'idle-pick-where';
+  where.textContent = `${name} · ${t(`picks.why.${why}`)}`;
+  body.append(when, title, where);
+  card.append(logo, body);
+  if (on) {
+    const bar = document.createElement('div');
+    bar.className = 'row-progress';
+    const fill = document.createElement('i');
+    fill.style.width = `${Math.round((progressOf(programme) || 0) * 100)}%`;
+    bar.appendChild(fill);
+    card.appendChild(bar);
+  }
+  card.addEventListener('click', () => {
+    if (on) { playItem(channel); return; }
+    toggleReminder(channel, programme);
+    renderIdleOverlay();
+  });
+  return card;
+}
+
+/* -------------------------------------------- what the viewer watches */
+
+// A programme watched for this long is noted as one the viewer is
+// interested in (store.noteInterest, js/picks.js); zapping past does not
+// count. Each programme once per airing.
+const INTEREST_AFTER_MS = 5 * 60e3;
+const INTEREST_TICK_MS = 30e3;
+let interestWatch = { key: null, ms: 0, noted: false };
+
+function watchInterest() {
+  setInterval(() => {
+    const item = state.playing;
+    const video = el.video;
+    if (!item || item.k !== 0 || video.paused || video.readyState < 3) return;
+    const programme = state.catchup || state.epg?.nowNext(item.id)?.now;
+    if (!programme || !programme.title) return;
+    const key = `${item.id}|${programme.start}`;
+    if (interestWatch.key !== key) interestWatch = { key, ms: 0, noted: false };
+    interestWatch.ms += INTEREST_TICK_MS;
+    if (interestWatch.noted || interestWatch.ms < INTEREST_AFTER_MS) return;
+    interestWatch.noted = true;
+    store.noteInterest(programme.title).then((notes) => { if (notes) state.interests = notes; });
+  }, INTEREST_TICK_MS);
 }
 
 // Enough for the widest window; fitIdleHome shows what the window has room for.
@@ -5394,6 +5853,8 @@ function renderIdleHome() {
     seen.add(key);
     return true;
   };
+  const picks = currentPicks();
+  if (picks.length) home.appendChild(idleSection('player.idle.picks', 'idle-picks', picks.map(pickCard)));
   const unfinished = state.recents.filter(isUnfinished).filter(once).slice(0, IDLE_CONTINUE);
   const channels = state.recents.filter((item) => item.k === 0).filter(once).slice(0, IDLE_CHANNELS);
   if (unfinished.length) {
@@ -5425,6 +5886,9 @@ function renderIdleHome() {
   }
   home.hidden = !home.childElementCount;
   if (!home.hidden) requestAnimationFrame(fitIdleHome);
+  // The times move on: the page is drawn again each minute while it shows.
+  clearInterval(idleTicker);
+  if (picks.length) idleTicker = setInterval(() => { if (!state.playing && !el.overlay.hidden && el.overlayTitle.textContent === t('player.idle')) renderIdleOverlay(); else clearInterval(idleTicker); }, 60e3);
   return !home.hidden;
 }
 
@@ -5438,14 +5902,15 @@ function renderIdleHome() {
 function fitIdleHome() {
   const home = el.idleHome;
   if (home.hidden || el.overlay.hidden) return;
-  const lists = [...home.querySelectorAll('.idle-cards, .idle-channels')];
+  const lists = [...home.querySelectorAll('.idle-picks, .idle-cards, .idle-channels')];
   for (const list of lists) for (const tile of list.children) tile.hidden = false;
   const style = getComputedStyle(el.overlay);
   const bottom = el.overlay.getBoundingClientRect().bottom - parseFloat(style.paddingBottom);
   for (const list of lists) {
     const tiles = [...list.children];
     const columns = getComputedStyle(list).gridTemplateColumns.split(' ').filter(Boolean).length || 1;
-    let rows = 1;
+    // The picks get two rows: one row of two or three cards says little.
+    let rows = list.classList.contains('idle-picks') ? 2 : 1;
     if (list.classList.contains('idle-channels') && tiles.length) {
       const gap = parseFloat(getComputedStyle(list).rowGap) || 0;
       const height = tiles[0].getBoundingClientRect().height + gap;
@@ -5481,6 +5946,7 @@ applyTheme(earlyTheme());
 wirePickers();
 
 async function init() {
+  state.accounts = await store.loadAccounts();
   state.config = await store.loadConfig();
   await store.migrateAccountKeys(state.config);
   store.useAccount(state.config);
@@ -5499,8 +5965,19 @@ async function init() {
   wireUi();
   wireMediaSession();
   wireSubcatsResize();
+  watchInterest();
   await loadLists();
   store.watchStorage({ onList: showStoredList, onAccount: accountChangedElsewhere, onCleared: storageCleared });
+  store.watchAccounts((accounts) => {
+    state.accounts = accounts;
+    renderAccountSwitcher();
+    if (el.setup.open) renderAccountList();
+    adoptSyncedAccount(accounts);
+  });
+  store.watchSettings(showStoredSettings);
+  store.watchSyncStatus(() => { if (el.setup.open) renderSyncBox(); });
+  renderAccountSwitcher();
+  sync.start();
   el.mode.value = state.config.streamMode || 'auto';
   applySubtitleLook(state.settings);
   new SubtitleDisplay(el.video, el.subdisplay, el.videowrap);
@@ -5544,7 +6021,8 @@ async function init() {
   // the connection and the first list, which read from the same database.
   setTimeout(() => cachePurge((key) => probeCacheTtl(key) ?? libraryCacheTtl(key)), CACHE_PURGE_DELAY_MS);
 
-  if (!state.config.host) {
+  if (!configured()) {
+    if (await adoptSyncedAccount(state.accounts)) return;
     renderIdleOverlay();
     openSetup();
     return;

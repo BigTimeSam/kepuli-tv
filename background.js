@@ -54,3 +54,27 @@ api.runtime.onInstalled.addListener(async () => {
     await api.tabs.create({ url: PLAYER_URL + reopenAfterUpdate });
   }
 });
+
+// When the extension is removed, the browser opens a one-question form
+// asking why (runtime.setUninstallURL; no permission needed). The address
+// carries the version, the browser and the interface language and nothing
+// else — no account, no address, nothing the viewer watched — prefilled
+// into the form's one field the viewer does not have to touch. Set again
+// whenever the language is changed, so that it is the language in use.
+const UNINSTALL_FORM = 'https://docs.google.com/forms/d/e/1FAIpQLSciTzjI2cooCll5fFJSqsd3SjHpKIF_jDdyNhmATqmkwvcl0A/viewform';
+const UNINSTALL_ENTRY = 'entry.141293273';
+
+async function setUninstallForm() {
+  if (!api.runtime.setUninstallURL) return;
+  const { settings } = await api.storage.local.get('settings');
+  const lang = settings && settings.lang && settings.lang !== 'auto' ? settings.lang : (navigator.language || '').slice(0, 2);
+  const engine = globalThis.browser && globalThis.browser.runtime && /moz-extension:/.test(api.runtime.getURL('')) ? 'firefox' : 'chrome';
+  const facts = `${api.runtime.getManifest().version} · ${engine} · ${lang}`;
+  await api.runtime.setUninstallURL(`${UNINSTALL_FORM}?usp=pp_url&${UNINSTALL_ENTRY}=${encodeURIComponent(facts)}`);
+}
+
+api.runtime.onInstalled.addListener(() => { setUninstallForm().catch(() => {}); });
+api.runtime.onStartup.addListener(() => { setUninstallForm().catch(() => {}); });
+api.storage.onChanged.addListener((changes, area) => {
+  if (area === 'local' && changes.settings) setUninstallForm().catch(() => {});
+});

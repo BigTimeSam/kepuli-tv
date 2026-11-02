@@ -79,6 +79,9 @@ export function cacheTtl(key) {
   if (name.startsWith('full:')) return TTL.full;
   if (name.startsWith('series:')) return TTL.seriesInfo;
   if (name.startsWith('vod:')) return TTL.vodInfo;
+  // An M3U playlist's rows and its guide's (js/m3usource.js, js/guide.js):
+  // read as stale after twelve hours, gone after a day.
+  if (name.startsWith('m3u:') || name.startsWith('xmltv:')) return 24 * 3600e3;
   return null;
 }
 
@@ -281,6 +284,9 @@ export class Library {
    * kept; they are a title's facts and do not change.
    */
   async refresh({ signal, onProgress } = {}) {
+    // A playlist is one file behind every list: it is downloaded again
+    // first, and the lists below are read from the new one.
+    if (this.api.reload) await this.api.reload({ signal });
     await this.loadCategories({ force: true, signal });
     for (const type of TYPES) {
       if (this.full[type]) await this.ensureFull(type, { force: true, onProgress, signal });

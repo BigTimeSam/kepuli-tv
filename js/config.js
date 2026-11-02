@@ -17,16 +17,43 @@
 
 import { api } from './browser.js';
 import { LANGUAGES, DEFAULT_LANGUAGE, supportedLanguage } from './i18n.js';
-import { cacheClear } from './db.js';
 import { channelPreferences } from './channelprefs.js';
+import { noteWatched } from './picks.js';
 
 const CONNECTION_DEFAULTS = {
+  // What the account is: an Xtream Codes server (the fields below) or an
+  // M3U playlist (url, and the programme guide's address in epgUrl when the
+  // playlist does not name one itself).
+  type: 'xtream',           // xtream | m3u
   scheme: 'http', host: '', port: '8080', username: '', password: '',
+  url: '', epgUrl: '',
+  // The name the viewer gave the account, for the account menu; empty
+  // means one made from the address (accountLabel).
+  name: '',
+  // The account's place in the list of accounts, see loadAccounts().
+  id: '',
   streamMode: 'auto',
-  // Which form the settings dialog opens. Does not affect the connection:
-  // both produce the same server and the same credentials.
+  // Which form the settings dialog opens. For an Xtream server it does not
+  // affect the connection: both produce the same server and credentials.
   sourceMode: 'xtream',     // xtream | m3u
 };
+
+/** Whether the configuration has what it takes to connect. */
+export function isConfigured(c) {
+  if (!c) return false;
+  if (c.type === 'm3u') return Boolean(c.url);
+  return Boolean(c.host && c.username && c.password);
+}
+
+/** The account as the account menu names it: its own name, or its address. */
+export function accountLabel(c) {
+  if (!c) return '';
+  if (c.name && c.name.trim()) return c.name.trim();
+  if (c.type === 'm3u') {
+    try { return new URL(c.url).hostname; } catch { return c.url || ''; }
+  }
+  return c.username ? `${c.host} · ${c.username}` : c.host || '';
+}
 
 /**
  * The language the app opens in, from the browser's own list.
@@ -153,6 +180,7 @@ async function read(key, fallback) {
 const DEFAULT_PORTS = { http: '80', https: '443' };
 
 export function accountKey(c) {
+  if (c.type === 'm3u') return `m3u:${String(c.url || '').trim()}`;
   const scheme = String(c.scheme || 'http').trim().toLowerCase();
   const host = String(c.host || '').trim().toLowerCase();
   const port = String(c.port ?? '').trim().replace(/^0+(?=\d)/, '') || DEFAULT_PORTS[scheme] || '';
@@ -186,16 +214,105 @@ export async function loadConfig() {
 
 export async function saveConfig(patch) {
   const prev = await loadConfig();
-  const next = { ...prev, ...patch };
-  if (accountKey(next) !== accountKey(prev)) await cacheClear();
+  const next = withId({ ...prev, ...patch });
+  // The catalogue cache is kept per account (js/library.js, js/m3usource.js
+  // write under the account's key), so a switch leaves the other account's
+  // there for the switch back; the expired rows go by themselves.
+  writtenAccount = accountKey(next);
+  await api.storage.local.set({ config: next });
+  await recordAccount(next);
+  return next;
+}
+
+/* ------------------------------------------------------------ accounts */
+
+/** A configuration with nothing in it: the form for a new account. */
+export const blankConfig = () => ({ ...CONNECTION_DEFAULTS });
+
+/**
+ * Another account of the list made the one in use, as it is stored: none
+ * of the account being left is carried into it.
+ */
+export async function switchConfig(config) {
+  const next = { ...CONNECTION_DEFAULTS, ...config };
   writtenAccount = accountKey(next);
   await api.storage.local.set({ config: next });
   return next;
 }
 
+// Every account the viewer has added, each a whole configuration with an
+// id; `config` is the one in use. A version from before there was a list
+// had only `config`, and it becomes the first account of the list the
+// first time the list is read.
+
+const newId = () => `a${Date.now().toString(36)}${Math.random().toString(36).slice(2, 7)}`;
+const withId = (c) => (c.id ? c : { ...c, id: newId() });
+
+export async function loadAccounts() {
+  const stored = await read('accounts', null);
+  if (Array.isArray(stored)) return stored.map((a) => ({ ...CONNECTION_DEFAULTS, ...a }));
+  const config = await loadConfig();
+  if (!isConfigured(config)) return [];
+  const first = withId(config);
+  await api.storage.local.set({ accounts: [first], config: first });
+  return [first];
+}
+
+/** The account kept in the list as it is now: added, or its entry replaced. */
+export function recordAccount(config) {
+  if (!isConfigured(config)) return Promise.resolve();
+  return exclusive(async () => {
+    const list = (await read('accounts', null)) || [];
+    const at = list.findIndex((a) => a.id === config.id);
+    if (at >= 0) list[at] = config; else list.push(config);
+    await api.storage.local.set({ accounts: list });
+  });
+}
+
+/**
+ * An account taken off the list, and its favourites, history and the rest
+ * with it — unless another account in the list is the same account under
+ * another name. The one in use cannot be removed: the caller switches first.
+ */
+export function removeAccount(id) {
+  return exclusive(async () => {
+    const list = (await read('accounts', null)) || [];
+    const gone = list.find((a) => a.id === id);
+    if (!gone) return list;
+    const rest = list.filter((a) => a.id !== id);
+    await api.storage.local.set({ accounts: rest });
+    const key = accountKey({ ...CONNECTION_DEFAULTS, ...gone });
+    if (!rest.some((a) => accountKey({ ...CONNECTION_DEFAULTS, ...a }) === key)) {
+      await api.storage.local.remove(PERSONAL.map((name) => personalKey(name, key)));
+    }
+    return rest;
+  });
+}
+
+/** The settings changed by another tab, or arrived from another computer. */
+export function watchSettings(onChange) {
+  api.storage.onChanged.addListener((changes, area) => {
+    if (area === 'local' && changes.settings) onChange(changes.settings.newValue);
+  });
+}
+
+/** How the sync went, written by whichever tab syncs (js/sync.js). */
+export function watchSyncStatus(onChange) {
+  api.storage.onChanged.addListener((changes, area) => {
+    if (area === 'local' && (changes.syncStatus || changes.sync)) onChange();
+  });
+}
+
+/** Another tab's change to the list of accounts. */
+export function watchAccounts(onChange) {
+  api.storage.onChanged.addListener((changes, area) => {
+    if (area === 'local' && changes.accounts) onChange((changes.accounts.newValue || []).map((a) => ({ ...CONNECTION_DEFAULTS, ...a })));
+  });
+}
+
 /* ------------------------------------------------------ personal lists */
 
-const PERSONAL = ['favorites', 'recents', 'resume', 'reminders', 'channels'];
+export const PERSONAL = ['favorites', 'recents', 'resume', 'reminders', 'channels', 'interests'];
 
 const personalKey = (name, key = account) => (key ? `${name}:${key}` : name);
 
@@ -384,17 +501,18 @@ export async function saveSettings(patch) {
  * none is returned: another tab may have switched it meanwhile, and a save
  * of the subtitle size here is no reason to take that tab's account over.
  */
-export async function saveSetup(configPatch, settingsPatch) {
+export async function saveSetup(configPatch, settingsPatch, { replace = false } = {}) {
   const settings = { ...(await loadSettings()), ...settingsPatch };
   if (!configPatch) {
     await api.storage.local.set({ settings });
     return { config: null, settings };
   }
   const prev = await loadConfig();
-  const config = { ...prev, ...configPatch };
-  if (accountKey(config) !== accountKey(prev)) await cacheClear();
+  // replace: a new account, nothing of the one in use carried over.
+  const config = withId(replace ? { ...CONNECTION_DEFAULTS, ...configPatch, id: '' } : { ...prev, ...configPatch });
   writtenAccount = accountKey(config);
   await api.storage.local.set({ config, settings });
+  await recordAccount(config);
   return { config, settings };
 }
 
@@ -479,6 +597,18 @@ export async function takeDueReminders(until) {
     return list.filter((r) => r.start > until);
   });
   return left ? due : [];
+}
+
+/* ------------------------------------------------------------ interests */
+
+// The programmes the viewer has watched, by title, for the picks on the
+// empty player's page (js/picks.js). The channel ids and the titles are the
+// account's own, so the notes are too.
+export async function loadInterests() { return readPersonal('interests', {}); }
+
+/** One more watch of a programme noted. */
+export function noteInterest(title) {
+  return updatePersonal('interests', {}, (notes) => noteWatched(notes, title));
 }
 
 /* ------------------------------------------------------- resume points */

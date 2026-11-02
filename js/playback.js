@@ -14,7 +14,7 @@
 
 import { isPlayableExtension } from './xtream.js';
 import { t } from './i18n.js';
-import { probe, verdict, serverFault, providerError } from './probe.js';
+import { probe, verdict, serverFault, providerError, answerOf } from './probe.js';
 import { Remuxer } from './remux.js';
 import { Mp4Player } from './mp4play.js';
 import { isGecko } from './browser.js';
@@ -362,7 +362,10 @@ export class Playback {
       this.probeLoad = { loaded, stage: 'probe', from: 0, need, bitrate: null };
       this.startMeter(token, 'probe');
     };
+    const asked = Date.now();
     const info = await probe(spec.url, { signal: ctrl.signal, onProgress });
+    // Whether the server was asked just now, or the answer is the cache's.
+    spec.probeFresh = info.at >= asked;
     if (this.meterPhase === 'probe') this.stopMeter();
     this.probeLoad = null;
     if (this.probing === ctrl) this.probing = null;
@@ -440,7 +443,8 @@ export class Playback {
    */
   async explain(spec, token, { refused = false } = {}) {
     const generic = t('playback.nosource');
-    if (spec.live || spec.catchup || spec.probe) { this.onState({ status: 'error', message: generic, verdict: spec.verdict, refused }); return; }
+    if (spec.live || spec.catchup) { this.onState({ status: 'error', message: generic, verdict: spec.verdict, refused }); return; }
+    if (spec.probe) return this.askServer(spec, token, spec.verdict);
     const known = await this.inspect(spec, token);
     if (!known) return;
     if (known.path === 'empty') return this.nothingThere(spec);
@@ -451,7 +455,42 @@ export class Playback {
     if (next.length) return void this.runChain(next, spec, token);
     if (known.path === 'silent') return this.refuse(known, { canSilent: true });
     if (known.path === 'remux' || known.path === 'none') return this.refuse(known);
-    this.onState({ status: 'error', message: generic, verdict: known });
+    // The header read from the cache says nothing about now, and one that
+    // found the file sound does not say why it failed.
+    if (!spec.probeFresh || !spec.playedAgain) return this.askServer(spec, token, known);
+    this.onState({ status: 'error', message: t('playback.notplayed'), verdict: known, reachable: true });
+  }
+
+  /**
+   * A failure the header cannot explain, put to the server once more (see
+   * answerOf in js/probe.js). An error answer is said as it is — "the
+   * provider's server answered 502" — rather than left to the account,
+   * whose count then holds only our own request and would blame another
+   * viewer. An answer that lets the request through says the account has a
+   * connection free: the failure is the file's or the moment's, and the
+   * account is not blamed for it (reachable). No answer at all leaves it to
+   * the account, as before.
+   */
+  async askServer(spec, token, known) {
+    const answer = await answerOf(spec.url);
+    if (token !== this.token) return;
+    if (!answer.error) this.releasedAt = Date.now();
+    if (answer.status && !answer.ok && (providerError(answer.status) || answer.redirected)) return this.fileRefused(spec, answer.status);
+    if (answer.ok) {
+      // Let through now, the failure was the moment's: a proxy failing
+      // now and then, or our own last connection still counted when the
+      // stream was asked for. Played again once, from the start of the
+      // chain; failing again, it is said as it is, and the account is not
+      // blamed for it.
+      if (!spec.playedAgain) {
+        spec.playedAgain = true;
+        spec.tried = new Set();
+        return void this.runChain(buildChain(spec), spec, token);
+      }
+      this.onState({ status: 'error', message: t('playback.notplayed'), verdict: known, reachable: true });
+      return;
+    }
+    this.onState({ status: 'error', message: t('playback.nosource'), verdict: known });
   }
 
   runAttempt(name, spec, token, onFail) {

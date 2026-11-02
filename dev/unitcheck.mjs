@@ -31,6 +31,8 @@ import { Epg } from '../js/epg.js';
 import { probeCacheTtl } from '../js/probe.js';
 import { formatRoute, parseRoute } from '../js/route.js';
 import { boxHeader, parseMoov } from '../js/mp4file.js';
+import { parseM3u, parseExtinf, classify, episodeOf, isDivider, shortHash, fillCatchup, catchupAddress, playlistAddress } from '../js/m3u.js';
+import { parseXmltv, parseXmltvTime, decodeXml, settle, channelMatchKey } from '../js/xmltv.js';
 import { readFileSync } from 'node:fs';
 
 let failed = 0;
@@ -1125,6 +1127,245 @@ check('the history may hold a series', parseRoute('#/recent?series=5'), { tab: '
   try { parseMoov(damaged); } catch (err) { refused = err.message; }
   check('mp4: a sample count larger than its table is refused', refused, 'the MP4 index is damaged (stsz)');
   check('mp4: a 64-bit box size is read whole', boxHeader(large, 0), { type: 'mdat', size: 4294967312, header: 16 });
+}
+
+
+/* ------------------------------------------------------- M3U playlists */
+
+// Imported here rather than at the top: they reach config.js, which must
+// find the faked extension API above when it is first imported.
+const { buildCatalogue } = await import('../js/m3usource.js');
+const { accountKey, accountLabel, isConfigured } = await import('../js/config.js');
+const { outgoingAccounts, incomingAccounts, joinRecents, joinResume, joinFavorites } = await import('../js/sync.js');
+
+{
+  // The forms providers and players write, each of them once.
+  const text = '﻿#EXTM3U url-tvg="http://g.example/a.xml.gz, http://g.example/b.xml" catchup="shift" catchup-days="2"\r\n'
+    + '#EXTINF:-1 tvg-ID="yle1.fi" tvg-name="FI: Yle TV1" tvg-logo="http://l.example/yle.png" group-title="Finland, News",FI: Yle TV1, HD\r\n'
+    + '#EXTVLCOPT:http-user-agent=Kodi/20\r\n'
+    + 'http://s.example/live/u/p/1.m3u8\r\n'
+    + '#EXTINF:0 tvg-id=nordic.se group-title=\'Sweden\',Nordic\n'
+    + '#EXTGRP:Ignored when group-title is given\n'
+    + 'stream/2.ts\n'
+    + '#EXTINF:-1,Only a name\n'
+    + '#EXTGRP:From EXTGRP\n'
+    + 'http://s.example/3\n'
+    + 'http://s.example/bare.mp4\n'
+    + '#EXTINF:-1,Not an address\n'
+    + 'rtmp://s.example/x\n';
+  const { header, entries } = parseM3u(text, 'http://p.example/list/get.m3u');
+  check('m3u: the guide addresses of the header, all three spellings and commas', header.guides, ['http://g.example/a.xml.gz', 'http://g.example/b.xml']);
+  check('m3u: the header\'s catch-up', [header.catchup, header.catchupDays], ['shift', 2]);
+  check('m3u: a title with a comma, a group with a comma', [entries[0].name, entries[0].group], ['FI: Yle TV1, HD', 'Finland, News']);
+  check('m3u: attribute names in any case', entries[0].attrs['tvg-id'], 'yle1.fi');
+  check('m3u: #EXTVLCOPT goes with its entry', entries[0].userAgent, 'Kodi/20');
+  check('m3u: single quotes and bare values; a relative address against the playlist',
+    [entries[1].attrs['tvg-id'], entries[1].group, entries[1].url], ['nordic.se', 'Sweden', 'http://p.example/list/stream/2.ts']);
+  check('m3u: #EXTGRP when there is no group-title', entries[2].group, 'From EXTGRP');
+  check('m3u: an address with no #EXTINF is named after its file', entries[3].name, 'bare.mp4');
+  check('m3u: what is not http(s) is left out', entries.length, 4);
+  check('m3u: #EXTINF duration and title', parseExtinf('#EXTINF:5400 tvg-name="x",Film'), { duration: 5400, attrs: { 'tvg-name': 'x' }, title: 'Film' });
+}
+check('m3u: a panel\'s live, movie and series addresses', [
+  classify({ url: 'http://p/u/p/123', name: 'SE: SVT 1' }),
+  classify({ url: 'http://p/live/u/p/123.m3u8', name: 'x' }),
+  classify({ url: 'http://p/movie/u/p/5.mkv', name: 'NC - 10x10.2018' }),
+  classify({ url: 'http://p/series/u/p/9.mkv', name: 'Show S01 E02' }),
+  classify({ url: 'http://cdn/films/Heat.1995.mp4', name: 'Heat (1995)' }),
+  classify({ url: 'http://cdn/tv/show.s02e03.mkv', name: 'Show S02E03' }),
+], ['live', 'live', 'movie', 'series', 'movie', 'series']);
+check('m3u: the series, season and episode in a name', [
+  episodeOf('SE:Trespasses (2025) S01 E01'),
+  episodeOf('NO - Amerikanske tilstander (2022) S2022 E01'),
+  episodeOf('Show - s02e10 - The Long Night'),
+  episodeOf('Show 3x07'),
+  episodeOf('Heat (1995)'),
+], [
+  { series: 'SE:Trespasses (2025)', season: 1, episode: 1, title: '' },
+  { series: 'NO - Amerikanske tilstander (2022)', season: 2022, episode: 1, title: '' },
+  { series: 'Show', season: 2, episode: 10, title: 'The Long Night' },
+  { series: 'Show', season: 3, episode: 7, title: '' },
+  null,
+]);
+check('m3u: a heading row is not a channel', ['===== Sweden ======', '##### SPORTS #####', '-----', 'SE: SVT 1', 'A-Team'].map(isDivider), [true, true, true, false, false]);
+check('m3u: the hash is stable and short', [shortHash('abc'), shortHash('abc') === shortHash('abd')], [shortHash('abc'), false]);
+check('m3u: a playlist address is any http(s) address', [playlistAddress(' http://x.example/a.m3u '), playlistAddress('ftp://x'), playlistAddress('nonsense')], ['http://x.example/a.m3u', null, null]);
+{
+  const start = Date.UTC(2026, 10, 2, 20, 0, 0);
+  const stop = start + 3600e3;
+  const now = start + 7200e3;
+  check('catch-up: a template filled in', fillCatchup('?utc={utc}&lutc={lutc}&d={duration}&m={duration:60}&o={offset}&s=${start}&e=${end}&t={utc:Y-m-d H:M:S}&Y={Y}{m}{d}&b=$(b)yyyyMMddHHmmss', start, stop, now),
+    `?utc=${start / 1000}&lutc=${now / 1000}&d=3600&m=60&o=7200&s=${start / 1000}&e=${stop / 1000}&t=2026-11-02 20:00:00&Y=20261102&b=20261102200000`);
+  const ch = (mode, direct, source = '') => ({ direct, cu: { mode, source } });
+  check('catch-up: the modes', [
+    catchupAddress(ch('shift', 'http://s/live/1.m3u8?tok=1'), start, stop, now),
+    catchupAddress(ch('append', 'http://s/live/1.m3u8', '?start={utc}&end={utcend}'), start, stop, now),
+    catchupAddress(ch('default', 'http://s/live/1.m3u8', 'http://a/archive/1/{utc}-{duration}.m3u8'), start, stop, now),
+    catchupAddress(ch('flussonic', 'http://f/ch1/index.m3u8?token=x'), start, stop, now),
+    catchupAddress(ch('flussonic', 'http://f/ch1/mpegts?token=x'), start, stop, now),
+    catchupAddress(ch('xc', 'http://x:8080/u/p/77'), start, stop, now),
+    catchupAddress(ch('xc', 'http://x:8080/live/u/p/77.m3u8'), start, stop, now),
+    catchupAddress(ch('', 'http://s/1'), start, stop, now),
+  ], [
+    `http://s/live/1.m3u8?tok=1&utc=${start / 1000}&lutc=${now / 1000}`,
+    `http://s/live/1.m3u8?start=${start / 1000}&end=${stop / 1000}`,
+    `http://a/archive/1/${start / 1000}-3600.m3u8`,
+    `http://f/ch1/index-${start / 1000}-3600.m3u8?token=x`,
+    `http://f/ch1/timeshift_abs-${start / 1000}.ts?token=x`,
+    'http://x:8080/timeshift/u/p/60/2026-11-02:20-00/77.ts',
+    'http://x:8080/timeshift/u/p/60/2026-11-02:20-00/77.ts',
+    null,
+  ]);
+}
+{
+  const entries = parseM3u('#EXTM3U\n'
+    + '#EXTINF:-1,===== Finland =====\nhttp://p/u/p/1\n'
+    + '#EXTINF:-1 tvg-id="yle1.fi" group-title="Finland - News" catchup="xc" catchup-days="3",Yle TV1\nhttp://p/u/p/2\n'
+    + '#EXTINF:-1 group-title="Finland - News",Yle TV1\nhttp://p/u/p/3\n'
+    + '#EXTINF:-1 tvg-logo="http://i/f.jpg" group-title="Movies: Finland",Heat (1995)\nhttp://p/movie/u/p/4.mkv\n'
+    + '#EXTINF:-1 group-title="Series: Nordic",Fjord S01 E02\nhttp://p/series/u/p/6.mkv\n'
+    + '#EXTINF:-1 tvg-logo="http://i/s.jpg" group-title="Series: Nordic",Fjord S01 E01\nhttp://p/series/u/p/5.mkv\n'
+    + '#EXTINF:-1,No group\nhttp://p/u/p/7\n').entries;
+  const c = buildCatalogue(entries, {}, 'Other');
+  check('catalogue: the heading row is left out, the rest by type', [c.items.live.length, c.items.movie.length, c.items.series.length], [3, 1, 1]);
+  check('catalogue: categories from group-title, and one for none', c.categories.live.map((x) => x.name), ['Finland - News', 'Other']);
+  check('catalogue: two channels of one name get ids of their own', new Set(c.items.live.map((x) => x.id)).size, 3);
+  check('catalogue: a channel\'s guide id, address and archive', [c.items.live[0].epgId, c.items.live[0].direct, c.items.live[0].archive, c.items.live[0].cu], ['yle1.fi', 'http://p/u/p/2', 3, { mode: 'xc', source: '' }]);
+  check('catalogue: a film', [c.items.movie[0].n, c.items.movie[0].ext, c.items.movie[0].year, c.items.movie[0].logo], ['Heat (1995)', 'mkv', 1995, 'http://i/f.jpg']);
+  const series = c.items.series[0];
+  const eps = c.episodes.get(series.id);
+  check('catalogue: a series of its episodes, in order, its cover the first there is', [series.n, eps.map((e) => `${e.season}x${e.episode}`), series.logo], ['Fjord', ['1x1', '1x2'], 'http://i/s.jpg']);
+  check('catalogue: the ids do not depend on the address', buildCatalogue(parseM3u('#EXTINF:-1,Yle TV1\nhttp://p/a?token=1\n').entries).items.live[0].id,
+    buildCatalogue(parseM3u('#EXTINF:-1,Yle TV1\nhttp://p/a?token=2\n').entries).items.live[0].id);
+}
+
+/* --------------------------------------------------------- XMLTV guides */
+
+check('xmltv: times with and without an offset or seconds', [
+  parseXmltvTime('20261101200800 +0100'),
+  parseXmltvTime('20261101200800+01:00'),
+  parseXmltvTime('202611011908'),
+  parseXmltvTime('20261101190800 Z'),
+  parseXmltvTime('20261101143800 -0430'),
+  Number.isNaN(parseXmltvTime('soon')),
+], [Date.UTC(2026, 10, 1, 19, 8), Date.UTC(2026, 10, 1, 19, 8), Date.UTC(2026, 10, 1, 19, 8), Date.UTC(2026, 10, 1, 19, 8), Date.UTC(2026, 10, 1, 19, 8), true]);
+check('xmltv: entities, references and CDATA', decodeXml('L&apos;equipe &amp; A&#38;E &#x263A; <![CDATA[a & b]]>'), 'L\'equipe & A&E ☺ a & b');
+{
+  const xml = '<?xml version="1.0"?><tv><channel id="yle1.fi"><display-name>Yle TV1</display-name><display-name>FI: Yle TV1 HD</display-name><icon src="http://i/y.png"/></channel>'
+    + '<programme start="20261101210000 +0000" stop="20261101220000 +0000" channel="yle1.fi"><title lang="sv">Nyheter</title><title lang="fi">Uutiset</title><desc lang="fi">Päivän &amp; illan</desc></programme>'
+    + '<programme start="20261101200000 +0000" channel="yle1.fi"><title>Before</title><sub-title>Part 2</sub-title><desc>Plot</desc></programme>'
+    + '<programme start="20261101220000 +0000" stop="20261101213000 +0000" channel="yle1.fi"><title>Backwards</title></programme></tv>';
+  // In pieces cut anywhere, as a download arrives.
+  const { channels, programmes } = parseXmltv(xml, ['fi']);
+  const list = programmes.get('yle1.fi');
+  check('xmltv: a channel with its names and icon', channels, [{ id: 'yle1.fi', names: ['Yle TV1', 'FI: Yle TV1 HD'], icon: 'http://i/y.png' }]);
+  check('xmltv: the reader\'s language, a missing stop from the next start, the backwards one dropped, sub-title before the plot',
+    list.map((p) => [p.title, p.description, new Date(p.start).toISOString().slice(11, 16), new Date(p.stop).toISOString().slice(11, 16)]),
+    [['Before', 'Part 2. Plot', '20:00', '21:00'], ['Uutiset', 'Päivän & illan', '21:00', '22:00']]);
+  const { XmltvParser } = await import('../js/xmltv.js');
+  const got = [];
+  const parser = new XmltvParser({ onProgramme: (id, p) => got.push(p.title) });
+  for (let i = 0; i < xml.length; i += 7) parser.push(xml.slice(i, i + 7));
+  parser.end();
+  check('xmltv: a guide read in pieces of seven characters reads the same', got, ['Nyheter', 'Before', 'Backwards']);
+}
+check('xmltv: a playlist name and a guide name meet', ['FI: Yle TV1 HD', 'Yle TV1', '|FI| YLE TV 1 FHD', 'Ylé TV1'].map(channelMatchKey), ['yletv1', 'yletv1', 'yletv1', 'yletv1']);
+
+/* ------------------------------------------------- accounts and sync */
+
+check('accounts: an M3U account is its address', accountKey({ type: 'm3u', url: ' http://p/a.m3u ' }), 'm3u:http://p/a.m3u');
+check('accounts: the label is the name, or the address', [
+  accountLabel({ type: 'm3u', url: 'http://lists.example/a.m3u' }),
+  accountLabel({ type: 'xtream', host: 'tv.example', username: 'me' }),
+  accountLabel({ type: 'xtream', host: 'tv.example', name: ' Home ' }),
+], ['lists.example', 'tv.example · me', 'Home']);
+check('accounts: what it takes to connect', [isConfigured({ type: 'm3u', url: 'http://x' }), isConfigured({ type: 'xtream', host: 'h', username: 'u' })], [true, false]);
+{
+  const accounts = [
+    { id: 'a', type: 'xtream', host: 'h', port: '80', scheme: 'http', username: 'u', password: 'secret' },
+    { id: 'b', type: 'm3u', url: 'http://p/get.php?username=u&password=p' },
+    { id: 'c', type: 'm3u', url: 'http://p/list.m3u' },
+  ];
+  check('sync: without passwords the password stays, and an address with credentials stays too',
+    outgoingAccounts(accounts, false).map((a) => [a.id, a.password ?? null]), [['a', ''], ['c', null]]);
+  check('sync: with passwords everything goes', outgoingAccounts(accounts, true).length, 3);
+  const local = [{ id: 'a', type: 'xtream', host: 'h', port: '80', scheme: 'http', username: 'u', password: 'secret' }, { id: 'd', type: 'm3u', url: 'http://only/here' }];
+  const remote = [{ id: 'a', type: 'xtream', host: 'h', port: '80', scheme: 'http', username: 'u', password: '' }, { id: 'c', type: 'm3u', url: 'http://p/list.m3u' }];
+  check('sync: an account coming down keeps the password known here', incomingAccounts(remote, local)[0].password, 'secret');
+  check('sync: a first sync joins, a later one follows', [incomingAccounts(remote, local, { join: true }).map((a) => a.id), incomingAccounts(remote, local).map((a) => a.id)], [['a', 'c', 'd'], ['a', 'c']]);
+  check('sync: the history joined, the latest watch of each first',
+    joinRecents([{ k: 0, id: '1', watchedAt: 5 }, { k: 0, id: '2', watchedAt: 9 }], [{ k: 0, id: '1', watchedAt: 7 }, { k: 1, id: '3', watchedAt: 1 }]).map((e) => `${e.id}@${e.watchedAt}`),
+    ['2@9', '1@7', '3@1']);
+  check('sync: resume points joined, the later of each', joinResume({ '1:a': { at: 5, position: 10 } }, { '1:a': { at: 9, position: 20 }, '3:b': { at: 1, position: 3 } }),
+    { '1:a': { at: 9, position: 20 }, '3:b': { at: 1, position: 3 } });
+  check('sync: favourites joined once each', joinFavorites([{ k: 0, id: '1' }], [{ k: 0, id: '1' }, { k: 0, id: '2' }]).map((f) => f.id), ['1', '2']);
+}
+
+
+/* ------------------------------------------- js/mkv.js: a holed file */
+
+{
+  const { BufferedBytes, frames } = await import('../js/mkv.js');
+  // Cluster (unknown size), Timestamp, and SimpleBlocks of track 1.
+  const cluster = (ts, blocks) => [0x1f, 0x43, 0xb6, 0x75, 0x01, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xe7, 0x82, ts >> 8, ts & 0xff,
+    ...blocks.flatMap(([rel, key]) => [0xa3, 0x86, 0x81, 0x00, rel, key ? 0x80 : 0x00, 0xaa, 0xbb])];
+  const read = async (parts) => {
+    const bytes = new BufferedBytes();
+    for (const part of parts) bytes.push(new Uint8Array(part));
+    bytes.end();
+    const out = [];
+    const events = [];
+    for await (const f of frames(bytes, { timestampScale: 1e6, tracks: new Map([[1, {}]]),
+      onStop: (reason) => events.push(reason), onResync: (at, skipped) => events.push(`resync ${at}+${skipped}`) })) out.push(`${f.pts / 1e6}${f.keyframe ? 'k' : ''}`);
+    return { out, events };
+  };
+  const first = cluster(0, [[0, true], [40, false]]);
+  // The measured case in small: zeros where a stretch of the file is
+  // missing, then the rest of a cluster, then whole clusters again. A
+  // cluster id inside picture data, with no Timestamp after it, is passed by.
+  const fake = [0x1f, 0x43, 0xb6, 0x75, 0x81, 0x00];
+  const holed = await read([first, new Array(5000).fill(0), [0x12, 0x34, ...fake, 0x56], cluster(9000, [[0, true], [40, false]]).slice(0, 7), cluster(9000, [[0, true], [40, false]]).slice(7)]);
+  check('mkv: reading goes on at the next cluster after a damaged stretch', holed.out, ['0k', '40', '9000k', '9040']);
+  check('mkv: where the damage began and how much went', holed.events, [`resync ${first.length}+${5000 + 2 + fake.length + 1}`, 'stream ended']);
+  // ffmpeg writes a CRC-32 (0xBF) as a cluster's first child, before its Timestamp.
+  const crc = cluster(7000, [[0, true]]);
+  crc.splice(12, 0, 0xbf, 0x84, 1, 2, 3, 4);
+  check('mkv: a cluster that starts with a CRC-32 is found too', (await read([first, new Array(100).fill(0), crc])).out, ['0k', '40', '7000k']);
+  check('mkv: a file whose damage runs to its end ends there', (await read([first, new Array(300).fill(0)])).events, ['stream ended']);
+}
+
+
+/* -------------------------------------------- js/picks.js: the picks */
+
+{
+  const { programmeKey, noteWatched, pickProgrammes } = await import('../js/picks.js');
+  check('picks: a programme is the same from one airing to the next', [
+    'Uutiset · Episode 5', 'Uutiset (R)', 'Uutiset S02E05', 'UUTISET: osa 3', 'Ylen aamu-tv', 'Formula 1: Brasilian GP',
+  ].map(programmeKey), ['uutiset', 'uutiset', 'uutiset', 'uutiset', 'ylen aamu tv', 'formula 1 brasilian gp']);
+  const now = Date.UTC(2026, 10, 2, 18, 0);
+  const notes = noteWatched(noteWatched(noteWatched({}, 'Uutiset · Episode 1', now - 86400e3), 'Uutiset (R)', now - 3600e3), 'Formula 1: Practice', now - 7 * 86400e3);
+  check('picks: a watch noted by its programme, counted', [notes.uutiset.n, notes.uutiset.at, notes['formula 1 practice'].n], [2, now - 3600e3, 1]);
+  const many = {};
+  for (let i = 0; i < 250; i++) many[`show ${i}`] = { t: `Show ${i}`, n: i % 5 + 1, at: now - i * 3600e3 };
+  check('picks: the notes are kept small, the most telling stay', [Object.keys(noteWatched(many, 'New one', now)).length, 'new one' in noteWatched(many, 'New one', now)], [200, true]);
+  const p = (title, startMin, minutes) => ({ title, start: now + startMin * 60e3, stop: now + (startMin + minutes) * 60e3 });
+  const guide = {
+    fav: [p('Old film', -90, 85), p('Cooking', -20, 60), p('Late show', 40, 60), p('Night film', 100, 90)],
+    often: [p('Uutiset · Episode 7', -10, 30), p('Sport tonight', 20, 60)],
+    other: [p('Formula 1: Qualifying', 30, 90), p('Weather', 60, 5)],
+    hd: [p('Uutiset · Episode 7', -10, 30)],
+  };
+  const ch = (id) => ({ id, n: id.toUpperCase() });
+  const picks = pickProgrammes({
+    channels: [{ item: ch('fav'), favorite: true, rank: null }, { item: ch('often'), favorite: false, rank: 0 }, { item: ch('other'), favorite: false, rank: 9 }, { item: ch('hd'), favorite: false, rank: 1 }],
+    listings: (item) => guide[item.id], notes, reminded: new Set(['late show']), now, limit: 6,
+  });
+  // A word shared with something watched (Formula) lifts a programme over
+  // the same channel's others, though not over a channel watched lately.
+  check('picks: watched first, then a reminder, a favourite; two at most a channel; the ending film and the same airing twice left out',
+    picks.map((x) => `${x.channel.id}:${x.programme.title}:${x.why}${x.on ? ':on' : ''}`),
+    ['often:Uutiset · Episode 7:watched:on', 'fav:Late show:reminder', 'fav:Cooking:favorite:on', 'often:Sport tonight:often', 'other:Formula 1: Qualifying:often', 'other:Weather:often']);
+  check('picks: nothing without programme data', pickProgrammes({ channels: [{ item: ch('x'), favorite: true, rank: null }], listings: () => null, now }), []);
 }
 
 /* ----------------------------------------------- dev/listings.mjs */

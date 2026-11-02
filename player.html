@@ -35,6 +35,10 @@
   </div>
 
   <div class="topbar-end">
+    <!-- The account in use, and the others a click away. Shown only once
+         there is more than one: with one account there is nothing to switch
+         to, and Settings is where another is added. -->
+    <button type="button" id="btn-account" class="ghost account-button" aria-haspopup="menu" data-i18n-title="accounts.switch" hidden><svg viewBox="0 0 20 20" aria-hidden="true"><circle cx="10" cy="7" r="3.2"/><path d="M3.8 17a6.2 6.2 0 0 1 12.4 0"/></svg><span class="button-label" id="btn-account-label"></span><svg class="account-chevron" viewBox="0 0 20 20" aria-hidden="true"><path d="m6 8 4 4 4-4"/></svg></button>
     <!-- Refresh and Help are wanted now and then, so they are marks with
          their names in the label and the tooltip; Settings keeps its word
          where there is room for it. -->
@@ -488,6 +492,20 @@ on two lines as well.</div></div>
           <svg viewBox="0 0 20 20" aria-hidden="true"><path d="M11 3h6v6M17 3l-8 8M8 4H4a1 1 0 0 0-1 1v11a1 1 0 0 0 1 1h11a1 1 0 0 0 1-1v-4"/></svg>
         </a>
       </p>
+      <!-- Every account added, the one in use marked. Switching and
+           removing act at once, like the buttons under Account & data; the
+           fields below are the account in use, or the one being added. -->
+      <div class="accounts" id="accounts" hidden>
+        <div class="accounts-head">
+          <span data-i18n="accounts.title">Accounts</span>
+          <button type="button" id="f-add-account" class="ghost" data-i18n="accounts.add">Add account</button>
+        </div>
+        <ul class="account-list" id="account-list"></ul>
+      </div>
+      <p class="adding-account" id="adding-account" hidden><span data-i18n="accounts.adding">A new account. Saving connects to it; the others stay in the list.</span> <button type="button" id="f-add-cancel" class="link-button" data-i18n="accounts.adding.cancel">Back to the account in use</button></p>
+      <label class="field"><span data-i18n="setup.name">Name (optional)</span>
+        <input id="f-name" type="text" autocomplete="off" spellcheck="false" data-i18n-placeholder="setup.name.placeholder" placeholder="e.g. Provider name">
+      </label>
       <div class="field">
         <span data-i18n="setup.source">Connection</span>
         <div class="radios">
@@ -537,6 +555,12 @@ on two lines as well.</div></div>
              by showing it. -->
         <span id="playlist-status" class="playlist-status" role="status" hidden></span>
       </label>
+      <!-- A playlist that is not an Xtream subscription may name its own
+           programme guide (url-tvg); this is for one that does not. -->
+      <label class="field" id="src-epg" hidden><span data-i18n="setup.epgurl">Programme guide address (XMLTV, optional)</span>
+        <input id="f-epgurl" type="text" placeholder="http://example.tv/guide.xml.gz" autocomplete="off" spellcheck="false" aria-describedby="epgurl-hint">
+        <span id="epgurl-hint" class="field-hint" data-i18n="setup.epgurl.hint">Leave it empty when the playlist names its own guide.</span>
+      </label>
 
       <p id="connection-security" class="connection-security" data-i18n="setup.security">Use HTTPS when your provider supports it. With HTTP, your username, password and viewing requests travel without encryption and can be read or changed by others on the network.</p>
     </section>
@@ -545,6 +569,17 @@ on two lines as well.</div></div>
       <p class="setup-intro" data-i18n="setup.account.intro">Subscription details and stored data.</p>
       <div id="account-box" class="account-box" hidden></div>
       <p id="account-none" class="setup-note" data-i18n="setup.account.none" hidden>Not connected yet.</p>
+      <!-- Sync acts at once, like the buttons below: it is a choice about
+           this browser rather than a preference to save with the rest. -->
+      <section class="sync-box" id="sync-box" aria-labelledby="sync-title">
+        <h3 id="sync-title" data-i18n="sync.title">Sync between computers</h3>
+        <div class="toggles">
+          <label class="toggle"><input type="checkbox" id="f-sync" aria-describedby="sync-hint"><span data-i18n="sync.enable">Sync accounts, favourites, history and settings</span></label>
+          <label class="toggle"><input type="checkbox" id="f-sync-passwords"><span data-i18n="sync.passwords">Include passwords</span></label>
+        </div>
+        <p class="field-hint" id="sync-hint" data-i18n="sync.hint">Carried by your browser's own sync to the computers signed in to the same browser account. Nothing goes to Kepuli-TV.</p>
+        <p class="sync-status" id="sync-status" role="status"></p>
+      </section>
       <!-- The button names the action, the line beside it says what the
            action takes with it. Neither repeats the other. -->
       <details class="setup-maintenance">

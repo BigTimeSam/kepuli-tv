@@ -24,6 +24,7 @@
 import { createServer } from 'node:http';
 import { createReadStream, existsSync, readFileSync, statSync } from 'node:fs';
 import { Transform } from 'node:stream';
+import { gzipSync } from 'node:zlib';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -358,7 +359,7 @@ const CORS = {
 };
 
 function send(res, status, body, type = 'application/json; charset=utf-8') {
-  const data = typeof body === 'string' ? body : JSON.stringify(body);
+  const data = typeof body === 'string' || Buffer.isBuffer(body) ? body : JSON.stringify(body);
   res.writeHead(status, { ...CORS, 'Content-Type': type, 'Content-Length': Buffer.byteLength(data), 'Cache-Control': 'no-store' });
   res.end(data);
 }
@@ -400,11 +401,29 @@ function sendFile(req, res, name, type) {
   // dev/playcheck.mjs: DevTools takes the whole answer at full speed and
   // doles it out, so cutting the server underneath changes nothing.
   const rate = Number(process.env.KEPULI_MOCK_THROTTLE || 0);
-  const out = rate > 0
+  const throttled = rate > 0
     ? body.pipe(new Transform({
       transform(chunk, _enc, done) { setTimeout(() => done(null, chunk), (chunk.length * 1000) / rate); },
     }))
     : body;
+  // KEPULI_MOCK_HOLE, "from-to" as shares of the file ("0.35-0.5"): that
+  // stretch of every Matroska file is sent as zeros — what a provider's copy
+  // of a film was measured to hold, 8 MiB of zeros at a time, for the
+  // player to read past (resync in js/mkv.js).
+  const hole = /^([\d.]+)-([\d.]+)$/.exec(process.env.KEPULI_MOCK_HOLE || '');
+  let at = start;
+  const out = hole && type === 'video/x-matroska'
+    ? throttled.pipe(new Transform({
+      transform(chunk, _enc, done) {
+        const from = Math.floor(size * Number(hole[1]));
+        const to = Math.floor(size * Number(hole[2]));
+        const copy = Buffer.from(chunk);
+        for (let i = Math.max(0, from - at); i < Math.min(copy.length, to - at); i++) copy[i] = 0;
+        at += chunk.length;
+        done(null, copy);
+      },
+    }))
+    : throttled;
   out.pipe(res, { end: !cut });
   if (cut) out.on('end', () => res.destroy());
 }
@@ -651,11 +670,72 @@ function api(req, res, url) {
   }
 }
 
+/* ------------------------------------------------- M3U and XMLTV */
+
+// The same catalogue as an extended M3U playlist and an XMLTV guide, the
+// way a provider's panel writes them (get.php?type=m3u_plus, xmltv.php):
+// for the player's playlist accounts (js/m3usource.js). The playlist names
+// the guide in its header, gzipped and served without a Content-Encoding,
+// as guide.xml.gz files are; the archive channels say catchup="xc".
+//
+//   /playlist.m3u     the playlist
+//   /guide.xml        the guide
+//   /guide.xml.gz     the guide, gzipped
+
+function playlistM3u(origin) {
+  const attr = (v) => String(v).replace(/"/g, "'");
+  const lines = [`#EXTM3U url-tvg="${origin}/guide.xml.gz"`];
+  const cats = (list) => new Map(list.map((c) => [c.category_id, c.category_name]));
+  const liveCats = cats(live.categories);
+  for (const c of liveChannels()) {
+    const archive = c.tv_archive ? ` catchup="xc" catchup-days="${c.tv_archive_duration}"` : '';
+    lines.push(`#EXTINF:-1 tvg-id="${attr(c.epg_channel_id)}" tvg-name="${attr(c.name)}" tvg-logo="${origin}${c.stream_icon}" tvg-chno="${c.num}" group-title="${attr(liveCats.get(c.category_id) || '')}"${archive},${c.name}`);
+    lines.push(`${origin}/live/${USER}/${PASS}/${c.stream_id}.m3u8`);
+  }
+  const movieCats = cats(vod.categories);
+  for (const m of vod.movies) {
+    lines.push(`#EXTINF:-1 tvg-id="" tvg-name="${attr(m.name)}" tvg-logo="${origin}${m.stream_icon}" group-title="${attr(movieCats.get(m.category_id) || '')}",${m.name}`);
+    lines.push(`${origin}/movie/${USER}/${PASS}/${m.stream_id}.${m.container_extension}`);
+  }
+  const seriesCats = cats(series.categories);
+  for (const entry of series.list) {
+    const info = series.info.get(String(entry.series_id));
+    for (const list of Object.values(info.episodes)) {
+      for (const ep of list) {
+        const name = `${entry.name} S${String(ep.season).padStart(2, '0')} E${String(ep.episode_num).padStart(2, '0')}`;
+        lines.push(`#EXTINF:-1 tvg-id="" tvg-name="${attr(name)}" tvg-logo="${origin}${entry.cover}" group-title="${attr(seriesCats.get(entry.category_id) || '')}",${name}`);
+        lines.push(`${origin}/series/${USER}/${PASS}/${ep.id}.${ep.container_extension}`);
+      }
+    }
+  }
+  return lines.join('\r\n') + '\r\n';
+}
+
+function guideXml() {
+  const xmltvTime = (seconds) => {
+    const d = new Date(Number(seconds) * 1000);
+    const p = (n) => String(n).padStart(2, '0');
+    return `${d.getUTCFullYear()}${p(d.getUTCMonth() + 1)}${p(d.getUTCDate())}${p(d.getUTCHours())}${p(d.getUTCMinutes())}${p(d.getUTCSeconds())} +0000`;
+  };
+  const out = ['<?xml version="1.0" encoding="utf-8" ?><!DOCTYPE tv SYSTEM "xmltv.dtd"><tv generator-info-name="Kepuli-TV demo">'];
+  for (const c of liveChannels()) out.push(`<channel id="${escapeXml(c.epg_channel_id)}"><display-name>${escapeXml(c.name)}</display-name></channel>`);
+  for (const c of liveChannels()) {
+    for (const p of programmes(c)) {
+      out.push(`<programme start="${xmltvTime(p.start_timestamp)}" stop="${xmltvTime(p.stop_timestamp)}" channel="${escapeXml(c.epg_channel_id)}"><title lang="en">${escapeXml(Buffer.from(p.title, 'base64').toString('utf8'))}</title><desc lang="en">${escapeXml(Buffer.from(p.description, 'base64').toString('utf8'))}</desc></programme>`);
+    }
+  }
+  out.push('</tv>');
+  return out.join('\n');
+}
+
 function handle(req, res) {
   const url = new URL(req.url, `http://${req.headers.host}`);
   const path = url.pathname;
   if (req.method === 'OPTIONS') { res.writeHead(204, CORS); return res.end(); }
   if (path === '/player_api.php') return api(req, res, url);
+  if (path === '/playlist.m3u') return send(res, 200, playlistM3u(originOf(req)), 'audio/x-mpegurl; charset=utf-8');
+  if (path === '/guide.xml') return send(res, 200, guideXml(), 'application/xml; charset=utf-8');
+  if (path === '/guide.xml.gz') return send(res, 200, gzipSync(guideXml()), 'application/octet-stream');
 
   let m;
   if ((m = /^\/img\/logo\/(\d+)\.svg$/.exec(path))) {

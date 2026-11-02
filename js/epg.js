@@ -53,6 +53,19 @@ export class Epg {
     this.updated = new Set();
     this.flushHandle = null;
     this.enabled = true;
+    this.kept = new Set();       // channels asked for elsewhere than the list, see keep()
+  }
+
+  /**
+   * Channels whose programmes are wanted whatever the list shows — the
+   * picks on the empty player's page (js/picks.js) — and asked for now.
+   * The list's own requests replace one another as it scrolls (dropUnseen);
+   * these stay in the queue until they are fetched.
+   */
+  keep(items) {
+    if (!this.enabled) return;
+    this.kept = new Set(items.filter((it) => it && it.k === 0 && it.epgId).map((it) => String(it.id)));
+    for (const it of items) this.want(it, { mode: 'grid' });
   }
 
   /** The programme on now and the next one, or null when not known. */
@@ -161,6 +174,7 @@ export class Epg {
   dropUnseen(items) {
     const keep = new Set();
     for (const it of items) if (it && it.k === 0 && it.epgId) keep.add(String(it.id));
+    for (const id of this.kept) keep.add(id);
     this.queue = this.queue.filter((req) => keep.has(req.id));
     this.queued = new Map(this.queue.map((req) => [req.id, req.mode]));
   }

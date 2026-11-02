@@ -26,6 +26,10 @@ import { describeAll, passthroughMime, preferred as preferredAudio } from './aud
 import { AudioTranscoder, encoderSetup, RATE as DECODED_RATE, CHANNELS as DECODED_CHANNELS } from './transcode.js';
 import { SubtitleTracks, isSubtitle, isTextSubtitle, preferred as preferredSubtitle } from './subs.js';
 
+// Holes a damaged file leaves in the buffer: how often they are looked
+// for while the picture waits, and the longest one jumped (watchHoles).
+const HOLE_CHECK_MS = 400;
+const MAX_HOLE_S = 180;
 const HEADER_BYTES = 256 * 1024;
 const CUES_BYTES = 4 * 1024 * 1024;
 
@@ -269,9 +273,50 @@ export class Remuxer {
    */
   get recovering() { return this.resumes > 0; }
 
+  /**
+   * Jumps the picture over the holes a damaged file leaves in the buffer
+   * (onResync above): MediaSource does not play across a gap, and the
+   * picture would wait at the end of one buffered stretch with the next one
+   * already there. Watched only once a hole has been made, and only a hole
+   * of a few minutes at most is jumped — anything longer is the viewer's
+   * seek or a buffer still filling.
+   */
+  watchHoles() {
+    if (this.holeTimer || this.destroyed) return;
+    this.holesJumped = this.holesJumped || 0;
+    this.holeTimer = setInterval(() => {
+      if (this.destroyed) { clearInterval(this.holeTimer); this.holeTimer = null; return; }
+      const v = this.video;
+      if (v.paused || v.seeking || v.readyState >= 3) return;
+      const at = v.currentTime;
+      const ranges = v.buffered;
+      for (let i = 0; i < ranges.length; i++) {
+        const start = ranges.start(i);
+        if (start <= at + 0.1) continue;
+        // The first stretch after the picture: jumped to when the picture
+        // stands at the end of the one it is in, or between stretches.
+        const inRange = i > 0 && ranges.start(i - 1) <= at && at <= ranges.end(i - 1) + 0.05;
+        const atEnd = !inRange || ranges.end(i - 1) - at < 0.35;
+        if (atEnd && start - at < MAX_HOLE_S) {
+          console.warn('[iptv] jumping a hole in the file from %s s to %s s', at.toFixed(2), start.toFixed(2));
+          try { v.currentTime = start + 0.05; } catch { /* the element refused; the next tick tries again */ return; }
+          // Said when the picture jumps rather than when the reader, far
+          // ahead, found the damage: the first time in full — the fault is
+          // the provider's copy of the file, not the connection or the
+          // player — and after that only how much went.
+          this.onNotice(this.holesJumped++
+            ? t('remux.gap.again', { seconds: Math.max(1, Math.round(start - at)) })
+            : t('remux.gap', { time: formatClock(at) }));
+        }
+        return;
+      }
+    }, HOLE_CHECK_MS);
+  }
+
   destroy() {
     this.destroyed = true;
     this.generation++;
+    if (this.holeTimer) { clearInterval(this.holeTimer); this.holeTimer = null; }
     this.video.removeEventListener('seeking', this.onSeeking);
     this.video.removeEventListener('pause', this.onPause);
     if (this.subs) { this.subs.destroy(); this.subs = null; }
@@ -930,12 +975,29 @@ export class Remuxer {
     this.state.phase = 'purkaa';
     this.state.reading = true;
 
+    // A damaged stretch skipped (resync in js/mkv.js): the group of pictures
+    // it cut short is not fed — the decoder answers an incomplete group with
+    // an error it does not recover from — and the picture starts again at
+    // the next keyframe after it. The viewer is told once where.
+    let awaitKey = false;
+    const onResync = (at, skipped) => {
+      console.warn('[iptv] damaged stretch of %d bytes at byte %d skipped', skipped, offset + at);
+      pendingVideo = [];
+      videoFrom = null;
+      awaitKey = true;
+      this.watchHoles();
+    };
+
     try {
-      for await (const frame of frames(bytes, { timestampScale: this.header.timestampScale, tracks, onCluster, onStop })) {
+      for await (const frame of frames(bytes, { timestampScale: this.header.timestampScale, tracks, onCluster, onStop, onResync })) {
         if (this.destroyed || generation !== this.generation) break;
         this.state.pending = bytes.available;
         this.state.lastPts = frame.pts / 1e9;
 
+        if (frame.track === videoNumber && awaitKey) {
+          if (!frame.keyframe) continue;
+          awaitKey = false;
+        }
         if (frame.track === videoNumber) {
           if (frame.keyframe && pendingVideo.length >= MIN_SEGMENT_FRAMES) {
             this.flushVideo(pendingVideo, generation);

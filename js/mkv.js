@@ -93,6 +93,33 @@ export class BufferedBytes {
     return out;
   }
 
+  /**
+   * Skips ahead to the next place the four bytes `pattern` start, without
+   * consuming them; up to `limit` bytes. Resolves to the bytes skipped, or
+   * null when the stream ended or the limit was reached first. Scans the
+   * chunks as they are rather than byte by byte through peek(), since a
+   * damaged stretch of a file runs to megabytes.
+   */
+  async scanTo(pattern, limit) {
+    let skipped = 0;
+    for (;;) {
+      if (!await this.need(4)) return null;
+      const chunk = this.chunks[0];
+      let found = -1;
+      for (let i = this.offset; i < chunk.byteLength; i++) {
+        if (chunk[i] !== pattern[0]) continue;
+        const at = i - this.offset;
+        if (!await this.need(at + 4)) return null;
+        if (this.peek(at + 1) === pattern[1] && this.peek(at + 2) === pattern[2] && this.peek(at + 3) === pattern[3]) { found = at; break; }
+      }
+      const step = found >= 0 ? found : chunk.byteLength - this.offset;
+      if (skipped + step > limit) return null;
+      if (step) this.skip(step);
+      skipped += step;
+      if (found >= 0) return skipped;
+    }
+  }
+
   skip(n) {
     let left = n;
     while (left > 0) {
@@ -146,7 +173,7 @@ const DESCEND = new Set([ID.Segment, ID.Cluster]);
  * @yields {{track:number, pts:number, duration:number|null, keyframe:boolean, data:Uint8Array}}
  *         pts and duration in nanoseconds from the start of the file
  */
-export async function* frames(bytes, { timestampScale, tracks, onCluster, onStop }) {
+export async function* frames(bytes, { timestampScale, tracks, onCluster, onStop, onResync }) {
   // Demuxing can end early for several reasons, and they must be told
   // apart: the stream running out is normal, whereas an invalid id says the
   // parser has lost its place and resuming from there will not help.
@@ -157,7 +184,16 @@ export async function* frames(bytes, { timestampScale, tracks, onCluster, onStop
     // interrupted download resumes at an element boundary, not mid-element.
     const at = bytes.position;
     const el = await readElement(bytes);
-    if (!el) { stop(bytes.done ? 'stream ended' : 'invalid id or size'); return; }
+    if (!el) {
+      if (bytes.done && !bytes.available) { stop('stream ended'); return; }
+      // Bytes that are no element mid-file: a stretch of the file damaged
+      // or missing — measured, a provider's copy of a film had 8 MiB of
+      // zeros 8 MB in. The next cluster is found and reading goes on from
+      // it, as VLC and ffmpeg do, rather than the film ending there.
+      if (await resync(bytes, at, onResync)) continue;
+      stop(bytes.done ? 'stream ended' : 'invalid id or size');
+      return;
+    }
 
     if (DESCEND.has(el.id)) {
       if (el.id === ID.Cluster && onCluster) onCluster(at);
@@ -171,7 +207,11 @@ export async function* frames(bytes, { timestampScale, tracks, onCluster, onStop
     }
 
     if (el.id === ID.SimpleBlock || el.id === ID.BlockGroup) {
-      if (el.size > MAX_BLOCK) { stop(`unreasonable block of ${el.size} bytes`); return; }
+      if (el.size > MAX_BLOCK) {
+        if (await resync(bytes, at, onResync)) continue;
+        stop(`unreasonable block of ${el.size} bytes`);
+        return;
+      }
       if (!await bytes.need(el.size)) { stop('stream ended mid-block'); return; }
       const raw = bytes.read(el.size);
       const parsed = el.id === ID.SimpleBlock
@@ -183,6 +223,43 @@ export async function* frames(bytes, { timestampScale, tracks, onCluster, onStop
 
     if (el.unknown) continue;                 // unknown size: cannot be skipped
     if (!await skipBytes(bytes, el.size)) { stop(`stream ended while skipping ${el.size} bytes`); return; }
+  }
+}
+
+// How far ahead a damaged stretch is searched for the next cluster. A
+// cluster is a few seconds of film, a few megabytes; a gap longer than this
+// is a file that is broken rather than holed.
+const MAX_RESYNC = 64 * 1024 * 1024;
+const CLUSTER_ID = [0x1f, 0x43, 0xb6, 0x75];
+
+/**
+ * Reading moved on to the next cluster after bytes that are no element.
+ * A cluster's id alone could turn up in a picture's data, so it counts only
+ * when a plausible size follows and then the cluster's Timestamp (0xE7) or
+ * the CRC-32 (0xBF) that may come before it, as the first child of a
+ * cluster is. Resolves to whether one was found;
+ * onResync hears where the damage began and how much was skipped.
+ */
+async function resync(bytes, from, onResync) {
+  // Back where the element that failed began is no longer possible — its
+  // bytes are read — but the search starts from here, a byte on.
+  let skipped = bytes.position - from;
+  for (;;) {
+    const step = await bytes.scanTo(CLUSTER_ID, MAX_RESYNC - skipped);
+    if (step == null) return false;
+    skipped += step;
+    if (!await bytes.need(5)) return false;
+    const first = bytes.peek(4);
+    let len = 1;
+    for (let mask = 0x80; mask && !(first & mask); mask >>= 1) len++;
+    // The first child is the Timestamp, or a CRC-32 (0xBF) before it, which
+    // ffmpeg writes into every cluster.
+    if (len <= 8 && await bytes.need(4 + len + 1) && (bytes.peek(4 + len) === 0xe7 || bytes.peek(4 + len) === 0xbf)) {
+      if (onResync) onResync(from, skipped);
+      return true;
+    }
+    bytes.skip(1);
+    skipped++;
   }
 }
 

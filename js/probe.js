@@ -208,6 +208,32 @@ export const serverFault = (status) => status >= 500 && status !== 509;
  */
 export const providerError = (status) => serverFault(status) || status === 404 || status === 410;
 
+/**
+ * What the server says about the address right now: one byte asked for,
+ * the redirect followed, the connection let go as soon as the headers are
+ * in. For a failure the header read cannot explain because it is from
+ * the cache, or found nothing wrong: a provider whose proxy fails now and
+ * then answers the header read one minute and "502 Bad Gateway" the next
+ * (measured). Resolves to { status, ok, redirected }, or { error } when
+ * there was no answer at all.
+ */
+export async function answerOf(url, { signal, timeout = ANSWER_MS } = {}) {
+  const ctrl = new AbortController();
+  const relay = () => ctrl.abort();
+  signal?.addEventListener('abort', relay, { once: true });
+  const timer = setTimeout(() => ctrl.abort(), timeout);
+  try {
+    const res = await fetch(url, { signal: ctrl.signal, cache: 'no-store', credentials: 'omit', headers: { Range: 'bytes=0-0' } });
+    return { status: res.status, ok: res.ok, redirected: res.redirected };
+  } catch (err) {
+    return { error: err && err.message ? err.message : String(err) };
+  } finally {
+    clearTimeout(timer);
+    signal?.removeEventListener('abort', relay);
+    ctrl.abort();
+  }
+}
+
 function parse(bytes) {
   if (emptyAnswer(bytes)) return { container: 'unknown', error: 'empty', empty: true };
   if (bytes[0] === 0x1a && bytes[1] === 0x45 && bytes[2] === 0xdf && bytes[3] === 0xa3) {
