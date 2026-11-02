@@ -1,0 +1,69 @@
+=== NAME ===
+Kepuli-TV – IPTV Player
+=== SHORT DESCRIPTION ===
+Xem IPTV Xtream Codes của bạn ngay trên trình duyệt, chẳng rườm rà. Kênh mở trong vài giây, MKV phát cả phụ đề.
+=== DETAILED DESCRIPTION ===
+Xem gói IPTV của riêng bạn ngay trên trình duyệt, mà chẳng phải vật lộn với
+ứng dụng. Kepuli-TV chạy với Xtream Codes và xây quanh một ý tưởng: kho kênh
+khổng lồ cũng phải gọn nhẹ khi dùng.
+
+→ Kênh mở sau một, hai giây, kể cả với kho kênh đồ sộ
+→ Hàng trăm danh mục lộn xộn gọn lại thành danh sách theo quốc gia
+→ Lịch phát sóng (EPG) cỡ toàn cửa sổ, có catch-up nếu nhà cung cấp hỗ trợ
+→ Phim và tập MKV phát ngay trong trình duyệt, đủ phụ đề và âm thanh vòm
+
+
+VÌ SAO TÔI LÀM RA NÓ
+
+Tôi chán những ứng dụng IPTV cứ bắt mình vật lộn: danh mục dài bất tận, hộp
+thoại làm đứng cả màn hình mỗi khi tải kho kênh, và những tệp nhất quyết
+chẳng chịu phát. Thế nên tôi tự làm ra ứng dụng mà mình muốn dùng mỗi tối.
+- Samuli, tác giả Kepuli-TV
+
+
+BẠN SẼ NHẬN ĐƯỢC
+
+• Dán liên kết M3U nhà cung cấp gửi, phần cài đặt tự điền xong.
+• Tìm kiếm bỏ qua dấu và thứ tự từ, kèm bộ lọc trong mọi menu.
+• Xem dở đến đâu, mục đó nằm ngay đầu danh sách; tập tiếp theo tự chạy.
+• Chẳng có hộp thoại nào chặn màn hình khi tải dữ liệu; nội dung đang phát
+  cứ thế phát tiếp.
+• Hợp với tài khoản chỉ có một kết nối: khi đổi kênh, ứng dụng chờ nhà cung
+  cấp giải phóng kết nối thay vì báo lỗi.
+• Phim và phim bộ hiện dạng ảnh bìa, kèm cốt truyện, điểm đánh giá và các
+  mùa.
+• Mục yêu thích, lịch sử xem và vị trí xem tiếp.
+• Ẩn các thương hiệu toàn cầu khỏi danh sách của từng quốc gia, nhờ đó dễ
+  tìm kênh bản địa.
+• Truyền sang Chromecast, dùng phím đa phương tiện và nhận lời nhắc trước
+  giờ chiếu.
+• Giao diện sáng hoặc tối, bàn phím dùng được mọi nơi; bố cục theo cỡ chữ và
+  độ tương phản bạn chọn.
+• Có 30 ngôn ngữ. Tự dùng ngôn ngữ của trình duyệt cho đến khi bạn chọn
+  ngôn ngữ khác.
+
+
+RIÊNG TƯ TỪ THIẾT KẾ
+
+Không theo dõi, không quảng cáo, khỏi đăng ký. Kepuli-TV chỉ nói chuyện với
+máy chủ của chính bạn và chỉ xin quyền cho đúng địa chỉ đó — quyền rộng hơn
+chỉ khi bạn đồng ý, lúc nhà cung cấp đẩy luồng sang nơi khác.
+
+
+LƯU Ý
+
+Tiện ích không chứa nội dung và không kèm nhà cung cấp nào. Hãy dùng tài
+khoản Xtream Codes của riêng bạn, chỉ xem nội dung bạn có quyền xem, và bảo
+đảm dịch vụ hợp pháp tại nơi bạn sống.
+
+
+BẮT ĐẦU
+
+Nhấp biểu tượng trên thanh công cụ, nhập máy chủ, tên người dùng và mật
+khẩu, rồi danh sách của bạn sẽ hiện ra.
+
+
+XEM THỬ
+
+Video ngắn giới thiệu mọi tính năng, dùng nội dung mẫu (bằng tiếng Anh):
+https://www.youtube.com/watch?v=JUljsUuZqDI

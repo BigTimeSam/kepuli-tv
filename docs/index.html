@@ -821,8 +821,7 @@ and takes it on request, reopening where it was. <strong>Account &amp; data</str
 the version running</li>
   <li><strong>Favourites</strong> and <strong>history</strong> as tabs of their own — a whole category can be
 a favourite too, see below</li>
-  <li><strong>Two languages</strong>: English and Finnish, switched in the settings without a
-page reload</li>
+  <li><strong>Thirty languages</strong>, switched in the settings without a page reload</li>
   <li><strong>Automatic reconnection</strong> when a live stream drops — the death of a source
 is recognised in three ways: the server cuts the connection, the buffer is
 played out, or the picture freezes while the connection stays open. The
@@ -1535,7 +1534,7 @@ js/modal.js         shared close buttons, Escape and backdrop dismissal
 js/db.js            IndexedDB: a TTL cache
 js/config.js        settings, favourites, history, resume points, the remembered view
 js/i18n.js          the interface language: English and Finnish, t() and static HTML
-js/locales/         the other eleven languages, one module each, loaded when chosen
+js/locales/         the other twenty-eight languages, one module each, loaded when chosen
 js/picker.js        the drop-down lists with a filter field
 js/international.js  which channels are in many countries' lists
 js/theme.js         the dark and light theme
@@ -1631,9 +1630,24 @@ it is dropped as the list is read and never requested.</li>
 
 <h2 id="language">Language</h2>
 
-<p>The interface speaks thirteen languages: English, Finnish, Swedish, Norwegian
+<p>The interface speaks thirty languages: English, Finnish, Swedish, Norwegian
 (Bokmål), Danish, German, Dutch, French, Spanish, Brazilian Portuguese,
-Italian, Polish and Turkish. Settings &gt; Language starts on <strong>Browser
+Italian, Polish, Turkish, Czech, Slovak, Slovenian, Hungarian, Romanian,
+Bulgarian, Croatian, Serbian, Albanian, Greek, Russian, Ukrainian,
+Lithuanian, Latvian, Estonian, Indonesian and Vietnamese. Serbian is written
+in the Latin script, which its readers online and in providers' lists use;
+a browser asking for <code>sh</code> or <code>cnr</code> gets it too, and one asking for Bosnian
+(<code>bs</code>) gets Croatian, which writes ijekavian as Bosnian does. Portugal has a
+store listing of its own (<code>store/listings/pt_PT.txt</code>), while the interface
+speaks Brazilian Portuguese to it.</p>
+
+<p>Settings &gt; Clock is <strong>Automatic</strong>, <strong>24-hour</strong> or <strong>12-hour</strong>, each shown with
+an evening time written its way. Automatic is 24-hour in every language —
+Greek and Albanian included, whose own default is 12-hour, as a television
+guide is read on the 24-hour clock there — except English in a browser whose
+English is of a 12-hour region (en-US, en-CA, en-AU, en-IN…), which gets
+10:30 PM. English dates follow the browser's region too: month before day in
+the United States, day before month in the en-GB the app otherwise writes. Settings &gt; Language starts on <strong>Browser
 language</strong>, which names the language it comes to: the first one in
 <code>navigator.languages</code> the app speaks (<code>no</code> and <code>nn</code> count as Bokmål), English
 when there is none. It stays a following setting, not a copy — the stored
@@ -1848,7 +1862,7 @@ show the new version and <code>"service_worker"</code>, and no <code>gecko</code
   version with the Chrome zip at once. An install from the store on another
   machine is the final test: the toolbar button must open the player.</p>
 
-<h4 id="the-listings-in-thirteen-languages">The listings in thirteen languages</h4>
+<h4 id="the-listings-in-thirty-one-languages">The listings in thirty-one languages</h4>
 
 <p>The store texts are in <code>store/listings/&lt;locale&gt;.txt</code>, one file per language:
 the name, the short description and the detailed description. The name is
@@ -1860,9 +1874,31 @@ the manifest takes its name and description (<code>__MSG_appName__</code>,
 <code>__MSG_appDesc__</code>) — the only way either store shows a translated title and
 summary — and <code>dist/listings/&lt;locale&gt;.txt</code>, the texts unwrapped, to paste
 into the stores' description fields. <code>dev/package.mjs</code> refuses a package
-whose <code>_locales/</code> is out of step, and renames Norwegian from the Chrome
-store's <code>no</code> to Firefox's <code>nb_NO</code>. How to enter the languages in each store
-is in <code>store-listing.txt</code>.</p>
+whose <code>_locales/</code> is out of step, renames Norwegian from the Chrome
+store's <code>no</code> to Firefox's <code>nb_NO</code>, and leaves Albanian out of the Chrome
+package: the Chrome Web Store has no code for it, so its listing is
+Firefox's alone. How to enter the languages in each store is in
+<code>store-listing.txt</code>.</p>
+
+<h4 id="keeping-the-translations-in-step">Keeping the translations in step</h4>
+
+<p>A translation goes stale without a sign when the English is reworded. So
+<code>store/translations.json</code> records, for every language, a short hash of the
+English each interface key and each store listing was translated from, and
+<code>node dev/translations.mjs</code> lists what is behind — keys whose English
+changed or that a language lacks, and listings whose English changed — with
+the English to work from. <code>dev/package.mjs</code> refuses a release while anything
+is behind. After translating, <code>node dev/translations.mjs --mark &lt;language&gt;</code>
+records it.</p>
+
+<p>The listings reach the stores at release. <code>node dev/amo-publish.mjs</code> sends
+the name, summary and description of every language to addons.mozilla.org
+through its API, wherever they differ (<code>listing --dry</code> shows what would
+change). The Chrome Web Store has no API for the detailed description: it is
+filled into the dashboard, language by language, and
+<code>store/cws-listing.json</code> records what was last put there.
+<code>node dev/cws-publish.mjs listing</code> names the languages behind, and a
+submission is refused while one is, unless <code>--listing-later</code> is given.</p>
 
 <h2 id="licence">Licence</h2>
 

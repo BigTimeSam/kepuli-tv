@@ -1,0 +1,71 @@
+=== NAME ===
+Kepuli-TV – IPTV Player
+=== SHORT DESCRIPTION ===
+Gledaj vlastiti Xtream Codes IPTV u pregledniku bez borbe s aplikacijom. Kanali se otvaraju u sekundi, a MKV svira s titlovima.
+=== DETAILED DESCRIPTION ===
+Gledaj vlastitu IPTV pretplatu u pregledniku, bez borbe s aplikacijom.
+Kepuli-TV je reproduktor za Xtream Codes izgrađen oko jedne ideje: golem
+katalog treba djelovati malen.
+
+→ Kanali se otvaraju za sekundu-dvije, čak i iz golemog kataloga
+→ Stotine neurednih kategorija pretvaraju se u pregledan popis zemalja
+→ TV vodič (EPG) preko cijelog prozora, s gledanjem unatrag (catch-up) gdje
+  ga pružatelj nudi
+→ MKV filmovi i epizode igraju izravno u pregledniku, uz titlove i prostorni
+  zvuk
+
+
+ZAŠTO SAM GA NAPRAVIO
+
+Dosadile su mi IPTV aplikacije s kojima se moraš boriti: beskrajni popisi
+kategorija, dijalozi koji sve zamrznu dok se katalog učitava i datoteke koje
+se jednostavno ne žele pokrenuti. Zato sam napravio onu koju sam i sam htio
+koristiti svake večeri.
+- Samuli, autor Kepuli-TV
+
+
+ŠTO DOBIVAŠ
+
+• Zalijepi M3U poveznicu koju ti je poslao pružatelj i postavke se popune
+  same.
+• Pretraga koja ne mari za dijakritičke znakove i redoslijed riječi te filtar
+  u svakom izborniku.
+• Što si ostavio na pola, čeka na vrhu, a sljedeća epizoda kreće sama.
+• Ništa ne blokira zaslon dok se podaci učitavaju, a što svira, svira dalje.
+• Napravljen za račune s jednom vezom: pri promjeni kanala čeka da je
+  davatelj oslobodi umjesto da javi grešku.
+• Filmovi i serije kao naslovnice, s opisima, ocjenama i sezonama.
+• Favoriti, povijest gledanja i mjesta nastavka.
+• Sakrij globalne marke s popisa neke zemlje, a njezine domaće postaje lako je
+  pronaći.
+• Prebacivanje na Chromecast, medijske tipke i podsjetnik prije početka
+  emisije.
+• Tamni ili svijetli izgled, tipkovnica dosiže sve; raspored prati postavke
+  veličine teksta i kontrasta.
+• Na 30 jezika. Govori jezikom tvog preglednika dok ne odabereš drugi.
+
+
+PRIVATNOST PO ZAMISLI
+
+Bez praćenja, bez oglasa, bez registracije. Kepuli-TV komunicira samo s tvojim
+vlastitim poslužiteljem i traži dopuštenje samo za tu adresu — šire
+dopuštenje tek ako ga ti odobriš, kad pružatelj usmjerava tokove drugamo.
+
+
+NAPOMENA
+
+Dodatak ne sadrži nikakav sadržaj i ne dolazi ni s jednim pružateljem. Donesi
+vlastiti Xtream Codes račun, koristi ga samo za sadržaj koji smiješ gledati i
+provjeri je li usluga zakonita ondje gdje živiš.
+
+
+KAKO POČETI
+
+Klikni ikonu na alatnoj traci, upiši poslužitelj, korisničko ime i lozinku i
+tvoj popis se pojavljuje.
+
+
+POGLEDAJ U AKCIJI
+
+Kratka video tura svih mogućnosti, prikazana na demo sadržaju (na engleskom):
+https://www.youtube.com/watch?v=JUljsUuZqDI

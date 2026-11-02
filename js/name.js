@@ -91,6 +91,8 @@ const COUNTRIES = [
   [['cn', 'chn'], 'china', 'kiina'],
   [['jp', 'jpn'], 'japan', 'japani'],
   [['kr', 'kor'], 'korea', 'south korea'],
+  [['id', 'idn', 'ina'], 'indonesia'],
+  [['vn', 'vnm'], 'vietnam', 'viet nam', 'việt nam'],
   [['ar', 'arab', 'ara'], 'arabic', 'arab', 'arabia'],
 ];
 const CODES_BY_NAME = new Map();

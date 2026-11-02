@@ -42,7 +42,7 @@ NELER SUNUYOR
   hatırlatma al.
 • Koyu ya da açık görünüm; klavye her yere ulaşır, yerleşim de metin boyutu
   ve karşıtlık ayarlarını izler.
-• On üç dilde. Sen başka bir dil seçene kadar tarayıcının dilini konuşur.
+• 30 dilde. Sen başka bir dil seçene kadar tarayıcının dilini konuşur.
 
 
 TASARIMI GEREĞİ GİZLİ

@@ -47,6 +47,36 @@ export function browserLanguage() {
 }
 
 /**
+ * The browser's own English, when its first language is English of some
+ * region: en-US, en-CA, en-AU. The app's English is en-GB by default (21:30,
+ * day before month); a reader in the United States gets month before day
+ * from this, and the 12-hour clock from hourCycle().
+ */
+export function browserEnglish() {
+  const tag = (navigator.languages?.length ? navigator.languages[0] : navigator.language) || '';
+  return /^en-[a-z]{2}$/i.test(tag) ? tag : null;
+}
+
+/**
+ * The clock a setting stands for, as Intl's hourCycle: '24' and '12' as
+ * they say, and 'auto' — the default — the browser's own convention, but
+ * only for English. A television guide is read on the 24-hour clock in
+ * most of the languages the app speaks even where the language's own
+ * default is 12-hour (Greek, Albanian), while English readers in the
+ * United States, Canada, Australia or India expect 10:30 PM.
+ */
+export function hourCycle(settings) {
+  if (settings?.clock === '12') return 'h12';
+  if (settings?.clock === '24') return 'h23';
+  const tag = browserEnglish();
+  if (!tag) return 'h23';
+  try {
+    const cycle = new Intl.DateTimeFormat(tag, { hour: 'numeric' }).resolvedOptions().hourCycle;
+    return cycle === 'h12' || cycle === 'h11' ? 'h12' : 'h23';
+  } catch { return 'h23'; }
+}
+
+/**
  * The interface language a setting stands for. 'auto' — what every
  * viewer has until they choose one in Settings — follows the browser, and
  * keeps following it: a setting saved for some other reason (the theme, a
@@ -79,6 +109,8 @@ const SETTINGS_DEFAULTS = {
   // dark | light, from the button at the right end of the header. Dark
   // first: the app is for watching television, mostly in the evening.
   theme: 'dark',
+  // auto | 24 | 12, see hourCycle().
+  clock: 'auto',
   // The interface language and the subtitle language are not here: both
   // start from the browser's own, see settingsDefaults(). The subtitle one
   // is chosen once and applies to later episodes; 'off' = no subtitles,

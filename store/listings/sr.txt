@@ -1,0 +1,71 @@
+=== NAME ===
+Kepuli-TV – IPTV Player
+=== SHORT DESCRIPTION ===
+Gledaj svoj Xtream Codes IPTV u pretraživaču, bez borbe sa aplikacijom. Kanali se otvaraju za sekund, a MKV ide sa titlovima.
+=== DETAILED DESCRIPTION ===
+Gledaj svoju IPTV pretplatu u pretraživaču, bez borbe sa aplikacijom.
+Kepuli-TV je plejer za Xtream Codes zasnovan na jednoj ideji: džinovski
+katalog treba da deluje malo.
+
+→ Kanali se otvaraju za sekund-dva, čak i iz ogromne ponude
+→ Stotine zbrkanih kategorija postaju uredan spisak zemalja
+→ Vodič kroz program (EPG) preko celog prozora, sa gledanjem unazad gde god
+  provajder to nudi
+→ Filmovi i epizode u MKV formatu rade pravo u pretraživaču, zajedno sa
+  titlovima i prostornim zvukom
+
+
+ZAŠTO SAM GA NAPRAVIO
+
+Dosadile su mi IPTV aplikacije sa kojima si stalno u sukobu: beskrajne liste
+kategorija, prozori koji zamrznu sve dok se katalog učitava i datoteke koje
+jednostavno neće da krenu. Zato sam napravio onu koju sam sâm želeo da
+koristim svako veče.
+- Samuli, autor aplikacije Kepuli-TV
+
+
+ŠTA DOBIJAŠ
+
+• Nalepi M3U link koji ti je poslao provajder i podešavanja se popune sama.
+• Pretraga koja ne mari za dijakritike i redosled reči, plus filter u svakom
+  meniju.
+• Ono što si ostavio na pola čeka na vrhu, a sledeća epizoda kreće sama.
+• Ništa ne blokira ekran dok se podaci učitavaju, a ono što se vrti nastavlja
+  da se vrti.
+• Pravljen za naloge sa jednom vezom: pri promeni kanala sačeka da provajder
+  oslobodi vezu, umesto da prijavi grešku.
+• Filmovi i serije kao omoti, sa radnjom, ocenama i sezonama.
+• Omiljeno, istorija gledanja i mesta nastavka.
+• Sakrij globalne brendove sa spiska jedne države, pa se njene domaće stanice
+  lako nalaze.
+• Prebacivanje na Chromecast, multimedijalni tasteri i podsetnik pre početka
+  emisije.
+• Tamna ili svetla tema, a tastatura stiže svuda; raspored prati tvoja
+  podešavanja veličine teksta i kontrasta.
+• Na 30 jezika. Govori jezikom tvog pretraživača dok ne izabereš drugi.
+
+
+PRIVATNOST PRE SVEGA
+
+Bez praćenja, bez reklama, bez registracije. Dodatak komunicira samo sa tvojim
+serverom i traži dozvolu isključivo za tu adresu — šira dozvola samo ako
+je odobriš, kada provajder preusmerava strimove na drugo mesto.
+
+
+NAPOMENA
+
+Dodatak ne sadrži nikakav sadržaj i ne dolazi uz provajdera. Donesi sopstveni
+nalog, koristi ga samo za sadržaj koji imaš pravo da gledaš i proveri da
+je usluga zakonita tamo gde živiš.
+
+
+KAKO DA POČNEŠ
+
+Klikni ikonicu na traci sa alatkama, upiši server, korisničko ime i lozinku i
+tvoja lista se pojavljuje.
+
+
+POGLEDAJ U AKCIJI
+
+Kratak video obilazak svih funkcija, prikazan na probnom sadržaju:
+https://www.youtube.com/watch?v=JUljsUuZqDI

@@ -33,6 +33,9 @@ const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const LISTINGS = join(ROOT, 'store', 'listings');
 const LOCALES = join(ROOT, '_locales');
 export const DEFAULT_LOCALE = 'en';
+// Languages the Chrome Web Store has no locale code for: their listing is
+// Firefox's alone, and the Chrome package leaves their _locales/ out.
+export const CHROME_UNSUPPORTED = ['sq'];
 
 const LIMITS = { name: 45, short: 132, detailed: 16000 };
 const MAX_REPEAT = 4;

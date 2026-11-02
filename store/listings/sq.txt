@@ -1,0 +1,69 @@
+=== NAME ===
+Kepuli-TV – IPTV Player
+=== SHORT DESCRIPTION ===
+Shiko IPTV-në tënde Xtream Codes në shfletues pa u grindur me aplikacionin. Kanalet hapen për sekonda dhe MKV luhet me titra.
+=== DETAILED DESCRIPTION ===
+Shiko abonimin tënd IPTV në shfletues, pa u zënë me aplikacionin. Kepuli-TV
+është një luajtës për Xtream Codes, ndërtuar mbi një ide: një katalog i
+stërmadh duhet të të duket i vogël.
+
+→ Kanalet hapen për një-dy sekonda, edhe nga një katalog gjigant
+→ Qindra kategori të çrregullta bëhen një listë e rregullt vendesh
+→ Udhëzues programesh në gjithë dritaren (EPG), me catch-up aty ku e ofron
+  ofruesi
+→ Filmat dhe episodet MKV luhen drejt në shfletues, me titra dhe zë
+  surround
+
+PSE E KAM BËRË
+
+U lodha me aplikacionet e televizionit që të detyronin t'u bije ndesh: lista
+kategorish pa fund, dialogje që ngrinin gjithçka sa ngarkohej katalogu dhe
+skedarë që thjesht nuk luheshin. Kështu ndërtova atë që doja ta përdorja çdo
+mbrëmje.
+- Samuli, zhvilluesi i Kepuli-TV
+
+
+ÇFARË PËRFITON
+
+• Ngjit lidhjen M3U që ta ka dërguar ofruesi dhe cilësimet plotësohen vetë.
+• Kërkim që nuk ia vë veshin theksave e renditjes së fjalëve, plus filtër në
+  çdo meny.
+• Ç'ke lënë përgjysmë të pret në krye, ndërsa episodi pasues niset vetë.
+• Asgjë nuk e bllokon ekranin gjatë ngarkimit, dhe ajo që po luhet vazhdon.
+• Ndërtuar për llogari me një lidhje të vetme: kur ndërron kanal, pret që
+  ofruesi ta lirojë, në vend që të dështojë.
+• Filma e seriale si kopertina, me tregime, vlerësime dhe sezone.
+• Të preferuarat, historiku i shikimit dhe pikat e vazhdimit.
+• Fshih markat globale nga lista e një vendi dhe stacionet e veta gjenden
+  lehtë.
+• Transmeto në Chromecast, përdor tastet e medias dhe merr kujtesë para se
+  të nisë një program.
+• Pamje e errët ose e çelët, tastierë që arrin gjithçka; faqosja ndjek
+  madhësinë e tekstit dhe kontrastin që ke caktuar.
+• Në 30 gjuhë. Flet gjuhën e shfletuesit derisa të zgjedhësh një tjetër.
+
+
+PRIVATËSI NGA NDËRTIMI
+
+Pa gjurmim, pa reklama, pa regjistrim. Kepuli-TV flet vetëm me serverin tënd
+dhe kërkon leje për atë adresë e askënd tjetër — qasje më të gjerë nëse e
+lejon ti, kur ofruesi i dërgon transmetimet gjetkë.
+
+
+VINI RE
+
+Shtesa nuk përmban asnjë përmbajtje dhe nuk vjen me ofrues. Sill një llogari
+Xtream Codes të tuajën, përdore për materiale që ke të drejtë t'i shikosh dhe
+sigurohu që shërbimi është i ligjshëm aty ku jeton.
+
+
+FILLO
+
+Kliko ikonën në shiritin e veglave, shkruaj serverin, emrin e përdoruesit dhe
+fjalëkalimin, dhe lista shfaqet.
+
+
+SHIKOJE NË VEPRIM
+
+Një video e shkurtër me çdo veçori, e treguar me materiale demonstruese:
+https://www.youtube.com/watch?v=JUljsUuZqDI

@@ -1,0 +1,72 @@
+=== NAME ===
+Kepuli-TV – IPTV Player
+=== SHORT DESCRIPTION ===
+Vezi în browser propriul tău IPTV Xtream Codes, fără bătăi de cap. Canalele pornesc în secunde, iar MKV merge cu subtitrări.
+=== DETAILED DESCRIPTION ===
+Urmărește-ți abonamentul IPTV în browser, fără să te lupți cu aplicația.
+Kepuli-TV este un player pentru Xtream Codes construit în jurul unei singure
+idei: un catalog uriaș trebuie să pară mic.
+
+→ Canalele se deschid într-o secundă-două, chiar dintr-o ofertă enormă
+→ Sute de categorii amestecate devin o listă ordonată de țări
+→ Ghid de programe (EPG) pe toată fereastra, cu catch-up acolo unde se oferă
+→ Filmele și episoadele MKV rulează direct în browser, cu subtitrări și sunet
+  surround
+
+
+DE CE L-AM FĂCUT
+
+M-am săturat de aplicațiile IPTV cu care trebuie să te cerți: liste nesfârșite
+de categorii, ferestre care blocau totul cât se încărca oferta și fișiere
+care pur și simplu nu voiau să ruleze. Așa că am construit-o pe cea pe care
+vreau s-o folosesc în fiecare seară.
+- Samuli, dezvoltatorul Kepuli-TV
+
+
+CE PRIMEȘTI
+
+• Lipește linkul M3U primit de la furnizor și setările se completează singure.
+• Căutare care ignoră diacriticele și ordinea cuvintelor, plus un filtru în
+  fiecare meniu.
+• Ce ai lăsat la jumătate te așteaptă sus, iar episodul următor pornește
+  singur.
+• Nimic nu blochează ecranul cât se încarcă datele, iar ce rulează continuă
+  să ruleze.
+• Gândit pentru conturi cu o singură conexiune: la schimbarea canalului,
+  așteaptă ca furnizorul s-o elibereze, în loc să dea eroare.
+• Filme și seriale ca coperți, cu descrieri, note și sezoane.
+• Favorite, istoric de vizionare și poziții de reluare.
+• Ascunde mărcile globale din lista unei țări, iar posturile ei proprii se
+  găsesc ușor.
+• Transmitere pe Chromecast, taste media și o notificare înainte să înceapă o
+  emisiune.
+• Aspect întunecat sau luminos, tastatura ajunge peste tot, iar interfața
+  urmează setările tale de mărime a textului și de contrast.
+• În 30 de limbi. Vorbește limba browserului tău până alegi alta.
+
+
+CONFIDENȚIALITATE DE LA ÎNCEPUT
+
+Fără urmărire, fără reclame, fără înregistrare. Extensia vorbește doar cu
+serverul tău și cere permisiune numai pentru acea adresă — acces mai larg doar
+dacă îl accepți, atunci când furnizorul trimite fluxurile în altă parte.
+
+
+DE REȚINUT
+
+Extensia nu conține conținut și nu vine cu niciun furnizor. Adu-ți un cont
+Xtream Codes al tău, folosește-l doar pentru ce ai dreptul să vezi și
+asigură-te că serviciul este legal acolo unde locuiești.
+
+
+CUM ÎNCEPI
+
+Dă clic pe pictograma din bara de instrumente, introdu serverul, utilizatorul
+și parola, iar lista ta apare.
+
+
+VEZI-O ÎN ACȚIUNE
+
+Un scurt tur video al tuturor funcțiilor, cu material demonstrativ (în
+engleză):
+https://www.youtube.com/watch?v=JUljsUuZqDI

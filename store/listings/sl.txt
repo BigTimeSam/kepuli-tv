@@ -1,0 +1,72 @@
+=== NAME ===
+Kepuli-TV – IPTV Player
+=== SHORT DESCRIPTION ===
+Gledaj svoj IPTV prek Xtream Codes v brskalniku, brez boja z aplikacijo. Kanali se odprejo v sekundi, MKV pa teče s podnapisi.
+=== DETAILED DESCRIPTION ===
+Gledaj svojo naročnino IPTV v brskalniku, brez boja z aplikacijo.
+Kepuli-TV je predvajalnik za Xtream Codes, zgrajen okoli ene same ideje:
+velikanski katalog naj deluje majhen.
+
+→ Kanali se odprejo v sekundi ali dveh, tudi pri ogromni ponudbi
+→ Na stotine neurejenih kategorij postane pregleden seznam držav
+→ Programski vodič (EPG) čez celotno okno, s ponovnim ogledom, kjer je
+  na voljo
+→ Filmi in epizode MKV se predvajajo kar v brskalniku, s podnapisi in
+  prostorskim zvokom
+
+
+ZAKAJ SEM GA NAREDIL
+
+Naveličan sem bil aplikacij IPTV, s katerimi sem se moral prepirati:
+neskončnih seznamov kategorij, oken, ki so ustavila vse, medtem ko se je
+nalagal katalog, in datotek, ki se preprosto niso hotele predvajati. Zato sem
+naredil tisto, ki jo sam z veseljem odprem vsak večer.
+- Samuli, razvijalec Kepuli-TV
+
+
+KAJ DOBIŠ
+
+• Prilepi povezavo M3U, ki ti jo je poslal ponudnik, in nastavitve se
+  izpolnijo same.
+• Iskanje, ki prezre naglase in vrstni red besed, ter filter v vsakem meniju.
+• Kar si pustil na pol poti, čaka na vrhu, naslednja epizoda pa se zažene
+  sama.
+• Nič ne zaklene zaslona med nalaganjem podatkov, kar se predvaja, teče
+  naprej.
+• Narejen za račune z eno povezavo: pri menjavi kanala počaka, da jo ponudnik
+  sprosti, namesto da bi javil napako.
+• Filmi in serije kot naslovnice, z opisi, ocenami in sezonami.
+• Priljubljene, zgodovina ogledov in mesta za nadaljevanje.
+• Skrij globalne blagovne znamke na seznamu države, njene domače postaje pa
+  so zlahka najdene.
+• Pošiljanje na Chromecast, multimedijske tipke in opomnik pred začetkom
+  oddaje.
+• Temen ali svetel videz, s tipkovnico dosežeš vse; postavitev sledi
+  nastavitvam velikosti besedila in kontrasta.
+• V 30 jezikih. Govori jezik tvojega brskalnika, dokler ne izbereš drugega.
+
+
+ZASEBNOST PO NAČRTU
+
+Brez sledenja, brez oglasov, brez registracije. Razširitev se pogovarja samo
+z tvojim strežnikom in dovoljenje zahteva le za ta naslov — širši dostop samo
+če ga dovoliš, ko pretoke drugam usmeri tvoj ponudnik.
+
+
+OPOZORILO
+
+Razširitev ne vsebuje vsebin in nima ponudnika. Prinesi lasten račun Xtream
+Codes, ga uporabljaj le za gradivo, ki ga smeš gledati, in poskrbi, da je
+storitev zakonita tam, kjer živiš.
+
+
+KAKO ZAČETI
+
+Klikni ikono v orodni vrstici, vnesi strežnik, uporabniško ime in geslo, pa se
+tvoj seznam pojavi.
+
+
+OGLEJ SI V AKCIJI
+
+Kratek video ogled vseh funkcij, prikazan z demo vsebinami (v angleščini):
+https://www.youtube.com/watch?v=JUljsUuZqDI

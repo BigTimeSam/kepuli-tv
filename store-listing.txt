@@ -215,7 +215,7 @@ FOR 1.1.0 SPECIFICALLY
   weigh.
 
 
---- THE TEXTS, IN THIRTEEN LANGUAGES ---------------------------------------
+--- THE TEXTS, IN THIRTY-ONE LANGUAGES ------------------------------------
 The name, the short description and the detailed description live in
 store/listings/<locale>.txt, one file per language, and nowhere else. The
 English one is store/listings/en.txt. Run
@@ -236,6 +236,24 @@ dev/package.mjs refuses to build when _locales/ is out of step.
 The locale codes are the Chrome Web Store's: pt_BR, and "no" for Norwegian.
 Firefox looks for Norwegian Bokmål under nb_NO, and the Firefox package
 renames the folder (dev/package.mjs).
+Albanian (sq) has no Chrome Web Store code: its listing goes to AMO only,
+and the Chrome package leaves _locales/sq out.
+
+AT EVERY RELEASE
+  1. node dev/translations.mjs — translate whatever it lists as behind
+     (interface keys and listings), then --mark the languages. The package
+     is refused until nothing is behind.
+  2. node dev/listings.mjs — checks the listings, writes _locales/ and the
+     paste files in dist/listings/.
+  3. Chrome: node dev/cws-publish.mjs listing names the languages whose
+     detailed description in the dashboard is behind. Fill those in the
+     dashboard (Store listing → language → Description, from
+     dist/listings/<locale>.txt; a new language is added there with
+     "Add language"), save the draft, then
+     node dev/cws-publish.mjs listing --done <locales>. The submission is
+     refused while any is behind.
+  4. Firefox: node dev/amo-publish.mjs sends every language's name, summary
+     and description where AMO's differ, after the version.
 
 
 PUBLISHING THROUGH THE API
@@ -340,9 +358,10 @@ options in the Productivity group (Workflow & Planning, Tools, Developer
 Tools) do not fit.
 
 Language:
-English, as the default. The other twelve are added through the language
-menu (see "SETTING THE LANGUAGES" above); the player speaks the same
-thirteen, and opens in the browser's language until another is chosen in the
+English, as the default. The other twenty-nine on Chrome (thirty on AMO,
+with Albanian; Portuguese twice, Brazil and Portugal) are added through the
+language menu (see "SETTING THE LANGUAGES" above); the player speaks thirty,
+and opens in the browser's language until another is chosen in the
 settings.
 
 Single purpose, permissions, remote code and data usage:
@@ -397,7 +416,7 @@ Promo video:           https://www.youtube.com/watch?v=JUljsUuZqDI
     every detailed description in store/listings/ instead ("SEE IT IN
     ACTION" and its translations), so it reaches both stores' pages with
     the descriptions; AMO turns it into a link through its redirect.
-  A new video means a new address: change it here and in all thirteen
+  A new video means a new address: change it here and in all thirty-one
   listings, and paste the descriptions again.
 
 

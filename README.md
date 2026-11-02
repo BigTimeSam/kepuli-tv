@@ -606,8 +606,7 @@ the guide, so one spelling works everywhere a name is typed.
   the version running
 - **Favourites** and **history** as tabs of their own — a whole category can be
   a favourite too, see below
-- **Two languages**: English and Finnish, switched in the settings without a
-  page reload
+- **Thirty languages**, switched in the settings without a page reload
 - **Automatic reconnection** when a live stream drops — the death of a source
   is recognised in three ways: the server cuts the connection, the buffer is
   played out, or the picture freezes while the connection stays open. The
@@ -1275,7 +1274,7 @@ js/modal.js         shared close buttons, Escape and backdrop dismissal
 js/db.js            IndexedDB: a TTL cache
 js/config.js        settings, favourites, history, resume points, the remembered view
 js/i18n.js          the interface language: English and Finnish, t() and static HTML
-js/locales/         the other eleven languages, one module each, loaded when chosen
+js/locales/         the other twenty-eight languages, one module each, loaded when chosen
 js/picker.js        the drop-down lists with a filter field
 js/international.js  which channels are in many countries' lists
 js/theme.js         the dark and light theme
@@ -1370,9 +1369,24 @@ vendor/ffaudio/     FFmpeg 7.1.1's ac3, eac3 and dca decoders as wasm
 
 ## Language
 
-The interface speaks thirteen languages: English, Finnish, Swedish, Norwegian
+The interface speaks thirty languages: English, Finnish, Swedish, Norwegian
 (Bokmål), Danish, German, Dutch, French, Spanish, Brazilian Portuguese,
-Italian, Polish and Turkish. Settings > Language starts on **Browser
+Italian, Polish, Turkish, Czech, Slovak, Slovenian, Hungarian, Romanian,
+Bulgarian, Croatian, Serbian, Albanian, Greek, Russian, Ukrainian,
+Lithuanian, Latvian, Estonian, Indonesian and Vietnamese. Serbian is written
+in the Latin script, which its readers online and in providers' lists use;
+a browser asking for `sh` or `cnr` gets it too, and one asking for Bosnian
+(`bs`) gets Croatian, which writes ijekavian as Bosnian does. Portugal has a
+store listing of its own (`store/listings/pt_PT.txt`), while the interface
+speaks Brazilian Portuguese to it.
+
+Settings > Clock is **Automatic**, **24-hour** or **12-hour**, each shown with
+an evening time written its way. Automatic is 24-hour in every language —
+Greek and Albanian included, whose own default is 12-hour, as a television
+guide is read on the 24-hour clock there — except English in a browser whose
+English is of a 12-hour region (en-US, en-CA, en-AU, en-IN…), which gets
+10:30 PM. English dates follow the browser's region too: month before day in
+the United States, day before month in the en-GB the app otherwise writes. Settings > Language starts on **Browser
 language**, which names the language it comes to: the first one in
 `navigator.languages` the app speaks (`no` and `nn` count as Bokmål), English
 when there is none. It stays a following setting, not a copy — the stored
@@ -1589,7 +1603,7 @@ Three things now stand against it:
   machine is the final test: the toolbar button must open the player.
 
 
-#### The listings in thirteen languages
+#### The listings in thirty-one languages
 
 The store texts are in `store/listings/<locale>.txt`, one file per language:
 the name, the short description and the detailed description. The name is
@@ -1601,9 +1615,31 @@ the manifest takes its name and description (`__MSG_appName__`,
 `__MSG_appDesc__`) — the only way either store shows a translated title and
 summary — and `dist/listings/<locale>.txt`, the texts unwrapped, to paste
 into the stores' description fields. `dev/package.mjs` refuses a package
-whose `_locales/` is out of step, and renames Norwegian from the Chrome
-store's `no` to Firefox's `nb_NO`. How to enter the languages in each store
-is in `store-listing.txt`.
+whose `_locales/` is out of step, renames Norwegian from the Chrome
+store's `no` to Firefox's `nb_NO`, and leaves Albanian out of the Chrome
+package: the Chrome Web Store has no code for it, so its listing is
+Firefox's alone. How to enter the languages in each store is in
+`store-listing.txt`.
+
+#### Keeping the translations in step
+
+A translation goes stale without a sign when the English is reworded. So
+`store/translations.json` records, for every language, a short hash of the
+English each interface key and each store listing was translated from, and
+`node dev/translations.mjs` lists what is behind — keys whose English
+changed or that a language lacks, and listings whose English changed — with
+the English to work from. `dev/package.mjs` refuses a release while anything
+is behind. After translating, `node dev/translations.mjs --mark <language>`
+records it.
+
+The listings reach the stores at release. `node dev/amo-publish.mjs` sends
+the name, summary and description of every language to addons.mozilla.org
+through its API, wherever they differ (`listing --dry` shows what would
+change). The Chrome Web Store has no API for the detailed description: it is
+filled into the dashboard, language by language, and
+`store/cws-listing.json` records what was last put there.
+`node dev/cws-publish.mjs listing` names the languages behind, and a
+submission is refused while one is, unless `--listing-later` is given.
 
 ## Licence
 

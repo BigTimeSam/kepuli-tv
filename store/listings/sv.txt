@@ -40,7 +40,7 @@ VAD DU FÅR
   innan ett program börjar.
 • Ett mörkt eller ljust utseende, och tangentbordet når allt; layouten följer
   textstorleken och kontrastinställningarna.
-• På tretton språk. Den talar webbläsarens språk tills du väljer ett annat.
+• På 30 språk. Den talar webbläsarens språk tills du väljer ett annat.
 
 
 PRIVAT FRÅN GRUNDEN

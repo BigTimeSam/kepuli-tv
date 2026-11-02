@@ -1,0 +1,70 @@
+=== NAME ===
+Kepuli-TV – IPTV Player
+=== SHORT DESCRIPTION ===
+Pozeraj vlastné IPTV cez Xtream Codes v prehliadači bez boja s aplikáciou. Kanály sa otvoria za sekundy, MKV hrá s titulkami.
+=== DETAILED DESCRIPTION ===
+Pozeraj vlastné predplatné IPTV v prehliadači bez boja s aplikáciou.
+Kepuli-TV je prehrávač pre Xtream Codes postavený na jednom nápade: obrovský
+katalóg má pôsobiť malo.
+
+→ Kanály sa otvoria za sekundu-dve, aj pri obrovskej ponuke
+→ Stovky chaotických kategórií sa zmenia na prehľadný zoznam krajín
+→ Programový sprievodca (EPG) cez celé okno so spätným prehrávaním, kde ho
+  poskytovateľ ponúka
+→ Filmy a epizódy v MKV bežia priamo v prehliadači, s titulkami aj
+  priestorovým zvukom
+
+
+PREČO SOM TO UROBIL
+
+Unavili ma aplikácie na IPTV, s ktorými som musel bojovať: nekonečné zoznamy
+kategórií, okná, ktoré všetko zasekli, kým sa načítaval katalóg, a súbory, čo
+sa jednoducho nechceli prehrať. Tak som postavil takú, akú chcem používať sám
+každý večer.
+- Samuli, autor Kepuli-TV
+
+
+ČO ZÍSKAŠ
+
+• Vlož odkaz M3U od poskytovateľa a nastavenia sa vyplnia samy.
+• Vyhľadávanie, ktoré ignoruje diakritiku a poradie slov, a filter v každej
+  ponuke.
+• Čo si nedopozeral, čaká hore a ďalšia epizóda sa spustí sama.
+• Pri načítavaní údajov nič neblokuje obrazovku a to, čo hrá, hrá ďalej.
+• Vytvorené pre účty s jedným pripojením: pri prepnutí kanála sa počká, kým
+  poskytovateľ pripojenie uvoľní, namiesto chyby.
+• Filmy a seriály ako obálky, s dejom, hodnoteniami a sériami.
+• Obľúbené, história sledovania a miesta, kde si skončil.
+• Skry globálne značky v zozname krajiny a jej vlastné stanice nájdeš ľahko.
+• Prenos na Chromecast, multimediálne klávesy a pripomienka pred začiatkom
+  relácie.
+• Tmavý alebo svetlý vzhľad, klávesnicou sa dostaneš všade; rozloženie sa
+  riadi nastavením veľkosti textu a kontrastu.
+• V 30 jazykoch. Hovorí jazykom tvojho prehliadača, kým nevyberieš iný.
+
+
+SÚKROMIE V ZÁKLADE
+
+Bez sledovania, bez reklám, bez registrácie. Kepuli-TV komunikuje iba s tvojím
+vlastným serverom a žiada o povolenie len pre túto adresu — širší prístup iba
+ak ho povolíš, keď poskytovateľ presmeruje streamy inam.
+
+
+POZNÁMKA
+
+Rozšírenie neobsahuje žiadny obsah a nie je k nemu pribalená žiadna služba.
+Prines si vlastný účet Xtream Codes, používaj ho len na obsah, ktorý smieš
+sledovať, a uisti sa, že služba je tam, kde žiješ, legálna.
+
+
+AKO ZAČAŤ
+
+Klikni na ikonu na paneli nástrojov, zadaj server, používateľské meno a heslo
+a zoznam sa objaví.
+
+
+UKÁŽKA V PRAXI
+
+Krátke video s prehliadkou všetkých funkcií na ukážkovom materiáli (po
+anglicky):
+https://www.youtube.com/watch?v=JUljsUuZqDI

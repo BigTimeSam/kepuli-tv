@@ -33,7 +33,7 @@ import * as store from './config.js';
 import { applyTheme, earlyTheme, onSystemTheme } from './theme.js';
 import { wirePickers } from './picker.js';
 import { nf, dateTimeFmt, dateFmt, stampFmt, dayLabel, clock, megabytes, duration, progressOf, setLocale, amount, speed as speedText, mbits, percent, seconds as secondsText } from './format.js';
-import { t, applyStatic, setLanguage, loadLanguage, localeTag, LANGUAGES } from './i18n.js';
+import { t, applyStatic, setLanguage, loadLanguage, localeTag, setEnglishRegion, LANGUAGES } from './i18n.js';
 
 const $ = (id) => document.getElementById(id);
 const el = {
@@ -1867,7 +1867,7 @@ const hiddenList = new HiddenList((prefs) => saveChannelChoices({ ...state.chann
 
 // The language a browser speaks, and the country whose list it most
 // likely wants first; English says nothing about where its reader is.
-const LANGUAGE_COUNTRY = { fi: 'fi', sv: 'se', nb: 'no', da: 'dk', de: 'de', nl: 'nl', fr: 'fr', es: 'es', pt: 'br', it: 'it', pl: 'pl', tr: 'tr' };
+const LANGUAGE_COUNTRY = { fi: 'fi', sv: 'se', nb: 'no', da: 'dk', de: 'de', nl: 'nl', fr: 'fr', es: 'es', pt: 'br', it: 'it', pl: 'pl', tr: 'tr', cs: 'cz', hu: 'hu', ro: 'ro', hr: 'hr', sq: 'al', el: 'gr', ru: 'ru', uk: 'ua', bg: 'bg', sk: 'sk', sl: 'si', sr: 'rs', lt: 'lt', lv: 'lv', et: 'ee', id: 'id', vi: 'vn' };
 
 function openCountryPicker({ first = false } = {}) {
   if (!state.lib) return;
@@ -4208,6 +4208,8 @@ function openSetup({ section } = {}) {
   $('f-lang').value = state.settings.lang in LANGUAGES ? state.settings.lang : 'auto';
   $('f-channelsort').value = state.settings.channelSort;
   $('f-theme').value = ['dark', 'light', 'system'].includes(state.settings.theme) ? state.settings.theme : 'dark';
+  renderClockOptions();
+  $('f-clock').value = ['24', '12'].includes(state.settings.clock) ? state.settings.clock : 'auto';
   $('f-epg').checked = state.settings.epgEnabled;
   $('f-resume').checked = state.settings.resumeEnabled;
   $('f-autonext').checked = state.settings.autoNext;
@@ -4243,6 +4245,7 @@ function readSetupSettings() {
     lang: $('f-lang').value,
     channelSort: $('f-channelsort').value,
     theme: $('f-theme').value,
+    clock: $('f-clock').value,
     epgEnabled: $('f-epg').checked,
     resumeEnabled: $('f-resume').checked,
     autoNext: $('f-autonext').checked,
@@ -4505,6 +4508,21 @@ function renderLanguageOptions() {
   );
 }
 
+/**
+ * The clock's choices, each with an evening time written its way, so that
+ * the viewer sees what they pick; the automatic one shows what it comes to.
+ */
+function renderClockOptions() {
+  const option = (value, label) => Object.assign(document.createElement('option'), { value, textContent: label });
+  const evening = new Date(2026, 0, 1, 22, 30);
+  const sample = (cycle) => new Intl.DateTimeFormat(localeTag(), { hour: cycle === 'h12' ? 'numeric' : '2-digit', minute: '2-digit', hourCycle: cycle }).format(evening);
+  $('f-clock').replaceChildren(
+    option('auto', t('setup.clock.auto', { example: sample(store.hourCycle({ clock: 'auto' })) })),
+    option('24', t('setup.clock.24', { example: sample('h23') })),
+    option('12', t('setup.clock.12', { example: sample('h12') })),
+  );
+}
+
 function wireSetup() {
   new ResizeObserver(fitSubtitlePreview).observe(document.querySelector('#panel-subs .sublook-preview'));
   // Dialog controls edit a draft. Only the local subtitle sample previews it.
@@ -4633,7 +4651,7 @@ function wireSetup() {
       applySubtitleLook(state.settings);
       renderStatBadge();
       if (settingsPatch.theme) renderTheme();
-      if (settingsPatch.lang) await applyLanguage(store.interfaceLanguage(state.settings));
+      if (settingsPatch.lang || settingsPatch.clock) await applyLanguage(store.interfaceLanguage(state.settings));
       // A new starting order, or the international channels shown or
       // hidden, repaints the channel list where it stands; a changed
       // connection is about to load it again anyway.
@@ -5277,10 +5295,16 @@ function wireUi() {
  * by the same calls that produce the views anyway, so the language needs no
  * painting route of its own — only the call.
  */
+/** Intl's formatters for the language, the browser's region and the clock setting. */
+function applyLocale() {
+  setEnglishRegion(store.browserEnglish());
+  setLocale(localeTag(), { hourCycle: store.hourCycle(state.settings) });
+}
+
 async function applyLanguage(lang) {
   await loadLanguage(lang);
   setLanguage(lang);
-  setLocale(localeTag());
+  applyLocale();
   applyStatic();
   catalogueSearch.render();
   renderSidebar();
@@ -5448,7 +5472,7 @@ async function init() {
   const lang = store.interfaceLanguage(state.settings);
   await loadLanguage(lang);
   setLanguage(lang);
-  setLocale(localeTag());
+  applyLocale();
   applyStatic();
   catalogueSearch.render();
   updatePlayerLayout();

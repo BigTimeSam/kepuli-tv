@@ -11,18 +11,22 @@ import { t, localeTag } from './i18n.js';
 export let nf, timeFmt, dateTimeFmt, dateFmt, dayFmt, weekdayFmt, stampFmt;
 let oneDecimal, twoDecimals, percentFmt;
 
-export function setLocale(tag = localeTag()) {
+export function setLocale(tag = localeTag(), { hourCycle = 'h23' } = {}) {
   nf = new Intl.NumberFormat(tag);
   oneDecimal = new Intl.NumberFormat(tag, { minimumFractionDigits: 1, maximumFractionDigits: 1 });
   twoDecimals = new Intl.NumberFormat(tag, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
   percentFmt = new Intl.NumberFormat(tag, { style: 'percent', minimumFractionDigits: 1, maximumFractionDigits: 1 });
-  timeFmt = new Intl.DateTimeFormat(tag, { hour: '2-digit', minute: '2-digit' });
-  dateTimeFmt = new Intl.DateTimeFormat(tag, { dateStyle: 'short', timeStyle: 'short' });
+  // The clock is the setting's (see hourCycle() in js/config.js), never the
+  // language's own default: Greek and Albanian would otherwise read 03:00
+  // μ.μ. and 03:00 e pasdites to a viewer who asked for neither.
+  const h12 = hourCycle === 'h12';
+  timeFmt = new Intl.DateTimeFormat(tag, { hour: h12 ? 'numeric' : '2-digit', minute: '2-digit', hourCycle });
+  dateTimeFmt = new Intl.DateTimeFormat(tag, { dateStyle: 'short', timeStyle: 'short', hourCycle });
   dateFmt = new Intl.DateTimeFormat(tag, { dateStyle: 'medium' });
   dayFmt = new Intl.DateTimeFormat(tag, { weekday: 'short', day: 'numeric', month: 'numeric' });
   weekdayFmt = new Intl.DateTimeFormat(tag, { weekday: 'long' });
   stampFmt = new Intl.DateTimeFormat(tag, {
-    weekday: 'short', day: 'numeric', month: 'numeric', hour: '2-digit', minute: '2-digit',
+    weekday: 'short', day: 'numeric', month: 'numeric', hour: h12 ? 'numeric' : '2-digit', minute: '2-digit', hourCycle,
   });
 }
 

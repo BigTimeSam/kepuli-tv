@@ -5,9 +5,13 @@
 //   node dev/amo-publish.mjs check        the zips, the notes and the key, nothing sent
 //   node dev/amo-publish.mjs validate     the package through AMO's validation alone; no
 //                                         version is made
+//   node dev/amo-publish.mjs listing      the listing's name, summary and description in
+//                                         every language of store/listings/, sent where
+//                                         AMO's differ; --dry says what would change
 //   node dev/amo-publish.mjs              kepuli-tv-firefox-<version>.zip submitted as a new
 //                                         listed version, with its source archive, the
-//                                         release notes and the notes to reviewer
+//                                         release notes and the notes to reviewer, and
+//                                         the listing brought in step as above
 //
 // What a submission by hand needed, here in one go: the add-on package,
 // validated by AMO before the version is made; the source archive
@@ -34,6 +38,7 @@ import { execFileSync } from 'node:child_process';
 import { existsSync, readFileSync, statSync } from 'node:fs';
 import { homedir } from 'node:os';
 import { join } from 'node:path';
+import { readListings, unwrap } from './listings.mjs';
 
 const ROOT = new URL('..', import.meta.url).pathname;
 const ADDON = 'kepuli-tv@bigtimesam.github.io';
@@ -46,7 +51,7 @@ const POLL_MS = 3000;
 const VALIDATION_WAIT_MS = 5 * 60 * 1000;
 
 const args = process.argv.slice(2);
-const command = ['status', 'check', 'validate'].includes(args[0]) ? args[0] : 'publish';
+const command = ['status', 'check', 'validate', 'listing'].includes(args[0]) ? args[0] : 'publish';
 
 const fail = (message) => { console.error(`amo-publish: ${message}`); process.exit(1); };
 
@@ -132,6 +137,37 @@ function releaseNotes(version) {
     .trim();
 }
 
+/* ------------------------------------------------------------ listing */
+
+// AMO's codes for the Chrome Web Store's, where they differ.
+const AMO_LOCALES = { en: ['en-GB'], es: ['es-ES'], no: ['nb-NO'], pt_BR: ['pt-BR'], pt_PT: ['pt-PT'], sv: ['sv-SE'] };
+
+/**
+ * The name, summary and description of every language, sent where AMO's
+ * differ from store/listings/. The description goes as the stores' forms
+ * want it, a paragraph to a line (see unwrap() in dev/listings.mjs). Only
+ * the languages that changed are sent: AMO keeps the others as they are.
+ */
+async function syncListing(creds, { dry = false } = {}) {
+  const current = await call(creds, 'GET', `${addon}/`);
+  const want = { name: {}, summary: {}, description: {} };
+  for (const l of readListings()) {
+    for (const code of AMO_LOCALES[l.locale] || [l.locale]) {
+      const text = { name: l.name, summary: l.short, description: unwrap(l.detailed) };
+      for (const field of Object.keys(want)) {
+        const have = current[field] && current[field][code];
+        if ((have || '').trim() !== text[field].trim()) want[field][code] = text[field];
+      }
+    }
+  }
+  const changed = Object.entries(want).filter(([, v]) => Object.keys(v).length);
+  if (!changed.length) { console.log('listing: AMO has every language as store/listings/ says'); return; }
+  for (const [field, v] of changed) console.log(`listing: ${field} ${dry ? 'would change' : 'changes'} in ${Object.keys(v).sort().join(' ')}`);
+  if (dry) return;
+  await call(creds, 'PATCH', `${addon}/`, { json: Object.fromEntries(changed) });
+  console.log('listing: sent');
+}
+
 /* ------------------------------------------------------------- status */
 
 async function status(creds) {
@@ -144,6 +180,7 @@ async function status(creds) {
 
 /* --------------------------------------------------------------- main */
 
+if (command === 'listing') { await syncListing(key(), { dry: args.includes('--dry') }); process.exit(0); }
 const files = command === 'status' ? null : checkedFiles();
 if (files) {
   console.log(`${files.zip}: the Firefox package of ${files.version}`);
@@ -187,3 +224,7 @@ const done = await call(creds, 'GET', `${addon}/versions/${version.id}/?lang=${L
 const notesIn = done.release_notes && done.release_notes[LOCALE];
 console.log(`${done.version}: ${done.file && done.file.status}, source ${done.source ? 'attached' : 'MISSING'}, `
   + `release notes ${notesIn ? 'set' : 'MISSING'}, notes to reviewer ${(done.approval_notes || '').length} characters`);
+
+// The listing follows the version: a language the release added, or a
+// description it changed, goes up with it.
+await syncListing(creds);

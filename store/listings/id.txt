@@ -1,0 +1,74 @@
+=== NAME ===
+Kepuli-TV – IPTV Player
+=== SHORT DESCRIPTION ===
+Tonton langganan Xtream Codes milikmu di peramban tanpa ribet. Saluran terbuka dalam hitungan detik, MKV lengkap dengan subtitel.
+=== DETAILED DESCRIPTION ===
+Nikmati langganan IPTV-mu langsung di browser, lancar dari awal. Kepuli-TV
+adalah pemutar Xtream Codes yang lahir dari satu prinsip: katalog sebesar apa
+pun harus terasa ringan.
+
+→ Siaran terbuka dalam satu-dua detik, bahkan dari katalog raksasa
+→ Ratusan kategori yang berantakan berubah jadi daftar negara yang rapi
+→ Panduan acara (EPG) layar penuh, lengkap catch-up bila disediakan
+→ Film dan episode MKV diputar langsung di browser, termasuk subtitel dan
+  suara surround
+
+
+KENAPA SAYA MEMBUATNYA
+
+Saya bosan memakai aplikasi IPTV yang bikin kesal: daftar kategori tak
+berujung, dialog yang membekukan layar selama katalog dimuat, dan file yang
+tidak mau diputar. Jadi saya buat sendiri aplikasi yang ingin saya pakai
+setiap malam.
+- Samuli, pengembang Kepuli-TV
+
+
+YANG KAMU DAPATKAN
+
+• Tempel tautan M3U dari penyedia, dan semua kolom pengaturan terisi sendiri.
+• Pencarian yang tak peduli aksen maupun urutan kata, plus filter di setiap
+  menu.
+• Tontonan yang belum selesai menunggu di bagian atas, lalu episode berikutnya
+  diputar otomatis.
+• Tak ada yang menghalangi layar saat data dimuat, dan yang sedang diputar
+  terus berjalan.
+• Dirancang untuk akun satu koneksi: saat kamu pindah channel, aplikasi
+  menunggu penyedia melepas koneksi lama, bukan langsung gagal.
+• Film dan serial tampil sebagai sampul, lengkap dengan sinopsis, rating, dan
+  musim.
+• Favorit, riwayat tontonan, dan posisi terakhir menonton.
+• Sembunyikan merek global dari daftar sebuah negara, jadi stasiun lokalnya
+  gampang ditemukan.
+• Kirim ke Chromecast, pakai tombol media, dan dapat pengingat sebelum acara
+  dimulai.
+• Tampilan gelap atau terang, semuanya terjangkau lewat keyboard; tata letak
+  mengikuti ukuran teks dan kontras pilihanmu.
+• Hadir dalam 30 bahasa. Mengikuti bahasa browser-mu sampai kamu memilih yang
+  lain.
+
+
+PRIVAT SEJAK AWAL
+
+Tidak ada pelacakan, iklan, atau pendaftaran. Kepuli-TV hanya berhubungan
+dengan servermu sendiri dan meminta izin untuk alamat itu saja — akses yang
+lebih luas hanya jika kamu mengizinkan, yaitu ketika penyedia mengalihkan
+siaran ke tempat lain.
+
+
+CATATAN PENTING
+
+Ekstensi ini tidak berisi konten dan tidak menyertakan penyedia. Siapkan akun
+Xtream Codes milikmu sendiri, gunakan hanya untuk konten yang berhak kamu
+tonton, dan pastikan layanannya legal di tempatmu tinggal.
+
+
+MULAI DI SINI
+
+Klik ikon di bilah alat, isi server, nama pengguna, dan kata sandi, lalu
+daftarmu muncul.
+
+
+LIHAT CARA KERJANYA
+
+Tur video singkat setiap fitur, memakai konten demo:
+https://www.youtube.com/watch?v=JUljsUuZqDI

@@ -1,0 +1,10 @@
+{
+  "appName": {
+    "message": "Kepuli-TV – IPTV Player",
+    "description": "The extension's name in the store and the browser. Written from store/listings/ by dev/listings.mjs."
+  },
+  "appDesc": {
+    "message": "Nézd a saját Xtream Codes IPTV-d a böngészőben, harc nélkül. A csatornák másodpercek alatt nyílnak, az MKV feliratokkal szól.",
+    "description": "The short description. Written from store/listings/ by dev/listings.mjs."
+  }
+}

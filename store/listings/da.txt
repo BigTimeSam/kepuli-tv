@@ -39,7 +39,7 @@ HVAD DU FÅR
   program starter.
 • Mørkt eller lyst udseende, og tastaturet når alt; layoutet følger
   tekststørrelse og kontrastindstillinger.
-• På tretten sprog. Den taler browserens sprog, indtil du vælger et andet.
+• På 30 sprog. Den taler browserens sprog, indtil du vælger et andet.
 
 
 PRIVAT FRA GRUNDEN

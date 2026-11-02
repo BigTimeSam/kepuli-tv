@@ -7,6 +7,17 @@
 //                                              submitted for review
 //   node dev/cws-publish.mjs --replace         … cancelling a submission still in review first
 //   node dev/cws-publish.mjs --zip FILE        another zip than the current version's
+//   node dev/cws-publish.mjs listing           the languages whose detailed description in
+//                                              the dashboard is behind store/listings/
+//   node dev/cws-publish.mjs listing --done L… those languages pasted into the dashboard
+//                                              (or "all"): recorded in store/cws-listing.json
+//
+// The detailed description is the one part of the listing neither the
+// manifest nor the API carries: it is filled into the dashboard's form,
+// language by language (in the release session, by browser automation).
+// store/cws-listing.json records what was last put there, a hash per
+// language, and a submission is refused while a language is behind —
+// --listing-later lets one through, for a fix that cannot wait.
 //
 // Extensions cannot script the store's own pages, so a release went up by
 // hand — and twice the Firefox zip went to Chrome (1.2.1, 1.2.5), whose
@@ -30,9 +41,11 @@
 // No dependencies; the manifest is read with the system's own unzip.
 
 import { execFileSync } from 'node:child_process';
-import { existsSync, readFileSync, statSync } from 'node:fs';
+import { createHash } from 'node:crypto';
+import { existsSync, readFileSync, statSync, writeFileSync } from 'node:fs';
 import { homedir } from 'node:os';
 import { join } from 'node:path';
+import { readListings, unwrap, CHROME_UNSUPPORTED } from './listings.mjs';
 
 const ROOT = new URL('..', import.meta.url).pathname;
 const ITEM_ID = 'okkgclcakhjhldkdcblgagoaibghpfmi';
@@ -42,7 +55,7 @@ const UPLOAD_POLL_MS = 3000;
 const UPLOAD_WAIT_MS = 120000;
 
 const args = process.argv.slice(2);
-const command = ['status', 'check'].includes(args[0]) ? args[0] : 'publish';
+const command = ['status', 'check', 'listing'].includes(args[0]) ? args[0] : 'publish';
 const replace = args.includes('--replace');
 const zipArg = args.includes('--zip') ? args[args.indexOf('--zip') + 1] : null;
 
@@ -138,6 +151,41 @@ async function status(token, publisherId) {
   return s;
 }
 
+/* -------------------------------------------------------------- listing */
+
+const LISTED = join(ROOT, 'store', 'cws-listing.json');
+
+/** Each Chrome language's detailed description as pasted, with its hash. */
+function wantedListing() {
+  return readListings().filter((l) => !CHROME_UNSUPPORTED.includes(l.locale)).map((l) => {
+    const text = unwrap(l.detailed);
+    return { locale: l.locale, text, hash: createHash('sha256').update(text).digest('hex').slice(0, 12) };
+  });
+}
+
+/** The languages whose dashboard text is not what store/listings/ says. */
+function listingBehind() {
+  const done = existsSync(LISTED) ? JSON.parse(readFileSync(LISTED, 'utf8')) : {};
+  return wantedListing().filter((l) => done[l.locale] !== l.hash);
+}
+
+if (command === 'listing') {
+  if (args.includes('--done')) {
+    const which = args.slice(args.indexOf('--done') + 1);
+    const done = existsSync(LISTED) ? JSON.parse(readFileSync(LISTED, 'utf8')) : {};
+    const marked = wantedListing().filter((l) => which.includes('all') || which.includes(l.locale));
+    for (const l of marked) done[l.locale] = l.hash;
+    writeFileSync(LISTED, JSON.stringify(Object.fromEntries(Object.keys(done).sort().map((k) => [k, done[k]])), null, 1) + '\n');
+    console.log(`recorded as in the dashboard: ${marked.map((l) => l.locale).join(' ') || 'nothing'}`);
+  } else {
+    const behind = listingBehind();
+    console.log(behind.length
+      ? `the dashboard's detailed description is behind in: ${behind.map((l) => l.locale).join(' ')}\npaste from dist/listings/<locale>.txt (node dev/listings.mjs writes them), then: node dev/cws-publish.mjs listing --done <locales>`
+      : 'the dashboard has every language as store/listings/ says');
+  }
+  process.exit(0);
+}
+
 /* ----------------------------------------------------------------- main */
 
 const zip = command === 'status' ? null : checkedZip();
@@ -146,6 +194,13 @@ const creds = credentials();
 const token = await accessToken(creds);
 const before = await status(token, creds.publisherId);
 if (command !== 'publish') process.exit(0);
+
+// The submission takes the dashboard's draft listing with it: a language
+// whose description is behind would go out as it stands.
+const behindListing = listingBehind();
+if (behindListing.length && !args.includes('--listing-later')) {
+  fail(`the dashboard's detailed description is behind in ${behindListing.map((l) => l.locale).join(' ')}: fill it in (node dev/cws-publish.mjs listing), or pass --listing-later`);
+}
 
 const pending = before.submittedItemRevisionStatus && before.submittedItemRevisionStatus.state === 'PENDING_REVIEW';
 if (pending) {

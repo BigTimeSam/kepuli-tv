@@ -1,0 +1,72 @@
+=== NAME ===
+Kepuli-TV – IPTV Player
+=== SHORT DESCRIPTION ===
+Žiūrėk savo IPTV su Xtream Codes naršyklėje be kovos su programa. Kanalai atsidaro per sekundes, o MKV groja su subtitrais.
+=== DETAILED DESCRIPTION ===
+Žiūrėk savo IPTV prenumeratą naršyklėje be kovos su programa.
+Kepuli-TV yra Xtream Codes grotuvas, sukurtas vienos minties pagrindu:
+didžiulis katalogas turi jaustis mažas.
+
+→ Kanalai atsidaro per sekundę ar dvi, net iš milžiniško katalogo
+→ Šimtai chaotiškų kategorijų virsta tvarkingu šalių sąrašu
+→ Viso lango programų gidas (EPG) su peržiūra atgal, kai tiekėjas tai
+  leidžia
+→ MKV filmai ir serijos groja tiesiai naršyklėje, su subtitrais ir erdviniu
+  garsu
+
+
+DĖL KO TAI SUKŪRIAU
+
+Man atsibodo IPTV programėlės, su kuriomis tekdavo kovoti: begaliniai
+kategorijų sąrašai, langai, užšaldantys viską, kol kraunamas katalogas, ir
+failai, kurie tiesiog negrodavo. Tad sukūriau tokią, kokią pats noriu
+naudoti kiekvieną vakarą.
+- Samuli, Kepuli-TV kūrėjas
+
+
+KĄ GAUSI
+
+• Įklijuok tiekėjo atsiųstą M3U nuorodą, o nustatymai užsipildys patys.
+• Paieška, kuriai nesvarbūs diakritikai ir žodžių tvarka, bei filtras
+  kiekviename meniu.
+• Tai, ką pradėjai, bet nebaigei, laukia viršuje, o kita serija
+  įsijungia pati.
+• Kraunant duomenis ekranas neužstojamas, o tai, ką žiūri, rodoma toliau.
+• Sukurta paskyroms su vienu ryšiu: perjungiant kanalą laukiama, kol
+  tiekėjas jį atlaisvins, o ne rodoma klaida.
+• Filmai ir serialai viršeliais, su aprašymais, įvertinimais ir sezonais.
+• Mėgstamiausi, žiūrėjimo istorija ir vietos, kur baigei.
+• Paslėpk pasaulinius prekių ženklus šalies sąraše, ir jos pačios stotys
+  bus lengvai randamos.
+• Transliacija į Chromecast, medijų klavišai ir priminimas prieš prasidedant
+  laidai.
+• Tamsi arba šviesi išvaizda, o klaviatūra pasiekia viską; maketas seka
+  teksto dydžio ir kontrasto nustatymus.
+• 30 kalbų. Kalbasi tavo naršyklės kalba, kol pasirinksi kitą.
+
+
+PRIVATUMAS IŠ PRADŽIŲ
+
+Jokio sekimo, jokių reklamų, jokios registracijos. Plėtinys kalbasi tik su
+tavo paties serveriu ir prašo leidimo tik šiam adresui – platesnė prieiga
+tik jei leisi, kai tiekėjas nukreipia srautus kitur.
+
+
+DĖMESIO
+
+Plėtinyje nėra turinio ir jokio tiekėjo. Atsinešk savo Xtream Codes paskyrą,
+naudok ją tik turiniui, kurį turi teisę žiūrėti, ir įsitikink, kad paslauga
+teisėta ten, kur gyveni.
+
+
+PRADĖK
+
+Spustelėk įrankių juostos piktogramą, įvesk serverį, naudotojo vardą ir
+slaptažodį – ir tavo sąrašas pasirodys.
+
+
+PAMATYK VEIKIANT
+
+Trumpa vaizdo apžvalga, rodanti visas funkcijas su demonstraciniu
+turiniu (angliškai):
+https://www.youtube.com/watch?v=JUljsUuZqDI

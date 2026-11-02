@@ -4,7 +4,7 @@
 // fall back to: if a string is left undone, the screen shows English text
 // rather than a key name. English and Finnish are written here; the other
 // languages are in js/locales/, one module each, and only the one in use
-// is loaded (loadLanguage) — eleven dictionaries would otherwise be parsed
+// is loaded (loadLanguage) — the other dictionaries would otherwise be parsed
 // at every start for the one that is read.
 //
 // The language changes without reloading the page. That works because the
@@ -18,7 +18,9 @@
 export const LANGUAGES = {
   en: 'English', fi: 'Suomi', sv: 'Svenska', nb: 'Norsk bokmål', da: 'Dansk', de: 'Deutsch',
   nl: 'Nederlands', fr: 'Français', es: 'Español', pt: 'Português (Brasil)', it: 'Italiano',
-  pl: 'Polski', tr: 'Türkçe',
+  pl: 'Polski', tr: 'Türkçe', cs: 'Čeština', hu: 'Magyar', ro: 'Română', hr: 'Hrvatski', sq: 'Shqip',
+  el: 'Ελληνικά', ru: 'Русский', uk: 'Українська', bg: 'Български', sk: 'Slovenčina', sl: 'Slovenščina',
+  sr: 'Srpski', lt: 'Lietuvių', lv: 'Latviešu', et: 'Eesti', id: 'Bahasa Indonesia', vi: 'Tiếng Việt',
 };
 export const DEFAULT_LANGUAGE = 'en';
 
@@ -27,11 +29,17 @@ export const DEFAULT_LANGUAGE = 'en';
 const LOCALE_TAG = {
   en: 'en-GB', fi: 'fi-FI', sv: 'sv-SE', nb: 'nb-NO', da: 'da-DK', de: 'de-DE', nl: 'nl-NL',
   fr: 'fr-FR', es: 'es-ES', pt: 'pt-BR', it: 'it-IT', pl: 'pl-PL', tr: 'tr-TR',
+  cs: 'cs-CZ', hu: 'hu-HU', ro: 'ro-RO', hr: 'hr-HR', sq: 'sq-AL', el: 'el-GR', ru: 'ru-RU', uk: 'uk-UA',
+  bg: 'bg-BG', sk: 'sk-SK', sl: 'sl-SI', sr: 'sr-Latn-RS', lt: 'lt-LT', lv: 'lv-LV', et: 'et-EE', id: 'id-ID', vi: 'vi-VN',
 };
 
 // What a browser may call a language the app speaks under another code:
 // Norwegian comes as no, nb or nn, and the app writes Bokmål.
-const ALIASES = { no: 'nb', nn: 'nb' };
+// Serbian is written in the Latin script here (see js/locales/sr.js), the
+// one its readers online and in providers' lists use, and the one readers in
+// Montenegro, where the browser may say cnr or sh, read too. Bosnian is
+// closest to Croatian: both write ijekavian.
+const ALIASES = { no: 'nb', nn: 'nb', sh: 'sr', cnr: 'sr', bs: 'hr' };
 
 /** The app's code for a browser's language tag, or null if it does not speak it. */
 export function supportedLanguage(tag) {
@@ -482,6 +490,10 @@ const STRINGS = {
     'setup.theme.dark': 'Dark',
     'setup.theme.light': 'Light',
     'setup.theme.system': 'Same as the system',
+    'setup.clock': 'Clock',
+    'setup.clock.auto': 'Automatic ({example})',
+    'setup.clock.24': '24-hour ({example})',
+    'setup.clock.12': '12-hour ({example})',
     'help.key.menu': 'A channel\'s menu: a favourite or not, or hide it',
     'subs.size.now': 'Subtitle size {size}',
     'subs.size.reset': 'Default',
@@ -1039,6 +1051,10 @@ const STRINGS = {
     'setup.theme.dark': 'Tumma',
     'setup.theme.light': 'Vaalea',
     'setup.theme.system': 'Järjestelmän mukaan',
+    'setup.clock': 'Kello',
+    'setup.clock.auto': 'Automaattinen ({example})',
+    'setup.clock.24': '24 tuntia ({example})',
+    'setup.clock.12': '12 tuntia ({example})',
     'help.key.menu': 'Kanavan valikko: suosikki tai piilotus',
     'subs.size.now': 'Tekstityksen koko {size}',
     'subs.size.reset': 'Oletus',
@@ -1177,10 +1193,14 @@ export async function loadLanguage(lang) {
   }
 }
 
+const LANG_ATTR = { sr: 'sr-Latn', pt: 'pt-BR' };
+
 export function setLanguage(lang) {
   current = STRINGS[lang] ? lang : DEFAULT_LANGUAGE;
   // The dev checks load this module in Node, where there is no document.
-  if (typeof document !== 'undefined') document.documentElement.lang = current;
+  // The page's lang names the script and the variety where the bare code
+  // would mislead a screen reader or a hyphenator: Serbian here is Latin.
+  if (typeof document !== 'undefined') document.documentElement.lang = LANG_ATTR[current] || current;
   return current;
 }
 
@@ -1189,7 +1209,14 @@ export function language() { return current; }
 /** The keys one dictionary holds. dev/unitcheck.mjs proves with it that
  *  the languages stay in step; the app itself has no use for it. */
 export const keysOf = (lang) => Object.keys(STRINGS[lang] || {});
-export function localeTag() { return LOCALE_TAG[current] || LOCALE_TAG[DEFAULT_LANGUAGE]; }
+// The browser's English of a region (en-US), when it has one: see
+// browserEnglish() in js/config.js. Dates then come in that region's order.
+let englishTag = null;
+export function setEnglishRegion(tag) { englishTag = tag || null; }
+export function localeTag() {
+  if (current === DEFAULT_LANGUAGE && englishTag) return englishTag;
+  return LOCALE_TAG[current] || LOCALE_TAG[DEFAULT_LANGUAGE];
+}
 
 /**
  * The translation for a key.

@@ -33,7 +33,8 @@ import { execFileSync } from 'node:child_process';
 import { cpSync, existsSync, mkdirSync, readdirSync, readFileSync, renameSync, rmSync, statSync } from 'node:fs';
 import { dirname, join, relative, resolve } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
-import { check as checkListings } from './listings.mjs';
+import { check as checkListings, CHROME_UNSUPPORTED } from './listings.mjs';
+import { problems as staleTranslations } from './translations.mjs';
 
 export const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 export const DIST = join(ROOT, 'dist');
@@ -178,6 +179,9 @@ export function build(target, source = gitSource()) {
   }
   // The Chrome Web Store calls Norwegian "no", Firefox nb_NO (dev/listings.mjs).
   if (target === 'firefox' && existsSync(join(dir, '_locales', 'no'))) renameSync(join(dir, '_locales', 'no'), join(dir, '_locales', 'nb_NO'));
+  // A language the Chrome Web Store has no code for (Albanian) is
+  // Firefox's alone: Chrome would only skip the folder with a warning.
+  if (target === 'chrome') for (const locale of CHROME_UNSUPPORTED) rmSync(join(dir, '_locales', locale), { recursive: true, force: true });
   const files = listFiles(dir);
   const missing = references(dir).filter((p) => !files.includes(p));
   if (missing.length) throw new Error(`${target}: the manifest or player.html refers to files the package lacks:\n  ` + missing.join('\n  '));
@@ -234,6 +238,11 @@ if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) 
       console.log(`the manifests agree in ${source.label}`);
       process.exit(0);
     }
+    // A release carries every language as of today's English: a
+    // translation left behind would ship the old meaning under a new one.
+    // --worktree is the development loop's, and is let through.
+    const stale = flag('--worktree') ? [] : await staleTranslations();
+    if (stale.length) throw new Error('translations behind the English:\n  ' + stale.join('\n  '));
     const differs = source.differs();
     if (differs.length) {
       console.log(flag('--worktree')
