@@ -68,6 +68,17 @@ RARELY
   • Category, language, homepage, support URL, privacy policy URL, test
     instructions: leave them unless the thing they describe has moved.
 
+FOR 1.5.0 SPECIFICALLY
+  Only "version" changed in the manifests; no new permission (storage.sync
+  is the existing "storage", runtime.setUninstallURL needs none). New:
+  M3U playlists with XMLTV guides, several accounts, optional sync between
+  computers, programme picks on the start page, damaged MKV files played
+  past their holes, a one-question form on uninstall, and a provider's
+  server error named rather than the account blamed. The listings were not
+  changed for it. Chrome's 1.4.7, still in review, was replaced
+  (dev/cws-publish.mjs --replace). The privacy policy is version 1.3
+  (sync, the uninstall form, the viewing notes for the picks).
+
 FOR 1.4.7 SPECIFICALLY
   Only "version" changed in the manifests. The package carries 17 new
   languages in _locales/ (Albanian left out of the Chrome one), so the
