@@ -3240,6 +3240,11 @@ async function sync(page, { target }) {
   // A list goes up under a hash of its account's key, never the address.
   assert(names.includes('accounts') && names.includes('settings') && names.some((n) => /^favorites:[0-9a-z]+$/.test(n)) && !names.some((n) => n.includes('http')), `the records synced: ${names.join(', ')}`);
   await waitFor(page, `/\\d/.test(document.getElementById('sync-status').textContent)`, 'the sync status line');
+  // What 1.5.0 left: a list named by the account's address. The next full
+  // sync takes it away.
+  await evaluate(page, `chrome.storage.sync.set({ rold1: { n: 'favorites:m3u:http://x/get.php?password=leftover', at: 1, h: 'x', c: 1 }, rold1_0: 'x' })`);
+  await evaluate(page, `chrome.storage.local.get('sync').then((d) => chrome.storage.local.set({ sync: { ...d.sync, passwords: true } })).then(() => new Promise((r) => setTimeout(r, 1500))).then(() => chrome.storage.local.get('sync')).then((d) => chrome.storage.local.set({ sync: { ...d.sync, passwords: false } }))`);
+  await waitFor(page, `chrome.storage.sync.get(null).then((d) => !JSON.stringify(d).includes('leftover'))`, 'the 1.5.0 leftover removed', 20000);
   const raw = await evaluate(page, `chrome.storage.sync.get(null).then((d) => JSON.stringify(d))`);
   assert(!raw.includes('secret') && !raw.includes('get.m3u'), 'the playlist with credentials in its address went to sync');
   assert(names.filter((n) => n.startsWith('favorites:')).length === 1, `favourites of an account kept home went: ${names.join(', ')}`);

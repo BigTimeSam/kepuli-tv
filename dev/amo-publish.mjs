@@ -8,6 +8,9 @@
 //   node dev/amo-publish.mjs listing      the listing's name, summary and description in
 //                                         every language of store/listings/, sent where
 //                                         AMO's differ; --dry says what would change
+//   node dev/amo-publish.mjs disable V…   versions not yet reviewed taken out of the queue
+//                                         (is_disabled): a release replaced by the next
+//                                         before review, so that it is not published
 //   node dev/amo-publish.mjs captions     the five screenshots' captions in every language
 //                                         of brand/firefox-screenshots/README.md, sent
 //                                         where AMO's differ; --dry as above
@@ -55,7 +58,7 @@ const POLL_MS = 3000;
 const VALIDATION_WAIT_MS = 5 * 60 * 1000;
 
 const args = process.argv.slice(2);
-const command = ['status', 'check', 'validate', 'listing', 'captions'].includes(args[0]) ? args[0] : 'publish';
+const command = ['status', 'check', 'validate', 'listing', 'captions', 'disable'].includes(args[0]) ? args[0] : 'publish';
 
 const fail = (message) => { console.error(`amo-publish: ${message}`); process.exit(1); };
 
@@ -250,7 +253,28 @@ async function status(creds) {
   return list.results || [];
 }
 
+/* ------------------------------------------------------------ disable */
+
+/**
+ * Versions taken out of the review queue: replaced by a newer one before
+ * review, they must not be published after it. Only a version still waiting
+ * for review is touched; a public one is left as it is and said so.
+ */
+async function disable(creds, wanted) {
+  const list = await call(creds, 'GET', `${addon}/versions/?filter=all_without_unlisted&page_size=25`);
+  for (const version of wanted) {
+    const v = (list.results || []).find((x) => x.version === version);
+    if (!v) { console.log(`${version}: not on AMO`); continue; }
+    if (v.file && v.file.status === 'public') { console.log(`${version}: public, left as it is`); continue; }
+    if (v.is_disabled) { console.log(`${version}: disabled already`); continue; }
+    await call(creds, 'PATCH', `${addon}/versions/${v.id}/`, { json: { is_disabled: true } });
+    console.log(`${version}: disabled`);
+  }
+}
+
 /* --------------------------------------------------------------- main */
+
+if (command === 'disable') { await disable(key(), args.slice(1)); process.exit(0); }
 
 if (command === 'listing') { await syncListing(key(), { dry: args.includes('--dry') }); process.exit(0); }
 if (command === 'captions') { await syncCaptions(key(), { dry: args.includes('--dry') }); process.exit(0); }

@@ -220,7 +220,11 @@ export class Sync {
           // A first sync of this computer joins, see the top of the file.
           this.state = {};
           this.run(() => this.pullAll({ join: true })).then(() => this.pushAll());
-        } else if (this.prefs.enabled && this.prefs.passwords !== before.passwords) this.schedule('accounts', QUICK_MS);
+        } else if (this.prefs.enabled && this.prefs.passwords !== before.passwords) {
+          // Every record again, in the form the choice now asks for: turned
+          // off, what went up with its addresses must not stay up there.
+          this.run(() => this.push(null));
+        }
         else if (!this.prefs.enabled && before.enabled) this.stop();
         return;
       }
@@ -316,12 +320,40 @@ export class Sync {
       for (let i = parts; before && i < before.c; i++) remove.push(chunkKey(name, i));
       this.state[name] = { at, h };
     }
-    if (!Object.keys(set).length) { await this.ok(); return; }
+    if (names == null) remove.push(...(await this.leftovers(current, records)));
+    if (!Object.keys(set).length && !remove.length) { await this.ok(); return; }
     const size = new Blob([JSON.stringify({ ...current, ...set })]).size;
     if (size > QUOTA) throw new Error('quota');
-    await area().set(set);
+    if (Object.keys(set).length) await area().set(set);
     if (remove.length) await area().remove(remove);
     await this.ok();
+  }
+
+  /**
+   * The rows up there that should not be: a list named the way 1.5.0 named
+   * them, by the account's own key — a playlist's address — and the lists of
+   * an account this computer knows but keeps home now (a playlist whose
+   * address carries credentials, without "Include passwords"). A list of an
+   * account this computer does not know is left alone: it is another
+   * computer's.
+   */
+  async leftovers(current, records) {
+    const data = await api.storage.local.get('accounts');
+    const known = new Set((data.accounts || []).map((a) => shortHash(accountKey(a))));
+    const going = new Set((records.get('accounts') || []).map((a) => shortHash(accountKey(a))));
+    const remove = [];
+    for (const [key, meta] of Object.entries(current)) {
+      if (!/^r[0-9a-z]+$/.test(key) || !meta || !meta.n || !meta.n.includes(':')) continue;
+      const name = meta.n;
+      const hash = name.slice(name.indexOf(':') + 1);
+      const oldForm = !/^[a-z]+:[0-9a-z]+$/.test(name);
+      const keptHome = known.has(hash) && !going.has(hash);
+      if (!oldForm && !keptHome) continue;
+      remove.push(key);
+      for (let i = 0; i < (meta.c || 0); i++) remove.push(chunkKey(name, i));
+      delete this.state[name];
+    }
+    return remove;
   }
 
   /** Everything up there that is newer than what this computer last took. */
