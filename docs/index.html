@@ -173,7 +173,7 @@
 
 <main>
 <h1>Kepuli-TV</h1>
-<p class="meta">The README of the Kepuli-TV browser extension, version 1.4.6. <a href="https://github.com/BigTimeSam/kepuli-tv">Source on GitHub</a></p>
+<p class="meta">The README of the Kepuli-TV browser extension, version 1.4.7. <a href="https://github.com/BigTimeSam/kepuli-tv">Source on GitHub</a></p>
 
 <p>A Chrome and Firefox extension (Manifest V3) that plays Xtream Codes IPTV straight in the
 browser. Data is fetched from the <code>player_api.php</code> API lazily: only what you
@@ -1816,14 +1816,19 @@ project root with names that differ by one word:</p>
 <p><code>node dev/cws-publish.mjs</code> sends the Chrome package through the store's
 publishing API: it checks that the zip is the Chrome package of the current
 version, uploads it and submits it for review (<code>--replace</code> cancels a submission
-still in review first, <code>status</code> shows what the store holds). The one-time setup
+still in review first, <code>status</code> shows what the store holds). A release that
+adds languages runs <code>upload</code> first, which leaves the package as the draft, so
+that the dashboard offers the new languages for their descriptions, and
+<code>submit</code> once they are filled in. The one-time setup
 of its credentials is in <code>store-listing.txt</code>, under "PUBLISHING THROUGH THE API".</p>
 
 <p><code>node dev/amo-publish.mjs</code> does the same for AMO through its API (v5): it checks
 that the zip is the Firefox package of the current version, has AMO validate it,
 makes the version with its source archive, and adds the release notes (the
 GitHub release's text) and the notes to reviewer (<code>firefox/reviewer-notes.txt</code>,
-held to 3000 characters). <code>status</code>, <code>check</code> and <code>validate</code> send no version. Its
+held to 3000 characters), then brings the listing and the screenshots'
+captions (<code>brand/firefox-screenshots/README.md</code>) in step; <code>listing</code> and
+<code>captions</code> do either alone. <code>status</code>, <code>check</code> and <code>validate</code> send no version. Its
 key is made at https://addons.mozilla.org/developers/addon/api/key/ and kept in
 <code>~/.config/kepuli-tv/amo.json</code> as <code>{ "issuer": "user:…", "secret": "…" }</code>, mode 600.</p>
 

@@ -68,6 +68,15 @@ RARELY
   • Category, language, homepage, support URL, privacy policy URL, test
     instructions: leave them unless the thing they describe has moved.
 
+FOR 1.4.7 SPECIFICALLY
+  Only "version" changed in the manifests. The package carries 17 new
+  languages in _locales/ (Albanian left out of the Chrome one), so the
+  Chrome draft was uploaded first (dev/cws-publish.mjs upload), every
+  language's detailed description filled in the dashboard, then
+  submitted (dev/cws-publish.mjs submit). AMO's listing and the
+  screenshots' captions went up through its API in all thirty of its
+  languages. The player also shows a shorter wait card.
+
 FOR 1.4.6 SPECIFICALLY
   Only "version" changed in the manifests; the listings are those set up
   for 1.4.0. The changes are in playback: the wait shows how the start is
@@ -246,14 +255,20 @@ AT EVERY RELEASE
   2. node dev/listings.mjs — checks the listings, writes _locales/ and the
      paste files in dist/listings/.
   3. Chrome: node dev/cws-publish.mjs listing names the languages whose
-     detailed description in the dashboard is behind. Fill those in the
-     dashboard (Store listing → language → Description, from
-     dist/listings/<locale>.txt; a new language is added there with
-     "Add language"), save the draft, then
-     node dev/cws-publish.mjs listing --done <locales>. The submission is
-     refused while any is behind.
+     detailed description in the dashboard is behind. A release that adds
+     languages first uploads the package as the draft (node
+     dev/cws-publish.mjs upload): the dashboard's language menu offers a
+     language only once the package carries it. Fill the behind ones in
+     the dashboard (Store listing → language → Description, from
+     dist/listings/<locale>.txt), save the draft, then
+     node dev/cws-publish.mjs listing --done <locales>, and
+     node dev/cws-publish.mjs submit (or, with nothing uploaded first,
+     node dev/cws-publish.mjs, which uploads and submits). The submission
+     is refused while any language is behind.
   4. Firefox: node dev/amo-publish.mjs sends every language's name, summary
-     and description where AMO's differ, after the version.
+     and description where AMO's differ, after the version, and the
+     screenshots' captions from brand/firefox-screenshots/README.md
+     (node dev/amo-publish.mjs listing / captions do either alone).
 
 
 PUBLISHING THROUGH THE API
@@ -327,6 +342,9 @@ SETTING THE LANGUAGES ON ADDONS.MOZILLA.ORG
   3. Images → Edit, in the same language: the five screenshot captions, in
      brand/firefox-screenshots/README.md. The pictures are shared by every
      language; only the captions are per language. Save Changes.
+  All three steps are done by node dev/amo-publish.mjs listing and
+  node dev/amo-publish.mjs captions through the API; the form is for
+  checking what went up.
 
   The languages, as AMO's menu names them:
     English (British)      en-GB  en.txt    the default
@@ -339,11 +357,27 @@ SETTING THE LANGUAGES ON ADDONS.MOZILLA.ORG
     Español (de España)    es-ES  es.txt    not the Argentinian, Chilean or
                                             Mexican Spanish beside it
     Português (do Brasil)  pt-BR  pt_BR.txt
-    Português (Europeu)    pt-PT  pt_BR.txt the Brazilian text: readable in
-                                            Portugal, and better than English
+    Português (Europeu)    pt-PT  pt_PT.txt
     Italiano               it     it.txt
     Polski                 pl     pl.txt
     Türkçe                 tr     tr.txt
+    Čeština                cs     cs.txt
+    Slovenčina             sk     sk.txt
+    Slovenščina            sl     sl.txt
+    Magyar                 hu     hu.txt
+    Română                 ro     ro.txt
+    Български              bg     bg.txt
+    Hrvatski               hr     hr.txt
+    Српски / Srpski        sr     sr.txt    in Latin script
+    Shqip                  sq     sq.txt    AMO only: no Chrome Web Store code
+    Ελληνικά               el     el.txt
+    Русский                ru     ru.txt
+    Українська             uk     uk.txt
+    Lietuvių               lt     lt.txt
+    Latviešu               lv     lv.txt
+    Eesti                  et     et.txt
+    Bahasa Indonesia       id     id.txt
+    Tiếng Việt             vi     vi.txt
   Danish is not among AMO's languages, so there is no Danish listing:
   Danish readers get the English one. The extension itself still speaks
   Danish in Firefox, and Firefox's add-on manager shows the name and the

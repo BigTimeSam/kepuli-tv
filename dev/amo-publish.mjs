@@ -8,10 +8,14 @@
 //   node dev/amo-publish.mjs listing      the listing's name, summary and description in
 //                                         every language of store/listings/, sent where
 //                                         AMO's differ; --dry says what would change
+//   node dev/amo-publish.mjs captions     the five screenshots' captions in every language
+//                                         of brand/firefox-screenshots/README.md, sent
+//                                         where AMO's differ; --dry as above
 //   node dev/amo-publish.mjs              kepuli-tv-firefox-<version>.zip submitted as a new
 //                                         listed version, with its source archive, the
 //                                         release notes and the notes to reviewer, and
-//                                         the listing brought in step as above
+//                                         the listing and the captions brought in step
+//                                         as above
 //
 // What a submission by hand needed, here in one go: the add-on package,
 // validated by AMO before the version is made; the source archive
@@ -51,7 +55,7 @@ const POLL_MS = 3000;
 const VALIDATION_WAIT_MS = 5 * 60 * 1000;
 
 const args = process.argv.slice(2);
-const command = ['status', 'check', 'validate', 'listing'].includes(args[0]) ? args[0] : 'publish';
+const command = ['status', 'check', 'validate', 'listing', 'captions'].includes(args[0]) ? args[0] : 'publish';
 
 const fail = (message) => { console.error(`amo-publish: ${message}`); process.exit(1); };
 
@@ -140,7 +144,8 @@ function releaseNotes(version) {
 /* ------------------------------------------------------------ listing */
 
 // AMO's codes for the Chrome Web Store's, where they differ.
-const AMO_LOCALES = { en: ['en-GB'], es: ['es-ES'], no: ['nb-NO'], pt_BR: ['pt-BR'], pt_PT: ['pt-PT'], sv: ['sv-SE'] };
+// AMO has no Danish: Danish readers get the default, English.
+const AMO_LOCALES = { en: ['en-GB'], da: [], es: ['es-ES'], no: ['nb-NO'], pt_BR: ['pt-BR'], pt_PT: ['pt-PT'], sv: ['sv-SE'] };
 
 /**
  * The name, summary and description of every language, sent where AMO's
@@ -168,6 +173,50 @@ async function syncListing(creds, { dry = false } = {}) {
   console.log('listing: sent');
 }
 
+/* ----------------------------------------------------------- captions */
+
+const CAPTIONS = join(ROOT, 'brand', 'firefox-screenshots', 'README.md');
+
+/**
+ * The captions of brand/firefox-screenshots/README.md: per file, per AMO
+ * language. The first table is the English one (en-GB); each "### Name
+ * (code)" section after it is that language's.
+ */
+function readCaptions() {
+  const byFile = {};
+  let locale = LOCALE;
+  for (const line of readFileSync(CAPTIONS, 'utf8').split('\n')) {
+    const head = line.match(/^###\s.*\(([a-z]{2,3}(?:-[A-Z]{2})?)\)\s*$/);
+    if (head) { locale = head[1]; continue; }
+    const row = line.match(/^\|\s*(\d\d-[\w-]+\.png)\s*\|\s*(.+?)\s*\|\s*$/);
+    if (row) (byFile[row[1]] ||= {})[locale] = row[2];
+  }
+  return byFile;
+}
+
+/**
+ * Each screenshot's caption, sent where AMO's differ. The pictures are
+ * AMO's in the order of their file names (01-…, 02-…), shared by every
+ * language; only the captions are per language.
+ */
+async function syncCaptions(creds, { dry = false } = {}) {
+  const want = readCaptions();
+  const files = Object.keys(want).sort();
+  const current = await call(creds, 'GET', `${addon}/`);
+  const previews = [...(current.previews || [])].sort((a, b) => a.position - b.position);
+  if (previews.length !== files.length) fail(`AMO has ${previews.length} screenshots, ${CAPTIONS} captions ${files.length}`);
+  let sent = 0;
+  for (const [i, file] of files.entries()) {
+    const have = previews[i].caption || {};
+    const changed = Object.fromEntries(Object.entries(want[file]).filter(([code, text]) => (have[code] || '').trim() !== text));
+    if (!Object.keys(changed).length) continue;
+    console.log(`captions: ${file} ${dry ? 'would change' : 'changes'} in ${Object.keys(changed).sort().join(' ')}`);
+    if (!dry) await call(creds, 'PATCH', `${addon}/previews/${previews[i].id}/`, { json: { caption: changed } });
+    sent++;
+  }
+  console.log(sent ? (dry ? '' : 'captions: sent') : 'captions: AMO has every caption as the README says');
+}
+
 /* ------------------------------------------------------------- status */
 
 async function status(creds) {
@@ -181,6 +230,7 @@ async function status(creds) {
 /* --------------------------------------------------------------- main */
 
 if (command === 'listing') { await syncListing(key(), { dry: args.includes('--dry') }); process.exit(0); }
+if (command === 'captions') { await syncCaptions(key(), { dry: args.includes('--dry') }); process.exit(0); }
 const files = command === 'status' ? null : checkedFiles();
 if (files) {
   console.log(`${files.zip}: the Firefox package of ${files.version}`);
@@ -226,5 +276,6 @@ console.log(`${done.version}: ${done.file && done.file.status}, source ${done.so
   + `release notes ${notesIn ? 'set' : 'MISSING'}, notes to reviewer ${(done.approval_notes || '').length} characters`);
 
 // The listing follows the version: a language the release added, or a
-// description it changed, goes up with it.
+// description it changed, goes up with it, and the screenshots' captions.
 await syncListing(creds);
+await syncCaptions(creds);

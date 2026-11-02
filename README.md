@@ -1556,14 +1556,19 @@ project root with names that differ by one word:
 `node dev/cws-publish.mjs` sends the Chrome package through the store's
 publishing API: it checks that the zip is the Chrome package of the current
 version, uploads it and submits it for review (`--replace` cancels a submission
-still in review first, `status` shows what the store holds). The one-time setup
+still in review first, `status` shows what the store holds). A release that
+adds languages runs `upload` first, which leaves the package as the draft, so
+that the dashboard offers the new languages for their descriptions, and
+`submit` once they are filled in. The one-time setup
 of its credentials is in `store-listing.txt`, under "PUBLISHING THROUGH THE API".
 
 `node dev/amo-publish.mjs` does the same for AMO through its API (v5): it checks
 that the zip is the Firefox package of the current version, has AMO validate it,
 makes the version with its source archive, and adds the release notes (the
 GitHub release's text) and the notes to reviewer (`firefox/reviewer-notes.txt`,
-held to 3000 characters). `status`, `check` and `validate` send no version. Its
+held to 3000 characters), then brings the listing and the screenshots'
+captions (`brand/firefox-screenshots/README.md`) in step; `listing` and
+`captions` do either alone. `status`, `check` and `validate` send no version. Its
 key is made at https://addons.mozilla.org/developers/addon/api/key/ and kept in
 `~/.config/kepuli-tv/amo.json` as `{ "issuer": "user:…", "secret": "…" }`, mode 600.
 

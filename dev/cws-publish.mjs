@@ -6,6 +6,11 @@
 //   node dev/cws-publish.mjs                   kepuli-tv-chrome-<version>.zip uploaded and
 //                                              submitted for review
 //   node dev/cws-publish.mjs --replace         … cancelling a submission still in review first
+//   node dev/cws-publish.mjs upload            the zip uploaded as the draft, not submitted: a
+//                                              release that adds languages does this first, as
+//                                              the dashboard offers a language for its
+//                                              description only once the package carries it
+//   node dev/cws-publish.mjs submit            the draft uploaded before submitted for review
 //   node dev/cws-publish.mjs --zip FILE        another zip than the current version's
 //   node dev/cws-publish.mjs listing           the languages whose detailed description in
 //                                              the dashboard is behind store/listings/
@@ -55,7 +60,7 @@ const UPLOAD_POLL_MS = 3000;
 const UPLOAD_WAIT_MS = 120000;
 
 const args = process.argv.slice(2);
-const command = ['status', 'check', 'listing'].includes(args[0]) ? args[0] : 'publish';
+const command = ['status', 'check', 'listing', 'upload', 'submit'].includes(args[0]) ? args[0] : 'publish';
 const replace = args.includes('--replace');
 const zipArg = args.includes('--zip') ? args[args.indexOf('--zip') + 1] : null;
 
@@ -193,11 +198,11 @@ if (zip) console.log(`${zip.zip}: the Chrome package of ${zip.version}, ${Math.r
 const creds = credentials();
 const token = await accessToken(creds);
 const before = await status(token, creds.publisherId);
-if (command !== 'publish') process.exit(0);
+if (command === 'status' || command === 'check') process.exit(0);
 
 // The submission takes the dashboard's draft listing with it: a language
 // whose description is behind would go out as it stands.
-const behindListing = listingBehind();
+const behindListing = command === 'upload' ? [] : listingBehind();
 if (behindListing.length && !args.includes('--listing-later')) {
   fail(`the dashboard's detailed description is behind in ${behindListing.map((l) => l.locale).join(' ')}: fill it in (node dev/cws-publish.mjs listing), or pass --listing-later`);
 }
@@ -209,16 +214,19 @@ if (pending) {
   await call(token, 'POST', `/v2/${item(creds.publisherId)}:cancelSubmission`);
 }
 
-console.log('uploading…');
-let upload = await call(token, 'POST', `/upload/v2/${item(creds.publisherId)}:upload`, { raw: readFileSync(zip.zip) });
-const started = Date.now();
-while (/IN_PROGRESS/.test(upload.uploadState || '') && Date.now() - started < UPLOAD_WAIT_MS) {
-  await new Promise((resolve) => setTimeout(resolve, UPLOAD_POLL_MS));
-  const s = await call(token, 'GET', `/v2/${item(creds.publisherId)}:fetchStatus`);
-  upload = { ...upload, uploadState: s.lastAsyncUploadState || upload.uploadState };
+if (command !== 'submit') {
+  console.log('uploading…');
+  let upload = await call(token, 'POST', `/upload/v2/${item(creds.publisherId)}:upload`, { raw: readFileSync(zip.zip) });
+  const started = Date.now();
+  while (/IN_PROGRESS/.test(upload.uploadState || '') && Date.now() - started < UPLOAD_WAIT_MS) {
+    await new Promise((resolve) => setTimeout(resolve, UPLOAD_POLL_MS));
+    const s = await call(token, 'GET', `/v2/${item(creds.publisherId)}:fetchStatus`);
+    upload = { ...upload, uploadState: s.lastAsyncUploadState || upload.uploadState };
+  }
+  if (upload.uploadState !== 'SUCCEEDED') fail(`the upload ended ${upload.uploadState || 'without a state'}`);
+  console.log(`uploaded ${upload.crxVersion || zip.version}`);
+  if (command === 'upload') { console.log('left as the draft: fill in the listing, then node dev/cws-publish.mjs submit'); process.exit(0); }
 }
-if (upload.uploadState !== 'SUCCEEDED') fail(`the upload ended ${upload.uploadState || 'without a state'}`);
-console.log(`uploaded ${upload.crxVersion || zip.version}`);
 
 console.log('submitting for review…');
 const published = await call(token, 'POST', `/v2/${item(creds.publisherId)}:publish`, { body: {} });
