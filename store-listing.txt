@@ -72,14 +72,16 @@ FOR 1.5.2 SPECIFICALLY
   1.5.1 replaced in both stores before review, as 1.5.0 was: turning
   "Include passwords" off sends every list again in the stripped form, and a
   full sync removes rows named the 1.5.0 way and the lists of accounts kept
-  home. On AMO 1.5.0 and 1.5.1 were disabled before review.
+  home. On AMO 1.5.0 had already been approved automatically and was public
+  within minutes; 1.5.1 was disabled by AMO itself when 1.5.2 came, and 1.5.2
+  follows 1.5.0 there.
 
 FOR 1.5.1 SPECIFICALLY
   1.5.0 replaced in both stores before review: without "Include passwords",
   sync now leaves behind the lists of a playlist kept home, the stream
   addresses of favourites and history, and a guide address with credentials,
   and names the lists by a hash of the account. Chrome's 1.5.0 was replaced
-  (--replace); on AMO 1.5.0 was disabled before review.
+  (--replace); on AMO 1.5.0 was already public.
 
 FOR 1.5.0 SPECIFICALLY
   Only "version" changed in the manifests; no new permission (storage.sync

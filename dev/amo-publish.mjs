@@ -258,7 +258,10 @@ async function status(creds) {
 /**
  * Versions taken out of the review queue: replaced by a newer one before
  * review, they must not be published after it. Only a version still waiting
- * for review is touched; a public one is left as it is and said so.
+ * for review is touched; a public one is left as it is and said so. AMO
+ * approves automatically, often within minutes (1.5.0 was public before
+ * 1.5.1 followed it), and disables an unreviewed version itself when a
+ * newer one is submitted — so this is mostly for saying where each stands.
  */
 async function disable(creds, wanted) {
   const list = await call(creds, 'GET', `${addon}/versions/?filter=all_without_unlisted&page_size=25`);
@@ -266,7 +269,7 @@ async function disable(creds, wanted) {
     const v = (list.results || []).find((x) => x.version === version);
     if (!v) { console.log(`${version}: not on AMO`); continue; }
     if (v.file && v.file.status === 'public') { console.log(`${version}: public, left as it is`); continue; }
-    if (v.is_disabled) { console.log(`${version}: disabled already`); continue; }
+    if (v.is_disabled || (v.file && v.file.status === 'disabled')) { console.log(`${version}: disabled already`); continue; }
     await call(creds, 'PATCH', `${addon}/versions/${v.id}/`, { json: { is_disabled: true } });
     console.log(`${version}: disabled`);
   }
