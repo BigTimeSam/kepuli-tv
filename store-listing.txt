@@ -68,6 +68,12 @@ RARELY
   • Category, language, homepage, support URL, privacy policy URL, test
     instructions: leave them unless the thing they describe has moved.
 
+FOR 1.4.6 SPECIFICALLY
+  Only "version" changed in the manifests; the listings are those set up
+  for 1.4.0. The changes are in playback: the wait shows how the start is
+  coming along, and a provider's server error is said at once instead of
+  a wait for the account's connection. Sent through the APIs as 1.4.5 was.
+
 FOR 1.4.5 SPECIFICALLY
   Only "version" changed in the manifests, and nothing in the extension's
   code: 1.4.5 is the first version sent to both stores through their APIs
