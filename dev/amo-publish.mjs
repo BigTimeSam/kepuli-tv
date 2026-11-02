@@ -81,13 +81,20 @@ function token({ issuer, secret }) {
   return `${body}.${createHmac('sha256', secret).update(body).digest('base64url')}`;
 }
 
-async function call(creds, method, path, { json, form } = {}) {
+async function call(creds, method, path, { json, form } = {}, tries = 5) {
   const headers = { Authorization: `JWT ${token(creds)}` };
   if (json !== undefined) headers['Content-Type'] = 'application/json';
   const res = await fetch(`${API}${path}`, { method, headers, body: form || (json !== undefined ? JSON.stringify(json) : undefined) });
   const text = await res.text();
   let body = {};
   try { body = text ? JSON.parse(text) : {}; } catch { body = { text: text.slice(0, 300) }; }
+  // AMO throttles a run of writes and says how long to wait.
+  if (res.status === 429 && tries > 1) {
+    const wait = Number((String(body.detail || '').match(/(\d+) seconds?/) || [])[1] || 15);
+    console.log(`AMO asks to wait ${wait} s…`);
+    await new Promise((resolve) => setTimeout(resolve, (wait + 1) * 1000));
+    return call(creds, method, path, { json, form }, tries - 1);
+  }
   if (!res.ok) fail(`${method} ${path} answered ${res.status}: ${JSON.stringify(body).slice(0, 600)}`);
   return body;
 }
@@ -144,8 +151,12 @@ function releaseNotes(version) {
 /* ------------------------------------------------------------ listing */
 
 // AMO's codes for the Chrome Web Store's, where they differ.
-// AMO has no Danish: Danish readers get the default, English.
-const AMO_LOCALES = { en: ['en-GB'], da: [], es: ['es-ES'], no: ['nb-NO'], pt_BR: ['pt-BR'], pt_PT: ['pt-PT'], sv: ['sv-SE'] };
+// The languages addons.mozilla.org itself does not offer (PROD_LANGUAGES in
+// mozilla/addons-server's src/olympia/core/languages.py): it refuses a
+// listing or a caption in them, and their readers get the default, English.
+const AMO_UNOFFERED = ['bg', 'da', 'et', 'id', 'lt', 'lv'];
+const AMO_LOCALES = { en: ['en-GB'], es: ['es-ES'], no: ['nb-NO'], pt_BR: ['pt-BR'], pt_PT: ['pt-PT'], sv: ['sv-SE'],
+  ...Object.fromEntries(AMO_UNOFFERED.map((code) => [code, []])) };
 
 /**
  * The name, summary and description of every language, sent where AMO's
@@ -153,6 +164,10 @@ const AMO_LOCALES = { en: ['en-GB'], da: [], es: ['es-ES'], no: ['nb-NO'], pt_BR
  * want it, a paragraph to a line (see unwrap() in dev/listings.mjs). Only
  * the languages that changed are sent: AMO keeps the others as they are.
  */
+// AMO gives a description back with its links wrapped in <a> through its
+// outgoing-link redirector; the text inside is what was sent.
+const plain = (text) => (text || '').replace(/<a\b[^>]*>([\s\S]*?)<\/a>/g, '$1').trim();
+
 async function syncListing(creds, { dry = false } = {}) {
   const current = await call(creds, 'GET', `${addon}/`);
   const want = { name: {}, summary: {}, description: {} };
@@ -161,7 +176,7 @@ async function syncListing(creds, { dry = false } = {}) {
       const text = { name: l.name, summary: l.short, description: unwrap(l.detailed) };
       for (const field of Object.keys(want)) {
         const have = current[field] && current[field][code];
-        if ((have || '').trim() !== text[field].trim()) want[field][code] = text[field];
+        if (plain(have) !== text[field].trim()) want[field][code] = text[field];
       }
     }
   }
@@ -189,7 +204,7 @@ function readCaptions() {
     const head = line.match(/^###\s.*\(([a-z]{2,3}(?:-[A-Z]{2})?)\)\s*$/);
     if (head) { locale = head[1]; continue; }
     const row = line.match(/^\|\s*(\d\d-[\w-]+\.png)\s*\|\s*(.+?)\s*\|\s*$/);
-    if (row) (byFile[row[1]] ||= {})[locale] = row[2];
+    if (row && !AMO_UNOFFERED.includes(locale)) (byFile[row[1]] ||= {})[locale] = row[2];
   }
   return byFile;
 }
@@ -202,12 +217,20 @@ function readCaptions() {
 async function syncCaptions(creds, { dry = false } = {}) {
   const want = readCaptions();
   const files = Object.keys(want).sort();
-  const current = await call(creds, 'GET', `${addon}/`);
-  const previews = [...(current.previews || [])].sort((a, b) => a.position - b.position);
+  // A caption comes back only in the language asked for (?lang=), so
+  // AMO's are read language by language.
+  const locales = [...new Set(Object.values(want).flatMap((c) => Object.keys(c)))];
+  const byPosition = [];
+  let previews = [];
+  for (const code of locales) {
+    const current = await call(creds, 'GET', `${addon}/?lang=${code}`);
+    previews = [...(current.previews || [])].sort((a, b) => a.position - b.position);
+    previews.forEach((p, i) => { (byPosition[i] ||= {})[code] = p.caption && p.caption[code]; });
+  }
   if (previews.length !== files.length) fail(`AMO has ${previews.length} screenshots, ${CAPTIONS} captions ${files.length}`);
   let sent = 0;
   for (const [i, file] of files.entries()) {
-    const have = previews[i].caption || {};
+    const have = byPosition[i] || {};
     const changed = Object.fromEntries(Object.entries(want[file]).filter(([code, text]) => (have[code] || '').trim() !== text));
     if (!Object.keys(changed).length) continue;
     console.log(`captions: ${file} ${dry ? 'would change' : 'changes'} in ${Object.keys(changed).sort().join(' ')}`);

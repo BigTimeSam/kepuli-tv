@@ -26,8 +26,10 @@ AMO keeps a caption per screenshot per language. `node dev/amo-publish.mjs
 captions` sends every table here — the English one as en-GB, each section
 below as the code in its heading — wherever AMO's differ, and a release does
 the same after the version. Each uses the form of address of that language's
-store listing. AMO has no Danish, so there is none here; see
-"SETTING THE LANGUAGES ON ADDONS.MOZILLA.ORG" in store-listing.txt.
+store listing. AMO offers no Danish, Bulgarian, Estonian, Indonesian,
+Lithuanian or Latvian: the sections in those are kept for the day it does
+and are not sent; see "SETTING THE LANGUAGES ON ADDONS.MOZILLA.ORG" in
+store-listing.txt.
 
 ### suomi (fi)
 

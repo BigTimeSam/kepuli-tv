@@ -74,8 +74,8 @@ FOR 1.4.7 SPECIFICALLY
   Chrome draft was uploaded first (dev/cws-publish.mjs upload), every
   language's detailed description filled in the dashboard, then
   submitted (dev/cws-publish.mjs submit). AMO's listing and the
-  screenshots' captions went up through its API in all thirty of its
-  languages. The player also shows a shorter wait card.
+  screenshots' captions (never set before) went up through its API in
+  the 25 of its languages AMO offers. The player also shows a shorter wait card.
 
 FOR 1.4.6 SPECIFICALLY
   Only "version" changed in the manifests; the listings are those set up
@@ -366,22 +366,19 @@ SETTING THE LANGUAGES ON ADDONS.MOZILLA.ORG
     Slovenščina            sl     sl.txt
     Magyar                 hu     hu.txt
     Română                 ro     ro.txt
-    Български              bg     bg.txt
     Hrvatski               hr     hr.txt
     Српски / Srpski        sr     sr.txt    in Latin script
     Shqip                  sq     sq.txt    AMO only: no Chrome Web Store code
     Ελληνικά               el     el.txt
     Русский                ru     ru.txt
     Українська             uk     uk.txt
-    Lietuvių               lt     lt.txt
-    Latviešu               lv     lv.txt
-    Eesti                  et     et.txt
-    Bahasa Indonesia       id     id.txt
     Tiếng Việt             vi     vi.txt
-  Danish is not among AMO's languages, so there is no Danish listing:
-  Danish readers get the English one. The extension itself still speaks
-  Danish in Firefox, and Firefox's add-on manager shows the name and the
-  summary from _locales/da. English (US) can stay empty; it falls back to
+  Danish, Bulgarian, Estonian, Indonesian, Lithuanian and Latvian are not
+  among the languages AMO offers (PROD_LANGUAGES in mozilla/addons-server),
+  and it refuses a listing or a caption in them, so there is none: their
+  readers get the English one (AMO_UNOFFERED in dev/amo-publish.mjs). The
+  extension itself still speaks them in Firefox, and Firefox's add-on
+  manager shows the name and the summary from their _locales/. English (US) can stay empty; it falls back to
   the default.
 
 --- THE OTHER FIELDS ON THE STORE FORM -------------------------------------
