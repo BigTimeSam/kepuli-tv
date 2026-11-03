@@ -1739,3 +1739,10 @@ select:not([multiple]) {
 .rec-info .rec-state { color: var(--danger); }
 .rec-actions { display: flex; gap: 6px; flex: none; }
 .rec-actions .ghost { padding: 4px 10px; }
+
+/* The guide's favourites switch. */
+.epg-favs { display: inline-flex; align-items: center; gap: 6px; }
+.epg-favs svg { width: 15px; height: 15px; fill: none; stroke: currentColor; stroke-width: 1.6; stroke-linejoin: round; }
+.epg-favs[aria-pressed="true"] { color: var(--accent); border-color: var(--accent); }
+.epg-favs[aria-pressed="true"] svg { fill: currentColor; }
+.epg-select:disabled { opacity: .5; cursor: default; }

@@ -315,6 +315,8 @@ export default {
  "guide.needgroup": "Välj en kanalgrupp först",
  "guide.allchannels": "Alla kanaler",
  "guide.group.title": "Kanalgrupp",
+ "guide.favs.title": "Visa bara dina favoritkanaler",
+ "guide.favs.none": "Inga favoritkanaler än. Stjärnmärk en kanal i listan för att lägga till den.",
  "guide.prev.title": "En halvtimme bakåt",
  "guide.now": "Nu",
  "guide.now.title": "Tillbaka till nutid",

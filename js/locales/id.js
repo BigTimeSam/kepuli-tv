@@ -307,6 +307,8 @@ export default {
  "guide.needgroup": "Pilih grup saluran dulu",
  "guide.allchannels": "Semua saluran",
  "guide.group.title": "Grup saluran",
+ "guide.favs.title": "Tampilkan hanya saluran favorit",
+ "guide.favs.none": "Belum ada saluran favorit. Beri bintang pada saluran di daftar untuk menambahkannya.",
  "guide.prev.title": "Mundur setengah jam",
  "guide.now": "Sekarang",
  "guide.now.title": "Kembali ke waktu sekarang",

@@ -315,6 +315,8 @@ export default {
  "guide.needgroup": "Choisissez d’abord un groupe de chaînes",
  "guide.allchannels": "Toutes les chaînes",
  "guide.group.title": "Groupe de chaînes",
+ "guide.favs.title": "Afficher seulement vos chaînes favorites",
+ "guide.favs.none": "Aucune chaîne favorite pour l’instant. Ajoutez une chaîne avec l’étoile dans la liste.",
  "guide.prev.title": "Une demi-heure en arrière",
  "guide.now": "Maintenant",
  "guide.now.title": "Retour au présent",

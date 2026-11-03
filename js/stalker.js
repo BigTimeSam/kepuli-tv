@@ -116,10 +116,15 @@ export async function portalRule(portal, mac) {
   if (!dnr?.updateSessionRules) return false;
   const host = new URL(portal).hostname;
   const id = ruleId(host);
+  // The extension's own requests only: a page elsewhere in the browser
+  // asking the portal's host gets no MAC address put on its request.
+  const self = new URL(ext.runtime.getURL('')).hostname;
+  // One portal at a time: a rule left from another account goes.
+  const before = (await dnr.getSessionRules()).map((rule) => rule.id).filter((other) => other !== id);
   const zone = Intl.DateTimeFormat().resolvedOptions().timeZone || 'Europe/London';
   const cookie = `mac=${encodeURIComponent(mac)}; stb_lang=en; timezone=${encodeURIComponent(zone)}`;
   await dnr.updateSessionRules({
-    removeRuleIds: [id],
+    removeRuleIds: [id, ...before],
     addRules: [{
       id,
       priority: 1,
@@ -131,10 +136,18 @@ export async function portalRule(portal, mac) {
           { header: 'Referer', operation: 'set', value: portal },
         ],
       },
-      condition: { requestDomains: [host], resourceTypes: ['xmlhttprequest', 'media', 'other'] },
+      condition: { requestDomains: [host], initiatorDomains: [self], resourceTypes: ['xmlhttprequest', 'media', 'other'] },
     }],
   });
   return true;
+}
+
+/** No portal's rule left: the account in use is not a Stalker portal. */
+export async function clearPortalRules() {
+  const dnr = ext?.declarativeNetRequest;
+  if (!dnr?.getSessionRules) return;
+  const ids = (await dnr.getSessionRules()).map((rule) => rule.id);
+  if (ids.length) await dnr.updateSessionRules({ removeRuleIds: ids });
 }
 
 function deadline(signal, ms = REQUEST_MS) {

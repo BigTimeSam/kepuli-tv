@@ -315,6 +315,8 @@ export default {
  "guide.needgroup": "Zgjidh fillimisht një grup kanalesh",
  "guide.allchannels": "Të gjitha kanalet",
  "guide.group.title": "Grupi i kanaleve",
+ "guide.favs.title": "Shfaq vetëm kanalet e preferuara",
+ "guide.favs.none": "Ende nuk ke kanale të preferuara. Shto një kanal me yllin në listë.",
  "guide.prev.title": "Gjysmë ore prapa",
  "guide.now": "Tani",
  "guide.now.title": "Kthehu te tani",

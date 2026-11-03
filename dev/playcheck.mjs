@@ -3541,9 +3541,45 @@ async function record(page) {
   }
 }
 
+/**
+ * The guide's favourites: two channels starred in the list, the switch in
+ * the guide shows those two and nothing else, a third star joins at once,
+ * and the choice stays for the next opening; off, the group's channels
+ * come back.
+ */
+async function guidefavs(page) {
+  const assert = (ok, message) => { if (!ok) throw new Error(message); };
+  const names = `[...document.querySelectorAll('.epg-chan-name')].map((n) => n.textContent)`;
+  await openLiveList(page, 4);
+  await click(page, '#groups', 'Finland');
+  await waitFor(page, `document.querySelectorAll('#list .row').length > 3`, 'the channels');
+  const starred = await evaluate(page, `[0, 2].map((i) => { const row = document.querySelectorAll('#list .row')[i]; row.querySelector('.row-star').click(); return row.querySelector('.row-name').textContent; })`, { gesture: true });
+  await click(page, '#groups', 'Sweden');
+  await waitFor(page, `document.querySelectorAll('#list .row').length > 1`, 'another country');
+  await evaluate(page, `document.getElementById('btn-guide').click()`, { gesture: true });
+  await waitFor(page, `document.getElementById('main').classList.contains('guide') && document.querySelectorAll('.epg-chan-name').length > 0`, 'the guide');
+  const group = await evaluate(page, names);
+  await evaluate(page, `document.getElementById('epg-favs').click()`, { gesture: true });
+  await waitFor(page, `document.getElementById('epg-favs').getAttribute('aria-pressed') === 'true' && document.querySelectorAll('.epg-chan-name').length === 2`, 'the favourites alone');
+  const favs = await evaluate(page, names);
+  assert(JSON.stringify(favs) === JSON.stringify(starred) && await evaluate(page, `document.getElementById('epg-group').disabled`), `favourites in the guide: ${JSON.stringify(favs)}, starred ${JSON.stringify(starred)}`);
+  // A star given in the list beside the guide joins at once.
+  const third = await evaluate(page, `(() => { const row = document.querySelectorAll('#list .row')[0]; row.querySelector('.row-star').click(); return row.querySelector('.row-name').textContent; })()`, { gesture: true });
+  await waitFor(page, `document.querySelectorAll('.epg-chan-name').length === 3`, 'the third favourite');
+  // The next opening keeps the choice.
+  await evaluate(page, `document.getElementById('epg-close').click()`);
+  await evaluate(page, `document.getElementById('btn-guide').click()`, { gesture: true });
+  await waitFor(page, `document.getElementById('epg-favs').getAttribute('aria-pressed') === 'true' && document.querySelectorAll('.epg-chan-name').length === 3`, 'the favourites again');
+  await evaluate(page, `document.getElementById('epg-favs').click()`, { gesture: true });
+  await waitFor(page, `document.getElementById('epg-favs').getAttribute('aria-pressed') === 'false' && !document.getElementById('epg-group').disabled`, 'the switch off');
+  const back = await evaluate(page, names);
+  assert(back.length === group.length, `off: ${back.length} channels, the group had ${group.length}`);
+  return { ok: true, detail: `${group.length} channels of the group, then the favourites ${JSON.stringify(favs)}, ${third} joined at once, kept for the next opening, the group back when off` };
+}
+
 const SCENARIOS = { buffering, livebuffering, filmbuffering, emptyfile, tsasmp4, refusedfile, badgateway, livebadgateway, channelrefused, noanswer, longfilm, catalogUi, setupClarity, fullscreenControl, clickpause, pickers, channels, home, resumemkv, restore, programmes, catchup, seek, death, cancel, timeout, search, paste, keys, switching, resume, connections, livezap, livequiet, reconnect, accounts, listerror, a11y, subtitles, audio, settings,
   lastchannel, nextepisode, continuewatching, reminders, update, seeklag, cuesretry, quota, catchupfreeze, catchupfull, twotabs, switchstop, resettabs,
-  refresh, restorenav, guidekeep, m3u, sync, holes, picks, flakyserver, accountform, stalker, record };
+  refresh, restorenav, guidekeep, m3u, sync, holes, picks, flakyserver, accountform, stalker, record, guidefavs };
 // The mock's whole-list answers stall for these, longer than the request limit.
 const SLOW_LIST_MS = { cancel: 60000, timeout: 60000 };
 // The media is sent slowly for these: the seek targets must lie outside the

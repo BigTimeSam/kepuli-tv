@@ -307,6 +307,8 @@ export default {
  "guide.needgroup": "Hãy chọn nhóm kênh trước",
  "guide.allchannels": "Tất cả kênh",
  "guide.group.title": "Nhóm kênh",
+ "guide.favs.title": "Chỉ hiện các kênh yêu thích",
+ "guide.favs.none": "Chưa có kênh yêu thích. Gắn sao cho một kênh trong danh sách để thêm.",
  "guide.prev.title": "Lùi nửa giờ",
  "guide.now": "Bây giờ",
  "guide.now.title": "Quay về hiện tại",

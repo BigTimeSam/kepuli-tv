@@ -68,6 +68,17 @@ RARELY
   • Category, language, homepage, support URL, privacy policy URL, test
     instructions: leave them unless the thing they describe has moved.
 
+FOR 1.6.0 SPECIFICALLY
+  A new permission: declarativeNetRequestWithHostAccess, for Stalker portal
+  accounts only. Chrome's Privacy practices tab asks for its justification:
+  "A Stalker (MAG set-top box) IPTV portal identifies the user's box by a MAC
+  address cookie and a MAG User-Agent. A page cannot set those headers, so a
+  session rule sets them on the extension's own requests to the portal host
+  the user entered and granted, and to nothing else. The rule is removed when
+  another account is used and when the browser closes." The submission goes
+  to the longer review. AMO's notes to the reviewer (firefox/reviewer-notes.txt)
+  say the same. Store descriptions do not yet mention Stalker or recording.
+
 FOR 1.5.3 SPECIFICALLY
   The name is localised: "Kepuli-TV – " and "IPTV player" in each language
   (store/listings/*.txt, written into _locales/ by dev/listings.mjs). The

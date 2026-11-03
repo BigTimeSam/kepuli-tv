@@ -315,6 +315,8 @@ export default {
  "guide.needgroup": "Διάλεξε πρώτα μια ομάδα καναλιών",
  "guide.allchannels": "Όλα τα κανάλια",
  "guide.group.title": "Ομάδα καναλιών",
+ "guide.favs.title": "Εμφάνιση μόνο των αγαπημένων καναλιών",
+ "guide.favs.none": "Δεν υπάρχουν ακόμη αγαπημένα κανάλια. Πρόσθεσε ένα κανάλι με το αστέρι στη λίστα.",
  "guide.prev.title": "Μισή ώρα πίσω",
  "guide.now": "Τώρα",
  "guide.now.title": "Επιστροφή στο τώρα",

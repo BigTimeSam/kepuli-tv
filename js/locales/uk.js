@@ -331,6 +331,8 @@ export default {
  "guide.needgroup": "Спершу вибери групу каналів",
  "guide.allchannels": "Усі канали",
  "guide.group.title": "Група каналів",
+ "guide.favs.title": "Показувати лише улюблені канали",
+ "guide.favs.none": "Улюблених каналів ще немає. Позначте канал зірочкою у списку, щоб додати його.",
  "guide.prev.title": "Пів години назад",
  "guide.now": "Зараз",
  "guide.now.title": "Повернутися до теперішнього",

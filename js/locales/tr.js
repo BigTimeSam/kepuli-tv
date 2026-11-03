@@ -315,6 +315,8 @@ export default {
  "guide.needgroup": "Önce bir kanal grubu seçin",
  "guide.allchannels": "Tüm kanallar",
  "guide.group.title": "Kanal grubu",
+ "guide.favs.title": "Yalnızca favori kanallarını göster",
+ "guide.favs.none": "Henüz favori kanalın yok. Eklemek için listede bir kanalı yıldızla.",
  "guide.prev.title": "Yarım saat geri",
  "guide.now": "Şimdi",
  "guide.now.title": "Şimdiye dön",

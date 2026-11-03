@@ -315,6 +315,8 @@ export default {
  "guide.needgroup": "Elige primero un grupo de canales",
  "guide.allchannels": "Todos los canales",
  "guide.group.title": "Grupo de canales",
+ "guide.favs.title": "Mostrar solo tus canales favoritos",
+ "guide.favs.none": "Aún no tienes canales favoritos. Marca un canal con la estrella en la lista para añadirlo.",
  "guide.prev.title": "Media hora atrás",
  "guide.now": "Ahora",
  "guide.now.title": "Volver al presente",

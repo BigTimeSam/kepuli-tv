@@ -1,6 +1,6 @@
 import { XtreamApi, ApiError } from './api.js';
 import { M3uSource } from './m3usource.js';
-import { StalkerSource, normalizePortal, normalizeMac } from './stalker.js';
+import { StalkerSource, normalizePortal, normalizeMac, clearPortalRules } from './stalker.js';
 import { installFetchTap, shareAs } from './streamhub.js';
 import { Recorder, recordingSupported, loadRecordings, changeRecordings, patchRecording, watchRecordings, newRecordingId, recordingBlob, deleteRecordingFiles, recordingFileName, settleOrphans, PAD_BEFORE_MS, PAD_AFTER_MS } from './recorder.js';
 import { playlistAddress } from './m3u.js';
@@ -184,6 +184,7 @@ async function connect({ silent = false } = {}) {
     // (js/m3usource.js); an Xtream server is asked one list at a time, and
     // a Stalker portal the same, as a MAG box (js/stalker.js).
     const source = sourceFor(config);
+    if (config.type !== 'stalker') clearPortalRules().catch(() => {});
     state.source = source;
     dropConnectedView();
 
@@ -477,6 +478,7 @@ function showStoredList(name, value) {
       if (state.tab === 'fav') { renderSidebar(); refreshRows({ keepScroll: true }); }
       else { vlist.refresh(); renderFavStrip(state.rows); renderCategories(); renderSubcats(); }
       renderSeriesFavorite();
+      favoritesChanged();
     }
   } else if (name === 'recents') {
     const list = value || [];
@@ -1032,7 +1034,7 @@ function showRows(rows, { keepScroll = false, loading = false } = {}) {
   });
   // The guide shows the same set as the list, so search and group selection
   // narrow it without a filter of its own.
-  if (guideOpen && state.tab === 'live') grid.setChannels(rows.filter((it) => it.k === 0));
+  if (guideOpen && state.tab === 'live' && !guideFavorites) grid.setChannels(rows.filter((it) => it.k === 0));
   renderSubcats();
   renderFavStrip(rows);
   renderListInfo();
@@ -2264,6 +2266,7 @@ function toggleFavorite(item) {
   if (state.tab === 'fav') { renderSidebar(); refreshRows({ keepScroll: true }); }
   else { vlist.refresh(); renderFavStrip(state.rows); }
   renderSeriesFavorite();
+  favoritesChanged();
 }
 
 /**
@@ -3823,7 +3826,8 @@ async function openGuide() {
   // The guide shows channel rows, so it needs the channel tab's contents.
   if (state.tab !== 'live' || state.detail) await activateTab('live', { restore: true });
 
-  const channels = state.rows.filter((it) => it.k === 0);
+  if (guideFavorites && !favoriteChannels().length) guideFavorites = false;
+  const channels = guideChannels();
   if (!channels.length) { toast(t('guide.needgroup'), { kind: 'warn' }); return; }
 
   guideOpen = true;
@@ -3833,6 +3837,7 @@ async function openGuide() {
   $('btn-guide').setAttribute('aria-expanded', 'true');
 
   renderGuideGroups();
+  renderGuideFavorites();
   grid.epg = state.epg;
   grid.setPlaying(state.playing && state.playing.k === 0 ? state.playing.id : null);
   grid.setChannels(channels);
@@ -3878,6 +3883,54 @@ function renderTheme() {
   button.dataset.i18nLabel = button.dataset.i18nTitle = `theme.to.${next}`;
   button.setAttribute('aria-label', t(`theme.to.${next}`));
   button.title = t(`theme.to.${next}`);
+}
+
+/* ------------------------------------------------- the guide's favourites */
+
+// The guide narrowed to the favourite channels, from every group at once,
+// in the order they were starred. A choice of this browser's that stays
+// from one opening of the guide to the next (ui.guideFavorites); the list
+// beside the guide keeps the group it shows.
+let guideFavorites = false;
+
+/** The favourite channels, as the library holds them now when it does. */
+function favoriteChannels() {
+  return [...state.favorites.values()].filter((f) => f.k === 0).map((f) => freshItem(f) || f);
+}
+
+/** The guide's channels: the favourites, or the list's own. */
+function guideChannels() {
+  return guideFavorites ? favoriteChannels() : state.rows.filter((it) => it.k === 0);
+}
+
+function renderGuideFavorites() {
+  const button = $('epg-favs');
+  button.setAttribute('aria-pressed', String(guideFavorites));
+  // A group means nothing while the favourites are shown.
+  $('epg-group').disabled = guideFavorites;
+}
+
+async function setGuideFavorites(on) {
+  if (on && !favoriteChannels().length) {
+    toast(t('guide.favs.none'), { kind: 'warn' });
+    on = false;
+  }
+  guideFavorites = on;
+  renderGuideFavorites();
+  store.saveUiState({ guideFavorites: on });
+  if (!guideOpen) return;
+  const channels = guideChannels();
+  if (!channels.length) return;
+  grid.setChannels(channels);
+  if (state.playing && state.playing.k === 0) grid.focusChannel(state.playing.id);
+}
+
+/** A star given or taken while the guide shows the favourites: the guide follows. */
+function favoritesChanged() {
+  if (!guideOpen || !guideFavorites) return;
+  const channels = favoriteChannels();
+  if (!channels.length) { setGuideFavorites(false); return; }
+  grid.setChannels(channels);
 }
 
 function renderGuideGroups() {
@@ -5982,6 +6035,7 @@ function wireUi() {
   $('epg-in').addEventListener('click', () => { grid.zoomBy(1); focusGrid(); });
   $('epg-out').addEventListener('click', () => { grid.zoomBy(-1); focusGrid(); });
   $('epg-group').addEventListener('change', (e) => selectGroup(e.target.value || null));
+  $('epg-favs').addEventListener('click', () => setGuideFavorites(!guideFavorites));
   $('btn-copy').addEventListener('click', copyUrl);
   $('btn-ext').addEventListener('click', playExternal);
   $('btn-record').addEventListener('click', toggleRecordNow);
@@ -6476,6 +6530,7 @@ async function init() {
 
   const ui = await store.loadUiState();
   favStripOpen = Boolean(ui.favStripOpen);
+  guideFavorites = Boolean(ui.guideFavorites);
   // The address names this tab's place; the stored view names the place any
   // tab last settled on. A reload has an address and takes it, drill-down
   // and all. A player opened fresh from the toolbar icon has none, and the

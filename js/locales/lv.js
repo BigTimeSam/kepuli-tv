@@ -323,6 +323,8 @@ export default {
  "guide.needgroup": "Vispirms izvēlies kanālu grupu",
  "guide.allchannels": "Visi kanāli",
  "guide.group.title": "Kanālu grupa",
+ "guide.favs.title": "Rādīt tikai iecienītos kanālus",
+ "guide.favs.none": "Iecienītu kanālu vēl nav. Atzīmē kanālu ar zvaigznīti sarakstā.",
  "guide.prev.title": "Pusstundu atpakaļ",
  "guide.now": "Tagad",
  "guide.now.title": "Atgriezties pie šī brīža",

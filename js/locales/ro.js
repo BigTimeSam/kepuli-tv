@@ -323,6 +323,8 @@ export default {
  "guide.needgroup": "Alege mai întâi un grup de canale",
  "guide.allchannels": "Toate canalele",
  "guide.group.title": "Grup de canale",
+ "guide.favs.title": "Afișează doar canalele preferate",
+ "guide.favs.none": "Încă nu ai canale preferate. Marchează un canal cu steaua din listă pentru a-l adăuga.",
  "guide.prev.title": "O jumătate de oră înapoi",
  "guide.now": "Acum",
  "guide.now.title": "Înapoi la prezent",

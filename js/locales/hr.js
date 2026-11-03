@@ -323,6 +323,8 @@ export default {
  "guide.needgroup": "Najprije odaberi grupu kanala",
  "guide.allchannels": "Svi kanali",
  "guide.group.title": "Grupa kanala",
+ "guide.favs.title": "Prikaži samo omiljene kanale",
+ "guide.favs.none": "Još nemaš omiljenih kanala. Dodaj kanal zvjezdicom na popisu.",
  "guide.prev.title": "Pola sata unatrag",
  "guide.now": "Sada",
  "guide.now.title": "Vrati se na sadašnji trenutak",

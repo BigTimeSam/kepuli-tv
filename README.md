@@ -102,7 +102,7 @@ there is no user name or password. **Stalker portal (MAC address)** in
 **Settings → Connection** takes the two. The player then talks to the portal as
 a MAG box does (`js/stalker.js`): the MAC address goes in a cookie and the
 User-Agent names a MAG250, both set by a session rule of `declarativeNetRequest`
-for the portal's host alone, since a page cannot set those headers itself; the
+for the extension's own requests to the portal's host alone, since a page cannot set those headers itself; the
 rule is gone when the browser closes. A stream's address is asked of the portal
 when it is played, and asked again when a live stream reconnects, since a
 portal's link is often good for one connection only. Channels, films, series and

@@ -331,6 +331,8 @@ export default {
  "guide.needgroup": "Pirmiausia pasirink kanalų grupę",
  "guide.allchannels": "Visi kanalai",
  "guide.group.title": "Kanalų grupė",
+ "guide.favs.title": "Rodyti tik mėgstamus kanalus",
+ "guide.favs.none": "Mėgstamų kanalų dar nėra. Pažymėkite kanalą žvaigždute sąraše.",
  "guide.prev.title": "Pusvalandis atgal",
  "guide.now": "Dabar",
  "guide.now.title": "Grįžti į dabartį",

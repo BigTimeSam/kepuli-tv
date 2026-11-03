@@ -315,6 +315,8 @@ export default {
  "guide.needgroup": "Előbb válassz egy csatornacsoportot",
  "guide.allchannels": "Minden csatorna",
  "guide.group.title": "Csatornacsoport",
+ "guide.favs.title": "Csak a kedvenc csatornák mutatása",
+ "guide.favs.none": "Még nincs kedvenc csatorna. A listában csillaggal adhatsz hozzá egyet.",
  "guide.prev.title": "Fél órával vissza",
  "guide.now": "Most",
  "guide.now.title": "Vissza a jelenhez",

@@ -315,6 +315,8 @@ export default {
  "guide.needgroup": "Kies eerst een zendergroep",
  "guide.allchannels": "Alle zenders",
  "guide.group.title": "Zendergroep",
+ "guide.favs.title": "Alleen je favoriete zenders tonen",
+ "guide.favs.none": "Nog geen favoriete zenders. Geef een zender in de lijst een ster om hem toe te voegen.",
  "guide.prev.title": "Een half uur terug",
  "guide.now": "Nu",
  "guide.now.title": "Terug naar het heden",

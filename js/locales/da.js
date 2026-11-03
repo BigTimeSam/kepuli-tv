@@ -315,6 +315,8 @@ export default {
  "guide.needgroup": "Vælg først en kanalgruppe",
  "guide.allchannels": "Alle kanaler",
  "guide.group.title": "Kanalgruppe",
+ "guide.favs.title": "Vis kun dine favoritkanaler",
+ "guide.favs.none": "Ingen favoritkanaler endnu. Stjernemarkér en kanal på listen for at tilføje den.",
  "guide.prev.title": "En halv time tilbage",
  "guide.now": "Nu",
  "guide.now.title": "Tilbage til nutiden",

@@ -331,6 +331,8 @@ export default {
  "guide.needgroup": "Najprv vyber skupinu kanálov",
  "guide.allchannels": "Všetky kanály",
  "guide.group.title": "Skupina kanálov",
+ "guide.favs.title": "Zobraziť len obľúbené kanály",
+ "guide.favs.none": "Zatiaľ nemáte obľúbené kanály. Pridajte kanál hviezdičkou v zozname.",
  "guide.prev.title": "O pol hodiny späť",
  "guide.now": "Teraz",
  "guide.now.title": "Späť na súčasnosť",

@@ -315,6 +315,8 @@ export default {
  "guide.needgroup": "Първо избери група канали",
  "guide.allchannels": "Всички канали",
  "guide.group.title": "Група канали",
+ "guide.favs.title": "Показвай само любимите канали",
+ "guide.favs.none": "Още нямаш любими канали. Добави канал със звездичката в списъка.",
  "guide.prev.title": "Половин час назад",
  "guide.now": "Сега",
  "guide.now.title": "Върни се към сегашния момент",

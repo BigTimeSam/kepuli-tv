@@ -315,6 +315,8 @@ export default {
  "guide.needgroup": "Vali esmalt kanalirühm",
  "guide.allchannels": "Kõik kanalid",
  "guide.group.title": "Kanalirühm",
+ "guide.favs.title": "Näita ainult lemmikkanaleid",
+ "guide.favs.none": "Lemmikkanaleid veel pole. Lisa kanal loendis tärniga.",
  "guide.prev.title": "Pool tundi tagasi",
  "guide.now": "Praegu",
  "guide.now.title": "Tagasi praegusesse hetke",
