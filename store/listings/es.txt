@@ -9,8 +9,8 @@ pensado en torno a una idea: un catálogo enorme debería sentirse pequeño.
 
 → Los canales abren en un segundo o dos, incluso con un catálogo gigantesco
 → Cientos de categorías desordenadas se convierten en una lista limpia de países
-→ Una guía de programación (EPG) a pantalla completa, con redifusión cuando
-  el proveedor la ofrece
+→ Una guía de programación (EPG) a pantalla completa, con catch-up cuando
+  el proveedor lo ofrece
 → Las películas y los episodios en MKV se ven directamente aquí, con
   subtítulos y sonido envolvente
 → Graba un canal ahora o un programa desde la guía, y guárdalo como archivo
@@ -37,7 +37,7 @@ QUÉ OBTIENES
 • Lo que dejaste a medias te espera arriba, y el siguiente episodio empieza
   solo.
 • Nada bloquea la pantalla mientras se cargan los datos, y lo que estás
-  viendo sigue sonando.
+  viendo sigue reproduciéndose.
 • Pensado para cuentas con una sola conexión: al cambiar de canal espera a que
   la conexión quede libre en lugar de fallar.
 • Películas y series como carátulas, con sinopsis, valoraciones y temporadas.
@@ -46,7 +46,7 @@ QUÉ OBTIENES
   se encuentran fácilmente.
 • Quédate solo con los países que ves, y solo con las categorías de películas
   y series que quieras.
-• Emite a un Chromecast, usa las teclas multimedia y recibe un aviso antes de
+• Envía a un Chromecast, usa las teclas multimedia y recibe un aviso antes de
   que empiece un programa.
 • La guía puede mostrar solo tus canales favoritos.
 • Un aspecto oscuro o claro, y el teclado llega a todo; el diseño sigue el
@@ -72,7 +72,7 @@ lo que puedas conservar y asegúrate de que el servicio sea legal donde vives.
 PRIMEROS PASOS
 
 Haz clic en el icono de la barra de herramientas e introduce tu servidor y
-tus credenciales, un enlace de playlist o un portal con su dirección MAC, y
+tus credenciales, un enlace de suscripción o un portal con su dirección MAC, y
 aparecerá tu lista.
 
 

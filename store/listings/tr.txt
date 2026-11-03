@@ -4,13 +4,13 @@ Kepuli-TV – IPTV Oynatıcı
 Kendi IPTV'n tarayıcıda: Xtream Codes, M3U ya da Stalker portalı. Kanallar saniyeler içinde açılır, MKV oynar, kayıt da alırsın.
 === DETAILED DESCRIPTION ===
 Kendi IPTV aboneliğini tarayıcıda, uygulamayla uğraşmadan izle.
-Kepuli-TV; Xtream Codes hesaplarını, M3U listelerini ve Stalker portallarını
+Kepuli-TV; Xtream Codes hesaplarını, M3U oynatma listelerini ve Stalker portallarını
 oynatır ve tek bir fikir etrafında kuruldu: devasa bir katalog küçük
 hissettirmeli.
 
 → Kanallar, devasa bir katalogda bile bir iki saniyede açılır
 → Yüzlerce dağınık kategori, derli toplu bir ülke listesine dönüşür
-→ Tam pencere yayın akışı rehberi (EPG), sunulan yerlerde geriye dönük izleme
+→ Tam pencere program rehberi (EPG), sunulan yerlerde geri izleme
 → MKV filmler ve bölümler doğrudan tarayıcıda oynar; altyazı ve surround ses
   dahil
 → Bir kanalı hemen ya da rehberden bir programı kaydet, dosya olarak sakla
@@ -30,10 +30,10 @@ NELER SUNUYOR
 
 • Sağlayıcının gönderdiği M3U bağlantısını yapıştır, ayarlar kendiliğinden
   dolsun.
-• Birden çok hesap: Xtream Codes, XMLTV rehberiyle bir M3U listesi ya da
+• Birden çok hesap: Xtream Codes, XMLTV rehberiyle bir M3U oynatma listesi ya da
   cihazının MAC adresiyle bir Stalker portalı. Tek tıkla geçiş yap, istersen
   bilgisayarların arasında eşitle.
-• Vurguları ve kelime sırasını yok sayan bir arama ve her menüde bir filtre.
+• Aksanları ve kelime sırasını yok sayan bir arama ve her menüde bir filtre.
 • Yarıda bıraktığın her şey en üstte bekler, sonraki bölüm kendiliğinden
   başlar.
 • Veri yüklenirken hiçbir şey ekranı kilitlemez, oynayan yayın oynamaya devam
@@ -46,17 +46,17 @@ NELER SUNUYOR
   kolayca bulunur.
 • Yalnızca izlediğin ülkeleri, film ve dizilerde de istediğin kategorileri
   tut.
-• Chromecast'e yayınla, medya tuşlarını kullan ve bir program başlamadan önce
+• Chromecast'e yansıt, medya tuşlarını kullan ve bir program başlamadan önce
   hatırlatma al.
 • Rehber yalnızca favori kanallarını gösterebilir.
 • Koyu ya da açık görünüm; klavye her yere ulaşır, yerleşim de metin boyutu
-  ve karşıtlık ayarlarını izler.
+  ve kontrast ayarlarını izler.
 • 30 dilde. Sen başka bir dil seçene kadar tarayıcının dilini konuşur.
 
 
 TASARIMI GEREĞİ GİZLİ
 
-İzleme yok, reklam yok, kayıt yok. Eklenti yalnızca senin sunucunla konuşur ve
+İzleme yok, reklam yok, üyelik yok. Eklenti yalnızca senin sunucunla konuşur ve
 sadece o adres için izin ister; sağlayıcın yayınları başka bir yere
 yönlendirdiğinde daha geniş erişim ancak sen izin verirsen. Kayıtlar senin
 bilgisayarında kalır.
@@ -72,11 +72,11 @@ olduğundan emin ol.
 
 BAŞLARKEN
 
-Araç çubuğundaki simgeye tıkla; sunucunu ve giriş bilgilerini, bir liste
+Araç çubuğundaki simgeye tıkla; sunucunu ve giriş bilgilerini, bir oynatma listesi
 bağlantısını ya da MAC adresiyle bir portalı gir, listen karşına çıkar.
 
 
-NASIL ÇALIŞTIĞINI GÖRÜN
+NASIL ÇALIŞTIĞINI GÖR
 
 Tüm özellikleri demo içerikle gösteren kısa bir video (İngilizce):
 https://youtu.be/Wr4FcXlTbOM

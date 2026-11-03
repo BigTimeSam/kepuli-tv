@@ -4,7 +4,7 @@
     "description": "The extension's name in the store and the browser. Written from store/listings/ by dev/listings.mjs."
   },
   "appDesc": {
-    "message": "Dein IPTV im Browser: Xtream Codes, M3U oder ein Stalker-Portal. Sender öffnen sich in Sekunden, MKV läuft, und du kannst aufnehmen.",
+    "message": "Dein IPTV im Browser: Xtream Codes, M3U oder ein Stalker-Portal. Kanäle öffnen sich in Sekunden, MKV läuft, und du kannst aufnehmen.",
     "description": "The short description. Written from store/listings/ by dev/listings.mjs."
   }
 }

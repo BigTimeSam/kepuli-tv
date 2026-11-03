@@ -9,7 +9,7 @@ criado em torno de uma ideia: um catálogo enorme deve parecer pequeno.
 
 → Os canais abrem em um ou dois segundos, mesmo num catálogo gigantesco
 → Centenas de categorias bagunçadas viram uma lista organizada de países
-→ Um guia de programação (EPG) em tela cheia, com reprise quando o provedor
+→ Um guia de programação (EPG) em tela cheia, com catch-up quando o provedor
   oferece
 → Filmes e episódios em MKV tocam direto aqui, com legendas e som surround
 → Grave um canal agora ou um programa do guia e guarde como arquivo
@@ -53,7 +53,7 @@ O QUE VOCÊ TEM
 • Em 30 idiomas. Ele fala o do seu navegador até você escolher outro.
 
 
-PRIVADO POR PROJETO
+PRIVADO POR DESIGN
 
 Sem rastreamento, sem anúncios, sem cadastro. O Kepuli-TV só fala com o seu
 próprio servidor e pede permissão só para esse endereço — acesso mais amplo

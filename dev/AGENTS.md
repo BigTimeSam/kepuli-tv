@@ -101,6 +101,9 @@ Look at a red run with `gh run list` and `gh run view --log-failed`.
 ### Known flakes, not bugs
 
 - `picks` near :00 and :30 (a programme needs enough time left).
+- `record`'s plan step timed out twice around midnight (2026-11-04 00:05) and
+  passed at 00:15 on the same code; not explained yet. If it fails, run it
+  again, and if it fails away from midnight, it is a real failure.
 - Scenarios that fail together with `EADDRINUSE`: a stray mock server holds
   8790 or 8791. Find it with `lsof -nP -iTCP:8790 -sTCP:LISTEN` and stop it if
   it is yours.

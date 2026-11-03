@@ -9,8 +9,8 @@ pensado em torno de uma ideia: um catálogo enorme deve parecer pequeno.
 
 → Os canais abrem num ou dois segundos, mesmo num catálogo gigantesco
 → Centenas de categorias desarrumadas passam a uma lista organizada de países
-→ Um guia de programação (EPG) em ecrã inteiro, com reposição quando o
-  fornecedor a disponibiliza
+→ Um guia de programação (EPG) em ecrã inteiro, com catch-up quando o
+  fornecedor o disponibiliza
 → Filmes e episódios MKV reproduzem-se diretamente no navegador, com legendas
   e som surround
 → Grava um canal agora ou um programa do guia e guarda-o num ficheiro
@@ -37,8 +37,8 @@ O QUE TENS
   todos os menus.
 • O que deixaste a meio fica à espera no topo, e o episódio seguinte arranca
   sozinho.
-• Nada bloqueia o ecrã enquanto os dados carregam, e o que está a dar
-  continua a dar.
+• Nada bloqueia o ecrã enquanto os dados carregam, e o que está a ser reproduzido
+  continua a sê-lo.
 • Pensado para contas com uma só ligação: ao mudar de canal, espera que o
   fornecedor a liberte em vez de falhar.
 • Filmes e séries em capas, com sinopses, classificações e temporadas.
@@ -50,7 +50,7 @@ O QUE TENS
 • Transmite para um Chromecast, usa as teclas multimédia e recebe um lembrete
   antes de um programa começar.
 • O guia pode mostrar só os teus canais favoritos.
-• Aspeto escuro ou claro, e o teclado chega a tudo; o esquema acompanha o
+• Aspeto escuro ou claro, e o teclado chega a tudo; a disposição acompanha o
   tamanho do texto e o contraste definidos no teu navegador.
 • Em 30 idiomas. Usa o do teu navegador até escolheres outro.
 

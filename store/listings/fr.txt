@@ -10,7 +10,7 @@ paraître petit.
 
 → Les chaînes s'ouvrent en une ou deux secondes, même dans un catalogue géant
 → Des centaines de catégories en vrac deviennent une liste claire de pays
-→ Un guide des programmes (EPG) plein écran, avec rattrapage quand il existe
+→ Un guide des programmes (EPG) plein écran, avec replay quand il existe
 → Les films et épisodes MKV se lisent directement ici, sous-titres et son
   surround compris
 → Enregistre une chaîne maintenant ou une émission du guide, et garde-la en

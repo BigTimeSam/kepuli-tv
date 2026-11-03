@@ -1,18 +1,18 @@
 === NAME ===
 Kepuli-TV – IPTV-Player
 === SHORT DESCRIPTION ===
-Dein IPTV im Browser: Xtream Codes, M3U oder ein Stalker-Portal. Sender öffnen sich in Sekunden, MKV läuft, und du kannst aufnehmen.
+Dein IPTV im Browser: Xtream Codes, M3U oder ein Stalker-Portal. Kanäle öffnen sich in Sekunden, MKV läuft, und du kannst aufnehmen.
 === DETAILED DESCRIPTION ===
 Sieh dein eigenes IPTV-Abo im Browser, ohne dich mit der App zu ärgern.
-Kepuli-TV spielt Xtream Codes-Konten, M3U-Playlists und Stalker-Portale ab,
+Kepuli-TV spielt Xtream-Codes-Konten, M3U-Playlists und Stalker-Portale ab,
 gebaut um eine einzige Idee: Ein riesiger Katalog soll sich klein anfühlen.
 
-→ Sender öffnen sich in ein, zwei Sekunden, selbst bei riesigem Angebot
+→ Kanäle öffnen sich in ein, zwei Sekunden, selbst bei riesigem Angebot
 → Hunderte wirre Kategorien werden zu einer übersichtlichen Länderliste
-→ Ein Programmführer (EPG) im ganzen Fenster, mit Catch-up, wo angeboten
+→ Eine Programmübersicht (EPG) im ganzen Fenster, mit Catch-up, wo angeboten
 → MKV-Filme und -Episoden laufen direkt im Browser, samt Untertiteln und
   Surround-Sound
-→ Nimm einen Sender sofort oder eine Sendung aus dem Programmführer auf und
+→ Nimm einen Kanal sofort oder eine Sendung aus der Programmübersicht auf und
   behalte sie als Datei
   (die Aufnahme wird in den Einstellungen eingeschaltet)
 
@@ -39,17 +39,17 @@ WAS DU BEKOMMST
   von selbst.
 • Nichts blockiert den Bildschirm, während Daten laden, und was läuft, läuft
   weiter.
-• Gemacht für Konten mit einer Verbindung: Beim Senderwechsel wartet die
+• Gemacht für Konten mit einer Verbindung: Beim Kanalwechsel wartet die
   Erweiterung, bis der Anbieter sie freigibt, statt zu scheitern.
 • Filme und Serien als Cover, mit Handlung, Bewertungen und Staffeln.
 • Favoriten, Verlauf und Wiedergabepositionen.
 • Blende die globalen Marken in der Liste eines Landes aus, dann sind die
-  eigenen Sender leicht zu finden.
+  eigenen Kanäle leicht zu finden.
 • Behalte nur die Länder, die du schaust, und nur die Film- und
   Serienkategorien, die du willst.
 • Auf einen Chromecast übertragen, Medientasten nutzen und vor Beginn einer
   Sendung erinnert werden.
-• Der Programmführer kann nur deine Lieblingssender zeigen.
+• Die Programmübersicht kann nur deine Favoritenkanäle zeigen.
 • Ein dunkles oder helles Design, alles per Tastatur erreichbar; das Layout
   folgt deinen Einstellungen für Textgröße und Kontrast.
 • In 30 Sprachen. Sie spricht die Sprache deines Browsers, bis du eine
