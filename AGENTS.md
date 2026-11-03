@@ -72,6 +72,7 @@ Long-form documentation: [user guide](docs/user-guide.md),
 | Pure-function tests (seconds; run always) | `node dev/unitcheck.mjs` |
 | Undefined names, missing imports/exports | `node dev/namecheck.mjs` |
 | Markup only from constants, no eval | `node dev/htmlcheck.mjs` |
+| The guides name what exists | `node dev/docscheck.mjs` |
 | Browser scenarios against the mock server | `node dev/playcheck.mjs [scenario …]` (see testing playbook for env vars) |
 | UI regressions, isolated headless profile | `node dev/uicheck.mjs` |
 | The five store views against reference pictures | `node dev/visualcheck.mjs [--update]` |
@@ -103,7 +104,8 @@ Long-form documentation: [user guide](docs/user-guide.md),
   changes to the five store views; for anything else take a screenshot with your own headless Chrome
   (see the testing playbook) at 1280×800, in both themes when colours change,
   and check alignment and overflow before calling it done.
-- **Keep the docs in step.** A user-facing change updates
+- **Keep the docs in step** (`node dev/docscheck.mjs` catches a guide that
+  names a file, tool or module that is not there, or misses a new one). A user-facing change updates
   `docs/user-guide.md` (and the README's feature list if it is a key feature);
   a change to the README is followed by `node dev/site.mjs`; a change to the
   store texts by `node dev/listings.mjs`.

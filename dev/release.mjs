@@ -75,6 +75,7 @@ check('the notes to AMO\'s reviewer fit its form', () => {
 check('unit tests', node('unitcheck.mjs'));
 check('every name and import resolves', node('namecheck.mjs'));
 check('markup only from constants', node('htmlcheck.mjs'));
+check('the guides name what exists', node('docscheck.mjs'));
 check('no secrets in the repository', node('secretcheck.mjs', ['--all']));
 if (!QUICK) check('UI regressions', node('uicheck.mjs'));
 if (VISUAL) check('the five store views match their references', node('visualcheck.mjs'));

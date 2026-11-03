@@ -44,6 +44,8 @@ jobs:
         run: node dev/namecheck.mjs
       - name: Markup only from constants, nothing evaluated
         run: node dev/htmlcheck.mjs
+      - name: The guides name what exists
+        run: node dev/docscheck.mjs
       - name: Area checks
         run: |
           for check in ratingcheck searchnamescheck titlelinkscheck mediafilterscheck moviedurationcheck demuxcheck audiofactscheck; do

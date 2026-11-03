@@ -15,6 +15,7 @@ what it does and how to run it. Read that header before using one.
 | Packaging | `package.mjs` (allowlist packages from git HEAD; `--zip`, `--worktree`, `--check`), `release.mjs` (is this commit ready to release: every check in one run) |
 | Stores | `cws-publish.mjs`, `cws-listing-fill.mjs`, `cws-screenshots.mjs`, `cws-auth.mjs`, `amo-publish.mjs`, `amo-screenshots.mjs` (see `store/AGENTS.md`) |
 | Pictures and video | `store-screenshots.mjs`, `demo-video.mjs`, `demo-music.py`, `logos.mjs` (regenerates `js/logoindex.js`) |
+| Guides | `docscheck.mjs`: every file and command the guides name exists, every tool and module is described, every AGENTS.md has its CLAUDE.md, every relative link lands |
 | Safety | `secretcheck.mjs`: run on the staged changes before every commit; `namecheck.mjs`: every name and import in `js/` resolves (TypeScript's checker via npx, names and modules only); `htmlcheck.mjs`: markup is written only from icon constants, nothing evaluates a string |
 | Audio decoder | `wasm/` (`build.sh` builds `vendor/ffaudio` from FFmpeg; see `vendor/AGENTS.md`) |
 
