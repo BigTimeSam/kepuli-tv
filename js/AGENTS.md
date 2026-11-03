@@ -12,7 +12,7 @@ written here.
 
 | Module | Role |
 | --- | --- |
-| `app.js` (~7,000 lines) | state, every view, event wiring. One `state` object near the top; sections are marked `/* ---- name */` (the address, covers, info panel, programme guide, reminders, recordings, the next episode, accounts, sync, external player, the picks…). Find with `grep -n "^/\* -" js/app.js` and read the section you change |
+| `app.js` (~6,500 lines, being split) | state, every view, event wiring. One `state` object near the top; sections are marked `/* ---- name */` (the address, covers, info panel, programme guide, reminders, recordings, the next episode, accounts, sync, external player, the picks…). Find with `grep -n "^/\* -" js/app.js` and read the section you change |
 | `rows.js`, `vlist.js`, `listnavigation.js` | list rows (built on every scroll frame: keep them light), the virtualised list, cursor and return positions by item |
 | `picker.js`, `modal.js`, `rowmenu.js`, `poster.js` | shared UI parts: every drop-down, dialog closing, the row menu, covers with fallback. Reuse them |
 | `playerlayout.js`, `theme.js`, `route.js` | narrow-window panes, colour theme, the address (`#/live/...`) and tab title |
@@ -48,6 +48,7 @@ lists, series info, stream URL) for its kind:
 | `subs.js`, `subdisplay.js`, `lang.js` | subtitle tracks, the app-drawn subtitle layer, language names |
 | `cast.js`, `external.js` | Chromecast (Remote Playback API), hand-off to VLC and others |
 | `streamhub.js`, `recorder.js` | one shared live connection; recording to the origin private file system |
+| `recordingsui.js` | the recording UI: Record button and reminder, the list, plans from the guide, catch-up playback (moved out of `app.js`) |
 
 **Storage and settings**
 
@@ -60,6 +61,19 @@ lists, series info, stream URL) for its kind:
 | `browser.js` | the extension API namespace (`chrome`/`browser`) and the engine |
 | `testclock.js` | the visual check's clock: `player.html?testnow=<ms>` starts `Date` at that moment; nothing without the parameter. Keep it the first import of `app.js` |
 | `i18n.js`, `locales/` | the interface language, see `locales/AGENTS.md` |
+
+## Splitting app.js
+
+`app.js` is being split section by section into feature modules
+(`recordingsui.js` was the first). A moved module imports the player's
+`state`, `el`, `$` and helpers from `./app.js`, and app.js imports the
+module's entry points back: a cycle ES modules resolve, as long as nothing
+in the module runs while the modules load. Rules for the next ones: move a
+whole `/* ---- */` section; a variable the other side assigns cannot cross
+(give it a function, as `newPlayRun()` for `playRun`); check every import
+form (`import * as store` too), then play a channel, a film and an episode
+with the console open and run the scenarios of that feature. A
+`ReferenceError` at runtime is the typical miss.
 
 ## How code is written here
 
