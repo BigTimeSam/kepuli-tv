@@ -1101,7 +1101,9 @@ body[data-substyle="contrast"] { --cue-back: #000; }
 .epgnext-time { flex: none; color: var(--accent-2); font-variant-numeric: tabular-nums; }
 .epgnext-title { color: var(--text); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .vodinfo { display: flex; gap: 10px; }
-.info-cover { width: 54px; height: 80px; border-radius: 5px; flex: none; }
+/* align-self: the row's stretch would otherwise make the cover as tall as
+   the facts beside it, the poster's 2:3 lost and its picture cropped. */
+.info-cover { width: 54px; height: 80px; border-radius: 5px; flex: none; align-self: flex-start; }
 /* With the picture at its own height the details have room (see
    .videowrap.sized), and the cover need not be a stamp: it grows with the
    window, a poster's 2:3, up to about the height of the facts beside it. */
