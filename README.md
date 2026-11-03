@@ -81,7 +81,8 @@ More in [Developing Kepuli-TV](https://github.com/BigTimeSam/kepuli-tv/blob/main
 (structure, languages, screenshots, publishing) and
 [How Kepuli-TV works](https://github.com/BigTimeSam/kepuli-tv/blob/main/docs/internals.md)
 (data, categories, playback routes, connection modes), with `FIREFOX.md` and
-`CHROMECAST.md` beside them.
+`CHROMECAST.md` beside them. Coding agents start from `AGENTS.md`, and each
+directory has its own.
 
 ## Licence
 

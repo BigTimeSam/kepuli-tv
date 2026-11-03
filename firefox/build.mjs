@@ -70,7 +70,9 @@ export function build() {
   if (problems.length) throw new Error('the manifests disagree:\n  ' + problems.join('\n  '));
   rmSync(DIST, { recursive: true, force: true });
   mkdirSync(DIST, { recursive: true });
-  const skip = (path) => !/(^|\/)\.DS_Store$/.test(path);
+  // .DS_Store, and the guides for coding agents (AGENTS.md, CLAUDE.md), which
+  // describe the source and are not part of the add-on.
+  const skip = (path) => !/(^|\/)(\.DS_Store|AGENTS\.md|CLAUDE\.md)$/.test(path);
   for (const name of SHARED) {
     const from = join(ROOT, name);
     if (!existsSync(from)) throw new Error(`${name} is missing from the project root`);

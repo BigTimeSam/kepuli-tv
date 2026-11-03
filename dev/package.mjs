@@ -62,6 +62,17 @@ const OWN_KEYS = {
 const gitRaw = (...args) => execFileSync('git', args, { cwd: ROOT, encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'] });
 const git = (...args) => gitRaw(...args).trim();
 const noJunk = (path) => !/(^|\/)\.DS_Store$/.test(path);
+// The guides for coding agents sit beside the code they describe (js/,
+// css/, vendor/…), which are package directories; they are for the
+// repository, not for the browser, and stay out of every package.
+export const AGENT_DOCS = /(^|\/)(AGENTS|CLAUDE)\.md$/;
+function dropAgentDocs(dir) {
+  for (const entry of readdirSync(dir, { withFileTypes: true })) {
+    const path = join(dir, entry.name);
+    if (entry.isDirectory()) dropAgentDocs(path);
+    else if (AGENT_DOCS.test(path)) rmSync(path);
+  }
+}
 
 /** A commit as the source: files come out of git, never off the disk. */
 export function gitSource(ref = 'HEAD') {
@@ -173,6 +184,7 @@ export function build(target, source = gitSource()) {
   rmSync(dir, { recursive: true, force: true });
   mkdirSync(dir, { recursive: true });
   source.exportTo([...SHARED, manifest], dir);
+  dropAgentDocs(dir);
   if (manifest !== 'manifest.json') {
     renameSync(join(dir, manifest), join(dir, 'manifest.json'));
     rmSync(join(dir, dirname(manifest)), { recursive: true });
@@ -243,7 +255,7 @@ if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) 
     // --worktree is the development loop's, and is let through.
     const stale = flag('--worktree') ? [] : await staleTranslations();
     if (stale.length) throw new Error('translations behind the English:\n  ' + stale.join('\n  '));
-    const differs = source.differs();
+    const differs = source.differs().filter((path) => !AGENT_DOCS.test(path));
     if (differs.length) {
       console.log(flag('--worktree')
         ? `uncommitted changes go into the package: ${differs.join(', ')}`
