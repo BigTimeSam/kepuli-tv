@@ -61,9 +61,12 @@ behind them in [development.md → Publishing to the stores](../docs/development
   script store pages at all.
 - Keyword policy: IPTV at most three times per description; Chrome rejected
   1.5.2 for four.
-- After approval, verify the CRX the store serves has the new version,
-  `"service_worker"` and no `gecko` (commands in
-  the root `AGENTS.md` (Release → After the stores)).
+- After approval: `node dev/cws-publish.mjs verify` (no credentials) reads
+  the CRX the store serves and fails unless it is the new version, the
+  Chrome manifest (`service_worker`, no `gecko`).
+- **No staged rollout yet.** The store offers a percentage rollout only to
+  items with more than 10,000 weekly users; until then a release reaches
+  everyone at once, so `dev/release.mjs` and the full suites are the guard.
 
 ## AMO
 

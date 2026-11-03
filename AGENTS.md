@@ -81,7 +81,9 @@ Long-form documentation: [user guide](docs/user-guide.md),
 | Store listings checked, `_locales/` written | `node dev/listings.mjs [--check]` |
 | README rendered into the Pages front page | `node dev/site.mjs [--check]` |
 | Secrets in the staged changes | `node dev/secretcheck.mjs [--all]` |
+| Ready to release? | `node dev/release.mjs [--quick]` |
 | Release packages | `node dev/package.mjs --zip`, `node firefox/amo-source.mjs` |
+| What Chrome serves | `node dev/cws-publish.mjs verify` |
 | Store screenshots (into `brand/` or `KEPULI_SHOTS_DIR`) | `node dev/store-screenshots.mjs`, `KEPULI_BROWSER=firefox …` |
 | Demo video with narration | `node dev/demo-video.mjs [--silent|--remix]` |
 
@@ -152,7 +154,10 @@ Long-form documentation: [user guide](docs/user-guide.md),
 
 ## Release
 
-Only on the owner's explicit go (rule 2). The order that has worked:
+Only on the owner's explicit go (rule 2). `node dev/release.mjs` answers
+whether the commit may be released (clean and pushed, CI green on it, a new
+version, texts in step, reviewer notes within AMO's form, every code and
+visual check); run it before asking for the go. The order that has worked:
 
 1. **Scope and notes.** `git log <last tag>..` for what changed; write the
    release notes in the style of the previous GitHub release (sections, bold
@@ -189,14 +194,9 @@ Only on the owner's explicit go (rule 2). The order that has worked:
 
 ### After the stores
 
-Once Chrome approves, check the package it serves:
-
-```
-mkdir -p /tmp/kepuli-store && cd /tmp/kepuli-store
-curl -sL -o store.crx "https://clients2.google.com/service/update2/crx?response=redirect&prodversion=150.0&acceptformat=crx3&x=id%3Dokkgclcakhjhldkdcblgagoaibghpfmi%26uc"
-unzip -o -q store.crx manifest.json; grep -E '"version"|service_worker|gecko' manifest.json
-```
-
-It must show the new version and `service_worker`, and no `gecko`. Report
+Once Chrome approves, `node dev/cws-publish.mjs verify` reads the package
+the store serves to users: it must be the new version, with
+`service_worker` and no `gecko` (the Firefox zip went to Chrome twice).
+Before the approval it reports the old version, which is expected. Report
 the outcome of every step to the owner as it is, including what is still
 waiting on a store.

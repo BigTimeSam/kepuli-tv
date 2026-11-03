@@ -2,6 +2,9 @@
 // The Chrome package to the Chrome Web Store, through its publishing API (V2).
 //
 //   node dev/cws-publish.mjs status            what the store holds: published and submitted
+//   node dev/cws-publish.mjs verify [VERSION]  the package the store serves to users: its manifest
+//                                              must be VERSION (default: manifest.json's), the
+//                                              Chrome one (service_worker, no gecko); no credentials
 //   node dev/cws-publish.mjs check             the zip and the credentials, nothing sent
 //   node dev/cws-publish.mjs                   kepuli-tv-chrome-<version>.zip uploaded and
 //                                              submitted for review
@@ -47,8 +50,8 @@
 
 import { execFileSync } from 'node:child_process';
 import { createHash } from 'node:crypto';
-import { existsSync, readFileSync, statSync, writeFileSync } from 'node:fs';
-import { homedir } from 'node:os';
+import { existsSync, mkdtempSync, readFileSync, rmSync, statSync, writeFileSync } from 'node:fs';
+import { homedir, tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { readListings, unwrap, forChrome, CHROME_UNSUPPORTED } from './listings.mjs';
 
@@ -65,6 +68,37 @@ const replace = args.includes('--replace');
 const zipArg = args.includes('--zip') ? args[args.indexOf('--zip') + 1] : null;
 
 const fail = (message) => { console.error(`cws-publish: ${message}`); process.exit(1); };
+
+/* --------------------------------------------------------------- verify */
+
+// What the store actually serves, read the way Chrome's updater reads it.
+// Twice the Firefox zip went to this store and was published (1.2.1, 1.2.5):
+// the store accepted it, and no Chrome user's toolbar button worked. So after
+// every approval the served package is read back: a CRX3 is a header
+// ("Cr24", version, header length) and then the zip.
+if (args[0] === 'verify') {
+  const want = args[1] || JSON.parse(readFileSync(join(ROOT, 'manifest.json'), 'utf8')).version;
+  const url = `https://clients2.google.com/service/update2/crx?response=redirect&prodversion=150.0&acceptformat=crx3&x=id%3D${ITEM_ID}%26uc`;
+  const res = await fetch(url);
+  if (!res.ok) fail(`the store answered ${res.status} for the package`);
+  const crx = Buffer.from(await res.arrayBuffer());
+  if (crx.toString('latin1', 0, 4) !== 'Cr24' || crx.readUInt32LE(4) !== 3) fail('what the store served is not a CRX3 package');
+  const zip = crx.subarray(12 + crx.readUInt32LE(8));
+  const dir = mkdtempSync(join(tmpdir(), 'kepuli-crx-'));
+  writeFileSync(join(dir, 'store.zip'), zip);
+  let manifest;
+  try { manifest = JSON.parse(execFileSync('unzip', ['-p', join(dir, 'store.zip'), 'manifest.json'], { encoding: 'utf8' })); }
+  catch (err) { fail(`the served package holds no readable manifest.json: ${err.message}`); }
+  finally { rmSync(dir, { recursive: true, force: true }); }
+  const problems = [];
+  if (manifest.version !== want) problems.push(`version ${manifest.version}, not ${want}${manifest.version < want ? ' (the review may not be finished)' : ''}`);
+  if (!manifest.background?.service_worker) problems.push('no background.service_worker: the toolbar button would do nothing');
+  if (manifest.browser_specific_settings?.gecko) problems.push('a gecko id: this is the Firefox package');
+  console.log(`the store serves ${manifest.version} (${(crx.length / 1024).toFixed(0)} kB)`);
+  if (problems.length) fail(problems.join('; '));
+  console.log('the Chrome package, as it should be');
+  process.exit(0);
+}
 
 /* ---------------------------------------------------------- credentials */
 

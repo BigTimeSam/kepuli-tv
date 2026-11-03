@@ -12,7 +12,7 @@ what it does and how to run it. Read that header before using one.
 | Tests | `unitcheck.mjs`, `playcheck.mjs`, `uicheck.mjs`, `visualcheck.mjs` (the five views against `visual/`), and per-area `demuxcheck`, `audiocheck`, `audiofactscheck`, `mediafilterscheck`, `ratingcheck`, `searchnamescheck`, `titlelinkscheck`, `moviedurationcheck` |
 | Mock provider | `mock/` (see `mock/AGENTS.md`) |
 | Translations and texts | `translations.mjs`, `listings.mjs`, `translationreview.mjs` (Codex cross-check, see `js/locales/AGENTS.md`), `site.mjs` (README → `docs/index.html`) |
-| Packaging | `package.mjs` (allowlist packages from git HEAD; `--zip`, `--worktree`, `--check`) |
+| Packaging | `package.mjs` (allowlist packages from git HEAD; `--zip`, `--worktree`, `--check`), `release.mjs` (is this commit ready to release: every check in one run) |
 | Stores | `cws-publish.mjs`, `cws-listing-fill.mjs`, `cws-screenshots.mjs`, `cws-auth.mjs`, `amo-publish.mjs`, `amo-screenshots.mjs` (see `store/AGENTS.md`) |
 | Pictures and video | `store-screenshots.mjs`, `demo-video.mjs`, `demo-music.py`, `logos.mjs` (regenerates `js/logoindex.js`) |
 | Safety | `secretcheck.mjs`: run on the staged changes before every commit; `namecheck.mjs`: every name and import in `js/` resolves (TypeScript's checker via npx, names and modules only); `htmlcheck.mjs`: markup is written only from icon constants, nothing evaluates a string |
