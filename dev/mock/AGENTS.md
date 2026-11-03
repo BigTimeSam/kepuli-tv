@@ -23,7 +23,8 @@ as the hosted demo for store reviewers.
   ("Aurora One", "Northern Lights"); keep it so. No real channel names, brands
   or provider addresses, ever.
 - **Deterministic.** Everything derives from fixed seeds and a clock frozen at
-  start-up (`T0`), so a screenshot or a test repeats exactly. New content uses
+  start-up (`T0`; `KEPULI_MOCK_NOW` sets it, as the visual check does), so a
+  screenshot or a test repeats exactly. New content uses
   the same seeded `rng`, not `Math.random()`.
 - **Misbehaviour is opt-in, per request.** Each fault a scenario needs is a
   `KEPULI_MOCK_*` environment variable read when the request arrives, so a

@@ -15,7 +15,7 @@
 // The extension in the development profile is left pointing at the mock
 // server; its settings dialog takes it back to a real one.
 
-import { mkdirSync } from 'node:fs';
+import { mkdirSync, writeFileSync } from 'node:fs';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { startMockServer, PORT as MOCK_PORT, USER, PASS } from './mock/server.mjs';
@@ -87,6 +87,35 @@ const connection = DEMO
 await ensureChrome(['--autoplay-policy=no-user-gesture-required']);
 const target = await openPlayer();
 const page = session(target.webSocketDebuggerUrl);
+
+// KEPULI_MOCK_NOW (dev/visualcheck.mjs): the page is opened with
+// ?testnow= at the same moment as the mock server's clock (js/testclock.js),
+// so the guide, the rows' programmes and the guide's clock are the same on
+// every run. Time still passes from there, so playback and timers work.
+const FROZEN = process.env.KEPULI_MOCK_NOW ? Date.parse(process.env.KEPULI_MOCK_NOW) : null;
+const playerUrl = (url) => url.split('#')[0].split('?')[0] + (FROZEN === null ? '' : `?testnow=${FROZEN}`);
+
+// KEPULI_SHOTS_MASKS: beside each picture, <name>.masks.json lists the boxes
+// whose content changes by itself from one run to the next — the moving
+// picture, the subtitles over it, progress bars, the guide's now line — for
+// the visual check to leave out.
+const MASKED = ['#video', '#subdisplay', '#epg-preview video', '.row-progress', '.bar-fill', '.epgbar', '.nowbar',
+  '.epg-bar', '.overlay-bar', '.overlay-elapsed', '.epg-nowline', '.epg-nowhead', '.list-progress'];
+async function shoot(name) {
+  const file = join(OUT, name);
+  if (process.env.KEPULI_SHOTS_MASKS) {
+    // Whether the guide's grid has taken the focus yet, and so draws its
+    // ring, depends on timing: no focus, for the comparison's sake.
+    await evaluate(page, `document.activeElement?.blur()`);
+    await sleep(150);
+    const boxes = await evaluate(page, `[...document.querySelectorAll(${JSON.stringify(MASKED.join(','))})]
+      .filter((e) => e.getClientRects().length).map((e) => { const r = e.getBoundingClientRect();
+        return [Math.floor(r.left) - 2, Math.floor(r.top) - 2, Math.ceil(r.right) + 2, Math.ceil(r.bottom) + 2]; })`);
+    writeFileSync(file.replace(/\.png$/, '.masks.json'), JSON.stringify(boxes));
+  }
+  await capture(page, file);
+}
+
 try {
   await page.call('Page.bringToFront');
   await setViewport(page);
@@ -119,7 +148,7 @@ try {
   // Without the place the player writes into its address: the shots are
   // taken from the view this script sets up, not from wherever the tab
   // was last left.
-  await page.call('Page.navigate', { url: target.url.split('#')[0] });
+  await page.call('Page.navigate', { url: playerUrl(target.url) });
   await sleep(1000);
   await waitFor(page, CONNECTED, 'the connection to the server');
   // The compositor adopts the 2x viewport lazily; a throwaway capture makes
@@ -134,13 +163,13 @@ try {
   await click(page, '#list', 'Aurora One', { gesture: true });
   await waitFor(page, PLAYING, 'the live stream');
   await sleep(2500);                                   // now/next below the player
-  await capture(page, join(OUT, '01-channels.png'));
+  await shoot('01-channels.png');
 
   // 2. The programme guide over the same channels.
   await evaluate(page, `document.getElementById('btn-guide').click()`);
   await waitFor(page, `document.getElementById('main').classList.contains('guide') && document.querySelectorAll('#epg-canvas *').length > 20`, 'the guide grid');
   await sleep(3000);                                   // the grid's own programme fetches
-  await capture(page, join(OUT, '02-guide.png'));
+  await shoot('02-guide.png');
   await evaluate(page, `document.getElementById('epg-close').click()`);
   await sleep(500);
 
@@ -150,7 +179,7 @@ try {
   await click(page, '#list', 'Silent Fjord');
   await waitFor(page, `!document.getElementById('detail').hidden && document.querySelector('#detail .detail-plot') && document.querySelectorAll('#list .row').length > 0`, 'the series page');
   await sleep(1500);                                   // covers
-  await capture(page, join(OUT, '03-series.png'));
+  await shoot('03-series.png');
 
   // 4. An episode from an MKV, with the subtitle selector and a cue on screen.
   await evaluate(page, `document.querySelector('#list .row').click()`, { gesture: true });
@@ -163,7 +192,7 @@ try {
   })()`);
   await waitFor(page, `[...document.getElementById('video').textTracks].some((t) => t.mode === 'showing' && t.activeCues && t.activeCues.length)`, 'a subtitle cue');
   await sleep(1000);
-  await capture(page, join(OUT, '04-subtitles.png'));
+  await shoot('04-subtitles.png');
 
   // 5. A movie with its details below the player.
   await evaluate(page, `document.querySelector('#tabs [data-tab="movie"]').click()`);
@@ -172,7 +201,7 @@ try {
   await waitFor(page, PLAYING, 'the movie');
   await waitFor(page, `!document.getElementById('infostrip').hidden && !!document.querySelector('#infostrip .plot')`, 'the movie details');
   await sleep(1500);
-  await capture(page, join(OUT, '05-movie.png'));
+  await shoot('05-movie.png');
 } finally {
   await clearViewport(page).catch(() => {});
   page.close();

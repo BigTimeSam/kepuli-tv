@@ -72,6 +72,7 @@ Long-form documentation: [user guide](docs/user-guide.md),
 | Pure-function tests (seconds; run always) | `node dev/unitcheck.mjs` |
 | Browser scenarios against the mock server | `node dev/playcheck.mjs [scenario …]` (see testing playbook for env vars) |
 | UI regressions, isolated headless profile | `node dev/uicheck.mjs` |
+| The five store views against reference pictures | `node dev/visualcheck.mjs [--update]` |
 | Same scenarios in Firefox | `KEPULI_BROWSER=firefox node dev/playcheck.mjs [scenario]` |
 | Dummy media for the mock server (once) | `sh dev/mock/media.sh` |
 | Translations behind? / mark done | `node dev/translations.mjs [--check]` / `--mark <lang…|all>` |
@@ -94,7 +95,8 @@ Long-form documentation: [user guide](docs/user-guide.md),
   `dev/unitcheck.mjs`; anything in the browser becomes or extends a scenario
   in `dev/playcheck.mjs`, and the mock server (`dev/mock/server.mjs`) gains
   whatever the scenario needs, switched by a `KEPULI_MOCK_*` variable.
-- **Look at UI changes.** Take a screenshot with your own headless Chrome
+- **Look at UI changes.** `node dev/visualcheck.mjs` catches unintended
+  changes to the five store views; for anything else take a screenshot with your own headless Chrome
   (see the testing playbook) at 1280×800, in both themes when colours change,
   and check alignment and overflow before calling it done.
 - **Keep the docs in step.** A user-facing change updates
@@ -161,8 +163,10 @@ Only on the owner's explicit go (rule 2). The order that has worked:
 3. **Texts.** `node dev/translations.mjs --check` and
    `node dev/listings.mjs --check` pass; docs updated (`docs/user-guide.md`,
    README feature list, `node dev/site.mjs`).
-4. **Tests.** `node dev/unitcheck.mjs`, the full `node dev/playcheck.mjs` in
-   your own profile, the relevant scenarios in Firefox, `node dev/uicheck.mjs`.
+4. **Tests.** The CI run of the release commit is green; locally
+   `node dev/unitcheck.mjs`, the full `node dev/playcheck.mjs` in your own
+   profile, the relevant scenarios in Firefox, `node dev/uicheck.mjs` and
+   `node dev/visualcheck.mjs` (an intended change to the views: `--update`).
    Retake store screenshots if the five views changed (`brand/AGENTS.md`).
 5. **Commit** `Release X.Y.Z: <summary>` after `node dev/secretcheck.mjs`;
    push.

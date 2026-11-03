@@ -1,3 +1,4 @@
+import './testclock.js';
 import { XtreamApi, ApiError } from './api.js';
 import { M3uSource } from './m3usource.js';
 import { StalkerSource, normalizePortal, normalizeMac, clearPortalRules } from './stalker.js';

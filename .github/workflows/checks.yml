@@ -1,0 +1,72 @@
+# The checks that need no browser, on every push and pull request; the
+# browser scenarios every night and on demand. Nothing here needs a
+# provider account or a secret: the browser job runs against the mock server.
+#
+# The visual check (dev/visualcheck.mjs) is not run here: its reference
+# pictures are made on macOS and differ wherever text is rendered by another
+# system's fonts. Run it locally before a release.
+
+name: Checks
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  schedule:
+    - cron: '17 3 * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  quick:
+    name: Unit, texts, packaging, secrets
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Unit tests
+        run: node dev/unitcheck.mjs
+      - name: Area checks
+        run: |
+          for check in ratingcheck searchnamescheck titlelinkscheck mediafilterscheck moviedurationcheck demuxcheck audiofactscheck; do
+            echo "::group::$check"; node dev/$check.mjs; echo "::endgroup::"
+          done
+      - name: Store listings within the stores' limits, _locales in step
+        run: node dev/listings.mjs --check
+      - name: Every translation of the English as it stands
+        run: node dev/translations.mjs --check
+      - name: The Pages front page rendered from the README
+        run: node dev/site.mjs --check
+      - name: The two manifests agree
+        run: node dev/package.mjs --check
+      - name: No secrets in the repository
+        run: node dev/secretcheck.mjs --all
+
+  browser:
+    name: Browser scenarios (mock server, headless Chrome)
+    if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    env:
+      KEPULI_HEADLESS: '1'
+      KEPULI_DEV_PORT: '9333'
+      KEPULI_DEV_PROFILE: ${{ runner.temp }}/kepuli-profile
+      TZ: Europe/Helsinki
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: ffmpeg for the dummy media
+        run: sudo apt-get update && sudo apt-get install -y ffmpeg
+      - name: Dummy media for the mock server
+        run: sh dev/mock/media.sh
+      - name: UI regressions
+        run: node dev/uicheck.mjs
+      - name: Playback scenarios
+        run: node dev/playcheck.mjs

@@ -9,7 +9,7 @@ what it does and how to run it. Read that header before using one.
 | Area | Scripts |
 | --- | --- |
 | Development loop | `dev.mjs` (the owner's Chrome loop, port 9222: do not run it as an agent), `screenshot.mjs` (Chrome helpers: `ensureChrome`, `openPlayer`, `session`, `capture`) |
-| Tests | `unitcheck.mjs`, `playcheck.mjs`, `uicheck.mjs`, and per-area `demuxcheck`, `audiocheck`, `audiofactscheck`, `mediafilterscheck`, `ratingcheck`, `searchnamescheck`, `titlelinkscheck`, `moviedurationcheck` |
+| Tests | `unitcheck.mjs`, `playcheck.mjs`, `uicheck.mjs`, `visualcheck.mjs` (the five views against `visual/`), and per-area `demuxcheck`, `audiocheck`, `audiofactscheck`, `mediafilterscheck`, `ratingcheck`, `searchnamescheck`, `titlelinkscheck`, `moviedurationcheck` |
 | Mock provider | `mock/` (see `mock/AGENTS.md`) |
 | Translations and texts | `translations.mjs`, `listings.mjs`, `site.mjs` (README → `docs/index.html`) |
 | Packaging | `package.mjs` (allowlist packages from git HEAD; `--zip`, `--worktree`, `--check`) |
@@ -63,6 +63,15 @@ data, so never point it at a profile someone uses.
   of the file and in `SCENARIOS` at its end.
 - `node dev/uicheck.mjs`: layout and navigation regressions, headless,
   temporary profile.
+- `node dev/visualcheck.mjs`: the five store views, taken with the mock
+  server's and the page's clocks set to one moment (`KEPULI_MOCK_NOW`,
+  `player.html?testnow=`, `js/testclock.js`), compared pixel by pixel with
+  `dev/visual/*.png`; what moves by itself (picture, subtitles, progress bars,
+  now line) is masked. A failure prints the views and keeps difference images
+  (changes in red). When a change to the views is meant, look at the
+  differences, run `--update`, and commit the new references with the change.
+  The references are macOS renderings; on another system make local ones and
+  do not commit them.
 - `KEPULI_BROWSER=firefox node dev/playcheck.mjs [scenario]`: the same in
   Firefox through Marionette (opens a window).
 - Smaller checks for one area each: `dev/demuxcheck.mjs`, `dev/audiocheck.mjs`,
@@ -76,6 +85,15 @@ Mock behaviour is switched by environment variables read per request, e.g.
 `KEPULI_MOCK_THROTTLE`, `KEPULI_MOCK_BAD_GATEWAY`, `KEPULI_MOCK_LIMIT`; grep
 `process.env.KEPULI_MOCK` in `dev/mock/server.mjs` for the full set, and add
 one there when a scenario needs a new kind of misbehaving server.
+
+### CI
+
+`.github/workflows/checks.yml` runs the Node-only checks (unit and area
+checks, listings, translations, the Pages page, the manifests, secrets) on
+every push and pull request, and `uicheck` plus the full `playcheck` in
+headless Chrome every night and on demand (`gh workflow run Checks`). Keep
+new checks runnable there: no secrets, no provider, the mock server only.
+Look at a red run with `gh run list` and `gh run view --log-failed`.
 
 ### Known flakes, not bugs
 
