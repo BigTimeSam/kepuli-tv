@@ -2,7 +2,7 @@
 
 Captured by `KEPULI_BROWSER=firefox node dev/store-screenshots.mjs` — the
 same walk that makes the Chrome set, driven through Marionette instead of
-DevTools — in Firefox 157 on macOS, using an isolated test profile and the
+DevTools — in Firefox 159 on macOS, using an isolated test profile and the
 local `dev/mock/server.mjs` fixture. All channels, titles, artwork and video
 are fictional demo content. No customer account or hosted demo service was
 used.
