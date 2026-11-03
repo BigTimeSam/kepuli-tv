@@ -10,7 +10,9 @@ import { clock, duration } from './format.js';
 import { reminderDelay } from './epggrid.js';
 import { t } from './i18n.js';
 import * as store from './config.js';
-import { grid, guideOpen, playItem, renderGuidePreview, shownName, stripItem, toast } from './app.js';
+import { playItem, toast } from './app.js';
+import { grid, guideOpen, renderGuidePreview } from './guideui.js';
+import { shownName, stripItem } from './coversui.js';
 
 // A programme to be reminded of, a minute before it starts. Only while a
 // player is open: a reminder from a closed one would take a background

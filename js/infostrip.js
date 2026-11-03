@@ -13,7 +13,9 @@ import { externalLinks, playbackFacts, titleCredits, titleFacts } from './titlei
 import { poster } from './poster.js';
 import { shortLanguage } from './lang.js';
 import { t } from './i18n.js';
-import { addressChanges, el, freshItem, probeFor, renderMediaSession, state, updateStoredItem, vlist } from './app.js';
+import { renderMediaSession, state, vlist } from './app.js';
+import { el } from './dom.js';
+import { addressChanges, freshItem, probeFor, updateStoredItem } from './coversui.js';
 
 export function renderInfoStrip() {
   renderMediaSession();

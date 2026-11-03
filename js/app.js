@@ -6,33 +6,33 @@ import { installFetchTap, shareAs } from './streamhub.js';
 
 import { playlistAddress } from './m3u.js';
 import { Sync, loadSyncInfo, syncAvailable } from './sync.js';
-import { pickProgrammes, programmeKey } from './picks.js';
+
 import { Library, sortItems, cacheTtl as libraryCacheTtl } from './library.js';
 import { Epg } from './epg.js';
 import { Playback } from './playback.js';
 import { VirtualList, watchLength } from './vlist.js';
-import { ListNavigation, rowDomId } from './listnavigation.js';
+import { ListNavigation } from './listnavigation.js';
 import { CatalogueSearch } from './cataloguesearch.js';
 import { PlayerLayout } from './playerlayout.js';
-import { itemRow, posterCard, categoryRow, chipRow, favCategoryRow, sectionHeader, emptyState, KIND_ICONS, HISTORY_ICONS } from './rows.js';
-import { nameCleaner, searchNameCleaner, searchKey, searchTerms, matchesTerms, labelCodes } from './name.js';
+import { categoryRow, chipRow, emptyState, KIND_ICONS, HISTORY_ICONS } from './rows.js';
+import { searchNameCleaner, searchKey, searchTerms, matchesTerms, labelCodes } from './name.js';
 import { poster } from './poster.js';
 import { wireModal } from './modal.js';
 import { MediaFilters } from './mediafilters.js';
-import { titleFacts, externalLinks } from './titleinfo.js';
-import { EpgGrid, catchupAvailable, sameChannels } from './epggrid.js';
+
+import { sameChannels } from './epggrid.js';
 import { CountryPicker, HiddenList } from './channelchoices.js';
 import { openRowMenu } from './rowmenu.js';
 import { channelPreferences, visibilityFilter, sortChannels } from './channelprefs.js';
-import { ProgrammeSearch } from './programmesearch.js';
+
 import { cacheClear, cachePurge, wipeStorage, storageEstimate } from './db.js';
 import { parsePlaylistUrl, streamUrl, baseUrl, parseServer } from './xtream.js';
 import { formatRoute, parseRoute } from './route.js';
 import { api, isGecko } from './browser.js';
 import { requestAccess, requestAccessFor, hasAccess, hasAccessEverywhere, requestAccessEverywhere, redirects } from './permissions.js';
-import { handOff } from './external.js';
+
 import { Cast, supported as castSupported } from './cast.js';
-import { warmCache, peek, probeCacheTtl } from './probe.js';
+import { warmCache, probeCacheTtl } from './probe.js';
 import { shortLanguage } from './lang.js';
 import { label as audioLabel } from './audio.js';
 import { SubtitleDisplay, subtitleLook, stepScale, pictureHeight, DEFAULT_SCALE, DEFAULT_LIFT } from './subdisplay.js';
@@ -40,47 +40,30 @@ import { pickEncoder } from './transcode.js';
 import * as store from './config.js';
 import { applyTheme, earlyTheme, onSystemTheme } from './theme.js';
 import { wirePickers } from './picker.js';
-import { nf, dateTimeFmt, dateFmt, stampFmt, dayLabel, clock, megabytes, duration, progressOf, setLocale, amount, speed as speedText, mbits, percent, seconds as secondsText } from './format.js';
+import { nf, dateTimeFmt, dateFmt, dayLabel, clock, megabytes, duration, setLocale, amount, speed as speedText, mbits, percent, seconds as secondsText } from './format.js';
 import { t, applyStatic, setLanguage, loadLanguage, localeTag, setEnglishRegion, LANGUAGES } from './i18n.js';
-import { askRecordingConsent, canRecord, closeRecordingConsent, loadRecordingList, openRecordings, playCatchup, recordingOf, recordingOn, renderRecordingState, retryPlayback, toggleProgrammeRecording, toggleRecordNow, warnRecordingConnection } from './recordingsui.js';
+import { askRecordingConsent, canRecord, closeRecordingConsent, loadRecordingList, openRecordings, renderRecordingState, retryPlayback, toggleRecordNow, warnRecordingConnection } from './recordingsui.js';
 import { renderAccountList, renderAccountSwitcher, switchAccount } from './accountsui.js';
-import { loadReminders, reminderKey, reminders, showReminders, toggleReminder } from './remindersui.js';
+import { loadReminders, reminders, showReminders } from './remindersui.js';
 import { hasDetails, loadVodDetails, renderInfoStrip } from './infostrip.js';
+import { TYPE_OF_KIND, applyListLayout, gridColumns, nameCleanerFor, onEpgUpdated, renderRow, restoreListView, shownName, stripItem, toggleFavorite, usesGrid, watchGridWidth, withCurrentAddress } from './coversui.js';
+import { closeDetail, crumbLabel, episodesOfSeason, openItem, openSeries, renderDetail } from './seriesui.js';
+import { closeGuide, favoritesChanged, focusGrid, grid, guideFavorites, guideOpen, programmeSearch, refreshGuidePreview, renderGuideGroups, renderTheme, restoreGuideFavorites, setGuideFavorites, toggleGuide } from './guideui.js';
+import { currentPicks, pickCard, tickIdlePage } from './picksui.js';
+import { applySubcatsHeight, ensureFull, renderEmptyState, renderListInfo, selectSub, wireSubcatsResize } from './topicbar.js';
+import { askExternal, playExternal } from './externalui.js';
+import { $, el } from './dom.js';
 
-export const $ = (id) => document.getElementById(id);
 // Live channels are read through js/streamhub.js, so that a recording of
 // the channel on screen shares the player's connection.
 installFetchTap();
 
-export const el = {
-  tabs: $('tabs'), search: $('search'), groups: $('groups'), groupsCol: $('groups-col'),
-  categoryFilter: $('category-filter'), groupsFilter: $('groups-filter'),
-  list: $('list'), crumbs: $('crumbs'), detail: $('detail'),
-  listinfo: $('listinfo'), main: $('main'),
-  subcats: $('subcats'), subcatsGrip: $('subcats-grip'),
-  video: $('video'), videowrap: $('videowrap'), subdisplay: $('subdisplay'),
-  overlay: $('overlay'), overlayTitle: $('overlay-title'),
-  overlayText: $('overlay-text'), overlayActions: $('overlay-actions'), statbadge: $('statbadge'),
-  overlayLoad: $('overlay-load'), overlayBar: $('overlay-bar'), overlayBarFill: $('overlay-bar-fill'),
-  overlayFigures: $('overlay-figures'), overlaySlow: $('overlay-slow'), overlayElapsed: $('overlay-elapsed'),
-  overlaySpeed: $('overlay-speed'), overlayNeed: $('overlay-need'),
-  idleHome: $('idle-home'),
-  infostrip: $('infostrip'), nowTitle: $('now-title'), nowSub: $('now-sub'), mode: $('mode'),
-  subs: $('subs'), audio: $('audio'), cast: $('btn-cast'),
-  setup: $('setup'), setupTabs: $('setup-tabs'), setupNote: $('setup-note'), setupNoteText: $('setup-note-text'),
-  sublook: $('btn-sublook'), sublookPop: $('sublook-pop'),
-  more: $('btn-more'), morePop: $('more-pop'),
-  listProgress: $('list-progress'),
-  epg: $('epg'), epgPreview: $('epg-preview'),
-  lpTitle: $('lp-title'), lpFill: $('lp-fill'), lpText: $('lp-text'), lpPercent: $('lp-percent'),
-  toast: $('toast'), toastText: $('toast-text'),
-};
 
 const TYPE_OF_TAB = { live: 'live', movie: 'movie', series: 'series' };
 const TYPE_KIND = { live: 0, movie: 1, series: 2 };
 
 /** "3 channels" — the type picks the key, the number picks the plural. */
-const unit = (type, count) => t(`unit.${type || 'generic'}`, { count, n: nf.format(count) });
+export const unit = (type, count) => t(`unit.${type || 'generic'}`, { count, n: nf.format(count) });
 
 // Favourites and history are not the server's lists but the user's own
 // collections: they are always in memory, mix all four types, and are
@@ -89,7 +72,7 @@ const COLLECTIONS = new Set(['fav', 'recent']);
 // 'c' = a favourite category: not a playable item but a door into a list,
 // see favCategoryEntry. In a collection it is a type of its own and comes
 // first, because one category row covers dozens of channels.
-const kindLabel = (kind) => t(`kind.${kind}`);
+export const kindLabel = (kind) => t(`kind.${kind}`);
 const KIND_ORDER = ['c', 0, 1, 2];
 const KIND_INDEX = new Map(KIND_ORDER.map((kind, i) => [kind, i]));
 // In a collection an episode is only part of a series, so it is counted and
@@ -100,10 +83,10 @@ const kindGroup = (k) => (k === 3 ? 2 : k);
 // that they grow with the reader's own font setting. What they come to in
 // pixels is therefore the browser's answer rather than a number written here,
 // and it is asked again when the setting changes under a running page.
-let ROW_H = 50;
+export let ROW_H = 50;
 let SEP_H = 32;
 
-const listNavigation = new ListNavigation(el.list);
+export const listNavigation = new ListNavigation(el.list);
 
 export const state = {
   config: null, settings: null, account: null,
@@ -145,8 +128,8 @@ export const state = {
   subcatsHeight: null,    // the topic bar's height when dragged, null = automatic
 };
 
-const isCollection = () => COLLECTIONS.has(state.tab);
-const catalogueSearch = new CatalogueSearch(el.search, $('search-clear'), {
+export const isCollection = () => COLLECTIONS.has(state.tab);
+export const catalogueSearch = new CatalogueSearch(el.search, $('search-clear'), {
   state, refresh: () => refreshRows(), renderSidebar, isCollection,
   onSearch: () => { if (!guideOpen) playerLayout.showBrowse(); },
 });
@@ -313,7 +296,7 @@ function dropConnectedView() {
   showRows([], { loading: true });
 }
 
-const isAbort = (err) => Boolean(err && err.name === 'AbortError');
+export const isAbort = (err) => Boolean(err && err.name === 'AbortError');
 
 /**
  * A list that could not be fetched — a group, a series, the whole list —
@@ -322,7 +305,7 @@ const isAbort = (err) => Boolean(err && err.name === 'AbortError');
  * happened; where there are no rows, the message takes their place with a
  * way to try again.
  */
-function showListError(err, retry) {
+export function showListError(err, retry) {
   finishListLoad();
   const message = err instanceof ApiError ? err.message : t('error.unexpected', { message: err.message });
   state.listError = message;
@@ -340,14 +323,14 @@ function finishListLoad() {
   renderListInfo();
 }
 
-function showListCancelled(retry) {
+export function showListCancelled(retry) {
   finishListLoad();
   if (state.rows.length) { toast(t('progress.cancelled')); return; }
   el.list.querySelector('.empty')?.remove();
   el.list.appendChild(emptyState(t('progress.cancelled'), '', { label: t('player.retry'), onClick: retry }));
 }
 
-function beginListLoad({ keepScroll = false } = {}) {
+export function beginListLoad({ keepScroll = false } = {}) {
   const request = ++state.listRequest;
   state.listError = null;
   showRows(keepScroll ? state.rows : [], { keepScroll, loading: true });
@@ -463,7 +446,7 @@ export async function adoptAccount(config) {
   renderAccountSwitcher();
 }
 
-const same = (a, b) => JSON.stringify(a) === JSON.stringify(b);
+export const same = (a, b) => JSON.stringify(a) === JSON.stringify(b);
 
 /**
  * A list of this account's changed in storage — by another tab, or by this
@@ -574,7 +557,7 @@ async function offerLists(previous, config) {
 
 /* ================================================================= views */
 
-function tabType() { return TYPE_OF_TAB[state.tab] || null; }
+export function tabType() { return TYPE_OF_TAB[state.tab] || null; }
 
 /**
  * The view worth coming back to: the tab, the group and topic within it,
@@ -814,7 +797,7 @@ function markTabs(tab) {
   }
 }
 
-async function activateTab(tab, { restore = false } = {}) {
+export async function activateTab(tab, { restore = false } = {}) {
   catalogueSearch.reset();
   playerLayout.showBrowse();
   state.tab = tab;
@@ -868,7 +851,7 @@ async function activateTab(tab, { restore = false } = {}) {
  * filter changed, or a favourite starred, while the search's whole list was
  * still on its way used to throw the typed words away (js/cataloguesearch.js).
  */
-async function refreshRows({ keepScroll = false, returnPosition = null, restoreFocus = false } = {}) {
+export async function refreshRows({ keepScroll = false, returnPosition = null, restoreFocus = false } = {}) {
   const type = tabType();
   const library = state.lib;
   const request = beginListLoad({ keepScroll });
@@ -959,7 +942,7 @@ async function refreshRows({ keepScroll = false, returnPosition = null, restoreF
   updateAddress();
 }
 
-const mediaFilters = new MediaFilters($('media-filters'), () => {
+export const mediaFilters = new MediaFilters($('media-filters'), () => {
   state.cursor = -1;
   return refreshRows();
 }, item => item.details || state.lib?.details.get(`${item.k === 1 ? 'vod' : 'series'}:v2:${item.id}`), $('active-media-filters'));
@@ -976,7 +959,7 @@ const mediaFilters = new MediaFilters($('media-filters'), () => {
  */
 let favStripOpen = false;
 
-function renderFavStrip(rows) {
+export function renderFavStrip(rows) {
   const strip = $('fav-strip');
   const browsing = !isCollection() && !state.detail && !state.query && !state.listLoading;
   strip.hidden = !browsing || !['live', 'movie', 'series'].includes(state.tab);
@@ -1022,7 +1005,7 @@ async function toggleFavStrip() {
  * The rows on screen. Everything painted from them follows in one call, so
  * that nothing on screen can belong to a list that is no longer shown.
  */
-function showRows(rows, { keepScroll = false, loading = false } = {}) {
+export function showRows(rows, { keepScroll = false, loading = false } = {}) {
   state.listLoading = loading;
   el.list.setAttribute('aria-busy', String(loading));
   // The programme search reads the channels on show, and another set of
@@ -1103,7 +1086,7 @@ const isFavorite = (entry) => state.favorites.has(`${entry.k}:${entry.id}`);
  * collection mixes channel, movie and series categories; the group because
  * the same topic ("Sport") repeats from one country to the next.
  */
-function favCategorySubtitle(entry) {
+export function favCategorySubtitle(entry) {
   const bits = [kindLabel(TYPE_KIND[entry.t])];
   if (entry.c == null) {
     const group = state.lib ? state.lib.group(entry.t, entry.g) : null;
@@ -1146,7 +1129,7 @@ function categoryCountsFor(rows) {
  * Opens a category inside the collection: the same drill-down as a series,
  * so that returning to the favourites is one tap rather than a tab change.
  */
-async function openFavCategory(entry) {
+export async function openFavCategory(entry) {
   if (!state.lib) { toast(t('error.noserver'), { kind: 'warn' }); return; }
   const back = state.detail;
   const returnPosition = listNavigation.capture(vlist);
@@ -1183,7 +1166,7 @@ async function openFavCategory(entry) {
  * collection's own view, so the sidebar and the topic chips are repainted
  * only when we are elsewhere — in the favourites the whole list changes.
  */
-function toggleFavCategory(entry) {
+export function toggleFavCategory(entry) {
   const key = `${entry.k}:${entry.id}`;
   if (state.favorites.has(key)) state.favorites.delete(key);
   else state.favorites.set(key, { ...entry, addedAt: Date.now() });
@@ -1220,7 +1203,7 @@ function sectionsFor(rows) {
   return sections;
 }
 
-async function removeFromHistory(item) {
+export async function removeFromHistory(item) {
   const recents = await store.removeRecent(`${item.k}:${item.id}`);
   if (!recents) return;
   state.recents = recents;
@@ -1251,7 +1234,7 @@ async function forgetUnfinished(item, label) {
   await refreshRows({ keepScroll: true });
 }
 
-async function clearHistory() {
+export async function clearHistory() {
   if (!(await store.clearRecents())) return;
   state.recents = [];
   if (!state.playing && !el.idleHome.hidden) renderIdleOverlay();
@@ -1416,263 +1399,6 @@ function renderSubcats() {
   applySubcatsHeight();
 }
 
-/* ================================================== the topic bar height */
-
-// A chip row advances 30.6 px and the bar's own padding adds 16, so one row
-// comes to 47 px and eight to 261. The fixed 144 px this used to have for
-// every group alike was four of them.
-const SUBCATS_MIN = 48;          // one row: the bar never shrinks to a stripe
-const SUBCATS_AUTO_MAX = 260;    // eight rows: beyond that it is a page of its own
-// Sweden's 31 topics and USA's 48 do not fit in four rows, and it is exactly
-// there that the bar is the thing being read, so it is given a share of the
-// column rather than a number of rows: on a tall window that is six or seven
-// rows, on a short one the list still keeps what it needs.
-const SUBCATS_AUTO_SHARE = 0.28;
-// Dragging is a decision, not a default, so it may go further — up to where
-// a few list rows are still under the bar.
-const SUBCATS_DRAG_SHARE = 0.6;
-
-/**
- * How tall the topic bar may be: the ceiling it takes by itself, and the one
- * a drag may reach. Both are measured from the column, because a ceiling in
- * pixels that is right on a full screen hides the list on a half one.
- */
-function subcatsBounds() {
-  const column = el.subcats.parentElement.clientHeight || window.innerHeight;
-  return {
-    min: SUBCATS_MIN,
-    auto: Math.round(Math.min(SUBCATS_AUTO_MAX, column * SUBCATS_AUTO_SHARE)),
-    max: Math.round(Math.max(SUBCATS_MIN * 2, column * SUBCATS_DRAG_SHARE)),
-  };
-}
-
-/**
- * The bar is as tall as its chips, up to the ceiling. A ceiling rather than
- * a height, because a bar dragged past its last chip would be a band of
- * empty panel, and the list needs the pixels more.
- */
-function applySubcatsHeight() {
-  if (el.subcats.hidden) return;
-  const bounds = subcatsBounds();
-  const cap = state.subcatsHeight == null
-    ? bounds.auto
-    : Math.min(Math.max(state.subcatsHeight, bounds.min), bounds.max);
-  el.subcats.style.maxHeight = `${cap}px`;
-  el.subcatsGrip.setAttribute('aria-valuemin', String(bounds.min));
-  el.subcatsGrip.setAttribute('aria-valuemax', String(bounds.max));
-  el.subcatsGrip.setAttribute('aria-valuenow', String(Math.round(el.subcats.getBoundingClientRect().height)));
-}
-
-/** A dragged height is the user's, so it is remembered between sessions. */
-function setSubcatsHeight(height) {
-  const bounds = subcatsBounds();
-  state.subcatsHeight = height == null ? null : Math.min(Math.max(Math.round(height), bounds.min), bounds.max);
-  applySubcatsHeight();
-}
-
-/**
- * The handle at the bar's lower edge. The pointer is captured, so the drag
- * follows it over the list and outside the window as well, and a double
- * click gives the automatic height back.
- */
-function wireSubcatsResize() {
-  const grip = el.subcatsGrip;
-  let startY = 0;
-  let startHeight = 0;
-
-  grip.addEventListener('pointerdown', (e) => {
-    if (e.button !== 0) return;
-    // No preventDefault here: cancelling a pointerdown also cancels the
-    // mouse events derived from it, and the double click below is one of
-    // them. Dragging over text is kept from selecting it by body.resizing.
-    startY = e.clientY;
-    startHeight = el.subcats.getBoundingClientRect().height;
-    grip.setPointerCapture(e.pointerId);
-    grip.classList.add('dragging');
-    document.body.classList.add('resizing');
-  });
-
-  grip.addEventListener('pointermove', (e) => {
-    if (!grip.hasPointerCapture(e.pointerId)) return;
-    // The distance the pointer has come, not where it is: the bar's top
-    // edge is not the same as the column's when a breadcrumb is above it.
-    setSubcatsHeight(startHeight + (e.clientY - startY));
-  });
-
-  const release = (e) => {
-    if (!grip.hasPointerCapture(e.pointerId)) return;
-    grip.releasePointerCapture(e.pointerId);
-    grip.classList.remove('dragging');
-    document.body.classList.remove('resizing');
-    store.saveUiState({ subcatsHeight: state.subcatsHeight });
-  };
-  grip.addEventListener('pointerup', release);
-  grip.addEventListener('pointercancel', release);
-
-  grip.addEventListener('dblclick', () => {
-    setSubcatsHeight(null);
-    store.saveUiState({ subcatsHeight: null });
-  });
-
-  grip.addEventListener('keydown', (e) => {
-    const step = e.key === 'ArrowDown' ? 1 : e.key === 'ArrowUp' ? -1 : 0;
-    if (!step) return;
-    // The same arrows move the cursor in the list, and a handle that has
-    // been given the focus is the one being steered.
-    e.preventDefault();
-    e.stopPropagation();
-    setSubcatsHeight(el.subcats.getBoundingClientRect().height + step * (e.shiftKey ? 48 : 12));
-    store.saveUiState({ subcatsHeight: state.subcatsHeight });
-  });
-
-  // Both ceilings are measured from the column, so a window that changes
-  // size changes them. The observer looks at the column and the callback
-  // touches only the bar inside it, so nothing here can feed itself.
-  new ResizeObserver(() => applySubcatsHeight()).observe(el.subcats.parentElement);
-}
-
-async function selectSub(categoryId) {
-  state.sub = categoryId;
-  state.cursor = -1;
-  await refreshRows();
-}
-
-async function ensureFull(type, reason, current = () => true) {
-  if (state.lib.isFull(type)) return true;
-  showProgress(t('progress.list', { what: t(`progress.list.${type}`) }), reason);
-  try {
-    await state.lib.ensureFull(type, {
-      signal: progressSignal(),
-      onProgress: (received, total) => { if (current()) updateProgress(received, total); },
-    });
-    if (current()) renderSidebar();
-    return true;
-  } catch (err) {
-    if (!current()) return false;
-    hideProgress();
-    if (isAbort(err)) showListCancelled(() => refreshRows()); else showListError(err, () => refreshRows());
-    return false;
-  } finally {
-    if (current()) hideProgress();
-  }
-}
-
-function renderEmptyState() {
-  const existing = el.list.querySelector('.empty');
-  if (existing) existing.remove();
-  if (state.rows.length > 0) return;
-  // The strip above says it already, and with a bar and a way out.
-  if (state.listLoading && !el.listProgress.hidden) return;
-  if (state.listLoading) {
-    const loading = document.createElement('div');
-    loading.className = 'empty list-loading';
-    loading.setAttribute('role', 'status');
-    const spinner = document.createElement('span');
-    spinner.className = 'list-spinner';
-    spinner.setAttribute('aria-hidden', 'true');
-    const label = document.createElement('span');
-    label.textContent = t('progress.loading');
-    loading.append(spinner, label);
-    el.list.appendChild(loading);
-    return;
-  }
-  // Before a connection — and while one is being made — the player's own
-  // overlay says what is missing. A second message calling the list an empty
-  // category would name the wrong thing.
-  if (!state.lib && !isCollection()) return;
-  const type = tabType();
-  const browse = { label: t('empty.browse'), onClick: () => activateTab('live') };
-  let node;
-  if (mediaFilters.filtering) node = emptyState(t('filters.nohits'), t('filters.nohits.text'), { label: t('filters.reset'), onClick: () => mediaFilters.clear() }, 'search');
-  else if (state.query) node = emptyState(t('empty.nohits'), t('empty.nohits.text', { query: state.query }), null, 'search');
-  else if (state.detail && state.detail.view === 'category') {
-    node = emptyState(t('empty.category'), t('empty.category.text'));
-  } else if (state.tab === 'fav') {
-    node = emptyState(t('empty.fav'), t('empty.fav.text'), browse, 'star');
-  } else if (state.tab === 'recent') {
-    node = emptyState(t('empty.recent'), t('empty.recent.text'), browse, 'history');
-  } else node = emptyState(t('empty.plain'), t('empty.plain.text'));
-  el.list.appendChild(node);
-}
-
-function renderListInfo() {
-  if (state.listLoading) {
-    el.listinfo.textContent = t('progress.loading');
-    return;
-  }
-  // "0 channels" under a list that is empty for want of a connection counts
-  // something that was never asked for.
-  if (!state.lib && !isCollection()) { el.listinfo.replaceChildren(); return; }
-  const type = tabType();
-  const parts = [];
-  const count = state.rows.length;
-  if (state.detail && state.detail.view === 'category') {
-    const entry = state.detail.entry;
-    parts.push(unit(entry.t, count));
-    parts.push(crumbLabel(entry));
-  } else if (state.detail) {
-    parts.push(t('list.episodes', { count, n: nf.format(count) }));
-  } else if (isCollection()) {
-    parts.push(t('list.items', { count, n: nf.format(count) }));
-  } else {
-    parts.push(unit(type, count));
-  }
-  if (isCollection() && state.kind != null) parts.push(kindLabel(state.kind).toLowerCase());
-  if (state.group && !state.detail && !state.query) {
-    const group = state.lib.group(type, state.group);
-    parts.push(state.sub
-      ? state.lib.categoryName(type, state.sub)
-      : `${state.group}${group && group.cats.length > 1 ? ` (${t('list.topics', { n: group.cats.length })})` : ''}`);
-  }
-
-  el.listinfo.replaceChildren(document.createTextNode(parts.join(', ')));
-  const hidden = state.channelPrefs.hiddenChannels.length + state.channelPrefs.hiddenCategories.length;
-  if (state.tab === 'live' && state.lib && hidden) {
-    const spacer = document.createElement('span');
-    spacer.className = 'spacer';
-    const button = document.createElement('button');
-    button.type = 'button';
-    button.id = 'btn-hidden';
-    button.textContent = t('hidden.count', { n: nf.format(hidden) });
-    button.addEventListener('click', openHiddenList);
-    el.listinfo.append(spacer, button);
-  }
-  if (state.tab === 'recent' && state.recents.length) {
-    const spacer = document.createElement('span');
-    spacer.className = 'spacer';
-    el.listinfo.append(spacer, clearHistoryButton());
-  }
-  if ((state.tab === 'movie' || state.tab === 'series') && !state.detail && state.lib) {
-    const spacer = document.createElement('span');
-    spacer.className = 'spacer';
-    el.listinfo.append(spacer, viewToggle());
-  }
-}
-
-/**
- * Clearing the history cannot be undone, so it takes a second tap. A dialog
- * of its own would be too much for something of this weight.
- */
-function clearHistoryButton() {
-  const button = document.createElement('button');
-  button.type = 'button';
-  button.textContent = t('history.clear');
-  let armed = false;
-  let timer = null;
-  button.addEventListener('click', () => {
-    if (armed) { clearTimeout(timer); clearHistory(); return; }
-    armed = true;
-    button.textContent = t('history.clear.confirm');
-    button.classList.add('armed');
-    timer = setTimeout(() => {
-      armed = false;
-      button.textContent = t('history.clear');
-      button.classList.remove('armed');
-    }, 4000);
-  });
-  return button;
-}
-
 /* =============================================================== sidebar */
 
 /**
@@ -1681,7 +1407,7 @@ function clearHistoryButton() {
  * favourites and history get the same structure as the other views instead
  * of leaving the column empty.
  */
-function renderSidebar() {
+export function renderSidebar() {
   if (isCollection()) renderKinds();
   else renderCategories();
   markGroups();
@@ -1887,7 +1613,7 @@ async function selectGroup(name) {
   }
 }
 
-function visibleGroups(type) {
+export function visibleGroups(type) {
   const groups = state.lib?.groups[type] || [];
   if (type !== 'live') {
     const chosen = chosenCategories(type);
@@ -1928,7 +1654,7 @@ function chosenCategories(type) {
 
 /** Category id → the name of the film or series group it is in. */
 const groupOfCatByType = new WeakMap();
-function groupOfType(type) {
+export function groupOfType(type) {
   const groups = state.lib?.groups[type] || [];
   let map = groupOfCatByType.get(groups);
   if (!map) groupOfCatByType.set(groups, map = new Map(groups.flatMap((g) => g.cats.map((c) => [c.id, g.name]))));
@@ -1937,7 +1663,7 @@ function groupOfType(type) {
 
 const groupOfCategory = new WeakMap();
 /** Category id → the name of the live group it is in. */
-function liveGroupOf() {
+export function liveGroupOf() {
   const groups = state.lib?.groups.live || [];
   let map = groupOfCategory.get(groups);
   if (!map) groupOfCategory.set(groups, map = new Map(groups.flatMap((g) => g.cats.map((c) => [c.id, g.name]))));
@@ -1950,7 +1676,7 @@ function liveGroupOf() {
  * and the guide — but not out of the favourites and the history, which
  * hold what was picked by hand.
  */
-function visibleRows(rows) {
+export function visibleRows(rows) {
   const prefs = state.channelPrefs;
   const visible = visibilityFilter(prefs);
   const groups = new Set(visibleGroups('live').map((g) => g.name));
@@ -2076,7 +1802,7 @@ async function askCountriesOnce() {
   openCountryPicker({ first: true });
 }
 
-async function openHiddenList() {
+export async function openHiddenList() {
   if (!state.lib) return;
   if (state.channelPrefs.hiddenChannels.length && !await ensureFull('live', t('hidden.loading'))) return;
   const full = state.lib.full.live || [];
@@ -2088,7 +1814,7 @@ async function openHiddenList() {
  * The actions on a row: a favourite or not, out of the history when it is
  * in it, and a channel hidden.
  */
-function openItemMenu(item, at) {
+export function openItemMenu(item, at) {
   const prefs = state.channelPrefs;
   const id = String(item.id);
   const name = state.cleanName ? state.cleanName(item.n, item) : item.displayName || item.n;
@@ -2154,513 +1880,6 @@ export const vlist = new VirtualList(el.list, ROW_H, renderRow, {
     });
   },
 });
-
-/* ------------------------------------------------------------ covers */
-
-// Films and series as covers rather than rows. A cover is what a film is
-// recognised by, and at 30x44 in a row it was a thumbnail of one. The
-// virtual list stands the covers side by side, as many as the column has
-// room for, so a catalogue of 55,000 still paints only what is in sight.
-const CARD_MIN = 108;     // the narrowest a cover may be, in pixels
-const CARD_GAP = 10;
-const CARD_TEXT = 48;     // the name and the line under it
-let listView = 'grid';    // 'grid' | 'list', for films and series
-let gridColumns = 1;
-
-/** The browsing lists of films and series; collections and episodes stay rows. */
-const usesGrid = () => listView === 'grid' && !isCollection() && !state.detail
-  && (state.tab === 'movie' || state.tab === 'series');
-
-/** How many covers fit across the list, and how tall a line of them is. */
-function gridGeometry() {
-  const width = el.list.clientWidth - 2 * CARD_GAP;
-  const columns = Math.max(2, Math.floor((width + CARD_GAP) / (CARD_MIN + CARD_GAP)));
-  const card = (width - (columns - 1) * CARD_GAP) / columns;
-  return { columns, lineHeight: Math.round(card * 1.5 + CARD_TEXT + CARD_GAP) };
-}
-
-function applyListLayout() {
-  const grid = usesGrid();
-  el.list.classList.toggle('covers', grid);
-  if (!grid) {
-    gridColumns = 1;
-    vlist.setColumns(1, ROW_H);
-    return;
-  }
-  const { columns, lineHeight } = gridGeometry();
-  gridColumns = columns;
-  el.list.style.setProperty('--grid-cols', String(columns));
-  vlist.setColumns(columns, lineHeight);
-}
-
-/** A narrower or wider column takes a different number of covers. */
-function watchGridWidth() {
-  let last = '';
-  new ResizeObserver(() => {
-    if (!usesGrid()) return;
-    const { columns, lineHeight } = gridGeometry();
-    const key = `${columns}:${lineHeight}`;
-    if (key === last) return;
-    last = key;
-    applyListLayout();
-    vlist.refresh();
-  }).observe(el.list);
-}
-
-async function setListView(view) {
-  if (view === listView) return;
-  listView = view;
-  store.saveUiState({ listView: view });
-  const position = listNavigation.capture(vlist);
-  showRows(state.rows, { keepScroll: true });
-  listNavigation.restore(vlist, position);
-}
-
-/** List or covers: two marks at the foot of the films' and series' lists. */
-function viewToggle() {
-  const box = document.createElement('span');
-  box.className = 'view-toggle';
-  box.setAttribute('role', 'group');
-  for (const [view, paths] of [
-    ['list', '<path d="M4 5.5h12M4 10h12M4 14.5h12"/>'],
-    ['grid', '<rect x="3.5" y="3.5" width="5" height="5" rx="1"/><rect x="11.5" y="3.5" width="5" height="5" rx="1"/><rect x="3.5" y="11.5" width="5" height="5" rx="1"/><rect x="11.5" y="11.5" width="5" height="5" rx="1"/>'],
-  ]) {
-    const button = document.createElement('button');
-    button.type = 'button';
-    button.title = t(`view.${view}`);
-    button.setAttribute('aria-label', button.title);
-    button.setAttribute('aria-pressed', String(listView === view));
-    button.innerHTML = `<svg viewBox="0 0 20 20" aria-hidden="true">${paths}</svg>`;
-    button.addEventListener('click', () => setListView(view));
-    box.appendChild(button);
-  }
-  return box;
-}
-
-function renderRow(index) {
-  const item = state.rows[index];
-  const key = `${item.k}:${item.id}`;
-  if (usesGrid() && (item.k === 1 || item.k === 2)) {
-    return posterCard(item, {
-      label: state.cleanName ? state.cleanName(item.n, item) : null,
-      playing: state.playing && `${state.playing.k}:${state.playing.id}` === key,
-      selected: index === state.cursor,
-      domId: rowDomId(index),
-      favorite: state.favorites.has(key),
-      resume: state.resume.get(key),
-      onOpen: () => { state.cursor = index; openItem(item); },
-      onFavorite: () => toggleFavorite(item),
-    });
-  }
-  const row = item.k === 'c' ? favCategoryRow(item, {
-    subtitle: favCategorySubtitle(item),
-    count: state.catCounts && state.catCounts.has(key) ? nf.format(state.catCounts.get(key)) : null,
-    selected: index === state.cursor,
-    domId: rowDomId(index),
-    onOpen: () => { state.cursor = index; openFavCategory(item); },
-    onFavorite: () => toggleFavCategory(item),
-  }) : itemRow(item, {
-    label: state.cleanName ? state.cleanName(item.n, item) : null,
-    playing: state.playing && `${state.playing.k}:${state.playing.id}` === key,
-    selected: index === state.cursor,
-    domId: rowDomId(index),
-    favorite: state.favorites.has(key),
-    epg: item.k === 0 && state.epg ? state.epg.nowNext(item.id) : null,
-    resume: state.resume.get(key),
-    // The favourites and the history mix the kinds: one picture for all, the
-    // facts under the name and the actions in the menu (compactLine in
-    // js/rows.js). The time of day went: the day's heading says when.
-    compact: isCollection() && !state.detail,
-    tag: isCollection() && !state.detail ? null : tagFor(item),
-    showEpisodeCover: state.tab === 'recent',
-    probe: probeFor(item),
-    onOpen: () => { state.cursor = index; openItem(item); },
-    onFavorite: () => toggleFavorite(item),
-    onRemove: state.tab === 'recent' ? () => removeFromHistory(item) : null,
-    onMenu: item.k === 0 || (isCollection() && !state.detail) ? (at) => { state.cursor = index; openItemMenu(item, at); } : null,
-    removeTitle: t('row.remove.history'),
-  });
-
-  const section = state.sections.get(index);
-  if (!section) return row;
-  // The heading travels with the row in the same node, which keeps the
-  // virtualisation index-based and spares state.rows any heading entries.
-  const group = document.createElement('div');
-  group.className = 'rowgroup';
-  group.append(sectionHeader(section.label, section.icon), row);
-  return group;
-}
-
-/**
- * Once a country or a category is chosen, the sidebar says what every row
- * name repeats: "US: NHL Ice Center Pass 3 FHD" is, under NHL, merely "Ice
- * Center Pass 3 FHD". Movie and series search results use their own group
- * rules, since one search can contain titles from several countries.
- */
-function nameCleanerFor(rows) {
-  if (state.detail?.view === 'series') return state.detail.cleanName;
-  const type = tabType();
-  // A search, and every channel at once, mix the countries: each row is
-  // tidied by the rules of its own group, so "FI: Liiga 1" reads "Liiga 1"
-  // in the results just as it does under Finland.
-  const mixed = state.query || (type === 'live' && state.group == null && !isCollection());
-  if (mixed && !state.detail && type && state.lib?.full[type]) {
-    return searchNameCleaner(state.lib.groups[type], state.lib.full[type]);
-  }
-  // Inside a favourite category the filter is known even though the sidebar
-  // does not show it, so the row names tidy up as in the browsing view.
-  if (state.detail && state.detail.view === 'category') {
-    const entry = state.detail.entry;
-    return nameCleaner(entry.g && entry.g !== entry.n ? [entry.g, entry.n] : [entry.n], rows);
-  }
-  // The favourites and the history mix countries and kinds: each row by
-  // its own group's rules, as in a search.
-  if (isCollection() && !state.detail) return tidyName;
-  if (isCollection() || state.detail || state.query || state.group == null) return null;
-  const group = type && state.lib ? state.lib.group(type, state.group) : null;
-  if (!group) return null;
-  const labels = [group.name];
-  if (state.sub) {
-    const cat = group.cats.find((c) => c.id === state.sub);
-    if (cat && cat.sub) labels.push(cat.sub);
-  }
-  return nameCleaner(labels, rows);
-}
-
-/**
- * A name as the browsing shows it, wherever the item turns up outside its
- * own list — the favourites, the history, the empty player's page, the
- * player's title: "FI: MTV3 FHD" is "MTV3 FHD", by the rules of its own
- * group. With the type's whole list in memory those are the search's
- * rules; without it, the group's label alone, which is enough for the
- * country's own code.
- */
-const TYPE_OF_KIND = { 0: 'live', 1: 'movie', 2: 'series', 3: 'series' };
-function tidyName(name, item) {
-  const type = TYPE_OF_KIND[item?.k];
-  if (!type || !state.lib || !name) return name;
-  const full = state.lib.full[type];
-  if (full) return searchNameCleaner(state.lib.groups[type], full)(name, item);
-  const groupOf = type === 'live' ? liveGroupOf() : groupOfType(type);
-  const group = (item.cats || []).map((id) => groupOf.get(id)).find(Boolean);
-  const clean = group ? nameCleaner([group], [item]) : null;
-  return clean ? clean(name) : name;
-}
-
-/** The name an item shows outside its list: its own tidied one, or tidied now. */
-export const shownName = (item) => item.displayName && item.displayName !== item.n ? item.displayName : tidyName(item.n, item);
-
-/**
- * A history row states the time of day; the day comes from the section
- * heading. In the favourites the type already shows in the heading and in
- * the sidebar, so the row is left alone on that count — in a narrow column
- * every character is space taken from the name.
- */
-function tagFor(item) {
-  if (state.tab !== 'recent' || !item.watchedAt) return null;
-  return { text: clock(item.watchedAt).replace(/^0(?=\d)/, ''), icon: 'clock', title: t('row.watched', { stamp: stampFmt.format(new Date(item.watchedAt)) }) };
-}
-
-/**
- * A file header that has been read earlier, if there is one. No network
- * requests are made while painting a row: the header is read only when
- * playback is attempted, and next time the result is already in hand.
- */
-export function probeFor(item) {
-  if (item.k !== 1 && item.k !== 3) return null;
-  if (!state.config || state.config.type === 'stalker') return null;
-  const url = streamUrl(state.config, item, 'ts');
-  return url ? peek(url) : null;
-}
-
-function onEpgUpdated(ids) {
-  if (pickIds.size && ids.some((id) => pickIds.has(String(id)))) refreshIdleSoon();
-  for (const id of ids) {
-    const index = state.rowIndex.get(`0:${id}`);
-    if (index != null) vlist.refreshRow(index);
-  }
-  if (state.playing && state.playing.k === 0 && ids.includes(String(state.playing.id))) renderInfoStrip();
-  if (guideOpen) grid.invalidate();
-  // The clicked channel's list fills in as its programmes arrive.
-  if (guideOpen && guideChannel && ids.includes(guideChannel)) {
-    const channel = grid.channels.find((c) => String(c.id) === guideChannel);
-    if (channel) showGuideChannel(channel);
-  }
-}
-
-function toggleFavorite(item) {
-  const key = `${item.k}:${item.id}`;
-  if (state.favorites.has(key)) state.favorites.delete(key);
-  else state.favorites.set(key, { ...stripItem(item), addedAt: Date.now() });
-  store.setFavorite(key, state.favorites.get(key) || null);
-  if (state.tab === 'fav') { renderSidebar(); refreshRows({ keepScroll: true }); }
-  else { vlist.refresh(); renderFavStrip(state.rows); }
-  renderSeriesFavorite();
-  favoritesChanged();
-}
-
-/**
- * What a stored copy says about where and how its stream is fetched, and
- * what the guide reads for it. A favourite and a history entry are copies
- * made when they were saved, and the provider moves on: a film re-encoded
- * from .mkv to .mp4, a channel given another guide id or catch-up window.
- */
-const ADDRESS_FIELDS = ['ext', 'direct', 'epgId', 'archive', 'cu', 'cmd'];
-
-/**
- * The item as the library holds it now, when the library has it in memory:
- * a whole list loaded, a category or group opened this session, a series'
- * episodes. Nothing is fetched for it — playing from the favourites must
- * not wait on a list — so null means "not known", not "gone".
- */
-export function freshItem(item) {
-  const lib = state.lib;
-  if (!lib) return null;
-  const id = String(item.id);
-  if (item.k === 3) {
-    const info = item.seriesId != null ? lib.details.get(`series:v2:${item.seriesId}`) : null;
-    return info?.episodes?.find((episode) => String(episode.id) === id) || null;
-  }
-  const type = ITEM_TYPES[item.k];
-  if (!type) return null;
-  const same = (it) => it.k === item.k && String(it.id) === id;
-  if (lib.full[type]) return lib.full[type].find(same) || null;
-  // A playlist's whole catalogue is in memory from the start: a favourite
-  // that came through sync without its address (js/sync.js) finds it here.
-  const playlist = state.source?.catalogue?.items?.[type];
-  if (playlist) { const hit = playlist.find(same); if (hit) return hit; }
-  for (const [key, items] of lib.byCategory) {
-    if (!key.startsWith(`${type}:`) && !key.startsWith(`group:${type}:`)) continue;
-    const hit = items.find(same);
-    if (hit) return hit;
-  }
-  return null;
-}
-const ITEM_TYPES = { 0: 'live', 1: 'movie', 2: 'series' };
-
-/** The address fields in which `fresh` differs from `item`, or null when none does. */
-export function addressChanges(item, fresh) {
-  if (!fresh || fresh === item) return null;
-  const patch = {};
-  for (const field of ADDRESS_FIELDS) {
-    if (!(field in fresh) || fresh[field] === undefined) continue;
-    if ((fresh[field] ?? null) !== (item[field] ?? null)) patch[field] = fresh[field];
-  }
-  return Object.keys(patch).length ? patch : null;
-}
-
-/**
- * The item to play: the stored copy with the library's current address
- * fields over it, when the library knows better, and the stored favourite
- * and history entry brought up to date with them — so that the next play
- * from the favourites or Continue watching is right even before anything
- * is loaded. The stored copy stands as it is when the library does not
- * have the item in memory.
- */
-function withCurrentAddress(item) {
-  const patch = addressChanges(item, freshItem(item));
-  if (!patch) return item;
-  updateStoredItem(item, patch);
-  return { ...item, ...patch };
-}
-
-/** A favourite's and a history entry's address fields brought up to date. */
-export async function updateStoredItem(item, patch) {
-  const key = `${item.k}:${item.id}`;
-  const favorite = state.favorites.get(key);
-  if (favorite && addressChanges(favorite, { ...favorite, ...patch })) {
-    const updated = { ...favorite, ...patch };
-    state.favorites.set(key, updated);
-    store.setFavorite(key, updated);
-  }
-  if (state.recents.some((entry) => `${entry.k}:${entry.id}` === key)) {
-    const recents = await store.patchRecent(key, patch);
-    if (recents) state.recents = recents;
-  }
-}
-
-/** Only the fields the list needs for painting are kept. */
-export function stripItem(item) {
-  // cu, tvgName and shift are a playlist channel's (js/m3usource.js): its
-  // archive's address and what its guide is found by.
-  // cmd and part are a Stalker portal's (js/stalker.js): what its address
-  // is asked for by when the item is played.
-  const { id, k, n, logo, ext, season, episode, archive, epgId, direct, cats, durationSec, seriesCover, seriesName, seriesId, displayName, rating, ratingScale, cu, tvgName, shift, cmd, part } = item;
-  return { id, k, n, logo, ext, season, episode, archive, epgId, direct, cats, durationSec, seriesCover, seriesName, seriesId, displayName, rating, ratingScale, cu, tvgName, shift, cmd, part };
-}
-
-/* ================================================================ series */
-
-async function openItem(item) {
-  if (!item) return;
-  if (item.k === 'c') return openFavCategory(item);
-  if (item.k === 2) return openSeries(item);
-  await playItem(item);
-}
-
-async function openSeries(item) {
-  // A retry belongs to the same drill-down and keeps its original parent.
-  const retry = state.detail?.view === 'series' && state.detail.item.id === item.id ? state.detail : null;
-  const returnPosition = retry?.returnPosition || listNavigation.capture(vlist);
-  const returnSearch = retry?.returnSearch || catalogueSearch.snapshot();
-  catalogueSearch.reset({ restore: false });
-  mediaFilters.apply([], null);
-  // A series opened from a favourite category stays inside the category:
-  // going back returns to the list it was chosen from.
-  const back = retry ? retry.back : state.detail?.view === 'category' ? state.detail : null;
-  // Keep the parent list's rules: the episode list is a different set and
-  // must not infer new prefixes from its repeated series title.
-  const sourceItem = item;
-  const parentCleaner = state.cleanName;
-  const cleanName = parentCleaner ? name => parentCleaner(name, sourceItem) : null;
-  item = { ...item, displayName: cleanName ? cleanName(item.n) : item.displayName || item.n };
-  state.detail = { view: 'series', item, info: null, season: null, back, cleanName, returnPosition, returnSearch, loading: true };
-  const open = state.detail;
-  renderDetail();
-  updateAddress();
-  beginListLoad();
-  try {
-    const info = await state.lib.seriesEpisodes(item.id);
-    if (state.detail !== open) return;
-    state.detail.loading = false;
-    // Episodes often have no artwork of their own. Carry the parent cover
-    // with each episode so playback keeps it even after leaving this view
-    // or reopening the episode from history or favourites. Also enrich
-    // cached responses, without changing the shared cache object.
-    state.detail.info = {
-      ...info,
-      episodes: info.episodes.map(episode => ({
-        ...episode,
-        displayName: cleanName ? cleanName(episode.n) : episode.n,
-        seriesCover: info.cover || item.logo || '',
-        seriesName: cleanName ? cleanName(item.n) : item.displayName || item.n,
-        seriesId: item.id,
-      })),
-    };
-    const seasons = seasonNumbers(info.episodes);
-    state.detail.season = seasons[0] ?? null;
-    renderDetail();
-    await refreshRows();
-  } catch (err) {
-    if (state.detail !== open) return;
-    state.detail.loading = false;
-    showListError(err, () => openSeries(item));
-  }
-}
-
-function seasonNumbers(episodes) {
-  return [...new Set(episodes.map((e) => e.season))].sort((a, b) => a - b);
-}
-
-function episodesOfSeason() {
-  const detail = state.detail;
-  if (!detail || detail.view !== 'series' || !detail.info) return [];
-  const eps = detail.info.episodes;
-  return detail.season == null ? eps : eps.filter((e) => e.season === detail.season);
-}
-
-function renderDetail() {
-  catalogueSearch.render();
-  const detail = state.detail;
-  // A category has neither a plot nor a cover — its contents are a list, and
-  // the breadcrumb is enough to say where we are.
-  el.detail.hidden = !detail || detail.view === 'category';
-  el.crumbs.hidden = !detail;
-  if (!detail) { el.detail.replaceChildren(); el.crumbs.replaceChildren(); return; }
-
-  el.crumbs.replaceChildren();
-  const back = document.createElement('button');
-  back.type = 'button';
-  back.textContent = t('crumbs.back');
-  back.addEventListener('click', closeDetail);
-  const label = document.createElement('span');
-  const displayTitle = detail.view === 'series' ? (detail.cleanName ? detail.cleanName(detail.item.n) : detail.item.displayName || detail.item.n) : '';
-  label.textContent = detail.view === 'category' ? crumbLabel(detail.entry) : displayTitle;
-  if (detail.view === 'series') label.title = detail.item.n;
-  el.crumbs.append(back, label);
-
-  if (detail.view === 'category') { el.detail.replaceChildren(); return; }
-
-  const info = detail.info;
-  const main = document.createElement('div');
-  main.className = 'detail-main';
-
-  const cover = poster('detail-cover', (info && info.cover) || detail.item.logo, 'series', { expand: true, title: displayTitle });
-  main.appendChild(cover);
-
-  const body = document.createElement('div');
-  body.className = 'detail-body';
-  const heading = document.createElement('div');
-  heading.className = 'detail-heading';
-  const title = document.createElement('div');
-  title.className = 'detail-title';
-  title.textContent = displayTitle;
-  title.title = detail.item.n;
-  const favorite = document.createElement('button');
-  favorite.type = 'button';
-  favorite.id = 'detail-fav';
-  favorite.className = 'ghost series-favorite';
-  favorite.addEventListener('click', () => toggleFavorite(detail.item));
-  heading.append(title, favorite);
-  body.appendChild(heading);
-
-  body.appendChild(titleFacts(info || detail.item, {
-    episodes: info?.episodes.length,
-    seasons: info ? seasonNumbers(info.episodes).filter(season => season > 0).length : undefined,
-  }));
-
-  if (info && (info.plot || detail.item.plot)) {
-    const plot = document.createElement('div');
-    plot.className = 'detail-plot';
-    plot.textContent = info.plot || detail.item.plot;
-    body.appendChild(plot);
-  }
-  body.appendChild(externalLinks(detail.item, info));
-  main.appendChild(body);
-  el.detail.replaceChildren(main);
-  renderSeriesFavorite();
-
-  if (info) {
-    const seasons = seasonNumbers(info.episodes);
-    if (seasons.length > 1) {
-      const bar = document.createElement('div');
-      bar.className = 'seasons';
-      for (const season of seasons) {
-        const chip = document.createElement('button');
-        chip.type = 'button';
-        chip.className = 'season' + (season === detail.season ? ' active' : '');
-        chip.textContent = t('season', { season });
-        chip.addEventListener('click', () => {
-          detail.season = season;
-          renderDetail();
-          refreshRows();
-        });
-        bar.appendChild(chip);
-      }
-      el.detail.appendChild(bar);
-    }
-  }
-}
-
-/** "Finland › MTV Liiga" — the same path by which the category is found
- *  when browsing. */
-function crumbLabel(entry) {
-  return entry.g && entry.g !== entry.n ? `${entry.g} › ${entry.n}` : entry.n;
-}
-
-function closeDetail() {
-  const detail = state.detail;
-  if (!detail) return;
-  const focus = document.activeElement;
-  const restoreFocus = focus === document.body || el.crumbs.contains(focus) || el.list.contains(focus);
-  state.detail = detail.back || null;
-  catalogueSearch.restore(detail.returnSearch);
-  state.cursor = -1;
-  renderDetail();
-  updateAddress();
-  refreshRows({ returnPosition: detail.returnPosition, restoreFocus: () => restoreFocus
-    && (document.activeElement === focus || document.activeElement === document.body || document.activeElement === el.list) });
-}
 
 /* ============================================================== playback */
 
@@ -3172,7 +2391,7 @@ function stopCountdown() {
   if (countdown.timer) { clearInterval(countdown.timer); countdown.timer = null; }
 }
 
-function showOverlayActions(actions) {
+export function showOverlayActions(actions) {
   // Whatever the overlay says now, it is no longer the empty player's —
   // nor the account of a wait, which sets its own buttons after this.
   clearLoadView();
@@ -3715,7 +2934,7 @@ async function rememberSubtitleLanguage(number) {
   state.settings = await store.saveSettings({ subtitleLang: language });
 }
 
-function renderSeriesFavorite() {
+export function renderSeriesFavorite() {
   const button = $('detail-fav');
   if (!button || state.detail?.view !== 'series') return;
   const on = isFavorite(state.detail.item);
@@ -3766,326 +2985,6 @@ function wireMediaSession() {
   if (!mediaSession) return;
   setMediaAction('nexttrack', () => playRelative(1));
   setMediaAction('previoustrack', () => playRelative(-1));
-}
-
-/* ------------------------------------------------------ programme guide */
-
-export const grid = new EpgGrid({
-  scroll: $('epg-scroll'), canvas: $('epg-canvas'),
-  timesInner: $('epg-times-inner'), chansInner: $('epg-chans-inner'),
-  corner: $('epg-corner'), days: $('epg-days'), clock: $('epg-clock'),
-}, {
-  label: (channel) => (state.cleanName ? state.cleanName(channel.n, channel) : channel.n),
-  onSelect: renderGuidePreview,
-  onActivate: activateProgramme,
-  onChannel: (channel) => channel && showGuideChannel(channel),
-  onPlay: (channel) => channel && playItem(channel),
-  onWindow: (items, from, to) => state.epg && state.epg.setVisibleWindow(items, from, to),
-  reminded: (channel, programme) => reminders.has(reminderKey(channel, programme)),
-});
-
-export let guideOpen = false;
-
-const programmeSearch = new ProgrammeSearch({
-  getEpg: () => state.epg,
-  getChannels: async (scope, signal) => {
-    if (scope === 'all') {
-      const library = state.lib;
-      const channels = await library.ensureFull('live', { signal });
-      if (signal.aborted || library !== state.lib) throw new DOMException('Cancelled', 'AbortError');
-      return visibleRows(channels);
-    }
-    return state.rows.filter((c) => c.k === 0);
-  },
-  onSelect: renderGuidePreview,
-  onActivate: activateProgramme,
-  onMode: (searching) => {
-    $('epg-body').hidden = searching;
-    if (searching) grid.hide();
-    else if (guideOpen && !grid.open) grid.show();
-  },
-});
-
-async function toggleGuide() {
-  if (guideOpen) closeGuide(); else await openGuide();
-}
-
-async function openGuide() {
-  if (guideOpen) return;
-  if (!state.lib || !state.epg) {
-    toast(t('guide.needserver'), { kind: 'warn', action: { label: t('btn.settings'), onClick: openSetup } });
-    return;
-  }
-  if (!state.epg.enabled) {
-    toast(t('guide.epgoff'), { kind: 'warn', action: { label: t('guide.epgon'), onClick: switchEpgOn } });
-    return;
-  }
-  // The guide shows channel rows, so it needs the channel tab's contents.
-  if (state.tab !== 'live' || state.detail) await activateTab('live', { restore: true });
-
-  if (guideFavorites && !favoriteChannels().length) guideFavorites = false;
-  const channels = guideChannels();
-  if (!channels.length) { toast(t('guide.needgroup'), { kind: 'warn' }); return; }
-
-  guideOpen = true;
-  el.main.classList.add('guide');
-  el.epg.hidden = false;
-  el.epgPreview.hidden = false;
-  $('btn-guide').setAttribute('aria-expanded', 'true');
-
-  renderGuideGroups();
-  renderGuideFavorites();
-  grid.epg = state.epg;
-  grid.setPlaying(state.playing && state.playing.k === 0 ? state.playing.id : null);
-  grid.setChannels(channels);
-  grid.show();
-  if (state.playing && state.playing.k === 0) grid.focusChannel(state.playing.id);
-  focusGrid();
-}
-
-/** The switch the "programme data is off" message offers, and the guide after it. */
-async function switchEpgOn() {
-  state.settings = await store.saveSettings({ epgEnabled: true });
-  if (state.epg) state.epg.enabled = true;
-  await openGuide();
-}
-
-function closeGuide() {
-  if (!guideOpen) return;
-  const restoreFocus = el.epg.contains(document.activeElement) || el.epgPreview.contains(document.activeElement)
-    || document.activeElement === $('epg-close');
-  guideOpen = false;
-  programmeSearch.clear();
-  grid.hide();
-  el.main.classList.remove('guide');
-  el.epg.hidden = true;
-  el.epgPreview.hidden = true;
-  $('btn-guide').setAttribute('aria-expanded', 'false');
-  if (restoreFocus) $('btn-guide').focus();
-  vlist.refresh();
-  renderInfoStrip();
-}
-
-/** A group selector for the guide: the sidebar is hidden in guide mode. */
-/**
- * The theme in force, and the button that changes it: the button shows
- * and names the theme it leads to, a sun in the dark and a moon in the
- * light, so that its label says what a press will do.
- */
-function renderTheme() {
-  const theme = applyTheme(state.settings.theme);
-  const button = $('btn-theme');
-  const next = theme === 'light' ? 'dark' : 'light';
-  button.dataset.next = next;
-  button.dataset.i18nLabel = button.dataset.i18nTitle = `theme.to.${next}`;
-  button.setAttribute('aria-label', t(`theme.to.${next}`));
-  button.title = t(`theme.to.${next}`);
-}
-
-/* ------------------------------------------------- the guide's favourites */
-
-// The guide narrowed to the favourite channels, from every group at once,
-// in the order they were starred. A choice of this browser's that stays
-// from one opening of the guide to the next (ui.guideFavorites); the list
-// beside the guide keeps the group it shows.
-let guideFavorites = false;
-
-/** The favourite channels, as the library holds them now when it does. */
-function favoriteChannels() {
-  return [...state.favorites.values()].filter((f) => f.k === 0).map((f) => freshItem(f) || f);
-}
-
-/** The guide's channels: the favourites, or the list's own. */
-function guideChannels() {
-  return guideFavorites ? favoriteChannels() : state.rows.filter((it) => it.k === 0);
-}
-
-function renderGuideFavorites() {
-  const button = $('epg-favs');
-  button.setAttribute('aria-pressed', String(guideFavorites));
-  // A group means nothing while the favourites are shown.
-  $('epg-group').disabled = guideFavorites;
-}
-
-async function setGuideFavorites(on) {
-  if (on && !favoriteChannels().length) {
-    toast(t('guide.favs.none'), { kind: 'warn' });
-    on = false;
-  }
-  guideFavorites = on;
-  renderGuideFavorites();
-  store.saveUiState({ guideFavorites: on });
-  if (!guideOpen) return;
-  const channels = guideChannels();
-  if (!channels.length) return;
-  grid.setChannels(channels);
-  if (state.playing && state.playing.k === 0) grid.focusChannel(state.playing.id);
-}
-
-/** A star given or taken while the guide shows the favourites: the guide follows. */
-function favoritesChanged() {
-  if (!guideOpen || !guideFavorites) return;
-  const channels = favoriteChannels();
-  if (!channels.length) { setGuideFavorites(false); return; }
-  grid.setChannels(channels);
-}
-
-function renderGuideGroups() {
-  const select = $('epg-group');
-  const frag = document.createDocumentFragment();
-  const all = document.createElement('option');
-  all.value = '';
-  all.textContent = t('guide.allchannels');
-  frag.appendChild(all);
-  for (const group of visibleGroups('live')) {
-    const option = document.createElement('option');
-    option.value = group.name;
-    option.textContent = group.name;
-    frag.appendChild(option);
-  }
-  select.replaceChildren(frag);
-  select.value = state.group ?? '';
-}
-
-// The channel whose name was clicked in the guide: its panel lists what
-// comes after the programme on now. Any other choice in the grid — a
-// programme, an arrow key — is about one programme, and the list goes.
-let guideChannel = null;
-const UPCOMING = 10;
-
-function showGuideChannel(channel) {
-  guideChannel = String(channel.id);
-  // The guide's own window is some twelve hours of programmes, which is
-  // the ten that come next on all but the shortest of slots.
-  state.epg?.want(channel, { priority: true, mode: 'grid' });
-  renderGuidePreview(channel, state.epg?.nowNext(channel.id)?.now || null, { upcoming: true });
-}
-
-/** The programmes after the one shown, times and titles only. */
-function renderUpcoming(channel, programme) {
-  const list = $('epgv-next');
-  const now = Date.now();
-  const after = programme ? programme.stop : now;
-  const items = (state.epg?.listings(channel.id) || []).filter((p) => p.start >= after).slice(0, UPCOMING);
-  list.replaceChildren(...items.map((p) => {
-    const li = document.createElement('li');
-    const time = document.createElement('span');
-    time.className = 'epgv-next-time';
-    time.textContent = `${clock(p.start)}–${clock(p.stop)}`;
-    const title = document.createElement('span');
-    title.className = 'epgv-next-title';
-    title.textContent = p.title;
-    li.append(time, title);
-    return li;
-  }));
-  list.hidden = !items.length;
-}
-
-// What the panel shows, for painting it again when a recording changes.
-let guidePreview = null;
-
-export function refreshGuidePreview() {
-  if (guideOpen && guidePreview) renderGuidePreview(guidePreview.channel, guidePreview.programme, { upcoming: guidePreview.upcoming });
-}
-
-export function renderGuidePreview(channel, programme, { upcoming = false } = {}) {
-  if (!channel) return;
-  guidePreview = { channel, programme, upcoming };
-  if (!upcoming) guideChannel = null;
-  if (upcoming) renderUpcoming(channel, programme);
-  else $('epgv-next').hidden = true;
-  const logo = poster('epgv-logo', channel.logo, 'channel');
-  logo.id = 'epgv-logo';
-  $('epgv-logo').replaceWith(logo);
-
-  $('epgv-name').textContent = state.cleanName ? state.cleanName(channel.n, channel) : channel.n;
-
-  const now = Date.now();
-  const meta = [];
-  if (channel.archive > 0) meta.push(t('guide.catchup', { days: channel.archive }));
-  if (state.lib && channel.cats && channel.cats.length) meta.push(state.lib.categoryName('live', channel.cats[0]));
-  if (programme) {
-    const minutes = Math.round((programme.stop - programme.start) / 60000);
-    if (minutes > 0) meta.push(duration(minutes * 60));
-    if (programme.stop <= now) meta.push(t('guide.ended'));
-    else if (programme.start > now) meta.push(t('guide.startsin', { when: relativeSoon(programme.start, now) }));
-  }
-  $('epgv-meta').textContent = meta.join(', ');
-
-  const slot = $('epgv-slot');
-  slot.replaceChildren();
-  if (programme) {
-    slot.appendChild(document.createTextNode(`${clock(programme.start)}–${clock(programme.stop)}`));
-    const title = document.createElement('b');
-    title.textContent = programme.title;
-    slot.appendChild(title);
-  }
-
-  $('epgv-desc').textContent = programme
-    ? (programme.description || '')
-    : t('guide.noepg.channel');
-
-  // Said out loud when the cursor moves: the channel, and the programme it
-  // has landed on. The panel above shows more, but a description read on
-  // every arrow press would bury the one thing that changed.
-  $('epg-announce').textContent = [
-    $('epgv-name').textContent,
-    programme ? `${clock(programme.start)}–${clock(programme.stop)}` : null,
-    programme ? programme.title : t('guide.noepg.channel'),
-  ].filter(Boolean).join(', ');
-
-  const actions = $('epgv-actions');
-  const buttons = [{ label: t('guide.watch'), primary: true, onClick: () => playItem(channel) }];
-  if (catchupAvailable(channel, programme, now)) {
-    buttons.unshift({ label: t(programme.stop > now ? 'guide.startover' : 'guide.watch.recording'), primary: true, onClick: () => playCatchup(channel, programme) });
-    buttons[1].primary = false;
-  }
-  if (programme && programme.start > now) {
-    const set = reminders.has(reminderKey(channel, programme));
-    buttons.push({ label: t(set ? 'guide.remind.cancel' : 'guide.remind'), onClick: () => toggleReminder(channel, programme) });
-  }
-  if (programme && programme.stop > now && recordingOn()) {
-    const planned = recordingOf(channel, programme);
-    const label = !planned ? 'rec.record' : planned.state === 'recording' ? 'rec.stop' : 'rec.cancel';
-    buttons.push({ label: t(label), onClick: () => toggleProgrammeRecording(channel, programme) });
-  }
-  actions.replaceChildren(...buttons.map(({ label, primary, onClick }) => {
-    const button = document.createElement('button');
-    button.type = 'button';
-    button.className = primary ? 'primary' : 'ghost';
-    button.textContent = label;
-    button.addEventListener('click', onClick);
-    return button;
-  }));
-}
-
-/** Enter, or a double-click in the grid. */
-function activateProgramme(channel, programme) {
-  if (!channel) return;
-  const now = Date.now();
-  if (programme && programme.stop <= now) {
-    if (catchupAvailable(channel, programme, now)) playCatchup(channel, programme);
-    else toast(t('guide.norecording'), { kind: 'warn' });
-    return;
-  }
-  if (programme && programme.start > now) {
-    const action = reminders.has(reminderKey(channel, programme)) ? null
-      : { label: t('guide.remind'), onClick: () => toggleReminder(channel, programme) };
-    toast(t('guide.starts', { title: programme.title, time: clock(programme.start) }), { action });
-    return;
-  }
-  playItem(channel);
-}
-
-/** Keyboard control belongs to the grid, not to the last button pressed. */
-function focusGrid() {
-  $('epg-scroll').focus({ preventScroll: true });
-}
-
-function relativeSoon(start, now) {
-  const minutes = Math.round((start - now) / 60000);
-  if (minutes < 60) return t('guide.minutes', { minutes });
-  return t('guide.at', { time: clock(start) });
 }
 
 /* ------------------------------------------------- katselukohta & stats */
@@ -4262,7 +3161,7 @@ function fillBar(ratio) {
 // The load under the strip is cancellable: every request made while it is
 // showing carries this controller's signal, and Cancel or Esc aborts them.
 let progressCtrl = null;
-const progressSignal = () => (progressCtrl ? progressCtrl.signal : undefined);
+export const progressSignal = () => (progressCtrl ? progressCtrl.signal : undefined);
 
 /**
  * The strip above the list, for a fetch the list is waiting on.
@@ -4274,7 +3173,7 @@ const progressSignal = () => (progressCtrl ? progressCtrl.signal : undefined);
  * until it finished. The strip sits where the rows will appear, says the same
  * three things the dialog said, and leaves the rest of the window alone.
  */
-function showProgress(title, text, ratio = null) {
+export function showProgress(title, text, ratio = null) {
   el.lpTitle.textContent = title;
   el.lpText.textContent = text || '';
   fillBar(ratio);
@@ -4291,7 +3190,7 @@ function cancelProgress() {
   if (progressCtrl) progressCtrl.abort();
 }
 
-function updateProgress(received, total) {
+export function updateProgress(received, total) {
   if (total > 0) {
     fillBar(received / total);
     el.lpText.textContent = t('progress.bytes', { received: megabytes(received), total: megabytes(total) });
@@ -4301,7 +3200,7 @@ function updateProgress(received, total) {
   }
 }
 
-function hideProgress() {
+export function hideProgress() {
   progressCtrl = null;
   if (el.listProgress.hidden) return;
   el.listProgress.hidden = true;
@@ -4325,7 +3224,7 @@ export const configured = () => store.isConfigured(state.config);
  * Every open reads a fresh draft from saved values. Tab changes retain
  * it; Save commits it and Cancel discards it.
  */
-function openSetup({ section, adding = false } = {}) {
+export function openSetup({ section, adding = false } = {}) {
   editAccount(adding ? 'new' : 'current', { render: false });
   renderLanguageOptions();
   $('f-lang').value = state.settings.lang in LANGUAGES ? state.settings.lang : 'auto';
@@ -5162,7 +4061,7 @@ export function toast(text, { long = false, kind = 'info', action = null, durati
  * refuses — the page not in focus, the permission withheld — is said too,
  * rather than left looking like a copy that worked.
  */
-async function copyUrl() {
+export async function copyUrl() {
   if (!state.playingSpec) return;
   try {
     await navigator.clipboard.writeText(state.playingSpec.url);
@@ -5172,66 +4071,6 @@ async function copyUrl() {
     return;
   }
   toast(t('player.copied'), { long: true });
-}
-
-/* -------------------------------------------------- external player */
-
-/**
- * Hands the current stream over to an external player.
- *
- * Playback is stopped first: the test account allows one concurrent
- * connection, so a stream the browser keeps open would leave the external
- * player silent. Everything here is deliberately synchronous — starting a
- * download requires a user gesture, which the first await would spend.
- */
-function playExternal() {
-  if (!state.playingSpec) { toast(t('ext.nothing'), { kind: 'warn' }); return; }
-
-  const name = state.playing ? state.playing.displayName || state.playing.n : 'Stream';
-  const spec = state.playingSpec;
-  // The resume position is where the browser got to, not where playback
-  // started.
-  const startAt = spec.live ? 0 : Math.floor(el.video.currentTime || spec.startAt || 0);
-  playback.stop();
-  state.playbackInfoLoading = false;
-  renderInfoStrip();
-  handOff({ ...spec, startAt }, name);
-
-  el.overlay.hidden = false;
-  el.overlay.classList.remove('loading');
-  el.overlayTitle.textContent = t('ext.handed');
-  el.overlayText.textContent = t('ext.handed.text');
-  showOverlayActions([
-    { label: t('ext.continue'), onClick: () => state.catchup ? retryPlayback() : state.playing && playItem(state.playing, { startAt }) },
-    { label: t('player.copyurl'), onClick: copyUrl },
-  ]);
-}
-
-/**
- * The x key asks before handing over; the menu item does not.
- *
- * The hand-off is not a small thing done twice: it stops playback, and it
- * writes a playlist file into the downloads folder carrying the server
- * address, the user name and the password in clear text, where it stays
- * until someone deletes it. A single stray keystroke should not do that —
- * and stray keystrokes do reach here, because the focus is deliberately
- * dropped to the body after every click, so nothing is holding the keys.
- *
- * The menu item is deliberate already: a menu opened and a line chosen,
- * spelled out in words. The confirmation's own button is a fresh click, so
- * the download still has the user gesture it needs.
- */
-function askExternal() {
-  if (!state.playingSpec) { toast(t('ext.nothing'), { kind: 'warn' }); return; }
-  el.overlay.hidden = false;
-  el.overlay.classList.remove('loading');
-  el.overlayTitle.textContent = t('ext.confirm');
-  el.overlayText.textContent = t('ext.confirm.text');
-  const close = () => { el.overlay.hidden = true; showOverlayActions(null); };
-  showOverlayActions([
-    { label: t('ext.title'), onClick: () => { close(); playExternal(); } },
-    { label: t('progress.cancel'), onClick: close },
-  ]);
 }
 
 /* --------------------------------------------------------- Chromecast */
@@ -5725,116 +4564,12 @@ new MutationObserver(() => {
   el.overlay.classList.toggle('idle', title === t('player.idle') || title === t('setup.welcome'));
 }).observe(el.overlayTitle, { childList: true, characterData: true, subtree: true });
 
-function renderIdleOverlay() {
+export function renderIdleOverlay() {
   const welcome = !configured();
   el.overlayTitle.textContent = welcome ? t('setup.welcome') : t('player.idle');
   const home = welcome ? false : renderIdleHome();
   el.overlayText.textContent = welcome ? t('setup.welcome.text')
     : t(!home ? 'player.idle.text' : el.idleHome.querySelector('.idle-picks') ? 'player.idle.picks.text' : 'player.idle.home');
-}
-
-/* ------------------------------------------------------------- the picks */
-
-// What is on now and coming up on the viewer's channels (js/picks.js): the
-// favourites and the channels watched lately, as many as PICK_CHANNELS.
-const PICK_CHANNELS = 24;
-const PICK_RECENT = 12;
-const PICKS = 8;
-// The channels the picks were last worked out from, for onEpgUpdated: a
-// channel's programmes arriving repaint the page.
-let pickIds = new Set();
-let idleRefresh = null;
-let idleTicker = null;
-
-function pickChannels() {
-  const out = new Map();
-  for (const item of state.favorites.values()) if (item.k === 0) out.set(String(item.id), { item, favorite: true, rank: null });
-  let rank = 0;
-  for (const item of state.recents) {
-    if (item.k !== 0) continue;
-    const id = String(item.id);
-    const had = out.get(id);
-    if (had) { if (had.rank == null) had.rank = rank; }
-    else if (rank < PICK_RECENT) out.set(id, { item, favorite: false, rank });
-    rank++;
-  }
-  return [...out.values()].slice(0, PICK_CHANNELS);
-}
-
-/**
- * The picks, from the programme data in memory; the channels whose data is
- * not there yet are asked for it, and the page is drawn again when it
- * arrives (onEpgUpdated). With the programme data switched off there are
- * none.
- */
-function currentPicks() {
-  const epg = state.epg;
-  if (!epg || !epg.enabled) { pickIds = new Set(); return []; }
-  const channels = pickChannels();
-  pickIds = new Set(channels.map((c) => String(c.item.id)));
-  epg.keep(channels.map((c) => c.item));
-  const reminded = new Set([...reminders.values()].map((r) => programmeKey(r.title)));
-  return pickProgrammes({ channels, listings: (item) => epg.listings(item.id), notes: state.interests, reminded, limit: PICKS });
-}
-
-/** The page drawn again a moment after programme data arrives, once for a burst. */
-function refreshIdleSoon() {
-  // Only the idle page is drawn again: the overlay may be saying something
-  // else — an error, a wait — and that is not to be painted over.
-  const idle = () => !state.playing && !el.overlay.hidden && !el.overlay.classList.contains('loading') && el.overlayTitle.textContent === t('player.idle');
-  if (idleRefresh || !idle()) return;
-  idleRefresh = setTimeout(() => {
-    idleRefresh = null;
-    if (idle()) renderIdleOverlay();
-  }, 400);
-}
-
-/** A pick: the programme, its channel, when, and why it was picked. */
-function pickCard(pick) {
-  const { channel, programme, on, why } = pick;
-  const card = document.createElement('button');
-  card.type = 'button';
-  card.className = 'idle-pick' + (on ? ' on' : '');
-  const reminded = reminders.has(reminderKey(channel, programme));
-  if (reminded) card.classList.add('reminded');
-  const name = shownName(channel);
-  card.title = on ? t('picks.play', { channel: name }) : t(reminded ? 'picks.reminded' : 'picks.remind');
-  const logo = poster('idle-pick-logo', channel.logo, 'channel');
-  const body = document.createElement('span');
-  body.className = 'idle-pick-body';
-  const when = document.createElement('span');
-  when.className = 'idle-pick-when';
-  when.textContent = on ? t('picks.now', { time: clock(programme.stop) })
-    : dayLabel(programme.start) === t('day.today') ? t('picks.today', { time: clock(programme.start) })
-    : `${dayLabel(programme.start)} ${clock(programme.start)}`;
-  if (!on) {
-    const bell = document.createElement('i');
-    bell.className = 'idle-pick-bell';
-    bell.setAttribute('aria-hidden', 'true');
-    when.prepend(bell);
-  }
-  const title = document.createElement('span');
-  title.className = 'idle-pick-title';
-  title.textContent = programme.title;
-  const where = document.createElement('span');
-  where.className = 'idle-pick-where';
-  where.textContent = `${name} · ${t(`picks.why.${why}`)}`;
-  body.append(when, title, where);
-  card.append(logo, body);
-  if (on) {
-    const bar = document.createElement('div');
-    bar.className = 'row-progress';
-    const fill = document.createElement('i');
-    fill.style.width = `${Math.round((progressOf(programme) || 0) * 100)}%`;
-    bar.appendChild(fill);
-    card.appendChild(bar);
-  }
-  card.addEventListener('click', () => {
-    if (on) { playFromHome(channel); return; }
-    toggleReminder(channel, programme);
-    renderIdleOverlay();
-  });
-  return card;
 }
 
 /* -------------------------------------------- what the viewer watches */
@@ -5941,8 +4676,11 @@ function renderIdleHome() {
   home.hidden = !home.childElementCount;
   if (!home.hidden) requestAnimationFrame(fitIdleHome);
   // The times move on: the page is drawn again each minute while it shows.
-  clearInterval(idleTicker);
-  if (picks.length) idleTicker = setInterval(() => { if (!state.playing && !el.overlay.hidden && el.overlayTitle.textContent === t('player.idle')) renderIdleOverlay(); else clearInterval(idleTicker); }, 60e3);
+  tickIdlePage(picks.length ? () => {
+    if (state.playing || el.overlay.hidden || el.overlayTitle.textContent !== t('player.idle')) return false;
+    renderIdleOverlay();
+    return true;
+  } : null);
   return !home.hidden;
 }
 
@@ -6034,7 +4772,7 @@ async function playCard(item) {
 }
 
 /** A tile of the empty player's page: played there, or — from the guide's column — where it lives. */
-const playFromHome = (item) => (guideOpen ? playInPlace(item) : playItem(item));
+export const playFromHome = (item) => (guideOpen ? playInPlace(item) : playItem(item));
 
 function idleTile(className, item, onClick) {
   const tile = document.createElement('button');
@@ -6093,7 +4831,7 @@ async function init() {
   const ui = await store.loadUiState();
   favStripOpen = Boolean(ui.favStripOpen);
   groupsFavOnly = ui.groupsFavOnly === true;
-  guideFavorites = Boolean(ui.guideFavorites);
+  restoreGuideFavorites(ui.guideFavorites);
   // The address names this tab's place; the stored view names the place any
   // tab last settled on. A reload has an address and takes it, drill-down
   // and all. A player opened fresh from the toolbar icon has none, and the
@@ -6116,7 +4854,7 @@ async function init() {
   storedSub = start.sub ?? null;
   $('channel-tools').hidden = state.tab !== 'live';
   if (typeof ui.subcatsHeight === 'number') state.subcatsHeight = ui.subcatsHeight;
-  if (ui.listView === 'list' || ui.listView === 'grid') listView = ui.listView;
+  restoreListView(ui.listView);
   watchGridWidth();
   $('media-filters').open = ui.filtersOpen === true;
   markTabs(state.tab);

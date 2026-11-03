@@ -14,7 +14,10 @@ import { clock, dateTimeFmt, dayLabel, duration, megabytes } from './format.js';
 import { streamUrl, timeshiftUrl } from './xtream.js';
 import { t } from './i18n.js';
 import * as store from './config.js';
-import { $, cancelAutoNext, channelKey, el, grid, guideOpen, itemAddress, newPlayRun, playItem, playback, playerLayout, refreshGuidePreview, renderAudio, renderNowSub, renderSubtitles, shownName, sizePicture, state, stripItem, toast, updateAddress, updatePlayerLayout, updateSetupActions, vlist } from './app.js';
+import { cancelAutoNext, channelKey, itemAddress, newPlayRun, playItem, playback, playerLayout, renderAudio, renderNowSub, renderSubtitles, sizePicture, state, toast, updateAddress, updatePlayerLayout, updateSetupActions, vlist } from './app.js';
+import { $, el } from './dom.js';
+import { grid, guideOpen, refreshGuidePreview } from './guideui.js';
+import { shownName, stripItem } from './coversui.js';
 import { renderInfoStrip } from './infostrip.js';
 
 // A live channel recorded to the browser's own storage (js/recorder.js):

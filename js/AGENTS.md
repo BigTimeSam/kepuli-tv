@@ -12,7 +12,7 @@ written here.
 
 | Module | Role |
 | --- | --- |
-| `app.js` (~6,100 lines, being split) | state, every view, event wiring. One `state` object near the top; sections are marked `/* ---- name */` (the address, covers, info panel, programme guide, reminders, recordings, the next episode, accounts, sync, external player, the picks…). Find with `grep -n "^/\* -" js/app.js` and read the section you change |
+| `app.js` (~4,900 lines, being split) | state, every view, event wiring. One `state` object near the top; sections are marked `/* ---- name */` (the address, covers, info panel, programme guide, reminders, recordings, the next episode, accounts, sync, external player, the picks…). Find with `grep -n "^/\* -" js/app.js` and read the section you change |
 | `rows.js`, `vlist.js`, `listnavigation.js` | list rows (built on every scroll frame: keep them light), the virtualised list, cursor and return positions by item |
 | `picker.js`, `modal.js`, `rowmenu.js`, `poster.js` | shared UI parts: every drop-down, dialog closing, the row menu, covers with fallback. Reuse them |
 | `playerlayout.js`, `theme.js`, `route.js` | narrow-window panes, colour theme, the address (`#/live/...`) and tab title |
@@ -50,6 +50,8 @@ lists, series info, stream URL) for its kind:
 | `streamhub.js`, `recorder.js` | one shared live connection; recording to the origin private file system |
 | `recordingsui.js` | the recording UI: Record button and reminder, the list, plans from the guide, catch-up playback (moved out of `app.js`) |
 | `accountsui.js`, `remindersui.js`, `infostrip.js` | the account list and switcher; programme reminders; the details strip under the picture (moved out of `app.js`) |
+| `coversui.js`, `seriesui.js`, `guideui.js`, `picksui.js`, `topicbar.js`, `externalui.js` | covers or rows; a series' page; the guide in the player (grid, column, search, favourites); the start page's picks; the topic chips and their bar; the external player hand-off (moved out of `app.js`) |
+| `dom.js` | `$` and `el`, the page's elements looked up once: import them from here, not from `app.js` |
 
 **Storage and settings**
 
@@ -66,11 +68,13 @@ lists, series info, stream URL) for its kind:
 ## Splitting app.js
 
 `app.js` is being split section by section into feature modules
-(`recordingsui.js` was the first). A moved module imports the player's
-`state`, `el`, `$` and helpers from `./app.js`, and app.js imports the
+(`recordingsui.js` was the first). A moved module imports `$` and `el`
+from `./dom.js`, and the player's `state` and helpers from `./app.js`, and app.js imports the
 module's entry points back: a cycle ES modules resolve, as long as nothing
 in the module runs while the modules load. Rules for the next ones: move a
-whole `/* ---- */` section; a variable the other side assigns cannot cross
+whole section (both `/* ---- */` and `/* ==== */` headings bound one, and
+nothing in the module may use an `app.js` binding while the modules load —
+build such objects from `dom.js` only); a variable the other side assigns cannot cross
 (give it a function, as `newPlayRun()` for `playRun`); check every import
 form (`import * as store` too), run `node dev/namecheck.mjs` (it finds
 exactly that kind of miss), then make sure the module loads at all (a duplicate export is a
