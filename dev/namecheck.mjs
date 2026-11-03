@@ -30,8 +30,9 @@ const SCRIPT_GLOBALS = new Set(['Hls', 'mpegts']);
 // Cannot find name (2304, 2552, 2580, 2662, 2663), used before its
 // declaration (2448, 2449, 2450, 2454), no such module (2307, 2792), no such
 // export (2305, 2459, 2460, 2614, 2724), assignment to an import or a
-// constant (2539, 2588, 2632).
-const RUNTIME = new Set([2304, 2552, 2580, 2662, 2663, 2448, 2449, 2450, 2454, 2307, 2792, 2305, 2459, 2460, 2614, 2724, 2539, 2588, 2632]);
+// constant (2539, 2588, 2632), the same name declared or exported twice
+// (2300, 2323, 2393, 2451): a SyntaxError that stops the module loading.
+const RUNTIME = new Set([2304, 2552, 2580, 2662, 2663, 2448, 2449, 2450, 2454, 2307, 2792, 2305, 2459, 2460, 2614, 2724, 2539, 2588, 2632, 2300, 2323, 2393, 2451]);
 
 const files = [...readdirSync(join(ROOT, 'js')).filter((f) => f.endsWith('.js')).map((f) => `js/${f}`), 'background.js'];
 const run = spawnSync('npx', ['-y', '-p', TYPESCRIPT, 'tsc', '--allowJs', '--checkJs', '--noEmit', '--skipLibCheck', '--pretty', 'false',

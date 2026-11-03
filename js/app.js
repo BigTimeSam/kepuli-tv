@@ -19,8 +19,8 @@ import { nameCleaner, searchNameCleaner, searchKey, searchTerms, matchesTerms, l
 import { poster } from './poster.js';
 import { wireModal } from './modal.js';
 import { MediaFilters } from './mediafilters.js';
-import { titleFacts, titleCredits, externalLinks, playbackFacts } from './titleinfo.js';
-import { EpgGrid, catchupAvailable, reminderDelay, sameChannels } from './epggrid.js';
+import { titleFacts, externalLinks } from './titleinfo.js';
+import { EpgGrid, catchupAvailable, sameChannels } from './epggrid.js';
 import { CountryPicker, HiddenList } from './channelchoices.js';
 import { openRowMenu } from './rowmenu.js';
 import { channelPreferences, visibilityFilter, sortChannels } from './channelprefs.js';
@@ -32,7 +32,7 @@ import { api, isGecko } from './browser.js';
 import { requestAccess, requestAccessFor, hasAccess, hasAccessEverywhere, requestAccessEverywhere, redirects } from './permissions.js';
 import { handOff } from './external.js';
 import { Cast, supported as castSupported } from './cast.js';
-import { warmCache, peek, subtitleSummary, audioDetails, probeCacheTtl } from './probe.js';
+import { warmCache, peek, probeCacheTtl } from './probe.js';
 import { shortLanguage } from './lang.js';
 import { label as audioLabel } from './audio.js';
 import { SubtitleDisplay, subtitleLook, stepScale, pictureHeight, DEFAULT_SCALE, DEFAULT_LIFT } from './subdisplay.js';
@@ -43,8 +43,11 @@ import { wirePickers } from './picker.js';
 import { nf, dateTimeFmt, dateFmt, stampFmt, dayLabel, clock, megabytes, duration, progressOf, setLocale, amount, speed as speedText, mbits, percent, seconds as secondsText } from './format.js';
 import { t, applyStatic, setLanguage, loadLanguage, localeTag, setEnglishRegion, LANGUAGES } from './i18n.js';
 import { askRecordingConsent, canRecord, closeRecordingConsent, loadRecordingList, openRecordings, playCatchup, recordingOf, recordingOn, renderRecordingState, retryPlayback, toggleProgrammeRecording, toggleRecordNow, warnRecordingConnection } from './recordingsui.js';
+import { renderAccountList, renderAccountSwitcher, switchAccount } from './accountsui.js';
+import { loadReminders, reminderKey, reminders, showReminders, toggleReminder } from './remindersui.js';
+import { hasDetails, loadVodDetails, renderInfoStrip } from './infostrip.js';
 
-const $ = (id) => document.getElementById(id);
+export const $ = (id) => document.getElementById(id);
 // Live channels are read through js/streamhub.js, so that a recording of
 // the channel on screen shares the player's connection.
 installFetchTap();
@@ -169,7 +172,7 @@ const takeStoredSub = () => { const id = storedSub; storedSub = null; return id;
 let connectRun = 0;
 let connecting = false;
 
-async function connect({ silent = false } = {}) {
+export async function connect({ silent = false } = {}) {
   const run = ++connectRun;
   const stale = () => run !== connectRun;
   programmeSearch.clear();
@@ -451,7 +454,7 @@ async function loadLists() {
  * address, its Retry, its resume point and the history entry it makes all
  * belong to the account being left, and the resume point is saved there.
  */
-async function adoptAccount(config) {
+export async function adoptAccount(config) {
   if (state.playing) leavePlayback();
   state.config = config;
   store.useAccount(config);
@@ -2363,7 +2366,7 @@ function tagFor(item) {
  * requests are made while painting a row: the header is read only when
  * playback is attempted, and next time the result is already in hand.
  */
-function probeFor(item) {
+export function probeFor(item) {
   if (item.k !== 1 && item.k !== 3) return null;
   if (!state.config || state.config.type === 'stalker') return null;
   const url = streamUrl(state.config, item, 'ts');
@@ -2410,7 +2413,7 @@ const ADDRESS_FIELDS = ['ext', 'direct', 'epgId', 'archive', 'cu', 'cmd'];
  * episodes. Nothing is fetched for it — playing from the favourites must
  * not wait on a list — so null means "not known", not "gone".
  */
-function freshItem(item) {
+export function freshItem(item) {
   const lib = state.lib;
   if (!lib) return null;
   const id = String(item.id);
@@ -2436,7 +2439,7 @@ function freshItem(item) {
 const ITEM_TYPES = { 0: 'live', 1: 'movie', 2: 'series' };
 
 /** The address fields in which `fresh` differs from `item`, or null when none does. */
-function addressChanges(item, fresh) {
+export function addressChanges(item, fresh) {
   if (!fresh || fresh === item) return null;
   const patch = {};
   for (const field of ADDRESS_FIELDS) {
@@ -2462,7 +2465,7 @@ function withCurrentAddress(item) {
 }
 
 /** A favourite's and a history entry's address fields brought up to date. */
-async function updateStoredItem(item, patch) {
+export async function updateStoredItem(item, patch) {
   const key = `${item.k}:${item.id}`;
   const favorite = state.favorites.get(key);
   if (favorite && addressChanges(favorite, { ...favorite, ...patch })) {
@@ -3732,7 +3735,7 @@ function renderSeriesFavorite() {
 // follows the item, the archive programme and the programme data.
 const mediaSession = navigator.mediaSession || null;
 
-function renderMediaSession() {
+export function renderMediaSession() {
   if (!mediaSession) return;
   const item = state.playing;
   if (!item) { mediaSession.metadata = null; return; }
@@ -3763,186 +3766,6 @@ function wireMediaSession() {
   if (!mediaSession) return;
   setMediaAction('nexttrack', () => playRelative(1));
   setMediaAction('previoustrack', () => playRelative(-1));
-}
-
-/* ---------------------------------------------------------- info panel */
-
-export function renderInfoStrip() {
-  renderMediaSession();
-  const item = state.playing;
-  // A recording's programme is in its title; the guide's now is not it.
-  if (!item || item.recording) { el.infostrip.hidden = true; return; }
-
-  if (item.k === 0) {
-    const entry = state.catchup ? { now: state.catchup, next: null } : state.epg ? state.epg.nowNext(item.id) : null;
-    if (!entry || (!entry.now && !entry.next)) { el.infostrip.hidden = true; return; }
-    el.infostrip.hidden = false;
-    const frag = document.createDocumentFragment();
-    if (entry.now) {
-      const head = document.createElement('div');
-      head.className = 'epgnow';
-      const time = document.createElement('span');
-      time.className = 'epgnow-time';
-      time.textContent = `${clock(entry.now.start)}–${clock(entry.now.stop)}`;
-      const title = document.createElement('span');
-      title.className = 'epgnow-title';
-      title.textContent = entry.now.title;
-      // Starting the programme over is the guide's to offer, with the
-      // archive and the rest of the day around it; beside the title here
-      // it was a button wanted once in a long while and in the way always.
-      head.append(time, title);
-      frag.appendChild(head);
-
-      const share = progressOf(entry.now);
-      if (share != null) {
-        const bar = document.createElement('div');
-        bar.className = 'epgbar';
-        const fill = document.createElement('i');
-        fill.style.width = `${Math.round(share * 100)}%`;
-        bar.appendChild(fill);
-        frag.appendChild(bar);
-      }
-      if (entry.now.description) {
-        const desc = document.createElement('div');
-        desc.className = 'epgdesc';
-        desc.textContent = entry.now.description;
-        frag.appendChild(desc);
-      }
-    }
-    if (entry.next) {
-      // Three parts rather than one sentence: the label says which
-      // programme this is, and the time and the title then sit in the same
-      // two columns as the one on now, so the eye reads them the same way.
-      const next = document.createElement('div');
-      next.className = 'epgnext';
-      const label = document.createElement('span');
-      label.className = 'epgnext-label';
-      label.textContent = t('info.next');
-      const when = document.createElement('span');
-      when.className = 'epgnext-time';
-      when.textContent = `${clock(entry.next.start)}–${clock(entry.next.stop)}`;
-      const what = document.createElement('span');
-      what.className = 'epgnext-title';
-      what.textContent = entry.next.title;
-      next.append(label, when, what);
-      frag.appendChild(next);
-    }
-    el.infostrip.replaceChildren(frag);
-    return;
-  }
-
-  const info = item.details;
-  el.infostrip.hidden = false;
-  const box = document.createElement('div');
-  box.className = 'vodinfo';
-  const cover = item.k === 3 ? item.seriesCover || item.logo : info?.cover || item.logo;
-  box.appendChild(poster('info-cover', cover, item.k === 1 ? 'movie' : 'series', { expand: true, title: item.seriesName || item.displayName || item.n }));
-  const body = document.createElement('div');
-  body.className = 'vodinfo-body';
-  // A part with nothing to say is left out rather than left empty: the
-  // file's facts then head the strip, level with the cover, without the
-  // line that divides them from the title's.
-  const add = (part) => { if (part.childElementCount) body.appendChild(part); };
-  add(titleFacts(info || item, { duration: true }));
-  add(externalLinks(item, info));
-  // A header that has been read is more precise than the API's data: it
-  // knows the audio track and the subtitles, neither of which the API
-  // reports.
-  const probed = probeFor(item);
-  const header = probed && !probed.error ? probed : null;
-  const video = header?.video || info?.video || item.video;
-  const audio = audioDetails(header, { active: state.activeAudio, language: state.settings.audioLang });
-  const subtitles = subtitleDetails(item, probed);
-  body.appendChild(playbackFacts({
-    ext: item.ext,
-    video,
-    audio,
-    subtitles,
-    bitrate: info?.bitrate || 0,
-    loading: {
-      video: !video && ((!header && state.playbackInfoLoading) || Boolean(item.detailsLoading)),
-      audio: !audio && !header && state.playbackInfoLoading,
-      subtitles: !subtitles && state.playbackInfoLoading,
-    },
-  }));
-  if (info && info.plot) {
-    const plot = document.createElement('div');
-    plot.className = 'plot';
-    plot.textContent = info.plot;
-    body.appendChild(plot);
-  }
-  add(titleCredits(info));
-  box.appendChild(body);
-  el.infostrip.replaceChildren(box);
-}
-
-/**
- * The subtitles of the file, for the details: what the player found once it
- * opened the file — or, before that, what an earlier reading of the header
- * found, if there was one. A file without any says so, rather than leaving
- * the viewer to notice that the selector never appeared; a file with only
- * bitmap tracks has subtitles the player cannot show, and says that.
- */
-function subtitleDetails(item, probed) {
-  const known = state.playing === item ? state.subtitleInfo : null;
-  if (known) {
-    const languages = [...new Set(known.tracks.map((track) => shortLanguage(track.language)))];
-    return { total: known.tracks.length + known.bitmap, shown: known.tracks.length, languages };
-  }
-  if (!probed || probed.error) return null;
-  const subs = subtitleSummary(probed);
-  if (subs) return { total: subs.total, shown: subs.text, languages: subs.languages };
-  // A header cut short may hold tracks that were not reached.
-  return probed.truncated ? null : { total: 0, shown: 0, languages: [] };
-}
-
-async function loadVodDetails(item) {
-  if (item.details || !hasDetails(item)) return;
-  item.detailsLoading = true;
-  try {
-    if (item.k === 3) {
-      const series = await state.lib.seriesEpisodes(item.seriesId);
-      item.details = episodeDetails(item, series);
-      // Opened from Continue watching, the episode is the copy the history
-      // made; its series' list, read for the details anyway, says whether
-      // the file is still where the copy says.
-      const patch = addressChanges(item, series.episodes.find((episode) => String(episode.id) === String(item.id)));
-      if (patch) updateStoredItem(item, patch);
-    } else {
-      const info = await state.lib.movieDetails(item.id);
-      item.details = info;
-      // The film's own answer names its container; an empty one says
-      // nothing, and a whole list in memory is the fresher word (its cache
-      // lasts hours, a film's details a week).
-      if (info.ext && !freshItem(item)) {
-        const patch = addressChanges(item, { ext: info.ext });
-        if (patch) updateStoredItem(item, patch);
-      }
-      item.durationSec = info.durationSec;
-      const index = state.rowIndex.get(`1:${item.id}`);
-      if (index != null) vlist.refreshRow(index);
-    }
-  } catch { /* the extra details are optional */ }
-  finally {
-    item.detailsLoading = false;
-    if (state.playing === item) renderInfoStrip();
-  }
-}
-
-/** Whether the strip has a title's facts to fetch for the item. */
-const hasDetails = (item) => item.k === 1 || (item.k === 3 && Boolean(item.seriesId));
-
-/**
- * What the strip says about an episode: the series' year, genre, rating
- * and links, as a film shows its own, with the episode's own length, plot
- * and picture format. An episode reopened from the history carries little
- * of its own, so it is looked up in the series by its id.
- */
-function episodeDetails(item, series) {
-  const own = series.episodes.find((episode) => episode.id === item.id) || item;
-  const { episodes, plot, cover, ...facts } = series;
-  return { ...facts, title: item.seriesName || '', durationSec: own.durationSec || item.durationSec || 0,
-    plot: own.plot || item.plot || '', video: own.video || item.video || null, bitrate: own.bitrate || 0 };
 }
 
 /* ------------------------------------------------------ programme guide */
@@ -4165,7 +3988,7 @@ export function refreshGuidePreview() {
   if (guideOpen && guidePreview) renderGuidePreview(guidePreview.channel, guidePreview.programme, { upcoming: guidePreview.upcoming });
 }
 
-function renderGuidePreview(channel, programme, { upcoming = false } = {}) {
+export function renderGuidePreview(channel, programme, { upcoming = false } = {}) {
   if (!channel) return;
   guidePreview = { channel, programme, upcoming };
   if (!upcoming) guideChannel = null;
@@ -4263,89 +4086,6 @@ function relativeSoon(start, now) {
   const minutes = Math.round((start - now) / 60000);
   if (minutes < 60) return t('guide.minutes', { minutes });
   return t('guide.at', { time: clock(start) });
-}
-
-/* ------------------------------------------------------------ reminders */
-
-// A programme to be reminded of, a minute before it starts. Only while a
-// player is open: a reminder from a closed one would take a background
-// timer and the notifications permission, and Chrome disables an extension
-// on update until a new permission like that has been accepted.
-const REMIND_AHEAD = 60 * 1000;
-const reminderKey = (channel, programme) => store.reminderKey({ channel, start: programme.start });
-let reminders = new Map();
-let reminderTimer = null;
-
-async function loadReminders() {
-  showReminders(await store.loadReminders());
-}
-
-/** The stored list in memory and the timer set for it: at start, and when another tab changes it. */
-function showReminders(list) {
-  const now = Date.now();
-  reminders = new Map((list || [])
-    .filter((r) => r.stop > now)
-    .map((r) => [store.reminderKey(r), r]));
-  armReminders();
-}
-
-function toggleReminder(channel, programme) {
-  const key = reminderKey(channel, programme);
-  if (reminders.has(key)) reminders.delete(key);
-  else {
-    reminders.set(key, { channel: stripItem(channel), title: programme.title, start: programme.start, stop: programme.stop });
-    toast(t('guide.remind.set', { title: programme.title, time: clock(programme.start) }), { long: true });
-  }
-  store.setReminder(key, reminders.get(key) || null);
-  armReminders();
-  if (guideOpen) { grid.invalidate(); renderGuidePreview(channel, programme); }
-}
-
-/**
- * One timer, for the reminder due first. A hidden tab's timers run late, by
- * up to a minute. A timer takes at most 2^31-1 ms, some 24.8 days, and a
- * longer one fires at once — a reminder that far ahead, its programme from
- * a guide that reaches weeks on, would have the timer fire, find nothing
- * due and arm itself again without end. So the wait is a day at most, and
- * then it is measured again.
- */
-function armReminders() {
-  clearTimeout(reminderTimer);
-  const due = [...reminders.values()].map((r) => r.start - REMIND_AHEAD);
-  if (!due.length) return;
-  reminderTimer = setTimeout(fireReminders, reminderDelay(Math.min(...due), Date.now()));
-}
-
-/**
- * Every reminder that is due is said and forgotten. One due while the tab
- * was out of sight waits until it is looked at again, for as long as the
- * programme is still on: a message nobody saw has reminded nobody.
- *
- * Every open player holds the same reminders and arms the same timer. The
- * stored list decides which one says it: the reminders are taken out of it
- * under the lock that every change to it goes through, and a tab that finds
- * them already gone — another said them first — says nothing.
- */
-async function fireReminders() {
-  if (document.hidden) {
-    document.addEventListener('visibilitychange', fireReminders, { once: true });
-    return;
-  }
-  const now = Date.now();
-  const local = [...reminders.entries()].filter(([, r]) => r.start - REMIND_AHEAD <= now);
-  for (const [key] of local) reminders.delete(key);
-  armReminders();
-  if (!local.length) return;
-  const due = await store.takeDueReminders(now + REMIND_AHEAD);
-  if (guideOpen) grid.invalidate();
-  const showing = due.filter((r) => r.stop > now).sort((a, b) => b.start - a.start)[0];
-  if (!showing) return;
-  const channel = showing.channel;
-  const name = shownName(channel);
-  const text = showing.start > now
-    ? t('guide.remind.soon', { title: showing.title, time: clock(showing.start), channel: name })
-    : t('guide.remind.started', { title: showing.title, channel: name });
-  toast(text, { action: { label: t('guide.watch'), onClick: () => playItem(channel) }, duration: Math.max(REMIND_AHEAD, 15000) });
 }
 
 /* ------------------------------------------------- katselukohta & stats */
@@ -4574,7 +4314,7 @@ function hideProgress() {
 const FIELDS = ['scheme', 'host', 'port', 'username', 'password'];
 
 /** Whether there is anything to connect with yet. */
-const configured = () => store.isConfigured(state.config);
+export const configured = () => store.isConfigured(state.config);
 
 /**
  * The settings, or — before there are any credentials — the one thing
@@ -4628,8 +4368,8 @@ let setupSection = 'connection';
 // Which account the connection form shows, picked in the list above it:
 // 'current' (the one in use), 'new' (one being added) or another one's id;
 // setupBase is its configuration, a blank one for a new account.
-let setupEditing = 'current';
-let setupAdding = false;
+export let setupEditing = 'current';
+export let setupAdding = false;
 let setupBase = null;
 
 /** The configuration the form edits for a choice in the list. */
@@ -4647,7 +4387,7 @@ const editingOther = () => setupEditing !== 'current' && setupEditing !== 'new' 
  * one, or another — the list above it is the way between them, so there is
  * no view of its own to find the way back from.
  */
-function editAccount(target, { render = true } = {}) {
+export function editAccount(target, { render = true } = {}) {
   setupEditing = target === state.config.id ? 'current' : target;
   setupAdding = setupEditing === 'new';
   setupBase = accountFor(setupEditing);
@@ -4668,7 +4408,7 @@ function editAccount(target, { render = true } = {}) {
 }
 
 /** Another account picked in the list: the form follows, unless it has edits unsaved. */
-function pickAccount(target) {
+export function pickAccount(target) {
   if (setupConnectionChanged()) { setupError('setup.maintenance.pending'); return; }
   editAccount(target);
 }
@@ -4744,7 +4484,7 @@ function setupConnectionChanged() {
     || (base.type !== 'm3u' && sourceMode() !== 'stalker' && Boolean($('f-paste').value.trim()));
 }
 
-function setupDirty() {
+export function setupDirty() {
   return setupConnectionChanged() || Object.keys(setupSettingsPatch()).length > 0;
 }
 
@@ -4798,7 +4538,7 @@ function closeSetup() {
   el.setup.close();
 }
 
-function setupError(key, field) {
+export function setupError(key, field) {
   $('setup-error').textContent = t(key);
   $('setup-error').hidden = false;
   if (field) { showSetupSection('connection'); $(field).focus(); }
@@ -4884,123 +4624,6 @@ function showPlaylistError(bad) {
 }
 
 const sourceMode = () => (document.querySelector('input[name="source"]:checked') || {}).value || 'xtream';
-
-/* ------------------------------------------------------------ accounts */
-
-/** What kind of account, and where: "Xtream Codes · example.tv". */
-function accountWhere(a) {
-  if (a.type === 'm3u' || a.type === 'stalker') {
-    let host = a.url;
-    try { host = new URL(a.url).hostname; } catch { /* the address as it is */ }
-    return `${t(a.type === 'm3u' ? 'accounts.kind.m3u' : 'accounts.kind.stalker')} · ${host}`;
-  }
-  return `${t('accounts.kind.xtream')} · ${a.host}`;
-}
-
-/**
- * The accounts in Settings, each with what can be done with it: the one in
- * use is marked, the others can be switched to or removed. Removing asks
- * twice, like Reset everything, since an account's favourites and history
- * go with it.
- */
-function renderAccountList() {
-  const box = $('accounts');
-  const list = $('account-list');
-  const accounts = state.accounts || [];
-  box.hidden = !configured() || !accounts.length;
-  list.replaceChildren();
-  $('f-add-account').hidden = setupAdding;
-  if (box.hidden) return;
-  const row = (a, { isNew = false } = {}) => {
-    const li = document.createElement('li');
-    const inUse = !isNew && a.id === state.config.id;
-    const selected = isNew ? setupAdding : (inUse ? setupEditing === 'current' : setupEditing === a.id);
-    li.className = 'account-row' + (selected ? ' selected' : '') + (inUse ? ' current' : '');
-    // The row itself picks the account for the form below; its buttons act.
-    const main = document.createElement('button');
-    main.type = 'button';
-    main.className = 'account-main';
-    main.setAttribute('aria-pressed', String(selected));
-    const name = document.createElement('b');
-    name.textContent = isNew ? t('accounts.new') : store.accountLabel(a);
-    const where = document.createElement('span');
-    where.textContent = isNew ? t('accounts.new.hint') : accountWhere(a);
-    main.append(name, where);
-    if (!isNew) main.addEventListener('click', () => pickAccount(inUse ? 'current' : a.id));
-    li.append(main);
-    if (isNew) {
-      const cancel = document.createElement('button');
-      cancel.type = 'button';
-      cancel.className = 'ghost';
-      cancel.textContent = t('progress.cancel');
-      cancel.addEventListener('click', () => editAccount('current'));
-      li.append(cancel);
-    } else if (inUse) {
-      const badge = document.createElement('span');
-      badge.className = 'account-current';
-      badge.textContent = t('accounts.current');
-      li.append(badge);
-    } else {
-      const use = document.createElement('button');
-      use.type = 'button';
-      use.className = 'ghost';
-      use.textContent = t('accounts.use');
-      use.addEventListener('click', () => {
-        if (setupDirty()) { setupError('setup.maintenance.pending'); return; }
-        switchAccount(a.id);
-      });
-      const remove = document.createElement('button');
-      remove.type = 'button';
-      remove.className = 'ghost danger';
-      remove.textContent = t('accounts.remove');
-      let armed = null;
-      remove.addEventListener('click', async () => {
-        if (!armed) {
-          remove.textContent = t('accounts.remove.confirm');
-          remove.classList.add('armed');
-          armed = setTimeout(() => { armed = null; remove.textContent = t('accounts.remove'); remove.classList.remove('armed'); }, 4000);
-          return;
-        }
-        clearTimeout(armed);
-        state.accounts = await store.removeAccount(a.id);
-        toast(t('accounts.removed', { name: store.accountLabel(a) }));
-        if (setupEditing === a.id) editAccount('current');
-        else renderAccountList();
-        renderAccountSwitcher();
-      });
-      li.append(use, remove);
-    }
-    return li;
-  };
-  for (const a of accounts) list.append(row(a));
-  if (setupAdding) list.append(row(null, { isNew: true }));
-}
-
-/** The header's account button: there once there is more than one account. */
-function renderAccountSwitcher() {
-  const accounts = state.accounts || [];
-  $('account-switch').hidden = accounts.length < 2 || !configured();
-  const select = $('account-pick');
-  select.replaceChildren(...accounts.map((a) => new Option(store.accountLabel(a), a.id)));
-  select.value = state.config.id;
-}
-
-/**
- * Another account of the list in use: what is playing stops, the lists
- * are the other account's, and the catalogue is its own — from the cache
- * when it was opened lately, since each account's is kept apart.
- */
-async function switchAccount(id) {
-  const target = (state.accounts || []).find((a) => a.id === id);
-  if (!target || target.id === state.config.id) return;
-  if (el.setup.open) el.setup.close();
-  const config = await store.switchConfig(target);
-  await adoptAccount(config);
-  el.mode.value = state.config.streamMode || 'auto';
-  renderAccountSwitcher();
-  toast(t('accounts.switched', { name: store.accountLabel(config) }));
-  await connect();
-}
 
 /* ---------------------------------------------------------------- sync */
 
@@ -6519,5 +6142,3 @@ async function init() {
 const CACHE_PURGE_DELAY_MS = 20000;
 
 init();
-
-export { $ };
