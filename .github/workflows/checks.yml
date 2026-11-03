@@ -29,6 +29,15 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 22
+      - name: Dummy media for the mock server (cached by media.sh)
+        id: media
+        uses: actions/cache@v4
+        with:
+          path: dev/mock/media
+          key: mock-media-${{ hashFiles('dev/mock/media.sh') }}
+      - name: Render the dummy media
+        if: steps.media.outputs.cache-hit != 'true'
+        run: sudo apt-get update && sudo apt-get install -y ffmpeg && sh dev/mock/media.sh
       - name: Unit tests
         run: node dev/unitcheck.mjs
       - name: Area checks
@@ -62,10 +71,15 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 22
-      - name: ffmpeg for the dummy media
-        run: sudo apt-get update && sudo apt-get install -y ffmpeg
-      - name: Dummy media for the mock server
-        run: sh dev/mock/media.sh
+      - name: Dummy media for the mock server (cached by media.sh)
+        id: media
+        uses: actions/cache@v4
+        with:
+          path: dev/mock/media
+          key: mock-media-${{ hashFiles('dev/mock/media.sh') }}
+      - name: Render the dummy media
+        if: steps.media.outputs.cache-hit != 'true'
+        run: sudo apt-get update && sudo apt-get install -y ffmpeg && sh dev/mock/media.sh
       - name: UI regressions
         run: node dev/uicheck.mjs
       - name: Playback scenarios
