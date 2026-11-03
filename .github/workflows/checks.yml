@@ -55,7 +55,7 @@ jobs:
     env:
       KEPULI_HEADLESS: '1'
       KEPULI_DEV_PORT: '9333'
-      KEPULI_DEV_PROFILE: ${{ runner.temp }}/kepuli-profile
+      KEPULI_DEV_PROFILE: /tmp/kepuli-profile
       TZ: Europe/Helsinki
     steps:
       - uses: actions/checkout@v4
