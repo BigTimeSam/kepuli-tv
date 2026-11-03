@@ -4047,7 +4047,7 @@ function renderGuidePreview(channel, programme, { upcoming = false } = {}) {
     const set = reminders.has(reminderKey(channel, programme));
     buttons.push({ label: t(set ? 'guide.remind.cancel' : 'guide.remind'), onClick: () => toggleReminder(channel, programme) });
   }
-  if (programme && programme.stop > now && canRecord) {
+  if (programme && programme.stop > now && recordingOn()) {
     const planned = recordingOf(channel, programme);
     const label = !planned ? 'rec.record' : planned.state === 'recording' ? 'rec.stop' : 'rec.cancel';
     buttons.push({ label: t(label), onClick: () => toggleProgrammeRecording(channel, programme) });
@@ -4185,6 +4185,8 @@ const recorder = new Recorder({ onChange: () => renderRecordingState() });
 let recordings = [];
 let recordingTimer = null;
 let canRecord = false;
+/** Recording offered: the browser able to, and the viewer having turned it on in Settings. */
+const recordingOn = () => canRecord && state.settings?.recordingEnabled === true;
 let recordingUrl = null;      // the Blob address of the recording being played
 
 async function loadRecordingList() {
@@ -4269,10 +4271,34 @@ async function endRecording(entry) {
   }
 }
 
+/**
+ * Recording turned on in Settings: first the reminder of what may be
+ * recorded. A copy kept is lawful only of what the viewer has the right
+ * to — their own subscription's programmes, for themselves — and never of
+ * a source that is not lawful; the box stays ticked only once that is
+ * acknowledged. Asked every time it is turned on, not once for good: the
+ * moment it is turned on is the moment it matters.
+ */
+function askRecordingConsent() {
+  if (!$('f-record').checked) return;
+  $('f-record').checked = false;
+  updateSetupActions();
+  $('rec-consent').showModal();
+  $('rec-consent-cancel').focus();
+}
+
+function closeRecordingConsent(accepted) {
+  if (!$('rec-consent').open) return;
+  $('rec-consent').close();
+  $('f-record').checked = accepted;
+  $('f-record').focus();
+  updateSetupActions();
+}
+
 /** The Record button: the channel on screen, to the end of its programme, or a recording of it stopped. */
 async function toggleRecordNow() {
   const item = state.playing;
-  if (!item || item.k !== 0 || state.catchup || !canRecord) return;
+  if (!item || item.k !== 0 || state.catchup || !recordingOn()) return;
   const running = recordingOf(item);
   if (running) {
     await endRecording(running);
@@ -4333,7 +4359,7 @@ async function startDueRecordings() {
 function renderRecordingState() {
   const item = state.playing;
   const button = $('btn-record');
-  const live = Boolean(item && item.k === 0 && !state.catchup && !item.recording && canRecord);
+  const live = Boolean(item && item.k === 0 && !state.catchup && !item.recording && recordingOn());
   button.hidden = !live;
   const running = live ? recordingOf(item) : null;
   button.setAttribute('aria-pressed', String(Boolean(running)));
@@ -4342,6 +4368,8 @@ function renderRecordingState() {
   const top = $('btn-recordings');
   const recordingNow = recordings.some((r) => r.state === 'recording');
   top.hidden = !recordings.length;
+  // The list stays reachable while there is anything in it, turned off or not.
+  $('btn-recordings-menu').hidden = !recordingOn() && !recordings.length;
   top.classList.toggle('on', recordingNow);
   top.title = t(recordingNow ? 'rec.now' : 'rec.title');
   if ($('recordings').open) renderRecordingsList();
@@ -4762,6 +4790,8 @@ function openSetup({ section, adding = false } = {}) {
   $('f-resume').checked = state.settings.resumeEnabled;
   $('f-autonext').checked = state.settings.autoNext;
   $('f-stats').checked = state.settings.statsEnabled;
+  $('f-record').checked = state.settings.recordingEnabled === true;
+  $('f-record').disabled = !canRecord;
   $('f-international').checked = state.settings.showInternational;
   setupInitial = { ...state.settings, subtitleStyle: subtitleLook(state.settings).style, subtitleScale: subtitleLook(state.settings).scale, subtitleLift: subtitleLook(state.settings).lift };
   applySubtitleLook(state.settings);
@@ -4845,6 +4875,7 @@ function readSetupSettings() {
     resumeEnabled: $('f-resume').checked,
     autoNext: $('f-autonext').checked,
     statsEnabled: $('f-stats').checked,
+    recordingEnabled: $('f-record').checked,
     showInternational: $('f-international').checked,
     subtitleStyle: $('f-substyle').value,
     subtitleScale: Number($('f-subsize').value),
@@ -5193,6 +5224,8 @@ async function showStoredSettings(next) {
   if (settings.lang !== before.lang || settings.clock !== before.clock) await applyLanguage(store.interfaceLanguage(settings));
   applySubtitleLook(settings);
   renderStatBadge();
+  renderRecordingState();
+  refreshGuidePreview();
   if (state.epg) state.epg.enabled = settings.epgEnabled;
 }
 
@@ -5531,6 +5564,8 @@ function wireSetup() {
       if (state.epg) state.epg.enabled = state.settings.epgEnabled;
       applySubtitleLook(state.settings);
       renderStatBadge();
+      renderRecordingState();
+      refreshGuidePreview();
       if (settingsPatch.theme) renderTheme();
       if (settingsPatch.lang || settingsPatch.clock) await applyLanguage(store.interfaceLanguage(state.settings));
       // A new starting order, or the international channels shown or
@@ -6042,6 +6077,10 @@ function wireUi() {
   $('btn-recordings').addEventListener('click', openRecordings);
   $('btn-recordings-menu').addEventListener('click', openRecordings);
   $('recordings-close').addEventListener('click', () => $('recordings').close());
+  $('f-record').addEventListener('change', askRecordingConsent);
+  $('rec-consent-ok').addEventListener('click', () => closeRecordingConsent(true));
+  $('rec-consent-cancel').addEventListener('click', () => closeRecordingConsent(false));
+  wireModal($('rec-consent'), () => closeRecordingConsent(false));
   wireModal($('recordings'), () => $('recordings').close());
   el.cast.addEventListener('click', castCurrent);
   $('btn-pip').addEventListener('click', async () => {

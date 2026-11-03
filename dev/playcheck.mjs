@@ -3486,6 +3486,25 @@ async function record(page) {
     await waitFor(page, `document.querySelectorAll('#list .row').length > 2`, 'the channels');
     await evaluate(page, `document.querySelectorAll('#list .row')[0].click()`, { gesture: true });
     await waitFor(page, PLAYING, 'the channel', 40000);
+    // Off until turned on in Settings, and turned on only through the reminder.
+    await sleep(500);
+    assert(await evaluate(page, `document.getElementById('btn-record').hidden`), 'the Record button shows with recording off');
+    await evaluate(page, `document.getElementById('btn-settings').click()`);
+    await waitFor(page, `document.getElementById('setup').open`, 'settings');
+    await evaluate(page, `document.getElementById('tab-general').click()`);
+    await sleep(300);
+    await evaluate(page, `document.getElementById('f-record').click()`, { gesture: true });
+    await waitFor(page, `document.getElementById('rec-consent').open`, 'the recording reminder');
+    assert(await evaluate(page, `!document.getElementById('f-record').checked`), 'ticked before the reminder was answered');
+    await evaluate(page, `document.getElementById('rec-consent-cancel').click()`);
+    assert(await evaluate(page, `!document.getElementById('rec-consent').open && !document.getElementById('f-record').checked`), 'Cancel left recording on');
+    await evaluate(page, `document.getElementById('f-record').click()`, { gesture: true });
+    await waitFor(page, `document.getElementById('rec-consent').open`, 'the reminder again');
+    await evaluate(page, `document.getElementById('rec-consent-ok').click()`);
+    assert(await evaluate(page, `document.getElementById('f-record').checked && !document.getElementById('f-save').disabled`), 'the reminder accepted did not tick the box');
+    await evaluate(page, `document.getElementById('f-save').click()`);
+    await waitFor(page, `!document.getElementById('setup').open`, 'settings saved');
+    await waitFor(page, `chrome.storage.local.get('settings').then((d) => d.settings.recordingEnabled === true)`, 'recording on in the settings');
     const before = connectionStats();
     await waitFor(page, `!document.getElementById('btn-record').hidden`, 'the Record button');
     await evaluate(page, `document.getElementById('btn-record').click()`, { gesture: true });
@@ -3537,6 +3556,8 @@ async function record(page) {
       const root = await navigator.storage.getDirectory();
       await root.removeEntry('recordings', { recursive: true }).catch(() => {});
       await chrome.storage.local.remove('recordings');
+      const got = await chrome.storage.local.get('settings');
+      await chrome.storage.local.set({ settings: { ...got.settings, recordingEnabled: false } });
     })()`).catch(() => {});
   }
 }

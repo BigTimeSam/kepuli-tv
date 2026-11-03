@@ -129,6 +129,10 @@ const SETTINGS_DEFAULTS = {
   // engine carrying the stream. Diagnostics rather than viewing, so it is
   // asked for rather than given: see the stat badge in js/app.js.
   statsEnabled: false,
+  // Recording, off until it is turned on in Settings, where turning it on
+  // first says what may be recorded: a copy to keep is lawful only of what
+  // the viewer has the right to, see the rec-consent dialog in js/app.js.
+  recordingEnabled: false,
   // Where the channel list starts, before a personal arrangement:
   // az | za | num, see CHANNEL_SORTS in js/channelprefs.js.
   channelSort: 'az',

@@ -79,7 +79,11 @@ FOR 1.6.0 SPECIFICALLY
   to the longer review. AMO's notes to the reviewer (firefox/reviewer-notes.txt)
   say the same. 1.6.1 brings the store texts in every language up to date:
   Stalker portals, recording, several accounts, the guide's favourites, and
-  a short description that names Xtream Codes, M3U and Stalker.
+  a short description that names Xtream Codes, M3U and Stalker. 1.6.2: recording
+  is off until turned on in Settings, which first asks the user to record
+  only what they have the right to; the terms of use (1.1) say the same and
+  that a Stalker portal takes only the user's own registered MAC address. No
+  new permission.
 
 FOR 1.5.3 SPECIFICALLY
   The name is localised: "Kepuli-TV – " and "IPTV player" in each language

@@ -407,6 +407,24 @@
   </div>
 </dialog>
 
+<dialog id="rec-consent" aria-labelledby="rec-consent-title" aria-describedby="rec-consent-text">
+  <div class="choice-content">
+    <div class="modal-head">
+      <h2 id="rec-consent-title" data-i18n="rec.consent.title">Record only what you have the right to</h2>
+      <button type="button" data-modal-close></button>
+    </div>
+    <div id="rec-consent-text" class="editor-help rec-consent-text">
+      <p data-i18n="rec.consent.text">A recording is a copy you keep. Record only programmes you have the right to watch, such as those of your own subscription, and for your own use.</p>
+      <p data-i18n="rec.consent.text2">Copying from a service that is not lawful is not allowed even for yourself, and sharing recordings with others is not allowed.</p>
+    </div>
+    <div class="choice-actions modal-actions">
+      <span></span>
+      <button type="button" id="rec-consent-cancel" class="ghost" data-i18n="progress.cancel">Cancel</button>
+      <button type="button" id="rec-consent-ok" class="primary" data-i18n="rec.consent.ok">I understand, turn it on</button>
+    </div>
+  </div>
+</dialog>
+
 <dialog id="setup" aria-labelledby="setup-title">
   <form class="setup" novalidate>
     <div class="setup-head modal-head">
@@ -466,6 +484,10 @@
         <label class="toggle"><input type="checkbox" id="f-stats"><span data-i18n="setup.stats">Show stream statistics over the picture</span></label>
       </div>
       <p class="field-hint" data-i18n="setup.stats.hint">Resolution, bit rate and the engine playing the stream, in the corner of the picture. For working out why a stream stutters.</p>
+      <div class="toggles">
+        <label class="toggle"><input type="checkbox" id="f-record" aria-describedby="record-hint"><span data-i18n="setup.record">Enable recording</span></label>
+      </div>
+      <p class="field-hint" id="record-hint" data-i18n="setup.record.hint">A Record button in the player and in the guide. Recordings stay in this browser until you save them as files.</p>
     </section>
 
     <!-- The look of the subtitles, judged by eye: the preview is drawn by
@@ -597,7 +619,7 @@ on two lines as well.</div></div>
         </label>
         <label class="field w-wide"><span data-i18n="setup.stalker.mac">MAC address</span>
           <input id="f-mac" type="text" placeholder="00:1A:79:00:00:00" autocomplete="off" spellcheck="false" aria-describedby="mac-hint">
-          <span id="mac-hint" class="field-hint" data-i18n="setup.stalker.mac.hint">The MAC address registered with your provider.</span>
+          <span id="mac-hint" class="field-hint" data-i18n="setup.stalker.mac.hint">The MAC address registered to your own subscription. Someone else's, or one from a shared list, may not be used.</span>
         </label>
       </div>
 

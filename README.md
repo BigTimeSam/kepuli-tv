@@ -98,7 +98,9 @@ back is quick. **Remove** takes an account and its lists away, after asking twic
 
 A provider that sells its service for MAG set-top boxes gives a **portal
 address** (often ending in `/c/`) and registers a **MAC address** for the box;
-there is no user name or password. **Stalker portal (MAC address)** in
+there is no user name or password. Use only the MAC address registered to your
+own subscription — another person's, or one from a shared list, may not be
+used (see the [terms of use](https://bigtimesam.github.io/kepuli-tv/terms/)). **Stalker portal (MAC address)** in
 **Settings → Connection** takes the two. The player then talks to the portal as
 a MAG box does (`js/stalker.js`): the MAC address goes in a cookie and the
 User-Agent names a MAG250, both set by a session rule of `declarativeNetRequest`
@@ -111,6 +113,15 @@ Stalker account does not go to the other computers without **Include
 passwords**, the MAC address being as good as a password.
 
 ### Recording
+
+Recording is off until it is turned on under **Settings › Viewing › Enable
+recording**. Turning it on first shows a reminder — record only programmes you
+have the right to watch, for your own use, and never share recordings — and the
+box stays ticked only when that is acknowledged with **I understand, turn it
+on**; Cancel leaves it off. Turned off again, the Record buttons go away, while
+recordings already made stay listed under **Recordings** until deleted. See
+the [terms of use](https://bigtimesam.github.io/kepuli-tv/terms/) for what may be
+recorded.
 
 **Record** beside the player's controls records the live channel on screen to
 the end of the programme on now (with a few minutes over), or until it is

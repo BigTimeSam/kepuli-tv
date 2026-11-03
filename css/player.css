@@ -1732,6 +1732,9 @@ select:not([multiple]) {
 @keyframes rec-pulse { 50% { opacity: .35; } }
 @media (prefers-reduced-motion: reduce) { .recordings-button.on .rec-dot { animation: none; } }
 #recordings { width: min(680px, calc(100vw - 32px)); max-height: calc(100dvh - 32px); }
+#rec-consent { width: min(520px, calc(100vw - 32px)); }
+.rec-consent-text p { margin: 0 0 10px; }
+.rec-consent-text p:last-child { margin-bottom: 0; }
 .recordings-list .choice-row { align-items: center; gap: 12px; padding: 8px 12px; }
 .rec-info { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
 .rec-info b { font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
