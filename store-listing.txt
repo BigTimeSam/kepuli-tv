@@ -41,7 +41,7 @@ ALWAYS
 
 AFTER THE REVIEW, EVERY TIME
   • Read the manifest of the package the store now serves, with the
-    commands under "Publishing to the stores" in README.md. It must show
+    commands under "Publishing to the stores" in docs/development.md. It must show
     the new version and "service_worker", and no "gecko". "gecko" means the
     Firefox zip was uploaded: publish the next version with the Chrome zip.
   • Install from the store on another machine and click the toolbar button:
@@ -489,7 +489,7 @@ Screenshots:           brand/screenshots/01-channels.png … 05-movie.png
     04  an MKV episode with English subtitles on screen
     05  a movie with its details below the player, the films as covers
   All content on them is invented: they come from the mock server in
-  dev/mock/, via node dev/store-screenshots.mjs (see the README). The same
+  dev/mock/, via node dev/store-screenshots.mjs (see docs/development.md). The same
   walk makes the Firefox Add-ons set in brand/firefox-screenshots/ with
   KEPULI_BROWSER=firefox; that set is for AMO, not for this store.
 
@@ -521,7 +521,7 @@ Promo video:           https://youtu.be/Wr4FcXlTbOM
 --- TEST INSTRUCTIONS (Privacy practices → Test instructions) --------------
 The extension needs the user's own account. No hosted demo is offered.
 For review, dev/mock/ contains a local server and generated-media script;
-the README explains how to run it. These replacement instructions must also
+docs/development.md explains how to run it. These replacement instructions must also
 be updated in the store dashboard before the old test deployment is retired.
 The credentials below apply only to the local test fixture.
 
