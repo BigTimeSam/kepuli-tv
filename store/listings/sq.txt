@@ -1,11 +1,11 @@
 === NAME ===
 Kepuli-TV – Luajtës IPTV
 === SHORT DESCRIPTION ===
-Shiko IPTV-në tënde Xtream Codes në shfletues pa u grindur me aplikacionin. Kanalet hapen për sekonda dhe MKV luhet me titra.
+IPTV-ja jote në shfletues: Xtream Codes, M3U ose portal Stalker. Kanalet hapen për sekonda, MKV luhet dhe mund të regjistrosh.
 === DETAILED DESCRIPTION ===
 Shiko abonimin tënd IPTV në shfletues, pa u zënë me aplikacionin. Kepuli-TV
-është një luajtës për Xtream Codes, ndërtuar mbi një ide: një katalog i
-stërmadh duhet të të duket i vogël.
+luan llogari Xtream Codes, lista M3U dhe portale Stalker, i ndërtuar mbi një
+ide: një katalog i stërmadh duhet të të duket i vogël.
 
 → Kanalet hapen për një-dy sekonda, edhe nga një katalog gjigant
 → Qindra kategori të çrregullta bëhen një listë e rregullt vendesh
@@ -13,6 +13,7 @@ stërmadh duhet të të duket i vogël.
   ofruesi
 → Filmat dhe episodet MKV luhen drejt në shfletues, me titra dhe zë
   surround
+→ Regjistro një kanal tani ose një program nga udhëzuesi dhe ruaje si skedar
 
 PSE E KAM BËRË
 
@@ -26,6 +27,9 @@ mbrëmje.
 ÇFARË PËRFITON
 
 • Ngjit lidhjen M3U që ta ka dërguar ofruesi dhe cilësimet plotësohen vetë.
+• Disa llogari: Xtream Codes, listë M3U me udhëzuesin e saj XMLTV, ose portal
+  Stalker me adresën MAC të kutisë sate. Kalo me një klikim dhe, po të duash,
+  sinkronizoji mes kompjuterëve të tu.
 • Kërkim që nuk ia vë veshin theksave e renditjes së fjalëve, plus filtër në
   çdo meny.
 • Ç'ke lënë përgjysmë të pret në krye, ndërsa episodi pasues niset vetë.
@@ -38,6 +42,7 @@ mbrëmje.
   lehtë.
 • Transmeto në Chromecast, përdor tastet e medias dhe merr kujtesë para se
   të nisë një program.
+• Udhëzuesi mund të shfaqë vetëm kanalet e tua të preferuara.
 • Pamje e errët ose e çelët, tastierë që arrin gjithçka; faqosja ndjek
   madhësinë e tekstit dhe kontrastin që ke caktuar.
 • Në 30 gjuhë. Flet gjuhën e shfletuesit derisa të zgjedhësh një tjetër.
@@ -47,20 +52,22 @@ PRIVATËSI NGA NDËRTIMI
 
 Pa gjurmim, pa reklama, pa regjistrim. Kepuli-TV flet vetëm me serverin tënd
 dhe kërkon leje për atë adresë e askënd tjetër — qasje më të gjerë nëse e
-lejon ti, kur ofruesi i dërgon transmetimet gjetkë.
+lejon ti, kur ofruesi i dërgon transmetimet gjetkë. Regjistrimet mbeten në
+kompjuterin tënd.
 
 
 VINI RE
 
 Shtesa nuk përmban asnjë përmbajtje dhe nuk vjen me ofrues. Sill një llogari
-Xtream Codes të tuajën, përdore për materiale që ke të drejtë t'i shikosh dhe
-sigurohu që shërbimi është i ligjshëm aty ku jeton.
+të tuajën, përdore për materiale që ke të drejtë t'i shikosh, regjistro vetëm
+atë që të lejohet ta mbash dhe sigurohu që shërbimi është i ligjshëm aty ku
+jeton.
 
 
 FILLO
 
-Kliko ikonën në shiritin e veglave, shkruaj serverin, emrin e përdoruesit dhe
-fjalëkalimin, dhe lista shfaqet.
+Kliko ikonën në shiritin e veglave dhe shkruaj serverin me kredencialet, një
+lidhje liste ose një portal me adresën e tij MAC, dhe lista shfaqet.
 
 
 SHIKOJE NË VEPRIM

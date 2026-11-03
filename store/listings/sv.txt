@@ -1,17 +1,18 @@
 === NAME ===
 Kepuli-TV – IPTV-spelare
 === SHORT DESCRIPTION ===
-Se din egen Xtream Codes-IPTV i webbläsaren utan krångel. Kanalerna öppnas på sekunder, och MKV spelas med undertexter.
+Din egen IPTV i webbläsaren: Xtream Codes, M3U eller en Stalker-portal. Kanaler öppnas på sekunder, MKV spelas och du kan spela in.
 === DETAILED DESCRIPTION ===
 Se din egen IPTV-prenumeration i webbläsaren utan att kämpa med appen.
-Kepuli-TV är en Xtream Codes-spelare byggd kring en enda idé: ett enormt
-utbud ska kännas litet.
+Kepuli-TV spelar Xtream Codes-konton, M3U-listor och Stalker-portaler, byggd
+kring en enda idé: ett enormt utbud ska kännas litet.
 
 → Kanaler öppnas på en sekund eller två, även från ett enormt utbud
 → Hundratals röriga kategorier blir en prydlig lista över länder
 → En programguide (EPG) i helt fönster, med catch-up där det erbjuds
 → MKV-filmer och avsnitt spelas direkt i webbläsaren, med undertexter och
   surroundljud
+→ Spela in en kanal nu eller ett program från guiden, och spara det som en fil
 
 
 VARFÖR JAG GJORDE DEN
@@ -26,6 +27,9 @@ VAD DU FÅR
 
 • Klistra in M3U-länken du fick av din leverantör, så fylls inställningarna i
   av sig själva.
+• Flera konton: Xtream Codes, M3U-listor med XMLTV-guide och Stalker-portaler
+  med boxens MAC-adress. Byt med ett klick, och synka dem mellan dina datorer
+  om du vill.
 • Sökning som struntar i accenter och ordföljd, och ett filter i varje meny.
 • Det du lämnade halvvägs väntar högst upp, och nästa avsnitt startar av sig
   självt.
@@ -38,6 +42,7 @@ VAD DU FÅR
   lätta att hitta.
 • Casta till en Chromecast, använd mediatangenterna och få en påminnelse
   innan ett program börjar.
+• Guiden kan visa bara dina favoritkanaler.
 • Ett mörkt eller ljust utseende, och tangentbordet når allt; layouten följer
   textstorleken och kontrastinställningarna.
 • På 30 språk. Den talar webbläsarens språk tills du väljer ett annat.
@@ -48,20 +53,20 @@ PRIVAT FRÅN GRUNDEN
 Ingen spårning, inga annonser, ingen registrering. Kepuli-TV pratar bara med
 din egen server och ber om tillstånd för just den adressen — bredare åtkomst
 bara om du själv tillåter det, när din leverantör skickar strömmar någon
-annanstans.
+annanstans. Inspelningarna stannar på din dator.
 
 
 OBS
 
 Tillägget innehåller inget material och ingen leverantör ingår. Ta med ett
-eget Xtream Codes-konto, använd det bara för innehåll du har rätt att se och
-se till att tjänsten är laglig där du bor.
+eget konto, använd det bara för innehåll du har rätt att se, spela bara in
+det du får behålla och se till att tjänsten är laglig där du bor.
 
 
 KOM IGÅNG
 
-Klicka på ikonen i verktygsfältet, ange server, användarnamn och lösenord, så
-dyker din lista upp.
+Klicka på ikonen i verktygsfältet och ange server och inloggningsuppgifter,
+en spellistlänk, alternativt en portal med MAC-adress, så dyker din lista upp.
 
 
 SE DET I PRAKTIKEN

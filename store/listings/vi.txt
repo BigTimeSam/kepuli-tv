@@ -1,16 +1,18 @@
 === NAME ===
 Kepuli-TV – Trình phát IPTV
 === SHORT DESCRIPTION ===
-Xem IPTV Xtream Codes của bạn ngay trên trình duyệt, chẳng rườm rà. Kênh mở trong vài giây, MKV phát cả phụ đề.
+IPTV của bạn ngay trên trình duyệt: Xtream Codes, M3U hay portal Stalker. Kênh mở trong vài giây, phát được MKV và ghi lại được.
 === DETAILED DESCRIPTION ===
 Xem gói IPTV của riêng bạn ngay trên trình duyệt, mà chẳng phải vật lộn với
-ứng dụng. Kepuli-TV chạy với Xtream Codes và xây quanh một ý tưởng: kho kênh
-khổng lồ cũng phải gọn nhẹ khi dùng.
+ứng dụng. Kepuli-TV chạy tài khoản Xtream Codes, danh sách M3U và portal
+Stalker, xây quanh một ý tưởng: kho kênh khổng lồ cũng phải gọn nhẹ khi dùng.
 
 → Kênh mở sau một, hai giây, kể cả với kho kênh đồ sộ
 → Hàng trăm danh mục lộn xộn gọn lại thành danh sách theo quốc gia
 → Lịch phát sóng (EPG) cỡ toàn cửa sổ, có catch-up nếu nhà cung cấp hỗ trợ
 → Phim và tập MKV phát ngay tại đây, đủ phụ đề và âm thanh vòm
+→ Ghi lại một kênh ngay lúc này hoặc một mục trong lịch phát sóng, lưu thành
+  tệp
 
 
 VÌ SAO TÔI LÀM RA NÓ
@@ -24,6 +26,9 @@ chẳng chịu phát. Thế nên tôi tự làm ra ứng dụng mà mình muốn
 BẠN SẼ NHẬN ĐƯỢC
 
 • Dán liên kết M3U nhà cung cấp gửi, phần cài đặt tự điền xong.
+• Nhiều tài khoản: Xtream Codes, danh sách M3U kèm lịch XMLTV, hoặc portal
+  Stalker với địa chỉ MAC của đầu thu. Chuyển chỉ bằng một cú nhấp, và đồng bộ
+  giữa các máy tính của bạn nếu muốn.
 • Tìm kiếm bỏ qua dấu và thứ tự từ, kèm bộ lọc trong mọi menu.
 • Xem dở đến đâu, mục đó nằm ngay đầu danh sách; tập tiếp theo tự chạy.
 • Chẳng có hộp thoại nào chặn màn hình khi tải dữ liệu; nội dung đang phát
@@ -37,6 +42,7 @@ BẠN SẼ NHẬN ĐƯỢC
   tìm kênh bản địa.
 • Truyền sang Chromecast, dùng phím đa phương tiện và nhận lời nhắc trước
   giờ chiếu.
+• Lịch phát sóng có thể chỉ hiện các kênh yêu thích của bạn.
 • Giao diện sáng hoặc tối, bàn phím dùng được mọi nơi; bố cục theo cỡ chữ và
   độ tương phản bạn chọn.
 • Có 30 ngôn ngữ. Tự dùng ngôn ngữ của trình duyệt cho đến khi bạn chọn
@@ -47,20 +53,22 @@ RIÊNG TƯ TỪ THIẾT KẾ
 
 Không theo dõi, không quảng cáo, khỏi đăng ký. Kepuli-TV chỉ nói chuyện với
 máy chủ của chính bạn và chỉ xin quyền cho đúng địa chỉ đó — quyền rộng hơn
-chỉ khi bạn đồng ý, lúc nhà cung cấp đẩy luồng sang nơi khác.
+chỉ khi bạn đồng ý, lúc nhà cung cấp đẩy luồng sang nơi khác. Bản ghi nằm
+lại trên máy tính của bạn.
 
 
 LƯU Ý
 
 Tiện ích không chứa nội dung và không kèm nhà cung cấp nào. Hãy dùng tài
-khoản Xtream Codes của riêng bạn, chỉ xem nội dung bạn có quyền xem, và bảo
-đảm dịch vụ hợp pháp tại nơi bạn sống.
+khoản của riêng bạn, chỉ xem nội dung bạn có quyền xem, chỉ ghi lại những gì
+bạn được phép giữ, và bảo đảm dịch vụ hợp pháp tại nơi bạn sống.
 
 
 BẮT ĐẦU
 
-Nhấp biểu tượng trên thanh công cụ, nhập máy chủ, tên người dùng và mật
-khẩu, rồi danh sách của bạn sẽ hiện ra.
+Nhấp biểu tượng trên thanh công cụ rồi nhập máy chủ và thông tin đăng nhập,
+liên kết danh sách phát, hoặc portal kèm địa chỉ MAC, và danh sách của bạn
+sẽ hiện ra.
 
 
 XEM THỬ

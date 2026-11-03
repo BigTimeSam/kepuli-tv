@@ -4,7 +4,7 @@
     "description": "The extension's name in the store and the browser. Written from store/listings/ by dev/listings.mjs."
   },
   "appDesc": {
-    "message": "Se din egen Xtream Codes-IPTV i browseren uden besvær. Kanalerne åbner på sekunder, og MKV kører med undertekster.",
+    "message": "Din egen IPTV i browseren: Xtream Codes, M3U og Stalker-portaler. Kanaler åbner på sekunder, MKV kører, og du kan optage.",
     "description": "The short description. Written from store/listings/ by dev/listings.mjs."
   }
 }

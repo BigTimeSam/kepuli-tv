@@ -1,11 +1,11 @@
 === NAME ===
 Kepuli-TV – IPTV plejer
 === SHORT DESCRIPTION ===
-Gledaj svoj Xtream Codes IPTV u pretraživaču, bez borbe sa aplikacijom. Kanali se otvaraju za sekund, a MKV ide sa titlovima.
+Tvoj IPTV u pretraživaču: Xtream Codes, M3U ili Stalker portal. Kanali se otvaraju za sekund, MKV radi, a možeš i da snimaš.
 === DETAILED DESCRIPTION ===
 Gledaj svoju IPTV pretplatu u pretraživaču, bez borbe sa aplikacijom.
-Kepuli-TV je plejer za Xtream Codes zasnovan na jednoj ideji: džinovski
-katalog treba da deluje malo.
+Kepuli-TV pušta Xtream Codes naloge, M3U liste i Stalker portale, a zasnovan
+je na jednoj ideji: džinovski katalog treba da deluje malo.
 
 → Kanali se otvaraju za sekund-dva, čak i iz ogromne ponude
 → Stotine zbrkanih kategorija postaju uredan spisak zemalja
@@ -13,6 +13,7 @@ katalog treba da deluje malo.
   provajder to nudi
 → Filmovi i epizode u MKV formatu rade pravo u pretraživaču, zajedno sa
   titlovima i prostornim zvukom
+→ Snimi kanal odmah ili emisiju iz vodiča i sačuvaj je kao datoteku
 
 
 ZAŠTO SAM GA NAPRAVIO
@@ -27,6 +28,9 @@ koristim svako veče.
 ŠTA DOBIJAŠ
 
 • Nalepi M3U link koji ti je poslao provajder i podešavanja se popune sama.
+• Više naloga: Xtream Codes, M3U lista sa svojim XMLTV vodičem ili Stalker
+  portal sa MAC adresom tvog risivera. Prebacuješ jednim klikom, a po želji
+  ih sinhronizuješ između svojih računara.
 • Pretraga koja ne mari za dijakritike i redosled reči, plus filter u svakom
   meniju.
 • Ono što si ostavio na pola čeka na vrhu, a sledeća epizoda kreće sama.
@@ -40,6 +44,7 @@ koristim svako veče.
   lako nalaze.
 • Prebacivanje na Chromecast, multimedijalni tasteri i podsetnik pre početka
   emisije.
+• Vodič može da prikaže samo tvoje omiljene kanale.
 • Tamna ili svetla tema, a tastatura stiže svuda; raspored prati tvoja
   podešavanja veličine teksta i kontrasta.
 • Na 30 jezika. Govori jezikom tvog pretraživača dok ne izabereš drugi.
@@ -49,20 +54,21 @@ PRIVATNOST PRE SVEGA
 
 Bez praćenja, bez reklama, bez registracije. Dodatak komunicira samo sa tvojim
 serverom i traži dozvolu isključivo za tu adresu — šira dozvola samo ako
-je odobriš, kada provajder preusmerava strimove na drugo mesto.
+je odobriš, kada provajder preusmerava strimove na drugo mesto. Snimci
+ostaju na tvom računaru.
 
 
 NAPOMENA
 
 Dodatak ne sadrži nikakav sadržaj i ne dolazi uz provajdera. Donesi sopstveni
-nalog, koristi ga samo za sadržaj koji imaš pravo da gledaš i proveri da
-je usluga zakonita tamo gde živiš.
+nalog, koristi ga samo za sadržaj koji imaš pravo da gledaš, snimaj samo ono
+što smeš da zadržiš i proveri da je usluga zakonita tamo gde živiš.
 
 
 KAKO DA POČNEŠ
 
-Klikni ikonicu na traci sa alatkama, upiši server, korisničko ime i lozinku i
-tvoja lista se pojavljuje.
+Klikni ikonicu na traci sa alatkama i upiši server i podatke za prijavu, link
+plejliste ili portal sa njegovom MAC adresom, i tvoja lista se pojavljuje.
 
 
 POGLEDAJ U AKCIJI

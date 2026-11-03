@@ -1,11 +1,12 @@
 === NAME ===
 Kepuli-TV – IPTV-soitin
 === SHORT DESCRIPTION ===
-Katso omaa Xtream Codes -IPTV:täsi selaimessa. Kanavat aukeavat sekunneissa, ja MKV toimii tekstityksineen.
+Oma IPTV selaimessa: Xtream Codes, M3U tai Stalker-portaali. Kanavat aukeavat sekunneissa, MKV toimii, ja voit tallentaa.
 === DETAILED DESCRIPTION ===
 Katso omaa IPTV-tilaustasi selaimessa ilman sovelluksen kanssa painimista.
-Kepuli-TV on Xtream Codes -soitin, joka on rakennettu yhden ajatuksen
-ympärille: valtavan valikoiman pitää tuntua pieneltä.
+Kepuli-TV toistaa Xtream Codes -tilejä, M3U-soittolistoja ja
+Stalker-portaaleja, ja se on rakennettu yhden ajatuksen ympärille: valtavan
+valikoiman pitää tuntua pieneltä.
 
 → Kanavat aukeavat sekunnissa tai parissa, vaikka valikoima olisi valtava
 → Sadat sekavat kategoriat muuttuvat siistiksi maaluetteloksi
@@ -13,6 +14,7 @@ ympärille: valtavan valikoiman pitää tuntua pieneltä.
   tarjoaa
 → MKV-elokuvat ja -jaksot toistuvat suoraan selaimessa, tekstitykset ja
   surround-ääni mukaan lukien
+→ Tallenna kanava heti tai ohjelma oppaasta, ja säilytä se tiedostona
 
 
 MIKSI TEIN SEN
@@ -28,6 +30,9 @@ MITÄ SAAT
 
 • Liitä palveluntarjoajasi lähettämä M3U-linkki, niin asetukset täyttyvät
   itsestään.
+• Useita tilejä: Xtream Codes, M3U-soittolista XMLTV-oppaineen tai
+  Stalker-portaali boksisi MAC-osoitteella. Vaihda yhdellä napsautuksella ja
+  synkronoi ne halutessasi koneidesi välillä.
 • Haku, joka ei välitä aksenteista eikä sanajärjestyksestä, ja suodatin
   jokaisessa valikossa.
 • Puolivälissä jäänyt odottaa ylhäällä, ja seuraava jakso alkaa itsestään.
@@ -41,6 +46,7 @@ MITÄ SAAT
   löytyvät helposti.
 • Lähetä kuva Chromecastiin, käytä mediapainikkeita ja saa muistutus ennen
   ohjelman alkua.
+• Ohjelmaopas voi näyttää vain suosikkikanavasi.
 • Tumma tai vaalea ulkoasu, ja kaikkeen pääsee näppäimistöllä; asettelu
   noudattaa tekstikokoa ja kontrastiasetuksia.
 • 30 kielellä. Se puhuu selaimesi kieltä, kunnes valitset toisen.
@@ -51,20 +57,21 @@ YKSITYISYYS RAKENNETTU SISÄÄN
 Ei seurantaa, ei mainoksia, ei rekisteröitymistä. Kepuli-TV keskustelee vain
 oman palvelimesi kanssa ja pyytää luvan vain siihen osoitteeseen — laajemman
 pääsyn vain, jos itse sallit sen, kun palveluntarjoajasi ohjaa lähetykset
-muualle.
+muualle. Tallenteet pysyvät omalla koneellasi.
 
 
 HUOM
 
 Laajennus ei sisällä mitään aineistoa eikä mukana tule palveluntarjoajaa. Tuo
-oma Xtream Codes -tilisi, käytä sitä vain sisältöön, jonka katsomiseen sinulla
-on oikeus, ja varmista, että palvelu on laillinen asuinmaassasi.
+oma tilisi, käytä sitä vain sisältöön, jonka katsomiseen sinulla on oikeus,
+tallenna vain sitä, minkä saat säilyttää, ja varmista, että palvelu on
+laillinen asuinmaassasi.
 
 
 ALKUUN
 
-Napsauta työkalupalkin kuvaketta, syötä palvelimesi, käyttäjätunnuksesi ja
-salasanasi, niin listasi ilmestyy.
+Napsauta työkalupalkin kuvaketta ja syötä palvelimesi tunnuksineen,
+soittolistan linkki tai portaali MAC-osoitteineen, niin listasi ilmestyy.
 
 
 KATSO SE TOIMINNASSA

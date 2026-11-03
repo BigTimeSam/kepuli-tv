@@ -4,7 +4,7 @@
     "description": "The extension's name in the store and the browser. Written from store/listings/ by dev/listings.mjs."
   },
   "appDesc": {
-    "message": "Kendi Xtream Codes IPTV'ni tarayıcıda uygulamayla uğraşmadan izle. Kanallar saniyeler içinde açılır, MKV altyazılarıyla oynar.",
+    "message": "Kendi IPTV'n tarayıcıda: Xtream Codes, M3U ya da Stalker portalı. Kanallar saniyeler içinde açılır, MKV oynar, kayıt da alırsın.",
     "description": "The short description. Written from store/listings/ by dev/listings.mjs."
   }
 }

@@ -1,17 +1,18 @@
 === NAME ===
 Kepuli-TV – IPTV-spiller
 === SHORT DESCRIPTION ===
-Se din egen Xtream Codes-IPTV i nettleseren uten styr. Kanalene åpnes på sekunder, og MKV kan spilles med undertekster.
+Din egen IPTV i nettleseren: Xtream Codes, M3U eller en Stalker-portal. Kanalene åpnes på sekunder, MKV spilles, og du kan ta opp.
 === DETAILED DESCRIPTION ===
 Se ditt eget IPTV-abonnement i nettleseren uten å slåss med appen.
-Kepuli-TV er en Xtream Codes-spiller bygget rundt én idé: et stort utvalg
-skal føles lite.
+Kepuli-TV spiller Xtream Codes-kontoer, M3U-spillelister og Stalker-portaler,
+bygget rundt én idé: et stort utvalg skal føles lite.
 
 → Kanaler åpnes på et sekund eller to, selv fra et enormt utvalg
 → Hundrevis av rotete kategorier blir en ryddig liste over land
 → En programguide (EPG) i fullt vindu, med catch-up der det tilbys
 → MKV-filmer og episoder spilles rett i nettleseren, med undertekster og
   surroundlyd
+→ Ta opp en kanal nå eller et program fra guiden, og behold det som fil
 
 
 HVORFOR JEG LAGET DEN
@@ -26,6 +27,9 @@ HVA DU FÅR
 
 • Lim inn M3U-lenken du fikk av leverandøren, så fyller innstillingene seg
   selv.
+• Flere kontoer: Xtream Codes, en M3U-spilleliste med XMLTV-guide og en
+  Stalker-portal med MAC-adressen til boksen din. Bytt med ett klikk, og
+  synkroniser dem mellom datamaskinene dine om du vil.
 • Søk som ignorerer aksenter og ordrekkefølge, og et filter i hver meny.
 • Det du lot ligge halvveis venter øverst, og neste episode starter av seg
   selv.
@@ -38,6 +42,7 @@ HVA DU FÅR
   enkle å finne.
 • Cast til en Chromecast, bruk mediatastene og få en påminnelse før et
   program starter.
+• Programguiden kan vise bare favorittkanalene dine.
 • Mørkt eller lyst utseende, og tastaturet når alt; oppsettet følger
   tekststørrelsen og kontrastinnstillingene.
 • På 30 språk. Den snakker nettleserens språk til du velger et annet.
@@ -48,20 +53,21 @@ PRIVAT FRA GRUNNEN AV
 Ingen sporing, ingen annonser, ingen registrering. Kepuli-TV snakker bare med
 din egen server og ber om tillatelse for akkurat den adressen — bredere
 tilgang bare hvis du selv tillater det, når leverandøren sender strømmer et
-annet sted.
+annet sted. Opptakene blir værende på datamaskinen din.
 
 
 MERK
 
 Utvidelsen har ikke noe eget materiale, og ingen leverandør følger med. Ta med
-din egen Xtream Codes-konto, bruk den bare til innhold du har rett til å se,
-og sørg for at tjenesten er lovlig der du bor.
+din egen konto, bruk den bare til innhold du har rett til å se, ta bare opp
+det du kan beholde, og sørg for at tjenesten er lovlig der du bor.
 
 
 KOM I GANG
 
-Klikk på ikonet i verktøylinjen, skriv inn server, brukernavn og passord, så
-dukker listen din opp.
+Klikk på ikonet i verktøylinjen og skriv inn server og innloggingsdetaljer,
+en lenke til spillelisten, eventuelt en portal med MAC-adressen, så dukker
+listen din opp.
 
 
 SE DET I BRUK

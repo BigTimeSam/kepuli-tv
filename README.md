@@ -631,7 +631,9 @@ the guide, so one spelling works everywhere a name is typed.
 - **Programme data** for visible channels: the programme on air and a progress
   bar on the list row, a description and the next programme below the player
 - **An interactive programme guide** (`g`): channels as rows, time on the
-  horizontal axis and a moving now line — see below
+  horizontal axis and a moving now line — see below; **Favourites** in its bar
+  shows the favourite channels alone, from every group, and stays on for the
+  next opening
 - **Catch-up** for channels that have an archive: a past programme can be
   started straight from the guide; an ongoing programme offers **Start from
   beginning** when the channel advertises an archive

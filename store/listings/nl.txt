@@ -1,17 +1,18 @@
 === NAME ===
 Kepuli-TV – IPTV-speler
 === SHORT DESCRIPTION ===
-Kijk je eigen Xtream Codes IPTV in de browser, zonder gedoe met de app. Zenders openen in seconden en MKV speelt met ondertitels.
+Je eigen IPTV in de browser: Xtream Codes, M3U of een Stalker-portal. Zenders openen in seconden, MKV speelt en je kunt opnemen.
 === DETAILED DESCRIPTION ===
 Kijk je eigen IPTV-abonnement in de browser, zonder gedoe met de app.
-Kepuli-TV is een speler voor Xtream Codes, gebouwd rond één idee: een enorme
-catalogus moet klein aanvoelen.
+Kepuli-TV speelt Xtream Codes-accounts, M3U-playlists en Stalker-portals af
+en is gebouwd rond één idee: een enorme catalogus moet klein aanvoelen.
 
 → Zenders openen in een paar seconden, zelfs bij een enorm aanbod
 → Honderden rommelige categorieën worden een nette lijst met landen
 → Een tv-gids (EPG) over het hele scherm, met terugkijken waar dat kan
 → MKV-films en -afleveringen spelen direct in de browser, met ondertitels
   en surroundgeluid
+→ Neem een zender nu op of een programma uit de gids, en bewaar het als bestand
 
 
 WAAROM IK HET MAAKTE
@@ -27,6 +28,9 @@ WAT JE KRIJGT
 
 • Plak de M3U-link die je provider je stuurde en de instellingen vullen
   zichzelf in.
+• Meerdere accounts: Xtream Codes, een M3U-playlist met XMLTV-gids, of een
+  Stalker-portal met het MAC-adres van je box. Wissel met één klik, en
+  synchroniseer ze desgewenst tussen je computers.
 • Zoeken dat accenten en woordvolgorde negeert, en een filter in elk menu.
 • Wat je halverwege hebt gelaten staat bovenaan klaar, en de volgende
   aflevering start vanzelf.
@@ -40,6 +44,7 @@ WAT JE KRIJGT
   eigen stations makkelijk.
 • Casten naar een Chromecast, de mediatoetsen gebruiken en een herinnering
   krijgen voordat een uitzending begint.
+• De gids kan zich beperken tot je favoriete zenders.
 • Een donker of licht uiterlijk, en het toetsenbord komt overal bij; de
   indeling volgt je instellingen voor tekstgrootte en contrast.
 • In 30 talen. Het spreekt de taal van je browser totdat je een andere
@@ -51,20 +56,20 @@ PRIVÉ VANAF HET BEGIN
 Geen tracking, geen advertenties, geen account. De extensie praat alleen met
 jouw server en vraagt alleen toestemming voor dat adres — bredere toegang
 alleen als jij dat toestaat, wanneer je provider de streams naar een ander
-adres doorstuurt.
+adres doorstuurt. Opnames blijven op je computer.
 
 
 LET OP
 
 Kepuli-TV bevat geen content en wordt zonder provider geleverd. Neem een eigen
-Xtream Codes-account mee, gebruik het alleen voor content waarvoor je
-kijkrecht hebt, en zorg dat de dienst legaal is waar je woont.
+account mee, gebruik het alleen voor content waarvoor je kijkrecht hebt, neem
+enkel op wat je mag bewaren, en zorg dat de dienst legaal is waar je woont.
 
 
 AAN DE SLAG
 
-Klik op het icoon in de werkbalk, vul je server, gebruikersnaam en wachtwoord
-in, en je lijst verschijnt.
+Klik op het icoon in de werkbalk en vul je server en inloggegevens in, een
+playlistlink of een portal met zijn MAC-adres, en je lijst verschijnt.
 
 
 ZIE HET IN ACTIE

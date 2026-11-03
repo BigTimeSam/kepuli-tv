@@ -4,7 +4,7 @@
     "description": "The extension's name in the store and the browser. Written from store/listings/ by dev/listings.mjs."
   },
   "appDesc": {
-    "message": "Δες το δικό σου IPTV Xtream Codes στον browser, χωρίς κόπο. Κανάλια σε δευτερόλεπτα και MKV με υπότιτλους.",
+    "message": "Το δικό σου IPTV στον browser: Xtream Codes, M3U ή πύλη Stalker. Κανάλια σε δευτερόλεπτα, MKV, και μπορείς να κάνεις εγγραφή.",
     "description": "The short description. Written from store/listings/ by dev/listings.mjs."
   }
 }

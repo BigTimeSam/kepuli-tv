@@ -1,17 +1,19 @@
 === NAME ===
 Kepuli-TV – IPTV-lejátszó
 === SHORT DESCRIPTION ===
-Nézd a saját Xtream Codes IPTV-d a böngészőben, harc nélkül. A csatornák másodpercek alatt nyílnak, az MKV feliratokkal szól.
+Saját IPTV a böngészőben: Xtream Codes, M3U vagy Stalker portál. A csatornák másodpercek alatt nyílnak, az MKV szól, és rögzíthetsz.
 === DETAILED DESCRIPTION ===
 Nézd a saját IPTV-előfizetésedet a böngészőben, anélkül, hogy az
-alkalmazással kellene hadakoznod. A Kepuli-TV egy Xtream Codes lejátszó,
-amely egyetlen gondolatra épül: egy óriási kínálatnak kicsinek kell hatnia.
+alkalmazással kellene hadakoznod. A Kepuli-TV Xtream Codes fiókokat, M3U
+listákat és Stalker portálokat játszik le, egyetlen gondolatra épülve: egy
+óriási kínálatnak kicsinek kell hatnia.
 
 → A csatornák egy-két másodperc alatt megnyílnak, hatalmas listánál is
 → Több száz kusza kategóriából rendezett országlista lesz
 → Teljes ablakos műsorfüzet (EPG), visszanézéssel, ahol a szolgáltató adja
 → Az MKV-s filmek és epizódok egyenesen a böngészőben szólnak, felirattal és
   térhatású hanggal együtt
+→ Rögzíts egy csatornát most, vagy egy műsort a műsorfüzetből, fájlként
 
 
 MIÉRT CSINÁLTAM
@@ -27,6 +29,9 @@ MIT KAPSZ
 
 • Illeszd be a szolgáltatódtól kapott M3U-linket, és a beállítások maguktól
   kitöltődnek.
+• Több fiók: Xtream Codes, M3U-lista XMLTV-műsorfüzettel vagy Stalker
+  portál a beltéri egységed MAC-címével. Egy kattintással váltasz, és ha
+  szeretnéd, szinkronizálod őket a gépeid között.
 • Keresés, amely nem törődik az ékezetekkel és a szavak sorrendjével, és
   szűrő minden menüben.
 • Ami félbemaradt, az legfelül vár, a következő epizód pedig magától indul.
@@ -40,6 +45,7 @@ MIT KAPSZ
 • A globális márkák elrejthetők egy ország listájából, így a hazai adók
   könnyen megtalálhatók.
 • Küldés Chromecastra, médiabillentyűk, és emlékeztető a műsor kezdete előtt.
+• A műsorfüzet megjelenítheti csak a kedvenc csatornáidat.
 • Sötét vagy világos téma, a billentyűzettel minden elérhető; az elrendezés
   követi a betűméret és a kontraszt beállításait.
 • 30 nyelven szól. Addig a böngésződ nyelvét használja, amíg másikat nem
@@ -51,20 +57,22 @@ ADATVÉDELEM ALAPFOKON
 Nincs követés, nincs reklám, nincs regisztráció. A bővítmény kizárólag a saját
 szerveredhez csatlakozik, és csak ahhoz a címhez kér engedélyt — szélesebb
 hozzáférést csak akkor, ha te adod meg, amikor a szolgáltatód máshová
-irányítja az adást.
+irányítja az adást. A felvételek a gépeden maradnak.
 
 
 FONTOS
 
 A bővítmény nem tartalmaz tartalmat, és szolgáltatót sem biztosít. Hozz saját
-Xtream Codes fiókot, csak olyan tartalomhoz használd, amelyet jogod van
-nézni, és győződj meg róla, hogy a szolgáltatás törvényes ott, ahol laksz.
+fiókot, csak olyan tartalomhoz használd, amelyet jogod van nézni, csak azt
+rögzítsd, amit megtarthatsz, és győződj meg róla, hogy a szolgáltatás
+törvényes ott, ahol laksz.
 
 
 ELINDULÁS
 
-Kattints az eszköztár ikonjára, add meg a szervert, a felhasználóneved és a
-jelszavad, és megjelenik a lista.
+Kattints az eszköztár ikonjára, és add meg a szervert és a belépési adatokat,
+egy lejátszási lista linkjét vagy egy portált a MAC-címével, és megjelenik a
+lista.
 
 
 NÉZD MEG MŰKÖDÉS KÖZBEN

@@ -77,7 +77,9 @@ FOR 1.6.0 SPECIFICALLY
   the user entered and granted, and to nothing else. The rule is removed when
   another account is used and when the browser closes." The submission goes
   to the longer review. AMO's notes to the reviewer (firefox/reviewer-notes.txt)
-  say the same. Store descriptions do not yet mention Stalker or recording.
+  say the same. 1.6.1 brings the store texts in every language up to date:
+  Stalker portals, recording, several accounts, the guide's favourites, and
+  a short description that names Xtream Codes, M3U and Stalker.
 
 FOR 1.5.3 SPECIFICALLY
   The name is localised: "Kepuli-TV – " and "IPTV player" in each language

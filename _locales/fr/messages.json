@@ -4,7 +4,7 @@
     "description": "The extension's name in the store and the browser. Written from store/listings/ by dev/listings.mjs."
   },
   "appDesc": {
-    "message": "Regarde ton IPTV Xtream Codes dans le navigateur, sans lutter avec l'appli. Les chaînes s'ouvrent vite et le MKV a ses sous-titres.",
+    "message": "Ton IPTV dans le navigateur : Xtream Codes, M3U ou portail Stalker. Les chaînes s'ouvrent vite, le MKV se lit et tu enregistres.",
     "description": "The short description. Written from store/listings/ by dev/listings.mjs."
   }
 }

@@ -4,7 +4,7 @@
     "description": "The extension's name in the store and the browser. Written from store/listings/ by dev/listings.mjs."
   },
   "appDesc": {
-    "message": "Xem IPTV Xtream Codes của bạn ngay trên trình duyệt, chẳng rườm rà. Kênh mở trong vài giây, MKV phát cả phụ đề.",
+    "message": "IPTV của bạn ngay trên trình duyệt: Xtream Codes, M3U hay portal Stalker. Kênh mở trong vài giây, phát được MKV và ghi lại được.",
     "description": "The short description. Written from store/listings/ by dev/listings.mjs."
   }
 }

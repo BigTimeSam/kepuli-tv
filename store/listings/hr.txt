@@ -1,11 +1,11 @@
 === NAME ===
 Kepuli-TV – IPTV reproduktor
 === SHORT DESCRIPTION ===
-Gledaj vlastiti Xtream Codes IPTV u pregledniku bez borbe s aplikacijom. Kanali se otvaraju u sekundi, a MKV svira s titlovima.
+Vlastiti IPTV u pregledniku: Xtream Codes, M3U ili Stalker portal. Kanali se otvaraju u sekundi, MKV svira, a možeš i snimati.
 === DETAILED DESCRIPTION ===
 Gledaj vlastitu IPTV pretplatu u pregledniku, bez borbe s aplikacijom.
-Kepuli-TV je reproduktor za Xtream Codes izgrađen oko jedne ideje: golem
-katalog treba djelovati malen.
+Kepuli-TV reproducira Xtream Codes račune, M3U popise i Stalker portale,
+izgrađen oko jedne ideje: golem katalog treba djelovati malen.
 
 → Kanali se otvaraju za sekundu-dvije, čak i iz golemog kataloga
 → Stotine neurednih kategorija pretvaraju se u pregledan popis zemalja
@@ -13,6 +13,7 @@ katalog treba djelovati malen.
   ga pružatelj nudi
 → MKV filmovi i epizode igraju izravno u pregledniku, uz titlove i prostorni
   zvuk
+→ Snimi kanal odmah ili emisiju iz vodiča i zadrži je kao datoteku
 
 
 ZAŠTO SAM GA NAPRAVIO
@@ -28,6 +29,9 @@ koristiti svake večeri.
 
 • Zalijepi M3U poveznicu koju ti je poslao pružatelj i postavke se popune
   same.
+• Više računa: Xtream Codes, M3U popis s XMLTV vodičem ili Stalker portal s
+  MAC adresom tvog uređaja. Prebacuješ jednim klikom, a po želji ih
+  sinkroniziraš između svojih računala.
 • Pretraga koja ne mari za dijakritičke znakove i redoslijed riječi te filtar
   u svakom izborniku.
 • Što si ostavio na pola, čeka na vrhu, a sljedeća epizoda kreće sama.
@@ -40,6 +44,7 @@ koristiti svake večeri.
   pronaći.
 • Prebacivanje na Chromecast, medijske tipke i podsjetnik prije početka
   emisije.
+• Vodič može prikazati samo tvoje omiljene kanale.
 • Tamni ili svijetli izgled, tipkovnica dosiže sve; raspored prati postavke
   veličine teksta i kontrasta.
 • Na 30 jezika. Govori jezikom tvog preglednika dok ne odabereš drugi.
@@ -50,19 +55,21 @@ PRIVATNOST PO ZAMISLI
 Bez praćenja, bez oglasa, bez registracije. Kepuli-TV komunicira samo s tvojim
 vlastitim poslužiteljem i traži dopuštenje samo za tu adresu — šire
 dopuštenje tek ako ga ti odobriš, kad pružatelj usmjerava tokove drugamo.
+Snimke ostaju na tvom računalu.
 
 
 NAPOMENA
 
 Dodatak ne sadrži nikakav sadržaj i ne dolazi ni s jednim pružateljem. Donesi
-vlastiti Xtream Codes račun, koristi ga samo za sadržaj koji smiješ gledati i
-provjeri je li usluga zakonita ondje gdje živiš.
+vlastiti račun, koristi ga samo za sadržaj koji smiješ gledati, snimaj samo
+ono što smiješ zadržati i provjeri je li usluga zakonita ondje gdje živiš.
 
 
 KAKO POČETI
 
-Klikni ikonu na alatnoj traci, upiši poslužitelj, korisničko ime i lozinku i
-tvoj popis se pojavljuje.
+Klikni ikonu na alatnoj traci i upiši poslužitelj i pristupne podatke,
+poveznicu na playlistu ili portal s njegovom MAC adresom i tvoj popis se
+pojavljuje.
 
 
 POGLEDAJ U AKCIJI

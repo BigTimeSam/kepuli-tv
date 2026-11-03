@@ -1,11 +1,11 @@
 === NAME ===
 Kepuli-TV – IPTV prehrávač
 === SHORT DESCRIPTION ===
-Pozeraj vlastné IPTV cez Xtream Codes v prehliadači bez boja s aplikáciou. Kanály sa otvoria za sekundy, MKV hrá s titulkami.
+Vlastné IPTV v prehliadači: Xtream Codes, M3U alebo portál Stalker. Kanály sa otvoria za sekundy, MKV hrá a môžeš aj nahrávať.
 === DETAILED DESCRIPTION ===
 Pozeraj vlastné predplatné IPTV v prehliadači bez boja s aplikáciou.
-Kepuli-TV je prehrávač pre Xtream Codes postavený na jednom nápade: obrovský
-katalóg má pôsobiť malo.
+Kepuli-TV prehrá účty Xtream Codes, playlisty M3U aj portály Stalker a je
+postavený na jednom nápade: obrovský katalóg má pôsobiť malo.
 
 → Kanály sa otvoria za sekundu-dve, aj pri obrovskej ponuke
 → Stovky chaotických kategórií sa zmenia na prehľadný zoznam krajín
@@ -13,6 +13,7 @@ katalóg má pôsobiť malo.
   poskytovateľ ponúka
 → Filmy a epizódy v MKV bežia priamo v prehliadači, s titulkami aj
   priestorovým zvukom
+→ Nahraj kanál hneď či reláciu zo sprievodcu a nechaj si ju ako súbor
 
 
 PREČO SOM TO UROBIL
@@ -27,6 +28,9 @@ každý večer.
 ČO ZÍSKAŠ
 
 • Vlož odkaz M3U od poskytovateľa a nastavenia sa vyplnia samy.
+• Viac účtov: Xtream Codes, playlist M3U s jeho sprievodcom XMLTV alebo
+  portál Stalker s MAC adresou tvojho prijímača. Prepneš jedným kliknutím
+  a ak chceš, synchronizuješ ich medzi svojimi počítačmi.
 • Vyhľadávanie, ktoré ignoruje diakritiku a poradie slov, a filter v každej
   ponuke.
 • Čo si nedopozeral, čaká hore a ďalšia epizóda sa spustí sama.
@@ -38,6 +42,7 @@ každý večer.
 • Skry globálne značky v zozname krajiny a jej vlastné stanice nájdeš ľahko.
 • Prenos na Chromecast, multimediálne klávesy a pripomienka pred začiatkom
   relácie.
+• Sprievodca môže ukazovať len tvoje obľúbené kanály.
 • Tmavý alebo svetlý vzhľad, klávesnicou sa dostaneš všade; rozloženie sa
   riadi nastavením veľkosti textu a kontrastu.
 • V 30 jazykoch. Hovorí jazykom tvojho prehliadača, kým nevyberieš iný.
@@ -47,20 +52,22 @@ SÚKROMIE V ZÁKLADE
 
 Bez sledovania, bez reklám, bez registrácie. Kepuli-TV komunikuje iba s tvojím
 vlastným serverom a žiada o povolenie len pre túto adresu — širší prístup iba
-ak ho povolíš, keď poskytovateľ presmeruje streamy inam.
+ak ho povolíš, keď poskytovateľ presmeruje streamy inam. Nahrávky zostanú
+na tvojom počítači.
 
 
 POZNÁMKA
 
 Rozšírenie neobsahuje žiadny obsah a nie je k nemu pribalená žiadna služba.
-Prines si vlastný účet Xtream Codes, používaj ho len na obsah, ktorý smieš
-sledovať, a uisti sa, že služba je tam, kde žiješ, legálna.
+Prines si vlastný účet, používaj ho len na obsah, ktorý smieš sledovať,
+nahrávaj len to, čo si smieš ponechať, a uisti sa, že služba je tam, kde
+žiješ, legálna.
 
 
 AKO ZAČAŤ
 
-Klikni na ikonu na paneli nástrojov, zadaj server, používateľské meno a heslo
-a zoznam sa objaví.
+Klikni na ikonu na paneli nástrojov a zadaj server s prihlasovacími údajmi,
+odkaz na playlist alebo portál s jeho MAC adresou a zoznam sa objaví.
 
 
 UKÁŽKA V PRAXI

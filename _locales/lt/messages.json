@@ -4,7 +4,7 @@
     "description": "The extension's name in the store and the browser. Written from store/listings/ by dev/listings.mjs."
   },
   "appDesc": {
-    "message": "Žiūrėk savo IPTV su Xtream Codes naršyklėje be kovos su programa. Kanalai atsidaro per sekundes, o MKV groja su subtitrais.",
+    "message": "Tavo IPTV naršyklėje: Xtream Codes, M3U ar Stalker portalas. Kanalai atsidaro per sekundes, MKV groja, o įrašyti irgi gali.",
     "description": "The short description. Written from store/listings/ by dev/listings.mjs."
   }
 }

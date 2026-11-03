@@ -1,11 +1,12 @@
 === NAME ===
 Kepuli-TV – Odtwarzacz IPTV
 === SHORT DESCRIPTION ===
-Oglądaj własne IPTV z Xtream Codes w przeglądarce, bez walki z aplikacją. Kanały otwierają się w sekundy, a MKV gra z napisami.
+Własne IPTV w przeglądarce: Xtream Codes, M3U lub portal Stalker. Kanały otwierają się w sekundy, MKV gra, a nagrywać też można.
 === DETAILED DESCRIPTION ===
 Oglądaj własną subskrypcję IPTV w przeglądarce, bez walki z aplikacją.
-Kepuli-TV to odtwarzacz dla Xtream Codes, zbudowany wokół jednego pomysłu:
-ogromny katalog ma sprawiać wrażenie małego.
+Kepuli-TV odtwarza konta Xtream Codes, playlisty M3U i portale Stalker.
+Zbudowano go wokół jednego pomysłu: ogromny katalog ma sprawiać wrażenie
+małego.
 
 → Kanały otwierają się w sekundę lub dwie, nawet przy ogromnej ofercie
 → Setki chaotycznych kategorii zamieniają się w uporządkowaną listę krajów
@@ -13,6 +14,7 @@ ogromny katalog ma sprawiać wrażenie małego.
   możliwe
 → Filmy i odcinki w MKV działają prosto w przeglądarce, z napisami i dźwiękiem
   przestrzennym
+→ Nagraj kanał od razu albo audycję z przewodnika i zachowaj ją jako plik
 
 
 DLACZEGO TO ZROBIŁEM
@@ -27,6 +29,9 @@ chcę korzystać każdego wieczoru.
 CO DOSTAJESZ
 
 • Wklej link M3U od dostawcy, a ustawienia wypełnią się same.
+• Kilka kont: Xtream Codes, playlista M3U z przewodnikiem XMLTV albo portal
+  Stalker z adresem MAC Twojego dekodera. Przełączasz jednym kliknięciem, a
+  jeśli chcesz, synchronizujesz je między komputerami.
 • Wyszukiwanie, które ignoruje akcenty i kolejność słów, oraz filtr w każdym
   menu.
 • To, co przerwałeś w połowie, czeka na górze, a następny odcinek włącza się
@@ -39,6 +44,7 @@ CO DOSTAJESZ
 • Ukryj globalne marki na liście kraju, a jego własne stacje łatwo znaleźć.
 • Przesyłanie na Chromecasta, klawisze multimedialne i przypomnienie przed
   rozpoczęciem audycji.
+• Przewodnik może pokazywać same ulubione kanały.
 • Ciemny lub jasny wygląd, a klawiatura sięga wszędzie; układ podąża za
   ustawieniami rozmiaru tekstu i kontrastu.
 • W 30 językach. Mówi językiem Twojej przeglądarki, dopóki nie
@@ -50,19 +56,21 @@ PRYWATNOŚĆ OD PODSTAW
 Bez śledzenia, bez reklam, bez rejestracji. Rozszerzenie łączy się tylko z
 Twoim własnym serwerem i prosi o zgodę tylko na ten adres — szerszy dostęp
 wyłącznie za Twoją zgodą, gdy dostawca przekierowuje strumienie gdzie indziej.
+Nagrania zostają na Twoim komputerze.
 
 
 UWAGA
 
-Kepuli-TV nie zawiera treści i nie ma żadnego dostawcy. Przynieś własne konto
-Xtream Codes, korzystaj z niego tylko z treści, które wolno Ci oglądać, i
-upewnij się, że usługa jest legalna tam, gdzie mieszkasz.
+Kepuli-TV nie zawiera treści i nie ma żadnego dostawcy. Przynieś własne
+konto, korzystaj z niego tylko z treści, które wolno Ci oglądać, nagrywaj
+jedynie to, co możesz zachować, i upewnij się, że usługa jest legalna tam,
+gdzie mieszkasz.
 
 
 JAK ZACZĄĆ
 
-Kliknij ikonę na pasku narzędzi, wpisz serwer, nazwę użytkownika i hasło, a
-Twoja lista się pojawi.
+Kliknij ikonę na pasku narzędzi i wpisz serwer z danymi logowania, link do
+playlisty albo portal z jego adresem MAC, a Twoja lista się pojawi.
 
 
 ZOBACZ W DZIAŁANIU

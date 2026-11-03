@@ -1,11 +1,11 @@
 === NAME ===
 Kepuli-TV – IPTV grotuvas
 === SHORT DESCRIPTION ===
-Žiūrėk savo IPTV su Xtream Codes naršyklėje be kovos su programa. Kanalai atsidaro per sekundes, o MKV groja su subtitrais.
+Tavo IPTV naršyklėje: Xtream Codes, M3U ar Stalker portalas. Kanalai atsidaro per sekundes, MKV groja, o įrašyti irgi gali.
 === DETAILED DESCRIPTION ===
 Žiūrėk savo IPTV prenumeratą naršyklėje be kovos su programa.
-Kepuli-TV yra Xtream Codes grotuvas, sukurtas vienos minties pagrindu:
-didžiulis katalogas turi jaustis mažas.
+Kepuli-TV groja Xtream Codes paskyras, M3U grojaraščius ir Stalker portalus,
+sukurtas vienos minties pagrindu: didžiulis katalogas turi jaustis mažas.
 
 → Kanalai atsidaro per sekundę ar dvi, net iš milžiniško katalogo
 → Šimtai chaotiškų kategorijų virsta tvarkingu šalių sąrašu
@@ -13,6 +13,7 @@ didžiulis katalogas turi jaustis mažas.
   leidžia
 → MKV filmai ir serijos groja tiesiai naršyklėje, su subtitrais ir erdviniu
   garsu
+→ Įrašyk kanalą dabar arba laidą iš gido ir pasilik ją kaip failą
 
 
 DĖL KO TAI SUKŪRIAU
@@ -27,6 +28,9 @@ naudoti kiekvieną vakarą.
 KĄ GAUSI
 
 • Įklijuok tiekėjo atsiųstą M3U nuorodą, o nustatymai užsipildys patys.
+• Kelios paskyros: Xtream Codes, M3U grojaraštis su XMLTV gidu arba Stalker
+  portalas su tavo priedėlio MAC adresu. Perjungi vienu spustelėjimu, o jei
+  nori, sinchronizuoji jas tarp savo kompiuterių.
 • Paieška, kuriai nesvarbūs diakritikai ir žodžių tvarka, bei filtras
   kiekviename meniu.
 • Tai, ką pradėjai, bet nebaigei, laukia viršuje, o kita serija
@@ -40,6 +44,7 @@ KĄ GAUSI
   bus lengvai randamos.
 • Transliacija į Chromecast, medijų klavišai ir priminimas prieš prasidedant
   laidai.
+• Gidas gali rodyti tik tavo mėgstamiausius kanalus.
 • Tamsi arba šviesi išvaizda, o klaviatūra pasiekia viską; maketas seka
   teksto dydžio ir kontrasto nustatymus.
 • 30 kalbų. Kalbasi tavo naršyklės kalba, kol pasirinksi kitą.
@@ -49,20 +54,22 @@ PRIVATUMAS IŠ PRADŽIŲ
 
 Jokio sekimo, jokių reklamų, jokios registracijos. Plėtinys kalbasi tik su
 tavo paties serveriu ir prašo leidimo tik šiam adresui – platesnė prieiga
-tik jei leisi, kai tiekėjas nukreipia srautus kitur.
+tik jei leisi, kai tiekėjas nukreipia srautus kitur. Įrašai lieka tavo
+kompiuteryje.
 
 
 DĖMESIO
 
-Plėtinyje nėra turinio ir jokio tiekėjo. Atsinešk savo Xtream Codes paskyrą,
-naudok ją tik turiniui, kurį turi teisę žiūrėti, ir įsitikink, kad paslauga
-teisėta ten, kur gyveni.
+Plėtinyje nėra turinio ir jokio tiekėjo. Atsinešk savo paskyrą, naudok ją tik
+turiniui, kurį turi teisę žiūrėti, įrašyk tik tai, ką gali pasilikti, ir
+įsitikink, kad paslauga teisėta ten, kur gyveni.
 
 
 PRADĖK
 
-Spustelėk įrankių juostos piktogramą, įvesk serverį, naudotojo vardą ir
-slaptažodį – ir tavo sąrašas pasirodys.
+Spustelėk įrankių juostos piktogramą ir įvesk serverį bei prisijungimo
+duomenis, grojaraščio nuorodą arba portalą su jo MAC adresu – ir tavo sąrašas
+pasirodys.
 
 
 PAMATYK VEIKIANT

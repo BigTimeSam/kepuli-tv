@@ -1,11 +1,11 @@
 === NAME ===
 Kepuli-TV – IPTV přehrávač
 === SHORT DESCRIPTION ===
-Sleduj vlastní IPTV z Xtream Codes v prohlížeči bez boje s aplikací. Kanály naskočí za pár vteřin a MKV hraje i s titulky.
+Vlastní IPTV v prohlížeči: Xtream Codes, M3U nebo portál Stalker. Kanály naskočí za pár vteřin, MKV hraje a můžeš nahrávat.
 === DETAILED DESCRIPTION ===
 Sleduj své IPTV předplatné přímo v prohlížeči a nebojuj s aplikací.
-Kepuli-TV je přehrávač pro Xtream Codes postavený na jediné myšlence: obrovský
-katalog má působit jako malý.
+Kepuli-TV přehraje účty Xtream Codes, playlisty M3U i portály Stalker a je
+postavený na jediné myšlence: obrovský katalog má působit jako malý.
 
 → Kanály se otevřou za vteřinu nebo dvě, i z gigantické nabídky
 → Stovky nepřehledných kategorií se promění v úhledný seznam zemí
@@ -13,6 +13,7 @@ katalog má působit jako malý.
   poskytovatel nabízí
 → Filmy a epizody v MKV hrají rovnou v prohlížeči, včetně titulků a
   prostorového zvuku
+→ Nahraj kanál hned teď nebo pořad z průvodce a ulož si ho jako soubor
 
 
 PROČ JSEM TO UDĚLAL
@@ -28,6 +29,9 @@ CO ZÍSKÁŠ
 
 • Vlož odkaz M3U, který ti poslal dodavatel služby, a nastavení se vyplní
   samo.
+• Několik účtů: Xtream Codes, playlist M3U s průvodcem XMLTV nebo portál
+  Stalker s MAC adresou tvého set-top boxu. Přepneš jedním kliknutím a když
+  chceš, synchronizuješ je mezi svými počítači.
 • Hledání, které ignoruje diakritiku a pořadí slov, a filtr v každé nabídce.
 • Co jsi nechal v půlce, čeká nahoře, a další epizoda se pustí sama.
 • Při načítání dat nic nezablokuje obrazovku a co hraje, hraje dál.
@@ -39,6 +43,7 @@ CO ZÍSKÁŠ
   najdeš.
 • Odesílání na Chromecast, multimediální klávesy a upozornění před začátkem
   pořadu.
+• Průvodce umí zobrazit jen tvoje oblíbené kanály.
 • Tmavý nebo světlý vzhled, klávesnicí se dostaneš úplně všude; rozvržení
   respektuje velikost textu i nastavení kontrastu.
 • Ve 30 jazycích. Mluví řečí tvého prohlížeče, dokud nevybereš jinou.
@@ -49,19 +54,20 @@ SOUKROMÍ JAKO ZÁKLAD
 Žádné sledování, žádné reklamy, žádná registrace. Rozšíření komunikuje jen s
 tvým vlastním serverem a o oprávnění žádá pouze pro tuto jedinou adresu —
 širší přístup jen tehdy, když ho povolíš a streamy se posílají jinam.
+Nahrávky zůstávají v tvém počítači.
 
 
 UPOZORNĚNÍ
 
-Rozšíření nemá žádný obsah a neposkytuje žádnou službu. Přines si vlastní účet
-Xtream Codes, používej ho jen pro obsah, který smíš sledovat, a ujisti se, že
-je taková služba tam, kde žiješ, legální.
+Rozšíření nemá žádný obsah a neposkytuje žádnou službu. Přines si vlastní
+účet, používej ho jen pro obsah, který smíš sledovat, nahrávej jen to, co si
+smíš ponechat, a ujisti se, že je taková služba tam, kde žiješ, legální.
 
 
 JAK ZAČÍT
 
-Klikni na ikonu na liště nástrojů, zadej server, uživatelské jméno a heslo a
-tvůj seznam se objeví.
+Klikni na ikonu na liště nástrojů a zadej server a přihlašovací údaje, odkaz
+na playlist nebo portál s jeho MAC adresou, a tvůj seznam se objeví.
 
 
 UKÁZKA V AKCI

@@ -1,17 +1,18 @@
 === NAME ===
 Kepuli-TV – IPTV Player
 === SHORT DESCRIPTION ===
-Watch your own Xtream Codes IPTV in your browser without fighting the app. Channels open in seconds, and MKV plays with subtitles.
+Your own IPTV in the browser: Xtream Codes, M3U or a Stalker portal. Channels open in seconds, MKV plays, and you can record.
 === DETAILED DESCRIPTION ===
 Watch your own IPTV subscription in your browser without fighting the app.
-Kepuli-TV is an Xtream Codes player built around one idea: a huge catalogue
-should feel small.
+Kepuli-TV plays Xtream Codes accounts, M3U playlists and Stalker portals,
+built around one idea: a huge catalogue should feel small.
 
 → Channels open in a second or two, even from an enormous catalogue
 → Hundreds of messy categories become a tidy list of countries
 → A full-window programme guide (EPG) with catch-up where offered
 → MKV movies and episodes play right in the browser, subtitles and surround
   sound included
+→ Record a channel now or a programme from the guide, and keep it as a file
 
 
 WHY I MADE IT
@@ -25,6 +26,9 @@ would not play. So I built the one I wanted to use every evening.
 WHAT YOU GET
 
 • Paste the M3U link your provider sent you and the settings fill themselves.
+• Several accounts: Xtream Codes, an M3U playlist with its XMLTV guide, or a
+  Stalker portal with your box's MAC address. Switch in one click, and sync
+  them between your computers if you like.
 • Search that ignores accents and word order, and a filter in every menu.
 • Whatever you left halfway waits at the top, and the next episode starts by
   itself.
@@ -38,6 +42,7 @@ WHAT YOU GET
   easy to find.
 • Cast to a Chromecast, use the media keys, and get a reminder before a
   programme starts.
+• The guide can show just your favourite channels.
 • A dark or a light look, and the keyboard reaches everything; the layout
   follows your text size and contrast settings.
 • In 30 languages. It speaks your browser's language until you choose
@@ -48,20 +53,20 @@ PRIVATE BY DESIGN
 
 No tracking, no ads, no sign-up. Kepuli-TV talks only to your own server and
 asks permission for that address alone — wider access only if you allow it,
-when your provider sends streams elsewhere.
+when your provider sends streams elsewhere. Recordings stay on your computer.
 
 
 PLEASE NOTE
 
-The extension contains no content and comes with no provider. Bring an Xtream
-Codes account of your own, use it only for content you have the right to
-watch, and make sure the service is lawful where you live.
+The extension contains no content and comes with no provider. Bring your own
+account, use it only for content you have the right to watch, record only
+what you may keep, and make sure the service is lawful where you live.
 
 
 GET STARTED
 
-Click the toolbar icon, enter your server, username and password, and your
-list appears.
+Click the toolbar icon and enter your server and credentials, a playlist
+link, or a portal with its MAC address, and your list appears.
 
 
 SEE IT IN ACTION

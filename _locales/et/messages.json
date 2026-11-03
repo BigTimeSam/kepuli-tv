@@ -4,7 +4,7 @@
     "description": "The extension's name in the store and the browser. Written from store/listings/ by dev/listings.mjs."
   },
   "appDesc": {
-    "message": "Vaata oma Xtream Codesi IPTV-d brauseris, ilma rakendusega vaeva nägemata. Kanalid avanevad sekunditega, MKV mängib subtiitritega.",
+    "message": "Sinu IPTV brauseris: Xtream Codes, M3U või Stalkeri portaal. Kanalid avanevad sekunditega, MKV mängib ja saad salvestada.",
     "description": "The short description. Written from store/listings/ by dev/listings.mjs."
   }
 }

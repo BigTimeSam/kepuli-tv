@@ -4,7 +4,7 @@
     "description": "The extension's name in the store and the browser. Written from store/listings/ by dev/listings.mjs."
   },
   "appDesc": {
-    "message": "Смотри свой IPTV через Xtream Codes прямо в браузере. Каналы открываются за секунды, а MKV идёт с субтитрами.",
+    "message": "Свой IPTV в браузере: Xtream Codes, M3U или портал Stalker. Каналы открываются за секунды, MKV играет, а ещё можно записывать.",
     "description": "The short description. Written from store/listings/ by dev/listings.mjs."
   }
 }

@@ -1,11 +1,11 @@
 === NAME ===
 Kepuli-TV – IPTV atskaņotājs
 === SHORT DESCRIPTION ===
-Skaties savu Xtream Codes IPTV pārlūkā bez cīņas ar lietotni. Kanāli atveras sekundēs, un MKV atskan ar subtitriem.
+Tavs IPTV pārlūkā: Xtream Codes, M3U vai Stalker portāls. Kanāli atveras sekundēs, MKV atskan, un vari arī ierakstīt.
 === DETAILED DESCRIPTION ===
 Skaties savu IPTV abonementu pārlūkā un necīnies ar lietotni.
-Kepuli-TV ir Xtream Codes atskaņotājs, kas radīts ap vienu domu: milzīgam
-katalogam jāliekas mazam.
+Kepuli-TV atskaņo Xtream Codes kontus, M3U sarakstus un Stalker portālus, un
+tas radīts ap vienu domu: milzīgam katalogam jāliekas mazam.
 
 → Kanāli atveras sekundes vai divu laikā pat no milzīga piedāvājuma
 → Simtiem juceklīgu kategoriju kļūst par kārtīgu valstu sarakstu
@@ -13,6 +13,7 @@ katalogam jāliekas mazam.
   piedāvā
 → MKV filmas un sērijas atskan tieši pārlūkā, ar subtitriem un
   telpisko skaņu
+→ Ieraksti kanālu tagad vai raidījumu no ceļveža un paturi to kā failu
 
 
 KAPĒC TO RADĪJU
@@ -26,6 +27,9 @@ neatskanēja. Tāpēc uztaisīju tādu, kādu pats gribu lietot katru vakaru.
 KO TU SAŅEMI
 
 • Ielīmē sniedzēja atsūtīto M3U saiti, un iestatījumi aizpildās paši.
+• Vairāki konti: Xtream Codes, M3U saraksts ar XMLTV ceļvedi vai Stalker
+  portāls ar tava priedēkļa MAC adresi. Pārslēdz ar vienu klikšķi un, ja
+  vēlies, sinhronizē tos starp saviem datoriem.
 • Meklēšana, kurai nav svarīgi diakritiskie burti un vārdu secība, un filtrs
   katrā izvēlnē.
 • Kas palicis pusē, gaida augšā, un nākamā sērija sākas pati.
@@ -38,6 +42,7 @@ KO TU SAŅEMI
   atrast.
 • Pārraide uz Chromecast, multivides taustiņi un atgādinājums pirms raidījuma
   sākuma.
+• Ceļvedis var rādīt vienīgi tavus izlases kanālus.
 • Tumšs vai gaišs izskats, tastatūra aizsniedz visu; izkārtojums seko teksta
   izmēra un kontrasta iestatījumiem.
 • 30 valodās. Tā runā tava pārlūka valodā, kamēr izvēlies citu.
@@ -47,20 +52,21 @@ PRIVĀTI PĒC BŪTĪBAS
 
 Bez izsekošanas, bez reklāmām, bez reģistrācijas. Kepuli-TV sazinās tikai ar
 tavu serveri un lūdz atļauju tikai šai adresei — plašāka piekļuve vienīgi tad,
-ja tu to atļauj un sniedzējs novirza straumes citur.
+ja tu to atļauj un sniedzējs novirza straumes citur. Ierakstītais paliek tavā
+datorā.
 
 
 UZMANĪBU
 
-Paplašinājums nesatur saturu un nenāk ar sniedzēju. Atnes savu Xtream Codes
-kontu, lieto to tikai saturam, ko drīksti skatīties, un pārliecinies, ka
-pakalpojums ir likumīgs tur, kur dzīvo.
+Paplašinājums nesatur saturu un nenāk ar sniedzēju. Atnes savu kontu, lieto
+to tikai saturam, ko drīksti skatīties, ieraksti vien to, ko drīksti paturēt,
+un pārliecinies, ka pakalpojums ir likumīgs tur, kur dzīvo.
 
 
 KĀ SĀKT
 
-Noklikšķini uz ikonas rīkjoslā, ievadi serveri, lietotājvārdu un paroli, un
-tavs saraksts parādīsies.
+Noklikšķini uz ikonas rīkjoslā, ievadi serveri un pieteikšanās datus,
+saraksta saiti vai portālu ar tā MAC adresi, un tavs saraksts parādīsies.
 
 
 SKATI DARBĪBĀ

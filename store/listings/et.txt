@@ -1,17 +1,18 @@
 === NAME ===
 Kepuli-TV – IPTV-mängija
 === SHORT DESCRIPTION ===
-Vaata oma Xtream Codesi IPTV-d brauseris, ilma rakendusega vaeva nägemata. Kanalid avanevad sekunditega, MKV mängib subtiitritega.
+Sinu IPTV brauseris: Xtream Codes, M3U või Stalkeri portaal. Kanalid avanevad sekunditega, MKV mängib ja saad salvestada.
 === DETAILED DESCRIPTION ===
 Vaata oma IPTV-tellimust brauseris, ilma rakendusega maadlemata.
-Kepuli-TV on Xtream Codesi mängija, mis on ehitatud ühe mõtte ümber: tohutu
-valik peab tunduma väike.
+Kepuli-TV mängib Xtream Codesi kontosid, M3U-esitusloendeid ja Stalkeri
+portaale ning on ehitatud ühe mõtte ümber: tohutu valik peab tunduma väike.
 
 → Kanalid avanevad sekundi või kahega, ka väga suure valiku korral
 → Sadade segaste kategooriate asemel korralik riikide loend
 → Täisakna saatekava (EPG) ja järelvaatamine, kui pakkuja seda toetab
 → MKV-filmid ja -episoodid mängivad otse brauseris, subtiitrite ja ruumilise
   heliga
+→ Salvesta kanal kohe või saade kavast ja hoia see failina
 
 
 MIKS MA SEDA TEGIN
@@ -26,6 +27,9 @@ kasutada tahan.
 MIDA SA SAAD
 
 • Kleebi pakkuja saadetud M3U-link ja seaded täituvad ise.
+• Mitu kontot: Xtream Codes, M3U-esitusloend koos XMLTV-kavaga või Stalkeri
+  portaal sinu digiboksi MAC-aadressiga. Vahetus ühe klõpsuga ja soovi korral
+  sünkroonimine sinu arvutite vahel.
 • Otsing, mis ei vaata täpitähti ega sõnajärge, ning filter igas menüüs.
 • Pooleli jäänu ootab üleval ja järgmine episood algab ise.
 • Andmete laadimine ei blokeeri ekraani ning mängiv pilt jätkab mängimist.
@@ -37,6 +41,7 @@ MIDA SA SAAD
   lihtne leida.
 • Edasta Chromecastile, kasuta meediaklahve ja saa meeldetuletus enne saate
   algust.
+• Saatekava võib näidata ainult sinu lemmikkanaleid.
 • Tume või hele ilme, klaviatuuriga pääseb igale poole; paigutus järgib sinu
   teksti suuruse ja kontrasti seadeid.
 • 30 keeles. Ta räägib sinu brauseri keelt, kuni valid mõne muu.
@@ -47,19 +52,21 @@ PRIVAATSUS ALGUSEST PEALE
 Jälgimist, reklaami ega registreerumist pole. Kepuli-TV suhtleb ainult sinu
 enda serveriga ja küsib luba vaid selle aadressi jaoks — laiem ligipääs alles
 siis, kui sa selle annad ja teenusepakkuja suunab voogusid mujale.
+Salvestised jäävad sinu arvutisse.
 
 
 MÄRKUS
 
 Laiendus ei sisalda sisu ega tule ühegi teenusepakkujaga. Võta kaasa oma
-Xtream Codesi konto, kasuta seda vaid sisu jaoks, mida sul on õigus vaadata,
-ja veendu, et teenus on seaduslik seal, kus sa elad.
+konto, kasuta seda vaid sisu jaoks, mida sul on õigus vaadata, salvesta ainult
+seda, mida tohid alles hoida, ja veendu, et teenus on seaduslik seal, kus sa
+elad.
 
 
 ALUSTA
 
-Klõpsa tööriistaribal ikooni, sisesta server, kasutajanimi ja parool ning sinu
-loend ilmub.
+Klõpsa tööriistaribal ikooni ja sisesta server ja kasutajaandmed,
+esitusloendi link või portaal koos MAC-aadressiga ning sinu loend ilmub.
 
 
 NÄE TÖÖS

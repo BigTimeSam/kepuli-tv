@@ -1,11 +1,11 @@
 === NAME ===
 Kepuli-TV – Predvajalnik IPTV
 === SHORT DESCRIPTION ===
-Gledaj svoj IPTV prek Xtream Codes v brskalniku, brez boja z aplikacijo. Kanali se odprejo v sekundi, MKV pa teče s podnapisi.
+Tvoj IPTV v brskalniku: Xtream Codes, M3U ali portal Stalker. Kanali se odprejo v sekundi, MKV teče, lahko pa tudi snemaš.
 === DETAILED DESCRIPTION ===
 Gledaj svojo naročnino IPTV v brskalniku, brez boja z aplikacijo.
-Kepuli-TV je predvajalnik za Xtream Codes, zgrajen okoli ene same ideje:
-velikanski katalog naj deluje majhen.
+Kepuli-TV predvaja račune Xtream Codes, sezname M3U in portale Stalker,
+zgrajen okoli ene same ideje: velikanski katalog naj deluje majhen.
 
 → Kanali se odprejo v sekundi ali dveh, tudi pri ogromni ponudbi
 → Na stotine neurejenih kategorij postane pregleden seznam držav
@@ -13,6 +13,7 @@ velikanski katalog naj deluje majhen.
   na voljo
 → Filmi in epizode MKV se predvajajo kar v brskalniku, s podnapisi in
   prostorskim zvokom
+→ Posnemi kanal zdaj ali oddajo iz vodiča in jo shrani kot datoteko
 
 
 ZAKAJ SEM GA NAREDIL
@@ -28,6 +29,9 @@ KAJ DOBIŠ
 
 • Prilepi povezavo M3U, ki ti jo je poslal ponudnik, in nastavitve se
   izpolnijo same.
+• Več računov: Xtream Codes, seznam M3U z vodičem XMLTV ali portal Stalker z
+  naslovom MAC tvojega sprejemnika. Preklopiš z enim klikom, po želji pa jih
+  sinhroniziraš med svojimi računalniki.
 • Iskanje, ki prezre naglase in vrstni red besed, ter filter v vsakem meniju.
 • Kar si pustil na pol poti, čaka na vrhu, naslednja epizoda pa se zažene
   sama.
@@ -41,6 +45,7 @@ KAJ DOBIŠ
   so zlahka najdene.
 • Pošiljanje na Chromecast, multimedijske tipke in opomnik pred začetkom
   oddaje.
+• Vodič lahko prikaže samo tvoje priljubljene kanale.
 • Temen ali svetel videz, s tipkovnico dosežeš vse; postavitev sledi
   nastavitvam velikosti besedila in kontrasta.
 • V 30 jezikih. Govori jezik tvojega brskalnika, dokler ne izbereš drugega.
@@ -50,20 +55,22 @@ ZASEBNOST PO NAČRTU
 
 Brez sledenja, brez oglasov, brez registracije. Razširitev se pogovarja samo
 z tvojim strežnikom in dovoljenje zahteva le za ta naslov — širši dostop samo
-če ga dovoliš, ko pretoke drugam usmeri tvoj ponudnik.
+če ga dovoliš, ko pretoke drugam usmeri tvoj ponudnik. Posnetki ostanejo na
+tvojem računalniku.
 
 
 OPOZORILO
 
-Razširitev ne vsebuje vsebin in nima ponudnika. Prinesi lasten račun Xtream
-Codes, ga uporabljaj le za gradivo, ki ga smeš gledati, in poskrbi, da je
-storitev zakonita tam, kjer živiš.
+Razširitev ne vsebuje vsebin in nima ponudnika. Prinesi lasten račun, ga
+uporabljaj le za gradivo, ki ga smeš gledati, snemaj le tisto, kar smeš
+obdržati, in poskrbi, da je storitev zakonita tam, kjer živiš.
 
 
 KAKO ZAČETI
 
-Klikni ikono v orodni vrstici, vnesi strežnik, uporabniško ime in geslo, pa se
-tvoj seznam pojavi.
+Klikni ikono v orodni vrstici in vnesi strežnik s podatki za prijavo,
+povezavo do seznama ali portal z njegovim naslovom MAC, pa se tvoj seznam
+pojavi.
 
 
 OGLEJ SI V AKCIJI
