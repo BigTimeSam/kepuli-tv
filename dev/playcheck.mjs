@@ -230,7 +230,7 @@
 // the rate in bytes per second (60 kB/s). Exit code 0 when every scenario
 // passes, 1 otherwise.
 
-import { startMockServer, connectionStats, MULTI_EPISODES, PORT as MOCK_PORT, STALKER_MAC, stalkerSeen } from './mock/server.mjs';
+import { startMockServer, connectionStats, MULTI_EPISODES, PORT as MOCK_PORT, STALKER_MAC, stalkerSeen, USER, PASS } from './mock/server.mjs';
 // Run the same scenarios in Firefox with KEPULI_BROWSER=firefox.
 const { ensureChrome, openPlayer, session, sleep, PORT: CHROME_PORT } = await import(
   process.env.KEPULI_BROWSER === 'firefox' ? '../firefox/playcheck-driver.mjs' : './screenshot.mjs');
@@ -3677,9 +3677,57 @@ async function guidefavs(page) {
   return { ok: true, detail: `${group.length} channels of the group, then the favourites ${JSON.stringify(favs)}, ${third} joined at once, kept for the next opening, the group back when off` };
 }
 
+/**
+ * The credentials never show: not on screen, not in a message, not in the
+ * tab's title, not in a tooltip, not in the console — through playback and
+ * through the failures whose messages name what went wrong. Xtream puts the
+ * user name and password into every stream address, so an error that quotes
+ * the address it tried would hand them to anyone looking at the screen.
+ */
+async function noleak(page) {
+  const LEAKS = [`/${USER}/${PASS}/`, `password=${PASS}`, `${USER}:${PASS}@`];
+  const seen = [];
+  await evaluate(page, `(() => {
+    window.__said = [];
+    for (const level of ['log', 'info', 'warn', 'error', 'debug']) {
+      const real = console[level].bind(console);
+      console[level] = (...args) => { try { window.__said.push(args.map((a) => a instanceof Error ? a.stack : typeof a === 'object' ? JSON.stringify(a) : String(a)).join(' ')); } catch {} real(...args); };
+    }
+    addEventListener('error', (e) => window.__said.push(String(e.message)));
+    addEventListener('unhandledrejection', (e) => window.__said.push(String(e.reason?.stack || e.reason)));
+  })()`);
+  const look = async (step) => {
+    const text = await evaluate(page, `[document.title, document.body.innerText,
+      ...[...document.querySelectorAll('[title],[aria-label]')].map((e) => (e.getAttribute('title') || '') + ' ' + (e.getAttribute('aria-label') || '')),
+      location.href].join('\\n')`);
+    seen.push({ step, text });
+  };
+  const failing = async (variable, clickRow, step) => {
+    process.env[variable] = '1';
+    try { await failureAfterClick(page, clickRow, 30000); await sleep(1500); await look(step); }
+    finally { process.env[variable] = ''; }
+  };
+  await playFirstChannel(page);
+  await look('a channel playing');
+  await failing('KEPULI_MOCK_CHANNEL_REFUSED', clickFirstChannel(page), 'a channel refused');
+  await failing('KEPULI_MOCK_BAD_GATEWAY', clickFirstChannel(page), 'a bad gateway');
+  await failing('KEPULI_MOCK_REFUSED_FILE', clickFirstEpisode(page), 'an episode refused');
+  await evaluate(page, `document.getElementById('btn-settings').click()`);
+  await waitFor(page, `document.getElementById('setup').open`, 'settings');
+  await evaluate(page, `document.getElementById('tab-account').click()`);
+  await sleep(800);
+  await look('Settings › Account & data');
+  await evaluate(page, `document.getElementById('setup').close()`);
+  const said = await evaluate(page, `window.__said.join('\\n')`);
+  seen.push({ step: 'the console', text: said });
+  const found = seen.flatMap(({ step, text }) => LEAKS.filter((l) => text.includes(l)).map((l) => `${step}: "${l}"`));
+  if (found.length) throw new Error(`the credentials showed: ${found.join('; ')}`);
+  return { ok: true, detail: `${seen.length} places looked at (screen, title, tooltips, address, console) through playback, three failures and Account & data: no user name and password` };
+}
+
 const SCENARIOS = { buffering, livebuffering, filmbuffering, emptyfile, tsasmp4, refusedfile, badgateway, livebadgateway, channelrefused, noanswer, longfilm, catalogUi, setupClarity, fullscreenControl, clickpause, pickers, channels, home, resumemkv, restore, programmes, catchup, seek, death, cancel, timeout, search, paste, keys, switching, resume, connections, livezap, livequiet, reconnect, accounts, listerror, a11y, subtitles, audio, settings,
   lastchannel, nextepisode, continuewatching, reminders, update, seeklag, cuesretry, quota, catchupfreeze, catchupfull, twotabs, switchstop, resettabs,
-  refresh, restorenav, guidekeep, m3u, sync, holes, picks, flakyserver, accountform, stalker, record, guidefavs, categories };
+  refresh, restorenav, guidekeep, m3u, sync, holes, picks, flakyserver, accountform, stalker, record, guidefavs, categories, noleak };
 // The mock's whole-list answers stall for these, longer than the request limit.
 const SLOW_LIST_MS = { cancel: 60000, timeout: 60000 };
 // The media is sent slowly for these: the seek targets must lie outside the

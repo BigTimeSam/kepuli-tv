@@ -92,7 +92,10 @@ with the console open and run the scenarios of that feature. A
   all languages, and a line in `docs/user-guide.md`.
 - **Text through `t()`**; static markup through `data-i18n*` attributes.
 - **Provider data is untrusted**: names, URLs, EPG text and metadata are
-  escaped when shown (`textContent`, not `innerHTML`), links are built only to
+  shown as text (`textContent`, `el()`); markup is written only from icon
+  constants (`dev/htmlcheck.mjs` enforces it, and `eval`/`new Function` are
+  refused); credentials never appear in what is shown or logged (the
+  `noleak` scenario looks), links are built only to
   known services (`titlelinks.js`), and a provider URL is never navigated to.
 - **No new permissions** without a reason the stores will accept; the AMO
   reviewer notes (`firefox/reviewer-notes.txt`) must then explain it, and the

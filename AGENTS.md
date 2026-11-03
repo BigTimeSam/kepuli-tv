@@ -71,6 +71,7 @@ Long-form documentation: [user guide](docs/user-guide.md),
 | --- | --- |
 | Pure-function tests (seconds; run always) | `node dev/unitcheck.mjs` |
 | Undefined names, missing imports/exports | `node dev/namecheck.mjs` |
+| Markup only from constants, no eval | `node dev/htmlcheck.mjs` |
 | Browser scenarios against the mock server | `node dev/playcheck.mjs [scenario …]` (see testing playbook for env vars) |
 | UI regressions, isolated headless profile | `node dev/uicheck.mjs` |
 | The five store views against reference pictures | `node dev/visualcheck.mjs [--update]` |
