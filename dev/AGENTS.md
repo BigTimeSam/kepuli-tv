@@ -15,7 +15,7 @@ what it does and how to run it. Read that header before using one.
 | Packaging | `package.mjs` (allowlist packages from git HEAD; `--zip`, `--worktree`, `--check`) |
 | Stores | `cws-publish.mjs`, `cws-listing-fill.mjs`, `cws-screenshots.mjs`, `cws-auth.mjs`, `amo-publish.mjs`, `amo-screenshots.mjs` (see `store/AGENTS.md`) |
 | Pictures and video | `store-screenshots.mjs`, `demo-video.mjs`, `demo-music.py`, `logos.mjs` (regenerates `js/logoindex.js`) |
-| Safety | `secretcheck.mjs`: run on the staged changes before every commit |
+| Safety | `secretcheck.mjs`: run on the staged changes before every commit; `namecheck.mjs`: every name and import in `js/` resolves (TypeScript's checker via npx, names and modules only) |
 | Audio decoder | `wasm/` (`build.sh` builds `vendor/ffaudio` from FFmpeg; see `vendor/AGENTS.md`) |
 
 When you add a tool: one file, a header comment with its usage lines, no
@@ -56,6 +56,9 @@ data, so never point it at a profile someone uses.
 
 - `node dev/unitcheck.mjs`: pure functions in Node, a few seconds. Run it
   after every change.
+- `node dev/namecheck.mjs`: undefined names, missing imports and exports,
+  use before declaration: what would be a `ReferenceError` or a module that
+  does not load. Two seconds; run it after moving or renaming anything.
 - `node dev/playcheck.mjs [scenario …]`: about 80 browser scenarios (playback,
   recovery, guide, accounts, recording, the start page…), each against a fresh
   mock server. Run the scenarios near your change while working, and the full
@@ -88,7 +91,7 @@ one there when a scenario needs a new kind of misbehaving server.
 
 ### CI
 
-`.github/workflows/checks.yml` runs the Node-only checks (unit and area
+`.github/workflows/checks.yml` runs the Node-only checks (unit, names, area
 checks, listings, translations, the Pages page, the manifests, secrets) on
 every push and pull request, and `uicheck` plus the full `playcheck` in
 headless Chrome every night and on demand (`gh workflow run Checks`). Keep

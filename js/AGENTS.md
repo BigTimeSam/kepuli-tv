@@ -71,7 +71,8 @@ module's entry points back: a cycle ES modules resolve, as long as nothing
 in the module runs while the modules load. Rules for the next ones: move a
 whole `/* ---- */` section; a variable the other side assigns cannot cross
 (give it a function, as `newPlayRun()` for `playRun`); check every import
-form (`import * as store` too), then play a channel, a film and an episode
+form (`import * as store` too), run `node dev/namecheck.mjs` (it finds
+exactly that kind of miss), then play a channel, a film and an episode
 with the console open and run the scenarios of that feature. A
 `ReferenceError` at runtime is the typical miss.
 

@@ -40,6 +40,8 @@ jobs:
         run: sudo apt-get update && sudo apt-get install -y ffmpeg && sh dev/mock/media.sh
       - name: Unit tests
         run: node dev/unitcheck.mjs
+      - name: Every name and import resolves
+        run: node dev/namecheck.mjs
       - name: Area checks
         run: |
           for check in ratingcheck searchnamescheck titlelinkscheck mediafilterscheck moviedurationcheck demuxcheck audiofactscheck; do
