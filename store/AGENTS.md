@@ -111,5 +111,6 @@ the last recording. Outputs in `dist/video/`: the mp4, a thumbnail and
   description by hand.
 - YouTube cannot replace a video's file: a new video is a new URL. Then update
   `store/listings/*.txt` (all 31), `store-listing.txt` ("Promo video"), run
-  `node dev/listings.mjs`, send the AMO listing, and set the Chrome promo field.
+  `node dev/listings.mjs`, send the AMO listing, set the Chrome promo field,
+  and change `VIDEO` in `dev/site.mjs` (the Pages front page).
 - The current video is recorded in `store-listing.txt`.

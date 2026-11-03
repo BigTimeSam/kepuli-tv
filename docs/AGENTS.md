@@ -6,7 +6,8 @@ documentation read on GitHub.
 
 | File | What | Edited by |
 | --- | --- | --- |
-| `index.html` | the front page: README.md rendered | `node dev/site.mjs` only; never by hand |
+| `index.html` | the front page: a landing part (store buttons, the video, the five screenshots with the AMO captions) above README.md rendered | `node dev/site.mjs` only; never by hand |
+| `img/` | the five store screenshots, copied from `brand/screenshots/` by `dev/site.mjs` | `dev/site.mjs` only |
 | `privacy/index.html` | the privacy policy, linked from both stores | hand |
 | `terms/index.html` | the terms of use (version and effective date at the top) | hand |
 | `user-guide.md` | everything a user can do, in detail; the player's Help links here | hand / agent |
@@ -15,6 +16,8 @@ documentation read on GitHub.
 
 ## Rules
 
+- **The video link and store links of the landing part** are constants at the
+  top of the hero section in `dev/site.mjs`; a new video changes them there.
 - **README changes are followed by `node dev/site.mjs`** and the regenerated
   `index.html` is committed with them; `--check` fails when it is stale. The
   converter knows headings, paragraphs, lists, tables, fenced code, inline
