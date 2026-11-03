@@ -11,7 +11,7 @@
 //   node dev/site.mjs           writes docs/index.html
 //   node dev/site.mjs --check   exits 1 if docs/index.html is out of date
 
-import { readFileSync, writeFileSync } from 'node:fs';
+import { copyFileSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -207,6 +207,51 @@ function render(blocks) {
 
 /* --------------------------------------------------------------- template */
 
+/* ----------------------------------------------------------------- hero */
+
+// Above the README: where to get it, the video, the five store screenshots
+// with their captions. The video is a picture linking to YouTube rather than
+// an embedded player, so the page loads nothing from Google until a visitor
+// asks for it. The screenshots are copied from brand/screenshots/ into
+// docs/img/ (Pages serves docs/ alone); their captions are the AMO set's.
+const SITE = 'https://bigtimesam.github.io/kepuli-tv/';
+const VIDEO = 'https://youtu.be/Wr4FcXlTbOM';
+const CHROME_STORE = 'https://chromewebstore.google.com/detail/kepuli-tv/okkgclcakhjhldkdcblgagoaibghpfmi';
+const FIREFOX_STORE = 'https://addons.mozilla.org/firefox/addon/kepuli-tv/';
+const SHOTS = ['01-channels', '02-guide', '03-series', '04-subtitles', '05-movie'];
+
+function captions() {
+  const text = readFileSync(join(ROOT, 'brand', 'firefox-screenshots', 'README.md'), 'utf8');
+  const out = {};
+  for (const m of text.matchAll(/^\| (0\d-[\w-]+)\.png \| (.+?) \|$/gm)) out[m[1]] ??= m[2].replace(/\s*Shown with fictional demo content in Firefox\.?$/, '').trim();
+  return out;
+}
+
+function copyShots() {
+  const dir = join(ROOT, 'docs', 'img');
+  mkdirSync(dir, { recursive: true });
+  for (const shot of SHOTS) copyFileSync(join(ROOT, 'brand', 'screenshots', `${shot}.png`), join(dir, `${shot}.png`));
+}
+
+function hero() {
+  const caption = captions();
+  return `<section class="hero" aria-label="Get Kepuli-TV">
+<p class="lead">Your own IPTV subscription, played in a browser tab: live TV with a programme guide, films and series, recording, in thirty languages. Free and open source.</p>
+<p class="stores">
+  <a href="${CHROME_STORE}">Add to Chrome</a>
+  <a class="alt" href="${FIREFOX_STORE}">Add to Firefox</a>
+</p>
+<a class="video" href="${VIDEO}">
+  <img src="img/01-channels.png" width="1280" height="800" alt="Kepuli-TV playing a live channel beside the channel list">
+  <span class="play"><span>▶ Watch the four-minute tour</span></span>
+</a>
+<p class="video-note">Opens on YouTube. Everything shown is fictional demo content.</p>
+<div class="shots">
+${SHOTS.map((s) => `  <figure><a href="img/${s}.png"><img src="img/${s}.png" width="1280" height="800" loading="lazy" alt="${esc(caption[s] || s)}"></a><figcaption>${esc(caption[s] || '')}</figcaption></figure>`).join('\n')}
+</div>
+</section>`;
+}
+
 function page({ title, description, main }, version) {
   return `<!doctype html>
 <!-- Generated from README.md by dev/site.mjs. Edit the README, not this file. -->
@@ -217,6 +262,13 @@ function page({ title, description, main }, version) {
 <title>${esc(title)}</title>
 <meta name="description" content="${esc(description).replace(/"/g, '&quot;')}">
 <meta name="robots" content="index,follow">
+<meta property="og:type" content="website">
+<meta property="og:title" content="${esc(title)}">
+<meta property="og:description" content="${esc(description).replace(/"/g, '&quot;')}">
+<meta property="og:url" content="${SITE}">
+<meta property="og:image" content="${SITE}img/01-channels.png">
+<meta name="twitter:card" content="summary_large_image">
+<link rel="canonical" href="${SITE}">
 <style>
   :root {
     --bg: #0a0c11;
@@ -231,6 +283,25 @@ function page({ title, description, main }, version) {
   }
 
   * { box-sizing: border-box; }
+
+  /* The landing part above the README: store buttons, the video, the
+     screenshots. The README below stays the reference. */
+  .hero { margin: 0 0 40px; }
+  .hero .lead { font-size: 18px; color: var(--muted); margin: 0 0 22px; }
+  .stores { display: flex; flex-wrap: wrap; gap: 12px; margin: 0 0 30px; }
+  .stores a { display: inline-flex; align-items: center; gap: 8px; padding: 11px 18px; border-radius: 10px; background: var(--accent); color: #fff; font-weight: 600; text-decoration: none; }
+  .stores a.alt { background: var(--panel-2); border: 1px solid var(--border); color: var(--text); }
+  .stores a:hover { filter: brightness(1.1); }
+  .video { position: relative; display: block; border-radius: 12px; overflow: hidden; border: 1px solid var(--border); margin: 0 0 12px; }
+  .video img { display: block; width: 100%; height: auto; }
+  .video .play { position: absolute; inset: 0; display: grid; place-items: center; background: rgba(8, 9, 14, .35); }
+  .video .play span { display: inline-flex; align-items: center; gap: 10px; padding: 12px 20px; border-radius: 999px; background: rgba(12, 12, 22, .85); border: 1px solid rgba(155, 135, 255, .45); color: #fff; font-weight: 600; }
+  .video-note { color: var(--dim); font-size: 13px; margin: 0 0 30px; }
+  .shots { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 14px; margin: 0; }
+  .shots figure { margin: 0; }
+  .shots a { display: block; border-radius: 8px; overflow: hidden; border: 1px solid var(--border); }
+  .shots img { display: block; width: 100%; height: auto; }
+  .shots figcaption { color: var(--muted); font-size: 13px; line-height: 1.45; margin-top: 6px; }
 
   html { -webkit-text-size-adjust: 100%; scroll-behavior: smooth; }
 
@@ -385,12 +456,14 @@ function page({ title, description, main }, version) {
 <h1>${esc(title)}</h1>
 <p class="meta">The README of the Kepuli-TV browser extension, version ${esc(version)}. <a href="${REPO}">Source on GitHub</a></p>
 
+${hero()}
+
 ${main}
 </main>
 
 <footer>
   <p>Kepuli-TV, © 2026 Samuli Vainio, MIT licence. <a href="privacy/">Privacy Policy</a>, <a href="terms/">Terms of Use</a></p>
-  <p>This page is the repository's README.md, rendered by dev/site.mjs.</p>
+  <p>This page is the repository's README.md, rendered by dev/site.mjs, with the store links, the video and the screenshots above it.</p>
 </footer>
 
 </div>
@@ -405,6 +478,7 @@ const md = readFileSync(SRC, 'utf8');
 const { version } = JSON.parse(readFileSync(join(ROOT, 'manifest.json'), 'utf8'));
 const rendered = render(parse(md));
 const html = page(rendered, version);
+if (!process.argv.includes('--check')) copyShots();
 
 if (process.argv.includes('--check')) {
   let current = '';

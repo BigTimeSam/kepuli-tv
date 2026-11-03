@@ -7,6 +7,13 @@
 <title>Kepuli-TV</title>
 <meta name="description" content="A free, open-source IPTV player for Chrome and Firefox. Bring your own Xtream Codes account, M3U playlist or Stalker portal, and watch live TV, films and series in a browser tab. There is no app to install and no account with us, and your details stay in your browser.">
 <meta name="robots" content="index,follow">
+<meta property="og:type" content="website">
+<meta property="og:title" content="Kepuli-TV">
+<meta property="og:description" content="A free, open-source IPTV player for Chrome and Firefox. Bring your own Xtream Codes account, M3U playlist or Stalker portal, and watch live TV, films and series in a browser tab. There is no app to install and no account with us, and your details stay in your browser.">
+<meta property="og:url" content="https://bigtimesam.github.io/kepuli-tv/">
+<meta property="og:image" content="https://bigtimesam.github.io/kepuli-tv/img/01-channels.png">
+<meta name="twitter:card" content="summary_large_image">
+<link rel="canonical" href="https://bigtimesam.github.io/kepuli-tv/">
 <style>
   :root {
     --bg: #0a0c11;
@@ -21,6 +28,25 @@
   }
 
   * { box-sizing: border-box; }
+
+  /* The landing part above the README: store buttons, the video, the
+     screenshots. The README below stays the reference. */
+  .hero { margin: 0 0 40px; }
+  .hero .lead { font-size: 18px; color: var(--muted); margin: 0 0 22px; }
+  .stores { display: flex; flex-wrap: wrap; gap: 12px; margin: 0 0 30px; }
+  .stores a { display: inline-flex; align-items: center; gap: 8px; padding: 11px 18px; border-radius: 10px; background: var(--accent); color: #fff; font-weight: 600; text-decoration: none; }
+  .stores a.alt { background: var(--panel-2); border: 1px solid var(--border); color: var(--text); }
+  .stores a:hover { filter: brightness(1.1); }
+  .video { position: relative; display: block; border-radius: 12px; overflow: hidden; border: 1px solid var(--border); margin: 0 0 12px; }
+  .video img { display: block; width: 100%; height: auto; }
+  .video .play { position: absolute; inset: 0; display: grid; place-items: center; background: rgba(8, 9, 14, .35); }
+  .video .play span { display: inline-flex; align-items: center; gap: 10px; padding: 12px 20px; border-radius: 999px; background: rgba(12, 12, 22, .85); border: 1px solid rgba(155, 135, 255, .45); color: #fff; font-weight: 600; }
+  .video-note { color: var(--dim); font-size: 13px; margin: 0 0 30px; }
+  .shots { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 14px; margin: 0; }
+  .shots figure { margin: 0; }
+  .shots a { display: block; border-radius: 8px; overflow: hidden; border: 1px solid var(--border); }
+  .shots img { display: block; width: 100%; height: auto; }
+  .shots figcaption { color: var(--muted); font-size: 13px; line-height: 1.45; margin-top: 6px; }
 
   html { -webkit-text-size-adjust: 100%; scroll-behavior: smooth; }
 
@@ -175,6 +201,26 @@
 <h1>Kepuli-TV</h1>
 <p class="meta">The README of the Kepuli-TV browser extension, version 1.6.3. <a href="https://github.com/BigTimeSam/kepuli-tv">Source on GitHub</a></p>
 
+<section class="hero" aria-label="Get Kepuli-TV">
+<p class="lead">Your own IPTV subscription, played in a browser tab: live TV with a programme guide, films and series, recording, in thirty languages. Free and open source.</p>
+<p class="stores">
+  <a href="https://chromewebstore.google.com/detail/kepuli-tv/okkgclcakhjhldkdcblgagoaibghpfmi">Add to Chrome</a>
+  <a class="alt" href="https://addons.mozilla.org/firefox/addon/kepuli-tv/">Add to Firefox</a>
+</p>
+<a class="video" href="https://youtu.be/Wr4FcXlTbOM">
+  <img src="img/01-channels.png" width="1280" height="800" alt="Kepuli-TV playing a live channel beside the channel list">
+  <span class="play"><span>▶ Watch the four-minute tour</span></span>
+</a>
+<p class="video-note">Opens on YouTube. Everything shown is fictional demo content.</p>
+<div class="shots">
+  <figure><a href="img/01-channels.png"><img src="img/01-channels.png" width="1280" height="800" loading="lazy" alt="Browse channels by country and topic while watching live TV."></a><figcaption>Browse channels by country and topic while watching live TV.</figcaption></figure>
+  <figure><a href="img/02-guide.png"><img src="img/02-guide.png" width="1280" height="800" loading="lazy" alt="Explore the programme guide while playback continues in the mini-player."></a><figcaption>Explore the programme guide while playback continues in the mini-player.</figcaption></figure>
+  <figure><a href="img/03-series.png"><img src="img/03-series.png" width="1280" height="800" loading="lazy" alt="Browse series details, seasons and episodes."></a><figcaption>Browse series details, seasons and episodes.</figcaption></figure>
+  <figure><a href="img/04-subtitles.png"><img src="img/04-subtitles.png" width="1280" height="800" loading="lazy" alt="Play an MKV episode with text subtitles and choose their language and size."></a><figcaption>Play an MKV episode with text subtitles and choose their language and size.</figcaption></figure>
+  <figure><a href="img/05-movie.png"><img src="img/05-movie.png" width="1280" height="800" loading="lazy" alt="Watch a movie with its description and details beside your catalogue, shown as covers."></a><figcaption>Watch a movie with its description and details beside your catalogue, shown as covers.</figcaption></figure>
+</div>
+</section>
+
 <p>A free, open-source IPTV player for Chrome and Firefox. Bring your own Xtream
 Codes account, M3U playlist or Stalker portal, and watch live TV, films and
 series in a browser tab. There is no app to install and no account with us,
@@ -294,7 +340,7 @@ LGPL 2.1 §6 is possible.</p>
 
 <footer>
   <p>Kepuli-TV, © 2026 Samuli Vainio, MIT licence. <a href="privacy/">Privacy Policy</a>, <a href="terms/">Terms of Use</a></p>
-  <p>This page is the repository's README.md, rendered by dev/site.mjs.</p>
+  <p>This page is the repository's README.md, rendered by dev/site.mjs, with the store links, the video and the screenshots above it.</p>
 </footer>
 
 </div>
