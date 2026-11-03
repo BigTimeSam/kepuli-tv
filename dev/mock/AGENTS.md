@@ -34,7 +34,8 @@ as the hosted demo for store reviewers.
   `RELEASE_MS`, `LIMIT` (connections per account), `LIVE_TS` (live as one
   MPEG-TS connection, as a provider's; recording needs it), `TS_PACE`,
   `TS_AS_MP`, `LONG`, `FULL`, `EMPTY`, `EPISODE_EXT`, `EXTRA_CHANNEL`,
-  `STALKER_LOOSE`. Read the code for each one's exact meaning, and document a
+  `STALKER_LOOSE`, `BULK` (N invented films more in Movies: Nordic, for the
+  perf scenario). Read the code for each one's exact meaning, and document a
   new one in the comment beside it.
 - **Exports for tests**: `startMockServer`, `PORT`, `USER`, `PASS`,
   `STALKER_MAC`, `MULTI_EPISODES`, `connectionStats`, `stalkerSeen`. Tests

@@ -90,6 +90,17 @@ Mock behaviour is switched by environment variables read per request, e.g.
 `process.env.KEPULI_MOCK` in `dev/mock/server.mjs` for the full set, and add
 one there when a scenario needs a new kind of misbehaving server.
 
+### Performance
+
+The `perf` scenario serves 50,000 films more (`KEPULI_MOCK_BULK`) and
+measures the list's load, the scroll (95th-percentile frame), a search
+from the middle of the catalogue and the page's heap, against bounds well
+above this machine's numbers (on 2026-11-04: 320 ms, 17 ms, 456 ms, 53 MB;
+19 rows in the DOM). It fails on a regression, a list that stops being
+virtual, a search that walks the DOM or a leak, and reports the numbers
+every run: compare them with these before and after a change to the lists,
+search or rows.
+
 ### CI
 
 `.github/workflows/checks.yml` runs the Node-only checks (unit, names, markup, area

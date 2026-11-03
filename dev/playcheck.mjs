@@ -3725,9 +3725,67 @@ async function noleak(page) {
   return { ok: true, detail: `${seen.length} places looked at (screen, title, tooltips, address, console) through playback, three failures and Account & data: no user name and password` };
 }
 
+/**
+ * A provider-sized catalogue: 50,000 films more in one category. The list
+ * of them is fetched and drawn, scrolled from top to bottom, searched, and
+ * the page's memory read — each against a bound well above what this
+ * machine takes, so that the scenario fails on a regression (a list that
+ * stops being virtual, a search that walks the DOM, a leak) rather than on
+ * a slow day. The numbers are reported every run.
+ */
+async function perf(page) {
+  const N = 50000;
+  const BOUNDS = { listMs: 20000, frameP95Ms: 50, searchMs: 4000, heapMb: 400 };
+  const count = `Number((document.getElementById('listinfo').textContent.match(/[\\d,.\\s ]+/) || ['0'])[0].replace(/[^\\d]/g, ''))`;
+  process.env.KEPULI_MOCK_BULK = String(N);
+  try {
+    await evaluate(page, `document.querySelector('#tabs [data-tab="movie"]').click()`);
+    await click(page, '#groups', 'Nordic');
+    const t0 = Date.now();
+    await evaluate(page, `document.getElementById('btn-refresh').click()`);
+    await waitFor(page, `${count} >= ${N}`, `the ${N} films in the list`, 60000);
+    const listMs = Date.now() - t0;
+    await evaluate(page, `document.querySelector('button[aria-label="Show as a list"]')?.click()`);
+    await sleep(500);
+    // Scrolled through in sixty steps, a frame each; the frames' lengths measured.
+    const frames = await evaluate(page, `new Promise((done) => {
+      const list = document.getElementById('list');
+      const steps = 60, gaps = [];
+      let i = 0, last = performance.now();
+      const step = (now) => {
+        gaps.push(now - last); last = now;
+        list.scrollTop = (list.scrollHeight - list.clientHeight) * (i / steps);
+        if (++i <= steps) requestAnimationFrame(step); else done(gaps.slice(2));
+      };
+      requestAnimationFrame(step);
+    })`);
+    const sorted = [...frames].sort((a, b) => a - b);
+    const frameP95Ms = sorted[Math.floor(sorted.length * 0.95)];
+    const rowsInDom = await evaluate(page, `document.querySelectorAll('#list .row').length`);
+    // A search over the whole catalogue, for a film from its middle, which
+    // the list at its top does not show.
+    await evaluate(page, `document.getElementById('list').scrollTop = 0`);
+    await sleep(300);
+    const s0 = Date.now();
+    await evaluate(page, `(() => { const s = document.getElementById('search'); s.focus(); s.value = 'Archive Film 25017'; s.dispatchEvent(new Event('input', { bubbles: true })); })()`);
+    await waitFor(page, `[...document.querySelectorAll('#list .row')].some((r) => r.textContent.includes('Archive Film 25017')) && ${count} < 100`, 'the search result', 30000);
+    const searchMs = Date.now() - s0;
+    await evaluate(page, `document.getElementById('search-clear')?.click()`);
+    const heapMb = await evaluate(page, `performance.memory ? Math.round(performance.memory.usedJSHeapSize / 1048576) : 0`);
+    const got = { listMs, frameP95Ms: Math.round(frameP95Ms), searchMs, heapMb, rowsInDom };
+    const over = Object.entries(BOUNDS).filter(([k, bound]) => got[k] > bound).map(([k, bound]) => `${k} ${got[k]} > ${bound}`);
+    if (rowsInDom > 400) over.push(`${rowsInDom} rows in the DOM: the list is not virtual any more`);
+    if (over.length) throw new Error(`over the bounds: ${over.join('; ')}`);
+    return { ok: true, detail: `${N} films more: list ${listMs} ms, scroll p95 frame ${got.frameP95Ms} ms (${frames.length} frames, ${rowsInDom} rows in the DOM), search ${searchMs} ms, heap ${heapMb} MB` };
+  } finally {
+    process.env.KEPULI_MOCK_BULK = '';
+    await evaluate(page, `document.getElementById('btn-refresh').click()`).catch(() => {});
+  }
+}
+
 const SCENARIOS = { buffering, livebuffering, filmbuffering, emptyfile, tsasmp4, refusedfile, badgateway, livebadgateway, channelrefused, noanswer, longfilm, catalogUi, setupClarity, fullscreenControl, clickpause, pickers, channels, home, resumemkv, restore, programmes, catchup, seek, death, cancel, timeout, search, paste, keys, switching, resume, connections, livezap, livequiet, reconnect, accounts, listerror, a11y, subtitles, audio, settings,
   lastchannel, nextepisode, continuewatching, reminders, update, seeklag, cuesretry, quota, catchupfreeze, catchupfull, twotabs, switchstop, resettabs,
-  refresh, restorenav, guidekeep, m3u, sync, holes, picks, flakyserver, accountform, stalker, record, guidefavs, categories, noleak };
+  refresh, restorenav, guidekeep, m3u, sync, holes, picks, flakyserver, accountform, stalker, record, guidefavs, categories, noleak, perf };
 // The mock's whole-list answers stall for these, longer than the request limit.
 const SLOW_LIST_MS = { cancel: 60000, timeout: 60000 };
 // The media is sent slowly for these: the seek targets must lie outside the

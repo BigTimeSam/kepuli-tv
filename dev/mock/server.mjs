@@ -622,6 +622,26 @@ const publicChannel = (origin, c) => ({ ...c, stream_icon: origin + c.stream_ico
 const publicMovie = (origin, m) => ({ num: m.num, name: m.name, stream_type: m.stream_type, stream_id: m.stream_id, stream_icon: origin + m.stream_icon, rating: m.rating, rating_5based: m.rating_5based, added: m.added, category_id: m.category_id, category_ids: m.category_ids, container_extension: m.container_extension, custom_sid: m.custom_sid, direct_source: m.direct_source });
 const publicSeries = (origin, s) => ({ ...s, cover: origin + s.cover });
 
+// KEPULI_MOCK_BULK=N: N invented films more in Movies: Nordic, for the size a
+// provider's catalogue reaches (one measured had 55,000): the perf scenario
+// times the list and the scroll with it. Made once per N and kept, like the
+// rest, from fixed numbers rather than chance.
+let bulk = { n: 0, list: [] };
+function moviesWithBulk() {
+  const n = Number(process.env.KEPULI_MOCK_BULK) || 0;
+  if (!n) return vod.movies;
+  if (bulk.n !== n) {
+    const nordic = vod.categories.find((c) => c.category_name === 'Movies: Nordic');
+    bulk = { n, list: Array.from({ length: n }, (_, i) => ({
+      num: 100000 + i, name: `Archive Film ${String(i + 1).padStart(5, '0')} (${2000 + (i % 26)})`, title: `Archive Film ${i + 1}`,
+      stream_type: 'movie', stream_id: 100000 + i, stream_icon: `/img/poster/movie/${5000 + (i % 40)}.svg`,
+      rating: String(4 + (i % 6)), rating_5based: 2 + (i % 6) / 2, added: secs(T0 - (i % 400) * 86400e3),
+      category_id: nordic.category_id, category_ids: [Number(nordic.category_id)], container_extension: 'mp4', custom_sid: '', direct_source: '',
+    })) };
+  }
+  return [...vod.movies, ...bulk.list];
+}
+
 function api(req, res, url) {
   const q = url.searchParams;
   if (q.get('username') !== USER || q.get('password') !== PASS) return send(res, 512, { user_info: { auth: 0 } });
@@ -639,7 +659,7 @@ function api(req, res, url) {
     case 'get_vod_categories': return send(res, 200, vod.categories);
     case 'get_series_categories': return send(res, 200, series.categories);
     case 'get_live_streams': return sendList(withCategory(liveChannels()).map((c) => publicChannel(origin, c)));
-    case 'get_vod_streams': return sendList(withCategory(vod.movies).map((m) => publicMovie(origin, m)));
+    case 'get_vod_streams': return sendList(withCategory(moviesWithBulk()).map((m) => publicMovie(origin, m)));
     case 'get_series': return sendList(withCategory(series.list).map((s) => publicSeries(origin, s)));
     case 'get_series_info': {
       const info = series.info.get(q.get('series_id'));
