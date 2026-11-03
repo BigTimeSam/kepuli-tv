@@ -29,7 +29,7 @@ import { execFileSync, spawn } from 'node:child_process';
 import { existsSync, mkdirSync, readFileSync } from 'node:fs';
 import { homedir } from 'node:os';
 import { join } from 'node:path';
-import { readListings, unwrap, CHROME_UNSUPPORTED } from './listings.mjs';
+import { readListings, unwrap, forChrome, CHROME_UNSUPPORTED } from './listings.mjs';
 
 const ROOT = new URL('..', import.meta.url).pathname;
 const ITEM_ID = 'okkgclcakhjhldkdcblgagoaibghpfmi';
@@ -53,7 +53,7 @@ const norm = (text) => text.replace(/\r/g, '').replace(/[ \t]+$/gm, '').trim();
 const wanted = readListings()
   .filter((l) => !CHROME_UNSUPPORTED.includes(l.locale))
   .filter((l) => !only || only.includes(l.locale) || only.includes(dashCode(l.locale)))
-  .map((l) => ({ locale: l.locale, code: dashCode(l.locale), text: unwrap(l.detailed) }));
+  .map((l) => ({ locale: l.locale, code: dashCode(l.locale), text: unwrap(forChrome(l.detailed)) }));
 if (!wanted.length) fail('no such language in store/listings/');
 
 const publisher = process.env.CWS_PUBLISHER_ID || (existsSync(CONFIG) && JSON.parse(readFileSync(CONFIG, 'utf8')).publisherId);

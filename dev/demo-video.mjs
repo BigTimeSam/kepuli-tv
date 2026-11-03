@@ -9,9 +9,14 @@
 // frames to ffmpeg at a steady 30 per second.
 //
 //   sh dev/mock/media.sh                 once: renders the dummy media
-//   node dev/demo-video.mjs [--lang en]
+//   node dev/demo-video.mjs [--lang en] [--silent]
 //
-// Writes dist/video/kepuli-tv-demo-<lang>.mp4 (1920x1080, H.264, silent),
+// Before the recording a viewer's evenings are played for real — channels,
+// films and episodes stopped halfway, favourites starred, three accounts —
+// so that the start page, History and the lists have something in them.
+//
+// Writes dist/video/kepuli-tv-demo-<lang>.mp4 (1920x1080, H.264, with a
+// narrator and music, see "narration" below; --silent: no sound),
 // a thumbnail beside it, -chapters.txt: the scenes' start times in the
 // form YouTube reads chapters from a description, and .srt: the captions
 // as a subtitle track to upload with the video. The captions are in
@@ -19,8 +24,8 @@
 // language.
 
 import { spawn } from 'node:child_process';
-import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs';
-import { tmpdir } from 'node:os';
+import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, statSync, writeFileSync } from 'node:fs';
+import { homedir, tmpdir } from 'node:os';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -40,43 +45,170 @@ const PROFILE = mkdtempSync(join(tmpdir(), 'kepuli-video-'));
 process.env.KEPULI_DEV_PROFILE = PROFILE;
 process.env.KEPULI_DEV_PORT = process.env.KEPULI_VIDEO_PORT || '9370';
 const { ensureChrome, openPlayer, sleep } = await import('./screenshot.mjs');
-const { startMockServer, USER, PASS } = await import('./mock/server.mjs');
+// Live channels as MPEG-TS, which is what the recorder keeps.
+process.env.KEPULI_MOCK_LIVE_TS = '1';
+const { startMockServer, USER, PASS, STALKER_MAC } = await import('./mock/server.mjs');
 
 /* ------------------------------------------------------------- captions */
 
 const CAPTIONS = {
   en: {
-    intro: ['Kepuli-TV', 'An IPTV player for Chrome and Firefox', 'Free and open source · Bring your own Xtream Codes or M3U subscription'],
-    connect: ['Your own service', 'Sign in with your provider’s Xtream Codes details, or paste an M3U playlist. Your details stay in your browser.'],
+    intro: ['Kepuli-TV', 'An IPTV player for Chrome and Firefox', 'Free and open source · Bring your own Xtream Codes, M3U or Stalker subscription'],
+    start: ['Your start page', 'What you left halfway, what is on your channels now and soon, and the channels you watched lately.'],
+    resume: ['Pick up where you left off', 'One click and the film carries on from where you stopped, with its cast, director and details beside it.'],
     live: ['Live TV by country and topic', 'Pick a country, narrow it to a topic, and see what is on now on every channel.'],
     zap: ['Zap in a second', 'Arrow keys move, Enter plays, and L jumps back to the channel you watched before.'],
-    favourites: ['Favourites', 'Add a channel from its ⋯ menu. Favourites gather at the top of every list.'],
+    favourites: ['Favourites', 'Star a channel, a film or a series. Favourites gather at the top, or show them alone.'],
     countries: ['The countries you watch', 'Keep only the countries you want. The rest stay out of the lists, the search and the guide.'],
-    guide: ['Programme guide', 'A full guide for every channel. Click a channel to see what is on now and the next ten programmes.'],
+    guide: ['Programme guide', 'A full guide for every channel, or just your favourites. Click a channel for what is on now and next.'],
     search: ['Search', 'Press / and start typing. Any channel in seconds, even among tens of thousands.'],
-    movies: ['Movies', 'Covers, ratings and details. Filter by genre, sort by rating, and play in the same window.'],
+    movies: ['Movies', 'Choose the categories you care about, browse by cover, and play in the same window.'],
+    details: ['Everything about the title', 'Year, rating, director, cast, country and age rating, with the format and bit rate of the file.'],
     series: ['Series', 'Seasons and episodes at a glance, with the plot, the year and the rating.'],
     mkv: ['MKV with subtitles', 'Matroska files play right in the browser, with their subtitles and every audio track, even AC-3.'],
     subsize: ['Subtitles your size', 'Set the size and the height of the subtitles. + and − change the size while you watch.'],
+    record: ['Record live TV', 'Turn recording on in Settings and record what you are watching, or plan it from the guide.'],
+    recordings: ['Your recordings', 'Recordings stay in your browser. Play them back or save them as a file.'],
     more: ['And more', 'Picture-in-picture, Chromecast, or hand the stream to an external player such as VLC.'],
-    fullscreen: ['Full screen', 'Full screen from the button, the F key or a double click. Subtitles scale with the picture.'],
-    history: ['Pick up where you left off', 'Films and episodes resume where you stopped, and History keeps them one click away.'],
+    history: ['History', 'Every channel, film and episode you watched, one click away.'],
+    accounts: ['Several accounts', 'Xtream Codes, an M3U playlist or a Stalker portal, side by side. Switch between them in a click.'],
+    sync: ['Sync between computers', 'Your accounts, favourites, history and settings follow you through your browser’s own sync.'],
     keys: ['Made for the keyboard', 'Press ? for the shortcuts. Everything works without a mouse too.'],
     theme: ['Dark or light', 'A dark and a light theme, or follow your system.'],
-    languages: ['Thirteen languages', 'English, Finnish, Swedish, Norwegian, Danish, German, Dutch, French, Spanish, Portuguese, Italian, Polish and Turkish.'],
+    languages: ['Thirty languages', 'From English and Suomi to Deutsch, Español, Polski and Türkçe. A 12- or 24-hour clock, as you like.'],
+    fullscreen: ['Full screen', 'Full screen from the button, the F key or a double click. Subtitles scale with the picture.'],
     outro: ['Kepuli-TV', 'Free on the Chrome Web Store and Firefox Add-ons', 'github.com/BigTimeSam/kepuli-tv'],
     disclaimer: 'Kepuli-TV contains no channels or content. You need your own IPTV subscription. Everything shown here is fictional demo content.',
     chapters: {
-      intro: 'Introduction', connect: 'Connect your service', live: 'Live TV', zap: 'Switching channels', favourites: 'Favourites',
-      countries: 'Choose your countries', guide: 'Programme guide', search: 'Search', movies: 'Movies', series: 'Series',
-      mkv: 'MKV and subtitles', more: 'Picture-in-picture and Chromecast', fullscreen: 'Full screen', history: 'Resume and history',
-      keys: 'Keyboard shortcuts', subsize: 'Subtitle size and height', theme: 'Dark and light theme', languages: 'Languages', outro: 'Get Kepuli-TV',
+      intro: 'Introduction', start: 'Start page', resume: 'Continue watching', live: 'Live TV', zap: 'Switching channels', favourites: 'Favourites',
+      countries: 'Choose your countries', guide: 'Programme guide', search: 'Search', movies: 'Movies and categories', details: 'Title details',
+      series: 'Series', mkv: 'MKV and subtitles', subsize: 'Subtitle size and height', record: 'Recording', recordings: 'Recordings',
+      more: 'Picture-in-picture and Chromecast', history: 'History', accounts: 'Several accounts', sync: 'Sync between computers',
+      keys: 'Keyboard shortcuts', theme: 'Dark and light theme', languages: 'Languages and clock', fullscreen: 'Full screen', outro: 'Get Kepuli-TV',
+    },
+    // The narration, one line a scene, read by a speech model (see VOICE
+    // below). A scene lasts at least as long as its line.
+    voice: {
+      intro: 'Meet Kepuli-TV: a free, open-source IPTV player for Chrome and Firefox. Bring your own subscription, and watch it all right in your browser.',
+      start: 'Your start page picks up where you left off: films and episodes you stopped halfway, what’s on your channels now and soon, and the channels you watched lately.',
+      resume: 'One click, and the film carries on right where you stopped, with the cast, the director and all the details beside it.',
+      live: 'Live TV is sorted by country and topic. Pick a country, narrow it down, and see what’s on now on every channel.',
+      zap: 'Zap with the arrow keys, press Enter to play, and L to jump back to the channel before.',
+      favourites: 'Star the channels you love. Favourites gather at the top of every list, or show them on their own.',
+      countries: 'Keep only the countries you watch. The rest stay out of the lists, the search and the guide.',
+      guide: 'The programme guide covers every channel, or just your favourites. Click a channel to see what’s on now and next.',
+      search: 'Press slash and start typing. Any channel turns up in seconds.',
+      movies: 'For films and series, choose the categories you care about, browse by cover, and play in the same window.',
+      details: 'Every title shows its year, rating, director and cast, and even the format and bit rate of the file.',
+      series: 'Series show their seasons and episodes at a glance.',
+      mkv: 'MKV files play right in the browser, with their subtitles and every audio track.',
+      subsize: 'Make the subtitles as big as you like, and set their height.',
+      record: 'Want to keep a programme? Turn on recording in Settings, with a reminder to record only what you have the right to, and press Record.',
+      recordings: 'Recordings stay in your browser. Play them back, or save them to your computer.',
+      more: 'There’s picture-in-picture, Chromecast, and a hand-off to players like VLC.',
+      history: 'History keeps everything you’ve watched one click away.',
+      accounts: 'Add several accounts, Xtream Codes, an M3U playlist or a Stalker portal, and switch between them in a click.',
+      sync: 'With sync on, your accounts, favourites and history follow you to your other computers.',
+      keys: 'Everything works from the keyboard. Press the question mark to see the shortcuts.',
+      theme: 'Prefer it light? Switch themes in a click.',
+      languages: 'Kepuli-TV speaks thirty languages, with a twelve- or twenty-four-hour clock.',
+      fullscreen: 'And for the big picture, just double-click.',
+      outro: 'Kepuli-TV is free on the Chrome Web Store and Firefox Add-ons. It comes with no channels of its own, so bring your own subscription.',
     },
     otherLanguage: 'Deutsch',
   },
 };
 const C = CAPTIONS[LANG];
 if (!C) throw new Error(`no captions for ${LANG}; add them to CAPTIONS`);
+
+/* ------------------------------------------------------------ narration */
+
+// The narration: each scene's line from C.voice, read by OpenAI's speech
+// model, and music made by dev/demo-music.py under it, ducked while the
+// voice speaks. The key is read from ~/.config/kepuli-tv/openai-key (mode
+// 600) or OPENAI_API_KEY. --silent leaves both out, as the first video was.
+// The clips are kept in dist/video/voice-<lang>/ and made again only when
+// a line, the voice or the instructions change.
+const SILENT = process.argv.includes('--silent');
+// --remix: the sound made again over the last recording, from its scenes'
+// times kept beside it, without recording anew.
+const REMIX = process.argv.includes('--remix');
+const VOICE = { model: 'gpt-4o-mini-tts', voice: 'onyx',
+  instructions: 'Warm, confident male narrator for a short product demo video. Friendly and clear, natural unhurried pace, a slight smile in the voice. Do not rush the ends of sentences.' };
+const voiceLength = {};
+
+function openaiKey() {
+  const file = join(homedir(), '.config', 'kepuli-tv', 'openai-key');
+  if (existsSync(file)) {
+    if ((statSync(file).mode & 0o077) !== 0) throw new Error(`${file} can be read by others: chmod 600 it`);
+    return readFileSync(file, 'utf8').trim();
+  }
+  const key = process.env.OPENAI_API_KEY || '';
+  if (!key.startsWith('sk-')) throw new Error(`no OpenAI key: put it in ${file}, or run with --silent`);
+  return key;
+}
+
+const run = (cmd, args) => new Promise((ok, fail) => {
+  const p = spawn(cmd, args, { stdio: ['ignore', 'pipe', 'inherit'] });
+  let out = '';
+  p.stdout.on('data', (d) => { out += d; });
+  p.on('close', (code) => (code === 0 ? ok(out) : fail(new Error(`${cmd} exited with ${code}`))));
+});
+const duration = async (file) => Number(await run('ffprobe', ['-v', 'error', '-show_entries', 'format=duration', '-of', 'csv=p=0', file]));
+
+async function makeVoice() {
+  const dir = join(OUT, `voice-${LANG}`);
+  mkdirSync(dir, { recursive: true });
+  let key = null;
+  for (const [id, text] of Object.entries(C.voice)) {
+    const clip = join(dir, `${id}.mp3`), note = join(dir, `${id}.json`);
+    const want = JSON.stringify({ ...VOICE, text });
+    if (!existsSync(clip) || !existsSync(note) || readFileSync(note, 'utf8') !== want) {
+      key ||= openaiKey();
+      const res = await fetch('https://api.openai.com/v1/audio/speech', {
+        method: 'POST', headers: { Authorization: `Bearer ${key}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ ...VOICE, input: text, response_format: 'mp3' }),
+      });
+      if (!res.ok) throw new Error(`speech for ${id}: ${res.status} ${(await res.text()).slice(0, 300)}`);
+      writeFileSync(clip, Buffer.from(await res.arrayBuffer()));
+      writeFileSync(note, want);
+      console.log(`voice: ${id} made`);
+    }
+    voiceLength[id] = await duration(clip);
+  }
+  return dir;
+}
+
+// The scene whose line is being spoken, and when it began.
+let speaking = null;
+const LEAD = 0.35;         // the voice starts a moment after the scene
+/** Waits until the line of the scene before has been said, with a breath after it. */
+async function holdVoice() {
+  if (SILENT || !speaking) return;
+  const left = LEAD + (voiceLength[speaking.id] || 0) + 0.45 - (recorder.now() - speaking.at);
+  if (left > 0) await sleep(left * 1000);
+}
+function speak(id, at = recorder.now()) { speaking = { id, at }; }
+
+/** The silent recording, the voice clips at their scenes and the music under them, into one file. */
+async function mix(silent, dir, out) {
+  const length = await duration(silent);
+  const music = join(dir, 'music.wav');
+  await run('uv', ['run', '--quiet', join(ROOT, 'dev', 'demo-music.py'), music, String(Math.ceil(length) + 1)]);
+  const spoken = chapters.filter(({ id }) => C.voice[id]);
+  const inputs = ['-i', silent, '-i', music, ...spoken.flatMap(({ id }) => ['-i', join(dir, `${id}.mp3`)])];
+  const delays = spoken.map(({ at }, i) => `[${i + 2}:a]aresample=48000,adelay=${Math.round((at + LEAD) * 1000)}:all=1[v${i}]`);
+  const graph = [...delays,
+    `${spoken.map((_, i) => `[v${i}]`).join('')}amix=inputs=${spoken.length}:normalize=0,apad,atrim=0:${length.toFixed(2)},asplit=2[voice][key]`,
+    `[1:a]aresample=48000,volume=0.11,atrim=0:${length.toFixed(2)},afade=t=out:st=${(length - 4).toFixed(2)}:d=4[bed]`,
+    `[bed][key]sidechaincompress=threshold=0.01:ratio=10:attack=50:release=900:makeup=1[ducked]`,
+    `[ducked][voice]amix=inputs=2:normalize=0,loudnorm=I=-15:TP=-1.5:LRA=11[a]`].join(';');
+  await run('ffmpeg', ['-y', '-loglevel', 'error', ...inputs, '-filter_complex', graph, '-map', '0:v', '-map', '[a]',
+    '-c:v', 'copy', '-c:a', 'aac', '-b:a', '192k', '-movflags', '+faststart', '-t', length.toFixed(2), out]);
+  // The captions as what the narrator says, where he says it.
+  cues.length = 0;
+  for (const { id, at } of spoken) cues.push({ start: at + LEAD, end: at + LEAD + voiceLength[id], lines: [C.voice[id]] });
+}
 
 /* ------------------------------------------------------------ DevTools */
 
@@ -339,7 +471,9 @@ let recorder;
  * and then goes.
  */
 async function scene(id, where = 'bottom', linger = 0) {
+  await holdVoice();
   chapters.push({ id, at: recorder.now() });
+  speak(id);
   await say(id, where, linger);
   console.log(`${recorder.now().toFixed(1).padStart(6)} s  ${id}`);
 }
@@ -369,38 +503,114 @@ const srtTime = (t) => {
 };
 const srt = (end) => cues.map((c, i) => `${i + 1}\n${srtTime(c.start)} --> ${srtTime(Math.min(c.end, end))}\n${c.lines.join('\n')}\n`).join('\n');
 
+/**
+ * Before the recording: a viewer's few evenings, watched for real, so that
+ * the start page, History and the favourites have something in them. The
+ * channels are played, films and episodes stopped halfway, and a few
+ * channels and films starred — the player writes it all itself, as it
+ * would for anyone.
+ */
+async function prepare() {
+  const press = (find) => evaluate(`(${find}).click()`, { gesture: true });
+  // A film's row is named with its year: "Planet Arctic (2019)".
+  const row = (name) => `[...document.querySelectorAll('#list .row')].find((r) => { const n = r.querySelector('.row-name')?.textContent || ''; return n === ${JSON.stringify(name)} || n.startsWith(${JSON.stringify(name + ' (')}); })`;
+  const stop = async () => {
+    await press(`document.getElementById('btn-home')`);
+    await waitFor(`!document.getElementById('idle-home').hidden`, 'the start page');
+    await sleep(800);
+  };
+  // Channels, the last watched first on the page.
+  await press(byText('#groups', 'Finland'));
+  await waitFor(ROWS, 'the channel list');
+  for (const name of ['Aurora Kids HD', 'Aurora Nature HD', 'Aurora Cinema', 'Aurora News 24']) {
+    await press(row(name));
+    await waitFor(PLAYING, name, 30000);
+    await sleep(2500);
+  }
+  for (const name of ['Aurora One', 'Aurora News 24', 'Aurora Nature HD']) await press(`${row(name)}.querySelector('.row-star')`);
+  await stop();
+  // Films stopped halfway; the last stopped comes first under Continue watching.
+  const films = [['Documentary', 'Planet Arctic', 55], ['Action', 'Steel Horizon', 38], ['Drama', 'The Long Winter', 64], ['Nordic', 'Ice Road Home', 80], ['Nordic', 'Northern Lights', 48]];
+  for (const [group, title, at] of films) {
+    await press(`document.getElementById('tab-movie')`);
+    await press(byText('#groups', group));
+    await waitFor(`${ROWS} && !!${row(title)}`, title);
+    await press(row(title));
+    await waitFor(PLAYING, title, 30000);
+    await evaluate(`document.getElementById('video').currentTime = ${at}`);
+    await sleep(1800);
+    if (group === 'Nordic' && title === 'Northern Lights') {
+      for (const fav of ['Midsummer Ghosts', 'The Archipelago']) await press(`${row(fav)}.querySelector('.row-star')`);
+    }
+    await stop();
+  }
+  // Episodes of two series.
+  for (const [group, title, episode, at] of [['Sci-Fi', 'Orbital', 1, 40], ['Nordic Noir', 'Black Water', 2, 52]]) {
+    await press(`document.getElementById('tab-series')`);
+    await press(byText('#groups', group));
+    await waitFor(`${ROWS} && !!${row(title)}`, title);
+    await press(row(title));
+    await waitFor(`!document.getElementById('detail').hidden && document.querySelectorAll('#list .row').length > ${episode}`, `${title}'s page`);
+    await press(`document.querySelectorAll('#list .row')[${episode}]`);
+    await waitFor(PLAYING, `${title}, episode ${episode + 1}`, 30000);
+    await evaluate(`document.getElementById('video').currentTime = ${at}`);
+    await sleep(1800);
+    await stop();
+  }
+  await press(`document.getElementById('tab-live')`);
+  await waitFor(ROWS, 'the channels again');
+  await evaluate(`document.getElementById('list').scrollTop = 0`);
+  await sleep(1500);
+}
+
 async function walk() {
   // Intro.
   chapters.push({ id: 'intro', at: 0 });
+  speak('intro', 0);
   cue(C.intro, 0, 0);
   await sleep(4500);
+  await holdVoice();
+  speaking = null;
   await evaluate(`window.demo.card(null)`);
   cue(null);
   await sleep(900);
 
-  // Connecting: the form as a new viewer fills it.
-  await scene('connect');
-  await click(`document.getElementById('btn-settings')`, { pause: 700 });
-  await click(`document.getElementById('tab-connection')`, { pause: 500 });
-  const { x: hx, y: hy } = await centre(`document.getElementById('f-host')`);
-  await move(hx, hy, 800);
-  await sleep(1200);
-  const { x: ux, y: uy } = await centre(`document.getElementById('f-username')`);
-  await move(ux, uy, 600);
-  await sleep(2200);
-  await click(`document.getElementById('f-close')`, { pause: 600 });
+  // The start page, filled by the evenings before.
+  await scene('start', 'left');
+  const { x: cx, y: cy } = await centre(`document.querySelector('.idle-card-wrap')`);
+  await move(cx, cy, 900);
+  await sleep(1400);
+  await click(`document.querySelector('.idle-scroll.next')`, { pause: 1300 });
+  await click(`document.querySelector('.idle-scroll.prev:not([hidden])') || document.querySelector('.idle-scroll.prev')`, { pause: 1100 });
+  const { x: kx, y: ky } = await centre(`document.querySelector('.idle-pick:not([hidden])') || document.querySelector('.idle-channel')`);
+  await move(kx, ky, 800);
+  await sleep(1800);
+  // Down to Watched lately, and back up.
+  const wheel = async (dy, times) => { for (let i = 0; i < times; i++) { await page.call('Input.dispatchMouseEvent', { type: 'mouseWheel', x: kx, y: ky, deltaX: 0, deltaY: dy }); await sleep(90); } };
+  await wheel(120, 5);
+  await sleep(2600);
+  await wheel(-120, 6);
+  await sleep(900);
+
+  // Continue watching: the film carries on where it stopped.
+  await scene('resume', 'left');
+  await click(`[...document.querySelectorAll('.idle-card-wrap')].find((w) => w.textContent.includes('Northern Lights')).querySelector('.idle-card, button, a') || [...document.querySelectorAll('.idle-card-wrap')].find((w) => w.textContent.includes('Northern Lights'))`);
+  await waitFor(PLAYING, 'the film resumed', 30000);
+  await move(WIDTH * 0.8, HEIGHT * 0.86, 900);
+  await sleep(4200);
 
   // Live TV.
   await scene('live', 'right');
+  await click(`document.getElementById('tab-live')`, { pause: 800 });
   await click(byText('#groups', 'Finland'));
   await waitFor(ROWS, 'the channel list');
-  await sleep(1000);
+  await sleep(800);
   await click(byText('#subcats', 'Sport'), { pause: 1100 });
   await click(byText('#subcats', 'All'), { pause: 700 });
   await click(byText('#list', 'Aurora One'));
   await waitFor(PLAYING, 'the live stream');
   await move(WIDTH * 0.74, HEIGHT * 0.86, 700);
-  await sleep(3000);
+  await sleep(2800);
 
   // Zapping from the keyboard.
   await scene('zap', 'right');
@@ -408,56 +618,70 @@ async function walk() {
   await move(WIDTH * 0.74, HEIGHT * 0.3, 500);
   await key('ArrowUp', { pause: 500 });
   await key('ArrowUp', { pause: 500 });
-  await key('Enter', { pause: 2200 });
-  await key('l', { pause: 2600 });
+  await key('Enter', { pause: 2000 });
+  await key('l', { pause: 2400 });
 
-  // Favourites from the row's menu.
+  // Favourites: from the row's menu, at the top, and alone.
   await scene('favourites', 'right');
   const row = `[...document.querySelectorAll('#list .row')].find((r) => r.textContent.includes('Aurora Cinema Nordic'))`;
   const { x: rx, y: ry } = await centre(row);
   await move(rx, ry, 700);
-  await sleep(400);
+  await sleep(300);
   await click(`${row}.querySelector('.row-more')`, { pause: 700 });
-  await click(byText('.row-menu', 'Add to favourites'), { pause: 1000 });
-  await click(`document.getElementById('fav-strip-toggle')`, { pause: 2500 });
-  await click(`document.getElementById('fav-strip-toggle')`, { pause: 600 });
+  await click(byText('.row-menu', 'Add to favourites'), { pause: 900 });
+  await click(`document.getElementById('fav-strip-toggle')`, { pause: 2200 });
+  await click(`document.getElementById('fav-strip-toggle')`, { pause: 500 });
+  await click(`document.getElementById('groups-favonly')`, { pause: 2600 });
+  await click(`document.getElementById('groups-favonly')`, { pause: 700 });
 
   // Countries.
-  await scene('countries', 'bottom', 3400);
-  await sleep(2600);
+  await scene('countries', 'bottom', 3200);
+  await sleep(2400);
   await click(`document.getElementById('btn-countries')`, { pause: 900 });
   for (const name of ['Finland', 'Sweden', 'Norway']) {
-    await click(`document.querySelector('#countries-list .choice-row[data-name="${name}"] input')`, { pause: 450 });
+    await click(`document.querySelector('#countries-list .choice-row[data-name="${name}"] input')`, { pause: 400 });
   }
-  await sleep(900);
-  await click(`document.getElementById('countries-save')`, { pause: 2500 });
+  await sleep(700);
+  await click(`document.getElementById('countries-save')`, { pause: 2200 });
 
-  // The guide.
+  // The guide, and the favourites alone in it.
   await scene('guide', 'bottom', 5200);
   await click(`document.getElementById('btn-guide')`);
   await waitFor(`document.getElementById('main').classList.contains('guide') && document.querySelectorAll('#epg-canvas *').length > 20`, 'the guide');
-  await sleep(2200);
-  await click(`[...document.querySelectorAll('.epg-chan')][2].querySelector('.epg-chan-name')`, { pause: 3800 });
-  await click(`document.getElementById('epg-close')`, { pause: 800 });
+  await sleep(2000);
+  await click(`document.getElementById('epg-favs')`, { pause: 2600 });
+  await click(`[...document.querySelectorAll('.epg-chan')][1].querySelector('.epg-chan-name')`, { pause: 3200 });
+  await click(`document.getElementById('epg-favs')`, { pause: 1200 });
+  await click(`document.getElementById('epg-close')`, { pause: 700 });
 
   // Search.
   await scene('search', 'right');
   await move(WIDTH * 0.55, HEIGHT * 0.5, 500);
   await key('/', { pause: 400 });
   await type('news');
-  await sleep(2800);
-  await click(`document.getElementById('search-clear')`, { pause: 700 });
+  await sleep(2500);
+  await click(`document.getElementById('search-clear')`, { pause: 600 });
 
-  // Movies.
-  await scene('movies', 'right');
+  // Movies: the categories chosen, the covers, a film.
+  await scene('movies', 'bottom', 3000);
   await click(`document.getElementById('tab-movie')`, { pause: 900 });
+  await sleep(1400);
+  await click(`document.getElementById('btn-countries')`, { pause: 900 });
+  for (const name of ['Drama', 'Nordic', 'Documentary', 'Thriller']) {
+    await click(`document.querySelector('#countries-list .choice-row[data-name="${name}"] input')`, { pause: 400 });
+  }
+  await sleep(600);
+  await click(`document.getElementById('countries-save')`, { pause: 1500 });
+  await say('movies', 'right');
   await click(byText('#groups', 'Nordic'));
   await waitFor(ROWS, 'the movies');
-  await click(`document.querySelector('button[aria-label="Show as covers"]')`, { pause: 1600 });
-  await click(byText('#list', 'Northern Lights'));
+  await click(`document.querySelector('button[aria-label="Show as covers"]')`, { pause: 1500 });
+  await click(byText('#list', 'Midsummer Ghosts'));
   await waitFor(PLAYING, 'the movie');
-  await move(WIDTH * 0.76, HEIGHT * 0.9, 700);
-  await sleep(3200);
+
+  await scene('details', 'left');
+  await move(WIDTH * 0.8, HEIGHT * 0.86, 800);
+  await sleep(4200);
 
   // A series.
   await scene('series', 'right');
@@ -466,52 +690,103 @@ async function walk() {
   await waitFor(ROWS, 'the series');
   await click(byText('#list', 'Silent Fjord'));
   await waitFor(`!document.getElementById('detail').hidden && document.querySelectorAll('#list .row').length > 0`, 'the series page');
-  await sleep(1400);
-  await click(byText('#detail', 'Season 2'), { pause: 1200 });
-  await click(byText('#detail', 'Season 1'), { pause: 900 });
+  await sleep(1200);
+  await click(byText('#detail', 'Season 2'), { pause: 1100 });
+  await click(byText('#detail', 'Season 1'), { pause: 800 });
 
   // An MKV episode with subtitles.
   await scene('mkv', 'left');
   await click(`document.querySelector('#list .row')`);
   await waitFor(PLAYING, 'the episode');
   await waitFor(`(() => { const s = document.getElementById('subs'); return !s.hidden && s.options.length > 1; })()`, 'the subtitle tracks');
-  await sleep(800);
+  await sleep(700);
   await click(`document.getElementById('subs')`, { pause: 800 });
-  await click(byText('.picker-pop', 'English'), { pause: 3200 });
+  await click(byText('.picker-pop', 'English'), { pause: 3000 });
 
   await scene('subsize', 'left');
-  await click(`document.getElementById('btn-sublook')`, { pause: 1500 });
+  await click(`document.getElementById('btn-sublook')`, { pause: 1400 });
   await click(`document.getElementById('btn-sublook')`, { pause: 500 });
   await move(WIDTH * 0.74, HEIGHT * 0.35, 600);
   await key('+', { pause: 700 });
-  await key('+', { pause: 1800 });
+  await key('+', { pause: 1600 });
+
+  // Recording: turned on in Settings, after the reminder, then a channel recorded.
+  await scene('record', 'bottom', 3000);
+  await click(`document.getElementById('tab-live')`, { pause: 700 });
+  await click(byText('#list', 'Aurora News 24'));
+  await waitFor(PLAYING, 'the channel to record', 30000);
+  await sleep(1200);
+  await click(`document.getElementById('btn-settings')`, { pause: 700 });
+  await click(`document.getElementById('tab-general')`, { pause: 600 });
+  await click(`document.getElementById('f-record')`, { pause: 900 });
+  await waitFor(`document.getElementById('rec-consent').open`, 'the recording reminder');
+  await sleep(2600);
+  await click(`document.getElementById('rec-consent-ok')`, { pause: 700 });
+  await click(`document.getElementById('f-save')`, { pause: 900 });
+  await waitFor(`!document.getElementById('setup').open && !document.getElementById('btn-record').hidden`, 'the Record button');
+  await say('record', 'right');
+  await click(`document.getElementById('btn-record')`, { pause: 4500 });
+  await click(`document.getElementById('btn-record')`, { pause: 1200 });
+
+  await scene('recordings', 'bottom', 2600);
+  await sleep(2000);
+  await click(`document.getElementById('btn-recordings')`, { pause: 3200 });
+  await click(`document.getElementById('recordings-close')`, { pause: 600 });
 
   await scene('more', 'left');
-  await click(`document.getElementById('btn-more')`, { pause: 3200 });
+  await click(`document.getElementById('btn-more')`, { pause: 3000 });
   await key('Escape', { pause: 500 });
 
   // History.
   await scene('history', 'right');
-  await click(`document.getElementById('tab-recent')`, { pause: 3600 });
+  await click(`document.getElementById('tab-recent')`, { pause: 3400 });
+
+  // Several accounts, and the sync.
+  await scene('accounts', 'bottom', 3000);
+  await sleep(2200);
+  await click(`document.getElementById('btn-settings')`, { pause: 700 });
+  await click(`document.getElementById('tab-connection')`, { pause: 300 });
+  await evaluate(`document.getElementById('accounts').scrollIntoView({ block: 'start' })`);
+  await sleep(600);
+  const { x: ax, y: ay } = await centre(`document.querySelector('#account-list li:nth-child(2)') || document.getElementById('account-list')`);
+  await move(ax, ay, 700);
+  await sleep(900);
+  const { x: bx, y: by } = await centre(`document.querySelector('#account-list li:nth-child(3)') || document.getElementById('account-list')`);
+  await move(bx, by, 600);
+  await sleep(900);
+  const { x: sx, y: sy } = await centre(`document.querySelector('input[name="source"][value="stalker"]').closest('label')`);
+  await move(sx, sy, 700);
+  await sleep(1200);
+
+  await click(`document.getElementById('tab-account')`, { pause: 700 });
+  await scene('sync', 'top');
+  const { x: yx, y: yy } = await centre(`document.getElementById('f-sync').closest('label')`);
+  await move(yx, yy, 700);
+  await sleep(3400);
+  await click(`document.getElementById('f-close')`, { pause: 700 });
+  await evaluate(`document.getElementById('setup').open && document.getElementById('f-discard')?.click()`);
 
   // The keys.
-  await scene('keys', 'bottom', 3400);
+  await scene('keys', 'bottom', 3200);
   await move(WIDTH * 0.75, HEIGHT * 0.5, 500);
-  await sleep(2400);
-  await key('?', { pause: 1700 });
-  await click(`document.querySelector('.help-more summary')`, { pause: 2600 });
+  await sleep(2200);
+  await key('?', { pause: 1600 });
+  await click(`document.querySelector('.help-more summary')`, { pause: 2400 });
   await click(`document.getElementById('help-close')`, { pause: 600 });
 
-  // The theme.
-  await scene('theme', 'right');
+  // The theme, shown on the start page.
+  await scene('theme', 'left');
+  await click(`document.getElementById('btn-home')`, { pause: 1200 });
   await click(`document.getElementById('btn-theme')`, { pause: 3200 });
   await click(`document.getElementById('btn-theme')`, { pause: 900 });
 
-  // Languages.
-  await scene('languages', 'bottom', 3400);
-  await sleep(2600);
+  // Languages and the clock.
+  await scene('languages', 'bottom', 3200);
+  await sleep(2400);
   await click(`document.getElementById('btn-settings')`, { pause: 700 });
   await click(`document.getElementById('tab-general')`, { pause: 600 });
+  await click(`document.getElementById('f-clock')`, { pause: 700 });
+  await click(byText('.picker-pop', '12-hour'), { pause: 900 });
   await click(`document.getElementById('f-lang')`, { pause: 700 });
   await type(C.otherLanguage.slice(0, 3), 150);
   await sleep(500);
@@ -519,7 +794,9 @@ async function walk() {
   await click(`document.getElementById('f-save')`, { pause: 1000 });
   await waitFor(`!document.getElementById('setup').open`, 'the settings to close', 8000).catch(() => evaluate(`document.getElementById('setup').close()`));
   await say('languages', 'right');
-  await sleep(3600);
+  await click(byText('#list', 'Aurora One'));
+  await waitFor(PLAYING, 'a channel in the other language', 30000);
+  await sleep(3000);
 
   // Full screen, last: the screencast is blown up after it for good, so
   // from here to the end the frames are screenshots (see screenshots()).
@@ -527,7 +804,7 @@ async function walk() {
   const { x: vx, y: vy } = await centre(`document.getElementById('video')`);
   await move(vx, vy, 700);
   await move(vx + 40, vy + 20, 300);
-  // A double click on the picture: full screen with the subtitle layer.
+  // A double click on the picture: full screen, and the picture plays on.
   await click(`document.getElementById('video')`, { pause: 0, double: true });
   recorder.screenshots();
   await waitFor(`!!document.fullscreenElement`, 'full screen', 5000);
@@ -536,13 +813,17 @@ async function walk() {
   await sleep(3800);
 
   // Outro.
+  await holdVoice();
   await hide();
   chapters.push({ id: 'outro', at: recorder.now() });
+  speak('outro');
   const [title, line, small] = C.outro;
   cue([...C.outro, C.disclaimer]);
   await evaluate(`window.demo.card(${JSON.stringify(title)}, ${JSON.stringify(line)}, ${JSON.stringify(small)}, ${JSON.stringify(C.disclaimer)})`);
   await move(WIDTH + 40, HEIGHT * 0.8, 600);
   await sleep(6500);
+  await holdVoice();
+  await sleep(1500);
 }
 
 /* ------------------------------------------------------------------ main */
@@ -551,6 +832,14 @@ const stamp = (s) => `${Math.floor(s / 60)}:${String(Math.floor(s % 60)).padStar
 
 mkdirSync(OUT, { recursive: true });
 const video = join(OUT, `kepuli-tv-demo-${LANG}.mp4`);
+const voiceDir = SILENT ? null : await makeVoice();
+if (REMIX) {
+  chapters.push(...JSON.parse(readFileSync(join(OUT, `kepuli-tv-demo-${LANG}-scenes.json`), 'utf8')));
+  await mix(join(OUT, `kepuli-tv-demo-${LANG}-silent.mp4`), voiceDir, video);
+  writeFileSync(join(OUT, `kepuli-tv-demo-${LANG}.srt`), srt(await duration(video)));
+  console.log(`${video}: the sound mixed again`);
+  process.exit(0);
+}
 const server = await startMockServer(MOCK_PORT);
 await ensureChrome(['--headless=new', '--autoplay-policy=no-user-gesture-required', '--force-color-profile=srgb',
   `--host-resolver-rules=MAP ${HOST} 127.0.0.1`, `--window-size=${WIDTH},${HEIGHT}`]);
@@ -560,14 +849,21 @@ try {
   // The screen as large as the viewport: full screen fills the frame
   // rather than the default 800x600 screen of a headless Chrome.
   await page.call('Emulation.setDeviceMetricsOverride', METRICS);
+  // Three accounts, of the three kinds; the Xtream one in use.
+  const home = { type: 'xtream', scheme: 'http', host: HOST, port: String(MOCK_PORT), username: USER, password: PASS, name: 'Home', id: 'a1', sourceMode: 'xtream', streamMode: 'auto' };
+  const accounts = [home,
+    { type: 'm3u', url: `http://${HOST}:${MOCK_PORT}/playlist.m3u`, epgUrl: '', name: 'Summer cottage playlist', id: 'a2', sourceMode: 'm3u', streamMode: 'auto' },
+    { type: 'stalker', url: `http://${HOST}:${MOCK_PORT}/c/`, mac: STALKER_MAC, name: 'Living room portal', id: 'a3', sourceMode: 'stalker', streamMode: 'auto' }];
   await evaluate(`chrome.storage.local.set({
-    config: { scheme: 'http', host: '${HOST}', port: '${MOCK_PORT}', username: '${USER}', password: '${PASS}', sourceMode: 'xtream', streamMode: 'auto' },
-    settings: { lang: '${LANG}', epgEnabled: true, resumeEnabled: true, subtitleLang: '', theme: 'dark' },
-    ui: { tab: 'live' }, favorites: [], recents: [], resume: {},
+    config: ${JSON.stringify(home)}, accounts: ${JSON.stringify(accounts)},
+    settings: { lang: '${LANG}', epgEnabled: true, resumeEnabled: true, subtitleLang: '', theme: 'dark', recordingEnabled: false, clock: 'auto' },
+    ui: { tab: 'live' },
   })`);
   await page.call('Page.reload');
   await waitFor(`document.querySelectorAll('#groups .group').length > 1 && document.getElementById('list-progress').hidden`, 'the connection');
   await evaluate(`document.fonts.ready`);
+  console.log('preparing the history and the favourites…');
+  await prepare();
   await evaluate(LAYER);
   const [title, line, small] = C.intro;
   await evaluate(`window.demo.card(${JSON.stringify(title)}, ${JSON.stringify(line)}, ${JSON.stringify(small)}, ${JSON.stringify(C.disclaimer)})`);
@@ -575,10 +871,16 @@ try {
   const { data } = await page.call('Page.captureScreenshot', { format: 'png' });
   writeFileSync(join(OUT, `kepuli-tv-demo-${LANG}-thumbnail.png`), Buffer.from(data, 'base64'));
 
-  recorder = new Recorder(video);
+  const silent = SILENT ? video : join(OUT, `kepuli-tv-demo-${LANG}-silent.mp4`);
+  recorder = new Recorder(silent);
   await recorder.start();
   await walk();
   await recorder.stop();
+  writeFileSync(join(OUT, `kepuli-tv-demo-${LANG}-scenes.json`), JSON.stringify(chapters));
+  if (!SILENT) {
+    console.log('mixing the voice and the music…');
+    await mix(silent, voiceDir, video);
+  }
 
   const lines = chapters.map(({ id, at }) => `${stamp(at)} ${C.chapters[id]}`);
   writeFileSync(join(OUT, `kepuli-tv-demo-${LANG}-chapters.txt`), lines.join('\n') + '\n');

@@ -50,7 +50,7 @@ import { createHash } from 'node:crypto';
 import { existsSync, readFileSync, statSync, writeFileSync } from 'node:fs';
 import { homedir } from 'node:os';
 import { join } from 'node:path';
-import { readListings, unwrap, CHROME_UNSUPPORTED } from './listings.mjs';
+import { readListings, unwrap, forChrome, CHROME_UNSUPPORTED } from './listings.mjs';
 
 const ROOT = new URL('..', import.meta.url).pathname;
 const ITEM_ID = 'okkgclcakhjhldkdcblgagoaibghpfmi';
@@ -163,7 +163,7 @@ const LISTED = join(ROOT, 'store', 'cws-listing.json');
 /** Each Chrome language's detailed description as pasted, with its hash. */
 function wantedListing() {
   return readListings().filter((l) => !CHROME_UNSUPPORTED.includes(l.locale)).map((l) => {
-    const text = unwrap(l.detailed);
+    const text = unwrap(forChrome(l.detailed));
     return { locale: l.locale, text, hash: createHash('sha256').update(text).digest('hex').slice(0, 12) };
   });
 }

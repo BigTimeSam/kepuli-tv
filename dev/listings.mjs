@@ -116,11 +116,25 @@ export function unwrap(text) {
   return out.join('\n').replace(/\n{3,}/g, '\n\n');
 }
 
+/**
+ * The detailed description for the Chrome Web Store: without its last
+ * section, the link to the video tour. The store shows the video itself at
+ * the top of the page, from the promo video field; AMO has no such field,
+ * so its description keeps the link. The section is the last of the
+ * sections the source parts with two empty lines, and is dropped only when
+ * it holds the link.
+ */
+export function forChrome(detailed) {
+  const sections = detailed.split('\n\n\n');
+  return sections.length > 1 && /youtu\.?be/.test(sections[sections.length - 1]) ? sections.slice(0, -1).join('\n\n\n').trimEnd() : detailed;
+}
+
 /** One listing as it is pasted into the stores' forms. */
 export function pasteable({ name, short, detailed }) {
   return `NAME (Chrome and AMO: from the manifest, nothing to paste)\n${name}\n\n`
     + `SHORT DESCRIPTION (Chrome: from the manifest; AMO: the Summary field)\n${short}\n\n`
-    + `DETAILED DESCRIPTION (Chrome: Description; AMO: Description)\n${unwrap(detailed)}\n`;
+    + `DETAILED DESCRIPTION (AMO: Description)\n${unwrap(detailed)}\n\n`
+    + `DETAILED DESCRIPTION (Chrome: Description, without the video section)\n${unwrap(forChrome(detailed))}\n`;
 }
 
 /** What _locales/<locale>/messages.json holds for one listing. */
