@@ -425,10 +425,13 @@ export class Playback {
    * once and as it is, and the account is not asked — the provider would
    * have let a stream through on a full account.
    */
-  channelRefused(spec) {
-    const verdict = { path: 'unavailable', reason: t('playback.channelrefused') };
+  channelRefused(spec, status = 0) {
+    // With the HTTP status where the engine reported one; without it the
+    // request did not get an answer the browser could read at all.
+    const message = status ? t('playback.channelrefused', { status }) : t('playback.channelunreached');
+    const verdict = { path: 'unavailable', reason: message };
     spec.verdict = verdict;
-    this.onState({ status: 'error', message: t('playback.channelrefused'), verdict, content: true });
+    this.onState({ status: 'error', message, verdict, content: true });
   }
 
   refuse(known, extra = {}) {
@@ -543,7 +546,7 @@ export class Playback {
       // picture out of that, see emptyAnswer() in js/probe.js.
       if (empty) return void this.nothingThere(spec);
       if (unavailable) return void this.fileRefused(spec, unavailable);
-      if (channel) return void this.channelRefused(spec);
+      if (channel) return void this.channelRefused(spec, channel === true ? 0 : channel);
       // The server answered and said no. For a live channel that is the
       // account's connections far more often than the format: the
       // provider goes on counting the stream just closed for a while, and a
@@ -687,7 +690,7 @@ export class Playback {
       if (serverFault(status) || (!isLive && providerError(status))) return finish(false, why, { unavailable: status });
       if (isLive && (CHANNEL_REFUSED.mpegts.has(status)
         || (type === mpegts.ErrorTypes.NETWORK_ERROR && detail !== 'HttpStatusCodeInvalid' && !flowing))) {
-        return finish(false, why, { channel: true });
+        return finish(false, why, { channel: status > 0 ? status : true });
       }
       const gone = status === 404 || status === 410;
       const refused = !gone && ((detail === 'HttpStatusCodeInvalid' && status >= 400)
@@ -741,7 +744,7 @@ export class Playback {
     hls.on(Hls.Events.ERROR, (_e, data) => {
       const status = Number(data.response && data.response.code);
       const unreached = data.details === Hls.ErrorDetails.MANIFEST_LOAD_ERROR && !status;
-      if (live && (CHANNEL_REFUSED.hls.has(status) || unreached)) { finish(false, `${data.type}/${data.details} ${status}`, { channel: true }); return; }
+      if (live && (CHANNEL_REFUSED.hls.has(status) || unreached)) { finish(false, `${data.type}/${data.details} ${status}`, { channel: status > 0 ? status : true }); return; }
       if (!data.fatal) return;
       if (data.type === Hls.ErrorTypes.MEDIA_ERROR && recovered < 2) { recovered++; hls.recoverMediaError(); return; }
       if (serverFault(status) || (!live && providerError(status))) { finish(false, `${data.type}/${data.details} ${status}`, { unavailable: status }); return; }

@@ -84,6 +84,12 @@ FOR 1.6.0 SPECIFICALLY
   only what they have the right to; the terms of use (1.1) say the same and
   that a Stalker portal takes only the user's own registered MAC address. No
   new permission.
+  1.6.3: interface changes only, no new permission: Continue watching as a
+  row that scrolls, the start page's sections chosen in Settings, the films'
+  and series' categories chosen like the countries, the title over the
+  picture and the details under it with director and cast. Two lines of the
+  listing change in every language: recording is turned on in Settings, and
+  the categories can be chosen.
 
 FOR 1.5.3 SPECIFICALLY
   The name is localised: "Kepuli-TV – " and "IPTV player" in each language

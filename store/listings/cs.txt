@@ -14,6 +14,7 @@ postavený na jediné myšlence: obrovský katalog má působit jako malý.
 → Filmy a epizody v MKV hrají rovnou v prohlížeči, včetně titulků a
   prostorového zvuku
 → Nahraj kanál hned teď nebo pořad z průvodce a ulož si ho jako soubor
+  (nahrávání se zapíná v Nastavení)
 
 
 PROČ JSEM TO UDĚLAL
@@ -41,6 +42,8 @@ CO ZÍSKÁŠ
 • Oblíbené, historie sledování a pozice, kde jsi skončil.
 • Globální značky ze seznamu země schováš a její vlastní stanice snadno
   najdeš.
+• Nech si jen země, jež sleduješ, a jen kategorie filmů a seriálů, jaké
+  chceš.
 • Odesílání na Chromecast, multimediální klávesy a upozornění před začátkem
   pořadu.
 • Průvodce umí zobrazit jen tvoje oblíbené kanály.

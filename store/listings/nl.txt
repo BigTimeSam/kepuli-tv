@@ -13,6 +13,7 @@ en is gebouwd rond één idee: een enorme catalogus moet klein aanvoelen.
 → MKV-films en -afleveringen spelen direct in de browser, met ondertitels
   en surroundgeluid
 → Neem een zender nu op of een programma uit de gids, en bewaar het als bestand
+  (opnemen zet je aan in Instellingen)
 
 
 WAAROM IK HET MAAKTE
@@ -42,6 +43,8 @@ WAT JE KRIJGT
 • Favorieten, kijkgeschiedenis en hervatposities.
 • Verberg de wereldwijde merken in de lijst van een land, dan vind je de
   eigen stations makkelijk.
+• Houd enkel de landen over die je bekijkt, en van films en series de
+  categorieën die je wilt.
 • Casten naar een Chromecast, de mediatoetsen gebruiken en een herinnering
   krijgen voordat een uitzending begint.
 • De gids kan zich beperken tot je favoriete zenders.

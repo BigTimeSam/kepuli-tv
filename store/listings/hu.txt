@@ -14,6 +14,7 @@ listákat és Stalker portálokat játszik le, egyetlen gondolatra épülve: egy
 → Az MKV-s filmek és epizódok egyenesen a böngészőben szólnak, felirattal és
   térhatású hanggal együtt
 → Rögzíts egy csatornát most, vagy egy műsort a műsorfüzetből, fájlként
+  (a rögzítést a Beállításokban kell bekapcsolni)
 
 
 MIÉRT CSINÁLTAM
@@ -44,6 +45,8 @@ MIT KAPSZ
 • Kedvencek, nézési előzmények és folytatási pontok.
 • A globális márkák elrejthetők egy ország listájából, így a hazai adók
   könnyen megtalálhatók.
+• Megtarthatod csak a nézett országokat, és csak a kívánt film- és
+  sorozatkategóriákat.
 • Küldés Chromecastra, médiabillentyűk, és emlékeztető a műsor kezdete előtt.
 • A műsorfüzet megjelenítheti csak a kedvenc csatornáidat.
 • Sötét vagy világos téma, a billentyűzettel minden elérhető; az elrendezés

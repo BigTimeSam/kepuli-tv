@@ -48,9 +48,9 @@ function check(what, actual, expected) {
 
 /* ------------------------------------------------ xtream.js: parseServer */
 
-const preferences = channelPreferences({ hiddenChannels: [1, '1'], hiddenCategories: ['sport'], pinned: ['3'], countries: ['Finland'], channelOrder: ['9'] });
+const preferences = channelPreferences({ hiddenChannels: [1, '1'], hiddenCategories: ['sport'], pinned: ['3'], countries: ['Finland'], movieCategories: ['Drama', 'Drama'], channelOrder: ['9'] });
 check('preferences keep ids as strings, once, and drop what is no longer kept',
-  preferences, { hiddenChannels: ['1'], hiddenCategories: ['sport'], countries: ['Finland'] });
+  preferences, { hiddenChannels: ['1'], hiddenCategories: ['sport'], countries: ['Finland'], movieCategories: ['Drama'], seriesCategories: [] });
 const channelRows = [{ k: 0, id: '1', cats: ['news'] }, { k: 0, id: '2', cats: ['sport', 'news'] },
   { k: 0, id: '3', cats: ['news'] }, { k: 1, id: '1' }, { k: 0, id: '4', cats: ['new'] }];
 check('hidden channels and categories also filter overlapping categories, without hiding movies',

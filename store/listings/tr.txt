@@ -14,6 +14,7 @@ hissettirmeli.
 → MKV filmler ve bölümler doğrudan tarayıcıda oynar; altyazı ve surround ses
   dahil
 → Bir kanalı hemen ya da rehberden bir programı kaydet, dosya olarak sakla
+  (kayıt özelliği Ayarlar'dan açılır)
 
 
 NEDEN YAPTIM
@@ -43,6 +44,8 @@ NELER SUNUYOR
 • Favoriler, izleme geçmişi ve kaldığın yerden devam noktaları.
 • Bir ülkenin listesinde küresel markaları gizle, o ülkenin kendi yayınları
   kolayca bulunur.
+• Yalnızca izlediğin ülkeleri, film ve dizilerde de istediğin kategorileri
+  tut.
 • Chromecast'e yayınla, medya tuşlarını kullan ve bir program başlamadan önce
   hatırlatma al.
 • Rehber yalnızca favori kanallarını gösterebilir.

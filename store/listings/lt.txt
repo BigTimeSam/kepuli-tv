@@ -14,6 +14,7 @@ sukurtas vienos minties pagrindu: didžiulis katalogas turi jaustis mažas.
 → MKV filmai ir serijos groja tiesiai naršyklėje, su subtitrais ir erdviniu
   garsu
 → Įrašyk kanalą dabar arba laidą iš gido ir pasilik ją kaip failą
+  (įrašymas įjungiamas Nustatymuose)
 
 
 DĖL KO TAI SUKŪRIAU
@@ -42,6 +43,8 @@ KĄ GAUSI
 • Mėgstamiausi, žiūrėjimo istorija ir vietos, kur baigei.
 • Paslėpk pasaulinius prekių ženklus šalies sąraše, ir jos pačios stotys
   bus lengvai randamos.
+• Palik tik tas šalis, kurias žiūri, ir tik norimas filmų bei serialų
+  kategorijas.
 • Transliacija į Chromecast, medijų klavišai ir priminimas prieš prasidedant
   laidai.
 • Gidas gali rodyti tik tavo mėgstamiausius kanalus.

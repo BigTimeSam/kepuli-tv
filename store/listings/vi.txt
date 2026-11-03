@@ -13,6 +13,7 @@ Stalker, xây quanh một ý tưởng: kho kênh khổng lồ cũng phải gọn
 → Phim và tập MKV phát ngay tại đây, đủ phụ đề và âm thanh vòm
 → Ghi lại một kênh ngay lúc này hoặc một mục trong lịch phát sóng, lưu thành
   tệp
+  (bật tính năng ghi trong Cài đặt)
 
 
 VÌ SAO TÔI LÀM RA NÓ
@@ -40,6 +41,8 @@ BẠN SẼ NHẬN ĐƯỢC
 • Mục yêu thích, lịch sử xem và vị trí xem tiếp.
 • Ẩn các thương hiệu toàn cầu khỏi danh sách của từng quốc gia, nhờ đó dễ
   tìm kênh bản địa.
+• Chỉ giữ các quốc gia bạn xem, và chỉ các thể loại phim lẻ, phim bộ bạn
+  muốn.
 • Truyền sang Chromecast, dùng phím đa phương tiện và nhận lời nhắc trước
   giờ chiếu.
 • Lịch phát sóng có thể chỉ hiện các kênh yêu thích của bạn.

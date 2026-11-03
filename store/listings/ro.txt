@@ -13,6 +13,7 @@ construit în jurul unei singure idei: un catalog uriaș trebuie să pară mic.
 → Filmele și episoadele MKV rulează direct în browser, cu subtitrări și sunet
   surround
 → Înregistrează un canal acum sau o emisiune din ghid și păstreaz-o ca fișier
+  (înregistrarea se activează din Setări)
 
 
 DE CE L-AM FĂCUT
@@ -42,6 +43,8 @@ CE PRIMEȘTI
 • Favorite, istoric de vizionare și poziții de reluare.
 • Ascunde mărcile globale din lista unei țări, iar posturile ei proprii se
   găsesc ușor.
+• Păstrează doar țările pe care le urmărești și doar categoriile de filme și
+  seriale pe care le vrei.
 • Transmitere pe Chromecast, taste media și o notificare înainte să înceapă o
   emisiune.
 • Ghidul poate afișa doar canalele tale favorite.

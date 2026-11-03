@@ -13,6 +13,7 @@ built around one idea: a huge catalogue should feel small.
 → MKV movies and episodes play right in the browser, subtitles and surround
   sound included
 → Record a channel now or a programme from the guide, and keep it as a file
+  (recording is turned on in Settings)
 
 
 WHY I MADE IT
@@ -40,6 +41,8 @@ WHAT YOU GET
 • Favourites, viewing history and resume positions.
 • Hide the global brands from a country's list, and its own stations are
   easy to find.
+• Keep only the countries you watch, and only the film and series
+  categories you want.
 • Cast to a Chromecast, use the media keys, and get a reminder before a
   programme starts.
 • The guide can show just your favourite channels.

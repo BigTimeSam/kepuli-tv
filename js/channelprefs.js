@@ -19,6 +19,10 @@ export function channelPreferences(value = {}) {
     // A list of what to show rather than of what to hide, so that a
     // country the provider adds later does not turn up uninvited.
     countries: ids('countries'),
+    // The same for the films' and the series' categories (their groups,
+    // by name): what the sidebar, the lists and the search show.
+    movieCategories: ids('movieCategories'),
+    seriesCategories: ids('seriesCategories'),
   };
 }
 

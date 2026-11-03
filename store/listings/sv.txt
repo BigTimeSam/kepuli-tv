@@ -13,6 +13,7 @@ kring en enda idé: ett enormt utbud ska kännas litet.
 → MKV-filmer och avsnitt spelas direkt i webbläsaren, med undertexter och
   surroundljud
 → Spela in en kanal nu eller ett program från guiden, och spara det som en fil
+  (inspelning slås på i Inställningar)
 
 
 VARFÖR JAG GJORDE DEN
@@ -40,6 +41,8 @@ VAD DU FÅR
 • Favoriter, visningshistorik och återupptagningspositioner.
 • Dölj de globala varumärkena i ett lands lista, så är landets egna kanaler
   lätta att hitta.
+• Behåll bara länderna du tittar på, och bara de film- och seriekategorier
+  du vill ha.
 • Casta till en Chromecast, använd mediatangenterna och få en påminnelse
   innan ett program börjar.
 • Guiden kan visa bara dina favoritkanaler.

@@ -14,6 +14,7 @@ pensado en torno a una idea: un catálogo enorme debería sentirse pequeño.
 → Las películas y los episodios en MKV se ven directamente aquí, con
   subtítulos y sonido envolvente
 → Graba un canal ahora o un programa desde la guía, y guárdalo como archivo
+  (la grabación se activa en Ajustes)
 
 
 POR QUÉ LO HICE
@@ -43,6 +44,8 @@ QUÉ OBTIENES
 • Favoritos, historial y posiciones para retomar donde lo dejaste.
 • Oculta las marcas globales de la lista de un país, y sus propias emisoras
   se encuentran fácilmente.
+• Quédate solo con los países que ves, y solo con las categorías de películas
+  y series que quieras.
 • Emite a un Chromecast, usa las teclas multimedia y recibe un aviso antes de
   que empiece un programa.
 • La guía puede mostrar solo tus canales favoritos.

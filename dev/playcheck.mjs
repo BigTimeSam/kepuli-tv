@@ -734,7 +734,7 @@ async function channelrefused(page) {
     const got = await failureAfterClick(page, clickFirstChannel(page), 20000);
     await sleep(3000);
     const after = await evaluate(page, `document.getElementById('overlay-text').textContent`);
-    const ok = /would not give this channel/i.test(after) && !/connection|in use/i.test(after) && got.secs < 5;
+    const ok = /stream request( with error 407|: the connection failed without an answer)/i.test(after) && !/in use/i.test(after) && got.secs < 5;
     return { ok, detail: `after ${got.secs.toFixed(1)} s "${got.title}": "${after}"` };
   } finally {
     process.env.KEPULI_MOCK_CHANNEL_REFUSED = '';
@@ -1574,10 +1574,44 @@ async function home(page) {
   await sleep(1500);
   await mouseClick(page, '#btn-home');
   await waitFor(page, `!document.getElementById('overlay').hidden && !document.getElementById('idle-home').hidden`, 'the empty player\'s page');
-  const idle = await evaluate(page, `({ title: document.getElementById('now-title').textContent, cards: [...document.querySelectorAll('.idle-card:not([hidden]) .idle-name')].map((n) => n.textContent),
+  const idle = await evaluate(page, `({ title: document.getElementById('now-title').textContent, cards: [...document.querySelectorAll('.idle-card-wrap:not([hidden]) .idle-name')].map((n) => n.textContent),
     tab: document.querySelector('#tabs [aria-selected="true"]').dataset.tab, src: Boolean(document.getElementById('video').currentSrc && !document.getElementById('video').paused) })`);
   assert(!idle.title && idle.cards.some((c) => /Northern Lights/.test(c)) && idle.tab === 'live' && !idle.src, `the start without playback: ${JSON.stringify(idle)}`);
-  return { ok: true, detail: `from a series page and the guide to the channels of ${at.group}, the top of the list and the empty player's page, ${playing} stopped and first under Watched lately; a playing film stopped, under Continue watching` };
+  // The ✕ on a card forgets where it was left, card by card; with none
+  // left, the heading goes too.
+  const cards = () => evaluate(page, `[...document.querySelectorAll('.idle-cards .idle-name')].map((n) => n.textContent)`);
+  const shown = await evaluate(page, `(() => { const b = document.querySelector('.idle-forget'); return b ? getComputedStyle(b).opacity : null; })()`);
+  assert(shown === '0', `the ✕ shows without hover: ${shown}`);
+  const points = () => evaluate(page, `chrome.storage.local.get(null).then((d) => Object.entries(d).filter(([k]) => k.startsWith('resume')).reduce((n, [, v]) => n + Object.keys(v || {}).length, 0))`);
+  const pointsBefore = await points();
+  for (let left = (await cards()).length; left > 0; left--) {
+    await evaluate(page, `document.querySelector('.idle-forget').click()`);
+    await waitFor(page, `document.querySelectorAll('.idle-cards .idle-name').length === ${left - 1}`, 'the card taken off');
+  }
+  const after = { heading: await evaluate(page, `[...document.querySelectorAll('#idle-home h3')].map((h) => h.textContent)`), before: pointsBefore, points: await points() };
+  assert(!after.heading.includes('Continue watching') && after.points <= after.before, `after taking every card off: ${JSON.stringify(after)}`);
+  // Watched lately turned off in Settings goes from the page at once, and comes back on.
+  const headings = () => evaluate(page, `[...document.querySelectorAll('#idle-home h3')].map((h) => h.textContent)`);
+  assert((await headings()).includes('Watched lately'), 'no Watched lately to turn off');
+  const toggleRecent = async () => {
+    await evaluate(page, `document.getElementById('btn-settings').click()`);
+    await waitFor(page, `document.getElementById('setup').open`, 'settings');
+    await evaluate(page, `document.getElementById('tab-general').click()`);
+    await evaluate(page, `document.getElementById('f-home-recent').click()`);
+    await evaluate(page, `document.getElementById('f-save').click()`);
+    await waitFor(page, `!document.getElementById('setup').open`, 'settings saved');
+  };
+  await toggleRecent();
+  await waitFor(page, `![...document.querySelectorAll('#idle-home h3')].some((h) => h.textContent === 'Watched lately')`, 'Watched lately gone');
+  await toggleRecent();
+  await waitFor(page, `[...document.querySelectorAll('#idle-home h3')].some((h) => h.textContent === 'Watched lately')`, 'Watched lately back');
+  // From the guide's column a tile is played where it lives: the guide gives way.
+  await evaluate(page, `document.getElementById('btn-guide').click()`, { gesture: true });
+  await waitFor(page, `document.querySelector('main').classList.contains('guide') && !document.getElementById('idle-home').hidden`, 'the guide over the empty player\'s page');
+  await evaluate(page, `document.querySelector('.idle-channel').click()`, { gesture: true });
+  await waitFor(page, `!document.querySelector('main').classList.contains('guide') && location.hash.startsWith('#/live') && ${PLAYING}`, 'the channel played in its list', 40000);
+  await mouseClick(page, '#btn-home');
+  return { ok: true, detail: `from a series page and the guide to the channels of ${at.group}, the top of the list and the empty player's page, ${playing} stopped and first under Watched lately; a playing film stopped, under Continue watching, and taken off it with the ✕ until the heading went; Watched lately off and on again from Settings; from the guide's column a channel played in its own list` };
 }
 
 /**
@@ -1609,14 +1643,27 @@ async function clickpause(page) {
   const paused = () => evaluate(page, `document.getElementById('video').paused`);
   const spot = (fromBottom = null) => evaluate(page, `(() => { const r = document.getElementById('video').getBoundingClientRect();
     return { x: r.left + r.width / 2, y: ${fromBottom === null ? 'r.top + r.height * 0.4' : `r.bottom - ${fromBottom}`} }; })()`);
-  const press = async ({ x, y }, count = 1) => {
+  const press = async ({ x, y }, count = 1, gap = 0) => {
     await page.call('Input.dispatchMouseEvent', { type: 'mouseMoved', x, y });
     for (let i = 1; i <= count; i++) {
+      if (i > 1 && gap) await sleep(gap);
       await page.call('Input.dispatchMouseEvent', { type: 'mousePressed', x, y, button: 'left', clickCount: i });
       await page.call('Input.dispatchMouseEvent', { type: 'mouseReleased', x, y, button: 'left', clickCount: i });
     }
   };
-  const doubleClick = async (at) => (page.doubleClick ? page.doubleClick(at.x, at.y) : press(at, 2));
+  // A double click as a hand makes one in Chrome: some 150 ms between the
+  // two, and the second press never ends in a click — full screen opens on
+  // it and the release is lost (measured in the dev Chrome). Held here for
+  // longer than the wait for a second click, so that a pause still waiting
+  // for it would go off.
+  const doubleClick = async (at) => {
+    if (page.doubleClick) return page.doubleClick(at.x, at.y);
+    await press(at, 1);
+    await sleep(150);
+    await page.call('Input.dispatchMouseEvent', { type: 'mousePressed', x: at.x, y: at.y, button: 'left', clickCount: 2 });
+    await sleep(400);
+    await page.call('Input.dispatchMouseEvent', { type: 'mouseReleased', x: at.x, y: at.y, button: 'left', clickCount: 2 });
+  };
   const seen = [];
 
   await playEpisode(page);
@@ -3563,6 +3610,38 @@ async function record(page) {
 }
 
 /**
+ * The films' categories chosen from the bar under the sidebar: the dialog
+ * in its own words, the sidebar and All down to the two ticked, kept over
+ * a reload; the series and the channels untouched.
+ */
+async function categories(page) {
+  const assert = (ok, message) => { if (!ok) throw new Error(message); };
+  const side = () => evaluate(page, `({ groups: [...document.querySelectorAll('#groups .group')].map((g) => g.dataset.id ?? g.textContent.trim()), foot: document.getElementById('btn-countries-text').textContent })`);
+  try {
+    await evaluate(page, `document.querySelector('#tabs [data-tab="movie"]').click()`);
+    await waitFor(page, `document.querySelectorAll('#groups .group').length > 3 && !document.getElementById('btn-countries').hidden`, 'the film categories');
+    await evaluate(page, `document.getElementById('btn-countries').click()`, { gesture: true });
+    await waitFor(page, `document.getElementById('countries').open`, 'the dialog');
+    assert(await evaluate(page, `document.getElementById('countries-title').textContent`) === 'Which categories do you want to see?', 'the dialog speaks of countries');
+    await evaluate(page, `[...document.querySelectorAll('#countries-list .choice-row')].filter((r) => ['Drama', 'Nordic'].includes(r.dataset.name)).forEach((r) => r.querySelector('input').click())`);
+    await evaluate(page, `document.getElementById('countries-save').click()`);
+    await waitFor(page, `!document.getElementById('countries').open && document.querySelectorAll('#groups .group').length === 3`, 'the sidebar down to the two');
+    const after = await side();
+    assert(after.foot === 'Categories: 2/8', `the bar says ${after.foot}`);
+    await page.call('Page.reload');
+    await sleep(1000);
+    await waitFor(page, CONNECTED, 'the connection after the reload');
+    await evaluate(page, `document.querySelector('#tabs [data-tab="movie"]').click()`);
+    await waitFor(page, `document.querySelectorAll('#groups .group').length === 3`, 'the choice kept over a reload');
+    await evaluate(page, `document.querySelector('#tabs [data-tab="series"]').click()`);
+    await waitFor(page, `document.querySelectorAll('#groups .group').length > 3 && document.getElementById('btn-countries-text').textContent === 'Choose categories'`, 'the series untouched');
+    return { ok: true, detail: `Drama and Nordic ticked: the sidebar ${JSON.stringify(after.groups)}, "${after.foot}", kept over a reload; the series untouched` };
+  } finally {
+    await evaluate(page, `chrome.storage.local.get(null).then((d) => Promise.all(Object.keys(d).filter((k) => k.startsWith('channels')).map((k) => chrome.storage.local.set({ [k]: { ...d[k], movieCategories: [], seriesCategories: [] } }))))`).catch(() => {});
+  }
+}
+
+/**
  * The guide's favourites: two channels starred in the list, the switch in
  * the guide shows those two and nothing else, a third star joins at once,
  * and the choice stays for the next opening; off, the group's channels
@@ -3600,7 +3679,7 @@ async function guidefavs(page) {
 
 const SCENARIOS = { buffering, livebuffering, filmbuffering, emptyfile, tsasmp4, refusedfile, badgateway, livebadgateway, channelrefused, noanswer, longfilm, catalogUi, setupClarity, fullscreenControl, clickpause, pickers, channels, home, resumemkv, restore, programmes, catchup, seek, death, cancel, timeout, search, paste, keys, switching, resume, connections, livezap, livequiet, reconnect, accounts, listerror, a11y, subtitles, audio, settings,
   lastchannel, nextepisode, continuewatching, reminders, update, seeklag, cuesretry, quota, catchupfreeze, catchupfull, twotabs, switchstop, resettabs,
-  refresh, restorenav, guidekeep, m3u, sync, holes, picks, flakyserver, accountform, stalker, record, guidefavs };
+  refresh, restorenav, guidekeep, m3u, sync, holes, picks, flakyserver, accountform, stalker, record, guidefavs, categories };
 // The mock's whole-list answers stall for these, longer than the request limit.
 const SLOW_LIST_MS = { cancel: 60000, timeout: 60000 };
 // The media is sent slowly for these: the seek targets must lie outside the

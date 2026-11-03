@@ -34,6 +34,44 @@ export function titleFacts(info, { episodes, seasons, duration: withDuration = f
   return list;
 }
 
+/**
+ * Who made it and for whom, from the provider's details: the director, the
+ * cast, the country, the age rating and the day it came out. Each only
+ * where the provider says it; a provider that says none leaves the block
+ * out. The cast is the provider's own list, cut to its first names where
+ * it runs long — the whole of it in the tooltip.
+ */
+export function titleCredits(info) {
+  const list = document.createElement('dl');
+  list.className = 'title-credits';
+  if (!info) return list;
+  const add = (key, value, title = '') => {
+    const text = String(value ?? '').trim();
+    if (!text) return;
+    const group = document.createElement('div');
+    group.className = `title-credit-${key}`;
+    if (title) group.title = title;
+    const label = document.createElement('dt');
+    label.textContent = t(`title.${key}`);
+    const content = document.createElement('dd');
+    content.textContent = text;
+    group.append(label, content);
+    list.append(group);
+  };
+  add('director', info.director);
+  const cast = String(info.cast || '').split(/\s*,\s*/).filter(Boolean);
+  add('cast', cast.length > 8 ? `${cast.slice(0, 8).join(', ')} …` : cast.join(', '), cast.length > 8 ? cast.join(', ') : '');
+  add('country', info.country);
+  add('age', info.age);
+  // A full date says more than the year the facts already give; a bare
+  // year, or a date the browser cannot read, adds nothing.
+  const released = /^\d{4}-\d{2}-\d{2}/.test(String(info.releaseDate || '')) ? new Date(`${String(info.releaseDate).slice(0, 10)}T12:00:00`) : null;
+  if (released && !Number.isNaN(released.getTime()) && !/-01-01/.test(String(info.releaseDate).slice(4, 10))) {
+    add('released', released.toLocaleDateString(document.documentElement.lang || undefined, { year: 'numeric', month: 'long', day: 'numeric' }));
+  }
+  return list;
+}
+
 export function externalLinks(item, info) {
   const nav = document.createElement('nav');
   nav.className = 'title-links';
@@ -54,7 +92,7 @@ export function externalLinks(item, info) {
   return nav;
 }
 
-export function playbackFacts({ ext, video, audio, subtitles, durationSec, loading = {} }) {
+export function playbackFacts({ ext, video, audio, subtitles, durationSec, bitrate = 0, loading = {} }) {
   const list = document.createElement('dl');
   list.className = 'playback-facts';
   list.setAttribute('aria-busy', String(Object.values(loading).some(Boolean)));
@@ -87,6 +125,7 @@ export function playbackFacts({ ext, video, audio, subtitles, durationSec, loadi
   if (durationSec) add('duration', duration(durationSec));
   if (ext) add('format', ext.toUpperCase());
   add('video', video && qualified(video.codec?.toUpperCase(), video.height ? `${video.height}p` : ''));
+  if (bitrate > 0) add('bitrate', t('info.bitrate.value', { n: nf.format(Math.round(bitrate)) }));
   add('audio', audio && qualified(audio.codec?.toUpperCase(), audio.channels ? t('audio.channels', { n: audio.channels }) : ''), { unsupported: audio?.supported === false });
   if (subtitles) {
     const { total, shown } = subtitles;

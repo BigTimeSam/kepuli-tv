@@ -13,6 +13,7 @@ portaale ning on ehitatud ühe mõtte ümber: tohutu valik peab tunduma väike.
 → MKV-filmid ja -episoodid mängivad otse brauseris, subtiitrite ja ruumilise
   heliga
 → Salvesta kanal kohe või saade kavast ja hoia see failina
+  (salvestamine lülitatakse sisse Seadetes)
 
 
 MIKS MA SEDA TEGIN
@@ -39,6 +40,8 @@ MIDA SA SAAD
 • Lemmikud, vaatamisajalugu ja jätkamiskohad.
 • Peida riigi loendist ülemaailmsed kaubamärgid, siis on selle enda kanalid
   lihtne leida.
+• Jäta alles vaid riigid, mida vaatad, ning ainult soovitud filmi- ja
+  sarjakategooriad.
 • Edasta Chromecastile, kasuta meediaklahve ja saa meeldetuletus enne saate
   algust.
 • Saatekava võib näidata ainult sinu lemmikkanaleid.

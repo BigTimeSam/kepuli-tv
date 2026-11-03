@@ -133,6 +133,11 @@ const SETTINGS_DEFAULTS = {
   // first says what may be recorded: a copy to keep is lawful only of what
   // the viewer has the right to, see the rec-consent dialog in js/app.js.
   recordingEnabled: false,
+  // The sections of the empty player's page, each shown unless turned off:
+  // the picks, Continue watching and the channels watched lately.
+  homePicks: true,
+  homeContinue: true,
+  homeRecent: true,
   // Where the channel list starts, before a personal arrangement:
   // az | za | num, see CHANNEL_SORTS in js/channelprefs.js.
   channelSort: 'az',
@@ -572,6 +577,12 @@ export function removeRecent(key) {
   return updatePersonal('recents', [], (list) => list.filter((r) => itemKey(r) !== key));
 }
 
+/** Several history entries dropped at once: a film's, or every episode's of a series. */
+export function removeRecents(keys) {
+  const drop = new Set(keys);
+  return updatePersonal('recents', [], (list) => list.filter((r) => !drop.has(itemKey(r))));
+}
+
 export function clearRecents() {
   return updatePersonal('recents', [], () => []);
 }
@@ -636,6 +647,14 @@ export function resumeObject(points) {
 export function setResume(key, point) {
   return updatePersonal('resume', {}, (points) => {
     if (point) points[key] = point; else delete points[key];
+    return resumeObject(points);
+  });
+}
+
+/** Several resume points forgotten at once: a film's, or every episode's of a series. */
+export function forgetResume(keys) {
+  return updatePersonal('resume', {}, (points) => {
+    for (const key of keys) delete points[key];
     return resumeObject(points);
   });
 }

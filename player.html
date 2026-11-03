@@ -79,10 +79,14 @@
     <!-- A listbox, like the list beside it: the container holds the tab stop,
          the arrows move a cursor inside it, and aria-activedescendant names
          the row the cursor is on. See markGroups in js/app.js. -->
+    <!-- Favourites only: the starred groups, and those holding a starred topic. -->
+    <label class="groups-favonly" id="groups-favonly-row" hidden><input type="checkbox" id="groups-favonly"><span data-i18n="groups.favonly">Show favourites only</span></label>
     <div class="groups-list" id="groups" role="listbox" tabindex="0" data-i18n-label="groups.aria"></div>
-    <!-- The way to the countries the viewer watches; on the channels only. -->
+    <!-- The way to the countries the viewer watches on the channels, and to
+         the categories on the films and the series. -->
     <button type="button" id="btn-countries" class="groups-foot" hidden>
-      <svg viewBox="0 0 20 20" aria-hidden="true"><circle cx="10" cy="10" r="7.2"/><path d="M2.8 10h14.4M10 2.8c2 2 3 4.4 3 7.2s-1 5.2-3 7.2c-2-2-3-4.4-3-7.2s1-5.2 3-7.2z"/></svg>
+      <svg class="foot-countries" viewBox="0 0 20 20" aria-hidden="true"><circle cx="10" cy="10" r="7.2"/><path d="M2.8 10h14.4M10 2.8c2 2 3 4.4 3 7.2s-1 5.2-3 7.2c-2-2-3-4.4-3-7.2s1-5.2 3-7.2z"/></svg>
+      <svg class="foot-categories" viewBox="0 0 20 20" aria-hidden="true"><path d="M3 5h14M5.5 10h9M8 15h4"/></svg>
       <span id="btn-countries-text" data-i18n="countries.button">Choose countries</span>
     </button>
   </aside>
@@ -150,6 +154,14 @@
   </section>
 
   <section class="stage" id="player-stage">
+    <!-- What is playing, over the picture rather than under it: the title
+         heads the column, and the picture does not start at its very top. -->
+    <header class="stagehead">
+      <div class="now">
+        <div class="now-title" id="now-title"></div>
+        <div class="now-sub" id="now-sub" data-i18n="player.disconnected">Not connected</div>
+      </div>
+    </header>
     <div class="videowrap" id="videowrap">
       <!-- The subtitles are drawn into the layer by js/subdisplay.js; the
            video's own full-screen button would take the bare video and
@@ -188,10 +200,6 @@
     <div class="infostrip" id="infostrip" hidden></div>
 
     <div class="nowbar">
-      <div class="now">
-        <div class="now-title" id="now-title"></div>
-        <div class="now-sub" id="now-sub" data-i18n="player.disconnected">Not connected</div>
-      </div>
       <!-- Above the row rather than inside it: the row is full, and the
            popover must not take part in its layout. -->
       <div class="pop sublook-pop" id="sublook-pop" role="dialog" data-i18n-label="player.subs.look" hidden>
@@ -484,6 +492,12 @@
         <label class="toggle"><input type="checkbox" id="f-stats"><span data-i18n="setup.stats">Show stream statistics over the picture</span></label>
       </div>
       <p class="field-hint" data-i18n="setup.stats.hint">Resolution, bit rate and the engine playing the stream, in the corner of the picture. For working out why a stream stutters.</p>
+      <div class="toggles" role="group" aria-describedby="home-hint">
+        <label class="toggle"><input type="checkbox" id="f-home-picks" checked><span data-i18n="setup.home.picks">Show “On your channels now and soon”</span></label>
+        <label class="toggle"><input type="checkbox" id="f-home-continue" checked><span data-i18n="setup.home.continue">Show “Continue watching”</span></label>
+        <label class="toggle"><input type="checkbox" id="f-home-recent" checked><span data-i18n="setup.home.recent">Show “Watched lately”</span></label>
+      </div>
+      <p class="field-hint" id="home-hint" data-i18n="setup.home.hint">The sections of the player's own page, shown when nothing is playing.</p>
       <div class="toggles">
         <label class="toggle"><input type="checkbox" id="f-record" aria-describedby="record-hint"><span data-i18n="setup.record">Enable recording</span></label>
       </div>

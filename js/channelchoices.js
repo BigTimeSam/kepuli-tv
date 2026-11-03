@@ -46,7 +46,7 @@ export class CountryPicker {
       try {
         // Every country ticked is the same as none: all of them, and a
         // country the provider adds later shows too.
-        await this.onSave(this.chosen.size >= this.groups.length ? [] : [...this.chosen]);
+        await (this.save || this.onSave)(this.chosen.size >= this.groups.length ? [] : [...this.chosen]);
         this.dialog.close();
       } catch {
         $('countries-status').textContent = t('organize.savefailed');
@@ -61,7 +61,15 @@ export class CountryPicker {
    * @param {string[]} suggested groups to offer first: the browser's country
    * @param {boolean} first the first time, when the suggestion is ticked
    */
-  show({ groups, counts, chosen, suggested = [], first = false }) {
+  show({ groups, counts, chosen, suggested = [], first = false, onSave = null, texts = null }) {
+    // The same dialog chooses the films' and the series' categories: their
+    // own words and their own place to save, the countries' otherwise.
+    this.save = onSave;
+    this.texts = { title: 'countries.title', help: 'countries.help', filter: 'countries.filter', all: 'countries.all', ...texts };
+    $('countries-title').textContent = t(this.texts.title);
+    this.dialog.querySelector('.editor-help').textContent = t(this.texts.help);
+    $('countries-filter').placeholder = t(this.texts.filter);
+    $('countries-filter').setAttribute('aria-label', t(this.texts.filter));
     this.groups = groups;
     this.counts = counts;
     this.suggested = new Set(suggested.filter((name) => groups.some((g) => g.name === name)));
@@ -122,7 +130,7 @@ export class CountryPicker {
   status() {
     $('countries-status').textContent = this.chosen.size
       ? t('countries.chosen', { count: this.chosen.size, n: nf.format(this.chosen.size), total: nf.format(this.groups.length) })
-      : t('countries.all');
+      : t(this.texts.all);
     // The box over the list says what the rows it reaches hold: all of
     // them ticked, none, or some (the dash).
     const shown = [...$('countries-list').children].filter((row) => !row.hidden);

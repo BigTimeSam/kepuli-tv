@@ -173,7 +173,7 @@
 
 <main>
 <h1>Kepuli-TV</h1>
-<p class="meta">The README of the Kepuli-TV browser extension, version 1.6.1. <a href="https://github.com/BigTimeSam/kepuli-tv">Source on GitHub</a></p>
+<p class="meta">The README of the Kepuli-TV browser extension, version 1.6.2. <a href="https://github.com/BigTimeSam/kepuli-tv">Source on GitHub</a></p>
 
 <p>A Chrome and Firefox extension (Manifest V3) that plays Xtream Codes IPTV straight in the
 browser. Data is fetched from the <code>player_api.php</code> API lazily: only what you
@@ -720,6 +720,15 @@ country the provider adds later does not turn up uninvited; <strong>Show all</st
 clears it. The question is asked by itself once per account, after the first
 connection, when the provider has twenty groups or more.</p>
 
+<p><strong>Choose categories</strong>, in the same place on the films and the series, does the
+same for their categories, each tab its own choice: the dialog lists every
+category the provider offers, and those left unticked are out of the sidebar,
+<strong>All</strong>, the lists and the search, the favourites and the history again
+keeping what was picked. The choices belong to the account, are remembered
+across restarts and travel with sync like the countries. <strong>Show favourites
+only</strong>, under the sidebar's filter on all three tabs, narrows the sidebar to
+the starred groups and those holding a starred topic.</p>
+
 <p>Every channel row has a menu — the ⋯ at its right end, a right click, or the
 context-menu key and Shift+F10 on the row the list stands on: <strong>Add to
 favourites</strong> (or <strong>Remove from favourites</strong>) and <strong>Hide channel</strong>. Hiding
@@ -868,7 +877,7 @@ visible channels and past/upcoming programmes</li>
   <li><strong>Personal channel lists</strong>: hide and reorder live channels and categories</li>
   <li><strong>An empty player</strong> offers what was left halfway, as covers, and the
 channels watched lately, as logos — each a click from playing</li>
-  <li><strong>Coming up for you</strong> on the empty player's page: what is on now and in the
+  <li><strong>On your channels now and soon</strong> on the empty player's page: what is on now and in the
 next hours on the favourite and recently watched channels, a programme
 watched before first, each with the reason it was picked; one on now starts
 with a click, a later one sets its reminder (<code>js/picks.js</code>). What was
@@ -993,7 +1002,7 @@ the timeline's scale, <code>Enter</code> starts playback and <code>Esc</code> cl
 
 <h3 id="the-buttons">The buttons</h3>
 
-<p>The top bar starts with the logo, which goes back to the start — the channels, the first country chosen, the top of its list — closing the search, the guide and any page opened from the list, and stops what is playing for the empty player's page: a film's place is kept under <strong>Continue watching</strong> and a channel heads <strong>Watched lately</strong>, each a click from playing again. Then the five tabs, each with its mark before its name (the marks step aside between 600 and 1100 px, where they would push the buttons onto a second row), the search box, <strong>Refresh lists</strong> (a
+<p>The top bar starts with the logo, which goes back to the start — the channels, the first country chosen, the top of its list — closing the search, the guide and any page opened from the list, and stops what is playing for the empty player's page: a film's place is kept under <strong>Continue watching</strong> and a channel heads <strong>Watched lately</strong>, each a click from playing again. Continue watching shows the ten films and series watched last — left halfway or seen to the end; a series seen to the end of its last episode goes on with the next — newest at the left, in one row that scrolls sideways — with the ‹ and › at its ends, the trackpad or the keyboard — a series as one card; the ✕ in a cover's corner, on hover, forgets where it was left and takes it out of the history — every episode of a series — and the heading goes with the last card. <strong>Settings › Viewing</strong> turns each of the page's sections off: <strong>On your channels now and soon</strong>, <strong>Continue watching</strong> and <strong>Watched lately</strong>, all on to begin with. Then the five tabs, each with its mark before its name (the marks step aside between 600 and 1100 px, where they would push the buttons onto a second row), the search box, <strong>Refresh lists</strong> (a
 circular arrow), <strong>Help</strong> (a question mark), the theme — a sun in the dark
 theme switches to the light one and a moon in the light theme back — and
 <strong>Settings</strong> at the far right. The sun and moon is the quick switch; Settings &gt; Viewing &gt; Appearance also offers <em>Same as the system</em>, which follows the operating system's light or dark mode while the player is open, and a press of the switch then picks the other of what is on screen. Dark is the default. The picture and the bar

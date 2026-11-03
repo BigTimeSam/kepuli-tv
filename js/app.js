@@ -18,7 +18,7 @@ import { nameCleaner, searchNameCleaner, searchKey, searchTerms, matchesTerms, l
 import { poster } from './poster.js';
 import { wireModal } from './modal.js';
 import { MediaFilters } from './mediafilters.js';
-import { titleFacts, externalLinks, playbackFacts } from './titleinfo.js';
+import { titleFacts, titleCredits, externalLinks, playbackFacts } from './titleinfo.js';
 import { EpgGrid, catchupAvailable, reminderDelay, sameChannels } from './epggrid.js';
 import { CountryPicker, HiddenList } from './channelchoices.js';
 import { openRowMenu } from './rowmenu.js';
@@ -931,7 +931,9 @@ async function refreshRows({ keepScroll = false, returnPosition = null, restoreF
   state.cleanName = nameCleanerFor(rows);
   // Episode order comes from season/episode numbers, even when names are tidied.
   const channelList = (type === 'live' || state.detail?.entry?.t === 'live') && !state.query;
-  if (!channelList && state.cleanName && !state.query && state.detail?.view !== 'series') rows = sortItems(rows, (name, item) => state.cleanName(name, item));
+  // The favourites and the history keep their own order (newest first, by
+  // day): their names are tidied, not sorted by.
+  if (!channelList && state.cleanName && !state.query && state.detail?.view !== 'series' && !(isCollection() && !state.detail)) rows = sortItems(rows, (name, item) => state.cleanName(name, item));
   rows = visibleRows(rows);
   if (type === 'live' && !state.query && !state.detail && !isCollection()) rows = withoutInternational(rows);
   // The setting says where the list starts; the personal arrangement, made
@@ -1222,6 +1224,28 @@ async function removeFromHistory(item) {
   await refreshRows({ keepScroll: true });
 }
 
+/**
+ * A card taken off Continue watching: where it was left forgotten, so it
+ * is no longer unfinished anywhere — not on the page, not as a bar in the
+ * lists — and its entries out of the history, which is what the row is
+ * made from. A series goes as a whole: forgetting only its latest episode
+ * would put an earlier one in the card's place.
+ */
+async function forgetUnfinished(item, label) {
+  const keys = item.k === 3 && item.seriesId
+    ? state.recents.filter((r) => r.k === 3 && r.seriesId === item.seriesId).map((r) => `3:${r.id}`)
+    : [];
+  keys.push(`${item.k}:${item.id}`);
+  for (const key of keys) state.resume.delete(key);
+  await store.forgetResume([...new Set(keys)]);
+  const recents = await store.removeRecents(keys);
+  if (recents) state.recents = recents;
+  if (!state.playing) renderIdleOverlay();
+  renderSidebar();
+  toast(t('player.idle.forgotten', { title: label }));
+  await refreshRows({ keepScroll: true });
+}
+
 async function clearHistory() {
   if (!(await store.clearRecents())) return;
   state.recents = [];
@@ -1347,6 +1371,13 @@ function renderSubcats() {
   }
   const counts = new Map();
   const visibleItems = type === 'live' ? withoutInternational(visibleRows(state.groupItems)) : state.groupItems;
+  // Nothing in the group yet — its list still on the way — is no reason
+  // for a bar reading "All 0": it appears with the first rows.
+  if (!visibleItems.length) {
+    showSubcats(false);
+    el.subcats.replaceChildren();
+    return;
+  }
   for (const item of visibleItems) {
     for (const cat of item.cats) counts.set(cat, (counts.get(cat) || 0) + 1);
   }
@@ -1650,17 +1681,30 @@ function renderSidebar() {
   else renderCategories();
   markGroups();
   renderCountriesButton();
+  renderGroupsFoot();
+}
+
+/** Favourites only, under the sidebar's filter on the channels, the films and the series. */
+let groupsFavOnly = false;
+function renderGroupsFoot() {
+  const box = $('groups-favonly');
+  $('groups-favonly-row').hidden = isCollection() || !state.lib;
+  box.checked = groupsFavOnly;
 }
 
 /** "Choose countries", or how many are chosen, under the channels' sidebar. */
 function renderCountriesButton() {
   const button = $('btn-countries');
-  button.hidden = state.tab !== 'live' || !state.lib;
+  const type = tabType();
+  button.hidden = !state.lib || isCollection() || !type;
   if (button.hidden) return;
-  const chosen = chosenCountries();
-  $('btn-countries-text').textContent = chosen
-    ? t('countries.button.chosen', { count: chosen.size, n: nf.format(chosen.size), total: nf.format(state.lib.groups.live.length) })
-    : t('countries.button');
+  const live = type === 'live';
+  const chosen = live ? chosenCountries() : chosenCategories(type);
+  button.dataset.kind = live ? 'countries' : 'categories';
+  const total = nf.format(state.lib.groups[type].length);
+  $('btn-countries-text').textContent = live
+    ? (chosen ? t('countries.button.chosen', { count: chosen.size, n: nf.format(chosen.size), total }) : t('countries.button'))
+    : (chosen ? t('categories.button.chosen', { n: nf.format(chosen.size), total }) : t('categories.button'));
 }
 
 /**
@@ -1751,7 +1795,7 @@ function renderCategories() {
 
   let counts = state.lib.groupCounts(type);
   const full = state.lib.full[type];
-  const visible = type === 'live' && full ? withoutInternational(visibleRows(full)) : full;
+  const visible = full ? (type === 'live' ? withoutInternational(visibleRows(full)) : visibleRows(full)) : full;
   if (type === 'live' && full) {
     const groupOf = new Map(visibleGroups(type).flatMap((g) => g.cats.map((c) => [c.id, g.name])));
     counts = new Map();
@@ -1763,9 +1807,13 @@ function renderCategories() {
   const filter = terms.length > 0;
   // The filter matches sub-categories too, so that "sport" finds the
   // countries that have one even when the country's name lacks the word.
-  const groups = visibleGroups(type).filter((g) => !filter
+  // Favourites only (the box under the sidebar's filter): the groups starred, and
+  // those holding a starred topic; the group open stays, so that the list
+  // beside it is not left without its row.
+  const starred = groupsFavOnly ? new Set([...state.favorites.values()].filter((f) => f.k === 'c' && f.t === type).map((f) => f.g)) : null;
+  const groups = visibleGroups(type).filter((g) => (!starred || starred.has(g.name) || state.group === g.name) && (!filter
     || matchesTerms(searchKey(g.name), terms)
-    || g.cats.some((c) => matchesTerms(searchKey(c.name), terms)));
+    || g.cats.some((c) => matchesTerms(searchKey(c.name), terms))));
 
   const frag = document.createDocumentFragment();
   if (!filter) {
@@ -1836,7 +1884,10 @@ async function selectGroup(name) {
 
 function visibleGroups(type) {
   const groups = state.lib?.groups[type] || [];
-  if (type !== 'live') return groups;
+  if (type !== 'live') {
+    const chosen = chosenCategories(type);
+    return chosen ? groups.filter((g) => chosen.has(g.name)) : groups;
+  }
   const hidden = new Set(state.channelPrefs.hiddenCategories);
   const chosen = chosenCountries();
   return groups.map((g) => ({ ...g, cats: g.cats.filter((c) => !hidden.has(c.id)) }))
@@ -1854,6 +1905,29 @@ function chosenCountries() {
   if (!names.length || !groups) return null;
   const chosen = new Set(names.filter((name) => groups.some((g) => g.name === name)));
   return chosen.size ? chosen : null;
+}
+
+/**
+ * The films' or the series' categories the viewer chose, or null for all
+ * of them; as with the countries, one the provider no longer has does not
+ * count, and nothing left counts as all.
+ */
+const CATEGORY_PREFS = { movie: 'movieCategories', series: 'seriesCategories' };
+function chosenCategories(type) {
+  const names = state.channelPrefs[CATEGORY_PREFS[type]] || [];
+  const groups = state.lib?.groups[type];
+  if (!names.length || !groups) return null;
+  const chosen = new Set(names.filter((name) => groups.some((g) => g.name === name)));
+  return chosen.size ? chosen : null;
+}
+
+/** Category id → the name of the film or series group it is in. */
+const groupOfCatByType = new WeakMap();
+function groupOfType(type) {
+  const groups = state.lib?.groups[type] || [];
+  let map = groupOfCatByType.get(groups);
+  if (!map) groupOfCatByType.set(groups, map = new Map(groups.flatMap((g) => g.cats.map((c) => [c.id, g.name]))));
+  return map;
 }
 
 const groupOfCategory = new WeakMap();
@@ -1877,9 +1951,14 @@ function visibleRows(rows) {
   const groups = new Set(visibleGroups('live').map((g) => g.name));
   const chosen = isCollection() ? null : chosenCountries();
   const groupOf = chosen ? liveGroupOf() : null;
+  // The films' and the series' categories, the same way, in the browsing
+  // and the search; a favourite or the history keeps what was picked.
+  const picked = isCollection() ? {} : { 1: chosenCategories('movie'), 2: chosenCategories('series') };
+  const pickedOf = { 1: picked[1] && groupOfType('movie'), 2: picked[2] && groupOfType('series') };
   return rows.filter((item) => {
     if (!visible(item)) return false;
     if (chosen && item.k === 0 && !(item.cats || []).some((id) => chosen.has(groupOf.get(id)))) return false;
+    if (picked[item.k] && !(item.cats || []).some((id) => picked[item.k].has(pickedOf[item.k].get(id)))) return false;
     if (item.k !== 'c' || item.t !== 'live' || !prefs.hiddenCategories.length) return true;
     if (item.c != null) return !prefs.hiddenCategories.includes(item.c);
     return groups.has(item.g);
@@ -1915,8 +1994,15 @@ async function showChannelChoices() {
     state.group = visibleGroups('live')[0]?.name ?? null;
     state.sub = null;
   }
+  // A film or series category left out takes the open group with it.
+  const type = tabType();
+  if ((type === 'movie' || type === 'series') && state.group && !visibleGroups(type).some((g) => g.name === state.group)) {
+    state.group = null;
+    state.sub = null;
+  }
   if (state.channelPrefs.hiddenCategories.includes(state.sub)) state.sub = null;
   if (state.tab === 'live') state.lastGroup.live = state.group;
+  else if (type) state.lastGroup[state.tab] = state.group;
   renderSidebar();
   renderGuideGroups();
   await refreshRows({ keepScroll: true });
@@ -1946,6 +2032,19 @@ function openCountryPicker({ first = false } = {}) {
     chosen: state.channelPrefs.countries,
     suggested,
     first,
+  });
+}
+
+/** "Which categories do you want to see?" — the films' or the series'. */
+function openCategoryPicker(type) {
+  if (!state.lib || !CATEGORY_PREFS[type]) return;
+  const key = CATEGORY_PREFS[type];
+  countryPicker.show({
+    groups: state.lib.groups[type],
+    counts: state.lib.groupCounts(type),
+    chosen: state.channelPrefs[key],
+    onSave: (names) => saveChannelChoices({ ...state.channelPrefs, [key]: names }),
+    texts: { title: 'categories.title', help: 'categories.help', filter: 'categories.filter', all: 'categories.all' },
   });
 }
 
@@ -2209,6 +2308,9 @@ function nameCleanerFor(rows) {
     const entry = state.detail.entry;
     return nameCleaner(entry.g && entry.g !== entry.n ? [entry.g, entry.n] : [entry.n], rows);
   }
+  // The favourites and the history mix countries and kinds: each row by
+  // its own group's rules, as in a search.
+  if (isCollection() && !state.detail) return tidyName;
   if (isCollection() || state.detail || state.query || state.group == null) return null;
   const group = type && state.lib ? state.lib.group(type, state.group) : null;
   if (!group) return null;
@@ -2219,6 +2321,29 @@ function nameCleanerFor(rows) {
   }
   return nameCleaner(labels, rows);
 }
+
+/**
+ * A name as the browsing shows it, wherever the item turns up outside its
+ * own list — the favourites, the history, the empty player's page, the
+ * player's title: "FI: MTV3 FHD" is "MTV3 FHD", by the rules of its own
+ * group. With the type's whole list in memory those are the search's
+ * rules; without it, the group's label alone, which is enough for the
+ * country's own code.
+ */
+const TYPE_OF_KIND = { 0: 'live', 1: 'movie', 2: 'series', 3: 'series' };
+function tidyName(name, item) {
+  const type = TYPE_OF_KIND[item?.k];
+  if (!type || !state.lib || !name) return name;
+  const full = state.lib.full[type];
+  if (full) return searchNameCleaner(state.lib.groups[type], full)(name, item);
+  const groupOf = type === 'live' ? liveGroupOf() : groupOfType(type);
+  const group = (item.cats || []).map((id) => groupOf.get(id)).find(Boolean);
+  const clean = group ? nameCleaner([group], [item]) : null;
+  return clean ? clean(name) : name;
+}
+
+/** The name an item shows outside its list: its own tidied one, or tidied now. */
+const shownName = (item) => item.displayName && item.displayName !== item.n ? item.displayName : tidyName(item.n, item);
 
 /**
  * A history row states the time of day; the day comes from the section
@@ -3084,7 +3209,7 @@ const channelKey = (config, item) => `${store.accountKey(config)}|${item.k}:${it
 
 async function playItem(item, { startAt, allowSilent } = {}) {
   // Snapshot the visible name so later browsing cannot rename playback.
-  const displayName = item.displayName || (state.rows.includes(item) && state.cleanName ? state.cleanName(item.n, item) : item.n);
+  const displayName = (state.rows.includes(item) && state.cleanName ? state.cleanName(item.n, item) : null) || shownName(item);
   item = withCurrentAddress({ ...item, displayName });
   const live = item.k === 0;
   const run = ++playRun;
@@ -3127,6 +3252,7 @@ async function playItem(item, { startAt, allowSilent } = {}) {
   if (live) noteChannel(item);
   warnRecordingConnection(item);
   state.playing = item;
+  sizePicture();
   updatePlayerLayout();
   playerLayout.showPlayer();
   state.playingSpec = spec;
@@ -3167,7 +3293,9 @@ function renderNowSub() {
   const item = state.playing;
   if (!item) { el.nowSub.textContent = t('player.idle'); return; }
   const bits = [];
-  const type = tabType();
+  // The item's own kind, not the tab's: from the favourites or the history
+  // a channel still names its category.
+  const type = TYPE_OF_KIND[item.k] || tabType();
   if (state.catchup) bits.push(t('player.catchup', { time: clock(state.catchup.start) }));
   if (item.cats && item.cats.length && state.lib && type) bits.push(state.lib.categoryName(type, item.cats[0]));
   if (item.k === 3) bits.push(`S${item.season} E${item.episode}`);
@@ -3339,6 +3467,25 @@ async function chooseSubtitleLook(form) {
  * place: the paused film's place kept for Continue watching, the details,
  * the title and the address cleared.
  */
+/**
+ * The picture's own shape, once the video knows it: the box is then as
+ * tall as the picture and no taller, rather than black bands above and
+ * below it, and the details under it get the room (.videowrap.sized in
+ * player.css). Back to filling the column when nothing plays.
+ */
+function sizePicture() {
+  const { videoWidth: w, videoHeight: h } = el.video;
+  el.videowrap.classList.toggle('sized', Boolean(state.playing));
+  // Until the picture says its shape — while connecting, between two
+  // channels — the box keeps the last shape, or television's, so that it
+  // does not fill the column for a moment and then jump.
+  if (state.playing && w > 0 && h > 0) el.videowrap.style.setProperty('--pic-ratio', `${w} / ${h}`);
+  else if (!el.videowrap.style.getPropertyValue('--pic-ratio')) el.videowrap.style.setProperty('--pic-ratio', '16 / 9');
+}
+el.video.addEventListener('loadedmetadata', sizePicture);
+el.video.addEventListener('resize', sizePicture);
+el.video.addEventListener('emptied', sizePicture);
+
 function leavePlayback() {
   const item = state.playing;
   if (item && item.k !== 0 && state.settings.resumeEnabled) {
@@ -3353,6 +3500,7 @@ function leavePlayback() {
   ++playRun;
   playback.stop();
   state.playing = null;
+  sizePicture();
   state.playingSpec = null;
   state.catchup = null;
   state.playbackInfoLoading = false;
@@ -3495,8 +3643,14 @@ function catchDoubleClick(e) {
   // fresh user activation, and the request made with it uses the
   // activation up, so that the controls' own request on the dblclick that
   // follows is refused. The dblclick itself is only stopped.
-  if (e.type === 'mousedown' && e.detail === 2) toggleFullscreen();
-  else if (e.type !== 'dblclick') return;
+  if (e.type === 'mousedown' && e.detail === 2) {
+    // The click this press would end in never comes: full screen takes it.
+    // The first click's pause, waiting for a second (clickPicture), is
+    // taken back here instead.
+    clearTimeout(clickTimer);
+    clickTimer = null;
+    toggleFullscreen();
+  } else if (e.type !== 'dblclick') return;
   e.preventDefault();
   e.stopPropagation();
 }
@@ -3514,14 +3668,28 @@ window.addEventListener('dblclick', catchDoubleClick, true);// A click on the pi
 // browser's controls.
 const CONTROL_BAR_PX = 80;
 
+// Chrome's controls pause on the first click of a double click, and the
+// second press goes to full screen (catchDoubleClick), so a double click
+// meant only for full screen left the film paused. In Chrome the page
+// takes the click over: a single one pauses or plays on once the time for
+// a second has passed, and a second within it cancels that — it was a
+// double click. A little later than the controls' own pause, and only then.
+const SECOND_CLICK_MS = 280;
+let clickTimer = null;
+
 function clickPicture(e) {
   const video = el.video;
   if (e.target !== video || e.button !== 0) return;
   if (e.offsetY > video.clientHeight - CONTROL_BAR_PX) return;
   const item = state.playing;
-  if (!item || item.k !== 0) return;
+  if (!item) return;
+  if (item.k === 0) { e.preventDefault(); e.stopPropagation(); return; }
+  if (isGecko()) return;
   e.preventDefault();
   e.stopPropagation();
+  clearTimeout(clickTimer);
+  clickTimer = null;
+  if (e.detail === 1) clickTimer = setTimeout(() => { clickTimer = null; togglePause(); }, SECOND_CLICK_MS);
 }
 
 function togglePause() {
@@ -3564,7 +3732,7 @@ function renderMediaSession() {
   if (!mediaSession) return;
   const item = state.playing;
   if (!item) { mediaSession.metadata = null; return; }
-  const name = item.displayName || item.n;
+  const name = shownName(item);
   let title = name, artist = '';
   if (state.catchup) { title = state.catchup.title; artist = name; }
   else if (item.k === 0) {
@@ -3686,6 +3854,7 @@ function renderInfoStrip() {
     video,
     audio,
     subtitles,
+    bitrate: info?.bitrate || 0,
     loading: {
       video: !video && ((!header && state.playbackInfoLoading) || Boolean(item.detailsLoading)),
       audio: !audio && !header && state.playbackInfoLoading,
@@ -3698,6 +3867,7 @@ function renderInfoStrip() {
     plot.textContent = info.plot;
     body.appendChild(plot);
   }
+  add(titleCredits(info));
   box.appendChild(body);
   el.infostrip.replaceChildren(box);
 }
@@ -3768,7 +3938,7 @@ function episodeDetails(item, series) {
   const own = series.episodes.find((episode) => episode.id === item.id) || item;
   const { episodes, plot, cover, ...facts } = series;
   return { ...facts, title: item.seriesName || '', durationSec: own.durationSec || item.durationSec || 0,
-    plot: own.plot || item.plot || '', video: own.video || item.video || null };
+    plot: own.plot || item.plot || '', video: own.video || item.video || null, bitrate: own.bitrate || 0 };
 }
 
 /* ------------------------------------------------------ programme guide */
@@ -4167,7 +4337,7 @@ async function fireReminders() {
   const showing = due.filter((r) => r.stop > now).sort((a, b) => b.start - a.start)[0];
   if (!showing) return;
   const channel = showing.channel;
-  const name = channel.displayName || channel.n;
+  const name = shownName(channel);
   const text = showing.start > now
     ? t('guide.remind.soon', { title: showing.title, time: clock(showing.start), channel: name })
     : t('guide.remind.started', { title: showing.title, channel: name });
@@ -4308,7 +4478,7 @@ async function toggleRecordNow() {
   const now = Date.now();
   const on = state.epg?.nowNext(item.id)?.now;
   const programme = on && on.stop > now + 60e3 ? on : null;
-  const name = item.displayName || item.n;
+  const name = shownName(item);
   const title = programme ? programme.title : name;
   const stop = programme ? programme.stop + PAD_AFTER_MS : null;
   const entry = await addRecording(item, { title, start: now, stop, programme });
@@ -4492,6 +4662,7 @@ async function playRecording(r) {
   ++playRun;
   const item = { ...r.channel, recording: r.id };
   state.playing = item;
+  sizePicture();
   state.catchup = null;
   updatePlayerLayout();
   playerLayout.showPlayer();
@@ -4542,6 +4713,7 @@ function playCatchup(item, programme, { from = 0 } = {}) {
   if (!url) { toast(t('guide.norecording'), { kind: 'warn' }); return; }
   cancelAutoNext();
   state.playing = item;
+  sizePicture();
   updatePlayerLayout();
   playerLayout.showPlayer();
   state.playingSpec = { url, live: false, catchup: true, ext: 'ts', mode: 'ts', skipped: skip / 1000 };
@@ -4599,6 +4771,38 @@ async function nextEpisode(item) {
   const next = at < 0 ? null : episodes[at + 1];
   if (!next) return null;
   return { seriesCover: item.seriesCover, seriesName: item.seriesName, seriesId: item.seriesId, ...next };
+}
+
+/**
+ * Something on the empty player's page chosen while the guide is open:
+ * there the player is a thumbnail in the guide's column, so the guide
+ * gives way and the item is played where it lives — the channel in its
+ * country's list, the film in its group, the episode on its series' page —
+ * with the row under the cursor, as if picked from that list.
+ */
+async function playInPlace(item) {
+  const tab = item.k === 0 ? 'live' : item.k === 1 ? 'movie' : item.k === 3 ? 'series' : null;
+  if (!tab || !state.lib) { closeGuide(); await playItem(item); return; }
+  const series = item.k === 3 && item.seriesId != null
+    ? (state.lib.full.series || []).find((s) => String(s.id) === String(item.seriesId)) || null : null;
+  const cats = (item.k === 3 ? series?.cats : item.cats) || [];
+  const groups = tab === 'live' ? visibleGroups('live') : state.lib.groups[tab] || [];
+  const group = groups.find((g) => g.cats.some((c) => cats.includes(c.id)))?.name;
+  await goToRoute({ tab, group: group ?? state.lastGroup[tab] });
+  if (item.k === 3 && item.seriesId != null) {
+    await openSeries(series || { k: 2, id: item.seriesId, n: item.seriesName || item.n, logo: item.seriesCover || item.logo, cats });
+    // On the episode's own season, not the first.
+    const detail = state.detail;
+    const season = detail?.view === 'series' ? detail.info?.episodes.find((e) => String(e.id) === String(item.id))?.season : undefined;
+    if (season !== undefined && season !== detail.season) {
+      detail.season = season;
+      renderDetail();
+      await refreshRows();
+    }
+  }
+  const index = state.rowIndex.get(`${item.k}:${item.id}`);
+  if (index != null) { state.cursor = index; vlist.scrollToIndex(index); }
+  await playItem(item);
 }
 
 async function playEpisode(episode) {
@@ -4791,6 +4995,9 @@ function openSetup({ section, adding = false } = {}) {
   $('f-autonext').checked = state.settings.autoNext;
   $('f-stats').checked = state.settings.statsEnabled;
   $('f-record').checked = state.settings.recordingEnabled === true;
+  $('f-home-picks').checked = state.settings.homePicks !== false;
+  $('f-home-continue').checked = state.settings.homeContinue !== false;
+  $('f-home-recent').checked = state.settings.homeRecent !== false;
   $('f-record').disabled = !canRecord;
   $('f-international').checked = state.settings.showInternational;
   setupInitial = { ...state.settings, subtitleStyle: subtitleLook(state.settings).style, subtitleScale: subtitleLook(state.settings).scale, subtitleLift: subtitleLook(state.settings).lift };
@@ -4876,6 +5083,9 @@ function readSetupSettings() {
     autoNext: $('f-autonext').checked,
     statsEnabled: $('f-stats').checked,
     recordingEnabled: $('f-record').checked,
+    homePicks: $('f-home-picks').checked,
+    homeContinue: $('f-home-continue').checked,
+    homeRecent: $('f-home-recent').checked,
     showInternational: $('f-international').checked,
     subtitleStyle: $('f-substyle').value,
     subtitleScale: Number($('f-subsize').value),
@@ -5226,6 +5436,7 @@ async function showStoredSettings(next) {
   renderStatBadge();
   renderRecordingState();
   refreshGuidePreview();
+  if (!state.playing && !el.overlay.hidden && el.overlayTitle.textContent === t('player.idle')) renderIdleOverlay();
   if (state.epg) state.epg.enabled = settings.epgEnabled;
 }
 
@@ -5566,6 +5777,7 @@ function wireSetup() {
       renderStatBadge();
       renderRecordingState();
       refreshGuidePreview();
+      if (!state.playing && !el.overlay.hidden && el.overlayTitle.textContent === t('player.idle')) renderIdleOverlay();
       if (settingsPatch.theme) renderTheme();
       if (settingsPatch.lang || settingsPatch.clock) await applyLanguage(store.interfaceLanguage(state.settings));
       // A new starting order, or the international channels shown or
@@ -5881,7 +6093,7 @@ function toggleFavoriteAtCursor() {
   if (!item) return;
   if (item.k === 'c') toggleFavCategory(item); else toggleFavorite(item);
   const on = state.favorites.has(`${item.k}:${item.id}`);
-  toast(t(on ? 'fav.added' : 'fav.removed', { name: item.displayName || item.n }));
+  toast(t(on ? 'fav.added' : 'fav.removed', { name: shownName(item) }));
 }
 
 /**
@@ -5921,7 +6133,7 @@ function removeAtCursor() {
   const item = state.rows[state.cursor];
   if (!item) return;
   removeFromHistory(item);
-  toast(t('row.removed.history', { name: item.displayName || item.n }));
+  toast(t('row.removed.history', { name: shownName(item) }));
 }
 
 function moveCursor(delta) { listNavigation.move(delta, vlist); }
@@ -6036,7 +6248,7 @@ function wireUi() {
   $('btn-help').addEventListener('click', openHelp);
   $('btn-home').addEventListener('click', goHome);
   $('fav-strip-toggle').addEventListener('click', toggleFavStrip);
-  $('btn-countries').addEventListener('click', () => openCountryPicker());
+  $('btn-countries').addEventListener('click', () => (tabType() === 'live' ? openCountryPicker() : openCategoryPicker(tabType())));
   $('f-countries').addEventListener('click', () => openCountryPicker());
   new ResizeObserver(() => fitIdleHome()).observe(el.overlay);
   onSystemTheme(renderTheme);
@@ -6074,6 +6286,12 @@ function wireUi() {
   $('btn-copy').addEventListener('click', copyUrl);
   $('btn-ext').addEventListener('click', playExternal);
   $('btn-record').addEventListener('click', toggleRecordNow);
+  $('groups-favonly').addEventListener('change', (e) => {
+    groupsFavOnly = e.target.checked;
+    store.saveUiState({ groupsFavOnly });
+    state.groupCursor = null;
+    renderSidebar();
+  });
   $('btn-recordings').addEventListener('click', openRecordings);
   $('btn-recordings-menu').addEventListener('click', openRecordings);
   $('recordings-close').addEventListener('click', () => $('recordings').close());
@@ -6272,6 +6490,15 @@ async function applyLanguage(lang) {
 }
 
 /** The player's idle state: either a welcome or a prompt to pick a channel. */
+// The overlay is the empty player's own page while it says so, and is
+// painted as a page of the app then (.overlay.idle in player.css) rather
+// than as a message over the picture. Watched rather than set in every one
+// of the places that put another message there.
+new MutationObserver(() => {
+  const title = el.overlayTitle.textContent;
+  el.overlay.classList.toggle('idle', title === t('player.idle') || title === t('setup.welcome'));
+}).observe(el.overlayTitle, { childList: true, characterData: true, subtree: true });
+
 function renderIdleOverlay() {
   const welcome = !configured();
   el.overlayTitle.textContent = welcome ? t('setup.welcome') : t('player.idle');
@@ -6344,7 +6571,7 @@ function pickCard(pick) {
   card.className = 'idle-pick' + (on ? ' on' : '');
   const reminded = reminders.has(reminderKey(channel, programme));
   if (reminded) card.classList.add('reminded');
-  const name = channel.displayName || channel.n;
+  const name = shownName(channel);
   card.title = on ? t('picks.play', { channel: name }) : t(reminded ? 'picks.reminded' : 'picks.remind');
   const logo = poster('idle-pick-logo', channel.logo, 'channel');
   const body = document.createElement('span');
@@ -6377,7 +6604,7 @@ function pickCard(pick) {
     card.appendChild(bar);
   }
   card.addEventListener('click', () => {
-    if (on) { playItem(channel); return; }
+    if (on) { playFromHome(channel); return; }
     toggleReminder(channel, programme);
     renderIdleOverlay();
   });
@@ -6409,8 +6636,10 @@ function watchInterest() {
   }, INTEREST_TICK_MS);
 }
 
-// Enough for the widest window; fitIdleHome shows what the window has room for.
-const IDLE_CONTINUE = 12;
+// Continue watching scrolls sideways, with ‹ and › at its ends: the ten
+// films and series watched last, those left halfway and those seen to the
+// end alike. The channels are as many as fitIdleHome finds room for.
+const IDLE_CONTINUE = 10;
 const IDLE_CHANNELS = 24;
 
 /**
@@ -6435,33 +6664,50 @@ function renderIdleHome() {
     seen.add(key);
     return true;
   };
-  const picks = currentPicks();
+  const { homePicks, homeContinue, homeRecent } = state.settings;
+  const picks = homePicks === false ? [] : currentPicks();
   if (picks.length) home.appendChild(idleSection('player.idle.picks', 'idle-picks', picks.map(pickCard)));
-  const unfinished = state.recents.filter(isUnfinished).filter(once).slice(0, IDLE_CONTINUE);
-  const channels = state.recents.filter((item) => item.k === 0).filter(once).slice(0, IDLE_CHANNELS);
-  if (unfinished.length) {
-    home.appendChild(idleSection('player.idle.continue', 'idle-cards', unfinished.map((item) => {
-      const card = idleTile('idle-card', item, () => playItem(item));
+  const watched = homeContinue === false ? [] : state.recents.filter((item) => item.k === 1 || item.k === 3).filter(once).slice(0, IDLE_CONTINUE);
+  const channels = homeRecent === false ? [] : state.recents.filter((item) => item.k === 0).filter(once).slice(0, IDLE_CHANNELS);
+  if (watched.length) {
+    home.appendChild(idleSection('player.idle.continue', 'idle-cards', watched.map((item) => {
+      const card = idleTile('idle-card', item, () => playCard(item));
       const cover = poster('idle-cover', (item.k === 3 && item.seriesCover) || item.logo, item.k === 3 ? 'series' : 'movie');
       const resume = state.resume.get(`${item.k}:${item.id}`);
       const bar = document.createElement('div');
       bar.className = 'row-progress resume';
-      const fill = document.createElement('i');
-      fill.style.width = `${Math.round(Math.min(1, resume.position / resume.duration) * 100)}%`;
-      bar.appendChild(fill);
+      // Seen to the end: no bar, but its room kept, so that the names line up.
+      if (resume && state.settings.resumeEnabled) {
+        const fill = document.createElement('i');
+        fill.style.width = `${Math.round(Math.min(1, resume.position / resume.duration) * 100)}%`;
+        bar.appendChild(fill);
+      } else bar.style.visibility = 'hidden';
       const name = document.createElement('span');
       name.className = 'idle-name';
-      name.textContent = item.k === 3 ? `${item.seriesName || ''} S${item.season} E${item.episode}`.trim() : item.displayName || item.n;
+      name.textContent = item.k === 3 ? `${item.seriesName || ''} S${item.season} E${item.episode}`.trim() : shownName(item);
       card.append(cover, name, bar);
-      return card;
+      // The card is a button already, so the ✕ sits beside it in a wrapper
+      // rather than in it: a button inside a button is not one.
+      const wrap = document.createElement('div');
+      wrap.className = 'idle-card-wrap';
+      const forget = document.createElement('button');
+      forget.type = 'button';
+      forget.className = 'idle-forget';
+      forget.title = t('player.idle.forget', { title: name.textContent });
+      forget.setAttribute('aria-label', forget.title);
+      forget.innerHTML = '<svg viewBox="0 0 20 20" aria-hidden="true" focusable="false"><path d="m6 6 8 8M14 6l-8 8"/></svg>';
+      forget.addEventListener('click', (event) => { event.stopPropagation(); forgetUnfinished(item, name.textContent); });
+      wrap.append(card, forget);
+      return wrap;
     })));
+    idleCarousel(home.lastElementChild.querySelector('.idle-cards'));
   }
   if (channels.length) {
     home.appendChild(idleSection('player.idle.channels', 'idle-channels', channels.map((item) => {
-      const tile = idleTile('idle-channel', item, () => playItem(item));
+      const tile = idleTile('idle-channel', item, () => playFromHome(item));
       const name = document.createElement('span');
       name.className = 'idle-name';
-      name.textContent = item.displayName || item.n;
+      name.textContent = shownName(item);
       tile.append(poster('idle-logo', item.logo, 'channel'), name);
       return tile;
     })));
@@ -6484,7 +6730,8 @@ function renderIdleHome() {
 function fitIdleHome() {
   const home = el.idleHome;
   if (home.hidden || el.overlay.hidden) return;
-  const lists = [...home.querySelectorAll('.idle-picks, .idle-cards, .idle-channels')];
+  for (const list of home.querySelectorAll('.idle-cards')) list.syncScroll?.();
+  const lists = [...home.querySelectorAll('.idle-picks, .idle-channels')];
   for (const list of lists) for (const tile of list.children) tile.hidden = false;
   const style = getComputedStyle(el.overlay);
   const bottom = el.overlay.getBoundingClientRect().bottom - parseFloat(style.paddingBottom);
@@ -6512,6 +6759,56 @@ function idleSection(titleKey, listClass, tiles) {
   section.append(heading, list);
   return section;
 }
+
+/**
+ * A row of covers that scrolls sideways, a ‹ and a › over its ends for the
+ * mouse: each shown only while there is more that way, and a press moves
+ * by what the row shows, less one cover so that the last stays in sight.
+ * The keyboard needs neither — a focused cover scrolls itself into view.
+ */
+function idleCarousel(list) {
+  const carousel = document.createElement('div');
+  carousel.className = 'idle-carousel';
+  list.replaceWith(carousel);
+  const arrow = (dir) => {
+    const button = document.createElement('button');
+    button.type = 'button';
+    button.className = `idle-scroll ${dir < 0 ? 'prev' : 'next'}`;
+    button.tabIndex = -1;
+    button.title = t(dir < 0 ? 'player.idle.prev' : 'player.idle.next');
+    button.setAttribute('aria-label', button.title);
+    button.innerHTML = `<svg viewBox="0 0 20 20" aria-hidden="true" focusable="false"><path d="${dir < 0 ? 'm12 4-6 6 6 6' : 'm8 4 6 6-6 6'}"/></svg>`;
+    button.addEventListener('click', () => {
+      const tile = list.firstElementChild;
+      const step = tile ? tile.getBoundingClientRect().width + (parseFloat(getComputedStyle(list).columnGap) || 0) : 0;
+      list.scrollBy({ left: dir * Math.max(step, list.clientWidth - step), behavior: 'smooth' });
+    });
+    return button;
+  };
+  const prev = arrow(-1), next = arrow(1);
+  carousel.append(prev, list, next);
+  list.syncScroll = () => {
+    const max = list.scrollWidth - list.clientWidth;
+    prev.hidden = list.scrollLeft <= 1;
+    next.hidden = list.scrollLeft >= max - 1;
+  };
+  list.addEventListener('scroll', list.syncScroll, { passive: true });
+  requestAnimationFrame(list.syncScroll);
+}
+
+/**
+ * A cover of Continue watching: what was left halfway goes on from there; a
+ * series whose last episode was seen to the end goes on with the next one,
+ * where there is one; a film seen to the end starts again.
+ */
+async function playCard(item) {
+  let target = item;
+  if (item.k === 3 && !isUnfinished(item)) target = (await nextEpisode(item).catch(() => null)) || item;
+  await playFromHome(target);
+}
+
+/** A tile of the empty player's page: played there, or — from the guide's column — where it lives. */
+const playFromHome = (item) => (guideOpen ? playInPlace(item) : playItem(item));
 
 function idleTile(className, item, onClick) {
   const tile = document.createElement('button');
@@ -6569,6 +6866,7 @@ async function init() {
 
   const ui = await store.loadUiState();
   favStripOpen = Boolean(ui.favStripOpen);
+  groupsFavOnly = ui.groupsFavOnly === true;
   guideFavorites = Boolean(ui.guideFavorites);
   // The address names this tab's place; the stored view names the place any
   // tab last settled on. A reload has an address and takes it, drill-down

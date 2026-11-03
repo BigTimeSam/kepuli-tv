@@ -15,6 +15,7 @@ paraître petit.
   surround compris
 → Enregistre une chaîne maintenant ou une émission du guide, et garde-la en
   fichier
+  (l'enregistrement s'active dans les Réglages)
 
 
 POURQUOI JE L'AI CRÉÉ
@@ -45,6 +46,8 @@ CE QUE TU OBTIENS
 • Favoris, historique et reprise là où tu t'étais arrêté.
 • Masque les marques mondiales dans la liste d'un pays, et ses propres
   chaînes se trouvent facilement.
+• Garde seulement les pays que tu regardes, et seulement les catégories de
+  films et de séries que tu veux.
 • Diffuse vers un Chromecast, utilise les touches multimédias et reçois un
   rappel avant le début d'une émission.
 • Le guide peut n'afficher que tes chaînes favorites.

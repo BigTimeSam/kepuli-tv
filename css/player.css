@@ -1,4 +1,6 @@
 :root {
+  /* The bars under the sidebar, the list and the player: one height. */
+  --foot-h: 53px;
   --bg: #0a0c11;
   --panel: #11141c;
   --panel-2: #161a24;
@@ -66,7 +68,8 @@
    4.5:1 or more on the grounds it sits on, the accent's text colours
    included: the cyan of the times is darkened to teal to be read on white.
    The picture and its controls stay dark, below, as a cinema does. */
-:root[data-theme="light"] {
+:root[data-theme="light"],
+:root[data-theme="light"] .overlay.idle {
   --bg: #f3f4f8;
   --panel: #ffffff;
   --panel-2: #eef0f5;
@@ -111,10 +114,12 @@
   color-scheme: light;
 }
 
-/* The stage — the picture, its overlay and the bar under it — is dark in
-   either theme: a white frame around a film is a light left on in the
-   cinema. */
-:root[data-theme="light"] .stage {
+/* The picture and what is drawn over it are dark in either theme: a white
+   frame around a film is a light left on in the cinema. The details and
+   the bar under the picture follow the theme, and so does the empty
+   player's own page (.overlay.idle, the light variables above), which is
+   a page of the app rather than a picture. */
+:root[data-theme="light"] .videowrap {
   --bg: #0a0c11;
   --panel: #11141c;
   --panel-2: #161a24;
@@ -309,6 +314,17 @@ main.guide > .stage { grid-area: 3 / 2; min-height: 0; border-left: 1px solid va
    The floor is what a 16:9 picture comes to in the narrowest this column
    goes (280px), below which it stops being watchable. */
 main.guide #videowrap:not(:fullscreen) { flex: none; aspect-ratio: 16 / 9; min-height: 153px; }
+/* With nothing playing the box holds the empty player's page rather than a
+   picture: it grows upwards to the page's own height, so that it does not
+   scroll while the column above stands empty, up to what the programme's
+   details leave free (they keep their own height and a margin). Once
+   something plays, it is the 16:9 thumbnail again. */
+main.guide:not(.has-playback) { grid-template-rows: auto minmax(auto, 1fr) minmax(0, max-content); }
+main.guide:not(.has-playback) > .epgview { min-height: auto; overflow: visible; padding-bottom: 20px; }
+main.guide:not(.has-playback) .epgv-desc { flex: none; }
+main.guide:not(.has-playback) #videowrap:not(:fullscreen) { aspect-ratio: auto; flex: 1 1 auto; }
+main.guide:not(.has-playback) #videowrap:not(:fullscreen) > video { position: absolute; inset: 0; }
+main.guide:not(.has-playback) #videowrap:not(:fullscreen) > .overlay { position: relative; inset: auto; height: 100%; min-height: 153px; }
 
 /* The preview is a column now, not a band: the two actions go under the
    channel's name rather than beside it, and the description takes whatever
@@ -343,15 +359,27 @@ main.guide #btn-copy { display: none; }
 }
 .groups-filter input:focus { border-color: var(--accent); }
 .groups-list { flex: 1; overflow-y: auto; padding: 6px; }
-/* The countries the viewer watches, under the sidebar on the channels. */
+/* The countries the viewer watches, under the sidebar on the channels: as
+   tall as the line under the list and the bar under the player
+   (--foot-h), so that the three end on one line. */
 .groups-foot {
-  flex: none; display: flex; align-items: center; gap: 8px; width: 100%;
-  padding: 9px 14px; border: 0; border-top: 1px solid var(--border); background: var(--panel);
+  flex: none; display: flex; align-items: center; justify-content: center; gap: 8px; width: 100%; min-height: var(--foot-h);
+  padding: 0 14px; border: 0; border-top: 1px solid var(--border); background: var(--panel);
   color: var(--muted); font: inherit; font-size: 0.75rem; text-align: left; cursor: pointer;
 }
 .groups-foot[hidden] { display: none; }
+.groups-foot[data-kind="categories"] .foot-countries, .groups-foot:not([data-kind="categories"]) .foot-categories { display: none; }
 .groups-foot:hover { color: var(--text); background: var(--row-hover); }
 .groups-foot:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; }
+/* Favourites only, under the sidebar's filter. */
+.groups-favonly {
+  flex: none; display: flex; align-items: center; gap: 8px; margin: 0; padding: 1px 14px 8px;
+  border-bottom: 1px solid var(--border); color: var(--muted); font-size: 0.75rem; cursor: pointer;
+}
+.groups-favonly[hidden] { display: none; }
+.groups-filter:has(+ .groups-favonly:not([hidden])) { border-bottom: 0; }
+.groups-favonly:hover, .groups-favonly:has(input:checked) { color: var(--text); }
+.groups-favonly input { margin: 0; accent-color: var(--accent); }
 .groups-foot svg { width: 15px; height: 15px; flex: none; fill: none; stroke: currentColor; stroke-width: 1.5; stroke-linecap: round; stroke-linejoin: round; }
 
 .group { display: flex; align-items: center; gap: 8px; padding: 6px 9px; border-radius: 7px; cursor: pointer; color: var(--muted); }
@@ -559,6 +587,17 @@ button.series-favorite { flex: none; width: 32px; height: 32px; padding: 0; disp
 .vodinfo-body { min-width: 0; flex: 1; }
 .vodinfo .title-links { margin-top: 0; margin-bottom: 10px; }
 .infostrip:has(.title-facts) { max-height: 210px; }
+/* The picture's shape known (sizePicture in js/app.js): the box is as tall
+   as the picture, so the column does not spend its height on black bands,
+   and the details below take the rest — all of them where they fit. When
+   the column is too low for both, the picture gives way first, down to
+   about half the column, and the details scroll after that. Not in the
+   guide, whose thumbnail has a shape of its own, nor in full screen, nor
+   with no details to show, when the picture keeps the whole column. */
+main:not(.guide) .stage:has(> .infostrip:not([hidden])) > .videowrap.sized:not(:fullscreen) {
+  flex: 0 1 auto; width: 100%; aspect-ratio: var(--pic-ratio); min-height: min(240px, 50%);
+}
+main:not(.guide) .stage:has(> .videowrap.sized:not(:fullscreen)) > .infostrip { flex: 1 1 auto; max-height: none; min-height: 0; }
 .vodinfo .title-facts { grid-template-columns: repeat(auto-fit, minmax(90px, 1fr)); }
 .vodinfo .meta { padding-top: 8px; border-top: 1px solid var(--border); }
 .vodinfo .meta:empty { display: none; }
@@ -693,7 +732,7 @@ button.series-favorite { flex: none; width: 32px; height: 32px; padding: 0; disp
 .fav-logo { width: 64px; height: 36px; border-radius: 4px; }
 .fav-cover { width: 56px; aspect-ratio: 2 / 3; border-radius: 4px; }
 
-.listinfo { padding: 7px 10px; border-top: 1px solid var(--border); color: var(--muted); font-size: 0.71875rem; background: var(--panel); font-variant-numeric: tabular-nums; display: flex; align-items: center; gap: 8px; }
+.listinfo { min-height: var(--foot-h); padding: 7px 10px; border-top: 1px solid var(--border); color: var(--muted); font-size: 0.71875rem; background: var(--panel); font-variant-numeric: tabular-nums; display: flex; align-items: center; gap: 8px; }
 .listinfo .spacer { flex: 1; }
 .listinfo button { background: none; border: 0; padding: 0; font: inherit; color: var(--muted); cursor: pointer; text-decoration: underline; text-underline-offset: 2px; }
 .listinfo button:hover { color: var(--text); }
@@ -881,6 +920,8 @@ body[data-substyle="yellow"] { --cue-color: #ffe14d; }
 body[data-substyle="contrast"] { --cue-back: #000; }
 
 .overlay { position: absolute; inset: 0; display: grid; place-items: center; background: radial-gradient(circle at 50% 45%, #12151f, #06070a 70%); text-align: center; padding: 24px; }
+:root[data-theme="light"] .overlay.idle { background: var(--bg); color: var(--text); }
+:root[data-theme="light"] .stage { background: var(--bg); }
 .overlay[hidden] { display: none; }
 .overlay-inner { max-width: 480px; }
 .overlay-head { margin-bottom: 6px; }
@@ -893,8 +934,18 @@ body[data-substyle="contrast"] { --cue-back: #000; }
 /* The whole of the player's area, rather than a column down its middle;
    what does not fit is hidden by fitIdleHome in js/app.js, and the overlay
    scrolls for a window too low for even one row. */
-.overlay:has(.idle-home:not([hidden])) { overflow-y: auto; place-items: start center; padding: clamp(16px, 5vh, 48px) clamp(16px, 3vw, 40px); }
+/* The heading has as much room above it as below it, down to the line
+   that closes it off (--idle-gap, both ends): it stands in its own band. */
+.overlay:has(.idle-home:not([hidden])) { --idle-gap: clamp(20px, 4.5vh, 44px); overflow-y: auto; place-items: start center; padding: var(--idle-gap) clamp(16px, 3vw, 40px) clamp(16px, 5vh, 48px); }
 .overlay-inner:has(.idle-home:not([hidden])) { max-width: 1200px; width: 100%; }
+/* The page's own heading, set apart by a mark rather than by size: a
+   television in the accent's soft circle over the title, and a hairline
+   under the line of text that closes the heading off from the sections. */
+.overlay.idle .overlay-head::before {
+  content: ""; display: block; width: 44px; height: 44px; margin: 0 auto 10px; border-radius: 999px;
+  background: var(--accent-soft) center / 22px no-repeat url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20' fill='none' stroke='%237c5cff' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Crect x='2.5' y='5' width='15' height='10.5' rx='1.8'/%3E%3Cpath d='M7 2.5 10 5l3-2.5M6.5 18h7'/%3E%3C/svg%3E");
+}
+.overlay-inner:has(.idle-home:not([hidden])) .overlay-text { padding-bottom: var(--idle-gap); border-bottom: 1px solid var(--border); }
 .idle-home { margin-top: 22px; display: grid; gap: 22px; text-align: left; }
 /* The display above outranks the browser's own rule for [hidden]: without
    this the page stayed on screen, narrow and spilling over the picture,
@@ -904,7 +955,28 @@ body[data-substyle="contrast"] { --cue-back: #000; }
 /* A cover's width follows the height there is: a low window gets small
    covers and still room for the channels under them. */
 .idle-home { --idle-card: clamp(92px, calc((100dvh - 330px) * 0.26), 168px); }
-.idle-cards { display: grid; grid-template-columns: repeat(auto-fill, var(--idle-card)); gap: 12px; }
+.idle-home > section { min-width: 0; }
+.idle-carousel { position: relative; min-width: 0; }
+/* Continue watching: one row that scrolls sideways (idleCarousel). The
+   padding keeps the focus ring inside the scroller, which would clip it. */
+.idle-cards {
+  display: flex; gap: 12px; overflow-x: auto; overscroll-behavior-x: contain;
+  scroll-snap-type: x proximity; scroll-padding: 0 3px; scrollbar-width: none;
+  padding: 3px; margin: -3px;
+}
+.idle-cards::-webkit-scrollbar { display: none; }
+.idle-cards > .idle-card-wrap { flex: none; width: var(--idle-card); scroll-snap-align: start; }
+.idle-scroll {
+  position: absolute; top: 50%; z-index: 1; width: 34px; height: 34px; padding: 0; transform: translateY(-50%);
+  display: grid; place-items: center; border-radius: 999px; cursor: pointer;
+  border: 1px solid var(--border-strong); background: var(--panel); color: var(--text);
+  box-shadow: 0 2px 10px rgba(0, 0, 0, .45);
+}
+.idle-scroll[hidden] { display: none; }
+.idle-scroll.prev { left: -14px; }
+.idle-scroll.next { right: -14px; }
+.idle-scroll:hover { background: var(--row-hover); }
+.idle-scroll svg { width: 16px; height: 16px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
 .idle-channels { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 8px; }
 .idle-card[hidden], .idle-channel[hidden] { display: none; }
 .idle-card, .idle-channel {
@@ -919,6 +991,22 @@ body[data-substyle="contrast"] { --cue-back: #000; }
 .idle-logo { width: 44px; height: 30px; flex: none; border-radius: 4px; }
 .idle-name { font-size: 0.8125rem; font-weight: 550; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .idle-card .row-progress { width: 100%; margin-top: 0; }
+/* The ✕ that takes a card off Continue watching: in the cover's top right
+   corner, shown on hover and on focus — and always where nothing hovers. */
+.idle-card-wrap { position: relative; display: flex; min-width: 0; }
+.idle-card-wrap[hidden] { display: none; }
+.idle-card-wrap > .idle-card { flex: 1; }
+.idle-forget {
+  position: absolute; top: 12px; right: 12px; width: 28px; height: 28px; padding: 0;
+  display: grid; place-items: center; border-radius: 999px; cursor: pointer;
+  border: 1px solid rgba(255, 255, 255, .25); background: rgba(10, 12, 18, .78); color: #fff;
+  opacity: 0; transition: opacity .12s, background-color .12s;
+}
+.idle-forget svg { width: 14px; height: 14px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; }
+.idle-card-wrap:hover .idle-forget, .idle-forget:focus-visible { opacity: 1; }
+.idle-forget:hover { background: rgba(200, 40, 50, .92); border-color: transparent; }
+.idle-forget:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+@media (hover: none) { .idle-forget { opacity: 1; } }
 /* The picks (js/picks.js): a programme per card, its channel's logo beside
    it. One row of them, as many as the window is wide for (fitIdleHome). */
 .idle-picks { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 10px; }
@@ -1014,6 +1102,11 @@ body[data-substyle="contrast"] { --cue-back: #000; }
 .epgnext-title { color: var(--text); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .vodinfo { display: flex; gap: 10px; }
 .info-cover { width: 54px; height: 80px; border-radius: 5px; flex: none; }
+/* With the picture at its own height the details have room (see
+   .videowrap.sized), and the cover need not be a stamp: it grows with the
+   window, a poster's 2:3, up to about the height of the facts beside it. */
+main:not(.guide) .stage:has(> .videowrap.sized:not(:fullscreen)) .vodinfo { gap: 16px; }
+main:not(.guide) .stage:has(> .videowrap.sized:not(:fullscreen)) .info-cover { width: clamp(72px, 8vw, 136px); height: auto; aspect-ratio: 2 / 3; border-radius: 7px; }
 .playback-facts { display: flex; flex-wrap: wrap; gap: 10px 20px; margin: 0 0 8px; padding-top: 8px; border-top: 1px solid var(--border); }
 .playback-facts:empty { display: none; }
 .vodinfo-body > .playback-facts:first-child { padding-top: 0; border-top: 0; }
@@ -1024,14 +1117,27 @@ body[data-substyle="contrast"] { --cue-back: #000; }
 .playback-pending .fact-spinner { width: 14px; height: 14px; }
 .playback-warning { color: var(--gold); font-size: 0.6875rem; }
 .vodinfo .plot { color: var(--muted); font-size: 0.75rem; }
+/* Who made it, under the plot (titleCredits in js/titleinfo.js): the
+   label in a narrow column and the names beside it, line by line. */
+.title-credits { display: grid; grid-template-columns: max-content minmax(0, 1fr); gap: 5px 14px; margin: 12px 0 0; padding-top: 10px; border-top: 1px solid var(--border); font-size: 0.71875rem; }
+.title-credits:empty { display: none; }
+.title-credits > div { display: contents; }
+.title-credits dt { color: var(--muted); }
+.title-credits dd { margin: 0; color: var(--text); overflow-wrap: anywhere; }
 
 /* Three selectors and seven buttons do not fit beside the title in a
    narrow player column — 1280 px of window leaves it about 675 — and a
    button pushed off the edge is a button the viewer cannot reach. The row
    therefore wraps: the title keeps its line and the actions drop below it,
    and if even they do not fit on one line they wrap among themselves. */
-.nowbar { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; padding: 9px 12px; background: var(--panel); border-top: 1px solid var(--border); }
+.nowbar { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; min-height: var(--foot-h); padding: 9px 12px; background: var(--panel); border-top: 1px solid var(--border); }
 .now { min-width: 0; flex: 1; }
+/* The title over the picture, on the theme's panel; with nothing playing
+   the empty player's page says it all, and the head is left out. */
+.stagehead { flex: none; display: flex; align-items: center; min-height: var(--foot-h); padding: 7px 14px; background: var(--panel); border-bottom: 1px solid var(--border); color: var(--text); }
+main:not(.has-playback) .stagehead { display: none; }
+/* The bar under the picture holds the controls alone now: to the right. */
+.nowbar { justify-content: flex-end; }
 /* What is playing is the largest words on the page after the brand: at
    the body's 13 px it was the same size as every row name in the list. */
 .now-title { font-weight: 650; font-size: 0.9375rem; letter-spacing: -0.005em; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
@@ -1749,3 +1855,13 @@ select:not([multiple]) {
 .epg-favs[aria-pressed="true"] { color: var(--accent); border-color: var(--accent); }
 .epg-favs[aria-pressed="true"] svg { fill: currentColor; }
 .epg-select:disabled { opacity: .5; cursor: default; }
+
+/* Optical alignment, measured against the glyphs (the middle of the
+   x-height and the cap height), not the line boxes: a box centred on its
+   line sits higher than the letters beside it, which have room for
+   descenders below them. The magnifiers 1 px, the 15 px marks and the
+   boxes half a pixel — one device pixel on a 2x screen. */
+.search svg, .groups-filter svg, .choice-filter svg, .search-field > svg { translate: 0 calc(-50% + 1px); }
+.search svg { top: 50%; }
+.tab-icon, .icon-button.labelled > svg, .groups-foot svg, .channel-guide > svg { translate: 0 .5px; }
+.groups-favonly input, .toggle input, .choice-row > input { translate: 0 .5px; }

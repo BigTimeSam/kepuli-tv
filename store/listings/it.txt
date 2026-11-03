@@ -13,6 +13,7 @@ Kepuli-TV riproduce account Xtream Codes, playlist M3U e portali Stalker, ed
 → Film ed episodi in MKV si guardano direttamente qui, con sottotitoli e
   audio surround
 → Registra subito un canale o un programma dalla guida, e tienilo come file
+  (la registrazione si attiva nelle Impostazioni)
 
 
 PERCHÉ L'HO FATTO
@@ -43,6 +44,8 @@ COSA OTTIENI
 • Preferiti, cronologia e punti da cui riprendere.
 • Nascondi i marchi globali dall'elenco di un paese, e le sue emittenti si
   trovano facilmente.
+• Tieni solo i paesi che guardi, e solo le categorie di film e serie che
+  vuoi.
 • Trasmetti su un Chromecast, usa i tasti multimediali e ricevi un promemoria
   prima che inizi un programma.
 • La guida può mostrare solo i tuoi canali preferiti.

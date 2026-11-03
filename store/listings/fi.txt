@@ -15,6 +15,7 @@ valikoiman pitää tuntua pieneltä.
 → MKV-elokuvat ja -jaksot toistuvat suoraan selaimessa, tekstitykset ja
   surround-ääni mukaan lukien
 → Tallenna kanava heti tai ohjelma oppaasta, ja säilytä se tiedostona
+  (tallennus otetaan käyttöön asetuksista)
 
 
 MIKSI TEIN SEN
@@ -44,6 +45,8 @@ MITÄ SAAT
 • Suosikit, katseluhistoria ja jatkokohdat.
 • Piilota maailmanlaajuiset brändit maan listalta, niin maan omat kanavat
   löytyvät helposti.
+• Näytä vain katsomasi maat sekä haluamasi elokuva- ja
+  sarjakategoriat.
 • Lähetä kuva Chromecastiin, käytä mediapainikkeita ja saa muistutus ennen
   ohjelman alkua.
 • Ohjelmaopas voi näyttää vain suosikkikanavasi.

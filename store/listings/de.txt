@@ -14,6 +14,7 @@ gebaut um eine einzige Idee: Ein riesiger Katalog soll sich klein anfühlen.
   Surround-Sound
 → Nimm einen Sender sofort oder eine Sendung aus dem Programmführer auf und
   behalte sie als Datei
+  (die Aufnahme wird in den Einstellungen eingeschaltet)
 
 
 WARUM ICH ES GEBAUT HABE
@@ -44,6 +45,8 @@ WAS DU BEKOMMST
 • Favoriten, Verlauf und Wiedergabepositionen.
 • Blende die globalen Marken in der Liste eines Landes aus, dann sind die
   eigenen Sender leicht zu finden.
+• Behalte nur die Länder, die du schaust, und nur die Film- und
+  Serienkategorien, die du willst.
 • Auf einen Chromecast übertragen, Medientasten nutzen und vor Beginn einer
   Sendung erinnert werden.
 • Der Programmführer kann nur deine Lieblingssender zeigen.

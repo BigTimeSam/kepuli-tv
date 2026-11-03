@@ -14,6 +14,7 @@ pensado em torno de uma ideia: um catálogo enorme deve parecer pequeno.
 → Filmes e episódios MKV reproduzem-se diretamente no navegador, com legendas
   e som surround
 → Grava um canal agora ou um programa do guia e guarda-o num ficheiro
+  (a gravação ativa-se nas Definições)
 
 
 PORQUE O FIZ
@@ -44,6 +45,8 @@ O QUE TENS
 • Favoritos, histórico e pontos para retomares onde ficaste.
 • Esconde as marcas globais da lista de um país e encontra facilmente as
   estações locais.
+• Mantém só os países que vês e só as categorias de filmes e séries que
+  queres.
 • Transmite para um Chromecast, usa as teclas multimédia e recebe um lembrete
   antes de um programa começar.
 • O guia pode mostrar só os teus canais favoritos.

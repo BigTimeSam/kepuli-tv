@@ -14,6 +14,7 @@ izgrađen oko jedne ideje: golem katalog treba djelovati malen.
 → MKV filmovi i epizode igraju izravno u pregledniku, uz titlove i prostorni
   zvuk
 → Snimi kanal odmah ili emisiju iz vodiča i zadrži je kao datoteku
+  (snimanje se uključuje u Postavkama)
 
 
 ZAŠTO SAM GA NAPRAVIO
@@ -42,6 +43,8 @@ koristiti svake večeri.
 • Favoriti, povijest gledanja i mjesta nastavka.
 • Sakrij globalne marke s popisa neke zemlje, a njezine domaće postaje lako je
   pronaći.
+• Zadrži samo zemlje koje gledaš i samo kategorije filmova i serija koje
+  želiš.
 • Prebacivanje na Chromecast, medijske tipke i podsjetnik prije početka
   emisije.
 • Vodič može prikazati samo tvoje omiljene kanale.

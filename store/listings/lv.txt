@@ -14,6 +14,7 @@ tas radīts ap vienu domu: milzīgam katalogam jāliekas mazam.
 → MKV filmas un sērijas atskan tieši pārlūkā, ar subtitriem un
   telpisko skaņu
 → Ieraksti kanālu tagad vai raidījumu no ceļveža un paturi to kā failu
+  (ierakstīšanu ieslēdz Iestatījumos)
 
 
 KAPĒC TO RADĪJU
@@ -40,6 +41,8 @@ KO TU SAŅEMI
 • Izlase, skatīšanās vēsture un atsākšanas vietas.
 • Paslēp globālos zīmolus valsts sarakstā, un tās pašas stacijas ir viegli
   atrast.
+• Paturi vien tās valstis, kuras skaties, un tikai vēlamās filmu un seriālu
+  kategorijas.
 • Pārraide uz Chromecast, multivides taustiņi un atgādinājums pirms raidījuma
   sākuma.
 • Ceļvedis var rādīt vienīgi tavus izlases kanālus.

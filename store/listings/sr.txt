@@ -14,6 +14,7 @@ je na jednoj ideji: džinovski katalog treba da deluje malo.
 → Filmovi i epizode u MKV formatu rade pravo u pretraživaču, zajedno sa
   titlovima i prostornim zvukom
 → Snimi kanal odmah ili emisiju iz vodiča i sačuvaj je kao datoteku
+  (snimanje se uključuje u Podešavanjima)
 
 
 ZAŠTO SAM GA NAPRAVIO
@@ -42,6 +43,8 @@ koristim svako veče.
 • Omiljeno, istorija gledanja i mesta nastavka.
 • Sakrij globalne brendove sa spiska jedne države, pa se njene domaće stanice
   lako nalaze.
+• Zadrži samo države koje gledaš i samo kategorije filmova i serija koje
+  želiš.
 • Prebacivanje na Chromecast, multimedijalni tasteri i podsetnik pre početka
   emisije.
 • Vodič može da prikaže samo tvoje omiljene kanale.

@@ -506,6 +506,15 @@ country the provider adds later does not turn up uninvited; **Show all**
 clears it. The question is asked by itself once per account, after the first
 connection, when the provider has twenty groups or more.
 
+**Choose categories**, in the same place on the films and the series, does the
+same for their categories, each tab its own choice: the dialog lists every
+category the provider offers, and those left unticked are out of the sidebar,
+**All**, the lists and the search, the favourites and the history again
+keeping what was picked. The choices belong to the account, are remembered
+across restarts and travel with sync like the countries. **Show favourites
+only**, under the sidebar's filter on all three tabs, narrows the sidebar to
+the starred groups and those holding a starred topic.
+
 Every channel row has a menu — the ⋯ at its right end, a right click, or the
 context-menu key and Shift+F10 on the row the list stands on: **Add to
 favourites** (or **Remove from favourites**) and **Hide channel**. Hiding
@@ -653,7 +662,7 @@ the guide, so one spelling works everywhere a name is typed.
 - **Personal channel lists**: hide and reorder live channels and categories
 - **An empty player** offers what was left halfway, as covers, and the
   channels watched lately, as logos — each a click from playing
-- **Coming up for you** on the empty player's page: what is on now and in the
+- **On your channels now and soon** on the empty player's page: what is on now and in the
   next hours on the favourite and recently watched channels, a programme
   watched before first, each with the reason it was picked; one on now starts
   with a click, a later one sets its reminder (`js/picks.js`). What was
@@ -772,7 +781,7 @@ the timeline's scale, `Enter` starts playback and `Esc` closes.
 
 ### The buttons
 
-The top bar starts with the logo, which goes back to the start — the channels, the first country chosen, the top of its list — closing the search, the guide and any page opened from the list, and stops what is playing for the empty player's page: a film's place is kept under **Continue watching** and a channel heads **Watched lately**, each a click from playing again. Then the five tabs, each with its mark before its name (the marks step aside between 600 and 1100 px, where they would push the buttons onto a second row), the search box, **Refresh lists** (a
+The top bar starts with the logo, which goes back to the start — the channels, the first country chosen, the top of its list — closing the search, the guide and any page opened from the list, and stops what is playing for the empty player's page: a film's place is kept under **Continue watching** and a channel heads **Watched lately**, each a click from playing again. Continue watching shows the ten films and series watched last — left halfway or seen to the end; a series seen to the end of its last episode goes on with the next — newest at the left, in one row that scrolls sideways — with the ‹ and › at its ends, the trackpad or the keyboard — a series as one card; the ✕ in a cover's corner, on hover, forgets where it was left and takes it out of the history — every episode of a series — and the heading goes with the last card. **Settings › Viewing** turns each of the page's sections off: **On your channels now and soon**, **Continue watching** and **Watched lately**, all on to begin with. Then the five tabs, each with its mark before its name (the marks step aside between 600 and 1100 px, where they would push the buttons onto a second row), the search box, **Refresh lists** (a
 circular arrow), **Help** (a question mark), the theme — a sun in the dark
 theme switches to the light one and a moon in the light theme back — and
 **Settings** at the far right. The sun and moon is the quick switch; Settings > Viewing > Appearance also offers *Same as the system*, which follows the operating system's light or dark mode while the player is open, and a press of the switch then picks the other of what is on screen. Dark is the default. The picture and the bar

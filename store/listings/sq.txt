@@ -14,6 +14,7 @@ ide: një katalog i stërmadh duhet të të duket i vogël.
 → Filmat dhe episodet MKV luhen drejt në shfletues, me titra dhe zë
   surround
 → Regjistro një kanal tani ose një program nga udhëzuesi dhe ruaje si skedar
+  (regjistrimi aktivizohet te Cilësimet)
 
 PSE E KAM BËRË
 
@@ -40,6 +41,8 @@ mbrëmje.
 • Të preferuarat, historiku i shikimit dhe pikat e vazhdimit.
 • Fshih markat globale nga lista e një vendi dhe stacionet e veta gjenden
   lehtë.
+• Mbaj vetëm vendet që shikon dhe kategoritë e filmave dhe serialeve që
+  dëshiron.
 • Transmeto në Chromecast, përdor tastet e medias dhe merr kujtesë para se
   të nisë një program.
 • Udhëzuesi mund të shfaqë vetëm kanalet e tua të preferuara.

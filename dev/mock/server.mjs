@@ -650,7 +650,7 @@ function api(req, res, url) {
       return send(res, 200, {
         info: {
           movie_image: origin + m.stream_icon, cover_big: origin + m.stream_icon, plot: m.plot, cast: m.cast, director: m.director, genre: m.genre,
-          releasedate: `${m.year}-01-01`, rating: m.rating, duration_secs: m.duration * 60, duration: `${Math.floor(m.duration / 60)}:${String(m.duration % 60).padStart(2, '0')}:00`,
+          releasedate: `${m.year}-01-01`, country: 'Norway, Sweden', age: '12', rating: m.rating, duration_secs: m.duration * 60, duration: `${Math.floor(m.duration / 60)}:${String(m.duration % 60).padStart(2, '0')}:00`,
           video: { codec_name: 'h264', width: 1920, height: 1080 }, audio: { codec_name: 'aac', channels: 2 }, bitrate: 4200, youtube_trailer: '',
         },
         movie_data: { stream_id: m.stream_id, name: m.name, added: m.added, category_id: m.category_id, container_extension: m.container_extension, custom_sid: '', direct_source: '' },

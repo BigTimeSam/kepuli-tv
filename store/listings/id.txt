@@ -13,6 +13,7 @@ satu prinsip: katalog sebesar apa pun harus terasa ringan.
 → Film dan episode MKV diputar langsung di browser, termasuk subtitel dan
   suara surround
 → Rekam siaran sekarang atau acara dari panduan, lalu simpan sebagai file
+  (perekaman diaktifkan di Pengaturan)
 
 
 KENAPA SAYA MEMBUATNYA
@@ -43,6 +44,8 @@ YANG KAMU DAPATKAN
 • Favorit, riwayat tontonan, dan posisi terakhir menonton.
 • Sembunyikan merek global dari daftar sebuah negara, jadi stasiun lokalnya
   gampang ditemukan.
+• Sisakan negara yang kamu tonton saja, begitu juga kategori film dan
+  serial yang kamu mau.
 • Kirim ke Chromecast, pakai tombol media, dan dapat pengingat sebelum acara
   dimulai.
 • Panduan acara bisa menampilkan saluran favoritmu saja.

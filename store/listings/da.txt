@@ -13,6 +13,7 @@ bygget over én idé: et kæmpe udvalg skal føles lille.
 → MKV-film og afsnit afspilles direkte i browseren, med undertekster og
   surroundlyd
 → Optag en kanal nu eller et program fra guiden, og gem det som en fil
+  (optagelse slås til under Indstillinger)
 
 
 HVORFOR JEG LAVEDE DEN
@@ -39,6 +40,8 @@ HVAD DU FÅR
 • Favoritter, visningshistorik og genoptagelsespunkter.
 • Skjul de globale mærker fra et lands liste, så er landets egne kanaler nemme
   at finde.
+• Behold kun de lande, du ser, og kun de film- og seriekategorier, du vil
+  have.
 • Cast til en Chromecast, brug medietasterne, og få en påmindelse, før et
   program starter.
 • Guiden kan vise kun dine favoritkanaler.

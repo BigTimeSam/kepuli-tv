@@ -14,6 +14,7 @@ zgrajen okoli ene same ideje: velikanski katalog naj deluje majhen.
 → Filmi in epizode MKV se predvajajo kar v brskalniku, s podnapisi in
   prostorskim zvokom
 → Posnemi kanal zdaj ali oddajo iz vodiča in jo shrani kot datoteko
+  (snemanje se vklopi v Nastavitvah)
 
 
 ZAKAJ SEM GA NAREDIL
@@ -43,6 +44,8 @@ KAJ DOBIŠ
 • Priljubljene, zgodovina ogledov in mesta za nadaljevanje.
 • Skrij globalne blagovne znamke na seznamu države, njene domače postaje pa
   so zlahka najdene.
+• Obdrži le države, ki jih gledaš, in le kategorije filmov in serij, ki jih
+  želiš.
 • Pošiljanje na Chromecast, multimedijske tipke in opomnik pred začetkom
   oddaje.
 • Vodič lahko prikaže samo tvoje priljubljene kanale.

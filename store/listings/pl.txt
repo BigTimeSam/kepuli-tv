@@ -15,6 +15,7 @@ małego.
 → Filmy i odcinki w MKV działają prosto w przeglądarce, z napisami i dźwiękiem
   przestrzennym
 → Nagraj kanał od razu albo audycję z przewodnika i zachowaj ją jako plik
+  (nagrywanie włącza się w Ustawieniach)
 
 
 DLACZEGO TO ZROBIŁEM
@@ -42,6 +43,8 @@ CO DOSTAJESZ
 • Filmy i seriale jako okładki, z opisami, ocenami i sezonami.
 • Ulubione, historia oglądania i miejsca wznowienia.
 • Ukryj globalne marki na liście kraju, a jego własne stacje łatwo znaleźć.
+• Zostaw tylko kraje, które oglądasz, i te kategorie filmów i seriali,
+  których chcesz.
 • Przesyłanie na Chromecasta, klawisze multimedialne i przypomnienie przed
   rozpoczęciem audycji.
 • Przewodnik może pokazywać same ulubione kanały.

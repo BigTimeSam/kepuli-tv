@@ -14,6 +14,7 @@ postavený na jednom nápade: obrovský katalóg má pôsobiť malo.
 → Filmy a epizódy v MKV bežia priamo v prehliadači, s titulkami aj
   priestorovým zvukom
 → Nahraj kanál hneď či reláciu zo sprievodcu a nechaj si ju ako súbor
+  (nahrávanie sa zapína v Nastaveniach)
 
 
 PREČO SOM TO UROBIL
@@ -40,6 +41,8 @@ každý večer.
 • Filmy a seriály ako obálky, s dejom, hodnoteniami a sériami.
 • Obľúbené, história sledovania a miesta, kde si skončil.
 • Skry globálne značky v zozname krajiny a jej vlastné stanice nájdeš ľahko.
+• Nechaj si len krajiny, ktoré sleduješ, a len kategórie filmov a seriálov,
+  ktoré chceš.
 • Prenos na Chromecast, multimediálne klávesy a pripomienka pred začiatkom
   relácie.
 • Sprievodca môže ukazovať len tvoje obľúbené kanály.
