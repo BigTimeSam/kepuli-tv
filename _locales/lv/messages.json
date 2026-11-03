@@ -4,7 +4,7 @@
     "description": "The extension's name in the store and the browser. Written from store/listings/ by dev/listings.mjs."
   },
   "appDesc": {
-    "message": "Tavs IPTV pārlūkā: Xtream Codes, M3U vai Stalker portāls. Kanāli atveras sekundēs, MKV atskan, un vari arī ierakstīt.",
+    "message": "Tavs IPTV pārlūkā: Xtream Codes, M3U vai Stalker portāls. Kanāli atveras sekundēs, MKV tiek atskaņots, un vari arī ierakstīt.",
     "description": "The short description. Written from store/listings/ by dev/listings.mjs."
   }
 }

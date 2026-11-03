@@ -42,6 +42,20 @@ Background: [development.md → Language](../../docs/development.md#language) an
 5. Look at the longest languages (German, Finnish, Hungarian) in the UI if the
    string sits in a button or a narrow column.
 
+## Cross-checking
+
+Two reviewers have been through every language: an agent per language
+group, then Codex (`node dev/translationreview.mjs [lang…]`, instructions
+in `dev/i18n/review-prompt.txt`). Neither replaces a native speaker. After
+any machine review:
+
+1. every locale loads: `node -e "…import('./js/locales/<l>.js')…"` for all;
+2. placeholders match the English key by key, keys and their order unchanged
+   (the review commits in git history show the script);
+3. `node dev/listings.mjs` passes (IPTV ≤ 3, no other long word 5 times);
+4. read the diff; spot-check words you can verify (Codex once turned the
+   Latvian "priedēkļa", a set-top box's, into a non-word).
+
 ## Store listings
 
 The store texts are translated the same way but live in `store/listings/`; see `store/AGENTS.md`.

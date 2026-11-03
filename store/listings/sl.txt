@@ -5,7 +5,7 @@ Tvoj IPTV v brskalniku: Xtream Codes, M3U ali portal Stalker. Kanali se odprejo 
 === DETAILED DESCRIPTION ===
 Gledaj svojo naročnino IPTV v brskalniku, brez boja z aplikacijo.
 Kepuli-TV predvaja račune Xtream Codes, sezname M3U in portale Stalker,
-zgrajen okoli ene same ideje: velikanski katalog naj deluje majhen.
+zasnovan pa je okoli ene same ideje: velikanski katalog naj deluje majhen.
 
 → Kanali se odprejo v sekundi ali dveh, tudi pri ogromni ponudbi
 → Na stotine neurejenih kategorij postane pregleden seznam držav
@@ -41,9 +41,9 @@ KAJ DOBIŠ
 • Narejen za račune z eno povezavo: pri menjavi kanala počaka, da jo ponudnik
   sprosti, namesto da bi javil napako.
 • Filmi in serije kot naslovnice, z opisi, ocenami in sezonami.
-• Priljubljene, zgodovina ogledov in mesta za nadaljevanje.
-• Skrij globalne blagovne znamke na seznamu države, njene domače postaje pa
-  so zlahka najdene.
+• Priljubljeni, zgodovina ogledov in mesta za nadaljevanje.
+• Skrij globalne blagovne znamke na seznamu države, da lažje najdeš njene
+  domače postaje.
 • Obdrži le države, ki jih gledaš, in le kategorije filmov in serij, ki jih
   želiš.
 • Pošiljanje na Chromecast, multimedijske tipke in opomnik pred začetkom
@@ -54,10 +54,10 @@ KAJ DOBIŠ
 • V 30 jezikih. Govori jezik tvojega brskalnika, dokler ne izbereš drugega.
 
 
-ZASEBNOST PO NAČRTU
+ZASEBNOST ŽE V ZASNOVI
 
 Brez sledenja, brez oglasov, brez registracije. Razširitev se pogovarja samo
-z tvojim strežnikom in dovoljenje zahteva le za ta naslov — širši dostop samo
+s tvojim strežnikom in dovoljenje zahteva le za ta naslov — širši dostop samo
 če ga dovoliš, ko pretoke drugam usmeri tvoj ponudnik. Posnetki ostanejo na
 tvojem računalniku.
 

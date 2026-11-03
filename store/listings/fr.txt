@@ -5,15 +5,15 @@ Ton IPTV dans le navigateur : Xtream Codes, M3U ou portail Stalker. Les chaînes
 === DETAILED DESCRIPTION ===
 Regarde ton propre abonnement IPTV dans le navigateur, sans te battre avec
 l'appli. Kepuli-TV lit les comptes Xtream Codes, les playlists M3U et les
-portails Stalker, construit autour d'une seule idée : un énorme catalogue doit
+portails Stalker, avec une seule idée en tête : un énorme catalogue doit
 paraître petit.
 
 → Les chaînes s'ouvrent en une ou deux secondes, même dans un catalogue géant
 → Des centaines de catégories en vrac deviennent une liste claire de pays
-→ Un guide des programmes (EPG) plein écran, avec replay quand il existe
+→ Un guide des programmes (EPG) sur toute la fenêtre, avec replay quand il existe
 → Les films et épisodes MKV se lisent directement ici, sous-titres et son
   surround compris
-→ Enregistre une chaîne maintenant ou une émission du guide, et garde-la en
+→ Enregistre une chaîne maintenant ou une émission du guide, et garde-la dans un
   fichier
   (l'enregistrement s'active dans les Réglages)
 
@@ -42,7 +42,7 @@ CE QUE TU OBTIENS
   lecture continue.
 • Pensé pour les comptes à une seule connexion : en changeant de chaîne, il
   attend que le fournisseur la libère au lieu d'échouer.
-• Films et séries en jaquettes, avec résumés, notes et saisons.
+• Films et séries présentés avec leurs jaquettes, avec résumés, notes et saisons.
 • Favoris, historique et reprise là où tu t'étais arrêté.
 • Masque les marques mondiales dans la liste d'un pays, et ses propres
   chaînes se trouvent facilement.

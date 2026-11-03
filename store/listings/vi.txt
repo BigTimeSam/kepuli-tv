@@ -41,7 +41,7 @@ BẠN SẼ NHẬN ĐƯỢC
 • Mục yêu thích, lịch sử xem và vị trí xem tiếp.
 • Ẩn các thương hiệu toàn cầu khỏi danh sách của từng quốc gia, nhờ đó dễ
   tìm kênh bản địa.
-• Chỉ giữ các quốc gia bạn xem, và chỉ các thể loại phim lẻ, phim bộ bạn
+• Chỉ giữ các quốc gia bạn xem, và chỉ các danh mục phim lẻ, phim bộ bạn
   muốn.
 • Truyền sang Chromecast, dùng phím đa phương tiện và nhận lời nhắc trước
   giờ chiếu.

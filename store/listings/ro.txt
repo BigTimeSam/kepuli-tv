@@ -5,7 +5,7 @@ IPTV-ul tău în browser: Xtream Codes, M3U sau un portal Stalker. Canalele porn
 === DETAILED DESCRIPTION ===
 Urmărește-ți abonamentul IPTV în browser, fără să te lupți cu aplicația.
 Kepuli-TV redă conturi Xtream Codes, playlisturi M3U și portaluri Stalker,
-construit în jurul unei singure idei: un catalog uriaș trebuie să pară mic.
+având la bază o singură idee: un catalog uriaș trebuie să pară mic.
 
 → Canalele se deschid într-o secundă-două, chiar dintr-o ofertă enormă
 → Sute de categorii amestecate devin o listă ordonată de țări
@@ -29,8 +29,8 @@ CE PRIMEȘTI
 
 • Lipește linkul M3U primit de la furnizor și setările se completează singure.
 • Mai multe conturi: Xtream Codes, un playlist M3U cu ghidul lui XMLTV sau un
-  portal Stalker cu adresa MAC a boxului tău. Comuți dintr-un clic și, dacă
-  vrei, le sincronizezi între calculatoarele tale.
+  portal Stalker cu adresa MAC a receptorului tău. Comuți dintr-un clic și,
+  dacă vrei, le sincronizezi între calculatoarele tale.
 • Căutare care ignoră diacriticele și ordinea cuvintelor, plus un filtru în
   fiecare meniu.
 • Ce ai lăsat la jumătate te așteaptă sus, iar episodul următor pornește
@@ -48,8 +48,8 @@ CE PRIMEȘTI
 • Transmitere pe Chromecast, taste media și o notificare înainte să înceapă o
   emisiune.
 • Ghidul poate afișa doar canalele tale favorite.
-• Aspect întunecat sau luminos, tastatura ajunge peste tot, iar interfața
-  urmează setările tale de mărime a textului și de contrast.
+• Aspect întunecat sau luminos, toate funcțiile sunt accesibile din tastatură,
+  iar interfața urmează setările tale de mărime a textului și de contrast.
 • În 30 de limbi. Vorbește limba browserului tău până alegi alta.
 
 

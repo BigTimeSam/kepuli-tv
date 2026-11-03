@@ -5,7 +5,7 @@ Tavo IPTV naršyklėje: Xtream Codes, M3U ar Stalker portalas. Kanalai atsidaro 
 === DETAILED DESCRIPTION ===
 Žiūrėk savo IPTV prenumeratą naršyklėje be kovos su programa.
 Kepuli-TV groja Xtream Codes paskyras, M3U grojaraščius ir Stalker portalus,
-sukurtas vienos minties pagrindu: didžiulis katalogas turi jaustis mažas.
+sukurtas vienos minties pagrindu: didžiulis katalogas turi atrodyti mažas.
 
 → Kanalai atsidaro per sekundę ar dvi, net iš milžiniško katalogo
 → Šimtai chaotiškų kategorijų virsta tvarkingu šalių sąrašu
@@ -32,7 +32,7 @@ KĄ GAUSI
 • Kelios paskyros: Xtream Codes, M3U grojaraštis su XMLTV gidu arba Stalker
   portalas su tavo priedėlio MAC adresu. Perjungi vienu spustelėjimu, o jei
   nori, sinchronizuoji jas tarp savo kompiuterių.
-• Paieška, kuriai nesvarbūs diakritikai ir žodžių tvarka, bei filtras
+• Paieška, kuriai nesvarbūs diakritiniai ženklai ir žodžių tvarka, bei filtras
   kiekviename meniu.
 • Tai, ką pradėjai, bet nebaigei, laukia viršuje, o kita serija
   įsijungia pati.
@@ -40,16 +40,16 @@ KĄ GAUSI
 • Sukurta paskyroms su vienu ryšiu: perjungiant kanalą laukiama, kol
   tiekėjas jį atlaisvins, o ne rodoma klaida.
 • Filmai ir serialai viršeliais, su aprašymais, įvertinimais ir sezonais.
-• Mėgstamiausi, žiūrėjimo istorija ir vietos, kur baigei.
+• Mėgstami, žiūrėjimo istorija ir vietos, kur sustojai.
 • Paslėpk pasaulinius prekių ženklus šalies sąraše, ir jos pačios stotys
   bus lengvai randamos.
 • Palik tik tas šalis, kurias žiūri, ir tik norimas filmų bei serialų
   kategorijas.
 • Transliacija į Chromecast, medijų klavišai ir priminimas prieš prasidedant
   laidai.
-• Gidas gali rodyti tik tavo mėgstamiausius kanalus.
-• Tamsi arba šviesi išvaizda, o klaviatūra pasiekia viską; maketas seka
-  teksto dydžio ir kontrasto nustatymus.
+• Gidas gali rodyti tik tavo mėgstamus kanalus.
+• Tamsi arba šviesi išvaizda, viskas pasiekiama klaviatūra; išdėstymas
+  prisitaiko prie teksto dydžio ir kontrasto nustatymų.
 • 30 kalbų. Kalbasi tavo naršyklės kalba, kol pasirinksi kitą.
 
 

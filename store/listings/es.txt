@@ -9,7 +9,7 @@ pensado en torno a una idea: un catálogo enorme debería sentirse pequeño.
 
 → Los canales abren en un segundo o dos, incluso con un catálogo gigantesco
 → Cientos de categorías desordenadas se convierten en una lista limpia de países
-→ Una guía de programación (EPG) a pantalla completa, con catch-up cuando
+→ Una guía de programación (EPG) que ocupa toda la ventana, con catch-up cuando
   el proveedor lo ofrece
 → Las películas y los episodios en MKV se ven directamente aquí, con
   subtítulos y sonido envolvente
@@ -40,7 +40,7 @@ QUÉ OBTIENES
   viendo sigue reproduciéndose.
 • Pensado para cuentas con una sola conexión: al cambiar de canal espera a que
   la conexión quede libre en lugar de fallar.
-• Películas y series como carátulas, con sinopsis, valoraciones y temporadas.
+• Películas y series con carátulas, con sinopsis, valoraciones y temporadas.
 • Favoritos, historial y posiciones para retomar donde lo dejaste.
 • Oculta las marcas globales de la lista de un país, y sus propias emisoras
   se encuentran fácilmente.

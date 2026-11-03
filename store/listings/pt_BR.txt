@@ -9,7 +9,7 @@ criado em torno de uma ideia: um catálogo enorme deve parecer pequeno.
 
 → Os canais abrem em um ou dois segundos, mesmo num catálogo gigantesco
 → Centenas de categorias bagunçadas viram uma lista organizada de países
-→ Um guia de programação (EPG) em tela cheia, com catch-up quando o provedor
+→ Um guia de programação (EPG) que ocupa toda a janela, com catch-up quando o provedor
   oferece
 → Filmes e episódios em MKV tocam direto aqui, com legendas e som surround
 → Grave um canal agora ou um programa do guia e guarde como arquivo
@@ -39,11 +39,11 @@ O QUE VOCÊ TEM
   continua tocando.
 • Feito para contas com uma só conexão: ao trocar de canal, ele espera a
   conexão ficar livre em vez de falhar.
-• Filmes e séries como capas, com sinopses, avaliações e temporadas.
+• Filmes e séries com capas, com sinopses, avaliações e temporadas.
 • Favoritos, histórico e pontos para retomar de onde você parou.
 • Esconda as marcas globais da lista de um país, e as emissoras locais ficam
   fáceis de achar.
-• Mantenha só os países que você assiste e só as categorias de filmes e
+• Mantenha só os países cujos canais você assiste e só as categorias de filmes e
   séries que quiser.
 • Transmita para um Chromecast, use as teclas de mídia e receba um lembrete
   antes de um programa começar.

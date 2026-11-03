@@ -1,18 +1,19 @@
 === NAME ===
 Kepuli-TV – IPTV reproduktor
 === SHORT DESCRIPTION ===
-Vlastiti IPTV u pregledniku: Xtream Codes, M3U ili Stalker portal. Kanali se otvaraju u sekundi, MKV svira, a možeš i snimati.
+Vlastiti IPTV u pregledniku: Xtream Codes, M3U ili Stalker portal. Kanali se otvaraju u sekundi, MKV radi, a možeš i snimati.
 === DETAILED DESCRIPTION ===
 Gledaj vlastitu IPTV pretplatu u pregledniku, bez borbe s aplikacijom.
-Kepuli-TV reproducira Xtream Codes račune, M3U popise i Stalker portale,
-izgrađen oko jedne ideje: golem katalog treba djelovati malen.
+Kepuli-TV reproducira Xtream Codes račune, M3U popise za reprodukciju i
+Stalker portale, izgrađen oko jedne ideje: golem katalog treba djelovati
+malen.
 
 → Kanali se otvaraju za sekundu-dvije, čak i iz golemog kataloga
 → Stotine neurednih kategorija pretvaraju se u pregledan popis zemalja
 → TV vodič (EPG) preko cijelog prozora, s gledanjem unatrag (catch-up) gdje
   ga pružatelj nudi
-→ MKV filmovi i epizode igraju izravno u pregledniku, uz titlove i prostorni
-  zvuk
+→ MKV filmovi i epizode reproduciraju se izravno u pregledniku, uz titlove i
+  prostorni zvuk
 → Snimi kanal odmah ili emisiju iz vodiča i zadrži je kao datoteku
   (snimanje se uključuje u Postavkama)
 
@@ -30,13 +31,14 @@ koristiti svake večeri.
 
 • Zalijepi M3U poveznicu koju ti je poslao pružatelj i postavke se popune
   same.
-• Više računa: Xtream Codes, M3U popis s XMLTV vodičem ili Stalker portal s
-  MAC adresom tvog uređaja. Prebacuješ jednim klikom, a po želji ih
-  sinkroniziraš između svojih računala.
+• Više računa: Xtream Codes, M3U popis za reprodukciju s XMLTV vodičem ili
+  Stalker portal s MAC adresom tvog uređaja. Prebacuješ jednim klikom, a po
+  želji ih sinkroniziraš između svojih računala.
 • Pretraga koja ne mari za dijakritičke znakove i redoslijed riječi te filtar
   u svakom izborniku.
 • Što si ostavio na pola, čeka na vrhu, a sljedeća epizoda kreće sama.
-• Ništa ne blokira zaslon dok se podaci učitavaju, a što svira, svira dalje.
+• Ništa ne blokira zaslon dok se podaci učitavaju, a što se reproducira,
+  nastavlja se.
 • Napravljen za račune s jednom vezom: pri promjeni kanala čeka da je
   davatelj oslobodi umjesto da javi grešku.
 • Filmovi i serije kao naslovnice, s opisima, ocjenama i sezonama.
@@ -47,7 +49,7 @@ koristiti svake večeri.
   želiš.
 • Prebacivanje na Chromecast, medijske tipke i podsjetnik prije početka
   emisije.
-• Vodič može prikazati samo tvoje omiljene kanale.
+• Vodič može prikazati samo tvoje kanale iz favorita.
 • Tamni ili svijetli izgled, tipkovnica dosiže sve; raspored prati postavke
   veličine teksta i kontrasta.
 • Na 30 jezika. Govori jezikom tvog preglednika dok ne odabereš drugi.
@@ -71,8 +73,8 @@ ono što smiješ zadržati i provjeri je li usluga zakonita ondje gdje živiš.
 KAKO POČETI
 
 Klikni ikonu na alatnoj traci i upiši poslužitelj i pristupne podatke,
-poveznicu na playlistu ili portal s njegovom MAC adresom i tvoj popis se
-pojavljuje.
+poveznicu na popis za reprodukciju ili portal s njegovom MAC adresom i tvoj
+popis se pojavljuje.
 
 
 POGLEDAJ U AKCIJI

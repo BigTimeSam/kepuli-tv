@@ -1,17 +1,17 @@
 === NAME ===
 Kepuli-TV – IPTV plejer
 === SHORT DESCRIPTION ===
-Tvoj IPTV u pretraživaču: Xtream Codes, M3U ili Stalker portal. Kanali se otvaraju za sekund, MKV radi, a možeš i da snimaš.
+Tvoj IPTV u pregledaču: Xtream Codes, M3U ili Stalker portal. Kanali se otvaraju za sekund, MKV radi, a možeš i da snimaš.
 === DETAILED DESCRIPTION ===
-Gledaj svoju IPTV pretplatu u pretraživaču, bez borbe sa aplikacijom.
-Kepuli-TV pušta Xtream Codes naloge, M3U liste i Stalker portale, a zasnovan
-je na jednoj ideji: džinovski katalog treba da deluje malo.
+Gledaj svoju IPTV pretplatu u pregledaču, bez borbe sa aplikacijom. Kepuli-TV
+pušta Xtream Codes naloge, M3U plejliste i Stalker portale, a zasnovan je na
+jednoj ideji: džinovski katalog treba da deluje mali.
 
 → Kanali se otvaraju za sekund-dva, čak i iz ogromne ponude
 → Stotine zbrkanih kategorija postaju uredan spisak zemalja
 → Vodič kroz program (EPG) preko celog prozora, sa gledanjem unazad gde god
   provajder to nudi
-→ Filmovi i epizode u MKV formatu rade pravo u pretraživaču, zajedno sa
+→ Filmovi i epizode u MKV formatu rade pravo u pregledaču, zajedno sa
   titlovima i prostornim zvukom
 → Snimi kanal odmah ili emisiju iz vodiča i sačuvaj je kao datoteku
   (snimanje se uključuje u Podešavanjima)
@@ -29,7 +29,7 @@ koristim svako veče.
 ŠTA DOBIJAŠ
 
 • Nalepi M3U link koji ti je poslao provajder i podešavanja se popune sama.
-• Više naloga: Xtream Codes, M3U lista sa svojim XMLTV vodičem ili Stalker
+• Više naloga: Xtream Codes, M3U plejlista sa svojim XMLTV vodičem ili Stalker
   portal sa MAC adresom tvog risivera. Prebacuješ jednim klikom, a po želji
   ih sinhronizuješ između svojih računara.
 • Pretraga koja ne mari za dijakritike i redosled reči, plus filter u svakom
@@ -50,7 +50,7 @@ koristim svako veče.
 • Vodič može da prikaže samo tvoje omiljene kanale.
 • Tamna ili svetla tema, a tastatura stiže svuda; raspored prati tvoja
   podešavanja veličine teksta i kontrasta.
-• Na 30 jezika. Govori jezikom tvog pretraživača dok ne izabereš drugi.
+• Na 30 jezika. Govori jezikom tvog pregledača dok ne izabereš drugi.
 
 
 PRIVATNOST PRE SVEGA

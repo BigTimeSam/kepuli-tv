@@ -4,12 +4,13 @@ Kepuli-TV – IPTV-spelare
 Din egen IPTV i webbläsaren: Xtream Codes, M3U eller en Stalker-portal. Kanaler öppnas på sekunder, MKV spelas och du kan spela in.
 === DETAILED DESCRIPTION ===
 Se din egen IPTV-prenumeration i webbläsaren utan att kämpa med appen.
-Kepuli-TV spelar Xtream Codes-konton, M3U-listor och Stalker-portaler, byggd
-kring en enda idé: ett enormt utbud ska kännas litet.
+Kepuli-TV spelar upp innehåll från Xtream Codes-konton, M3U-spellistor och
+Stalker-portaler och bygger på en enda idé: ett enormt utbud ska kännas litet.
 
 → Kanaler öppnas på en sekund eller två, även från ett enormt utbud
 → Hundratals röriga kategorier blir en prydlig lista över länder
-→ En programguide (EPG) i helt fönster, med catch-up där det erbjuds
+→ En programguide (EPG) som fyller fönstret, med uppspelning i efterhand där
+  det erbjuds
 → MKV-filmer och avsnitt spelas direkt i webbläsaren, med undertexter och
   surroundljud
 → Spela in en kanal nu eller ett program från guiden, och spara det som en fil
@@ -28,7 +29,7 @@ VAD DU FÅR
 
 • Klistra in M3U-länken du fick av din leverantör, så fylls inställningarna i
   av sig själva.
-• Flera konton: Xtream Codes, M3U-listor med XMLTV-guide och Stalker-portaler
+• Flera konton: Xtream Codes, M3U-spellistor med XMLTV-guide och Stalker-portaler
   med boxens MAC-adress. Byt med ett klick, och synka dem mellan dina datorer
   om du vill.
 • Sökning som struntar i accenter och ordföljd, och ett filter i varje meny.
@@ -38,7 +39,7 @@ VAD DU FÅR
 • Byggd för konton med en anslutning: vid kanalbyte väntar den på att
   leverantören släpper den i stället för att misslyckas.
 • Filmer och serier som omslag, med handling, betyg och säsonger.
-• Favoriter, visningshistorik och återupptagningspositioner.
+• Favoriter, visningshistorik och sparade positioner för att fortsätta titta.
 • Dölj de globala varumärkena i ett lands lista, så är landets egna kanaler
   lätta att hitta.
 • Behåll bara länderna du tittar på, och bara de film- och seriekategorier

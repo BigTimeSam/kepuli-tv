@@ -4,12 +4,12 @@ Kepuli-TV – IPTV-speler
 Je eigen IPTV in de browser: Xtream Codes, M3U of een Stalker-portal. Zenders openen in seconden, MKV speelt en je kunt opnemen.
 === DETAILED DESCRIPTION ===
 Kijk je eigen IPTV-abonnement in de browser, zonder gedoe met de app.
-Kepuli-TV speelt Xtream Codes-accounts, M3U-playlists en Stalker-portals af
+Kepuli-TV speelt Xtream Codes-accounts, M3U-afspeellijsten en Stalker-portals af
 en is gebouwd rond één idee: een enorme catalogus moet klein aanvoelen.
 
 → Zenders openen in een paar seconden, zelfs bij een enorm aanbod
 → Honderden rommelige categorieën worden een nette lijst met landen
-→ Een tv-gids (EPG) over het hele scherm, met terugkijken waar dat kan
+→ Een programmagids (EPG) over het hele scherm, met terugkijken waar dat kan
 → MKV-films en -afleveringen spelen direct in de browser, met ondertitels
   en surroundgeluid
 → Neem een zender nu op of een programma uit de gids, en bewaar het als bestand
@@ -29,7 +29,7 @@ WAT JE KRIJGT
 
 • Plak de M3U-link die je provider je stuurde en de instellingen vullen
   zichzelf in.
-• Meerdere accounts: Xtream Codes, een M3U-playlist met XMLTV-gids, of een
+• Meerdere accounts: Xtream Codes, een M3U-afspeellijst met XMLTV-gids, of een
   Stalker-portal met het MAC-adres van je box. Wissel met één klik, en
   synchroniseer ze desgewenst tussen je computers.
 • Zoeken dat accenten en woordvolgorde negeert, en een filter in elk menu.
@@ -56,7 +56,7 @@ WAT JE KRIJGT
 
 PRIVÉ VANAF HET BEGIN
 
-Geen tracking, geen advertenties, geen account. De extensie praat alleen met
+Geen tracking, geen advertenties, geen registratie. De extensie praat alleen met
 jouw server en vraagt alleen toestemming voor dat adres — bredere toegang
 alleen als jij dat toestaat, wanneer je provider de streams naar een ander
 adres doorstuurt. Opnames blijven op je computer.
@@ -72,7 +72,7 @@ enkel op wat je mag bewaren, en zorg dat de dienst legaal is waar je woont.
 AAN DE SLAG
 
 Klik op het icoon in de werkbalk en vul je server en inloggegevens in, een
-playlistlink of een portal met zijn MAC-adres, en je lijst verschijnt.
+afspeellijstlink of een portal met zijn MAC-adres, en je lijst verschijnt.
 
 
 ZIE HET IN ACTIE

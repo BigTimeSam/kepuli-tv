@@ -1,7 +1,7 @@
 === NAME ===
 Kepuli-TV – Leitor IPTV
 === SHORT DESCRIPTION ===
-O teu IPTV no navegador: Xtream Codes, M3U ou um portal Stalker. Os canais abrem em segundos, o MKV reproduz e podes gravar.
+O teu IPTV no navegador: Xtream Codes, M3U ou um portal Stalker. Os canais abrem em segundos, o MKV é reproduzido e podes gravar.
 === DETAILED DESCRIPTION ===
 Vê a tua própria subscrição de IPTV sem lutar com a app.
 O Kepuli-TV reproduz contas Xtream Codes, listas M3U e portais Stalker,
@@ -9,7 +9,7 @@ pensado em torno de uma ideia: um catálogo enorme deve parecer pequeno.
 
 → Os canais abrem num ou dois segundos, mesmo num catálogo gigantesco
 → Centenas de categorias desarrumadas passam a uma lista organizada de países
-→ Um guia de programação (EPG) em ecrã inteiro, com catch-up quando o
+→ Um guia de programação (EPG) a ocupar toda a janela, com catch-up quando o
   fornecedor o disponibiliza
 → Filmes e episódios MKV reproduzem-se diretamente no navegador, com legendas
   e som surround
@@ -21,7 +21,7 @@ PORQUE O FIZ
 
 Estava farto de apps que me obrigavam a lutar com elas: listas de
 categorias sem fim, janelas que bloqueavam tudo enquanto um catálogo
-carregava e ficheiros que simplesmente não reproduziam. Por isso criei a que
+carregava e ficheiros que simplesmente não se reproduziam. Por isso criei a que
 eu queria usar todas as noites.
 - Samuli, programador do Kepuli-TV
 
@@ -41,7 +41,7 @@ O QUE TENS
   continua a sê-lo.
 • Pensado para contas com uma só ligação: ao mudar de canal, espera que o
   fornecedor a liberte em vez de falhar.
-• Filmes e séries em capas, com sinopses, classificações e temporadas.
+• Filmes e séries com capas, com sinopses, classificações e temporadas.
 • Favoritos, histórico e pontos para retomares onde ficaste.
 • Esconde as marcas globais da lista de um país e encontra facilmente as
   estações locais.
@@ -73,7 +73,7 @@ o que podes guardar e confirma que o serviço é legal no país onde vives.
 COMO COMEÇAR
 
 Clica no ícone da barra de ferramentas e indica o teu servidor e as
-credenciais, uma ligação de playlist ou um portal com o endereço MAC, e a
+credenciais, uma ligação para a playlist ou um portal com o endereço MAC, e a
 lista aparece.
 
 

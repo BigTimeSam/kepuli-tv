@@ -5,7 +5,7 @@ Vlastné IPTV v prehliadači: Xtream Codes, M3U alebo portál Stalker. Kanály s
 === DETAILED DESCRIPTION ===
 Pozeraj vlastné predplatné IPTV v prehliadači bez boja s aplikáciou.
 Kepuli-TV prehrá účty Xtream Codes, playlisty M3U aj portály Stalker a je
-postavený na jednom nápade: obrovský katalóg má pôsobiť malo.
+postavený na jednom nápade: obrovský katalóg má pôsobiť malý.
 
 → Kanály sa otvoria za sekundu-dve, aj pri obrovskej ponuke
 → Stovky chaotických kategórií sa zmenia na prehľadný zoznam krajín
@@ -13,7 +13,7 @@ postavený na jednom nápade: obrovský katalóg má pôsobiť malo.
   poskytovateľ ponúka
 → Filmy a epizódy v MKV bežia priamo v prehliadači, s titulkami aj
   priestorovým zvukom
-→ Nahraj kanál hneď či reláciu zo sprievodcu a nechaj si ju ako súbor
+→ Nahraj kanál hneď či reláciu zo sprievodcu a ulož nahrávku ako súbor
   (nahrávanie sa zapína v Nastaveniach)
 
 

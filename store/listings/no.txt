@@ -4,12 +4,13 @@ Kepuli-TV – IPTV-spiller
 Din egen IPTV i nettleseren: Xtream Codes, M3U eller en Stalker-portal. Kanalene åpnes på sekunder, MKV spilles, og du kan ta opp.
 === DETAILED DESCRIPTION ===
 Se ditt eget IPTV-abonnement i nettleseren uten å slåss med appen.
-Kepuli-TV spiller Xtream Codes-kontoer, M3U-spillelister og Stalker-portaler,
-bygget rundt én idé: et stort utvalg skal føles lite.
+Kepuli-TV spiller av innhold fra Xtream Codes-kontoer, M3U-spillelister og
+Stalker-portaler og bygger på én idé: et stort utvalg skal føles lite.
 
 → Kanaler åpnes på et sekund eller to, selv fra et enormt utvalg
 → Hundrevis av rotete kategorier blir en ryddig liste over land
-→ En programguide (EPG) i fullt vindu, med catch-up der det tilbys
+→ En programguide (EPG) som fyller vinduet, med mulighet til å se i etterkant
+  der det tilbys
 → MKV-filmer og episoder spilles rett i nettleseren, med undertekster og
   surroundlyd
 → Ta opp en kanal nå eller et program fra guiden, og behold det som fil
@@ -19,8 +20,8 @@ bygget rundt én idé: et stort utvalg skal føles lite.
 HVORFOR JEG LAGET DEN
 
 Jeg ble lei av apper som fikk meg til å slåss: endeløse kategorilister,
-dialogvinduer som frøs alt mens utvalget lastet, og filer som rett og slett
-ikke ville fungere. Så jeg bygde den jeg selv ville bruke hver kveld.
+dialogvinduer som frøs alt mens utvalget ble lastet inn, og filer som rett og
+slett ikke ville fungere. Så jeg bygde den jeg selv ville bruke hver kveld.
 - Samuli, utvikleren av Kepuli-TV
 
 
@@ -32,7 +33,7 @@ HVA DU FÅR
   Stalker-portal med MAC-adressen til boksen din. Bytt med ett klikk, og
   synkroniser dem mellom datamaskinene dine om du vil.
 • Søk som ignorerer aksenter og ordrekkefølge, og et filter i hver meny.
-• Det du lot ligge halvveis venter øverst, og neste episode starter av seg
+• Det du lot ligge halvveis, venter øverst, og neste episode starter av seg
   selv.
 • Ingenting blokkerer skjermen mens data lastes, og det som spilles, fortsetter.
 • Laget for kontoer med én tilkobling: ved kanalbytte venter den til

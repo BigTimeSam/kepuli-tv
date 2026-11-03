@@ -4,12 +4,12 @@ Kepuli-TV – IPTV-afspiller
 Din egen IPTV i browseren: Xtream Codes, M3U og Stalker-portaler. Kanaler åbner på sekunder, MKV kører, og du kan optage.
 === DETAILED DESCRIPTION ===
 Se dit eget IPTV-abonnement i browseren uden at kæmpe med appen.
-Kepuli-TV afspiller Xtream Codes-konti, M3U-playlister og Stalker-portaler,
-bygget over én idé: et kæmpe udvalg skal føles lille.
+Kepuli-TV afspiller indhold fra Xtream Codes-konti, M3U-afspilningslister og
+Stalker-portaler og bygger på én idé: et kæmpe udvalg skal føles lille.
 
 → Kanaler åbner på et sekund eller to, selv fra et enormt udvalg
 → Hundredvis af rodede kategorier bliver til en overskuelig liste over lande
-→ En programguide (EPG) i fuldt vindue med catch-up, hvor det tilbydes
+→ En programguide (EPG) i fuldt vindue med genafspilning, hvor det tilbydes
 → MKV-film og afsnit afspilles direkte i browseren, med undertekster og
   surroundlyd
 → Optag en kanal nu eller et program fra guiden, og gem det som en fil
@@ -27,7 +27,7 @@ ikke ville virke. Så jeg byggede den, jeg selv ville bruge hver aften.
 HVAD DU FÅR
 
 • Indsæt M3U-linket fra din udbyder, så udfylder indstillingerne sig selv.
-• Flere slags konti: Xtream Codes, M3U-playliste med XMLTV-guide og
+• Flere slags konti: Xtream Codes, M3U-afspilningsliste med XMLTV-guide og
   Stalker-portal med din boks' MAC-adresse. Skift med ét klik, og synkronisér
   dem mellem dine computere, hvis du vil.
 • Søgning, der ignorerer accenter og ordrækkefølge, og et filter i hver menu.
@@ -36,7 +36,7 @@ HVAD DU FÅR
 • Intet blokerer skærmen, mens data indlæses, og det, der afspilles, fortsætter.
 • Lavet til konti med én forbindelse: ved kanalskift venter den på, at
   udbyderen frigiver den, i stedet for at fejle.
-• Film og serier som covers med handling, anmeldelser og sæsoner.
+• Film og serier som covers med handling, vurderinger og sæsoner.
 • Favoritter, visningshistorik og genoptagelsespunkter.
 • Skjul de globale mærker fra et lands liste, så er landets egne kanaler nemme
   at finde.
@@ -68,7 +68,8 @@ må beholde, og sørg for, at tjenesten er lovlig, hvor du bor.
 KOM I GANG
 
 Klik på ikonet på værktøjslinjen, og indtast server og loginoplysninger, et
-playlistelink eller en portal med dens MAC-adresse, så dukker din liste op.
+link til en afspilningsliste eller en portal med dens MAC-adresse, så dukker
+listen op.
 
 
 SE DET I BRUG

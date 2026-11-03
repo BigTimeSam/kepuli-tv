@@ -11,8 +11,8 @@ listákat és Stalker portálokat játszik le, egyetlen gondolatra épülve: egy
 → A csatornák egy-két másodperc alatt megnyílnak, hatalmas listánál is
 → Több száz kusza kategóriából rendezett országlista lesz
 → Teljes ablakos műsorfüzet (EPG), visszanézéssel, ahol a szolgáltató adja
-→ Az MKV-s filmek és epizódok egyenesen a böngészőben szólnak, felirattal és
-  térhatású hanggal együtt
+→ Az MKV-s filmek és epizódok egyenesen a böngészőben játszhatók le,
+  felirattal és térhatású hanggal együtt
 → Rögzíts egy csatornát most, vagy egy műsort a műsorfüzetből, fájlként
   (a rögzítést a Beállításokban kell bekapcsolni)
 
@@ -36,10 +36,11 @@ MIT KAPSZ
 • Keresés, amely nem törődik az ékezetekkel és a szavak sorrendjével, és
   szűrő minden menüben.
 • Ami félbemaradt, az legfelül vár, a következő epizód pedig magától indul.
-• Adatbetöltés közben semmi sem zárolja a képernyőt, és ami megy, az megy
+• Adatbetöltés közben a képernyő használható marad, és ami megy, az megy
   tovább.
-• Egyetlen kapcsolatos fiókokra szabva: csatornaváltáskor megvárja, míg a
-  szolgáltató felszabadítja a helyet, ahelyett hogy hibát dobna.
+• Egyetlen egyidejű kapcsolatot engedélyező fiókokra szabva: csatornaváltáskor
+  megvárja, míg a szolgáltató felszabadítja a helyet, ahelyett hogy hibát
+  dobna.
 • Filmek és sorozatok borítóképekkel, cselekményleírással, pontszámokkal és
   évadokkal.
 • Kedvencek, nézési előzmények és folytatási pontok.
@@ -55,7 +56,7 @@ MIT KAPSZ
   választasz.
 
 
-ADATVÉDELEM ALAPFOKON
+BEÉPÍTETT ADATVÉDELEM
 
 Nincs követés, nincs reklám, nincs regisztráció. A bővítmény kizárólag a saját
 szerveredhez csatlakozik, és csak ahhoz a címhez kér engedélyt — szélesebb

@@ -1,7 +1,7 @@
 === NAME ===
 Kepuli-TV – IPTV atskaņotājs
 === SHORT DESCRIPTION ===
-Tavs IPTV pārlūkā: Xtream Codes, M3U vai Stalker portāls. Kanāli atveras sekundēs, MKV atskan, un vari arī ierakstīt.
+Tavs IPTV pārlūkā: Xtream Codes, M3U vai Stalker portāls. Kanāli atveras sekundēs, MKV tiek atskaņots, un vari arī ierakstīt.
 === DETAILED DESCRIPTION ===
 Skaties savu IPTV abonementu pārlūkā un necīnies ar lietotni.
 Kepuli-TV atskaņo Xtream Codes kontus, M3U sarakstus un Stalker portālus, un
@@ -9,9 +9,9 @@ tas radīts ap vienu domu: milzīgam katalogam jāliekas mazam.
 
 → Kanāli atveras sekundes vai divu laikā pat no milzīga piedāvājuma
 → Simtiem juceklīgu kategoriju kļūst par kārtīgu valstu sarakstu
-→ Programmas ceļvedis (EPG) visā logā, ar ieskatu pagātnē, ja pakalpojums to
+→ Programmas ceļvedis (EPG) visā logā, ar arhīva skatīšanos, ja pakalpojums to
   piedāvā
-→ MKV filmas un sērijas atskan tieši pārlūkā, ar subtitriem un
+→ MKV filmas un sērijas tiek atskaņotas tieši pārlūkā, ar subtitriem un
   telpisko skaņu
 → Ieraksti kanālu tagad vai raidījumu no ceļveža un paturi to kā failu
   (ierakstīšanu ieslēdz Iestatījumos)
@@ -21,11 +21,11 @@ KAPĒC TO RADĪJU
 
 Man apnika lietotnes, ar kurām jācīnās: bezgalīgi kategoriju saraksti,
 logi, kas visu iesaldē, kamēr ielādējas katalogs, un faili, kas vienkārši
-neatskanēja. Tāpēc uztaisīju tādu, kādu pats gribu lietot katru vakaru.
+netika atskaņoti. Tāpēc uztaisīju tādu, kādu pats gribu lietot katru vakaru.
 - Samuli, Kepuli-TV izstrādātājs
 
 
-KO TU SAŅEMI
+KO TU SAŅEM
 
 • Ielīmē sniedzēja atsūtīto M3U saiti, un iestatījumi aizpildās paši.
 • Vairāki konti: Xtream Codes, M3U saraksts ar XMLTV ceļvedi vai Stalker
@@ -34,10 +34,10 @@ KO TU SAŅEMI
 • Meklēšana, kurai nav svarīgi diakritiskie burti un vārdu secība, un filtrs
   katrā izvēlnē.
 • Kas palicis pusē, gaida augšā, un nākamā sērija sākas pati.
-• Datu ielādes laikā nekas nebloķē ekrānu, un atskaņotais turpina skanēt.
+• Datu ielādes laikā nekas nebloķē ekrānu, un atskaņošana turpinās.
 • Domāts kontiem ar vienu savienojumu: pārslēdzot kanālu, programma
   nogaida, līdz sniedzējs to atbrīvo, nevis met kļūdu.
-• Filmas un seriāli vāciņu veidā, ar aprakstiem, vērtējumiem un sezonām.
+• Filmas un seriāli ar vākiem, aprakstiem, vērtējumiem un sezonām.
 • Izlase, skatīšanās vēsture un atsākšanas vietas.
 • Paslēp globālos zīmolus valsts sarakstā, un tās pašas stacijas ir viegli
   atrast.
@@ -46,8 +46,8 @@ KO TU SAŅEMI
 • Pārraide uz Chromecast, multivides taustiņi un atgādinājums pirms raidījuma
   sākuma.
 • Ceļvedis var rādīt vienīgi tavus izlases kanālus.
-• Tumšs vai gaišs izskats, tastatūra aizsniedz visu; izkārtojums seko teksta
-  izmēra un kontrasta iestatījumiem.
+• Tumšs vai gaišs izskats, viss pieejams ar tastatūru; izkārtojums pielāgojas
+  teksta izmēra un kontrasta iestatījumiem.
 • 30 valodās. Tā runā tava pārlūka valodā, kamēr izvēlies citu.
 
 

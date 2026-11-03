@@ -9,7 +9,7 @@ Kepuli-TV riproduce account Xtream Codes, playlist M3U e portali Stalker, ed
 
 → I canali si aprono in un secondo o due, anche con un catalogo gigantesco
 → Centinaia di categorie caotiche diventano un elenco ordinato di paesi
-→ Una guida ai programmi (EPG) a tutta finestra, con riascolto dove previsto
+→ Una guida ai programmi (EPG) a tutta finestra, con catch-up dove previsto
 → Film ed episodi in MKV si guardano direttamente qui, con sottotitoli e
   audio surround
 → Registra subito un canale o un programma dalla guida, e tienilo come file
@@ -57,8 +57,8 @@ COSA OTTIENI
 
 PRIVATO PER SCELTA
 
-Niente tracciamento, niente pubblicità, niente registrazione. Kepuli-TV parla
-solo con il tuo server e chiede il permesso solo per quell'indirizzo — un
+Niente tracciamento, niente pubblicità, nessuna iscrizione richiesta. Kepuli-TV
+parla solo con il tuo server e chiede il permesso solo per quell'indirizzo — un
 accesso più ampio solo se lo consenti tu, quando il tuo provider invia i
 flussi altrove. Le registrazioni restano sul tuo computer.
 

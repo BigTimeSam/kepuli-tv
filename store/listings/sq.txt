@@ -37,7 +37,7 @@ mbrëmje.
 • Asgjë nuk e bllokon ekranin gjatë ngarkimit, dhe ajo që po luhet vazhdon.
 • Ndërtuar për llogari me një lidhje të vetme: kur ndërron kanal, pret që
   ofruesi ta lirojë, në vend që të dështojë.
-• Filma e seriale si kopertina, me tregime, vlerësime dhe sezone.
+• Filma e seriale si kopertina, me përmbledhje, vlerësime dhe sezone.
 • Të preferuarat, historiku i shikimit dhe pikat e vazhdimit.
 • Fshih markat globale nga lista e një vendi dhe stacionet e veta gjenden
   lehtë.
@@ -46,7 +46,7 @@ mbrëmje.
 • Transmeto në Chromecast, përdor tastet e medias dhe merr kujtesë para se
   të nisë një program.
 • Udhëzuesi mund të shfaqë vetëm kanalet e tua të preferuara.
-• Pamje e errët ose e çelët, tastierë që arrin gjithçka; faqosja ndjek
+• Pamje e errët ose e çelët, gjithçka arrihet me tastierë; faqosja ndjek
   madhësinë e tekstit dhe kontrastin që ke caktuar.
 • Në 30 gjuhë. Flet gjuhën e shfletuesit derisa të zgjedhësh një tjetër.
 
@@ -54,7 +54,7 @@ mbrëmje.
 PRIVATËSI NGA NDËRTIMI
 
 Pa gjurmim, pa reklama, pa regjistrim. Kepuli-TV flet vetëm me serverin tënd
-dhe kërkon leje për atë adresë e askënd tjetër — qasje më të gjerë nëse e
+dhe kërkon leje për atë adresë dhe asnjë tjetër — qasje më të gjerë nëse e
 lejon ti, kur ofruesi i dërgon transmetimet gjetkë. Regjistrimet mbeten në
 kompjuterin tënd.
 
@@ -62,7 +62,7 @@ kompjuterin tënd.
 VINI RE
 
 Shtesa nuk përmban asnjë përmbajtje dhe nuk vjen me ofrues. Sill një llogari
-të tuajën, përdore për materiale që ke të drejtë t'i shikosh, regjistro vetëm
+tënden, përdore për materiale që ke të drejtë t'i shikosh, regjistro vetëm
 atë që të lejohet ta mbash dhe sigurohu që shërbimi është i ligjshëm aty ku
 jeton.
 

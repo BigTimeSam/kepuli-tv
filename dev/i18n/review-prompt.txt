@@ -1,0 +1,15 @@
+You are a native-level reviewer cross-checking translations of Kepuli-TV, a browser extension (an IPTV player), in the current directory.
+
+English source: the `en` dictionary in js/i18n.js ("key": "text", plural keys end in .one/.other). Store listing source: store/listings/en.txt.
+Your files (edit ONLY these): LANGFILES
+
+For each language, compare every key with the English and fix ONLY clear defects:
+- wrong or changed meaning; missing nuance that changes what the user understands
+- grammar, spelling, diacritics, agreement, case and plural forms
+- unnatural phrasing a professional native UI writer would not use
+- inconsistent form of address within the file (keep the file's majority form)
+- one concept, one term: guide, favourites, recording, catch-up, playlist, portal, account, channel
+- placeholders ({name}, {n}, {count}, {title}, {time}, …) must match the English key exactly
+Rules: do not restyle correct text; do not add, remove, rename or reorder keys; keep each file's format (one "key": "value" per line); do not touch any other file; keep brand and protocol words (Kepuli-TV, IPTV, Xtream Codes, M3U, Stalker, MAC, EPG, Chromecast, VLC). In each listing file: "IPTV" at most 3 times, and no other word of five or more letters used five or more times in the whole file.
+
+When done, run `node dev/listings.mjs --check` and fix any listing you broke. Finish with a short report per language: number of changes and the 3–5 most important (key: old → new, why). Do not commit.
