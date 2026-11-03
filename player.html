@@ -35,10 +35,15 @@
   </div>
 
   <div class="topbar-end">
-    <!-- The account in use, and the others a click away. Shown only once
-         there is more than one: with one account there is nothing to switch
-         to, and Settings is where another is added. -->
-    <button type="button" id="btn-account" class="ghost account-button" aria-haspopup="menu" data-i18n-title="accounts.switch" hidden><svg viewBox="0 0 20 20" aria-hidden="true"><circle cx="10" cy="7" r="3.2"/><path d="M3.8 17a6.2 6.2 0 0 1 12.4 0"/></svg><span class="button-label" id="btn-account-label"></span><svg class="account-chevron" viewBox="0 0 20 20" aria-hidden="true"><path d="m6 8 4 4 4-4"/></svg></button>
+    <!-- The account in use, and the others a click away, in the app's own
+         drop-down (js/picker.js). Shown only once there is more than one:
+         with one account there is nothing to switch to. Adding, changing and
+         removing accounts belong to Settings alone. -->
+    <label class="account-switch" id="account-switch" hidden><svg viewBox="0 0 20 20" aria-hidden="true"><circle cx="10" cy="7" r="3.2"/><path d="M3.8 17a6.2 6.2 0 0 1 12.4 0"/></svg><select id="account-pick" data-i18n-title="accounts.switch" data-i18n-label="accounts.switch"></select></label>
+    <!-- The recordings: shown once there is one, made or planned, and red
+         while one is being made, so that a recording under way is never out
+         of sight. -->
+    <button type="button" id="btn-recordings" class="ghost recordings-button" data-i18n-title="rec.title" hidden><span class="rec-dot" aria-hidden="true"></span><span class="button-label" id="btn-recordings-label" data-i18n="rec.title">Recordings</span></button>
     <!-- Refresh and Help are wanted now and then, so they are marks with
          their names in the label and the tooltip; Settings keeps its word
          where there is room for it. -->
@@ -227,6 +232,10 @@
           <svg viewBox="0 0 20 20" aria-hidden="true"><rect x="7" y="7" width="10.5" height="10.5" rx="2"/><path d="M13 4.5A2 2 0 0 0 11 2.5H4.5a2 2 0 0 0-2 2V11a2 2 0 0 0 2 2"/></svg>
           <span data-i18n="player.copy.title">Copy the stream address</span>
         </button>
+        <button type="button" role="menuitem" id="btn-recordings-menu" class="popitem">
+          <svg viewBox="0 0 20 20" aria-hidden="true"><circle cx="10" cy="10" r="7.2"/><circle cx="10" cy="10" r="3" fill="currentColor"/></svg>
+          <span data-i18n="rec.title">Recordings</span>
+        </button>
         <button type="button" role="menuitem" id="btn-ext" class="popitem">
           <svg viewBox="0 0 20 20" aria-hidden="true"><path d="M11 3h6v6M17 3l-8 8M8 4H4a1 1 0 0 0-1 1v11a1 1 0 0 0 1 1h11a1 1 0 0 0 1-1v-4"/></svg>
           <span data-i18n="ext.title">Open in an external player</span>
@@ -246,6 +255,9 @@
              controls open here as well. The button appears on the same
              condition as the selector beside it. -->
         <button type="button" id="btn-sublook" class="ghost" data-i18n-title="player.subs.look" aria-expanded="false" aria-controls="sublook-pop" hidden>Aa</button>
+        <!-- A live channel recorded from now on: to the end of the programme
+             on now when the guide knows it, else until stopped. -->
+        <button type="button" id="btn-record" class="ghost record-button" aria-pressed="false" hidden><span class="rec-dot" aria-hidden="true"></span><span class="button-label" id="btn-record-label" data-i18n="rec.start">Record</span></button>
         <button type="button" id="btn-reload" class="ghost" data-i18n-title="player.reload.title">↻</button>
         <button type="button" id="btn-more" class="ghost icon" data-i18n-title="player.more" data-i18n-label="player.more" aria-haspopup="menu" aria-expanded="false" aria-controls="more-pop">
           <svg viewBox="0 0 20 20" aria-hidden="true"><path d="M3 5.5h14M3 10h14M3 14.5h14"/></svg>
@@ -374,6 +386,21 @@
       <span></span>
       <button type="button" id="hidden-all" class="ghost" data-i18n="hidden.all">Show all again</button>
       <button type="button" id="hidden-close" class="primary" data-i18n="hidden.done">Done</button>
+    </div>
+  </div>
+</dialog>
+
+<dialog id="recordings" aria-labelledby="recordings-title">
+  <div class="choice-content">
+    <div class="modal-head">
+      <h2 id="recordings-title" data-i18n="rec.title">Recordings</h2>
+      <button type="button" data-modal-close></button>
+    </div>
+    <p class="editor-help" id="recordings-empty" data-i18n="rec.empty">Nothing recorded yet. Record a channel from the player, or a programme from the guide.</p>
+    <div id="recordings-list" class="choice-list recordings-list" role="list" aria-labelledby="recordings-title"></div>
+    <div class="choice-actions modal-actions">
+      <span id="recordings-note" data-i18n="rec.note">Recordings are made in this browser, while Kepuli-TV is open in a tab.</span>
+      <button type="button" id="recordings-close" class="primary" data-i18n="hidden.done">Done</button>
     </div>
   </div>
 </dialog>
@@ -517,6 +544,10 @@ on two lines as well.</div></div>
             <input type="radio" name="source" value="m3u">
             <span data-i18n="setup.source.m3u">Paste subscription URL (M3U)</span>
           </label>
+          <label class="radio">
+            <input type="radio" name="source" value="stalker">
+            <span data-i18n="setup.source.stalker">Stalker portal (MAC address)</span>
+          </label>
         </div>
       </div>
 
@@ -555,6 +586,19 @@ on two lines as well.</div></div>
              by showing it. -->
         <span id="playlist-status" class="playlist-status" role="status" hidden></span>
       </label>
+      <!-- A Stalker portal knows the viewer by the MAC address the provider
+           registered for them; there is no user name or password. -->
+      <div class="grid" id="src-stalker" hidden>
+        <label class="field w-wide"><span data-i18n="setup.stalker.url">Portal address</span>
+          <input id="f-portal" type="text" placeholder="http://example.tv:8080/c/" autocomplete="off" spellcheck="false" aria-describedby="portal-hint">
+          <span id="portal-hint" class="field-hint" data-i18n="setup.stalker.url.hint">The address your provider gave for a MAG box, often ending in /c/.</span>
+        </label>
+        <label class="field w-wide"><span data-i18n="setup.stalker.mac">MAC address</span>
+          <input id="f-mac" type="text" placeholder="00:1A:79:00:00:00" autocomplete="off" spellcheck="false" aria-describedby="mac-hint">
+          <span id="mac-hint" class="field-hint" data-i18n="setup.stalker.mac.hint">The MAC address registered with your provider.</span>
+        </label>
+      </div>
+
       <!-- A playlist that is not an Xtream subscription may name its own
            programme guide (url-tvg); this is for one that does not. -->
       <label class="field" id="src-epg" hidden><span data-i18n="setup.epgurl">Programme guide address (XMLTV, optional)</span>

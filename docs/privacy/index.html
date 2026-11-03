@@ -170,7 +170,7 @@
 
 <main>
 <h1>Privacy Policy</h1>
-<p class="meta">Applies to the Kepuli-TV browser extension. Effective 2 November 2026, version 1.3</p>
+<p class="meta">Applies to the Kepuli-TV browser extension. Effective 3 November 2026, version 1.4</p>
 
 <section class="summary">
   <h2>In short</h2>
@@ -186,7 +186,7 @@
 <h2><span class="num">1.</span>What Kepuli-TV is</h2>
 <p>
   Kepuli-TV is a browser extension that plays back the content of the <strong>user's own</strong>
-  Xtream Codes IPTV account or M3U playlist in a browser tab. It ships no media, no channel
+  Xtream Codes IPTV account, M3U playlist or Stalker portal in a browser tab. It ships no media, no channel
   list and no accounts of its own: it is a player, useless without credentials the user brings.
 </p>
 <p>
@@ -209,7 +209,7 @@
   </thead>
   <tbody>
     <tr>
-      <td>Connection settings of each account you add: server address, port, username and password, or a playlist address and a programme guide address, and the name you give the account</td>
+      <td>Connection settings of each account you add: server address, port, username and password, a playlist address and a programme guide address, or a Stalker portal address and the MAC address your provider registered, and the name you give the account</td>
       <td>To connect to your own IPTV server without retyping the credentials on every launch</td>
       <td><code>chrome.storage.local</code></td>
     </tr>
@@ -227,6 +227,11 @@
       <td>Your choice whether to sync, and when it last synced</td>
       <td>To sync only when you asked for it</td>
       <td><code>chrome.storage.local</code></td>
+    </tr>
+    <tr>
+      <td>Recordings you make, and the recordings you have planned</td>
+      <td>To play them back or save them as files when you choose</td>
+      <td>The browser's private file storage for the extension (origin private file system) and <code>chrome.storage.local</code>; never synced</td>
     </tr>
     <tr>
       <td>Catalogue cache: channel, movie and series listings, categories and programme guide data</td>
@@ -276,6 +281,12 @@
     including your IP address.
   </li>
   <li>
+    <strong>Your Stalker portal.</strong> For a Stalker portal account, the extension talks to the
+    portal address you enter as a MAG set-top box does: the MAC address you enter is sent in a
+    cookie, and the request names a MAG box in its User-Agent. A recording is made from the same
+    streams you could watch, and stays on your device.
+  </li>
+  <li>
     <strong>Your browser's sync, only if you turn it on.</strong> See section 2. The browser, not
     the extension, sends that data to Google's or Mozilla's servers.
   </li>
@@ -323,7 +334,8 @@
 <h2><span class="num">5.</span>Permissions and why they are requested</h2>
 <ul>
   <li><strong><code>storage</code></strong> — to keep settings, credentials, favourites, history and resume positions on the device, and, if you turn sync on, in the browser's sync storage.</li>
-  <li><strong><code>unlimitedStorage</code></strong> — for the catalogue cache. A typical IPTV catalogue is tens of megabytes and exceeds the browser's default quota.</li>
+  <li><strong><code>declarativeNetRequestWithHostAccess</code></strong> — for a Stalker portal account only: a rule for the duration of the browser session puts the MAC address cookie and a MAG box's User-Agent on the requests to <strong>that portal's address alone</strong>, which a page cannot do itself. It acts only on addresses you have granted access to, changes no other request and is gone when the browser closes.</li>
+  <li><strong><code>unlimitedStorage</code></strong> — for the catalogue cache and recordings. A typical IPTV catalogue is tens of megabytes and exceeds the browser's default quota.</li>
   <li>
     <strong>Optional host access</strong> (<code>http://*/*</code>, <code>https://*/*</code>) —
     <em>not</em> requested at install time. The browser asks for permission only when you enter

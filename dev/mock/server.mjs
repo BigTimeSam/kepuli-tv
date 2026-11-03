@@ -353,7 +353,7 @@ ${text}
 const CORS = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Methods': 'GET, HEAD, OPTIONS',
-  'Access-Control-Allow-Headers': 'Range, Content-Type, X-Requested-With',
+  'Access-Control-Allow-Headers': 'Range, Content-Type, X-Requested-With, Authorization, X-User-Agent',
   'Access-Control-Expose-Headers': 'Content-Length, Content-Range, Accept-Ranges',
   'Access-Control-Max-Age': '86400',
 };
@@ -728,11 +728,114 @@ function guideXml() {
   return out.join('\n');
 }
 
+/* ---------------------------------------------------------- Stalker portal */
+
+// A Stalker (Ministra) portal over the same catalogue, as a MAG box sees it:
+//
+//   /c/                     the box's page (the address a provider gives)
+//   /server/load.php        the API beside it (portal.php answers too)
+//   /stalker/live/<id>.ts   a channel, behind create_link's one-time token
+//
+// The box is known by the cookie mac=STALKER_MAC and must say it is a MAG
+// in its User-Agent; a request without both is "Authorization failed.",
+// as many real portals answer. What the headers said is kept in
+// stalkerSeen, for dev/playcheck.mjs to see that the session rule set them.
+// KEPULI_MOCK_STALKER_LOOSE lets a box without them in, and counts it: a
+// profile without the host permission gets no help from the rule.
+export const STALKER_MAC = '00:1A:79:00:00:01';
+const STALKER_TOKEN = 'mocktoken';
+export const stalkerSeen = { api: 0, refused: 0, streams: 0, tokens: new Set() };
+
+function stalker(req, res, url) {
+  const q = Object.fromEntries(url.searchParams);
+  const cookie = req.headers.cookie || '';
+  const mac = decodeURIComponent(/(?:^|;\s*)mac=([^;]+)/.exec(cookie)?.[1] || '');
+  const loose = Boolean(process.env.KEPULI_MOCK_STALKER_LOOSE);
+  let mag = /MAG200|MAG250|stbapp/.test(req.headers['user-agent'] || '');
+  stalkerSeen.api++;
+  if (loose && (!mag || mac !== STALKER_MAC)) stalkerSeen.loose = (stalkerSeen.loose || 0) + 1;
+  if (loose) mag = true;
+  const js = (value) => send(res, 200, { js: value }, 'text/javascript; charset=utf-8');
+  if ((mac !== STALKER_MAC && !loose) || !mag) { stalkerSeen.refused++; return send(res, 200, 'Authorization failed.', 'text/html'); }
+  if (q.action === 'handshake') return js({ token: STALKER_TOKEN, random: 'f00d' });
+  const boxMac = mac || STALKER_MAC;
+  if ((req.headers.authorization || '') !== `Bearer ${STALKER_TOKEN}`) { stalkerSeen.refused++; return send(res, 200, 'Authorization failed.', 'text/html'); }
+  const origin = originOf(req);
+  const page = (rows) => {
+    const per = 14;
+    const p = Math.max(1, Number(q.p) || 1);
+    return js({ total_items: rows.length, max_page_items: per, data: rows.slice((p - 1) * per, p * per) });
+  };
+  const programmeRow = (p) => ({ id: String(p.id), name: Buffer.from(p.title, 'base64').toString('utf8'), descr: Buffer.from(p.description, 'base64').toString('utf8'), start_timestamp: Number(p.start_timestamp), stop_timestamp: Number(p.stop_timestamp) });
+  const key = `${q.type}/${q.action}`;
+  switch (key) {
+    case 'stb/get_profile': return js({ id: '1', mac: boxMac, status: 0 });
+    case 'account_info/get_main_info': return js({ mac: boxMac, end_date: '2027-06-30 23:59:59' });
+    case 'itv/get_genres': return js([{ id: '*', title: 'All' }, ...live.categories.map((c) => ({ id: c.category_id, title: c.category_name }))]);
+    case 'itv/get_all_channels': return js({ data: liveChannels().map((c) => ({
+      id: String(c.stream_id), name: c.name, number: String(c.num), cmd: `ffrt http://localhost/ch/${c.stream_id}_`,
+      logo: `${origin}${c.stream_icon}`, tv_genre_id: c.category_id, xmltv_id: c.epg_channel_id, tv_archive: String(c.tv_archive),
+    })) });
+    case 'itv/create_link': {
+      const id = /\/ch\/(\d+)/.exec(q.cmd || '')?.[1];
+      const token = `t${Date.now().toString(36)}${Math.random().toString(36).slice(2, 6)}`;
+      stalkerSeen.tokens.add(token);
+      return js({ id, cmd: `ffmpeg ${origin}/stalker/live/${id}.ts?play_token=${token}` });
+    }
+    case 'itv/get_short_epg': {
+      const c = liveChannels().find((x) => String(x.stream_id) === q.ch_id);
+      const now = Date.now() / 1000;
+      return js(c ? programmes(c).filter((p) => Number(p.stop_timestamp) > now).slice(0, Number(q.size) || 4).map(programmeRow) : []);
+    }
+    case 'itv/get_simple_data_table': {
+      const c = liveChannels().find((x) => String(x.stream_id) === q.ch_id);
+      const day = String(q.date || '');
+      return page(c ? programmes(c).filter((p) => new Date(Number(p.start_timestamp) * 1000).toISOString().slice(0, 10) === day).map(programmeRow) : []);
+    }
+    case 'vod/get_categories': return js([{ id: '*', title: 'All' }, ...vod.categories.map((c) => ({ id: c.category_id, title: c.category_name }))]);
+    case 'vod/get_ordered_list': return page(vod.movies.filter((m) => q.category === '*' || m.category_id === q.category).map((m) => ({
+      id: String(m.stream_id), name: m.name, cmd: `/media/${m.stream_id}.${m.container_extension}`, screenshot_uri: `${origin}${m.stream_icon}`,
+      year: String(m.year), time: String(m.duration), description: m.plot, genres_str: m.genre, rating_imdb: m.rating, is_series: '0',
+    })));
+    case 'vod/create_link': {
+      const film = /\/media\/(\d+)\.(\w+)/.exec(q.cmd || '');
+      if (film) return js({ cmd: `ffmpeg ${origin}/movie/${USER}/${PASS}/${film[1]}.${film[2]}` });
+      const season = /\/series\/(\d+)\/(\d+)/.exec(q.cmd || '');
+      const info = season && series.info.get(season[1]);
+      const ep = info?.episodes[season[2]]?.find((e) => String(e.episode_num) === String(q.series));
+      return js(ep ? { cmd: `ffmpeg ${origin}/series/${USER}/${PASS}/${ep.id}.${ep.container_extension}` } : { cmd: '' });
+    }
+    case 'series/get_categories': return js(series.categories.map((c) => ({ id: c.category_id, title: c.category_name })));
+    case 'series/get_ordered_list': {
+      if (q.movie_id) {
+        const info = series.info.get(String(q.movie_id));
+        return page(info ? Object.entries(info.episodes).map(([n, list]) => ({
+          id: `${q.movie_id}:${n}`, name: `Season ${n}`, series: list.map((e) => e.episode_num), cmd: `/series/${q.movie_id}/${n}`, is_season: true,
+        })) : []);
+      }
+      return page(series.list.filter((x) => q.category === '*' || x.category_id === q.category).map((x) => ({
+        id: String(x.series_id), name: x.name, screenshot_uri: `${origin}${x.cover}`, description: x.plot, year: x.releaseDate.slice(0, 4), genres_str: x.genre,
+      })));
+    }
+    default: return js([]);
+  }
+}
+
 function handle(req, res) {
   const url = new URL(req.url, `http://${req.headers.host}`);
   const path = url.pathname;
   if (req.method === 'OPTIONS') { res.writeHead(204, CORS); return res.end(); }
   if (path === '/player_api.php') return api(req, res, url);
+  if (path === '/c/' || path === '/c/index.html') return send(res, 200, '<!doctype html><title>Stalker</title>', 'text/html');
+  if (path === '/server/load.php' || path === '/portal.php') return stalker(req, res, url);
+  if (path.startsWith('/stalker/live/')) {
+    const token = url.searchParams.get('play_token');
+    const mag = /MAG200|MAG250|stbapp/.test(req.headers['user-agent'] || '') || Boolean(process.env.KEPULI_MOCK_STALKER_LOOSE);
+    // A token is good for one connection, as a real portal's often is.
+    if (!token || !stalkerSeen.tokens.delete(token) || !mag) return send(res, 403, 'forbidden', 'text/plain');
+    stalkerSeen.streams++;
+    return admit(req, res).then((ok) => ok && sendTimeshift(req, res));
+  }
   if (path === '/playlist.m3u') return send(res, 200, playlistM3u(originOf(req)), 'audio/x-mpegurl; charset=utf-8');
   if (path === '/guide.xml') return send(res, 200, guideXml(), 'application/xml; charset=utf-8');
   if (path === '/guide.xml.gz') return send(res, 200, gzipSync(guideXml()), 'application/octet-stream');

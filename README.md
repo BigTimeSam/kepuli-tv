@@ -46,7 +46,9 @@ For development or manual installation from this repository:
 4. Click the extension icon → the player opens in a tab of its own
 5. Choose **Paste subscription URL (M3U)** to paste the complete address from
    your provider — the connection fields open filled from it, ready to inspect
-   and edit — or **Enter fields (Xtream Codes)** to type them yourself.
+   and edit — or **Enter fields (Xtream Codes)** to type them yourself, or
+   **Stalker portal (MAC address)** for a provider that gives a portal address
+   and a registered MAC address for a MAG box.
 
 Chrome 116 or newer, which is what `minimum_chrome_version` in the manifest
 states.
@@ -91,6 +93,43 @@ name of the account in use, and a click on it lists the others: one click
 switches. Each account keeps its own favourites, history, resume points,
 reminders and channel lists, and its own catalogue in the cache, so switching
 back is quick. **Remove** takes an account and its lists away, after asking twice.
+
+### Stalker portals
+
+A provider that sells its service for MAG set-top boxes gives a **portal
+address** (often ending in `/c/`) and registers a **MAC address** for the box;
+there is no user name or password. **Stalker portal (MAC address)** in
+**Settings → Connection** takes the two. The player then talks to the portal as
+a MAG box does (`js/stalker.js`): the MAC address goes in a cookie and the
+User-Agent names a MAG250, both set by a session rule of `declarativeNetRequest`
+for the portal's host alone, since a page cannot set those headers itself; the
+rule is gone when the browser closes. A stream's address is asked of the portal
+when it is played, and asked again when a live stream reconnects, since a
+portal's link is often good for one connection only. Channels, films, series and
+the portal's own programme data are there; the portal's archive is not yet. A
+Stalker account does not go to the other computers without **Include
+passwords**, the MAC address being as good as a password.
+
+### Recording
+
+**Record** beside the player's controls records the live channel on screen to
+the end of the programme on now (with a few minutes over), or until it is
+stopped when the guide does not know the programme. In the guide, **Record** on
+a programme on now or later plans it, a minute before to three minutes after.
+The recordings are listed under **Recordings** in the top bar and the player's
+`☰` menu, where each can be played, saved to the computer as a `.ts` file (an
+`.mp4` for an fMP4 HLS channel) or deleted.
+
+A recording is the stream as the provider sends it, written to the browser's own
+storage (`js/recorder.js`, the origin private file system) in parts of a few
+megabytes, so a closed tab keeps all but the last seconds. Nothing is
+re-encoded. A recording of the channel being watched shares the player's
+connection (`js/streamhub.js`): an account that allows one connection can
+record what it shows, though not another channel at the same time — the player
+says so. A dropped connection is opened again until the recording's end. As
+with reminders, recordings are made while Kepuli-TV is open in a tab: a plan
+whose time comes with no player open is marked missed, and closing the tab
+mid-recording asks first.
 
 ### Sync between computers
 
@@ -644,6 +683,11 @@ the guide, so one spelling works everywhere a name is typed.
 - **M3U playlists and XMLTV guides** as well as Xtream servers: a playlist's
   channels, films and series, its programme guide and catch-up — see
   [Connection mode](#connection-mode)
+- **Stalker portals** by portal address and MAC address, as a MAG box sees
+  them — see [Stalker portals](#stalker-portals)
+- **Recording** a live channel now or a programme from the guide, to the
+  browser's own storage, played back or saved as a file — see
+  [Recording](#recording)
 - **Several accounts**, switched from the top bar, each with its own lists
 - **Sync between computers** through the browser's own sync, off until asked for
 - **A one-question form when the extension is removed** (`runtime.setUninstallURL` in
@@ -785,7 +829,7 @@ Settings always opens on **Connection**, with four focused tabs:
 
 | Section | Holds |
 | --- | --- |
-| **Connection** | the provider address and credentials, entered as Xtream Codes fields or an M3U address |
+| **Connection** | the provider address and credentials, entered as Xtream Codes fields, an M3U address, or a Stalker portal and its MAC address |
 | **Viewing** | interface language, the channel order, the appearance (dark, light, or the system's), the countries, the international channels, automatic programme data, remembered playback positions, the next episode and the technical read-out over the picture |
 | **Subtitles** | style and size, with a local preview |
 | **Account & data** | subscription details and cache information; an expandable **Manage stored data** section contains cache clearing and reset; the version running, and the update when one is waiting |

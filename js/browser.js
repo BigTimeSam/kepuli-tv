@@ -6,8 +6,8 @@
 // a word. The alias settles both, and it is the one line that makes the
 // player run in either browser.
 //
-// Extension APIs are used in three files only: config.js, permissions.js
-// and background.js. The last is not a module and carries the same line
+// Extension APIs are used in a few files only: config.js, permissions.js,
+// sync.js, stalker.js (the portal's header rule) and background.js. The last is not a module and carries the same line
 // itself. Everything else — the player, the lists, the guide, the cache,
 // the unpacking — is ordinary web code that knows nothing about extension
 // APIs, which is why the Firefox package (firefox/) is the same files with

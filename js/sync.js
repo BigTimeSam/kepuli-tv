@@ -73,6 +73,9 @@ const hasCredentialsInAddress = (url) => /[?&](password|pass|pwd|token|key)=/i.t
 export function outgoingAccounts(accounts, passwords) {
   if (passwords) return accounts;
   return accounts
+    // A Stalker portal knows its viewer by the MAC address alone, which is
+    // as good as a password: such an account stays home, its lists with it.
+    .filter((a) => a.type !== 'stalker')
     .filter((a) => a.type !== 'm3u' || !hasCredentialsInAddress(a.url))
     .map((a) => {
       const out = a.type === 'm3u' ? { ...a } : { ...a, password: '' };

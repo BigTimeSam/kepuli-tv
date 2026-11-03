@@ -1678,10 +1678,10 @@ select:not([multiple]) {
 
 /* The header's account button (js/app.js, renderAccountSwitcher): the name
    of the account in use, cut short rather than pushing the bar about. */
-.account-button { display: inline-flex; align-items: center; gap: 6px; max-width: 220px; }
-.account-button svg { width: 18px; height: 18px; flex: none; fill: none; stroke: currentColor; stroke-width: 1.6; stroke-linecap: round; stroke-linejoin: round; }
-.account-button .account-chevron { width: 14px; height: 14px; opacity: .7; }
-.account-button .button-label { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0; }
+.account-switch { position: relative; display: inline-flex; align-items: center; max-width: 220px; }
+.account-switch[hidden] { display: none; }
+.account-switch svg { position: absolute; left: 9px; width: 16px; height: 16px; pointer-events: none; fill: none; stroke: currentColor; stroke-width: 1.6; stroke-linecap: round; stroke-linejoin: round; color: var(--muted); }
+.account-switch select { max-width: 220px; padding: 6px 8px 6px 31px; background: var(--panel-2); border: 1px solid var(--border); border-radius: 8px; cursor: pointer; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 
 /* The account menu's marks: the account in use, and the line above Add. */
 .row-menu .popitem.radio { position: relative; padding-left: 28px; }
@@ -1719,3 +1719,23 @@ select:not([multiple]) {
 .sync-status { margin: 6px 0 0; font-size: 0.71875rem; color: var(--muted); }
 .sync-status.error { color: var(--danger); }
 .sync-status:empty { display: none; }
+
+/* -------------------------------------------------------------- recordings */
+.grid .field.w-wide { grid-column: 1 / -1; }
+.rec-dot { display: inline-block; width: 10px; height: 10px; border-radius: 50%; background: var(--danger); flex: none; }
+.record-button, .recordings-button { display: inline-flex; align-items: center; gap: 6px; }
+.record-button[aria-pressed="true"] { color: var(--danger); border-color: var(--danger); }
+.record-button[aria-pressed="true"] .rec-dot { border-radius: 2px; }
+.recordings-button .rec-dot { display: none; }
+.recordings-button.on { color: var(--danger); }
+.recordings-button.on .rec-dot { display: inline-block; animation: rec-pulse 1.6s ease-in-out infinite; }
+@keyframes rec-pulse { 50% { opacity: .35; } }
+@media (prefers-reduced-motion: reduce) { .recordings-button.on .rec-dot { animation: none; } }
+#recordings { width: min(680px, calc(100vw - 32px)); max-height: calc(100dvh - 32px); }
+.recordings-list .choice-row { align-items: center; gap: 12px; padding: 8px 12px; }
+.rec-info { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+.rec-info b { font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.rec-info small { color: var(--muted); font-size: 0.78rem; }
+.rec-info .rec-state { color: var(--danger); }
+.rec-actions { display: flex; gap: 6px; flex: none; }
+.rec-actions .ghost { padding: 4px 10px; }

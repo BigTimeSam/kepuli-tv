@@ -230,7 +230,7 @@
 // the rate in bytes per second (60 kB/s). Exit code 0 when every scenario
 // passes, 1 otherwise.
 
-import { startMockServer, connectionStats, MULTI_EPISODES, PORT as MOCK_PORT } from './mock/server.mjs';
+import { startMockServer, connectionStats, MULTI_EPISODES, PORT as MOCK_PORT, STALKER_MAC, stalkerSeen } from './mock/server.mjs';
 // Run the same scenarios in Firefox with KEPULI_BROWSER=firefox.
 const { ensureChrome, openPlayer, session, sleep, PORT: CHROME_PORT } = await import(
   process.env.KEPULI_BROWSER === 'firefox' ? '../firefox/playcheck-driver.mjs' : './screenshot.mjs');
@@ -1562,6 +1562,9 @@ async function home(page) {
   // is left halfway.
   await evaluate(page, `chrome.storage.local.get('settings').then((got) => chrome.storage.local.set({ settings: { ...got.settings, resumeEnabled: true } }))`);
   await page.call('Page.reload');
+  // The old page still answers for a moment, connected: the wait would be
+  // over before the reload began.
+  await sleep(1000);
   await waitFor(page, CONNECTED, 'the connection after the reload');
   await evaluate(page, `document.querySelector('#tabs [data-tab="movie"]').click()`);
   await click(page, '#groups', 'Nordic');
@@ -1586,6 +1589,9 @@ async function home(page) {
 async function resumemkv(page) {
   await evaluate(page, `chrome.storage.local.get('settings').then((got) => chrome.storage.local.set({ settings: { ...got.settings, resumeEnabled: true } }))`);
   await page.call('Page.reload');
+  // The old page still answers for a moment, connected: the wait would be
+  // over before the reload began.
+  await sleep(1000);
   await waitFor(page, CONNECTED, 'the connection after the reload');
   await playEpisode(page);
   await evaluate(page, `document.getElementById('video').currentTime = 45`);
@@ -1688,7 +1694,8 @@ async function fullscreenControl(page) {
   }
   await waitFor(page, `['video', 'videowrap'].includes(document.fullscreenElement?.id)`, 'full screen from a double click');
   const subs = await evaluate(page, `document.fullscreenElement.id + ' ' + document.body.dataset.subrender`);
-  assert(subs === 'video native' || subs === 'videowrap overlay', `the subtitles in full screen: ${subs}`);
+  // In Chrome the player takes the double click and gives the wrapper, as f.
+  assert(subs === 'videowrap overlay' || (firefox && subs === 'video native'), `the subtitles in full screen: ${subs}`);
   await evaluate(page, `document.exitFullscreen()`);
   await waitFor(page, `!document.fullscreenElement`, 'out of full screen');
   // f takes the wrapper, the subtitle layer with it.
@@ -2728,6 +2735,9 @@ async function nextepisode(page) {
 async function continuewatching(page) {
   await evaluate(page, `chrome.storage.local.get('settings').then((got) => chrome.storage.local.set({ settings: { ...got.settings, resumeEnabled: true } }))`);
   await page.call('Page.reload');
+  // The old page still answers for a moment, connected: the wait would be
+  // over before the reload began.
+  await sleep(1000);
   await waitFor(page, CONNECTED, 'the connection after the reload');
   await evaluate(page, `document.querySelector('#tabs [data-tab="movie"]').click()`);
   await click(page, '#groups', 'Nordic');
@@ -3205,10 +3215,16 @@ async function m3u(page, { target, requests }) {
   await waitFor(page, `!document.getElementById('detail').hidden && document.querySelectorAll('#list .row').length > 5`, 'the episodes');
   const episodes = await evaluate(page, `document.querySelectorAll('#list .row').length`);
   // The account menu: shown with two accounts, and a click switches.
-  assert(await evaluate(page, `!document.getElementById('btn-account').hidden && document.getElementById('btn-account-label').textContent === 'Demo playlist'`), 'the account button is not there');
-  await evaluate(page, `document.getElementById('btn-account').click()`, { gesture: true });
-  await evaluate(page, `[...document.querySelectorAll('.row-menu .popitem')].find((b) => b.textContent === 'Demo server').click()`, { gesture: true });
-  await waitFor(page, `document.getElementById('btn-account-label').textContent === 'Demo server' && ${CONNECTED}`, 'the Xtream account');
+  const picked = (name) => `(() => { const s = document.getElementById('account-pick'); return s.options[s.selectedIndex]?.text === '${name}'; })()`;
+  assert(await evaluate(page, `!document.getElementById('account-switch').hidden && ${picked('Demo playlist')}`), 'the account switch is not there');
+  // The app's own drop-down opens on a press of the select.
+  await evaluate(page, `document.getElementById('account-pick').dispatchEvent(new MouseEvent('mousedown', { bubbles: true, button: 0 }))`, { gesture: true });
+  await evaluate(page, `[...document.querySelectorAll('.picker-pop .picker-option')].find((li) => li.textContent === 'Demo server').click()`, { gesture: true });
+  // The select shows the choice at once; the switch is done when the
+  // stored account is the other one and its server has been asked.
+  await waitFor(page, `${picked('Demo server')} && chrome.storage.local.get('config').then((d) => d.config.id === 'pxt')`, 'the Xtream account');
+  for (let i = 0; i < 40 && !requests.some((r) => r.startsWith('/player_api.php')); i++) await sleep(250);
+  await waitFor(page, CONNECTED, 'the Xtream account connected');
   assert(requests.some((r) => r.startsWith('/player_api.php')), 'the switch did not reach the Xtream account');
   const config = await evaluate(page, `chrome.storage.local.get('config').then((d) => d.config.id)`);
   assert(config === 'pxt', `the stored account in use is ${config}`);
@@ -3396,9 +3412,138 @@ async function accountform(page, { target }) {
   return { ok: true, detail: `added and cancelled in the list, the other account edited and saved without a switch; "${error}"` };
 }
 
+
+const STALKER_ACCOUNT = { type: 'stalker', url: `http://127.0.0.1:${MOCK_PORT}/c/`, mac: STALKER_MAC, name: 'Demo portal', id: 'pst', sourceMode: 'stalker', streamMode: 'auto' };
+
+/**
+ * A Stalker portal: the MAC address in the cookie and a MAG's User-Agent
+ * on every request (the session rule of js/stalker.js — the mock turns
+ * away a request without them), the channels and their programmes from
+ * the portal, a channel played from the one-time address create_link
+ * gives, a film the same way; and the form's check of a MAC address.
+ */
+async function stalker(page, { target }) {
+  const assert = (ok, message) => { if (!ok) throw new Error(message); };
+  process.env.KEPULI_MOCK_LIVE_TS = '1';
+  // The rule acts only on a host the extension has access to; a copied
+  // profile loses what was granted in the original (Chrome ties the grant
+  // to the profile's place), and headless Chrome cannot answer the prompt.
+  const access = await evaluate(page, `chrome.permissions.contains({ origins: ['http://127.0.0.1/*'] })`);
+  process.env.KEPULI_MOCK_STALKER_LOOSE = access ? '' : '1';
+  try {
+    stalkerSeen.api = 0; stalkerSeen.refused = 0; stalkerSeen.streams = 0; stalkerSeen.loose = 0;
+    await evaluate(page, `chrome.storage.local.set({ config: ${JSON.stringify(STALKER_ACCOUNT)}, accounts: ${JSON.stringify([STALKER_ACCOUNT, XTREAM_ACCOUNT])}, ui: { tab: 'live' } })`);
+    await page.call('Page.navigate', { url: bare(target.url) });
+    await sleep(1000);
+    await waitFor(page, CONNECTED, 'the portal', 30000);
+    assert(stalkerSeen.api > 3 && stalkerSeen.refused === 0, `the portal was asked ${stalkerSeen.api} times, ${stalkerSeen.refused} turned away for want of the cookie or the User-Agent`);
+    await openLiveList(page, 2);
+    await waitFor(page, `[...document.querySelectorAll('#list .row')].some((r) => /\\d{1,2}[.:]\\d{2}/.test(r.textContent))`, 'a programme from the portal', 20000);
+    await evaluate(page, `document.querySelectorAll('#list .row')[0].click()`, { gesture: true });
+    await waitFor(page, PLAYING, 'a portal channel', 40000);
+    assert(stalkerSeen.streams >= 1, 'no stream came through create_link');
+    await evaluate(page, `document.querySelector('#tabs [data-tab="movie"]').click()`);
+    await click(page, '#groups', 'Nordic');
+    await click(page, '#list', 'Northern Lights', { gesture: true });
+    await waitFor(page, PLAYING, 'a portal film', 40000);
+    // The form: a MAC address that is not one is said so.
+    await evaluate(page, `document.getElementById('btn-settings').click()`, { gesture: true });
+    await waitFor(page, `document.getElementById('setup').open`, 'the settings');
+    assert(await evaluate(page, `!document.getElementById('src-stalker').hidden && document.getElementById('f-mac').value === ${JSON.stringify(STALKER_MAC)}`), 'the portal account\'s form is not shown');
+    await evaluate(page, `(() => { const f = document.getElementById('f-mac'); f.value = '00:1A:79'; f.dispatchEvent(new Event('input', { bubbles: true })); })()`);
+    await evaluate(page, `document.getElementById('f-save').click()`, { gesture: true });
+    const error = await evaluate(page, `document.getElementById('setup-error').textContent`);
+    assert(/MAC address/.test(error), `a short MAC address: "${error}"`);
+    await evaluate(page, `document.getElementById('setup').close()`);
+    // Nothing left playing: the film's id is an Xtream film's too in the
+    // mock, and a reload brings back what was playing.
+    await evaluate(page, `document.getElementById('btn-home').click()`, { gesture: true });
+    await sleep(500);
+    const headers = access ? 'with the cookie and User-Agent' : `(no host access in this profile: the header rule unchecked, ${stalkerSeen.loose} let in without)`;
+    return { ok: true, detail: `${stalkerSeen.api} portal requests ${headers}, programmes in the list, a channel through a one-time link, a film; "${error}"` };
+  } finally {
+    process.env.KEPULI_MOCK_LIVE_TS = '';
+    process.env.KEPULI_MOCK_STALKER_LOOSE = '';
+  }
+}
+
+/**
+ * Recording: the channel on screen recorded on an account that allows one
+ * connection — the recording shares the player's (js/streamhub.js), so no
+ * second connection is opened — stopped, its file on the disk as many
+ * bytes as the list says, played back from there; then a plan from the
+ * guide carried out by itself, from start to end, with nothing playing.
+ */
+async function record(page) {
+  const assert = (ok, message) => { if (!ok) throw new Error(message); };
+  const list = () => evaluate(page, `chrome.storage.local.get('recordings').then((d) => d.recordings || [])`);
+  process.env.KEPULI_MOCK_LIVE_TS = '1';
+  process.env.KEPULI_MOCK_LIMIT = '1';
+  try {
+    await evaluate(page, `chrome.storage.local.remove('recordings')`);
+    await openLiveList(page, 2);
+    await click(page, '#groups', 'Finland');
+    await waitFor(page, `document.querySelectorAll('#list .row').length > 2`, 'the channels');
+    await evaluate(page, `document.querySelectorAll('#list .row')[0].click()`, { gesture: true });
+    await waitFor(page, PLAYING, 'the channel', 40000);
+    const before = connectionStats();
+    await waitFor(page, `!document.getElementById('btn-record').hidden`, 'the Record button');
+    await evaluate(page, `document.getElementById('btn-record').click()`, { gesture: true });
+    await waitFor(page, `chrome.storage.local.get('recordings').then((d) => (d.recordings || []).some((r) => r.state === 'recording'))`, 'the recording under way');
+    await sleep(12000);
+    assert(await evaluate(page, PLAYING), 'the picture stopped while recording');
+    const during = connectionStats();
+    assert(during.refused.length === before.refused.length && during.open === 1, `while recording: ${during.open} open, refused ${during.refused.slice(before.refused.length).join(' | ')}`);
+    assert(await evaluate(page, `document.getElementById('btn-record').getAttribute('aria-pressed') === 'true' && document.getElementById('btn-recordings').classList.contains('on')`), 'the buttons do not show the recording');
+    await evaluate(page, `document.getElementById('btn-record').click()`, { gesture: true });
+    await waitFor(page, `chrome.storage.local.get('recordings').then((d) => (d.recordings || []).some((r) => r.state === 'done'))`, 'the recording saved', 20000);
+    const [done] = await list();
+    assert(done.bytes > 200000, `only ${done.bytes} bytes recorded`);
+    const onDisk = await evaluate(page, `(async () => {
+      const root = await navigator.storage.getDirectory();
+      const dir = await (await root.getDirectoryHandle('recordings')).getDirectoryHandle(${JSON.stringify(done.id)});
+      let size = 0, parts = 0, first = null;
+      const names = [];
+      for await (const [name] of dir.entries()) names.push(name);
+      names.sort();
+      for (const name of names) { const f = await (await dir.getFileHandle(name)).getFile(); size += f.size; parts++; if (!first) first = new Uint8Array(await f.slice(0, 1).arrayBuffer())[0]; }
+      return { size, parts, first };
+    })()`);
+    assert(onDisk.size === done.bytes && onDisk.first === 0x47, `on the disk ${JSON.stringify(onDisk)}, listed ${done.bytes}`);
+    // Played back from the disk.
+    await evaluate(page, `document.getElementById('btn-recordings').click()`, { gesture: true });
+    await waitFor(page, `document.getElementById('recordings').open && document.querySelectorAll('#recordings-list .choice-row').length === 1`, 'the recordings');
+    await evaluate(page, `[...document.querySelectorAll('#recordings-list button')].find((b) => b.textContent === 'Play').click()`, { gesture: true });
+    await waitFor(page, `${PLAYING} && document.getElementById('video').currentTime > 2`, 'the recording played back', 30000);
+    // A plan, with nothing playing: carried out at its time.
+    await evaluate(page, `document.getElementById('btn-home').click()`, { gesture: true });
+    await sleep(1500);
+    const channel = await evaluate(page, `chrome.storage.local.get('recordings').then((d) => d.recordings[0].channel)`);
+    await evaluate(page, `chrome.storage.local.get('recordings').then((d) => {
+      const r = d.recordings[0];
+      const now = Date.now();
+      return chrome.storage.local.set({ recordings: [...d.recordings, { id: 'rplan', key: r.key, account: r.account, channel: ${JSON.stringify(channel)}, title: 'Planned', start: now + 2000, stop: now + 10000, programme: { start: now + 2000, stop: now + 10000 }, state: 'planned', bytes: 0, createdAt: now }] });
+    })`);
+    await waitFor(page, `chrome.storage.local.get('recordings').then((d) => d.recordings.find((r) => r.id === 'rplan')?.state === 'recording')`, 'the plan started', 15000);
+    await waitFor(page, `chrome.storage.local.get('recordings').then((d) => d.recordings.find((r) => r.id === 'rplan')?.state === 'done')`, 'the plan ended', 30000);
+    const planned = (await list()).find((r) => r.id === 'rplan');
+    assert(planned.bytes > 50000, `the plan recorded ${planned.bytes} bytes`);
+    return { ok: true, detail: `${Math.round(done.bytes / 1024)} kB in ${onDisk.parts} part(s) through the player's own connection (1 open, none refused), played back from the disk; a plan recorded ${Math.round(planned.bytes / 1024)} kB by itself` };
+  } finally {
+    process.env.KEPULI_MOCK_LIVE_TS = '';
+    process.env.KEPULI_MOCK_LIMIT = '';
+    await evaluate(page, `(async () => {
+      const d = await chrome.storage.local.get('recordings');
+      const root = await navigator.storage.getDirectory();
+      await root.removeEntry('recordings', { recursive: true }).catch(() => {});
+      await chrome.storage.local.remove('recordings');
+    })()`).catch(() => {});
+  }
+}
+
 const SCENARIOS = { buffering, livebuffering, filmbuffering, emptyfile, tsasmp4, refusedfile, badgateway, livebadgateway, channelrefused, noanswer, longfilm, catalogUi, setupClarity, fullscreenControl, clickpause, pickers, channels, home, resumemkv, restore, programmes, catchup, seek, death, cancel, timeout, search, paste, keys, switching, resume, connections, livezap, livequiet, reconnect, accounts, listerror, a11y, subtitles, audio, settings,
   lastchannel, nextepisode, continuewatching, reminders, update, seeklag, cuesretry, quota, catchupfreeze, catchupfull, twotabs, switchstop, resettabs,
-  refresh, restorenav, guidekeep, m3u, sync, holes, picks, flakyserver, accountform };
+  refresh, restorenav, guidekeep, m3u, sync, holes, picks, flakyserver, accountform, stalker, record };
 // The mock's whole-list answers stall for these, longer than the request limit.
 const SLOW_LIST_MS = { cancel: 60000, timeout: 60000 };
 // The media is sent slowly for these: the seek targets must lie outside the
@@ -3433,6 +3578,7 @@ try {
       if (!ok) failed++;
     } catch (err) {
       console.log(`FAIL  ${name}: ${err.message}`);
+      if (process.env.KEPULI_DEBUG) console.log(JSON.stringify(connectionStats()), requests.filter((r) => !/player_api|\/img\//.test(r)).slice(-15));
       failed++;
     } finally {
       page.close();

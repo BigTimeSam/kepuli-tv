@@ -21,12 +21,13 @@ import { channelPreferences } from './channelprefs.js';
 import { noteWatched } from './picks.js';
 
 const CONNECTION_DEFAULTS = {
-  // What the account is: an Xtream Codes server (the fields below) or an
+  // What the account is: an Xtream Codes server (the fields below), an
   // M3U playlist (url, and the programme guide's address in epgUrl when the
-  // playlist does not name one itself).
-  type: 'xtream',           // xtream | m3u
+  // playlist does not name one itself) or a Stalker portal (url, and the
+  // MAC address the provider registered in mac; js/stalker.js).
+  type: 'xtream',           // xtream | m3u | stalker
   scheme: 'http', host: '', port: '8080', username: '', password: '',
-  url: '', epgUrl: '',
+  url: '', epgUrl: '', mac: '',
   // The name the viewer gave the account, for the account menu; empty
   // means one made from the address (accountLabel).
   name: '',
@@ -35,13 +36,16 @@ const CONNECTION_DEFAULTS = {
   streamMode: 'auto',
   // Which form the settings dialog opens. For an Xtream server it does not
   // affect the connection: both produce the same server and credentials.
-  sourceMode: 'xtream',     // xtream | m3u
+  sourceMode: 'xtream',     // xtream | m3u | stalker
 };
+
+const MAC = /^([0-9A-F]{2}:){5}[0-9A-F]{2}$/i;
 
 /** Whether the configuration has what it takes to connect. */
 export function isConfigured(c) {
   if (!c) return false;
   if (c.type === 'm3u') return Boolean(c.url);
+  if (c.type === 'stalker') return Boolean(c.url && MAC.test(c.mac || ''));
   return Boolean(c.host && c.username && c.password);
 }
 
@@ -49,7 +53,7 @@ export function isConfigured(c) {
 export function accountLabel(c) {
   if (!c) return '';
   if (c.name && c.name.trim()) return c.name.trim();
-  if (c.type === 'm3u') {
+  if (c.type === 'm3u' || c.type === 'stalker') {
     try { return new URL(c.url).hostname; } catch { return c.url || ''; }
   }
   return c.username ? `${c.host} · ${c.username}` : c.host || '';
@@ -181,6 +185,7 @@ const DEFAULT_PORTS = { http: '80', https: '443' };
 
 export function accountKey(c) {
   if (c.type === 'm3u') return `m3u:${String(c.url || '').trim()}`;
+  if (c.type === 'stalker') return `stalker:${String(c.url || '').trim()}|${String(c.mac || '').toUpperCase()}`;
   const scheme = String(c.scheme || 'http').trim().toLowerCase();
   const host = String(c.host || '').trim().toLowerCase();
   const port = String(c.port ?? '').trim().replace(/^0+(?=\d)/, '') || DEFAULT_PORTS[scheme] || '';

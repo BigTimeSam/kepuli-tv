@@ -1,5 +1,8 @@
 import { XtreamApi, ApiError } from './api.js';
 import { M3uSource } from './m3usource.js';
+import { StalkerSource, normalizePortal, normalizeMac } from './stalker.js';
+import { installFetchTap, shareAs } from './streamhub.js';
+import { Recorder, recordingSupported, loadRecordings, changeRecordings, patchRecording, watchRecordings, newRecordingId, recordingBlob, deleteRecordingFiles, recordingFileName, settleOrphans, PAD_BEFORE_MS, PAD_AFTER_MS } from './recorder.js';
 import { playlistAddress } from './m3u.js';
 import { Sync, loadSyncInfo, syncAvailable } from './sync.js';
 import { pickProgrammes, programmeKey } from './picks.js';
@@ -24,7 +27,7 @@ import { ProgrammeSearch } from './programmesearch.js';
 import { cacheClear, cachePurge, wipeStorage, storageEstimate } from './db.js';
 import { parsePlaylistUrl, streamUrl, timeshiftUrl, baseUrl, parseServer } from './xtream.js';
 import { formatRoute, parseRoute } from './route.js';
-import { api } from './browser.js';
+import { api, isGecko } from './browser.js';
 import { requestAccess, requestAccessFor, hasAccess, hasAccessEverywhere, requestAccessEverywhere, redirects } from './permissions.js';
 import { externalLabel, handOff } from './external.js';
 import { Cast, supported as castSupported } from './cast.js';
@@ -40,6 +43,10 @@ import { nf, dateTimeFmt, dateFmt, stampFmt, dayLabel, clock, megabytes, duratio
 import { t, applyStatic, setLanguage, loadLanguage, localeTag, setEnglishRegion, LANGUAGES } from './i18n.js';
 
 const $ = (id) => document.getElementById(id);
+// Live channels are read through js/streamhub.js, so that a recording of
+// the channel on screen shares the player's connection.
+installFetchTap();
+
 const el = {
   tabs: $('tabs'), search: $('search'), groups: $('groups'), groupsCol: $('groups-col'),
   categoryFilter: $('category-filter'), groupsFilter: $('groups-filter'),
@@ -174,8 +181,9 @@ async function connect({ silent = false } = {}) {
     connecting = true;
     const playlist = config.type === 'm3u';
     // A playlist is the whole catalogue in one file, read once and kept
-    // (js/m3usource.js); an Xtream server is asked one list at a time.
-    const source = playlist ? new M3uSource(config, `${store.accountKey(config)}|`) : new XtreamApi(config);
+    // (js/m3usource.js); an Xtream server is asked one list at a time, and
+    // a Stalker portal the same, as a MAG box (js/stalker.js).
+    const source = sourceFor(config);
     state.source = source;
     dropConnectedView();
 
@@ -229,6 +237,19 @@ async function connect({ silent = false } = {}) {
     if (isAbort(err)) showCancelled(); else showConnectionError(err);
     return false;
   }
+}
+
+/** The catalogue of an account: its playlist, its Xtream server or its portal. */
+function sourceFor(config) {
+  if (config.type === 'm3u') return new M3uSource(config, `${store.accountKey(config)}|`);
+  if (config.type === 'stalker') return new StalkerSource(config);
+  return new XtreamApi(config);
+}
+
+/** Where an account's catalogue comes from, for asking access to it. */
+function accountAddress(config) {
+  if (config.type === 'm3u' || config.type === 'stalker') return config.url || null;
+  return config.host ? baseUrl(config) : null;
 }
 
 /**
@@ -352,7 +373,7 @@ function showConnectionError(err) {
     { label: t('btn.settings'), onClick: openSetup },
   ];
   showOverlayActions(actions);
-  const address = state.config.type === 'm3u' ? state.config.url : state.config.host ? baseUrl(state.config) : null;
+  const address = accountAddress(state.config);
   if (address) offerAccess(address, actions, () => connect());
   console.error('[iptv] yhteysvirhe', err);
 }
@@ -2215,7 +2236,7 @@ function tagFor(item) {
  */
 function probeFor(item) {
   if (item.k !== 1 && item.k !== 3) return null;
-  if (!state.config) return null;
+  if (!state.config || state.config.type === 'stalker') return null;
   const url = streamUrl(state.config, item, 'ts');
   return url ? peek(url) : null;
 }
@@ -2251,7 +2272,7 @@ function toggleFavorite(item) {
  * made when they were saved, and the provider moves on: a film re-encoded
  * from .mkv to .mp4, a channel given another guide id or catch-up window.
  */
-const ADDRESS_FIELDS = ['ext', 'direct', 'epgId', 'archive', 'cu'];
+const ADDRESS_FIELDS = ['ext', 'direct', 'epgId', 'archive', 'cu', 'cmd'];
 
 /**
  * The item as the library holds it now, when the library has it in memory:
@@ -2329,8 +2350,10 @@ async function updateStoredItem(item, patch) {
 function stripItem(item) {
   // cu, tvgName and shift are a playlist channel's (js/m3usource.js): its
   // archive's address and what its guide is found by.
-  const { id, k, n, logo, ext, season, episode, archive, epgId, direct, cats, durationSec, seriesCover, seriesName, seriesId, displayName, rating, ratingScale, cu, tvgName, shift } = item;
-  return { id, k, n, logo, ext, season, episode, archive, epgId, direct, cats, durationSec, seriesCover, seriesName, seriesId, displayName, rating, ratingScale, cu, tvgName, shift };
+  // cmd and part are a Stalker portal's (js/stalker.js): what its address
+  // is asked for by when the item is played.
+  const { id, k, n, logo, ext, season, episode, archive, epgId, direct, cats, durationSec, seriesCover, seriesName, seriesId, displayName, rating, ratingScale, cu, tvgName, shift, cmd, part } = item;
+  return { id, k, n, logo, ext, season, episode, archive, epgId, direct, cats, durationSec, seriesCover, seriesName, seriesId, displayName, rating, ratingScale, cu, tvgName, shift, cmd, part };
 }
 
 /* ================================================================ series */
@@ -3037,20 +3060,59 @@ function addOverlayAction(action, { first = false } = {}) {
   el.overlayActions.hidden = false;
 }
 
+let playRun = 0;
+
+/**
+ * The address to play an item from. A Stalker portal is asked for it now
+ * (its links carry a token); everything else has it in the item already.
+ */
+async function itemAddress(item, config = state.config, source = state.source) {
+  if (config.type === 'stalker') {
+    // The connected portal's session, when it is the same account: a new
+    // one would shake hands again.
+    const portal = source instanceof StalkerSource && store.accountKey(source.config) === store.accountKey(config) ? source : new StalkerSource(config);
+    return portal.resolveUrl(item);
+  }
+  return streamUrl(config, item, 'ts');
+}
+
+/** A channel's place in the shared connections (js/streamhub.js). */
+const channelKey = (config, item) => `${store.accountKey(config)}|${item.k}:${item.id}`;
+
 async function playItem(item, { startAt, allowSilent } = {}) {
   // Snapshot the visible name so later browsing cannot rename playback.
   const displayName = item.displayName || (state.rows.includes(item) && state.cleanName ? state.cleanName(item.n, item) : item.n);
   item = withCurrentAddress({ ...item, displayName });
   const live = item.k === 0;
-  const url = streamUrl(state.config, item, 'ts');
+  const run = ++playRun;
+  const stalker = state.config.type === 'stalker';
+  let url;
+  try {
+    url = await itemAddress(item);
+  } catch (err) {
+    if (run !== playRun) return;
+    toast(err instanceof ApiError ? err.message : t('player.nourl'), { kind: 'error', long: true });
+    return;
+  }
+  if (run !== playRun) return;
   if (!url) { toast(t('player.nourl'), { kind: 'error' }); return; }
   const key = `${item.k}:${item.id}`;
   const saved = state.resume.get(key);
+  // A live channel's stream is read once for the player and a recording
+  // of it alike: the account's one connection does for both.
+  const shared = live ? channelKey(state.config, item) : null;
+  if (shared) shareAs(url, shared);
+  const config = state.config;
   const spec = {
     url,
-    hlsUrl: live && !item.direct ? streamUrl(state.config, item, 'm3u8') : null,
+    relink: stalker ? async () => {
+      const next = await itemAddress(item, config);
+      if (shared) shareAs(next, shared);
+      return next;
+    } : null,
+    ext: stalker && !live ? (/\.([a-z0-9]{2,4})(?:[?#]|$)/i.exec(new URL(url).pathname)?.[1] || item.ext || '').toLowerCase() : item.ext,
+    hlsUrl: live && !item.direct && !stalker ? streamUrl(state.config, item, 'm3u8') : null,
     live,
-    ext: item.ext,
     mode: el.mode.value,
     allowSilent: Boolean(allowSilent),
     subtitleLang: state.settings.subtitleLang,
@@ -3060,6 +3122,7 @@ async function playItem(item, { startAt, allowSilent } = {}) {
 
   cancelAutoNext();
   if (live) noteChannel(item);
+  warnRecordingConnection(item);
   state.playing = item;
   updatePlayerLayout();
   playerLayout.showPlayer();
@@ -3097,6 +3160,7 @@ async function playItem(item, { startAt, allowSilent } = {}) {
 // carries it does not belong here: "mpegts.js" names a library, and no
 // choice the viewer has to make depends on knowing it.
 function renderNowSub() {
+  renderRecordingState();
   const item = state.playing;
   if (!item) { el.nowSub.textContent = t('player.idle'); return; }
   const bits = [];
@@ -3283,6 +3347,7 @@ function leavePlayback() {
     }
   }
   cancelAutoNext();
+  ++playRun;
   playback.stop();
   state.playing = null;
   state.playingSpec = null;
@@ -3411,7 +3476,29 @@ function toggleFullscreen() {
   else enterFullscreen();
 }
 
-// A click on the picture pauses a film or an episode and plays it on, and a
+/**
+ * A double click on the picture takes the wrapper full screen, as f does,
+ * rather than letting Chrome's controls take the bare video, where Chrome
+ * draws the subtitles itself in the system's caption box (js/subdisplay.js).
+ * The double click over the picture reaches the page; a press on the
+ * controls' own buttons does not — Chrome keeps those to itself, measured —
+ * so the full screen button still takes the bare video. Firefox's controls
+ * keep their clicks to themselves (see clickPicture).
+ */
+function catchDoubleClick(e) {
+  if (isGecko() || e.target !== el.video || e.button !== 0) return;
+  if (e.offsetY > el.video.clientHeight - CONTROL_BAR_PX) return;
+  // The second press of a double click is where the page acts: it is a
+  // fresh user activation, and the request made with it uses the
+  // activation up, so that the controls' own request on the dblclick that
+  // follows is refused. The dblclick itself is only stopped.
+  if (e.type === 'mousedown' && e.detail === 2) toggleFullscreen();
+  else if (e.type !== 'dblclick') return;
+  e.preventDefault();
+  e.stopPropagation();
+}
+window.addEventListener('mousedown', catchDoubleClick, true);
+window.addEventListener('dblclick', catchDoubleClick, true);// A click on the picture pauses a film or an episode and plays it on, and a
 // double click takes the picture full screen: the browser's own controls do
 // both, in Chrome as in Firefox, now that Chrome's full screen button is
 // back (see js/subdisplay.js). A live channel is the exception: there is
@@ -3508,7 +3595,8 @@ function wireMediaSession() {
 function renderInfoStrip() {
   renderMediaSession();
   const item = state.playing;
-  if (!item) { el.infostrip.hidden = true; return; }
+  // A recording's programme is in its title; the guide's now is not it.
+  if (!item || item.recording) { el.infostrip.hidden = true; return; }
 
   if (item.k === 0) {
     const entry = state.catchup ? { now: state.catchup, next: null } : state.epg ? state.epg.nowNext(item.id) : null;
@@ -3843,8 +3931,16 @@ function renderUpcoming(channel, programme) {
   list.hidden = !items.length;
 }
 
+// What the panel shows, for painting it again when a recording changes.
+let guidePreview = null;
+
+function refreshGuidePreview() {
+  if (guideOpen && guidePreview) renderGuidePreview(guidePreview.channel, guidePreview.programme, { upcoming: guidePreview.upcoming });
+}
+
 function renderGuidePreview(channel, programme, { upcoming = false } = {}) {
   if (!channel) return;
+  guidePreview = { channel, programme, upcoming };
   if (!upcoming) guideChannel = null;
   if (upcoming) renderUpcoming(channel, programme);
   else $('epgv-next').hidden = true;
@@ -3897,6 +3993,11 @@ function renderGuidePreview(channel, programme, { upcoming = false } = {}) {
   if (programme && programme.start > now) {
     const set = reminders.has(reminderKey(channel, programme));
     buttons.push({ label: t(set ? 'guide.remind.cancel' : 'guide.remind'), onClick: () => toggleReminder(channel, programme) });
+  }
+  if (programme && programme.stop > now && canRecord) {
+    const planned = recordingOf(channel, programme);
+    const label = !planned ? 'rec.record' : planned.state === 'recording' ? 'rec.stop' : 'rec.cancel';
+    buttons.push({ label: t(label), onClick: () => toggleProgrammeRecording(channel, programme) });
   }
   actions.replaceChildren(...buttons.map(({ label, primary, onClick }) => {
     const button = document.createElement('button');
@@ -4018,6 +4119,327 @@ async function fireReminders() {
     ? t('guide.remind.soon', { title: showing.title, time: clock(showing.start), channel: name })
     : t('guide.remind.started', { title: showing.title, channel: name });
   toast(text, { action: { label: t('guide.watch'), onClick: () => playItem(channel) }, duration: Math.max(REMIND_AHEAD, 15000) });
+}
+
+
+/* ------------------------------------------------------------ recordings */
+
+// A live channel recorded to the browser's own storage (js/recorder.js):
+// from the player, from now to the end of the programme on now, or from
+// the guide, a programme planned ahead. Like the reminders, a plan is
+// carried out by an open player: one that is closed records nothing.
+const recorder = new Recorder({ onChange: () => renderRecordingState() });
+let recordings = [];
+let recordingTimer = null;
+let canRecord = false;
+let recordingUrl = null;      // the Blob address of the recording being played
+
+async function loadRecordingList() {
+  canRecord = await recordingSupported();
+  await settleOrphans().catch((err) => console.warn('[iptv] settling the recordings failed', err));
+  showRecordings(await loadRecordings());
+  watchRecordings(showRecordings);
+  // A recording under way is lost with the tab; the browser asks first.
+  window.addEventListener('beforeunload', (event) => {
+    if (!recorder.jobs.size) return;
+    event.preventDefault();
+    event.returnValue = '';
+  });
+}
+
+function showRecordings(list) {
+  recordings = Array.isArray(list) ? list : [];
+  armRecordings();
+  renderRecordingState();
+  if ($('recordings').open) renderRecordingsList();
+  refreshGuidePreview();
+}
+
+const activeRecording = (r) => r.state === 'planned' || r.state === 'recording';
+
+/** The account a recording was planned on: the one in use, or another of the list. */
+function accountByKey(key) {
+  if (state.config && store.accountKey(state.config) === key) return state.config;
+  return (state.accounts || []).find((a) => store.accountKey(a) === key) || null;
+}
+
+/** The recording under way, or planned, of a channel's programme (or of the channel now). */
+function recordingOf(channel, programme = null) {
+  if (!state.config) return null;
+  const key = channelKey(state.config, channel);
+  return recordings.find((r) => r.key === key && activeRecording(r)
+    && (programme ? r.programme?.start === programme.start : r.state === 'recording')) || null;
+}
+
+async function beginRecording(entry) {
+  const config = accountByKey(entry.account);
+  if (!config) { await patchRecording(entry.id, { state: 'failed', reason: 'account' }); return false; }
+  const item = entry.channel;
+  const xtream = config.type !== 'm3u' && config.type !== 'stalker';
+  return recorder.start(entry, {
+    key: entry.key,
+    openUrl: () => itemAddress(item, config, state.source),
+    // An Xtream channel the server will not give as TS is tried as HLS,
+    // as the player does.
+    fallbackUrl: xtream && !item.direct ? streamUrl(config, item, 'm3u8') : null,
+  });
+}
+
+/** A new recording in the list, started at once when its time has come. */
+async function addRecording(channel, { title, start, stop, programme = null }) {
+  const config = state.config;
+  const entry = {
+    id: newRecordingId(),
+    key: channelKey(config, channel),
+    account: store.accountKey(config),
+    channel: stripItem({ ...channel, displayName: channel.displayName || (state.cleanName ? state.cleanName(channel.n, channel) : channel.n) }),
+    title,
+    start,
+    stop,
+    programme: programme ? { start: programme.start, stop: programme.stop } : null,
+    state: 'planned',
+    bytes: 0,
+    createdAt: Date.now(),
+  };
+  await changeRecordings((list) => [...list, entry]);
+  if (start <= Date.now()) await beginRecording(entry);
+  return entry;
+}
+
+async function endRecording(entry) {
+  if (entry.state === 'recording') {
+    if (recorder.isRecording(entry.id)) recorder.stop(entry.id);
+    // Another tab makes it: the list says so, and that tab stops.
+    else await patchRecording(entry.id, { stopAsked: Date.now() });
+  } else if (entry.state === 'planned') {
+    await changeRecordings((list) => list.filter((r) => r.id !== entry.id));
+  }
+}
+
+/** The Record button: the channel on screen, to the end of its programme, or a recording of it stopped. */
+async function toggleRecordNow() {
+  const item = state.playing;
+  if (!item || item.k !== 0 || state.catchup || !canRecord) return;
+  const running = recordingOf(item);
+  if (running) {
+    await endRecording(running);
+    toast(t('rec.stopped', { title: running.title }));
+    return;
+  }
+  const now = Date.now();
+  const on = state.epg?.nowNext(item.id)?.now;
+  const programme = on && on.stop > now + 60e3 ? on : null;
+  const name = item.displayName || item.n;
+  const title = programme ? programme.title : name;
+  const stop = programme ? programme.stop + PAD_AFTER_MS : null;
+  const entry = await addRecording(item, { title, start: now, stop, programme });
+  if (!entry) return;
+  toast(stop ? t('rec.started', { title, time: clock(stop) }) : t('rec.started.open', { title }), { long: true });
+}
+
+/** A programme in the guide: planned for recording, or the plan taken back. */
+async function toggleProgrammeRecording(channel, programme) {
+  const existing = recordingOf(channel, programme);
+  if (existing) {
+    await endRecording(existing);
+    toast(t(existing.state === 'recording' ? 'rec.stopped' : 'rec.cancelled', { title: existing.title }));
+    return;
+  }
+  const start = Math.max(Date.now(), programme.start - PAD_BEFORE_MS);
+  await addRecording(channel, { title: programme.title, start, stop: programme.stop + PAD_AFTER_MS, programme });
+  toast(start <= Date.now()
+    ? t('rec.started', { title: programme.title, time: clock(programme.stop + PAD_AFTER_MS) })
+    : t('rec.scheduled', { title: programme.title, time: clock(programme.start) }), { long: true });
+}
+
+/**
+ * One timer, for the plan due first, the way the reminders have theirs.
+ * A plan whose programme ended while no player was open is said to have
+ * been missed. A recording another tab was asked to stop is stopped here
+ * when it is this tab's.
+ */
+function armRecordings() {
+  clearTimeout(recordingTimer);
+  for (const r of recordings) if (r.stopAsked && recorder.isRecording(r.id)) recorder.stop(r.id);
+  const planned = recordings.filter((r) => r.state === 'planned');
+  if (!planned.length || !canRecord) return;
+  const due = Math.min(...planned.map((r) => r.start));
+  recordingTimer = setTimeout(startDueRecordings, reminderDelay(due, Date.now()));
+}
+
+async function startDueRecordings() {
+  const now = Date.now();
+  for (const r of recordings.filter((x) => x.state === 'planned' && x.start <= now)) {
+    if (r.stop && r.stop <= now) await patchRecording(r.id, { state: 'failed', reason: 'missed' });
+    else await beginRecording(r);
+  }
+  armRecordings();
+}
+
+/** The Record button, and the recordings button in the top bar. */
+function renderRecordingState() {
+  const item = state.playing;
+  const button = $('btn-record');
+  const live = Boolean(item && item.k === 0 && !state.catchup && !item.recording && canRecord);
+  button.hidden = !live;
+  const running = live ? recordingOf(item) : null;
+  button.setAttribute('aria-pressed', String(Boolean(running)));
+  $('btn-record-label').textContent = t(running ? 'rec.stop' : 'rec.start');
+  button.title = running ? t('rec.stop.title', { title: running.title }) : t('rec.start.title');
+  const top = $('btn-recordings');
+  const recordingNow = recordings.some((r) => r.state === 'recording');
+  top.hidden = !recordings.length;
+  top.classList.toggle('on', recordingNow);
+  top.title = t(recordingNow ? 'rec.now' : 'rec.title');
+  if ($('recordings').open) renderRecordingsList();
+}
+
+function openRecordings() {
+  renderRecordingsList();
+  if (!$('recordings').open) $('recordings').showModal();
+}
+
+/** "20.00–21.05 · 1 h 5 min · 1.2 GB" and the like. */
+function recordingFacts(r) {
+  const from = r.startedAt || r.start;
+  const to = r.state === 'recording' ? Date.now() : r.endedAt || r.stop;
+  const bits = [r.channel?.displayName || r.channel?.n];
+  bits.push(`${dayLabel(from)} ${clock(from)}${r.stop || r.endedAt ? `–${clock(r.state === 'planned' ? r.stop : to)}` : ''}`);
+  if (r.state !== 'planned' && to > from) bits.push(duration(Math.round((to - from) / 1000)));
+  if (r.bytes) bits.push(megabytes(r.bytes));
+  return bits.filter(Boolean).join(' · ');
+}
+
+const RECORDING_STATES = { planned: 'rec.state.planned', recording: 'rec.state.recording', partial: 'rec.state.partial', failed: 'rec.state.failed' };
+
+function renderRecordingsList() {
+  const list = $('recordings-list');
+  const order = { recording: 0, planned: 1 };
+  const sorted = recordings.slice().sort((a, b) => (order[a.state] ?? 2) - (order[b.state] ?? 2)
+    || (a.state === 'planned' ? a.start - b.start : (b.startedAt || b.start) - (a.startedAt || a.start)));
+  $('recordings-empty').hidden = sorted.length > 0;
+  const total = recordings.reduce((sum, r) => sum + (r.bytes || 0), 0);
+  $('recordings-note').textContent = total ? `${t('rec.note')} ${t('rec.total', { size: megabytes(total) })}` : t('rec.note');
+  list.replaceChildren(...sorted.map((r) => {
+    const row = document.createElement('div');
+    row.className = 'choice-row';
+    row.setAttribute('role', 'listitem');
+    const info = document.createElement('div');
+    info.className = 'rec-info';
+    const title = document.createElement('b');
+    title.textContent = r.title;
+    const facts = document.createElement('small');
+    facts.textContent = recordingFacts(r);
+    info.append(title, facts);
+    if (RECORDING_STATES[r.state]) {
+      const stateLine = document.createElement('small');
+      stateLine.className = r.state === 'planned' ? '' : 'rec-state';
+      const reason = r.reason === 'quota' ? t('rec.reason.quota') : r.reason === 'missed' ? t('rec.reason.missed')
+        : r.reason === 'closed' ? t('rec.reason.closed') : r.reason === 'account' ? t('rec.reason.account') : r.reason || '';
+      stateLine.textContent = [t(RECORDING_STATES[r.state]), r.state === 'planned' || r.state === 'recording' ? '' : reason].filter(Boolean).join(' – ');
+      info.appendChild(stateLine);
+    }
+    const actions = document.createElement('div');
+    actions.className = 'rec-actions';
+    const button = (label, onClick, { danger = false } = {}) => {
+      const b = document.createElement('button');
+      b.type = 'button';
+      b.className = danger ? 'ghost danger' : 'ghost';
+      b.textContent = label;
+      b.addEventListener('click', onClick);
+      actions.appendChild(b);
+      return b;
+    };
+    if (r.state === 'planned') button(t('rec.cancel'), () => endRecording(r));
+    else if (r.state === 'recording') button(t('rec.stop'), () => endRecording(r));
+    if ((r.state === 'done' || r.state === 'partial') && r.bytes) {
+      button(t('rec.play'), () => playRecording(r));
+      button(t('rec.save'), () => saveRecording(r));
+    }
+    if (r.state !== 'planned' && r.state !== 'recording') {
+      // Asked twice: a recording deleted is gone from the disk.
+      const del = button(t('rec.delete'), () => {
+        if (del.dataset.armed) { deleteRecording(r); return; }
+        del.dataset.armed = '1';
+        del.textContent = t('rec.delete.confirm');
+        setTimeout(() => { if (del.isConnected) { delete del.dataset.armed; del.textContent = t('rec.delete'); } }, 4000);
+      }, { danger: true });
+    }
+    row.append(info, actions);
+    return row;
+  }));
+}
+
+async function saveRecording(r) {
+  try {
+    const blob = await recordingBlob(r.id, r.ext === 'mp4' ? 'video/mp4' : 'video/mp2t');
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = recordingFileName(r);
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    // The download has the file by then; the address is let go later rather
+    // than at once, which Firefox would take as the end of it.
+    setTimeout(() => URL.revokeObjectURL(url), 10 * 60e3);
+  } catch (err) {
+    console.error('[iptv] saving the recording failed', err);
+    toast(t('rec.missing'), { kind: 'error' });
+  }
+}
+
+async function deleteRecording(r) {
+  if (recorder.isRecording(r.id)) return;
+  await deleteRecordingFiles(r.id).catch((err) => console.warn('[iptv] deleting the recording\'s files failed', err));
+  await changeRecordings((list) => list.filter((x) => x.id !== r.id));
+  toast(t('rec.deleted', { title: r.title }));
+}
+
+/** A recording played in the player, from the disk. */
+async function playRecording(r) {
+  let blob;
+  try { blob = await recordingBlob(r.id, r.ext === 'mp4' ? 'video/mp4' : 'video/mp2t'); } catch (err) {
+    console.error('[iptv] reading the recording failed', err);
+    toast(t('rec.missing'), { kind: 'error' });
+    return;
+  }
+  $('recordings').close();
+  if (recordingUrl) URL.revokeObjectURL(recordingUrl);
+  recordingUrl = URL.createObjectURL(blob);
+  cancelAutoNext();
+  ++playRun;
+  const item = { ...r.channel, recording: r.id };
+  state.playing = item;
+  state.catchup = null;
+  updatePlayerLayout();
+  playerLayout.showPlayer();
+  state.playingSpec = { url: recordingUrl, live: false, recording: true, ext: r.ext || 'ts', mode: 'ts' };
+  renderSubtitles([], null);
+  renderAudio([], null);
+  state.subtitleInfo = null;
+  el.mode.disabled = true;
+  $('btn-live').hidden = true;
+  el.nowTitle.textContent = `${r.title} — ${t('rec.recorded', { time: dateTimeFmt.format(new Date(r.startedAt || r.start)) })}`;
+  el.nowTitle.title = r.title;
+  el.nowSub.textContent = r.channel?.displayName || r.channel?.n || '';
+  renderInfoStrip();
+  renderRecordingState();
+  vlist.refresh();
+  playback.play(state.playingSpec);
+}
+
+/**
+ * Before another stream is started: a recording of another channel on an
+ * account that allows one connection takes that connection.
+ */
+function warnRecordingConnection(item) {
+  if (state.account?.maxConnections !== 1) return;
+  const key = item && item.k === 0 ? channelKey(state.config, item) : null;
+  const account = store.accountKey(state.config);
+  if (recordings.some((r) => r.state === 'recording' && r.account === account && r.key !== key)) {
+    toast(t('rec.connection'), { kind: 'warn', long: true });
+  }
 }
 
 /**
@@ -4340,8 +4762,10 @@ function editAccount(target, { render = true } = {}) {
   $('f-name').value = setupBase.name || '';
   $('f-paste').value = setupBase.type === 'm3u' ? setupBase.url || '' : '';
   $('f-epgurl').value = setupBase.epgUrl || '';
+  $('f-portal').value = setupBase.type === 'stalker' ? setupBase.url || '' : '';
+  $('f-mac').value = setupBase.type === 'stalker' ? setupBase.mac || '' : '';
   showPlaylistError(false);
-  showSourceMode(setupBase.type === 'm3u' ? 'm3u' : setupBase.sourceMode);
+  showSourceMode(baseMode(setupBase));
   showPassword(false);
   if (!render) return;
   $('setup-error').hidden = true;
@@ -4389,6 +4813,10 @@ function setupSettingsPatch() {
 function readConnection() {
   const name = $('f-name').value.trim();
   const pasted = $('f-paste').value.trim();
+  if (sourceMode() === 'stalker') {
+    const typed = $('f-portal').value.trim();
+    return { type: 'stalker', url: normalizePortal(typed) || typed, mac: normalizeMac($('f-mac').value) || $('f-mac').value.trim(), name, sourceMode: 'stalker' };
+  }
   if (sourceMode() === 'm3u' && pasted && !parsePlaylistUrl(pasted)) {
     return { type: 'm3u', url: playlistAddress(pasted) || pasted, epgUrl: $('f-epgurl').value.trim(), name, sourceMode: 'm3u' };
   }
@@ -4396,7 +4824,10 @@ function readConnection() {
 }
 
 /** The keys that say where the connection goes, for the form's kind. */
-const connectionKeys = (c) => ['type', ...(c.type === 'm3u' ? ['url', 'epgUrl'] : FIELDS)];
+const connectionKeys = (c) => ['type', ...(c.type === 'm3u' ? ['url', 'epgUrl'] : c.type === 'stalker' ? ['url', 'mac'] : FIELDS)];
+
+/** The form an account opens in. */
+const baseMode = (c) => (c.type === 'm3u' ? 'm3u' : c.type === 'stalker' ? 'stalker' : c.sourceMode === 'stalker' ? 'xtream' : c.sourceMode);
 
 /** Whether the form points somewhere else than the configuration it edits. */
 function connectionTargetChanged() {
@@ -4409,11 +4840,11 @@ function setupConnectionChanged() {
   const base = setupBase || state.config;
   if (setupAdding) {
     const c = readConnection();
-    return Boolean(c.name || (c.type === 'm3u' ? c.url : c.host || c.username || c.password) || $('f-paste').value.trim());
+    return Boolean(c.name || (c.type === 'm3u' || c.type === 'stalker' ? c.url || c.mac : c.host || c.username || c.password) || $('f-paste').value.trim());
   }
   return connectionTargetChanged() || $('f-name').value.trim() !== (base.name || '')
-    || sourceMode() !== (base.type === 'm3u' ? 'm3u' : base.sourceMode)
-    || (base.type !== 'm3u' && Boolean($('f-paste').value.trim()));
+    || sourceMode() !== baseMode(base)
+    || (base.type !== 'm3u' && sourceMode() !== 'stalker' && Boolean($('f-paste').value.trim()));
 }
 
 function setupDirty() {
@@ -4529,12 +4960,15 @@ function showPassword(on) {
  * mode loses nothing and neither route is more official than the other.
  */
 function showSourceMode(mode) {
-  const m3u = mode === 'm3u';
+  const chosen = mode === 'm3u' || mode === 'stalker' ? mode : 'xtream';
   for (const radio of document.querySelectorAll('input[name="source"]')) {
-    radio.checked = radio.value === (m3u ? 'm3u' : 'xtream');
+    radio.checked = radio.value === chosen;
   }
-  $('src-xtream').hidden = m3u;
-  $('src-m3u').hidden = !m3u;
+  $('src-xtream').hidden = chosen !== 'xtream';
+  $('src-m3u').hidden = chosen !== 'm3u';
+  $('src-stalker').hidden = chosen !== 'stalker';
+  // The note on HTTP is about a user name and a password.
+  $('connection-security').hidden = chosen === 'stalker';
   showGuideField();
 }
 
@@ -4558,10 +4992,10 @@ const sourceMode = () => (document.querySelector('input[name="source"]:checked')
 
 /** What kind of account, and where: "Xtream Codes · example.tv". */
 function accountWhere(a) {
-  if (a.type === 'm3u') {
+  if (a.type === 'm3u' || a.type === 'stalker') {
     let host = a.url;
     try { host = new URL(a.url).hostname; } catch { /* the address as it is */ }
-    return `${t('accounts.kind.m3u')} · ${host}`;
+    return `${t(a.type === 'm3u' ? 'accounts.kind.m3u' : 'accounts.kind.stalker')} · ${host}`;
   }
   return `${t('accounts.kind.xtream')} · ${a.host}`;
 }
@@ -4647,22 +5081,11 @@ function renderAccountList() {
 
 /** The header's account button: there once there is more than one account. */
 function renderAccountSwitcher() {
-  const button = $('btn-account');
   const accounts = state.accounts || [];
-  button.hidden = accounts.length < 2 || !configured();
-  $('btn-account-label').textContent = store.accountLabel(state.config);
-}
-
-function openAccountMenu() {
-  const button = $('btn-account');
-  const items = (state.accounts || []).map((a) => ({
-    label: store.accountLabel(a),
-    checked: a.id === state.config.id,
-    onClick: () => switchAccount(a.id),
-  }));
-  items.push({ label: t('accounts.add'), separator: true, onClick: () => openSetup({ adding: true }) });
-  items.push({ label: t('accounts.manage'), onClick: () => openSetup() });
-  openRowMenu(button, items, { label: t('accounts.switch'), returnFocus: button });
+  $('account-switch').hidden = accounts.length < 2 || !configured();
+  const select = $('account-pick');
+  select.replaceChildren(...accounts.map((a) => new Option(store.accountLabel(a), a.id)));
+  select.value = state.config.id;
 }
 
 /**
@@ -4758,7 +5181,7 @@ async function renderAccountBox() {
   box.innerHTML = '';
   const head = document.createElement('div');
   const status = document.createElement('b');
-  status.textContent = a.kind === 'm3u' ? t('accounts.kind.m3u') : a.status + (a.trial ? t('account.trial') : '');
+  status.textContent = a.kind === 'm3u' ? t('accounts.kind.m3u') : a.kind === 'stalker' ? t('accounts.kind.stalker') : a.status + (a.trial ? t('account.trial') : '');
   head.append(`${t('account.title')} `, status);
   box.appendChild(head);
   const cols = document.createElement('div');
@@ -4766,7 +5189,13 @@ async function renderAccountBox() {
   const loaded = ['live', 'movie', 'series'].filter((type) => state.lib && state.lib.isFull(type));
   // A playlist has no subscription to describe: what it holds, where its
   // guide comes from and when it was read are what there is to say.
-  const rows = a.kind === 'm3u' ? [
+  const rows = a.kind === 'stalker' ? [
+    [t('setup.stalker.url'), (() => { try { return new URL(a.portal).host; } catch { return a.portal; } })()],
+    [t('setup.stalker.mac'), a.mac],
+    [t('account.valid.label'), a.expiresAt ? dateFmt.format(new Date(a.expiresAt)) : '–'],
+    [t('account.cache'), estimate ? megabytes(estimate.usage || 0) : '–'],
+    [t('account.lists'), loaded.map((type) => kindLabel(TYPE_KIND[type])).join(', ') || t('account.none')],
+  ] : a.kind === 'm3u' ? [
     [t('account.channels'), nf.format(a.counts.live)],
     [t('account.movies'), nf.format(a.counts.movie)],
     [t('account.series'), nf.format(a.counts.series)],
@@ -4946,7 +5375,7 @@ function wireSetup() {
   });
   $('f-host').addEventListener('change', splitServerField);
   $('f-add-account').addEventListener('click', () => pickAccount('new'));
-  $('btn-account').addEventListener('click', openAccountMenu);
+  $('account-pick').addEventListener('change', (e) => switchAccount(e.target.value));
   // Sync is a choice about this browser and acts at once (see player.html).
   $('f-sync').addEventListener('change', async (e) => {
     await sync.setPrefs({ enabled: e.target.checked });
@@ -5003,6 +5432,10 @@ function wireSetup() {
     const changed = setupAdding || connectionTargetChanged();
     if (connectionEdited && !store.isConfigured(patch)) {
       if (patch.type === 'm3u') setupError('setup.m3u.bad', 'f-paste');
+      else if (patch.type === 'stalker') {
+        if (!normalizePortal(patch.url)) setupError('stalker.badurl', 'f-portal');
+        else setupError('stalker.badmac', 'f-mac');
+      }
       else setupError('setup.incomplete', !patch.host ? 'f-host' : !patch.username ? 'f-username' : 'f-password');
       return;
     }
@@ -5020,7 +5453,7 @@ function wireSetup() {
       // asks for both.
       const granted = !changed || (patch.type === 'm3u'
         ? await requestAccessFor([patch.url, patch.epgUrl].filter(Boolean))
-        : await requestAccess(baseUrl(patch)));
+        : await requestAccess(accountAddress(patch)));
       if (!granted) {
         setupError('setup.nogrant');
         return;
@@ -5551,6 +5984,11 @@ function wireUi() {
   $('epg-group').addEventListener('change', (e) => selectGroup(e.target.value || null));
   $('btn-copy').addEventListener('click', copyUrl);
   $('btn-ext').addEventListener('click', playExternal);
+  $('btn-record').addEventListener('click', toggleRecordNow);
+  $('btn-recordings').addEventListener('click', openRecordings);
+  $('btn-recordings-menu').addEventListener('click', openRecordings);
+  $('recordings-close').addEventListener('click', () => $('recordings').close());
+  wireModal($('recordings'), () => $('recordings').close());
   el.cast.addEventListener('click', castCurrent);
   $('btn-pip').addEventListener('click', async () => {
     try {
@@ -6018,6 +6456,8 @@ async function init() {
   wireSubcatsResize();
   watchInterest();
   await loadLists();
+  // Not waited for: the list of recordings has nothing to do with connecting.
+  loadRecordingList().catch((err) => console.warn('[iptv] the recordings could not be read', err));
   store.watchStorage({ onList: showStoredList, onAccount: accountChangedElsewhere, onCleared: storageCleared });
   store.watchAccounts((accounts) => {
     state.accounts = accounts;

@@ -1,6 +1,6 @@
 Kepuli-TV is a player for an Xtream Codes account supplied by the user. It contains no media, provider addresses or bundled credentials. It runs in its own extension tab and has no content scripts, analytics or developer backend.
 
-Changes in 1.5.x (no new permission; only "version" changed in the manifest): an account can now be an M3U playlist with an XMLTV guide as well as an Xtream server (js/m3u.js, js/xmltv.js, js/m3usource.js, js/guide.js; fetched from addresses the user enters); several accounts with a switcher; optional sync of accounts, settings and lists through storage.sync (js/sync.js, off by default; passwords and stream addresses only if the user ticks a box); programme picks from the user's own channels (js/picks.js, local only); MKV files with damaged stretches play past them; runtime.setUninstallURL opens a one-question Google Form carrying only version, browser and language. Since 1.4.2 plain-HTTP MP4 is read with fetch() into MediaSource (js/mp4play.js); nothing in it is executed. Since 1.4.0 an "Allow all addresses" click may call permissions.request for the declared optional http://*/* and https://*/*.
+Changes in 1.6.0: one new permission, declarativeNetRequestWithHostAccess, used only for a Stalker (MAG box) portal account (js/stalker.js, portalRule): a session rule sets the MAC address cookie, a MAG User-Agent and Referer on requests to that portal's host alone, and acts only on hosts the user granted. Recording (js/recorder.js, js/streamhub.js) writes a live stream to the extension's OPFS; Save is an <a download> of a Blob. Since 1.5.x: M3U/XMLTV accounts, several accounts, optional storage.sync (off by default; passwords only if ticked), local programme picks, runtime.setUninstallURL carrying only version, browser and language. Since 1.4.0 an "Allow all addresses" click may call permissions.request for the declared optional http://*/* and https://*/*.
 
 For review, the source archive includes a local mock server. With native FFmpeg installed, run sh dev/mock/media.sh and node dev/mock/server.mjs (see README.md). No paid account is needed.
 
@@ -11,7 +11,7 @@ Port: 8790
 Username: demo
 Password: demo
 
-Click the toolbar icon. In Settings, select Xtream Codes, enter the connection above and Connect; grant host access when asked. Pick Finland and a channel; press G for the guide. Open Series, Nordic Noir, Silent Fjord, episode 1 for MKV with subtitles; episode 2 tests AC-3 audio. Seek to 60 s and confirm playback continues.
+Click the toolbar icon. In Settings, select Xtream Codes, enter the connection above and Connect; grant host access when asked. Pick Finland and a channel; press G for the guide, Record to record. A Stalker portal: http://127.0.0.1:8790/c/ with MAC 00:1A:79:00:00:01. Open Series, Nordic Noir, Silent Fjord, episode 1 for MKV with subtitles; episode 2 tests AC-3 audio. Seek to 60 s and confirm playback continues.
 
 The manifest requires Firefox 140 and declares authenticationInfo because the user's credentials are sent to their configured service. The developer receives no data. HTTP is kept for user-supplied services, and Settings explains that HTTP sends credentials unencrypted and recommends HTTPS. We request a determination under the user-supplied-service cases in Mozilla's policy Q&A: https://discourse.mozilla.org/t/add-ons-policy-changes-2021-q-a/89654
 

@@ -1377,6 +1377,50 @@ check('accounts: what it takes to connect', [isConfigured({ type: 'm3u', url: 'h
   check('picks: nothing without programme data', pickProgrammes({ channels: [{ item: ch('x'), favorite: true, rank: null }], listings: () => null, now }), []);
 }
 
+
+/* ------------------------------------------- Stalker portal, recordings */
+
+{
+  const { normalizeMac, normalizePortal, endpoints, cmdAddress, cmdIsDirect, stalkerChannel, stalkerMovie, stalkerProgramme } = await import('../js/stalker.js');
+  const { syncOffset } = await import('../js/streamhub.js');
+  const { parseHlsPlaylist, recordingFileName } = await import('../js/recorder.js');
+  const { isConfigured, accountKey, accountLabel } = await import('../js/config.js');
+  check('stalker: a MAC address in any of its usual forms', ['00:1a:79:ab:cd:ef', '001A79ABCDEF', '00-1A-79-AB-CD-EF', ' 00 1A 79 AB CD EF '].map(normalizeMac), Array(4).fill('00:1A:79:AB:CD:EF'));
+  check('stalker: what is no MAC address', ['00:1A:79', '00:1A:79:AB:CD:EF:01', 'GG:1A:79:AB:CD:EF', ''].map(normalizeMac), [null, null, null, null]);
+  check('stalker: the portal address made whole',
+    ['example.tv:8080/c', 'http://example.tv:8080/c/', 'http://example.tv/stalker_portal/c/index.html', 'https://example.tv/portal.php', 'not an address at all'].map(normalizePortal),
+    ['http://example.tv:8080/c/', 'http://example.tv:8080/c/', 'http://example.tv/stalker_portal/c/', 'https://example.tv/', null]);
+  check('stalker: the API beside the box\'s page first', endpoints('http://example.tv:8080/c/'),
+    ['http://example.tv:8080/server/load.php', 'http://example.tv:8080/portal.php', 'http://example.tv:8080/stalker_portal/server/load.php']);
+  check('stalker: Ministra\'s own address', endpoints('http://example.tv/stalker_portal/c/')[0], 'http://example.tv/stalker_portal/server/load.php');
+  check('stalker: the address in a cmd', ['ffmpeg http://a.tv/live/1.ts?play_token=x', 'ffrt3 http://localhost/ch/12_', 'auto https://b.tv/x.m3u8', 'nothing'].map(cmdAddress),
+    ['http://a.tv/live/1.ts?play_token=x', 'http://localhost/ch/12_', 'https://b.tv/x.m3u8', null]);
+  check('stalker: the placeholder is no stream', [cmdIsDirect('ffrt http://localhost/ch/12_'), cmdIsDirect('ffmpeg http://a.tv/live/1.ts')], [false, true]);
+  check('stalker: a channel row', stalkerChannel({ id: 12, name: 'Yle TV1', number: '1', cmd: 'ffrt http://localhost/ch/12_', logo: '/stalker_portal/misc/logos/1.png', tv_genre_id: '3' }, 'http://p.tv'),
+    { id: '12', k: 0, n: 'Yle TV1', logo: 'http://p.tv/stalker_portal/misc/logos/1.png', cats: ['3'], epgId: '12', archive: 0, direct: null, cmd: 'ffrt http://localhost/ch/12_', num: 1 });
+  const film = stalkerMovie({ id: 5, name: 'Film (2020)', cmd: 'ffmpeg http://p.tv/media/5.mkv', time: '95', year: '2020', genres_str: 'Drama' }, '7', 'http://p.tv');
+  check('stalker: a film row', [film.id, film.k, film.cats, film.ext, film.durationSec, film.genre, film.cmd], ['5', 1, ['7'], 'mkv', 5700, 'Drama', 'ffmpeg http://p.tv/media/5.mkv']);
+  check('stalker: a programme in milliseconds', stalkerProgramme({ id: 1, name: 'Uutiset', descr: 'Päivän uutiset', start_timestamp: '1700000000', stop_timestamp: 1700001800 }),
+    { id: '1', title: 'Uutiset', description: 'Päivän uutiset', start: 1700000000000, stop: 1700001800000 });
+  const portal = { type: 'stalker', url: 'http://p.tv/c/', mac: '00:1A:79:00:00:01' };
+  check('stalker: an account with a portal and a MAC address can connect', [isConfigured(portal), isConfigured({ ...portal, mac: '00:1A' }), isConfigured({ ...portal, url: '' })], [true, false, false]);
+  check('stalker: the account\'s key and label', [accountKey(portal), accountLabel(portal)], ['stalker:http://p.tv/c/|00:1A:79:00:00:01', 'p.tv']);
+  const packets = new Uint8Array(1000);
+  for (const at of [100, 288, 476, 664, 852]) packets[at] = 0x47;
+  packets[30] = 0x47;      // a stray 0x47 inside a packet
+  check('streamhub: a late reader starts at a packet boundary', [syncOffset(packets), syncOffset(new Uint8Array(400))], [100, -1]);
+  const master = parseHlsPlaylist('#EXTM3U\n#EXT-X-STREAM-INF:BANDWIDTH=800000\nlow.m3u8\n#EXT-X-STREAM-INF:BANDWIDTH=3000000\nhigh/index.m3u8\n', 'http://a.tv/live/1.m3u8');
+  check('recorder: the best variant of a master playlist', master.variants.map((v) => v.uri), ['http://a.tv/live/high/index.m3u8', 'http://a.tv/live/low.m3u8']);
+  const media = parseHlsPlaylist('#EXTM3U\n#EXT-X-TARGETDURATION:4\n#EXT-X-MEDIA-SEQUENCE:120\n#EXT-X-MAP:URI="init.mp4"\n#EXTINF:4.0,\nseg120.m4s\n#EXTINF:4.0,\nhttp://cdn.tv/seg121.m4s\n#EXT-X-ENDLIST\n', 'http://a.tv/live/1.m3u8');
+  check('recorder: a media playlist\'s segments, numbered', [media.target, media.map, media.ended, media.segments.map((x) => `${x.seq}:${x.uri}`)],
+    [4, 'http://a.tv/live/init.mp4', true, ['120:http://a.tv/live/seg120.m4s', '121:http://cdn.tv/seg121.m4s']]);
+  const at = new Date(2026, 10, 3, 20, 5).getTime();
+  check('recorder: the file name says what, where and when, and nothing a disk refuses',
+    recordingFileName({ title: 'Uutiset: "Ilta"/Sää', channel: { displayName: 'Yle TV1' }, startedAt: at, ext: 'ts' }), 'Uutiset Ilta Sää – Yle TV1 2026-11-03 20.05.ts');
+  const { outgoingAccounts: going } = await import('../js/sync.js');
+  check('sync: a Stalker account stays home without passwords, goes with them', [going([portal], false).length, going([portal], true).length], [0, 1]);
+}
+
 /* ----------------------------------------------- dev/listings.mjs */
 
 check('a wrapped paragraph is one line for the store',

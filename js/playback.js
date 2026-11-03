@@ -265,6 +265,15 @@ export class Playback {
     this.video.load();
     this.token++;
     this.spec = spec;
+    // A source whose addresses are good for one connection (a Stalker
+    // portal's) gives a new one for every start: the old one would be
+    // refused. Asked for failing, the old one is tried as it is.
+    if (spec.relink) {
+      const token = this.token;
+      spec.relink().then((url) => { if (url) spec.url = url; }, (err) => console.warn('[iptv] a new address was not given', err))
+        .then(() => { if (token === this.token) this.begin(spec, token); });
+      return;
+    }
     this.begin(spec, this.token);
   }
 
@@ -293,7 +302,7 @@ export class Playback {
     // reason emerged — so the header is read before the first attempt. The
     // extensions .mp4 and .mkv, on the other hand, always held true in the
     // sample, and they are not slowed down.
-    if (chain.length === 0 || (!spec.live && !spec.catchup && chain[0] === 'mpegts')) {
+    if (chain.length === 0 || (!spec.live && !spec.catchup && !spec.recording && chain[0] === 'mpegts')) {
       const known = await this.inspect(spec, token);
       if (!known) return;
       if (known.path === 'empty') return this.nothingThere(spec);
@@ -443,7 +452,7 @@ export class Playback {
    */
   async explain(spec, token, { refused = false } = {}) {
     const generic = t('playback.nosource');
-    if (spec.live || spec.catchup) { this.onState({ status: 'error', message: generic, verdict: spec.verdict, refused }); return; }
+    if (spec.live || spec.catchup || spec.recording) { this.onState({ status: 'error', message: generic, verdict: spec.verdict, refused }); return; }
     if (spec.probe) return this.askServer(spec, token, spec.verdict);
     const known = await this.inspect(spec, token);
     if (!known) return;
@@ -1232,6 +1241,8 @@ function nativeChain(spec) {
 }
 
 function buildChain(spec) {
+  // A recording from the disk (js/recorder.js) is what it was recorded as.
+  if (spec.recording) return spec.ext === 'mp4' ? ['native'] : ['mpegts'];
   if (/\.m3u8($|\?)/i.test(spec.url)) return ['hls'];
   if (spec.live) {
     if (spec.mode === 'ts') return ['mpegts'];
