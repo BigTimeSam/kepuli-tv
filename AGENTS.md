@@ -137,6 +137,14 @@ Long-form documentation: [user guide](docs/user-guide.md),
   and the publish tools check the manifest; still verify the published CRX
   after approval (see [Release](#release)).
 
+## Recipes
+
+Step lists for the common changes, each with its files and commands, are in
+[docs/agents-recipes.md](docs/agents-recipes.md): add a setting, add a
+user-visible string, add a playcheck scenario with a mock fault switch, move
+a section of `js/app.js` into a module, change the store listings, retake
+the store screenshots.
+
 ## Module guides
 
 | Guide | Covers |
