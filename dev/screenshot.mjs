@@ -87,7 +87,11 @@ export async function ensureChrome(extraArgs = []) {
   if (await isRunning()) return false;
   const binary = CHROMES.find(existsSync);
   if (!binary) throw new Error('Chrome not found; start node dev/dev.mjs by hand first.');
-  spawn(binary, [`--user-data-dir=${PROFILE}`, `--remote-debugging-port=${PORT}`, '--no-first-run', '--no-default-browser-check', ...extraArgs, 'about:blank'],
+  // --enable-unsafe-extension-debugging: newer Chromes answer the DevTools
+  // protocol's Extensions.loadUnpacked only with it (the macOS build here
+  // did without; the Linux one on the CI runner did not load the extension).
+  spawn(binary, [`--user-data-dir=${PROFILE}`, `--remote-debugging-port=${PORT}`, '--no-first-run', '--no-default-browser-check',
+    '--enable-unsafe-extension-debugging', ...extraArgs, 'about:blank'],
     { detached: true, stdio: 'ignore' }).unref();
   for (let i = 0; i < 60; i++) { if (await isRunning()) return true; await sleep(250); }
   throw new Error('Chrome did not answer within 15 seconds.');
@@ -142,9 +146,13 @@ export async function openPlayer() {
   await fetch(`http://127.0.0.1:${PORT}/json/close/${tab.id}`);   // answers in plain text
   const { webSocketDebuggerUrl } = await http('/json/version');
   const browser = session(webSocketDebuggerUrl);
-  const { id } = await browser.call('Extensions.loadUnpacked', { path: ROOT });
-  browser.close();
-  return openTab(id);
+  let id;
+  try { ({ id } = await browser.call('Extensions.loadUnpacked', { path: ROOT })); }
+  catch (err) { throw new Error(`Chrome would not load the extension from ${ROOT}: ${err.message}`); }
+  finally { browser.close(); }
+  const player = await openTab(id);
+  if (!(await isPlayer(player))) throw new Error(`the extension was loaded as ${id}, but its tab is not the player (${player.url})`);
+  return player;
 }
 
 /* ----------------------------------------------------------------- capture */
