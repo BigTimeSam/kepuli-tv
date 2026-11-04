@@ -9,7 +9,9 @@ import { externalLinks, titleFacts } from './titleinfo.js';
 import { poster } from './poster.js';
 import { t } from './i18n.js';
 import { toggleFavorite } from './coversui.js';
-import { beginListLoad, catalogueSearch, listNavigation, mediaFilters, openFavCategory, playItem, refreshRows, renderSeriesFavorite, showListError, state, updateAddress, vlist } from './app.js';
+import { beginListLoad, catalogueSearch, listNavigation, mediaFilters, playItem, refreshRows, showListError, state, updateAddress, vlist } from './app.js';
+import { renderSeriesFavorite } from './playercontrols.js';
+import { openFavCategory } from './collections.js';
 import { el } from './dom.js';
 
 export async function openItem(item) {

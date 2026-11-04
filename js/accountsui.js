@@ -9,7 +9,8 @@
 
 import { t } from './i18n.js';
 import * as store from './config.js';
-import { adoptAccount, configured, connect, editAccount, pickAccount, setupAdding, setupDirty, setupEditing, setupError, state, toast } from './app.js';
+import { adoptAccount, configured, connect, editAccount, pickAccount, setupAdding, setupDirty, setupEditing, setupError, state } from './app.js';
+import { toast } from './toast.js';
 import { $, el } from './dom.js';
 
 /** What kind of account, and where: "Xtream Codes · example.tv". */

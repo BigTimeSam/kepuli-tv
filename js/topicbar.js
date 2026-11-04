@@ -11,7 +11,9 @@ import { nf } from './format.js';
 import { t } from './i18n.js';
 import { viewToggle } from './coversui.js';
 import * as store from './config.js';
-import { activateTab, clearHistory, hideProgress, isAbort, isCollection, kindLabel, mediaFilters, openHiddenList, progressSignal, refreshRows, renderSidebar, showListCancelled, showListError, showProgress, state, tabType, unit, updateProgress } from './app.js';
+import { activateTab, isAbort, isCollection, kindLabel, mediaFilters, openHiddenList, refreshRows, renderSidebar, showListCancelled, showListError, state, tabType, unit } from './app.js';
+import { hideProgress, progressSignal, showProgress, updateProgress } from './progressdialog.js';
+import { clearHistory } from './collections.js';
 import { $, el } from './dom.js';
 
 // A chip row advances 30.6 px and the bar's own padding adds 16, so one row

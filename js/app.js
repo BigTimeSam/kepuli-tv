@@ -14,7 +14,7 @@ import { VirtualList, watchLength } from './vlist.js';
 import { ListNavigation } from './listnavigation.js';
 import { CatalogueSearch } from './cataloguesearch.js';
 import { PlayerLayout } from './playerlayout.js';
-import { categoryRow, chipRow, emptyState, KIND_ICONS, HISTORY_ICONS } from './rows.js';
+import { categoryRow, emptyState, KIND_ICONS } from './rows.js';
 import { searchNameCleaner, searchKey, searchTerms, matchesTerms, labelCodes } from './name.js';
 import { poster } from './poster.js';
 import { wireModal } from './modal.js';
@@ -28,7 +28,7 @@ import { channelPreferences, visibilityFilter, sortChannels } from './channelpre
 import { cacheClear, cachePurge, wipeStorage, storageEstimate } from './db.js';
 import { parsePlaylistUrl, streamUrl, baseUrl, parseServer } from './xtream.js';
 import { formatRoute, parseRoute } from './route.js';
-import { api, isGecko } from './browser.js';
+import { api } from './browser.js';
 import { requestAccess, requestAccessFor, hasAccess, hasAccessEverywhere, requestAccessEverywhere, redirects } from './permissions.js';
 
 import { Cast, supported as castSupported } from './cast.js';
@@ -40,8 +40,8 @@ import { pickEncoder } from './transcode.js';
 import * as store from './config.js';
 import { applyTheme, earlyTheme, onSystemTheme } from './theme.js';
 import { wirePickers } from './picker.js';
-import { nf, dateTimeFmt, dateFmt, dayLabel, clock, megabytes, duration, setLocale, amount, speed as speedText, mbits, percent, seconds as secondsText } from './format.js';
-import { t, applyStatic, setLanguage, loadLanguage, localeTag, setEnglishRegion, LANGUAGES } from './i18n.js';
+import { nf, dateTimeFmt, dateFmt, clock, megabytes, duration, amount, speed as speedText, mbits, percent, seconds as secondsText } from './format.js';
+import { t, applyStatic, setLanguage, loadLanguage, localeTag, LANGUAGES } from './i18n.js';
 import { askRecordingConsent, canRecord, closeRecordingConsent, loadRecordingList, openRecordings, renderRecordingState, retryPlayback, toggleRecordNow, warnRecordingConnection } from './recordingsui.js';
 import { renderAccountList, renderAccountSwitcher, switchAccount } from './accountsui.js';
 import { loadReminders, reminders, showReminders } from './remindersui.js';
@@ -50,17 +50,22 @@ import { TYPE_OF_KIND, applyListLayout, gridColumns, nameCleanerFor, onEpgUpdate
 import { closeDetail, crumbLabel, episodesOfSeason, openItem, openSeries, renderDetail } from './seriesui.js';
 import { closeGuide, favoritesChanged, focusGrid, grid, guideFavorites, guideOpen, programmeSearch, refreshGuidePreview, renderGuideGroups, renderTheme, restoreGuideFavorites, setGuideFavorites, toggleGuide } from './guideui.js';
 import { currentPicks, pickCard, tickIdlePage } from './picksui.js';
-import { applySubcatsHeight, ensureFull, renderEmptyState, renderListInfo, selectSub, wireSubcatsResize } from './topicbar.js';
+import { ensureFull, renderEmptyState, renderListInfo, wireSubcatsResize } from './topicbar.js';
 import { askExternal, playExternal } from './externalui.js';
 import { $, el } from './dom.js';
+import { categoryCountsFor, collectionItems, favCategoryEntry, forgetUnfinished, isFavorite, isUnfinished, kindIndex, loadGroupItems, openFavCategory, refreshCatalogue, refreshWhenStale, removeFromHistory, renderSubcats, sectionsFor, toggleFavCategory } from './collections.js';
+import { clickPicture, enterFullscreen, moreItems, rememberSubtitleLanguage, renderSeriesFavorite, toggleFullscreen, toggleMoreMenu, togglePause, wireMediaSession } from './playercontrols.js';
+import { cancelProgress, hideProgress, progressCtrl, progressSignal, showProgress, updateProgress } from './progressdialog.js';
+import { openHelp } from './help.js';
+import { copyUrl, toast } from './toast.js';
+import { applyLanguage, applyLocale, renderIdleOverlay } from './languageui.js';
 
 // Live channels are read through js/streamhub.js, so that a recording of
 // the channel on screen shares the player's connection.
 installFetchTap();
 
-
 const TYPE_OF_TAB = { live: 'live', movie: 'movie', series: 'series' };
-const TYPE_KIND = { live: 0, movie: 1, series: 2 };
+export const TYPE_KIND = { live: 0, movie: 1, series: 2 };
 
 /** "3 channels" — the type picks the key, the number picks the plural. */
 export const unit = (type, count) => t(`unit.${type || 'generic'}`, { count, n: nf.format(count) });
@@ -73,12 +78,12 @@ const COLLECTIONS = new Set(['fav', 'recent']);
 // see favCategoryEntry. In a collection it is a type of its own and comes
 // first, because one category row covers dozens of channels.
 export const kindLabel = (kind) => t(`kind.${kind}`);
-const KIND_ORDER = ['c', 0, 1, 2];
-const KIND_INDEX = new Map(KIND_ORDER.map((kind, i) => [kind, i]));
+export const KIND_ORDER = ['c', 0, 1, 2];
+export const KIND_INDEX = new Map(KIND_ORDER.map((kind, i) => [kind, i]));
 // In a collection an episode is only part of a series, so it is counted and
 // labelled as a series — otherwise history would show a type that does not
 // exist among the tabs.
-const kindGroup = (k) => (k === 3 ? 2 : k);
+export const kindGroup = (k) => (k === 3 ? 2 : k);
 // The row heights are --row-h and --sep-h in player.css, written in rem so
 // that they grow with the reader's own font setting. What they come to in
 // pixels is therefore the browser's answer rather than a number written here,
@@ -153,7 +158,7 @@ const takeStoredSub = () => { const id = storedSub; storedSub = null; return id;
 // waiting on the server, and the older one, finishing last, used to put its
 // account, its library — or its failure — over the newer one's.
 let connectRun = 0;
-let connecting = false;
+export let connecting = false;
 
 export async function connect({ silent = false } = {}) {
   const run = ++connectRun;
@@ -1033,372 +1038,6 @@ export function showRows(rows, { keepScroll = false, loading = false } = {}) {
   updatePlayerLayout();
 }
 
-/* ============================================================ collections */
-
-/** The whole set of favourites or history, before any filters. */
-function collectionItems() {
-  return visibleRows(state.tab === 'fav' ? favoritesNewestFirst() : state.recents);
-}
-
-/**
- * Favourites newest first. Older entries have no addedAt, so they keep
- * their stored order behind the newer ones.
- */
-function favoritesNewestFirst() {
-  return [...state.favorites.values()]
-    .map((item, i) => ({ item, i }))
-    .sort((a, b) => (b.item.addedAt || 0) - (a.item.addedAt || 0) || b.i - a.i)
-    .map((entry) => entry.item);
-}
-
-const kindIndex = (item) => KIND_INDEX.get(kindGroup(item.k)) ?? KIND_ORDER.length;
-
-/** A film or an episode with a resume point: started, and not yet watched to the end. */
-const isUnfinished = (item) => state.settings.resumeEnabled && (item.k === 1 || item.k === 3)
-  && state.resume.has(`${item.k}:${item.id}`);
-
-/* ------------------------------------------------ favourite categories */
-
-/**
- * A favourite category fits the same store as the items: it is a collection
- * row like the rest, and the key `${k}:${id}` sets it apart. That is why
- * config.js's favourites list serves as it is.
- *
- * What is kept is an identifier, not the contents: "MTV Liiga" is a
- * favourite as a name and as a category, and its channels are always
- * fetched fresh — which is exactly what makes a favourite category a
- * different thing from a set of individual channels.
- *
- *   c   category_id, or null when the favourite is a whole group ("Finland")
- *   g   the group name, i.e. where in the sidebar the category is found
- *   n   the visible name; full = the provider's complete category name
- */
-function favCategoryEntry(type, groupName, cat) {
-  return cat
-    ? { k: 'c', id: `${type}:${cat.id}`, t: type, c: cat.id, g: groupName, n: cat.sub || groupName, full: cat.name }
-    : { k: 'c', id: `${type}:g:${groupName}`, t: type, c: null, g: groupName, n: groupName, full: null };
-}
-
-const isFavorite = (entry) => state.favorites.has(`${entry.k}:${entry.id}`);
-
-/**
- * A row's subtitle: what and from where. The type is needed because a
- * collection mixes channel, movie and series categories; the group because
- * the same topic ("Sport") repeats from one country to the next.
- */
-export function favCategorySubtitle(entry) {
-  const bits = [kindLabel(TYPE_KIND[entry.t])];
-  if (entry.c == null) {
-    const group = state.lib ? state.lib.group(entry.t, entry.g) : null;
-    if (group && group.cats.length > 1) bits.push(t('list.topics', { n: group.cats.length }));
-  } else if (entry.g && entry.g !== entry.n) bits.push(entry.g);
-  return bits.join(', ');
-}
-
-/**
- * The category sizes once per paint rather than per row: the count walks the
- * type's whole list, and the rows are repainted on every scroll frame. The
- * number is known only when the list has already been loaded — the point of
- * a favourite category being precisely that it need not be loaded to see
- * one's favourites.
- */
-function categoryCountsFor(rows) {
-  if (!state.lib || !rows.some((it) => it.k === 'c')) return null;
-  // Either count walks the type's whole list, so the result is kept and not
-  // asked for twice for the same type.
-  const cache = new Map();
-  const source = (kind, type) => {
-    const key = `${kind}:${type}`;
-    if (!cache.has(key)) {
-      cache.set(key, kind === 'groups' ? state.lib.groupCounts(type) : state.lib.categoryCounts(type));
-    }
-    return cache.get(key);
-  };
-
-  const counts = new Map();
-  for (const row of rows) {
-    if (row.k !== 'c') continue;
-    const map = source(row.c == null ? 'groups' : 'cats', row.t);
-    const count = map && map.get(row.c == null ? row.g : row.c);
-    if (count != null) counts.set(`${row.k}:${row.id}`, count);
-  }
-  return counts.size ? counts : null;
-}
-
-/**
- * Opens a category inside the collection: the same drill-down as a series,
- * so that returning to the favourites is one tap rather than a tab change.
- */
-export async function openFavCategory(entry) {
-  if (!state.lib) { toast(t('error.noserver'), { kind: 'warn' }); return; }
-  const back = state.detail;
-  const returnPosition = listNavigation.capture(vlist);
-  const returnSearch = catalogueSearch.snapshot();
-  catalogueSearch.reset({ restore: false });
-  state.detail = { view: 'category', entry, items: [], back, returnPosition, returnSearch, loading: true };
-  state.cursor = -1;
-  renderDetail();
-  updateAddress();
-  beginListLoad();
-  const open = state.detail;
-  try {
-    const items = entry.c == null
-      ? await loadGroupItems(entry.t, entry.g)
-      : await state.lib.categoryItems(entry.t, entry.c);
-    if (state.detail !== open) return;
-    state.detail.items = items;
-    state.detail.loading = false;
-    await refreshRows();
-  } catch (err) {
-    if (state.detail !== open) return;
-    if (state.detail === open) {
-      state.detail = back;
-      catalogueSearch.restore(returnSearch);
-      renderDetail();
-      await refreshRows({ returnPosition });
-    }
-    showListError(err, () => openFavCategory(entry));
-  }
-}
-
-/**
- * A category's star in the browsing views. The favourites list is the
- * collection's own view, so the sidebar and the topic chips are repainted
- * only when we are elsewhere — in the favourites the whole list changes.
- */
-export function toggleFavCategory(entry) {
-  const key = `${entry.k}:${entry.id}`;
-  if (state.favorites.has(key)) state.favorites.delete(key);
-  else state.favorites.set(key, { ...entry, addedAt: Date.now() });
-  store.setFavorite(key, state.favorites.get(key) || null);
-  if (state.tab === 'fav') { renderSidebar(); refreshRows({ keepScroll: true }); }
-  else { renderCategories(); renderSubcats(); }
-}
-
-/**
- * Section headings: row index → the heading above it. History splits into
- * what was left unfinished and then days, favourites into types — in both, the heading says what the rows do
- * not show themselves. A type filter makes the favourites' headings
- * pointless.
- */
-function sectionsFor(rows) {
-  const sections = new Map();
-  if (!isCollection() || state.detail) return sections;
-  if (state.tab === 'fav' && state.kind != null) return sections;
-
-  let previous = null;
-  for (let i = 0; i < rows.length; i++) {
-    const unfinished = state.tab === 'recent' && isUnfinished(rows[i]);
-    const label = state.tab !== 'recent' ? kindLabel(kindGroup(rows[i].k))
-      : unfinished ? t('history.continue') : dayLabel(rows[i].watchedAt);
-    const icon = state.tab !== 'recent' ? KIND_ICONS[kindGroup(rows[i].k)]
-      : unfinished ? HISTORY_ICONS.continue : HISTORY_ICONS.day;
-    if (label && label !== previous) sections.set(i, { label, icon });
-    previous = label;
-  }
-  // A single type heading atop the whole list organises nothing, and the
-  // sidebar says the same. A day heading, on the other hand, also says
-  // when — that one stays.
-  if (state.tab === 'fav' && sections.size < 2) return new Map();
-  return sections;
-}
-
-export async function removeFromHistory(item) {
-  const recents = await store.removeRecent(`${item.k}:${item.id}`);
-  if (!recents) return;
-  state.recents = recents;
-  if (!state.playing && !el.idleHome.hidden) renderIdleOverlay();
-  renderSidebar();
-  await refreshRows({ keepScroll: true });
-}
-
-/**
- * A card taken off Continue watching: where it was left forgotten, so it
- * is no longer unfinished anywhere — not on the page, not as a bar in the
- * lists — and its entries out of the history, which is what the row is
- * made from. A series goes as a whole: forgetting only its latest episode
- * would put an earlier one in the card's place.
- */
-async function forgetUnfinished(item, label) {
-  const keys = item.k === 3 && item.seriesId
-    ? state.recents.filter((r) => r.k === 3 && r.seriesId === item.seriesId).map((r) => `3:${r.id}`)
-    : [];
-  keys.push(`${item.k}:${item.id}`);
-  for (const key of keys) state.resume.delete(key);
-  await store.forgetResume([...new Set(keys)]);
-  const recents = await store.removeRecents(keys);
-  if (recents) state.recents = recents;
-  if (!state.playing) renderIdleOverlay();
-  renderSidebar();
-  toast(t('player.idle.forgotten', { title: label }));
-  await refreshRows({ keepScroll: true });
-}
-
-export async function clearHistory() {
-  if (!(await store.clearRecents())) return;
-  state.recents = [];
-  if (!state.playing && !el.idleHome.hidden) renderIdleOverlay();
-  state.kind = null;
-  state.lastKind.recent = null;
-  renderSidebar();
-  await refreshRows();
-  toast(t('history.cleared'));
-}
-
-/**
- * The catalogue fetched again, and the view on screen repainted from it
- * where it stands: the same scroll, the same row chosen, the same page
- * opened from the list. The library drops the categories and groups it
- * kept from earlier in the session (js/library.js, refresh), and the one on
- * screen is asked for again here before the list is repainted, so that the
- * repaint finds it in memory rather than emptying the list to wait for it.
- *
- * Quiet is the refresh nobody asked for — a tab come back to after its
- * lists went stale. It shows no strip and says nothing, keeps the
- * programme data the rows are showing (it goes stale by itself, see
- * js/epg.js), and leaves a failure to the next time.
- */
-let refreshing = null;
-async function refreshCatalogue({ quiet = false } = {}) {
-  // One at a time. A quiet one already running is enough for another quiet
-  // one; Refresh pressed meanwhile waits for it and then does its own, with
-  // the strip and the word at the end that the viewer is owed.
-  if (refreshing) {
-    if (quiet) return refreshing;
-    await refreshing;
-  }
-  const lib = state.lib;
-  if (!lib) return false;
-  const run = (async () => {
-    if (!quiet) showProgress(t('progress.refresh'));
-    const signal = quiet ? undefined : progressSignal();
-    try {
-      await lib.refresh({ signal, onProgress: quiet ? undefined : updateProgress });
-      const type = tabType();
-      if (type && state.group && !state.query && !isCollection() && !lib.isFull(type)) {
-        state.groupItems = await lib.groupItems(type, state.group, { signal });
-      }
-      // A favourite category opened from the list holds its own copy of the
-      // category's contents, and so does one further back in the chain.
-      for (let detail = state.detail; detail; detail = detail.back) {
-        if (detail.view !== 'category') continue;
-        const { entry } = detail;
-        detail.items = entry.c == null ? await lib.groupItems(entry.t, entry.g, { signal })
-          : await lib.categoryItems(entry.t, entry.c, { signal });
-      }
-      if (state.lib !== lib) return false;
-      if (state.epg && !quiet) state.epg.clear();
-      renderSidebar();
-      await refreshRows({ keepScroll: true });
-      if (!quiet) toast(t('toast.refreshed'));
-      return true;
-    } catch (err) {
-      if (state.lib !== lib) return false;
-      if (quiet) console.warn('[iptv] refreshing the stale lists failed', err);
-      else if (isAbort(err)) toast(t('progress.cancelled'));
-      else showListError(err, null);
-      return false;
-    } finally {
-      if (!quiet) hideProgress();
-    }
-  })();
-  refreshing = run;
-  try { return await run; } finally { refreshing = null; }
-}
-
-/**
- * A tab left open never asked about its lists again: the categories and
- * channels fetched in the morning were the ones shown at night, whatever
- * the provider had changed. Coming back to the tab is the moment to look —
- * nothing on screen is being read while the tab is hidden — and only when
- * what is in memory is older than the cache would have kept it.
- */
-function refreshWhenStale() {
-  if (document.visibilityState !== 'visible' || !state.lib || connecting) return;
-  if (state.lib.isStale()) refreshCatalogue({ quiet: true });
-}
-
-/**
- * A group's contents are fetched one sub-category at a time. Sweden = 31
- * categories at ~2 kB each is still a fraction of the whole list's 634
- * kilobytes, and after this, switching between topics needs no network at
- * all.
- */
-async function loadGroupItems(type, groupName, current = () => true) {
-  const group = state.lib.group(type, groupName);
-  const heavy = group && group.cats.length > 3 && !state.lib.isFull(type);
-  if (heavy) showProgress(t('progress.group', { group: groupName }), t('progress.categories', { done: 0, total: group.cats.length }), 0);
-  try {
-    return await state.lib.groupItems(type, groupName, {
-      signal: progressSignal(),
-      onProgress: (done, total) => {
-        if (!heavy || !current()) return;
-        fillBar(done / total);
-        el.lpText.textContent = t('progress.categories', { done, total });
-      },
-    });
-  } finally {
-    if (heavy && current()) hideProgress();
-  }
-}
-
-/** The topic bar and its handle appear and disappear together. */
-function showSubcats(on) {
-  el.subcats.hidden = !on;
-  el.subcatsGrip.hidden = !on;
-}
-
-/** The topic filters within the chosen group. */
-function renderSubcats() {
-  const type = tabType();
-  const group = type && state.group ? state.lib?.group(type, state.group) : null;
-  if (!group || group.cats.length < 2 || state.detail || state.query) {
-    showSubcats(false);
-    el.subcats.replaceChildren();
-    return;
-  }
-  const counts = new Map();
-  const visibleItems = type === 'live' ? withoutInternational(visibleRows(state.groupItems)) : state.groupItems;
-  // Nothing in the group yet — its list still on the way — is no reason
-  // for a bar reading "All 0": it appears with the first rows.
-  if (!visibleItems.length) {
-    showSubcats(false);
-    el.subcats.replaceChildren();
-    return;
-  }
-  for (const item of visibleItems) {
-    for (const cat of item.cats) counts.set(cat, (counts.get(cat) || 0) + 1);
-  }
-  // The buttons in alphabetical order, but the group's own general
-  // category ("Sweden" with no topic) right after the All button: it is not
-  // a topic among topics but the country's main channels.
-  let cats = [...group.cats].sort((a, b) => {
-    if (!a.sub !== !b.sub) return a.sub ? 1 : -1;
-    return (a.sub || '').localeCompare(b.sub || '', 'fi');
-  });
-  if (type === 'live') cats = cats.filter((c) => !state.channelPrefs.hiddenCategories.includes(c.id));
-
-  const frag = document.createDocumentFragment();
-  // "All" is the whole group, and its star is on the sidebar row — two
-  // buttons for the same favourite would blur both.
-  frag.appendChild(chipRow({
-    label: t('subcats.all'), count: nf.format(visibleItems.length), active: state.sub == null,
-  }, () => selectSub(null)));
-  for (const cat of cats) {
-    const count = counts.get(cat.id) || 0;
-    if (count === 0) continue;
-    const entry = favCategoryEntry(type, group.name, cat);
-    frag.appendChild(chipRow({
-      label: cat.sub || t('subcats.general'), count: nf.format(count), active: state.sub === cat.id, title: cat.name,
-      favorite: isFavorite(entry),
-      onFavorite: () => toggleFavCategory(entry),
-    }, () => selectSub(cat.id)));
-  }
-  el.subcats.replaceChildren(frag);
-  showSubcats(true);
-  applySubcatsHeight();
-}
-
 /* =============================================================== sidebar */
 
 /**
@@ -1513,7 +1152,7 @@ async function selectKind(kind) {
   await refreshRows();
 }
 
-function renderCategories() {
+export function renderCategories() {
   const type = tabType();
   el.groupsFilter.hidden = false;
   // Countries on the channel tab, genres on the other two. The field above
@@ -1702,7 +1341,7 @@ export function visibleRows(rows) {
  * a search, a favourite or a recent channel was asked for by name. Until
  * the whole list is in, nothing can be told apart and nothing goes.
  */
-function withoutInternational(rows) {
+export function withoutInternational(rows) {
   if (state.settings.showInternational) return rows;
   const global = state.lib?.international();
   return global?.size ? rows.filter((item) => item.k !== 0 || !global.has(String(item.id))) : rows;
@@ -2793,7 +2432,7 @@ async function stepSubtitleSize(direction) {
  * click outside it, by Esc, or by the button again — the same ways the
  * settings dialog closes.
  */
-function toggleSubtitleLook(open) {
+export function toggleSubtitleLook(open) {
   const show = open ?? el.sublookPop.hidden;
   if (show) toggleMoreMenu(false);
   el.sublookPop.hidden = !show;
@@ -2803,188 +2442,6 @@ function toggleSubtitleLook(open) {
   // no use at all.
   el.videowrap.classList.toggle('looking', show);
   if (show) $('p-substyle').focus();
-}
-
-/* ----------------------------------------------------------- player menu */
-
-/** The items on offer: Cast is not among them without the API behind it. */
-const moreItems = () => [...el.morePop.querySelectorAll('.popitem')].filter((item) => !item.hidden);
-
-/**
- * The player's menu, opened from the hamburger at the end of the row.
- *
- * Picture in picture, casting, the stream address and the hand-off to an
- * external player are wanted now and then rather than during every
- * programme, and as buttons they cost the row four places and say what they
- * do in two letters and an arrow. In the menu there is room for the whole
- * sentence.
- *
- * It closes the way the Aa popover does — the button again, a click
- * outside, Esc — and the two close each other: one panel over the picture
- * at a time. focusButton returns the focus to the hamburger, which is where
- * a keyboard left it; a mouse click is let go of, as every other click in
- * the player is, or Space would reopen the menu instead of pausing.
- */
-function toggleMoreMenu(open, { focusButton = false } = {}) {
-  const show = open ?? el.morePop.hidden;
-  if (show) toggleSubtitleLook(false);
-  el.morePop.hidden = !show;
-  el.more.setAttribute('aria-expanded', String(show));
-  if (show) moreItems()[0]?.focus();
-  else if (focusButton) el.more.focus();
-}
-
-/* ----------------------------------------------------------- full screen */
-
-/**
- * Full screen for the wrapper — the picture with the subtitle layer and the
- * overlay — rather than for the bare video element, which would leave both
- * behind, see js/subdisplay.js. Chrome's tab casting still recognises the
- * video as the dominant content: it fills the fullscreen element.
- */
-function enterFullscreen() {
-  if (document.fullscreenElement) return;
-  if (state.playing) playerLayout.showPlayer();
-  el.videowrap.requestFullscreen().catch(() => {});
-}
-
-function toggleFullscreen() {
-  if (document.fullscreenElement) document.exitFullscreen().catch(() => {});
-  else enterFullscreen();
-}
-
-/**
- * A double click on the picture takes the wrapper full screen, as f does,
- * rather than letting Chrome's controls take the bare video, where Chrome
- * draws the subtitles itself in the system's caption box (js/subdisplay.js).
- * The double click over the picture reaches the page; a press on the
- * controls' own buttons does not — Chrome keeps those to itself, measured —
- * so the full screen button still takes the bare video. Firefox's controls
- * keep their clicks to themselves (see clickPicture).
- */
-function catchDoubleClick(e) {
-  if (isGecko() || e.target !== el.video || e.button !== 0) return;
-  if (e.offsetY > el.video.clientHeight - CONTROL_BAR_PX) return;
-  // The second press of a double click is where the page acts: it is a
-  // fresh user activation, and the request made with it uses the
-  // activation up, so that the controls' own request on the dblclick that
-  // follows is refused. The dblclick itself is only stopped.
-  if (e.type === 'mousedown' && e.detail === 2) {
-    // The click this press would end in never comes: full screen takes it.
-    // The first click's pause, waiting for a second (clickPicture), is
-    // taken back here instead.
-    clearTimeout(clickTimer);
-    clickTimer = null;
-    toggleFullscreen();
-  } else if (e.type !== 'dblclick') return;
-  e.preventDefault();
-  e.stopPropagation();
-}
-window.addEventListener('mousedown', catchDoubleClick, true);
-window.addEventListener('dblclick', catchDoubleClick, true);// A click on the picture pauses a film or an episode and plays it on, and a
-// double click takes the picture full screen: the browser's own controls do
-// both, in Chrome as in Firefox, now that Chrome's full screen button is
-// back (see js/subdisplay.js). A live channel is the exception: there is
-// nothing to come back to after a pause, so its click is stopped before the
-// controls see it — in the capture phase, outside the strip at the bottom
-// where Chrome's buttons sit, up to some 70 px from the bottom. Firefox's
-// controls keep the click to themselves, and measured, no press or click
-// over the picture reaches the page there: a click pauses a live channel in
-// Firefox, which the page cannot prevent while the element has the
-// browser's controls.
-const CONTROL_BAR_PX = 80;
-
-// Chrome's controls pause on the first click of a double click, and the
-// second press goes to full screen (catchDoubleClick), so a double click
-// meant only for full screen left the film paused. In Chrome the page
-// takes the click over: a single one pauses or plays on once the time for
-// a second has passed, and a second within it cancels that — it was a
-// double click. A little later than the controls' own pause, and only then.
-const SECOND_CLICK_MS = 280;
-let clickTimer = null;
-
-function clickPicture(e) {
-  const video = el.video;
-  if (e.target !== video || e.button !== 0) return;
-  if (e.offsetY > video.clientHeight - CONTROL_BAR_PX) return;
-  const item = state.playing;
-  if (!item) return;
-  if (item.k === 0) { e.preventDefault(); e.stopPropagation(); return; }
-  if (isGecko()) return;
-  e.preventDefault();
-  e.stopPropagation();
-  clearTimeout(clickTimer);
-  clickTimer = null;
-  if (e.detail === 1) clickTimer = setTimeout(() => { clickTimer = null; togglePause(); }, SECOND_CLICK_MS);
-}
-
-function togglePause() {
-  if (el.video.paused) el.video.play().catch(() => {});
-  else el.video.pause();
-}
-
-/**
- * The language is kept for the coming episodes — not the track number,
- * because the numbers vary from one file to the next.
- */
-async function rememberSubtitleLanguage(number) {
-  const track = state.subtitles.find((t) => t.number === number);
-  const language = track ? shortLanguage(track.language) : 'off';
-  if (state.settings.subtitleLang === language) return;
-  state.settings = await store.saveSettings({ subtitleLang: language });
-}
-
-export function renderSeriesFavorite() {
-  const button = $('detail-fav');
-  if (!button || state.detail?.view !== 'series') return;
-  const on = isFavorite(state.detail.item);
-  button.textContent = on ? '★' : '☆';
-  button.classList.toggle('on', on);
-  button.setAttribute('aria-pressed', String(on));
-  button.title = t(on ? 'fav.series.remove' : 'fav.series.add');
-  button.setAttribute('aria-label', button.title);
-}
-
-/* ---------------------------------------------------------- media keys */
-
-// The keyboard's and the headphones' media keys, and the system's own media
-// controls, reach the page through the Media Session. Without it they did
-// play and pause and nothing else, and the system's panel named the tab
-// rather than what was on. Painted with the info strip, which already
-// follows the item, the archive programme and the programme data.
-const mediaSession = navigator.mediaSession || null;
-
-export function renderMediaSession() {
-  if (!mediaSession) return;
-  const item = state.playing;
-  if (!item) { mediaSession.metadata = null; return; }
-  const name = shownName(item);
-  let title = name, artist = '';
-  if (state.catchup) { title = state.catchup.title; artist = name; }
-  else if (item.k === 0) {
-    const now = state.epg ? state.epg.nowNext(item.id)?.now : null;
-    if (now) { title = now.title; artist = name; }
-  } else if (item.k === 3) artist = item.seriesName || '';
-  const art = (item.k === 3 && item.seriesCover) || item.logo;
-  mediaSession.metadata = new MediaMetadata({ title, artist, album: 'Kepuli-TV', artwork: art ? [{ src: art }] : [] });
-  // A live stream has nothing to seek in: without handlers the controls
-  // offer no seeking either.
-  const seekable = item.k !== 0 || Boolean(state.catchup);
-  const seek = (offset) => () => { el.video.currentTime = Math.max(0, el.video.currentTime + offset); };
-  setMediaAction('seekbackward', seekable ? seek(-10) : null);
-  setMediaAction('seekforward', seekable ? seek(30) : null);
-  setMediaAction('seekto', seekable ? ({ seekTime }) => { el.video.currentTime = seekTime; } : null);
-}
-
-/** An action the browser does not know throws; it is simply not offered then. */
-function setMediaAction(action, handler) {
-  try { mediaSession.setActionHandler(action, handler); } catch { /* not supported here */ }
-}
-
-function wireMediaSession() {
-  if (!mediaSession) return;
-  setMediaAction('nexttrack', () => playRelative(1));
-  setMediaAction('previoustrack', () => playRelative(-1));
 }
 
 /* ------------------------------------------------- katselukohta & stats */
@@ -3137,77 +2594,6 @@ setInterval(() => {
   if (state.epg && state.rows.some((it) => it.k === 0)) vlist.refresh();
 }, 30000);
 
-/* =========================================================== progress dialog */
-
-/** A known fraction (0…1), or null while the total is unknown. */
-function fillBar(ratio) {
-  const bar = el.lpFill.parentElement;
-  const known = Number.isFinite(ratio);
-  bar.classList.toggle('indeterminate', !known);
-  el.lpPercent.hidden = !known;
-  if (!known) {
-    bar.removeAttribute('aria-valuenow');
-    el.lpPercent.textContent = '';
-    el.lpFill.style.removeProperty('transform');
-    return;
-  }
-  const clamped = Math.min(1, Math.max(0, ratio || 0));
-  const percent = Math.round(clamped * 100);
-  el.lpFill.style.transform = `scaleX(${clamped.toFixed(4)})`;
-  el.lpPercent.textContent = `${nf.format(percent)} %`;
-  bar.setAttribute('aria-valuenow', String(percent));
-}
-
-// The load under the strip is cancellable: every request made while it is
-// showing carries this controller's signal, and Cancel or Esc aborts them.
-let progressCtrl = null;
-export const progressSignal = () => (progressCtrl ? progressCtrl.signal : undefined);
-
-/**
- * The strip above the list, for a fetch the list is waiting on.
- *
- * This used to be a modal dialog over the whole app. Nothing about a list
- * arriving needs the player stopped: a search — which needs the type's whole
- * list, hundreds of kilobytes of it — was started by three letters typed into
- * a box, and took the volume, the subtitle selector and full screen with it
- * until it finished. The strip sits where the rows will appear, says the same
- * three things the dialog said, and leaves the rest of the window alone.
- */
-export function showProgress(title, text, ratio = null) {
-  el.lpTitle.textContent = title;
-  el.lpText.textContent = text || '';
-  fillBar(ratio);
-  if (el.listProgress.hidden) {
-    progressCtrl = new AbortController();
-    el.listProgress.hidden = false;
-    // The list was emptied before this strip appeared, so it is showing a
-    // spinner of its own by now. One statement of the same fact is enough.
-    renderEmptyState();
-  }
-}
-
-function cancelProgress() {
-  if (progressCtrl) progressCtrl.abort();
-}
-
-export function updateProgress(received, total) {
-  if (total > 0) {
-    fillBar(received / total);
-    el.lpText.textContent = t('progress.bytes', { received: megabytes(received), total: megabytes(total) });
-  } else {
-    fillBar(null);
-    el.lpText.textContent = t('progress.received', { received: megabytes(received) });
-  }
-}
-
-export function hideProgress() {
-  progressCtrl = null;
-  if (el.listProgress.hidden) return;
-  el.listProgress.hidden = true;
-  // A load that goes on without the strip gets the plain spinner back.
-  renderEmptyState();
-}
-
 /* ============================================================== settings */
 
 const FIELDS = ['scheme', 'host', 'port', 'username', 'password'];
@@ -3263,7 +2649,7 @@ export function openSetup({ section, adding = false } = {}) {
 }
 
 // Every open starts with the connection; edits survive tab changes only.
-let setupSection = 'connection';
+export let setupSection = 'connection';
 // Which account the connection form shows, picked in the list above it:
 // 'current' (the one in use), 'new' (one being added) or another one's id;
 // setupBase is its configuration, a blank one for a new account.
@@ -3443,7 +2829,7 @@ export function setupError(key, field) {
   if (field) { showSetupSection('connection'); $(field).focus(); }
 }
 
-function showSetupSection(name) {
+export function showSetupSection(name) {
   setupSection = name;
   for (const button of el.setupTabs.children) {
     const on = button.dataset.panel === name;
@@ -3590,7 +2976,7 @@ async function adoptSyncedAccount(accounts) {
   return true;
 }
 
-async function renderAccountBox() {
+export async function renderAccountBox() {
   const box = $('account-box');
   const a = state.account;
   renderVersion();
@@ -3971,108 +3357,6 @@ function wireSetup() {
 
 }
 
-/* ================================================================== help */
-
-/**
- * The shortcuts, the few that nearly everyone needs first — the picture,
- * then finding something to watch — and the rest behind a fold. The key
- * column is written out rather than translated — ↑ is ↑ in every language —
- * and the sentence beside it is not.
- */
-const SHORTCUTS = [
-  ['Space', 'help.key.pause'],
-  ['f', 'help.key.fullscreen'],
-  ['m', 'help.key.mute'],
-  ['/', 'help.key.search'],
-  ['↑ ↓ PgUp PgDn', 'help.key.move'],
-  ['Enter', 'help.key.open'],
-  ['Backspace', 'help.key.back'],
-  ['g', 'help.key.guide'],
-];
-const MORE_SHORTCUTS = [
-  ['n  p', 'help.key.nextprev'],
-  ['l', 'help.key.lastchannel'],
-  ['a', 'help.key.audio'],
-  ['+  −', 'help.key.subsize'],
-  ['s', 'help.key.star'],
-  ['Shift+F10', 'help.key.menu'],
-  ['Delete', 'help.key.remove'],
-  ['x', 'help.key.external'],
-  ['c', 'help.key.cast'],
-  ['?', 'help.key.help'],
-];
-
-/**
- * The help, inside the app. It used to be a link to an 83 kB page written for
- * whoever builds the player, opened in another tab at the moment the viewer
- * was least sure of themselves — and the thirteen keys the player answers to
- * were named nowhere the player itself could show them.
- */
-function openHelp() {
-  const rows = (list) => list.flatMap(([key, id]) => {
-    const dt = document.createElement('dt');
-    dt.textContent = key;
-    const dd = document.createElement('dd');
-    dd.textContent = t(id);
-    return [dt, dd];
-  });
-  $('help-keys').replaceChildren(...rows(SHORTCUTS));
-  $('help-keys-more').replaceChildren(...rows(MORE_SHORTCUTS));
-  if (!$('help').open) $('help').showModal();
-}
-
-/* ============================================================== oddments */
-
-let toastTimer = null;
-/**
- * The message strip at the bottom of the window. `kind` colours it: an error
- * arrives in red, a warning in yellow, and everything else keeps the panel's
- * own tone. Each kind brings its own icon, so the colour is never the only
- * thing that separates a failure from a note.
- */
-export function toast(text, { long = false, kind = 'info', action = null, duration = null } = {}) {
-  el.toastText.textContent = text;
-  // A message that names what is wrong can carry the thing that fixes it:
-  // "Programme data is switched off in settings" said so and then left the
-  // viewer to find the switch. One button is shorter than that sentence.
-  el.toast.querySelector('.toast-action')?.remove();
-  if (action) {
-    const button = document.createElement('button');
-    button.type = 'button';
-    button.className = 'toast-action';
-    button.textContent = action.label;
-    button.addEventListener('click', () => { clearTimeout(toastTimer); el.toast.hidden = true; action.onClick(); });
-    el.toast.appendChild(button);
-  }
-  el.toast.classList.remove('info', 'warn', 'error');
-  el.toast.classList.add(kind);
-  // An error interrupts the reader; the rest can wait for a pause in speech.
-  el.toast.setAttribute('aria-live', kind === 'error' ? 'assertive' : 'polite');
-  el.toast.hidden = false;
-  clearTimeout(toastTimer);
-  // An error deserves the time it takes to read it, and so does a message
-  // with something in it to press.
-  toastTimer = setTimeout(() => { el.toast.hidden = true; }, duration ?? (long || action ? 7000 : 2800));
-}
-
-/**
- * The address carries the account's user name and password in it, so the
- * message says so: it is about to be pasted somewhere. A write the browser
- * refuses — the page not in focus, the permission withheld — is said too,
- * rather than left looking like a copy that worked.
- */
-export async function copyUrl() {
-  if (!state.playingSpec) return;
-  try {
-    await navigator.clipboard.writeText(state.playingSpec.url);
-  } catch (err) {
-    console.warn('[iptv] the clipboard refused the address:', err);
-    toast(t('player.copyfailed'), { kind: 'error' });
-    return;
-  }
-  toast(t('player.copied'), { long: true });
-}
-
 /* --------------------------------------------------------- Chromecast */
 
 const cast = new Cast(el.video, renderCastState);
@@ -4203,7 +3487,7 @@ function removeAtCursor() {
 
 function moveCursor(delta) { listNavigation.move(delta, vlist); }
 
-function playRelative(delta) {
+export function playRelative(delta) {
   if (!state.playing) return;
   const index = state.rowIndex.get(`${state.playing.k}:${state.playing.id}`);
   // An episode played from History or Favourites is not in the list on
@@ -4496,82 +3780,6 @@ function wireUi() {
   });
 }
 
-/* =============================================================== language */
-
-/**
- * The language changes mid-session without reloading the page.
- *
- * Three layers have to be refreshed: the texts written into the markup,
- * Intl's formatters, and the views painted from state. The third is handled
- * by the same calls that produce the views anyway, so the language needs no
- * painting route of its own — only the call.
- */
-/** Intl's formatters for the language, the browser's region and the clock setting. */
-function applyLocale() {
-  setEnglishRegion(store.browserEnglish());
-  setLocale(localeTag(), { hourCycle: store.hourCycle(state.settings) });
-}
-
-async function applyLanguage(lang) {
-  await loadLanguage(lang);
-  setLanguage(lang);
-  applyLocale();
-  applyStatic();
-  catalogueSearch.render();
-  renderSidebar();
-  renderNowSub();
-  renderDetail();
-  renderInfoStrip();
-  // The selector is rebuilt only when the list differs: clear it, so that
-  // "No subtitles" is translated even when the tracks stay the same.
-  const tracks = state.subtitles;
-  const active = el.subs.value === 'off' || !el.subs.value ? null : Number(el.subs.value);
-  state.subtitles = null;
-  renderSubtitles(tracks, active);
-  const audio = state.audioTracks;
-  const playing = state.activeAudio?.number ?? null;
-  state.audioTracks = null;
-  renderAudio(audio, playing);
-  // applyStatic has just written every data-i18n node, the dialog's title
-  // and section note among them: both depend on where the dialog stands,
-  // so they are set again from that.
-  if (el.setup.open) {
-    renderAccountBox();
-    $('setup-title').textContent = t(configured() ? 'setup.title' : 'setup.title.connect');
-    showSetupSection(setupSection);
-  }
-  // The guide's time axis, day buttons and Earlier menu are written once
-  // and kept; the programme search's line says what it found in words.
-  if (guideOpen) { renderGuideGroups(); grid.relayout(); grid.invalidate(); }
-  programmeSearch.renderStatus();
-  programmeSearch.list.refresh();
-  // Before a connection there is no list to repaint, and refreshRows would
-  // set off to fetch it from a server that does not exist yet.
-  if (state.lib) await refreshRows({ keepScroll: true });
-  // An idle player shows the welcome text, which comes from no paint routine.
-  if (!state.playing && !el.overlay.hidden && !el.overlay.classList.contains('loading')) renderIdleOverlay();
-  // The path in the tab's title is in the interface language as well.
-  updateAddress();
-}
-
-/** The player's idle state: either a welcome or a prompt to pick a channel. */
-// The overlay is the empty player's own page while it says so, and is
-// painted as a page of the app then (.overlay.idle in player.css) rather
-// than as a message over the picture. Watched rather than set in every one
-// of the places that put another message there.
-new MutationObserver(() => {
-  const title = el.overlayTitle.textContent;
-  el.overlay.classList.toggle('idle', title === t('player.idle') || title === t('setup.welcome'));
-}).observe(el.overlayTitle, { childList: true, characterData: true, subtree: true });
-
-export function renderIdleOverlay() {
-  const welcome = !configured();
-  el.overlayTitle.textContent = welcome ? t('setup.welcome') : t('player.idle');
-  const home = welcome ? false : renderIdleHome();
-  el.overlayText.textContent = welcome ? t('setup.welcome.text')
-    : t(!home ? 'player.idle.text' : el.idleHome.querySelector('.idle-picks') ? 'player.idle.picks.text' : 'player.idle.home');
-}
-
 /* -------------------------------------------- what the viewer watches */
 
 // A programme watched for this long is noted as one the viewer is
@@ -4612,7 +3820,7 @@ const IDLE_CHANNELS = 24;
  *
  * @returns {boolean} whether there was anything to show
  */
-function renderIdleHome() {
+export function renderIdleHome() {
   const home = el.idleHome;
   home.replaceChildren();
   if (state.playing || !state.lib) { home.hidden = true; return false; }

@@ -10,7 +10,8 @@ import { clock, duration } from './format.js';
 import { reminderDelay } from './epggrid.js';
 import { t } from './i18n.js';
 import * as store from './config.js';
-import { playItem, toast } from './app.js';
+import { playItem } from './app.js';
+import { toast } from './toast.js';
 import { grid, guideOpen, renderGuidePreview } from './guideui.js';
 import { shownName, stripItem } from './coversui.js';
 

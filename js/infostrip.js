@@ -13,7 +13,8 @@ import { externalLinks, playbackFacts, titleCredits, titleFacts } from './titlei
 import { poster } from './poster.js';
 import { shortLanguage } from './lang.js';
 import { t } from './i18n.js';
-import { renderMediaSession, state, vlist } from './app.js';
+import { state, vlist } from './app.js';
+import { renderMediaSession } from './playercontrols.js';
 import { el } from './dom.js';
 import { addressChanges, freshItem, probeFor, updateStoredItem } from './coversui.js';
 
