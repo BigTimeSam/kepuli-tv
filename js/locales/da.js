@@ -529,7 +529,7 @@ export default {
  "duration.compact.h": "{h}t",
  "duration.h": "{h} t",
  "duration.m": "{m} min",
- "subs.size.now": "Tekststørrelse {size}",
+ "subs.size.now": "Undertekststørrelse {size}",
  "subs.size.reset": "Standard",
  "subs.size.reset.title": "Tilbage til den størrelse, der passer til billedet",
  "help.key.subsize": "Større eller mindre undertekster",

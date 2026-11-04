@@ -398,7 +398,7 @@ export default {
  "setup.account.immediate": "Sincronizarea și butoanele de pe această pagină acționează imediat. Restul așteaptă Salvează.",
  "setup.reconnect": "Salvarea modificărilor de conexiune reîncarcă listele.",
  "setup.failed": "Nu s-a putut salva. Modificările sunt încă aici. Încearcă din nou.",
- "setup.incomplete": "Un server Xtream Codes are nevoie de server, nume de utilizator și parolă. O listă fără autentificare se adaugă la Lipește adresa abonamentului (M3U).",
+ "setup.incomplete": "Un server Xtream Codes are nevoie de server, nume de utilizator și parolă. Un playlist fără autentificare se adaugă la Lipește adresa abonamentului (M3U).",
  "setup.discard.question": "Renunți la modificările nesalvate?",
  "setup.discard": "Renunță la modificări",
  "setup.keep": "Continuă editarea",

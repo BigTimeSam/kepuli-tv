@@ -42,6 +42,28 @@ Background: [development.md → Language](../../docs/development.md#language) an
 5. Look at the longest languages (German, Finnish, Hungarian) in the UI if the
    string sits in a button or a narrow column.
 
+## Terminology
+
+The product's core words (programme guide, favourites, recording, catch-up,
+channel, account, playlist, portal, history, Continue watching, subtitles,
+Settings) have one term per language, recorded in `store/i18n-glossary.json`
+as the translations already used it in most places. `node dev/glossarycheck.mjs`
+checks that every interface key and store listing whose English holds a
+concept says that language's term (any of its listed forms: a stem, or a few
+inflected forms, compared without regard to case); `--survey` shows, per
+concept and language, how many texts hold it.
+
+- When you translate, use the glossary's term, not a synonym, even where the
+  synonym reads better in the sentence: the reader learns the word on a
+  button and looks for it in the help and the store.
+- A miss is fixed in the text. Only when the language says it another way
+  and nothing is lost (a split verb: "spela bara in", "nimm nur auf") add
+  the key to the concept's `except` for that language, with the reason.
+- An inflected form the check does not know is added to `forms`; keep the
+  forms specific enough that an unrelated word does not pass.
+- A new core concept gets an entry with all 29 languages (and `pt_PT`, the
+  stores' Portuguese of Portugal), from the majority use in the locale files.
+
 ## Cross-checking
 
 Two reviewers have been through every language: an agent per language

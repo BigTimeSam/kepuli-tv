@@ -18,6 +18,7 @@ import { nameCleaner, labelCodes, countryCodes, searchKey, searchTerms, matchesT
 import { Library, buildGroups, cacheTtl } from '../js/library.js';
 import { channelKey, internationalChannels, isNationalTopic } from '../js/international.js';
 import { unwrap, repeats, check as checkListings } from './listings.mjs';
+import { holds } from './glossarycheck.mjs';
 import { channelLogo, slugify } from '../js/logos.js';
 import { cueText } from '../js/subs.js';
 import { subtitleLook, stepScale, pictureHeight, STYLES, MIN_SCALE, MAX_SCALE, DEFAULT_SCALE, SCALE_STEP, SIZE_SHARE, MIN_LIFT, MAX_LIFT, DEFAULT_LIFT } from '../js/subdisplay.js';
@@ -1429,6 +1430,11 @@ check('a wrapped paragraph is one line for the store',
 check('a word five times is a keyword list; short words and four times are not',
   repeats('stream stream stream stream stream and and and and and IPTV IPTV IPTV IPTV'), [['stream', 5]]);
 check('every listing is within the store\'s limits, and _locales is in step', checkListings(), []);
+// The glossary's forms are compared without case, and Turkish İ (which
+// lowercases to i and a combining dot) still holds a plain i.
+check('a glossary form holds in any case', holds('Programmübersicht öffnen', { forms: ['übersicht'] }), true);
+check('Turkish İ holds the form with i', holds('İzlemeye devam et', { forms: ['izlemeye devam et'] }), true);
+check('another word does not hold the term', holds('Textens utseende', { forms: ['undertext'] }), false);
 
 /* ------------------------------------------------------------------ done */
 

@@ -79,6 +79,7 @@ Long-form documentation: [user guide](docs/user-guide.md),
 | Same scenarios in Firefox | `KEPULI_BROWSER=firefox node dev/playcheck.mjs [scenario]` |
 | Dummy media for the mock server (once) | `sh dev/mock/media.sh` |
 | Translations behind? / mark done | `node dev/translations.mjs [--check]` / `--mark <lang…|all>` |
+| Each language's term for the core concepts | `node dev/glossarycheck.mjs [--survey]` |
 | Store listings checked, `_locales/` written | `node dev/listings.mjs [--check]` |
 | README rendered into the Pages front page | `node dev/site.mjs [--check]` |
 | Secrets in the staged changes | `node dev/secretcheck.mjs [--all]` |

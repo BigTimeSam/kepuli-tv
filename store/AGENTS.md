@@ -11,6 +11,7 @@ behind them in [development.md → Publishing to the stores](../docs/development
 | File | What | Edited by |
 | --- | --- | --- |
 | `listings/<locale>.txt` | name, short description and detailed description per language (31; `sq` is Firefox-only, `no` becomes `nb_NO` for Firefox) | hand / agent |
+| `i18n-glossary.json` | the core concepts' term in each language, checked by `dev/glossarycheck.mjs` (see `js/locales/AGENTS.md`) | hand / agent |
 | `translations.json` | per language, hashes of the English each key and listing was translated from | `dev/translations.mjs --mark` only |
 | `cws-listing.json` | per language, a hash of the description last put in the Chrome dashboard | `dev/cws-listing-fill.mjs` / `cws-publish.mjs listing --done` only |
 

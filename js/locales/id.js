@@ -339,7 +339,7 @@ export default {
  "guide.watch": "Tonton saluran",
  "guide.upnext": "Segera tayang",
  "guide.watch.recording": "Tonton rekaman",
- "guide.norecording": "Acara ini tidak punya rekaman — tombolnya membuka siaran langsung",
+ "guide.norecording": "Acara ini tidak punya rekaman — tombolnya membuka saluran secara langsung",
  "guide.starts": "{title} mulai pukul {time}",
  "guide.remind": "Ingatkan",
  "guide.remind.cancel": "Batalkan pengingat",

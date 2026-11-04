@@ -1,7 +1,7 @@
 === NAME ===
 Kepuli-TV – Luajtës IPTV
 === SHORT DESCRIPTION ===
-IPTV-ja jote në shfletues: Xtream Codes, M3U ose portal Stalker. Kanalet hapen për sekonda, MKV luhet dhe mund të regjistrosh.
+IPTV-ja jote në shfletues: Xtream Codes, M3U ose portal Stalker. Kanalet hapen për sekonda, MKV luhet dhe mund të incizosh.
 === DETAILED DESCRIPTION ===
 Shiko abonimin tënd IPTV në shfletues, pa u zënë me aplikacionin. Kepuli-TV
 luan llogari Xtream Codes, lista M3U dhe portale Stalker, i ndërtuar mbi një
@@ -13,8 +13,8 @@ ide: një katalog i stërmadh duhet të të duket i vogël.
   ofruesi
 → Filmat dhe episodet MKV luhen drejt në shfletues, me titra dhe zë
   surround
-→ Regjistro një kanal tani ose një program nga udhëzuesi dhe ruaje si skedar
-  (regjistrimi aktivizohet te Cilësimet)
+→ Incizo një kanal tani ose një program nga udhëzuesi dhe ruaje si skedar
+  (incizimi aktivizohet te Cilësimet)
 
 PSE E KAM BËRË
 
@@ -55,14 +55,14 @@ PRIVATËSI NGA NDËRTIMI
 
 Pa gjurmim, pa reklama, pa regjistrim. Kepuli-TV flet vetëm me serverin tënd
 dhe kërkon leje për atë adresë dhe asnjë tjetër — qasje më të gjerë nëse e
-lejon ti, kur ofruesi i dërgon transmetimet gjetkë. Regjistrimet mbeten në
+lejon ti, kur ofruesi i dërgon transmetimet gjetkë. Incizimet mbeten në
 kompjuterin tënd.
 
 
 VINI RE
 
 Shtesa nuk përmban asnjë përmbajtje dhe nuk vjen me ofrues. Sill një llogari
-tënden, përdore për materiale që ke të drejtë t'i shikosh, regjistro vetëm
+tënden, përdore për materiale që ke të drejtë t'i shikosh, incizo vetëm
 atë që të lejohet ta mbash dhe sigurohu që shërbimi është i ligjshëm aty ku
 jeton.
 

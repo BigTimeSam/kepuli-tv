@@ -4,13 +4,13 @@ Kepuli-TV – IPTV atskaņotājs
 Tavs IPTV pārlūkā: Xtream Codes, M3U vai Stalker portāls. Kanāli atveras sekundēs, MKV tiek atskaņots, un vari arī ierakstīt.
 === DETAILED DESCRIPTION ===
 Skaties savu IPTV abonementu pārlūkā un necīnies ar lietotni.
-Kepuli-TV atskaņo Xtream Codes kontus, M3U sarakstus un Stalker portālus, un
-tas radīts ap vienu domu: milzīgam katalogam jāliekas mazam.
+Kepuli-TV atskaņo Xtream Codes kontus, M3U atskaņošanas sarakstus un Stalker
+portālus, un tas radīts ap vienu domu: milzīgam katalogam jāliekas mazam.
 
 → Kanāli atveras sekundes vai divu laikā pat no milzīga piedāvājuma
 → Simtiem juceklīgu kategoriju kļūst par kārtīgu valstu sarakstu
-→ Programmas ceļvedis (EPG) visā logā, ar arhīva skatīšanos, ja pakalpojums to
-  piedāvā
+→ Programmas ceļvedis (EPG) visā logā, ar arhīva skatīšanos (catch-up), ja
+  pakalpojums to piedāvā
 → MKV filmas un sērijas tiek atskaņotas tieši pārlūkā, ar subtitriem un
   telpisko skaņu
 → Ieraksti kanālu tagad vai raidījumu no ceļveža un paturi to kā failu
@@ -28,9 +28,9 @@ netika atskaņoti. Tāpēc uztaisīju tādu, kādu pats gribu lietot katru vakar
 KO TU SAŅEM
 
 • Ielīmē sniedzēja atsūtīto M3U saiti, un iestatījumi aizpildās paši.
-• Vairāki konti: Xtream Codes, M3U saraksts ar XMLTV ceļvedi vai Stalker
-  portāls ar tava priedēkļa MAC adresi. Pārslēdz ar vienu klikšķi un, ja
-  vēlies, sinhronizē tos starp saviem datoriem.
+• Vairāki konti: Xtream Codes, M3U atskaņošanas saraksts ar XMLTV ceļvedi
+  vai Stalker portāls ar tava priedēkļa MAC adresi. Pārslēdz ar vienu klikšķi
+  un, ja vēlies, sinhronizē tos starp saviem datoriem.
 • Meklēšana, kurai nav svarīgi diakritiskie burti un vārdu secība, un filtrs
   katrā izvēlnē.
 • Kas palicis pusē, gaida augšā, un nākamā sērija sākas pati.

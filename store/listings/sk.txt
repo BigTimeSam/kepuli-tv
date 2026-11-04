@@ -9,8 +9,8 @@ postavený na jednom nápade: obrovský katalóg má pôsobiť malý.
 
 → Kanály sa otvoria za sekundu-dve, aj pri obrovskej ponuke
 → Stovky chaotických kategórií sa zmenia na prehľadný zoznam krajín
-→ Programový sprievodca (EPG) cez celé okno so spätným prehrávaním, kde ho
-  poskytovateľ ponúka
+→ Programový sprievodca (EPG) cez celé okno so spätným prehrávaním (catch-up),
+  kde ho poskytovateľ ponúka
 → Filmy a epizódy v MKV bežia priamo v prehliadači, s titulkami aj
   priestorovým zvukom
 → Nahraj kanál hneď či reláciu zo sprievodcu a ulož nahrávku ako súbor

@@ -450,6 +450,15 @@ the English to work from. `dev/package.mjs` refuses a release while anything
 is behind. After translating, `node dev/translations.mjs --mark <language>`
 records it.
 
+A translation can also be of the right English and still use another word
+for a thing than the rest of its language does: "телегид" on a button and
+"программа передач" in the settings. `store/i18n-glossary.json` records each
+language's term for the core concepts (programme guide, favourites,
+recording, catch-up, channel, account, playlist, portal, history, Continue
+watching, subtitles, Settings), and `node dev/glossarycheck.mjs` fails when
+an interface key or a store listing whose English holds a concept does not
+say that language's term.
+
 The listings reach the stores at release. `node dev/amo-publish.mjs` sends
 the name, summary and description of every language to addons.mozilla.org
 through its API, wherever they differ (`listing --dry` shows what would

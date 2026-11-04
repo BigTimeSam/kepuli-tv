@@ -10,8 +10,8 @@ valikoiman pitää tuntua pieneltä.
 
 → Kanavat aukeavat sekunnissa tai parissa, vaikka valikoima olisi valtava
 → Sadat sekavat kategoriat muuttuvat siistiksi maaluetteloksi
-→ Koko ikkunan ohjelmaopas (EPG) ja katsominen jälkikäteen, kun palvelu sen
-  tarjoaa
+→ Koko ikkunan ohjelmaopas (EPG) ja katsominen jälkikäteen (catchup), kun
+  palvelu sen tarjoaa
 → MKV-elokuvat ja -jaksot toistuvat suoraan selaimessa, tekstitykset ja
   surround-ääni mukaan lukien
 → Tallenna kanava heti tai ohjelma oppaasta, ja säilytä se tiedostona
