@@ -81,7 +81,7 @@ check('markup only from constants', node('htmlcheck.mjs'));
 check('the guides name what exists', node('docscheck.mjs'));
 check('no secrets in the repository', node('secretcheck.mjs', ['--all']));
 if (!QUICK) check('UI regressions', node('uicheck.mjs'));
-if (VISUAL) check('the five store views match their references', node('visualcheck.mjs'));
+if (VISUAL) check('the store views, light and narrow ones too, match their references', node('visualcheck.mjs'));
 
 const failed = results.filter((r) => !r.ok);
 console.log(`\n${failed.length ? `${failed.length} of ${results.length} checks failed: not ready.` : `All ${results.length} checks pass.`}`);

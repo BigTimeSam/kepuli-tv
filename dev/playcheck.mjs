@@ -219,6 +219,17 @@
 //                                     longer): no button, tab, row, label or
 //                                     dialog field whose text overflows its
 //                                     box, other than those meant to ellipsis
+//   node dev/playcheck.mjs startup    the player opened with the catalogue
+//                                     cache empty and full, three times each:
+//                                     the time to the first channel rows,
+//                                     against a bound (Chrome only)
+//   node dev/playcheck.mjs soak       about four minutes: a channel zapped
+//                                     every 20 s for three minutes, a film
+//                                     with eight seeks, the first channel
+//                                     again; the heap after a collection at
+//                                     the start and the end must not have
+//                                     grown past a bound (KEPULI_SOAK_ZAPS
+//                                     sets the number of zaps, 9)
 //
 // The driver is the one dev/store-screenshots.mjs uses, from the same
 // profile (KEPULI_DEV_PROFILE) and port (KEPULI_DEV_PORT), and it needs the
@@ -3948,9 +3959,163 @@ async function pseudoViews(page, plain) {
   return { ok: true, detail: `${views.length} views at 1280×800 (${views.join(', ')}) with ${text}: nothing overflows` };
 }
 
+/**
+ * The time from opening the player to its first channel rows, with the
+ * catalogue cache empty (a new install, or a cache dropped by Refresh) and
+ * with it full (every later start). The moment is taken in the page itself:
+ * a script set before the page loads watches for the first row and notes
+ * the frame after it, so that the numbers are not the driver's polling.
+ * Three starts each, the median kept; the bounds are well above this
+ * machine's numbers, for a start-up that has begun to wait on something.
+ */
+async function startup(page, { target, requests }) {
+  if (!DEVTOOLS_PORT) return { ok: true, detail: 'skipped in Firefox: needs a script set before the page loads, which the Marionette driver does not offer' };
+  const BOUNDS = { coldMs: 5000, warmMs: 3000 };
+  const origin = target.url.match(/^chrome-extension:\/\/[^/]+/)[0];
+  // Without the Page domain enabled, the script is never run.
+  await page.call('Page.enable');
+  const { identifier } = await page.call('Page.addScriptToEvaluateOnNewDocument', { source: `(() => {
+    const seen = () => { const row = document.querySelector('#list .row .row-name'); if (!row) return false;
+      requestAnimationFrame(() => { window.__firstRows = { ms: Math.round(performance.now()), name: row.textContent.trim() }; }); return true; };
+    const watch = new MutationObserver(() => { if (seen()) watch.disconnect(); });
+    watch.observe(document, { childList: true, subtree: true });
+  })()` });
+  const start = async (cold) => {
+    if (cold) {
+      // The databases can only be deleted from a page that does not hold
+      // them, as freshPlayer does.
+      await page.call('Page.navigate', { url: `${origin}/css/player.css` });
+      await sleep(500);
+      await evaluate(page, `indexedDB.databases().then((dbs) => Promise.all(dbs.map((d) => new Promise((resolve) => {
+        const req = indexedDB.deleteDatabase(d.name); req.onsuccess = req.onerror = req.onblocked = () => resolve(d.name); }))))`);
+    }
+    await evaluate(page, `chrome.storage.local.set({ ui: { tab: 'live' } })`);
+    const asked = requests.length;
+    await page.call('Page.navigate', { url: bare(target.url) });
+    await sleep(300);
+    const { ms, name } = await waitFor(page, `window.__firstRows`, `the first channel rows (${cold ? 'cold' : 'warm'})`, 30000);
+    // A cold start must have fetched the channels from the server, or it
+    // measured a cache that was not dropped.
+    const fetched = requests.slice(asked).some((url) => /action=get_live_streams/.test(url));
+    if (cold && !fetched) throw new Error('a cold start drew its rows without asking the server for the channels');
+    names.add(name);
+    return ms;
+  };
+  const names = new Set();
+  const median = (xs) => [...xs].sort((a, b) => a - b)[Math.floor(xs.length / 2)];
+  try {
+    const cold = [], warm = [];
+    for (let i = 0; i < 3; i++) cold.push(await start(true));
+    for (let i = 0; i < 3; i++) warm.push(await start(false));
+    const rows = await evaluate(page, `document.querySelectorAll('#list .row').length`);
+    const got = { coldMs: median(cold), warmMs: median(warm) };
+    const over = Object.entries(BOUNDS).filter(([k, bound]) => got[k] > bound).map(([k, bound]) => `${k} ${got[k]} > ${bound}`);
+    if (over.length) throw new Error(`over the bounds: ${over.join('; ')} (cold ${cold.join(', ')} ms; warm ${warm.join(', ')} ms)`);
+    return { ok: true, detail: `first channel rows drawn: cold cache ${got.coldMs} ms (${cold.join(', ')}), warm ${got.warmMs} ms (${warm.join(', ')}); ${rows} rows, the first ${[...names].join(' / ')}` };
+  } finally {
+    await page.call('Page.removeScriptToEvaluateOnNewDocument', { identifier }).catch(() => {});
+  }
+}
+
+/**
+ * The page's memory over a long session: about three minutes of live
+ * channels with a zap every 20 seconds, then a film played with seeks
+ * back and forth, then the first channel again. The JavaScript heap is
+ * read after a garbage collection at the start and at the end, both with
+ * the same channel playing, and the scenario fails when it has grown by
+ * more than a generous bound: a player, a stream reader, a demuxer or a
+ * listener that each zap or seek leaves behind adds up over an evening.
+ * The DOM's nodes and listeners are reported beside it, and bounded too.
+ */
+async function soak(page) {
+  const ZAPS = Number(process.env.KEPULI_SOAK_ZAPS || 9), ZAP_EVERY_MS = 20000;
+  const BOUNDS = { heapGrowthMb: 20, listenerGrowth: 300, nodeGrowth: 3000, zapP50Ms: 8000 };
+  // A heap read after a full collection: what the page still holds, not
+  // what it has not got round to freeing. Chrome's performance.memory is
+  // rounded and lags, so the DevTools figure is used where there is one.
+  const measure = async () => {
+    try {
+      await page.call('HeapProfiler.collectGarbage');
+      await sleep(300);
+      await page.call('HeapProfiler.collectGarbage');
+      const heap = await page.call('Runtime.getHeapUsage');
+      const dom = await page.call('Memory.getDOMCounters');
+      return { heapMb: +(heap.usedSize / 1048576).toFixed(1), nodes: dom.nodes, listeners: dom.jsEventListeners };
+    } catch {
+      return { heapMb: await evaluate(page, `performance.memory ? Math.round(performance.memory.usedJSHeapSize / 1048576) : 0`), nodes: 0, listeners: 0 };
+    }
+  };
+  const playChannel = async (index) => {
+    const name = await evaluate(page, `document.querySelectorAll('#list .row')[${index}].querySelector('.row-name').textContent.trim()`);
+    const t0 = Date.now();
+    await evaluate(page, `document.querySelectorAll('#list .row')[${index}].click()`, { gesture: true });
+    await sleep(100);
+    await waitFor(page, `${PLAYING} && document.getElementById('now-title').textContent.trim() === ${JSON.stringify(name)}`, `${name} playing`, 40000);
+    return Date.now() - t0;
+  };
+  const liveFinland = async () => {
+    await evaluate(page, `document.querySelector('#tabs [data-tab="live"]').click()`);
+    await click(page, '#groups', 'Finland');
+    await waitFor(page, `document.querySelectorAll('#list .row').length > 5`, 'the channels');
+  };
+  const steps = [];
+  await watchErrors(page);
+  await liveFinland();
+  const channels = await evaluate(page, `document.querySelectorAll('#list .row').length`);
+  await playChannel(0);
+  await sleep(5000);
+  const first = await measure();
+  steps.push(`start ${first.heapMb}`);
+
+  // The live part: a zap every twenty seconds, round the group's channels.
+  const zaps = [];
+  for (let i = 1; i <= ZAPS; i++) {
+    const t0 = Date.now();
+    zaps.push(await playChannel(i % Math.min(channels, 8)));
+    await sleep(Math.max(0, ZAP_EVERY_MS - (Date.now() - t0)));
+  }
+  const afterLive = await measure();
+  steps.push(`${ZAPS} zaps ${afterLive.heapMb}`);
+
+  // A film with seeks: each one a jump outside what is buffered, waited
+  // for until the picture moves again from there.
+  await evaluate(page, `document.querySelector('#tabs [data-tab="movie"]').click()`);
+  await click(page, '#groups', 'Nordic');
+  await click(page, '#list', 'Northern Lights', { gesture: true });
+  await waitFor(page, PLAYING, 'the film', 40000);
+  const duration = await waitFor(page, `(() => { const d = document.getElementById('video').duration; return isFinite(d) && d > 0 ? d : 0; })()`, 'the film\'s duration');
+  const SEEKS = [0.5, 0.15, 0.8, 0.35, 0.65, 0.05, 0.9, 0.25];
+  for (const share of SEEKS) {
+    const to = +(duration * share).toFixed(1);
+    await evaluate(page, `document.getElementById('video').currentTime = ${to}`);
+    await sleep(500);
+    await waitFor(page, `(() => { const v = document.getElementById('video'); return ${PLAYING} && v.currentTime >= ${to} && v.currentTime < ${to} + 30; })()`, `the film from ${to} s`, 30000);
+    await sleep(4000);
+  }
+  const afterFilm = await measure();
+  steps.push(`film with ${SEEKS.length} seeks ${afterFilm.heapMb}`);
+
+  // Back where it began, so that start and end are the same state.
+  await liveFinland();
+  await playChannel(0);
+  await sleep(5000);
+  const last = await measure();
+  steps.push(`end ${last.heapMb}`);
+
+  const thrown = await errorsSeen(page);
+  const sorted = [...zaps].sort((a, b) => a - b);
+  const got = { heapGrowthMb: +(last.heapMb - first.heapMb).toFixed(1), listenerGrowth: last.listeners - first.listeners,
+    nodeGrowth: last.nodes - first.nodes, zapP50Ms: sorted[Math.floor(sorted.length / 2)] };
+  const over = Object.entries(BOUNDS).filter(([k, bound]) => got[k] > bound).map(([k, bound]) => `${k} ${got[k]} > ${bound}`);
+  if (thrown.length) over.push(`errors thrown: ${thrown.slice(0, 3).join(' | ')}`);
+  const detail = `heap MB ${steps.join(', ')} (growth ${got.heapGrowthMb}); DOM nodes ${first.nodes} → ${last.nodes}, listeners ${first.listeners} → ${last.listeners}; zap to picture p50 ${got.zapP50Ms} ms, max ${sorted.at(-1)} ms; film ${Math.round(duration)} s`;
+  if (over.length) throw new Error(`over the bounds: ${over.join('; ')}: ${detail}`);
+  return { ok: true, detail };
+}
+
 const SCENARIOS = { buffering, livebuffering, filmbuffering, emptyfile, tsasmp4, refusedfile, badgateway, livebadgateway, channelrefused, noanswer, longfilm, catalogUi, setupClarity, fullscreenControl, clickpause, pickers, channels, home, resumemkv, restore, programmes, catchup, seek, death, cancel, timeout, search, paste, keys, switching, resume, connections, livezap, livequiet, reconnect, accounts, listerror, a11y, subtitles, audio, settings,
   lastchannel, nextepisode, continuewatching, reminders, update, seeklag, cuesretry, quota, catchupfreeze, catchupfull, twotabs, switchstop, resettabs,
-  refresh, restorenav, guidekeep, m3u, sync, holes, picks, flakyserver, accountform, stalker, record, guidefavs, categories, noleak, perf, pseudo };
+  refresh, restorenav, guidekeep, m3u, sync, holes, picks, flakyserver, accountform, stalker, record, guidefavs, categories, noleak, perf, pseudo, startup, soak };
 // The mock's whole-list answers stall for these, longer than the request limit.
 const SLOW_LIST_MS = { cancel: 60000, timeout: 60000 };
 // The media is sent slowly for these: the seek targets must lie outside the

@@ -9,7 +9,7 @@ what it does and how to run it. Read that header before using one.
 | Area | Scripts |
 | --- | --- |
 | Development loop | `dev.mjs` (the owner's Chrome loop, port 9222: do not run it as an agent), `screenshot.mjs` (Chrome helpers: `ensureChrome`, `openPlayer`, `session`, `capture`) |
-| Tests | `unitcheck.mjs`, `playcheck.mjs`, `uicheck.mjs`, `visualcheck.mjs` (the five views against `visual/`), and per-area `demuxcheck`, `audiocheck`, `audiofactscheck`, `mediafilterscheck`, `ratingcheck`, `searchnamescheck`, `titlelinkscheck`, `moviedurationcheck` |
+| Tests | `unitcheck.mjs`, `playcheck.mjs`, `uicheck.mjs`, `visualcheck.mjs` (the five views in both themes and the narrow channels against `visual/`), and per-area `demuxcheck`, `audiocheck`, `audiofactscheck`, `mediafilterscheck`, `ratingcheck`, `searchnamescheck`, `titlelinkscheck`, `moviedurationcheck` |
 | Mock provider | `mock/` (see `mock/AGENTS.md`) |
 | Translations and texts | `translations.mjs`, `listings.mjs`, `glossarycheck.mjs` (each language's term for the core concepts, `store/i18n-glossary.json`), `translationreview.mjs` (Codex cross-check, see `js/locales/AGENTS.md`), `site.mjs` (README → `docs/index.html`) |
 | Packaging | `package.mjs` (allowlist packages from git HEAD; `--zip`, `--worktree`, `--check`: the manifests agree and ask only for the permissions in its `APPROVED`, each with its reason; `--zip` moves older zips from the root into `dist/releases/`), `release.mjs` (is this commit ready to release: every check in one run), `releasenotes.mjs` (a draft of the GitHub release notes from the commits since the last tag, printed for the owner to edit) |
@@ -74,7 +74,9 @@ data, so never point it at a profile someone uses.
   of the file and in `SCENARIOS` at its end.
 - `node dev/uicheck.mjs`: layout and navigation regressions, headless,
   temporary profile.
-- `node dev/visualcheck.mjs`: the five store views, taken with the mock
+- `node dev/visualcheck.mjs`: the five store views in the dark theme, the
+  same five in the light theme (`visual/light-*`) and the channels at 600 px
+  wide, the player's pane and the list's (`visual/narrow-*`), taken with the mock
   server's and the page's clocks set to one moment (`KEPULI_MOCK_NOW`,
   `player.html?testnow=`, `js/testclock.js`), compared pixel by pixel with
   `dev/visual/*.png`; what moves by itself (picture, subtitles, progress bars,
@@ -82,7 +84,12 @@ data, so never point it at a profile someone uses.
   (changes in red). When a change to the views is meant, look at the
   differences, run `--update`, and commit the new references with the change.
   The references are macOS renderings; on another system make local ones and
-  do not commit them.
+  do not commit them. The further views come from `store-screenshots.mjs`'s
+  `KEPULI_SHOTS_THEME`, `KEPULI_SHOTS_WIDTH` and `KEPULI_SHOTS_VIEWS`;
+  without them it takes the store pictures as before. About two minutes;
+  pass your own `KEPULI_DEV_PORT` (its default is 9351). It stops when a
+  browser already answers on that port, as the playcheck one stays running:
+  that one's pictures differ in every view.
 - `KEPULI_BROWSER=firefox node dev/playcheck.mjs [scenario]`: the same in
   Firefox through Marionette (opens a window).
 - `node dev/vendorcheck.mjs`: `vendor/` is exactly the third-party code
@@ -109,6 +116,26 @@ above this machine's numbers (on 2026-11-04: 320 ms, 17 ms, 456 ms, 53 MB;
 virtual, a search that walks the DOM or a leak, and reports the numbers
 every run: compare them with these before and after a change to the lists,
 search or rows.
+
+The `startup` scenario opens the player three times with the catalogue cache
+dropped and three times with it kept, and takes the time from the
+navigation to the first channel rows drawn, noted in the page itself (bounds
+5 s cold, 3 s warm; on 2026-11-04 the medians were 108 ms cold and 108 ms
+warm against the mock's catalogue, so the bounds catch a start that has
+begun to wait on something, not a slow day). It also checks that a cold start
+really asked the server for the channels.
+
+The `soak` scenario (about four minutes) zaps a channel every 20 s for three
+minutes, plays a film with eight seeks, and returns to the first channel;
+the JavaScript heap is read after a garbage collection at the start and the
+end, in the same state. It fails on more than 20 MB of growth, 300 event
+listeners or 3,000 DOM nodes, or a median zap over 8 s. On 2026-11-04: heap
+5.1 MB at the start, 6.6 after the zaps, 6.6 after the film, 6.7 at the end
+(growth 1.6 MB); DOM nodes 2,877 → 2,884, listeners 344 → 344; zap to
+picture 109 ms median, 310 ms at most (polled every 200 ms). A planted leak
+of 3 MB a zap failed it at 32 MB of growth. The heap is the page's
+JavaScript only: media buffers and decoders live outside it and are not
+counted.
 
 ### CI
 

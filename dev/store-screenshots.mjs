@@ -12,6 +12,20 @@
 // deployed demo instead of a local server — the check that what the store
 // reviewers get really works — and KEPULI_SHOTS_DIR sets where the pictures go.
 //
+// For dev/visualcheck.mjs's further reference views, three more switches;
+// none is set for the store pictures, which stay dark, 1280 wide and all five:
+//
+//   KEPULI_SHOTS_THEME=light      the light theme instead of the dark one
+//   KEPULI_SHOTS_WIDTH=600        a narrower viewport (dev/screenshot.mjs), as
+//                                 600 px gives the one-pane narrow layout
+//   KEPULI_SHOTS_VIEWS=01-channels,05-movie
+//                                 only these views (names without .png); the
+//                                 walk stops once the last of them is taken;
+//                                 01-channels-browse, the channel list's own
+//                                 pane of the narrow layout (the playing
+//                                 channel's pane is 01-channels there), is
+//                                 taken only when asked for here
+//
 // The extension in the development profile is left pointing at the mock
 // server; its settings dialog takes it back to a real one.
 
@@ -29,6 +43,9 @@ const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const OUT = process.env.KEPULI_SHOTS_DIR ? resolve(process.env.KEPULI_SHOTS_DIR)
   : join(ROOT, 'brand', FIREFOX ? 'firefox-screenshots' : 'screenshots');
 const DEMO = process.env.KEPULI_DEMO_URL ? new URL(process.env.KEPULI_DEMO_URL) : null;
+const THEME = process.env.KEPULI_SHOTS_THEME || 'dark';
+if (!['dark', 'light'].includes(THEME)) throw new Error(`KEPULI_SHOTS_THEME is dark or light, not ${THEME}`);
+const ONLY = process.env.KEPULI_SHOTS_VIEWS ? new Set(process.env.KEPULI_SHOTS_VIEWS.split(',').map((v) => v.trim()).filter(Boolean)) : null;
 
 /* ------------------------------------------------------------ page helpers */
 
@@ -98,10 +115,18 @@ const playerUrl = (url) => url.split('#')[0].split('?')[0] + (FROZEN === null ? 
 // KEPULI_SHOTS_MASKS: beside each picture, <name>.masks.json lists the boxes
 // whose content changes by itself from one run to the next — the moving
 // picture, the subtitles over it, progress bars, the guide's now line — for
-// the visual check to leave out.
+// the visual check to leave out. The guide's live programmes carry their
+// share played as a fill (.epg-prog > i) rounded to a per cent, which the
+// clock running on during the walk moved by a pixel on some runs.
 const MASKED = ['#video', '#subdisplay', '#epg-preview video', '.row-progress', '.bar-fill', '.epgbar', '.nowbar',
-  '.epg-bar', '.overlay-bar', '.overlay-elapsed', '.epg-nowline', '.epg-nowhead', '.list-progress'];
+  '.epg-bar', '.overlay-bar', '.overlay-elapsed', '.epg-nowline', '.epg-nowhead', '.list-progress', '.epg-prog > i'];
+// Thrown by shoot once every view KEPULI_SHOTS_VIEWS asks for is taken: the
+// rest of the walk only sets up views nobody wants.
+class AllTaken extends Error {}
+const taken = new Set();
 async function shoot(name) {
+  const view = name.replace(/\.png$/, '');
+  if (ONLY && !ONLY.has(view)) return;
   const file = join(OUT, name);
   if (process.env.KEPULI_SHOTS_MASKS) {
     // Whether the guide's grid has taken the focus yet, and so draws its
@@ -114,6 +139,8 @@ async function shoot(name) {
     writeFileSync(file.replace(/\.png$/, '.masks.json'), JSON.stringify(boxes));
   }
   await capture(page, file);
+  taken.add(view);
+  if (ONLY && [...ONLY].every((v) => taken.has(v))) throw new AllTaken();
 }
 
 try {
@@ -132,7 +159,7 @@ try {
   await evaluate(page, `chrome.storage.local.get(null).then((all) => chrome.storage.local.remove(Object.keys(all).filter((k) => k.includes(':'))))`);
   await evaluate(page, `chrome.storage.local.set({
     config: { ...${JSON.stringify(connection)}, username: ${JSON.stringify(USER)}, password: ${JSON.stringify(PASS)}, sourceMode: 'xtream', streamMode: 'auto' },
-    settings: { lang: 'en', epgEnabled: true, resumeEnabled: true, subtitleLang: 'eng' },
+    settings: { lang: 'en', theme: ${JSON.stringify(THEME)}, epgEnabled: true, resumeEnabled: true, subtitleLang: 'eng' },
     ui: { tab: 'live' }, favorites: [], recents: [], resume: {},
   })`);
   // URL.origin is null for an extension scheme, and Firefox's is moz-extension
@@ -164,6 +191,15 @@ try {
   await waitFor(page, PLAYING, 'the live stream');
   await sleep(2500);                                   // now/next below the player
   await shoot('01-channels.png');
+  if (ONLY?.has('01-channels-browse')) {
+    // In the narrow layout playback takes the one pane; Browse shows the
+    // rows beside it, the same channels with their programmes.
+    await evaluate(page, `document.getElementById('compact-browse').click()`);
+    await waitFor(page, `getComputedStyle(document.getElementById('listcol')).display !== 'none'`, 'the browse pane');
+    await sleep(500);
+    await shoot('01-channels-browse.png');
+    await evaluate(page, `document.getElementById('compact-player').click()`);
+  }
 
   // 2. The programme guide over the same channels.
   await evaluate(page, `document.getElementById('btn-guide').click()`);
@@ -202,6 +238,8 @@ try {
   await waitFor(page, `!document.getElementById('infostrip').hidden && !!document.querySelector('#infostrip .plot')`, 'the movie details');
   await sleep(1500);
   await shoot('05-movie.png');
+} catch (e) {
+  if (!(e instanceof AllTaken)) throw e;
 } finally {
   await clearViewport(page).catch(() => {});
   page.close();
