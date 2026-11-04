@@ -12,7 +12,7 @@ written here.
 
 | Module | Role |
 | --- | --- |
-| `app.js` (~4,100 lines, being split) | state, every view, event wiring. One `state` object near the top; sections are marked `/* ---- name */` (the address, covers, info panel, programme guide, reminders, recordings, the next episode, accounts, sync, external player, the picks…). Find with `grep -n "^/\* -" js/app.js` and read the section you change |
+| `app.js` (~2,050 lines, being split) | state, the connection, the account in this tab, the address (`#/live/...`), the sidebar, rows, the list's keys and Chromecast, and the start-up wiring. One `state` object near the top; sections are marked `/* ---- name */`. Find with `grep -n "^/\* -" js/app.js` and read the section you change |
 | `rows.js`, `vlist.js`, `listnavigation.js` | list rows (built on every scroll frame: keep them light), the virtualised list, cursor and return positions by item |
 | `picker.js`, `modal.js`, `rowmenu.js`, `poster.js` | shared UI parts: every drop-down, dialog closing, the row menu, covers with fallback. Reuse them |
 | `playerlayout.js`, `theme.js`, `route.js` | narrow-window panes, colour theme, the address (`#/live/...`) and tab title |
@@ -48,9 +48,12 @@ lists, series info, stream URL) for its kind:
 | `subs.js`, `subdisplay.js`, `lang.js` | subtitle tracks, the app-drawn subtitle layer, language names |
 | `cast.js`, `external.js` | Chromecast (Remote Playback API), hand-off to VLC and others |
 | `streamhub.js`, `recorder.js` | one shared live connection; recording to the origin private file system |
+| `playing.js`, `tracksui.js`, `nextepisode.js` | starting playback and what the overlay says while it waits or fails (the account's connections, the player's other tabs); the subtitle and audio selectors, the subtitles' look, the picture's size and leaving playback; the saved place, the next episode and the stream's figures (moved out of `app.js`) |
+| `setupui.js` | Settings and Account & data: the form and its account kinds, sync, the storage used, the update, resetting everything, and their wiring (moved out of `app.js`) |
 | `recordingsui.js` | the recording UI: Record button and reminder, the list, plans from the guide, catch-up playback (moved out of `app.js`) |
 | `accountsui.js`, `remindersui.js`, `infostrip.js` | the account list and switcher; programme reminders; the details strip under the picture (moved out of `app.js`) |
 | `coversui.js`, `seriesui.js`, `guideui.js`, `picksui.js`, `topicbar.js`, `externalui.js` | covers or rows; a series' page; the guide in the player (grid, column, search, favourites); the start page's picks; the topic chips and their bar; the external player hand-off (moved out of `app.js`) |
+| `idlehome.js` | the empty player's page (continue watching, the viewer's channels, the picks' carousel) and the note of programmes the viewer stays with (moved out of `app.js`) |
 | `collections.js`, `playercontrols.js`, `progressdialog.js`, `help.js`, `languageui.js` | Favourites and History and favourite categories; the ☰ menu, full screen and media keys; the list-loading strip; the help dialog; switching language and the empty player's title (moved out of `app.js`) |
 | `toast.js` | the message strip (`toast`) and copying a stream address: import `toast` from here |
 | `dom.js` | `$` and `el`, the page's elements looked up once: import them from here, not from `app.js` |
@@ -79,7 +82,10 @@ in the module runs while the modules load. Rules for the next ones: move a
 whole section (both `/* ---- */` and `/* ==== */` headings bound one, and
 nothing in the module may use an `app.js` binding while the modules load —
 build such objects from `dom.js` only); a variable the other side assigns cannot cross
-(give it a function, as `newPlayRun()` for `playRun`); check every import
+(give it a function, as `newPlayRun()` for `playRun` and `startReset()` for
+`resetting`, or move consecutive sections together so that the variable
+stays on one side: `uv run dev/splitsection.py` takes one section, so the
+headings in between were masked for the move and put back after it); check every import
 form (`import * as store` too), run `node dev/namecheck.mjs` (it finds
 exactly that kind of miss), then make sure the module loads at all (a duplicate export is a
 SyntaxError that stops the whole player: every scenario then fails at "the
@@ -108,7 +114,7 @@ with the console open and run the scenarios of that feature. A
   history. Keys are `<name>:<scheme>://<host>:<port>/<user>`. Do not write
   `storage.local` for lists directly.
 - **Settings defaults** live in `config.js`; a new setting gets its default
-  there, a control in `player.html` (Settings), wiring in `app.js`, strings in
+  there, a control in `player.html` (Settings), wiring in `setupui.js`, strings in
   all languages, and a line in `docs/user-guide.md`.
 - **Text through `t()`**; static markup through `data-i18n*` attributes.
 - **Provider data is untrusted**: names, URLs, EPG text and metadata are
