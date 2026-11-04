@@ -1580,8 +1580,11 @@ async function home(page) {
   // The ✕ on a card forgets where it was left, card by card; with none
   // left, the heading goes too.
   const cards = () => evaluate(page, `[...document.querySelectorAll('.idle-cards .idle-name')].map((n) => n.textContent)`);
-  const shown = await evaluate(page, `(() => { const b = document.querySelector('.idle-forget'); return b ? getComputedStyle(b).opacity : null; })()`);
-  assert(shown === '0', `the ✕ shows without hover: ${shown}`);
+  // With a mouse the ✕ waits for the hover; where the browser says there is
+  // no hover (a touch screen, or headless Chrome on Linux) it always shows.
+  const { shown, hover } = await evaluate(page, `(() => { const b = document.querySelector('.idle-forget');
+    return { shown: b ? getComputedStyle(b).opacity : null, hover: matchMedia('(hover: hover)').matches }; })()`);
+  assert(shown === (hover ? '0' : '1'), `the ✕ ${hover ? 'shows without hover' : 'is hidden where there is no hover'}: ${shown}`);
   const points = () => evaluate(page, `chrome.storage.local.get(null).then((d) => Object.entries(d).filter(([k]) => k.startsWith('resume')).reduce((n, [, v]) => n + Object.keys(v || {}).length, 0))`);
   const pointsBefore = await points();
   for (let left = (await cards()).length; left > 0; left--) {
