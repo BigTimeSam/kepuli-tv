@@ -111,6 +111,26 @@ virtual, a search that walks the DOM or a leak, and reports the numbers
 every run: compare them with these before and after a change to the lists,
 search or rows.
 
+The `startup` scenario opens the player three times with the catalogue cache
+dropped and three times with it kept, and takes the time from the
+navigation to the first channel rows drawn, noted in the page itself (bounds
+5 s cold, 3 s warm; on 2026-11-04 the medians were 108 ms cold and 108 ms
+warm against the mock's catalogue, so the bounds catch a start that has
+begun to wait on something, not a slow day). It also checks that a cold start
+really asked the server for the channels.
+
+The `soak` scenario (about four minutes) zaps a channel every 20 s for three
+minutes, plays a film with eight seeks, and returns to the first channel;
+the JavaScript heap is read after a garbage collection at the start and the
+end, in the same state. It fails on more than 20 MB of growth, 300 event
+listeners or 3,000 DOM nodes, or a median zap over 8 s. On 2026-11-04: heap
+5.1 MB at the start, 6.6 after the zaps, 6.6 after the film, 6.7 at the end
+(growth 1.6 MB); DOM nodes 2,877 → 2,884, listeners 344 → 344; zap to
+picture 109 ms median, 310 ms at most (polled every 200 ms). A planted leak
+of 3 MB a zap failed it at 32 MB of growth. The heap is the page's
+JavaScript only: media buffers and decoders live outside it and are not
+counted.
+
 ### CI
 
 `.github/workflows/checks.yml` runs the Node-only checks (unit, names, markup, area
