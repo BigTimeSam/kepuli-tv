@@ -75,7 +75,7 @@ Long-form documentation: [user guide](docs/user-guide.md),
 | The guides name what exists | `node dev/docscheck.mjs` |
 | Browser scenarios against the mock server | `node dev/playcheck.mjs [scenario …]` (see testing playbook for env vars) |
 | UI regressions, isolated headless profile | `node dev/uicheck.mjs` |
-| The five store views against reference pictures | `node dev/visualcheck.mjs [--update]` |
+| The five store views (dark and light) and the narrow layout against reference pictures | `node dev/visualcheck.mjs [--update]` |
 | Same scenarios in Firefox | `KEPULI_BROWSER=firefox node dev/playcheck.mjs [scenario]` |
 | Dummy media for the mock server (once) | `sh dev/mock/media.sh` |
 | Translations behind? / mark done | `node dev/translations.mjs [--check]` / `--mark <lang…|all>` |
@@ -101,7 +101,8 @@ Long-form documentation: [user guide](docs/user-guide.md),
   in `dev/playcheck.mjs`, and the mock server (`dev/mock/server.mjs`) gains
   whatever the scenario needs, switched by a `KEPULI_MOCK_*` variable.
 - **Look at UI changes.** `node dev/visualcheck.mjs` catches unintended
-  changes to the five store views; for anything else take a screenshot with your own headless Chrome
+  changes to the five store views, in both themes, and to the channels at
+  600 px; for anything else take a screenshot with your own headless Chrome
   (see the testing playbook) at 1280×800, in both themes when colours change,
   and check alignment and overflow before calling it done.
 - **Keep the docs in step** (`node dev/docscheck.mjs` catches a guide that

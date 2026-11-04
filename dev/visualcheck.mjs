@@ -1,9 +1,11 @@
 #!/usr/bin/env node
 // The five store views compared with pictures of how they looked, pixel by
-// pixel, so that a change nobody meant shows up before a release does.
+// pixel, so that a change nobody meant shows up before a release does; and
+// the same five in the light theme, and the channels at 600 px wide (both
+// panes: the playing channel and the list).
 //
-//   node dev/visualcheck.mjs             take the five views and compare them with
-//                                        dev/visual/<view>.png
+//   node dev/visualcheck.mjs             take the views and compare them with
+//                                        dev/visual/<set><view>.png
 //   node dev/visualcheck.mjs --update    take them and make them the new reference
 //   node dev/visualcheck.mjs --keep DIR  write the pictures and the difference images
 //                                        to DIR rather than a temporary directory
@@ -11,6 +13,14 @@
 // Why: in 1.6.3 the film cover in the details strip stretched into a tall bar.
 // Every test passed, because no test looks; it reached the store screenshots
 // and the demo video before anyone saw it. This looks.
+//
+// Three sets of views, each one run of dev/store-screenshots.mjs with its
+// switches: the store's own five (dark, 1280x800, no prefix), the five again
+// in the light theme (light-*), whose colours are a set of their own that
+// a change to the dark ones can leave behind, and the channels in the
+// narrow layout at 600x800 (narrow-*: the player's pane and the list's),
+// where the columns give way to one pane and a change made at the desktop
+// width can break it unseen.
 //
 // The views are dev/store-screenshots.mjs's, taken in a headless Chrome of
 // its own (KEPULI_DEV_PORT, default 9351, and a temporary profile), against
@@ -35,7 +45,7 @@
 // No dependencies: PNG is read and written here with node:zlib.
 
 import { spawn } from 'node:child_process';
-import { copyFileSync, existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import { copyFileSync, existsSync, mkdirSync, mkdtempSync, readFileSync, renameSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -43,7 +53,14 @@ import { deflateSync, inflateSync } from 'node:zlib';
 
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const REFS = join(ROOT, 'dev', 'visual');
-const VIEWS = ['01-channels', '02-guide', '03-series', '04-subtitles', '05-movie'];
+const FIVE = ['01-channels', '02-guide', '03-series', '04-subtitles', '05-movie'];
+const SETS = [
+  { prefix: '', env: {}, views: FIVE },
+  { prefix: 'light-', env: { KEPULI_SHOTS_THEME: 'light' }, views: FIVE },
+  { prefix: 'narrow-', env: { KEPULI_SHOTS_WIDTH: '600', KEPULI_SHOTS_VIEWS: '01-channels,01-channels-browse' }, views: ['01-channels', '01-channels-browse'] },
+];
+const VIEWS = SETS.flatMap((set) => set.views.map((view) => set.prefix + view));
+const DEV_PORT = process.env.KEPULI_DEV_PORT || '9351';
 const NOW = '2026-11-02T18:40:00Z';      // a Monday evening, the guide full of programmes
 const CHANNEL_DIFF = 40, MAX_CHANGED = 150;
 
@@ -104,11 +121,19 @@ function writePng(file, { width, height, rgb }) {
 
 /* ------------------------------------------------------------ the views */
 
-function takeViews() {
+/** One run of store-screenshots.mjs into shots/, its pictures named with the set's prefix. */
+async function takeSet(set) {
+  const dir = join(shots, set.prefix || 'store');
+  mkdirSync(dir, { recursive: true });
+  await takeViews(dir, set.env);
+  for (const view of set.views) for (const ext of ['.png', '.masks.json']) renameSync(join(dir, view + ext), join(shots, set.prefix + view + ext));
+}
+
+function takeViews(dir, extra) {
   return new Promise((ok, fail) => {
     const env = {
-      ...process.env, KEPULI_SHOTS_DIR: shots, KEPULI_SHOTS_MASKS: '1', KEPULI_MOCK_NOW: NOW, KEPULI_HEADLESS: '1',
-      KEPULI_DEV_PORT: process.env.KEPULI_DEV_PORT || '9351', KEPULI_DEV_PROFILE: join(work, 'profile'), TZ: 'Europe/Helsinki',
+      ...process.env, ...extra, KEPULI_SHOTS_DIR: dir, KEPULI_SHOTS_MASKS: '1', KEPULI_MOCK_NOW: NOW, KEPULI_HEADLESS: '1',
+      KEPULI_DEV_PORT: DEV_PORT, KEPULI_DEV_PROFILE: join(work, 'profile'), TZ: 'Europe/Helsinki',
     };
     const child = spawn(process.execPath, [join(ROOT, 'dev', 'store-screenshots.mjs')], { env, stdio: ['ignore', 'pipe', 'inherit'] });
     child.stdout.on('data', () => {});
@@ -144,13 +169,40 @@ function compare(view) {
 
 /* ------------------------------------------------------------------ main */
 
-console.log(`taking the five views (mock clock ${NOW}) …`);
-await takeViews();
+// The Chrome the first set starts serves the others too, and is closed at
+// the end. One that already answers on the port is not used: it has another
+// profile and other flags (playcheck's is headless and stays running), and
+// its pictures differed from the references in every view's text and logos.
+const chromeAnswers = () => fetch(`http://127.0.0.1:${DEV_PORT}/json/version`).then((r) => r.json(), () => null);
+if (await chromeAnswers()) {
+  console.error(`a browser already answers on port ${DEV_PORT}: close it, or give this check a free KEPULI_DEV_PORT`);
+  process.exit(1);
+}
+async function closeChrome() {
+  const version = await chromeAnswers();
+  if (!version) return;
+  await new Promise((done) => {
+    const ws = new WebSocket(version.webSocketDebuggerUrl);
+    ws.onopen = () => ws.send(JSON.stringify({ id: 1, method: 'Browser.close' }));
+    ws.onmessage = ws.onclose = ws.onerror = () => done();
+    setTimeout(done, 3000);
+  });
+  // Until it has exited it still writes into the profile, which is removed
+  // with the rest of the work directory.
+  for (let i = 0; i < 40 && await chromeAnswers(); i++) await new Promise((r) => setTimeout(r, 250));
+}
+
+console.log(`taking ${VIEWS.length} views in ${SETS.length} sets (mock clock ${NOW}) …`);
+try {
+  for (const set of SETS) await takeSet(set);
+} finally {
+  await closeChrome();
+}
 if (UPDATE) {
   mkdirSync(REFS, { recursive: true });
   for (const view of VIEWS) for (const ext of ['.png', '.masks.json']) copyFileSync(join(shots, view + ext), join(REFS, view + ext));
   console.log(`references updated in ${REFS}: look at them before committing`);
-  if (!keep) rmSync(work, { recursive: true, force: true });
+  if (!keep) rmSync(work, { recursive: true, force: true, maxRetries: 5, retryDelay: 500 });
   process.exit(0);
 }
 const missing = VIEWS.filter((v) => !existsSync(join(REFS, `${v}.png`)));
@@ -163,5 +215,5 @@ for (const view of VIEWS) {
   console.log(`${bad ? 'FAIL' : 'ok  '}  ${view}  ${r.note || `${r.changed} pixels changed${r.box ? ` within x ${r.box[0]}–${r.box[2]}, y ${r.box[1]}–${r.box[3]}` : ''}`}${bad && !r.note ? `\n      ${r.diff}` : ''}`);
 }
 if (failed) console.log(`\n${failed} view(s) changed. The pictures are in ${work}. If the change is meant: node dev/visualcheck.mjs --update`);
-else if (!keep) rmSync(work, { recursive: true, force: true });
+else if (!keep) rmSync(work, { recursive: true, force: true, maxRetries: 5, retryDelay: 500 });
 process.exit(failed ? 1 : 0);

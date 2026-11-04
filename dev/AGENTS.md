@@ -9,7 +9,7 @@ what it does and how to run it. Read that header before using one.
 | Area | Scripts |
 | --- | --- |
 | Development loop | `dev.mjs` (the owner's Chrome loop, port 9222: do not run it as an agent), `screenshot.mjs` (Chrome helpers: `ensureChrome`, `openPlayer`, `session`, `capture`) |
-| Tests | `unitcheck.mjs`, `playcheck.mjs`, `uicheck.mjs`, `visualcheck.mjs` (the five views against `visual/`), and per-area `demuxcheck`, `audiocheck`, `audiofactscheck`, `mediafilterscheck`, `ratingcheck`, `searchnamescheck`, `titlelinkscheck`, `moviedurationcheck` |
+| Tests | `unitcheck.mjs`, `playcheck.mjs`, `uicheck.mjs`, `visualcheck.mjs` (the five views in both themes and the narrow channels against `visual/`), and per-area `demuxcheck`, `audiocheck`, `audiofactscheck`, `mediafilterscheck`, `ratingcheck`, `searchnamescheck`, `titlelinkscheck`, `moviedurationcheck` |
 | Mock provider | `mock/` (see `mock/AGENTS.md`) |
 | Translations and texts | `translations.mjs`, `listings.mjs`, `translationreview.mjs` (Codex cross-check, see `js/locales/AGENTS.md`), `site.mjs` (README → `docs/index.html`) |
 | Packaging | `package.mjs` (allowlist packages from git HEAD; `--zip`, `--worktree`, `--check`), `release.mjs` (is this commit ready to release: every check in one run) |
@@ -70,7 +70,9 @@ data, so never point it at a profile someone uses.
   of the file and in `SCENARIOS` at its end.
 - `node dev/uicheck.mjs`: layout and navigation regressions, headless,
   temporary profile.
-- `node dev/visualcheck.mjs`: the five store views, taken with the mock
+- `node dev/visualcheck.mjs`: the five store views in the dark theme, the
+  same five in the light theme (`visual/light-*`) and the channels at 600 px
+  wide, the player's pane and the list's (`visual/narrow-*`), taken with the mock
   server's and the page's clocks set to one moment (`KEPULI_MOCK_NOW`,
   `player.html?testnow=`, `js/testclock.js`), compared pixel by pixel with
   `dev/visual/*.png`; what moves by itself (picture, subtitles, progress bars,
@@ -78,7 +80,12 @@ data, so never point it at a profile someone uses.
   (changes in red). When a change to the views is meant, look at the
   differences, run `--update`, and commit the new references with the change.
   The references are macOS renderings; on another system make local ones and
-  do not commit them.
+  do not commit them. The further views come from `store-screenshots.mjs`'s
+  `KEPULI_SHOTS_THEME`, `KEPULI_SHOTS_WIDTH` and `KEPULI_SHOTS_VIEWS`;
+  without them it takes the store pictures as before. About two minutes;
+  pass your own `KEPULI_DEV_PORT` (its default is 9351). It stops when a
+  browser already answers on that port, as the playcheck one stays running:
+  that one's pictures differ in every view.
 - `KEPULI_BROWSER=firefox node dev/playcheck.mjs [scenario]`: the same in
   Firefox through Marionette (opens a window).
 - Smaller checks for one area each: `dev/demuxcheck.mjs`, `dev/audiocheck.mjs`,

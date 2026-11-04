@@ -25,7 +25,10 @@ const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 export const PORT = Number(process.env.KEPULI_DEV_PORT || 9222);
 export const PROFILE = process.env.KEPULI_DEV_PROFILE || join(homedir(), '.cache', 'kepuli-tv-dev');
 const PAGE = 'player.html';
-export const WIDTH = 1280, HEIGHT = 800, SCALE = 2;
+// KEPULI_SHOTS_WIDTH: a narrower viewport than the stores' 1280, for
+// dev/visualcheck.mjs's look at the narrow layout (600 px); the height and
+// the 2x density stay as they are.
+export const WIDTH = Number(process.env.KEPULI_SHOTS_WIDTH) || 1280, HEIGHT = 800, SCALE = 2;
 
 const CHROMES = [
   '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome',
