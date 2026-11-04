@@ -159,9 +159,13 @@ whether the commit may be released (clean and pushed, CI green on it, a new
 version, texts in step, reviewer notes within AMO's form, every code and
 visual check); run it before asking for the go. The order that has worked:
 
-1. **Scope and notes.** `git log <last tag>..` for what changed; write the
-   release notes in the style of the previous GitHub release (sections, bold
-   UI names, plain sentences for users).
+1. **Scope and notes.** `git log <last tag>..` for what changed;
+   `node dev/releasenotes.mjs > dist/release-notes.md` (git-ignored) drafts
+   the notes from the commits since the last tag, grouped by where a user
+   meets them and with the three packages named, and publishes nothing.
+   Rewrite the draft in the style of the previous GitHub release
+   (`gh release view v<last>`): sections, bold UI names, plain sentences
+   for users, no development section.
 2. **Version.** Bump `version` in `manifest.json` and `firefox/manifest.json`
    (`node dev/package.mjs --check`). Update the version line in
    `firefox/reviewer-notes.txt` (≤ 3000 characters, line breaks count twice)
@@ -183,7 +187,7 @@ visual check); run it before asking for the go. The order that has worked:
    `kepuli-tv-firefox-X.Y.Z-amo-source.zip`), and only those: older zips
    are moved into `dist/releases/`.
 7. **GitHub release**: `git tag vX.Y.Z && git push origin vX.Y.Z`, then
-   `gh release create vX.Y.Z <the three zips> --title "Kepuli-TV X.Y.Z" --notes-file <notes>`.
+   `gh release create vX.Y.Z <the three zips> --title "Kepuli-TV X.Y.Z" --notes-file dist/release-notes.md`.
 8. **AMO**: `node dev/amo-publish.mjs` in the background (it waits out the
    throttling, then sends the listing and captions); confirm with
    `amo-publish.mjs status`. Usually public within minutes of the version.

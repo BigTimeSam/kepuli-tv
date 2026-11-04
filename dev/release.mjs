@@ -87,7 +87,7 @@ console.log(`
 Not checked here, before the go:
   - the full playback suite in your own profile: node dev/playcheck.mjs (and the scenarios
     of what changed in Firefox: KEPULI_BROWSER=firefox node dev/playcheck.mjs <scenario>)
-  - the release notes, in the style of the last GitHub release
+  - the release notes: node dev/releasenotes.mjs drafts them, rewrite in the style of the last GitHub release
   - store screenshots retaken if the five views changed (brand/AGENTS.md)
 
 Then, with the owner's go: the steps under "Release" in AGENTS.md (package, tag,

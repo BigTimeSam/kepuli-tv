@@ -1493,6 +1493,27 @@ check('every listing is within the store\'s limits, and _locales is in step', ch
   }
 }
 
+/* ----------------------------------------------- dev/releasenotes.mjs */
+
+{
+  const { sectionOf, draft } = await import('./releasenotes.mjs');
+  check('a commit goes where most of its runtime files are; moved code, tests and tooling go to development', [
+    sectionOf({ subject: 'A double click goes full screen', files: ['js/playback.js', 'js/playercontrols.js', 'js/app.js', 'dev/playcheck.mjs'] }),
+    sectionOf({ subject: 'Choose categories like Choose countries', files: ['js/app.js', 'css/player.css', 'js/AGENTS.md'] }),
+    sectionOf({ subject: 'The recording UI out of app.js into js/recordingsui.js', files: ['js/app.js', 'js/recordingsui.js'] }),
+    sectionOf({ subject: 'CI on every push', files: ['.github/workflows/checks.yml'] }),
+    sectionOf({ subject: 'Both stores\' screenshots retaken', files: ['brand/screenshots/1.png', 'store/listings/en.txt', 'dev/store-screenshots.mjs'] }),
+    sectionOf({ subject: 'A compact README', files: ['README.md', 'docs/user-guide.md', 'docs/index.html', 'dev/site.mjs'] }),
+    sectionOf({ subject: 'Ready to release? in one command', files: ['dev/release.mjs', 'AGENTS.md'] }),
+  ], ['Player', 'Everything else in the player', 'Development (usually left out)', 'Development (usually left out)', 'Store pages and the website', 'Documentation', 'Development (usually left out)']);
+  check('the draft has the summary, the sections in order, oldest first, and the three packages; release commits are left out',
+    draft([{ subject: 'Release 1.6.3: tidier', files: ['manifest.json'] }, { subject: 'Subtitles stay in step', files: ['js/subs.js'] },
+      { subject: 'The guide scrolls to now.', files: ['js/guide.js'] }, { subject: 'Seeking is quicker', files: ['js/playback.js'] }], '1.7.0').split('\n'),
+    ['One sentence on what this release is about, for users.', '', '### Player', '', '- Seeking is quicker.', '- Subtitles stay in step.', '',
+      '### Guide', '', '- The guide scrolls to now.', '', '### Packages', '', '- `kepuli-tv-chrome-1.7.0.zip` — Chrome',
+      '- `kepuli-tv-firefox-1.7.0.zip` — Firefox', '- `kepuli-tv-firefox-1.7.0-amo-source.zip` — the source archive for AMO review', '']);
+}
+
 /* ------------------------------------------------------------------ done */
 
 console.log(failed ? `${failed} of ${count} cases failed` : `PASS: ${count} cases`);
