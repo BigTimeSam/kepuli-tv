@@ -111,11 +111,15 @@ export async function playerTarget() {
 export const expectedId = () => createHash('sha256').update(ROOT).digest('hex').slice(0, 32)
   .replace(/[0-9a-f]/g, (c) => String.fromCharCode(97 + parseInt(c, 16)));
 
-/** Is the tab really the player, rather than Chrome's error page for a missing extension? */
-async function isPlayer(target) {
+/**
+ * Is the tab really the player, rather than Chrome's error page for a missing
+ * extension? Waits up to `seconds` for the page to finish loading: a CI
+ * runner's first start of the extension takes several.
+ */
+async function isPlayer(target, seconds = 3) {
   const page = session(target.webSocketDebuggerUrl);
   try {
-    for (let i = 0; i < 20; i++) {
+    for (let i = 0; i < Math.round(seconds / 0.15); i++) {
       const { result } = await page.call('Runtime.evaluate', {
         expression: 'document.readyState === "complete" ? (document.getElementById("tabs") ? "player" : "other") : "loading"',
         returnByValue: true,
@@ -151,7 +155,12 @@ export async function openPlayer() {
   catch (err) { throw new Error(`Chrome would not load the extension from ${ROOT}: ${err.message}`); }
   finally { browser.close(); }
   const player = await openTab(id);
-  if (!(await isPlayer(player))) throw new Error(`the extension was loaded as ${id}, but its tab is not the player (${player.url})`);
+  if (!(await isPlayer(player, 15))) {
+    const page = session(player.webSocketDebuggerUrl);
+    const { result } = await page.call('Runtime.evaluate', { expression: `document.readyState + ': ' + (document.title || '') + ' | ' + (document.body?.innerText || '').slice(0, 300)`, returnByValue: true }).catch(() => ({ result: {} }));
+    page.close();
+    throw new Error(`the extension was loaded as ${id}, but its tab is not the player (${player.url}): ${result.value}`);
+  }
   return player;
 }
 
