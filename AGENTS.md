@@ -71,6 +71,7 @@ Long-form documentation: [user guide](docs/user-guide.md),
 | --- | --- |
 | Pure-function tests (seconds; run always) | `node dev/unitcheck.mjs` |
 | Undefined names, missing imports/exports | `node dev/namecheck.mjs` |
+| The typed modules (`// @ts-check`) type-check | `node dev/typecheck.mjs` |
 | Markup only from constants, no eval | `node dev/htmlcheck.mjs` |
 | The guides name what exists | `node dev/docscheck.mjs` |
 | Browser scenarios against the mock server | `node dev/playcheck.mjs [scenario …]` (see testing playbook for env vars) |
@@ -118,7 +119,7 @@ Long-form documentation: [user guide](docs/user-guide.md),
   ("The details' cover keeps a poster's 2:3 instead of stretching…"), the body
   explains why in prose. Releases are `Release X.Y.Z: <summary>`.
 - Before committing: `git status`, `node dev/unitcheck.mjs`, `node dev/namecheck.mjs`,
-  `node dev/secretcheck.mjs`, and `node dev/site.mjs --check` /
+  `node dev/typecheck.mjs`, `node dev/secretcheck.mjs`, and `node dev/site.mjs --check` /
   `node dev/listings.mjs --check` when README or listings changed.
 - Add your tool's attribution trailer if it has one; do not invent others.
 

@@ -50,8 +50,10 @@ export class Mp4Player {
   /**
    * @param {HTMLVideoElement} video
    * @param {string} url
-   * @param {{onError:Function, onFirstAppend:Function, onNotice:Function,
-   *          onOpen:Function, startAt:number}} opts
+   * @param {{onError?:Function, onFirstAppend?:Function, onNotice?:Function,
+   *          onOpen?:Function, onAnswer?:Function, startAt?:number}} [opts]
+   *
+   * onAnswer() is called as the server answers a request, before its bytes.
    */
   constructor(video, url, { onError, onFirstAppend, onNotice, onOpen, onAnswer, startAt = 0 } = {}) {
     this.video = video;

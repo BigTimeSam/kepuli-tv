@@ -110,14 +110,15 @@ export class Remuxer {
   /**
    * @param {HTMLVideoElement} video
    * @param {string} url
-   * @param {{onError:Function, onFirstAppend:Function, onNotice:Function,
-   *          onSubtitles:Function, onAudio:Function, onOpen:Function,
-   *          startAt:number, subtitleLang:string|null,
-   *          audioLang:string|null}} opts
+   * @param {{onError?:Function, onFirstAppend?:Function, onNotice?:Function,
+   *          onSubtitles?:Function, onAudio?:Function, onOpen?:Function,
+   *          onAnswer?:Function, startAt?:number, subtitleLang?:string|null,
+   *          audioLang?:string|null}} opts
    *
    * onOpen(again) is called as each request goes out; again says that one
    * of ours was let go just before it, so that the server may still be
-   * counting that one when it answers this.
+   * counting that one when it answers this. onAnswer() is called as the
+   * server answers one, before its bytes.
    */
   constructor(video, url, {
     onError, onFirstAppend, onNotice, onSubtitles, onAudio, onOpen, onAnswer, startAt = 0, subtitleLang = null,
