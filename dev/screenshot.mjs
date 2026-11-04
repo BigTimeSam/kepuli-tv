@@ -94,7 +94,12 @@ export async function ensureChrome(extraArgs = []) {
   // protocol's Extensions.loadUnpacked only with it (the macOS build here
   // did without; the Linux one on the CI runner did not load the extension).
   spawn(binary, [`--user-data-dir=${PROFILE}`, `--remote-debugging-port=${PORT}`, '--no-first-run', '--no-default-browser-check',
-    '--enable-unsafe-extension-debugging', ...extraArgs, 'about:blank'],
+    '--enable-unsafe-extension-debugging',
+    // On CI (Ubuntu 24.04) AppArmor forbids a downloaded Chromium the user
+    // namespaces its sandbox needs, and it exits at once. The runner is a
+    // throwaway machine that opens only the mock server's invented pages.
+    ...(process.env.CI ? ['--no-sandbox'] : []),
+    ...extraArgs, 'about:blank'],
     { detached: true, stdio: 'ignore' }).unref();
   for (let i = 0; i < 60; i++) { if (await isRunning()) return true; await sleep(250); }
   throw new Error('Chrome did not answer within 15 seconds.');
