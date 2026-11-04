@@ -12,7 +12,8 @@ import { poster } from './poster.js';
 import { reminderKey, reminders, toggleReminder } from './remindersui.js';
 import { shownName } from './coversui.js';
 import { t } from './i18n.js';
-import { playFromHome, state } from './app.js';
+import { state } from './app.js';
+import { playFromHome } from './idlehome.js';
 import { renderIdleOverlay } from './languageui.js';
 import { el } from './dom.js';
 

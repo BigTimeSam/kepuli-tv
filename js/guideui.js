@@ -18,7 +18,8 @@ import { reminderKey, reminders, toggleReminder } from './remindersui.js';
 import { renderInfoStrip } from './infostrip.js';
 import { t } from './i18n.js';
 import * as store from './config.js';
-import { activateTab, openSetup, playItem, state, visibleGroups, visibleRows, vlist } from './app.js';
+import { activateTab, openSetup, state, visibleGroups, visibleRows, vlist } from './app.js';
+import { playItem } from './playing.js';
 import { toast } from './toast.js';
 import { $, el } from './dom.js';
 

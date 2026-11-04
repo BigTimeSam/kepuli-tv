@@ -13,7 +13,8 @@ import { shortLanguage } from './lang.js';
 import { shownName } from './coversui.js';
 import { t } from './i18n.js';
 import * as store from './config.js';
-import { playRelative, playerLayout, state, toggleSubtitleLook } from './app.js';
+import { playRelative, playerLayout, state } from './app.js';
+import { toggleSubtitleLook } from './tracksui.js';
 
 /** The items on offer: Cast is not among them without the API behind it. */
 export const moreItems = () => [...el.morePop.querySelectorAll('.popitem')].filter((item) => !item.hidden);

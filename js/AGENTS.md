@@ -48,9 +48,11 @@ lists, series info, stream URL) for its kind:
 | `subs.js`, `subdisplay.js`, `lang.js` | subtitle tracks, the app-drawn subtitle layer, language names |
 | `cast.js`, `external.js` | Chromecast (Remote Playback API), hand-off to VLC and others |
 | `streamhub.js`, `recorder.js` | one shared live connection; recording to the origin private file system |
+| `playing.js`, `tracksui.js`, `nextepisode.js` | starting playback and what the overlay says while it waits or fails (the account's connections, the player's other tabs); the subtitle and audio selectors, the subtitles' look, the picture's size and leaving playback; the saved place, the next episode and the stream's figures (moved out of `app.js`) |
 | `recordingsui.js` | the recording UI: Record button and reminder, the list, plans from the guide, catch-up playback (moved out of `app.js`) |
 | `accountsui.js`, `remindersui.js`, `infostrip.js` | the account list and switcher; programme reminders; the details strip under the picture (moved out of `app.js`) |
 | `coversui.js`, `seriesui.js`, `guideui.js`, `picksui.js`, `topicbar.js`, `externalui.js` | covers or rows; a series' page; the guide in the player (grid, column, search, favourites); the start page's picks; the topic chips and their bar; the external player hand-off (moved out of `app.js`) |
+| `idlehome.js` | the empty player's page (continue watching, the viewer's channels, the picks' carousel) and the note of programmes the viewer stays with (moved out of `app.js`) |
 | `collections.js`, `playercontrols.js`, `progressdialog.js`, `help.js`, `languageui.js` | Favourites and History and favourite categories; the ☰ menu, full screen and media keys; the list-loading strip; the help dialog; switching language and the empty player's title (moved out of `app.js`) |
 | `toast.js` | the message strip (`toast`) and copying a stream address: import `toast` from here |
 | `dom.js` | `$` and `el`, the page's elements looked up once: import them from here, not from `app.js` |

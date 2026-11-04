@@ -10,7 +10,8 @@ import { handOff } from './external.js';
 import { renderInfoStrip } from './infostrip.js';
 import { retryPlayback } from './recordingsui.js';
 import { t } from './i18n.js';
-import { playItem, playback, showOverlayActions, state } from './app.js';
+import { state } from './app.js';
+import { playItem, playback, showOverlayActions } from './playing.js';
 import { copyUrl, toast } from './toast.js';
 import { el } from './dom.js';
 

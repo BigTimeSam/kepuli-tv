@@ -14,7 +14,10 @@ import { renderDetail } from './seriesui.js';
 import { renderInfoStrip } from './infostrip.js';
 import { setLocale } from './format.js';
 import * as store from './config.js';
-import { catalogueSearch, configured, refreshRows, renderAccountBox, renderAudio, renderIdleHome, renderNowSub, renderSidebar, renderSubtitles, setupSection, showSetupSection, state, updateAddress } from './app.js';
+import { catalogueSearch, configured, refreshRows, renderAccountBox, renderSidebar, setupSection, showSetupSection, state, updateAddress } from './app.js';
+import { renderAudio, renderSubtitles } from './tracksui.js';
+import { renderNowSub } from './playing.js';
+import { renderIdleHome } from './idlehome.js';
 
 /**
  * The language changes mid-session without reloading the page.
