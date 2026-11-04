@@ -9,8 +9,8 @@ sukurtas vienos minties pagrindu: didžiulis katalogas turi atrodyti mažas.
 
 → Kanalai atsidaro per sekundę ar dvi, net iš milžiniško katalogo
 → Šimtai chaotiškų kategorijų virsta tvarkingu šalių sąrašu
-→ Viso lango programų gidas (EPG) su peržiūra atgal, kai tiekėjas tai
-  leidžia
+→ Viso lango programų gidas (EPG) su peržiūra atgal (catch-up), kai
+  tiekėjas tai leidžia
 → MKV filmai ir serijos groja tiesiai naršyklėje, su subtitrais ir erdviniu
   garsu
 → Įrašyk kanalą dabar arba laidą iš gido ir pasilik ją kaip failą

@@ -57,6 +57,8 @@ jobs:
         run: node dev/listings.mjs --check
       - name: Every translation of the English as it stands
         run: node dev/translations.mjs --check
+      - name: Each language's own term for the core concepts
+        run: node dev/glossarycheck.mjs
       - name: The Pages front page rendered from the README
         run: node dev/site.mjs --check
       - name: The two manifests agree

@@ -9,8 +9,8 @@ jednoj ideji: džinovski katalog treba da deluje mali.
 
 → Kanali se otvaraju za sekund-dva, čak i iz ogromne ponude
 → Stotine zbrkanih kategorija postaju uredan spisak zemalja
-→ Vodič kroz program (EPG) preko celog prozora, sa gledanjem unazad gde god
-  provajder to nudi
+→ Vodič kroz program (EPG) preko celog prozora, sa gledanjem unazad (catch-up)
+  gde god provajder to nudi
 → Filmovi i epizode u MKV formatu rade pravo u pregledaču, zajedno sa
   titlovima i prostornim zvukom
 → Snimi kanal odmah ili emisiju iz vodiča i sačuvaj je kao datoteku

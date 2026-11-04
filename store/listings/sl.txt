@@ -4,13 +4,14 @@ Kepuli-TV – Predvajalnik IPTV
 Tvoj IPTV v brskalniku: Xtream Codes, M3U ali portal Stalker. Kanali se odprejo v sekundi, MKV teče, lahko pa tudi snemaš.
 === DETAILED DESCRIPTION ===
 Gledaj svojo naročnino IPTV v brskalniku, brez boja z aplikacijo.
-Kepuli-TV predvaja račune Xtream Codes, sezname M3U in portale Stalker,
-zasnovan pa je okoli ene same ideje: velikanski katalog naj deluje majhen.
+Kepuli-TV predvaja račune Xtream Codes, sezname predvajanja M3U in portale
+Stalker, zasnovan pa je okoli ene same ideje: velikanski katalog naj deluje
+majhen.
 
 → Kanali se odprejo v sekundi ali dveh, tudi pri ogromni ponudbi
 → Na stotine neurejenih kategorij postane pregleden seznam držav
-→ Programski vodič (EPG) čez celotno okno, s ponovnim ogledom, kjer je
-  na voljo
+→ Programski vodič (EPG) čez celotno okno, s ponovnim ogledom (catch-up),
+  kjer je na voljo
 → Filmi in epizode MKV se predvajajo kar v brskalniku, s podnapisi in
   prostorskim zvokom
 → Posnemi kanal zdaj ali oddajo iz vodiča in jo shrani kot datoteko
@@ -30,9 +31,9 @@ KAJ DOBIŠ
 
 • Prilepi povezavo M3U, ki ti jo je poslal ponudnik, in nastavitve se
   izpolnijo same.
-• Več računov: Xtream Codes, seznam M3U z vodičem XMLTV ali portal Stalker z
-  naslovom MAC tvojega sprejemnika. Preklopiš z enim klikom, po želji pa jih
-  sinhroniziraš med svojimi računalniki.
+• Več računov: Xtream Codes, seznam predvajanja M3U z vodičem XMLTV ali
+  portal Stalker z naslovom MAC tvojega sprejemnika. Preklopiš z enim klikom,
+  po želji pa jih sinhroniziraš med svojimi računalniki.
 • Iskanje, ki prezre naglase in vrstni red besed, ter filter v vsakem meniju.
 • Kar si pustil na pol poti, čaka na vrhu, naslednja epizoda pa se zažene
   sama.

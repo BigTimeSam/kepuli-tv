@@ -42,6 +42,41 @@ Background: [development.md → Language](../../docs/development.md#language) an
 5. Look at the longest languages (German, Finnish, Hungarian) in the UI if the
    string sits in a button or a narrow column.
 
+## Pseudo-localisation
+
+`player.html?pseudo=1` makes `t()` return every string accented, in brackets
+and about 40 % longer (`[Šéţţîñĝš ļ…]`), placeholders and what fills them
+untouched; without the parameter nothing changes. A missing `]` is a cut
+label; plain English on the screen is text that does not go through `t()`.
+`node dev/playcheck.mjs pseudo` walks the main views this way and fails on
+any button, tab, row, label or dialog field whose text is wider than its box
+(boxes with `text-overflow: ellipsis` or a scroll are meant to cut);
+`KEPULI_OVERFLOW_LANG=fi` (or `de`, `hu`) walks them in a real language to
+tell whether the overflow happens there too, and `KEPULI_PSEUDO_SHOTS=<dir>`
+keeps a picture of each view to look at.
+
+## Terminology
+
+The product's core words (programme guide, favourites, recording, catch-up,
+channel, account, playlist, portal, history, Continue watching, subtitles,
+Settings) have one term per language, recorded in `store/i18n-glossary.json`
+as the translations already used it in most places. `node dev/glossarycheck.mjs`
+checks that every interface key and store listing whose English holds a
+concept says that language's term (any of its listed forms: a stem, or a few
+inflected forms, compared without regard to case); `--survey` shows, per
+concept and language, how many texts hold it.
+
+- When you translate, use the glossary's term, not a synonym, even where the
+  synonym reads better in the sentence: the reader learns the word on a
+  button and looks for it in the help and the store.
+- A miss is fixed in the text. Only when the language says it another way
+  and nothing is lost (a split verb: "spela bara in", "nimm nur auf") add
+  the key to the concept's `except` for that language, with the reason.
+- An inflected form the check does not know is added to `forms`; keep the
+  forms specific enough that an unrelated word does not pass.
+- A new core concept gets an entry with all 29 languages (and `pt_PT`, the
+  stores' Portuguese of Portugal), from the majority use in the locale files.
+
 ## Cross-checking
 
 Two reviewers have been through every language: an agent per language

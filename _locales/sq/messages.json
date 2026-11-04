@@ -4,7 +4,7 @@
     "description": "The extension's name in the store and the browser. Written from store/listings/ by dev/listings.mjs."
   },
   "appDesc": {
-    "message": "IPTV-ja jote në shfletues: Xtream Codes, M3U ose portal Stalker. Kanalet hapen për sekonda, MKV luhet dhe mund të regjistrosh.",
+    "message": "IPTV-ja jote në shfletues: Xtream Codes, M3U ose portal Stalker. Kanalet hapen për sekonda, MKV luhet dhe mund të incizosh.",
     "description": "The short description. Written from store/listings/ by dev/listings.mjs."
   }
 }

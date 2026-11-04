@@ -11,7 +11,7 @@ what it does and how to run it. Read that header before using one.
 | Development loop | `dev.mjs` (the owner's Chrome loop, port 9222: do not run it as an agent), `screenshot.mjs` (Chrome helpers: `ensureChrome`, `openPlayer`, `session`, `capture`) |
 | Tests | `unitcheck.mjs`, `playcheck.mjs`, `uicheck.mjs`, `visualcheck.mjs` (the five views against `visual/`), and per-area `demuxcheck`, `audiocheck`, `audiofactscheck`, `mediafilterscheck`, `ratingcheck`, `searchnamescheck`, `titlelinkscheck`, `moviedurationcheck` |
 | Mock provider | `mock/` (see `mock/AGENTS.md`) |
-| Translations and texts | `translations.mjs`, `listings.mjs`, `translationreview.mjs` (Codex cross-check, see `js/locales/AGENTS.md`), `site.mjs` (README → `docs/index.html`) |
+| Translations and texts | `translations.mjs`, `listings.mjs`, `glossarycheck.mjs` (each language's term for the core concepts, `store/i18n-glossary.json`), `translationreview.mjs` (Codex cross-check, see `js/locales/AGENTS.md`), `site.mjs` (README → `docs/index.html`) |
 | Packaging | `package.mjs` (allowlist packages from git HEAD; `--zip`, `--worktree`, `--check`: the manifests agree and ask only for the permissions in its `APPROVED`, each with its reason; `--zip` moves older zips from the root into `dist/releases/`), `release.mjs` (is this commit ready to release: every check in one run), `releasenotes.mjs` (a draft of the GitHub release notes from the commits since the last tag, printed for the owner to edit) |
 | Stores | `cws-publish.mjs`, `cws-listing-fill.mjs`, `cws-screenshots.mjs`, `cws-auth.mjs`, `amo-publish.mjs`, `amo-screenshots.mjs` (see `store/AGENTS.md`) |
 | Pictures and video | `store-screenshots.mjs`, `demo-video.mjs`, `demo-music.py`, `logos.mjs` (regenerates `js/logoindex.js`) |
@@ -161,6 +161,9 @@ views, write a short driver with `dev/screenshot.mjs`'s `ensureChrome`,
 set up the state through `chrome.storage.local`, and capture. Check:
 alignment of icons and labels, text overflow in the long languages (German,
 Finnish, Hungarian), both themes, and a narrow window (600 px) when layout
-changed.
+changed. For text widths, `node dev/playcheck.mjs pseudo` measures the main
+views with every string 40 % longer (`player.html?pseudo=1`, see
+`js/locales/AGENTS.md`); `KEPULI_OVERFLOW_LANG=de` runs it in a real
+language and `KEPULI_PSEUDO_SHOTS=<dir>` keeps the pictures.
 
 Before telling the owner a UI change is done, look at the picture.

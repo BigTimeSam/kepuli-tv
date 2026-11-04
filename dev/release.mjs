@@ -66,6 +66,7 @@ check('the two manifests agree', node('package.mjs', ['--check']));
 check('vendor/ is the third-party code listed in vendor/CHECKSUMS', node('vendorcheck.mjs'));
 check('the translations are of the English as it stands', node('translations.mjs', ['--check']));
 check('the store listings are in step and within limits', node('listings.mjs', ['--check']));
+check('each language says the core concepts with its own term', node('glossarycheck.mjs'));
 check('the Pages front page is rendered from the README', node('site.mjs', ['--check']));
 check('the notes to AMO\'s reviewer fit its form', () => {
   const notes = readFileSync(join(ROOT, 'firefox', 'reviewer-notes.txt'), 'utf8').trim();

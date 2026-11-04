@@ -1,11 +1,12 @@
 === NAME ===
 Kepuli-TV – Trình phát IPTV
 === SHORT DESCRIPTION ===
-IPTV của bạn ngay trên trình duyệt: Xtream Codes, M3U hay portal Stalker. Kênh mở trong vài giây, phát được MKV và ghi lại được.
+IPTV của bạn ngay trên trình duyệt: Xtream Codes, M3U hay cổng Stalker. Kênh mở trong vài giây, phát được MKV và ghi lại được.
 === DETAILED DESCRIPTION ===
 Xem gói IPTV của riêng bạn ngay trên trình duyệt, mà chẳng phải vật lộn với
-ứng dụng. Kepuli-TV chạy tài khoản Xtream Codes, danh sách M3U và portal
-Stalker, xây quanh một ý tưởng: kho kênh khổng lồ cũng phải gọn nhẹ khi dùng.
+ứng dụng. Kepuli-TV chạy tài khoản Xtream Codes, danh sách phát M3U
+và cổng Stalker, xây quanh một ý tưởng: kho kênh khổng lồ cũng phải gọn nhẹ
+khi dùng.
 
 → Kênh mở sau một, hai giây, kể cả với kho kênh đồ sộ
 → Hàng trăm danh mục lộn xộn gọn lại thành danh sách theo quốc gia
@@ -27,7 +28,7 @@ chẳng chịu phát. Thế nên tôi tự làm ra ứng dụng mà mình muốn
 BẠN SẼ NHẬN ĐƯỢC
 
 • Dán liên kết M3U nhà cung cấp gửi, phần cài đặt tự điền xong.
-• Nhiều tài khoản: Xtream Codes, danh sách M3U kèm lịch XMLTV, hoặc portal
+• Nhiều tài khoản: Xtream Codes, danh sách phát M3U kèm lịch XMLTV, hoặc cổng
   Stalker với địa chỉ MAC của đầu thu. Chuyển chỉ bằng một cú nhấp, và đồng bộ
   giữa các máy tính của bạn nếu muốn.
 • Tìm kiếm bỏ qua dấu và thứ tự từ, kèm bộ lọc trong mọi menu.
@@ -70,7 +71,7 @@ bạn được phép giữ, và bảo đảm dịch vụ hợp pháp tại nơi 
 BẮT ĐẦU
 
 Nhấp biểu tượng trên thanh công cụ rồi nhập máy chủ và thông tin đăng nhập,
-liên kết danh sách phát, hoặc portal kèm địa chỉ MAC, và danh sách của bạn
+liên kết danh sách phát, hoặc cổng kèm địa chỉ MAC, và danh sách của bạn
 sẽ hiện ra.
 
 

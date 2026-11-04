@@ -4,8 +4,8 @@ Kepuli-TV – Pemutar IPTV
 IPTV milikmu di peramban: Xtream Codes, M3U, atau portal Stalker. Saluran terbuka dalam sekejap, MKV lancar, dan bisa merekam.
 === DETAILED DESCRIPTION ===
 Nikmati langganan IPTV-mu langsung di browser, lancar dari awal. Kepuli-TV
-memutar akun Xtream Codes, playlist M3U, dan portal Stalker, dan lahir dari
-satu prinsip: katalog sebesar apa pun harus terasa ringan.
+memutar akun Xtream Codes, daftar putar M3U, dan portal Stalker, dan lahir
+dari satu prinsip: katalog sebesar apa pun harus terasa ringan.
 
 → Siaran terbuka dalam satu-dua detik, bahkan dari katalog raksasa
 → Ratusan kategori yang berantakan berubah jadi daftar negara yang rapi
@@ -18,7 +18,7 @@ satu prinsip: katalog sebesar apa pun harus terasa ringan.
 
 KENAPA SAYA MEMBUATNYA
 
-Saya bosan memakai aplikasi yang bikin kesal: daftar kategori tak
+Saya bosan memakai aplikasi yang bikin kesal: deretan kategori tak
 berujung, dialog yang membekukan layar selama katalog dimuat, dan file yang
 tidak mau diputar. Jadi saya buat sendiri aplikasi yang ingin saya pakai
 setiap malam.
@@ -28,8 +28,8 @@ setiap malam.
 YANG KAMU DAPATKAN
 
 • Tempel tautan M3U dari penyedia, dan semua kolom pengaturan terisi sendiri.
-• Beberapa akun: Xtream Codes, playlist M3U beserta panduan XMLTV, atau portal
-  Stalker dengan alamat MAC perangkatmu. Ganti dalam satu klik, dan
+• Beberapa akun: Xtream Codes, daftar putar M3U beserta panduan XMLTV, atau
+  portal Stalker dengan alamat MAC perangkatmu. Ganti dalam satu klik, dan
   sinkronkan antarkomputermu bila mau.
 • Pencarian yang tak peduli aksen maupun urutan kata, plus filter di setiap
   menu.
@@ -42,7 +42,7 @@ YANG KAMU DAPATKAN
 • Film dan serial tampil sebagai sampul, lengkap dengan sinopsis, rating, dan
   musim.
 • Favorit, riwayat tontonan, dan posisi terakhir menonton.
-• Sembunyikan merek global dari daftar sebuah negara, jadi stasiun lokalnya
+• Sembunyikan merek global dari saluran sebuah negara, jadi stasiun lokalnya
   gampang ditemukan.
 • Sisakan negara yang kamu tonton saja, begitu juga kategori film dan
   serial yang kamu mau.
@@ -73,8 +73,8 @@ tinggal.
 
 MULAI DI SINI
 
-Klik ikon di bilah alat, isi server dan data login, tautan playlist, atau
-portal dengan alamat MAC-nya, lalu daftarmu muncul.
+Klik ikon di bilah alat, isi server dan data login, tautan daftar putar, atau
+portal dengan alamat MAC-nya, lalu katalogmu muncul.
 
 
 LIHAT CARA KERJANYA

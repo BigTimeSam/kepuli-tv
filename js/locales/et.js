@@ -347,7 +347,7 @@ export default {
  "guide.watch": "Vaata kanalit",
  "guide.upnext": "Järgmisena",
  "guide.watch.recording": "Vaata salvestust",
- "guide.norecording": "Saatel pole salvestust — nupp avab otseülekande",
+ "guide.norecording": "Saatel pole salvestust — nupp avab kanali otseülekande",
  "guide.starts": "{title} algab kell {time}",
  "guide.remind": "Tuleta meelde",
  "guide.remind.cancel": "Tühista meeldetuletus",

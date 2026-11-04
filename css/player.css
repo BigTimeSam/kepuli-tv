@@ -1272,8 +1272,11 @@ dialog::backdrop { background: var(--backdrop); backdrop-filter: blur(2px); }
 .grid .w-port { grid-column: span 1; }
 .grid .field:nth-child(n+4) { grid-column: span 2; }
 /* Two fields that belong together on one line, as .grid does for the
-   connection form; below 520px they go one above the other. */
-.field-pair { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 10px; }
+   connection form; below 520px they go one above the other. Two to a
+   row in the settings dialog rather than four: a quarter of the dialog cut
+   the Clock's "Automaattinen (22.30)" in Finnish (found by the pseudo
+   scenario in dev/playcheck.mjs, KEPULI_OVERFLOW_LANG=fi). */
+.field-pair { display: grid; grid-template-columns: repeat(auto-fit, minmax(15rem, 1fr)); gap: 10px; }
 
 /* Choosing the connection mode. Chips would be too light here: the choice
    changes the whole form, so it may look like a choice. */
