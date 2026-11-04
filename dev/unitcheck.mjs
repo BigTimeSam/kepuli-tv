@@ -1460,6 +1460,39 @@ check('every listing is within the store\'s limits, and _locales is in step', ch
   ]);
 }
 
+/* ----------------------------------------------- dev/package.mjs: old zips */
+
+{
+  const { zipName, compareVersions, previousZip, shelveOlderZips } = await import('./package.mjs');
+  const { mkdtempSync, writeFileSync: write, mkdirSync: mkdir, readdirSync: list, rmSync: remove } = await import('node:fs');
+  const { tmpdir } = await import('node:os');
+  const { join } = await import('node:path');
+  check('a release zip\'s name gives its browser, version and kind; the first Chrome ones had no browser in it',
+    ['kepuli-tv-chrome-1.6.3.zip', 'kepuli-tv-1.0.1.zip', 'kepuli-tv-firefox-1.6.3-amo-source.zip', 'kepuli-tv-firefox-1.6.3-dev.zip', 'other.zip'].map(zipName),
+    [{ target: 'chrome', version: '1.6.3', kind: 'package' }, { target: 'chrome', version: '1.0.1', kind: 'package' },
+      { target: 'firefox', version: '1.6.3', kind: 'amo-source' }, { target: 'firefox', version: '1.6.3', kind: 'dev' }, null]);
+  check('versions compare by number, not as text', [compareVersions('1.10.0', '1.9.9') > 0, compareVersions('1.6', '1.6.0'), compareVersions('1.2.5', '1.2.6') < 0], [true, 0, true]);
+  const root = mkdtempSync(join(tmpdir(), 'kepuli-zips-'));
+  const releases = join(root, 'dist', 'releases');
+  try {
+    mkdir(releases, { recursive: true });
+    for (const f of ['kepuli-tv-chrome-1.6.3.zip', 'kepuli-tv-firefox-1.6.3.zip', 'kepuli-tv-firefox-1.6.3-amo-source.zip', 'kepuli-tv-chrome-1.6.2.zip',
+      'kepuli-tv-firefox-1.6.2-amo-source.zip', 'kepuli-tv-1.0.1.zip', 'kepuli-tv-chrome-1.7.0.zip', 'notes.txt']) write(join(root, f), f);
+    for (const f of ['kepuli-tv-chrome-1.10.0.zip', 'kepuli-tv-chrome-1.5.3.zip', 'kepuli-tv-1.0.1.zip']) write(join(releases, f), 'already here');
+    check('the previous package is the newest older one, wherever it is, and never an AMO source or a newer one',
+      [previousZip('chrome', '1.6.3', [root, releases]), previousZip('firefox', '1.6.3', [root, releases]), previousZip('chrome', '1.6.2', [root, releases])]
+        .map((p) => p && p.slice(root.length + 1)), ['kepuli-tv-chrome-1.6.2.zip', undefined, 'dist/releases/kepuli-tv-chrome-1.5.3.zip']);
+    const shelved = shelveOlderZips('1.6.3', root, releases);
+    check('older zips move into dist/releases/; the current, newer ones, other files and a name already taken stay',
+      [shelved, list(root).filter((f) => f.endsWith('.zip') || f.endsWith('.txt')).sort(), list(releases).sort()],
+      [{ moved: ['kepuli-tv-chrome-1.6.2.zip', 'kepuli-tv-firefox-1.6.2-amo-source.zip'], kept: ['kepuli-tv-1.0.1.zip'] },
+        ['kepuli-tv-1.0.1.zip', 'kepuli-tv-chrome-1.6.3.zip', 'kepuli-tv-chrome-1.7.0.zip', 'kepuli-tv-firefox-1.6.3-amo-source.zip', 'kepuli-tv-firefox-1.6.3.zip', 'notes.txt'],
+        ['kepuli-tv-1.0.1.zip', 'kepuli-tv-chrome-1.10.0.zip', 'kepuli-tv-chrome-1.5.3.zip', 'kepuli-tv-chrome-1.6.2.zip', 'kepuli-tv-firefox-1.6.2-amo-source.zip']]);
+  } finally {
+    remove(root, { recursive: true, force: true });
+  }
+}
+
 /* ------------------------------------------------------------------ done */
 
 console.log(failed ? `${failed} of ${count} cases failed` : `PASS: ${count} cases`);

@@ -9,7 +9,7 @@ import { execFileSync } from 'node:child_process';
 import { cpSync, mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { homedir } from 'node:os';
 import { join, resolve } from 'node:path';
-import { ROOT, SHARED, gitSource, worktreeSource, check } from '../dev/package.mjs';
+import { ROOT, SHARED, gitSource, worktreeSource, check, shelveOlderZips } from '../dev/package.mjs';
 
 const FFMPEG_COMMIT = 'db69d06eeeab4f46da15030a80d539efb4503ca8';
 const args = process.argv.slice(2);
@@ -60,3 +60,6 @@ for (const required of ['README.md', 'SOURCE.json', 'dev/wasm/ffaudio.c', 'upstr
   if (!entries.includes(required)) throw new Error(`Source archive is missing ${required}`);
 }
 console.log(`${name}: ${Math.round(readFileSync(out).length / 1024 / 1024)} MB, from ${source.label}`);
+// As dev/package.mjs --zip does: the root keeps only this version's zips.
+const { moved } = shelveOlderZips(version);
+if (moved.length) console.log(`older zips moved into dist/releases/: ${moved.join(', ')}`);

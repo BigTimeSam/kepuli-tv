@@ -3,7 +3,8 @@
 //
 //   node dev/package.mjs                  both packages into dist/chrome/ and dist/firefox/
 //   node dev/package.mjs --zip            … and kepuli-tv-chrome-<version>.zip and
-//                                         kepuli-tv-firefox-<version>.zip in the project root
+//                                         kepuli-tv-firefox-<version>.zip in the project root,
+//                                         older zips moved into dist/releases/
 //   node dev/package.mjs chrome --zip     one browser only
 //   node dev/package.mjs --ref v1.0.4     from that commit or tag instead of HEAD
 //   node dev/package.mjs --worktree       from the checkout as it is, uncommitted changes included
@@ -22,9 +23,11 @@
 // permissions, host permissions and content security policy must be
 // exactly the approved ones in APPROVED below, each with its reason. After the copy
 // every file the manifest and player.html refer to must exist in the
-// package. With --zip the archive is listed against the previous one of the
-// same browser, if there is one in the project root, so a file that went
-// missing or crept in shows up before the upload.
+// package. With --zip the archive is listed against the previous release of
+// the same browser, from the project root or dist/releases/, so a file that
+// went missing or crept in shows up before the upload; then every older
+// kepuli-tv-*.zip is moved from the root into dist/releases/, so the root
+// holds only the zips of the version being released.
 //
 // firefox/build.mjs is the development loop's copy of the same idea: it
 // assembles firefox/dist/ from the checkout for firefox/dev.mjs to reload.
@@ -264,15 +267,71 @@ export function build(target, source = gitSource()) {
 
 const zipEntries = (path) => execFileSync('unzip', ['-Z1', path], { encoding: 'utf8' }).split('\n').filter((l) => l && !l.endsWith('/')).sort();
 
-/** The previous package of the same browser in the project root, newest first. */
-function previousZip(target, except) {
-  const pattern = target === 'chrome' ? /^kepuli-tv-(chrome-)?\d[\w.-]*\.zip$/ : new RegExp(`^kepuli-tv-${target}-\\d[\\w.-]*\\.zip$`);
-  return readdirSync(ROOT)
-    // firefox/build.mjs --zip leaves a -dev.zip of the working folder
-    // beside the releases; it is no previous release to compare with.
-    .filter((f) => pattern.test(f) && f !== except && !f.endsWith('-amo-source.zip') && !f.endsWith('-dev.zip'))
-    .map((f) => ({ f, mtime: statSync(join(ROOT, f)).mtimeMs }))
-    .sort((a, b) => b.mtime - a.mtime)[0]?.f;
+// Old release zips are kept, out of the way: the project root holds only
+// the current version's (the ones the store tools and the GitHub release
+// take), and every older kepuli-tv-*.zip goes into dist/releases/, which
+// git ignores like the rest of dist/. Forty versions of three zips each had
+// piled up in the root, where a tired hand picks the wrong one.
+export const RELEASES = join(DIST, 'releases');
+
+// kepuli-tv-chrome-1.6.3.zip, kepuli-tv-firefox-1.6.3-amo-source.zip,
+// kepuli-tv-firefox-1.6.3-dev.zip (firefox/build.mjs), and the Chrome
+// packages of 1.0.1–1.0.4, which were kepuli-tv-<version>.zip.
+const ZIP_NAME = /^kepuli-tv-(?:(chrome|firefox)-)?(\d+(?:\.\d+){1,3})(-amo-source|-dev)?\.zip$/;
+
+/** What a release zip's name says: its browser, version and kind, or null for any other file. */
+export function zipName(name) {
+  const m = name.match(ZIP_NAME);
+  if (!m) return null;
+  return { target: m[1] || 'chrome', version: m[2], kind: m[3] ? m[3].slice(1) : 'package' };
+}
+
+/** Negative, zero or positive as version a is older than, the same as or newer than b. */
+export function compareVersions(a, b) {
+  const x = a.split('.').map(Number), y = b.split('.').map(Number);
+  for (let i = 0; i < Math.max(x.length, y.length); i++) {
+    if ((x[i] || 0) !== (y[i] || 0)) return (x[i] || 0) - (y[i] || 0);
+  }
+  return 0;
+}
+
+/**
+ * The newest package of the same browser older than this version, from
+ * the project root or dist/releases/, as a path; undefined if there is none.
+ * By version, not by date: a zip moved or copied keeps no telling date, and
+ * the one to compare with is the release before this one.
+ */
+export function previousZip(target, version, dirs = [ROOT, RELEASES]) {
+  const found = [];
+  for (const dir of dirs) {
+    if (!existsSync(dir)) continue;
+    for (const f of readdirSync(dir)) {
+      const z = zipName(f);
+      // firefox/build.mjs's -dev.zip is of the working folder and the
+      // -amo-source.zip is no package; neither is a release to compare with.
+      if (z && z.target === target && z.kind === 'package' && compareVersions(z.version, version) < 0) found.push({ path: join(dir, f), version: z.version });
+    }
+  }
+  return found.sort((a, b) => compareVersions(b.version, a.version))[0]?.path;
+}
+
+/**
+ * Moves every release zip older than this version from the root into
+ * dist/releases/. Nothing is deleted or overwritten: a zip whose name is
+ * already taken there stays where it is and is reported. Newer zips stay
+ * too, so packaging an old tag with --ref leaves the current ones alone.
+ */
+export function shelveOlderZips(version, root = ROOT, releases = join(root, 'dist', 'releases')) {
+  const moved = [], kept = [];
+  for (const f of readdirSync(root).sort()) {
+    const z = zipName(f);
+    if (!z || compareVersions(z.version, version) >= 0) continue;
+    if (existsSync(join(releases, f))) { kept.push(f); continue; }
+    mkdirSync(releases, { recursive: true });
+    renameSync(join(root, f), join(releases, f));
+    moved.push(f);
+  }
+  return { moved, kept };
 }
 
 /** dist/<target>/ zipped into the project root, and compared with the last one. */
@@ -283,14 +342,14 @@ export function zip({ target, dir, files, version }) {
   execFileSync('zip', ['-rqX', out, '.', '-x', '*.DS_Store'], { cwd: dir });
   const entries = zipEntries(out);
   if (!same(entries, files)) throw new Error(`${name} does not contain exactly the files of ${relative(ROOT, dir)}`);
-  const previous = previousZip(target, name);
+  const previous = previousZip(target, version);
   let added = [], removed = [];
   if (previous) {
-    const before = zipEntries(join(ROOT, previous));
+    const before = zipEntries(previous);
     added = entries.filter((f) => !before.includes(f));
     removed = before.filter((f) => !entries.includes(f));
   }
-  return { name, bytes: statSync(out).size, previous, added, removed };
+  return { name, bytes: statSync(out).size, previous: previous && relative(ROOT, previous), added, removed };
 }
 
 const kb = (n) => `${Math.round(n / 1024)} kB`;
@@ -330,6 +389,12 @@ if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) 
         if (z.previous) vs += [...z.added.map((f) => '+' + f), ...z.removed.map((f) => '-' + f)].join(' ') || 'same files';
         console.log(`${''.padEnd(8)} ${z.name}  ${kb(z.bytes)}${vs}`);
       }
+    }
+    if (flag('--zip')) {
+      const { version } = JSON.parse(source.read('manifest.json'));
+      const { moved, kept } = shelveOlderZips(version);
+      if (moved.length) console.log(`older zips moved into ${relative(ROOT, RELEASES)}/: ${moved.join(', ')}`);
+      if (kept.length) console.log(`left in the project root, as ${relative(ROOT, RELEASES)}/ already has a file of that name: ${kept.join(', ')}`);
     }
   } catch (err) {
     console.error(err.message);

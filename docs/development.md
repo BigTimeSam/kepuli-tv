@@ -346,9 +346,15 @@ The script compares the two manifests first and stops if the version or any
 shared key differs, so a release bumps the version in both `manifest.json`
 and `firefox/manifest.json`; `--check` runs that comparison alone. After the
 copy it checks that every file the manifest and `player.html` refer to is in
-the package, and lists the zip against the previous one of the same browser,
-so a file that went missing or crept in shows up before the upload. `*.zip`
-and `dist/` are in `.gitignore`. AMO signs the Firefox package; see
+the package, and lists the zip against the previous release of the same
+browser, so a file that went missing or crept in shows up before the upload.
+Then every older `kepuli-tv-*.zip` in the project root is moved into
+`dist/releases/` (`firefox/amo-source.mjs` does the same), so the root holds
+only the zips of the version being released and the store tools and
+`gh release create` cannot pick an old one; the comparison reads the previous
+release from either place. Nothing is deleted, and a name already taken in
+`dist/releases/` leaves that zip in the root, reported. `*.zip` and `dist/`
+are in `.gitignore`. AMO signs the Firefox package; see
 `FIREFOX.md`. `firefox/build.mjs` remains the development loop's assembler of
 `firefox/dist/` from the checkout, for `firefox/dev.mjs` to reload; its
 `--zip` names its archive `kepuli-tv-firefox-<version>-dev.zip`, so a zip of

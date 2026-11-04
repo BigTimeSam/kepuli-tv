@@ -180,7 +180,8 @@ visual check); run it before asking for the go. The order that has worked:
 6. **Packages** from the commit: `node dev/package.mjs --zip` and
    `node firefox/amo-source.mjs`; three zips in the project root
    (`kepuli-tv-chrome-X.Y.Z.zip`, `kepuli-tv-firefox-X.Y.Z.zip`,
-   `kepuli-tv-firefox-X.Y.Z-amo-source.zip`).
+   `kepuli-tv-firefox-X.Y.Z-amo-source.zip`), and only those: older zips
+   are moved into `dist/releases/`.
 7. **GitHub release**: `git tag vX.Y.Z && git push origin vX.Y.Z`, then
    `gh release create vX.Y.Z <the three zips> --title "Kepuli-TV X.Y.Z" --notes-file <notes>`.
 8. **AMO**: `node dev/amo-publish.mjs` in the background (it waits out the
