@@ -10,7 +10,7 @@
 // for the owner's go (AGENTS.md, rule 2) and follows the steps printed at
 // the end. What this answers is whether those steps may start: the checkout
 // is clean and pushed, CI is green on this very commit, the two manifests
-// agree and the version is new, the texts and translations are in step,
+// agree and the version is new, vendor/ is what its checksums say, the texts and translations are in step,
 // the reviewer notes fit AMO's form, and the code checks pass.
 //
 // Exit code 0 when everything is ready, 1 otherwise.
@@ -63,6 +63,7 @@ check(`${version} is a new version`, () => {
   return [!tags.includes(`v${version}`), tags.includes(`v${version}`) ? `v${version} is already tagged: bump both manifests` : ''];
 });
 check('the two manifests agree', node('package.mjs', ['--check']));
+check('vendor/ is the third-party code listed in vendor/CHECKSUMS', node('vendorcheck.mjs'));
 check('the translations are of the English as it stands', node('translations.mjs', ['--check']));
 check('the store listings are in step and within limits', node('listings.mjs', ['--check']));
 check('the Pages front page is rendered from the README', node('site.mjs', ['--check']));

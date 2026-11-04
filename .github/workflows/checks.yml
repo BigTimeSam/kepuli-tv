@@ -59,6 +59,8 @@ jobs:
         run: node dev/site.mjs --check
       - name: The two manifests agree
         run: node dev/package.mjs --check
+      - name: vendor/ is the reviewed third-party code
+        run: node dev/vendorcheck.mjs
       - name: No secrets in the repository
         run: node dev/secretcheck.mjs --all
 

@@ -63,14 +63,15 @@ const gitRaw = (...args) => execFileSync('git', args, { cwd: ROOT, encoding: 'ut
 const git = (...args) => gitRaw(...args).trim();
 const noJunk = (path) => !/(^|\/)\.DS_Store$/.test(path);
 // The guides for coding agents sit beside the code they describe (js/,
-// css/, vendor/…), which are package directories; they are for the
-// repository, not for the browser, and stay out of every package.
-export const AGENT_DOCS = /(^|\/)(AGENTS|CLAUDE)\.md$/;
-function dropAgentDocs(dir) {
+// css/, vendor/…), which are package directories, and so does the list of
+// vendor/'s checksums (dev/vendorcheck.mjs); they are for the repository,
+// not for the browser, and stay out of every package.
+export const REPO_ONLY = /(^|\/)((AGENTS|CLAUDE)\.md|vendor\/CHECKSUMS)$/;
+function dropRepoOnly(dir) {
   for (const entry of readdirSync(dir, { withFileTypes: true })) {
     const path = join(dir, entry.name);
-    if (entry.isDirectory()) dropAgentDocs(path);
-    else if (AGENT_DOCS.test(path)) rmSync(path);
+    if (entry.isDirectory()) dropRepoOnly(path);
+    else if (REPO_ONLY.test(path)) rmSync(path);
   }
 }
 
@@ -184,7 +185,7 @@ export function build(target, source = gitSource()) {
   rmSync(dir, { recursive: true, force: true });
   mkdirSync(dir, { recursive: true });
   source.exportTo([...SHARED, manifest], dir);
-  dropAgentDocs(dir);
+  dropRepoOnly(dir);
   if (manifest !== 'manifest.json') {
     renameSync(join(dir, manifest), join(dir, 'manifest.json'));
     rmSync(join(dir, dirname(manifest)), { recursive: true });
@@ -255,7 +256,7 @@ if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) 
     // --worktree is the development loop's, and is let through.
     const stale = flag('--worktree') ? [] : await staleTranslations();
     if (stale.length) throw new Error('translations behind the English:\n  ' + stale.join('\n  '));
-    const differs = source.differs().filter((path) => !AGENT_DOCS.test(path));
+    const differs = source.differs().filter((path) => !REPO_ONLY.test(path));
     if (differs.length) {
       console.log(flag('--worktree')
         ? `uncommitted changes go into the package: ${differs.join(', ')}`

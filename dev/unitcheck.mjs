@@ -1430,6 +1430,17 @@ check('a word five times is a keyword list; short words and four times are not',
   repeats('stream stream stream stream stream and and and and and IPTV IPTV IPTV IPTV'), [['stream', 5]]);
 check('every listing is within the store\'s limits, and _locales is in step', checkListings(), []);
 
+/* ----------------------------------------------- dev/vendorcheck.mjs */
+
+{
+  const { parseChecksums, check: checkVendor } = await import('./vendorcheck.mjs');
+  const hash = 'a'.repeat(64);
+  check('a CHECKSUMS line is hash, file and version; a malformed or repeated one is said',
+    parseChecksums(`# comment\n${hash}  hls.js  hls.js 1.6.5\n${hash} mpegts.js\n${hash}  hls.js  hls.js 1.6.6\n`),
+    { entries: { 'hls.js': { hash, version: 'hls.js 1.6.6' } }, problems: ['vendor/CHECKSUMS line 3 is not "<sha256>  <file>  <version>"', 'vendor/CHECKSUMS lists hls.js twice'] });
+  check('vendor/ is the third-party code listed in vendor/CHECKSUMS', checkVendor(), []);
+}
+
 /* ------------------------------------------------------------------ done */
 
 console.log(failed ? `${failed} of ${count} cases failed` : `PASS: ${count} cases`);

@@ -17,7 +17,7 @@ what it does and how to run it. Read that header before using one.
 | Pictures and video | `store-screenshots.mjs`, `demo-video.mjs`, `demo-music.py`, `logos.mjs` (regenerates `js/logoindex.js`) |
 | Refactoring | `splitsection.py`: one section of `js/app.js` into a module of its own, imports and exports rewired (see `js/AGENTS.md`) |
 | Guides | `docscheck.mjs`: every file and command the guides name exists, every tool and module is described, every AGENTS.md has its CLAUDE.md, every relative link lands |
-| Safety | `secretcheck.mjs`: run on the staged changes before every commit; `namecheck.mjs`: every name and import in `js/` resolves (TypeScript's checker via npx, names and modules only); `htmlcheck.mjs`: markup is written only from icon constants, nothing evaluates a string |
+| Safety | `secretcheck.mjs`: run on the staged changes before every commit; `namecheck.mjs`: every name and import in `js/` resolves (TypeScript's checker via npx, names and modules only); `htmlcheck.mjs`: markup is written only from icon constants, nothing evaluates a string; `vendorcheck.mjs`: every file in `vendor/` has the SHA-256 and upstream version listed in `vendor/CHECKSUMS` (`--update` after a deliberate upgrade) |
 | Audio decoder | `wasm/` (`build.sh` builds `vendor/ffaudio` from FFmpeg; see `vendor/AGENTS.md`) |
 
 When you add a tool: one file, a header comment with its usage lines, no
@@ -81,6 +81,8 @@ data, so never point it at a profile someone uses.
   do not commit them.
 - `KEPULI_BROWSER=firefox node dev/playcheck.mjs [scenario]`: the same in
   Firefox through Marionette (opens a window).
+- `node dev/vendorcheck.mjs`: `vendor/` is exactly the third-party code
+  listed in `vendor/CHECKSUMS`, hash and upstream version; under a second.
 - Smaller checks for one area each: `dev/demuxcheck.mjs`, `dev/audiocheck.mjs`,
   `dev/mediafilterscheck.mjs`, `dev/ratingcheck.mjs`, `dev/searchnamescheck.mjs`,
   `dev/titlelinkscheck.mjs`, `dev/moviedurationcheck.mjs`.
@@ -107,7 +109,8 @@ search or rows.
 ### CI
 
 `.github/workflows/checks.yml` runs the Node-only checks (unit, names, markup, area
-checks, listings, translations, the Pages page, the manifests, secrets) on
+checks, listings, translations, the Pages page, the manifests, vendor/'s
+checksums, secrets) on
 every push and pull request, and `uicheck` plus the full `playcheck` in
 headless Chrome every night and on demand (`gh workflow run Checks`). Keep
 new checks runnable there: no secrets, no provider, the mock server only.
