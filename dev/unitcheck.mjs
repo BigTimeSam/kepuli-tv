@@ -1441,6 +1441,25 @@ check('every listing is within the store\'s limits, and _locales is in step', ch
   check('vendor/ is the third-party code listed in vendor/CHECKSUMS', checkVendor(), []);
 }
 
+/* ----------------------------------------------- dev/package.mjs: permissions */
+
+{
+  const { permissionProblems } = await import('./package.mjs');
+  const manifest = JSON.parse(readFileSync(new URL('../firefox/manifest.json', import.meta.url), 'utf8'));
+  check('the manifests\' permissions are the approved ones', [permissionProblems('firefox', manifest), permissionProblems('chrome', JSON.parse(readFileSync(new URL('../manifest.json', import.meta.url), 'utf8')))], [[], []]);
+  const more = structuredClone(manifest);
+  more.permissions.push('tabs');
+  more.optional_host_permissions = ['https://*/*'];
+  more.content_security_policy.extension_pages += " 'unsafe-eval'";
+  more.browser_specific_settings.gecko.data_collection_permissions.optional = ['technicalAndInteraction'];
+  check('a permission without a reason, a dropped one, a looser policy and more data collection are each refused', permissionProblems('firefox', more).map((p) => p.split(',')[0]), [
+    'firefox: permissions has tabs',
+    'firefox: optional_host_permissions lacks http://*/*',
+    `firefox: content_security_policy.extension_pages is "script-src 'self' 'wasm-unsafe-eval'; object-src 'self' 'unsafe-eval'"`,
+    'firefox: data_collection_permissions.optional is not approved in dev/package.mjs',
+  ]);
+}
+
 /* ------------------------------------------------------------------ done */
 
 console.log(failed ? `${failed} of ${count} cases failed` : `PASS: ${count} cases`);

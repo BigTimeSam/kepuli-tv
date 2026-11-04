@@ -7,7 +7,7 @@
 //   node dev/package.mjs chrome --zip     one browser only
 //   node dev/package.mjs --ref v1.0.4     from that commit or tag instead of HEAD
 //   node dev/package.mjs --worktree       from the checkout as it is, uncommitted changes included
-//   node dev/package.mjs --check          the manifest comparison alone
+//   node dev/package.mjs --check          the manifest comparison and the permissions alone
 //
 // A package is an allowlist, not the project minus an exclusion list: the
 // shared runtime files below plus the one manifest that belongs to the
@@ -18,7 +18,9 @@
 // is the explicit way to package what is on disk, and it says what differs.
 //
 // Before anything is written the two manifests are compared: the version
-// and every key that is not browser-specific must agree. After the copy
+// and every key that is not browser-specific must agree, and the
+// permissions, host permissions and content security policy must be
+// exactly the approved ones in APPROVED below, each with its reason. After the copy
 // every file the manifest and player.html refer to must exist in the
 // package. With --zip the archive is listed against the previous one of the
 // same browser, if there is one in the project root, so a file that went
@@ -58,6 +60,62 @@ const OWN_KEYS = {
   chrome: ['background', 'minimum_chrome_version'],
   firefox: ['background', 'browser_specific_settings'],
 };
+
+// What the extension may do, with the reason for each. Both manifests'
+// permissions, optional_host_permissions and content_security_policy must
+// be exactly these, and Firefox's data collection declaration exactly the
+// one below: a permission added to a manifest fails --check, every build
+// and dev/release.mjs until its reason is written here, and one dropped
+// from a manifest fails until it is dropped here. The stores ask for the
+// same justification (the Chrome dashboard's permission fields, AMO's
+// reviewer notes), so this is the place to write it first.
+export const APPROVED = {
+  permissions: {
+    storage: 'settings, accounts and lists in storage.local; storage.sync only when the user turns sync on',
+    unlimitedStorage: "the catalogue cache in IndexedDB (js/db.js) and recordings in OPFS outgrow the default quota with a provider's tens of thousands of entries",
+    declarativeNetRequestWithHostAccess: "a Stalker portal needs a MAC cookie, a MAG User-Agent and a Referer that fetch cannot set; a session rule sets them on the portal's host alone, and only where host access was granted (js/stalker.js)",
+  },
+  optional_host_permissions: {
+    'http://*/*': "the provider is the user's own server, unknown at install; one origin is asked for when its address is saved, all of them only on Allow all addresses for a redirecting stream (js/permissions.js); many providers serve plain HTTP",
+    'https://*/*': 'the same, for providers on HTTPS',
+  },
+  content_security_policy: {
+    extension_pages: {
+      "script-src 'self' 'wasm-unsafe-eval'; object-src 'self'": "only the extension's own scripts; 'wasm-unsafe-eval' for the FFmpeg audio decoder (vendor/ffaudio/ffaudio.wasm), which needs WebAssembly compilation and nothing else",
+    },
+  },
+  firefox_data_collection: {
+    authenticationInfo: "the user's credentials are sent to the service they configured, never to the developer (firefox/reviewer-notes.txt)",
+  },
+};
+
+/** The approved permissions compared with one manifest. Returns the complaints. */
+export function permissionProblems(target, manifest) {
+  const problems = [];
+  const compare = (what, actual, approved) => {
+    const have = actual || [];
+    if (!Array.isArray(have)) { problems.push(`${target}: ${what} is not a list`); return; }
+    for (const item of have) if (!(item in approved)) problems.push(`${target}: ${what} has ${item}, which is not approved: write why it is needed in APPROVED in dev/package.mjs`);
+    for (const item of Object.keys(approved)) if (!have.includes(item)) problems.push(`${target}: ${what} lacks ${item}, which APPROVED in dev/package.mjs still lists: drop it there too`);
+    if (new Set(have).size !== have.length) problems.push(`${target}: ${what} names an entry twice`);
+  };
+  compare('permissions', manifest.permissions, APPROVED.permissions);
+  compare('optional_host_permissions', manifest.optional_host_permissions, APPROVED.optional_host_permissions);
+  for (const key of ['host_permissions', 'optional_permissions', 'content_scripts', 'externally_connectable', 'web_accessible_resources']) {
+    if (key in manifest) problems.push(`${target}: ${key} is not approved: write why it is needed in APPROVED in dev/package.mjs`);
+  }
+  const csp = manifest.content_security_policy || {};
+  for (const key of new Set([...Object.keys(csp), ...Object.keys(APPROVED.content_security_policy)])) {
+    const approved = APPROVED.content_security_policy[key] || {};
+    if (!(csp[key] in approved)) problems.push(`${target}: content_security_policy.${key} is ${JSON.stringify(csp[key])}, which is not approved: write why in APPROVED in dev/package.mjs`);
+  }
+  if (target === 'firefox') {
+    const declared = manifest.browser_specific_settings?.gecko?.data_collection_permissions || {};
+    for (const key of Object.keys(declared)) if (key !== 'required') problems.push(`firefox: data_collection_permissions.${key} is not approved in dev/package.mjs`);
+    compare('data_collection_permissions.required', declared.required, APPROVED.firefox_data_collection);
+  }
+  return problems;
+}
 
 const gitRaw = (...args) => execFileSync('git', args, { cwd: ROOT, encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'] });
 const git = (...args) => gitRaw(...args).trim();
@@ -132,6 +190,7 @@ export function check(source = gitSource()) {
       if (!SHARED_KEYS.includes(key) && !OWN_KEYS[target].includes(key)) problems.push(`${key} in the ${target} manifest is unknown to dev/package.mjs`);
     }
   }
+  for (const target of Object.keys(TARGETS)) problems.push(...permissionProblems(target, m[target]));
   if (!m.chrome.background?.service_worker) problems.push('the Chrome manifest needs background.service_worker');
   if (!Array.isArray(m.firefox.background?.scripts)) problems.push('the Firefox manifest needs background.scripts: Firefox has no service worker');
   // The Chrome Web Store has twice been given the Firefox package: 1.2.1
@@ -174,7 +233,7 @@ function listFiles(dir) {
 export function build(target, source = gitSource()) {
   if (!TARGETS[target]) throw new Error(`unknown target ${target}; the choices are ${Object.keys(TARGETS).join(' and ')}`);
   const problems = check(source);
-  if (problems.length) throw new Error('the manifests disagree:\n  ' + problems.join('\n  '));
+  if (problems.length) throw new Error('the manifests disagree, or ask for what is not approved:\n  ' + problems.join('\n  '));
   // The name and the short description are the store's title and summary,
   // in every language: they must be within its limits and in step with
   // store/listings/.
@@ -247,8 +306,8 @@ if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) 
     const source = flag('--worktree') ? worktreeSource() : gitSource(ref);
     if (flag('--check')) {
       const problems = check(source);
-      if (problems.length) throw new Error('the manifests disagree:\n  ' + problems.join('\n  '));
-      console.log(`the manifests agree in ${source.label}`);
+      if (problems.length) throw new Error('the manifests disagree, or ask for what is not approved:\n  ' + problems.join('\n  '));
+      console.log(`the manifests agree, with only the approved permissions, in ${source.label}`);
       process.exit(0);
     }
     // A release carries every language as of today's English: a

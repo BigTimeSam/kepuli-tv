@@ -748,6 +748,16 @@ the extension's sync storage too.
   server address is saved, and only for that server's origin. A missing
   permission shows up as a network error, alongside which there is a button for
   granting it. There are no content scripts.
+- **What the extension may do is a reviewed list.** `APPROVED` in
+  `dev/package.mjs` holds every permission, optional host permission, the
+  content security policy and Firefox's data collection declaration, each
+  with one line of why it is needed. Both manifests must say exactly that:
+  `node dev/package.mjs --check` (CI, `node dev/release.mjs`, every package
+  build) fails on a permission without its reason there, on one dropped from
+  a manifest but still listed, on a looser policy, and on keys such as
+  `host_permissions` or `content_scripts`. Adding a permission means writing
+  its reason in that list first, then the store's justification
+  (`store-listing.txt`, `firefox/reviewer-notes.txt`).
 - A stream the server redirects to another host fails the same way even when
   the server's own host is granted. After a failed stream the player asks the
   address once more with a `HEAD` request that does not follow redirects; if
