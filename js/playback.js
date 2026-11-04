@@ -1,3 +1,5 @@
+// @ts-check
+/// <reference path="../dev/types/globals.d.ts" />
 // Choosing the playback engine, its life cycle and self-repair.
 //
 // Xtream serves live channels as an MPEG-TS stream, which <video> cannot
@@ -18,6 +20,57 @@ import { probe, verdict, serverFault, providerError, answerOf } from './probe.js
 import { Remuxer } from './remux.js';
 import { Mp4Player } from './mp4play.js';
 import { isGecko } from './browser.js';
+
+/**
+ * What is to be played, as app.js asks for it. The fields after `relink`
+ * are this module's own, written into the spec as the attempts go: what
+ * the header read found and which engines have been tried.
+ * @typedef {object} PlaySpec
+ * @property {string} url
+ * @property {string} [hlsUrl] a live channel's HLS address, the fallback for MPEG-TS
+ * @property {boolean} [live]
+ * @property {boolean} [catchup] an archive programme
+ * @property {boolean} [recording] a recording from the disk, see js/recorder.js
+ * @property {string|null} [ext] the container the provider names
+ * @property {number} [startAt] seconds
+ * @property {'auto'|'ts'|'hls'|string} [mode] the stream mode setting
+ * @property {boolean} [allowSilent] the viewer chose to play a file whose sound cannot be played
+ * @property {string|null} [subtitleLang]
+ * @property {string|null} [audioLang]
+ * @property {() => Promise<string|null>} [relink] a new address for each start, see restart()
+ * @property {any} [probe] the header read's result, see probe() in js/probe.js
+ * @property {any} [verdict] what the header says of it, see verdict() in js/probe.js
+ * @property {boolean} [probeFresh]
+ * @property {boolean} [playedAgain]
+ * @property {Set<string>} [tried]
+ */
+
+/**
+ * What an engine's download has come to, see loadInfo(). stage, from and
+ * need belong to a step of the start whose size is known.
+ * @typedef {object} LoadInfo
+ * @property {number|null} loaded bytes
+ * @property {number|null} [need]
+ * @property {number|null} bitrate bits per second
+ * @property {string} [stage]
+ * @property {number} [from]
+ */
+
+/**
+ * How runAttempt()'s finish() was reached, besides ok and the reason: see
+ * finish() for what each says. channel is the HTTP status of a refused
+ * live channel, or true when the request got no answer the browser could
+ * read.
+ * @typedef {object} FinishFacts
+ * @property {boolean} [refused]
+ * @property {boolean} [empty]
+ * @property {number} [unavailable]
+ * @property {number|boolean} [channel]
+ */
+
+/**
+ * @typedef {(ok: boolean, why?: string, facts?: FinishFacts) => void} Finish
+ */
 
 const MPEGTS_CONFIG = {
   enableWorker: false,        // the extension page's CSP blocks blob: workers
@@ -73,6 +126,7 @@ const HLS_CONFIG = {
 // The server may accept the connection and then go quiet — for instance
 // when the account's concurrent-connection limit is full — in which case no
 // error event ever arrives.
+/** @type {Record<string, number>} */
 const TIMEOUT_MS = { mpegts: 20000, hls: 20000, native: 30000, remux: 30000, mp4: 30000 };
 // A source from which nothing at all has come by this time — no answer to
 // the request, not one byte of a stream — is given up rather than waited on
@@ -95,10 +149,12 @@ const ANSWER_MS = 5000;
 // does come through. A channel not there as MPEG-TS (404, 410) may still be
 // there as HLS and is tried as that; not there as HLS either, it is not
 // there.
+/** @type {{ mpegts: Set<number>, hls: Set<number> }} */
 const CHANNEL_REFUSED = { mpegts: new Set([407]), hls: new Set([404, 407, 410]) };
 // The library engines are named as they are; the browser's own player and
 // the MKV unpacking get a translated label, resolved when read so that a
 // language switch mid-playback shows in the badge too.
+/** @param {string} name */
 const engineLabel = (name) => ({ mpegts: 'mpegts.js', hls: 'hls.js' })[name] || t(`engine.${name}`);
 
 const STALL_CHECK_MS = 4000;
@@ -147,25 +203,38 @@ const RELEASE_LAG_MS = 30000;
 export class Playback {
   /**
    * @param {HTMLVideoElement} video
-   * @param {(state: object) => void} onState
+   * @param {(state: Record<string, any>) => void} onState the playback's
+   *        state as it changes: { status, … }, see app.js
    */
   constructor(video, onState) {
     this.video = video;
     this.onState = onState || (() => {});
+    // mpegts.js's or hls.js's player, the MKV unpacker, the MP4 reader or
+    // startNative()'s stand-in: each has its own few members, and they
+    // are asked for by name where they are used.
+    /** @type {any} */
     this.engine = null;
+    /** @type {string|null} */
     this.engineKey = null;
     this.token = 0;
+    /** @type {(() => void)|null} */
     this.cleanup = null;
+    /** @type {PlaySpec|null} */
     this.spec = null;
     this.reconnects = 0;
+    /** @type {ReturnType<typeof setInterval>|null} */
     this.watchdog = null;
     this.lastProgressAt = 0;
     this.lastTime = -1;
     this.wantPlaying = false;   // the viewer's intent, not the element's state
+    /** @type {(() => void)|null} */
     this.guards = null;
     this.recovering = false;
+    /** @type {ReturnType<typeof setTimeout>|null} */
     this.recoverTimer = null;
+    /** @type {ReturnType<typeof setTimeout>|null} */
     this.stableTimer = null;
+    /** @type {AbortController|null} */
     this.probing = null;        // the header read under way, cut with the attempt
     // When a stream of ours was last let go. The server counts a closed
     // connection for a while after it has gone, so a full account just
@@ -175,12 +244,19 @@ export class Playback {
     this.releasedBeforeOpen = 0;
     this.sourceDone = false;    // a file's source has been read to its end
     this.lastTick = 0;
+    /** @type {ReturnType<typeof setInterval>|null} */
     this.meter = null;          // the timer of the 'buffering' account, see startMeter
+    /** @type {'probe'|'start'|'stall'|null} */
     this.meterPhase = null;     // 'probe' | 'start' | 'stall' while it runs
+    /** @type {[number, number][]} */
     this.samples = [];          // [time, bytes] of the download, for its speed
+    /** @type {any} */
     this.sampleSource = null;   // whose bytes they count
+    /** @type {number[]} */
     this.stalls = [];           // when the picture last stopped to wait for data
+    /** @type {(() => LoadInfo)|null} */
     this.libLoad = null;        // the bytes mpegts.js or hls.js has read, see loadInfo
+    /** @type {LoadInfo|null} */
     this.probeLoad = null;      // the header read's, while it runs
   }
 
@@ -238,10 +314,7 @@ export class Playback {
     this.video.load();
   }
 
-  /**
-   * @param {{url:string, hlsUrl?:string, live:boolean, ext?:string,
-   *          startAt?:number, mode?:'auto'|'ts'|'hls'}} spec
-   */
+  /** @param {PlaySpec} spec */
   play(spec) {
     this.stop();          // bumps the token and invalidates the previous attempt
     this.spec = spec;
@@ -284,7 +357,11 @@ export class Playback {
     if (engine) { this.releasedAt = Date.now(); try { engine.destroy(); } catch { /* purettu */ } }
   }
 
-  /** start() without the caller having to mind the returned promise. */
+  /**
+   * start() without the caller having to mind the returned promise.
+   * @param {PlaySpec} spec
+   * @param {number} token
+   */
   begin(spec, token) {
     this.start(spec, token).catch((err) => {
       if (token !== this.token) return;
@@ -293,6 +370,10 @@ export class Playback {
     });
   }
 
+  /**
+   * @param {PlaySpec} spec
+   * @param {number} token
+   */
   async start(spec, token) {
     let chain = buildChain(spec);
     this.noteOpen();
@@ -326,8 +407,14 @@ export class Playback {
     this.runChain(chain, spec, token);
   }
 
-  /** The engines in turn, then explain() once every one has failed. */
+  /**
+   * The engines in turn, then explain() once every one has failed.
+   * @param {string[]} chain
+   * @param {PlaySpec} spec
+   * @param {number} token
+   */
   runChain(chain, spec, token) {
+    /** @param {number} i */
     const attempt = (i) => {
       if (token !== this.token) return;
       if (i >= chain.length) return void this.explain(spec, token);
@@ -346,6 +433,9 @@ export class Playback {
    * player refuses that at once, and without this the failure would go on
    * to the account — whose count still has the header read just closed in
    * it — and to a wait for a connection that would bring nothing.
+   * @param {{ path: string }} known
+   * @param {PlaySpec} spec
+   * @returns {string[]}
    */
   untried(known, spec) {
     const chain = known.path === 'native' ? nativeChain(spec)
@@ -356,6 +446,8 @@ export class Playback {
   /**
    * Reads the file header and stores the result in the spec. Returns the
    * verdict, or null if the attempt went stale in the meantime.
+   * @param {PlaySpec} spec
+   * @param {number} token
    */
   async inspect(spec, token) {
     this.onState({ status: 'probing' });
@@ -366,6 +458,10 @@ export class Playback {
     // On a slow connection the header's quarter of a megabyte takes its
     // time too, and is told like the start's bytes.
     this.probeLoad = null;
+    /**
+     * @param {number} loaded
+     * @param {number} need
+     */
     const onProgress = (loaded, need) => {
       if (token !== this.token || this.probing !== ctrl) return;
       this.probeLoad = { loaded, stage: 'probe', from: 0, need, bitrate: null };
@@ -401,6 +497,7 @@ export class Playback {
    * Said at once and as it is — content, not the account: the account is
    * not asked (see content in js/app.js), since our own read of the empty
    * answer may still be counted there and would blame another viewer.
+   * @param {PlaySpec} spec
    */
   nothingThere(spec) {
     const verdict = { path: 'empty', reason: t('probe.empty') };
@@ -413,6 +510,8 @@ export class Playback {
    * let the request through: see refusedByFileServer() in js/probe.js. Said
    * at once and as it is, like nothingThere(): the account is not asked,
    * and no wait for a connection would bring the file.
+   * @param {PlaySpec} spec
+   * @param {number} status
    */
   fileRefused(spec, status) {
     const verdict = { path: 'unavailable', reason: t('probe.unavailable', { status }) };
@@ -424,6 +523,7 @@ export class Playback {
    * A live channel the provider will not give, see CHANNEL_REFUSED: said at
    * once and as it is, and the account is not asked — the provider would
    * have let a stream through on a full account.
+   * @param {PlaySpec} spec
    */
   channelRefused(spec, status = 0) {
     // With the HTTP status where the engine reported one; without it the
@@ -434,6 +534,10 @@ export class Playback {
     this.onState({ status: 'error', message, verdict, content: true });
   }
 
+  /**
+   * @param {{ reason: string }} known
+   * @param {Record<string, any>} [extra]
+   */
   refuse(known, extra = {}) {
     this.onState({
       status: 'error',
@@ -452,6 +556,9 @@ export class Playback {
    *
    * refused marks a live stream the server would not give: the app asks the
    * account before it shows the failure, and may ask for the stream again.
+   * @param {PlaySpec} spec
+   * @param {number} token
+   * @param {{ refused?: boolean }} [options]
    */
   async explain(spec, token, { refused = false } = {}) {
     const generic = t('playback.nosource');
@@ -482,6 +589,9 @@ export class Playback {
    * connection free: the failure is the file's or the moment's, and the
    * account is not blamed for it (reachable). No answer at all leaves it to
    * the account, as before.
+   * @param {PlaySpec} spec
+   * @param {number} token
+   * @param {any} known the verdict, see verdict() in js/probe.js
    */
   async askServer(spec, token, known) {
     const answer = await answerOf(spec.url);
@@ -505,6 +615,12 @@ export class Playback {
     this.onState({ status: 'error', message: t('playback.nosource'), verdict: known });
   }
 
+  /**
+   * @param {string} name the engine
+   * @param {PlaySpec} spec
+   * @param {number} token
+   * @param {() => void} onFail the next engine, when this one does not start
+   */
   runAttempt(name, spec, token, onFail) {
     const video = this.video;
     let settled = false;
@@ -512,6 +628,7 @@ export class Playback {
     this.sourceDone = false;
     this.libLoad = null;
 
+    /** @type {Finish} */
     const finish = (ok, why, { refused = false, empty = false, unavailable = 0, channel = 0 } = {}) => {
       if (token !== this.token) return;
       // The engine keeps reporting after the start has been settled, and a
@@ -635,6 +752,9 @@ export class Playback {
    * here: its guards and watchdog own the reconnecting, and they let the
    * buffer play out first so that the viewer sees all the picture that
    * arrived.
+   * @param {string} name
+   * @param {string} why
+   * @param {number} token
    */
   died(name, why, token) {
     if (token !== this.token || !this.spec || this.spec.live) return;
@@ -652,6 +772,12 @@ export class Playback {
     this.onState({ status: 'error', message: t('playback.died', { reason }), verdict: this.spec.verdict, position });
   }
 
+  /**
+   * @param {string} url
+   * @param {boolean} isLive
+   * @param {Finish} finish
+   * @param {{ vod?: boolean, started?: () => boolean, onData?: () => void }} [options]
+   */
   startMpegts(url, isLive, finish, { vod = false, started = () => true, onData = () => {} } = {}) {
     if (typeof mpegts === 'undefined' || !mpegts.isSupported()) return finish(false, 'mpegts.js not supported');
     const player = mpegts.createPlayer({ type: 'mpegts', isLive, url }, {
@@ -715,6 +841,11 @@ export class Playback {
     this.tryPlay();
   }
 
+  /**
+   * @param {string} url
+   * @param {Finish} finish
+   * @param {{ live?: boolean, onData?: () => void }} [options]
+   */
   startHls(url, finish, { live = false, onData = () => {} } = {}) {
     if (typeof Hls === 'undefined' || !Hls.isSupported()) return finish(false, 'hls.js not supported');
     const hls = new Hls(HLS_CONFIG);
@@ -759,6 +890,9 @@ export class Playback {
    * Matroska through MediaSource. The remuxer handles the downloading, the
    * demuxing and feeding the segments; life cycle and error forwarding are
    * enough here.
+   * @param {PlaySpec} spec
+   * @param {Finish} finish
+   * @param {() => void} [onAnswer]
    */
   startRemux(spec, finish, onAnswer = () => {}) {
     const remuxer = new Remuxer(this.video, spec.url, {
@@ -787,7 +921,12 @@ export class Playback {
     remuxer.start().catch((err) => finish(false, err && err.message ? err.message : String(err), { empty: Boolean(err && err.empty), unavailable: (err && err.unavailable) || 0 }));
   }
 
-  /** MP4 through MediaSource, see nativeChain() and js/mp4play.js. */
+  /**
+   * MP4 through MediaSource, see nativeChain() and js/mp4play.js.
+   * @param {PlaySpec} spec
+   * @param {Finish} finish
+   * @param {() => void} [onAnswer]
+   */
   startMp4(spec, finish, onAnswer = () => {}) {
     const player = new Mp4Player(this.video, spec.url, {
       startAt: spec.startAt || 0,
@@ -805,6 +944,7 @@ export class Playback {
     player.start().catch((err) => finish(false, err && err.message ? err.message : String(err), { empty: Boolean(err && err.empty), unavailable: (err && err.unavailable) || 0 }));
   }
 
+  /** @param {PlaySpec} spec */
   startNative(spec) {
     const video = this.video;
     // The browser's own player holds its connection through the element,
@@ -839,6 +979,7 @@ export class Playback {
   /**
    * Changing the subtitle track. Only the MKV path knows about subtitles:
    * the other engines have no tracks, so the call does nothing.
+   * @param {number} number
    */
   selectSubtitle(number) {
     const engine = this.engine;
@@ -850,6 +991,7 @@ export class Playback {
    * Changing the audio track. Only the MKV path can: the browser offers no
    * audioTracks to pick from on the others, so a natively played file gets
    * whichever track it marks default, see js/audio.js.
+   * @param {number} number
    */
   selectAudio(number) {
     const engine = this.engine;
@@ -872,6 +1014,7 @@ export class Playback {
    * picture advanced most of STABLE_MS, not that the time passed: a stream
    * that plays for a quarter of a minute and then freezes has not held.
    * Until it has, the check is made again.
+   * @param {number} token
    */
   armStable(token) {
     clearTimeout(this.stableTimer);
@@ -899,6 +1042,7 @@ export class Playback {
    *
    * At element level case 2 looks exactly like the viewer pressing pause.
    * The difference is in the intent, not the state — hence wantPlaying.
+   * @param {number} token
    */
   bindGuards(token) {
     this.detachGuards();
@@ -921,7 +1065,10 @@ export class Playback {
     if (this.guards) { this.guards(); this.guards = null; }
   }
 
-  /** A single door to reconnecting, whatever the reason. */
+  /**
+   * A single door to reconnecting, whatever the reason.
+   * @param {string} reason
+   */
   recover(reason) {
     if (!this.spec || !this.spec.live || this.recovering) return;
     this.recovering = true;
@@ -968,7 +1115,10 @@ export class Playback {
     }, delay);
   }
 
-  /** The picture freezing — case 3 above. */
+  /**
+   * The picture freezing — case 3 above.
+   * @param {number} token
+   */
   startWatchdog(token) {
     this.stopWatchdog();
     if (!this.spec) return;
@@ -1015,6 +1165,7 @@ export class Playback {
    * it seeks, at its end, while the tab is hidden and the browser holds
    * back its timers, or while the MKV unpacker is still retrying a
    * connection.
+   * @param {number} token
    */
   startProgressWatch(token) {
     const video = this.video;
@@ -1074,9 +1225,11 @@ export class Playback {
    * learns it as it goes — a film's index first, and from the index the
    * bytes to its first picture — has a step for each, so that the share
    * shown never goes back as the next size comes to be known.
+   * @returns {LoadInfo & { ahead: number }}
    */
   loadInfo() {
     const engine = this.engine;
+    /** @type {LoadInfo} */
     let info = { loaded: null, need: null, bitrate: null };
     if (this.meterPhase === 'probe' && this.probeLoad) info = this.probeLoad;
     else if (engine && typeof engine.progress === 'function') info = engine.progress();
@@ -1095,6 +1248,8 @@ export class Playback {
    * the file header's read before it ('probe'), or of a stall (from the
    * picture stopping to wait for data to it moving again), told as the
    * 'buffering' state every METER_MS.
+   * @param {number} token
+   * @param {'probe'|'start'|'stall'} phase
    */
   startMeter(token, phase) {
     if (this.meterPhase === phase) return;
@@ -1124,6 +1279,7 @@ export class Playback {
    * too slow when its speed, measured over long enough, is below the bit
    * rate of what it carries — or, without a bit rate, when the picture has
    * stopped for data more than once lately.
+   * @param {'probe'|'start'|'stall'} phase
    */
   measure(phase) {
     const info = this.loadInfo();
@@ -1182,9 +1338,12 @@ export class Playback {
    * The picture stopping to wait for data once it has played: the element
    * says so with 'waiting', and a seek outside the buffer with 'seeking'.
    * A wait shorter than STALL_SHOW_MS is let pass. Returns the undoing.
+   * @param {number} token
+   * @returns {() => void}
    */
   watchStalls(token) {
     const video = this.video;
+    /** @type {ReturnType<typeof setTimeout>|null} */
     let timer = null;
     const onWait = () => {
       if (token !== this.token || timer || this.meterPhase) return;
@@ -1215,10 +1374,14 @@ export class Playback {
     };
   }
 
-  /** Technical details to display: resolution, engine, bitrate. */
+  /**
+   * Technical details to display: resolution, engine, bitrate.
+   * @returns {{ width: number, height: number, engine: string|null, kbps?: number }|null}
+   */
   stats() {
     const video = this.video;
     if (!video.videoWidth) return null;
+    /** @type {{ width: number, height: number, engine: string|null, kbps?: number }} */
     const out = { width: video.videoWidth, height: video.videoHeight, engine: this.engineName };
     const engine = this.engine;
     if (engine && typeof Hls !== 'undefined' && engine instanceof Hls) {
@@ -1238,11 +1401,19 @@ export class Playback {
  * with fetch() and fed to MediaSource instead (js/mp4play.js). The
  * browser's own player is no fallback there: it would fail the same way,
  * and in failing take a connection from the account check that follows.
+ * @param {PlaySpec} spec
+ * @returns {string[]}
  */
 function nativeChain(spec) {
   return isGecko() && /^http:/i.test(spec.url) ? ['mp4'] : ['native'];
 }
 
+/**
+ * The engines to try, in order; none when the extension promises nothing
+ * and the header must say.
+ * @param {PlaySpec} spec
+ * @returns {string[]}
+ */
 function buildChain(spec) {
   // A recording from the disk (js/recorder.js) is what it was recorded as.
   if (spec.recording) return spec.ext === 'mp4' ? ['native'] : ['mpegts'];

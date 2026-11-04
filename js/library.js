@@ -1,3 +1,4 @@
+// @ts-check
 // Laiska datakerros.
 //
 // Principle: load as little as possible, as late as possible.
@@ -16,6 +17,38 @@ import { channelLogo } from './logos.js';
 import { internationalChannels } from './international.js';
 import { labelCodes, searchKey, searchTerms } from './name.js';
 
+/** @typedef {import('./api.js').CatalogueType} CatalogueType */
+/** @typedef {import('./api.js').CatalogueItem} CatalogueItem */
+/** @typedef {import('./api.js').Category} Category */
+/** @typedef {import('./api.js').RequestOptions} RequestOptions */
+/** @typedef {import('./api.js').StreamOptions} StreamOptions */
+
+/**
+ * What the library asks of a provider kind: js/api.js's XtreamApi, and the
+ * M3U and Stalker sources that answer the same questions. reload() is a
+ * playlist's: one file behind every list, downloaded again on Refresh.
+ * @typedef {object} Provider
+ * @property {(type: CatalogueType, options?: RequestOptions) => Promise<Category[]>} categories
+ * @property {(type: CatalogueType, categoryId: string|null, options?: StreamOptions) => Promise<CatalogueItem[]>} streams
+ * @property {(seriesId: string, options?: RequestOptions) => Promise<any>} seriesInfo
+ * @property {(vodId: string, options?: RequestOptions) => Promise<any>} vodInfo
+ * @property {(options?: RequestOptions) => Promise<unknown>} [reload]
+ */
+
+/**
+ * A row of the category column: the provider's categories that share a
+ * country or a subject, each with the topic after the dash (sub), see
+ * buildGroups().
+ * @typedef {{ name: string, cats: { id: string, name: string, sub: string|null }[] }} Group
+ */
+
+/**
+ * One value per catalogue type.
+ * @template V
+ * @typedef {{ live: V, movie: V, series: V }} PerType
+ */
+
+/** @type {CatalogueType[]} */
 export const TYPES = ['live', 'movie', 'series'];
 
 // Every list in alphabetical order. The provider's own order is arbitrary —
@@ -25,8 +58,11 @@ export const TYPES = ['live', 'movie', 'series'];
 // Built on demand: the language can change mid-session, and alphabetical
 // order is a matter of language. A new Collator per call would be
 // measurable load on a list of 55,000 names, so one is made per tag.
+/** @type {string|null} */
 let collatorTag = null;
+/** @type {Intl.Collator|null} */
 let collatorInstance = null;
+/** @returns {Intl.Collator} */
 function collator() {
   if (collatorTag !== localeTag()) {
     collatorTag = localeTag();
@@ -39,6 +75,10 @@ function collator() {
 // letter and must therefore not decide a place in the list.
 const LEADING_JUNK = /^[^\p{L}\p{N}]+/u;
 
+/**
+ * @param {string} name
+ * @returns {string}
+ */
 function sortKey(name) {
   return String(name || '').replace(LEADING_JUNK, '').trim();
 }
@@ -47,15 +87,18 @@ function sortKey(name) {
  * Returns a new, sorted array — the original is left alone, because the
  * same array is shared with several views.
  *
- * @param {{n:string}[]} items
- * @param {((name: string) => string)|null} [label] what to sort by, when the
+ * @template {{n: string}} T
+ * @param {T[]} items
+ * @param {((name: string, item: T) => string)|null} [label] what to sort by, when the
  *        visible name is something other than item.n (see name.js).
+ * @returns {T[]}
  */
 export function sortItems(items, label) {
   if (!items || items.length < 2) return items;
   const compare = collator();
   // The label is handed the item as well as its name: a name's tidy form
   // can depend on where the item is filed (js/name.js, searchNameCleaner).
+  /** @type {[string, number, T][]} */
   const keyed = items.map((item, i) => [sortKey(label ? label(item.n, item) : item.n), i, item]);
   keyed.sort((a, b) => compare.compare(a[0], b[0]) || a[1] - b[1]);
   return keyed.map((entry) => entry[2]);
@@ -72,6 +115,8 @@ const TTL = {
  * How long a cached row of the library's is good for, by its key — or null
  * for a key that is not the library's. For db.js's cachePurge(): a row past
  * its time is never read again, since every read asks for a fresher one.
+ * @param {unknown} key
+ * @returns {number|null} milliseconds
  */
 export function cacheTtl(key) {
   const name = String(key).slice(String(key).indexOf('|') + 1);
@@ -91,29 +136,48 @@ export class Library {
    *        see accountKey() in js/config.js. A request still running for the
    *        previous account, or another tab on another account, writes
    *        under its own name and cannot hand this one its lists.
+   * @param {Provider} api
    */
   constructor(api, account = '') {
     this.api = api;
     this.scope = account ? `${account}|` : '';
+    /** @type {PerType<Category[]>} */
     this.categories = { live: [], movie: [], series: [] };
+    /** @type {PerType<Group[]>} */
     this.groups = { live: [], movie: [], series: [] };
+    /** @type {PerType<CatalogueItem[]|null>} */
     this.full = { live: null, movie: null, series: null };
+    /** @type {PerType<string[]|null>} */
     this.keys = { live: null, movie: null, series: null };
+    /** @type {PerType<number|null>} */
     this.fullAt = { live: null, movie: null, series: null };
+    /** @type {number|null} */
     this.categoriesAt = null;        // when the oldest of the categories was fetched
+    /** @type {number|null} */
     this.listsAt = null;             // when the oldest list in byCategory was fetched
+    /** @type {Map<string, string[]>} */
     this.catCodes = new Map();       // category id → the country codes it names
+    /** @type {Set<string>|null} */
     this.globalIds = null;           // the international channels' ids, see international()
+    /** @type {Map<string, CatalogueItem[]>} */
     this.byCategory = new Map();     // "live:3" → items (in memory)
+    /** @type {Map<string, Promise<any>>} */
     this.pending = new Map();        // concurrent calls share one promise
+    /** @type {Map<string, any>} */
     this.details = new Map();        // extra details for a series/movie
+    /** @type {{ item: CatalogueItem, onUpdate: (id: string, info: any) => void }[]} */
     this.movieQueue = [];
     this.movieWorkers = 0;
+    /** @type {Set<string>} */
     this.movieAttempts = new Set();
   }
 
   /* ------------------------------------------------------------ categories */
 
+  /**
+   * @param {{ force?: boolean, signal?: AbortSignal }} [options]
+   * @returns {Promise<PerType<Category[]>>}
+   */
   async loadCategories({ force = false, signal } = {}) {
     const times = await Promise.all(TYPES.map(async (type) => {
       const key = `${this.scope}cats:${type}`;
@@ -142,12 +206,22 @@ export class Library {
     return this.categories;
   }
 
+  /**
+   * @param {CatalogueType} type
+   * @param {string} id
+   * @returns {string}
+   */
   categoryName(type, id) {
     const hit = this.categories[type].find((c) => c.id === id);
     return hit ? hit.name : id;
   }
 
-  /** A group's description, found by name. */
+  /**
+   * A group's description, found by name.
+   * @param {CatalogueType} type
+   * @param {string} name
+   * @returns {Group|null}
+   */
   group(type, name) {
     return this.groups[type].find((g) => g.name === name) || null;
   }
@@ -156,6 +230,10 @@ export class Library {
    * One group's entire contents (e.g. "Sweden"): the channels of all its
    * sub-categories as a single list. Fetched once, after which switching
    * between sub-categories is pure filtering in memory.
+   * @param {CatalogueType} type
+   * @param {string} groupName
+   * @param {StreamOptions} [options]
+   * @returns {Promise<CatalogueItem[]>}
    */
   async groupItems(type, groupName, { onProgress, signal } = {}) {
     const group = this.group(type, groupName);
@@ -179,6 +257,11 @@ export class Library {
    * Fetches the categories concurrently but assembles the result in
    * category order, so that de-duplication does not depend on the order the
    * answers happen to arrive in. Finally the whole set is sorted.
+   * @param {CatalogueType} type
+   * @param {string[]} categoryIds
+   * @param {((done: number, total: number) => void)|undefined} onProgress counts categories, not bytes
+   * @param {AbortSignal|undefined} signal
+   * @returns {Promise<CatalogueItem[]>}
    */
   async fetchCategories(type, categoryIds, onProgress, signal) {
     const results = new Array(categoryIds.length);
@@ -196,6 +279,7 @@ export class Library {
     await Promise.all(Array.from({ length: Math.min(8, categoryIds.length) }, worker));
 
     const seen = new Set();
+    /** @type {CatalogueItem[]} */
     const out = [];
     for (const items of results) {
       for (const item of items || []) {
@@ -207,7 +291,11 @@ export class Library {
     return sortItems(out);
   }
 
-  /** Per-group counts — known only once the whole list has been fetched. */
+  /**
+   * Per-group counts — known only once the whole list has been fetched.
+   * @param {CatalogueType} type
+   * @returns {Map<string, number>|null}
+   */
   groupCounts(type) {
     const counts = this.categoryCounts(type);
     if (!counts) return null;
@@ -222,9 +310,16 @@ export class Library {
 
   /* ----------------------------------------------------------------- lists */
 
+  /** @param {CatalogueType} type */
   isFull(type) { return this.full[type] != null; }
 
-  /** One category's contents. Uses the whole list when it is already in memory. */
+  /**
+   * One category's contents. Uses the whole list when it is already in memory.
+   * @param {CatalogueType} type
+   * @param {string} categoryId
+   * @param {RequestOptions} [options]
+   * @returns {Promise<CatalogueItem[]>}
+   */
   async categoryItems(type, categoryId, { signal } = {}) {
     if (this.full[type]) return this.full[type].filter((it) => it.cats.includes(categoryId));
     const key = `${type}:${categoryId}`;
@@ -238,13 +333,23 @@ export class Library {
     });
   }
 
-  /** A category's or a group's list, kept in memory with the time it was asked for. */
+  /**
+   * A category's or a group's list, kept in memory with the time it was asked for.
+   * @param {string} key
+   * @param {CatalogueItem[]} items
+   * @param {number} at
+   */
   keepList(key, items, at) {
     this.byCategory.set(key, items);
     if (this.listsAt == null || at < this.listsAt) this.listsAt = at;
   }
 
-  /** A type's whole list. Returns at once if already loaded or cached. */
+  /**
+   * A type's whole list. Returns at once if already loaded or cached.
+   * @param {CatalogueType} type
+   * @param {StreamOptions & { force?: boolean }} [options]
+   * @returns {Promise<CatalogueItem[]>}
+   */
   async ensureFull(type, { onProgress, force = false, signal } = {}) {
     if (this.full[type] && !force) return this.full[type];
     return this.share(`full:${type}`, async () => {
@@ -260,6 +365,11 @@ export class Library {
     });
   }
 
+  /**
+   * @param {CatalogueType} type
+   * @param {CatalogueItem[]} items
+   * @param {number} [at]
+   */
   setFull(type, items, at) {
     this.full[type] = sortItems(this.withLogos(type, items));
     this.fullAt[type] = at || Date.now();
@@ -282,6 +392,7 @@ export class Library {
    * The series' episode lists go too, from memory and from the cache: a
    * series still running is where new things appear. A film's details are
    * kept; they are a title's facts and do not change.
+   * @param {StreamOptions} [options]
    */
   async refresh({ signal, onProgress } = {}) {
     // A playlist is one file behind every list: it is downloaded again
@@ -301,6 +412,8 @@ export class Library {
    * Whether anything in memory is older than the cache would have let it
    * be: a tab left open for a day still shows the day-old lists, because
    * nothing in memory is asked about again by itself.
+   * @param {number} [now]
+   * @returns {boolean}
    */
   isStale(now = Date.now()) {
     if (this.categoriesAt != null && now - this.categoriesAt > TTL.categories) return true;
@@ -312,6 +425,7 @@ export class Library {
    * The ids of the live channels that are in many countries' lists, out of
    * the whole list (js/international.js); null until it is loaded. Worked
    * out once per list: 31,000 channels take some 40 ms.
+   * @returns {Set<string>|null}
    */
   international() {
     if (!this.full.live) return null;
@@ -327,6 +441,10 @@ export class Library {
    * query "yle". A match at the start of a word therefore always beats one
    * found mid-word. Equally ranked matches keep the whole list's order,
    * which is alphabetical.
+   * @param {CatalogueType} type
+   * @param {string} query
+   * @param {string|null} [categoryId]
+   * @returns {CatalogueItem[]}
    */
   search(type, query, categoryId) {
     const items = this.full[type];
@@ -336,6 +454,7 @@ export class Library {
     // The words back together, for the test that comes first: a name that
     // reads the way the query was typed is the better answer.
     const phrase = terms.join(' ');
+    /** @type {[number, number][]} */
     const scored = [];
     for (let i = 0; i < items.length; i++) {
       if (categoryId && !items[i].cats.includes(categoryId)) continue;
@@ -348,7 +467,11 @@ export class Library {
     return scored.map(([, i]) => items[i]);
   }
 
-  /** Per-category counts — known only once the whole list has been fetched. */
+  /**
+   * Per-category counts — known only once the whole list has been fetched.
+   * @param {CatalogueType} type
+   * @returns {Map<string, number>|null}
+   */
   categoryCounts(type) {
     const items = this.full[type];
     if (!items) return null;
@@ -360,6 +483,10 @@ export class Library {
   /* --------------------------------------------------------------- details */
 
   // v2 retains external title IDs and trailers missing from earlier cache entries.
+  /**
+   * @param {string} seriesId
+   * @returns {Promise<any>} the series' details and episodes, see seriesInfo() in js/api.js
+   */
   async seriesEpisodes(seriesId) {
     const key = `series:v2:${seriesId}`;
     if (this.details.has(key)) return this.details.get(key);
@@ -371,6 +498,10 @@ export class Library {
     });
   }
 
+  /**
+   * @param {string} vodId
+   * @returns {Promise<any>} the film's details, see vodInfo() in js/api.js
+   */
   async movieDetails(vodId) {
     const key = `vod:v2:${vodId}`;
     if (this.details.has(key)) return this.details.get(key);
@@ -382,7 +513,11 @@ export class Library {
     });
   }
 
-  /** Only the current viewport needs durations; scrolling replaces the queue. */
+  /**
+   * Only the current viewport needs durations; scrolling replaces the queue.
+   * @param {CatalogueItem[]} items
+   * @param {(id: string, info: any) => void} onUpdate
+   */
   warmMovieDurations(items, onUpdate) {
     for (const item of items) {
       if (item.k !== 1 || item.details) continue;
@@ -426,6 +561,9 @@ export class Library {
    * logos the list in IndexedDB was built without.
    *
    * A channel with no match keeps the address the provider sent.
+   * @param {CatalogueType} type
+   * @param {CatalogueItem[]} items
+   * @returns {CatalogueItem[]} the same array
    */
   withLogos(type, items) {
     if (type !== 'live') return items;
@@ -436,12 +574,17 @@ export class Library {
     return items;
   }
 
-  /** The country codes a channel's categories name. */
+  /**
+   * The country codes a channel's categories name.
+   * @param {CatalogueItem} item
+   * @returns {string[]}
+   */
   channelCodes(item) {
     const cats = item.cats || [];
     // Nearly every channel is in one category, and that category's codes
     // have been worked out already: there is nothing to merge.
     if (cats.length === 1) return this.catCodes.get(cats[0]) || [];
+    /** @type {string[]} */
     const out = [];
     for (const id of cats) {
       for (const code of this.catCodes.get(id) || []) if (!out.includes(code)) out.push(code);
@@ -449,7 +592,13 @@ export class Library {
     return out;
   }
 
-  /** Prevents the same fetch from running twice concurrently. */
+  /**
+   * Prevents the same fetch from running twice concurrently.
+   * @template T
+   * @param {string} key
+   * @param {() => Promise<T>} factory
+   * @returns {Promise<T>}
+   */
   share(key, factory) {
     const running = this.pending.get(key);
     if (running) return running;
@@ -487,6 +636,10 @@ export class Library {
  * mid-word. A name carrying them all but scattered, "News CNN" for "cnn
  * news", answers too and scores below every contiguous one, so a viewer who
  * did type the name in order still sees it first.
+ * @param {string} name the name's search key
+ * @param {string[]} terms
+ * @param {string} phrase
+ * @returns {number|null}
  */
 function queryScore(name, terms, phrase) {
   const at = name.indexOf(phrase);
@@ -502,6 +655,12 @@ function queryScore(name, terms, phrase) {
   return 3 + worst;
 }
 
+/**
+ * @param {string} name
+ * @param {string} query
+ * @param {number} at
+ * @returns {number}
+ */
 function matchScore(name, query, at) {
   if (at === 0) return 0;
   const before = name.charCodeAt(at - 1);
@@ -513,9 +672,12 @@ function matchScore(name, query, at) {
  * The provider's category names hold two levels encoded into one string:
  * "Sweden - Sport", "Movies: NL - Kids". They are split into a
  * country/subject and a topic, so that 519 categories fit into 81 rows.
+ * @param {Category[]} categories
+ * @returns {Group[]}
  */
 export function buildGroups(categories) {
   const prefix = commonPrefix(categories.map((c) => c.name));
+  /** @type {Map<string, Group>} */
   const map = new Map();
   for (const cat of categories) {
     const { group, sub } = splitCategoryName(cat.name, prefix);
@@ -526,7 +688,11 @@ export function buildGroups(categories) {
   return [...map.values()].sort((a, b) => collator().compare(a.name, b.name));
 }
 
-/** A "Movies:"-style prefix shared by all of them is pure repetition. */
+/**
+ * A "Movies:"-style prefix shared by all of them is pure repetition.
+ * @param {string[]} names
+ * @returns {string|null}
+ */
 function commonPrefix(names) {
   if (names.length < 4) return null;
   const counts = new Map();
@@ -540,6 +706,11 @@ function commonPrefix(names) {
   return null;
 }
 
+/**
+ * @param {string} name
+ * @param {string|null} [prefix]
+ * @returns {{ group: string, sub: string|null }}
+ */
 export function splitCategoryName(name, prefix) {
   let rest = prefix && name.startsWith(prefix) ? name.slice(prefix.length) : name;
   rest = rest.trim();

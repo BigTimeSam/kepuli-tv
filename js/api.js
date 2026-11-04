@@ -1,3 +1,4 @@
+// @ts-check
 // Xtream Codes player_api.php client.
 //
 // Quirks of the API that are accounted for here:
@@ -15,6 +16,79 @@ import { releaseYear } from './mediafilters.js';
 import { providerRating } from './rating.js';
 import { directSource, serverStamp } from './xtream.js';
 
+// The shapes the provider kinds hand the rest of the player. The other two
+// kinds (js/m3usource.js, js/stalker.js) answer with the same ones, so the
+// library and the views can treat every account alike. What the provider
+// sent is untrusted and loosely typed; these are the shapes after
+// normalising.
+
+/**
+ * What a request takes from its caller: the signal that cancels it.
+ * @typedef {object} RequestOptions
+ * @property {AbortSignal} [signal]
+ */
+
+/**
+ * A list download's options: progress is reported in bytes, with the
+ * total when the server said it (0 when not).
+ * @typedef {object} StreamOptions
+ * @property {AbortSignal} [signal]
+ * @property {(loaded: number, total: number) => void} [onProgress]
+ */
+
+/**
+ * @typedef {'live'|'movie'|'series'} CatalogueType
+ */
+
+/**
+ * @typedef {object} Category
+ * @property {string} id
+ * @property {string} name
+ */
+
+/**
+ * An item of a list as every view reads it. `k` is its kind: 0 a live
+ * channel, 1 a film, 2 a series, 3 an episode. The fields after `cats` are
+ * the kind's own and missing on the others.
+ * @typedef {object} CatalogueItem
+ * @property {string} id
+ * @property {number} k
+ * @property {string} n the name as the provider gave it
+ * @property {string|null} logo
+ * @property {string[]} cats the ids of the categories it is filed under
+ * @property {string|null} [epgId]
+ * @property {number} [archive] the days of catch-up a channel keeps, 0 for none
+ * @property {string|null} [direct] an address the provider gives besides its own
+ * @property {number} [num]
+ * @property {string} [ext]
+ * @property {number} [durationSec]
+ * @property {number|null} [year]
+ * @property {string} [genre]
+ * @property {string} [plot]
+ * @property {number|null} [rating]
+ * @property {number} [ratingScale]
+ * @property {object} [details] a film's details once they have been fetched, see js/library.js
+ */
+
+/**
+ * One programme of a channel's guide; the times are milliseconds.
+ * @typedef {object} Programme
+ * @property {string} id
+ * @property {string} title
+ * @property {string} description
+ * @property {number} start
+ * @property {number} stop
+ */
+
+/**
+ * The essentials of one track out of the server's ffprobe dump.
+ * @typedef {object} CodecInfo
+ * @property {string} codec
+ * @property {number} [width]
+ * @property {number} [height]
+ * @property {number} [channels]
+ */
+
 // Fatal, so that bytes which are no UTF-8 throw instead of turning into
 // replacement characters: a plain title that happens to be valid base64
 // ("News", "Golf") decodes to such bytes, and the throw is what tells it
@@ -27,14 +101,21 @@ const TEXT_DECODER = new TextDecoder('utf-8', { fatal: true });
 // list download the limit is between chunks, not over the whole download.
 const REQUEST_MS = 20000;
 
-/** The caller's signal, if any, and the time limit as one signal. */
+/**
+ * The caller's signal, if any, and the time limit as one signal.
+ * @param {AbortSignal} [signal]
+ * @param {number} [ms]
+ * @returns {AbortSignal}
+ */
 function deadline(signal, ms = REQUEST_MS) {
   const timeout = AbortSignal.timeout(ms);
   return signal ? AbortSignal.any([signal, timeout]) : timeout;
 }
 
 /** A failed fetch as the error the caller sees. A cancellation is the
- *  caller's own and passes through as it is. */
+ *  caller's own and passes through as it is.
+ *  @param {any} err
+ *  @returns {Error} */
 function networkError(err) {
   if (err && err.name === 'AbortError') return err;
   if (err && err.name === 'TimeoutError') return new ApiError('verkko', t('api.timeout', { seconds: REQUEST_MS / 1000 }));
@@ -52,13 +133,18 @@ function networkError(err) {
  * it is what a firewall in front of the server, Cloudflare, a block by
  * country or a ban for too many requests answer with, and telling the
  * viewer to check a password that is right sends them the wrong way.
+ * @param {number} status
  */
 function rejected(status) {
   if (status === 512 || status === 401) throw new ApiError('tunnistus', t('api.rejected'));
   if (status === 403) throw new ApiError('http', t('api.denied'));
 }
 
-/** base64 → UTF-8. A bare atob() would mangle non-ASCII letters. */
+/**
+ * base64 → UTF-8. A bare atob() would mangle non-ASCII letters.
+ * @param {string} [value]
+ * @returns {string}
+ */
 export function decodeField(value) {
   if (!value) return '';
   try {
@@ -72,17 +158,30 @@ export function decodeField(value) {
 }
 
 export class XtreamApi {
+  /** @param {import('./config.js').Config} config */
   constructor(config) {
     this.config = config;
     this.base = `${config.scheme || 'http'}://${config.host}${config.port ? ':' + config.port : ''}`;
     this.auth = `username=${encodeURIComponent(config.username)}&password=${encodeURIComponent(config.password)}`;
   }
 
+  /**
+   * @param {string} action
+   * @param {Record<string, string|number>|null} [params]
+   */
   url(action, params) {
-    const extra = params ? '&' + new URLSearchParams(params) : '';
+    // URLSearchParams turns the numbers into their digits, as a query wants
+    // them; its declared type asks for strings only.
+    const extra = params ? '&' + new URLSearchParams(/** @type {Record<string, string>} */ (params)) : '';
     return `${this.base}/player_api.php?${this.auth}${action ? '&action=' + action : ''}${extra}`;
   }
 
+  /**
+   * @param {string} action
+   * @param {Record<string, string|number>|null} params
+   * @param {RequestOptions} [options]
+   * @returns {Promise<any>} the answer as parsed JSON
+   */
   async call(action, params, { signal } = {}) {
     let res;
     let text;
@@ -103,7 +202,10 @@ export class XtreamApi {
     }
   }
 
-  /** Account and server details. Doubles as a connection test. */
+  /**
+   * Account and server details. Doubles as a connection test.
+   * @param {RequestOptions} [options]
+   */
   async account({ signal } = {}) {
     const data = await this.call('', null, { signal });
     if (!data || !data.user_info) {
@@ -135,6 +237,11 @@ export class XtreamApi {
     };
   }
 
+  /**
+   * @param {CatalogueType} type
+   * @param {RequestOptions} [options]
+   * @returns {Promise<Category[]>}
+   */
   async categories(type, { signal } = {}) {
     const action = { live: 'get_live_categories', movie: 'get_vod_categories', series: 'get_series_categories' }[type];
     const raw = await this.call(action, null, { signal });
@@ -146,6 +253,10 @@ export class XtreamApi {
    * Streams by type; categoryId narrows the fetch to one category.
    * onProgress receives the bytes loaded — fetching the whole list is in
    * the megabyte class, so progress has to be shown to the user.
+   * @param {CatalogueType} type
+   * @param {string|null} categoryId
+   * @param {StreamOptions} [options]
+   * @returns {Promise<CatalogueItem[]>}
    */
   async streams(type, categoryId, { signal, onProgress } = {}) {
     const action = { live: 'get_live_streams', movie: 'get_vod_streams', series: 'get_series' }[type];
@@ -161,6 +272,10 @@ export class XtreamApi {
    * Like call(), but reports download progress. The time limit runs
    * between chunks: a list of megabytes may take longer than the limit as
    * a whole, but a body that stops arriving is a dead connection.
+   * @param {string} action
+   * @param {Record<string, string|number>|null} params
+   * @param {StreamOptions} options
+   * @returns {Promise<any>}
    */
   async callStreaming(action, params, { signal, onProgress }) {
     const ctrl = new AbortController();
@@ -205,6 +320,10 @@ export class XtreamApi {
     }
   }
 
+  /**
+   * @param {string} seriesId
+   * @param {RequestOptions} [options]
+   */
   async seriesInfo(seriesId, { signal } = {}) {
     const data = await this.call('get_series_info', { series_id: seriesId }, { signal });
     const info = data.info || {};
@@ -247,6 +366,10 @@ export class XtreamApi {
     };
   }
 
+  /**
+   * @param {string} vodId
+   * @param {RequestOptions} [options]
+   */
   async vodInfo(vodId, { signal } = {}) {
     const data = await this.call('get_vod_info', { vod_id: vodId }, { signal });
     const info = data.info || {};
@@ -271,13 +394,24 @@ export class XtreamApi {
     };
   }
 
-  /** The upcoming programmes for one channel. */
+  /**
+   * The upcoming programmes for one channel.
+   * @param {string} streamId
+   * @param {number} [limit]
+   * @param {RequestOptions} [options]
+   * @returns {Promise<Programme[]>}
+   */
   async shortEpg(streamId, limit = 4, { signal } = {}) {
     const data = await this.call('get_short_epg', { stream_id: streamId, limit }, { signal });
     return (data.epg_listings || []).map(normalizeProgramme);
   }
 
-  /** A channel's whole EPG window, past programmes included (for catch-up). */
+  /**
+   * A channel's whole EPG window, past programmes included (for catch-up).
+   * @param {string} streamId
+   * @param {RequestOptions} [options]
+   * @returns {Promise<Programme[]>}
+   */
   async fullEpg(streamId, { signal } = {}) {
     const data = await this.call('get_simple_data_table', { stream_id: streamId }, { signal });
     return (data.epg_listings || []).map(normalizeProgramme);
@@ -285,6 +419,11 @@ export class XtreamApi {
 }
 
 export class ApiError extends Error {
+  /**
+   * @param {string} kind what failed, for the caller to tell apart: verkko
+   *        (the network), tunnistus (the credentials), http, muoto (the answer's form)
+   * @param {string} message the sentence the viewer is shown
+   */
   constructor(kind, message) {
     super(message);
     this.name = 'ApiError';
@@ -300,7 +439,11 @@ export class ApiError extends Error {
 // a film's cover comes from nowhere else.
 const RE_GITHUB_BLOB = /^https?:\/\/github\.com\/([^/]+)\/([^/]+)\/blob\/(.+?)(?:\?.*)?$/i;
 
-/** Some of the server's stream_icon values are junk ("[", "[\"\"]"). */
+/**
+ * Some of the server's stream_icon values are junk ("[", "[\"\"]").
+ * @param {unknown} value
+ * @returns {string|null}
+ */
 export function safeUrl(value) {
   if (typeof value !== 'string') return null;
   const trimmed = value.trim();
@@ -324,6 +467,8 @@ export function safeUrl(value) {
  * name may well be in it, as in "…/logo.php?id=12" and "…/logo?ch=5" —
  * because the point here is to drop what is known to be incomplete, not to
  * guess at what might work.
+ * @param {string} url
+ * @returns {boolean}
  */
 function namesAFile(url) {
   let parsed;
@@ -333,7 +478,11 @@ function namesAFile(url) {
   return path.slice(path.lastIndexOf('/') + 1).includes('.');
 }
 
-/** The server returns the whole ffprobe dump; only the essentials are kept. */
+/**
+ * The server returns the whole ffprobe dump; only the essentials are kept.
+ * @param {any} track
+ * @returns {CodecInfo|null}
+ */
 function codecInfo(track) {
   if (!track || !track.codec_name) return null;
   const out = { codec: track.codec_name };
@@ -342,6 +491,10 @@ function codecInfo(track) {
   return out;
 }
 
+/**
+ * @param {any} s the answer's server_info
+ * @returns {number}
+ */
 function serverUtcOffset(s) {
   if (!s.timestamp_now || !s.time_now) return 0;
   const asUtc = Date.parse(String(s.time_now).replace(' ', 'T') + 'Z');
@@ -349,7 +502,13 @@ function serverUtcOffset(s) {
   return asUtc - Number(s.timestamp_now) * 1000;
 }
 
-/** Whether the named zone's wall clock at the instant is the one the server reported. */
+/**
+ * Whether the named zone's wall clock at the instant is the one the server reported.
+ * @param {unknown} zone
+ * @param {number} offsetMs
+ * @param {number} atMs
+ * @returns {boolean}
+ */
 function zoneAgrees(zone, offsetMs, atMs) {
   if (typeof zone !== 'string' || !zone || !Number.isFinite(atMs) || atMs <= 0) return false;
   // The two clock readings may be taken a moment apart; offsets come in
@@ -359,6 +518,10 @@ function zoneAgrees(zone, offsetMs, atMs) {
   return named !== null && named === serverStamp(atMs, null, offset);
 }
 
+/**
+ * @param {any} p
+ * @returns {Programme}
+ */
 function normalizeProgramme(p) {
   return {
     id: String(p.id || ''),
@@ -369,6 +532,10 @@ function normalizeProgramme(p) {
   };
 }
 
+/**
+ * @param {any} s
+ * @returns {CatalogueItem}
+ */
 function normalizeLive(s) {
   return {
     id: String(s.stream_id),
@@ -383,6 +550,10 @@ function normalizeLive(s) {
   };
 }
 
+/**
+ * @param {any} s
+ * @returns {CatalogueItem}
+ */
 function normalizeMovie(s) {
   return {
     id: String(s.stream_id),
@@ -401,6 +572,10 @@ function normalizeMovie(s) {
   };
 }
 
+/**
+ * @param {any} info
+ * @returns {number} seconds, 0 when the provider gave none
+ */
 function movieDuration(info) {
   const seconds = Number(info.duration_secs);
   if (Number.isFinite(seconds) && seconds > 0) return seconds;
@@ -408,6 +583,10 @@ function movieDuration(info) {
   return parts ? Number(parts[1]) * 3600 + Number(parts[2]) * 60 + Number(parts[3]) : 0;
 }
 
+/**
+ * @param {any} s
+ * @returns {CatalogueItem}
+ */
 function normalizeSeries(s) {
   return {
     id: String(s.series_id),
@@ -424,6 +603,10 @@ function normalizeSeries(s) {
   };
 }
 
+/**
+ * @param {any} s
+ * @returns {string[]}
+ */
 function categoryIds(s) {
   if (Array.isArray(s.category_ids) && s.category_ids.length) return s.category_ids.map(String);
   return s.category_id != null ? [String(s.category_id)] : [];

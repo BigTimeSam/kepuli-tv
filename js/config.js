@@ -1,3 +1,4 @@
+// @ts-check
 // Settings, favourites, history and resume points in the extension's
 // storage.local.
 // Note: the password is stored in the clear in the extension's own storage.
@@ -39,9 +40,37 @@ const CONNECTION_DEFAULTS = {
   sourceMode: 'xtream',     // xtream | m3u | stalker
 };
 
+/**
+ * An account's connection as stored: every field of CONNECTION_DEFAULTS,
+ * each a string.
+ * @typedef {typeof CONNECTION_DEFAULTS} Config
+ */
+
+/**
+ * An entry of Favourites or History: an item of a list as the provider
+ * kinds give it (see CatalogueItem in js/api.js), stored whole. `k` is 'c'
+ * for a favourite category, whose other fields are app.js's.
+ * @typedef {{ k: number|string, id: string, watchedAt?: number } & Record<string, any>} ListItem
+ */
+
+/**
+ * A programme the viewer asked to be reminded of.
+ * @typedef {{ channel: { id: string } & Record<string, any>, title: string, start: number, stop: number } & Record<string, any>} Reminder
+ */
+
+/**
+ * Where a film or an episode was left; `at` is when, for dropping the
+ * oldest. The other fields are app.js's.
+ * @typedef {{ at: number } & Record<string, any>} ResumePoint
+ */
+
 const MAC = /^([0-9A-F]{2}:){5}[0-9A-F]{2}$/i;
 
-/** Whether the configuration has what it takes to connect. */
+/**
+ * Whether the configuration has what it takes to connect.
+ * @param {Partial<Config>|null} [c]
+ * @returns {boolean}
+ */
 export function isConfigured(c) {
   if (!c) return false;
   if (c.type === 'm3u') return Boolean(c.url);
@@ -49,7 +78,11 @@ export function isConfigured(c) {
   return Boolean(c.host && c.username && c.password);
 }
 
-/** The account as the account menu names it: its own name, or its address. */
+/**
+ * The account as the account menu names it: its own name, or its address.
+ * @param {Partial<Config>|null} [c]
+ * @returns {string}
+ */
 export function accountLabel(c) {
   if (!c) return '';
   if (c.name && c.name.trim()) return c.name.trim();
@@ -67,6 +100,7 @@ export function accountLabel(c) {
  * Finnish subtitles, and neither had been asked for. The browser has already
  * been told which languages its owner reads; the first of them the app
  * speaks is the answer, and English is what is left when it speaks none.
+ * @returns {string}
  */
 export function browserLanguage() {
   const tags = navigator.languages?.length ? navigator.languages : [navigator.language || ''];
@@ -82,6 +116,7 @@ export function browserLanguage() {
  * region: en-US, en-CA, en-AU. The app's English is en-GB by default (21:30,
  * day before month); a reader in the United States gets month before day
  * from this, and the 12-hour clock from hourCycle().
+ * @returns {string|null}
  */
 export function browserEnglish() {
   const tag = (navigator.languages?.length ? navigator.languages[0] : navigator.language) || '';
@@ -95,6 +130,8 @@ export function browserEnglish() {
  * most of the languages the app speaks even where the language's own
  * default is 12-hour (Greek, Albanian), while English readers in the
  * United States, Canada, Australia or India expect 10:30 PM.
+ * @param {{ clock?: string }|null} [settings]
+ * @returns {'h12'|'h23'}
  */
 export function hourCycle(settings) {
   if (settings?.clock === '12') return 'h12';
@@ -113,6 +150,8 @@ export function hourCycle(settings) {
  * keeps following it: a setting saved for some other reason (the theme, a
  * subtitle language) writes 'auto' back rather than the language it
  * happened to resolve to. A language chosen by hand is kept for good.
+ * @param {{ lang?: string }|null} [settings]
+ * @returns {string}
  */
 export function interfaceLanguage(settings) {
   const lang = settings?.lang;
@@ -167,11 +206,24 @@ const SETTINGS_DEFAULTS = {
   // kept in subtitleSize into the same proportion.
 };
 
+/**
+ * The settings as stored: SETTINGS_DEFAULTS and the two languages, and
+ * whatever other modules keep beside them (js/subdisplay.js's
+ * subtitleScale among them), which this module does not name.
+ * @typedef {typeof SETTINGS_DEFAULTS & { lang: string, subtitleLang: string } & Record<string, any>} Settings
+ */
+
 const MAX_RECENTS = 60;
 const MAX_RESUME = 400;
 
+/** @param {{ k: number|string, id: string }} item */
 export const itemKey = (item) => `${item.k}:${item.id}`;
 
+/**
+ * @param {string} key
+ * @param {any} fallback what a key never written reads as
+ * @returns {Promise<any>}
+ */
 async function read(key, fallback) {
   const data = await api.storage.local.get(key);
   return data[key] === undefined ? fallback : data[key];
@@ -190,8 +242,13 @@ async function read(key, fallback) {
  * pasted from an M3U link says ':80' where a typed one says nothing, and
  * the viewer's lists must not vanish over that.
  */
+/** @type {Record<string, string>} */
 const DEFAULT_PORTS = { http: '80', https: '443' };
 
+/**
+ * @param {Partial<Config>} c
+ * @returns {string}
+ */
 export function accountKey(c) {
   if (c.type === 'm3u') return `m3u:${String(c.url || '').trim()}`;
   if (c.type === 'stalker') return `stalker:${String(c.url || '').trim()}|${String(c.mac || '').toUpperCase()}`;
@@ -208,12 +265,18 @@ export function accountKey(c) {
 // resume points in memory are still the ones it connected with. Taken from
 // storage instead, the next resume point saved here would have gone into
 // the other account's lists.
+/** @type {string|null} */
 let account = null;
 // The account key this tab itself last wrote into the stored
 // configuration, so that its own write is not taken for another tab's
 // switch when the storage event arrives before useAccount().
+/** @type {string|null} */
 let writtenAccount = null;
 
+/**
+ * @param {Partial<Config>} config
+ * @returns {string} the account's key
+ */
 export function useAccount(config) {
   account = accountKey(config);
   writtenAccount = null;
@@ -222,10 +285,15 @@ export function useAccount(config) {
 
 export const currentAccount = () => account;
 
+/** @returns {Promise<Config>} */
 export async function loadConfig() {
   return { ...CONNECTION_DEFAULTS, ...(await read('config', {})) };
 }
 
+/**
+ * @param {Partial<Config>} patch
+ * @returns {Promise<Config>}
+ */
 export async function saveConfig(patch) {
   const prev = await loadConfig();
   const next = withId({ ...prev, ...patch });
@@ -240,12 +308,17 @@ export async function saveConfig(patch) {
 
 /* ------------------------------------------------------------ accounts */
 
-/** A configuration with nothing in it: the form for a new account. */
+/**
+ * A configuration with nothing in it: the form for a new account.
+ * @returns {Config}
+ */
 export const blankConfig = () => ({ ...CONNECTION_DEFAULTS });
 
 /**
  * Another account of the list made the one in use, as it is stored: none
  * of the account being left is carried into it.
+ * @param {Partial<Config>} config
+ * @returns {Promise<Config>}
  */
 export async function switchConfig(config) {
   const next = { ...CONNECTION_DEFAULTS, ...config };
@@ -260,8 +333,14 @@ export async function switchConfig(config) {
 // first time the list is read.
 
 const newId = () => `a${Date.now().toString(36)}${Math.random().toString(36).slice(2, 7)}`;
+/**
+ * @template {Partial<Config>} C
+ * @param {C} c
+ * @returns {C}
+ */
 const withId = (c) => (c.id ? c : { ...c, id: newId() });
 
+/** @returns {Promise<Config[]>} */
 export async function loadAccounts() {
   const stored = await read('accounts', null);
   if (Array.isArray(stored)) return stored.map((a) => ({ ...CONNECTION_DEFAULTS, ...a }));
@@ -272,7 +351,11 @@ export async function loadAccounts() {
   return [first];
 }
 
-/** The account kept in the list as it is now: added, or its entry replaced. */
+/**
+ * The account kept in the list as it is now: added, or its entry replaced.
+ * @param {Config} config
+ * @returns {Promise<void>}
+ */
 export function recordAccount(config) {
   if (!isConfigured(config)) return Promise.resolve();
   return exclusive(async () => {
@@ -287,6 +370,8 @@ export function recordAccount(config) {
  * An account taken off the list, and its favourites, history and the rest
  * with it — unless another account in the list is the same account under
  * another name. The one in use cannot be removed: the caller switches first.
+ * @param {string} id
+ * @returns {Promise<Config[]>} the accounts left
  */
 export function removeAccount(id) {
   return exclusive(async () => {
@@ -303,21 +388,30 @@ export function removeAccount(id) {
   });
 }
 
-/** The settings changed by another tab, or arrived from another computer. */
+/**
+ * The settings changed by another tab, or arrived from another computer.
+ * @param {(settings: Settings|undefined) => void} onChange
+ */
 export function watchSettings(onChange) {
   api.storage.onChanged.addListener((changes, area) => {
     if (area === 'local' && changes.settings) onChange(changes.settings.newValue);
   });
 }
 
-/** How the sync went, written by whichever tab syncs (js/sync.js). */
+/**
+ * How the sync went, written by whichever tab syncs (js/sync.js).
+ * @param {() => void} onChange
+ */
 export function watchSyncStatus(onChange) {
   api.storage.onChanged.addListener((changes, area) => {
     if (area === 'local' && (changes.syncStatus || changes.sync)) onChange();
   });
 }
 
-/** Another tab's change to the list of accounts. */
+/**
+ * Another tab's change to the list of accounts.
+ * @param {(accounts: Config[]) => void} onChange
+ */
 export function watchAccounts(onChange) {
   api.storage.onChanged.addListener((changes, area) => {
     if (area === 'local' && changes.accounts) onChange((changes.accounts.newValue || []).map((a) => ({ ...CONNECTION_DEFAULTS, ...a })));
@@ -328,6 +422,11 @@ export function watchAccounts(onChange) {
 
 export const PERSONAL = ['favorites', 'recents', 'resume', 'reminders', 'channels', 'interests'];
 
+/**
+ * @param {string} name
+ * @param {string|null} [key]
+ * @returns {string}
+ */
 const personalKey = (name, key = account) => (key ? `${name}:${key}` : name);
 
 /**
@@ -335,6 +434,10 @@ const personalKey = (name, key = account) => (key ? `${name}:${key}` : name);
  * per account — under the bare name — is adopted by the account in use
  * and the bare name retired, so that nothing the viewer collected is
  * lost in the update.
+ * @param {string} name
+ * @param {any} fallback
+ * @param {string} [key]
+ * @returns {Promise<any>}
  */
 async function readPersonal(name, fallback, key = personalKey(name)) {
   const data = await api.storage.local.get([key, name]);
@@ -347,6 +450,10 @@ async function readPersonal(name, fallback, key = personalKey(name)) {
   return fallback;
 }
 
+/**
+ * @param {string} name
+ * @param {any} value
+ */
 const writePersonal = (name, value) => api.storage.local.set({ [personalKey(name)]: value });
 
 /**
@@ -363,14 +470,29 @@ const writePersonal = (name, value) => api.storage.local.set({ [personalKey(name
  * account meanwhile and the list changed is no longer the one it shows.
  */
 const LOCK = 'kepuli-tv-lists';
+/** @type {Promise<unknown>} */
 let queue = Promise.resolve();
+/**
+ * @template T
+ * @param {() => Promise<T>} task
+ * @returns {Promise<T>}
+ */
 function exclusive(task) {
-  if (globalThis.navigator?.locks) return navigator.locks.request(LOCK, task);
+  // The lock's promise settles with the task's own, not with the promise
+  // the task returned, which DOM's declaration of request() does not say.
+  if (globalThis.navigator?.locks) return /** @type {Promise<any>} */ (navigator.locks.request(LOCK, task));
   const run = queue.then(task, task);
   queue = run.catch(() => {});
   return run;
 }
 
+/**
+ * @template T
+ * @param {string} name
+ * @param {T} fallback
+ * @param {(value: T) => T} change
+ * @returns {Promise<T|null>}
+ */
 function updatePersonal(name, fallback, change) {
   const owner = account;
   const key = personalKey(name, owner);
@@ -385,6 +507,7 @@ function updatePersonal(name, fallback, change) {
  * Another tab's changes, as they are stored: the lists of the account this
  * tab shows, a switch of the stored configuration to another account, and
  * the configuration taken away — the reset in Settings.
+ * @param {{ onList: (name: string, value: any) => void, onAccount: (config: Config) => void, onCleared: () => void }} handlers
  */
 export function watchStorage({ onList, onAccount, onCleared }) {
   api.storage.onChanged.addListener((changes, area) => {
@@ -406,7 +529,11 @@ export function watchStorage({ onList, onAccount, onCleared }) {
 
 /* ------------------------------------------------- the account's address */
 
-/** "scheme://host:port/user" back into its parts, or null. */
+/**
+ * "scheme://host:port/user" back into its parts, or null.
+ * @param {string} text
+ * @returns {{ scheme: string, host: string, port: string, username: string }|null}
+ */
 function parseAccountKey(text) {
   const m = /^([^:/]+):\/\/([^/]*)\/(.*)$/s.exec(text);
   if (!m) return null;
@@ -422,9 +549,14 @@ function parseAccountKey(text) {
  * with wins — that is the copy the viewer has been looking at. `inUse` is
  * the configuration's key as the older versions wrote it.
  * Returns what to write and what to remove; reads nothing itself.
+ * @param {Record<string, any>} data
+ * @param {string} inUse
+ * @returns {{ set: Record<string, any>, remove: string[] }}
  */
 export function accountKeyMigration(data, inUse) {
+  /** @type {Record<string, any>} */
   const set = {};
+  /** @type {string[]} */
   const remove = [];
   for (const key of Object.keys(data)) {
     const colon = key.indexOf(':');
@@ -445,6 +577,7 @@ export function accountKeyMigration(data, inUse) {
   return { set, remove };
 }
 
+/** @param {Config} config */
 export async function migrateAccountKeys(config) {
   const inUse = `${config.scheme}://${config.host}:${config.port}/${config.username}`;
   const { set, remove } = accountKeyMigration(await api.storage.local.get(null), inUse);
@@ -456,6 +589,8 @@ export async function migrateAccountKeys(config) {
  * The lists of one account, for bringing over to another: the same user
  * at a provider's new address. Copied only into lists the new address
  * does not have yet, and left in place under the old one.
+ * @param {Partial<Config>} config
+ * @returns {Promise<boolean>}
  */
 export async function accountHasLists(config) {
   const key = accountKey(config);
@@ -467,6 +602,10 @@ export async function accountHasLists(config) {
   });
 }
 
+/**
+ * @param {Partial<Config>} from
+ * @param {Partial<Config>} to
+ */
 export async function copyAccountLists(from, to) {
   const source = accountKey(from);
   const target = accountKey(to);
@@ -485,6 +624,7 @@ export async function loadChannelPreferences() {
   return channelPreferences(await readPersonal('channels', {}));
 }
 
+/** @param {any} value */
 export async function saveChannelPreferences(value) {
   await writePersonal('channels', channelPreferences(value));
 }
@@ -494,15 +634,21 @@ export async function saveChannelPreferences(value) {
  * call time rather than at import: navigator.languages is not available to
  * a module while it is still being evaluated in every browser, and a stored
  * setting overrides both in any case.
+ * @returns {Settings}
  */
 function settingsDefaults() {
   return { ...SETTINGS_DEFAULTS, lang: 'auto', subtitleLang: browserLanguage() };
 }
 
+/** @returns {Promise<Settings>} */
 export async function loadSettings() {
   return { ...settingsDefaults(), ...(await read('settings', {})) };
 }
 
+/**
+ * @param {Partial<Settings>} patch
+ * @returns {Promise<Settings>}
+ */
 export async function saveSettings(patch) {
   const next = { ...(await loadSettings()), ...patch };
   await api.storage.local.set({ settings: next });
@@ -514,6 +660,10 @@ export async function saveSettings(patch) {
  * Without a connection patch the stored configuration is left as it is and
  * none is returned: another tab may have switched it meanwhile, and a save
  * of the subtitle size here is no reason to take that tab's account over.
+ * @param {Partial<Config>|null} configPatch
+ * @param {Partial<Settings>} settingsPatch
+ * @param {{ replace?: boolean }} [options]
+ * @returns {Promise<{ config: Config|null, settings: Settings }>}
  */
 export async function saveSetup(configPatch, settingsPatch, { replace = false } = {}) {
   const settings = { ...(await loadSettings()), ...settingsPatch };
@@ -532,6 +682,7 @@ export async function saveSetup(configPatch, settingsPatch, { replace = false } 
 
 export async function loadUiState() { return read('ui', {}); }
 
+/** @param {Record<string, any>} patch */
 export async function saveUiState(patch) {
   const ui = { ...(await loadUiState()), ...patch };
   await api.storage.local.set({ ui });
@@ -539,14 +690,19 @@ export async function saveUiState(patch) {
 
 /* ---------------------------------------------------------- favourites */
 
+/** @returns {Promise<Map<string, ListItem>>} */
 export async function loadFavorites() {
   const list = await readPersonal('favorites', []);
   return new Map(list.map((item) => [itemKey(item), item]));
 }
 
-/** One favourite added (item) or taken away (null), see updatePersonal. */
+/**
+ * One favourite added (item) or taken away (null), see updatePersonal.
+ * @param {string} key
+ * @param {ListItem|null} item
+ */
 export function setFavorite(key, item) {
-  return updatePersonal('favorites', [], (list) => {
+  return updatePersonal('favorites', /** @type {ListItem[]} */ ([]), (list) => {
     const at = list.findIndex((entry) => itemKey(entry) === key);
     if (!item) { if (at >= 0) list.splice(at, 1); }
     else if (at >= 0) list[at] = item;
@@ -557,48 +713,64 @@ export function setFavorite(key, item) {
 
 /* ------------------------------------------------------------- history */
 
+/** @returns {Promise<ListItem[]>} */
 export async function loadRecents() { return readPersonal('recents', []); }
 
+/** @param {ListItem} item */
 export function pushRecent(item) {
   const key = itemKey(item);
-  return updatePersonal('recents', [], (list) => {
+  return updatePersonal('recents', /** @type {ListItem[]} */ ([]), (list) => {
     const rest = list.filter((r) => itemKey(r) !== key);
     rest.unshift({ ...item, watchedAt: Date.now() });
     return rest.slice(0, MAX_RECENTS);
   });
 }
 
-/** Fields of one history entry brought up to date, where it stands in the list. */
+/**
+ * Fields of one history entry brought up to date, where it stands in the list.
+ * @param {string} key
+ * @param {Partial<ListItem>} patch
+ */
 export function patchRecent(key, patch) {
-  return updatePersonal('recents', [], (list) => list.map((r) => (itemKey(r) === key ? { ...r, ...patch } : r)));
+  return updatePersonal('recents', /** @type {ListItem[]} */ ([]), (list) => list.map((r) => (itemKey(r) === key ? { ...r, ...patch } : r)));
 }
 
+/** @param {string} key */
 export function removeRecent(key) {
-  return updatePersonal('recents', [], (list) => list.filter((r) => itemKey(r) !== key));
+  return updatePersonal('recents', /** @type {ListItem[]} */ ([]), (list) => list.filter((r) => itemKey(r) !== key));
 }
 
-/** Several history entries dropped at once: a film's, or every episode's of a series. */
+/**
+ * Several history entries dropped at once: a film's, or every episode's of a series.
+ * @param {Iterable<string>} keys
+ */
 export function removeRecents(keys) {
   const drop = new Set(keys);
-  return updatePersonal('recents', [], (list) => list.filter((r) => !drop.has(itemKey(r))));
+  return updatePersonal('recents', /** @type {ListItem[]} */ ([]), (list) => list.filter((r) => !drop.has(itemKey(r))));
 }
 
 export function clearRecents() {
-  return updatePersonal('recents', [], () => []);
+  return updatePersonal('recents', /** @type {ListItem[]} */ ([]), () => []);
 }
 
 /* ----------------------------------------------------------- reminders */
 
 // Programmes the viewer asked to be reminded of: { channel, title, start, stop }.
 // The channel ids are the account's own, so the list is too.
+/** @returns {Promise<Reminder[]>} */
 export async function loadReminders() { return readPersonal('reminders', []); }
 
+/** @param {Reminder} r */
 export const reminderKey = (r) => `${r.channel.id}:${r.start}`;
 
-/** One reminder set (reminder) or cleared (null); those whose programme has ended go too. */
+/**
+ * One reminder set (reminder) or cleared (null); those whose programme has ended go too.
+ * @param {string} key
+ * @param {Reminder|null} reminder
+ */
 export function setReminder(key, reminder) {
   const now = Date.now();
-  return updatePersonal('reminders', [], (list) => {
+  return updatePersonal('reminders', /** @type {Reminder[]} */ ([]), (list) => {
     const rest = list.filter((r) => r.stop > now && reminderKey(r) !== key);
     if (reminder) rest.push(reminder);
     return rest;
@@ -609,10 +781,13 @@ export function setReminder(key, reminder) {
  * The reminders due by `until`, taken out of the list. Every open tab arms
  * the same timer, and the one that takes a reminder is the one that says
  * it: the others find it gone.
+ * @param {number} until
+ * @returns {Promise<Reminder[]>}
  */
 export async function takeDueReminders(until) {
+  /** @type {Reminder[]} */
   let due = [];
-  const left = await updatePersonal('reminders', [], (list) => {
+  const left = await updatePersonal('reminders', /** @type {Reminder[]} */ ([]), (list) => {
     due = list.filter((r) => r.start <= until);
     return list.filter((r) => r.start > until);
   });
@@ -624,36 +799,52 @@ export async function takeDueReminders(until) {
 // The programmes the viewer has watched, by title, for the picks on the
 // empty player's page (js/picks.js). The channel ids and the titles are the
 // account's own, so the notes are too.
+/** @returns {Promise<Record<string, any>>} */
 export async function loadInterests() { return readPersonal('interests', {}); }
 
-/** One more watch of a programme noted. */
+/**
+ * One more watch of a programme noted.
+ * @param {string} title
+ */
 export function noteInterest(title) {
   return updatePersonal('interests', {}, (notes) => noteWatched(notes, title));
 }
 
 /* ------------------------------------------------------- resume points */
 
+/** @returns {Promise<Map<string, ResumePoint>>} */
 export async function loadResume() {
   return new Map(Object.entries(await readPersonal('resume', {})));
 }
 
-/** The resume points as stored: the oldest dropped, so that storage does not grow without bound. */
+/**
+ * The resume points as stored: the oldest dropped, so that storage does not grow without bound.
+ * @param {Record<string, ResumePoint>} points
+ * @returns {Record<string, ResumePoint>}
+ */
 export function resumeObject(points) {
   const entries = Object.entries(points).sort((a, b) => b[1].at - a[1].at).slice(0, MAX_RESUME);
   return Object.fromEntries(entries);
 }
 
-/** One resume point kept (point) or forgotten (null). */
+/**
+ * One resume point kept (point) or forgotten (null).
+ * @param {string} key
+ * @param {ResumePoint|null} point
+ */
 export function setResume(key, point) {
-  return updatePersonal('resume', {}, (points) => {
+  return updatePersonal('resume', /** @type {Record<string, ResumePoint>} */ ({}), (points) => {
     if (point) points[key] = point; else delete points[key];
     return resumeObject(points);
   });
 }
 
-/** Several resume points forgotten at once: a film's, or every episode's of a series. */
+/**
+ * Several resume points forgotten at once: a film's, or every episode's of a series.
+ * @param {Iterable<string>} keys
+ */
 export function forgetResume(keys) {
-  return updatePersonal('resume', {}, (points) => {
+  return updatePersonal('resume', /** @type {Record<string, ResumePoint>} */ ({}), (points) => {
     for (const key of keys) delete points[key];
     return resumeObject(points);
   });
@@ -661,7 +852,10 @@ export function forgetResume(keys) {
 
 /* -------------------------------------------------------------- updates */
 
-/** The version this page is running, which an update waiting to be taken does not change. */
+/**
+ * The version this page is running, which an update waiting to be taken does not change.
+ * @returns {string}
+ */
 export const runningVersion = () => api.runtime.getManifest().version;
 
 /**
@@ -669,15 +863,20 @@ export const runningVersion = () => api.runtime.getManifest().version;
  * start-up for an update that arrived before this page opened, and watched
  * for one that arrives while it is open.
  */
+/** @returns {Promise<string|null>} */
 export async function loadUpdateReady() { return read('updateReady', null); }
 
+/** @param {(version: string) => void} onReady */
 export function watchUpdateReady(onReady) {
   api.storage.onChanged.addListener((changes, area) => {
     if (area === 'local' && changes.updateReady?.newValue) onReady(changes.updateReady.newValue);
   });
 }
 
-/** Takes the update. The reload closes this page; background.js opens it again at `hash`. */
+/**
+ * Takes the update. The reload closes this page; background.js opens it again at `hash`.
+ * @param {string} hash
+ */
 export async function reloadForUpdate(hash) {
   await api.storage.local.set({ reopenAfterUpdate: hash });
   api.runtime.reload();
