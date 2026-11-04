@@ -42,6 +42,8 @@ jobs:
         run: node dev/unitcheck.mjs
       - name: Every name and import resolves
         run: node dev/namecheck.mjs
+      - name: The typed modules type-check
+        run: node dev/typecheck.mjs
       - name: Markup only from constants, nothing evaluated
         run: node dev/htmlcheck.mjs
       - name: The guides name what exists

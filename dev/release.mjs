@@ -74,6 +74,7 @@ check('the notes to AMO\'s reviewer fit its form', () => {
 });
 check('unit tests', node('unitcheck.mjs'));
 check('every name and import resolves', node('namecheck.mjs'));
+check('the typed modules type-check', node('typecheck.mjs'));
 check('markup only from constants', node('htmlcheck.mjs'));
 check('the guides name what exists', node('docscheck.mjs'));
 check('no secrets in the repository', node('secretcheck.mjs', ['--all']));
