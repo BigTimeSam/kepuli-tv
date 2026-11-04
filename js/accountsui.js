@@ -9,7 +9,8 @@
 
 import { t } from './i18n.js';
 import * as store from './config.js';
-import { adoptAccount, configured, connect, editAccount, pickAccount, setupAdding, setupDirty, setupEditing, setupError, state } from './app.js';
+import { adoptAccount, connect, state } from './app.js';
+import { configured, editAccount, pickAccount, setupAdding, setupDirty, setupEditing, setupError } from './setupui.js';
 import { toast } from './toast.js';
 import { $, el } from './dom.js';
 
