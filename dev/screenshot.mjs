@@ -85,7 +85,10 @@ export async function isRunning() {
 /** Starts the development Chrome unless one already answers on the port. */
 export async function ensureChrome(extraArgs = []) {
   if (await isRunning()) return false;
-  const binary = CHROMES.find(existsSync);
+  // KEPULI_CHROME: another browser than the installed Chrome, as CI's
+  // Chromium, which shows an unpacked extension's pages where the Linux
+  // build of branded Chrome left them blank.
+  const binary = [process.env.KEPULI_CHROME, ...CHROMES].filter(Boolean).find(existsSync);
   if (!binary) throw new Error('Chrome not found; start node dev/dev.mjs by hand first.');
   // --enable-unsafe-extension-debugging: newer Chromes answer the DevTools
   // protocol's Extensions.loadUnpacked only with it (the macOS build here

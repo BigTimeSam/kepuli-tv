@@ -41,7 +41,9 @@ portal). Real accounts are for the owner's manual testing only.
 | 9444 | the Chrome Web Store dashboard Chrome | `~/.config/kepuli-tv/cws-chrome` (signed in) | only through the store tools |
 | 8790 / 8791 | mock server / second mock account | | one run at a time |
 
-Every Chrome tool reads `KEPULI_DEV_PORT` and `KEPULI_DEV_PROFILE`; Firefox
+Every Chrome tool reads `KEPULI_DEV_PORT` and `KEPULI_DEV_PROFILE` (and
+`KEPULI_CHROME` for another browser binary: CI uses Chromium, as branded
+Chrome on Linux leaves an unpacked extension's pages blank); Firefox
 tools `KEPULI_FIREFOX_PORT` and `KEPULI_FIREFOX_PROFILE`. So a test run that
 leaves the owner's browsers alone is:
 
