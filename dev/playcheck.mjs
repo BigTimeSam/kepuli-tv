@@ -230,7 +230,7 @@
 // the rate in bytes per second (60 kB/s). Exit code 0 when every scenario
 // passes, 1 otherwise.
 
-import { startMockServer, connectionStats, MULTI_EPISODES, PORT as MOCK_PORT, STALKER_MAC, stalkerSeen, USER, PASS } from './mock/server.mjs';
+import { startMockServer, connectionStats, MULTI_EPISODES, PORT as MOCK_PORT, STALKER_MAC, stalkerSeen, USER, PASS, T0 as MOCK_T0 } from './mock/server.mjs';
 // Run the same scenarios in Firefox with KEPULI_BROWSER=firefox.
 const { ensureChrome, openPlayer, session, sleep, PORT: CHROME_PORT } = await import(
   process.env.KEPULI_BROWSER === 'firefox' ? '../firefox/playcheck-driver.mjs' : './screenshot.mjs');
@@ -3371,7 +3371,13 @@ async function picks(page, { target }) {
   const later = next.find((title, i) => i > 0);
   const interests = { [later.toLowerCase().replace(/\s*·\s*episode.*$/, '').replace(/[^\p{L}\p{N}]+/gu, ' ').trim()]: { t: later, n: 2, at: Date.now() - 86400e3 } };
   await evaluate(page, `chrome.storage.local.set({ ui: { tab: 'live' }, ${JSON.stringify('favorites:' + key)}: [${JSON.stringify(ch(1000, 'Aurora One', 'auroraone.demo'))}], ${JSON.stringify('recents:' + key)}: [${JSON.stringify({ ...ch(1002, 'Aurora News 24', 'auroranews24.demo'), watchedAt: Date.now() - 3600e3 })}], ${JSON.stringify('interests:' + key)}: ${JSON.stringify(interests)} })`);
-  await page.call('Page.navigate', { url: bare(target.url) });
+  // The page's clock (js/testclock.js) two minutes into the programme Aurora
+  // One shows at the mock's now, so that a programme on now has the ten
+  // minutes left a pick needs whatever the time of the run: near the end of
+  // a programme, this failed.
+  const onNow = await evaluate(page, `fetch('http://127.0.0.1:${MOCK_PORT}/player_api.php?username=demo&password=demo&action=get_short_epg&stream_id=1000&limit=1').then((r) => r.json()).then((d) => Number(d.epg_listings[0].start_timestamp) * 1000)`);
+  const pageNow = Math.max(onNow + 2 * 60e3, MOCK_T0 - 15 * 60e3);
+  await page.call('Page.navigate', { url: `${bare(target.url)}?testnow=${pageNow}` });
   await sleep(1000);
   await waitFor(page, CONNECTED, 'the connection');
   await evaluate(page, `document.querySelector('dialog[open]')?.close()`);

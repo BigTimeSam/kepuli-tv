@@ -127,8 +127,6 @@ Long-form documentation: [user guide](docs/user-guide.md),
 - `dev/mock/server.mjs` listens on 8790, and the accounts scenarios start a
   second one on 8791. Only one test browser at a time; stop stray mock servers
   (`lsof -iTCP:8790 -sTCP:LISTEN`) before a run.
-- The `picks` scenario fails within minutes of :00 and :30 (a programme must
-  have enough time left); run it again later rather than "fixing" it.
 - Chrome ignores `--load-extension`; the tools load the extension through the
   DevTools protocol (`Extensions.loadUnpacked`).
 - Headless Firefox is not supported by the drivers; Firefox runs open a window.

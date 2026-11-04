@@ -57,7 +57,7 @@ const b64 = (s) => Buffer.from(s, 'utf8').toString('base64');
 // between one request and the next. KEPULI_MOCK_NOW (an ISO time) sets that
 // moment, so that the programme guide is the same on every run: the visual
 // check (dev/visualcheck.mjs) sets it, with the page's clock moved to match.
-const T0 = process.env.KEPULI_MOCK_NOW ? Date.parse(process.env.KEPULI_MOCK_NOW) : Date.now();
+export const T0 = process.env.KEPULI_MOCK_NOW ? Date.parse(process.env.KEPULI_MOCK_NOW) : Date.now();
 if (Number.isNaN(T0)) throw new Error(`KEPULI_MOCK_NOW is not a time: ${process.env.KEPULI_MOCK_NOW}`);
 const localTime = new Intl.DateTimeFormat('sv-SE', {
   timeZone: TZ, year: 'numeric', month: '2-digit', day: '2-digit',

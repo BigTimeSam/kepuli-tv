@@ -35,6 +35,8 @@ const CHROMES = [
   '/usr/bin/chromium',
 ];
 
+const ANSWER_S = process.env.CI ? 45 : 15;
+
 export const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 const http = async (path, init) => (await fetch(`http://127.0.0.1:${PORT}${path}`, init)).json();
 
@@ -69,7 +71,8 @@ export function session(wsUrl) {
       ws.send(JSON.stringify({ id, method, params }));
       return new Promise((resolve, reject) => {
         pending.set(id, { method, resolve, reject });
-        setTimeout(() => { if (pending.delete(id)) reject(new Error(`${method}: no answer in 15 s`)); }, 15000);
+        // A loaded CI runner can take longer than a desk to answer a navigation.
+        setTimeout(() => { if (pending.delete(id)) reject(new Error(`${method}: no answer in ${ANSWER_S} s`)); }, ANSWER_S * 1000);
       });
     },
     close: () => ws.close(),
@@ -167,6 +170,14 @@ export async function openPlayer() {
   catch (err) { throw new Error(`Chrome would not load the extension from ${ROOT}: ${err.message}`); }
   finally { browser.close(); }
   const player = await openTab(id);
+  // The first page of an extension loaded a moment ago can stay "loading"
+  // for good, on a fresh profile; the same tab loaded again comes up. Seen
+  // on macOS and on the CI runner alike.
+  if (!(await isPlayer(player, 10))) {
+    const page = session(player.webSocketDebuggerUrl);
+    await page.call('Page.reload', { ignoreCache: true }).catch(() => {});
+    page.close();
+  }
   if (!(await isPlayer(player, 15))) {
     const page = session(player.webSocketDebuggerUrl);
     const { result } = await page.call('Runtime.evaluate', { expression: `document.readyState + ': ' + (document.title || '') + ' | ' + (document.body?.innerText || '').slice(0, 300)`, returnByValue: true }).catch(() => ({ result: {} }));
