@@ -86,12 +86,14 @@ jobs:
       - name: Render the dummy media
         if: steps.media.outputs.cache-hit != 'true'
         run: sudo apt-get update && sudo apt-get install -y ffmpeg && sh dev/mock/media.sh
-      # Branded Chrome on the runner loads the unpacked extension but leaves
-      # its pages blank; Chromium, built for this kind of use, shows them.
-      - name: Chromium for the browser checks
+      # Branded Chrome on the runner loads the unpacked extension over
+      # DevTools but leaves its pages blank. Chrome for Testing is made for
+      # this, and still takes --load-extension at start-up.
+      - name: Chrome for Testing for the browser checks
         run: |
-          out=$(npx -y @puppeteer/browsers install chromium@latest --path "$RUNNER_TEMP/browsers" | tail -1)
+          out=$(npx -y @puppeteer/browsers install chrome@stable --path "$RUNNER_TEMP/browsers" | tail -1)
           echo "KEPULI_CHROME=${out#* }" >> "$GITHUB_ENV"
+          echo "KEPULI_LOAD_EXTENSION=1" >> "$GITHUB_ENV"
           echo "using ${out#* }"
       - name: UI regressions
         run: node dev/uicheck.mjs

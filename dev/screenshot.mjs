@@ -99,6 +99,10 @@ export async function ensureChrome(extraArgs = []) {
     // namespaces its sandbox needs, and it exits at once. The runner is a
     // throwaway machine that opens only the mock server's invented pages.
     ...(process.env.CI ? ['--no-sandbox'] : []),
+    // KEPULI_LOAD_EXTENSION=1: the extension loaded at start-up, as Chrome for
+    // Testing and Chromium still allow (branded Chrome ignores the flag, and
+    // openPlayer then loads it over DevTools).
+    ...(process.env.KEPULI_LOAD_EXTENSION ? [`--load-extension=${ROOT}`, `--disable-extensions-except=${ROOT}`] : []),
     ...extraArgs, 'about:blank'],
     { detached: true, stdio: 'ignore' }).unref();
   for (let i = 0; i < 60; i++) { if (await isRunning()) return true; await sleep(250); }
