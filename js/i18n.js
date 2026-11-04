@@ -1489,6 +1489,45 @@ function pluralForms(count) {
   return [rules.select(count), count === 1 ? 'one' : 'other'];
 }
 
+/*
+ * Pseudo-localisation, for finding text that does not fit before a
+ * translator does. Opened as player.html?pseudo=1, every string t() gives
+ * comes back with its letters accented (Ĥéļļö) and about 40 % longer, in
+ * brackets, so that a label cut at its end shows a missing "]" and one cut
+ * at the top or bottom loses its accents. German and Finnish run 30–40 %
+ * longer than English, which is where the figure comes from; the padding
+ * has spaces in it, as real words do, so that text that may wrap still
+ * wraps. Placeholders ({name}) are kept as they are, and so is what they
+ * are filled with: channel names are the provider's, not ours.
+ * dev/playcheck.mjs's pseudo scenario opens the main views this way and
+ * lists every box the text overflows.
+ *
+ * Without the parameter nothing changes. As with ?testnow= (js/testclock.js),
+ * the parameter can only come from someone at the browser's own controls:
+ * no web page can open the extension's pages.
+ */
+const ACCENTED = Object.fromEntries([...'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ']
+  .map((c, i) => [c, [...'äƀçðéƒĝĥîĵķļɱñöþǫŕšţûṽŵẋýžÅƁÇÐÉƑĜĤÎĴĶĻṀÑÖÞǪŔŠŢÛṼŴẊÝŽ'][i]]));
+const PADDING = 'ļöŕéɱ îþšûɱ ðöļöŕ šîţ äɱéţ çöñšéçţéţûŕ äðîþîšçîñĝ éļîţ';
+export const PSEUDO_GROWTH = 0.4;
+
+/** A string as pseudo-localisation shows it; placeholders untouched. */
+export function pseudoText(text) {
+  const parts = String(text).split(/(\{\w+\})/);
+  const own = parts.filter((part, i) => i % 2 === 0).join('');
+  // Symbols alone (‹, −, ✕) are not words a translation would lengthen.
+  if (!/[A-Za-z]/.test(own)) return text;
+  const mapped = parts.map((part, i) => (i % 2 ? part : part.replace(/[A-Za-z]/g, (c) => ACCENTED[c]))).join('');
+  // The brackets count towards the growth; the rest is padding.
+  const extra = Math.max(0, Math.round(own.length * PSEUDO_GROWTH) - 2);
+  // One letter more lengthens the last word; more is words of their own.
+  const pad = extra === 0 ? '' : extra === 1 ? PADDING[0]
+    : ` ${PADDING.repeat(Math.ceil(extra / PADDING.length)).slice(0, extra - 1).trimEnd()}`;
+  return `[${mapped}${pad}]`;
+}
+
+const PSEUDO = typeof location !== 'undefined' && new URLSearchParams(location.search).get('pseudo') === '1';
+
 export function t(key, params) {
   const dict = STRINGS[current];
   let resolved = key;
@@ -1497,8 +1536,9 @@ export function t(key, params) {
     resolved = forms.find((plural) => dict[plural] != null)
       ?? forms.find((plural) => STRINGS[DEFAULT_LANGUAGE][plural] != null) ?? key;
   }
-  const text = dict[resolved] ?? STRINGS[DEFAULT_LANGUAGE][resolved];
+  let text = dict[resolved] ?? STRINGS[DEFAULT_LANGUAGE][resolved];
   if (text == null) return key;
+  if (PSEUDO) text = pseudoText(text);
   if (!params) return text;
   return text.replace(/\{(\w+)\}/g, (whole, name) => (params[name] != null ? String(params[name]) : whole));
 }

@@ -65,7 +65,7 @@ lists, series info, stream URL) for its kind:
 | `sync.js` | sync between computers through `storage.sync` |
 | `browser.js` | the extension API namespace (`chrome`/`browser`) and the engine |
 | `testclock.js` | the visual check's clock: `player.html?testnow=<ms>` starts `Date` at that moment; nothing without the parameter. Keep it the first import of `app.js` |
-| `i18n.js`, `locales/` | the interface language, see `locales/AGENTS.md` |
+| `i18n.js`, `locales/` | the interface language, see `locales/AGENTS.md`; `player.html?pseudo=1` pseudo-localises every string (inert without it) |
 
 ## Splitting app.js
 

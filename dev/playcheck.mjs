@@ -214,6 +214,11 @@
 //                                     picks one), a feature-length file plays
 //                                     on with its own duration for
 //                                     KEPULI_LONG_SECS; skipped without it
+//   node dev/playcheck.mjs pseudo     the main views with pseudo-localised
+//                                     text (player.html?pseudo=1, 40 %
+//                                     longer): no button, tab, row, label or
+//                                     dialog field whose text overflows its
+//                                     box, other than those meant to ellipsis
 //
 // The driver is the one dev/store-screenshots.mjs uses, from the same
 // profile (KEPULI_DEV_PROFILE) and port (KEPULI_DEV_PORT), and it needs the
@@ -3792,9 +3797,160 @@ async function perf(page) {
   }
 }
 
+/**
+ * Text that does not fit, found before a translator does. The player is
+ * opened as player.html?pseudo=1 (js/i18n.js), where every string is
+ * accented and about 40 % longer, and the main views are walked: the start
+ * page, the channel list, the films' covers, a series, the programme guide,
+ * every Settings panel, Choose countries and Help. In each, every visible box
+ * that holds text of its own (buttons, tabs, chips, list rows, labels, dialog
+ * fields) is measured, and one whose text is wider than the box fails the
+ * scenario, unless the box is meant to cut its text with an ellipsis or to
+ * scroll. A select and a text field are measured by their chosen option and
+ * placeholder, which their scrollWidth does not tell.
+ *
+ * The failure lists every box by view and place, with the width the text
+ * needs and the width it has. KEPULI_OVERFLOW_LANG=fi walks the same views
+ * in a real language instead, to tell whether an overflow the pseudo text
+ * finds happens there too; KEPULI_PSEUDO_SHOTS=<dir> keeps a picture of
+ * each view.
+ */
+
+const MEASURE_OVERFLOW = `(() => {
+  const canvas = document.createElement('canvas').getContext('2d');
+  const textWidth = (el, text) => { const s = getComputedStyle(el); canvas.font = s.font; return canvas.measureText(text).width; };
+  const place = (el) => {
+    const parts = [];
+    for (let n = el; n && n !== document.body && parts.length < 3; n = n.parentElement) {
+      parts.unshift(n.id ? '#' + n.id : n.tagName.toLowerCase() + (n.classList.length ? '.' + [...n.classList].join('.') : ''));
+      if (n.id) break;
+    }
+    return parts.join(' > ');
+  };
+  const visible = (el) => {
+    if (!el.getClientRects().length) return false;
+    const s = getComputedStyle(el);
+    if (s.visibility === 'hidden' || s.display === 'contents') return false;
+    // Behind a modal dialog nothing can be read; only the dialog counts.
+    const modal = [...document.querySelectorAll('dialog[open]')].pop();
+    return !modal || modal.contains(el);
+  };
+  const ownText = (el) => [...el.childNodes].some((n) => n.nodeType === 3 && n.textContent.trim());
+  const meantToCut = (el) => {
+    const s = getComputedStyle(el);
+    return s.textOverflow === 'ellipsis' || /auto|scroll/.test(s.overflowX) || s.webkitLineClamp !== 'none';
+  };
+  const out = [];
+  for (const el of document.querySelectorAll('body *')) {
+    if (/^(SCRIPT|STYLE|SVG|svg|PATH|path|VIDEO|CANVAS|OPTION|BR)$/.test(el.tagName) || !visible(el)) continue;
+    const s = getComputedStyle(el);
+    if (s.display === 'inline') continue;
+    let need = 0, have = el.clientWidth, text = '';
+    if (el.tagName === 'SELECT') {
+      const o = el.selectedOptions[0]; if (!o) continue;
+      text = o.textContent;
+      // The app's selects draw their arrow in their right padding; a native
+      // one takes about 20 px of the box for it.
+      need = textWidth(el, text);
+      have = el.clientWidth - parseFloat(s.paddingLeft) - parseFloat(s.paddingRight) - (s.appearance === 'none' ? 0 : 20);
+    } else if (el.tagName === 'INPUT' && el.placeholder && !el.value && /^(text|search|url|password|)$/.test(el.type)) {
+      text = el.placeholder;
+      need = textWidth(el, text);
+      have = el.clientWidth - parseFloat(s.paddingLeft) - parseFloat(s.paddingRight);
+    } else if (ownText(el) || el.matches('button, [role=tab], .row, .chip')) {
+      if (meantToCut(el)) continue;
+      text = el.textContent.trim();
+      if (!text) continue;
+      need = el.scrollWidth; have = el.clientWidth;
+    } else continue;
+    // Visually hidden live regions (1 px, clipped) are for screen readers.
+    if (el.offsetWidth <= 2 || el.offsetHeight <= 2) continue;
+    if (have > 0 && need > have + 1) out.push({ place: place(el), text: text.replace(/\\s+/g, ' ').slice(0, 60), need: Math.round(need), have: Math.round(have) });
+  }
+  return out;
+})()`;
+
+async function pseudo(page, { target }) {
+  // The test Chrome lives on between runs, and its tab with whatever
+  // address the last scenario left: the parameter is set on the bare page and
+  // taken off again at the end, so that no later scenario runs pseudo.
+  const plain = bare(target.url).split('?')[0];
+  try {
+    return await pseudoViews(page, plain);
+  } finally {
+    await page.call('Page.navigate', { url: plain }).catch(() => {});
+    await sleep(500);
+  }
+}
+
+async function pseudoViews(page, plain) {
+  // KEPULI_OVERFLOW_LANG=fi (or de, hu…): the same walk in a real language
+  // instead of the pseudo text, to see whether what the pseudo text finds
+  // happens there too. ?pseudo=0 is inert; it only tells the new page from
+  // the old one.
+  const lang = process.env.KEPULI_OVERFLOW_LANG;
+  const query = lang ? '?pseudo=0' : '?pseudo=1';
+  if (lang) await evaluate(page, `chrome.storage.local.get('settings').then(({ settings }) => chrome.storage.local.set({ settings: { ...settings, lang: ${JSON.stringify(lang)} } }))`);
+  await page.call('Page.navigate', { url: `${plain}${query}` });
+  await sleep(1000);
+  // The old page is connected too until the new one has replaced it.
+  await waitFor(page, `location.search === '${query}' && ${CONNECTED}`, 'the connection');
+  await evaluate(page, `document.querySelector('dialog[open]')?.close()`);
+  if (lang) await waitFor(page, `document.documentElement.lang.startsWith(${JSON.stringify(lang)})`, `the language ${lang}`, 5000);
+  else await waitFor(page, `document.getElementById('tab-live').textContent.trim().startsWith('[')`, 'pseudo-localised tabs', 5000);
+  const seen = [], views = [];
+  const look = async (view) => {
+    views.push(view);
+    await sleep(600);
+    for (const o of await evaluate(page, MEASURE_OVERFLOW)) seen.push({ view, ...o });
+    // KEPULI_PSEUDO_SHOTS=<dir>: a picture of every view, to look at what the
+    // measuring cannot judge (text wrapped onto a line too many, cut at the top).
+    if (process.env.KEPULI_PSEUDO_SHOTS) {
+      const fs = await import('node:fs');
+      fs.mkdirSync(process.env.KEPULI_PSEUDO_SHOTS, { recursive: true });
+      const { data } = await page.call('Page.captureScreenshot', { format: 'png' });
+      fs.writeFileSync(`${process.env.KEPULI_PSEUDO_SHOTS}/${view.replace(/[^\w]+/g, '-')}.png`, Buffer.from(data, 'base64'));
+    }
+  };
+  await look('start page');
+  await openLiveList(page, 3);
+  await look('channels');
+  await evaluate(page, `document.querySelector('#tabs [data-tab="movie"]').click()`);
+  await waitFor(page, `document.querySelectorAll('#list .row, #list .cover, #list [role=option]').length > 0`, 'the films');
+  await look('films');
+  await evaluate(page, `document.querySelector('#tabs [data-tab="series"]').click()`);
+  await click(page, '#groups', 'Nordic Noir');
+  await click(page, '#list', 'Silent Fjord');
+  await look('a series');
+  await openLiveList(page, 3);
+  await evaluate(page, `document.getElementById('btn-guide').click()`);
+  await waitFor(page, `document.getElementById('main').classList.contains('guide') && document.querySelectorAll('#epg-chans-inner .epg-chan').length > 3`, 'the guide');
+  await look('programme guide');
+  await evaluate(page, `document.getElementById('epg-close').click()`);
+  await evaluate(page, `document.getElementById('btn-settings').click()`, { gesture: true });
+  await waitFor(page, `document.getElementById('setup').open`, 'the settings dialog', 5000);
+  for (const panel of await evaluate(page, `[...document.querySelectorAll('#setup-tabs [data-panel]')].map((b) => b.dataset.panel)`)) {
+    await evaluate(page, `document.querySelector('#setup-tabs [data-panel="${panel}"]').click()`);
+    await look(`Settings › ${panel}`);
+  }
+  await evaluate(page, `document.getElementById('setup').close()`);
+  await evaluate(page, `document.getElementById('btn-countries').click()`, { gesture: true });
+  await waitFor(page, `document.getElementById('countries').open`, 'Choose countries', 5000);
+  await look('Choose countries');
+  await evaluate(page, `document.getElementById('countries').close()`);
+  await evaluate(page, `document.getElementById('btn-help').click()`, { gesture: true });
+  await waitFor(page, `document.getElementById('help').open`, 'Help', 5000);
+  await look('Help');
+  await evaluate(page, `document.getElementById('help').close()`);
+  const list = (items) => items.map((o) => `${o.view}: ${o.place} "${o.text}" ${o.need}>${o.have} px`).join('; ');
+  const text = lang ? `the ${lang} text` : 'text 40 % longer';
+  if (seen.length) throw new Error(`${seen.length} boxes overflow with ${text}: ${list(seen)}`);
+  return { ok: true, detail: `${views.length} views at 1280×800 (${views.join(', ')}) with ${text}: nothing overflows` };
+}
+
 const SCENARIOS = { buffering, livebuffering, filmbuffering, emptyfile, tsasmp4, refusedfile, badgateway, livebadgateway, channelrefused, noanswer, longfilm, catalogUi, setupClarity, fullscreenControl, clickpause, pickers, channels, home, resumemkv, restore, programmes, catchup, seek, death, cancel, timeout, search, paste, keys, switching, resume, connections, livezap, livequiet, reconnect, accounts, listerror, a11y, subtitles, audio, settings,
   lastchannel, nextepisode, continuewatching, reminders, update, seeklag, cuesretry, quota, catchupfreeze, catchupfull, twotabs, switchstop, resettabs,
-  refresh, restorenav, guidekeep, m3u, sync, holes, picks, flakyserver, accountform, stalker, record, guidefavs, categories, noleak, perf };
+  refresh, restorenav, guidekeep, m3u, sync, holes, picks, flakyserver, accountform, stalker, record, guidefavs, categories, noleak, perf, pseudo };
 // The mock's whole-list answers stall for these, longer than the request limit.
 const SLOW_LIST_MS = { cancel: 60000, timeout: 60000 };
 // The media is sent slowly for these: the seek targets must lie outside the

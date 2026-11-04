@@ -154,6 +154,9 @@ views, write a short driver with `dev/screenshot.mjs`'s `ensureChrome`,
 set up the state through `chrome.storage.local`, and capture. Check:
 alignment of icons and labels, text overflow in the long languages (German,
 Finnish, Hungarian), both themes, and a narrow window (600 px) when layout
-changed.
+changed. For text widths, `node dev/playcheck.mjs pseudo` measures the main
+views with every string 40 % longer (`player.html?pseudo=1`, see
+`js/locales/AGENTS.md`); `KEPULI_OVERFLOW_LANG=de` runs it in a real
+language and `KEPULI_PSEUDO_SHOTS=<dir>` keeps the pictures.
 
 Before telling the owner a UI change is done, look at the picture.

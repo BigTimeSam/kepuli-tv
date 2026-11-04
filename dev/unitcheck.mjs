@@ -24,7 +24,7 @@ import { cueText } from '../js/subs.js';
 import { subtitleLook, stepScale, pictureHeight, STYLES, MIN_SCALE, MAX_SCALE, DEFAULT_SCALE, SCALE_STEP, SIZE_SHARE, MIN_LIFT, MAX_LIFT, DEFAULT_LIFT } from '../js/subdisplay.js';
 import { describe, describeAll, label, preferred, route } from '../js/audio.js';
 import { languageSummary, orderedLanguageNames, trackLanguage } from '../js/lang.js';
-import { LANGUAGES, keysOf, setLanguage, loadLanguage, supportedLanguage, t } from '../js/i18n.js';
+import { LANGUAGES, keysOf, setLanguage, loadLanguage, supportedLanguage, t, pseudoText } from '../js/i18n.js';
 import { channelPreferences, visibilityFilter, sortChannels, CHANNEL_SORTS } from '../js/channelprefs.js';
 import { catchupAvailable, archiveDays, reminderDelay, sameChannels } from '../js/epggrid.js';
 import { searchProgrammes, mergeSorted, searchableChannels } from '../js/programmesearch.js';
@@ -1432,6 +1432,13 @@ check('a word five times is a keyword list; short words and four times are not',
 check('every listing is within the store\'s limits, and _locales is in step', checkListings(), []);
 // The glossary's forms are compared without case, and Turkish İ (which
 // lowercases to i and a combining dot) still holds a plain i.
+// Pseudo-localisation (player.html?pseudo=1): accented, about 40 % longer,
+// placeholders kept so that t() can still fill them, symbols left alone.
+check('pseudo text keeps its placeholders', pseudoText('{title} starts at {time} on {channel}').match(/\{\w+\}/g), ['{title}', '{time}', '{channel}']);
+check('pseudo text is accented and bracketed', /^\[Šéţţîñĝš/.test(pseudoText('Settings')) && pseudoText('Settings').endsWith(']'), true);
+check('pseudo text is about 40 % longer', Math.round(pseudoText('Programme guide and catch-up from the past days').length / 47 * 10) / 10, 1.4);
+check('pseudo text leaves symbols alone', pseudoText('−'), '−');
+check('pseudo text has no plain ASCII letters left', /[A-Za-z]/.test(pseudoText('Continue watching').replace(/\{\w+\}/g, '')), false);
 check('a glossary form holds in any case', holds('Programmübersicht öffnen', { forms: ['übersicht'] }), true);
 check('Turkish İ holds the form with i', holds('İzlemeye devam et', { forms: ['izlemeye devam et'] }), true);
 check('another word does not hold the term', holds('Textens utseende', { forms: ['undertext'] }), false);

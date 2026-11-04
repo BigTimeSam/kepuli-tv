@@ -42,6 +42,19 @@ Background: [development.md → Language](../../docs/development.md#language) an
 5. Look at the longest languages (German, Finnish, Hungarian) in the UI if the
    string sits in a button or a narrow column.
 
+## Pseudo-localisation
+
+`player.html?pseudo=1` makes `t()` return every string accented, in brackets
+and about 40 % longer (`[Šéţţîñĝš ļ…]`), placeholders and what fills them
+untouched; without the parameter nothing changes. A missing `]` is a cut
+label; plain English on the screen is text that does not go through `t()`.
+`node dev/playcheck.mjs pseudo` walks the main views this way and fails on
+any button, tab, row, label or dialog field whose text is wider than its box
+(boxes with `text-overflow: ellipsis` or a scroll are meant to cut);
+`KEPULI_OVERFLOW_LANG=fi` (or `de`, `hu`) walks them in a real language to
+tell whether the overflow happens there too, and `KEPULI_PSEUDO_SHOTS=<dir>`
+keeps a picture of each view to look at.
+
 ## Terminology
 
 The product's core words (programme guide, favourites, recording, catch-up,
