@@ -17,9 +17,10 @@ import { rememberSubtitleLanguage, toggleMoreMenu } from './playercontrols.js';
 import { renderIdleOverlay } from './languageui.js';
 import { renderInfoStrip } from './infostrip.js';
 import { shortLanguage } from './lang.js';
+import { homeGroup } from './name.js';
 import { toast } from './toast.js';
 import * as store from './config.js';
-import { activateTab, chosenCountries, mediaFilters, playerLayout, renderSidebar, selectGroup, state, updateAddress, updatePlayerLayout, visibleGroups, vlist } from './app.js';
+import { activateTab, browserTags, chosenCountries, mediaFilters, playerLayout, renderSidebar, selectGroup, state, updateAddress, updatePlayerLayout, visibleGroups, vlist } from './app.js';
 import { cancelAutoNext, renderStatBadge } from './nextepisode.js';
 
 /**
@@ -261,7 +262,7 @@ export async function goHome() {
   el.categoryFilter.value = '';
   const groups = visibleGroups('live');
   const group = chosenCountries() ? groups[0]?.name
-    : (groups.some((g) => g.name === state.lastGroup.live) ? state.lastGroup.live : groups[0]?.name) ?? null;
+    : (groups.some((g) => g.name === state.lastGroup.live) ? state.lastGroup.live : homeGroup(groups, browserTags())) ?? null;
   if (state.tab !== 'live') await activateTab('live');
   if (state.group !== group || state.sub || state.detail || state.query) await selectGroup(group);
   else renderSidebar();

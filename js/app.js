@@ -12,7 +12,7 @@ import { ListNavigation } from './listnavigation.js';
 import { CatalogueSearch } from './cataloguesearch.js';
 import { PlayerLayout } from './playerlayout.js';
 import { categoryRow, emptyState, KIND_ICONS } from './rows.js';
-import { searchNameCleaner, searchKey, searchTerms, matchesTerms, labelCodes } from './name.js';
+import { searchNameCleaner, searchKey, searchTerms, matchesTerms, labelCodes, homeCountryCodes, homeGroup } from './name.js';
 import { poster } from './poster.js';
 import { wireModal } from './modal.js';
 import { MediaFilters } from './mediafilters.js';
@@ -836,9 +836,13 @@ export async function activateTab(tab, { restore = false } = {}) {
   if (type && state.group && !visibleGroups(type).some((g) => g.name === state.group)) { state.group = null; chosen = false; }
   // First open: pick a group, so the list fills from a few kilobytes rather
   // than by loading the type's whole list straight away.
+  // The channels open at the browser's country when the catalogue has it
+  // and the viewer has not chosen countries of their own, whose order is
+  // theirs: with the browser in Finnish the list used to open at the first
+  // country of the provider's order, which says nothing about the viewer.
   if (type && state.group == null && !chosen && state.lib && !state.lib.isFull(type)) {
     const groups = visibleGroups(type);
-    if (groups.length) state.group = groups[0].name;
+    if (groups.length) state.group = type === 'live' && !chosenCountries() ? homeGroup(groups, browserTags()) : groups[0].name;
   }
   if (state.sub != null && !groupHasTopic(type, state.group, state.sub)) state.sub = null;
 
@@ -1394,14 +1398,19 @@ async function changeChannelChoices(prefs, message) {
 const countryPicker = new CountryPicker((countries) => saveChannelChoices({ ...state.channelPrefs, countries }));
 const hiddenList = new HiddenList((prefs) => saveChannelChoices({ ...state.channelPrefs, ...prefs }));
 
-// The language a browser speaks, and the country whose list it most
-// likely wants first; English says nothing about where its reader is.
-const LANGUAGE_COUNTRY = { fi: 'fi', sv: 'se', nb: 'no', da: 'dk', de: 'de', nl: 'nl', fr: 'fr', es: 'es', pt: 'br', it: 'it', pl: 'pl', tr: 'tr', cs: 'cz', hu: 'hu', ro: 'ro', hr: 'hr', sq: 'al', el: 'gr', ru: 'ru', uk: 'ua', bg: 'bg', sk: 'sk', sl: 'si', sr: 'rs', lt: 'lt', lv: 'lv', et: 'ee', id: 'id', vi: 'vn' };
+/**
+ * The languages that say where the viewer is (js/name.js homeCountryCodes):
+ * the interface's own first, as one chosen in Settings is the viewer's
+ * word, then the browser's.
+ */
+export function browserTags() {
+  return [store.interfaceLanguage(state.settings), ...(navigator.languages || [navigator.language || ''])];
+}
 
 function openCountryPicker({ first = false } = {}) {
   if (!state.lib) return;
-  const code = LANGUAGE_COUNTRY[store.browserLanguage()];
-  const suggested = code ? state.lib.groups.live.filter((g) => labelCodes(g.name).includes(code)).map((g) => g.name) : [];
+  const codes = homeCountryCodes(browserTags());
+  const suggested = state.lib.groups.live.filter((g) => labelCodes(g.name).some((c) => codes.includes(c))).map((g) => g.name);
   countryPicker.show({
     groups: state.lib.groups.live,
     counts: state.lib.groupCounts('live'),

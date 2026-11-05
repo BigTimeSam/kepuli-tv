@@ -3650,6 +3650,37 @@ async function record(page) {
 }
 
 /**
+ * The first country a new account's channels open at follows the browser's
+ * languages (js/name.js homeGroup): Swedish opens Sweden, and British
+ * English, which says nothing about where the reader is, leaves the first
+ * of the sidebar (Canada, the mock's countries being in alphabetical order). The
+ * browser's languages are set through the Accept-Language override, which
+ * navigator.languages follows.
+ */
+async function homecountry(page, { target }) {
+  const assert = (ok, message) => { if (!ok) throw new Error(message); };
+  const { userAgent } = await page.call('Browser.getVersion');
+  const firstOpen = async (languages) => {
+    await page.call('Network.setUserAgentOverride', { userAgent, acceptLanguage: languages });
+    await evaluate(page, `chrome.storage.local.set({ config: ${JSON.stringify(XTREAM_ACCOUNT)}, accounts: ${JSON.stringify([XTREAM_ACCOUNT])}, ui: { tab: 'live' } })`);
+    await page.call('Page.navigate', { url: bare(target.url) });
+    await sleep(1000);
+    await waitFor(page, CONNECTED, 'the connection');
+    await waitFor(page, `document.querySelectorAll('#list .row').length > 1`, 'the channel rows');
+    return evaluate(page, `({ langs: navigator.languages.join(','), group: ${ACTIVE_GROUP} })`);
+  };
+  try {
+    const sv = await firstOpen('sv-SE,sv');
+    assert(sv.langs.startsWith('sv') && sv.group.endsWith('Sweden'), `Swedish (${sv.langs}) opened ${sv.group}`);
+    const gb = await firstOpen('en-GB,en');
+    assert(gb.group.endsWith('Canada'), `British English (${gb.langs}) opened ${gb.group}, not the first of the sidebar`);
+    return { ok: true, detail: `${sv.langs} opened ${sv.group}; ${gb.langs} opened ${gb.group}` };
+  } finally {
+    await page.call('Network.setUserAgentOverride', { userAgent, acceptLanguage: '' }).catch(() => {});
+  }
+}
+
+/**
  * The films' categories chosen from the bar under the sidebar: the dialog
  * in its own words, the sidebar and All down to the two ticked, kept over
  * a reload; the series and the channels untouched.
@@ -4133,7 +4164,7 @@ async function soak(page) {
 
 const SCENARIOS = { buffering, livebuffering, filmbuffering, emptyfile, tsasmp4, refusedfile, badgateway, livebadgateway, channelrefused, noanswer, longfilm, catalogUi, setupClarity, fullscreenControl, clickpause, pickers, channels, home, resumemkv, restore, programmes, catchup, seek, death, cancel, timeout, search, paste, keys, switching, resume, connections, livezap, livequiet, reconnect, accounts, listerror, a11y, subtitles, audio, settings,
   lastchannel, nextepisode, continuewatching, reminders, update, seeklag, cuesretry, quota, catchupfreeze, catchupfull, twotabs, switchstop, resettabs,
-  refresh, restorenav, guidekeep, m3u, sync, holes, picks, flakyserver, accountform, stalker, record, guidefavs, categories, noleak, perf, pseudo, startup, soak };
+  refresh, restorenav, guidekeep, m3u, sync, holes, picks, flakyserver, accountform, stalker, record, guidefavs, categories, homecountry, noleak, perf, pseudo, startup, soak };
 // The mock's whole-list answers stall for these, longer than the request limit.
 const SLOW_LIST_MS = { cancel: 60000, timeout: 60000 };
 // The media is sent slowly for these: the seek targets must lie outside the

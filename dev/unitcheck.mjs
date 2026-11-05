@@ -14,7 +14,7 @@ globalThis.MediaSource = { isTypeSupported: (type) => /mp4a\.40/.test(type) };
 import { parseServer, parsePlaylistUrl, directSource, serverStamp, timeshiftUrl, streamUrl } from '../js/xtream.js';
 import { safeUrl, decodeField, XtreamApi, ApiError } from '../js/api.js';
 import { playlist } from '../js/external.js';
-import { nameCleaner, labelCodes, countryCodes, searchKey, searchTerms, matchesTerms } from '../js/name.js';
+import { nameCleaner, labelCodes, countryCodes, searchKey, searchTerms, matchesTerms, homeCountryCodes, homeGroup } from '../js/name.js';
 import { Library, buildGroups, cacheTtl } from '../js/library.js';
 import { channelKey, internationalChannels, isNationalTopic } from '../js/international.js';
 import { unwrap, repeats, check as checkListings } from './listings.mjs';
@@ -248,6 +248,17 @@ check('nameCleaner with no items is null', nameCleaner(['Finland'], []), null);
 check('a label names its country', labelCodes('Finland'), ['fi', 'fin']);
 check('a label that is the code the provider writes', labelCodes('FI'), ['fi', 'fin']);
 check('a code further along a label is a word', labelCodes('Movies in English'), []);
+{
+  // The first country a new account's channels open at.
+  const groups = ['Canada', 'United Kingdom', 'Finland', 'FI| Finland VIP', 'Sverige', 'Österreich', 'USA'].map((name) => ({ name }));
+  check('home country: the browser\'s language', homeGroup(groups, ['fi']), 'Finland');
+  check('home country: a region before its language, English included', [homeGroup(groups, ['de-AT', 'de']), homeGroup(groups, ['en-FI', 'fi-FI']), homeGroup(groups, ['en-SE'])], ['Österreich', 'Finland', 'Sverige']);
+  check('home country: US and British English say nothing, the next language does', [homeGroup(groups, ['en-US', 'sv']), homeGroup(groups, ['en-GB', 'en-US', 'en', 'fi'])], ['Sverige', 'Finland']);
+  check('home country: British English is not the United Kingdom', homeGroup(groups, ['en-GB', 'en']), 'Canada');
+  check('home country: none of the browser\'s countries, the first group', [homeGroup(groups, ['en-US', 'en']), homeGroup(groups, ['ja-JP']), homeGroup(groups, [])], ['Canada', 'Canada', 'Canada']);
+  check('home country: no groups', homeGroup([], ['fi']), null);
+  check('home country: the codes in order, a script skipped, a number no region', homeCountryCodes(['sr-Latn-RS', 'pt-PT', 'nb', 'es-419', 'en-US', 'en']), ['rs', 'pt', 'br', 'no', 'es']);
+}
 check('a whole country name only, for a folder', countryCodes('world latin america'), []);
 check('a folder that is a country', countryCodes('finland'), ['fi', 'fin']);
 check('a code is not a name', countryCodes('fi'), []);

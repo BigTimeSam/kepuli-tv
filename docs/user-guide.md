@@ -114,6 +114,16 @@ The tab, the group within it and the chosen topic are also remembered as each
 list settles. That is the second route, and it is what opening the toolbar
 icon after the player's tab has been closed comes back to.
 
+Before there is anything to come back to — the first time an account's
+channels open — the list starts at the country your browser points to when
+the provider has it: the interface language chosen in **Settings** or the
+browser's (Finnish opens Finland, Swedish Sweden), or the region the browser
+names (German for Austria opens Austria). US and British
+English say nothing about where you are, so with only those the list starts
+at the provider's first country, as it does when the provider has none of
+yours. Countries you have chosen with **Choose countries** start at the first
+of them instead.
+
 A search is a detour rather than a place: it stays out of the address, and
 reloading while one is running returns to the group the search took over from,
 which is where clearing the search would return anyway. Playback is not

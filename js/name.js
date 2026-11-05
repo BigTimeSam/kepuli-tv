@@ -176,6 +176,57 @@ export function labelCodes(label) {
   return (words.length && CODES_BY_CODE.get(words[0])) || [];
 }
 
+/*
+ * The country whose channels a browser most likely wants first, for the
+ * first list an account opens and the country picker's suggestions. A
+ * language stands for the country that speaks it (Finnish for Finland,
+ * Swedish for Sweden); English is left out, as it says nothing about where
+ * its reader is. A region says it outright — de-AT is Austria before
+ * Germany, en-FI is Finland — except in US and British English: the first
+ * is what most browsers are installed with wherever their owner lives, and
+ * Chrome turns English of any other region into the second (a Mac set to
+ * en-FI gave headless Chrome ["en-GB", "en-US", "en"]), so that neither
+ * says where the reader is.
+ */
+const LANGUAGE_COUNTRY = { fi: 'fi', sv: 'se', nb: 'no', nn: 'no', no: 'no', da: 'dk', de: 'de', nl: 'nl', fr: 'fr', es: 'es', pt: 'br', it: 'it', pl: 'pl', tr: 'tr', cs: 'cz', hu: 'hu', ro: 'ro', hr: 'hr', sq: 'al', el: 'gr', ru: 'ru', uk: 'ua', bg: 'bg', sk: 'sk', sl: 'si', sr: 'rs', lt: 'lt', lv: 'lv', et: 'ee', id: 'id', vi: 'vn' };
+
+/**
+ * The country codes the browser's languages point to, most wanted first.
+ * @param {readonly string[]} tags navigator.languages, e.g. ["en-FI", "fi-FI"]
+ * @returns {string[]}
+ */
+export function homeCountryCodes(tags) {
+  const out = [];
+  const add = (code) => { if (code && !out.includes(code)) out.push(code); };
+  for (const tag of tags || []) {
+    const parts = String(tag || '').toLowerCase().split(/[-_]/);
+    const lang = parts[0];
+    // The region is the two-letter subtag after the language and any
+    // script (sr-Latn-RS); a number (es-419) names no one country.
+    const region = parts.slice(1).find((p) => /^[a-z]{2}$/.test(p));
+    if (region && !(lang === 'en' && (region === 'us' || region === 'gb'))) add(region);
+    add(LANGUAGE_COUNTRY[lang]);
+  }
+  return out;
+}
+
+/**
+ * The group a first open of the channels starts at: the first group of the
+ * browser's country, its languages taken in order, or the first group of
+ * all when the catalogue has none of them.
+ * @param {{ name: string }[]} groups the visible groups, in their order
+ * @param {readonly string[]} tags navigator.languages
+ * @returns {string|null}
+ */
+export function homeGroup(groups, tags) {
+  if (!groups.length) return null;
+  for (const code of homeCountryCodes(tags)) {
+    const hit = groups.find((g) => labelCodes(g.name).includes(code));
+    if (hit) return hit.name;
+  }
+  return groups[0].name;
+}
+
 /**
  * Builds the tidier once for the visible set rather than per row: in a
  * virtualised list the same reasoning would repeat on every scroll.
