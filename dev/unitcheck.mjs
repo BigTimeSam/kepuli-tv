@@ -33,7 +33,7 @@ import { searchProgrammes, mergeSorted, searchableChannels, groupResults } from 
 import { Epg } from '../js/epg.js';
 import { probeCacheTtl } from '../js/probe.js';
 import { formatRoute, parseRoute } from '../js/route.js';
-import { titleWithoutYear, nameTags, versionLabels, franchiseKey, relatedTitles, isNew } from '../js/titlemeta.js';
+import { titleWithoutYear, nameHasYear, nameTags, versionLabels, franchiseKey, relatedTitles, isNew } from '../js/titlemeta.js';
 import { boxHeader, parseMoov } from '../js/mp4file.js';
 import { parseM3u, parseExtinf, classify, episodeOf, isDivider, shortHash, fillCatchup, catchupAddress, playlistAddress } from '../js/m3u.js';
 import { parseXmltv, parseXmltvTime, decodeXml, settle, channelMatchKey } from '../js/xmltv.js';
@@ -781,6 +781,8 @@ check('orderedLanguageNames: an unknown language is named, and last',
   check('a stored size and a download\'s in the same decimals', inLanguage('fi', null, () => [megabytes(18_140_000), amount(18_140_000), megabytes(5000)]),
     inLanguage('fi', null, () => [amount(18_140_000), t('size.mb', { n: '17,3' }), t('size.kb', { n: '5' })]));
   check('a whole percentage in the language\'s form', inLanguage('fi', null, () => wholePercent(1.2)).replace(/\s/g, ' '), '120 %');
+  check('a name that says its year already', [nameHasYear('Iron Tide (2009)', 2009), nameHasYear('2009: Lost Memories', '2009'), nameHasYear('Iron Tide', 2009), nameHasYear('Iron Tide 120090', 2009), nameHasYear('Blade Runner 2049', 1982), nameHasYear('Anything', null)],
+    [true, true, false, false, false, false]);
 }
 
 /* --------------------------------------------------- route.js: the address */

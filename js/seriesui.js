@@ -9,7 +9,7 @@ import { externalLinks, titleFacts } from './titleinfo.js';
 import { poster } from './poster.js';
 import { t } from './i18n.js';
 import { episodeTitle } from './name.js';
-import { toggleFavorite } from './coversui.js';
+import { listName, toggleFavorite } from './coversui.js';
 import { beginListLoad, catalogueSearch, listNavigation, mediaFilters, refreshRows, showListError, state, updateAddress, vlist } from './app.js';
 import { playItem } from './playing.js';
 import { renderSeriesFavorite } from './playercontrols.js';
@@ -35,16 +35,19 @@ export async function openSeries(item) {
   const back = retry ? retry.back : state.detail?.view === 'category' ? state.detail : null;
   // Keep the parent list's rules: the episode list is a different set and
   // must not infer new prefixes from its repeated series title.
+  // The series' name as its row showed it, or, opened from somewhere else
+  // than the list (a related title, the favourites strip, the empty
+  // player's page), tidied by its own group's rules rather than by the
+  // list's beside it.
   const sourceItem = item;
-  const parentCleaner = state.cleanName;
-  const parentClean = parentCleaner ? name => parentCleaner(name, sourceItem) : null;
+  const seriesTitle = listName(sourceItem);
   // An episode's row says only what the page does not: its own title, the
   // series' name and the code being there already (episodeTitle in
   // js/name.js); with no title of its own, "Episode 3".
-  const seriesNames = [item.n, item.displayName, parentClean ? parentClean(item.n) : null];
+  const seriesNames = [item.n, item.displayName, seriesTitle];
   const episodeName = (episode) => episodeTitle(episode.n, { series: seriesNames }) || t('api.episode', { number: episode.episode || '' });
-  const cleanName = (name, row) => (row && row.k === 3 ? episodeName(row) : parentClean ? parentClean(name) : name);
-  item = { ...item, displayName: parentClean ? parentClean(item.n) : item.displayName || item.n };
+  const cleanName = (name, row) => (row && row.k === 3 ? episodeName(row) : name === sourceItem.n ? seriesTitle : name);
+  item = { ...item, displayName: seriesTitle };
   state.detail = { view: 'series', item, info: null, season: null, back, cleanName, returnPosition, returnSearch, loading: true };
   const open = state.detail;
   renderDetail();
@@ -64,7 +67,7 @@ export async function openSeries(item) {
         ...episode,
         displayName: episodeName(episode),
         seriesCover: info.cover || item.logo || '',
-        seriesName: parentClean ? parentClean(item.n) : item.displayName || item.n,
+        seriesName: seriesTitle,
         seriesId: item.id,
       })),
     };

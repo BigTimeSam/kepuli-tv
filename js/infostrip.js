@@ -17,7 +17,7 @@ import { t } from './i18n.js';
 import { state, vlist } from './app.js';
 import { renderMediaSession } from './playercontrols.js';
 import { el } from './dom.js';
-import { addressChanges, freshItem, probeFor, updateStoredItem } from './coversui.js';
+import { addressChanges, freshItem, listName, probeFor, shownName, updateStoredItem } from './coversui.js';
 import { openItem } from './seriesui.js';
 
 export function renderInfoStrip() {
@@ -89,7 +89,7 @@ export function renderInfoStrip() {
   const box = document.createElement('div');
   box.className = 'vodinfo';
   const cover = item.k === 3 ? item.seriesCover || item.logo : info?.cover || item.logo;
-  box.appendChild(poster('info-cover', cover, item.k === 1 ? 'movie' : 'series', { expand: true, title: item.seriesName || item.displayName || item.n }));
+  box.appendChild(poster('info-cover', cover, item.k === 1 ? 'movie' : 'series', { expand: true, title: item.seriesName || shownName(item) }));
   const body = document.createElement('div');
   body.className = 'vodinfo-body';
   // A part with nothing to say is left out rather than left empty: the
@@ -170,7 +170,7 @@ function relatedPart(item) {
       tile.appendChild(poster('related-cover', other.logo, other.k === 2 ? 'series' : 'movie'));
       const name = document.createElement('span');
       name.className = 'related-name';
-      name.textContent = titleWithoutYear(other.n, other.year);
+      name.textContent = titleWithoutYear(listName(other), other.year);
       const meta = document.createElement('span');
       meta.className = 'related-meta';
       const tags = labels.get(`${other.k}:${other.id}`);

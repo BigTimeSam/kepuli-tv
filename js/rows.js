@@ -6,6 +6,7 @@ import { badge as probeBadge } from './probe.js';
 import { t } from './i18n.js';
 import { poster } from './poster.js';
 import { ratingText } from './rating.js';
+import { nameHasYear } from './titlemeta.js';
 
 const el = (tag, cls, text) => {
   const node = document.createElement(tag);
@@ -185,7 +186,7 @@ export function posterCard(item, ctx) {
 
   const bits = [];
   // A provider's name often carries the year already: "Iron Tide (2009)".
-  if (item.year && !String(ctx.label || item.n).includes(String(item.year))) bits.push(item.year);
+  if (item.year && !nameHasYear(ctx.label || item.n, item.year)) bits.push(item.year);
   const rating = ratingText(item.details) || ratingText(item);
   if (rating) bits.push(rating);
   const seconds = item.k === 1 ? item.details?.durationSec || item.durationSec || ctx.resume?.duration : 0;
@@ -237,12 +238,14 @@ function subLine(item, ctx) {
 
   const bits = [];
   const rating = ratingText(item.details) || ratingText(item);
+  // The year once: not again beside a name that says it already.
+  const year = item.year && !nameHasYear(ctx.label || item.n, item.year) ? item.year : null;
   if (item.k === 1) {
-    if (item.year) bits.push(item.year);
+    if (year) bits.push(year);
     if (rating) bits.push(rating);
   }
   if (item.k === 2) {
-    if (item.year) bits.push(item.year);
+    if (year) bits.push(year);
     if (item.genre) bits.push(item.genre.split(',')[0].trim());
     if (rating) bits.push(rating);
   }
@@ -263,7 +266,7 @@ function compactLine(item, ctx) {
   const bits = [];
   const rating = ratingText(item.details) || ratingText(item);
   if (item.k === 3) bits.push(episodeCode(item.season, item.episode));
-  if (item.k === 1 || item.k === 2) { if (item.year) bits.push(item.year); }
+  if ((item.k === 1 || item.k === 2) && item.year && !nameHasYear(ctx.label || item.n, item.year)) bits.push(item.year);
   if (item.k === 2 && item.genre) bits.push(item.genre.split(',')[0].trim());
   if (rating && item.k !== 3) bits.push(rating);
   const seconds = item.k === 1 ? item.details?.durationSec || item.durationSec || ctx.resume?.duration

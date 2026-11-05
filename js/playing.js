@@ -14,7 +14,7 @@ import { poster } from './poster.js';
 import { ApiError } from './api.js';
 import { Playback } from './playback.js';
 import { StalkerSource } from './stalker.js';
-import { TYPE_OF_KIND, shownName, stripItem, withCurrentAddress } from './coversui.js';
+import { TYPE_OF_KIND, listName, stripItem, withCurrentAddress } from './coversui.js';
 import { amount, clock, dateFmt, episodeCode, mbits, percent, seconds as secondsText, speed as speedText } from './format.js';
 import { toast } from './toast.js';
 import { grid, guideOpen } from './guideui.js';
@@ -588,7 +588,7 @@ export const channelKey = (config, item) => `${store.accountKey(config)}|${item.
 
 export async function playItem(item, { startAt, allowSilent } = {}) {
   // Snapshot the visible name so later browsing cannot rename playback.
-  const cleaned = (state.rows.includes(item) && state.cleanName ? state.cleanName(item.n, item) : null) || shownName(item);
+  const cleaned = listName(item);
   // A film's year is in its details under the picture; at the end of the
   // title as well it only pushed the title's own words out of the line.
   const displayName = item.k === 1 || item.k === 2 ? titleWithoutYear(cleaned, item.year) : cleaned;

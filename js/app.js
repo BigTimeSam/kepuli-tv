@@ -42,7 +42,7 @@ import { askRecordingConsent, closeRecordingConsent, loadRecordingList, openReco
 import { renderAccountList, renderAccountSwitcher } from './accountsui.js';
 import { loadReminders, reminders, showReminders } from './remindersui.js';
 import { renderInfoStrip } from './infostrip.js';
-import { applyListLayout, gridColumns, nameCleanerFor, onEpgUpdated, renderRow, restoreListView, shownName, toggleFavorite, usesGrid, watchGridWidth } from './coversui.js';
+import { applyListLayout, gridColumns, nameCleanerFor, onEpgUpdated, renderRow, restoreListView, listName, shownName, toggleFavorite, usesGrid, watchGridWidth } from './coversui.js';
 import { closeDetail, crumbLabel, episodesOfSeason, openItem, openSeries, renderDetail } from './seriesui.js';
 import { closeGuide, favoritesChanged, focusGrid, grid, guideFavorites, guideOpen, programmeSearch, renderGuideGroups, renderTheme, restoreGuideFavorites, setGuideFavorites, toggleGuide } from './guideui.js';
 
@@ -1035,7 +1035,7 @@ export function renderFavStrip(rows) {
     const tile = document.createElement('button');
     tile.type = 'button';
     tile.className = 'fav-tile' + (playing === `${item.k}:${item.id}` ? ' playing' : '');
-    const name = state.cleanName ? state.cleanName(item.n, item) : item.n;
+    const name = listName(item);
     tile.title = item.n;
     const picture = item.k === 0 ? poster('fav-logo', item.logo, 'channel')
       : poster('fav-cover', item.logo, item.k === 2 ? 'series' : 'movie');
@@ -1537,7 +1537,7 @@ export async function openHiddenList() {
 export function openItemMenu(item, at) {
   const prefs = state.channelPrefs;
   const id = String(item.id);
-  const name = state.cleanName ? state.cleanName(item.n, item) : item.displayName || item.n;
+  const name = listName(item);
   const favorite = state.favorites.has(`${item.k}:${item.id}`);
   const items = [{ label: t(favorite ? 'row.fav.remove' : 'row.fav.add'), onClick: () => toggleFavorite(item) }];
   if (state.tab === 'recent' && !state.detail) items.push({ label: t('row.remove.history'), onClick: () => removeFromHistory(item) });

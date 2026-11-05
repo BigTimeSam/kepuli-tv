@@ -11,7 +11,7 @@ import { EpgGrid, catchupAvailable } from './epggrid.js';
 import { ProgrammeSearch } from './programmesearch.js';
 import { applyTheme } from './theme.js';
 import { clock, duration } from './format.js';
-import { freshItem } from './coversui.js';
+import { freshItem, listName } from './coversui.js';
 import { playCatchup, recordingOf, recordingOn, toggleProgrammeRecording } from './recordingsui.js';
 import { poster } from './poster.js';
 import { reminderKey, reminders, toggleReminder } from './remindersui.js';
@@ -29,7 +29,9 @@ export const grid = new EpgGrid({
   timesInner: $('epg-times-inner'), chansInner: $('epg-chans-inner'),
   corner: $('epg-corner'), days: $('epg-days'), clock: $('epg-clock'),
 }, {
-  label: (channel) => (state.cleanName ? state.cleanName(channel.n, channel) : channel.n),
+  // Each channel by its own group's rules: the guide's favourites and its
+  // all-channels search hold other countries than the list beside them.
+  label: listName,
   onSelect: renderGuidePreview,
   onActivate: activateProgramme,
   onChannel: (channel) => channel && showGuideChannel(channel),
@@ -43,7 +45,9 @@ export let guideOpen = false;
 
 export const programmeSearch = new ProgrammeSearch({
   getEpg: () => state.epg,
-  label: (channel) => (state.cleanName ? state.cleanName(channel.n, channel) : channel.n),
+  // Each channel by its own group's rules: the guide's favourites and its
+  // all-channels search hold other countries than the list beside them.
+  label: listName,
   getChannels: async (scope, signal) => {
     if (scope === 'all') {
       const library = state.lib;
@@ -257,7 +261,7 @@ export function renderGuidePreview(channel, programme, { upcoming = false } = {}
   logo.id = 'epgv-logo';
   $('epgv-logo').replaceWith(logo);
 
-  $('epgv-name').textContent = state.cleanName ? state.cleanName(channel.n, channel) : channel.n;
+  $('epgv-name').textContent = listName(channel);
 
   const now = Date.now();
   const meta = [];

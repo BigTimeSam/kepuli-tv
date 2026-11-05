@@ -14,6 +14,19 @@ import { state } from './app.js';
 import { playItem, playback, showOverlayActions } from './playing.js';
 import { copyUrl, toast } from './toast.js';
 import { el } from './dom.js';
+import { shownName } from './coversui.js';
+import { episodeCode } from './format.js';
+
+/**
+ * The name the external player's playlist and its file carry: the one the
+ * player's title shows, and for an episode its series and its code before
+ * it, as "Episode 3.m3u" alone would say nothing in a downloads folder.
+ */
+function handOffName(item) {
+  const name = shownName(item);
+  if (item.k !== 3) return name;
+  return [item.seriesName, episodeCode(item.season, item.episode), name].filter(Boolean).join(' ');
+}
 
 /**
  * Hands the current stream over to an external player.
@@ -26,7 +39,7 @@ import { el } from './dom.js';
 export function playExternal() {
   if (!state.playingSpec) { toast(t('ext.nothing'), { kind: 'warn' }); return; }
 
-  const name = state.playing ? state.playing.displayName || state.playing.n : 'Stream';
+  const name = state.playing ? handOffName(state.playing) : 'Stream';
   const spec = state.playingSpec;
   // The resume position is where the browser got to, not where playback
   // started.

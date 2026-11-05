@@ -245,6 +245,30 @@ function tidyName(name, item) {
 /** The name an item shows outside its list: its own tidied one, or tidied now. */
 export const shownName = (item) => item.displayName && item.displayName !== item.n ? item.displayName : tidyName(item.n, item);
 
+// The rows the list's tidier was made for, as a set, built again only when
+// the list itself is a new one: the guide asks for a label on every frame
+// it scrolls, and a search through an array of thousands each time would
+// show.
+let listRows = null, listRowSet = new Set();
+
+/**
+ * An item's name wherever it shows, by the rules of its own group. A row
+ * of the list on screen reads as the list does, with the tidier made for
+ * that list (which may know the topic as well as the country); anything
+ * else — another country's channel in the guide's favourites or its
+ * all-channels search, a related title, a favourite in the strip — is
+ * tidied by its own group's rules, never by those of the list beside it,
+ * which left "SE:" on a Swedish channel while "FI:" went from the Finnish.
+ */
+export function listName(item) {
+  if (!item) return '';
+  if (state.cleanName && state.rows) {
+    if (listRows !== state.rows) { listRows = state.rows; listRowSet = new Set(state.rows); }
+    if (listRowSet.has(item)) return state.cleanName(item.n, item) || item.n;
+  }
+  return shownName(item) || item.n;
+}
+
 /**
  * A history row states the time of day; the day comes from the section
  * heading. In the favourites the type already shows in the heading and in

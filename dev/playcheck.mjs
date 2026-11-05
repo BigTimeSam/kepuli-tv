@@ -4561,6 +4561,61 @@ async function guidefavs(page) {
 }
 
 /**
+ * Names tidied by each channel's own country, wherever they show: with the
+ * provider writing "FI: Aurora One" and "SE: Nordic One", a Finnish and a
+ * Swedish channel starred and Finland on screen, the guide's favourites
+ * read "Aurora One" and "Nordic One". The guide once tidied every channel
+ * by the list's rules beside it, so "SE:" stayed while "FI:" went; its
+ * column, and a recording planned from it, did the same.
+ */
+async function guidenames(page) {
+  const assert = (ok, message) => { if (!ok) throw new Error(message); };
+  const app = `(await import('./js/app.js'))`;
+  const names = `[...document.querySelectorAll('.epg-chan-name')].map((n) => n.textContent)`;
+  process.env.KEPULI_MOCK_COUNTRY_PREFIX = '1';
+  try {
+    // The list from before the switch is in the cache: the channels fresh.
+    await evaluate(page, `indexedDB.databases().then((dbs) => Promise.all(dbs.map((d) => new Promise((resolve) => {
+      const req = indexedDB.deleteDatabase(d.name); req.onsuccess = req.onerror = req.onblocked = () => resolve(d.name); }))))`);
+    await page.call('Page.reload');
+    await waitFor(page, CONNECTED, 'the connection');
+    // The reload restores the tab it left on, which can come after a click
+    // made too early: the channels' tab is asked for until it is the one shown.
+    await waitFor(page, `(() => { const tab = document.querySelector('#tabs [data-tab="live"]');
+      if (tab.getAttribute('aria-selected') !== 'true') tab.click();
+      return tab.getAttribute('aria-selected') === 'true' && [...document.querySelectorAll('#groups .group')].some((g) => g.textContent.includes('Sweden')); })()`, 'the countries', 30000);
+    const starred = [];
+    for (const country of ['Sweden', 'Finland']) {
+      await click(page, '#groups', country);
+      await waitFor(page, `(async () => { const { state } = ${app}; return !!document.querySelector('#list .row .row-name') && state.group === ${JSON.stringify(country)}
+        && !!state.rows[0]?.n.startsWith(${JSON.stringify(country === 'Sweden' ? 'SE:' : 'FI:')}); })()`, `${country}'s channels`)
+        .catch(async (err) => { throw new Error(`${err.message}: ${await evaluate(page, `(async () => { const { state } = ${app}; return JSON.stringify([state.group, state.rows.slice(0, 2).map((r) => r.n)]); })()`)}`); });
+      starred.push(await evaluate(page, `(() => { const row = document.querySelectorAll('#list .row')[0]; row.querySelector('.row-star').click(); return row.querySelector('.row-name').textContent; })()`, { gesture: true }));
+    }
+    assert(starred.every((n) => !/^[A-Z]{2}:/.test(n)), `the list's own rows keep a code: ${JSON.stringify(starred)}`);
+    await evaluate(page, `document.getElementById('btn-guide').click()`, { gesture: true });
+    await waitFor(page, `document.getElementById('main').classList.contains('guide') && document.querySelectorAll('.epg-chan-name').length > 0`, 'the guide');
+    await evaluate(page, `document.getElementById('epg-favs').click()`, { gesture: true });
+    await waitFor(page, `document.getElementById('epg-favs').getAttribute('aria-pressed') === 'true' && document.querySelectorAll('.epg-chan-name').length === 2`, 'the favourites alone');
+    const guide = await evaluate(page, names);
+    assert(guide.every((n) => !/^[A-Z]{2}:/.test(n)) && [...guide].sort().join() === [...starred].sort().join(),
+      `the guide's favourites by their own countries' rules: ${JSON.stringify(guide)}, the list said ${JSON.stringify(starred)}`);
+    // The column beside the guide and a recording planned there say the same.
+    const column = await evaluate(page, `(async () => { const { state } = ${app}; const { renderGuidePreview } = await import('./js/guideui.js');
+      const sweden = state.favorites.get([...state.favorites.keys()].find((k) => state.favorites.get(k).n.startsWith('SE:')));
+      const channel = state.lib.full.live?.find((c) => String(c.id) === String(sweden.id)) || sweden;
+      renderGuidePreview(channel, null); return document.getElementById('epgv-name').textContent; })()`);
+    assert(!/^SE:/.test(column) && starred.includes(column), `the guide's column: ${column}`);
+    await evaluate(page, `document.getElementById('epg-favs').click()`, { gesture: true });
+    return { ok: true, detail: `starred ${JSON.stringify(starred)} from their own lists; the guide's favourites ${JSON.stringify(guide)} with Finland on screen; its column "${column}"` };
+  } finally {
+    process.env.KEPULI_MOCK_COUNTRY_PREFIX = '';
+    await evaluate(page, `indexedDB.databases().then((dbs) => Promise.all(dbs.map((d) => new Promise((resolve) => {
+      const req = indexedDB.deleteDatabase(d.name); req.onsuccess = req.onerror = req.onblocked = () => resolve(d.name); }))))`).catch(() => {});
+  }
+}
+
+/**
  * The credentials never show: not on screen, not in a message, not in the
  * tab's title, not in a tooltip, not in the console — through playback and
  * through the failures whose messages name what went wrong. Xtream puts the
@@ -5249,7 +5304,7 @@ async function countryfilter(page) {
 
 const SCENARIOS = { buffering, livebuffering, filmbuffering, emptyfile, tsasmp4, refusedfile, badgateway, livebadgateway, channelrefused, noanswer, longfilm, catalogUi, setupClarity, welcome, fullscreenControl, clickpause, pickers, touchcaret, screenbutton, topmenu, scrollbars, channelorder, lengthfilter, nowlogo, channels, home, resumemkv, restore, programmes, catchup, seek, death, cancel, timeout, search, paste, keys, switching, resume, connections, livezap, livequiet, reconnect, accounts, listerror, a11y, subtitles, audio, wasmaudio, settings,
   lastchannel, nextepisode, continuewatching, reminders, update, seeklag, cuesretry, quota, catchupfreeze, catchupfull, twotabs, switchstop, resettabs,
-  refresh, restorenav, guidekeep, m3u, sync, holes, picks, flakyserver, accountform, stalker, record, guidefavs, categories, homecountry, noleak, perf, pseudo, startup, soak, phone, episodenames, gotochannel, filmdetails, favorder, countryfilter };
+  refresh, restorenav, guidekeep, m3u, sync, holes, picks, flakyserver, accountform, stalker, record, guidefavs, guidenames, categories, homecountry, noleak, perf, pseudo, startup, soak, phone, episodenames, gotochannel, filmdetails, favorder, countryfilter };
 // The mock's whole-list answers stall for these, longer than the request limit.
 const SLOW_LIST_MS = { cancel: 60000, timeout: 60000 };
 // The media is sent slowly for these: the seek targets must lie outside the
