@@ -163,6 +163,7 @@ export default {
  "empty.nohits": "Niciun rezultat",
  "empty.nohits.text": "Căutarea „{query}” nu a găsit nimic.",
  "programmes.nohits.text": "Niciun canal și nicio emisiune nu se potrivesc cu „{query}” în canalele și perioada alese mai sus.",
+ "programmes.showall": "Arată toate cele {count}",
  "empty.category": "Categoria e goală",
  "empty.category.text": "Furnizorul nu returnează acum niciun conținut pentru această categorie. Poate a fost eliminată sau golită din listă.",
  "empty.fav": "Niciun favorit",

@@ -1633,6 +1633,18 @@ label.choice-row:hover { background: var(--row-hover); }
    js/programmesearch.js are these heights. */
 .psr-head { height: 52px; display: flex; align-items: center; gap: 10px; padding: 0 14px; box-sizing: border-box;
   background: var(--panel); border-bottom: 1px solid var(--border); }
+button.psr-head { width: 100%; border: 0; border-bottom: 1px solid var(--border); color: var(--text); font: inherit; text-align: left; cursor: pointer; }
+button.psr-head:hover, button.psr-head:focus-visible { background: var(--panel-2); }
+button.psr-head:focus-visible, .psr-more:focus-visible { outline-offset: -2px; }
+/* The fold's chevron: down while the channel shows all, right while it
+   shows its first few. */
+.psr-fold { flex: none; width: 7px; height: 7px; margin: 0 4px 3px 2px; border: solid var(--muted); border-width: 0 1.5px 1.5px 0; transform: rotate(-45deg); transition: transform .15s; }
+.psr-head[aria-expanded="true"] .psr-fold { transform: rotate(45deg); }
+@media (prefers-reduced-motion: reduce) { .psr-fold { transition: none; } }
+/* "Show all 17", under the first few, where the titles start. */
+.psr-more { height: 44px; width: 100%; display: block; box-sizing: border-box; padding: 0 14px 0 calc(58px + 4.75rem + 14px); border: 0; border-bottom: 1px solid var(--border);
+  background: transparent; color: var(--accent-ink); font: inherit; font-size: 0.8125rem; font-weight: 600; text-align: left; cursor: pointer; }
+.psr-more:hover, .psr-more:focus-visible { background: var(--panel-2); text-decoration: underline; }
 .psr-head strong { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 0.875rem; font-weight: 650; }
 .psr-logo { width: 34px; height: 26px; flex: none; object-fit: contain; border-radius: 3px; }
 .psr-n { flex: none; min-width: 1.6em; padding: 1px 7px; border-radius: 999px; background: var(--panel-2); color: var(--muted); font-size: 0.6875rem; text-align: center; }

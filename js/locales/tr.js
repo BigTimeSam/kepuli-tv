@@ -155,6 +155,7 @@ export default {
  "empty.nohits": "Eşleşme yok",
  "empty.nohits.text": "“{query}” araması hiçbir sonuç vermedi.",
  "programmes.nohits.text": "Yukarıda seçilen kanallarda ve dönemde “{query}” ile eşleşen kanal ya da program yok.",
+ "programmes.showall": "{count} sonucun tümünü göster",
  "empty.category": "Kategori boş",
  "empty.category.text": "Sağlayıcı şu anda bu kategori için içerik döndürmüyor. Listeden kaldırılmış veya boşaltılmış olabilir.",
  "empty.fav": "Favori yok",

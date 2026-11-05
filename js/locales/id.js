@@ -147,6 +147,7 @@ export default {
  "empty.nohits": "Tidak ada hasil",
  "empty.nohits.text": "Pencarian \"{query}\" tidak menemukan apa pun.",
  "programmes.nohits.text": "Tidak ada saluran atau acara yang cocok dengan \"{query}\" pada saluran dan periode yang dipilih di atas.",
+ "programmes.showall": "Tampilkan semua {count}",
  "empty.category": "Kategori kosong",
  "empty.category.text": "Penyedia saat ini tidak mengirim isi apa pun untuk kategori ini. Mungkin sudah dihapus atau dikosongkan.",
  "empty.fav": "Belum ada favorit",

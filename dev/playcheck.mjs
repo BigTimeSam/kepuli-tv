@@ -3037,12 +3037,38 @@ async function programmes(page, { requests }) {
   await search(channelName);
   const byName = await evaluate(page, `[...document.querySelectorAll('.psr-head strong')].map((h) => h.textContent)`);
   assert(channelName && byName.includes(channelName), `a search for the channel "${channelName}": ${JSON.stringify(byName)}`);
+  // One letter finds nearly everything: every channel keeps to its first
+  // three programmes and offers the rest, so the next channel is in reach.
+  const t0 = Date.now();
+  await evaluate(page, `document.getElementById('programme-scope').value = 'all'`);
+  await search('a', 'all');
+  const took = Date.now() - t0;
+  const wide = await evaluate(page, `(() => {
+    const shown = [...document.querySelectorAll('#programme-results [data-index]')].sort((x, y) => x.dataset.index - y.dataset.index);
+    const head = shown.find((n) => n.matches('button.psr-head'));
+    const after = shown.slice(shown.indexOf(head) + 1);
+    const firstRows = after.findIndex((n) => !n.matches('.psr-row'));
+    return { count: Number(document.querySelector('.psr-count').textContent.replace(/[^0-9]/g, '')), dom: shown.length, expanded: head?.getAttribute('aria-expanded'),
+      n: head?.querySelector('.psr-n').textContent, rows: firstRows, more: after[firstRows]?.textContent, heads: document.querySelectorAll('.psr-head').length };
+  })()`);
+  assert(wide.count > 200 && wide.expanded === 'false' && wide.rows === 3 && wide.more === `Show all ${wide.n}` && wide.dom < 60,
+    `a search for "a": ${JSON.stringify(wide)}`);
+  await evaluate(page, `[...document.querySelectorAll('.psr-more')].sort((x, y) => x.dataset.index - y.dataset.index)[0].click()`);
+  await sleep(200);
+  const opened = await evaluate(page, `(() => { const head = [...document.querySelectorAll('button.psr-head')].sort((x, y) => x.dataset.index - y.dataset.index)[0];
+    return { expanded: head.getAttribute('aria-expanded'), focus: document.activeElement?.className }; })()`);
+  assert(opened.expanded === 'true' && opened.focus === 'psr-row', `Show all: ${JSON.stringify(opened)}`);
+  await evaluate(page, `[...document.querySelectorAll('button.psr-head')].sort((x, y) => x.dataset.index - y.dataset.index)[0].click()`);
+  await sleep(200);
+  assert(await evaluate(page, `[...document.querySelectorAll('button.psr-head')].sort((x, y) => x.dataset.index - y.dataset.index)[0].getAttribute('aria-expanded') === 'false'
+    && document.activeElement?.matches('button.psr-head')`), 'the heading did not fold its channel back');
+  await evaluate(page, `document.getElementById('programme-scope').value = 'group'`);
   await search('News', 'past');
   await evaluate(page, `document.querySelector('.psr-row').click()`);
   await waitFor(page, `document.querySelector('#epgv-slot b')`, 'search result detail');
   await evaluate(page, `document.getElementById('programme-clear').click()`);
   assert(await evaluate(page, `!document.getElementById('epg-body').hidden && document.getElementById('programme-panel').hidden`), 'return to guide failed');
-  return { ok: true, detail: `archive-length guide; title/description search by channel (${grouped.heads} channels, ${grouped.rows} programmes), cached repeat, empty results with the notice, the channel "${channelName}" by its name, past results and return to grid` };
+  return { ok: true, detail: `archive-length guide; title/description search by channel (${grouped.heads} channels, ${grouped.rows} programmes), cached repeat, empty results with the notice, the channel "${channelName}" by its name, a search for "a" (${wide.count} results in ${took} ms, ${wide.heads} channels painted, ${wide.dom} rows in the DOM) with Show all and the fold, past results and return to grid` };
 }
 
 /**

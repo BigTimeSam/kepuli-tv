@@ -155,6 +155,7 @@ export default {
  "empty.nohits": "Ingen resultater",
  "empty.nohits.text": "Søgningen »{query}« gav ingen resultater.",
  "programmes.nohits.text": "Ingen kanal eller udsendelse passede til »{query}« i de kanaler og den periode, der er valgt ovenfor.",
+ "programmes.showall": "Vis alle {count}",
  "empty.category": "Kategorien er tom",
  "empty.category.text": "Udbyderen returnerer intet indhold for denne kategori lige nu. Den kan være blevet fjernet eller tømt fra listen.",
  "empty.fav": "Ingen favoritter",

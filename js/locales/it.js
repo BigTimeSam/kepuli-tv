@@ -155,6 +155,7 @@ export default {
  "empty.nohits": "Nessun risultato",
  "empty.nohits.text": "La ricerca “{query}” non ha dato risultati.",
  "programmes.nohits.text": "Nessun canale o programma corrisponde a “{query}” nei canali e nel periodo scelti sopra.",
+ "programmes.showall": "Mostra tutti i {count}",
  "empty.category": "La categoria è vuota",
  "empty.category.text": "Al momento il provider non restituisce contenuti per questa categoria. Potrebbe essere stata rimossa o svuotata dall'elenco.",
  "empty.fav": "Nessun preferito",

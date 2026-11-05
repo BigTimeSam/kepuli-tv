@@ -163,6 +163,7 @@ export default {
  "empty.nohits": "Nema rezultata",
  "empty.nohits.text": "Pretraga „{query}” nije vratila ništa.",
  "programmes.nohits.text": "Nijedan kanal ni emisija ne odgovara pojmu „{query}” na kanalima i u periodu izabranim gore.",
+ "programmes.showall": "Prikaži svih {count}",
  "empty.category": "Kategorija je prazna",
  "empty.category.text": "Provajder trenutno ne vraća nikakav sadržaj za ovu kategoriju. Možda je uklonjena ili ispražnjena.",
  "empty.fav": "Nema omiljenog",

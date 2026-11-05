@@ -147,6 +147,7 @@ export default {
  "empty.nohits": "Không có kết quả",
  "empty.nohits.text": "Tìm “{query}” không ra kết quả nào.",
  "programmes.nohits.text": "Không có kênh hay chương trình nào khớp với “{query}” trong các kênh và khoảng thời gian đã chọn ở trên.",
+ "programmes.showall": "Hiện tất cả {count}",
  "empty.category": "Danh mục trống",
  "empty.category.text": "Nhà cung cấp hiện không trả về nội dung nào cho danh mục này. Có thể nó đã bị xóa hoặc làm trống.",
  "empty.fav": "Chưa có mục yêu thích",

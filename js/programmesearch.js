@@ -1,6 +1,6 @@
 import { VirtualList } from './vlist.js';
 import { t } from './i18n.js';
-import { clock, shortDay, progressOf } from './format.js';
+import { clock, shortDay, progressOf, nf } from './format.js';
 import { poster } from './poster.js';
 import { emptyState } from './rows.js';
 import { archiveDays } from './epggrid.js';
@@ -78,13 +78,22 @@ export function searchableChannels(channels) {
 
 const resultOrder = (a, b) => a.programme.start - b.programme.start || a.channel.n.localeCompare(b.channel.n);
 
+/** How many programmes a channel shows before its "Show all". */
+export const FIRST_FEW = 3;
+
 /**
  * The results, in time order, as the list shows them: each channel once,
  * as a heading, with its programmes under it. A channel comes where its
- * first programme came, so the earliest stays at the top. A heading is
- * `{ channel, count }`, a programme `{ channel, programme }`.
+ * first programme came, so the earliest stays at the top. Of a channel
+ * not in `expanded` (ids as strings) only the first FIRST_FEW show, and a
+ * row offers the rest: a search for "a" finds nearly every programme of
+ * every channel, and in full the first channel's hundreds of rows would
+ * push every other channel out of reach.
+ *
+ * A heading is `{ channel, count, open }` (open: every programme shows), a
+ * programme `{ channel, programme }`, the offer `{ channel, more: count }`.
  */
-export function groupResults(results) {
+export function groupResults(results, expanded = new Set(), few = FIRST_FEW) {
   const groups = new Map();
   for (const result of results) {
     const id = String(result.channel.id);
@@ -92,7 +101,11 @@ export function groupResults(results) {
     groups.get(id).push(result);
   }
   const items = [];
-  for (const found of groups.values()) items.push({ channel: found[0].channel, count: found.length }, ...found);
+  for (const [id, found] of groups) {
+    const open = found.length <= few || expanded.has(id);
+    items.push({ channel: found[0].channel, count: found.length, open }, ...(open ? found : found.slice(0, few)));
+    if (!open) items.push({ channel: found[0].channel, more: found.length });
+  }
   return items;
 }
 
@@ -117,14 +130,16 @@ export const MANY_CHANNELS = 500;
 const $ = (id) => document.getElementById(id);
 // A channel's heading and a programme's row, in pixels; .psr-head and
 // .psr-row in player.css are as tall.
-const HEAD_H = 52, ROW_H = 60;
+const HEAD_H = 52, ROW_H = 60, MORE_H = 44;
 
 export class ProgrammeSearch {
   constructor({ getChannels, getEpg, onSelect, onActivate, onMode, label = (channel) => channel.n }) {
     Object.assign(this, { getChannels, getEpg, onSelect, onActivate, onMode, label });
     this.results = [];
-    // What the list shows: the results grouped by channel (groupResults).
+    // What the list shows: the results grouped by channel (groupResults),
+    // and the channels opened in full in this search, by id.
     this.items = [];
+    this.expanded = new Set();
     this.run = null;
     // What the status line says, kept as facts rather than text, so that a
     // change of language can say it again in the new one (renderStatus).
@@ -191,7 +206,7 @@ export class ProgrammeSearch {
       const [before, after = ''] = t('programmes.status', { count: MARK, done: s.done, total: s.total }).split(MARK);
       const count = document.createElement('strong');
       count.className = 'psr-count';
-      count.textContent = String(s.count);
+      count.textContent = nf.format(s.count);
       line.append(before, count, after);
       if (s.failed) {
         const failed = document.createElement('span');
@@ -265,32 +280,74 @@ export class ProgrammeSearch {
 
   /** The results into the list, grouped by channel. */
   show(results, { keepScroll = false } = {}) {
+    if (!results.length) this.expanded.clear();
     this.results = results;
-    this.items = groupResults(results);
-    this.list.setCount(this.items.length, { keepScroll, heightAt: (i) => (this.items[i].programme ? ROW_H : HEAD_H) });
+    this.items = groupResults(results, this.expanded);
+    this.list.setCount(this.items.length, { keepScroll, heightAt: (i) => {
+      const item = this.items[i];
+      return item.programme ? ROW_H : item.more ? MORE_H : HEAD_H;
+    } });
+  }
+
+  /** A channel's programmes all shown, or back to the first few; the focus stays on what was pressed. */
+  toggle(channel, focusHead) {
+    const id = String(channel.id);
+    if (this.expanded.has(id)) this.expanded.delete(id); else this.expanded.add(id);
+    this.show(this.results, { keepScroll: true });
+    const at = this.items.findIndex((item) => !item.programme && !item.more && String(item.channel.id) === id);
+    if (at < 0) return;
+    if (!this.expanded.has(id)) this.list.scrollToIndex(at);
+    const target = focusHead ? at : at + 1 + FIRST_FEW;
+    requestAnimationFrame(() => $('programme-results').querySelector(`[data-index="${target}"]`)?.focus());
   }
 
   row(index) {
-    const { channel, programme, count } = this.items[index];
+    const { channel, programme, count, open, more } = this.items[index];
+    if (more) {
+      // The rest of a channel's programmes, a click away.
+      const button = document.createElement('button');
+      button.type = 'button';
+      button.className = 'psr-more';
+      button.dataset.index = String(index);
+      button.textContent = t('programmes.showall', { count: nf.format(more) });
+      button.addEventListener('click', () => this.toggle(channel, false));
+      return button;
+    }
     if (!programme) {
       // The channel's heading: its logo and its name as the guide writes
       // it (without the provider's "FI:"), and how many programmes found.
-      const head = document.createElement('div');
+      // A channel with more than the first few is a button: it opens them
+      // all or folds them back, as its "Show all" row does.
+      const folds = count > FIRST_FEW;
+      const head = document.createElement(folds ? 'button' : 'div');
       head.className = 'psr-head';
+      head.dataset.index = String(index);
+      if (folds) {
+        head.type = 'button';
+        head.setAttribute('aria-expanded', String(open));
+        head.addEventListener('click', () => this.toggle(channel, true));
+      }
       head.appendChild(poster('psr-logo', channel.logo, 'channel'));
       const name = document.createElement('strong');
       name.textContent = this.label(channel);
       name.title = channel.n;
       const n = document.createElement('span');
       n.className = 'psr-n';
-      n.textContent = String(count);
+      n.textContent = nf.format(count);
       head.append(name, n);
+      if (folds) {
+        const mark = document.createElement('span');
+        mark.className = 'psr-fold';
+        mark.setAttribute('aria-hidden', 'true');
+        head.appendChild(mark);
+      }
       return head;
     }
     const now = Date.now();
     const row = document.createElement('button');
     row.type = 'button';
     row.className = 'psr-row';
+    row.dataset.index = String(index);
     const when = document.createElement('span');
     when.className = 'psr-when';
     const day = document.createElement('small');

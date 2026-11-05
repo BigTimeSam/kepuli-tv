@@ -171,6 +171,7 @@ export default {
  "empty.nohits": "Ничего не найдено",
  "empty.nohits.text": "По запросу «{query}» ничего нет.",
  "programmes.nohits.text": "Ни один канал и ни одна передача не подошли под «{query}» в каналах и за период, выбранные выше.",
+ "programmes.showall": "Показать все {count}",
  "empty.category": "Категория пуста",
  "empty.category.text": "Сейчас провайдер ничего не отдаёт для этой категории. Её могли удалить или очистить.",
  "empty.fav": "Избранного пока нет",

@@ -171,6 +171,7 @@ export default {
  "empty.nohits": "Nic nenalezeno",
  "empty.nohits.text": "Hledání „{query}“ nic nevrátilo.",
  "programmes.nohits.text": "Ve vybraných kanálech a období výše neodpovídá „{query}“ žádný kanál ani pořad.",
+ "programmes.showall": "Zobrazit všech {count}",
  "empty.category": "Kategorie je prázdná",
  "empty.category.text": "Poskytovatel teď pro tuto kategorii nevrací žádný obsah. Mohla být odstraněna nebo vyprázdněna.",
  "empty.fav": "Žádné oblíbené",

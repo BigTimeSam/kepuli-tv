@@ -155,6 +155,7 @@ export default {
  "empty.nohits": "Tulemusi pole",
  "empty.nohits.text": "Päring „{query}“ ei andnud midagi.",
  "programmes.nohits.text": "Ülal valitud kanalitel ja ajavahemikus ei vastanud päringule „{query}“ ükski kanal ega saade.",
+ "programmes.showall": "Näita kõiki {count}",
  "empty.category": "Kategooria on tühi",
  "empty.category.text": "Pakkuja ei anna praegu sellele kategooriale sisu. See võib olla eemaldatud või tühjendatud.",
  "empty.fav": "Lemmikuid pole",

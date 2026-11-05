@@ -163,6 +163,7 @@ export default {
  "empty.nohits": "Nekas nav atrasts",
  "empty.nohits.text": "Meklējot „{query}“, nekas netika atrasts.",
  "programmes.nohits.text": "Augstāk izvēlētajos kanālos un periodā „{query}“ neatbilda neviens kanāls vai raidījums.",
+ "programmes.showall": "Rādīt visus {count}",
  "empty.category": "Kategorija ir tukša",
  "empty.category.text": "Sniedzējs šobrīd neatdod nekādu saturu šajā kategorijā. Tā varēja tikt dzēsta vai iztukšota.",
  "empty.fav": "Izlase ir tukša",

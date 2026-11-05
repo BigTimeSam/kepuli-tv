@@ -155,6 +155,7 @@ export default {
  "empty.nohits": "Geen resultaten",
  "empty.nohits.text": "De zoekopdracht “{query}” leverde niets op.",
  "programmes.nohits.text": "Geen zender of programma past bij “{query}” in de zenders en de periode die hierboven gekozen zijn.",
+ "programmes.showall": "Alle {count} tonen",
  "empty.category": "Categorie is leeg",
  "empty.category.text": "De aanbieder geeft op dit moment geen inhoud voor deze categorie. Mogelijk is ze verwijderd of leeggemaakt.",
  "empty.fav": "Geen favorieten",

@@ -155,6 +155,7 @@ export default {
  "empty.nohits": "Pa rezultate",
  "empty.nohits.text": "Kërkimi «{query}» nuk dha asgjë.",
  "programmes.nohits.text": "Asnjë kanal apo program nuk përputhet me «{query}» në kanalet dhe periudhën e zgjedhura më sipër.",
+ "programmes.showall": "Shfaqi të {count}",
  "empty.category": "Kategoria është bosh",
  "empty.category.text": "Ofruesi nuk kthen tani asnjë përmbajtje për këtë kategori. Mund të jetë hequr ose zbrazur.",
  "empty.fav": "Nuk ka të preferuara",

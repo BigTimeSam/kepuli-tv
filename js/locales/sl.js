@@ -171,6 +171,7 @@ export default {
  "empty.nohits": "Ni zadetkov",
  "empty.nohits.text": "Iskanje »{query}« ni vrnilo ničesar.",
  "programmes.nohits.text": "Noben kanal in nobena oddaja se ne ujema z »{query}« na kanalih in v obdobju, izbranih zgoraj.",
+ "programmes.showall": "Pokaži vseh {count}",
  "empty.category": "Kategorija je prazna",
  "empty.category.text": "Ponudnik trenutno ne vrača nobene vsebine za to kategorijo. Morda je bila odstranjena ali izpraznjena.",
  "empty.fav": "Še ni priljubljenih",

@@ -649,7 +649,10 @@ costs its whole programme table.
 Results appear as answers arrive, grouped by channel under its logo and
 name (as the guide writes it, without a provider's "FI:"), each programme
 with its day and time and the first line of its description, and **Now** on
-one being shown; the line above them gives the number found and the channels
+one being shown. A channel shows its first three programmes and **Show
+all** with the number for the rest, and its heading opens them all or folds
+them back, so a short query that matches nearly everything still leaves each
+channel a few rows. The line above them gives the number found and the channels
 searched, and failed channels are counted separately. A search that finds
 nothing says so in the results' place, with the query. **Stop search** keeps partial results. Selecting a result
 shows its description and live/catch-up actions; **Back to guide** restores the

@@ -171,6 +171,7 @@ export default {
  "empty.nohits": "Brak wyników",
  "empty.nohits.text": "Wyszukiwanie „{query}” nic nie zwróciło.",
  "programmes.nohits.text": "Żaden kanał ani program nie pasuje do „{query}” na kanałach i w okresie wybranych powyżej.",
+ "programmes.showall": "Pokaż wszystkie {count}",
  "empty.category": "Kategoria jest pusta",
  "empty.category.text": "Dostawca nie zwraca teraz żadnej zawartości tej kategorii. Mogła zostać usunięta lub opróżniona.",
  "empty.fav": "Brak ulubionych",

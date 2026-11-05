@@ -155,6 +155,7 @@ export default {
  "empty.nohits": "Keine Treffer",
  "empty.nohits.text": "Die Suche nach „{query}“ ergab nichts.",
  "programmes.nohits.text": "Kein Kanal und keine Sendung passt zu „{query}“ in den oben gewählten Kanälen und Zeitraum.",
+ "programmes.showall": "Alle {count} anzeigen",
  "empty.category": "Kategorie ist leer",
  "empty.category.text": "Der Anbieter liefert für diese Kategorie derzeit keine Inhalte. Sie wurde möglicherweise entfernt oder geleert.",
  "empty.fav": "Keine Favoriten",

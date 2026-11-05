@@ -171,6 +171,7 @@ export default {
  "empty.nohits": "Nieko nerasta",
  "empty.nohits.text": "Ieškant „{query}“ nieko nerasta.",
  "programmes.nohits.text": "Aukščiau pasirinktuose kanaluose ir laikotarpyje „{query}“ neatitiko nei kanalas, nei laida.",
+ "programmes.showall": "Rodyti visus {count}",
  "empty.category": "Kategorija tuščia",
  "empty.category.text": "Tiekėjas dabar negrąžina šios kategorijos turinio. Ji galėjo būti pašalinta arba ištuštinta.",
  "empty.fav": "Mėgstamų nėra",

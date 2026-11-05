@@ -155,6 +155,7 @@ export default {
  "empty.nohits": "Aucun résultat",
  "empty.nohits.text": "La recherche « {query} » n’a rien donné.",
  "programmes.nohits.text": "Aucune chaîne ni aucun programme ne correspond à « {query} » dans les chaînes et la période choisies ci-dessus.",
+ "programmes.showall": "Afficher les {count}",
  "empty.category": "Catégorie vide",
  "empty.category.text": "Le fournisseur ne renvoie aucun contenu pour cette catégorie pour le moment. Elle a peut-être été retirée ou vidée.",
  "empty.fav": "Aucun favori",

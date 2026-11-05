@@ -155,6 +155,7 @@ export default {
  "empty.nohits": "Inga träffar",
  "empty.nohits.text": "Sökningen ”{query}” gav inga träffar.",
  "programmes.nohits.text": "Ingen kanal eller sändning matchade ”{query}” i kanalerna och perioden som valts ovan.",
+ "programmes.showall": "Visa alla {count}",
  "empty.category": "Kategorin är tom",
  "empty.category.text": "Leverantören returnerar inget innehåll för den här kategorin just nu. Den kan ha tagits bort eller tömts från listan.",
  "empty.fav": "Inga favoriter",

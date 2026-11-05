@@ -155,6 +155,7 @@ export default {
  "empty.nohits": "Sin resultados",
  "empty.nohits.text": "La búsqueda “{query}” no devolvió nada.",
  "programmes.nohits.text": "Ningún canal ni programa coincide con “{query}” en los canales y el periodo elegidos arriba.",
+ "programmes.showall": "Ver los {count}",
  "empty.category": "La categoría está vacía",
  "empty.category.text": "El proveedor no devuelve contenido para esta categoría ahora mismo. Puede que se haya eliminado o vaciado de la lista.",
  "empty.fav": "Sin favoritos",

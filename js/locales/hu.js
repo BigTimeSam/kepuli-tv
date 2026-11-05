@@ -155,6 +155,7 @@ export default {
  "empty.nohits": "Nincs találat",
  "empty.nohits.text": "A(z) „{query}” keresés nem hozott eredményt.",
  "programmes.nohits.text": "A fent kiválasztott csatornákon és időszakban egyetlen csatorna vagy műsor sem felel meg ennek: „{query}”.",
+ "programmes.showall": "Mind a(z) {count} mutatása",
  "empty.category": "A kategória üres",
  "empty.category.text": "A szolgáltató most nem ad vissza tartalmat ehhez a kategóriához. Lehet, hogy törölték vagy kiürítették.",
  "empty.fav": "Még nincs kedvenc",

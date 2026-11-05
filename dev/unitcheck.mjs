@@ -123,6 +123,10 @@ check('invalid programme has no archive action', catchupAvailable({ archive: 7 }
     check('programme results are grouped by channel, the earliest channel first, each in time order',
       groupResults([at(b, 1), at(a, 2), at(b, 3), at(a, 4)]).map((x) => (x.programme ? x.programme.start : `${x.channel.n}${x.count}`)),
       ['B2', 1, 3, 'A2', 2, 4]);
+    const many = [1, 2, 3, 4, 5].map((n) => at(a, n));
+    const shape = (items) => items.map((x) => (x.programme ? x.programme.start : x.more ? `more${x.more}` : `${x.channel.n}${x.count}${x.open ? '+' : '-'}`));
+    check('a channel with many results shows its first three and offers the rest', shape(groupResults(many)), ['A5-', 1, 2, 3, 'more5']);
+    check('a channel opened in full shows every result', shape(groupResults(many, new Set(['1']))), ['A5+', 1, 2, 3, 4, 5]);
   }
   const abort = new AbortController();
   fakeEpg.cache.clear(); calls = 0;
