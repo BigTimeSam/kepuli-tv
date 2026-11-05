@@ -674,10 +674,10 @@ from the favourite mode of **Filter countries**.
 **Back to channels** at the top left returns to the channel list. You can
 also close the guide with `Esc` or `g`.
 
-A click on a channel's name or on one of its programmes in the grid, or on a
-programme on now in the programme search, plays the channel at once in the
-corner (unless it is playing already, live or from its archive); a programme
-in the search that has ended or is still to come is only chosen, with
+A click on a channel's name, or on a programme on now in the grid or in the
+programme search, plays the channel at once in the corner (unless it is
+playing already, live or from its archive); a programme that has ended or is
+still to come, in the grid as in the search, is only chosen, with
 **Watch catch-up** or **Remind me** in the column, as the channel live
 would show something else. The column shows the channel's name,
 **Go to channel**, the programme with its description and, for a click on the

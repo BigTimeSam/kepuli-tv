@@ -4550,6 +4550,69 @@ async function categories(page) {
 }
 
 /**
+ * A click in the guide's grid answers as one in its search results: a
+ * programme that has ended or is still to come is only chosen, and the
+ * preview offers its catch-up or a reminder; one on now plays the channel
+ * at once. The grid used to start the channel live for any programme.
+ */
+async function guideclick(page) {
+  const assert = (ok, message) => { if (!ok) throw new Error(message); };
+  const guide = `(await import('./js/guideui.js'))`;
+  const app = `(await import('./js/app.js'))`;
+  const playing = () => evaluate(page, `(async () => { const { state } = ${app}; return { live: state.playing && !state.catchup ? String(state.playing.id) : null, catchup: Boolean(state.catchup) }; })()`);
+  const actions = () => evaluate(page, `[...document.querySelectorAll('#epgv-actions button')].map((b) => b.textContent)`);
+  // Marks the first drawn programme of a kind and answers its channel's id.
+  const mark = (kind) => evaluate(page, `(async () => { const { grid } = ${guide}; const now = Date.now();
+    for (const node of document.querySelectorAll('#epg-canvas .epg-prog:not(.empty)')) {
+      const ch = grid.channels[Number(node.dataset.row)]; if (!ch) continue;
+      const p = ((grid.epg && grid.epg.listings(ch.id)) || []).find((x) => x.start === Number(node.dataset.start)); if (!p) continue;
+      const ok = ${JSON.stringify(kind)} === 'past' ? p.stop <= now && ch.archive > 0 && p.start >= now - ch.archive * 86400e3
+        : ${JSON.stringify(kind)} === 'now' ? p.start <= now && now < p.stop : p.start > now;
+      if (ok) { window.__guideclick = { row: node.dataset.row, start: node.dataset.start }; return String(ch.id); }
+    }
+    return null; })()`);
+  // Looked up again at the click: the grid redraws its nodes as it scrolls.
+  const clickMarked = () => evaluate(page, `(() => { const { row, start } = window.__guideclick;
+    document.querySelector('#epg-canvas .epg-prog[data-row="' + row + '"][data-start="' + start + '"]').click(); })()`, { gesture: true });
+
+  await openLiveList(page, 3);
+  await evaluate(page, `document.getElementById('btn-guide').click()`, { gesture: true });
+  await waitFor(page, `document.getElementById('main').classList.contains('guide')`, 'the guide');
+  await waitFor(page, `document.querySelectorAll('#epg-canvas .epg-prog:not(.empty)').length > 3`, 'the grid drawn', 10000);
+  const before = await playing();
+
+  // The grid opens at the present; earlier programmes are drawn once it scrolls back.
+  let pastChannel = await mark('past');
+  for (let i = 0; !pastChannel && i < 6; i++) {
+    await evaluate(page, `(() => { const s = document.getElementById('epg-scroll'); s.scrollLeft -= s.clientWidth / 2; s.dispatchEvent(new Event('scroll')); })()`);
+    await sleep(300);
+    pastChannel = await mark('past');
+  }
+  assert(pastChannel, 'no ended programme of a channel with an archive drawn in the grid');
+  const idle = await (async () => { await sleep(800); return playing(); })();
+  assert(idle.live === before.live, `a channel started before any click: ${JSON.stringify({ before, idle })}`);
+  await clickMarked();
+  await sleep(800);
+  const afterPast = await playing();
+  const pastActions = await actions();
+  assert(afterPast.live === before.live && !afterPast.catchup, `a click on an ended programme started the channel: ${JSON.stringify({ before, afterPast })}`);
+  assert(pastActions.includes('Watch catch-up'), `the preview of an ended programme: ${JSON.stringify(pastActions)}`);
+
+  assert(await mark('future'), 'no programme to come drawn in the grid');
+  await clickMarked();
+  await sleep(800);
+  const afterFuture = await playing();
+  assert(afterFuture.live === before.live && !afterFuture.catchup && (await actions()).includes('Remind me'),
+    `a click on a programme to come: ${JSON.stringify({ afterFuture, actions: await actions() })}`);
+
+  const nowChannel = await mark('now');
+  assert(nowChannel, 'no programme on now drawn in the grid');
+  await clickMarked();
+  await waitFor(page, `(async () => { const { state } = ${app}; return String(state.playing?.id) === ${JSON.stringify(nowChannel)} && !state.catchup; })()`, 'the channel on now playing');
+  return { ok: true, detail: `an ended programme offered ${JSON.stringify(pastActions)} and played nothing, one to come offered Remind me, one on now played its channel` };
+}
+
+/**
  * The guide's search results answer as the grid does. The arrows walk them
  * from the search field down and each one reached is the programme the
  * panel beside describes; a click on a programme that has ended or is
@@ -5700,7 +5763,7 @@ async function countryfilter(page) {
 
 const SCENARIOS = { buffering, livebuffering, filmbuffering, emptyfile, tsasmp4, refusedfile, badgateway, livebadgateway, channelrefused, noanswer, longfilm, catalogUi, setupClarity, welcome, fullscreenControl, clickpause, pickers, touchcaret, screenbutton, topmenu, scrollbars, channelorder, lengthfilter, nowlogo, channels, home, resumemkv, restore, programmes, catchup, seek, death, cancel, timeout, search, paste, keys, switching, resume, connections, livezap, livequiet, reconnect, accounts, listerror, a11y, subtitles, audio, wasmaudio, settings,
   lastchannel, nextepisode, continuewatching, reminders, update, seeklag, cuesretry, quota, catchupfreeze, catchupfull, twotabs, switchstop, resettabs,
-  refresh, restorenav, guidekeep, m3u, sync, holes, picks, flakyserver, accountform, stalker, record, guidefavs, guidenames, categories, homecountry, noleak, perf, pseudo, startup, soak, phone, episodenames, gotochannel, filmdetails, favorder, countryfilter, tilekeys, routes, programmekeys, searchlimit, filterfolds };
+  refresh, restorenav, guidekeep, m3u, sync, holes, picks, flakyserver, accountform, stalker, record, guidefavs, guidenames, categories, homecountry, noleak, perf, pseudo, startup, soak, phone, episodenames, gotochannel, filmdetails, favorder, countryfilter, tilekeys, routes, programmekeys, searchlimit, filterfolds, guideclick };
 // The mock's whole-list answers stall for these, longer than the request limit.
 const SLOW_LIST_MS = { cancel: 60000, timeout: 60000 };
 // The media is sent slowly for these: the seek targets must lie outside the

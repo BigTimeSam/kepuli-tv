@@ -36,7 +36,7 @@ export const grid = new EpgGrid({
   onActivate: activateProgramme,
   onChannel: (channel) => channel && showGuideChannel(channel),
   onPlay: (channel) => channel && playChannel(channel),
-  onPick: (channel) => channel && playChannel(channel),
+  onPick: (channel, programme) => channel && pickProgramme(channel, programme),
   onWindow: (items, from, to) => state.epg && state.epg.setVisibleWindow(items, from, to),
   reminded: (channel, programme) => reminders.has(reminderKey(channel, programme)),
 });
@@ -61,7 +61,7 @@ export const programmeSearch = new ProgrammeSearch({
   onLeave: () => focusGrid(),
   onSelect: renderGuidePreview,
   onActivate: activateProgramme,
-  onPick: (channel) => playChannel(channel),
+  onPick: (channel, programme) => pickProgramme(channel, programme),
   onMode: (searching) => {
     $('epg-body').hidden = searching;
     if (searching) grid.hide();
@@ -363,6 +363,19 @@ function activateProgramme(channel, programme) {
     toast(t('guide.starts', { title: programme.title, time: clock(programme.start) }), { action });
     return;
   }
+  playChannel(channel);
+}
+
+/**
+ * A click on a programme, in the grid as in the search results: one on now
+ * (or a channel's name, or a gap without programme data) plays the channel
+ * at once; one that has ended or is still to come is only chosen, and the
+ * preview beside offers its catch-up or a reminder. The grid used to start
+ * the channel live for any of them, which the search had stopped doing.
+ */
+function pickProgramme(channel, programme) {
+  const now = Date.now();
+  if (programme && (programme.stop <= now || programme.start > now)) return;
   playChannel(channel);
 }
 
