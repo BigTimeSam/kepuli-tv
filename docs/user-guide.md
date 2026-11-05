@@ -162,8 +162,10 @@ the player actually arrives.
   within the selected content type.
 - Above the list, **Filter channels** holds a country's topics, and the
   films' and series' **Filter titles** their filters with the favourites
-  among the list at its end; each folds away, and open or folded is
-  remembered. **Filter countries** at the foot of the sidebar (**Filter
+  among the list at its end. Both are open the first time and fold away,
+  and open or folded is remembered for each; folded or not, the heading
+  says how many of how many are shown (**2 / 15**), with a dot after the
+  name while a topic or a filter narrows the list. **Filter countries** at the foot of the sidebar (**Filter
   categories** on the films and the series) shows all of them, only the
   favourite ones (those you have starred), or the ones you tick in its
   list; a tick chooses that last mode by itself, and the list is kept when

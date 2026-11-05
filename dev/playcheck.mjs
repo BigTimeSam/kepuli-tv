@@ -4525,6 +4525,33 @@ async function categories(page) {
 }
 
 /**
+ * "Filter channels" and "Filter titles" are open the first time and say
+ * their state the same way: the name, a dot while they narrow the list,
+ * and "shown / total".
+ */
+async function filterfolds(page) {
+  const assert = (ok, message) => { if (!ok) throw new Error(message); };
+  const fold = (id) => evaluate(page, `(() => { const d = document.getElementById(${JSON.stringify(id)}); return { open: d.open, label: d.querySelector('.section-label').textContent, count: d.querySelector('.section-count').textContent }; })()`);
+  await openLiveList(page, 3);
+  await click(page, '#groups', 'Finland');
+  await waitFor(page, `document.querySelectorAll('#subcats .chip-main').length > 2`, 'the topics');
+  const channels = await fold('channel-filters');
+  const [all, every] = channels.count.split(' / ');
+  assert(channels.open && channels.label === 'Filter channels' && /^\d+ \/ \d+$/.test(channels.count) && all === every,
+    `"Filter channels" at first: ${JSON.stringify(channels)}`);
+  await evaluate(page, `[...document.querySelectorAll('#subcats .chip-main')][1].click()`);
+  await sleep(500);
+  const topic = await fold('channel-filters');
+  const [shown, total] = topic.count.split(' / ');
+  assert(topic.label === 'Filter channels •' && Number(shown) < Number(total) && total === every, `"Filter channels" with a topic: ${JSON.stringify(topic)}`);
+  await evaluate(page, `document.querySelector('#tabs [data-tab="movie"]').click()`);
+  await waitFor(page, `!document.getElementById('media-filters').hidden && document.querySelector('#media-filters .section-count')?.textContent`, 'the films');
+  const films = await fold('media-filters');
+  assert(films.open && films.label === 'Filter titles' && /^\d+ \/ \d+$/.test(films.count), `"Filter titles" at first: ${JSON.stringify(films)}`);
+  return { ok: true, detail: `both open the first time; channels "${channels.count}", with a topic "${topic.label}" "${topic.count}"; films "${films.count}"` };
+}
+
+/**
  * The guide's favourites: two channels starred in the list, the switch in
  * the guide shows those two and nothing else, a third star joins at once,
  * and the choice stays for the next opening; off, the group's channels
@@ -5249,7 +5276,7 @@ async function countryfilter(page) {
 
 const SCENARIOS = { buffering, livebuffering, filmbuffering, emptyfile, tsasmp4, refusedfile, badgateway, livebadgateway, channelrefused, noanswer, longfilm, catalogUi, setupClarity, welcome, fullscreenControl, clickpause, pickers, touchcaret, screenbutton, topmenu, scrollbars, channelorder, lengthfilter, nowlogo, channels, home, resumemkv, restore, programmes, catchup, seek, death, cancel, timeout, search, paste, keys, switching, resume, connections, livezap, livequiet, reconnect, accounts, listerror, a11y, subtitles, audio, wasmaudio, settings,
   lastchannel, nextepisode, continuewatching, reminders, update, seeklag, cuesretry, quota, catchupfreeze, catchupfull, twotabs, switchstop, resettabs,
-  refresh, restorenav, guidekeep, m3u, sync, holes, picks, flakyserver, accountform, stalker, record, guidefavs, categories, homecountry, noleak, perf, pseudo, startup, soak, phone, episodenames, gotochannel, filmdetails, favorder, countryfilter };
+  refresh, restorenav, guidekeep, m3u, sync, holes, picks, flakyserver, accountform, stalker, record, guidefavs, categories, homecountry, noleak, perf, pseudo, startup, soak, phone, episodenames, gotochannel, filmdetails, favorder, countryfilter, filterfolds };
 // The mock's whole-list answers stall for these, longer than the request limit.
 const SLOW_LIST_MS = { cancel: 60000, timeout: 60000 };
 // The media is sent slowly for these: the seek targets must lie outside the

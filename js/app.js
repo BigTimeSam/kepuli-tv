@@ -15,7 +15,7 @@ import { categoryRow, emptyState, KIND_ICONS } from './rows.js';
 import { searchNameCleaner, searchKey, searchTerms, matchesTerms, labelCodes, homeCountryCodes, homeGroup, viewerTags } from './name.js';
 import { poster } from './poster.js';
 import { wireModal } from './modal.js';
-import { MediaFilters } from './mediafilters.js';
+import { MediaFilters, foldOpen } from './mediafilters.js';
 
 import { sameChannels } from './epggrid.js';
 import { CountryPicker, HiddenList } from './channelchoices.js';
@@ -1851,7 +1851,7 @@ function wireUi() {
 
   // The filter panel used to open itself on every visit to Movies and
   // Series and take about 140 px off the top of the list, whether or not
-  // anyone was filtering. It starts closed and stays however it was left.
+  // anyone was filtering. It stays however it was left (foldOpen).
   $('media-filters').addEventListener('toggle', () => store.saveUiState({ filtersOpen: $('media-filters').open }));
 
   let filterTimer = null;
@@ -2131,7 +2131,7 @@ async function init() {
   if (typeof ui.subcatsHeight === 'number') state.subcatsHeight = ui.subcatsHeight;
   restoreListView(ui.listView);
   watchGridWidth();
-  $('media-filters').open = ui.filtersOpen === true;
+  $('media-filters').open = foldOpen(ui.filtersOpen);
   wireListFilters(ui);
   markTabs(state.tab);
 
