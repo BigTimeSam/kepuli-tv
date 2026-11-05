@@ -180,6 +180,9 @@ const SETTINGS_DEFAULTS = {
   // Where the channel list starts, before a personal arrangement:
   // az | za | num, see CHANNEL_SORTS in js/channelprefs.js.
   channelSort: 'az',
+  // The favourites' order: by name (az) or the latest added first (added),
+  // chosen at the foot of the list.
+  favoritesSort: 'az',
   // The global brands in a country's channel list — CNN, Discovery,
   // Stingray — beside its own; see js/international.js for how they are
   // told apart. Shown, because the provider files them there and a Finnish

@@ -656,6 +656,8 @@ export default {
  "setup.subs.lift": "Hauteur",
  "subs.lift.reset.title": "Revenir à la hauteur par défaut",
  "favs.title": "Favoris",
+ "favs.sort": "Ordre des favoris",
+ "favs.sort.added": "Les derniers ajoutés d’abord",
  "countries.toggle": "Tout sélectionner",
  "countries.toggle.shown": "Sélectionner tout ce qui est affiché",
  "m3u.guide.access": "Le guide des programmes de la playlist est sur {host}, auquel le lecteur n’a pas encore accès.",

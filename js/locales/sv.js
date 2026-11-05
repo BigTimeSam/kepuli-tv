@@ -656,6 +656,8 @@ export default {
  "setup.subs.lift": "Höjd",
  "subs.lift.reset.title": "Tillbaka till standardhöjden",
  "favs.title": "Favoriter",
+ "favs.sort": "Favoriternas ordning",
+ "favs.sort.added": "Senast tillagda först",
  "countries.toggle": "Välj alla",
  "countries.toggle.shown": "Välj alla som visas",
  "m3u.guide.access": "Spellistans programguide finns på {host}, som spelaren inte har åtkomst till än.",

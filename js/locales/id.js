@@ -567,6 +567,8 @@ export default {
  "setup.subs.lift": "Ketinggian",
  "subs.lift.reset.title": "Kembali ke ketinggian bawaan",
  "favs.title": "Favorit",
+ "favs.sort": "Urutan favorit",
+ "favs.sort.added": "Terakhir ditambahkan dulu",
  "countries.toggle": "Pilih semua",
  "countries.toggle.shown": "Pilih semua yang terlihat",
  "setup.name": "Nama (opsional)",

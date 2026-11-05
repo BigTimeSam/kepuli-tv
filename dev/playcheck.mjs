@@ -210,6 +210,8 @@
 //                                     without its year, and the details' end
 //                                     time, original title, linked credits,
 //                                     sound language, other copies and parts
+//   node dev/playcheck.mjs favorder   the favourites by name to begin with, the
+//                                     latest added first from their foot's mark
 //   node dev/playcheck.mjs gotochannel a channel chosen in the guide's search
 //                                     plays in the corner; Go to channel opens
 //                                     its country standing on it, the channel
@@ -5148,9 +5150,40 @@ async function filmdetails(page) {
   }
 }
 
+/**
+ * The favourites by name to begin with, and the latest added first from
+ * the mark at their foot, which Settings keeps.
+ */
+async function favorder(page) {
+  const assert = (ok, message) => { if (!ok) throw new Error(message); };
+  const app = `(await import('./js/app.js'))`;
+  await openLiveList(page, 3);
+  // Three channels as the only favourites, added in an order that is not the alphabet's.
+  await evaluate(page, `(async () => { const { state } = ${app}; const rows = state.rows.filter((r) => r.k === 0).slice(0, 3);
+    const now = Date.now(); const order = [rows[1], rows[2], rows[0]];
+    state.favorites = new Map(order.map((r, i) => ['0:' + r.id, { ...r, addedAt: now - (3 - i) * 60000 }])); })()`);
+  await evaluate(page, `document.querySelector('#tabs [data-tab="fav"]').click()`);
+  await waitFor(page, `document.querySelectorAll('#list .row').length === 3`, 'the three favourites');
+  const names = () => evaluate(page, `[...document.querySelectorAll('#list .row-name')].map((n) => n.textContent)`);
+  const byName = await names();
+  const sorted = [...byName].sort((a, b) => a.localeCompare(b, 'en', { numeric: true, sensitivity: 'base' }));
+  assert(JSON.stringify(byName) === JSON.stringify(sorted), `by name: ${JSON.stringify(byName)}`);
+  try {
+    await evaluate(page, `document.querySelector('#listinfo [data-order="added"]').click()`);
+    await waitFor(page, `document.querySelector('#listinfo [data-order="added"]')?.getAttribute('aria-pressed') === 'true'`, 'the latest added first');
+    const added = await names();
+    const expected = await evaluate(page, `(async () => { const { state } = ${app}; return [...state.favorites.values()].sort((a, b) => b.addedAt - a.addedAt).map((f) => f.displayName || f.n); })()`);
+    const saved = await evaluate(page, `chrome.storage.local.get('settings').then((s) => s.settings.favoritesSort)`);
+    assert(added.length === 3 && added.every((n, i) => expected[i].endsWith(n) || expected[i] === n) && saved === 'added', `latest added first: ${JSON.stringify({ added, expected, saved })}`);
+    return { ok: true, detail: `by name ${JSON.stringify(byName)}; latest added first ${JSON.stringify(added)}, kept in Settings` };
+  } finally {
+    await evaluate(page, `(async () => { const { state } = ${app}; const config = await import('./js/config.js'); state.settings = await config.saveSettings({ favoritesSort: 'az' }); })()`);
+  }
+}
+
 const SCENARIOS = { buffering, livebuffering, filmbuffering, emptyfile, tsasmp4, refusedfile, badgateway, livebadgateway, channelrefused, noanswer, longfilm, catalogUi, setupClarity, welcome, fullscreenControl, clickpause, pickers, touchcaret, screenbutton, topmenu, scrollbars, channelorder, lengthfilter, nowlogo, channels, home, resumemkv, restore, programmes, catchup, seek, death, cancel, timeout, search, paste, keys, switching, resume, connections, livezap, livequiet, reconnect, accounts, listerror, a11y, subtitles, audio, wasmaudio, settings,
   lastchannel, nextepisode, continuewatching, reminders, update, seeklag, cuesretry, quota, catchupfreeze, catchupfull, twotabs, switchstop, resettabs,
-  refresh, restorenav, guidekeep, m3u, sync, holes, picks, flakyserver, accountform, stalker, record, guidefavs, categories, homecountry, noleak, perf, pseudo, startup, soak, phone, episodenames, gotochannel, filmdetails };
+  refresh, restorenav, guidekeep, m3u, sync, holes, picks, flakyserver, accountform, stalker, record, guidefavs, categories, homecountry, noleak, perf, pseudo, startup, soak, phone, episodenames, gotochannel, filmdetails, favorder };
 // The mock's whole-list answers stall for these, longer than the request limit.
 const SLOW_LIST_MS = { cancel: 60000, timeout: 60000 };
 // The media is sent slowly for these: the seek targets must lie outside the

@@ -337,7 +337,9 @@ interrupted channel-list load restores the previous list.
   and takes it on request, reopening where it was. **Account & data** names
   the version running
 - **Favourites** and **history** as tabs of their own — a whole category can be
-  a favourite too, see below
+  a favourite too, see below. The favourites are in alphabetical order; the
+  two marks at the foot of their list switch between that and the latest
+  added first, and the choice is remembered
 - **Thirty languages**, switched in the settings without a page reload
 - **M3U playlists and XMLTV guides** as well as Xtream servers: a playlist's
   channels, films and series, its programme guide and catch-up — see

@@ -672,6 +672,8 @@ export default {
  "setup.subs.lift": "Висота",
  "subs.lift.reset.title": "Повернутися до типової висоти",
  "favs.title": "Обране",
+ "favs.sort": "Порядок обраного",
+ "favs.sort.added": "Спершу нещодавно додані",
  "countries.toggle": "Вибрати всі",
  "countries.toggle.shown": "Вибрати всі показані",
  "m3u.guide.access": "Телепрограма плейлиста розміщена на {host}, до якого програвач ще не має доступу.",

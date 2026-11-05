@@ -591,6 +591,8 @@ export default {
  "setup.subs.lift": "Aukštis",
  "subs.lift.reset.title": "Grįžti į numatytąjį aukštį",
  "favs.title": "Mėgstami",
+ "favs.sort": "Mėgstamiausiųjų tvarka",
+ "favs.sort.added": "Naujausiai pridėti pirmi",
  "countries.toggle": "Pažymėti visus",
  "countries.toggle.shown": "Pažymėti visus matomus",
  "setup.name": "Pavadinimas (neprivaloma)",

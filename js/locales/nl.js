@@ -656,6 +656,8 @@ export default {
  "setup.subs.lift": "Hoogte",
  "subs.lift.reset.title": "Terug naar de standaardhoogte",
  "favs.title": "Favorieten",
+ "favs.sort": "Volgorde van favorieten",
+ "favs.sort.added": "Laatst toegevoegd eerst",
  "countries.toggle": "Alles selecteren",
  "countries.toggle.shown": "Alle getoonde selecteren",
  "m3u.guide.access": "De programmagids van de afspeellijst staat op {host}, waar de speler nog geen toegang toe heeft.",

@@ -575,6 +575,8 @@ export default {
  "setup.subs.lift": "Magasság",
  "subs.lift.reset.title": "Vissza az alapértelmezett magassághoz",
  "favs.title": "Kedvencek",
+ "favs.sort": "Kedvencek sorrendje",
+ "favs.sort.added": "Legutóbb hozzáadottak elöl",
  "countries.toggle": "Mind kijelölése",
  "countries.toggle.shown": "Minden látható kijelölése",
  "setup.name": "Név (nem kötelező)",

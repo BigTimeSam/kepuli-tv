@@ -567,6 +567,8 @@ export default {
  "setup.subs.lift": "Độ cao",
  "subs.lift.reset.title": "Quay về độ cao mặc định",
  "favs.title": "Yêu thích",
+ "favs.sort": "Thứ tự mục yêu thích",
+ "favs.sort.added": "Mới thêm gần đây trước",
  "countries.toggle": "Chọn tất cả",
  "countries.toggle.shown": "Chọn tất cả mục đang hiện",
  "setup.name": "Tên (không bắt buộc)",

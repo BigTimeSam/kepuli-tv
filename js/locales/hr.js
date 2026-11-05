@@ -583,6 +583,8 @@ export default {
  "setup.subs.lift": "Visina",
  "subs.lift.reset.title": "Vrati na zadanu visinu",
  "favs.title": "Favoriti",
+ "favs.sort": "Redoslijed favorita",
+ "favs.sort.added": "Najnovije dodani prvi",
  "countries.toggle": "Odaberi sve",
  "countries.toggle.shown": "Odaberi sve vidljive",
  "setup.name": "Naziv (neobavezno)",

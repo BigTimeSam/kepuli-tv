@@ -583,6 +583,8 @@ export default {
  "setup.subs.lift": "Augstums",
  "subs.lift.reset.title": "Atgriezties pie noklusējuma augstuma",
  "favs.title": "Izlase",
+ "favs.sort": "Izlases secība",
+ "favs.sort.added": "Pēdējie pievienotie vispirms",
  "countries.toggle": "Atzīmēt visas",
  "countries.toggle.shown": "Atzīmēt visas redzamās",
  "setup.name": "Nosaukums (neobligāti)",

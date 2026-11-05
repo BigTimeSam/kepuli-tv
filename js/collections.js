@@ -20,7 +20,23 @@ import { fillBar, hideProgress, progressSignal, showProgress, updateProgress } f
 
 /** The whole set of favourites or history, before any filters. */
 export function collectionItems() {
-  return visibleRows(state.tab === 'fav' ? favoritesNewestFirst() : state.recents);
+  return visibleRows(state.tab === 'fav' ? favoritesInOrder() : state.recents);
+}
+
+/** The favourites in the order chosen at the foot of their list: by name, or the latest added first. */
+function favoritesInOrder() {
+  return state.settings.favoritesSort === 'added' ? favoritesNewestFirst() : favoritesByName();
+}
+
+// The name a favourite is sorted by: what its row says, without a
+// provider's country prefix ("FI: Yle TV1"), an episode under its series.
+const sortName = (item) => (item.k === 3 ? `${item.seriesName || ''} ${item.season} ${item.episode}` : item.displayName || item.n || '')
+  .replace(/^[A-Z]{2,4}\s*[:|]\s*/, '');
+let collator = null;
+function favoritesByName() {
+  const lang = document.documentElement.lang || undefined;
+  if (!collator || collator.lang !== lang) collator = { lang, compare: new Intl.Collator(lang, { numeric: true, sensitivity: 'base' }).compare };
+  return [...state.favorites.values()].sort((a, b) => collator.compare(sortName(a), sortName(b)));
 }
 
 /**

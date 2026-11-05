@@ -664,6 +664,8 @@ export default {
  "setup.subs.lift": "Visina",
  "subs.lift.reset.title": "Vrati na podrazumevanu visinu",
  "favs.title": "Omiljeno",
+ "favs.sort": "Redosled omiljenih",
+ "favs.sort.added": "Poslednje dodato prvo",
  "countries.toggle": "Izaberi sve",
  "countries.toggle.shown": "Izaberi sve prikazane",
  "m3u.guide.access": "Vodič kroz program plejliste nalazi se na {host}, kome plejer još nema pristup.",

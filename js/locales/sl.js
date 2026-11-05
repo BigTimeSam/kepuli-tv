@@ -591,6 +591,8 @@ export default {
  "setup.subs.lift": "Višina",
  "subs.lift.reset.title": "Nazaj na privzeto višino",
  "favs.title": "Priljubljeni",
+ "favs.sort": "Vrstni red priljubljenih",
+ "favs.sort.added": "Nazadnje dodani najprej",
  "countries.toggle": "Izberi vse",
  "countries.toggle.shown": "Izberi vse vidne",
  "setup.name": "Ime (neobvezno)",

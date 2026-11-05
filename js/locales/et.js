@@ -575,6 +575,8 @@ export default {
  "setup.subs.lift": "Kõrgus",
  "subs.lift.reset.title": "Tagasi vaikekõrgusele",
  "favs.title": "Lemmikud",
+ "favs.sort": "Lemmikute järjekord",
+ "favs.sort.added": "Viimati lisatud eespool",
  "countries.toggle": "Vali kõik",
  "countries.toggle.shown": "Vali kõik nähtavad",
  "setup.name": "Nimi (valikuline)",

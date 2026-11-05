@@ -656,6 +656,8 @@ export default {
  "setup.subs.lift": "Lartësia",
  "subs.lift.reset.title": "Kthehu te lartësia e parazgjedhur",
  "favs.title": "Të preferuarat",
+ "favs.sort": "Renditja e të preferuarave",
+ "favs.sort.added": "Të shtuarat së fundi në krye",
  "countries.toggle": "Zgjidh të gjitha",
  "countries.toggle.shown": "Zgjidh të gjitha të dukshmet",
  "m3u.guide.access": "Udhëzuesi i programeve të listës është në {host}, ku luajtësi nuk ka ende qasje.",

@@ -656,6 +656,8 @@ export default {
  "setup.subs.lift": "Ύψος",
  "subs.lift.reset.title": "Επιστροφή στο προεπιλεγμένο ύψος",
  "favs.title": "Αγαπημένα",
+ "favs.sort": "Σειρά αγαπημένων",
+ "favs.sort.added": "Πρώτα τα πιο πρόσφατα",
  "countries.toggle": "Επιλογή όλων",
  "countries.toggle.shown": "Επιλογή όλων των ορατών",
  "m3u.guide.access": "Ο οδηγός προγράμματος της λίστας βρίσκεται στο {host}, στο οποίο η εφαρμογή δεν έχει ακόμη πρόσβαση.",

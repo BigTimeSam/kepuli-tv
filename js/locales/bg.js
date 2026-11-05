@@ -656,6 +656,8 @@ export default {
  "setup.subs.lift": "Височина",
  "subs.lift.reset.title": "Върни стандартната височина",
  "favs.title": "Любими",
+ "favs.sort": "Ред на любимите",
+ "favs.sort.added": "Последно добавените първи",
  "countries.toggle": "Избери всички",
  "countries.toggle.shown": "Избери всички показани",
  "m3u.guide.access": "Програмата на плейлиста е на {host}, до който плейърът все още няма достъп.",

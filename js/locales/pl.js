@@ -591,6 +591,8 @@ export default {
  "setup.subs.lift": "Wysokość",
  "subs.lift.reset.title": "Wróć do domyślnej wysokości",
  "favs.title": "Ulubione",
+ "favs.sort": "Kolejność ulubionych",
+ "favs.sort.added": "Ostatnio dodane najpierw",
  "countries.toggle": "Zaznacz wszystkie",
  "countries.toggle.shown": "Zaznacz wszystkie widoczne",
  "setup.name": "Nazwa (opcjonalnie)",

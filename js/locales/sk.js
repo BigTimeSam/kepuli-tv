@@ -591,6 +591,8 @@ export default {
  "setup.subs.lift": "Výška",
  "subs.lift.reset.title": "Späť na predvolenú výšku",
  "favs.title": "Obľúbené",
+ "favs.sort": "Poradie obľúbených",
+ "favs.sort.added": "Naposledy pridané prvé",
  "countries.toggle": "Vybrať všetko",
  "countries.toggle.shown": "Vybrať všetko zobrazené",
  "setup.name": "Názov (voliteľné)",

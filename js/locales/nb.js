@@ -575,6 +575,8 @@ export default {
  "setup.subs.lift": "Høyde",
  "subs.lift.reset.title": "Tilbake til standardhøyden",
  "favs.title": "Favoritter",
+ "favs.sort": "Rekkefølge for favoritter",
+ "favs.sort.added": "Sist lagt til først",
  "countries.toggle": "Velg alle",
  "countries.toggle.shown": "Velg alle som vises",
  "setup.name": "Navn (valgfritt)",

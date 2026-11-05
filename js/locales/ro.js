@@ -664,6 +664,8 @@ export default {
  "setup.subs.lift": "Înălțime",
  "subs.lift.reset.title": "Înapoi la înălțimea implicită",
  "favs.title": "Favorite",
+ "favs.sort": "Ordinea favoritelor",
+ "favs.sort.added": "Cele adăugate recent primele",
  "countries.toggle": "Selectează tot",
  "countries.toggle.shown": "Selectează tot ce se vede",
  "m3u.guide.access": "Ghidul de programe al playlistului este pe {host}, la care playerul nu are încă acces.",

@@ -575,6 +575,8 @@ export default {
  "setup.subs.lift": "Yükseklik",
  "subs.lift.reset.title": "Varsayılan yüksekliğe dön",
  "favs.title": "Favoriler",
+ "favs.sort": "Favorilerin sırası",
+ "favs.sort.added": "Son eklenenler önce",
  "countries.toggle": "Tümünü seç",
  "countries.toggle.shown": "Gösterilenlerin tümünü seç",
  "setup.name": "Ad (isteğe bağlı)",

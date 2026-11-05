@@ -281,6 +281,21 @@ export function renderListInfo() {
   // The channel order at the foot of a channel list, as the films have
   // list or covers there: the same choice as Settings' Channel order, a
   // press away. A search and the favourites keep their own order.
+  // The favourites' order at their foot the same way: by name, or the
+  // latest added first.
+  if (state.tab === 'fav' && !state.detail && !state.query) {
+    if (!el.listinfo.querySelector('.spacer')) {
+      const spacer = document.createElement('span');
+      spacer.className = 'spacer';
+      el.listinfo.append(spacer);
+    }
+    el.listinfo.append(orderToggle({
+      label: t('favs.sort'),
+      current: state.settings.favoritesSort === 'added' ? 'added' : 'az',
+      marks: [['az', ORDER_MARKS[0][1], t('setup.channelsort.az')], ['added', ADDED_MARK, t('favs.sort.added')]],
+      choose: setFavoritesOrder,
+    }));
+  }
   if (state.tab === 'live' && !state.detail && !state.query && state.lib && !isCollection()) {
     if (!el.listinfo.querySelector('.spacer')) {
       const spacer = document.createElement('span');
@@ -297,28 +312,47 @@ const ORDER_MARKS = [
   ['num', '<path d="M8 3.5 6.5 16.5M13.5 3.5 12 16.5M4 7.5h12.5M3.5 12.5H16"/>'],
 ];
 
+// The latest added first: a clock, its hand at the hour just gone.
+const ADDED_MARK = '<circle cx="10" cy="10" r="6.5"/><path d="M10 6.2V10l2.7 1.7"/>';
+
+/** Marks for an order, one lit: `marks` are [value, svg paths, name]. */
+function orderToggle({ label, current, marks, choose }) {
+  const box = document.createElement('span');
+  box.className = 'view-toggle';
+  box.setAttribute('role', 'group');
+  box.setAttribute('aria-label', label);
+  for (const [order, paths, name] of marks) {
+    const button = document.createElement('button');
+    button.type = 'button';
+    button.title = name;
+    button.dataset.order = order;
+    button.setAttribute('aria-label', name);
+    button.setAttribute('aria-pressed', String(current === order));
+    button.innerHTML = `<svg viewBox="0 0 20 20" aria-hidden="true">${paths}</svg>`;
+    button.addEventListener('click', () => choose(order));
+    box.appendChild(button);
+  }
+  return box;
+}
+
+async function setFavoritesOrder(order) {
+  if ((state.settings.favoritesSort === 'added' ? 'added' : 'az') === order) return;
+  state.settings = await store.saveSettings({ favoritesSort: order });
+  await refreshRows();
+}
+
 /**
  * Two marks for the channel list's order: by name or by the provider's
  * channel number. A list sorted Z–A counts as by name: the name mark is
  * the one lit, and a press on it leaves that order alone.
  */
 function channelOrderToggle() {
-  const box = document.createElement('span');
-  box.className = 'view-toggle';
-  box.setAttribute('role', 'group');
-  box.setAttribute('aria-label', t('setup.channelsort'));
-  const current = state.settings.channelSort === 'num' ? 'num' : 'az';
-  for (const [order, paths] of ORDER_MARKS) {
-    const button = document.createElement('button');
-    button.type = 'button';
-    button.title = t(`setup.channelsort.${order}`);
-    button.setAttribute('aria-label', button.title);
-    button.setAttribute('aria-pressed', String(current === order));
-    button.innerHTML = `<svg viewBox="0 0 20 20" aria-hidden="true">${paths}</svg>`;
-    button.addEventListener('click', () => setChannelOrder(order));
-    box.appendChild(button);
-  }
-  return box;
+  return orderToggle({
+    label: t('setup.channelsort'),
+    current: state.settings.channelSort === 'num' ? 'num' : 'az',
+    marks: ORDER_MARKS.map(([order, paths]) => [order, paths, t(`setup.channelsort.${order}`)]),
+    choose: setChannelOrder,
+  });
 }
 
 async function setChannelOrder(order) {

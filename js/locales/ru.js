@@ -672,6 +672,8 @@ export default {
  "setup.subs.lift": "Высота",
  "subs.lift.reset.title": "Вернуть высоту по умолчанию",
  "favs.title": "Избранное",
+ "favs.sort": "Порядок избранного",
+ "favs.sort.added": "Сначала недавно добавленные",
  "countries.toggle": "Выбрать все",
  "countries.toggle.shown": "Выбрать все показанные",
  "m3u.guide.access": "Телегид плейлиста находится на {host}, к которому у плеера ещё нет доступа.",
