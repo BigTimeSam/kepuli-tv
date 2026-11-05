@@ -25,7 +25,7 @@ import { playback, tabs } from './playing.js';
 import { playlistAddress } from './m3u.js';
 import { refreshGuidePreview, renderTheme } from './guideui.js';
 import { renderAccountList, renderAccountSwitcher, switchAccount } from './accountsui.js';
-import { requestAccess, requestAccessFor } from './permissions.js';
+import { hasAccess, requestAccess, requestAccessFor } from './permissions.js';
 import { toast } from './toast.js';
 import { wireModal } from './modal.js';
 import * as store from './config.js';
@@ -117,13 +117,15 @@ export function editAccount(target, { render = true } = {}) {
   $('f-epgurl').value = setupBase.epgUrl || '';
   $('f-portal').value = setupBase.type === 'stalker' ? setupBase.url || '' : '';
   $('f-mac').value = setupBase.type === 'stalker' ? setupBase.mac || '' : '';
-  // The address first, and the word on the permission prompt to come,
-  // where an account is being made: the first run, or one being added.
+  // The address first where an account is being made: the first run, or
+  // one being added. The word on the permission prompt to come follows the
+  // address entered (updateGrantNote).
   const making = setupAdding || !configured();
   $('paste-first').hidden = !making;
   $('f-paste-first').value = '';
   showPasteFirstError(false);
   $('setup-grant-note').hidden = !making;
+  $('playlist-hint').hidden = false;
   showPlaylistError(false);
   showSourceMode(baseMode(setupBase));
   showPassword(false);
@@ -227,6 +229,27 @@ export function updateSetupActions() {
     : setupSection === 'account' ? 'setup.account.immediate' : 'setup.unchanged');
   el.setupNote.classList.toggle('pending', dirty);
   if (!dirty) $('setup-discard').hidden = true;
+  updateGrantNote();
+}
+
+// The latest check of updateGrantNote: an answer to an older one is dropped.
+let grantCheck = 0;
+
+/**
+ * The note that the browser is about to ask for access, shown only where
+ * Connect or Save will ask: for an account being made, or one changed to
+ * another server, unless that server is allowed already. Before an address
+ * is entered on the first run it stands, as the prompt is then certain.
+ */
+async function updateGrantNote() {
+  const check = ++grantCheck;
+  const making = setupAdding || !configured();
+  if (!making && !connectionTargetChanged()) { $('setup-grant-note').hidden = true; return; }
+  const patch = readConnection();
+  const addresses = (patch.type === 'm3u' ? [patch.url, patch.epgUrl] : [accountAddress(patch)]).filter(Boolean);
+  if (!addresses.length) { $('setup-grant-note').hidden = !making; return; }
+  const allowed = (await Promise.all(addresses.map(hasAccess))).every(Boolean);
+  if (check === grantCheck) $('setup-grant-note').hidden = allowed;
 }
 
 function previewSetupLook() {
@@ -361,6 +384,9 @@ function pasteFirst(event) {
     $('f-paste').value = '';
   } else if (kind === 'stalker') $('f-portal').value = text;
   else $('f-paste').value = text;
+  // A playlist sent on to its own field has been pasted once already: that
+  // field's hint, which says to paste it, would only say so a second time.
+  $('playlist-hint').hidden = kind === 'm3u';
   showPlaylistError(false);
   showSourceMode(kind);
   updateSetupActions();

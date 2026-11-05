@@ -2815,8 +2815,22 @@ async function welcome(page, { target }) {
   await paste(`http://127.0.0.1:${MOCK_PORT}/get.php?username=demo&password=demo&type=m3u_plus`);
   const xtream = await evaluate(page, `({ fields: ['scheme','host','port','username','password'].map((f) => document.getElementById('f-' + f).value), focus: document.activeElement.id })`);
   assert(await mode() === 'xtream' && xtream.fields.join() === `http,127.0.0.1,${MOCK_PORT},demo,demo` && xtream.focus === 'f-host', `an Xtream address: ${await mode()} ${JSON.stringify(xtream)}`);
+  // The note on the prompt follows the address: none for a server the
+  // browser allows already (stood in for here, as the suite's profile has
+  // not allowed the mock server).
+  await evaluate(page, `window.realContains = chrome.permissions.contains; chrome.permissions.contains = async () => true;
+    document.getElementById('f-username').dispatchEvent(new Event('input', { bubbles: true }))`);
+  await sleep(200);
+  const allowedNote = await evaluate(page, `document.getElementById('setup-grant-note').hidden`);
+  await evaluate(page, `chrome.permissions.contains = window.realContains`);
+  assert(allowedNote, 'the note on the prompt stays for a server the browser allows already');
   await paste('http://example.test/list.m3u');
   assert(await mode() === 'm3u' && await evaluate(page, `document.getElementById('f-paste').value === 'http://example.test/list.m3u' && !document.getElementById('src-m3u').hidden`), `a playlist: ${await mode()}`);
+  await sleep(200);
+  // A server not allowed yet has the note; the playlist's own field, filled
+  // from the first, does not tell to paste it a second time.
+  const playlistNote = await evaluate(page, `({ note: !document.getElementById('setup-grant-note').hidden, hint: !document.getElementById('playlist-hint').hidden })`);
+  assert(playlistNote.note && !playlistNote.hint, `a playlist on another server: ${JSON.stringify(playlistNote)}`);
   await paste('http://example.test:8080/c/');
   assert(await mode() === 'stalker' && await evaluate(page, `document.getElementById('f-portal').value === 'http://example.test:8080/c/' && document.activeElement.id === 'f-mac'`), `a portal: ${await mode()}`);
   await paste('example test');

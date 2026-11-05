@@ -20,9 +20,9 @@ switching audio tracks, pausing playback and entering full screen.
    links to these steps; the eye at the end of the password field shows what
    was typed — a provider's password is long, random and entered by hand
    exactly once. **Name (optional)** comes last.
-3. Press **Connect**. The dialog says beforehand that the browser will now
-   ask to let Kepuli-TV reach the server: choose **Allow**, which covers that
-   server only. Refused, the dialog says so and that pressing **Connect**
+3. Press **Connect**. Unless the browser already allows that server, the
+   dialog says beforehand that the browser will now ask to let Kepuli-TV
+   reach it: choose **Allow**, which covers that server only. Refused, the dialog says so and that pressing **Connect**
    again brings the question back. You can change your connection details
    and the interface language later in **Settings**.
 
