@@ -16,16 +16,28 @@ import * as store from './config.js';
 import { KIND_INDEX, KIND_ORDER, TYPE_KIND, beginListLoad, catalogueSearch, connecting, isAbort, isCollection, kindGroup, kindLabel, listNavigation, refreshRows, renderCategories, renderSidebar, showListError, state, tabType, updateAddress, visibleRows, vlist, withoutInternational } from './app.js';
 import { renderIdleOverlay } from './languageui.js';
 import { toast } from './toast.js';
+import { listOrder } from './listorder.js';
 import { fillBar, hideProgress, progressSignal, showProgress, updateProgress } from './progressdialog.js';
 
 /** The whole set of favourites or history, before any filters. */
 export function collectionItems() {
-  return visibleRows(state.tab === 'fav' ? favoritesInOrder() : state.recents);
+  return visibleRows(state.tab === 'fav' ? favoritesInOrder() : historyInOrder());
 }
 
-/** The favourites in the order chosen at the foot of their list: by name, or the latest added first. */
+/** The favourites in the order chosen at the foot of their list: by name either way, or the latest added first. */
 function favoritesInOrder() {
-  return state.settings.favoritesSort === 'added' ? favoritesNewestFirst() : favoritesByName();
+  const order = listOrder(state.settings, 'fav');
+  if (order === 'added') return favoritesNewestFirst();
+  const byName = byNameOf([...state.favorites.values()]);
+  return order === 'za' ? byName.reverse() : byName;
+}
+
+/** The history as it was watched, the latest first, or by name either way. */
+function historyInOrder() {
+  const order = listOrder(state.settings, 'recent');
+  if (order === 'watched') return state.recents;
+  const byName = byNameOf(state.recents);
+  return order === 'za' ? byName.reverse() : byName;
 }
 
 // The name a favourite is sorted by: what its row says, without a
@@ -33,10 +45,10 @@ function favoritesInOrder() {
 const sortName = (item) => (item.k === 3 ? `${item.seriesName || ''} ${item.season} ${item.episode}` : item.displayName || item.n || '')
   .replace(/^[A-Z]{2,4}\s*[:|]\s*/, '');
 let collator = null;
-function favoritesByName() {
+function byNameOf(items) {
   const lang = document.documentElement.lang || undefined;
   if (!collator || collator.lang !== lang) collator = { lang, compare: new Intl.Collator(lang, { numeric: true, sensitivity: 'base' }).compare };
-  return [...state.favorites.values()].sort((a, b) => collator.compare(sortName(a), sortName(b)));
+  return [...items].sort((a, b) => collator.compare(sortName(a), sortName(b)));
 }
 
 /**
@@ -183,14 +195,17 @@ export function toggleFavCategory(entry) {
 export function sectionsFor(rows) {
   const sections = new Map();
   if (!isCollection() || state.detail) return sections;
-  if (state.tab === 'fav' && state.kind != null) return sections;
+  // The history by name is headed by type, as the favourites are: days
+  // say nothing about a list in the alphabet's order.
+  const byDay = state.tab === 'recent' && listOrder(state.settings, 'recent') === 'watched';
+  if (!byDay && state.kind != null) return sections;
 
   let previous = null;
   for (let i = 0; i < rows.length; i++) {
-    const unfinished = state.tab === 'recent' && isUnfinished(rows[i]);
-    const label = state.tab !== 'recent' ? kindLabel(kindGroup(rows[i].k))
+    const unfinished = byDay && isUnfinished(rows[i]);
+    const label = !byDay ? kindLabel(kindGroup(rows[i].k))
       : unfinished ? t('history.continue') : dayLabel(rows[i].watchedAt);
-    const icon = state.tab !== 'recent' ? KIND_ICONS[kindGroup(rows[i].k)]
+    const icon = !byDay ? KIND_ICONS[kindGroup(rows[i].k)]
       : unfinished ? HISTORY_ICONS.continue : HISTORY_ICONS.day;
     if (label && label !== previous) sections.set(i, { label, icon });
     previous = label;
@@ -198,7 +213,7 @@ export function sectionsFor(rows) {
   // A single type heading atop the whole list organises nothing, and the
   // sidebar says the same. A day heading, on the other hand, also says
   // when — that one stays.
-  if (state.tab === 'fav' && sections.size < 2) return new Map();
+  if (!byDay && sections.size < 2) return new Map();
   return sections;
 }
 

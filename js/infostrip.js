@@ -19,6 +19,7 @@ import { renderMediaSession } from './playercontrols.js';
 import { el } from './dom.js';
 import { addressChanges, freshItem, listName, probeFor, shownName, updateStoredItem } from './coversui.js';
 import { openItem } from './seriesui.js';
+import { bindTile } from './tilekeys.js';
 
 export function renderInfoStrip() {
   renderMediaSession();
@@ -178,6 +179,7 @@ function relatedPart(item) {
       tile.title = other.n;
       tile.append(name, meta);
       tile.addEventListener('click', () => openItem(other));
+      bindTile(tile, other);
       row.appendChild(tile);
     }
     box.append(head, row);

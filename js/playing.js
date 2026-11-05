@@ -632,6 +632,7 @@ export async function playItem(item, { startAt, allowSilent } = {}) {
 
   cancelAutoNext();
   if (live) noteChannel(item);
+  else if (item.k === 1) state.routeMovie = String(item.id);
   warnRecordingConnection(item);
   state.playing = item;
   sizePicture();

@@ -526,13 +526,6 @@
         <label class="field"><span data-i18n="setup.language">Language</span>
           <select id="f-lang"></select>
         </label>
-        <label class="field"><span data-i18n="setup.channelsort">Channel order</span>
-          <select id="f-channelsort">
-            <option value="az" data-i18n="setup.channelsort.az">Name (A–Z)</option>
-            <option value="za" data-i18n="setup.channelsort.za">Name (Z–A)</option>
-            <option value="num" data-i18n="setup.channelsort.num">Channel number</option>
-          </select>
-        </label>
         <!-- The header's sun and moon is the quick switch; the system's mode
              can only be chosen here. -->
         <label class="field"><span data-i18n="setup.theme">Appearance</span>
@@ -546,6 +539,51 @@
              time written its way. -->
         <label class="field"><span data-i18n="setup.clock">Clock</span>
           <select id="f-clock"></select>
+        </label>
+      </div>
+      <!-- Each list's order, the same choice as the marks at the list's
+           foot (js/listorder.js); either place changes the other. -->
+      <div class="field-pair">
+        <label class="field"><span data-i18n="setup.channelsort">Channel order</span>
+          <select id="f-channelsort">
+            <option value="az" data-i18n="setup.channelsort.az">Name (A–Z)</option>
+            <option value="za" data-i18n="setup.channelsort.za">Name (Z–A)</option>
+            <option value="num" data-i18n="setup.channelsort.num">Channel number</option>
+          </select>
+        </label>
+        <label class="field"><span data-i18n="favs.sort">Favourites order</span>
+          <select id="f-favsort">
+            <option value="az" data-i18n="setup.channelsort.az">Name (A–Z)</option>
+            <option value="za" data-i18n="setup.channelsort.za">Name (Z–A)</option>
+            <option value="added" data-i18n="favs.sort.added">Latest added first</option>
+          </select>
+        </label>
+        <label class="field"><span data-i18n="setup.moviesort">Movie order</span>
+          <select id="f-moviesort">
+            <option value="az" data-i18n="setup.channelsort.az">Name (A–Z)</option>
+            <option value="za" data-i18n="setup.channelsort.za">Name (Z–A)</option>
+            <option value="newest" data-i18n="order.newest">Year (newest first)</option>
+            <option value="oldest" data-i18n="order.oldest">Year (oldest first)</option>
+            <option value="rating" data-i18n="order.rating">Rating (highest first)</option>
+            <option value="added" data-i18n="favs.sort.added">Latest added first</option>
+          </select>
+        </label>
+        <label class="field"><span data-i18n="setup.seriessort">Series order</span>
+          <select id="f-seriessort">
+            <option value="az" data-i18n="setup.channelsort.az">Name (A–Z)</option>
+            <option value="za" data-i18n="setup.channelsort.za">Name (Z–A)</option>
+            <option value="newest" data-i18n="order.newest">Year (newest first)</option>
+            <option value="oldest" data-i18n="order.oldest">Year (oldest first)</option>
+            <option value="rating" data-i18n="order.rating">Rating (highest first)</option>
+            <option value="added" data-i18n="favs.sort.added">Latest added first</option>
+          </select>
+        </label>
+        <label class="field"><span data-i18n="setup.historysort">History order</span>
+          <select id="f-historysort">
+            <option value="watched" data-i18n="order.watched">Latest watched first</option>
+            <option value="az" data-i18n="setup.channelsort.az">Name (A–Z)</option>
+            <option value="za" data-i18n="setup.channelsort.za">Name (Z–A)</option>
+          </select>
         </label>
       </div>
       <div class="setup-row">

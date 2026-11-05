@@ -16,6 +16,8 @@ import { searchNameCleaner, searchKey, searchTerms, matchesTerms, labelCodes, ho
 import { poster } from './poster.js';
 import { wireModal } from './modal.js';
 import { MediaFilters } from './mediafilters.js';
+import { listOrder, orderTitles } from './listorder.js';
+import { bindTile, handleTileKey } from './tilekeys.js';
 
 import { sameChannels } from './epggrid.js';
 import { CountryPicker, HiddenList } from './channelchoices.js';
@@ -44,9 +46,9 @@ import { loadReminders, reminders, showReminders } from './remindersui.js';
 import { renderInfoStrip } from './infostrip.js';
 import { applyListLayout, gridColumns, nameCleanerFor, onEpgUpdated, renderRow, restoreListView, listName, shownName, toggleFavorite, usesGrid, watchGridWidth } from './coversui.js';
 import { closeDetail, crumbLabel, episodesOfSeason, openItem, openSeries, renderDetail } from './seriesui.js';
-import { closeGuide, favoritesChanged, focusGrid, grid, guideFavorites, guideOpen, programmeSearch, renderGuideGroups, renderTheme, restoreGuideFavorites, setGuideFavorites, toggleGuide } from './guideui.js';
+import { closeGuide, favoritesChanged, focusGrid, grid, guideFavorites, guideOpen, openGuide, programmeSearch, renderGuideGroups, renderTheme, restoreGuideFavorites, setGuideFavorites, toggleGuide } from './guideui.js';
 
-import { ensureFull, renderEmptyState, renderListInfo, wireSubcatsKeys, wireSubcatsResize } from './topicbar.js';
+import { ensureFull, orderList, renderEmptyState, renderListInfo, wireSubcatsKeys, wireSubcatsResize } from './topicbar.js';
 import { askExternal, playExternal } from './externalui.js';
 import { $, el } from './dom.js';
 import { categoryCountsFor, collectionItems, favCategoryEntry, isFavorite, isUnfinished, kindIndex, loadGroupItems, openFavCategory, refreshCatalogue, refreshWhenStale, removeFromHistory, renderSubcats, sectionsFor, toggleFavCategory } from './collections.js';
@@ -137,6 +139,9 @@ export const state = {
   // The channel the live list's address names: the one played last from it,
   // or the one an address arrived with (see currentRoute).
   routeChannel: null,
+  // The film the address names in its list (?movie=), as routeChannel
+  // does the channel: the one playing, or the one a reload stood on.
+  routeMovie: null,
   subcatsHeight: null,    // the topic bar's height when dragged, null = automatic
 };
 
@@ -649,6 +654,10 @@ function currentRoute() {
   // search leaves it out, and coming back puts it in again.
   if (state.tab === 'live' && !searching && !state.detail && state.routeChannel != null
     && state.rowIndex.has(`0:${state.routeChannel}`)) view.channel = state.routeChannel;
+  if (state.tab === 'movie' && !searching && !state.detail && state.routeMovie != null
+    && state.rowIndex.has(`1:${state.routeMovie}`)) view.movie = state.routeMovie;
+  // The guide is a mode over the channel list, and the address names both.
+  if (guideOpen && state.tab === 'live') view.guide = true;
   for (let detail = state.detail; detail; detail = detail.back) {
     if (detail.view === 'series') view.series = detail.item.id;
     else if (detail.view === 'category') view.cat = detail.entry.id;
@@ -733,7 +742,7 @@ export async function goToRoute(route) {
   if (route.kind === undefined) delete state.lastKind[route.tab];
   else state.lastKind[route.tab] = route.kind;
   storedSub = route.sub ?? null;
-  routeDetail = route.series || route.cat || route.channel ? { series: route.series ?? null, cat: route.cat ?? null, channel: route.channel ?? null } : null;
+  routeDetail = pendingDetail(route);
   const arrival = landing(route.tab);
   await activateTab(route.tab, { restore: true });
   await restoreDetail(arrival);
@@ -743,6 +752,9 @@ export async function goToRoute(route) {
 // Like the topic above, it belongs to the one restore that follows the
 // load rather than to every tab switch after it.
 let routeDetail = null;
+const pendingDetail = (route) => (route.series || route.cat || route.channel || route.movie || route.guide
+  ? { series: route.series ?? null, cat: route.cat ?? null, channel: route.channel ?? null, movie: route.movie ?? null, guide: route.guide === true }
+  : null);
 const takeRouteDetail = () => { const detail = routeDetail; routeDetail = null; return detail; };
 
 /**
@@ -769,6 +781,21 @@ async function restoreDetail(arrival) {
       vlist.scrollToIndex(index);
       vlist.refresh();
     }
+  }
+  // A film the same way: the list stands on it, and Enter plays it.
+  if (pending.movie && state.tab === 'movie') {
+    const index = state.rowIndex.get(`1:${pending.movie}`);
+    if (index != null) {
+      state.routeMovie = pending.movie;
+      state.cursor = index;
+      vlist.scrollToIndex(index);
+      vlist.refresh();
+    }
+  }
+  // The guide, over the channel list the address named.
+  if (pending.guide && state.tab === 'live') {
+    await openGuide();
+    return;
   }
   // What the series opens over: the list itself, or the favourite category.
   let base = null;
@@ -930,8 +957,11 @@ export async function refreshRows({ keepScroll = false, returnPosition = null, r
       else if (state.tab === 'fav') rows = [...rows].sort((a, b) => kindIndex(a) - kindIndex(b));
       // What was left halfway comes first, under a heading of its own: the
       // resume point was kept so the film could be finished, and a day
-      // heading three screens down is not where it is looked for.
-      if (state.tab === 'recent') rows = [...rows.filter(isUnfinished), ...rows.filter((it) => !isUnfinished(it))];
+      // heading three screens down is not where it is looked for. In the
+      // history's name order the names decide alone, grouped by type as
+      // the favourites are.
+      if (state.tab === 'recent' && listOrder(state.settings, 'recent') === 'watched') rows = [...rows.filter(isUnfinished), ...rows.filter((it) => !isUnfinished(it))];
+      else if (state.tab === 'recent' && state.kind == null) rows = [...rows].sort((a, b) => kindIndex(a) - kindIndex(b));
     } else if (state.query) {
       if (!(await ensureFull(type, t('progress.reason.search'), current)) || !current()) return notLoaded();
       rows = state.lib.search(type, state.query, null);
@@ -978,7 +1008,13 @@ export async function refreshRows({ keepScroll = false, returnPosition = null, r
   // The setting says where the list starts; the personal arrangement, made
   // in Organize channels, has the last word over it.
   if (channelList) {
-    rows = sortChannels(rows, state.settings.channelSort, channelLabel());
+    rows = sortChannels(rows, listOrder(state.settings, 'live'), channelLabel());
+  }
+  // The films and the series in the order chosen at their foot (A–Z is
+  // the order the rows already have); a search keeps its hits' order.
+  const titleList = orderList();
+  if (titleList === 'movie' || titleList === 'series') {
+    rows = orderTitles(rows, listOrder(state.settings, titleList), (item) => mediaFilters.factsOf(item));
   }
   const filterType = !isCollection() && !state.detail && (type === 'movie' || type === 'series') ? type : null;
   rows = mediaFilters.apply(rows, filterType);
@@ -1044,6 +1080,7 @@ export function renderFavStrip(rows) {
     label.textContent = name;
     tile.append(picture, label);
     tile.addEventListener('click', () => openItem(item));
+    bindTile(tile, item);
     return tile;
   }));
 }
@@ -2008,6 +2045,9 @@ function wireUi() {
     if (e.target === el.video && e.key === 'f' && plain) { toggleFullscreen(); return; }
     if (typing || e.target === el.video) return;
     if (el.setup.open || $('countries').open || $('hidden').open || $('help').open) return;
+    // A strip of tiles with the focus takes the keys that would otherwise
+    // move or change the list: its own arrows, its tile's star and Delete.
+    if (plain && handleTileKey(e)) { e.preventDefault(); return; }
     // The menu of the row the list stands on: the context-menu key, or
     // Shift+F10 where a keyboard has none.
     if (e.key === 'ContextMenu' || (e.key === 'F10' && e.shiftKey)) {
@@ -2112,7 +2152,7 @@ async function init() {
   // and all. A player opened fresh from the toolbar icon has none, and the
   // stored view is what brings it back to where the last one was left.
   const route = parseRoute(location.hash);
-  if (route) routeDetail = route.series || route.cat || route.channel ? { series: route.series ?? null, cat: route.cat ?? null, channel: route.channel ?? null } : null;
+  if (route) routeDetail = pendingDetail(route);
   const start = route || {
     tab: ui.tab,
     ...(ui.group != null ? { group: ui.group } : {}),

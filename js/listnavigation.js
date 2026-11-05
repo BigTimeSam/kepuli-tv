@@ -66,3 +66,31 @@ export class ListNavigation {
     if (focus) this.viewport.focus({ preventScroll: true });
   }
 }
+
+/**
+ * The tile an arrow leads to, from the tiles' boxes in the page's order:
+ * left and right go a tile back or on, Home and End to the ends, up and
+ * down to the nearest tile in the row above or below. -1 where there is
+ * none that way.
+ *
+ * @param {{left: number, top: number, right: number, bottom: number}[]} rects
+ */
+export function neighbourTile(rects, at, key) {
+  if (key === 'ArrowRight') return at + 1 < rects.length ? at + 1 : -1;
+  if (key === 'ArrowLeft') return at > 0 ? at - 1 : -1;
+  if (key === 'Home') return rects.length ? 0 : -1;
+  if (key === 'End') return rects.length - 1;
+  if (key !== 'ArrowDown' && key !== 'ArrowUp') return -1;
+  const here = rects[at];
+  const centre = (r) => (r.left + r.right) / 2;
+  const down = key === 'ArrowDown';
+  // The row next that way: the nearest top below this tile's bottom, or
+  // the nearest bottom above its top.
+  const candidates = rects.map((r, i) => ({ r, i }))
+    .filter(({ r }) => (down ? r.top >= here.bottom - 1 : r.bottom <= here.top + 1));
+  if (!candidates.length) return -1;
+  const edge = down ? Math.min(...candidates.map(({ r }) => r.top)) : Math.max(...candidates.map(({ r }) => r.bottom));
+  const row = candidates.filter(({ r }) => Math.abs((down ? r.top : r.bottom) - edge) < 2);
+  row.sort((a, b) => Math.abs(centre(a.r) - centre(here)) - Math.abs(centre(b.r) - centre(here)));
+  return row[0].i;
+}

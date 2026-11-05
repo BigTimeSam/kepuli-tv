@@ -18,7 +18,7 @@ import { reminderKey, reminders, toggleReminder } from './remindersui.js';
 import { renderInfoStrip } from './infostrip.js';
 import { t } from './i18n.js';
 import * as store from './config.js';
-import { activateTab, goToChannel, state, visibleGroups, visibleRows, vlist } from './app.js';
+import { activateTab, goToChannel, state, updateAddress, visibleGroups, visibleRows, vlist } from './app.js';
 import { openSetup } from './setupui.js';
 import { playItem } from './playing.js';
 import { toast } from './toast.js';
@@ -71,7 +71,7 @@ export async function toggleGuide() {
   if (guideOpen) closeGuide(); else await openGuide();
 }
 
-async function openGuide() {
+export async function openGuide() {
   if (guideOpen) return;
   if (!state.lib || !state.epg) {
     toast(t('guide.needserver'), { kind: 'warn', action: { label: t('btn.settings'), onClick: openSetup } });
@@ -102,6 +102,7 @@ async function openGuide() {
   grid.show();
   if (state.playing && state.playing.k === 0) grid.focusChannel(state.playing.id);
   focusGrid();
+  updateAddress();
 }
 
 /** The switch the "programme data is off" message offers, and the guide after it. */
@@ -125,6 +126,7 @@ export function closeGuide() {
   if (restoreFocus) $('btn-guide').focus();
   vlist.refresh();
   renderInfoStrip();
+  updateAddress();
 }
 
 /** A group selector for the guide: the sidebar is hidden in guide mode. */

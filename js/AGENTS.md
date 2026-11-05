@@ -13,7 +13,9 @@ written here.
 | Module | Role |
 | --- | --- |
 | `app.js` (~2,050 lines, being split) | state, the connection, the account in this tab, the address (`#/live/...`), the sidebar, rows, the list's keys and Chromecast, and the start-up wiring. One `state` object near the top; sections are marked `/* ---- name */`. Find with `grep -n "^/\* -" js/app.js` and read the section you change |
-| `rows.js`, `vlist.js`, `listnavigation.js` | list rows (built on every scroll frame: keep them light), the virtualised list, cursor and return positions by item |
+| `rows.js`, `vlist.js`, `listnavigation.js` | list rows (built on every scroll frame: keep them light), the virtualised list, cursor and return positions by item, and which tile an arrow leads to in a strip |
+| `listorder.js` | each list's order (channels, favourites, films, series, history): the choices, the setting each is kept in, the marks at the list's foot and the films' orders by year, rating and date added |
+| `tilekeys.js` | the keys on a strip of tiles (related titles, the favourites strip, the empty player's cards): arrows between the tiles, `s` and Delete on the tile with the focus, not the list's row |
 | `picker.js`, `modal.js`, `rowmenu.js`, `poster.js` | shared UI parts: every drop-down, dialog closing, the row menu, covers with fallback. Reuse them |
 | `playerlayout.js`, `theme.js`, `route.js` | narrow-window panes, colour theme, the address (`#/live/...`) and tab title |
 | `channelchoices.js` | the Filter countries / Filter categories dialog (`CountryPicker.show({ mode, onSave, texts })`: all, the favourite ones, or those chosen) and hidden channels |

@@ -24,10 +24,12 @@ export function mediaFacts(item, details = item.details) {
 }
 
 // length is "from:to" in minutes, both ends included; '' is any length.
-export const emptyFilters = () => ({ year: '', genre: '', rating: '', length: '', sort: '' });
+// The order is not a filter: it is chosen at the list's foot and kept as a
+// setting (js/listorder.js), so Reset and the chips leave it alone.
+export const emptyFilters = () => ({ year: '', genre: '', rating: '', length: '' });
 
 export function filterMedia(entries, filters) {
-  const results = entries.filter(({ facts }) => {
+  return entries.filter(({ facts }) => {
     if (filters.year === 'missing' && facts.year) return false;
     if (filters.year && filters.year !== 'missing') {
       const [from, to = from] = filters.year.split(':').map(Number);
@@ -42,14 +44,7 @@ export function filterMedia(entries, filters) {
       if (!facts.minutes || facts.minutes < from || facts.minutes > to) return false;
     }
     return true;
-  });
-  if (filters.sort) results.sort((a, b) => {
-    const key = filters.sort === 'rating' ? 'rating' : 'year';
-    const av = a.facts[key], bv = b.facts[key];
-    if (!av || !bv) return Number(!av) - Number(!bv); // Unknown values always last.
-    return filters.sort === 'oldest' ? av - bv : bv - av;
-  });
-  return results.map(entry => entry.item);
+  }).map(entry => entry.item);
 }
 
 /** Session-only experiments: movies and series keep separate choices. */
@@ -80,7 +75,7 @@ export class MediaFilters {
     const controls = document.createElement('div');
     controls.className = 'media-filter-controls';
     this.fields = {};
-    for (const key of ['year', 'genre', 'rating', 'sort']) {
+    for (const key of ['year', 'genre', 'rating']) {
       const label = document.createElement('label');
       const text = document.createElement('span');
       const select = document.createElement('select');
@@ -250,11 +245,12 @@ export class MediaFilters {
       year: [['', t('filters.allYears')], ...decades.map(y => [`${y}:${y + 9}`, `${y}–${y + 9}`]), ...years.map(y => [String(y), String(y)]), ['missing', t('filters.missing')]],
       genre: [['', t('filters.allGenres')], ...genres.map(g => [g, g.charAt(0).toLocaleUpperCase() + g.slice(1)]), ['missing', t('filters.missing')]],
       rating: [['', t('filters.anyRating')], ...[6, 7, 8, 9].map(n => [String(n), `≥ ${nf.format(n)} / 10`]), ['missing', t('filters.missing')]],
-      sort: [['', t('filters.defaultOrder')], ['newest', t('filters.newest')], ['oldest', t('filters.oldest')], ['rating', t('filters.best')]],
     };
     for (const [key, field] of Object.entries(this.fields)) {
       field.label.hidden = key === 'genre' && type === 'movie';
-      field.label.classList.toggle('wide', key === 'sort' && type === 'movie');
+      // The series' third menu takes the whole width rather than standing
+      // alone in half of it.
+      field.label.classList.toggle('wide', key === 'rating' && type === 'series');
       field.text.textContent = t(`filters.${key}`);
       const list = options[key];
       // Keep an active choice visible even in a category with no matches.

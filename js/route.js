@@ -15,24 +15,31 @@
 //   #/live/-                        All: the whole type, chosen rather than
 //                                   merely not chosen yet — see app.js
 //   #/favorites?kind=movie          a collection narrowed to one type
+//   #/history?kind=channel          the history, the same way
 //   #/series/Drama/77?series=1234   a series opened from that list
 //   #/favorites?cat=live:312&series=1234  a series inside a favourite category
 //
 // Words rather than the code's own short names: the favourites are
-// "favorites" in the address and the types "category", "channel", "movie"
-// and "series", which a person reading or sharing an address understands.
-// The older "#/fav" and "kind=1" are still read, for the bookmarks made
-// with them.
+// "favorites" in the address, the history "history" (the tab's name, not
+// the code's "recent") and the types "category", "channel", "movie" and
+// "series", which a person reading or sharing an address understands.
+// The older "#/fav", "#/recent" and "kind=1" are still read, for the
+// bookmarks made with them.
 //   #/live/Finland?channel=4321     a channel in its country's list: the
 //                                   one playing there, or a link to it
+//   #/movie/Action?movie=5000       a film in its list: the one playing
+//                                   there, whose details the strip shows
+//   #/guide                         the programme guide, open over the
+//   #/guide/Finland/312             channel list it shows: "guide" stands
+//                                   in the place of "live", group and
+//                                   topic and channel as they are there
 //
 // What is deliberately left out of it:
 //   - the search, which is a detour rather than a place: clearing it
 //     returns to the group it took over from, and so does a reload;
-//   - the programme guide, which is a mode over the channel list;
 //   - what is playing, because an address that starts a stream by itself
 //     would play something the viewer did not ask for on every reload. A
-//     channel's address finds the channel and stands on it; Enter plays.
+//     channel's or a film's address finds it and stands on it; Enter plays.
 
 export const TABS = ['live', 'movie', 'series', 'fav', 'recent'];
 
@@ -40,13 +47,16 @@ export const TABS = ['live', 'movie', 'series', 'fav', 'recent'];
 const CATEGORY_TABS = ['fav'];
 const SERIES_TABS = ['series', 'fav', 'recent'];
 const CHANNEL_TABS = ['live'];
+const MOVIE_TABS = ['movie'];
 
 // A collection's type filter: the same values as KIND_ORDER in app.js, and
 // the word each has in the address.
 const KINDS = ['c', 0, 1, 2];
 const KIND_WORDS = new Map([['c', 'category'], [0, 'channel'], [1, 'movie'], [2, 'series']]);
 // A tab's word in the address, where it is not the tab's own id.
-const TAB_WORDS = new Map([['fav', 'favorites']]);
+const TAB_WORDS = new Map([['fav', 'favorites'], ['recent', 'history']]);
+// The guide is the channel list's, so its word stands for the channels' tab.
+const GUIDE_WORD = 'guide';
 const TAB_OF_WORD = new Map([...TAB_WORDS].map(([tab, word]) => [word, tab]));
 
 // "All" as a segment of its own, so that the whole type — a choice that
@@ -66,10 +76,11 @@ const decode = (value) => {
  *
  * @param {{tab: string, group?: string|null, sub?: string|null,
  *          kind?: string|number|null, series?: string|null, cat?: string|null,
- *          channel?: string|null}} view
+ *          channel?: string|null, movie?: string|null, guide?: boolean}} view
  */
 export function formatRoute(view) {
-  const parts = ['#', encodeURIComponent(TAB_WORDS.get(view.tab) || view.tab)];
+  const word = view.guide && view.tab === 'live' ? GUIDE_WORD : TAB_WORDS.get(view.tab) || view.tab;
+  const parts = ['#', encodeURIComponent(word)];
   if (view.group !== undefined) {
     parts.push(view.group == null ? ALL : encode(view.group));
     if (view.sub != null) parts.push(encode(view.sub));
@@ -79,6 +90,7 @@ export function formatRoute(view) {
   if (view.cat != null) params.set('cat', String(view.cat));
   if (view.series != null) params.set('series', String(view.series));
   if (view.channel != null) params.set('channel', String(view.channel));
+  if (view.movie != null) params.set('movie', String(view.movie));
   const query = params.toString();
   return parts.join('/') + (query ? `?${query}` : '');
 }
@@ -96,10 +108,12 @@ export function parseRoute(hash) {
   const [path, query] = text.split('?');
   const parts = path.split('/').slice(1);
   const word = decode(parts[0] || '');
-  const tab = TAB_OF_WORD.get(word) || word;
+  const guide = word === GUIDE_WORD;
+  const tab = guide ? 'live' : TAB_OF_WORD.get(word) || word;
   if (!TABS.includes(tab)) return null;
 
   const view = { tab };
+  if (guide) view.guide = true;
   if (parts[1]) view.group = parts[1] === ALL ? null : decode(parts[1]);
   if (parts[2]) view.sub = decode(parts[2]);
 
@@ -120,5 +134,7 @@ export function parseRoute(hash) {
   if (series && SERIES_TABS.includes(tab)) view.series = series;
   const channel = params.get('channel');
   if (channel && CHANNEL_TABS.includes(tab)) view.channel = channel;
+  const movie = params.get('movie');
+  if (movie && MOVIE_TABS.includes(tab)) view.movie = movie;
   return view;
 }

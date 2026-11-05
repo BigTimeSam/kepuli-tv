@@ -10,6 +10,7 @@ import { emptyState } from './rows.js';
 import { nf } from './format.js';
 import { t } from './i18n.js';
 import { viewToggle } from './coversui.js';
+import { LIST_ORDERS, ORDER_MARKS, ORDER_SETTINGS, listOrder, pressedOrder } from './listorder.js';
 import * as store from './config.js';
 import { activateTab, isAbort, isCollection, kindLabel, mediaFilters, openHiddenList, refreshRows, renderSidebar, showListCancelled, showListError, state, tabType, unit } from './app.js';
 import { hideProgress, progressSignal, showProgress, updateProgress } from './progressdialog.js';
@@ -283,87 +284,100 @@ export function renderListInfo() {
     spacer.className = 'spacer';
     el.listinfo.append(spacer, viewToggle());
   }
-  // The channel order at the foot of a channel list, as the films have
-  // list or covers there: the same choice as Settings' Channel order, a
-  // press away. A search and the favourites keep their own order.
-  // The favourites' order at their foot the same way: by name, or the
-  // latest added first.
-  if (state.tab === 'fav' && !state.detail && !state.query) {
+  // The list's order at its foot, the same marks on every list that has
+  // an order of its own to choose: the channels, the favourites, the films
+  // and the series, the history, and a favourite category of any of them.
+  // A search keeps the order of its hits, and a series' episodes theirs.
+  const list = orderList();
+  if (list) {
     if (!el.listinfo.querySelector('.spacer')) {
       const spacer = document.createElement('span');
       spacer.className = 'spacer';
       el.listinfo.append(spacer);
     }
-    el.listinfo.append(orderToggle({
-      label: t('favs.sort'),
-      current: state.settings.favoritesSort === 'added' ? 'added' : 'az',
-      marks: [['az', ORDER_MARKS[0][1], t('setup.channelsort.az')], ['added', ADDED_MARK, t('favs.sort.added')]],
-      choose: setFavoritesOrder,
-    }));
-  }
-  if (state.tab === 'live' && !state.detail && !state.query && state.lib && !isCollection()) {
-    if (!el.listinfo.querySelector('.spacer')) {
-      const spacer = document.createElement('span');
-      spacer.className = 'spacer';
-      el.listinfo.append(spacer);
-    }
-    el.listinfo.append(channelOrderToggle());
+    el.listinfo.append(listOrderToggle(list));
   }
 }
 
-// Name and number, as marks: an A with the arrow down the alphabet, and a #.
-const ORDER_MARKS = [
-  ['az', '<path d="M3.5 15 7 5l3.5 10M4.7 11.6h4.6M15 4.5v11M12.6 13.2 15 15.6l2.4-2.4"/>'],
-  ['num', '<path d="M8 3.5 6.5 16.5M13.5 3.5 12 16.5M4 7.5h12.5M3.5 12.5H16"/>'],
-];
+/**
+ * The list whose order the foot shows, by LIST_ORDERS' names, or null
+ * where the order is not the viewer's to choose.
+ */
+export function orderList() {
+  if (state.query) return null;
+  if (state.detail) return state.detail.view === 'category' && LIST_ORDERS[state.detail.entry.t] ? state.detail.entry.t : null;
+  if (isCollection()) return state.tab;
+  return state.lib && LIST_ORDERS[state.tab] ? state.tab : null;
+}
 
-// The latest added first: a clock, its hand at the hour just gone.
-const ADDED_MARK = '<circle cx="10" cy="10" r="6.5"/><path d="M10 6.2V10l2.7 1.7"/>';
+// The marks, a picture for each order: a letter with the arrow down the
+// alphabet (A for A–Z, Z for Z–A), a #, a calendar with the arrow of the
+// years, a star, a clock for what was added lately, and the history's
+// clock turning back for what was watched lately.
+const ARROW_DOWN = 'M15 4.5v11M12.6 13.2 15 15.6l2.4-2.4';
+const ARROW_UP = 'M15 15.5v-11M12.6 6.8 15 4.4l2.4 2.4';
+const CALENDAR = 'M3.7 5.5h5.1a1.2 1.2 0 0 1 1.2 1.2v7.6a1.2 1.2 0 0 1-1.2 1.2H3.7a1.2 1.2 0 0 1-1.2-1.2V6.7a1.2 1.2 0 0 1 1.2-1.2zM2.5 9h7.5M5 3.8v3M7.5 3.8v3';
+const ORDER_ICONS = {
+  az: `<path d="M3.5 15 7 5l3.5 10M4.7 11.6h4.6${ARROW_DOWN}"/>`,
+  za: `<path d="M3.5 5h6.5L3.5 15h6.5${ARROW_DOWN}"/>`,
+  num: '<path d="M8 3.5 6.5 16.5M13.5 3.5 12 16.5M4 7.5h12.5M3.5 12.5H16"/>',
+  newest: `<path d="${CALENDAR}${ARROW_DOWN}"/>`,
+  oldest: `<path d="${CALENDAR}${ARROW_UP}"/>`,
+  rating: '<path d="m10 3.2 2.1 4.3 4.7.7-3.4 3.3.8 4.7-4.2-2.2-4.2 2.2.8-4.7-3.4-3.3 4.7-.7z"/>',
+  added: '<circle cx="10" cy="10" r="6.5"/><path d="M10 6.2V10l2.7 1.7"/>',
+  watched: '<path d="M4.2 10a5.8 5.8 0 1 0 1.7-4.1M3.8 3.4v3h3"/><path d="M10 6.8V10l2.4 1.5"/>',
+};
 
-/** Marks for an order, one lit: `marks` are [value, svg paths, name]. */
-function orderToggle({ label, current, marks, choose }) {
+/** What each order is called, on its mark and in Settings. */
+export function orderName(order) {
+  switch (order) {
+    case 'az': case 'za': case 'num': return t(`setup.channelsort.${order}`);
+    case 'added': return t('favs.sort.added');
+    default: return t(`order.${order}`);
+  }
+}
+
+// The name of each list's order, for its group of marks and its field in Settings.
+const ORDER_LABELS = { live: 'setup.channelsort', fav: 'favs.sort', movie: 'setup.moviesort', series: 'setup.seriessort', recent: 'setup.historysort' };
+
+/**
+ * The marks for a list's order, the one in force lit. A mark that stands
+ * for two orders shows the one it is at: pressing a lit A–Z turns it to
+ * Z–A and the A to a Z, and pressing it again turns it back. The channel
+ * list's mark once showed A–Z lit while Z–A was set and did nothing.
+ */
+function listOrderToggle(list) {
+  const current = listOrder(state.settings, list);
   const box = document.createElement('span');
-  box.className = 'view-toggle';
+  box.className = 'view-toggle order-toggle';
   box.setAttribute('role', 'group');
-  box.setAttribute('aria-label', label);
-  for (const [order, paths, name] of marks) {
+  box.setAttribute('aria-label', t(ORDER_LABELS[list]));
+  for (const orders of ORDER_MARKS[list]) {
+    const lit = orders.includes(current);
+    const shown = lit ? current : orders[0];
     const button = document.createElement('button');
     button.type = 'button';
-    button.title = name;
-    button.dataset.order = order;
-    button.setAttribute('aria-label', name);
-    button.setAttribute('aria-pressed', String(current === order));
-    button.innerHTML = `<svg viewBox="0 0 20 20" aria-hidden="true">${paths}</svg>`;
-    button.addEventListener('click', () => choose(order));
+    button.title = orderName(shown);
+    button.dataset.order = shown;
+    button.setAttribute('aria-label', orderName(shown));
+    button.setAttribute('aria-pressed', String(lit));
+    button.innerHTML = `<svg viewBox="0 0 20 20" aria-hidden="true">${ORDER_ICONS[shown]}</svg>`;
+    button.addEventListener('click', () => setListOrder(list, pressedOrder(orders, listOrder(state.settings, list))));
     box.appendChild(button);
   }
   return box;
 }
 
-async function setFavoritesOrder(order) {
-  if ((state.settings.favoritesSort === 'added' ? 'added' : 'az') === order) return;
-  state.settings = await store.saveSettings({ favoritesSort: order });
+async function setListOrder(list, order) {
+  if (listOrder(state.settings, list) === order) return;
+  const focused = el.listinfo.contains(document.activeElement);
+  state.settings = await store.saveSettings({ [ORDER_SETTINGS[list]]: order });
+  state.cursor = -1;
   await refreshRows();
-}
-
-/**
- * Two marks for the channel list's order: by name or by the provider's
- * channel number. A list sorted Z–A counts as by name: the name mark is
- * the one lit, and a press on it leaves that order alone.
- */
-function channelOrderToggle() {
-  return orderToggle({
-    label: t('setup.channelsort'),
-    current: state.settings.channelSort === 'num' ? 'num' : 'az',
-    marks: ORDER_MARKS.map(([order, paths]) => [order, paths, t(`setup.channelsort.${order}`)]),
-    choose: setChannelOrder,
-  });
-}
-
-async function setChannelOrder(order) {
-  if ((state.settings.channelSort === 'num' ? 'num' : 'az') === order) return;
-  state.settings = await store.saveSettings({ channelSort: order });
-  await refreshRows();
+  // The press rebuilt the marks: the focus goes to the one standing where
+  // the pressed one was, so that a second press turns the order back.
+  const at = ORDER_MARKS[list].findIndex((orders) => orders.includes(order));
+  if (focused && at >= 0) el.listinfo.querySelectorAll('.order-toggle button')[at]?.focus();
 }
 
 /**

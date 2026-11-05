@@ -180,9 +180,16 @@ const SETTINGS_DEFAULTS = {
   // Where the channel list starts, before a personal arrangement:
   // az | za | num, see CHANNEL_SORTS in js/channelprefs.js.
   channelSort: 'az',
-  // The favourites' order: by name (az) or the latest added first (added),
-  // chosen at the foot of the list.
+  // The other lists' orders, each chosen at its list's foot and in
+  // Settings; the choices are LIST_ORDERS in js/listorder.js. The
+  // favourites: az | za | added (the latest added first).
   favoritesSort: 'az',
+  // The films and the series: az | za | newest | oldest (by release year)
+  // | rating | added (what the provider added lately first).
+  movieSort: 'az',
+  seriesSort: 'az',
+  // The history: watched (the latest watched first, by day) | az | za.
+  historySort: 'watched',
   // The global brands in a country's channel list — CNN, Discovery,
   // Stingray — beside its own; see js/international.js for how they are
   // told apart. Shown, because the provider files them there and a Finnish
