@@ -103,7 +103,7 @@
     <button type="button" id="btn-countries" class="groups-foot" hidden>
       <svg class="foot-countries" viewBox="0 0 20 20" aria-hidden="true"><circle cx="10" cy="10" r="7.2"/><path d="M2.8 10h14.4M10 2.8c2 2 3 4.4 3 7.2s-1 5.2-3 7.2c-2-2-3-4.4-3-7.2s1-5.2 3-7.2z"/></svg>
       <svg class="foot-categories" viewBox="0 0 20 20" aria-hidden="true"><path d="M3 5h14M5.5 10h9M8 15h4"/></svg>
-      <span id="btn-countries-text" data-i18n="countries.button">Choose countries</span>
+      <span id="btn-countries-text" data-i18n="countries.button">Filter countries</span>
     </button>
   </aside>
 
@@ -423,10 +423,10 @@
 <dialog id="countries" aria-labelledby="countries-title">
   <div class="choice-content">
     <div class="modal-head">
-      <h2 id="countries-title" data-i18n="countries.title">Which countries do you watch?</h2>
+      <h2 id="countries-title" data-i18n="countries.title">Filter countries</h2>
       <button type="button" data-modal-close></button>
     </div>
-    <p class="editor-help" data-i18n="countries.help">The rest are left out of the lists, the search and the guide. You can change this at any time.</p>
+    <p class="editor-help" data-i18n="countries.help">The rest are left out of the lists, the search and the guide; favourites and history stay as they are. You can change this at any time.</p>
     <!-- Which of three filters: everything, the favourite ones, or those
          ticked below; the list answers only the third. -->
     <div class="choice-modes" role="radiogroup" aria-labelledby="countries-mode-label">
@@ -549,22 +549,22 @@
         </label>
       </div>
       <div class="setup-row">
-        <button type="button" id="f-countries" class="ghost" data-i18n="countries.button">Choose countries</button>
+        <button type="button" id="f-countries" class="ghost" data-i18n="countries.button">Filter countries</button>
         <span class="field-hint" data-i18n="countries.setup.hint">Only the countries you watch in the lists, the search and the guide.</span>
       </div>
       <div class="toggles">
-        <label class="toggle"><input type="checkbox" id="f-international" checked aria-describedby="international-hint"><span data-i18n="setup.international">Show international channels in each country's list</span></label>
+        <label class="toggle"><input type="checkbox" id="f-international" checked aria-describedby="international-hint"><span data-i18n="setup.international">Show international channels in each country’s list</span></label>
       </div>
-      <p class="field-hint" id="international-hint" data-i18n="setup.international.hint">Channels found in four or more countries' lists, such as CNN, Discovery and Stingray. Each country's main channels always stay.</p>
+      <p class="field-hint" id="international-hint" data-i18n="setup.international.hint">Channels found in four or more countries’ lists, such as CNN, Discovery and Stingray. Each country’s main channels always stay.</p>
       <div class="toggles">
         <label class="toggle"><input type="checkbox" id="f-epg" checked><span data-i18n="setup.epg">Fetch programme data automatically</span></label>
       </div>
       <div class="toggles" role="group" aria-describedby="home-hint">
         <label class="toggle"><input type="checkbox" id="f-home-picks" checked><span data-i18n="setup.home.picks">Show “On your channels now and soon”</span></label>
         <label class="toggle"><input type="checkbox" id="f-home-continue" checked><span data-i18n="setup.home.continue">Show “Continue watching”</span></label>
-        <label class="toggle"><input type="checkbox" id="f-home-recent" checked><span data-i18n="setup.home.recent">Show “Watched lately”</span></label>
+        <label class="toggle"><input type="checkbox" id="f-home-recent" checked><span data-i18n="setup.home.recent">Show “History”</span></label>
       </div>
-      <p class="field-hint" id="home-hint" data-i18n="setup.home.hint">The sections of the player's own page, shown when nothing is playing.</p>
+      <p class="field-hint" id="home-hint" data-i18n="setup.home.hint">The sections of the player’s own page, shown when nothing is playing.</p>
     </section>
 
     <!-- What happens while something plays, apart from the subtitles' look,
@@ -663,11 +663,11 @@ on two lines as well.</div></div>
         <div class="radios" role="radiogroup" aria-labelledby="setup-source-label">
           <label class="radio">
             <input type="radio" name="source" value="xtream" checked>
-            <span data-i18n="setup.source.xtream">Enter fields (Xtream Codes)</span>
+            <span data-i18n="setup.source.xtream">Server and credentials (Xtream Codes)</span>
           </label>
           <label class="radio">
             <input type="radio" name="source" value="m3u">
-            <span data-i18n="setup.source.m3u">Paste subscription URL (M3U)</span>
+            <span data-i18n="setup.source.m3u">Playlist address (M3U)</span>
           </label>
           <label class="radio">
             <input type="radio" name="source" value="stalker">
@@ -706,9 +706,9 @@ on two lines as well.</div></div>
       </div>
 
       <label class="field" id="src-m3u" hidden>
-        <span data-i18n="setup.m3u.label">Full subscription URL</span>
+        <span data-i18n="setup.m3u.label">Subscription or playlist address</span>
         <input id="f-paste" type="text" placeholder="http://example.tv:8080/…?username=…&amp;password=…" autocomplete="off" spellcheck="false" aria-describedby="playlist-hint playlist-status">
-        <span id="playlist-hint" class="field-hint" data-i18n="setup.m3u.hint">Paste the full URL to fill the connection fields automatically.</span>
+        <span id="playlist-hint" class="field-hint" data-i18n="setup.m3u.hint">Paste the address your provider gave you. A get.php address fills in the connection fields; any other M3U playlist address is used as it is.</span>
         <!-- Only ever the reason an address was not accepted: one that is
              accepted opens the fields it filled, which says the same thing
              by showing it. -->
@@ -723,7 +723,7 @@ on two lines as well.</div></div>
         </label>
         <label class="field w-wide"><span data-i18n="setup.stalker.mac">MAC address</span>
           <input id="f-mac" type="text" placeholder="00:1A:79:00:00:00" autocomplete="off" spellcheck="false" aria-describedby="mac-hint">
-          <span id="mac-hint" class="field-hint" data-i18n="setup.stalker.mac.hint">The MAC address registered to your own subscription. Someone else's, or one from a shared list, may not be used.</span>
+          <span id="mac-hint" class="field-hint" data-i18n="setup.stalker.mac.hint">The MAC address registered to your own subscription. Someone else’s, or one from a shared list, may not be used.</span>
         </label>
       </div>
 
@@ -745,7 +745,7 @@ on two lines as well.</div></div>
     <section class="setup-panel" id="panel-account" role="tabpanel" aria-labelledby="tab-account" hidden>
       <p class="setup-intro" data-i18n="setup.account.intro">Subscription details and stored data.</p>
       <div id="account-box" class="account-box" hidden></div>
-      <p id="account-none" class="setup-note" data-i18n="setup.account.none" hidden>Not connected yet.</p>
+      <p id="account-none" class="setup-note" data-i18n="setup.account.none" hidden>Not connected yet. The account’s details appear here once the connection is made.</p>
       <!-- Sync acts at once, like the buttons below: it is a choice about
            this browser rather than a preference to save with the rest. -->
       <section class="sync-box" id="sync-box" aria-labelledby="sync-title">
@@ -754,7 +754,7 @@ on two lines as well.</div></div>
           <label class="toggle"><input type="checkbox" id="f-sync" aria-describedby="sync-hint"><span data-i18n="sync.enable">Sync accounts, favourites, history and settings</span></label>
           <label class="toggle"><input type="checkbox" id="f-sync-passwords"><span data-i18n="sync.passwords">Include passwords</span></label>
         </div>
-        <p class="field-hint" id="sync-hint" data-i18n="sync.hint">Carried by your browser's own sync to the computers signed in to the same browser account. Nothing goes to Kepuli-TV.</p>
+        <p class="field-hint" id="sync-hint" data-i18n="sync.hint">Carried by your browser’s own sync to the computers signed in to the same browser account. Nothing goes to Kepuli-TV.</p>
         <p class="sync-status" id="sync-status" role="status"></p>
       </section>
       <!-- The button names the action, the line beside it says what the
