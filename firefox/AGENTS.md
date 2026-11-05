@@ -12,6 +12,7 @@ measurements is `../FIREFOX.md`.
 | `build.mjs` | assembles `firefox/dist/` for the development loop (`--zip`, `--check`) |
 | `dev.mjs` | the owner's Firefox loop (port 2828, `~/.cache/kepuli-tv-firefox`): do not run it as an agent; use your own port and profile |
 | `marionette.mjs`, `playcheck-driver.mjs` | Marionette speaking directly, and the driver that lets `dev/playcheck.mjs` and `dev/store-screenshots.mjs` run in Firefox (`KEPULI_BROWSER=firefox`) |
+| `android.mjs` | Firefox for Android over USB: `install` the checkout as a temporary add-on, `open`, `eval`/`bg` code in the player or the background, `logs`, `shot`, `status` (Remote Debugging Protocol through `adb forward`; the owner's device: it never clears data or restarts Firefox) |
 | `amo-source.mjs` | the source archive AMO requires (FFmpeg source and the wasm build included), with `AMO-BUILD.md` as its README |
 | `reviewer-notes.txt` | the Notes to Reviewer; **at most 3000 characters with line breaks counted as two** (`amo-publish.mjs` counts) |
 | `AMO-PUBLISH.md`, `AMO-BUILD.md` | the listing's history and the reviewers' build instructions |

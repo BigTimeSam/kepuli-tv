@@ -277,6 +277,17 @@ every first season, made by `dev/mock/media.sh` — with a beep on every
 second in step with the clock on the picture, so that the lead or lag can be
 judged by ear in either browser as well.
 
+### Firefox for Android
+
+Measured on Firefox 152 on a Galaxy Tab S8+ (Android 16): there is no
+WebCodecs at all (`AudioEncoder`, `AudioDecoder`, `VideoDecoder` and
+`AudioData` are undefined), while MediaSource takes AAC and Opus in MP4 but
+not AC-3 or E-AC-3. The decoded audio therefore goes through FFmpeg's AAC
+encoder in the wasm module (`js/transcode.js`), which encodes 30 seconds in
+392 ms on the tablet, 76x real time; an AC-3 5.1 episode played with sound
+and no dropped frame. `firefox/android.mjs` installs the checkout on such a
+device and drives it.
+
 ## The development loop
 
 `node firefox/dev.mjs` is `dev/dev.mjs` for Firefox. Firefox has no

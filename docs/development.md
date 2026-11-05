@@ -51,6 +51,26 @@ the add-on temporarily and opens the player. A change to `js/`, `css/` or
 protocol directly (`firefox/marionette.mjs`), so nothing is installed here
 either. `FIREFOX.md` has the whole picture, including what was measured.
 
+### Firefox for Android, over USB
+
+```
+node firefox/android.mjs install      # the checkout as a temporary add-on, player opened
+node firefox/android.mjs eval '<js>'  # run in the player tab
+node firefox/android.mjs logs         # follow its console
+node firefox/android.mjs shot         # the device's screen into dist/android/
+```
+
+For a phone or a tablet on the desk. Turn on USB debugging in Android's
+developer options and *Remote debugging via USB* in Firefox's settings
+(Advanced), and allow the connection on the device the first time. `install`
+packages the checkout with its uncommitted changes and installs it over the
+store version until Firefox restarts; the settings and accounts stay, since
+the add-on id is the same. Run it again after a change. `bg '<js>'` evaluates
+in the background page and `status` says what is installed. The tool speaks
+Firefox's Remote Debugging Protocol through `adb forward`; it finds `adb` on
+the PATH or in the Android SDK's default place. `FIREFOX.md` lists what
+Firefox for Android lacks.
+
 The focused UI regression check uses a temporary headless Chrome profile and
 the local mock catalogue, without changing the development profile:
 
