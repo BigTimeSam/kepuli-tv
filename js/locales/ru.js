@@ -90,6 +90,8 @@ export default {
  "btn.help": "Справка",
  "btn.help.title": "Горячие клавиши и устройство плеера",
  "theme.to.light": "Включить светлую тему",
+ "screen.enter": "Полный экран",
+ "screen.leave": "Выйти из полноэкранного режима",
  "theme.to.dark": "Включить тёмную тему",
  "help.title": "Справка",
  "help.shortcuts": "Горячие клавиши",

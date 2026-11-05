@@ -90,6 +90,8 @@ export default {
  "btn.help": "Довідка",
  "btn.help.title": "Гарячі клавіші та будова програвача",
  "theme.to.light": "Перемкнути на світлу тему",
+ "screen.enter": "На весь екран",
+ "screen.leave": "Вийти з повноекранного режиму",
  "theme.to.dark": "Перемкнути на темну тему",
  "help.title": "Довідка",
  "help.shortcuts": "Гарячі клавіші",

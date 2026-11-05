@@ -84,6 +84,8 @@ export default {
  "btn.help": "Trợ giúp",
  "btn.help.title": "Phím tắt và cách trình phát hoạt động",
  "theme.to.light": "Chuyển sang giao diện sáng",
+ "screen.enter": "Toàn màn hình",
+ "screen.leave": "Thoát toàn màn hình",
  "theme.to.dark": "Chuyển sang giao diện tối",
  "help.title": "Trợ giúp",
  "help.shortcuts": "Phím tắt",

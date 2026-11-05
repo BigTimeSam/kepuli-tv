@@ -72,6 +72,9 @@
 //                                     mid-playback without stopping the
 //                                     picture, and a remembered Finnish opens
 //                                     the next playback on the Finnish track
+//   node dev/playcheck.mjs screenbutton the header's button takes the whole
+//                                     player full screen; f puts the picture
+//                                     over it and returns to it
 //   node dev/playcheck.mjs touchcaret on a touch screen the settings and a
 //                                     long drop-down open without the caret
 //                                     in a field (no on-screen keyboard)
@@ -1552,6 +1555,32 @@ async function pickers(page) {
   await evaluate(page, `document.getElementById('f-done').click()`);
   await waitFor(page, `!document.getElementById('setup').open`, 'settings closed');
   return { ok: true, detail: `long list filtered to ${narrowed.shown[0]}; Escape kept the dialog; short list without a filter chose ${picked.value}, and ${rebuilt.value} with its options rebuilt under it` };
+}
+
+/**
+ * The header's full screen button takes the whole player full screen, out
+ * of the browser's bars, and its words follow; the picture's own full
+ * screen (f) then goes on top of it and comes back to the player still
+ * full screen, rather than doing nothing because something already is.
+ */
+async function screenbutton(page) {
+  const assert = (ok, detail) => { if (!ok) throw new Error(detail); };
+  const label = () => evaluate(page, `document.getElementById('btn-screen').getAttribute('aria-label')`);
+  const FULL = `document.fullscreenElement === document.documentElement`;
+  assert(await label() === 'Full screen', `the button's label before: ${await label()}`);
+  await evaluate(page, `document.getElementById('btn-screen').click()`, { gesture: true });
+  await waitFor(page, FULL, 'the player full screen');
+  assert(await label() === 'Leave full screen', `the button's label in full screen: ${await label()}`);
+  await playEpisode(page);
+  await evaluate(page, `document.activeElement.blur()`);
+  await pressKey(page, 'f', 'KeyF', 70);
+  await waitFor(page, `document.fullscreenElement?.id === 'videowrap'`, 'the picture full screen over the player');
+  await pressKey(page, 'f', 'KeyF', 70);
+  await waitFor(page, FULL, 'back to the player still full screen');
+  await evaluate(page, `document.getElementById('btn-screen').click()`, { gesture: true });
+  await waitFor(page, `!document.fullscreenElement`, 'out of full screen');
+  assert(await label() === 'Full screen', `the button's label after: ${await label()}`);
+  return { ok: true, detail: 'the button took the player full screen and back, its label following; f put the picture over it and returned to the player full screen' };
 }
 
 /**
@@ -4195,7 +4224,7 @@ async function soak(page) {
   return { ok: true, detail };
 }
 
-const SCENARIOS = { buffering, livebuffering, filmbuffering, emptyfile, tsasmp4, refusedfile, badgateway, livebadgateway, channelrefused, noanswer, longfilm, catalogUi, setupClarity, fullscreenControl, clickpause, pickers, touchcaret, channels, home, resumemkv, restore, programmes, catchup, seek, death, cancel, timeout, search, paste, keys, switching, resume, connections, livezap, livequiet, reconnect, accounts, listerror, a11y, subtitles, audio, wasmaudio, settings,
+const SCENARIOS = { buffering, livebuffering, filmbuffering, emptyfile, tsasmp4, refusedfile, badgateway, livebadgateway, channelrefused, noanswer, longfilm, catalogUi, setupClarity, fullscreenControl, clickpause, pickers, touchcaret, screenbutton, channels, home, resumemkv, restore, programmes, catchup, seek, death, cancel, timeout, search, paste, keys, switching, resume, connections, livezap, livequiet, reconnect, accounts, listerror, a11y, subtitles, audio, wasmaudio, settings,
   lastchannel, nextepisode, continuewatching, reminders, update, seeklag, cuesretry, quota, catchupfreeze, catchupfull, twotabs, switchstop, resettabs,
   refresh, restorenav, guidekeep, m3u, sync, holes, picks, flakyserver, accountform, stalker, record, guidefavs, categories, noleak, perf, pseudo, startup, soak };
 // The mock's whole-list answers stall for these, longer than the request limit.

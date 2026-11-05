@@ -257,6 +257,9 @@ h2, h3 { font-weight: 600; }
 .icon-button:not(.labelled) { padding: 0; width: 34px; }
 .icon-button svg { width: 17px; height: 17px; flex: none; fill: none; stroke: currentColor; stroke-width: 1.6; stroke-linecap: round; stroke-linejoin: round; }
 .icon-button .button-label { color: var(--text); }
+/* The full screen button shows where a press leads: corners out, or in. */
+.screen-button .screen-leave, .screen-button.on .screen-enter { display: none; }
+.screen-button.on .screen-leave { display: block; }
 .theme-button[data-next="light"] .theme-moon, .theme-button[data-next="dark"] .theme-sun { display: none; }
 
 button.ghost {

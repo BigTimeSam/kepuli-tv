@@ -86,6 +86,8 @@ export default {
  "btn.help": "Hjelp",
  "btn.help.title": "Hurtigtaster og hvordan spilleren fungerer",
  "theme.to.light": "Bytt til lyst tema",
+ "screen.enter": "Fullskjerm",
+ "screen.leave": "Avslutt fullskjerm",
  "theme.to.dark": "Bytt til mørkt tema",
  "help.title": "Hjelp",
  "help.shortcuts": "Hurtigtaster",

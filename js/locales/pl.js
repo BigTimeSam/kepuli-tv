@@ -90,6 +90,8 @@ export default {
  "btn.help": "Pomoc",
  "btn.help.title": "Skróty klawiszowe i budowa odtwarzacza",
  "theme.to.light": "Przełącz na jasny motyw",
+ "screen.enter": "Pełny ekran",
+ "screen.leave": "Zamknij pełny ekran",
  "theme.to.dark": "Przełącz na ciemny motyw",
  "help.title": "Pomoc",
  "help.shortcuts": "Skróty klawiszowe",

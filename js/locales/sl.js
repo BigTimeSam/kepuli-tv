@@ -90,6 +90,8 @@ export default {
  "btn.help": "Pomoč",
  "btn.help.title": "Bližnjice na tipkovnici in zgradba predvajalnika",
  "theme.to.light": "Preklopi na svetlo temo",
+ "screen.enter": "Celozaslonski način",
+ "screen.leave": "Zapri celozaslonski način",
  "theme.to.dark": "Preklopi na temno temo",
  "help.title": "Pomoč",
  "help.shortcuts": "Bližnjice na tipkovnici",

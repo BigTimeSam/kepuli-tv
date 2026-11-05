@@ -86,6 +86,8 @@ export default {
  "btn.help": "Помощ",
  "btn.help.title": "Клавишни комбинации и устройство на плейъра",
  "theme.to.light": "Превключи към светла тема",
+ "screen.enter": "Цял екран",
+ "screen.leave": "Изход от цял екран",
  "theme.to.dark": "Превключи към тъмна тема",
  "help.title": "Помощ",
  "help.shortcuts": "Клавишни комбинации",

@@ -86,6 +86,8 @@ export default {
  "btn.help": "Hjälp",
  "btn.help.title": "Kortkommandon och hur spelaren fungerar",
  "theme.to.light": "Byt till ljust tema",
+ "screen.enter": "Helskärm",
+ "screen.leave": "Lämna helskärm",
  "theme.to.dark": "Byt till mörkt tema",
  "help.title": "Hjälp",
  "help.shortcuts": "Kortkommandon",

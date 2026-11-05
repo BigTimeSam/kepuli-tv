@@ -355,8 +355,13 @@ the timeline's scale, `Enter` starts playback and `Esc` closes.
 
 The top bar starts with the logo, which goes back to the start — the channels, the first country chosen, the top of its list — closing the search, the guide and any page opened from the list, and stops what is playing for the empty player's page: a film's place is kept under **Continue watching** and a channel heads **Watched lately**, each a click from playing again. Continue watching shows the ten films and series watched last — left halfway or seen to the end; a series seen to the end of its last episode goes on with the next — newest at the left, in one row that scrolls sideways — with the ‹ and › at its ends, the trackpad or the keyboard — a series as one card; the ✕ in a cover's corner, on hover, forgets where it was left and takes it out of the history — every episode of a series — and the heading goes with the last card. **Settings › Viewing** turns each of the page's sections off: **On your channels now and soon**, **Continue watching** and **Watched lately**, all on to begin with. Then the five tabs, each with its mark before its name (the marks step aside between 600 and 1100 px, where they would push the buttons onto a second row), the search box, **Refresh lists** (a
 circular arrow), **Help** (a question mark), the theme — a sun in the dark
-theme switches to the light one and a moon in the light theme back — and
-**Settings** at the far right. The sun and moon is the quick switch; Settings > Viewing > Appearance also offers *Same as the system*, which follows the operating system's light or dark mode while the player is open, and a press of the switch then picks the other of what is on screen. Dark is the default. The picture and the bar
+theme switches to the light one and a moon in the light theme back — then
+**Full screen** (four corners) and **Settings** at the far right. Full screen
+takes the whole player out of the browser's address bar and tabs, and on a
+phone or a tablet out of the system's bars too, for a quarter more height on
+a tablet; the corners turn inward, and a press on them, `Esc` or Android's
+back gesture returns. `f` still takes the picture alone full screen, and
+leaving it returns to the player still full screen. The sun and moon is the quick switch; Settings > Viewing > Appearance also offers *Same as the system*, which follows the operating system's light or dark mode while the player is open, and a press of the switch then picks the other of what is on screen. Dark is the default. The picture and the bar
 under it stay dark in either, and the choice is kept with the settings and
 copied to `localStorage`, so a light theme does not flash dark at start
 (`js/theme.js`);

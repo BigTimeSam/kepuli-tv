@@ -88,6 +88,8 @@ export default {
  "btn.help": "Palīdzība",
  "btn.help.title": "Īsinājumtaustiņi un atskaņotāja uzbūve",
  "theme.to.light": "Pārslēgt uz gaišo motīvu",
+ "screen.enter": "Pilnekrāna režīms",
+ "screen.leave": "Iziet no pilnekrāna režīma",
  "theme.to.dark": "Pārslēgt uz tumšo motīvu",
  "help.title": "Palīdzība",
  "help.shortcuts": "Īsinājumtaustiņi",

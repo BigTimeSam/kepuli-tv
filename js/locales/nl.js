@@ -86,6 +86,8 @@ export default {
  "btn.help": "Help",
  "btn.help.title": "Sneltoetsen en hoe de speler in elkaar zit",
  "theme.to.light": "Overschakelen naar het lichte thema",
+ "screen.enter": "Volledig scherm",
+ "screen.leave": "Volledig scherm verlaten",
  "theme.to.dark": "Overschakelen naar het donkere thema",
  "help.title": "Help",
  "help.shortcuts": "Sneltoetsen",

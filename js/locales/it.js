@@ -86,6 +86,8 @@ export default {
  "btn.help": "Aiuto",
  "btn.help.title": "Scorciatoie da tastiera e come è fatto il player",
  "theme.to.light": "Passa al tema chiaro",
+ "screen.enter": "Schermo intero",
+ "screen.leave": "Esci da schermo intero",
  "theme.to.dark": "Passa al tema scuro",
  "help.title": "Aiuto",
  "help.shortcuts": "Scorciatoie da tastiera",

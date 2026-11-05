@@ -88,6 +88,8 @@ export default {
  "btn.help": "Pomoć",
  "btn.help.title": "Prečice na tastaturi i raspored plejera",
  "theme.to.light": "Pređi na svetlu temu",
+ "screen.enter": "Pun ekran",
+ "screen.leave": "Izađi iz punog ekrana",
  "theme.to.dark": "Pređi na tamnu temu",
  "help.title": "Pomoć",
  "help.shortcuts": "Prečice na tastaturi",

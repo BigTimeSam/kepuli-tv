@@ -86,6 +86,8 @@ export default {
  "btn.help": "Ajuda",
  "btn.help.title": "Atalhos de teclado e como o player é organizado",
  "theme.to.light": "Mudar para o tema claro",
+ "screen.enter": "Tela cheia",
+ "screen.leave": "Sair da tela cheia",
  "theme.to.dark": "Mudar para o tema escuro",
  "help.title": "Ajuda",
  "help.shortcuts": "Atalhos de teclado",

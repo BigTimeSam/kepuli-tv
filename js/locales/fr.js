@@ -86,6 +86,8 @@ export default {
  "btn.help": "Aide",
  "btn.help.title": "Raccourcis clavier et fonctionnement du lecteur",
  "theme.to.light": "Passer au thème clair",
+ "screen.enter": "Plein écran",
+ "screen.leave": "Quitter le plein écran",
  "theme.to.dark": "Passer au thème sombre",
  "help.title": "Aide",
  "help.shortcuts": "Raccourcis clavier",

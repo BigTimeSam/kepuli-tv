@@ -50,7 +50,7 @@ import { ensureFull, renderEmptyState, renderListInfo, wireSubcatsResize } from 
 import { askExternal, playExternal } from './externalui.js';
 import { $, el } from './dom.js';
 import { categoryCountsFor, collectionItems, favCategoryEntry, isFavorite, isUnfinished, kindIndex, loadGroupItems, openFavCategory, refreshCatalogue, refreshWhenStale, removeFromHistory, renderSubcats, sectionsFor, toggleFavCategory } from './collections.js';
-import { clickPicture, enterFullscreen, moreItems, renderSeriesFavorite, toggleFullscreen, toggleMoreMenu, togglePause, wireMediaSession } from './playercontrols.js';
+import { clickPicture, enterFullscreen, moreItems, renderScreenButton, renderSeriesFavorite, toggleFullscreen, toggleMoreMenu, togglePause, toggleScreen, wireMediaSession } from './playercontrols.js';
 import { cancelProgress, hideProgress, progressCtrl, progressSignal, showProgress, updateProgress } from './progressdialog.js';
 import { openHelp } from './help.js';
 import { copyUrl, toast } from './toast.js';
@@ -1778,6 +1778,9 @@ function wireUi() {
     renderTheme();
     state.settings = await store.saveSettings({ theme });
   });
+  $('btn-screen').addEventListener('click', toggleScreen);
+  document.addEventListener('fullscreenchange', renderScreenButton);
+  renderScreenButton();
   wireModal($('help'), () => $('help').close());
   // The strip goes when the load stops, not when the key is pressed: a strip
   // that vanished on Esc would look as if the loading had finished.

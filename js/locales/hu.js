@@ -86,6 +86,8 @@ export default {
  "btn.help": "Súgó",
  "btn.help.title": "Billentyűparancsok és a lejátszó felépítése",
  "theme.to.light": "Váltás világos témára",
+ "screen.enter": "Teljes képernyő",
+ "screen.leave": "Kilépés a teljes képernyőből",
  "theme.to.dark": "Váltás sötét témára",
  "help.title": "Súgó",
  "help.shortcuts": "Billentyűparancsok",

@@ -90,6 +90,8 @@ export default {
  "btn.help": "Pagalba",
  "btn.help.title": "Spartieji klavišai ir grotuvo sandara",
  "theme.to.light": "Perjungti į šviesią temą",
+ "screen.enter": "Visas ekranas",
+ "screen.leave": "Išeiti iš viso ekrano",
  "theme.to.dark": "Perjungti į tamsią temą",
  "help.title": "Pagalba",
  "help.shortcuts": "Spartieji klavišai",

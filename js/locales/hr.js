@@ -88,6 +88,8 @@ export default {
  "btn.help": "Pomoć",
  "btn.help.title": "Tipkovnički prečaci i građa reproduktora",
  "theme.to.light": "Prebaci na svijetlu temu",
+ "screen.enter": "Cijeli zaslon",
+ "screen.leave": "Izađi iz cijelog zaslona",
  "theme.to.dark": "Prebaci na tamnu temu",
  "help.title": "Pomoć",
  "help.shortcuts": "Tipkovnički prečaci",

@@ -86,6 +86,8 @@ export default {
  "btn.help": "Hjælp",
  "btn.help.title": "Tastaturgenveje og hvordan afspilleren hænger sammen",
  "theme.to.light": "Skift til lyst tema",
+ "screen.enter": "Fuld skærm",
+ "screen.leave": "Forlad fuld skærm",
  "theme.to.dark": "Skift til mørkt tema",
  "help.title": "Hjælp",
  "help.shortcuts": "Tastaturgenveje",

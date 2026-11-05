@@ -84,6 +84,8 @@ export default {
  "btn.help": "Bantuan",
  "btn.help.title": "Pintasan keyboard dan cara kerja pemutar",
  "theme.to.light": "Ganti ke tema terang",
+ "screen.enter": "Layar penuh",
+ "screen.leave": "Keluar dari layar penuh",
  "theme.to.dark": "Ganti ke tema gelap",
  "help.title": "Bantuan",
  "help.shortcuts": "Pintasan keyboard",

@@ -52,14 +52,43 @@ export function toggleMoreMenu(open, { focusButton = false } = {}) {
  * video as the dominant content: it fills the fullscreen element.
  */
 export function enterFullscreen() {
-  if (document.fullscreenElement) return;
+  if (document.fullscreenElement === el.videowrap) return;
   if (state.playing) playerLayout.showPlayer();
+  // With the whole player already full screen (the header's button), the
+  // picture goes on top of it, and leaving returns to the player still
+  // full screen: exitFullscreen() steps back one element, not all the way.
   el.videowrap.requestFullscreen().catch(() => {});
 }
 
 export function toggleFullscreen() {
-  if (document.fullscreenElement) document.exitFullscreen().catch(() => {});
+  if (document.fullscreenElement === el.videowrap) document.exitFullscreen().catch(() => {});
   else enterFullscreen();
+}
+
+/* The whole player full screen. */
+
+/**
+ * The header's button: the page without the browser's bars. On a tablet
+ * Firefox's address bar and tabs, with Android's own bars, take a quarter
+ * of the height — measured on a Galaxy Tab S8+, 905 CSS pixels full screen
+ * against some 700. The browser allows it only on a press, so it cannot be
+ * the page's own start. Android's back gesture leaves it, as Esc does.
+ */
+export function toggleScreen() {
+  if (document.fullscreenElement) document.exitFullscreen().catch(() => {});
+  else document.documentElement.requestFullscreen().catch(() => {});
+}
+
+/** The button's mark and words follow the state, whoever changed it. */
+export function renderScreenButton() {
+  const button = $('btn-screen');
+  if (!document.fullscreenEnabled) { button.hidden = true; return; }
+  const on = document.fullscreenElement === document.documentElement;
+  const key = on ? 'screen.leave' : 'screen.enter';
+  button.classList.toggle('on', on);
+  button.dataset.i18nLabel = button.dataset.i18nTitle = key;
+  button.setAttribute('aria-label', t(key));
+  button.title = t(key);
 }
 
 /**

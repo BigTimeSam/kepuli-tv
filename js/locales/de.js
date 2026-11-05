@@ -86,6 +86,8 @@ export default {
  "btn.help": "Hilfe",
  "btn.help.title": "Tastenkürzel und Aufbau des Players",
  "theme.to.light": "Zum hellen Design wechseln",
+ "screen.enter": "Vollbild",
+ "screen.leave": "Vollbild beenden",
  "theme.to.dark": "Zum dunklen Design wechseln",
  "help.title": "Hilfe",
  "help.shortcuts": "Tastenkürzel",

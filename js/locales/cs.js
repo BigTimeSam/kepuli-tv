@@ -90,6 +90,8 @@ export default {
  "btn.help": "Nápověda",
  "btn.help.title": "Klávesové zkratky a stavba přehrávače",
  "theme.to.light": "Přepnout na světlý vzhled",
+ "screen.enter": "Celá obrazovka",
+ "screen.leave": "Ukončit celou obrazovku",
  "theme.to.dark": "Přepnout na tmavý vzhled",
  "help.title": "Nápověda",
  "help.shortcuts": "Klávesové zkratky",

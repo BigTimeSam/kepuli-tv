@@ -86,6 +86,8 @@ export default {
  "btn.help": "Yardım",
  "btn.help.title": "Klavye kısayolları ve oynatıcının yapısı",
  "theme.to.light": "Açık temaya geç",
+ "screen.enter": "Tam ekran",
+ "screen.leave": "Tam ekrandan çık",
  "theme.to.dark": "Koyu temaya geç",
  "help.title": "Yardım",
  "help.shortcuts": "Klavye kısayolları",

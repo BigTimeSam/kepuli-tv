@@ -88,6 +88,8 @@ export default {
  "btn.help": "Ajutor",
  "btn.help.title": "Scurtături de tastatură și cum e construit playerul",
  "theme.to.light": "Treci la tema luminoasă",
+ "screen.enter": "Ecran complet",
+ "screen.leave": "Ieșire din ecran complet",
  "theme.to.dark": "Treci la tema întunecată",
  "help.title": "Ajutor",
  "help.shortcuts": "Scurtături de tastatură",

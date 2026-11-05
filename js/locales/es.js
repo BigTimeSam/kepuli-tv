@@ -86,6 +86,8 @@ export default {
  "btn.help": "Ayuda",
  "btn.help.title": "Atajos de teclado y organización del reproductor",
  "theme.to.light": "Cambiar al tema claro",
+ "screen.enter": "Pantalla completa",
+ "screen.leave": "Salir de pantalla completa",
  "theme.to.dark": "Cambiar al tema oscuro",
  "help.title": "Ayuda",
  "help.shortcuts": "Atajos de teclado",

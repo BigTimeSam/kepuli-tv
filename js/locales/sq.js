@@ -86,6 +86,8 @@ export default {
  "btn.help": "Ndihma",
  "btn.help.title": "Shkurtoret e tastierës dhe si është ndërtuar luajtësi",
  "theme.to.light": "Kalo te tema e çelët",
+ "screen.enter": "Ekran i plotë",
+ "screen.leave": "Dil nga ekrani i plotë",
  "theme.to.dark": "Kalo te tema e errët",
  "help.title": "Ndihma",
  "help.shortcuts": "Shkurtoret e tastierës",

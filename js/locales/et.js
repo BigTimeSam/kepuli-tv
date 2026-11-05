@@ -86,6 +86,8 @@ export default {
  "btn.help": "Abi",
  "btn.help.title": "Kiirklahvid ja mängija ülesehitus",
  "theme.to.light": "Lülita heledale teemale",
+ "screen.enter": "Täisekraan",
+ "screen.leave": "Välju täisekraanist",
  "theme.to.dark": "Lülita tumedale teemale",
  "help.title": "Abi",
  "help.shortcuts": "Kiirklahvid",
