@@ -65,7 +65,25 @@
 //   node dev/playcheck.mjs listerror  a group that cannot be fetched while a
 //                                     channel plays: a toast, not the overlay
 //   node dev/playcheck.mjs a11y       roles and names for assistive technology,
-//                                     the cursor announced and marked
+//                                     the cursor announced and marked; rows
+//                                     named by their text, not their star;
+//                                     Settings' password and radio group;
+//                                     the playing row aria-current; marks
+//                                     kept under forced colours; one focus
+//                                     ring of 3:1; text contrast in both
+//                                     themes; 24 px hit areas
+//                                     the skip link first, the topic chips one
+//                                     stop, the overlay's title announced,
+//                                     headings and a named player
+//   node dev/playcheck.mjs phone      390 and 600 px in German: Settings'
+//                                     sections above Save, the guide's days
+//                                     the bar's whole width, its programme
+//                                     search one row until used
+//   node dev/playcheck.mjs welcome    the first run: the pasted address first
+//                                     and sent to its form, the permission
+//                                     prompt announced and a refusal
+//                                     explained, a way back from the closed
+//                                     dialog, no guide before a connection
 //   node dev/playcheck.mjs audio      the three-track episode: the automatic
 //                                     choice is heard as the English track's
 //                                     tone, the selector changes the track
@@ -759,7 +777,7 @@ async function channelrefused(page) {
     const got = await failureAfterClick(page, clickFirstChannel(page), 20000);
     await sleep(3000);
     const after = await evaluate(page, `document.getElementById('overlay-text').textContent`);
-    const ok = /stream request( with error 407|: the connection failed without an answer)/i.test(after) && !/in use/i.test(after) && got.secs < 5;
+    const ok = /(stream request with error 407|did not answer the request for this channel)/i.test(after) && !/in use/i.test(after) && got.secs < 5;
     return { ok, detail: `after ${got.secs.toFixed(1)} s "${got.title}": "${after}"` };
   } finally {
     process.env.KEPULI_MOCK_CHANNEL_REFUSED = '';
@@ -969,6 +987,21 @@ const CMD = 4;
 async function pressKey(page, key, code, keyCode, modifiers = 0) {
   await page.call('Input.dispatchKeyEvent', { type: 'keyDown', key, code, windowsVirtualKeyCode: keyCode, modifiers });
   await page.call('Input.dispatchKeyEvent', { type: 'keyUp', key, code, windowsVirtualKeyCode: keyCode, modifiers });
+}
+
+/**
+ * The headings a screen reader can jump to, read from Chrome's own
+ * accessibility tree: an element hidden by its parent's display: none is
+ * not there, however it is marked up. Null in Firefox, whose driver has
+ * no such tree.
+ * @returns {Promise<{ level: number, name: string }[] | null>}
+ */
+async function axHeadings(page) {
+  if (process.env.KEPULI_BROWSER === 'firefox') return null;
+  await page.call('Accessibility.enable');
+  const { nodes } = await page.call('Accessibility.getFullAXTree');
+  return nodes.filter((n) => !n.ignored && n.role?.value === 'heading')
+    .map((n) => ({ level: Number(n.properties?.find((p) => p.name === 'level')?.value?.value), name: String(n.name?.value ?? '').trim() }));
 }
 
 /**
@@ -1213,8 +1246,13 @@ async function connections(page, { requests }) {
     await sleep(1000);
     await playEpisodeRow(page, 0);
     await waitFor(page, `[...document.querySelectorAll('#overlay button')].some((b) => b.textContent === 'Play here')`, 'Play here', 40000);
-    const named = (await videoState(page)).overlay;
+    // The whole text: the stream's own sentence comes first, and is longer
+    // than videoState's short excerpt since it says what to do next.
+    const named = await evaluate(page, `document.getElementById('overlay-text').textContent`);
     if (!/another tab/.test(named)) return { ok: false, detail: `another tab: the failure says "${named}"` };
+    // The account's reason stands in for the stream's advice: changing the
+    // playback mode cannot free a connection, and saying both contradicts.
+    if (/TS or HLS|external player|Try again/.test(named)) return { ok: false, detail: `another tab: the failure still gives the format advice next to the account's reason: "${named}"` };
     await evaluate(page, `[...document.querySelectorAll('#overlay button')].find((b) => b.textContent === 'Play here').click()`, { gesture: true });
     await waitFor(page, PLAYING, 'the episode taken over from the other tab', 40000);
     notes.push(`another tab: "${named}", taken over`);
@@ -1484,13 +1522,291 @@ async function a11y(page) {
   await pressKey(page, 'Enter', 'Enter', 13);
   await sleep(800);
   const chosen = await evaluate(page, ACTIVE_GROUP);
-  const ok = st.listRole === 'listbox' && Boolean(st.listName) && st.pointsAtCursor && st.cursorMark
+  const aid = await a11yWays(page);
+  const ok = aid.ok && st.listRole === 'listbox' && Boolean(st.listName) && st.pointsAtCursor && st.cursorMark
     && st.tablist === 'tablist' && st.selectedTabs.length === 1 && st.selectedTabs[0] === 'live'
     && st.tabStops.length === 1 && st.tabStops[0] === 'live' && st.panelNamedBy === 'tab-live'
     && st.toastRole === 'status' && st.unnamedIcons.length === 0
     && st.groupsRole === 'listbox' && st.groupsTabbable && st.optionRoles.join() === 'option'
     && st.rowsTabbable === 0 && st.pointsAtGroup && chosen === st.target;
-  return { ok, detail: `list ${st.listRole}/${st.listName}, cursor ${st.pointsAtCursor ? 'announced' : 'not announced'} and ${st.cursorMark ? 'marked' : 'unmarked'}, tabs ${st.tablist} selected ${st.selectedTabs.join(',')} with ${st.tabStops.length} stop naming ${st.panelNamedBy}, sidebar ${st.groupsRole} of ${st.optionRoles.join('/')} with ${st.rowsTabbable} tabbable rows, toast ${st.toastRole}, unnamed icon buttons ${st.unnamedIcons.length}, group by keyboard: "${st.target}" → "${chosen}"` };
+  const base = `list ${st.listRole}/${st.listName}, cursor ${st.pointsAtCursor ? 'announced' : 'not announced'} and ${st.cursorMark ? 'marked' : 'unmarked'}, tabs ${st.tablist} selected ${st.selectedTabs.join(',')} with ${st.tabStops.length} stop naming ${st.panelNamedBy}, sidebar ${st.groupsRole} of ${st.optionRoles.join('/')} with ${st.rowsTabbable} tabbable rows, toast ${st.toastRole}, unnamed icon buttons ${st.unnamedIcons.length}, group by keyboard: "${st.target}" → "${chosen}"`;
+  if (!ok) return { ok, detail: `${base}; ${aid.detail}` };
+  return { ok: true, detail: `${base}; ${aid.detail}; ${await a11yNames(page)}; ${await a11yLooks(page)}` };
+}
+
+/** The role and name Chrome's accessibility tree gives the first element a selector finds. */
+async function axNode(page, selector) {
+  const { result } = await page.call('Runtime.evaluate', { expression: `document.querySelector(${JSON.stringify(selector)})` });
+  if (!result.objectId) return null;
+  const { nodes } = await page.call('Accessibility.getPartialAXTree', { objectId: result.objectId, fetchRelatives: false });
+  const node = nodes.find((n) => !n.ignored) || nodes[0];
+  return node ? { role: node.role?.value, name: node.name?.value ?? '' } : null;
+}
+
+// In the page: the contrast of a colour against the ground it stands on,
+// the element's opacity and translucent grounds composited over the first
+// opaque background up the tree.
+const CONTRAST_JS = String.raw`
+  const rgba = (c) => { const m = c.match(/[\d.]+/g).map(Number); return [m[0], m[1], m[2], m.length > 3 ? m[3] : 1]; };
+  const over = (top, under) => top.slice(0, 3).map((v, i) => v * top[3] + under[i] * (1 - top[3])).concat(1);
+  const ground = (node) => {
+    const layers = [];
+    for (let n = node; n && n.nodeType === 1; n = n.parentElement) {
+      const c = rgba(getComputedStyle(n).backgroundColor);
+      if (c[3] > 0) layers.push(c);
+      if (c[3] >= 1) break;
+    }
+    let g = rgba(getComputedStyle(document.body).backgroundColor);
+    for (const layer of layers.reverse()) g = over(layer, g);
+    return g;
+  };
+  const lum = (c) => { const f = (v) => { v /= 255; return v <= 0.03928 ? v / 12.92 : ((v + 0.055) / 1.055) ** 2.4; }; return 0.2126 * f(c[0]) + 0.7152 * f(c[1]) + 0.0722 * f(c[2]); };
+  const ratio = (a, b) => { const [x, y] = [lum(a), lum(b)].sort((p, q) => q - p); return Math.round((x + 0.05) / (y + 0.05) * 100) / 100; };
+  const textContrast = (node, colour = getComputedStyle(node).color) => {
+    const g = ground(node);
+    let o = 1;
+    for (let n = node; n && n.nodeType === 1; n = n.parentElement) o *= Number(getComputedStyle(n).opacity);
+    const c = rgba(colour);
+    return ratio(over([c[0], c[1], c[2], c[3] * o], g), g);
+  };`;
+
+const HIT_TARGETS = ['#list .row .row-star', '#groups button.group-star', '.chip-star', '#list .row .row-more'];
+
+/**
+ * The a11y scenario's names, after the product audit: options named by
+ * their row rather than the star in it, Settings' password and radio
+ * group, the subtitle look button, and the playing row as aria-current.
+ * Leaves a channel playing.
+ */
+async function a11yNames(page) {
+  const assert = (ok, detail) => { if (!ok) throw new Error(detail); };
+  await page.call('Accessibility.enable');
+
+  const row = await axNode(page, '#list .row');
+  const group = await axNode(page, '#groups .group:has(button.group-star)');
+  const texts = await evaluate(page, `({ row: document.querySelector('#list .row .row-name').textContent,
+    group: document.querySelector('#groups .group:has(button.group-star) .group-name').textContent,
+    star: document.querySelector('#list .row .row-star').title })`);
+  assert(row?.role === 'option' && row.name.startsWith(texts.row) && !row.name.includes(texts.star),
+    `a list row is the ${row?.role} "${row?.name}", not named by "${texts.row}" first and without "${texts.star}"`);
+  assert(group?.role === 'option' && group.name.startsWith(texts.group) && !group.name.includes(texts.star),
+    `a sidebar row is the ${group?.role} "${group?.name}", not named by "${texts.group}" first and without "${texts.star}"`);
+
+  // "Aa" is no name; and the fields whose placeholder is the only word
+  // they show have one of their own.
+  const named = await evaluate(page, `(() => { const b = document.getElementById('btn-sublook');
+    return { sublook: b.getAttribute('aria-label') || '', title: b.title,
+      bare: ['search', 'category-filter', 'programme-query'].filter((id) => !(document.getElementById(id).getAttribute('aria-label') || '').trim()) }; })()`);
+  assert(named.sublook && named.sublook === named.title, `the subtitle look button is named "${named.sublook}"`);
+  assert(!named.bare.length, `fields named by their placeholder alone: ${named.bare.join(', ')}`);
+
+  await evaluate(page, `document.getElementById('btn-settings').click()`);
+  await waitFor(page, `document.getElementById('setup').open`, 'settings');
+  await sleep(300);
+  const password = await axNode(page, '#f-password');
+  const radios = await axNode(page, '#setup .radios');
+  const words = await evaluate(page, `({ password: document.querySelector('[data-i18n="setup.password"]').textContent, source: document.querySelector('[data-i18n="setup.source"]').textContent })`);
+  await evaluate(page, `document.getElementById('f-done').click()`);
+  await waitFor(page, `!document.getElementById('setup').open`, 'settings closed');
+  assert(password?.name === words.password, `the password field is named "${password?.name}", not "${words.password}"`);
+  assert(radios?.role === 'radiogroup' && radios.name === words.source, `the connection choice is a ${radios?.role} named "${radios?.name}"`);
+
+  await playFirstChannel(page);
+  const current = await evaluate(page, `(() => { const rows = [...document.querySelectorAll('#list .row')];
+    return { current: rows.filter((r) => r.getAttribute('aria-current') === 'true').map((r) => r.classList.contains('playing')), playing: rows.filter((r) => r.classList.contains('playing')).length }; })()`);
+  assert(current.playing === 1 && current.current.length === 1 && current.current[0], `aria-current: ${JSON.stringify(current)}`);
+  return `rows named "${row.name}" and "${group.name}", password "${password.name}", ${radios.role} "${radios.name}", sublook "${named.sublook}", aria-current on the playing row`;
+}
+
+/**
+ * The a11y scenario's looks, after the product audit: text contrast in
+ * both themes, one focus ring of 3:1 on every kind of control, hit areas of
+ * 24 px, and the marks forced colours keep. Expects a channel playing.
+ */
+async function a11yLooks(page) {
+  const assert = (ok, detail) => { if (!ok) throw new Error(detail); };
+  // A key first, so that focus() afterwards counts as the keyboard's and
+  // draws the ring :focus-visible draws.
+  await pressKey(page, 'Shift', 'ShiftLeft', 16);
+  const measures = [];
+  for (const theme of ['dark', 'light']) {
+    measures.push(await evaluate(page, `(async () => { ${CONTRAST_JS}
+      const root = document.documentElement; const before = root.dataset.theme; root.dataset.theme = ${JSON.stringify(theme)};
+      await new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r)));
+      const out = { theme: ${JSON.stringify(theme)}, text: {}, rings: {} };
+      const counts = [...document.querySelectorAll('.chip .n')];
+      if (counts.length) out.text.chipCount = Math.min(...counts.map((n) => textContrast(n)));
+      const active = document.querySelector('#groups .group.active .group-count');
+      if (active) out.text.activeGroupCount = textContrast(active);
+      for (const id of ['search', 'category-filter']) {
+        const f = document.getElementById(id);
+        out.text['placeholder ' + id] = textContrast(f, getComputedStyle(f, '::placeholder').color);
+      }
+      for (const sel of ['#tab-live', '#btn-refresh', '#btn-settings', '#search', '#category-filter', '.chip-main', '#btn-guide', '#btn-countries']) {
+        const node = document.querySelector(sel);
+        if (!node || !node.getClientRects().length) continue;
+        node.focus();
+        const cs = getComputedStyle(node);
+        // The ring stands on what lies around the control: its parent's
+        // ground, or for a chip's name, around the whole chip (the ring
+        // clears the chip's border).
+        const around = (node.closest('.chip') || node).parentElement;
+        out.rings[sel] = cs.outlineStyle === 'solid' && parseFloat(cs.outlineWidth) >= 2
+          ? ratio(rgba(cs.outlineColor), ground(around)) : cs.outlineStyle + ' ' + cs.outlineWidth;
+      }
+      document.activeElement.blur();
+      root.dataset.theme = before;
+      return out; })()`));
+  }
+  for (const m of measures) {
+    for (const [what, value] of Object.entries(m.text)) assert(value >= 4.5, `${m.theme} theme: ${what} at ${value}:1`);
+    for (const [what, value] of Object.entries(m.rings)) assert(typeof value === 'number' && value >= 3, `${m.theme} theme: the focus ring of ${what} is ${value}`);
+  }
+
+  // A 24 px square around each star and the row's menu reaches the
+  // button (its edges, and its corners inside the 5 px rounding hit
+  // testing follows), and no topic chip is lower than that.
+  const hits = await evaluate(page, `(() => {
+    const out = {};
+    for (const sel of ${JSON.stringify(HIT_TARGETS)}) {
+      const b = document.querySelector(sel);
+      if (!b) { out[sel] = 'missing'; continue; }
+      b.scrollIntoView({ block: 'nearest' });
+      const r = b.getBoundingClientRect(); const cx = r.left + r.width / 2, cy = r.top + r.height / 2;
+      const missed = [];
+      for (const [dx, dy] of [[0, 0], [-11.5, 0], [11.5, 0], [0, -11.5], [0, 11.5], [-10, -10], [10, -10], [-10, 10], [10, 10]]) {
+        const hit = document.elementFromPoint(cx + dx, cy + dy);
+        if (!hit || !b.contains(hit)) missed.push(dx + ',' + dy + ' ' + (hit ? hit.className || hit.tagName : 'nothing'));
+      }
+      out[sel] = missed.length ? missed.join('; ') : 0;
+    }
+    out.chip = Math.min(...[...document.querySelectorAll('.chip-main')].map((c) => c.getBoundingClientRect().height));
+    return out; })()`);
+  for (const sel of HIT_TARGETS) assert(hits[sel] === 0, `the 24 px square around ${sel} misses at ${hits[sel]}`);
+  assert(hits.chip >= 23.9, `a topic chip is ${hits.chip} px high`);
+
+  // Forced colours drop fills and shadows: each "you are here" must be an
+  // outline or a border, which they keep.
+  await evaluate(page, `document.getElementById('list').focus()`);
+  await pressKey(page, 'ArrowDown', 'ArrowDown', 40);
+  await sleep(200);
+  await page.call('Emulation.setEmulatedMedia', { features: [{ name: 'forced-colors', value: 'active' }] });
+  let forced;
+  try {
+    await sleep(200);
+    forced = await evaluate(page, `(() => {
+      const outline = (sel) => { const n = document.querySelector(sel); if (!n) return 'missing'; const cs = getComputedStyle(n); return cs.outlineStyle !== 'none' && parseFloat(cs.outlineWidth) >= 2; };
+      const edge = (sel) => { const n = document.querySelector(sel); return n ? parseFloat(getComputedStyle(n).borderLeftWidth) >= 3 : 'missing'; };
+      return { tab: outline('#tabs [aria-selected="true"]'), group: outline('#groups .group.active'),
+        chip: document.querySelector('.chip.active') ? outline('.chip.active') : true,
+        cursor: outline('#list .row.selected:not(.playing)'), playing: edge('#list .row.playing') }; })()`);
+  } finally {
+    await page.call('Emulation.setEmulatedMedia', { features: [] });
+  }
+  const lost = Object.entries(forced).filter(([, v]) => v !== true).map(([k, v]) => `${k} ${v}`);
+  assert(!lost.length, `under forced colours these marks are gone: ${lost.join(', ')}`);
+  const fmt = (o) => Object.entries(o).map(([k, v]) => `${k.replace(/^#/, '')} ${v}`).join(', ');
+  return measures.map((m) => `${m.theme}: text ${fmt(m.text)}; rings ${fmt(m.rings)}`).join('; ')
+    + `; 24 px hit areas, chips ${hits.chip.toFixed(1)} px high; forced colours keep ${Object.keys(forced).join(', ')}`;
+}
+
+/**
+ * A phone's width (390 px) and the narrow layout's widest (600 px), in
+ * German, whose day names are among the longest: Settings' sections are
+ * drawn above Save, as they come before it in the focus order (the top
+ * bar's ordering once moved them under it); the guide's days have the bar's
+ * whole width rather than a third of it, which clipped "gestern" to "ge",
+ * and the programme search is one row until it is used.
+ */
+async function phone(page) {
+  const assert = (ok, detail) => { if (!ok) throw new Error(detail); };
+  await evaluate(page, `chrome.storage.local.get('settings').then(({ settings }) => chrome.storage.local.set({ settings: { ...settings, lang: 'de' }, ui: { tab: 'live' } }))`);
+  await page.call('Page.reload');
+  await sleep(1000);
+  await waitFor(page, `${CONNECTED} && document.documentElement.lang.startsWith('de')`, 'the player in German');
+  const seen = [];
+  for (const width of [390, 600]) {
+    await page.call('Emulation.setDeviceMetricsOverride', { width, height: 844, deviceScaleFactor: 1, mobile: false });
+    await sleep(300);
+    await evaluate(page, `document.getElementById('btn-settings').click()`);
+    await waitFor(page, `document.getElementById('setup').open`, 'settings');
+    await sleep(300);
+    const setup = await evaluate(page, `(() => { const top = (id) => document.getElementById(id).getBoundingClientRect();
+      return { tabs: top('setup-tabs').bottom, panel: top('panel-connection').top, save: top('f-save').top }; })()`);
+    await evaluate(page, `document.getElementById('f-done').click()`);
+    await waitFor(page, `!document.getElementById('setup').open`, 'settings closed');
+    assert(setup.tabs <= setup.panel && setup.tabs <= setup.save, `${width} px: Settings' sections end at ${setup.tabs}, the section begins at ${setup.panel} and Save at ${setup.save}`);
+
+    await evaluate(page, `document.getElementById('btn-guide').click()`);
+    await waitFor(page, `document.getElementById('main').classList.contains('guide') && document.querySelector('#epg-days .epg-day.active')`, 'the guide');
+    await sleep(500);
+    const guide = await evaluate(page, `(() => { const box = (n) => n.getBoundingClientRect();
+      const bar = box(document.querySelector('.epg-bar')), days = box(document.getElementById('epg-days')), today = box(document.querySelector('#epg-days .epg-day.active'));
+      return { bar: Math.round(bar.width), days: Math.round(days.width), today: today.left >= days.left - 0.5 && today.right <= days.right + 0.5,
+        form: Math.round(document.getElementById('programme-form').getBoundingClientRect().height),
+        page: document.documentElement.scrollWidth <= innerWidth }; })()`);
+    await evaluate(page, `document.getElementById('epg-close').click()`);
+    await waitFor(page, `!document.getElementById('main').classList.contains('guide')`, 'the guide closed');
+    assert(guide.days >= guide.bar - 24 && guide.today && guide.page, `${width} px: the days take ${guide.days} of the bar's ${guide.bar} px, today ${guide.today ? 'shown whole' : 'clipped'}, the page ${guide.page ? 'fits' : 'overflows'}`);
+    assert(guide.form <= 56, `${width} px: the programme search takes ${guide.form} px before it is used`);
+    seen.push(`${width} px: sections above Save, days ${guide.days}/${guide.bar} px, search ${guide.form} px`);
+  }
+  return { ok: true, detail: seen.join('; ') };
+}
+
+/**
+ * The ways around the page for a keyboard and a screen reader: the skip
+ * link is the first Tab stop and lands in the list, the topic chips are one
+ * stop with the arrows inside, the overlay says its title with its text,
+ * and the page, the list and the player have headings and the player a name.
+ */
+async function a11yWays(page) {
+  const focused = () => evaluate(page, `document.activeElement.id || document.activeElement.className`);
+  // From the top of the page.
+  // The body focused for a moment is where a fresh page starts: the next
+  // Tab goes to the page's first stop.
+  await evaluate(page, `(() => { document.body.tabIndex = -1; document.body.focus(); document.body.removeAttribute('tabindex'); })()`);
+  await pressKey(page, 'Tab', 'Tab', 9);
+  await sleep(150);
+  const skip = await evaluate(page, `(() => { const b = document.getElementById('skip-list'), r = b.getBoundingClientRect();
+    return { first: document.activeElement === b, seen: r.top >= 0 && r.bottom <= innerHeight && r.width > 0, text: b.textContent }; })()`);
+  // Enter with its text, as a keyboard sends it: a button acts on that.
+  await page.call('Input.dispatchKeyEvent', { type: 'keyDown', key: 'Enter', code: 'Enter', windowsVirtualKeyCode: 13, text: '\r' });
+  await page.call('Input.dispatchKeyEvent', { type: 'keyUp', key: 'Enter', code: 'Enter', windowsVirtualKeyCode: 13 });
+  await sleep(150);
+  const landed = await focused();
+  // A group with topics: the chips are one stop, held by the chosen chip.
+  await click(page, '#groups', 'Sweden');
+  await waitFor(page, `document.querySelectorAll('#subcats .chip-main').length > 2`, 'the topic chips');
+  const chips = await evaluate(page, `(() => { const all = [...document.querySelectorAll('#subcats .chip-main')];
+    return { stops: all.filter((b) => b.tabIndex === 0).map((b) => all.indexOf(b)), role: document.getElementById('subcats').getAttribute('role'),
+      name: document.getElementById('subcats').getAttribute('aria-label'), activeIsStop: document.querySelector('#subcats .chip.active .chip-main').tabIndex === 0, count: all.length }; })()`);
+  await evaluate(page, `document.querySelector('#subcats .chip.active .chip-main').focus()`);
+  await pressKey(page, 'ArrowRight', 'ArrowRight', 39);
+  await sleep(150);
+  const moved = await evaluate(page, `(() => { const all = [...document.querySelectorAll('#subcats .chip-main')];
+    return { at: all.indexOf(document.activeElement), stops: all.filter((b) => b.tabIndex === 0).map((b) => all.indexOf(b)), chosen: all.indexOf(document.querySelector('#subcats .chip.active .chip-main')) }; })()`);
+  await pressKey(page, 'End', 'End', 35);
+  await sleep(100);
+  const end = await evaluate(page, `[...document.querySelectorAll('#subcats .chip-main')].indexOf(document.activeElement)`);
+  const marks = await evaluate(page, `(() => { const said = document.getElementById('overlay-said');
+    const stage = document.getElementById('player-stage');
+    return { live: said?.getAttribute('aria-live'), atomic: said?.getAttribute('aria-atomic'), holdsTitle: Boolean(said?.contains(document.getElementById('overlay-title'))),
+      textLive: document.getElementById('overlay-text').getAttribute('aria-live'), elapsedHidden: document.getElementById('overlay-elapsed').getAttribute('aria-hidden'),
+      h1: [...document.querySelectorAll('h1')].map((h) => h.textContent.trim()),
+      list: document.getElementById('list-heading').textContent,
+      player: document.getElementById(stage.getAttribute('aria-labelledby') || '')?.textContent }; })()`);
+  // With nothing playing the stage's header is hidden: the player's
+  // heading must still be one to jump to, and no heading may be empty.
+  const idle = await evaluate(page, `!document.querySelector('main').classList.contains('has-playback')`);
+  const heard = await axHeadings(page);
+  const headingsOk = !heard || (heard.some((h) => h.level === 2 && h.name === 'Player') && heard.every((h) => h.name));
+  const ok = idle && headingsOk && skip.first && skip.seen && landed === 'list'
+    && chips.role === 'toolbar' && Boolean(chips.name) && chips.stops.length === 1 && chips.activeIsStop
+    && moved.at === moved.chosen + 1 && moved.stops.join() === String(moved.at) && end === chips.count - 1
+    && marks.live === 'polite' && marks.atomic === 'true' && marks.holdsTitle && !marks.textLive && marks.elapsedHidden === 'true'
+    && marks.h1.join() === 'Kepuli-TV' && /^Channels: Sweden/.test(marks.list) && marks.player === 'Player';
+  return { ok, detail: `skip link ${JSON.stringify(skip)} → ${landed}; chips ${JSON.stringify(chips)}, → ${JSON.stringify(moved)}, End ${end}; ${JSON.stringify(marks)}; nothing playing ${idle}, headings heard ${JSON.stringify(heard)}` };
 }
 
 /** The control stays with the video and preserves the subtitle overlay. */
@@ -2154,6 +2470,9 @@ async function settings(page, { requests, target }) {
   await press('f-save');
   await waitFor(page, `!document.getElementById('setup-error').hidden && !document.getElementById('f-save').disabled`, 'permission denial');
   assert(JSON.stringify(await saved()) === JSON.stringify(beforeConnection), 'denied permission committed settings');
+  // The refusal names the button as it reads for a changed account.
+  const refusal = await evaluate(page, `document.getElementById('setup-error').textContent`);
+  assert(/Press Save again and choose Allow/.test(refusal), `the refusal said "${refusal}"`);
   // The isolated headless profile cannot answer Chrome's permission prompt.
   await evaluate(page, `chrome.permissions.request = async () => true;`);
   const reconnectFrom = requests.length;
@@ -2771,6 +3090,105 @@ async function setupClarity(page) {
   return {ok:true, detail:'a pasted subscription URL opens the fields it decoded into, without saving; text that is no address says so, an address without credentials is a playlist with a guide field; controls above an unclipped 250 % preview at 320–1280px; playback saves 250 %'};
 }
 
+/**
+ * The first run, before anything is connected: the address field comes
+ * first and sends what is pasted to its form, the permission prompt is
+ * announced, a refusal says what to do, the closed dialog leaves a way back
+ * on the welcome and in the list, the guide's button waits for a
+ * connection, and a server that does not answer while the browser has not
+ * allowed it says both.
+ */
+async function welcome(page, { target }) {
+  const assert = (ok, message) => { if (!ok) throw new Error(message); };
+  const press = (expr) => evaluate(page, expr, { gesture: true });
+  const paste = (value) => evaluate(page, `(() => { const f = document.getElementById('f-paste-first'); f.focus(); f.value = ${JSON.stringify(value)};
+    f.dispatchEvent(new InputEvent('input', { bubbles: true, inputType: 'insertFromPaste' })); })()`);
+  const mode = () => evaluate(page, `document.querySelector('input[name="source"]:checked').value`);
+  await evaluate(page, `chrome.storage.local.remove('config').then(() => chrome.storage.local.set({ ui: { tab: 'live' } }))`);
+  await page.call('Page.navigate', { url: bare(target.url) });
+  await sleep(1000);
+  await waitFor(page, `document.getElementById('setup').open`, 'the first-run dialog', 10000);
+  const first = await evaluate(page, `(() => { const shown = (id) => document.getElementById(id).getClientRects().length > 0;
+    const panel = document.getElementById('panel-connection');
+    const fields = [...panel.querySelectorAll('label.field, div.field')].filter((n) => n.getClientRects().length).map((n) => n.id || n.querySelector('input,select')?.id || n.querySelector('input')?.name);
+    return { paste: shown('paste-first'), note: shown('setup-grant-note'), focus: document.activeElement.id, fields,
+      radios: [...document.querySelectorAll('input[name="source"]')].map((r) => r.parentElement.textContent.trim()),
+      noteText: document.getElementById('setup-grant-note').textContent }; })()`);
+  assert(first.paste && first.note && first.focus === 'f-paste-first', `the first run: ${JSON.stringify(first)}`);
+  assert(first.fields[0] === 'paste-first' && first.fields.at(-1) === 'f-name', `the order of the fields: ${JSON.stringify(first.fields)}`);
+  assert(first.radios.join(' | ') === 'Server and credentials (Xtream Codes) | Playlist address (M3U) | Stalker portal (MAC address)', `the radios: ${first.radios}`);
+  assert(/choose allow/i.test(first.noteText), `the note: ${first.noteText}`);
+  // Each kind of address to its own form.
+  await paste(`http://127.0.0.1:${MOCK_PORT}/get.php?username=demo&password=demo&type=m3u_plus`);
+  const xtream = await evaluate(page, `({ fields: ['scheme','host','port','username','password'].map((f) => document.getElementById('f-' + f).value), focus: document.activeElement.id })`);
+  assert(await mode() === 'xtream' && xtream.fields.join() === `http,127.0.0.1,${MOCK_PORT},demo,demo` && xtream.focus === 'f-host', `an Xtream address: ${await mode()} ${JSON.stringify(xtream)}`);
+  // The note on the prompt follows the address: none for a server the
+  // browser allows already (stood in for here, as the suite's profile has
+  // not allowed the mock server).
+  await evaluate(page, `window.realContains = chrome.permissions.contains; chrome.permissions.contains = async () => true;
+    document.getElementById('f-username').dispatchEvent(new Event('input', { bubbles: true }))`);
+  await sleep(200);
+  const allowedNote = await evaluate(page, `document.getElementById('setup-grant-note').hidden`);
+  await evaluate(page, `chrome.permissions.contains = window.realContains`);
+  assert(allowedNote, 'the note on the prompt stays for a server the browser allows already');
+  await paste('http://example.test/list.m3u');
+  assert(await mode() === 'm3u' && await evaluate(page, `document.getElementById('f-paste').value === 'http://example.test/list.m3u' && !document.getElementById('src-m3u').hidden`), `a playlist: ${await mode()}`);
+  await sleep(200);
+  // A server not allowed yet has the note; the playlist's own field, filled
+  // from the first, does not tell to paste it a second time.
+  const playlistNote = await evaluate(page, `({ note: !document.getElementById('setup-grant-note').hidden, hint: !document.getElementById('playlist-hint').hidden })`);
+  assert(playlistNote.note && !playlistNote.hint, `a playlist on another server: ${JSON.stringify(playlistNote)}`);
+  await paste('http://example.test:8080/c/');
+  assert(await mode() === 'stalker' && await evaluate(page, `document.getElementById('f-portal').value === 'http://example.test:8080/c/' && document.activeElement.id === 'f-mac'`), `a portal: ${await mode()}`);
+  await paste('example test');
+  assert(await evaluate(page, `!document.getElementById('paste-first-status').hidden`), 'text that is no address was taken');
+  // A refusal of the permission says what to do about it.
+  await paste(`http://127.0.0.1:${MOCK_PORT}/get.php?username=demo&password=demo`);
+  await evaluate(page, `window.realRequest = chrome.permissions.request; chrome.permissions.request = async () => false;`);
+  await press(`document.getElementById('f-save').click()`);
+  await waitFor(page, `!document.getElementById('setup-error').hidden && !document.getElementById('f-save').disabled`, 'the refusal');
+  const refused = await evaluate(page, `document.getElementById('setup-error').textContent`);
+  assert(/Press Connect again and choose Allow/.test(refused), `the refusal said "${refused}"`);
+  await evaluate(page, `chrome.permissions.request = window.realRequest`);
+  // Closed, the dialog leaves the welcome with a way back, and the list too.
+  await press(`document.getElementById('f-done').click()`);
+  await waitFor(page, `!document.getElementById('setup').open`, 'the dialog closed');
+  const idle = await evaluate(page, `(() => { const b = document.getElementById('welcome-connect'), empty = document.querySelector('#list .empty');
+    return { title: document.getElementById('overlay-title').textContent, text: document.getElementById('overlay-text').textContent,
+      button: b && b.getClientRects().length ? b.className + ':' + b.textContent : null,
+      empty: empty ? [empty.querySelector('strong').textContent, empty.querySelector('button')?.textContent].join(':') : null,
+      guide: document.getElementById('btn-guide').getClientRects().length > 0 }; })()`);
+  assert(idle.title === 'Welcome' && /already have\. Connect it/.test(idle.text) && idle.button === 'primary:Connect to your provider', `the welcome: ${JSON.stringify(idle)}`);
+  assert(idle.empty === 'Not connected yet:Connect to your provider' && !idle.guide, `the list before a connection: ${JSON.stringify(idle)}`);
+  // Before a connection the player and the list have their headings too,
+  // and neither is empty.
+  const heard = await axHeadings(page);
+  assert(!heard || (heard.some((h) => h.level === 2 && h.name === 'Player') && heard.some((h) => h.level === 2 && h.name === 'Channels') && heard.every((h) => h.name)), `the headings on the welcome: ${JSON.stringify(heard)}`);
+  await press(`document.getElementById('welcome-connect').click()`);
+  await waitFor(page, `document.getElementById('setup').open && document.activeElement.id === 'f-paste-first'`, 'the dialog again from the welcome');
+  // A server that does not answer, on a host the browser has not allowed:
+  // the text says both, over the button that asks for it.
+  const dead = MOCK_PORT + 7;
+  await paste(`http://127.0.0.1:${dead}/get.php?username=demo&password=demo`);
+  await evaluate(page, `window.realContains = chrome.permissions.contains; chrome.permissions.request = async () => true; chrome.permissions.contains = async () => false;`);
+  try {
+    await press(`document.getElementById('f-save').click()`);
+    await waitFor(page, `!document.getElementById('overlay').hidden && document.getElementById('overlay-title').textContent === 'Connection failed' && document.getElementById('overlay-actions').firstElementChild?.textContent.startsWith('Allow access')`, 'the connection error', 30000);
+    const failed = await evaluate(page, `document.getElementById('overlay-text').textContent`);
+    assert(/^The server did not answer\. .*The browser has not yet allowed Kepuli-TV to reach 127\.0\.0\.1:\d+\.$/.test(failed), `the connection error said "${failed}"`);
+    // Connected at last, the welcome's button is gone.
+    await evaluate(page, `chrome.permissions.contains = window.realContains; chrome.permissions.request = window.realRequest`);
+    await evaluate(page, `chrome.storage.local.set({ config: ${JSON.stringify(XTREAM_ACCOUNT)} })`);
+    await page.call('Page.navigate', { url: bare(target.url) });
+    await sleep(1000);
+    await waitFor(page, CONNECTED, 'the connection');
+    assert(await evaluate(page, `!document.getElementById('welcome-connect') && !document.getElementById('btn-guide').closest('[hidden]')`), 'the welcome stayed after connecting');
+    return { ok: true, detail: `address first and sent to its form (Xtream, playlist, portal), the prompt announced, "${refused}"; the welcome and the list offer Connect, no guide button; "${failed}"` };
+  } finally {
+    await evaluate(page, `if (window.realContains) chrome.permissions.contains = window.realContains; if (window.realRequest) chrome.permissions.request = window.realRequest;`);
+  }
+}
+
 
 /** Covers and catalogue metadata use the same DOM in both browsers. */
 async function catalogUi(page) {
@@ -3370,7 +3788,19 @@ async function m3u(page, { target, requests }) {
   assert(requests.some((r) => r.startsWith('/player_api.php')), 'the switch did not reach the Xtream account');
   const config = await evaluate(page, `chrome.storage.local.get('config').then((d) => d.config.id)`);
   assert(config === 'pxt', `the stored account in use is ${config}`);
-  return { ok: true, detail: `playlist and gzipped guide read, programmes in the list, a channel played from its address, start over through catchup="xc", ${episodes} episodes, switched to the Xtream account` };
+  // An address that answers with a web page — a provider's login page, a
+  // captive portal — is said not to be a playlist, rather than read as one:
+  // the mock box's page once became a channel called "title>".
+  const notPlaylist = { ...M3U_ACCOUNT, url: `http://127.0.0.1:${MOCK_PORT}/c/`, name: 'Not a playlist', id: 'pnot' };
+  await evaluate(page, `chrome.storage.local.set({ config: ${JSON.stringify(notPlaylist)}, accounts: ${JSON.stringify([notPlaylist, M3U_ACCOUNT, XTREAM_ACCOUNT])}, ui: { tab: 'live' } })`);
+  await page.call('Page.navigate', { url: bare(target.url) });
+  await sleep(1000);
+  await waitFor(page, `!document.getElementById('overlay').hidden && document.getElementById('overlay-text').textContent.length > 0`, 'the connection error of a web page', 20000);
+  const said = await evaluate(page, `document.getElementById('overlay-text').textContent`);
+  const rows = await evaluate(page, `document.querySelectorAll('#list .row').length`);
+  // The message opens with what happened; what to do next follows it.
+  assert(said.startsWith('The address did not return an M3U playlist.') && rows === 0, `a web page as the playlist: "${said}", ${rows} rows`);
+  return { ok: true, detail: `playlist and gzipped guide read, programmes in the list, a channel played from its address, start over through catchup="xc", ${episodes} episodes, switched to the Xtream account; a web page: "${said}"` };
 }
 
 /**
@@ -3560,7 +3990,7 @@ async function accountform(page, { target }) {
   await evaluate(page, `(() => { const f = document.getElementById('f-host'); f.value = 'example.tv'; f.dispatchEvent(new Event('input', { bubbles: true })); })()`);
   await press(`document.getElementById('f-save').click()`);
   const error = await evaluate(page, `document.getElementById('setup-error').textContent`);
-  assert(/Paste subscription URL \(M3U\)/.test(error), `the incomplete server: "${error}"`);
+  assert(/Playlist address \(M3U\)/.test(error), `the incomplete server: "${error}"`);
   return { ok: true, detail: `added and cancelled in the list, the other account edited and saved without a switch; "${error}"` };
 }
 
@@ -3711,6 +4141,46 @@ async function record(page) {
       const got = await chrome.storage.local.get('settings');
       await chrome.storage.local.set({ settings: { ...got.settings, recordingEnabled: false } });
     })()`).catch(() => {});
+  }
+}
+
+/**
+ * The first country a new account's channels open at follows the browser's
+ * languages (js/name.js homeGroup): Swedish opens Sweden, Swedish in
+ * Finland opens Finland (the region before the language), and British
+ * English, which says nothing about where the reader is, leaves the first
+ * of the sidebar (Canada, the mock's countries being in alphabetical order). The
+ * browser's languages are set through the Accept-Language override, which
+ * navigator.languages follows.
+ */
+async function homecountry(page, { target }) {
+  const assert = (ok, message) => { if (!ok) throw new Error(message); };
+  const { userAgent } = await page.call('Browser.getVersion');
+  // The suite's settings fix the interface to English; lang names it for a
+  // step, 'auto' being what a viewer who never opened Settings has.
+  const firstOpen = async (languages, lang = 'en') => {
+    await page.call('Network.setUserAgentOverride', { userAgent, acceptLanguage: languages });
+    await evaluate(page, `chrome.storage.local.get('settings').then(({ settings }) => chrome.storage.local.set({ settings: { ...settings, lang: ${JSON.stringify(lang)} }, config: ${JSON.stringify(XTREAM_ACCOUNT)}, accounts: ${JSON.stringify([XTREAM_ACCOUNT])}, ui: { tab: 'live' } }))`);
+    await page.call('Page.navigate', { url: bare(target.url) });
+    await sleep(1000);
+    await waitFor(page, CONNECTED, 'the connection');
+    await waitFor(page, `document.querySelectorAll('#list .row').length > 1`, 'the channel rows');
+    return evaluate(page, `({ langs: navigator.languages.join(','), group: ${ACTIVE_GROUP} })`);
+  };
+  try {
+    const sv = await firstOpen('sv-SE,sv');
+    assert(sv.langs.startsWith('sv') && sv.group.endsWith('Sweden'), `Swedish (${sv.langs}) opened ${sv.group}`);
+    // Swedish in Finland: the region the browser names wins over the
+    // language's country, although the interface (left on automatic) speaks
+    // Swedish. Putting that derived language first opened Sweden.
+    const svFi = await firstOpen('sv-FI,sv', 'auto');
+    assert(svFi.langs.startsWith('sv-FI') && svFi.group.endsWith('Finland'), `Swedish in Finland (${svFi.langs}) opened ${svFi.group}`);
+    const gb = await firstOpen('en-GB,en');
+    assert(gb.group.endsWith('Canada'), `British English (${gb.langs}) opened ${gb.group}, not the first of the sidebar`);
+    return { ok: true, detail: `${sv.langs} opened ${sv.group}; ${svFi.langs} opened ${svFi.group}; ${gb.langs} opened ${gb.group}` };
+  } finally {
+    await page.call('Network.setUserAgentOverride', { userAgent, acceptLanguage: '' }).catch(() => {});
+    await evaluate(page, `chrome.storage.local.get('settings').then(({ settings }) => chrome.storage.local.set({ settings: { ...settings, lang: 'en' } }))`).catch(() => {});
   }
 }
 
@@ -4224,9 +4694,9 @@ async function soak(page) {
   return { ok: true, detail };
 }
 
-const SCENARIOS = { buffering, livebuffering, filmbuffering, emptyfile, tsasmp4, refusedfile, badgateway, livebadgateway, channelrefused, noanswer, longfilm, catalogUi, setupClarity, fullscreenControl, clickpause, pickers, touchcaret, screenbutton, channels, home, resumemkv, restore, programmes, catchup, seek, death, cancel, timeout, search, paste, keys, switching, resume, connections, livezap, livequiet, reconnect, accounts, listerror, a11y, subtitles, audio, wasmaudio, settings,
+const SCENARIOS = { buffering, livebuffering, filmbuffering, emptyfile, tsasmp4, refusedfile, badgateway, livebadgateway, channelrefused, noanswer, longfilm, catalogUi, setupClarity, welcome, fullscreenControl, clickpause, pickers, touchcaret, screenbutton, channels, home, resumemkv, restore, programmes, catchup, seek, death, cancel, timeout, search, paste, keys, switching, resume, connections, livezap, livequiet, reconnect, accounts, listerror, a11y, subtitles, audio, wasmaudio, settings,
   lastchannel, nextepisode, continuewatching, reminders, update, seeklag, cuesretry, quota, catchupfreeze, catchupfull, twotabs, switchstop, resettabs,
-  refresh, restorenav, guidekeep, m3u, sync, holes, picks, flakyserver, accountform, stalker, record, guidefavs, categories, noleak, perf, pseudo, startup, soak };
+  refresh, restorenav, guidekeep, m3u, sync, holes, picks, flakyserver, accountform, stalker, record, guidefavs, categories, homecountry, noleak, perf, pseudo, startup, soak, phone };
 // The mock's whole-list answers stall for these, longer than the request limit.
 const SLOW_LIST_MS = { cancel: 60000, timeout: 60000 };
 // The media is sent slowly for these: the seek targets must lie outside the

@@ -89,6 +89,7 @@ export class M3uParser {
     this.options = {};        // #EXTVLCOPT lines waiting for their entry
     this.lines = 0;
     this.sawHeader = false;
+    this.sawExtinf = false;
   }
 
   push(text) {
@@ -126,6 +127,7 @@ export class M3uParser {
         if (attrs['catchup-days']) this.header.catchupDays = Number(attrs['catchup-days']) || 0;
         if (attrs['catchup-source']) this.header.catchupSource = attrs['catchup-source'];
       } else if (tag === '#EXTINF') {
+        this.sawExtinf = true;
         this.pending = parseExtinf(line);
       } else if (tag === '#EXTGRP') {
         this.group = line.slice(line.indexOf(':') + 1).trim();
@@ -137,6 +139,17 @@ export class M3uParser {
     }
     // An address. One without an #EXTINF before it is still a stream —
     // a plain M3U is nothing but addresses — and is named after its file.
+    // Until the text has shown itself to be a playlist, by its #EXTM3U or
+    // an #EXTINF, only a whole http(s) address counts as one: any line of
+    // text resolves against the playlist's own address, and a provider's
+    // login page, an expired-account notice or a JSON error used to become
+    // a list of channels named "<html>" and "title>" instead of the
+    // message that the address is not a playlist.
+    if (!this.sawHeader && !this.sawExtinf && !/^https?:\/\//i.test(line)) return;
+    // A tag's angle bracket is never part of an address (one would be
+    // written %3C), so a line with one is markup, wherever it stands, and
+    // is passed over without taking the waiting #EXTINF's address.
+    if (line.includes('<')) return;
     const url = this.resolve(line);
     if (!url) { this.pending = null; return; }
     const info = this.pending || { duration: -1, attrs: {}, title: '' };

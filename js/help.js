@@ -25,6 +25,7 @@ const SHORTCUTS = [
   ['g', 'help.key.guide'],
 ];
 const MORE_SHORTCUTS = [
+  ['Tab', 'help.key.tab'],
   ['n  p', 'help.key.nextprev'],
   ['l', 'help.key.lastchannel'],
   ['a', 'help.key.audio'],

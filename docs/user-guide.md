@@ -8,15 +8,28 @@ switching audio tracks, pausing playback and entering full screen.
 ## Getting started
 
 1. Open the player using the Kepuli-TV icon in your browser toolbar.
-2. Paste your provider's M3U subscription URL or any M3U playlist address, or
-   enter the server address, port, username and password separately. You need
-   your own subscription:
-   the app does not include channels or content. The dialog says as much on a
-   first run and links to these steps; the caret starts in **Server**, and
-   the eye at the end of the password field shows what was typed — a
-   provider's password is long, random and entered by hand exactly once.
-3. Connect to the service. You can change your connection details and the
-   interface language later in **Settings**.
+2. Paste the address your provider sent into the first field, **Paste the
+   address your provider sent**, where the caret starts. It fills in the form
+   it belongs to: an Xtream subscription's address (`get.php?username=…&password=…`)
+   the server, port, user name and password under **Server and credentials
+   (Xtream Codes)**, a portal's address (ending in `/c/`) **Stalker portal
+   (MAC address)**, which then asks for the MAC address, and any other web
+   address **Playlist address (M3U)**. Or choose one of the three yourself
+   and fill it in by hand. You need your own subscription: the app does not
+   include channels or content. The dialog says as much on a first run and
+   links to these steps; the eye at the end of the password field shows what
+   was typed — a provider's password is long, random and entered by hand
+   exactly once. **Name (optional)** comes last.
+3. Press **Connect**. Unless the browser already allows that server, the
+   dialog says beforehand that the browser will now ask to let Kepuli-TV
+   reach it: choose **Allow**, which covers that server only. Refused, the dialog says so and that pressing **Connect**
+   again brings the question back. You can change your connection details
+   and the interface language later in **Settings**.
+
+Closed before a connection, the dialog leaves the welcome in the player with
+a **Connect to your provider** button, and the list says **Not connected yet**
+with the same button; the programme guide's button appears once there is a
+connection to show a guide for.
 
 ## Several accounts
 
@@ -26,8 +39,9 @@ changes it without switching to it. **Add account** puts a new row in the list
 with an empty form under it — an Xtream server or an M3U playlist, with a name
 of your choosing — and saving connects to it; **Cancel** in its row takes it
 away again. An Xtream server needs its server, user name and password; a
-playlist that needs no sign-in, such as a free one, goes under **Paste
-subscription URL (M3U)**. Once there are two, the top bar carries the
+playlist that needs no sign-in, such as a free one, goes under **Playlist
+address (M3U)**. A new account's form starts with the same **Paste the address
+your provider sent** field as the first run. Once there are two, the top bar carries the
 name of the account in use, and a click on it lists the others: one click
 switches. Each account keeps its own favourites, history, resume points,
 reminders and channel lists, and its own catalogue in the cache, so switching
@@ -114,6 +128,17 @@ The tab, the group within it and the chosen topic are also remembered as each
 list settles. That is the second route, and it is what opening the toolbar
 icon after the player's tab has been closed comes back to.
 
+Before there is anything to come back to — the first time an account's
+channels open — the list starts at the country your browser points to when
+the provider has it: the interface language you chose in **Settings**
+first, then your browser's languages, a region the browser names before the
+language's own country (Finnish opens Finland, Swedish Sweden, German for
+Austria Austria, Swedish for Finland Finland). US and British
+English say nothing about where you are, so with only those the list starts
+at the provider's first country, as it does when the provider has none of
+yours. Countries you have chosen with **Choose countries** start at the first
+of them instead.
+
 A search is a detour rather than a place: it stays out of the address, and
 reloading while one is running returns to the group the search took over from,
 which is where clearing the search would return anyway. Playback is not
@@ -155,6 +180,10 @@ the player actually arrives.
 At 600px wide or less, browsing and playback each use the full window width.
 Starting playback opens **Player**; **Browse** returns to the list while the
 stream continues. Starting a search or choosing a content tab also opens the list.
+There the programme guide's days have a row of their own, scrolling sideways,
+and its programme search shows the field and its button alone until the field
+is used, when the two choices that narrow the search come in under it.
+**Settings** keeps its sections at the top, above **Save**.
 
 ## Closing dialogs and cancelling loading
 
@@ -209,8 +238,24 @@ interrupted channel-list load restores the previous list.
   already opened, and shows the new list where you were. A tab left open
   checks by itself when you come back to it, once its lists are older than
   the cache keeps them.
-- If the connection fails, check the address and credentials in **Settings**
-  and make sure your subscription is still active.
+- If the connection fails, the message under **Connection failed** says
+  whose side the fault is likely on and what to try: the address and the
+  port, the user name and password (copied rather than typed), the
+  provider's server being down or overloaded, or the account itself. When
+  the browser has not allowed Kepuli-TV to reach the server, it says that
+  too, and **Allow access** comes first among the buttons.
+- When a stream does not start, the message names the controls as they read
+  on screen: **Auto** under the picture can be set to **TS** or **HLS**, and
+  the ☰ menu opens the stream in an external player. When the account turns
+  out to be the reason (run out, shut, or every connection in use), the
+  message says that instead, since another try or format would not help.
+- A playlist address that
+  answers with a web page or an error message rather than a playlist — a
+  login page, an expired-account notice — says **The address did not return
+  an M3U playlist.** instead of showing the page's lines as channels; a
+  plain list of full `http://` or `https://` stream addresses with no
+  `#EXTM3U` line is still read (addresses relative to the playlist's own
+  need the `#EXTM3U` line).
 - If cached information is outdated, clear the cache in Settings. Resetting
   everything also removes your saved connection details.
 - Report app bugs in [GitHub Issues](https://github.com/BigTimeSam/kepuli-tv/issues).
@@ -300,6 +345,7 @@ interrupted channel-list load restores the previous list.
 | Key | Action |
 | --- | --- |
 | `/` | go to the search box |
+| `Tab` | move between the areas of the page; the arrows move inside the sidebar, the tabs, the topics and the list |
 | `↑` `↓` `PgUp` `PgDn` | move in the list |
 | `Enter` | play / open a series |
 | `Backspace` | back to the series list |
@@ -334,10 +380,25 @@ when the setting moves under a running page. Measured, a 24px root gives 75px
 rows and text to match, with the virtualisation still landing every row where
 it belongs. A system asking for more contrast is answered too: the borders
 that separate one panel from the next go to 3.7:1 and the muted text to
-9.8:1.
+9.8:1. Every control the keyboard reaches shows the same focus ring, 2px in
+the accent's text colour, at 3:1 or more against what lies around it in both
+themes. Under Windows' forced colours (High Contrast) the chosen tab, group,
+topic and day, the list's cursor and the playing row are drawn as outlines and
+edges in the system's highlight colour, which the system keeps where it
+replaces backgrounds. The stars, the row's ⋯ and the topic chips answer a tap
+anywhere in a 24px square around them; on a touch screen the row's buttons are
+32px and the chips 2rem high.
 
-Tab reaches the three places that hold a cursor of their own, one stop each:
-the tab strip, the sidebar and the list. Inside the strip the arrows move
+The first Tab stop on the page is **Skip to the list**, which appears at the
+top left when the keyboard reaches it and takes the focus straight to the
+list. Tab reaches the places that hold a cursor of their own, one stop each:
+the tab strip, the sidebar, the topic chips and the list; inside the topic
+chips the left and right arrows move between them and `Home` and `End` reach
+the ends, and `Enter` or `space` chooses one. Help lists the Tab key too.
+For a screen reader the page has headings (Kepuli-TV, the list's tab and
+group, the player), the player is a named region, and the overlay's title is
+said together with the sentence under it, so "Connection failed" or
+"Playback failed" is heard and not only what follows it. Inside the strip the arrows move
 between **Channels**, **Movies**, **Series**, **Favourites** and **History**,
 and `Home` and `End` reach its ends; the panel below takes its name from
 whichever is chosen. Inside the sidebar the arrows move a cursor down the
@@ -345,7 +406,11 @@ countries or topics, `Home` and `End` reach its ends, and `Enter` or `space`
 chooses the row the cursor is on — the row being marked as the cursor's, which
 is a different thing from the group being shown. Both are listboxes, as the
 list itself already was, so a screen reader is told what the eye can see: which
-row is selected and which one the keyboard stands on.
+row is selected and which one the keyboard stands on. A row is named by what it
+shows — the name, then "Favourites" when it is one, then the line under it —
+rather than by the star in it, and the row playing is announced as the current
+one. In **Settings** the connection choices are one named group, and the
+password field is named **Password** alone.
 
 In the guide the arrows move between channels and programmes, `PgUp` and
 `PgDn` a screen at a time, `Home` returns to the present, `+` and `−` adjust
@@ -445,7 +510,9 @@ connection does not require its address to be pasted again when saving viewing
 preferences. Cache clearing and reset require a clean form and remain explicit
 actions, with a separate confirmation for reset.
 
-Before credentials exist, the tabs are hidden and **Connect** saves the initial
+Before credentials exist, the tabs are hidden, **Paste the address your
+provider sent** comes first, a line above the buttons says that the browser
+will ask for access to the server next, and **Connect** saves the initial
 connection. Otherwise the same **Save** action is available from every tab.
 
 In **Subtitles**, the style and size controls sit above the preview. The

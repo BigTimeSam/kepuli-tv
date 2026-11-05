@@ -63,7 +63,36 @@ function listOption(className, ctx) {
   row.setAttribute('aria-selected', String(Boolean(ctx.selected)));
   if (ctx.domId) row.id = ctx.domId;
   if (ctx.selected) row.classList.add('selected');
+  // The one that is on: said by a screen reader, not only shown in colour.
+  if (ctx.playing) {
+    row.classList.add('playing');
+    row.setAttribute('aria-current', 'true');
+  }
   return row;
+}
+
+/**
+ * An option's name, said as the viewer reads the row: the name first, then
+ * whether it is a favourite, then the line under it. Named from its content,
+ * an option took the star button's name in too, and the sidebar was read as
+ * "Add to favourites Denmark", "Add to favourites Finland"…, every row
+ * beginning with the same three words. The words are the ones on screen,
+ * joined; "favourite" is the Favourites tab's own name.
+ */
+function nameOption(option, parts) {
+  option.setAttribute('aria-label', parts.filter(Boolean).join(', '));
+  return option;
+}
+
+/**
+ * A button inside an option is out of reach of a screen reader anyway (an
+ * option holds no controls) and only spoiled the option's name; the keys do
+ * its work from the list (s for the star, the context-menu key for ⋯, Delete
+ * in the history). The pointer still has it.
+ */
+function quiet(button) {
+  button.setAttribute('aria-hidden', 'true');
+  return button;
 }
 
 /**
@@ -73,9 +102,8 @@ function listOption(className, ctx) {
  */
 export function itemRow(item, ctx) {
   const row = listOption('row', ctx);
-  if (ctx.playing) row.classList.add('playing');
 
-  row.appendChild(star(ctx.favorite, ctx.onFavorite));
+  row.appendChild(quiet(star(ctx.favorite, ctx.onFavorite)));
 
   if (ctx.compact) {
     // The favourites and the history mix every kind: one square for all of
@@ -102,11 +130,18 @@ export function itemRow(item, ctx) {
 
   // A compact row keeps the name whole: what the badges said is on the
   // line under it, and what the buttons did is in the menu.
-  if (!ctx.compact) for (const badge of badges(item, ctx)) row.appendChild(badge);
+  const spoken = [ctx.label || item.n, ctx.favorite ? t('favs.title') : null, sub?.textContent];
+  if (!ctx.compact) {
+    for (const [badge, words] of badges(item, ctx)) {
+      row.appendChild(badge);
+      spoken.push(words);
+    }
+  }
+  nameOption(row, spoken);
   if (item.k === 2) row.appendChild(el('div', 'row-chevron', '›'));
-  if (ctx.onRemove && !ctx.compact) row.appendChild(remove(ctx.removeTitle || t('row.remove.history'), ctx.onRemove));
+  if (ctx.onRemove && !ctx.compact) row.appendChild(quiet(remove(ctx.removeTitle || t('row.remove.history'), ctx.onRemove)));
   if (ctx.onMenu) {
-    row.appendChild(more(ctx.onMenu));
+    row.appendChild(quiet(more(ctx.onMenu)));
     row.addEventListener('contextmenu', (e) => { e.preventDefault(); ctx.onMenu({ x: e.clientX, y: e.clientY }); });
   }
 
@@ -125,7 +160,6 @@ export function itemRow(item, ctx) {
  */
 export function posterCard(item, ctx) {
   const card = listOption('row card', ctx);
-  if (ctx.playing) card.classList.add('playing');
   const cover = poster('card-poster', item.logo, item.k === 2 ? 'series' : 'movie');
   if (ctx.resume && ctx.resume.duration > 0) {
     const bar = el('div', 'row-progress resume');
@@ -135,7 +169,7 @@ export function posterCard(item, ctx) {
     cover.appendChild(bar);
   }
   card.appendChild(cover);
-  card.appendChild(star(ctx.favorite, ctx.onFavorite, 'row-star card-star'));
+  card.appendChild(quiet(star(ctx.favorite, ctx.onFavorite, 'row-star card-star')));
 
   const name = el('div', 'row-name card-name', ctx.label || item.n);
   name.title = item.n;
@@ -149,6 +183,7 @@ export function posterCard(item, ctx) {
   const seconds = item.k === 1 ? item.details?.durationSec || item.durationSec || ctx.resume?.duration : 0;
   if (Number.isFinite(seconds) && seconds > 0) bits.push(duration(seconds, { compact: true }));
   card.appendChild(el('div', 'card-meta', bits.join(', ') || '\u00a0'));
+  nameOption(card, [ctx.label || item.n, ctx.favorite ? t('favs.title') : null, bits.join(', ')]);
 
   card.addEventListener('click', ctx.onOpen);
   return card;
@@ -278,6 +313,7 @@ export const KIND_ICONS = {
   2: '<rect x="2.5" y="6" width="13" height="10.5" rx="1.8"/><path d="M5.5 3.5h11a1.5 1.5 0 0 1 1.5 1.5v8.5"/><path d="m8 9 4 2.25L8 13.5z"/>',
 };
 
+/** The badges, each with the words a screen reader says for it in the row's name. */
 function badges(item, ctx) {
   const out = [];
   // A channel's archive is not said here: it is used from the programme
@@ -286,7 +322,8 @@ function badges(item, ctx) {
   if (item.k === 1) {
     const seconds = item.details?.durationSec || item.durationSec || ctx.resume?.duration;
     if (Number.isFinite(seconds) && seconds > 0) {
-      out.push(explained(el('div', 'row-duration', duration(seconds, { compact: true })), t('title.duration')));
+      const text = duration(seconds, { compact: true });
+      out.push([explained(el('div', 'row-duration', text), t('title.duration')), `${t('title.duration')} ${text}`]);
     }
   }
   if (item.k === 3) {
@@ -294,10 +331,13 @@ function badges(item, ctx) {
     // badge inferred from an extension (including an unprobed MKV).
     const known = ctx.probe ? probeBadge(ctx.probe) : null;
     if (known) {
-      out.push(explained(el('div', `row-badge ${known.level}`, known.text), known.title));
+      out.push([explained(el('div', `row-badge ${known.level}`, known.text), known.title), known.title]);
     }
   }
-  if (item.k === 3) out.push(el('div', 'row-ep', `S${String(item.season).padStart(2, '0')}E${String(item.episode).padStart(2, '0')}`));
+  if (item.k === 3) {
+    const code = `S${String(item.season).padStart(2, '0')}E${String(item.episode).padStart(2, '0')}`;
+    out.push([el('div', 'row-ep', code), code]);
+  }
   if (ctx.tag) {
     const node = el('div', 'row-badge', ctx.tag.text);
     if (ctx.tag.icon === 'clock') {
@@ -305,7 +345,7 @@ function badges(item, ctx) {
       node.prepend(icon('<circle cx="10" cy="10" r="6.5"/><path d="M10 6.4V10l2.6 1.6"/>'));
     }
     if (ctx.tag.title) node.title = ctx.tag.title;
-    out.push(node);
+    out.push([node, ctx.tag.text]);
   }
   return out;
 }
@@ -326,7 +366,7 @@ export function categoryRow({ id, name, count, active, all, favorite, onFavorite
   row.setAttribute('aria-selected', String(Boolean(active)));
   // A starless row among starred ones reserves the same space, so that
   // its name does not start at a different offset from the rest.
-  if (onFavorite) row.appendChild(star(favorite, onFavorite, 'group-star'));
+  if (onFavorite) row.appendChild(quiet(star(favorite, onFavorite, 'group-star')));
   else if (indent) row.appendChild(el('div', 'group-star'));
   if (icon) {
     const mark = svgIcon(icon);
@@ -337,6 +377,7 @@ export function categoryRow({ id, name, count, active, all, favorite, onFavorite
   label.title = name;
   row.appendChild(label);
   if (count != null) row.appendChild(el('div', 'group-count', String(count)));
+  nameOption(row, [name, favorite ? t('favs.title') : null, count != null ? String(count) : null]);
   row.addEventListener('click', () => onSelect(id));
   return row;
 }
@@ -370,7 +411,7 @@ const LIST_ICON = '<svg viewBox="0 0 20 20" aria-hidden="true"><path d="M3.5 6h1
  */
 export function favCategoryRow(entry, ctx) {
   const row = listOption('row row-cat', ctx);
-  row.appendChild(star(true, ctx.onFavorite));
+  row.appendChild(quiet(star(true, ctx.onFavorite)));
 
   const icon = el('div', 'row-cat-icon');
   icon.innerHTML = LIST_ICON;
@@ -393,6 +434,7 @@ export function favCategoryRow(entry, ctx) {
     row.appendChild(badge);
   }
   row.appendChild(el('div', 'row-chevron', '›'));
+  nameOption(row, [entry.n, t('favs.title'), ctx.subtitle, ctx.count != null ? String(ctx.count) : null]);
 
   row.addEventListener('click', ctx.onOpen);
   return row;

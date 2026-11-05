@@ -11,10 +11,10 @@
 // through as it is, nothing else does.
 globalThis.MediaSource = { isTypeSupported: (type) => /mp4a\.40/.test(type) };
 
-import { parseServer, parsePlaylistUrl, directSource, serverStamp, timeshiftUrl, streamUrl } from '../js/xtream.js';
+import { parseServer, parsePlaylistUrl, pastedKind, directSource, serverStamp, timeshiftUrl, streamUrl } from '../js/xtream.js';
 import { safeUrl, decodeField, XtreamApi, ApiError } from '../js/api.js';
 import { playlist } from '../js/external.js';
-import { nameCleaner, labelCodes, countryCodes, searchKey, searchTerms, matchesTerms } from '../js/name.js';
+import { nameCleaner, labelCodes, countryCodes, searchKey, searchTerms, matchesTerms, homeCountryCodes, homeGroup, viewerTags } from '../js/name.js';
 import { Library, buildGroups, cacheTtl } from '../js/library.js';
 import { channelKey, internationalChannels, isNationalTopic } from '../js/international.js';
 import { unwrap, repeats, check as checkListings } from './listings.mjs';
@@ -147,6 +147,21 @@ check('subscription URL uses the HTTPS default port', parsePlaylistUrl('https://
 check('subscription URL requires both credentials', parsePlaylistUrl('https://example.test/get.php?username=u'), null);
 check('subscription URL rejects unsupported protocols', parsePlaylistUrl('ftp://example.test/get.php?username=u&password=p'), null);
 
+// The first field in Settings sends a pasted address to the form it
+// belongs to.
+check('a pasted address finds its way of connecting', [
+  'http://example.test:8080/get.php?username=u&password=p&type=m3u_plus',
+  ' https://example.test/player_api.php?username=u&password=p ',
+  'http://example.test:8080/c/',
+  'http://example.test/stalker_portal/c/index.html',
+  'http://example.test/portal.php',
+  'http://example.test/list.m3u8',
+  'https://example.test/get.php?username=u',
+  'example test',
+  'ftp://example.test/list.m3u',
+  '',
+].map(pastedKind), ['xtream', 'xtream', 'stalker', 'stalker', 'stalker', 'm3u', 'm3u', null, null, null]);
+
 /* ------------------------------------------------------- api.js: safeUrl */
 
 const TMDB = 'https://image.tmdb.org/t/p/w600_and_h900_bestv2';
@@ -248,6 +263,23 @@ check('nameCleaner with no items is null', nameCleaner(['Finland'], []), null);
 check('a label names its country', labelCodes('Finland'), ['fi', 'fin']);
 check('a label that is the code the provider writes', labelCodes('FI'), ['fi', 'fin']);
 check('a code further along a label is a word', labelCodes('Movies in English'), []);
+{
+  // The first country a new account's channels open at.
+  const groups = ['Canada', 'United Kingdom', 'Finland', 'FI| Finland VIP', 'Sverige', 'Österreich', 'USA'].map((name) => ({ name }));
+  check('home country: the browser\'s language', homeGroup(groups, ['fi']), 'Finland');
+  check('home country: a region before its language, English included', [homeGroup(groups, ['de-AT', 'de']), homeGroup(groups, ['en-FI', 'fi-FI']), homeGroup(groups, ['en-SE'])], ['Österreich', 'Finland', 'Sverige']);
+  check('home country: US and British English say nothing, the next language does', [homeGroup(groups, ['en-US', 'sv']), homeGroup(groups, ['en-GB', 'en-US', 'en', 'fi'])], ['Sverige', 'Finland']);
+  check('home country: British English is not the United Kingdom', homeGroup(groups, ['en-GB', 'en']), 'Canada');
+  check('home country: none of the browser\'s countries, the first group', [homeGroup(groups, ['en-US', 'en']), homeGroup(groups, ['ja-JP']), homeGroup(groups, [])], ['Canada', 'Canada', 'Canada']);
+  check('home country: no groups', homeGroup([], ['fi']), null);
+  // What the app hands homeGroup: with the interface language on "auto" the
+  // browser's region must still win over its language's country.
+  const fromSettings = (lang, langs) => homeGroup(groups, viewerTags(lang, langs));
+  check('home country: an automatic interface language does not hide the region', [fromSettings('auto', ['de-AT', 'de']), fromSettings(undefined, ['sv-FI', 'sv']), fromSettings('auto', ['en-SE', 'en'])], ['Österreich', 'Finland', 'Sverige']);
+  check('home country: a language chosen in Settings leads', [fromSettings('sv', ['de-AT', 'de']), fromSettings('fi', ['en-US', 'en'])], ['Sverige', 'Finland']);
+  check('home country: the tags handed on', [viewerTags('auto', ['de-AT', 'de']), viewerTags('fi', ['en-GB']), viewerTags(undefined, undefined)], [['de-AT', 'de'], ['fi', 'en-GB'], []]);
+  check('home country: the codes in order, a script skipped, a number no region', homeCountryCodes(['sr-Latn-RS', 'pt-PT', 'nb', 'es-419', 'en-US', 'en']), ['rs', 'pt', 'br', 'no', 'es']);
+}
 check('a whole country name only, for a folder', countryCodes('world latin america'), []);
 check('a folder that is a country', countryCodes('finland'), ['fi', 'fin']);
 check('a code is not a name', countryCodes('fi'), []);
@@ -1165,6 +1197,14 @@ const { outgoingAccounts, incomingAccounts, joinRecents, joinResume, joinFavorit
   check('m3u: #EXTGRP when there is no group-title', entries[2].group, 'From EXTGRP');
   check('m3u: an address with no #EXTINF is named after its file', entries[3].name, 'bare.mp4');
   check('m3u: what is not http(s) is left out', entries.length, 4);
+  // A provider's page or error where the playlist should be: no entries,
+  // so that the viewer is told the address did not return a playlist.
+  check('m3u: an HTML page is no playlist', parseM3u('<!doctype html>\n<html>\n<head><title>Stalker</title></head>\n<body>Not found</body></html>\n', 'http://x.test/a.m3u').entries, []);
+  check('m3u: a JSON error is no playlist', parseM3u('{"user_info":{"auth":0},"message":"Account expired"}', 'http://x.test/get.php?type=m3u').entries, []);
+  check('m3u: a line of text is no playlist', parseM3u('Account expired\n', 'http://x.test/a.m3u').entries, []);
+  check('m3u: markup is no address even after the header', parseM3u('#EXTM3U\n#EXTINF:-1,A\n<b>gone</b>\nhttp://s.example/1\n', 'http://x.test/a.m3u').entries.map((e) => [e.name, e.url]), [['A', 'http://s.example/1']]);
+  check('m3u: a list of bare http addresses with no header still plays', parseM3u('http://s.example/live/1.ts\r\nhttps://s.example/films/Heat.mp4\r\n', 'http://x.test/a.m3u').entries.map((e) => e.url),
+    ['http://s.example/live/1.ts', 'https://s.example/films/Heat.mp4']);
   check('m3u: #EXTINF duration and title', parseExtinf('#EXTINF:5400 tvg-name="x",Film'), { duration: 5400, attrs: { 'tvg-name': 'x' }, title: 'Film' });
 }
 check('m3u: a panel\'s live, movie and series addresses', [
