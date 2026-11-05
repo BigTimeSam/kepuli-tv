@@ -1,5 +1,5 @@
 #!/bin/sh
-# Builds vendor/ffaudio/: FFmpeg's AC-3, E-AC-3 and DTS decoders as wasm.
+# Builds vendor/ffaudio/: FFmpeg's AC-3, E-AC-3 and DTS decoders and its AAC encoder as wasm.
 #
 # The build is not part of the ordinary development loop — the result is
 # committed to vendor/ffaudio/, and this is run only when FFmpeg is updated
@@ -50,8 +50,8 @@ if [ -d "$FF/.git" ] && [ "$(git -C "$FF" rev-parse HEAD)" != "$(git -C "$FF" re
     exit 1
 fi
 
-# --disable-all strips everything; only the three decoders, their parsers
-# and swresample are taken in. No muxers, no protocols. No GPL parts: the
+# --disable-all strips everything; only the three decoders, their parsers,
+# the AAC encoder and swresample are taken in. No muxers, no protocols. No GPL parts: the
 # result is LGPL 2.1+.
 echo "--> configure"
 ( cd "$FF" && ./configure \
@@ -62,7 +62,7 @@ echo "--> configure"
     --disable-pthreads --disable-w32threads --disable-os2threads \
     --disable-stripping --disable-runtime-cpudetect \
     --enable-avcodec --enable-avutil --enable-swresample \
-    --enable-decoder=ac3,eac3,dca --enable-parser=ac3,dca \
+    --enable-decoder=ac3,eac3,dca --enable-parser=ac3,dca --enable-encoder=aac \
     --enable-small >/dev/null )
 
 echo "--> make"
@@ -78,8 +78,8 @@ emcc "$ROOT/dev/wasm/ffaudio.c" -I"$FF" \
     -sMODULARIZE=1 -sEXPORT_ES6=1 -sEXPORT_NAME=createFfAudio \
     -sENVIRONMENT=web,worker,node -sALLOW_MEMORY_GROWTH=1 -sFILESYSTEM=0 \
     -sASSERTIONS=0 -sSTACK_SIZE=524288 \
-    -sEXPORTED_FUNCTIONS=_fa_open,_fa_close,_fa_decode,_fa_flush,_fa_output,_fa_channels,_fa_sample_rate,_fa_take,_malloc,_free \
-    -sEXPORTED_RUNTIME_METHODS=HEAPU8,HEAPF32 \
+    -sEXPORTED_FUNCTIONS=_fa_open,_fa_close,_fa_decode,_fa_flush,_fa_output,_fa_channels,_fa_sample_rate,_fa_take,_fe_open,_fe_close,_fe_encode,_fe_flush,_fe_output,_fe_sizes,_fe_take,_fe_delay,_fe_config,_fe_config_size,_malloc,_free \
+    -sEXPORTED_RUNTIME_METHODS=HEAPU8,HEAPF32,HEAP32 \
     -o "$OUT/ffaudio.js"
 
 ls -l "$OUT"

@@ -243,7 +243,8 @@ interrupted channel-list load restores the previous list.
 - **Movie details**: plot, running time, rating, codec
 - **MKV plays** without an external player: the container is unpacked on the
   fly into fMP4, seeking included, and an AC-3, E-AC-3 or DTS track is
-  decoded in the player — in Firefox too. For the few tracks
+  decoded in the player — in Firefox too, and in Firefox for Android, which
+  has no audio encoder of its own and gets the player's. For the few tracks
   that are not decoded, **Play without sound** is on offer
 - **Subtitles** from MKV files, drawn by the player in a look of your choosing
   — shadow, outline, yellow, box or high contrast, at a size of your choosing

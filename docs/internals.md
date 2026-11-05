@@ -563,7 +563,7 @@ vendored build is minified — the track that comes is the track that plays.
 ### Decoding the audio track
 
 The decoder is FFmpeg's own, built as wasm (`vendor/ffaudio`, LGPL 2.1+,
-628 kB). A hand-written AC-3 decoder would cover only part of it: E-AC-3 is not
+712 kB with the AAC encoder below). A hand-written AC-3 decoder would cover only part of it: E-AC-3 is not
 the same bitstream but adds AHT, spectral extension and substreams, and DTS is a
 third separate one. The build is `dev/wasm/build.sh`, and `--test` compares the
 output with ffmpeg's own from the same bitstream — in every case the difference
@@ -595,6 +595,17 @@ wasm decoder's own reference. Two measured constraints set the format:
   encoded and decoded back with the browser's own decoder. Measured, the chain
   lands sample-accurate with either encoder and does not creep at all over 60
   seconds.
+
+A browser with no WebCodecs encoder at all — Firefox for Android 152, which
+showed an AC-3 episode as "no encoder" and would have played it silent — gets
+FFmpeg's own AAC encoder from the same wasm module, last in the order because it
+runs on the page's thread (80–95x real time on an M1 Max with the fast coder,
+which beat FFmpeg's default two-loop search on both speed and SNR for speech and
+music). Its priming is its own report, `initial_padding`, 1024 samples, and
+`dev/wasm/verify.mjs` checks it: the frames, decoded with ffmpeg, put the
+impulse exactly that late. It encodes while it is called, so instead of waiting
+on a queue it yields the thread every 12 ms. `node dev/playcheck.mjs wasmaudio`
+plays the AC-3 episode with WebCodecs removed.
 
 Back pressure is handled by waiting rather than flushing: `flush()` forces the
 encoder to emit a partial frame padded with silence, and the frame chain would

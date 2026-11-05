@@ -8,7 +8,7 @@ written. No application bundler or minifier runs.
 
 ## Environment
 
-The original decoder was built on macOS, ARM64, with Emscripten **6.0.9**.
+The original audio module (the decoders and the AAC encoder) was built on macOS, ARM64, with Emscripten **6.0.9**.
 The clean-source reproducibility check uses macOS 26.5.1, ARM64. Linux builds are supported
 by the script but have not yet been checked for byte-for-byte reproducibility.
 Use Node.js 22 or later for packaging (tested with 24.16.0), Python 3, Git,

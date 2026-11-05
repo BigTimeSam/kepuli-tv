@@ -4,7 +4,7 @@
 | --- | --- | --- |
 | `hls.js` | HLS playback | Apache-2.0 |
 | `mpegts.js` | MPEG-TS live playback | Apache-2.0 |
-| `ffaudio/ffaudio.js`, `ffaudio.wasm` | AC-3, E-AC-3 and DTS decoders built from FFmpeg n7.1.1 with Emscripten | LGPL-2.1+ (`COPYING.LGPLv2.1`, `LICENSE`) |
+| `ffaudio/ffaudio.js`, `ffaudio.wasm` | AC-3, E-AC-3 and DTS decoders and the AAC encoder built from FFmpeg n7.1.1 with Emscripten | LGPL-2.1+ (`COPYING.LGPLv2.1`, `LICENSE`) |
 
 ## Rules
 

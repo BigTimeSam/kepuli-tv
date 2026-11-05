@@ -72,6 +72,9 @@
 //                                     mid-playback without stopping the
 //                                     picture, and a remembered Finnish opens
 //                                     the next playback on the Finnish track
+//   node dev/playcheck.mjs wasmaudio  without WebCodecs (Firefox for Android)
+//                                     the AC-3 episode still sounds, encoded
+//                                     to AAC by the wasm module
 //   node dev/playcheck.mjs settings   the settings dialog: drafts save on
 //                                     demand without reconnecting, a slider
 //                                     drag released outside does not close
@@ -1868,6 +1871,29 @@ async function subtitles(page) {
   return { ok: true, detail: `one box for ${first.active} cue, two lines in one box, the selector switches track and off without a word of complaint, full screen on ${full.element} with ${full.render} subtitles, ${remembered.showing[0]} remembered for the next episode, the movie says "No subtitles"` };
 }
 
+// The loudest tone the video element plays, measured through an
+// AnalyserNode rather than assumed from the route the player chose.
+const TONE = `(() => {
+  const v = document.getElementById('video');
+  if (!window.__tone) {
+    const ctx = new AudioContext();
+    const analyser = ctx.createAnalyser();
+    analyser.fftSize = 8192;
+    // The element has to stay connected to the destination as well, or
+    // it falls silent the moment Web Audio takes its output.
+    ctx.createMediaElementSource(v).connect(analyser);
+    analyser.connect(ctx.destination);
+    window.__tone = { ctx, analyser, data: new Float32Array(analyser.frequencyBinCount) };
+  }
+  const { ctx, analyser, data } = window.__tone;
+  return ctx.resume().then(() => new Promise((done) => setTimeout(() => {
+    analyser.getFloatFrequencyData(data);
+    let peak = 1;
+    for (let i = 2; i < data.length; i++) if (data[i] > data[peak]) peak = i;
+    done({ hz: Math.round((peak * ctx.sampleRate) / analyser.fftSize), db: Math.round(data[peak]) });
+  }, 1200)));
+})()`;
+
 /**
  * Which audio track is heard. The demo episode's three tracks each carry a
  * tone of their own — English 440 Hz, Finnish 660 Hz, the English AC-3
@@ -1880,30 +1906,10 @@ async function subtitles(page) {
  * Finnish track, and the commentary must not be picked either way.
  */
 async function audio(page, { requests, target }) {
-  const MEASURE = `(() => {
-    const v = document.getElementById('video');
-    if (!window.__tone) {
-      const ctx = new AudioContext();
-      const analyser = ctx.createAnalyser();
-      analyser.fftSize = 8192;
-      // The element has to stay connected to the destination as well, or
-      // it falls silent the moment Web Audio takes its output.
-      ctx.createMediaElementSource(v).connect(analyser);
-      analyser.connect(ctx.destination);
-      window.__tone = { ctx, analyser, data: new Float32Array(analyser.frequencyBinCount) };
-    }
-    const { ctx, analyser, data } = window.__tone;
-    return ctx.resume().then(() => new Promise((done) => setTimeout(() => {
-      analyser.getFloatFrequencyData(data);
-      let peak = 1;
-      for (let i = 2; i < data.length; i++) if (data[i] > data[peak]) peak = i;
-      done({ hz: Math.round((peak * ctx.sampleRate) / analyser.fftSize), db: Math.round(data[peak]) });
-    }, 1200)));
-  })()`;
 
   const heard = async (index) => {
     await playEpisode(page, index);
-    const tone = await evaluate(page, MEASURE);
+    const tone = await evaluate(page, TONE);
     return tone;
   };
 
@@ -1940,7 +1946,7 @@ async function audio(page, { requests, target }) {
   await evaluate(page, `(() => { const s = document.getElementById('audio');
     s.value = [...s.options].find((o) => /Finnish/.test(o.textContent)).value;
     s.dispatchEvent(new Event('change')); return true; })()`, { gesture: true });
-  const switched = await evaluate(page, MEASURE);
+  const switched = await evaluate(page, TONE);
   const after = await videoState(page);
   if (Math.abs(switched.hz - 660) > 12) return { ok: false, detail: `after the change it sounds at ${switched.hz} Hz (${switched.db} dB), expected 660 Hz` };
   if (after.paused || after.t <= before.t) return { ok: false, detail: `the picture stopped at ${after.t} s (it was at ${before.t} s)` };
@@ -1950,7 +1956,7 @@ async function audio(page, { requests, target }) {
   await evaluate(page, `(() => { const s = document.getElementById('audio');
     s.value = [...s.options].find((o) => /Commentary/.test(o.textContent)).value;
     s.dispatchEvent(new Event('change')); return true; })()`, { gesture: true });
-  const commentary = await evaluate(page, MEASURE);
+  const commentary = await evaluate(page, TONE);
   if (Math.abs(commentary.hz - 880) > 12) return { ok: false, detail: `the commentary sounds at ${commentary.hz} Hz (${commentary.db} dB), expected 880 Hz` };
 
   // The remembered language, as the settings hold it between episodes.
@@ -3005,8 +3011,9 @@ async function quota(page) {
  * #22: an archive programme whose server stops sending and keeps the
  * connection open, which raises nothing in mpegts.js. Paused by the viewer
  * meanwhile, nothing may be said; played on, the picture runs out the
- * buffer and stops, and the player must say so with Retry — which plays
- * the programme again — rather than leave a still picture.
+ * buffer and stops, and the player must say so — with the external
+ * player on offer and the row's ↻, which plays the programme again from
+ * where it stopped — rather than leave a still picture.
  */
 async function catchupfreeze(page, { requests }) {
   process.env.KEPULI_MOCK_HANG_AT = String(3 * 1024 * 1024);
@@ -3022,12 +3029,12 @@ async function catchupfreeze(page, { requests }) {
     await waitFor(page, `${OVERLAY_TITLE} === 'Playback failed'`, 'the frozen picture reported', 90000);
     const said = await videoState(page);
     const took = ((Date.now() - t0) / 1000).toFixed(0);
-    if (!/froze/.test(said.overlay) || !said.actions.includes('Try again')) return { ok: false, detail: `after ${took} s: "${said.overlay}" ${said.actions.join(' / ')}` };
+    if (!/froze/.test(said.overlay) || !said.actions.includes('Open in an external player')) return { ok: false, detail: `after ${took} s: "${said.overlay}" ${said.actions.join(' / ')}` };
     const archive = requests.filter((r) => r.startsWith('/timeshift/')).length;
-    await evaluate(page, `[...document.querySelectorAll('#overlay button')].find((b) => b.textContent === 'Try again').click()`, { gesture: true });
-    await waitFor(page, PLAYING, 'the programme after Try again', 40000);
+    await evaluate(page, `document.getElementById('btn-reload').click()`, { gesture: true });
+    await waitFor(page, PLAYING, 'the programme after ↻', 40000);
     const again = requests.filter((r) => r.startsWith('/timeshift/')).length - archive;
-    return { ok: again > 0, detail: `no word while paused 40 s; played on, "${said.overlay}" after ${took} s, with ${said.actions.join(' / ')}; Try again asked the archive ${again} time(s) and plays` };
+    return { ok: again > 0, detail: `no word while paused 40 s; played on, "${said.overlay}" after ${took} s, with ${said.actions.join(' / ')}; ↻ asked the archive ${again} time(s) and plays` };
   } finally {
     process.env.KEPULI_MOCK_HANG_AT = '';
   }
@@ -3060,7 +3067,7 @@ async function catchupfull(page) {
     await sleep(1000);
   }
   const full = await evaluate(page, 'window.__quota');
-  const ok = Boolean(full && last.overlay && /froze/.test(last.overlay) && last.actions.includes('Try again'));
+  const ok = Boolean(full && last.overlay && /froze/.test(last.overlay) && last.actions.includes('Open in an external player'));
   return { ok, detail: `${full} full-buffer refusals; picture stopped near ${frozeAt ?? last.t} s; after ${((Date.now() - t0) / 1000).toFixed(0)} s: ${last.overlay ? `"${last.overlay}" ${last.actions.join(' / ')}` : 'no word'}` };
 }
 
@@ -3967,6 +3974,34 @@ async function pseudoViews(page, plain) {
 }
 
 /**
+ * The browser has no WebCodecs encoder, as Firefox for Android 152 has
+ * none: the AC-3 episode must still play with sound, decoded and encoded
+ * to AAC in wasm, instead of the "no encoder" overlay it gave before.
+ */
+async function wasmaudio(page, { target }) {
+  if (!DEVTOOLS_PORT) return { ok: true, detail: 'skipped in Firefox: needs a script set before the page loads, which the Marionette driver does not offer' };
+  await page.call('Page.enable');
+  const { identifier } = await page.call('Page.addScriptToEvaluateOnNewDocument', { source: `delete globalThis.AudioEncoder; delete globalThis.AudioDecoder;` });
+  try {
+    await page.call('Page.navigate', { url: bare(target.url) });
+    await sleep(1000);
+    await waitFor(page, CONNECTED, 'the connection without WebCodecs');
+    const gone = await evaluate(page, `typeof AudioEncoder`);
+    if (gone !== 'undefined') return { ok: false, detail: `AudioEncoder is still ${gone}` };
+    await playEpisode(page, 1);
+    const state = await videoState(page);
+    const tone = await evaluate(page, TONE);
+    // The episode's channels sound at 880 (the beep), 330, 60, 440 and
+    // 550 Hz; any of them loud enough is the decoded track arriving.
+    const heard = [880, 330, 440, 550, 60].some((hz) => Math.abs(tone.hz - hz) <= 12) && tone.db > -70;
+    if (state.overlay || !heard) return { ok: false, detail: `"${state.overlay || ''}" ${(state.actions || []).join(' / ')}; loudest ${tone.hz} Hz at ${tone.db} dB` };
+    return { ok: true, detail: `without WebCodecs the AC-3 episode plays at ${state.t} s and sounds at ${tone.hz} Hz (${tone.db} dB): the wasm AAC encoder took the decoded track` };
+  } finally {
+    await page.call('Page.removeScriptToEvaluateOnNewDocument', { identifier });
+  }
+}
+
+/**
  * The time from opening the player to its first channel rows, with the
  * catalogue cache empty (a new install, or a cache dropped by Refresh) and
  * with it full (every later start). The moment is taken in the page itself:
@@ -4120,7 +4155,7 @@ async function soak(page) {
   return { ok: true, detail };
 }
 
-const SCENARIOS = { buffering, livebuffering, filmbuffering, emptyfile, tsasmp4, refusedfile, badgateway, livebadgateway, channelrefused, noanswer, longfilm, catalogUi, setupClarity, fullscreenControl, clickpause, pickers, channels, home, resumemkv, restore, programmes, catchup, seek, death, cancel, timeout, search, paste, keys, switching, resume, connections, livezap, livequiet, reconnect, accounts, listerror, a11y, subtitles, audio, settings,
+const SCENARIOS = { buffering, livebuffering, filmbuffering, emptyfile, tsasmp4, refusedfile, badgateway, livebadgateway, channelrefused, noanswer, longfilm, catalogUi, setupClarity, fullscreenControl, clickpause, pickers, channels, home, resumemkv, restore, programmes, catchup, seek, death, cancel, timeout, search, paste, keys, switching, resume, connections, livezap, livequiet, reconnect, accounts, listerror, a11y, subtitles, audio, wasmaudio, settings,
   lastchannel, nextepisode, continuewatching, reminders, update, seeklag, cuesretry, quota, catchupfreeze, catchupfull, twotabs, switchstop, resettabs,
   refresh, restorenav, guidekeep, m3u, sync, holes, picks, flakyserver, accountform, stalker, record, guidefavs, categories, noleak, perf, pseudo, startup, soak };
 // The mock's whole-list answers stall for these, longer than the request limit.

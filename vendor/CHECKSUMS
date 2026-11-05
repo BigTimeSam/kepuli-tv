@@ -2,8 +2,8 @@
 # Checked by node dev/vendorcheck.mjs (CI, dev/release.mjs); rewritten only for a
 # deliberate upgrade with node dev/vendorcheck.mjs --update. See vendor/AGENTS.md.
 b634ab5640e258563c536e658cad87080553df6f34f62269a21d554844e58bfe  ffaudio/COPYING.LGPLv2.1  FFmpeg n7.1.1, Emscripten 6.0.9 (dev/wasm/build.sh)
-0111abc3fe60a53ed315627a9380d274320edfe2a3a0f0b7405009b739f70c46  ffaudio/LICENSE  FFmpeg n7.1.1, Emscripten 6.0.9 (dev/wasm/build.sh)
-ce7cd66248339b2a48bdba5e8b3cf4dc20f5597c3ab0d34d85e9f76a9ba35497  ffaudio/ffaudio.js  FFmpeg n7.1.1, Emscripten 6.0.9 (dev/wasm/build.sh)
-b085a46b2e0c5c8303157c3a5590c681f6e7217c742a89207422e08061ec3a0c  ffaudio/ffaudio.wasm  FFmpeg n7.1.1, Emscripten 6.0.9 (dev/wasm/build.sh)
+650d2d91fa1a15fa035d06eb6e3a37802cdf548f6cdead1b4377b76762a927ad  ffaudio/LICENSE  FFmpeg n7.1.1, Emscripten 6.0.9 (dev/wasm/build.sh)
+b9a1961eb5d910648091cd43c1d030e8358db473ed95cad289074ee868d8a371  ffaudio/ffaudio.js  FFmpeg n7.1.1, Emscripten 6.0.9 (dev/wasm/build.sh)
+d5cf5b48d16e5df591bc5f1509d1571fb2c5d7f9652680c7881b8678aa9e6cb1  ffaudio/ffaudio.wasm  FFmpeg n7.1.1, Emscripten 6.0.9 (dev/wasm/build.sh)
 937e88130e87ad49eda6c7f108e93e42c227558c6d8b4d5b53ddb4e4307a32cc  hls.js  hls.js 1.6.5
 e998f7a6cec5fcab56ac14e8c22d61a42565c1ebf7174b3fda078343eda6cab0  mpegts.js  mpegts.js 1.8.0

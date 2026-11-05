@@ -17,6 +17,16 @@
 // container side of the choice is in mp4.js: an mp4a entry with the esds
 // for AAC, an Opus entry with the dOps for Opus.
 //
+// Last comes FFmpeg's own AAC encoder in the wasm module (ffaudio.js), for
+// a browser with no WebCodecs encoder at all: Firefox for Android 152 on a
+// Galaxy Tab S8+ has no WebCodecs whatsoever (measured: AudioEncoder and
+// AudioDecoder undefined), said "no encoder" to an AC-3 episode and would
+// have played it silent.
+// It is the last resort rather than the first because it runs on the
+// page's own thread, where WebCodecs encodes elsewhere: measured on an
+// M1 Max, 80–95x real time on speech and music, against the decoder's
+// 150–1300x.
+//
 // Two measured constraints set the format:
 //
 //   - The AAC encoder accepts only 44,100 and 48,000 Hz. AC-3 also allows
@@ -36,7 +46,7 @@
 // 960 (20 ms), and the chain starts from the first block's PTS minus the
 // priming delay.
 
-import { PcmDecoder, decodable } from './ffaudio.js';
+import { AacEncoder, PcmDecoder, decodable } from './ffaudio.js';
 
 export const RATE = 48000;
 export const CHANNELS = 2;
@@ -51,6 +61,10 @@ export const ENCODERS = [
   { name: 'opus', codec: 'opus', mime: 'opus', frame: 960 },
 ];
 
+// The wasm encoder, which produces what WebCodecs' AAC does: the same
+// sample entry, the same frame, the same MediaSource type.
+export const WASM_AAC = { name: 'aac', codec: 'mp4a.40.2', mime: 'mp4a.40.2', frame: 1024, wasm: true };
+
 // A jump in timestamps larger than this is not jitter but a gap, or a
 // resume after an interrupted download: the chain restarts.
 const GAP_NS = 250e6;
@@ -59,6 +73,11 @@ const GAP_NS = 250e6;
 // the whole buffered minute would be pushed at the encoder in one go.
 const MAX_QUEUE = 32;
 const QUEUE_POLL_MS = 4;
+
+// The wasm encoder has no queue: it works while it is called. After this
+// long without a break it hands the thread back for a moment, so that the
+// player's controls stay responsive while a minute is being buffered.
+const WASM_SLICE_MS = 12;
 
 function encoderConfig(encoder) {
   const config = { codec: encoder.codec, sampleRate: RATE, numberOfChannels: CHANNELS, bitrate: BITRATE };
@@ -95,22 +114,38 @@ export function encoderSetup() {
 }
 
 async function choose() {
-  if (typeof AudioEncoder === 'undefined' || typeof AudioDecoder === 'undefined') return { setup: null, retry: false };
   if (typeof MediaSource === 'undefined') return { setup: null, retry: false };
   let tried = false;
-  for (const encoder of ENCODERS) {
-    try {
-      if (!MediaSource.isTypeSupported(`audio/mp4; codecs="${encoder.mime}"`)) continue;
-      const check = await AudioEncoder.isConfigSupported(encoderConfig(encoder));
-      if (!check || !check.supported) continue;
-      tried = true;
-      const { delay, description } = await measure(encoder);
-      return { setup: { encoder, delay, description }, retry: false };
-    } catch (err) {
-      console.warn(`[iptv] the ${encoder.name} encoder is not usable`, err);
+  if (typeof AudioEncoder !== 'undefined' && typeof AudioDecoder !== 'undefined') {
+    for (const encoder of ENCODERS) {
+      try {
+        if (!MediaSource.isTypeSupported(`audio/mp4; codecs="${encoder.mime}"`)) continue;
+        const check = await AudioEncoder.isConfigSupported(encoderConfig(encoder));
+        if (!check || !check.supported) continue;
+        tried = true;
+        const { delay, description } = await measure(encoder);
+        return { setup: { encoder, delay, description }, retry: false };
+      } catch (err) {
+        console.warn(`[iptv] the ${encoder.name} encoder is not usable`, err);
+      }
     }
   }
-  return { setup: null, retry: tried };
+  if (!MediaSource.isTypeSupported(`audio/mp4; codecs="${WASM_AAC.mime}"`)) return { setup: null, retry: tried };
+  try {
+    // The delay is the encoder's own report, FFmpeg's initial_padding,
+    // and needs no round trip: dev/wasm/verify.mjs decodes the frames with
+    // ffmpeg and finds the impulse exactly that late.
+    const probe = await AacEncoder.open(RATE, BITRATE);
+    const setup = { encoder: WASM_AAC, delay: probe.delay, description: probe.config };
+    probe.close();
+    return { setup, retry: false };
+  } catch (err) {
+    // The module failed to load or to open the encoder. A load can fail on
+    // a network hiccup in a moz-extension page as little as anywhere, so
+    // the next track asks again.
+    console.warn('[iptv] the wasm AAC encoder is not usable', err);
+    return { setup: null, retry: true };
+  }
 }
 
 /** The encoder alone, or null. */
@@ -237,10 +272,11 @@ export class AudioTranscoder {
     const setup = await encoderSetup();
     if (!setup) throw new Error('the browser has neither an AAC nor an Opus encoder');
     const decoder = await PcmDecoder.open(codecId, RATE);
-    return new AudioTranscoder(decoder, setup.encoder, setup.delay, setup.description, onError);
+    const backend = setup.encoder.wasm ? new WasmBackend(await AacEncoder.open(RATE, BITRATE)) : new WebCodecsBackend(setup.encoder);
+    return new AudioTranscoder(decoder, backend, setup.encoder, setup.delay, setup.description, onError);
   }
 
-  constructor(decoder, encoder, delay, description, onError) {
+  constructor(decoder, backend, encoder, delay, description, onError) {
     this.decoder = decoder;
     this.codec = encoder.name;        // 'aac' or 'opus': the sample entry mp4.js writes
     this.mime = encoder.mime;         // what MediaSource is asked for
@@ -255,21 +291,20 @@ export class AudioTranscoder {
     this.nextDts = 0;
     this.closed = false;
 
-    this.encoder = new AudioEncoder({
-      output: (chunk) => this.collect(chunk),
-      error: (err) => { if (!this.closed) this.onError(err); },
-    });
-    this.encoder.configure(encoderConfig(encoder));
+    this.backend = backend;
+    backend.start(
+      (data) => this.collect(data),
+      (err) => { if (!this.closed) this.onError(err); },
+    );
   }
 
-  collect(chunk) {
+  /** @param {Uint8Array} data one encoded frame */
+  collect(data) {
     const dts = this.nextDts;
     this.nextDts += this.frame;
     // A negative time is the encoder's priming at the start of the file:
     // there is no audio in it yet, and MediaSource would not take it.
     if (dts < 0) return;
-    const data = new Uint8Array(chunk.byteLength);
-    chunk.copyTo(data);
     this.chunks.push({ data, dts, duration: this.frame });
   }
 
@@ -310,22 +345,16 @@ export class AudioTranscoder {
    * only to a chain change and to the end of a track.
    */
   async waitForQueue() {
-    while (!this.closed && this.encoder.encodeQueueSize > MAX_QUEUE) {
-      await new Promise((resolve) => setTimeout(resolve, QUEUE_POLL_MS));
-    }
+    if (!this.closed) await this.backend.settle(() => this.closed);
   }
 
   feed(pcm) {
     const length = pcm.length / CHANNELS;
     if (!length) return;
-    this.encoder.encode(new AudioData({
-      format: 'f32', sampleRate: RATE, numberOfFrames: length, numberOfChannels: CHANNELS,
-      // The encoder requires an increasing timestamp. It is computed from
-      // the samples fed rather than from the block PTS, which is not
-      // exactly continuous.
-      timestamp: Math.round((this.fed * 1e6) / RATE),
-      data: pcm,
-    }));
+    // The encoder requires an increasing timestamp. It is computed from the
+    // samples fed rather than from the block PTS, which is not exactly
+    // continuous.
+    this.backend.encode(pcm, Math.round((this.fed * 1e6) / RATE));
     this.fed += length;
     this.chainSamples += length;
   }
@@ -333,7 +362,7 @@ export class AudioTranscoder {
   /** Waits until the encoder has emitted everything that was fed in. */
   async drain() {
     if (this.closed) return;
-    try { await this.encoder.flush(); } catch (err) { if (!this.closed) this.onError(err); }
+    try { await this.backend.flush(); } catch (err) { if (!this.closed) this.onError(err); }
   }
 
   /** End of track: the decoder's tail to the encoder, then drain it. */
@@ -363,7 +392,99 @@ export class AudioTranscoder {
     if (this.closed) return;
     this.closed = true;
     this.chunks = [];
-    try { this.encoder.close(); } catch { /* jo suljettu */ }
+    this.backend.close();
     this.decoder.close();
+  }
+}
+
+/* ---------------------------------------------------------- the encoders */
+
+// The two encoders behind one shape: start() with the frame and error
+// callbacks, encode() interleaved PCM, settle() before more is fed,
+// flush() at a chain change or the end, close(). A frame reaches the
+// callback in order, as a Uint8Array of its own.
+
+/** The browser's WebCodecs encoder, AAC or Opus. */
+class WebCodecsBackend {
+  constructor(encoder) {
+    this.config = encoderConfig(encoder);
+    this.encoder = null;
+  }
+
+  start(onFrame, onError) {
+    this.encoder = new AudioEncoder({
+      output: (chunk) => {
+        const data = new Uint8Array(chunk.byteLength);
+        chunk.copyTo(data);
+        onFrame(data);
+      },
+      error: onError,
+    });
+    this.encoder.configure(this.config);
+  }
+
+  encode(pcm, timestamp) {
+    this.encoder.encode(new AudioData({
+      format: 'f32', sampleRate: RATE, numberOfFrames: pcm.length / CHANNELS, numberOfChannels: CHANNELS,
+      timestamp, data: pcm,
+    }));
+  }
+
+  async settle(closed) {
+    while (!closed() && this.encoder.encodeQueueSize > MAX_QUEUE) {
+      await new Promise((resolve) => setTimeout(resolve, QUEUE_POLL_MS));
+    }
+  }
+
+  flush() {
+    return this.encoder.flush();
+  }
+
+  close() {
+    try { this.encoder.close(); } catch { /* already closed */ }
+  }
+}
+
+/**
+ * FFmpeg's AAC encoder in wasm. It encodes while it is called, so there is
+ * no queue to wait on; settle() instead yields the thread now and then.
+ * An error is thrown at the call rather than reported later, and it goes
+ * to the same callback as WebCodecs' would.
+ */
+class WasmBackend {
+  /** @param {AacEncoder} encoder */
+  constructor(encoder) {
+    this.encoder = encoder;
+    this.onFrame = () => {};
+    this.onError = () => {};
+    this.since = 0;
+  }
+
+  start(onFrame, onError) {
+    this.onFrame = onFrame;
+    this.onError = onError;
+    this.since = performance.now();
+  }
+
+  encode(pcm) {
+    try {
+      for (const frame of this.encoder.encode(pcm)) this.onFrame(frame);
+    } catch (err) {
+      this.onError(err);
+    }
+  }
+
+  async settle() {
+    if (performance.now() - this.since < WASM_SLICE_MS) return;
+    await new Promise((resolve) => setTimeout(resolve, 0));
+    this.since = performance.now();
+  }
+
+  async flush() {
+    for (const frame of this.encoder.flush()) this.onFrame(frame);
+  }
+
+  close() {
+    this.encoder.close();
   }
 }

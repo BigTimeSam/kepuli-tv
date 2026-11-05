@@ -14,7 +14,7 @@ import { Playback } from './playback.js';
 import { StalkerSource } from './stalker.js';
 import { TYPE_OF_KIND, shownName, stripItem, withCurrentAddress } from './coversui.js';
 import { amount, clock, dateFmt, mbits, percent, seconds as secondsText, speed as speedText } from './format.js';
-import { copyUrl, toast } from './toast.js';
+import { toast } from './toast.js';
 import { grid, guideOpen } from './guideui.js';
 import { hasDetails, loadVodDetails, renderInfoStrip } from './infostrip.js';
 import { playExternal } from './externalui.js';
@@ -129,16 +129,13 @@ function onPlaybackState(s) {
     el.overlay.classList.remove('loading');
     el.overlayTitle.textContent = t('player.failed');
     el.overlayText.textContent = s.message;
-    // Right here an external player is worth the most: the browser has
-    // already given up.
-    const actions = s.content ? [
-      { label: t('player.retry'), onClick: retryPlayback },
-      { label: t('player.copyurl'), onClick: copyUrl },
-    ] : [
-      { label: t('player.retry'), onClick: retryPlayback },
-      { label: t('ext.title'), onClick: playExternal },
-      { label: t('player.copyurl'), onClick: copyUrl },
-    ];
+    // Only what this failure can use, so that the row fits a tablet. Right
+    // here an external player is worth the most: the browser has already
+    // given up. Try again and Copy address are not repeated: the row's ↻
+    // is the same retry, from the same position, and the ☰ menu copies the
+    // address. A provider without the file (s.content) leaves nothing an
+    // external player could fetch either.
+    const actions = s.content ? [] : [{ label: t('ext.title'), onClick: playExternal }];
     // The picture will do but the audio track will not: silent playback is
     // on offer, not the default.
     if (s.canSilent) {

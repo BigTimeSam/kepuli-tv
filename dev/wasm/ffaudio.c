@@ -19,6 +19,14 @@
 // is what AC-3 means, and measured, a different result from swresample's
 // generic matrix. Swresample handles the rest: the sample rate, the
 // interleaving, and the streams the decoder declined to downmix.
+//
+// The second half is FFmpeg's own AAC encoder (fe_*), for browsers that
+// have no WebCodecs encoder of their own: Firefox for Android hands the
+// decoded audio nowhere otherwise, and the picture plays in silence. Its
+// input is exactly what the decoder puts out, interleaved stereo at
+// 48 kHz, and its output raw AAC-LC frames of 1024 samples with the
+// AudioSpecificConfig for the esds, the same shape WebCodecs' AAC gives
+// transcode.js.
 
 #include <stdlib.h>
 #include <string.h>
@@ -26,6 +34,8 @@
 #include <emscripten.h>
 #include <libavcodec/avcodec.h>
 #include <libavutil/channel_layout.h>
+#include <libavutil/log.h>
+#include <libavutil/mem.h>
 #include <libavutil/opt.h>
 #include <libswresample/swresample.h>
 
@@ -237,3 +247,169 @@ EMSCRIPTEN_KEEPALIVE float *fa_output(FaCtx *c) { return c ? c->out : NULL; }
 EMSCRIPTEN_KEEPALIVE int fa_channels(FaCtx *c) { return c ? OUT_CHANNELS : 0; }
 EMSCRIPTEN_KEEPALIVE int fa_sample_rate(FaCtx *c) { return c ? c->out_rate : 0; }
 EMSCRIPTEN_KEEPALIVE void fa_take(FaCtx *c) { if (c) c->out_len = 0; }
+
+/* ------------------------------------------------------------ the encoder */
+
+#define FE_FRAME 1024    // AAC-LC's samples per frame, fixed by the format
+
+typedef struct {
+    AVCodecContext *enc;
+    AVFrame *frame;      // the frame being filled, planar as the encoder wants
+    AVPacket *pkt;
+    int filled;          // samples in the frame so far
+
+    uint8_t *out;        // the encoded frames back to back
+    int out_cap;
+    int out_len;
+    int *sizes;          // each frame's length in out
+    int sizes_cap;
+    int count;
+} FeCtx;
+
+static int fe_reserve(FeCtx *c, int bytes) {
+    if (c->out_len + bytes > c->out_cap) {
+        int cap = c->out_cap ? c->out_cap : 16384;
+        while (cap < c->out_len + bytes) cap *= 2;
+        uint8_t *grown = realloc(c->out, (size_t)cap);
+        if (!grown) return 0;
+        c->out = grown;
+        c->out_cap = cap;
+    }
+    if (c->count + 1 > c->sizes_cap) {
+        int cap = c->sizes_cap ? c->sizes_cap * 2 : 64;
+        int *grown = realloc(c->sizes, (size_t)cap * sizeof(int));
+        if (!grown) return 0;
+        c->sizes = grown;
+        c->sizes_cap = cap;
+    }
+    return 1;
+}
+
+static int fe_receive(FeCtx *c) {
+    for (;;) {
+        int err = avcodec_receive_packet(c->enc, c->pkt);
+        if (err == AVERROR(EAGAIN) || err == AVERROR_EOF) return 1;
+        if (err < 0) return 0;
+        if (!fe_reserve(c, c->pkt->size)) { av_packet_unref(c->pkt); return 0; }
+        memcpy(c->out + c->out_len, c->pkt->data, c->pkt->size);
+        c->out_len += c->pkt->size;
+        c->sizes[c->count++] = c->pkt->size;
+        av_packet_unref(c->pkt);
+    }
+}
+
+static int fe_send(FeCtx *c) {
+    c->frame->nb_samples = c->filled;
+    int err = avcodec_send_frame(c->enc, c->frame);
+    c->filled = 0;
+    if (err < 0) return 0;
+    if (!fe_receive(c)) return 0;
+    // The encoder may still hold a reference to the frame's buffers; a
+    // writable copy is asked for before the next one is filled.
+    return av_frame_make_writable(c->frame) >= 0;
+}
+
+/**
+ * The fast coder rather than FFmpeg's default two-loop search. Measured in
+ * wasm on an M1 Max, speech over music: 80x real time against two-loop's
+ * 23x, and at 192 kbit/s an SNR of 46.5 dB against 33.4 (pink noise: 94x
+ * against 45x). Only a pure tone favoured two-loop. Speed is what counts,
+ * because a tablet encodes on the page's own thread.
+ */
+EMSCRIPTEN_KEEPALIVE
+FeCtx *fe_open(int rate, int bitrate) {
+    const AVCodec *codec = avcodec_find_encoder(AV_CODEC_ID_AAC);
+    if (!codec || rate <= 0) return NULL;
+    // The encoder reports its average quantiser at info level when it is
+    // closed, which Emscripten would print to the page's console after
+    // every chain.
+    av_log_set_level(AV_LOG_WARNING);
+    FeCtx *c = calloc(1, sizeof(FeCtx));
+    if (!c) return NULL;
+    c->enc = avcodec_alloc_context3(codec);
+    c->frame = av_frame_alloc();
+    c->pkt = av_packet_alloc();
+    if (!c->enc || !c->frame || !c->pkt) goto fail;
+
+    c->enc->sample_fmt = AV_SAMPLE_FMT_FLTP;
+    c->enc->sample_rate = rate;
+    c->enc->bit_rate = bitrate;
+    c->enc->time_base = (AVRational){ 1, rate };
+    AVChannelLayout stereo = AV_CHANNEL_LAYOUT_STEREO;
+    if (av_channel_layout_copy(&c->enc->ch_layout, &stereo) < 0) goto fail;
+    av_opt_set(c->enc->priv_data, "aac_coder", "fast", 0);
+    if (avcodec_open2(c->enc, codec, NULL) < 0) goto fail;
+
+    c->frame->format = AV_SAMPLE_FMT_FLTP;
+    c->frame->sample_rate = rate;
+    c->frame->nb_samples = FE_FRAME;
+    if (av_channel_layout_copy(&c->frame->ch_layout, &stereo) < 0) goto fail;
+    if (av_frame_get_buffer(c->frame, 0) < 0) goto fail;
+    return c;
+
+fail:
+    av_packet_free(&c->pkt);
+    av_frame_free(&c->frame);
+    avcodec_free_context(&c->enc);
+    free(c);
+    return NULL;
+}
+
+EMSCRIPTEN_KEEPALIVE
+void fe_close(FeCtx *c) {
+    if (!c) return;
+    av_packet_free(&c->pkt);
+    av_frame_free(&c->frame);
+    avcodec_free_context(&c->enc);
+    free(c->out);
+    free(c->sizes);
+    free(c);
+}
+
+/**
+ * Interleaved stereo in; every full 1024 samples become a frame. The rest
+ * waits in the frame for the next call, so the frames do not depend on how
+ * the input was cut.
+ *
+ * @return the encoded frames waiting in fe_output(), or -1 on error
+ */
+EMSCRIPTEN_KEEPALIVE
+int fe_encode(FeCtx *c, const float *pcm, int samples) {
+    if (!c) return -1;
+    for (int i = 0; i < samples;) {
+        float *l = (float *)c->frame->data[0];
+        float *r = (float *)c->frame->data[1];
+        int n = FE_FRAME - c->filled;
+        if (n > samples - i) n = samples - i;
+        for (int k = 0; k < n; k++) {
+            l[c->filled + k] = pcm[(size_t)(i + k) * 2];
+            r[c->filled + k] = pcm[(size_t)(i + k) * 2 + 1];
+        }
+        c->filled += n;
+        i += n;
+        if (c->filled == FE_FRAME && !fe_send(c)) return -1;
+    }
+    return c->count;
+}
+
+/**
+ * Everything out: the partial frame, padded with silence by the encoder,
+ * and the frames the encoder still holds back. The encoder cannot be fed
+ * after this, so the caller opens a new one for the next chain, exactly as
+ * WebCodecs' flush() leaves it usable but with a fresh priming.
+ */
+EMSCRIPTEN_KEEPALIVE
+int fe_flush(FeCtx *c) {
+    if (!c) return -1;
+    if (c->filled > 0 && !fe_send(c)) return -1;
+    if (avcodec_send_frame(c->enc, NULL) < 0) return -1;
+    if (!fe_receive(c)) return -1;
+    return c->count;
+}
+
+EMSCRIPTEN_KEEPALIVE uint8_t *fe_output(FeCtx *c) { return c ? c->out : NULL; }
+EMSCRIPTEN_KEEPALIVE int *fe_sizes(FeCtx *c) { return c ? c->sizes : NULL; }
+EMSCRIPTEN_KEEPALIVE void fe_take(FeCtx *c) { if (c) { c->out_len = 0; c->count = 0; } }
+EMSCRIPTEN_KEEPALIVE int fe_delay(FeCtx *c) { return c ? c->enc->initial_padding : 0; }
+EMSCRIPTEN_KEEPALIVE uint8_t *fe_config(FeCtx *c) { return c ? c->enc->extradata : NULL; }
+EMSCRIPTEN_KEEPALIVE int fe_config_size(FeCtx *c) { return c ? c->enc->extradata_size : 0; }

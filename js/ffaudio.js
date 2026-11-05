@@ -1,4 +1,4 @@
-// AC-3, E-AC-3 and DTS decoding with wasm.
+// AC-3, E-AC-3 and DTS decoding with wasm, and AAC encoding where the browser has no encoder.
 //
 // The decoder itself is vendor/ffaudio (built from FFmpeg, LGPL 2.1+); this
 // is the JS side around it: loading the module once, an input buffer
@@ -22,7 +22,7 @@ const CODEC = {
 /** Whether the wasm decoder handles this track. */
 export const decodable = (codecId) => CODEC[codecId] !== undefined;
 
-// The module is loaded once per page: the build is 628 kB, and fetching it
+// The module is loaded once per page: the build is 712 kB, and fetching it
 // again for every episode is not worth it.
 let loading = null;
 const load = () => {
@@ -92,6 +92,99 @@ export class PcmDecoder {
   close() {
     if (!this.ctx) return;
     this.module._fa_close(this.ctx);
+    if (this.input) this.module._free(this.input);
+    this.ctx = 0;
+    this.input = 0;
+    this.inputSize = 0;
+  }
+}
+
+/**
+ * FFmpeg's AAC encoder from the same module, for a browser without a
+ * WebCodecs encoder (transcode.js). Interleaved stereo in, raw AAC-LC
+ * frames out, one per 1024 samples; the AudioSpecificConfig and the
+ * priming delay come from the encoder itself, so nothing has to be
+ * measured at run time.
+ *
+ * flush() empties the encoder for good, as FFmpeg's encoders allow no more
+ * input after it, so a fresh one is opened in its place: the next frames
+ * then carry a new priming, which is what transcode.js expects after a
+ * flush from WebCodecs too.
+ */
+export class AacEncoder {
+  /**
+   * @param {number} rate input and output sample rate
+   * @param {number} bitrate bits per second
+   */
+  static async open(rate, bitrate) {
+    const module = await load();
+    const encoder = new AacEncoder(module, rate, bitrate);
+    encoder.reopen();
+    return encoder;
+  }
+
+  constructor(module, rate, bitrate) {
+    this.module = module;
+    this.rate = rate;
+    this.bitrate = bitrate;
+    this.ctx = 0;
+    this.input = 0;
+    this.inputSize = 0;
+    /** @type {Uint8Array|null} the AudioSpecificConfig for the esds */
+    this.config = null;
+    this.delay = 0;
+  }
+
+  reopen() {
+    if (this.ctx) this.module._fe_close(this.ctx);
+    this.ctx = this.module._fe_open(this.rate, this.bitrate);
+    if (!this.ctx) throw new Error('opening the AAC encoder failed');
+    const at = this.module._fe_config(this.ctx);
+    this.config = this.module.HEAPU8.slice(at, at + this.module._fe_config_size(this.ctx));
+    this.delay = this.module._fe_delay(this.ctx);
+  }
+
+  /**
+   * @param {Float32Array} pcm interleaved stereo
+   * @returns {Uint8Array[]} the frames finished by this input, possibly none
+   */
+  encode(pcm) {
+    if (!this.ctx) return [];
+    const bytes = pcm.length * 4;
+    if (bytes > this.inputSize) {
+      if (this.input) this.module._free(this.input);
+      this.input = this.module._malloc(bytes);
+      this.inputSize = bytes;
+    }
+    this.module.HEAPF32.set(pcm, this.input >> 2);
+    return this.take(this.module._fe_encode(this.ctx, this.input, pcm.length / 2));
+  }
+
+  /** The partial frame and everything held back, then a fresh encoder. */
+  flush() {
+    if (!this.ctx) return [];
+    const frames = this.take(this.module._fe_flush(this.ctx));
+    this.reopen();
+    return frames;
+  }
+
+  /** Copies the frames out of wasm memory, for the same reason as PcmDecoder.take. */
+  take(count) {
+    if (count < 0) throw new Error('AAC encoding failed');
+    const frames = [];
+    let at = this.module._fe_output(this.ctx);
+    const sizes = this.module._fe_sizes(this.ctx) >> 2;
+    for (let i = 0; i < count; i++) {
+      const length = this.module.HEAP32[sizes + i];
+      frames.push(this.module.HEAPU8.slice(at, at + length));
+      at += length;
+    }
+    this.module._fe_take(this.ctx);
+    return frames;
+  }
+
+  close() {
+    if (this.ctx) this.module._fe_close(this.ctx);
     if (this.input) this.module._free(this.input);
     this.ctx = 0;
     this.input = 0;

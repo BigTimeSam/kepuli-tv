@@ -4,6 +4,20 @@ import assert from 'node:assert/strict';
 import { audioDetails } from '../js/probe.js';
 import { encoderSetup } from '../js/transcode.js';
 
+import { execFileSync } from 'node:child_process';
+import { fileURLToPath } from 'node:url';
+
+// The encoder is chosen once per page, so the browser without any route
+// for the decoded audio is a second run of this file: a MediaSource that
+// takes no AAC leaves neither WebCodecs nor the wasm encoder anywhere to go.
+if (process.env.KEPULI_NO_AAC) {
+  globalThis.MediaSource = { isTypeSupported: () => false };
+  await encoderSetup();
+  const silent = audioDetails({ container: 'matroska', audio: [{ number: 1, codecId: 'A_AC3', codec: 'ac3', language: 'eng', channels: 6, default: true, supported: false, route: null }] });
+  assert.equal(silent.supported, false, 'no encoder anywhere: the decoded track is marked silent');
+  process.exit(0);
+}
+
 globalThis.MediaSource = { isTypeSupported: type => /mp4a\.40/.test(type) };
 const track = (number, codecId, codec, language = 'eng') => ({
   number, codecId, codec, language, channels: 6, default: true,
@@ -29,10 +43,12 @@ assert.equal(audioDetails(header([])), null);
 assert.equal(audioDetails(null), null);
 assert.equal(ac3.supported, false, 'do not mutate cached metadata');
 
-// Node has no WebCodecs encoder: after the capability check, the decoded
-// route really is unavailable and must still show the warning.
-await encoderSetup();
-assert.equal(audioDetails(header([ac3])).supported, false);
+// Node has no WebCodecs encoder, as Firefox for Android has none: the wasm
+// AAC encoder is what the capability check must find then.
+const setup = await encoderSetup();
+assert.equal(setup && setup.encoder.wasm, true, 'without WebCodecs the wasm AAC encoder is chosen');
+assert.equal(setup.delay, 1024, "the wasm encoder's priming is FFmpeg's initial_padding");
+assert.equal(audioDetails(header([ac3])).supported, true, 'the decoded track plays with the wasm encoder');
 assert.equal(audioDetails(header([aac])).supported, true);
-assert.equal(audioDetails(header([ac3]), { active: ac3 }).supported, true, 'confirmed playback takes precedence');
-console.log('PASS: decoded audio support, stale cache flags, track selection, active audio and missing encoder.');
+execFileSync(process.execPath, [fileURLToPath(import.meta.url)], { env: { ...process.env, KEPULI_NO_AAC: '1' }, stdio: 'inherit' });
+console.log('PASS: decoded audio support, stale cache flags, track selection, active audio, the wasm encoder and no encoder at all.');
