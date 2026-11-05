@@ -155,6 +155,10 @@ the player actually arrives.
 At 600px wide or less, browsing and playback each use the full window width.
 Starting playback opens **Player**; **Browse** returns to the list while the
 stream continues. Starting a search or choosing a content tab also opens the list.
+There the programme guide's days have a row of their own, scrolling sideways,
+and its programme search shows the field and its button alone until the field
+is used, when the two choices that narrow the search come in under it.
+**Settings** keeps its sections at the top, above **Save**.
 
 ## Closing dialogs and cancelling loading
 

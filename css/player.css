@@ -1754,7 +1754,10 @@ select.epg-earlier { font: inherit; padding-right: 26px; background-position: ri
   .icon-button.labelled { padding: 0; width: 34px; }
   .brand { order: 0; }
   .topbar-end { order: 1; }
-  .tabs { order: 2; }
+  /* The top bar's tabs only: the same class draws the Settings sections,
+     which this order put under Save on a phone, after it in neither the
+     reading order nor the focus order. */
+  .topbar > .tabs { order: 2; }
   .search { order: 3; }
   .icon-button .button-label {
     position: absolute; width: 1px; height: 1px; margin: -1px; padding: 0;
@@ -1926,6 +1929,19 @@ select:not([multiple]) {
 /* A field's hint longer than the field (a long language, a narrow window)
    ends in an ellipsis rather than being cut mid-letter. */
 input[type="search"], input[type="text"], input[type="url"], input:not([type]) { text-overflow: ellipsis; }
+
+/* The guide on a phone (390 to 600 px): the days get a row of their own
+   instead of a third of the width, which showed "Früher" and a clipped
+   "ge" in German, and scroll sideways there. The programme search keeps
+   the field and its button on one row; the two choices that narrow it
+   come in under them once the field is in use (focused, filled, or one of
+   the choices open in its list), rather than taking a row of the four
+   that the grid had left. */
+@media (max-width: 600px) {
+  .epg-days { flex: 1 0 100%; max-width: none; }
+  .programme-form .search-field { flex: 1 1 140px; min-width: 140px; }
+  .programme-form:not(:focus-within, :has(#programme-query:not(:placeholder-shown), select[aria-expanded="true"])) select { display: none; }
+}
 
 /* Forced colours (Windows High Contrast): the system replaces every
    background and drops every box-shadow, and with them went each mark of

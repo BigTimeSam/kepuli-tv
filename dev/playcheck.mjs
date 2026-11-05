@@ -72,6 +72,10 @@
 //                                     kept under forced colours; one focus
 //                                     ring of 3:1; text contrast in both
 //                                     themes; 24 px hit areas
+//   node dev/playcheck.mjs phone      390 and 600 px in German: Settings'
+//                                     sections above Save, the guide's days
+//                                     the bar's whole width, its programme
+//                                     search one row until used
 //   node dev/playcheck.mjs audio      the three-track episode: the automatic
 //                                     choice is heard as the English track's
 //                                     tone, the selector changes the track
@@ -1666,6 +1670,50 @@ async function a11yLooks(page) {
   const fmt = (o) => Object.entries(o).map(([k, v]) => `${k.replace(/^#/, '')} ${v}`).join(', ');
   return measures.map((m) => `${m.theme}: text ${fmt(m.text)}; rings ${fmt(m.rings)}`).join('; ')
     + `; 24 px hit areas, chips ${hits.chip.toFixed(1)} px high; forced colours keep ${Object.keys(forced).join(', ')}`;
+}
+
+/**
+ * A phone's width (390 px) and the narrow layout's widest (600 px), in
+ * German, whose day names are among the longest: Settings' sections are
+ * drawn above Save, as they come before it in the focus order (the top
+ * bar's ordering once moved them under it); the guide's days have the bar's
+ * whole width rather than a third of it, which clipped "gestern" to "ge",
+ * and the programme search is one row until it is used.
+ */
+async function phone(page) {
+  const assert = (ok, detail) => { if (!ok) throw new Error(detail); };
+  await evaluate(page, `chrome.storage.local.get('settings').then(({ settings }) => chrome.storage.local.set({ settings: { ...settings, lang: 'de' }, ui: { tab: 'live' } }))`);
+  await page.call('Page.reload');
+  await sleep(1000);
+  await waitFor(page, `${CONNECTED} && document.documentElement.lang.startsWith('de')`, 'the player in German');
+  const seen = [];
+  for (const width of [390, 600]) {
+    await page.call('Emulation.setDeviceMetricsOverride', { width, height: 844, deviceScaleFactor: 1, mobile: false });
+    await sleep(300);
+    await evaluate(page, `document.getElementById('btn-settings').click()`);
+    await waitFor(page, `document.getElementById('setup').open`, 'settings');
+    await sleep(300);
+    const setup = await evaluate(page, `(() => { const top = (id) => document.getElementById(id).getBoundingClientRect();
+      return { tabs: top('setup-tabs').bottom, panel: top('panel-connection').top, save: top('f-save').top }; })()`);
+    await evaluate(page, `document.getElementById('f-done').click()`);
+    await waitFor(page, `!document.getElementById('setup').open`, 'settings closed');
+    assert(setup.tabs <= setup.panel && setup.tabs <= setup.save, `${width} px: Settings' sections end at ${setup.tabs}, the section begins at ${setup.panel} and Save at ${setup.save}`);
+
+    await evaluate(page, `document.getElementById('btn-guide').click()`);
+    await waitFor(page, `document.getElementById('main').classList.contains('guide') && document.querySelector('#epg-days .epg-day.active')`, 'the guide');
+    await sleep(500);
+    const guide = await evaluate(page, `(() => { const box = (n) => n.getBoundingClientRect();
+      const bar = box(document.querySelector('.epg-bar')), days = box(document.getElementById('epg-days')), today = box(document.querySelector('#epg-days .epg-day.active'));
+      return { bar: Math.round(bar.width), days: Math.round(days.width), today: today.left >= days.left - 0.5 && today.right <= days.right + 0.5,
+        form: Math.round(document.getElementById('programme-form').getBoundingClientRect().height),
+        page: document.documentElement.scrollWidth <= innerWidth }; })()`);
+    await evaluate(page, `document.getElementById('epg-close').click()`);
+    await waitFor(page, `!document.getElementById('main').classList.contains('guide')`, 'the guide closed');
+    assert(guide.days >= guide.bar - 24 && guide.today && guide.page, `${width} px: the days take ${guide.days} of the bar's ${guide.bar} px, today ${guide.today ? 'shown whole' : 'clipped'}, the page ${guide.page ? 'fits' : 'overflows'}`);
+    assert(guide.form <= 56, `${width} px: the programme search takes ${guide.form} px before it is used`);
+    seen.push(`${width} px: sections above Save, days ${guide.days}/${guide.bar} px, search ${guide.form} px`);
+  }
+  return { ok: true, detail: seen.join('; ') };
 }
 
 /** The control stays with the video and preserves the subtitle overlay. */
@@ -4306,7 +4354,7 @@ async function soak(page) {
 
 const SCENARIOS = { buffering, livebuffering, filmbuffering, emptyfile, tsasmp4, refusedfile, badgateway, livebadgateway, channelrefused, noanswer, longfilm, catalogUi, setupClarity, fullscreenControl, clickpause, pickers, channels, home, resumemkv, restore, programmes, catchup, seek, death, cancel, timeout, search, paste, keys, switching, resume, connections, livezap, livequiet, reconnect, accounts, listerror, a11y, subtitles, audio, settings,
   lastchannel, nextepisode, continuewatching, reminders, update, seeklag, cuesretry, quota, catchupfreeze, catchupfull, twotabs, switchstop, resettabs,
-  refresh, restorenav, guidekeep, m3u, sync, holes, picks, flakyserver, accountform, stalker, record, guidefavs, categories, noleak, perf, pseudo, startup, soak };
+  refresh, restorenav, guidekeep, m3u, sync, holes, picks, flakyserver, accountform, stalker, record, guidefavs, categories, noleak, perf, pseudo, startup, soak, phone };
 // The mock's whole-list answers stall for these, longer than the request limit.
 const SLOW_LIST_MS = { cancel: 60000, timeout: 60000 };
 // The media is sent slowly for these: the seek targets must lie outside the
