@@ -3722,7 +3722,8 @@ async function m3u(page, { target, requests }) {
   await waitFor(page, `!document.getElementById('overlay').hidden && document.getElementById('overlay-text').textContent.length > 0`, 'the connection error of a web page', 20000);
   const said = await evaluate(page, `document.getElementById('overlay-text').textContent`);
   const rows = await evaluate(page, `document.querySelectorAll('#list .row').length`);
-  assert(said === 'The address did not return an M3U playlist.' && rows === 0, `a web page as the playlist: "${said}", ${rows} rows`);
+  // The message opens with what happened; what to do next follows it.
+  assert(said.startsWith('The address did not return an M3U playlist.') && rows === 0, `a web page as the playlist: "${said}", ${rows} rows`);
   return { ok: true, detail: `playlist and gzipped guide read, programmes in the list, a channel played from its address, start over through catchup="xc", ${episodes} episodes, switched to the Xtream account; a web page: "${said}"` };
 }
 
