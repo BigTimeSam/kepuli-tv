@@ -4553,7 +4553,7 @@ async function categories(page) {
  * The guide's search results answer as the grid does. The arrows walk them
  * from the search field down and each one reached is the programme the
  * panel beside describes; a click on a programme that has ended or is
- * still to come only chooses it (Watch the recording, Remind me) and does
+ * still to come only chooses it (Watch catch-up, Remind me) and does
  * not start the channel live; one on now plays at once; Enter on an ended
  * programme of a channel with an archive plays the recording. The first
  * Escape clears the search and leaves the guide open, the second closes it,
@@ -4614,7 +4614,7 @@ async function programmekeys(page, { requests }) {
   const afterPast = await playing();
   const pastActions = await actions();
   assert(afterPast.live === before.live && !afterPast.catchup, `a click on an ended programme started the channel: ${JSON.stringify({ before, afterPast })}`);
-  assert(pastActions.includes('Watch the recording') && await evaluate(page, `document.querySelector('#epgv-slot b')?.textContent`) === await titleAt(past),
+  assert(pastActions.includes('Watch catch-up') && await evaluate(page, `document.querySelector('#epgv-slot b')?.textContent`) === await titleAt(past),
     `the preview of an ended programme: ${JSON.stringify(pastActions)}`);
 
   // A programme still to come: Remind me, nothing live.

@@ -678,7 +678,7 @@ A click on a channel's name or on one of its programmes in the grid, or on a
 programme on now in the programme search, plays the channel at once in the
 corner (unless it is playing already, live or from its archive); a programme
 in the search that has ended or is still to come is only chosen, with
-**Watch the recording** or **Remind me** in the column, as the channel live
+**Watch catch-up** or **Remind me** in the column, as the channel live
 would show something else. The column shows the channel's name,
 **Go to channel**, the programme with its description and, for a click on the
 name, the next ten programmes with their times and titles. Walking the grid
