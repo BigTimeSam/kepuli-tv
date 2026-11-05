@@ -50,6 +50,7 @@ export default {
  "setup.m3u.hint": "Wklej adres podany przez dostawcę. Adres get.php wypełnia pola połączenia; każdy inny adres playlisty M3U jest używany w takiej postaci, w jakiej jest.",
  "view.list": "Pokaż jako listę",
  "view.grid": "Pokaż jako okładki",
+ "view.label": "Widok",
  "organize.savefailed": "Nie udało się zapisać. Zmiany nadal są dostępne; spróbuj ponownie.",
  "programmes.placeholder": "Kanał, tytuł lub opis programu…",
  "programmes.scope": "Kanały do przeszukania",

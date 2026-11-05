@@ -50,6 +50,7 @@ export default {
  "setup.m3u.hint": "Vlož adresu, kterou ti dal poskytovatel. Adresa get.php vyplní pole připojení; jakákoli jiná adresa playlistu M3U se použije tak, jak je.",
  "view.list": "Zobrazit jako seznam",
  "view.grid": "Zobrazit jako plakáty",
+ "view.label": "Zobrazení",
  "organize.savefailed": "Uložení se nezdařilo. Změny jsou stále k dispozici; zkus to znovu.",
  "programmes.placeholder": "Kanál, název nebo popis pořadu…",
  "programmes.scope": "Kanály k prohledání",

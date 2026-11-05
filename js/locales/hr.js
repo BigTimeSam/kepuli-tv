@@ -48,6 +48,7 @@ export default {
  "setup.m3u.hint": "Zalijepi adresu koju ti je dao pružatelj. Adresa get.php popunjava polja veze; svaka druga adresa M3U popisa za reprodukciju koristi se onakva kakva jest.",
  "view.list": "Prikaži kao popis",
  "view.grid": "Prikaži kao naslovnice",
+ "view.label": "Prikaz",
  "organize.savefailed": "Spremanje nije uspjelo. Promjene su i dalje tu; pokušaj ponovno.",
  "programmes.placeholder": "Kanal, naslov ili opis emisije…",
  "programmes.scope": "Kanali za pretraživanje",

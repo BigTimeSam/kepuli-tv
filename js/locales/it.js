@@ -46,6 +46,7 @@ export default {
  "setup.m3u.hint": "Incolla l'indirizzo che ti ha dato il tuo provider. Un indirizzo get.php compila i campi di connessione; qualsiasi altro indirizzo di playlist M3U viene usato così com'è.",
  "view.list": "Mostra come elenco",
  "view.grid": "Mostra come copertine",
+ "view.label": "Vista",
  "organize.savefailed": "Impossibile salvare. Le tue modifiche sono ancora qui; riprova.",
  "programmes.placeholder": "Canale, titolo o descrizione del programma…",
  "programmes.scope": "Canali in cui cercare",

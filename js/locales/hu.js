@@ -46,6 +46,7 @@ export default {
  "setup.m3u.hint": "Illeszd be a szolgáltatótól kapott címet. A get.php cím kitölti a kapcsolati mezőket; bármely más M3U-lejátszási lista címét változtatás nélkül használja.",
  "view.list": "Megjelenítés listaként",
  "view.grid": "Megjelenítés borítókként",
+ "view.label": "Nézet",
  "organize.savefailed": "A mentés nem sikerült. A módosítások megvannak; próbáld újra.",
  "programmes.placeholder": "Csatorna, műsor címe vagy leírása…",
  "programmes.scope": "Átkutatandó csatornák",

@@ -44,6 +44,7 @@ export default {
  "setup.m3u.hint": "Tempel alamat yang diberikan penyedia. Alamat get.php mengisi kolom koneksi; alamat daftar putar M3U lainnya dipakai apa adanya.",
  "view.list": "Tampilkan sebagai daftar",
  "view.grid": "Tampilkan sebagai sampul",
+ "view.label": "Tampilan",
  "organize.savefailed": "Gagal menyimpan. Perubahanmu masih ada; coba lagi.",
  "programmes.placeholder": "Saluran, judul atau deskripsi acara…",
  "programmes.scope": "Saluran yang dicari",

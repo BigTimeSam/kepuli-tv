@@ -46,6 +46,7 @@ export default {
  "setup.m3u.hint": "Kleebi aadress, mille pakkuja sulle andis. Aadress get.php täidab ühenduse väljad; mis tahes muu M3U esitusloendi aadressi kasutatakse sellisena, nagu see on.",
  "view.list": "Näita loendina",
  "view.grid": "Näita kaantena",
+ "view.label": "Vaade",
  "organize.savefailed": "Salvestamine ei õnnestunud. Muudatused on alles; proovi uuesti.",
  "programmes.placeholder": "Kanal, saate pealkiri või kirjeldus…",
  "programmes.scope": "Otsitavad kanalid",

@@ -46,6 +46,7 @@ export default {
  "setup.m3u.hint": "Plak het adres dat je aanbieder je heeft gegeven. Een get.php-adres vult de verbindingsvelden in; elk ander M3U-afspeellijstadres wordt gebruikt zoals het is.",
  "view.list": "Weergeven als lijst",
  "view.grid": "Weergeven als covers",
+ "view.label": "Weergave",
  "organize.savefailed": "Opslaan mislukt. Je wijzigingen staan er nog; probeer het opnieuw.",
  "programmes.placeholder": "Zender, programmatitel of beschrijving…",
  "programmes.scope": "Zenders om te doorzoeken",

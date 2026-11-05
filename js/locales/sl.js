@@ -50,6 +50,7 @@ export default {
  "setup.m3u.hint": "Prilepi naslov, ki ti ga je dal ponudnik. Naslov get.php izpolni polja povezave; vsak drug naslov seznama predvajanja M3U se uporabi, kakršen je.",
  "view.list": "Prikaži kot seznam",
  "view.grid": "Prikaži kot naslovnice",
+ "view.label": "Pogled",
  "organize.savefailed": "Shranjevanje ni uspelo. Spremembe so še vedno na voljo; poskusi znova.",
  "programmes.placeholder": "Kanal, naslov ali opis oddaje…",
  "programmes.scope": "Kanali za iskanje",

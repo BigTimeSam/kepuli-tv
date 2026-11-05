@@ -46,6 +46,7 @@ export default {
  "setup.m3u.hint": "Lim inn adressen leverandøren din ga deg. En get.php-adresse fyller ut tilkoblingsfeltene; alle andre M3U-spillelisteadresser brukes som de er.",
  "view.list": "Vis som liste",
  "view.grid": "Vis som omslag",
+ "view.label": "Visning",
  "organize.savefailed": "Kunne ikke lagre. Endringene dine er fortsatt her; prøv igjen.",
  "programmes.placeholder": "Kanal, programtittel eller beskrivelse…",
  "programmes.scope": "Kanaler å søke i",

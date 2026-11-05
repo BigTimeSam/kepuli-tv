@@ -46,6 +46,7 @@ export default {
  "setup.m3u.hint": "Die Adresse einfügen, die der Anbieter mitgeteilt hat. Eine get.php-Adresse füllt die Verbindungsfelder aus; jede andere M3U-Playlist-Adresse wird unverändert verwendet.",
  "view.list": "Als Liste anzeigen",
  "view.grid": "Als Cover anzeigen",
+ "view.label": "Ansicht",
  "organize.savefailed": "Speichern fehlgeschlagen. Die Änderungen sind noch vorhanden; erneut versuchen.",
  "programmes.placeholder": "Kanal, Sendungstitel oder Beschreibung…",
  "programmes.scope": "Zu durchsuchende Kanäle",

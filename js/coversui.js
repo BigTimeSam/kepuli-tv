@@ -90,6 +90,9 @@ export function viewToggle() {
   const box = document.createElement('span');
   box.className = 'view-toggle';
   box.setAttribute('role', 'group');
+  // Named as the order marks beside it are: a group a screen reader enters
+  // says what its two buttons choose between.
+  box.setAttribute('aria-label', t('view.label'));
   for (const [view, paths] of [
     ['list', '<path d="M4 5.5h12M4 10h12M4 14.5h12"/>'],
     ['grid', '<rect x="3.5" y="3.5" width="5" height="5" rx="1"/><rect x="11.5" y="3.5" width="5" height="5" rx="1"/><rect x="3.5" y="11.5" width="5" height="5" rx="1"/><rect x="11.5" y="11.5" width="5" height="5" rx="1"/>'],

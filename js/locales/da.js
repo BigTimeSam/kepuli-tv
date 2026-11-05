@@ -46,6 +46,7 @@ export default {
  "setup.m3u.hint": "Indsæt den adresse, din udbyder gav dig. En get.php-adresse udfylder forbindelsesfelterne; enhver anden M3U-afspilningslisteadresse bruges, som den er.",
  "view.list": "Vis som liste",
  "view.grid": "Vis som covers",
+ "view.label": "Visning",
  "organize.savefailed": "Kunne ikke gemme. Dine ændringer er der stadig; prøv igen.",
  "programmes.placeholder": "Kanal, programtitel eller beskrivelse…",
  "programmes.scope": "Kanaler, der skal søges i",

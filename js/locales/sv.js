@@ -46,6 +46,7 @@ export default {
  "setup.m3u.hint": "Klistra in adressen som din leverantör gav dig. En get.php-adress fyller i anslutningsfälten; vilken annan M3U-spellistadress som helst används som den är.",
  "view.list": "Visa som lista",
  "view.grid": "Visa som omslag",
+ "view.label": "Visning",
  "organize.savefailed": "Det gick inte att spara. Dina ändringar finns kvar; försök igen.",
  "programmes.placeholder": "Kanal, programtitel eller beskrivning…",
  "programmes.scope": "Kanaler att söka i",

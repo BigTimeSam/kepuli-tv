@@ -46,6 +46,7 @@ export default {
  "setup.m3u.hint": "Ngjit adresën që të dha ofruesi. Një adresë get.php plotëson fushat e lidhjes; çdo adresë tjetër e listës M3U përdoret siç është.",
  "view.list": "Shfaq si listë",
  "view.grid": "Shfaq si kopertina",
+ "view.label": "Pamja",
  "organize.savefailed": "Nuk u ruajt. Ndryshimet janë ende aty; provo përsëri.",
  "programmes.placeholder": "Kanali, titulli ose përshkrimi i programit…",
  "programmes.scope": "Kanalet për t'u kërkuar",

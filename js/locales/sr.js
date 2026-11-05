@@ -48,6 +48,7 @@ export default {
  "setup.m3u.hint": "Nalepi adresu koju ti je dao provajder. Adresa get.php popunjava polja za vezu; svaka druga adresa M3U plejliste koristi se onakva kakva je.",
  "view.list": "Prikaži kao listu",
  "view.grid": "Prikaži kao omote",
+ "view.label": "Prikaz",
  "organize.savefailed": "Čuvanje nije uspelo. Izmene su i dalje tu; pokušaj ponovo.",
  "programmes.placeholder": "Kanal, naslov ili opis emisije…",
  "programmes.scope": "Kanali za pretragu",

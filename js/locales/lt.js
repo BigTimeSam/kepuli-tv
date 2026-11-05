@@ -50,6 +50,7 @@ export default {
  "setup.m3u.hint": "Įklijuok adresą, kurį davė tiekėjas. get.php adresas užpildo ryšio laukus; bet koks kitas M3U grojaraščio adresas naudojamas toks, koks yra.",
  "view.list": "Rodyti kaip sąrašą",
  "view.grid": "Rodyti kaip viršelius",
+ "view.label": "Rodinys",
  "organize.savefailed": "Nepavyko išsaugoti. Pakeitimai vis dar išlikę; bandyk dar kartą.",
  "programmes.placeholder": "Kanalas, laidos pavadinimas ar aprašas…",
  "programmes.scope": "Kanalai paieškai",

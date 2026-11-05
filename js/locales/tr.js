@@ -46,6 +46,7 @@ export default {
  "setup.m3u.hint": "Sağlayıcınızın verdiği adresi yapıştırın. get.php adresi bağlantı alanlarını doldurur; başka herhangi bir M3U oynatma listesi adresi olduğu gibi kullanılır.",
  "view.list": "Liste olarak göster",
  "view.grid": "Kapak olarak göster",
+ "view.label": "Görünüm",
  "organize.savefailed": "Kaydedilemedi. Değişiklikleriniz duruyor; tekrar deneyin.",
  "programmes.placeholder": "Kanal, program adı veya açıklaması…",
  "programmes.scope": "Aranacak kanallar",

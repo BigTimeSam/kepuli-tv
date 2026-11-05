@@ -44,6 +44,7 @@ export default {
  "setup.m3u.hint": "Dán địa chỉ mà nhà cung cấp đưa cho bạn. Địa chỉ get.php sẽ điền các ô kết nối; mọi địa chỉ danh sách phát M3U khác được dùng nguyên như vậy.",
  "view.list": "Xem dạng danh sách",
  "view.grid": "Xem dạng ảnh bìa",
+ "view.label": "Chế độ xem",
  "organize.savefailed": "Không lưu được. Các thay đổi vẫn còn đó; hãy thử lại.",
  "programmes.placeholder": "Kênh, tên hoặc mô tả chương trình…",
  "programmes.scope": "Kênh để tìm chương trình",

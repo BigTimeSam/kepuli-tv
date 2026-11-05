@@ -48,6 +48,7 @@ export default {
  "setup.m3u.hint": "Ielīmē adresi, ko tev iedeva sniedzējs. get.php adrese aizpilda savienojuma laukus; jebkura cita M3U atskaņošanas saraksta adrese tiek izmantota tāda, kāda tā ir.",
  "view.list": "Rādīt kā sarakstu",
  "view.grid": "Rādīt kā vākus",
+ "view.label": "Skats",
  "organize.savefailed": "Neizdevās saglabāt. Izmaiņas joprojām ir pieejamas; mēģini vēlreiz.",
  "programmes.placeholder": "Kanāls, raidījuma nosaukums vai apraksts…",
  "programmes.scope": "Kanāli, kuros meklēt",

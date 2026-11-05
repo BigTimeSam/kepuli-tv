@@ -48,6 +48,7 @@ export default {
  "setup.m3u.hint": "Lipește adresa primită de la furnizor. O adresă get.php completează câmpurile de conexiune; orice altă adresă de playlist M3U este folosită ca atare.",
  "view.list": "Afișează ca listă",
  "view.grid": "Afișează ca coperți",
+ "view.label": "Vizualizare",
  "organize.savefailed": "Nu s-a putut salva. Modificările sunt încă aici; încearcă din nou.",
  "programmes.placeholder": "Canal, titlul sau descrierea emisiunii…",
  "programmes.scope": "Canale de căutat",
