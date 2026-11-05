@@ -159,6 +159,10 @@ the player actually arrives.
 - Click a channel or movie to start playback. For a series, choose a season
   and then an episode. **Back** restores the parent list's scroll position,
   selected item and search, including when the series is inside a favourite category.
+- On a series' page each episode shows its own title and its code
+  (S01E03) beside it. A provider that names every episode "Series name –
+  S01E03" does not get the series' name repeated on every row: where an
+  episode has no title of its own, the row says **Episode 3**.
 - Movies and series show as covers, as many across as the column has room
   for; the two marks at the foot of the list switch between covers and a
   list, and the choice is remembered. Among covers the arrows move left,

@@ -664,7 +664,16 @@ function api(req, res, url) {
     case 'get_series_info': {
       const info = series.info.get(q.get('series_id'));
       if (!info) return send(res, 200, { seasons: [], info: {}, episodes: {} });
-      const episodes = Object.fromEntries(Object.entries(info.episodes).map(([s, list]) => [s, list.map((e) => ({ ...e, info: { ...e.info, movie_image: origin + e.info.movie_image } }))]));
+      // KEPULI_MOCK_EPISODE_NAMES: episodes named as many providers name
+      // them, with the series' name and the code in front ("Silent Fjord –
+      // S01E01", "Silent Fjord S01E02 - Winter's End"), every third with no
+      // title of its own; for the series page to tidy (episodeNames scenario).
+      const named = (e, s) => {
+        if (!process.env.KEPULI_MOCK_EPISODE_NAMES) return e.title;
+        const code = `S${String(s).padStart(2, '0')}E${String(e.episode_num).padStart(2, '0')}`;
+        return e.episode_num % 3 === 1 ? `${info.info.name} – ${code}` : `${info.info.name} ${code} - ${e.title}`;
+      };
+      const episodes = Object.fromEntries(Object.entries(info.episodes).map(([s, list]) => [s, list.map((e) => ({ ...e, title: named(e, s), info: { ...e.info, movie_image: origin + e.info.movie_image } }))]));
       return send(res, 200, { seasons: info.seasons.map((s) => ({ ...s, cover: origin + s.cover })), info: publicSeries(origin, info.info), episodes });
     }
     case 'get_vod_info': {

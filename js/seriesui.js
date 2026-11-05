@@ -8,6 +8,7 @@
 import { externalLinks, titleFacts } from './titleinfo.js';
 import { poster } from './poster.js';
 import { t } from './i18n.js';
+import { episodeTitle } from './name.js';
 import { toggleFavorite } from './coversui.js';
 import { beginListLoad, catalogueSearch, listNavigation, mediaFilters, refreshRows, showListError, state, updateAddress, vlist } from './app.js';
 import { playItem } from './playing.js';
@@ -36,8 +37,14 @@ export async function openSeries(item) {
   // must not infer new prefixes from its repeated series title.
   const sourceItem = item;
   const parentCleaner = state.cleanName;
-  const cleanName = parentCleaner ? name => parentCleaner(name, sourceItem) : null;
-  item = { ...item, displayName: cleanName ? cleanName(item.n) : item.displayName || item.n };
+  const parentClean = parentCleaner ? name => parentCleaner(name, sourceItem) : null;
+  // An episode's row says only what the page does not: its own title, the
+  // series' name and the code being there already (episodeTitle in
+  // js/name.js); with no title of its own, "Episode 3".
+  const seriesNames = [item.n, item.displayName, parentClean ? parentClean(item.n) : null];
+  const episodeName = (episode) => episodeTitle(episode.n, { series: seriesNames }) || t('api.episode', { number: episode.episode || '' });
+  const cleanName = (name, row) => (row && row.k === 3 ? episodeName(row) : parentClean ? parentClean(name) : name);
+  item = { ...item, displayName: parentClean ? parentClean(item.n) : item.displayName || item.n };
   state.detail = { view: 'series', item, info: null, season: null, back, cleanName, returnPosition, returnSearch, loading: true };
   const open = state.detail;
   renderDetail();
@@ -55,9 +62,9 @@ export async function openSeries(item) {
       ...info,
       episodes: info.episodes.map(episode => ({
         ...episode,
-        displayName: cleanName ? cleanName(episode.n) : episode.n,
+        displayName: episodeName(episode),
         seriesCover: info.cover || item.logo || '',
-        seriesName: cleanName ? cleanName(item.n) : item.displayName || item.n,
+        seriesName: parentClean ? parentClean(item.n) : item.displayName || item.n,
         seriesId: item.id,
       })),
     };
