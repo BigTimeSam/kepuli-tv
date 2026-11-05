@@ -133,8 +133,8 @@ const $ = (id) => document.getElementById(id);
 const HEAD_H = 52, ROW_H = 60, MORE_H = 44;
 
 export class ProgrammeSearch {
-  constructor({ getChannels, getEpg, onSelect, onActivate, onMode, onPick = () => {}, label = (channel) => channel.n }) {
-    Object.assign(this, { getChannels, getEpg, onSelect, onActivate, onMode, onPick, label });
+  constructor({ getChannels, getEpg, onSelect, onActivate, onMode, onPick = () => {}, label = (channel) => channel.n, limit = () => null, onLeave = () => {} }) {
+    Object.assign(this, { getChannels, getEpg, onSelect, onActivate, onMode, onPick, label, limit, onLeave });
     this.results = [];
     // What the list shows: the results grouped by channel (groupResults),
     // and the channels opened in full in this search, by id.
@@ -146,11 +146,32 @@ export class ProgrammeSearch {
     this.status = null;
     // The all-channels search the viewer said yes to, see MANY_CHANNELS.
     this.confirmed = null;
+    // The search the viewer asked to run past "Filter countries", by what
+    // was asked (asked()); any other search keeps to the filter again.
+    this.everyGroup = null;
     this.list = new VirtualList($('programme-results'), ROW_H, (i) => this.row(i));
     $('programme-form').addEventListener('submit', (e) => { e.preventDefault(); this.search(); });
     $('programme-cancel').addEventListener('click', () => this.cancel());
     $('programme-clear').addEventListener('click', () => this.clear());
     $('programme-continue').addEventListener('click', () => { this.confirmed = this.asked(); this.search(); });
+    // The results answer the keys the guide's grid does: the arrows and the
+    // page keys walk them, and Enter does what Enter does on a programme
+    // there (catch-up for one that has ended, a reminder for one to come,
+    // the channel for one on now). A click only chooses, as below.
+    $('programme-results').addEventListener('keydown', (e) => this.key(e));
+    // Whatever the focus lands on, by the arrows or by Tab, is the
+    // programme the panel beside describes, as the grid's cursor is.
+    $('programme-results').addEventListener('focusin', (e) => {
+      const item = this.items[Number(e.target.closest?.('.psr-row')?.dataset.index)];
+      if (item?.programme) this.onSelect(item.channel, item.programme);
+    });
+    $('programme-query').addEventListener('keydown', (e) => {
+      if (e.key !== 'ArrowDown' || e.altKey || e.ctrlKey || e.metaKey || $('programme-panel').hidden || $('programme-results').hidden) return;
+      const first = this.step(-1, 1);
+      if (first < 0) return;
+      e.preventDefault();
+      this.focusAt(first);
+    });
     for (const id of ['programme-query', 'programme-scope', 'programme-period']) {
       $(id).addEventListener('input', () => {
         this.cancel();
@@ -158,6 +179,62 @@ export class ProgrammeSearch {
         if (this.status?.kind === 'many') { this.status = null; this.renderStatus(); }
       });
     }
+  }
+
+  /** Whether a search is on show, or typed and not yet cleared: Escape clears it before it closes the guide. */
+  get active() {
+    return !$('programme-panel').hidden || Boolean($('programme-query').value);
+  }
+
+  /**
+   * The next item from `from` in the direction of `delta` (±1) that takes
+   * the focus: a programme, a "Show all", or a channel's heading that folds.
+   * A heading that is only a name is passed over. -1 when there is none.
+   */
+  step(from, delta) {
+    for (let i = from + delta; i >= 0 && i < this.items.length; i += delta) {
+      const item = this.items[i];
+      if (item.programme || item.more || item.count > FIRST_FEW) return i;
+    }
+    return -1;
+  }
+
+  /** The focus on item `index`, scrolled into view and painted first if it was not. */
+  focusAt(index) {
+    this.list.scrollToIndex(index);
+    this.list.paint({ reuse: true });
+    $('programme-results').querySelector(`[data-index="${index}"]`)?.focus();
+  }
+
+  key(e) {
+    if (e.altKey || e.ctrlKey || e.metaKey) return;
+    const node = e.target.closest?.('[data-index]');
+    if (!node) return;
+    const at = Number(node.dataset.index);
+    const item = this.items[at];
+    if (e.key === 'Enter' && item?.programme) {
+      // Not the button's click, which only chooses: Enter activates.
+      e.preventDefault();
+      this.onActivate(item.channel, item.programme);
+      return;
+    }
+    const page = Math.max(1, Math.floor($('programme-results').clientHeight / ROW_H) - 1);
+    let to = -1;
+    switch (e.key) {
+      case 'ArrowDown': to = this.step(at, 1); break;
+      case 'ArrowUp':
+        to = this.step(at, -1);
+        // Above the first result is the field the search was typed in.
+        if (to < 0) { e.preventDefault(); $('programme-query').focus(); return; }
+        break;
+      case 'PageDown': for (let i = 0, next = at; i < page && (next = this.step(next, 1)) >= 0; i++) to = next; break;
+      case 'PageUp': for (let i = 0, next = at; i < page && (next = this.step(next, -1)) >= 0; i++) to = next; break;
+      case 'Home': to = this.step(-1, 1); break;
+      case 'End': to = this.step(this.items.length, -1); break;
+      default: return;
+    }
+    e.preventDefault();
+    if (to >= 0) this.focusAt(to);
   }
 
   /** The search the form asks for, as one string, to tell one from the next. */
@@ -178,6 +255,7 @@ export class ProgrammeSearch {
     this.cancel();
     this.show([]);
     this.status = null;
+    this.everyGroup = null;
     this.offerAll(null);
     $('programme-query').value = '';
     $('programme-panel').hidden = true;
@@ -223,9 +301,30 @@ export class ProgrammeSearch {
     const none = finished && !s.count && !s.cancelled;
     $('programme-results').hidden = none;
     $('programme-empty').hidden = !none;
-    $('programme-empty').replaceChildren(...(none ? [emptyState(t('empty.nohits'), t('programmes.nohits.text', { query: s.query }), null, 'search')] : []));
+    $('programme-empty').replaceChildren(...(none ? [this.noHits(s)] : []));
     const more = $('programme-continue');
     if (!more.hidden) more.textContent = t('programmes.continue', { count: more.dataset.count });
+  }
+
+  /**
+   * Nothing found: said as the list's own searches say it, with the way
+   * back to the guide, and when "Filter countries" left countries out of
+   * the search, how many it read and a search of all of them.
+   */
+  noHits(s) {
+    const limit = this.everyGroup === this.asked() ? null : this.limit();
+    const actions = [];
+    if (limit) {
+      actions.push({ label: t('search.all'), onClick: () => {
+        $('programme-scope').value = 'all';
+        this.everyGroup = this.asked();
+        this.search();
+      } });
+    }
+    actions.push({ label: t('search.clear'), onClick: () => { this.clear(); this.onLeave(); } });
+    const text = [t('programmes.nohits.text', { query: s.query })];
+    if (limit) text.push(limit);
+    return emptyState(t('empty.nohits'), text, actions, 'search');
   }
 
   /** The button that sets off an all-channels search of `count` channels; null takes it away. */
@@ -251,7 +350,7 @@ export class ProgrammeSearch {
     this.onMode(true);
     try {
       const scope = $('programme-scope').value;
-      const channels = await this.getChannels(scope, run.signal);
+      const channels = await this.getChannels(scope, run.signal, { everyGroup: this.everyGroup === asked });
       if (run.signal.aborted) return;
       const count = searchableChannels(channels).length;
       if (scope === 'all' && count > MANY_CHANNELS && this.confirmed !== asked) {
@@ -376,7 +475,15 @@ export class ProgrammeSearch {
       row.appendChild(live);
     }
     row.title = `${this.label(channel)}, ${shortDay(programme.start)} ${clock(programme.start)}–${clock(programme.stop)}`;
-    row.addEventListener('click', () => { this.onSelect(channel, programme); this.onPick(channel, programme); });
+    // A click chooses the programme and the panel beside offers what can
+    // be done with it, as in the grid. Only one on now starts its channel at
+    // once: a programme that has ended or is still to come is not on the
+    // channel, and playing it live would show something else.
+    row.addEventListener('click', () => {
+      this.onSelect(channel, programme);
+      const at = Date.now();
+      if (programme.start <= at && at < programme.stop) this.onPick(channel, programme);
+    });
     row.addEventListener('dblclick', () => this.onActivate(channel, programme));
     return row;
   }

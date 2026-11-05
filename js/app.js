@@ -105,6 +105,7 @@ export const state = {
   sub: null,              // a topic within the group (category_id)
   groupItems: [],         // every item of the chosen group, in memory
   categoryFilter: '', query: '',
+  searchAll: null,        // `${tab}\n${query}` of a search run past the groups' filter ("Search all")
   cleanName: null,        // the row-name tidier, null = the name as it is
   listLoading: false,
   listError: null,
@@ -973,7 +974,7 @@ export async function refreshRows({ keepScroll = false, returnPosition = null, r
   // The favourites and the history keep their own order (newest first, by
   // day): their names are tidied, not sorted by.
   if (!channelList && state.cleanName && !state.query && state.detail?.view !== 'series' && !(isCollection() && !state.detail)) rows = sortItems(rows, (name, item) => state.cleanName(name, item));
-  rows = visibleRows(rows);
+  rows = visibleRows(rows, { everyGroup: searchesEveryGroup() });
   if (type === 'live' && !state.query && !state.detail && !isCollection()) rows = withoutInternational(rows);
   // The setting says where the list starts; the personal arrangement, made
   // in Organize channels, has the last word over it.
@@ -1159,6 +1160,7 @@ function moveGroupCursor(to) {
 
 function renderKinds() {
   el.groupsFilter.hidden = true;
+  $('groups-empty').hidden = true;
   const items = collectionItems();
   // An empty collection needs no filter: the empty-state text says more
   // than a row reading "All 0".
@@ -1250,6 +1252,9 @@ export function renderCategories() {
     }, selectGroup));
   }
   el.groups.replaceChildren(frag);
+  // A filter that leaves nothing says so, rather than an empty column.
+  $('groups-empty').hidden = !(filter && !groups.length);
+  $('groups-empty').textContent = filter && !groups.length ? t('empty.nohits.text', { query: state.categoryFilter.trim() }) : '';
   fillGroupPicker(visibleGroups(type).map((g) => [g.name, g.name]), state.group ?? '');
 }
 
@@ -1304,6 +1309,25 @@ export function visibleGroups(type) {
   const chosen = chosenCountries();
   return groups.map((g) => ({ ...g, cats: g.cats.filter((c) => !hidden.has(c.id)) }))
     .filter((g) => g.cats.length && (!chosen || chosen.has(g.name)));
+}
+
+/**
+ * What a search of `type` leaves out by "Filter countries" or "Filter
+ * categories", in words ("Countries searched: 3/12"), or null when the
+ * filter lets every group through. A search that finds nothing says it, so
+ * that a channel of a country left out is not taken for one the provider
+ * does not have, and offers a search of them all.
+ */
+export function searchLimit(type) {
+  const chosen = groupFilter(type);
+  if (!chosen) return null;
+  return t(type === 'live' ? 'search.limited.countries' : 'search.limited.categories',
+    { n: nf.format(chosen.size), total: nf.format(state.lib.groups[type].length) });
+}
+
+/** The search on show asked to run past the groups' filter ("Search all"): the words it was asked for, per tab. */
+export function searchesEveryGroup() {
+  return Boolean(state.query) && state.searchAll === `${state.tab}\n${state.query}`;
 }
 
 /**
@@ -1382,15 +1406,17 @@ export function liveGroupOf() {
  * and the guide — but not out of the favourites and the history, which
  * hold what was picked by hand.
  */
-export function visibleRows(rows) {
+export function visibleRows(rows, { everyGroup = false } = {}) {
   const prefs = state.channelPrefs;
   const visible = visibilityFilter(prefs);
   const groups = new Set(visibleGroups('live').map((g) => g.name));
-  const chosen = isCollection() ? null : chosenCountries();
+  // everyGroup: a search the viewer asked to run past "Filter countries"
+  // and "Filter categories" (searchLimit); what is hidden stays hidden.
+  const chosen = isCollection() || everyGroup ? null : chosenCountries();
   const groupOf = chosen ? liveGroupOf() : null;
   // The films' and the series' categories, the same way, in the browsing
   // and the search; a favourite or the history keeps what was picked.
-  const picked = isCollection() ? {} : { 1: chosenCategories('movie'), 2: chosenCategories('series') };
+  const picked = isCollection() || everyGroup ? {} : { 1: chosenCategories('movie'), 2: chosenCategories('series') };
   const pickedOf = { 1: picked[1] && groupOfType('movie'), 2: picked[2] && groupOfType('series') };
   return rows.filter((item) => {
     if (!visible(item)) return false;
@@ -1999,6 +2025,15 @@ function wireUi() {
     if (e.target === el.search && e.key === 'Escape') {
       e.preventDefault(); catalogueSearch.clear(); el.list.focus(); return;
     }
+    // The guide's search the same way: the first Escape clears it and gives
+    // the keys back to the grid, the next one closes the guide. The
+    // browser's own clearing of a search field emptied the words and left
+    // the results on screen.
+    if (e.target === $('programme-query') && e.key === 'Escape' && guideOpen) {
+      e.preventDefault();
+      if (programmeSearch.active) { programmeSearch.clear(); focusGrid(); } else closeGuide();
+      return;
+    }
     // The list's own load answers Escape wherever the focus is, which the
     // dialog used to do for us by being modal.
     if (e.key === 'Escape' && !el.listProgress.hidden) { cancelProgress(); return; }
@@ -2023,7 +2058,10 @@ function wireUi() {
     // A focused button takes Space and Enter itself; every other key is the player's.
     if (tag === 'BUTTON' && (e.key === ' ' || e.key === 'Enter')) return;
     if (guideOpen) {
-      if (e.key === 'Escape') { closeGuide(); return; }
+      if (e.key === 'Escape') {
+        if (programmeSearch.active) { programmeSearch.clear(); focusGrid(); } else closeGuide();
+        return;
+      }
       if (!$('programme-panel').hidden && e.key !== 'g') return;
       if (grid.handleKey(e)) { e.preventDefault(); return; }
     }

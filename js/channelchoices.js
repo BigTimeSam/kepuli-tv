@@ -146,7 +146,16 @@ export class CountryPicker {
 
   filter() {
     const terms = searchTerms($('countries-filter').value);
-    for (const row of $('countries-list').children) row.hidden = terms.length > 0 && !matchesTerms(row.dataset.key, terms);
+    let shown = 0;
+    for (const row of $('countries-list').children) {
+      row.hidden = terms.length > 0 && !matchesTerms(row.dataset.key, terms);
+      if (!row.hidden) shown++;
+    }
+    // A filter that leaves no country says so, where the list was.
+    const none = terms.length > 0 && !shown;
+    $('countries-list').classList.toggle('none', none);
+    $('countries-empty').hidden = !none;
+    $('countries-empty').textContent = none ? t('empty.nohits.text', { query: $('countries-filter').value.trim() }) : '';
     $('countries-toggle-label').textContent = t(terms.length ? 'countries.toggle.shown' : 'countries.toggle');
     this.status();
   }

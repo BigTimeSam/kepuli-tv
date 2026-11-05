@@ -11,7 +11,7 @@ import { nf } from './format.js';
 import { t } from './i18n.js';
 import { viewToggle } from './coversui.js';
 import * as store from './config.js';
-import { activateTab, isAbort, isCollection, kindLabel, mediaFilters, openHiddenList, refreshRows, renderSidebar, showListCancelled, showListError, state, tabType, unit } from './app.js';
+import { activateTab, catalogueSearch, isAbort, isCollection, kindLabel, mediaFilters, openHiddenList, refreshRows, renderSidebar, searchesEveryGroup, searchLimit, showListCancelled, showListError, state, tabType, unit } from './app.js';
 import { hideProgress, progressSignal, showProgress, updateProgress } from './progressdialog.js';
 import { clearHistory } from './collections.js';
 import { $, el } from './dom.js';
@@ -219,7 +219,15 @@ export function renderEmptyState() {
   const browse = { label: t('empty.browse'), onClick: () => activateTab('live') };
   let node;
   if (mediaFilters.filtering) node = emptyState(t('filters.nohits'), t('filters.nohits.text'), { label: t('filters.reset'), onClick: () => mediaFilters.clear() }, 'search');
-  else if (state.query) node = emptyState(t('empty.nohits'), t('empty.nohits.text', { query: state.query }), null, 'search');
+  else if (state.query) {
+    // A search that found nothing says what it did not read — the
+    // countries or the categories "Filter countries/categories" leaves out —
+    // and offers them too, besides the way back to the list.
+    const limit = !isCollection() && !state.detail && type && !searchesEveryGroup() ? searchLimit(type) : null;
+    const actions = [{ label: t('search.clear'), onClick: () => { catalogueSearch.clear(); el.list.focus(); } }];
+    if (limit) actions.unshift({ label: t('search.all'), onClick: () => { state.searchAll = `${state.tab}\n${state.query}`; refreshRows(); } });
+    node = emptyState(t('empty.nohits'), [t('empty.nohits.text', { query: state.query }), limit].filter(Boolean), actions, 'search');
+  }
   else if (state.detail && state.detail.view === 'category') {
     node = emptyState(t('empty.category'), t('empty.category.text'));
   } else if (state.tab === 'fav') {

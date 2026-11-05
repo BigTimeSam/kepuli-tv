@@ -4525,6 +4525,196 @@ async function categories(page) {
 }
 
 /**
+ * The guide's search results answer as the grid does. The arrows walk them
+ * from the search field down and each one reached is the programme the
+ * panel beside describes; a click on a programme that has ended or is
+ * still to come only chooses it (Watch the recording, Remind me) and does
+ * not start the channel live; one on now plays at once; Enter on an ended
+ * programme of a channel with an archive plays the recording. The first
+ * Escape clears the search and leaves the guide open, the second closes it,
+ * from the search field as from the results.
+ */
+async function programmekeys(page, { requests }) {
+  const assert = (ok, message) => { if (!ok) throw new Error(message); };
+  const guide = `(await import('./js/guideui.js'))`;
+  const app = `(await import('./js/app.js'))`;
+  const enter = async () => {
+    await page.call('Input.dispatchKeyEvent', { type: 'keyDown', key: 'Enter', code: 'Enter', windowsVirtualKeyCode: 13, text: '\r' });
+    await page.call('Input.dispatchKeyEvent', { type: 'keyUp', key: 'Enter', code: 'Enter', windowsVirtualKeyCode: 13 });
+  };
+  const playing = () => evaluate(page, `(async () => { const { state } = ${app}; return { live: state.playing && !state.catchup ? String(state.playing.id) : null, catchup: state.catchup ? String(state.catchup.channel?.id) : null }; })()`);
+  const actions = () => evaluate(page, `[...document.querySelectorAll('#epgv-actions button')].map((b) => b.textContent)`);
+  const search = async (query) => {
+    await evaluate(page, `document.getElementById('programme-panel').dataset.state = ''`);
+    await evaluate(page, `document.getElementById('programme-query').value=${JSON.stringify(query)}; document.getElementById('programme-period').value='all'; document.getElementById('programme-scope').value='group'; document.getElementById('programme-form').requestSubmit()`);
+    await waitFor(page, `document.getElementById('programme-panel').dataset.state === 'done'`, 'the programme search');
+  };
+  // The first result of a kind: ended on a channel with an archive, on now, still to come.
+  const find = (kind) => evaluate(page, `(async () => { const { programmeSearch: ps } = ${guide}; const now = Date.now();
+    return ps.items.findIndex((it) => it.programme && (${JSON.stringify(kind)} === 'past' ? it.programme.stop <= now && it.channel.archive > 0 && it.programme.start >= now - it.channel.archive * 86400e3
+      : ${JSON.stringify(kind)} === 'now' ? it.programme.start <= now && now < it.programme.stop : it.programme.start > now)); })()`);
+  const rowAt = (i) => `(async () => { const { programmeSearch: ps } = ${guide}; ps.list.scrollToIndex(${i}); ps.list.paint({ reuse: true });
+    return document.querySelector('#programme-results [data-index="${i}"]'); })()`;
+  const titleAt = (i) => evaluate(page, `(async () => (${guide}).programmeSearch.items[${i}].programme.title)()`);
+
+  await openLiveList(page, 3);
+  await evaluate(page, `document.getElementById('btn-guide').click()`, { gesture: true });
+  await waitFor(page, `document.getElementById('main').classList.contains('guide')`, 'the guide');
+  await search('a');
+  // Every channel's programmes in full, so that each kind is among the items:
+  // folded, a channel shows its first three, which are all in the past.
+  await evaluate(page, `(async () => { const { programmeSearch: ps } = ${guide}; for (const r of ps.results) ps.expanded.add(String(r.channel.id)); ps.show(ps.results); })()`);
+  const before = await playing();
+
+  // The arrows, from the field into the results and down them.
+  await evaluate(page, `document.getElementById('programme-query').focus()`);
+  await pressKey(page, 'ArrowDown', 'ArrowDown', 40);
+  const first = await evaluate(page, `({ index: document.activeElement?.dataset.index, cls: document.activeElement?.className })`);
+  await pressKey(page, 'ArrowDown', 'ArrowDown', 40);
+  await pressKey(page, 'ArrowDown', 'ArrowDown', 40);
+  const third = await evaluate(page, `({ index: Number(document.activeElement?.dataset.index), cls: document.activeElement?.className, slot: document.querySelector('#epgv-slot b')?.textContent })`);
+  assert(first.index != null && third.index > Number(first.index), `the arrows did not walk the results: ${JSON.stringify({ first, third })}`);
+  if (third.cls === 'psr-row') {
+    const title = await titleAt(third.index);
+    assert(third.slot === title, `the panel does not describe the programme reached: "${third.slot}" for "${title}"`);
+  }
+  await pressKey(page, 'ArrowUp', 'ArrowUp', 38);
+  assert(await evaluate(page, `Number(document.activeElement?.dataset.index)`) < third.index, 'ArrowUp did not go back');
+
+  // A click on an ended programme chooses it: the recording on offer, nothing live.
+  const past = await find('past');
+  assert(past >= 0, 'no ended programme on a channel with an archive among the results');
+  await evaluate(page, `${rowAt(past)}.then((row) => row.click())`, { gesture: true });
+  await sleep(800);
+  const afterPast = await playing();
+  const pastActions = await actions();
+  assert(afterPast.live === before.live && !afterPast.catchup, `a click on an ended programme started the channel: ${JSON.stringify({ before, afterPast })}`);
+  assert(pastActions.includes('Watch the recording') && await evaluate(page, `document.querySelector('#epgv-slot b')?.textContent`) === await titleAt(past),
+    `the preview of an ended programme: ${JSON.stringify(pastActions)}`);
+
+  // A programme still to come: Remind me, nothing live.
+  const future = await find('future');
+  assert(future >= 0, 'no programme to come among the results');
+  await evaluate(page, `${rowAt(future)}.then((row) => row.click())`, { gesture: true });
+  await sleep(800);
+  const afterFuture = await playing();
+  assert(afterFuture.live === before.live && !afterFuture.catchup && (await actions()).includes('Remind me'),
+    `a click on a programme to come: ${JSON.stringify({ afterFuture, actions: await actions() })}`);
+
+  // On now: plays at once in the corner.
+  const now = await find('now');
+  assert(now >= 0, 'no programme on now among the results');
+  const nowChannel = await evaluate(page, `(async () => String((${guide}).programmeSearch.items[${now}].channel.id))()`);
+  await evaluate(page, `${rowAt(now)}.then((row) => row.click())`, { gesture: true });
+  await waitFor(page, `(async () => { const { state } = ${app}; return String(state.playing?.id) === ${JSON.stringify(nowChannel)} && !state.catchup; })()`, 'the channel on now playing');
+
+  // Enter on the ended programme: its recording.
+  const archived = requests.filter((r) => r.startsWith('/timeshift/')).length;
+  await evaluate(page, `${rowAt(past)}.then((row) => row.focus())`);
+  await enter();
+  await waitFor(page, `(async () => Boolean(${app}.state.catchup))()`, 'the recording after Enter', 10000);
+  assert(requests.filter((r) => r.startsWith('/timeshift/')).length > archived, 'Enter did not ask for the archive');
+
+  // Escape: the search first, then the guide.
+  await evaluate(page, `${rowAt(past)}.then((row) => row.focus())`);
+  await pressKey(page, 'Escape', 'Escape', 27);
+  await sleep(200);
+  const once = await evaluate(page, `({ guide: document.getElementById('main').classList.contains('guide'), panel: document.getElementById('programme-panel').hidden, query: document.getElementById('programme-query').value, grid: !document.getElementById('epg-body').hidden })`);
+  assert(once.guide && once.panel && !once.query && once.grid, `the first Escape from the results: ${JSON.stringify(once)}`);
+  await pressKey(page, 'Escape', 'Escape', 27);
+  await sleep(200);
+  assert(!(await evaluate(page, `document.getElementById('main').classList.contains('guide')`)), 'the second Escape did not close the guide');
+
+  // The same from the search field, with words typed and not yet searched.
+  await evaluate(page, `document.getElementById('btn-guide').click()`, { gesture: true });
+  await waitFor(page, `document.getElementById('main').classList.contains('guide')`, 'the guide again');
+  await evaluate(page, `(() => { const q = document.getElementById('programme-query'); q.focus(); q.value = 'News'; })()`);
+  await pressKey(page, 'Escape', 'Escape', 27);
+  await sleep(200);
+  const field = await evaluate(page, `({ guide: document.getElementById('main').classList.contains('guide'), query: document.getElementById('programme-query').value })`);
+  assert(field.guide && !field.query, `Escape in the search field: ${JSON.stringify(field)}`);
+  await pressKey(page, 'Escape', 'Escape', 27);
+  await sleep(200);
+  assert(!(await evaluate(page, `document.getElementById('main').classList.contains('guide')`)), 'the second Escape after the field did not close the guide');
+  return { ok: true, detail: `arrows from the field through the results (to ${third.index}) with the panel following; a click on an ended programme offered ${JSON.stringify(pastActions)} and played nothing, one to come offered Remind me, one on now played; Enter on the ended one played its recording; Escape cleared the search, then closed the guide, from the results and from the field` };
+}
+
+/**
+ * A search that finds nothing says what it did not read: with "Filter
+ * countries" keeping one country, the notice counts the countries searched
+ * and offers Search all, which finds the channel of a country left out,
+ * and Clear search, which goes back to the list. The sidebar's filter and
+ * the countries dialog's filter say so when they leave nothing, rather
+ * than an empty column.
+ */
+async function searchlimit(page) {
+  const assert = (ok, message) => { if (!ok) throw new Error(message); };
+  const app = `(await import('./js/app.js'))`;
+  const names = () => evaluate(page, `[...document.querySelectorAll('#list .row-name')].map((n) => n.title || n.textContent)`);
+  const type = (id, value) => evaluate(page, `(() => { const f = document.getElementById(${JSON.stringify(id)}); f.value = ${JSON.stringify(value)}; f.dispatchEvent(new Event('input', { bubbles: true })); })()`);
+  await openLiveList(page, 3);
+  await click(page, '#groups', 'Finland');
+  await waitFor(page, `document.querySelectorAll('#list .row').length > 1`, 'Finland');
+  const finland = await names();
+  await click(page, '#groups', 'Sweden');
+  await waitFor(page, `document.querySelectorAll('#list .row').length > 1 && !${JSON.stringify(finland)}.includes(document.querySelector('#list .row-name').title || document.querySelector('#list .row-name').textContent)`, 'Sweden');
+  const lower = (s) => s.toLowerCase();
+  // A search finds every word anywhere in a name: none of Finland's may hold them all.
+  const swedish = (await names()).find((n) => !finland.some((f) => lower(n).split(/\s+/).every((w) => lower(f).includes(w))));
+  assert(swedish, 'no Swedish channel to look for');
+  try {
+    // Finland alone, chosen in the dialog; a filter there that leaves nothing says so.
+    await evaluate(page, `document.getElementById('btn-countries').click()`, { gesture: true });
+    await waitFor(page, `document.getElementById('countries').open`, 'Filter countries');
+    await type('countries-filter', 'zzqqxx');
+    const dialog = await evaluate(page, `({ empty: document.getElementById('countries-empty').hidden ? null : document.getElementById('countries-empty').textContent, list: getComputedStyle(document.getElementById('countries-list')).display })`);
+    assert(dialog.empty === 'The search “zzqqxx” returned nothing.' && dialog.list === 'none', `the dialog's filter with no match: ${JSON.stringify(dialog)}`);
+    await type('countries-filter', '');
+    await evaluate(page, `document.querySelector('#countries-list .choice-row[data-name="Finland"] input').click(); document.getElementById('countries-save').click()`);
+    await waitFor(page, `!document.getElementById('countries').open`, 'the countries saved');
+    await sleep(400);
+    const total = await evaluate(page, `(async () => ${app}.state.lib.groups.live.length)()`);
+
+    // The sidebar's filter with no match.
+    await type('category-filter', 'zzqqxx');
+    await sleep(300);
+    const side = await evaluate(page, `({ empty: document.getElementById('groups-empty').hidden ? null : document.getElementById('groups-empty').textContent, rows: document.querySelectorAll('#groups .group').length })`);
+    assert(side.empty === 'The search “zzqqxx” returned nothing.' && side.rows === 0, `the sidebar's filter with no match: ${JSON.stringify(side)}`);
+    await type('category-filter', '');
+    await sleep(300);
+    assert(await evaluate(page, `document.getElementById('groups-empty').hidden`), 'the sidebar line stayed after the filter was cleared');
+
+    // The Swedish channel searched for: nothing in Finland, and the notice says why.
+    await type('search', swedish);
+    await waitFor(page, `document.querySelector('#list .empty')`, 'the empty search').catch(async (err) => { throw new Error(`${err.message}: ${swedish} → ${JSON.stringify(await names())}`); });
+    const empty = await evaluate(page, `({ text: document.querySelector('#list .empty').textContent, buttons: [...document.querySelectorAll('#list .empty button')].map((b) => b.textContent) })`);
+    assert(empty.text.includes(`Countries searched: 1/${total}`) && JSON.stringify(empty.buttons) === '["Search all","Clear search"]', `the empty search: ${JSON.stringify(empty)}`);
+    await evaluate(page, `[...document.querySelectorAll('#list .empty button')].find((b) => b.textContent === 'Search all').click()`);
+    await waitFor(page, `[...document.querySelectorAll('#list .row-name')].some((n) => (n.title || n.textContent) === ${JSON.stringify(swedish)})`, 'the Swedish channel after Search all');
+    // Another search keeps to the filter again, and Clear search ends it.
+    await type('search', 'zzqqxx');
+    await waitFor(page, `document.querySelector('#list .empty')?.textContent.includes('zzqqxx')`, 'another empty search');
+    assert(await evaluate(page, `document.querySelector('#list .empty').textContent.includes('Countries searched')`), 'a new search ran past the filter');
+    await evaluate(page, `[...document.querySelectorAll('#list .empty button')].find((b) => b.textContent === 'Clear search').click()`);
+    await waitFor(page, `!document.getElementById('search').value && document.querySelectorAll('#list .row').length > 0`, 'the list after Clear search');
+
+    // The guide's search the same way, with the way back to the grid.
+    await evaluate(page, `document.getElementById('btn-guide').click()`, { gesture: true });
+    await waitFor(page, `document.getElementById('main').classList.contains('guide')`, 'the guide');
+    await evaluate(page, `document.getElementById('programme-query').value = 'zzqqxx'; document.getElementById('programme-scope').value = 'all'; document.getElementById('programme-form').requestSubmit()`);
+    await waitFor(page, `document.getElementById('programme-panel').dataset.state === 'done'`, 'the guide search');
+    const guide = await evaluate(page, `({ text: document.getElementById('programme-empty').textContent, buttons: [...document.querySelectorAll('#programme-empty button')].map((b) => b.textContent) })`);
+    assert(guide.text.includes(`Countries searched: 1/${total}`) && JSON.stringify(guide.buttons) === '["Search all","Clear search"]', `the guide's empty search: ${JSON.stringify(guide)}`);
+    await evaluate(page, `[...document.querySelectorAll('#programme-empty button')].find((b) => b.textContent === 'Clear search').click()`);
+    assert(await evaluate(page, `document.getElementById('programme-panel').hidden && !document.getElementById('epg-body').hidden && document.getElementById('main').classList.contains('guide')`), 'Clear search did not go back to the grid');
+    return { ok: true, detail: `the guide's search the same; the dialog's and the sidebar's filters said "no match"; "${swedish}" not found in Finland with "Countries searched: 1/${total}", found after Search all; Clear search went back to the list` };
+  } finally {
+    await evaluate(page, `(async () => { const { state } = ${app}; const config = await import('./js/config.js');
+      await config.saveChannelPreferences({ ...state.channelPrefs, countries: [], countriesMode: null }); })()`).catch(() => {});
+  }
+}
+
+/**
  * "Filter channels" and "Filter titles" are open the first time and say
  * their state the same way: the name, a dot while they narrow the list,
  * and "shown / total".
@@ -4584,7 +4774,31 @@ async function guidefavs(page) {
   await waitFor(page, `document.getElementById('epg-favs').getAttribute('aria-pressed') === 'false' && !document.getElementById('epg-group').disabled`, 'the switch off');
   const back = await evaluate(page, names);
   assert(back.length === group.length, `off: ${back.length} channels, the group had ${group.length}`);
-  return { ok: true, detail: `${group.length} channels of the group, then the favourites ${JSON.stringify(favs)}, ${third} joined at once, kept for the next opening, the group back when off` };
+
+  // Every star taken away while the favourites are shown: the switch stays
+  // on, remembered, and the guide says why it is empty in the words
+  // "Filter countries" uses, in place of the grid; no warning toast.
+  await evaluate(page, `document.getElementById('epg-favs').click()`, { gesture: true });
+  await waitFor(page, `document.querySelectorAll('.epg-chan-name').length === 3`, 'the favourites on once more');
+  await evaluate(page, `(async () => { const { state } = await import('./js/app.js'); const { toggleFavorite } = await import('./js/coversui.js');
+    for (const f of [...state.favorites.values()].filter((f) => f.k === 0)) toggleFavorite(f); })()`);
+  const hint = `({ pressed: document.getElementById('epg-favs').getAttribute('aria-pressed'), hint: document.getElementById('epg-hint').hidden ? null : document.getElementById('epg-hint').textContent,
+    grid: getComputedStyle(document.getElementById('epg-body')).display, toast: document.getElementById('toast').hidden ? null : document.getElementById('toast').textContent })`;
+  await sleep(400);
+  const none = await evaluate(page, hint);
+  const wording = 'No channel is a favourite yet: star one in the list, and only the starred ones are shown.';
+  assert(none.pressed === 'true' && none.hint === wording && none.grid === 'none' && !none.toast, `no favourites left: ${JSON.stringify(none)}`);
+  await evaluate(page, `document.getElementById('epg-close').click()`);
+  await evaluate(page, `document.getElementById('btn-guide').click()`, { gesture: true });
+  await waitFor(page, `document.getElementById('main').classList.contains('guide')`, 'the guide with no favourites');
+  await sleep(400);
+  const reopened = await evaluate(page, hint);
+  const stored = await evaluate(page, `chrome.storage.local.get('ui').then(({ ui }) => ui.guideFavorites)`);
+  assert(reopened.pressed === 'true' && reopened.hint === wording && !reopened.toast && stored === true, `reopened with no favourites: ${JSON.stringify({ reopened, stored })}`);
+  // A star brings the grid back in place of the line.
+  await evaluate(page, `document.querySelectorAll('#list .row')[0].querySelector('.row-star').click()`, { gesture: true });
+  await waitFor(page, `document.querySelectorAll('.epg-chan-name').length === 1 && document.getElementById('epg-hint').hidden && getComputedStyle(document.getElementById('epg-body')).display !== 'none'`, 'the grid back with a star');
+  return { ok: true, detail: `${group.length} channels of the group, then the favourites ${JSON.stringify(favs)}, ${third} joined at once, kept for the next opening, the group back when off; with every star gone the switch stayed on and stored, the line said "${none.hint}" with no toast, and a star brought the grid back` };
 }
 
 /**
@@ -5276,7 +5490,7 @@ async function countryfilter(page) {
 
 const SCENARIOS = { buffering, livebuffering, filmbuffering, emptyfile, tsasmp4, refusedfile, badgateway, livebadgateway, channelrefused, noanswer, longfilm, catalogUi, setupClarity, welcome, fullscreenControl, clickpause, pickers, touchcaret, screenbutton, topmenu, scrollbars, channelorder, lengthfilter, nowlogo, channels, home, resumemkv, restore, programmes, catchup, seek, death, cancel, timeout, search, paste, keys, switching, resume, connections, livezap, livequiet, reconnect, accounts, listerror, a11y, subtitles, audio, wasmaudio, settings,
   lastchannel, nextepisode, continuewatching, reminders, update, seeklag, cuesretry, quota, catchupfreeze, catchupfull, twotabs, switchstop, resettabs,
-  refresh, restorenav, guidekeep, m3u, sync, holes, picks, flakyserver, accountform, stalker, record, guidefavs, categories, homecountry, noleak, perf, pseudo, startup, soak, phone, episodenames, gotochannel, filmdetails, favorder, countryfilter, filterfolds };
+  refresh, restorenav, guidekeep, m3u, sync, holes, picks, flakyserver, accountform, stalker, record, guidefavs, categories, homecountry, noleak, perf, pseudo, startup, soak, phone, episodenames, gotochannel, filmdetails, favorder, countryfilter, programmekeys, searchlimit, filterfolds };
 // The mock's whole-list answers stall for these, longer than the request limit.
 const SLOW_LIST_MS = { cancel: 60000, timeout: 60000 };
 // The media is sent slowly for these: the seek targets must lie outside the
