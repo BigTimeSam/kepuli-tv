@@ -496,6 +496,11 @@ to add up. Hovering reveals every language; individual tracks remain available i
 the subtitle selector. A file whose subtitles are all bitmap tracks names no
 language at all, and there the count stands instead, beside the warning.
 
+Wherever a box holds more than it shows — a list, a long description, a
+Settings panel, the help — a thin bar at its right edge says so and stays in
+sight, also in Firefox on a tablet or a Mac, where the browser's own bar fades
+away after a scroll and a box would otherwise look finished.
+
 ## Settings
 
 Settings always opens on **Connection**, with four focused tabs:

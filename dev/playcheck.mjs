@@ -96,6 +96,8 @@
 //   node dev/playcheck.mjs topmenu    at a tablet's upright width the top bar
 //                                     keeps one row with a hamburger menu,
 //                                     in English and German
+//   node dev/playcheck.mjs scrollbars every box that scrolls keeps a bar in
+//                                     sight where the browser's would fade
 //   node dev/playcheck.mjs touchcaret on a touch screen the settings and a
 //                                     long drop-down open without the caret
 //                                     in a field (no on-screen keyboard)
@@ -1833,6 +1835,82 @@ async function topmenu(page) {
 }
 
 /**
+ * Wherever a box holds more than it shows, a bar says so and stays in
+ * sight (js/scrollhint.js): Firefox's overlay bars fade after a scroll, and
+ * on a tablet a long plot looked finished. Chrome's own bars are classic,
+ * so the overlay kind is made here by giving them no width. In the
+ * channels, a series' page, Settings and Help, every box that scrolls must
+ * be one SCROLLERS names and carry a bar at its right edge, the bar must
+ * move when the box scrolls, and with Chrome's own bars back none is drawn
+ * beside them.
+ */
+async function scrollbars(page) {
+  const assert = (ok, detail) => { if (!ok) throw new Error(detail); };
+  const STYLE = `(() => { const s = document.createElement('style'); s.id = 'overlay-bars'; s.textContent = '::-webkit-scrollbar { width: 0 !important; height: 0 !important; }'; document.head.append(s); return true; })()`;
+  // Every box that scrolls now, whether it has a bar beside it, and whether
+  // the module knows it: a box nobody named would go without.
+  const AUDIT = `import('./js/scrollhint.js').then(({ SCROLLERS }) => new Promise((done) => requestAnimationFrame(() => requestAnimationFrame(() => {
+    const bars = [...document.querySelectorAll('.scrollhint:not([hidden])')].map((b) => b.getBoundingClientRect());
+    const boxes = [...document.querySelectorAll('body *')].filter((n) => !n.closest('.scrollhint-layer')).filter((n) => {
+      const st = getComputedStyle(n); return /(auto|scroll)/.test(st.overflowY) && n.scrollHeight - n.clientHeight > 1 && n.clientHeight > 20 && n.getClientRects().length; });
+    done(boxes.map((n) => { const r = n.getBoundingClientRect();
+      return { box: n.id || n.className || n.tagName, named: n.matches(SCROLLERS), bar: bars.some((b) => b.left >= r.right - 12 && b.right <= r.right + 1 && b.top >= r.top - 1 && b.bottom <= r.bottom + 1) }; }));
+  }))))`;
+  const check = async (where) => {
+    const seen = await evaluate(page, AUDIT);
+    const bad = seen.filter((b) => !b.named || !b.bar);
+    assert(seen.length && !bad.length, `${where}: ${JSON.stringify(bad.length ? bad : seen)}`);
+    return seen.map((b) => b.box);
+  };
+  const seen = [];
+  await page.call('Emulation.setDeviceMetricsOverride', { width: 905, height: 700, deviceScaleFactor: 1, mobile: false });
+  try {
+    await evaluate(page, STYLE);
+    await sleep(300);
+    await evaluate(page, `document.querySelector('#tabs [data-tab="live"]').click()`);
+    await waitFor(page, `document.querySelectorAll('#list .row').length > 0`, 'the channel rows');
+    seen.push(...await check('the channels'));
+    // The bar follows the list as it scrolls.
+    const before = await evaluate(page, `(() => { const r = document.getElementById('list').getBoundingClientRect(); const b = [...document.querySelectorAll('.scrollhint:not([hidden])')].find((x) => Math.abs(x.getBoundingClientRect().right - r.right) < 12); return b && b.getBoundingClientRect().top; })()`);
+    await evaluate(page, `document.getElementById('list').scrollTop = 99999`);
+    await sleep(300);
+    const after = await evaluate(page, `(() => { const r = document.getElementById('list').getBoundingClientRect(); const b = [...document.querySelectorAll('.scrollhint:not([hidden])')].find((x) => Math.abs(x.getBoundingClientRect().right - r.right) < 12); return b && b.getBoundingClientRect().top; })()`);
+    assert(before != null && after > before + 20, `the list's bar did not follow the scroll: ${before} → ${after}`);
+    await evaluate(page, `document.getElementById('list').scrollTop = 0`);
+
+    await evaluate(page, `document.querySelector('#tabs [data-tab="series"]').click()`);
+    await click(page, '#groups', 'Nordic Noir');
+    await click(page, '#list', 'Silent Fjord');
+    await waitFor(page, `!document.getElementById('detail').hidden && document.querySelector('.detail-plot')`, 'the series page');
+    // A plot longer than its box, as a provider's often is.
+    await evaluate(page, `(() => { const p = document.querySelector('.detail-plot'); p.textContent = (p.textContent + ' ').repeat(6); return true; })()`);
+    seen.push(...await check('a series\' page'));
+
+    await evaluate(page, `document.getElementById('btn-settings').click()`);
+    await waitFor(page, `document.getElementById('setup').open`, 'settings');
+    seen.push(...await check('Settings'));
+    await evaluate(page, `document.getElementById('f-done').click()`);
+    await waitFor(page, `!document.getElementById('setup').open`, 'settings closed');
+
+    await evaluate(page, `document.getElementById('btn-help').click()`);
+    await waitFor(page, `document.getElementById('help').open`, 'help');
+    seen.push(...await check('Help'));
+    await evaluate(page, `document.getElementById('help').close()`);
+
+    // With Chrome's own bars, which stay, nothing is drawn beside them.
+    await evaluate(page, `document.getElementById('overlay-bars').remove()`);
+    await evaluate(page, `document.getElementById('list').scrollTop = 1`);
+    await sleep(300);
+    const doubled = await evaluate(page, `document.querySelectorAll('.scrollhint:not([hidden])').length`);
+    assert(doubled === 0, `${doubled} bars drawn beside Chrome's own`);
+  } finally {
+    await evaluate(page, `document.getElementById('overlay-bars')?.remove()`).catch(() => {});
+    await page.call('Emulation.clearDeviceMetricsOverride');
+  }
+  return { ok: true, detail: `a bar on every box that scrolls: ${[...new Set(seen)].join(', ')}; it follows the list; none beside Chrome's own bars` };
+}
+
+/**
  * The ways around the page for a keyboard and a screen reader: the skip
  * link is the first Tab stop and lands in the list, the topic chips are one
  * stop with the arrows inside, the overlay says its title with its text,
@@ -3277,7 +3355,7 @@ async function catalogUi(page) {
   await waitFor(page, `document.querySelector('#list.covers .row.card') && [...document.querySelectorAll('#list .card-meta')].some((n) => /\\d+ ?min|\\dh/.test(n.textContent))`, 'movie duration on a cover');
   await evaluate(page, `document.querySelector('.view-toggle button[aria-pressed="false"]').click()`);
   await waitFor(page, `!document.getElementById('list').classList.contains('covers') && document.querySelector('#list .row-duration')`, 'movie duration metadata');
-  assert(await evaluate(page, `!document.getElementById('media-filters').hidden && document.getElementById('channel-tools').hidden && document.querySelector('.topbar-end').lastElementChild.id === 'btn-settings'`), 'movie navigation/filters');
+  assert(await evaluate(page, `!document.getElementById('media-filters').hidden && document.getElementById('channel-tools').hidden && [...document.querySelector('.topbar-end').children].filter((c) => getComputedStyle(c).display !== 'none').at(-1).id === 'btn-settings'`), 'movie navigation/filters');
   const apply = (key,value) => evaluate(page, `(() => {const f=document.querySelector('#media-filters [name="${key}"]');f.value=${JSON.stringify(value)};f.dispatchEvent(new Event('change'));})()`);
   await apply('rating','8');
   await waitFor(page, `document.getElementById('list-progress').hidden && document.querySelectorAll('#list .row').length > 0`, 'rating filter');
@@ -4796,7 +4874,7 @@ async function episodenames(page) {
   }
 }
 
-const SCENARIOS = { buffering, livebuffering, filmbuffering, emptyfile, tsasmp4, refusedfile, badgateway, livebadgateway, channelrefused, noanswer, longfilm, catalogUi, setupClarity, welcome, fullscreenControl, clickpause, pickers, touchcaret, screenbutton, topmenu, channels, home, resumemkv, restore, programmes, catchup, seek, death, cancel, timeout, search, paste, keys, switching, resume, connections, livezap, livequiet, reconnect, accounts, listerror, a11y, subtitles, audio, wasmaudio, settings,
+const SCENARIOS = { buffering, livebuffering, filmbuffering, emptyfile, tsasmp4, refusedfile, badgateway, livebadgateway, channelrefused, noanswer, longfilm, catalogUi, setupClarity, welcome, fullscreenControl, clickpause, pickers, touchcaret, screenbutton, topmenu, scrollbars, channels, home, resumemkv, restore, programmes, catchup, seek, death, cancel, timeout, search, paste, keys, switching, resume, connections, livezap, livequiet, reconnect, accounts, listerror, a11y, subtitles, audio, wasmaudio, settings,
   lastchannel, nextepisode, continuewatching, reminders, update, seeklag, cuesretry, quota, catchupfreeze, catchupfull, twotabs, switchstop, resettabs,
   refresh, restorenav, guidekeep, m3u, sync, holes, picks, flakyserver, accountform, stalker, record, guidefavs, categories, homecountry, noleak, perf, pseudo, startup, soak, phone, episodenames };
 // The mock's whole-list answers stall for these, longer than the request limit.

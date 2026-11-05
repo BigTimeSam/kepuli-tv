@@ -1741,6 +1741,11 @@ select.epg-earlier { font: inherit; padding-right: 26px; background-position: ri
 .epg-nowhead[hidden] { display: none; }
 
 ::-webkit-scrollbar { width: 10px; height: 10px; }
+/* The bar drawn where the browser's own fades away (js/scrollhint.js):
+   an indicator over the box's right edge, never in the way of a press. */
+.scrollhint-layer { position: fixed; inset: 0; pointer-events: none; z-index: 30; }
+.scrollhint { position: absolute; width: 4px; border-radius: 99px; background: var(--muted); opacity: .45; }
+.scrollhint[hidden] { display: none; }
 ::-webkit-scrollbar-thumb { background: var(--scroll-thumb); border-radius: 99px; border: 2px solid transparent; background-clip: content-box; }
 ::-webkit-scrollbar-thumb:hover { background: var(--scroll-thumb-hover); background-clip: content-box; }
 ::-webkit-scrollbar-track { background: transparent; }
