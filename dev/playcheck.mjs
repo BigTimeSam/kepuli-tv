@@ -96,6 +96,8 @@
 //   node dev/playcheck.mjs topmenu    at a tablet's upright width the top bar
 //                                     keeps one row with a hamburger menu,
 //                                     in English and German
+//   node dev/playcheck.mjs channelorder the channel list's foot orders it by
+//                                     name or by number, as Settings does
 //   node dev/playcheck.mjs scrollbars every box that scrolls keeps a bar in
 //                                     sight where the browser's would fade
 //   node dev/playcheck.mjs touchcaret on a touch screen the settings and a
@@ -1913,6 +1915,43 @@ async function scrollbars(page) {
     await page.call('Emulation.clearDeviceMetricsOverride');
   }
   return { ok: true, detail: `a bar on every box that scrolls: ${[...new Set(seen)].join(', ')}; it follows the list; none beside Chrome's own bars` };
+}
+
+/**
+ * The order of a channel list from its foot, as the films' list or covers
+ * is chosen there: by name or by channel number, the mark lit for the one
+ * in force, the list re-sorted at once, and the choice the same one
+ * Settings' Channel order holds.
+ */
+async function channelorder(page) {
+  const assert = (ok, detail) => { if (!ok) throw new Error(detail); };
+  await openLiveList(page, 3);
+  const read = () => evaluate(page, `(async () => { const { settings } = await chrome.storage.local.get('settings');
+    const marks = [...document.querySelectorAll('#listinfo .view-toggle button')];
+    return { marks: marks.map((b) => b.getAttribute('aria-label')), pressed: marks.findIndex((b) => b.getAttribute('aria-pressed') === 'true'),
+      names: [...document.querySelectorAll('#list .row .row-name')].map((n) => n.textContent.trim()), stored: settings && settings.channelSort }; })()`);
+  const byName = await read();
+  assert(byName.marks.length === 2 && byName.marks[0] === 'Name (A–Z)' && byName.marks[1] === 'Channel number' && byName.pressed === 0, `the marks: ${JSON.stringify(byName)}`);
+  const sorted = [...byName.names].sort((a, b) => a.localeCompare(b));
+  assert(JSON.stringify(byName.names) === JSON.stringify(sorted), `by name the rows are ${byName.names.join(', ')}`);
+  await evaluate(page, `document.querySelectorAll('#listinfo .view-toggle button')[1].click()`);
+  await waitFor(page, `document.querySelectorAll('#listinfo .view-toggle button')[1]?.getAttribute('aria-pressed') === 'true'`, 'the number order');
+  const byNumber = await read();
+  assert(byNumber.stored === 'num' && JSON.stringify(byNumber.names) !== JSON.stringify(byName.names), `by number: ${JSON.stringify(byNumber)}`);
+  await evaluate(page, `document.getElementById('btn-settings').click()`);
+  await waitFor(page, `document.getElementById('setup').open`, 'settings');
+  const inSettings = await evaluate(page, `document.getElementById('f-channelsort').value`);
+  await evaluate(page, `document.getElementById('f-done').click()`);
+  await waitFor(page, `!document.getElementById('setup').open`, 'settings closed');
+  assert(inSettings === 'num', `Settings' Channel order says ${inSettings}`);
+  await evaluate(page, `document.querySelectorAll('#listinfo .view-toggle button')[0].click()`);
+  await waitFor(page, `document.querySelectorAll('#listinfo .view-toggle button')[0]?.getAttribute('aria-pressed') === 'true'`, 'the name order');
+  const back = await read();
+  // The virtual list draws as many rows as fit, one more or less after a
+  // scroll: the rows both drawings share are compared.
+  const shared = Math.min(back.names.length, byName.names.length);
+  assert(back.stored === 'az' && JSON.stringify(back.names.slice(0, shared)) === JSON.stringify(byName.names.slice(0, shared)), `back by name: ${JSON.stringify(back)}`);
+  return { ok: true, detail: `by name ${byName.names.slice(0, 3).join(', ')}…; by number ${byNumber.names.slice(0, 3).join(', ')}…, stored and shown in Settings; and back` };
 }
 
 /**
@@ -4966,7 +5005,7 @@ async function gotochannel(page, { target }) {
   return { ok: true, detail: `${pick.n} of ${pick.group}, chosen in the guide's search from ${pick.from}: played in the corner, Go to channel stood on it in ${pick.group} still playing (${there.hash}); the reload stood on it again, not playing` };
 }
 
-const SCENARIOS = { buffering, livebuffering, filmbuffering, emptyfile, tsasmp4, refusedfile, badgateway, livebadgateway, channelrefused, noanswer, longfilm, catalogUi, setupClarity, welcome, fullscreenControl, clickpause, pickers, touchcaret, screenbutton, topmenu, scrollbars, channels, home, resumemkv, restore, programmes, catchup, seek, death, cancel, timeout, search, paste, keys, switching, resume, connections, livezap, livequiet, reconnect, accounts, listerror, a11y, subtitles, audio, wasmaudio, settings,
+const SCENARIOS = { buffering, livebuffering, filmbuffering, emptyfile, tsasmp4, refusedfile, badgateway, livebadgateway, channelrefused, noanswer, longfilm, catalogUi, setupClarity, welcome, fullscreenControl, clickpause, pickers, touchcaret, screenbutton, topmenu, scrollbars, channelorder, channels, home, resumemkv, restore, programmes, catchup, seek, death, cancel, timeout, search, paste, keys, switching, resume, connections, livezap, livequiet, reconnect, accounts, listerror, a11y, subtitles, audio, wasmaudio, settings,
   lastchannel, nextepisode, continuewatching, reminders, update, seeklag, cuesretry, quota, catchupfreeze, catchupfull, twotabs, switchstop, resettabs,
   refresh, restorenav, guidekeep, m3u, sync, holes, picks, flakyserver, accountform, stalker, record, guidefavs, categories, homecountry, noleak, perf, pseudo, startup, soak, phone, episodenames, gotochannel };
 // The mock's whole-list answers stall for these, longer than the request limit.
