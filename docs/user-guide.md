@@ -209,8 +209,15 @@ interrupted channel-list load restores the previous list.
   already opened, and shows the new list where you were. A tab left open
   checks by itself when you come back to it, once its lists are older than
   the cache keeps them.
-- If the connection fails, check the address and credentials in **Settings**
-  and make sure your subscription is still active.
+- If the connection fails, the message under **Connection failed** says
+  whose side the fault is likely on and what to try: the address and the
+  port, the user name and password (copied rather than typed), the
+  provider's server being down or overloaded, or the account itself. When
+  the browser has not allowed Kepuli-TV to reach the server, it says that
+  too, and **Allow access** comes first among the buttons.
+- When a stream does not start, the message names the controls as they read
+  on screen: **Auto** under the picture can be set to **TS** or **HLS**, and
+  the ☰ menu opens the stream in an external player.
 - If cached information is outdated, clear the cache in Settings. Resetting
   everything also removes your saved connection details.
 - Report app bugs in [GitHub Issues](https://github.com/BigTimeSam/kepuli-tv/issues).

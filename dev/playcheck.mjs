@@ -750,7 +750,7 @@ async function channelrefused(page) {
     const got = await failureAfterClick(page, clickFirstChannel(page), 20000);
     await sleep(3000);
     const after = await evaluate(page, `document.getElementById('overlay-text').textContent`);
-    const ok = /stream request( with error 407|: the connection failed without an answer)/i.test(after) && !/in use/i.test(after) && got.secs < 5;
+    const ok = /(stream request with error 407|did not answer the request for this channel)/i.test(after) && !/in use/i.test(after) && got.secs < 5;
     return { ok, detail: `after ${got.secs.toFixed(1)} s "${got.title}": "${after}"` };
   } finally {
     process.env.KEPULI_MOCK_CHANNEL_REFUSED = '';
