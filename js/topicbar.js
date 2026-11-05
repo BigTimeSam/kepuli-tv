@@ -181,6 +181,9 @@ export async function ensureFull(type, reason, current = () => true) {
 }
 
 export function renderEmptyState() {
+  // Before the first connection there is no list to describe, and the
+  // column's heading would be an empty one: it names the tab all the same.
+  renderListHeading();
   const existing = el.list.querySelector('.empty');
   if (existing) existing.remove();
   if (state.rows.length > 0) return;

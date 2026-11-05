@@ -168,10 +168,12 @@
   </section>
 
   <section class="stage" id="player-stage" aria-labelledby="player-heading">
+    <!-- Outside the stage's header, which is hidden while nothing plays:
+         the heading must be there to jump to on the welcome page too. -->
+    <h2 class="sr-only" id="player-heading" data-i18n="layout.player">Player</h2>
     <!-- What is playing, over the picture rather than under it: the title
          heads the column, and the picture does not start at its very top. -->
     <header class="stagehead">
-      <h2 class="sr-only" id="player-heading" data-i18n="layout.player">Player</h2>
       <div class="now">
         <div class="now-title" id="now-title"></div>
         <div class="now-sub" id="now-sub" data-i18n="player.disconnected">Not connected</div>

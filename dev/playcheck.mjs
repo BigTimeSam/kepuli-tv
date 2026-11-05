@@ -971,6 +971,21 @@ async function pressKey(page, key, code, keyCode, modifiers = 0) {
 }
 
 /**
+ * The headings a screen reader can jump to, read from Chrome's own
+ * accessibility tree: an element hidden by its parent's display: none is
+ * not there, however it is marked up. Null in Firefox, whose driver has
+ * no such tree.
+ * @returns {Promise<{ level: number, name: string }[] | null>}
+ */
+async function axHeadings(page) {
+  if (process.env.KEPULI_BROWSER === 'firefox') return null;
+  await page.call('Accessibility.enable');
+  const { nodes } = await page.call('Accessibility.getFullAXTree');
+  return nodes.filter((n) => !n.ignored && n.role?.value === 'heading')
+    .map((n) => ({ level: Number(n.properties?.find((p) => p.name === 'level')?.value?.value), name: String(n.name?.value ?? '').trim() }));
+}
+
+/**
  * The keys keep working after a button has been clicked with the mouse, and
  * a key held down with Cmd or Ctrl is left to the browser.
  */
@@ -1540,12 +1555,17 @@ async function a11yWays(page) {
       h1: [...document.querySelectorAll('h1')].map((h) => h.textContent.trim()),
       list: document.getElementById('list-heading').textContent,
       player: document.getElementById(stage.getAttribute('aria-labelledby') || '')?.textContent }; })()`);
-  const ok = skip.first && skip.seen && landed === 'list'
+  // With nothing playing the stage's header is hidden: the player's
+  // heading must still be one to jump to, and no heading may be empty.
+  const idle = await evaluate(page, `!document.querySelector('main').classList.contains('has-playback')`);
+  const heard = await axHeadings(page);
+  const headingsOk = !heard || (heard.some((h) => h.level === 2 && h.name === 'Player') && heard.every((h) => h.name));
+  const ok = idle && headingsOk && skip.first && skip.seen && landed === 'list'
     && chips.role === 'toolbar' && Boolean(chips.name) && chips.stops.length === 1 && chips.activeIsStop
     && moved.at === moved.chosen + 1 && moved.stops.join() === String(moved.at) && end === chips.count - 1
     && marks.live === 'polite' && marks.atomic === 'true' && marks.holdsTitle && !marks.textLive && marks.elapsedHidden === 'true'
     && marks.h1.join() === 'Kepuli-TV' && /^Channels: Sweden/.test(marks.list) && marks.player === 'Player';
-  return { ok, detail: `skip link ${JSON.stringify(skip)} → ${landed}; chips ${JSON.stringify(chips)}, → ${JSON.stringify(moved)}, End ${end}; ${JSON.stringify(marks)}` };
+  return { ok, detail: `skip link ${JSON.stringify(skip)} → ${landed}; chips ${JSON.stringify(chips)}, → ${JSON.stringify(moved)}, End ${end}; ${JSON.stringify(marks)}; nothing playing ${idle}, headings heard ${JSON.stringify(heard)}` };
 }
 
 /** The control stays with the video and preserves the subtitle overlay. */
@@ -2819,6 +2839,10 @@ async function welcome(page, { target }) {
       guide: document.getElementById('btn-guide').getClientRects().length > 0 }; })()`);
   assert(idle.title === 'Welcome' && /already have\. Connect it/.test(idle.text) && idle.button === 'primary:Connect to your provider', `the welcome: ${JSON.stringify(idle)}`);
   assert(idle.empty === 'Not connected yet:Connect to your provider' && !idle.guide, `the list before a connection: ${JSON.stringify(idle)}`);
+  // Before a connection the player and the list have their headings too,
+  // and neither is empty.
+  const heard = await axHeadings(page);
+  assert(!heard || (heard.some((h) => h.level === 2 && h.name === 'Player') && heard.some((h) => h.level === 2 && h.name === 'Channels') && heard.every((h) => h.name)), `the headings on the welcome: ${JSON.stringify(heard)}`);
   await press(`document.getElementById('welcome-connect').click()`);
   await waitFor(page, `document.getElementById('setup').open && document.activeElement.id === 'f-paste-first'`, 'the dialog again from the welcome');
   // A server that does not answer, on a host the browser has not allowed:
