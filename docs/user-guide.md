@@ -166,6 +166,10 @@ the player actually arrives.
 At 600px wide or less, browsing and playback each use the full window width.
 Starting playback opens **Player**; **Browse** returns to the list while the
 stream continues. Starting a search or choosing a content tab also opens the list.
+There the programme guide's days have a row of their own, scrolling sideways,
+and its programme search shows the field and its button alone until the field
+is used, when the two choices that narrow the search come in under it.
+**Settings** keeps its sections at the top, above **Save**.
 
 ## Closing dialogs and cancelling loading
 
@@ -350,7 +354,14 @@ when the setting moves under a running page. Measured, a 24px root gives 75px
 rows and text to match, with the virtualisation still landing every row where
 it belongs. A system asking for more contrast is answered too: the borders
 that separate one panel from the next go to 3.7:1 and the muted text to
-9.8:1.
+9.8:1. Every control the keyboard reaches shows the same focus ring, 2px in
+the accent's text colour, at 3:1 or more against what lies around it in both
+themes. Under Windows' forced colours (High Contrast) the chosen tab, group,
+topic and day, the list's cursor and the playing row are drawn as outlines and
+edges in the system's highlight colour, which the system keeps where it
+replaces backgrounds. The stars, the row's ⋯ and the topic chips answer a tap
+anywhere in a 24px square around them; on a touch screen the row's buttons are
+32px and the chips 2rem high.
 
 Tab reaches the three places that hold a cursor of their own, one stop each:
 the tab strip, the sidebar and the list. Inside the strip the arrows move
@@ -361,7 +372,11 @@ countries or topics, `Home` and `End` reach its ends, and `Enter` or `space`
 chooses the row the cursor is on — the row being marked as the cursor's, which
 is a different thing from the group being shown. Both are listboxes, as the
 list itself already was, so a screen reader is told what the eye can see: which
-row is selected and which one the keyboard stands on.
+row is selected and which one the keyboard stands on. A row is named by what it
+shows — the name, then "Favourites" when it is one, then the line under it —
+rather than by the star in it, and the row playing is announced as the current
+one. In **Settings** the connection choices are one named group, and the
+password field is named **Password** alone.
 
 In the guide the arrows move between channels and programmes, `PgUp` and
 `PgDn` a screen at a time, `Home` returns to the present, `+` and `−` adjust

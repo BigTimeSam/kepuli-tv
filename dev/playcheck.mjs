@@ -65,7 +65,17 @@
 //   node dev/playcheck.mjs listerror  a group that cannot be fetched while a
 //                                     channel plays: a toast, not the overlay
 //   node dev/playcheck.mjs a11y       roles and names for assistive technology,
-//                                     the cursor announced and marked
+//                                     the cursor announced and marked; rows
+//                                     named by their text, not their star;
+//                                     Settings' password and radio group;
+//                                     the playing row aria-current; marks
+//                                     kept under forced colours; one focus
+//                                     ring of 3:1; text contrast in both
+//                                     themes; 24 px hit areas
+//   node dev/playcheck.mjs phone      390 and 600 px in German: Settings'
+//                                     sections above Save, the guide's days
+//                                     the bar's whole width, its programme
+//                                     search one row until used
 //   node dev/playcheck.mjs audio      the three-track episode: the automatic
 //                                     choice is heard as the English track's
 //                                     tone, the selector changes the track
@@ -1481,7 +1491,229 @@ async function a11y(page) {
     && st.toastRole === 'status' && st.unnamedIcons.length === 0
     && st.groupsRole === 'listbox' && st.groupsTabbable && st.optionRoles.join() === 'option'
     && st.rowsTabbable === 0 && st.pointsAtGroup && chosen === st.target;
-  return { ok, detail: `list ${st.listRole}/${st.listName}, cursor ${st.pointsAtCursor ? 'announced' : 'not announced'} and ${st.cursorMark ? 'marked' : 'unmarked'}, tabs ${st.tablist} selected ${st.selectedTabs.join(',')} with ${st.tabStops.length} stop naming ${st.panelNamedBy}, sidebar ${st.groupsRole} of ${st.optionRoles.join('/')} with ${st.rowsTabbable} tabbable rows, toast ${st.toastRole}, unnamed icon buttons ${st.unnamedIcons.length}, group by keyboard: "${st.target}" → "${chosen}"` };
+  const base = `list ${st.listRole}/${st.listName}, cursor ${st.pointsAtCursor ? 'announced' : 'not announced'} and ${st.cursorMark ? 'marked' : 'unmarked'}, tabs ${st.tablist} selected ${st.selectedTabs.join(',')} with ${st.tabStops.length} stop naming ${st.panelNamedBy}, sidebar ${st.groupsRole} of ${st.optionRoles.join('/')} with ${st.rowsTabbable} tabbable rows, toast ${st.toastRole}, unnamed icon buttons ${st.unnamedIcons.length}, group by keyboard: "${st.target}" → "${chosen}"`;
+  if (!ok) return { ok, detail: base };
+  return { ok: true, detail: `${base}; ${await a11yNames(page)}; ${await a11yLooks(page)}` };
+}
+
+/** The role and name Chrome's accessibility tree gives the first element a selector finds. */
+async function axNode(page, selector) {
+  const { result } = await page.call('Runtime.evaluate', { expression: `document.querySelector(${JSON.stringify(selector)})` });
+  if (!result.objectId) return null;
+  const { nodes } = await page.call('Accessibility.getPartialAXTree', { objectId: result.objectId, fetchRelatives: false });
+  const node = nodes.find((n) => !n.ignored) || nodes[0];
+  return node ? { role: node.role?.value, name: node.name?.value ?? '' } : null;
+}
+
+// In the page: the contrast of a colour against the ground it stands on,
+// the element's opacity and translucent grounds composited over the first
+// opaque background up the tree.
+const CONTRAST_JS = String.raw`
+  const rgba = (c) => { const m = c.match(/[\d.]+/g).map(Number); return [m[0], m[1], m[2], m.length > 3 ? m[3] : 1]; };
+  const over = (top, under) => top.slice(0, 3).map((v, i) => v * top[3] + under[i] * (1 - top[3])).concat(1);
+  const ground = (node) => {
+    const layers = [];
+    for (let n = node; n && n.nodeType === 1; n = n.parentElement) {
+      const c = rgba(getComputedStyle(n).backgroundColor);
+      if (c[3] > 0) layers.push(c);
+      if (c[3] >= 1) break;
+    }
+    let g = rgba(getComputedStyle(document.body).backgroundColor);
+    for (const layer of layers.reverse()) g = over(layer, g);
+    return g;
+  };
+  const lum = (c) => { const f = (v) => { v /= 255; return v <= 0.03928 ? v / 12.92 : ((v + 0.055) / 1.055) ** 2.4; }; return 0.2126 * f(c[0]) + 0.7152 * f(c[1]) + 0.0722 * f(c[2]); };
+  const ratio = (a, b) => { const [x, y] = [lum(a), lum(b)].sort((p, q) => q - p); return Math.round((x + 0.05) / (y + 0.05) * 100) / 100; };
+  const textContrast = (node, colour = getComputedStyle(node).color) => {
+    const g = ground(node);
+    let o = 1;
+    for (let n = node; n && n.nodeType === 1; n = n.parentElement) o *= Number(getComputedStyle(n).opacity);
+    const c = rgba(colour);
+    return ratio(over([c[0], c[1], c[2], c[3] * o], g), g);
+  };`;
+
+const HIT_TARGETS = ['#list .row .row-star', '#groups button.group-star', '.chip-star', '#list .row .row-more'];
+
+/**
+ * The a11y scenario's names, after the product audit: options named by
+ * their row rather than the star in it, Settings' password and radio
+ * group, the subtitle look button, and the playing row as aria-current.
+ * Leaves a channel playing.
+ */
+async function a11yNames(page) {
+  const assert = (ok, detail) => { if (!ok) throw new Error(detail); };
+  await page.call('Accessibility.enable');
+
+  const row = await axNode(page, '#list .row');
+  const group = await axNode(page, '#groups .group:has(button.group-star)');
+  const texts = await evaluate(page, `({ row: document.querySelector('#list .row .row-name').textContent,
+    group: document.querySelector('#groups .group:has(button.group-star) .group-name').textContent,
+    star: document.querySelector('#list .row .row-star').title })`);
+  assert(row?.role === 'option' && row.name.startsWith(texts.row) && !row.name.includes(texts.star),
+    `a list row is the ${row?.role} "${row?.name}", not named by "${texts.row}" first and without "${texts.star}"`);
+  assert(group?.role === 'option' && group.name.startsWith(texts.group) && !group.name.includes(texts.star),
+    `a sidebar row is the ${group?.role} "${group?.name}", not named by "${texts.group}" first and without "${texts.star}"`);
+
+  // "Aa" is no name; and the fields whose placeholder is the only word
+  // they show have one of their own.
+  const named = await evaluate(page, `(() => { const b = document.getElementById('btn-sublook');
+    return { sublook: b.getAttribute('aria-label') || '', title: b.title,
+      bare: ['search', 'category-filter', 'programme-query'].filter((id) => !(document.getElementById(id).getAttribute('aria-label') || '').trim()) }; })()`);
+  assert(named.sublook && named.sublook === named.title, `the subtitle look button is named "${named.sublook}"`);
+  assert(!named.bare.length, `fields named by their placeholder alone: ${named.bare.join(', ')}`);
+
+  await evaluate(page, `document.getElementById('btn-settings').click()`);
+  await waitFor(page, `document.getElementById('setup').open`, 'settings');
+  await sleep(300);
+  const password = await axNode(page, '#f-password');
+  const radios = await axNode(page, '#setup .radios');
+  const words = await evaluate(page, `({ password: document.querySelector('[data-i18n="setup.password"]').textContent, source: document.querySelector('[data-i18n="setup.source"]').textContent })`);
+  await evaluate(page, `document.getElementById('f-done').click()`);
+  await waitFor(page, `!document.getElementById('setup').open`, 'settings closed');
+  assert(password?.name === words.password, `the password field is named "${password?.name}", not "${words.password}"`);
+  assert(radios?.role === 'radiogroup' && radios.name === words.source, `the connection choice is a ${radios?.role} named "${radios?.name}"`);
+
+  await playFirstChannel(page);
+  const current = await evaluate(page, `(() => { const rows = [...document.querySelectorAll('#list .row')];
+    return { current: rows.filter((r) => r.getAttribute('aria-current') === 'true').map((r) => r.classList.contains('playing')), playing: rows.filter((r) => r.classList.contains('playing')).length }; })()`);
+  assert(current.playing === 1 && current.current.length === 1 && current.current[0], `aria-current: ${JSON.stringify(current)}`);
+  return `rows named "${row.name}" and "${group.name}", password "${password.name}", ${radios.role} "${radios.name}", sublook "${named.sublook}", aria-current on the playing row`;
+}
+
+/**
+ * The a11y scenario's looks, after the product audit: text contrast in
+ * both themes, one focus ring of 3:1 on every kind of control, hit areas of
+ * 24 px, and the marks forced colours keep. Expects a channel playing.
+ */
+async function a11yLooks(page) {
+  const assert = (ok, detail) => { if (!ok) throw new Error(detail); };
+  // A key first, so that focus() afterwards counts as the keyboard's and
+  // draws the ring :focus-visible draws.
+  await pressKey(page, 'Shift', 'ShiftLeft', 16);
+  const measures = [];
+  for (const theme of ['dark', 'light']) {
+    measures.push(await evaluate(page, `(async () => { ${CONTRAST_JS}
+      const root = document.documentElement; const before = root.dataset.theme; root.dataset.theme = ${JSON.stringify(theme)};
+      await new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r)));
+      const out = { theme: ${JSON.stringify(theme)}, text: {}, rings: {} };
+      const counts = [...document.querySelectorAll('.chip .n')];
+      if (counts.length) out.text.chipCount = Math.min(...counts.map((n) => textContrast(n)));
+      const active = document.querySelector('#groups .group.active .group-count');
+      if (active) out.text.activeGroupCount = textContrast(active);
+      for (const id of ['search', 'category-filter']) {
+        const f = document.getElementById(id);
+        out.text['placeholder ' + id] = textContrast(f, getComputedStyle(f, '::placeholder').color);
+      }
+      for (const sel of ['#tab-live', '#btn-refresh', '#btn-settings', '#search', '#category-filter', '.chip-main', '#btn-guide', '#btn-countries']) {
+        const node = document.querySelector(sel);
+        if (!node || !node.getClientRects().length) continue;
+        node.focus();
+        const cs = getComputedStyle(node);
+        // The ring stands on what lies around the control: its parent's
+        // ground, or for a chip's name, around the whole chip (the ring
+        // clears the chip's border).
+        const around = (node.closest('.chip') || node).parentElement;
+        out.rings[sel] = cs.outlineStyle === 'solid' && parseFloat(cs.outlineWidth) >= 2
+          ? ratio(rgba(cs.outlineColor), ground(around)) : cs.outlineStyle + ' ' + cs.outlineWidth;
+      }
+      document.activeElement.blur();
+      root.dataset.theme = before;
+      return out; })()`));
+  }
+  for (const m of measures) {
+    for (const [what, value] of Object.entries(m.text)) assert(value >= 4.5, `${m.theme} theme: ${what} at ${value}:1`);
+    for (const [what, value] of Object.entries(m.rings)) assert(typeof value === 'number' && value >= 3, `${m.theme} theme: the focus ring of ${what} is ${value}`);
+  }
+
+  // A 24 px square around each star and the row's menu reaches the
+  // button (its edges, and its corners inside the 5 px rounding hit
+  // testing follows), and no topic chip is lower than that.
+  const hits = await evaluate(page, `(() => {
+    const out = {};
+    for (const sel of ${JSON.stringify(HIT_TARGETS)}) {
+      const b = document.querySelector(sel);
+      if (!b) { out[sel] = 'missing'; continue; }
+      b.scrollIntoView({ block: 'nearest' });
+      const r = b.getBoundingClientRect(); const cx = r.left + r.width / 2, cy = r.top + r.height / 2;
+      const missed = [];
+      for (const [dx, dy] of [[0, 0], [-11.5, 0], [11.5, 0], [0, -11.5], [0, 11.5], [-10, -10], [10, -10], [-10, 10], [10, 10]]) {
+        const hit = document.elementFromPoint(cx + dx, cy + dy);
+        if (!hit || !b.contains(hit)) missed.push(dx + ',' + dy + ' ' + (hit ? hit.className || hit.tagName : 'nothing'));
+      }
+      out[sel] = missed.length ? missed.join('; ') : 0;
+    }
+    out.chip = Math.min(...[...document.querySelectorAll('.chip-main')].map((c) => c.getBoundingClientRect().height));
+    return out; })()`);
+  for (const sel of HIT_TARGETS) assert(hits[sel] === 0, `the 24 px square around ${sel} misses at ${hits[sel]}`);
+  assert(hits.chip >= 23.9, `a topic chip is ${hits.chip} px high`);
+
+  // Forced colours drop fills and shadows: each "you are here" must be an
+  // outline or a border, which they keep.
+  await evaluate(page, `document.getElementById('list').focus()`);
+  await pressKey(page, 'ArrowDown', 'ArrowDown', 40);
+  await sleep(200);
+  await page.call('Emulation.setEmulatedMedia', { features: [{ name: 'forced-colors', value: 'active' }] });
+  let forced;
+  try {
+    await sleep(200);
+    forced = await evaluate(page, `(() => {
+      const outline = (sel) => { const n = document.querySelector(sel); if (!n) return 'missing'; const cs = getComputedStyle(n); return cs.outlineStyle !== 'none' && parseFloat(cs.outlineWidth) >= 2; };
+      const edge = (sel) => { const n = document.querySelector(sel); return n ? parseFloat(getComputedStyle(n).borderLeftWidth) >= 3 : 'missing'; };
+      return { tab: outline('#tabs [aria-selected="true"]'), group: outline('#groups .group.active'),
+        chip: document.querySelector('.chip.active') ? outline('.chip.active') : true,
+        cursor: outline('#list .row.selected:not(.playing)'), playing: edge('#list .row.playing') }; })()`);
+  } finally {
+    await page.call('Emulation.setEmulatedMedia', { features: [] });
+  }
+  const lost = Object.entries(forced).filter(([, v]) => v !== true).map(([k, v]) => `${k} ${v}`);
+  assert(!lost.length, `under forced colours these marks are gone: ${lost.join(', ')}`);
+  const fmt = (o) => Object.entries(o).map(([k, v]) => `${k.replace(/^#/, '')} ${v}`).join(', ');
+  return measures.map((m) => `${m.theme}: text ${fmt(m.text)}; rings ${fmt(m.rings)}`).join('; ')
+    + `; 24 px hit areas, chips ${hits.chip.toFixed(1)} px high; forced colours keep ${Object.keys(forced).join(', ')}`;
+}
+
+/**
+ * A phone's width (390 px) and the narrow layout's widest (600 px), in
+ * German, whose day names are among the longest: Settings' sections are
+ * drawn above Save, as they come before it in the focus order (the top
+ * bar's ordering once moved them under it); the guide's days have the bar's
+ * whole width rather than a third of it, which clipped "gestern" to "ge",
+ * and the programme search is one row until it is used.
+ */
+async function phone(page) {
+  const assert = (ok, detail) => { if (!ok) throw new Error(detail); };
+  await evaluate(page, `chrome.storage.local.get('settings').then(({ settings }) => chrome.storage.local.set({ settings: { ...settings, lang: 'de' }, ui: { tab: 'live' } }))`);
+  await page.call('Page.reload');
+  await sleep(1000);
+  await waitFor(page, `${CONNECTED} && document.documentElement.lang.startsWith('de')`, 'the player in German');
+  const seen = [];
+  for (const width of [390, 600]) {
+    await page.call('Emulation.setDeviceMetricsOverride', { width, height: 844, deviceScaleFactor: 1, mobile: false });
+    await sleep(300);
+    await evaluate(page, `document.getElementById('btn-settings').click()`);
+    await waitFor(page, `document.getElementById('setup').open`, 'settings');
+    await sleep(300);
+    const setup = await evaluate(page, `(() => { const top = (id) => document.getElementById(id).getBoundingClientRect();
+      return { tabs: top('setup-tabs').bottom, panel: top('panel-connection').top, save: top('f-save').top }; })()`);
+    await evaluate(page, `document.getElementById('f-done').click()`);
+    await waitFor(page, `!document.getElementById('setup').open`, 'settings closed');
+    assert(setup.tabs <= setup.panel && setup.tabs <= setup.save, `${width} px: Settings' sections end at ${setup.tabs}, the section begins at ${setup.panel} and Save at ${setup.save}`);
+
+    await evaluate(page, `document.getElementById('btn-guide').click()`);
+    await waitFor(page, `document.getElementById('main').classList.contains('guide') && document.querySelector('#epg-days .epg-day.active')`, 'the guide');
+    await sleep(500);
+    const guide = await evaluate(page, `(() => { const box = (n) => n.getBoundingClientRect();
+      const bar = box(document.querySelector('.epg-bar')), days = box(document.getElementById('epg-days')), today = box(document.querySelector('#epg-days .epg-day.active'));
+      return { bar: Math.round(bar.width), days: Math.round(days.width), today: today.left >= days.left - 0.5 && today.right <= days.right + 0.5,
+        form: Math.round(document.getElementById('programme-form').getBoundingClientRect().height),
+        page: document.documentElement.scrollWidth <= innerWidth }; })()`);
+    await evaluate(page, `document.getElementById('epg-close').click()`);
+    await waitFor(page, `!document.getElementById('main').classList.contains('guide')`, 'the guide closed');
+    assert(guide.days >= guide.bar - 24 && guide.today && guide.page, `${width} px: the days take ${guide.days} of the bar's ${guide.bar} px, today ${guide.today ? 'shown whole' : 'clipped'}, the page ${guide.page ? 'fits' : 'overflows'}`);
+    assert(guide.form <= 56, `${width} px: the programme search takes ${guide.form} px before it is used`);
+    seen.push(`${width} px: sections above Save, days ${guide.days}/${guide.bar} px, search ${guide.form} px`);
+  }
+  return { ok: true, detail: seen.join('; ') };
 }
 
 /** The control stays with the video and preserves the subtitle overlay. */
@@ -4173,7 +4405,7 @@ async function soak(page) {
 
 const SCENARIOS = { buffering, livebuffering, filmbuffering, emptyfile, tsasmp4, refusedfile, badgateway, livebadgateway, channelrefused, noanswer, longfilm, catalogUi, setupClarity, fullscreenControl, clickpause, pickers, channels, home, resumemkv, restore, programmes, catchup, seek, death, cancel, timeout, search, paste, keys, switching, resume, connections, livezap, livequiet, reconnect, accounts, listerror, a11y, subtitles, audio, settings,
   lastchannel, nextepisode, continuewatching, reminders, update, seeklag, cuesretry, quota, catchupfreeze, catchupfull, twotabs, switchstop, resettabs,
-  refresh, restorenav, guidekeep, m3u, sync, holes, picks, flakyserver, accountform, stalker, record, guidefavs, categories, homecountry, noleak, perf, pseudo, startup, soak };
+  refresh, restorenav, guidekeep, m3u, sync, holes, picks, flakyserver, accountform, stalker, record, guidefavs, categories, homecountry, noleak, perf, pseudo, startup, soak, phone };
 // The mock's whole-list answers stall for these, longer than the request limit.
 const SLOW_LIST_MS = { cancel: 60000, timeout: 60000 };
 // The media is sent slowly for these: the seek targets must lie outside the
