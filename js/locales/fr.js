@@ -285,6 +285,7 @@ export default {
  "info.next": "Suivant",
  "info.unsupported": " (non pris en charge)",
  "filters.title": "Filtrer les titres",
+ "filters.channels": "Filtrer les chaînes",
  "filters.year": "Année de sortie",
  "filters.genre": "Genre",
  "filters.rating": "Note minimale",

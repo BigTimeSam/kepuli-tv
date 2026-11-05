@@ -496,6 +496,12 @@ button.group-star:hover { color: var(--text); background: var(--track); }
 .media-filters[open] { padding-bottom: 10px; }
 .media-filters > :not(summary) { margin-inline: 12px; }
 .media-filters[open] > summary { margin-bottom: 6px; }
+/* Inside the folds (js/listfilters.js): the topics and favourites only in
+   the channels' one, the favourites strip at the end of either. */
+.channel-filters-body { display: flex; flex-direction: column; }
+.channel-filters-body > .subcats { padding: 0 0 2px; background: none; max-height: none; overflow: visible; }
+.channel-filters-body > .subcats-grip { display: none; }
+.media-filters > .fav-strip { margin: 10px 0 -10px; border-top: 1px solid var(--border); border-bottom: 0; background: none; }
 .media-filter-controls { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
 .media-filter-controls label { display: grid; gap: 4px; min-width: 0; color: var(--muted); font-size: 0.6875rem; }
 .media-filter-controls label[hidden] { display: none; }

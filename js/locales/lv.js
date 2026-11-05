@@ -293,6 +293,7 @@ export default {
  "info.next": "Tālāk",
  "info.unsupported": " (netiek atbalstīts)",
  "filters.title": "Filtrēt nosaukumus",
+ "filters.channels": "Filtrēt kanālus",
  "filters.year": "Iznākšanas gads",
  "filters.genre": "Žanrs",
  "filters.rating": "Mazākais vērtējums",

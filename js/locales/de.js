@@ -285,6 +285,7 @@ export default {
  "info.next": "Weiter",
  "info.unsupported": " (nicht unterstützt)",
  "filters.title": "Titel filtern",
+ "filters.channels": "Kanäle filtern",
  "filters.year": "Erscheinungsjahr",
  "filters.genre": "Genre",
  "filters.rating": "Mindestbewertung",

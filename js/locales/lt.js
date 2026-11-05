@@ -301,6 +301,7 @@ export default {
  "info.next": "Toliau",
  "info.unsupported": " (nepalaikoma)",
  "filters.title": "Filtruoti pavadinimus",
+ "filters.channels": "Filtruoti kanalus",
  "filters.year": "Išleidimo metai",
  "filters.genre": "Žanras",
  "filters.rating": "Mažiausias įvertinimas",

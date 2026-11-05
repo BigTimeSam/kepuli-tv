@@ -160,6 +160,11 @@ the player actually arrives.
 - Choose **Channels**, **Movies** or **Series** in the top bar, then narrow
   the list using the categories on the left. The search field finds titles
   within the selected content type.
+- Above the list, **Filter channels** holds a country's topics, and the
+  films' and series' **Filter titles** their filters with the favourites
+  among the list at its end; each folds away, and open or folded is
+  remembered. **Show favourites only** under the sidebar's search narrows the
+  countries and categories to the starred ones.
 - Click a channel or movie to start playback. For a series, choose a season
   and then an episode. **Back** restores the parent list's scroll position,
   selected item and search, including when the series is inside a favourite category.

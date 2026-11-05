@@ -1979,6 +1979,8 @@ async function lengthfilter(page) {
   await waitFor(page, `document.querySelectorAll('#list .row').length > 1 && document.getElementById('list-progress').hidden`, 'movie rows');
   await evaluate(page, `document.getElementById('media-filters').open = true`);
   await waitFor(page, `!document.querySelector('.length-filter').hidden`, 'the length slider once lengths are known', 20000);
+  // The films' favourites are inside "Filter titles", at its end.
+  assert(await evaluate(page, `document.getElementById('media-filters').lastElementChild?.id === 'fav-strip' && !document.getElementById('fav-strip').hidden`), 'the favourites strip is not inside the films\' filters');
   const before = await evaluate(page, `(() => { const [a, b] = document.querySelectorAll('.length-filter input'); return { min: +a.min, max: +a.max, from: +a.value, to: +b.value, text: document.querySelector('.length-filter output').textContent, rows: document.querySelectorAll('#list .row').length }; })()`);
   assert(before.min < before.max && before.from === before.min && before.to === before.max && before.text === 'Any length', `the slider at rest: ${JSON.stringify(before)}`);
   // The upper handle down to the middle, let go there.
@@ -2846,25 +2848,20 @@ async function channels(page) {
   await choose('Add to favourites');
   await menu(4);
   await choose('Add to favourites');
-  // The favourites stay in their places in the list, and gather folded above it.
-  // The list paints what fits, and the folded favourites take a row of its height.
+  // The favourites stay in their places in the list. The channels gather
+  // none above it: "Filter channels" has no favourites strip, as the
+  // Favourites tab holds them.
+  // The list paints what fits.
   const after = await names();
   assert(after.length > 4 && JSON.stringify(after) === JSON.stringify(before.slice(0, after.length)), `a favourite moved in the list: ${JSON.stringify({ before, after })}`);
-  const strip = () => evaluate(page, `({ shown: !document.getElementById('fav-strip').hidden, label: document.getElementById('fav-strip-count').textContent,
-    open: document.getElementById('fav-strip-toggle').getAttribute('aria-expanded'), tiles: [...document.querySelectorAll('#fav-strip-items .fav-tile')].map((b) => b.title) })`);
-  let favs = await strip();
-  assert(favs.shown && favs.label === '2' && favs.open === 'false' && !favs.tiles.length, `the folded favourites: ${JSON.stringify(favs)}`);
-  await mouseClick(page, '#fav-strip-toggle');
-  await sleep(200);
-  favs = await strip();
-  assert(favs.open === 'true' && JSON.stringify(favs.tiles) === JSON.stringify([before[2], before[4]]), `the open favourites: ${JSON.stringify(favs)}`);
+  assert(await evaluate(page, `document.getElementById('fav-strip').hidden && !document.getElementById('channel-filters').contains(document.getElementById('fav-strip'))`), 'the channels show a favourites strip');
+  const starred = await evaluate(page, `[...document.querySelectorAll('#list .row')].filter((r) => r.querySelector('.row-star.on, [aria-pressed="true"]')).length`);
   assert(JSON.stringify(await menu(2)) === JSON.stringify(['Remove from favourites', 'Hide channel']), 'the menu of a favourite');
   await evaluate(page, `document.querySelector('.row-menu .popitem').click()`);
   await sleep(300);
-  favs = await strip();
-  assert(favs.label === '1' && JSON.stringify(favs.tiles) === JSON.stringify([before[4]]), `a favourite taken off: ${JSON.stringify(favs)}`);
-  await mouseClick(page, '#fav-strip-items .fav-tile');
-  await waitFor(page, `document.getElementById('now-title').textContent && !document.getElementById('video').paused || document.getElementById('overlay').classList.contains('loading')`, 'the favourite playing');
+  assert(JSON.stringify(await menu(2)) === JSON.stringify(['Add to favourites', 'Hide channel']), `a favourite taken off (${starred} starred before)`);
+  await pressKey(page, 'Escape', 'Escape', 27);
+  await sleep(200);
 
   // The keyboard: Shift+F10 on the row the list stands on, Escape back.
   await evaluate(page, `document.getElementById('list').focus()`);
@@ -2915,15 +2912,16 @@ async function channels(page) {
   await sleep(300);
   assert(JSON.stringify(await groupsShown()) === JSON.stringify(allGroups), 'Show all did not bring every country back');
 
-  // The favourites, open, outlast a reload.
+  // The favourite left outlasts a reload.
   await page.call('Page.reload');
   await waitFor(page, CONNECTED, 'the connection after the reload');
   await openLiveList(page, 3);
   await evaluate(page, `[...document.querySelectorAll('#groups .group')].find((g) => g.querySelector('.group-name')?.textContent === ${JSON.stringify(home)})?.click()`);
   await sleep(500);
-  favs = await strip();
-  assert(favs.open === 'true' && JSON.stringify(favs.tiles) === JSON.stringify([before[4]]), `the favourites after a reload: ${JSON.stringify(favs)}`);
-  return { ok: true, detail: 'channel order from Settings (A-Z, Z-A, number); favourites from the menu, folded above the list and in their places in it; the menu from a right click and Shift+F10; hide with Undo, Hidden and Show again; countries chosen and all again; the open favourites kept over a reload' };
+  const kept = await menu(4);
+  await pressKey(page, 'Escape', 'Escape', 27);
+  assert(JSON.stringify(kept) === JSON.stringify(['Remove from favourites', 'Hide channel']), `the favourite after a reload: ${JSON.stringify(kept)}`);
+  return { ok: true, detail: 'channel order from Settings (A-Z, Z-A, number); favourites from the menu, in their places in the list and no strip above it; the menu from a right click and Shift+F10; hide with Undo, Hidden and Show again; countries chosen and all again; the open favourites kept over a reload' };
 }
 
 /**

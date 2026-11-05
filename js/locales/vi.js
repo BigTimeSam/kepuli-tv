@@ -277,6 +277,7 @@ export default {
  "info.next": "Tiếp theo",
  "info.unsupported": " (không hỗ trợ)",
  "filters.title": "Lọc nội dung",
+ "filters.channels": "Lọc kênh",
  "filters.year": "Năm phát hành",
  "filters.genre": "Thể loại",
  "filters.rating": "Điểm tối thiểu",

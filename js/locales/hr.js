@@ -293,6 +293,7 @@ export default {
  "info.next": "Dalje",
  "info.unsupported": " (nije podržano)",
  "filters.title": "Filtriraj naslove",
+ "filters.channels": "Filtriraj kanale",
  "filters.year": "Godina izdanja",
  "filters.genre": "Žanr",
  "filters.rating": "Minimalna ocjena",

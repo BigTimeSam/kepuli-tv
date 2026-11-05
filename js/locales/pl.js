@@ -301,6 +301,7 @@ export default {
  "info.next": "Dalej",
  "info.unsupported": " (nieobsługiwane)",
  "filters.title": "Filtruj tytuły",
+ "filters.channels": "Filtruj kanały",
  "filters.year": "Rok wydania",
  "filters.genre": "Gatunek",
  "filters.rating": "Minimalna ocena",

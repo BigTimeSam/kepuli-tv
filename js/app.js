@@ -53,6 +53,7 @@ import { categoryCountsFor, collectionItems, favCategoryEntry, isFavorite, isUnf
 import { clickPicture, enterFullscreen, moreItems, renderScreenButton, renderSeriesFavorite, toggleFullscreen, toggleMoreMenu, togglePause, toggleScreen, wireMediaSession } from './playercontrols.js';
 import { wireTopMenu } from './topmenu.js';
 import { wireScrollHints } from './scrollhint.js';
+import { placeListFilters, wireListFilters } from './listfilters.js';
 import { cancelProgress, hideProgress, progressCtrl, progressSignal, showProgress, updateProgress } from './progressdialog.js';
 import { openHelp } from './help.js';
 import { copyUrl, toast } from './toast.js';
@@ -1012,7 +1013,9 @@ let favStripOpen = false;
 export function renderFavStrip(rows) {
   const strip = $('fav-strip');
   const browsing = !isCollection() && !state.detail && !state.query && !state.listLoading;
-  strip.hidden = !browsing || !['live', 'movie', 'series'].includes(state.tab);
+  // Not on the channels: their favourites are the Favourites tab's, and the
+  // strip under "Filter channels" only repeated it.
+  strip.hidden = !browsing || !['movie', 'series'].includes(state.tab);
   const items = $('fav-strip-items');
   if (strip.hidden) { items.replaceChildren(); return; }
   const favs = rows.filter((item) => state.favorites.has(`${item.k}:${item.id}`));
@@ -1077,6 +1080,7 @@ export function showRows(rows, { keepScroll = false, loading = false } = {}) {
   if (guideOpen && state.tab === 'live' && !guideFavorites) grid.setChannels(rows.filter((it) => it.k === 0));
   renderSubcats();
   renderFavStrip(rows);
+  placeListFilters(rows);
   renderListInfo();
   renderEmptyState();
   catalogueSearch.render();
@@ -2107,6 +2111,7 @@ async function init() {
   restoreListView(ui.listView);
   watchGridWidth();
   $('media-filters').open = ui.filtersOpen === true;
+  wireListFilters(ui);
   markTabs(state.tab);
 
   window.addEventListener('hashchange', onAddressChanged);

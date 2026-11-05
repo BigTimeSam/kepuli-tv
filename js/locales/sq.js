@@ -285,6 +285,7 @@ export default {
  "info.next": "Vazhdo",
  "info.unsupported": " (nuk mbështetet)",
  "filters.title": "Filtro titujt",
+ "filters.channels": "Filtro kanalet",
  "filters.year": "Viti i daljes",
  "filters.genre": "Zhanri",
  "filters.rating": "Vlerësimi minimal",

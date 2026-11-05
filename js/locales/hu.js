@@ -285,6 +285,7 @@ export default {
  "info.next": "Tovább",
  "info.unsupported": " (nem támogatott)",
  "filters.title": "Címek szűrése",
+ "filters.channels": "Csatornák szűrése",
  "filters.year": "Megjelenés éve",
  "filters.genre": "Műfaj",
  "filters.rating": "Minimális értékelés",

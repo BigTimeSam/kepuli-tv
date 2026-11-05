@@ -293,6 +293,7 @@ export default {
  "info.next": "Următorul",
  "info.unsupported": " (neacceptat)",
  "filters.title": "Filtrează titlurile",
+ "filters.channels": "Filtrează canalele",
  "filters.year": "Anul apariției",
  "filters.genre": "Gen",
  "filters.rating": "Nota minimă",

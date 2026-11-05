@@ -37,7 +37,9 @@ const SUBCATS_DRAG_SHARE = 0.6;
  * pixels that is right on a full screen hides the list on a half one.
  */
 function subcatsBounds() {
-  const column = el.subcats.parentElement.clientHeight || window.innerHeight;
+  // The list column's height, wherever the bar stands now: inside the
+  // channels' fold its own parent is only as tall as the bar.
+  const column = el.subcats.closest('.listcol')?.clientHeight || window.innerHeight;
   return {
     min: SUBCATS_MIN,
     auto: Math.round(Math.min(SUBCATS_AUTO_MAX, column * SUBCATS_AUTO_SHARE)),
@@ -52,6 +54,9 @@ function subcatsBounds() {
  */
 export function applySubcatsHeight() {
   if (el.subcats.hidden) return;
+  // Inside the channels' fold the bar is as tall as its chips: folding the
+  // whole of it is what gives the list its room.
+  if (el.subcats.closest('.channel-filters')) { el.subcats.style.maxHeight = ''; return; }
   const bounds = subcatsBounds();
   const cap = state.subcatsHeight == null
     ? bounds.auto

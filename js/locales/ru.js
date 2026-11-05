@@ -301,6 +301,7 @@ export default {
  "info.next": "Далее",
  "info.unsupported": " (не поддерживается)",
  "filters.title": "Фильтр по названиям",
+ "filters.channels": "Фильтр каналов",
  "filters.year": "Год выпуска",
  "filters.genre": "Жанр",
  "filters.rating": "Минимальный рейтинг",
