@@ -116,9 +116,10 @@ icon after the player's tab has been closed comes back to.
 
 Before there is anything to come back to — the first time an account's
 channels open — the list starts at the country your browser points to when
-the provider has it: the interface language chosen in **Settings** or the
-browser's (Finnish opens Finland, Swedish Sweden), or the region the browser
-names (German for Austria opens Austria). US and British
+the provider has it: the interface language you chose in **Settings**
+first, then your browser's languages, a region the browser names before the
+language's own country (Finnish opens Finland, Swedish Sweden, German for
+Austria Austria, Swedish for Finland Finland). US and British
 English say nothing about where you are, so with only those the list starts
 at the provider's first country, as it does when the provider has none of
 yours. Countries you have chosen with **Choose countries** start at the first

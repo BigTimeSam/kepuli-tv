@@ -211,6 +211,21 @@ export function homeCountryCodes(tags) {
 }
 
 /**
+ * The languages homeCountryCodes reads, most telling first: a language
+ * picked in Settings is the viewer's own word and leads, then the browser's
+ * own tags. The language the interface merely derives from the browser
+ * ("auto") is left out: it is the browser's first tag cut down to a bare
+ * language (de-AT becomes de), and put first it made Germany win over the
+ * Austria the browser names.
+ * @param {string|undefined} chosen settings.lang, 'auto' or unset when none was picked
+ * @param {readonly string[]} languages navigator.languages
+ * @returns {string[]}
+ */
+export function viewerTags(chosen, languages) {
+  return [...(chosen && chosen !== 'auto' ? [chosen] : []), ...(languages || [])];
+}
+
+/**
  * The group a first open of the channels starts at: the first group of the
  * browser's country, its languages taken in order, or the first group of
  * all when the catalogue has none of them.

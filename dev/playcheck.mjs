@@ -3651,7 +3651,8 @@ async function record(page) {
 
 /**
  * The first country a new account's channels open at follows the browser's
- * languages (js/name.js homeGroup): Swedish opens Sweden, and British
+ * languages (js/name.js homeGroup): Swedish opens Sweden, Swedish in
+ * Finland opens Finland (the region before the language), and British
  * English, which says nothing about where the reader is, leaves the first
  * of the sidebar (Canada, the mock's countries being in alphabetical order). The
  * browser's languages are set through the Accept-Language override, which
@@ -3660,9 +3661,11 @@ async function record(page) {
 async function homecountry(page, { target }) {
   const assert = (ok, message) => { if (!ok) throw new Error(message); };
   const { userAgent } = await page.call('Browser.getVersion');
-  const firstOpen = async (languages) => {
+  // The suite's settings fix the interface to English; lang names it for a
+  // step, 'auto' being what a viewer who never opened Settings has.
+  const firstOpen = async (languages, lang = 'en') => {
     await page.call('Network.setUserAgentOverride', { userAgent, acceptLanguage: languages });
-    await evaluate(page, `chrome.storage.local.set({ config: ${JSON.stringify(XTREAM_ACCOUNT)}, accounts: ${JSON.stringify([XTREAM_ACCOUNT])}, ui: { tab: 'live' } })`);
+    await evaluate(page, `chrome.storage.local.get('settings').then(({ settings }) => chrome.storage.local.set({ settings: { ...settings, lang: ${JSON.stringify(lang)} }, config: ${JSON.stringify(XTREAM_ACCOUNT)}, accounts: ${JSON.stringify([XTREAM_ACCOUNT])}, ui: { tab: 'live' } }))`);
     await page.call('Page.navigate', { url: bare(target.url) });
     await sleep(1000);
     await waitFor(page, CONNECTED, 'the connection');
@@ -3672,11 +3675,17 @@ async function homecountry(page, { target }) {
   try {
     const sv = await firstOpen('sv-SE,sv');
     assert(sv.langs.startsWith('sv') && sv.group.endsWith('Sweden'), `Swedish (${sv.langs}) opened ${sv.group}`);
+    // Swedish in Finland: the region the browser names wins over the
+    // language's country, although the interface (left on automatic) speaks
+    // Swedish. Putting that derived language first opened Sweden.
+    const svFi = await firstOpen('sv-FI,sv', 'auto');
+    assert(svFi.langs.startsWith('sv-FI') && svFi.group.endsWith('Finland'), `Swedish in Finland (${svFi.langs}) opened ${svFi.group}`);
     const gb = await firstOpen('en-GB,en');
     assert(gb.group.endsWith('Canada'), `British English (${gb.langs}) opened ${gb.group}, not the first of the sidebar`);
-    return { ok: true, detail: `${sv.langs} opened ${sv.group}; ${gb.langs} opened ${gb.group}` };
+    return { ok: true, detail: `${sv.langs} opened ${sv.group}; ${svFi.langs} opened ${svFi.group}; ${gb.langs} opened ${gb.group}` };
   } finally {
     await page.call('Network.setUserAgentOverride', { userAgent, acceptLanguage: '' }).catch(() => {});
+    await evaluate(page, `chrome.storage.local.get('settings').then(({ settings }) => chrome.storage.local.set({ settings: { ...settings, lang: 'en' } }))`).catch(() => {});
   }
 }
 

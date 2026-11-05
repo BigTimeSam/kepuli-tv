@@ -12,7 +12,7 @@ import { ListNavigation } from './listnavigation.js';
 import { CatalogueSearch } from './cataloguesearch.js';
 import { PlayerLayout } from './playerlayout.js';
 import { categoryRow, emptyState, KIND_ICONS } from './rows.js';
-import { searchNameCleaner, searchKey, searchTerms, matchesTerms, labelCodes, homeCountryCodes, homeGroup } from './name.js';
+import { searchNameCleaner, searchKey, searchTerms, matchesTerms, labelCodes, homeCountryCodes, homeGroup, viewerTags } from './name.js';
 import { poster } from './poster.js';
 import { wireModal } from './modal.js';
 import { MediaFilters } from './mediafilters.js';
@@ -1399,12 +1399,12 @@ const countryPicker = new CountryPicker((countries) => saveChannelChoices({ ...s
 const hiddenList = new HiddenList((prefs) => saveChannelChoices({ ...state.channelPrefs, ...prefs }));
 
 /**
- * The languages that say where the viewer is (js/name.js homeCountryCodes):
- * the interface's own first, as one chosen in Settings is the viewer's
- * word, then the browser's.
+ * The languages that say where the viewer is (js/name.js viewerTags and
+ * homeCountryCodes): a language chosen in Settings first, then the
+ * browser's own tags with their regions.
  */
 export function browserTags() {
-  return [store.interfaceLanguage(state.settings), ...(navigator.languages || [navigator.language || ''])];
+  return viewerTags(state.settings?.lang, navigator.languages?.length ? navigator.languages : [navigator.language || '']);
 }
 
 function openCountryPicker({ first = false } = {}) {

@@ -14,7 +14,7 @@ globalThis.MediaSource = { isTypeSupported: (type) => /mp4a\.40/.test(type) };
 import { parseServer, parsePlaylistUrl, directSource, serverStamp, timeshiftUrl, streamUrl } from '../js/xtream.js';
 import { safeUrl, decodeField, XtreamApi, ApiError } from '../js/api.js';
 import { playlist } from '../js/external.js';
-import { nameCleaner, labelCodes, countryCodes, searchKey, searchTerms, matchesTerms, homeCountryCodes, homeGroup } from '../js/name.js';
+import { nameCleaner, labelCodes, countryCodes, searchKey, searchTerms, matchesTerms, homeCountryCodes, homeGroup, viewerTags } from '../js/name.js';
 import { Library, buildGroups, cacheTtl } from '../js/library.js';
 import { channelKey, internationalChannels, isNationalTopic } from '../js/international.js';
 import { unwrap, repeats, check as checkListings } from './listings.mjs';
@@ -257,6 +257,12 @@ check('a code further along a label is a word', labelCodes('Movies in English'),
   check('home country: British English is not the United Kingdom', homeGroup(groups, ['en-GB', 'en']), 'Canada');
   check('home country: none of the browser\'s countries, the first group', [homeGroup(groups, ['en-US', 'en']), homeGroup(groups, ['ja-JP']), homeGroup(groups, [])], ['Canada', 'Canada', 'Canada']);
   check('home country: no groups', homeGroup([], ['fi']), null);
+  // What the app hands homeGroup: with the interface language on "auto" the
+  // browser's region must still win over its language's country.
+  const fromSettings = (lang, langs) => homeGroup(groups, viewerTags(lang, langs));
+  check('home country: an automatic interface language does not hide the region', [fromSettings('auto', ['de-AT', 'de']), fromSettings(undefined, ['sv-FI', 'sv']), fromSettings('auto', ['en-SE', 'en'])], ['Österreich', 'Finland', 'Sverige']);
+  check('home country: a language chosen in Settings leads', [fromSettings('sv', ['de-AT', 'de']), fromSettings('fi', ['en-US', 'en'])], ['Sverige', 'Finland']);
+  check('home country: the tags handed on', [viewerTags('auto', ['de-AT', 'de']), viewerTags('fi', ['en-GB']), viewerTags(undefined, undefined)], [['de-AT', 'de'], ['fi', 'en-GB'], []]);
   check('home country: the codes in order, a script skipped, a number no region', homeCountryCodes(['sr-Latn-RS', 'pt-PT', 'nb', 'es-419', 'en-US', 'en']), ['rs', 'pt', 'br', 'no', 'es']);
 }
 check('a whole country name only, for a folder', countryCodes('world latin america'), []);
