@@ -632,13 +632,19 @@ merely the extension.
 
 ## Connection mode
 
-The settings offer **Enter fields (Xtream Codes)** and **Paste subscription URL
-(M3U)**. The latter takes two kinds of address.
+The settings offer **Server and credentials (Xtream Codes)**, **Playlist
+address (M3U)** and **Stalker portal (MAC address)**. On the first run and for
+a new account a field above them, **Paste the address your provider sent**,
+takes any of the three: `pastedKind` in `js/xtream.js` sends an Xtream
+subscription's address into the server's fields, a portal's (`/c/`,
+`stalker_portal/`, `portal.php`) into the portal's, and any other web address
+into the playlist's, and shows that form. The playlist form itself takes two
+kinds of address.
 
 **An Xtream subscription's address** — the HTTP or HTTPS `get.php` address with
 `username` and `password` in it — is read into the fields: protocol, server,
 port, username and password, URL-encoded characters included. The dialog then
-hands over to **Enter fields (Xtream Codes)** with the values in place, which
+hands over to **Server and credentials (Xtream Codes)** with the values in place, which
 both shows what was understood and leaves it open to correction. Such an account
 is used through the Xtream API, one list at a time, rather than as the playlist
 the same address would also give.

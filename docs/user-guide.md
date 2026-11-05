@@ -8,15 +8,28 @@ switching audio tracks, pausing playback and entering full screen.
 ## Getting started
 
 1. Open the player using the Kepuli-TV icon in your browser toolbar.
-2. Paste your provider's M3U subscription URL or any M3U playlist address, or
-   enter the server address, port, username and password separately. You need
-   your own subscription:
-   the app does not include channels or content. The dialog says as much on a
-   first run and links to these steps; the caret starts in **Server**, and
-   the eye at the end of the password field shows what was typed — a
-   provider's password is long, random and entered by hand exactly once.
-3. Connect to the service. You can change your connection details and the
-   interface language later in **Settings**.
+2. Paste the address your provider sent into the first field, **Paste the
+   address your provider sent**, where the caret starts. It fills in the form
+   it belongs to: an Xtream subscription's address (`get.php?username=…&password=…`)
+   the server, port, user name and password under **Server and credentials
+   (Xtream Codes)**, a portal's address (ending in `/c/`) **Stalker portal
+   (MAC address)**, which then asks for the MAC address, and any other web
+   address **Playlist address (M3U)**. Or choose one of the three yourself
+   and fill it in by hand. You need your own subscription: the app does not
+   include channels or content. The dialog says as much on a first run and
+   links to these steps; the eye at the end of the password field shows what
+   was typed — a provider's password is long, random and entered by hand
+   exactly once. **Name (optional)** comes last.
+3. Press **Connect**. The dialog says beforehand that the browser will now
+   ask to let Kepuli-TV reach the server: choose **Allow**, which covers that
+   server only. Refused, the dialog says so and that pressing **Connect**
+   again brings the question back. You can change your connection details
+   and the interface language later in **Settings**.
+
+Closed before a connection, the dialog leaves the welcome in the player with
+a **Connect to your provider** button, and the list says **Not connected yet**
+with the same button; the programme guide's button appears once there is a
+connection to show a guide for.
 
 ## Several accounts
 
@@ -26,8 +39,9 @@ changes it without switching to it. **Add account** puts a new row in the list
 with an empty form under it — an Xtream server or an M3U playlist, with a name
 of your choosing — and saving connects to it; **Cancel** in its row takes it
 away again. An Xtream server needs its server, user name and password; a
-playlist that needs no sign-in, such as a free one, goes under **Paste
-subscription URL (M3U)**. Once there are two, the top bar carries the
+playlist that needs no sign-in, such as a free one, goes under **Playlist
+address (M3U)**. A new account's form starts with the same **Paste the address
+your provider sent** field as the first run. Once there are two, the top bar carries the
 name of the account in use, and a click on it lists the others: one click
 switches. Each account keeps its own favourites, history, resume points,
 reminders and channel lists, and its own catalogue in the cache, so switching
@@ -446,7 +460,9 @@ connection does not require its address to be pasted again when saving viewing
 preferences. Cache clearing and reset require a clean form and remain explicit
 actions, with a separate confirmation for reset.
 
-Before credentials exist, the tabs are hidden and **Connect** saves the initial
+Before credentials exist, the tabs are hidden, **Paste the address your
+provider sent** comes first, a line above the buttons says that the browser
+will ask for access to the server next, and **Connect** saves the initial
 connection. Otherwise the same **Save** action is available from every tab.
 
 In **Subtitles**, the style and size controls sit above the preview. The

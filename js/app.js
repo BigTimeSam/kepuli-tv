@@ -289,6 +289,7 @@ async function warmGuide(source) {
  */
 function dropConnectedView() {
   state.lib = null;
+  $('channel-tools').hidden = true;
   state.epg = null;
   state.account = null;
   state.detail = null;
@@ -382,6 +383,10 @@ export async function offerAccess(url, actions, onGranted, { stream = false } = 
   if (!url) return;
   if (!(await hasAccess(url))) {
     if (el.overlay.hidden) return;            // tilanne ehti vaihtua
+    // "The server did not answer" over a button that asks for access would
+    // leave the viewer to work out that the two belong together.
+    const why = t('error.grant.why', { origin: hostOf(url) });
+    if (!el.overlayText.textContent.endsWith(why)) el.overlayText.textContent = `${el.overlayText.textContent} ${why}`.trim();
     showOverlayActions([grantAction(url, onGranted), ...actions]);
     return;
   }
@@ -403,10 +408,14 @@ export async function offerAccess(url, actions, onGranted, { stream = false } = 
   }, { first: true });
 }
 
+/** The host an address names, or the whole address when it is none. */
+function hostOf(url) {
+  try { return new URL(url).host; } catch { return url; }
+}
+
 /** A button that asks for the host permission and continues if granted. */
 function grantAction(url, onGranted) {
-  let origin = url;
-  try { origin = new URL(url).host; } catch { /* show the whole URL */ }
+  const origin = hostOf(url);
   return {
     label: t('error.grant', { origin }),
     // requestAccess is called before the first await, otherwise the user
@@ -812,7 +821,8 @@ export async function activateTab(tab, { restore = false } = {}) {
   catalogueSearch.reset();
   playerLayout.showBrowse();
   state.tab = tab;
-  $('channel-tools').hidden = tab !== 'live';
+  // The guide needs a connection: before one, its button would only say so.
+  $('channel-tools').hidden = tab !== 'live' || !state.lib;
   markTabs(tab);
   state.detail = null;
   state.cursor = -1;
@@ -2018,7 +2028,7 @@ async function init() {
   if (start.group !== undefined) state.lastGroup[state.tab] = start.group;
   if (start.kind !== undefined) state.lastKind[state.tab] = start.kind;
   storedSub = start.sub ?? null;
-  $('channel-tools').hidden = state.tab !== 'live';
+  $('channel-tools').hidden = state.tab !== 'live' || !state.lib;
   if (typeof ui.subcatsHeight === 'number') state.subcatsHeight = ui.subcatsHeight;
   restoreListView(ui.listView);
   watchGridWidth();
@@ -2045,4 +2055,5 @@ async function init() {
 
 const CACHE_PURGE_DELAY_MS = 20000;
 
+    renderEmptyState();
 init();

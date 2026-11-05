@@ -15,6 +15,7 @@ import { activateTab, isAbort, isCollection, kindLabel, mediaFilters, openHidden
 import { hideProgress, progressSignal, showProgress, updateProgress } from './progressdialog.js';
 import { clearHistory } from './collections.js';
 import { $, el } from './dom.js';
+import { configured, openSetup } from './setupui.js';
 
 // A chip row advances 30.6 px and the bar's own padding adds 16, so one row
 // comes to 47 px and eight to 261. The fixed 144 px this used to have for
@@ -174,10 +175,14 @@ export function renderEmptyState() {
     el.list.appendChild(loading);
     return;
   }
-  // Before a connection — and while one is being made — the player's own
-  // overlay says what is missing. A second message calling the list an empty
-  // category would name the wrong thing.
-  if (!state.lib && !isCollection()) return;
+  // Before the first connection the list says so, with the way to make
+  // one: an empty column under the sidebar's empty one said nothing at all.
+  // While a connection is being made, the strip above it says that.
+  if (!state.lib && !isCollection()) {
+    if (configured()) return;
+    el.list.appendChild(emptyState(t('empty.noserver'), '', { label: t('setup.title.connect'), onClick: () => openSetup() }));
+    return;
+  }
   const type = tabType();
   const browse = { label: t('empty.browse'), onClick: () => activateTab('live') };
   let node;

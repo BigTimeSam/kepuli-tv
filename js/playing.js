@@ -549,7 +549,8 @@ export function showOverlayActions(actions) {
 export function addOverlayAction(action, { first = false } = {}) {
   const button = document.createElement('button');
   button.type = 'button';
-  button.className = 'ghost';
+  button.className = action.primary ? 'primary' : 'ghost';
+  if (action.id) button.id = action.id;
   button.textContent = action.label;
   if (action.title) button.title = action.title;
   button.addEventListener('click', action.onClick);

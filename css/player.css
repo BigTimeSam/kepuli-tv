@@ -1380,6 +1380,8 @@ dialog::backdrop { background: var(--backdrop); backdrop-filter: blur(2px); }
   .setup > .setup-actions #f-done { margin-left: auto; }
   .setup .danger-row { align-items: flex-start; flex-direction: column; }
   .setup .account-box .cols { grid-template-columns: repeat(2, 1fr); }
+.setup > .grant-note { margin: 0; flex-shrink: 0; }
+.setup > .grant-note[hidden] { display: none; }
   .setup .sublook-fields { grid-template-columns: 1fr; }
   .setup .field-pair { grid-template-columns: 1fr; }
   .setup .grid { grid-template-columns: minmax(72px, 1fr) minmax(0, 2fr) minmax(64px, 1fr); }

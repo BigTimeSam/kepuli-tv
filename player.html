@@ -568,8 +568,15 @@ on two lines as well.</div></div>
         </div>
         <ul class="account-list" id="account-list"></ul>
       </div>
-      <label class="field"><span data-i18n="setup.name">Name (optional)</span>
-        <input id="f-name" type="text" autocomplete="off" spellcheck="false" data-i18n-placeholder="setup.name.placeholder" placeholder="e.g. Provider name">
+      <!-- Most providers send one long address, and it is the shortest way
+           in: on the first run and for a new account it comes first, and
+           fills in whichever form below it belongs to (pasteFirst in
+           js/setupui.js). The form's own fields stay for typing by hand. -->
+      <label class="field" id="paste-first" hidden>
+        <span data-i18n="setup.paste.first">Paste the address your provider sent (optional)</span>
+        <input id="f-paste-first" type="text" placeholder="http://example.tv:8080/get.php?username=…&amp;password=…" autocomplete="off" spellcheck="false" aria-describedby="paste-first-hint paste-first-status">
+        <span id="paste-first-hint" class="field-hint" data-i18n="setup.paste.first.hint">It fills in the fields below. Or choose how to connect and fill them in yourself.</span>
+        <span id="paste-first-status" class="playlist-status" role="status" hidden></span>
       </label>
       <div class="field">
         <span data-i18n="setup.source">Connection</span>
@@ -665,6 +672,11 @@ on two lines as well.</div></div>
       <!-- The button names the action, the line beside it says what the
            action takes with it. Neither repeats the other. -->
       <details class="setup-maintenance">
+      <!-- The least needed field, so it comes after the ones that connect. -->
+      <label class="field"><span data-i18n="setup.name">Name (optional)</span>
+        <input id="f-name" type="text" autocomplete="off" spellcheck="false" data-i18n-placeholder="setup.name.placeholder" placeholder="e.g. Provider name">
+      </label>
+
         <summary data-i18n="setup.maintenance">Manage stored data</summary>
         <div class="danger-rows">
           <div class="danger-row">
@@ -703,6 +715,9 @@ on two lines as well.</div></div>
     <div class="modal-head">
       <h2 id="help-title" data-i18n="help.title">Help</h2>
       <button type="button" id="help-close" data-modal-close data-i18n-label="modal.close"></button>
+    <!-- On the first run the browser's permission prompt follows Connect;
+         said beforehand, it is expected rather than alarming. -->
+    <p id="setup-grant-note" class="field-hint grant-note" data-i18n="setup.grant.note" hidden>Next, your browser asks to let Kepuli-TV reach this server. Choose Allow: it is needed for the lists and the streams, and covers this server only.</p>
     </div>
     <h3 data-i18n="help.shortcuts">Keyboard shortcuts</h3>
     <dl class="help-keys" id="help-keys"></dl>

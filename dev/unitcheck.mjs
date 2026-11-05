@@ -11,7 +11,7 @@
 // through as it is, nothing else does.
 globalThis.MediaSource = { isTypeSupported: (type) => /mp4a\.40/.test(type) };
 
-import { parseServer, parsePlaylistUrl, directSource, serverStamp, timeshiftUrl, streamUrl } from '../js/xtream.js';
+import { parseServer, parsePlaylistUrl, pastedKind, directSource, serverStamp, timeshiftUrl, streamUrl } from '../js/xtream.js';
 import { safeUrl, decodeField, XtreamApi, ApiError } from '../js/api.js';
 import { playlist } from '../js/external.js';
 import { nameCleaner, labelCodes, countryCodes, searchKey, searchTerms, matchesTerms } from '../js/name.js';
@@ -146,6 +146,21 @@ check('subscription URL decodes credential components and preserves the port',
 check('subscription URL uses the HTTPS default port', parsePlaylistUrl('https://example.test/get.php?username=u&password=p')?.port, '443');
 check('subscription URL requires both credentials', parsePlaylistUrl('https://example.test/get.php?username=u'), null);
 check('subscription URL rejects unsupported protocols', parsePlaylistUrl('ftp://example.test/get.php?username=u&password=p'), null);
+
+// The first field in Settings sends a pasted address to the form it
+// belongs to.
+check('a pasted address finds its way of connecting', [
+  'http://example.test:8080/get.php?username=u&password=p&type=m3u_plus',
+  ' https://example.test/player_api.php?username=u&password=p ',
+  'http://example.test:8080/c/',
+  'http://example.test/stalker_portal/c/index.html',
+  'http://example.test/portal.php',
+  'http://example.test/list.m3u8',
+  'https://example.test/get.php?username=u',
+  'example test',
+  'ftp://example.test/list.m3u',
+  '',
+].map(pastedKind), ['xtream', 'xtream', 'stalker', 'stalker', 'stalker', 'm3u', 'm3u', null, null, null]);
 
 /* ------------------------------------------------------- api.js: safeUrl */
 

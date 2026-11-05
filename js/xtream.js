@@ -22,6 +22,21 @@ export function parsePlaylistUrl(text) {
 }
 
 /**
+ * Which way of connecting a pasted address belongs to, for the field that
+ * comes first in Settings: an Xtream subscription (credentials in the
+ * query), a Stalker portal (the MAG box's /c/ page or a portal script),
+ * any other web address a playlist, and anything else none (null).
+ */
+export function pastedKind(text) {
+  let u;
+  try { u = new URL(String(text || '').trim()); } catch { return null; }
+  if (!u.hostname || !['http:', 'https:'].includes(u.protocol)) return null;
+  if (parsePlaylistUrl(u.href)) return 'xtream';
+  if (/\/c\/?(index\.html?)?$|\/stalker_portal\/|\/(portal|load)\.php$/i.test(u.pathname)) return 'stalker';
+  return 'm3u';
+}
+
+/**
  * What was typed into the Server field, split into the fields it belongs
  * in. A bare host name is left alone. A whole address — pasted, most
  * likely: "http://example.tv:8080", or a player_api link with the

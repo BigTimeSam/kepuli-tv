@@ -15,10 +15,11 @@ import { renderInfoStrip } from './infostrip.js';
 import { setLocale } from './format.js';
 import * as store from './config.js';
 import { catalogueSearch, refreshRows, renderSidebar, state, updateAddress } from './app.js';
-import { configured, renderAccountBox, setupSection, showSetupSection } from './setupui.js';
+import { configured, openSetup, renderAccountBox, setupSection, showSetupSection } from './setupui.js';
 import { renderAudio, renderSubtitles } from './tracksui.js';
-import { renderNowSub } from './playing.js';
+import { renderNowSub, showOverlayActions } from './playing.js';
 import { renderIdleHome } from './idlehome.js';
+import { renderEmptyState } from './topicbar.js';
 
 /**
  * The language changes mid-session without reloading the page.
@@ -70,6 +71,7 @@ export async function applyLanguage(lang) {
   // Before a connection there is no list to repaint, and refreshRows would
   // set off to fetch it from a server that does not exist yet.
   if (state.lib) await refreshRows({ keepScroll: true });
+  else renderEmptyState();
   // An idle player shows the welcome text, which comes from no paint routine.
   if (!state.playing && !el.overlay.hidden && !el.overlay.classList.contains('loading')) renderIdleOverlay();
   // The path in the tab's title is in the interface language as well.
@@ -88,6 +90,10 @@ new MutationObserver(() => {
 
 export function renderIdleOverlay() {
   const welcome = !configured();
+  // The welcome is the way in, not only a word: with the dialog closed it
+  // used to be a dead end, the Settings button its only, unnamed, way on.
+  if (welcome) showOverlayActions([{ id: 'welcome-connect', primary: true, label: t('setup.title.connect'), onClick: () => openSetup() }]);
+  else if (el.overlayActions.querySelector('#welcome-connect')) showOverlayActions(null);
   el.overlayTitle.textContent = welcome ? t('setup.welcome') : t('player.idle');
   const home = welcome ? false : renderIdleHome();
   el.overlayText.textContent = welcome ? t('setup.welcome.text')
