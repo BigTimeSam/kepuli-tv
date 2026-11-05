@@ -199,6 +199,22 @@ body {
 body { display: flex; flex-direction: column; }
 
 button, input, select { font: inherit; color: inherit; }
+
+/* One focus ring for every control: the accent's text colour, 2px, a
+   little off the edge. Half the controls had a ring of their own and the
+   other half the browser's, a hairline in Chrome and something else in
+   Firefox, and the text fields showed focus by a 1px border changing colour
+   alone. The text colour rather than the accent itself because it is the
+   one made to stand on the panels: 5.9:1 or more on every dark ground and
+   6.3:1 on the light ones, where 3:1 is asked of a focus mark. :where()
+   keeps this the weakest rule there is, so a control with a reason for
+   another offset (a ring inside a scrolling box, which would cut it) says
+   so in its own rule. */
+:where(button, select, summary, a[href], input, textarea, [tabindex]):focus-visible { outline: 2px solid var(--accent-ink); outline-offset: 2px; }
+:where(input, select, textarea):focus-visible { outline-offset: 1px; }
+/* Placeholders are the only words some fields show (the searches, the
+   filters), and the browser's grey was 3.8:1 on their ground. */
+::placeholder { color: var(--dim); opacity: 1; }
 h2, h3 { font-weight: 600; }
 
 /* ------------------------------------------------------------ top bar */
@@ -220,7 +236,7 @@ h2, h3 { font-weight: 600; }
   color: var(--text); background: none; border: 0; padding: 5px 11px; margin: -5px -11px; border-radius: 6px; cursor: pointer;
 }
 .brand:hover { background: var(--row-hover); }
-.brand:focus-visible { outline: 2px solid var(--accent); outline-offset: 0; }
+.brand:focus-visible { outline: 2px solid var(--accent-ink); outline-offset: 0; }
 /* The same television as in the extension icon. A 48px source, so the mark
    stays sharp on a high-density display too. */
 .brand-mark { width: 18px; height: 18px; background: url("../icons/icon48.png") center / contain no-repeat; }
@@ -236,10 +252,13 @@ h2, h3 { font-weight: 600; }
 @media (min-width: 601px) and (max-width: 1099px) { .tab-icon { display: none; } }
 .tabs button:hover { color: var(--text); }
 .tabs button.active { background: var(--accent); color: #fff; }
+/* The strip's own padding is 3px and it scrolls sideways in a narrow
+   window, which cuts whatever lies outside it: the ring sits on the edge. */
+.tabs button:focus-visible { outline-offset: 0; }
 
 .search { position: relative; display: flex; align-items: center; flex: 1 1 200px; min-width: 190px; max-width: 380px; }
 .search svg { position: absolute; left: 10px; width: 14px; height: 14px; fill: none; stroke: var(--muted); stroke-width: 1.8; stroke-linecap: round; pointer-events: none; }
-.search input { width: 100%; padding: 7px 34px 7px 30px; background: var(--panel-2); border: 1px solid var(--border); border-radius: 8px; outline: none; }
+.search input { width: 100%; padding: 7px 34px 7px 30px; background: var(--panel-2); border: 1px solid var(--border); border-radius: 8px; }
 .search input:focus { border-color: var(--accent); }
 .search input::-webkit-search-cancel-button { display: none; }
 .search-clear { position: absolute; right: 3px; width: 30px; height: 30px; padding: 0; border: 0; border-radius: 5px; background: transparent; color: var(--muted); cursor: pointer; font-size: 1.125rem; }
@@ -305,7 +324,7 @@ main.guide > .guide-header { grid-area: 1 / 1 / 2 / 3; display: flex; align-item
 .guide-back { display: inline-flex; align-items: center; gap: 8px; flex: none; padding: 8px 12px; border: 1px solid var(--accent); border-radius: 7px; background: var(--accent-soft); color: var(--text); font-weight: 550; cursor: pointer; }
 .guide-back > svg { width: 18px; height: 18px; fill: none; stroke: currentColor; stroke-width: 1.5; stroke-linecap: round; stroke-linejoin: round; }
 .guide-back:hover { background: var(--accent-soft-hover); }
-.guide-back:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.guide-back:focus-visible { outline: 2px solid var(--accent-ink); outline-offset: 2px; }
 main.guide > .groups, main.guide > .listcol { display: none; }
 main.guide > .epgview { grid-area: 2 / 2; border-left: 1px solid var(--border); border-bottom: 0; }
 main.guide > .stage { grid-area: 3 / 2; min-height: 0; border-left: 1px solid var(--border); border-top: 1px solid var(--border); }
@@ -355,7 +374,7 @@ main.guide #btn-copy { display: none; }
 .groups-filter svg { position: absolute; left: 17px; top: 50%; translate: 0 -50%; width: 14px; height: 14px; fill: none; stroke: var(--muted); stroke-width: 1.8; stroke-linecap: round; pointer-events: none; }
 .groups-filter input {
   width: 100%; padding: 5px 8px 5px 27px; background: var(--panel-2);
-  border: 1px solid var(--border); border-radius: 7px; outline: none; font-size: 0.75rem;
+  border: 1px solid var(--border); border-radius: 7px; font-size: 0.75rem;
 }
 .groups-filter input:focus { border-color: var(--accent); }
 .groups-list { flex: 1; overflow-y: auto; padding: 6px; }
@@ -371,7 +390,7 @@ main.guide #btn-copy { display: none; }
 .groups-foot[hidden] { display: none; }
 .groups-foot[data-kind="categories"] .foot-countries, .groups-foot:not([data-kind="categories"]) .foot-categories { display: none; }
 .groups-foot:hover { color: var(--text); background: var(--row-hover); }
-.groups-foot:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; }
+.groups-foot:focus-visible { outline: 2px solid var(--accent-ink); outline-offset: -2px; }
 /* Favourites only, under the sidebar's filter. */
 .groups-favonly {
   flex: none; display: flex; align-items: center; gap: 8px; margin: 0; padding: 1px 14px 8px;
@@ -394,7 +413,7 @@ main.guide #btn-copy { display: none; }
    the whole row, not an outline. Last, so that it also beats the colour of
    the .all row. */
 .group.active, .group.active:hover { background: var(--accent); color: #fff; }
-.group.active .group-count { color: #fff; opacity: .65; }
+.group.active .group-count { color: #fff; }
 
 /* The star used to appear on hover alone, which is no gesture at all on a
    touch screen and no help to anyone reading the sidebar rather than
@@ -421,7 +440,7 @@ button.group-star:hover { color: var(--text); background: var(--track); }
 .channel-guide > svg { width: 18px; height: 18px; flex: none; fill: none; stroke: var(--accent-2); stroke-width: 1.5; stroke-linecap: round; stroke-linejoin: round; }
 .channel-guide-arrow { margin-left: auto; color: var(--muted); font-size: 1.125rem; line-height: 1; }
 .channel-guide:hover { border-color: var(--accent); background: var(--row-hover); }
-.channel-guide:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.channel-guide:focus-visible { outline: 2px solid var(--accent-ink); outline-offset: 2px; }
 /* The folding headings over the list — the filters, the favourites: the
    same mark, gap, type and fold, so that the two read as one family. */
 .section-toggle {
@@ -431,7 +450,7 @@ button.group-star:hover { color: var(--text); background: var(--track); }
 }
 .section-toggle::-webkit-details-marker { display: none; }
 .section-toggle:hover { background: var(--row-hover); }
-.section-toggle:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; }
+.section-toggle:focus-visible { outline: 2px solid var(--accent-ink); outline-offset: -2px; }
 .section-icon { width: 15px; height: 15px; flex: none; fill: none; stroke: var(--muted); stroke-width: 1.6; stroke-linecap: round; stroke-linejoin: round; }
 .section-icon.fav-star { fill: var(--gold); stroke: var(--gold); }
 .section-label { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
@@ -453,7 +472,7 @@ button.group-star:hover { color: var(--text); background: var(--track); }
 .media-filter-footer { display: flex; align-items: baseline; gap: 8px; justify-content: space-between; margin-top: 9px; color: var(--muted); font-size: 0.6875rem; }
 .media-filter-footer button { flex: none; padding: 0; border: 0; background: none; color: var(--accent-ink); font-size: inherit; cursor: pointer; }
 .media-filter-footer button:disabled { color: var(--muted); opacity: .5; cursor: default; }
-.media-filters :focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.media-filters :focus-visible { outline: 2px solid var(--accent-ink); outline-offset: 2px; }
 
 .crumbs { display: flex; align-items: center; gap: 8px; padding: 8px 10px; border-bottom: 1px solid var(--border); color: var(--muted); }
 /* An explicit display beats the browser's [hidden] rule, so it has to be
@@ -519,9 +538,14 @@ body.resizing { user-select: none; }
 .chip-main {
   background: none; border: 0; border-radius: 99px; padding: 3px 4px 3px 11px;
   color: inherit; font: inherit; cursor: pointer;
+  /* 24 px, the least a target may be (WCAG 2.5.8); the text alone left
+     the chip 23 px high. */
+  min-height: 1.5rem;
 }
 .chip.plain .chip-main { padding-right: 11px; }
-.chip .n { opacity: .6; margin-left: 5px; font-variant-numeric: tabular-nums; }
+/* The count in the chip's own colour: at 60 % opacity it was 2.9:1 on
+   either ground, under the 4.5:1 that text of this size needs. */
+.chip .n { margin-left: 5px; font-variant-numeric: tabular-nums; }
 /* Tight: the chip bar wraps in a narrow column, so every pixel the star
    takes costs a row's height across the whole bar. */
 .chip-star {
@@ -565,14 +589,14 @@ body.resizing { user-select: none; }
 button.poster { padding: 0; border: 0; }
 button.poster:enabled { cursor: zoom-in; }
 button.poster:enabled:hover { box-shadow: 0 0 0 2px var(--accent); }
-button.poster:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; }
+button.poster:focus-visible { outline: 2px solid var(--accent-ink); outline-offset: 3px; }
 button.poster:disabled { cursor: default; }
 .detail-cover { width: 76px; height: 114px; flex: none; object-fit: cover; border-radius: 7px; background: var(--panel-2); }
 .detail-body { min-width: 0; flex: 1; }
 .detail-heading { display: flex; align-items: flex-start; gap: 8px; margin-bottom: 3px; }
 .detail-title { flex: 1; min-width: 0; font-weight: 650; font-size: 1rem; letter-spacing: -0.005em; overflow-wrap: anywhere; }
 button.series-favorite { flex: none; width: 32px; height: 32px; padding: 0; display: grid; place-items: center; font-size: 1.1875rem; line-height: 1; }
-.series-favorite:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.series-favorite:focus-visible { outline: 2px solid var(--accent-ink); outline-offset: 2px; }
 /* Labelled facts separate catalogue metadata from playback diagnostics. */
 .title-facts { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px 16px; margin: 2px 0 12px; }
 .title-facts > div { min-width: 0; }
@@ -584,7 +608,7 @@ button.series-favorite { flex: none; width: 32px; height: 32px; padding: 0; disp
 .title-links a { display: inline-flex; align-items: center; gap: 6px; padding: 5px 8px; border: 1px solid var(--border); border-radius: 6px; font-size: 0.6875rem; line-height: 1.4; color: var(--text); background: var(--panel-2); text-decoration: none; cursor: pointer; }
 .title-links a > span { color: var(--muted); }
 .title-links a:hover { border-color: var(--accent); color: var(--text); }
-.title-links a:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.title-links a:focus-visible { outline: 2px solid var(--accent-ink); outline-offset: 2px; }
 .vodinfo-body { min-width: 0; flex: 1; }
 .vodinfo .title-links { margin-top: 0; margin-bottom: 10px; }
 .infostrip:has(.title-facts) { max-height: 210px; }
@@ -617,7 +641,7 @@ main:not(.guide) .stage:has(> .videowrap.sized:not(:fullscreen)) > .infostrip { 
 .list-frame { flex: 1; min-height: 0; display: flex; flex-direction: column; position: relative; }
 .list-frame:has(> .list:focus-visible)::after {
   content: ''; position: absolute; inset: 0; z-index: 1; pointer-events: none;
-  box-shadow: inset 0 0 0 2px var(--accent);
+  box-shadow: inset 0 0 0 2px var(--accent-ink);
 }
 .list { flex: 1; min-height: 0; overflow-y: auto; outline: none; position: relative; }
 .vlist-spacer { position: relative; width: 100%; }
@@ -686,7 +710,7 @@ main:not(.guide) .stage:has(> .videowrap.sized:not(:fullscreen)) > .infostrip { 
    single history row, and unreachable by touch. */
 .row-x {
   width: 20px; height: 20px; flex: none; display: grid; place-items: center;
-  border: 0; background: transparent; color: var(--faint); cursor: pointer;
+  border: 0; background: transparent; color: var(--star); cursor: pointer;
   border-radius: 5px; font-size: 0.875rem; line-height: 1;
 }
 .row-x:hover { color: var(--danger); background: var(--danger-soft); }
@@ -694,6 +718,25 @@ main:not(.guide) .stage:has(> .videowrap.sized:not(:fullscreen)) > .infostrip { 
 .row-more { width: 24px; height: 24px; flex: none; display: grid; place-items: center; border: 0; padding: 0; background: transparent; color: var(--star); cursor: pointer; border-radius: 5px; }
 .row-more svg { width: 16px; height: 16px; fill: currentColor; }
 .row-more:hover { color: var(--text); background: var(--track); }
+
+/* The stars and the row's buttons answer a tap anywhere in a 24 px square
+   at the least (WCAG 2.5.8): the chip's star was 18×11, the sidebar's
+   18×18, and a tap a few pixels off chose the topic instead of starring it.
+   Each box grows into padding that a negative margin of the same size
+   takes back, so nothing beside it moves, and the hover's ground is held
+   to the old size by clipping it to the content. (A larger transparent
+   layer over the button did the same, but counted as the button's text
+   overflowing it.) On a touch screen the row's two buttons grow to 32 px,
+   and the chips to 2rem, the size a fingertip needs. */
+.row-star, .row-star:hover { width: 24px; height: 24px; padding: 1px; margin: -1px; background-clip: content-box; }
+button.group-star, button.group-star:hover, .group.active .group-star:hover { width: 24px; height: 24px; padding: 3px; margin: -3px; background-clip: content-box; }
+.row-x, .row-x:hover { width: 24px; height: 24px; padding: 2px; margin: -2px; background-clip: content-box; }
+.chip-star { padding: 6.5px 11px 6.5px 4px; margin: -6.5px 0 -6.5px -4px; }
+@media (hover: none) {
+  .row-star, .row-star:hover, .row-more { width: 2rem; height: 2rem; }
+  .chip { min-height: 2rem; }
+  .chip-main { align-self: stretch; }
+}
 .row-menu {
   position: fixed; inset: auto; margin: 0; padding: 6px; min-width: 200px;
   display: flex; flex-direction: column; gap: 2px;
@@ -702,7 +745,7 @@ main:not(.guide) .stage:has(> .videowrap.sized:not(:fullscreen)) > .infostrip { 
 }
 .popitem.danger { color: var(--danger); }
 .row-menu .popitem:focus { background: var(--row-hover); outline: none; }
-.row-menu .popitem:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; }
+.row-menu .popitem:focus-visible { outline: 2px solid var(--accent-ink); outline-offset: -2px; }
 
 /* Day and type headings in the favourites and the history. */
 .rowgroup { display: flow-root; }
@@ -727,7 +770,7 @@ main:not(.guide) .stage:has(> .videowrap.sized:not(:fullscreen)) > .infostrip { 
   font: inherit; font-size: 0.6875rem; cursor: pointer;
 }
 .fav-tile:hover { background: var(--row-hover); border-color: var(--border-strong); }
-.fav-tile:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.fav-tile:focus-visible { outline: 2px solid var(--accent-ink); outline-offset: 2px; }
 .fav-tile.playing { border-color: var(--accent); }
 .fav-name { max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .fav-logo { width: 64px; height: 36px; border-radius: 4px; }
@@ -765,7 +808,13 @@ main:not(.guide) .stage:has(> .videowrap.sized:not(:fullscreen)) > .infostrip { 
 .row.card.playing .card-poster { box-shadow: 0 0 0 2px var(--accent); }
 .card-poster .row-progress { position: absolute; left: 6px; right: 6px; bottom: 6px; width: auto; margin: 0; background: rgba(10, 12, 17, .7); }
 .card-star { position: absolute; top: 5px; left: 5px; background: rgba(10, 12, 17, .72); }
-.card-star:hover { background: rgba(10, 12, 17, .9); }
+/* The disc under the star is dark in either theme, and so are the star's
+   colours: the light theme's grey was 2.2:1 on it, and its gold darker
+   still. Three classes, to outlast the row star's colours in either
+   theme and under more contrast. */
+.row .row-star.card-star { color: #a3abc0; }
+.row .row-star.card-star.on { color: #ffc857; }
+.row .row-star.card-star:hover { background: rgba(10, 12, 17, .9); color: #fff; }
 .card-name { margin-top: 7px; font-size: 0.75rem; }
 .card-meta { font-size: 0.6875rem; color: var(--dim); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 @media (prefers-reduced-motion: reduce) { .card-poster { transition: none; } .row.card:hover .card-poster { transform: none; } }
@@ -784,7 +833,7 @@ main:not(.guide) .stage:has(> .videowrap.sized:not(:fullscreen)) > .infostrip { 
 .group-picker[hidden] { display: none; }
 .group-picker { display: none; padding: 8px 10px; background: var(--panel); border-bottom: 1px solid var(--border); }
 .group-picker select { width: 100%; color: var(--text); background: var(--panel-2); border: 1px solid var(--border); border-radius: 7px; padding: 7px 9px; }
-.group-picker select:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.group-picker select:focus-visible { outline: 2px solid var(--accent-ink); outline-offset: 2px; }
 
 .list-progress {
   display: flex; flex-direction: column; gap: 7px; flex: none;
@@ -987,7 +1036,7 @@ body[data-substyle="contrast"] { --cue-back: #000; }
 .idle-card { flex-direction: column; gap: 7px; padding: 7px; }
 .idle-channel { align-items: center; gap: 10px; padding: 8px 10px; }
 .idle-card:hover, .idle-channel:hover { background: var(--row-hover); border-color: var(--border-strong); }
-.idle-card:focus-visible, .idle-channel:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.idle-card:focus-visible, .idle-channel:focus-visible { outline: 2px solid var(--accent-ink); outline-offset: 2px; }
 .idle-cover { width: 100%; aspect-ratio: 2 / 3; border-radius: 6px; }
 .idle-logo { width: 44px; height: 30px; flex: none; border-radius: 4px; }
 .idle-name { font-size: 0.8125rem; font-weight: 550; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
@@ -1006,7 +1055,7 @@ body[data-substyle="contrast"] { --cue-back: #000; }
 .idle-forget svg { width: 14px; height: 14px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; }
 .idle-card-wrap:hover .idle-forget, .idle-forget:focus-visible { opacity: 1; }
 .idle-forget:hover { background: rgba(200, 40, 50, .92); border-color: transparent; }
-.idle-forget:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.idle-forget:focus-visible { outline: 2px solid var(--accent-ink); outline-offset: 2px; }
 @media (hover: none) { .idle-forget { opacity: 1; } }
 /* The picks (js/picks.js): a programme per card, its channel's logo beside
    it. One row of them, as many as the window is wide for (fitIdleHome). */
@@ -1018,7 +1067,7 @@ body[data-substyle="contrast"] { --cue-back: #000; }
   font: inherit; text-align: left; cursor: pointer; border-radius: 9px; overflow: hidden;
 }
 .idle-pick:hover { background: var(--row-hover); border-color: var(--border-strong); }
-.idle-pick:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.idle-pick:focus-visible { outline: 2px solid var(--accent-ink); outline-offset: 2px; }
 .idle-pick-logo { width: 44px; height: 30px; flex: none; border-radius: 4px; margin-top: 2px; }
 .idle-pick-body { display: flex; flex-direction: column; gap: 3px; min-width: 0; }
 .idle-pick-when { display: flex; align-items: center; gap: 5px; font-size: 0.6875rem; font-weight: 600; color: var(--muted); }
@@ -1183,7 +1232,7 @@ main:not(.has-playback) .stagehead { display: none; }
 }
 .popitem[hidden] { display: none; }
 .popitem:hover { background: var(--row-hover); }
-.popitem:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; }
+.popitem:focus-visible { outline: 2px solid var(--accent-ink); outline-offset: -2px; }
 /* The same gold as the row's own Cast button had while a device plays. */
 .popitem.on { color: var(--gold); }
 .popitem svg { flex: none; width: 16px; height: 16px; fill: none; stroke: currentColor; stroke-width: 1.7; stroke-linecap: round; stroke-linejoin: round; }
@@ -1200,7 +1249,7 @@ dialog::backdrop { background: var(--backdrop); backdrop-filter: blur(2px); }
 .modal-close { display: grid; place-items: center; flex: none; width: 32px; height: 32px; padding: 0; border: 1px solid var(--border); border-radius: 7px; background: transparent; color: var(--muted); cursor: pointer; }
 .modal-close > svg { display: block; width: 18px; height: 18px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; }
 .modal-close:hover { color: var(--text); background: var(--panel-2); }
-.modal-close:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.modal-close:focus-visible { outline: 2px solid var(--accent-ink); outline-offset: 2px; }
 .modal-actions { display: flex; align-items: center; justify-content: flex-end; gap: 10px; flex-wrap: wrap; flex-shrink: 0; border-top: 1px solid var(--border); padding-top: 14px; }
 .modal-actions > button { min-height: 32px; }
 .poster-dialog { max-width: calc(100vw - 32px); max-height: calc(100dvh - 32px); overflow: hidden; }
@@ -1243,7 +1292,7 @@ dialog::backdrop { background: var(--backdrop); backdrop-filter: blur(2px); }
 .field[hidden] { display: none; }        /* an explicit display beats [hidden], see .crumbs */
 .field span code { background: var(--panel-2); padding: 1px 4px; border-radius: 4px; }
 .field span { color: var(--muted); font-size: 0.71875rem; }
-.field input, .field select { background: var(--panel-2); border: 1px solid var(--border); border-radius: 8px; padding: 7px 9px; outline: none; width: 100%; }
+.field input, .field select { background: var(--panel-2); border: 1px solid var(--border); border-radius: 8px; padding: 7px 9px; width: 100%; }
 
 /* The password and the eye that shows it, in one field-shaped box. */
 .field-reveal { position: relative; display: block; }
@@ -1255,14 +1304,14 @@ dialog::backdrop { background: var(--backdrop); backdrop-filter: blur(2px); }
 }
 .field-reveal button:hover { color: var(--text); background: var(--row-hover); }
 .field-reveal button.on { color: var(--accent-2); }
-.field-reveal button:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; }
+.field-reveal button:focus-visible { outline: 2px solid var(--accent-ink); outline-offset: -2px; }
 .field-reveal svg { width: 17px; height: 17px; fill: none; stroke: currentColor; stroke-width: 1.6; stroke-linecap: round; stroke-linejoin: round; }
 
 /* Where the details come from, said inside the dialog: it is modal, so the
    top bar's own Help cannot be reached while it is open. */
 .setup-help { display: inline-flex; align-items: baseline; gap: 5px; margin-left: 4px; color: var(--accent-ink); text-decoration: none; white-space: nowrap; }
 .setup-help:hover { text-decoration: underline; }
-.setup-help:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; border-radius: 4px; }
+.setup-help:focus-visible { outline: 2px solid var(--accent-ink); outline-offset: 3px; border-radius: 4px; }
 .setup-help svg { width: 12px; height: 12px; fill: none; stroke: currentColor; stroke-width: 1.7; stroke-linecap: round; stroke-linejoin: round; }
 .field input:focus, .field select:focus { border-color: var(--accent); }
 .grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; }
@@ -1372,7 +1421,7 @@ dialog::backdrop { background: var(--backdrop); backdrop-filter: blur(2px); }
 .setup-error { margin: 0; color: var(--danger); font-size: 0.8125rem; }
 .setup-discard { padding: 12px; border: 1px solid var(--border); border-radius: 9px; background: var(--panel-2); }
 .setup-discard p { margin: 0 0 10px; }
-.setup-tabs button:focus-visible, .setup-maintenance summary:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.setup-tabs button:focus-visible, .setup-maintenance summary:focus-visible { outline: 2px solid var(--accent-ink); outline-offset: 2px; }
 @media (max-width: 520px) {
   .setup { padding: 18px 14px; gap: 16px; }
   .setup-tabs button { padding: 8px 5px; font-size: 0.75rem; white-space: normal; }
@@ -1418,7 +1467,7 @@ dialog::backdrop { background: var(--backdrop); backdrop-filter: blur(2px); }
   border-radius: 7px; font: inherit; font-weight: 550;
 }
 .toast-action:hover { background: var(--row-hover); border-color: var(--border-strong); }
-.toast-action:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.toast-action:focus-visible { outline: 2px solid var(--accent-ink); outline-offset: 2px; }
 /* Only the icon of the message's own kind is shown; the other two wait. */
 .toast > svg { display: none; flex: none; width: 16px; height: 16px; fill: none; stroke: currentColor; stroke-width: 1.7; stroke-linecap: round; stroke-linejoin: round; }
 .toast.info > svg[data-kind="info"] { display: block; color: var(--accent-2); }
@@ -1490,7 +1539,7 @@ dialog::backdrop { background: var(--backdrop); backdrop-filter: blur(2px); }
 }
 .choice-filter { position: relative; }
 .choice-filter svg { position: absolute; left: 10px; top: 50%; translate: 0 -50%; width: 14px; height: 14px; fill: none; stroke: var(--muted); stroke-width: 1.8; stroke-linecap: round; pointer-events: none; }
-.choice-filter input { width: 100%; padding: 7px 9px 7px 30px; color: var(--text); background: var(--panel-2); border: 1px solid var(--border); border-radius: 8px; outline: none; }
+.choice-filter input { width: 100%; padding: 7px 9px 7px 30px; color: var(--text); background: var(--panel-2); border: 1px solid var(--border); border-radius: 8px; }
 .choice-filter input:focus { border-color: var(--accent); }
 .choice-all { border: 1px solid var(--border); border-radius: 8px; font-weight: 600; }
 .choice-all input:disabled + .choice-name { color: var(--dim); }
@@ -1519,6 +1568,8 @@ label.choice-row:hover { background: var(--row-hover); }
 .programme-result { height: 64px; width: 100%; display: flex; flex-direction: column; justify-content: center; gap: 4px;
   text-align: left; padding: 8px 14px; border: 0; border-bottom: 1px solid var(--border); background: transparent; color: var(--text); cursor: pointer; }
 .programme-result:hover, .programme-result:focus-visible { background: var(--panel-2); }
+/* Inside the scrolling results a ring outside the row would be cut off. */
+.programme-result:focus-visible { outline-offset: -2px; }
 .programme-result strong, .programme-result span { max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .programme-result span { color: var(--muted); font-size: 0.75rem; }
 .epg-days { min-width: 0; max-width: 34vw; overflow-x: auto; }
@@ -1595,7 +1646,7 @@ select.epg-earlier { font: inherit; padding-right: 26px; background-position: ri
 
 .epg-scroll { grid-area: 2 / 2; overflow: auto; outline: none; }
 /* The keyboard's whereabouts: the container that takes the arrows shows it. */
-.epg-scroll:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; }
+.epg-scroll:focus-visible { outline: 2px solid var(--accent-ink); outline-offset: -2px; }
 /* Inside the ring, a row's own mark at the left edge steps in beside it
    rather than under it. */
 #list:focus-visible .row.selected { box-shadow: inset 5px 0 0 var(--accent-2); }
@@ -1603,7 +1654,7 @@ select.epg-earlier { font: inherit; padding-right: 26px; background-position: ri
 /* The sidebar's own focus ring, and inside it the row the arrows are on.
    Two different things: .active is the group being shown, .cursor is where
    the keyboard stands, and either can be on a row the other is not. */
-.groups-list:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; }
+.groups-list:focus-visible { outline: 2px solid var(--accent-ink); outline-offset: -2px; }
 .groups-list:focus-visible .group.cursor { box-shadow: inset 0 0 0 2px var(--accent-2); }
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation-duration: 0.01ms !important; animation-iteration-count: 1 !important; transition-duration: 0s !important; }
@@ -1771,7 +1822,7 @@ select:not([multiple]) {
 .programme-form .search-field { min-width: 180px; }
 .picker-filter {
   flex: none; width: 100%; padding: 6px 8px; border: 1px solid var(--border); border-radius: 6px;
-  background: var(--panel-2); color: var(--text); outline: none;
+  background: var(--panel-2); color: var(--text);
 }
 .picker-filter:focus { border-color: var(--accent); }
 .picker-list { list-style: none; margin: 0; padding: 0; overflow-y: auto; min-height: 0; outline: none; }
@@ -1815,10 +1866,10 @@ select:not([multiple]) {
   display: flex; flex-direction: column; min-width: 0; margin-right: auto; flex: 1;
   border: 0; background: none; color: inherit; font: inherit; text-align: left; padding: 0; cursor: pointer;
 }
-.account-main:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; border-radius: 4px; }
+.account-main:focus-visible { outline: 2px solid var(--accent-ink); outline-offset: 3px; border-radius: 4px; }
 .account-main b { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .account-main span { color: var(--muted); font-size: 0.71875rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.account-current { color: var(--accent); font-size: 0.75rem; font-weight: 600; white-space: nowrap; }
+.account-current { color: var(--accent-ink); font-size: 0.75rem; font-weight: 600; white-space: nowrap; }
 .account-row button { flex: none; white-space: nowrap; }
 .account-row button.armed { color: #fff; background: var(--danger); border-color: var(--danger); }
 .link-button { border: 0; padding: 0; background: none; color: var(--accent); cursor: pointer; font: inherit; text-decoration: underline; }
@@ -1858,7 +1909,7 @@ select:not([multiple]) {
 /* The guide's favourites switch. */
 .epg-favs { display: inline-flex; align-items: center; gap: 6px; }
 .epg-favs svg { width: 15px; height: 15px; fill: none; stroke: currentColor; stroke-width: 1.6; stroke-linejoin: round; }
-.epg-favs[aria-pressed="true"] { color: var(--accent); border-color: var(--accent); }
+.epg-favs[aria-pressed="true"] { color: var(--accent-ink); border-color: var(--accent); }
 .epg-favs[aria-pressed="true"] svg { fill: currentColor; }
 .epg-select:disabled { opacity: .5; cursor: default; }
 
@@ -1875,3 +1926,23 @@ select:not([multiple]) {
 /* A field's hint longer than the field (a long language, a narrow window)
    ends in an ellipsis rather than being cut mid-letter. */
 input[type="search"], input[type="text"], input[type="url"], input:not([type]) { text-overflow: ellipsis; }
+
+/* Forced colours (Windows High Contrast): the system replaces every
+   background and drops every box-shadow, and with them went each mark of
+   where you are: the chosen tab, group, topic, season and day, the list's
+   cursor and the playing row all looked like the rest. Outlines and
+   borders survive, drawn in the system's own highlight colour. */
+@media (forced-colors: active) {
+  .tabs button.active, .group.active, .chip.active, .season.active, .epg-day.active,
+  .compact-nav button[aria-pressed="true"], .listinfo .view-toggle button[aria-pressed="true"],
+  .epg-favs[aria-pressed="true"], .account-row.selected, .picker-option[aria-selected="true"] {
+    outline: 2px solid Highlight; outline-offset: -2px;
+  }
+  #list .row.selected, .epg-chan.cursor, .picker-option.active, .epg-prog.sel { outline: 2px solid Highlight; outline-offset: -2px; }
+  .groups-list:focus-visible .group.cursor { outline: 2px dashed Highlight; outline-offset: -4px; }
+  #list .row.playing, .epg-chan.playing { border-left: 4px solid Highlight; }
+  .row.card.selected .card-poster, .row.card.playing .card-poster, .fav-tile.playing { outline: 3px solid Highlight; outline-offset: 2px; }
+  .list-frame:has(> .list:focus-visible)::after { border: 2px solid Highlight; }
+  /* Marks drawn as a fill, a progress share, and the bars' fill. */
+  .row-progress i, .bar-fill, .overlay-bar-fill { background: Highlight; forced-color-adjust: none; }
+}
