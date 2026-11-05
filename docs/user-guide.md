@@ -165,6 +165,9 @@ the player actually arrives.
   (S01E03) beside it. A provider that names every episode "Series name –
   S01E03" does not get the series' name repeated on every row: where an
   episode has no title of its own, the row says **Episode 3**.
+- Above the picture a channel's logo stands before its name, the one its row
+  shows (a television mark where the provider has none); a film, an episode
+  or a recording has its name alone.
 - A channel list's foot has two marks for its order: by name (an A with an
   arrow) or by the provider's channel number (#), the same choice as
   Settings › Viewing › Channel order.

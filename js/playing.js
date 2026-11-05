@@ -9,6 +9,7 @@
 // player calls in).
 
 import { $, el } from './dom.js';
+import { poster } from './poster.js';
 import { ApiError } from './api.js';
 import { Playback } from './playback.js';
 import { StalkerSource } from './stalker.js';
@@ -645,6 +646,7 @@ export async function playItem(item, { startAt, allowSilent } = {}) {
   state.subtitleInfo = null;
   el.nowTitle.textContent = displayName;
   el.nowTitle.title = item.n;
+  renderNowLogo(item);
   renderNowSub();
   updateAddress();
   if (guideOpen) grid.setPlaying(live ? item.id : null);
@@ -678,4 +680,17 @@ export function renderNowSub() {
   if (item.k === 3) bits.push(`S${item.season} E${item.episode}`);
   if (cast.connected) bits.push(t('cast.playing'));
   el.nowSub.textContent = bits.filter(Boolean).join(', ') || '—';
+}
+
+/**
+ * The channel's logo before the name above the picture, the one its row in
+ * the list shows, or the same television mark where it has none. A film, an
+ * episode or a recording has no logo there (item null or not a channel).
+ */
+export function renderNowLogo(item) {
+  const channel = item && item.k === 0 ? item : null;
+  const logo = channel ? poster('now-logo', channel.logo, 'channel') : document.createElement('span');
+  logo.id = 'now-logo';
+  if (!channel) { logo.className = 'now-logo'; logo.hidden = true; }
+  $('now-logo').replaceWith(logo);
 }

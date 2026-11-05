@@ -1237,6 +1237,8 @@ main:not(.guide) .stage:has(> .videowrap.sized:not(:fullscreen)) .info-cover { w
 .now { min-width: 0; flex: 1; }
 /* The title over the picture, on the theme's panel; with nothing playing
    the empty player's page says it all, and the head is left out. */
+.now-logo { width: 44px; height: 30px; flex: none; margin-right: 10px; }
+.now-logo[hidden] { display: none; }
 .stagehead { flex: none; display: flex; align-items: center; min-height: var(--foot-h); padding: 7px 14px; background: var(--panel); border-bottom: 1px solid var(--border); color: var(--text); }
 main:not(.has-playback) .stagehead { display: none; }
 /* The bar under the picture holds the controls alone now: to the right. */

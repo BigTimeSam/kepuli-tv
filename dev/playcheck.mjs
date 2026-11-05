@@ -100,6 +100,8 @@
 //                                     name or by number, as Settings does
 //   node dev/playcheck.mjs lengthfilter the films' length slider cuts the list
 //                                     to a range and its chip clears it
+//   node dev/playcheck.mjs nowlogo    a channel's logo before its name above
+//                                     the picture, none for a film
 //   node dev/playcheck.mjs scrollbars every box that scrolls keeps a bar in
 //                                     sight where the browser's would fade
 //   node dev/playcheck.mjs touchcaret on a touch screen the settings and a
@@ -1990,6 +1992,27 @@ async function lengthfilter(page) {
   await evaluate(page, `[...document.querySelectorAll('.filter-chip')].find((c) => /Duration/.test(c.textContent)).click()`);
   await waitFor(page, `document.querySelector('.length-filter output').textContent === 'Any length'`, 'the slider back at rest');
   return { ok: true, detail: `${before.min}–${before.max} min known; up to ${middle} min left ${after.lengths.length} films (${after.count}), "${after.text}"; the chip reset it` };
+}
+
+/**
+ * The channel's logo before its name above the picture, the same image its
+ * row shows; a film has none there.
+ */
+async function nowlogo(page) {
+  const assert = (ok, detail) => { if (!ok) throw new Error(detail); };
+  const read = () => evaluate(page, `(() => { const n = document.getElementById('now-logo'); const img = n.querySelector('img');
+    return { shown: !n.hidden && n.getClientRects().length > 0, src: img ? img.src : '', title: document.getElementById('now-title').textContent }; })()`);
+  await playFirstChannel(page);
+  const channel = await read();
+  const row = await evaluate(page, `(() => { const r = document.querySelector('#list .row.playing, #list .row[aria-current]') || document.querySelectorAll('#list .row')[0]; const img = r.querySelector('img'); return img ? img.src : ''; })()`);
+  assert(channel.shown && channel.src && channel.src === row, `the channel: ${JSON.stringify(channel)}, its row's logo ${row}`);
+  await evaluate(page, `document.querySelector('[data-tab="movie"]').click()`);
+  await waitFor(page, `document.querySelectorAll('#list .row').length > 1 && document.getElementById('list-progress').hidden`, 'movie rows');
+  await evaluate(page, `document.querySelectorAll('#list .row')[0].click()`, { gesture: true });
+  await waitFor(page, PLAYING, 'the film');
+  const film = await read();
+  assert(!film.shown, `a film shows a logo: ${JSON.stringify(film)}`);
+  return { ok: true, detail: `"${channel.title}" with its row's logo; "${film.title}" without one` };
 }
 
 /**
@@ -5043,7 +5066,7 @@ async function gotochannel(page, { target }) {
   return { ok: true, detail: `${pick.n} of ${pick.group}, chosen in the guide's search from ${pick.from}: played in the corner, Go to channel stood on it in ${pick.group} still playing (${there.hash}); the reload stood on it again, not playing` };
 }
 
-const SCENARIOS = { buffering, livebuffering, filmbuffering, emptyfile, tsasmp4, refusedfile, badgateway, livebadgateway, channelrefused, noanswer, longfilm, catalogUi, setupClarity, welcome, fullscreenControl, clickpause, pickers, touchcaret, screenbutton, topmenu, scrollbars, channelorder, lengthfilter, channels, home, resumemkv, restore, programmes, catchup, seek, death, cancel, timeout, search, paste, keys, switching, resume, connections, livezap, livequiet, reconnect, accounts, listerror, a11y, subtitles, audio, wasmaudio, settings,
+const SCENARIOS = { buffering, livebuffering, filmbuffering, emptyfile, tsasmp4, refusedfile, badgateway, livebadgateway, channelrefused, noanswer, longfilm, catalogUi, setupClarity, welcome, fullscreenControl, clickpause, pickers, touchcaret, screenbutton, topmenu, scrollbars, channelorder, lengthfilter, nowlogo, channels, home, resumemkv, restore, programmes, catchup, seek, death, cancel, timeout, search, paste, keys, switching, resume, connections, livezap, livequiet, reconnect, accounts, listerror, a11y, subtitles, audio, wasmaudio, settings,
   lastchannel, nextepisode, continuewatching, reminders, update, seeklag, cuesretry, quota, catchupfreeze, catchupfull, twotabs, switchstop, resettabs,
   refresh, restorenav, guidekeep, m3u, sync, holes, picks, flakyserver, accountform, stalker, record, guidefavs, categories, homecountry, noleak, perf, pseudo, startup, soak, phone, episodenames, gotochannel };
 // The mock's whole-list answers stall for these, longer than the request limit.
