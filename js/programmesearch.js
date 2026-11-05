@@ -133,8 +133,8 @@ const $ = (id) => document.getElementById(id);
 const HEAD_H = 52, ROW_H = 60, MORE_H = 44;
 
 export class ProgrammeSearch {
-  constructor({ getChannels, getEpg, onSelect, onActivate, onMode, label = (channel) => channel.n }) {
-    Object.assign(this, { getChannels, getEpg, onSelect, onActivate, onMode, label });
+  constructor({ getChannels, getEpg, onSelect, onActivate, onMode, onPick = () => {}, label = (channel) => channel.n }) {
+    Object.assign(this, { getChannels, getEpg, onSelect, onActivate, onMode, onPick, label });
     this.results = [];
     // What the list shows: the results grouped by channel (groupResults),
     // and the channels opened in full in this search, by id.
@@ -376,7 +376,7 @@ export class ProgrammeSearch {
       row.appendChild(live);
     }
     row.title = `${this.label(channel)}, ${shortDay(programme.start)} ${clock(programme.start)}–${clock(programme.stop)}`;
-    row.addEventListener('click', () => this.onSelect(channel, programme));
+    row.addEventListener('click', () => { this.onSelect(channel, programme); this.onPick(channel, programme); });
     row.addEventListener('dblclick', () => this.onActivate(channel, programme));
     return row;
   }

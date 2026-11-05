@@ -362,6 +362,7 @@ export default {
  "guide.noepg": "Nav raidījumu datu",
  "guide.noepg.channel": "Šim kanālam nav raidījumu datu.",
  "guide.watch": "Skatīties kanālu",
+ "guide.gotochannel": "Doties uz kanālu",
  "guide.upnext": "Drīzumā",
  "guide.watch.recording": "Skatīties ierakstu",
  "guide.norecording": "Raidījumam nav ieraksta — poga palaiž kanālu tiešraidē",

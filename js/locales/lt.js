@@ -370,6 +370,7 @@ export default {
  "guide.noepg": "Laidų duomenų nėra",
  "guide.noepg.channel": "Šiam kanalui laidų duomenų nėra.",
  "guide.watch": "Žiūrėti kanalą",
+ "guide.gotochannel": "Eiti į kanalą",
  "guide.upnext": "Netrukus",
  "guide.watch.recording": "Žiūrėti įrašą",
  "guide.norecording": "Laida neturi įrašo — mygtukas paleidžia tiesioginį kanalą",

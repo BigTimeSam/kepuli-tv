@@ -354,6 +354,7 @@ export default {
  "guide.noepg": "Saateandmeid pole",
  "guide.noepg.channel": "Sellel kanalil pole saateandmeid.",
  "guide.watch": "Vaata kanalit",
+ "guide.gotochannel": "Mine kanalile",
  "guide.upnext": "Järgmisena",
  "guide.watch.recording": "Vaata salvestust",
  "guide.norecording": "Saatel pole salvestust — nupp avab kanali otseülekande",

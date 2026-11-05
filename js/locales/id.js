@@ -346,6 +346,7 @@ export default {
  "guide.noepg": "Tidak ada data acara",
  "guide.noepg.channel": "Tidak ada data acara untuk saluran ini.",
  "guide.watch": "Tonton saluran",
+ "guide.gotochannel": "Buka saluran",
  "guide.upnext": "Segera tayang",
  "guide.watch.recording": "Tonton rekaman",
  "guide.norecording": "Acara ini tidak punya rekaman — tombolnya membuka saluran secara langsung",

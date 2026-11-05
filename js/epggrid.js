@@ -53,7 +53,7 @@ export function archiveDays(channels) {
 export class EpgGrid {
   /**
    * @param {object} refs { scroll, canvas, timesInner, chansInner, corner, days, clock }
-   * @param {object} opts { label, onSelect, onActivate, onChannel, onPlay, onWindow, reminded }
+   * @param {object} opts { label, onSelect, onActivate, onChannel, onPlay, onPick, onWindow, reminded }
    */
   constructor(refs, opts = {}) {
     this.el = refs;
@@ -78,6 +78,9 @@ export class EpgGrid {
     this.onSelect = opts.onSelect || (() => {});
     this.onActivate = opts.onActivate || (() => {});
     this.onChannel = opts.onChannel || (() => {});
+    // A channel chosen with the pointer, as against the arrow keys walking
+    // past it: the guide plays the first and only shows the second.
+    this.onPick = opts.onPick || (() => {});
     this.onPlay = opts.onPlay || (() => {});
     this.onWindow = opts.onWindow || (() => {});
     this.reminded = opts.reminded || (() => false);
@@ -99,6 +102,7 @@ export class EpgGrid {
       if (!row) return;
       this.selectAt(Number(row.dataset.row), Date.now());
       this.onChannel(this.channels[Number(row.dataset.row)]);
+      this.onPick(this.channels[Number(row.dataset.row)]);
     });
     this.el.chansInner.addEventListener('dblclick', (e) => {
       const row = e.target.closest('[data-row]');
@@ -425,6 +429,7 @@ export class EpgGrid {
     this.onSelect(ch, programme);
     this.mark();
     if (activate) this.onActivate(ch, programme);
+    else this.onPick(ch, programme);
   }
 
   /* ------------------------------------------------------------ movement */

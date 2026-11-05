@@ -17,19 +17,23 @@
 //   #/fav?kind=1                    a collection narrowed to one type
 //   #/series/Drama/77?series=1234   a series opened from that list
 //   #/fav?cat=live:312&series=1234  a series inside a favourite category
+//   #/live/Finland?channel=4321     a channel in its country's list: the
+//                                   one playing there, or a link to it
 //
 // What is deliberately left out of it:
 //   - the search, which is a detour rather than a place: clearing it
 //     returns to the group it took over from, and so does a reload;
 //   - the programme guide, which is a mode over the channel list;
 //   - what is playing, because an address that starts a stream by itself
-//     would play something the viewer did not ask for on every reload.
+//     would play something the viewer did not ask for on every reload. A
+//     channel's address finds the channel and stands on it; Enter plays.
 
 export const TABS = ['live', 'movie', 'series', 'fav', 'recent'];
 
 // Where each drill-down can be made, see parseRoute.
 const CATEGORY_TABS = ['fav'];
 const SERIES_TABS = ['series', 'fav', 'recent'];
+const CHANNEL_TABS = ['live'];
 
 // A collection's type filter: the same values as KIND_ORDER in app.js.
 const KINDS = ['c', 0, 1, 2];
@@ -50,7 +54,8 @@ const decode = (value) => {
  * `group` of null is All, a `group` left out has not been chosen.
  *
  * @param {{tab: string, group?: string|null, sub?: string|null,
- *          kind?: string|number|null, series?: string|null, cat?: string|null}} view
+ *          kind?: string|number|null, series?: string|null, cat?: string|null,
+ *          channel?: string|null}} view
  */
 export function formatRoute(view) {
   const parts = ['#', encodeURIComponent(view.tab)];
@@ -62,6 +67,7 @@ export function formatRoute(view) {
   if (view.kind != null) params.set('kind', String(view.kind));
   if (view.cat != null) params.set('cat', String(view.cat));
   if (view.series != null) params.set('series', String(view.series));
+  if (view.channel != null) params.set('channel', String(view.channel));
   const query = params.toString();
   return parts.join('/') + (query ? `?${query}` : '');
 }
@@ -100,5 +106,7 @@ export function parseRoute(hash) {
   if (cat && CATEGORY_TABS.includes(tab)) view.cat = cat;
   const series = params.get('series');
   if (series && SERIES_TABS.includes(tab)) view.series = series;
+  const channel = params.get('channel');
+  if (channel && CHANNEL_TABS.includes(tab)) view.channel = channel;
   return view;
 }

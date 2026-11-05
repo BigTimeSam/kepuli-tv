@@ -354,6 +354,7 @@ export default {
  "guide.noepg": "Sin datos de programación",
  "guide.noepg.channel": "No hay datos de programación para este canal.",
  "guide.watch": "Ver el canal",
+ "guide.gotochannel": "Ir al canal",
  "guide.upnext": "A continuación",
  "guide.watch.recording": "Ver la grabación",
  "guide.norecording": "El programa no tiene grabación: el botón inicia el canal en directo",

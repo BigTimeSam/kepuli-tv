@@ -133,6 +133,9 @@ export const state = {
   interests: {},          // the programmes watched, by title, for the picks (js/picks.js)
   channelPrefs: channelPreferences(),
   lastGroup: {}, lastKind: {},
+  // The channel the live list's address names: the one played last from it,
+  // or the one an address arrived with (see currentRoute).
+  routeChannel: null,
   subcatsHeight: null,    // the topic bar's height when dragged, null = automatic
 };
 
@@ -641,6 +644,10 @@ function currentRoute() {
   if (kind != null) view.kind = kind;
   // A series opened from a favourite category is inside it, and both
   // belong to the address: the back button returns to the category.
+  // The channel, while it is in the list on screen: another group or a
+  // search leaves it out, and coming back puts it in again.
+  if (state.tab === 'live' && !searching && !state.detail && state.routeChannel != null
+    && state.rowIndex.has(`0:${state.routeChannel}`)) view.channel = state.routeChannel;
   for (let detail = state.detail; detail; detail = detail.back) {
     if (detail.view === 'series') view.series = detail.item.id;
     else if (detail.view === 'category') view.cat = detail.entry.id;
@@ -725,7 +732,7 @@ export async function goToRoute(route) {
   if (route.kind === undefined) delete state.lastKind[route.tab];
   else state.lastKind[route.tab] = route.kind;
   storedSub = route.sub ?? null;
-  routeDetail = route.series || route.cat ? { series: route.series ?? null, cat: route.cat ?? null } : null;
+  routeDetail = route.series || route.cat || route.channel ? { series: route.series ?? null, cat: route.cat ?? null, channel: route.channel ?? null } : null;
   const arrival = landing(route.tab);
   await activateTab(route.tab, { restore: true });
   await restoreDetail(arrival);
@@ -752,6 +759,16 @@ async function restoreDetail(arrival) {
   // clicked another tab, group or series meanwhile is not taken back into
   // the series the address named.
   if (!untouched(arrival)) return;
+  // A channel: the list stands on it, without playing it (see route.js).
+  if (pending.channel && state.tab === 'live') {
+    const index = state.rowIndex.get(`0:${pending.channel}`);
+    if (index != null) {
+      state.routeChannel = pending.channel;
+      state.cursor = index;
+      vlist.scrollToIndex(index);
+      vlist.refresh();
+    }
+  }
   // What the series opens over: the list itself, or the favourite category.
   let base = null;
   // A favourite category is a row of the favourites, and nothing else.
@@ -1708,8 +1725,35 @@ let lastChannel = null;
 let previousChannel = null;
 
 export function noteChannel(item) {
+  state.routeChannel = String(item.id);
   if (lastChannel && String(lastChannel.id) !== String(item.id)) previousChannel = lastChannel;
   lastChannel = item;
+}
+
+/**
+ * A channel in its own list: its country chosen in the sidebar, the list
+ * standing on it, the guide closed. Playing goes on in the big player, or
+ * starts if something else was playing. The guide's "Go to channel".
+ */
+export async function goToChannel(channel) {
+  if (guideOpen) closeGuide();
+  playerLayout.showBrowse();
+  const visible = visibleGroups('live');
+  const group = state.lib?.groupOf('live', channel.cats);
+  // A country the viewer has not chosen is not in the sidebar: All has it.
+  const target = group && visible.some((g) => g.name === group) ? group : null;
+  if (state.tab !== 'live') await activateTab('live');
+  if (state.group !== target || state.sub != null || state.detail || state.query) await selectGroup(target);
+  const id = String(channel.id);
+  const index = state.rowIndex.get(`0:${id}`);
+  if (index != null) {
+    state.cursor = index;
+    vlist.scrollToIndex(index);
+    vlist.refresh();
+  }
+  if (!(state.playing?.k === 0 && !state.catchup && String(state.playing.id) === id)) await playItem(channel);
+  state.routeChannel = id;
+  updateAddress();
 }
 
 /** From a channel, the one before it; from a film, an episode or a recording, the last channel. */
@@ -2043,7 +2087,7 @@ async function init() {
   // and all. A player opened fresh from the toolbar icon has none, and the
   // stored view is what brings it back to where the last one was left.
   const route = parseRoute(location.hash);
-  if (route) routeDetail = route.series || route.cat ? { series: route.series ?? null, cat: route.cat ?? null } : null;
+  if (route) routeDetail = route.series || route.cat || route.channel ? { series: route.series ?? null, cat: route.cat ?? null, channel: route.channel ?? null } : null;
   const start = route || {
     tab: ui.tab,
     ...(ui.group != null ? { group: ui.group } : {}),

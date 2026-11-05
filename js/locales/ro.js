@@ -362,6 +362,7 @@ export default {
  "guide.noepg": "Fără date de program",
  "guide.noepg.channel": "Pentru acest canal nu există date de program.",
  "guide.watch": "Urmărește canalul",
+ "guide.gotochannel": "Mergi la canal",
  "guide.upnext": "Urmează",
  "guide.watch.recording": "Urmărește înregistrarea",
  "guide.norecording": "Emisiunea nu are înregistrare — butonul pornește canalul în direct",

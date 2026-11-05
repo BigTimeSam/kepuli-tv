@@ -346,6 +346,7 @@ export default {
  "guide.noepg": "Không có dữ liệu chương trình",
  "guide.noepg.channel": "Kênh này không có dữ liệu chương trình.",
  "guide.watch": "Xem kênh",
+ "guide.gotochannel": "Đến kênh",
  "guide.upnext": "Sắp tới",
  "guide.watch.recording": "Xem bản ghi",
  "guide.norecording": "Chương trình này không có bản ghi — nút sẽ mở kênh trực tiếp",

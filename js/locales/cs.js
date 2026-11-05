@@ -370,6 +370,7 @@ export default {
  "guide.noepg": "Žádná data pořadů",
  "guide.noepg.channel": "Pro tento kanál nejsou žádná data pořadů.",
  "guide.watch": "Sledovat kanál",
+ "guide.gotochannel": "Přejít na kanál",
  "guide.upnext": "Brzy",
  "guide.watch.recording": "Sledovat záznam",
  "guide.norecording": "Pořad nemá záznam — tlačítko spustí živý kanál",

@@ -370,6 +370,7 @@ export default {
  "guide.noepg": "Немає програми передач",
  "guide.noepg.channel": "Для цього каналу немає програми передач.",
  "guide.watch": "Дивитися канал",
+ "guide.gotochannel": "Перейти до каналу",
  "guide.upnext": "Незабаром",
  "guide.watch.recording": "Дивитися запис",
  "guide.norecording": "У передачі немає запису — кнопка вмикає канал в ефірі",

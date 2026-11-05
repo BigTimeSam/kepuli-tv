@@ -354,6 +354,7 @@ export default {
  "guide.noepg": "Program verisi yok",
  "guide.noepg.channel": "Bu kanal için program verisi yok.",
  "guide.watch": "Kanalı izle",
+ "guide.gotochannel": "Kanala git",
  "guide.upnext": "Sırada",
  "guide.watch.recording": "Kaydı izle",
  "guide.norecording": "Programın kaydı yok — düğme kanalı canlı başlatır",

@@ -354,6 +354,7 @@ export default {
  "guide.noepg": "Nincsenek műsoradatok",
  "guide.noepg.channel": "Ehhez a csatornához nincsenek műsoradatok.",
  "guide.watch": "Csatorna nézése",
+ "guide.gotochannel": "Ugrás a csatornára",
  "guide.upnext": "Hamarosan",
  "guide.watch.recording": "Felvétel nézése",
  "guide.norecording": "A műsorhoz nincs felvétel — a gomb az élő csatornát indítja",

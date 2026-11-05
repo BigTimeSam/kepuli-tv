@@ -18,7 +18,7 @@ import { reminderKey, reminders, toggleReminder } from './remindersui.js';
 import { renderInfoStrip } from './infostrip.js';
 import { t } from './i18n.js';
 import * as store from './config.js';
-import { activateTab, state, visibleGroups, visibleRows, vlist } from './app.js';
+import { activateTab, goToChannel, state, visibleGroups, visibleRows, vlist } from './app.js';
 import { openSetup } from './setupui.js';
 import { playItem } from './playing.js';
 import { toast } from './toast.js';
@@ -33,7 +33,8 @@ export const grid = new EpgGrid({
   onSelect: renderGuidePreview,
   onActivate: activateProgramme,
   onChannel: (channel) => channel && showGuideChannel(channel),
-  onPlay: (channel) => channel && playItem(channel),
+  onPlay: (channel) => channel && playChannel(channel),
+  onPick: (channel) => channel && playChannel(channel),
   onWindow: (items, from, to) => state.epg && state.epg.setVisibleWindow(items, from, to),
   reminded: (channel, programme) => reminders.has(reminderKey(channel, programme)),
 });
@@ -54,6 +55,7 @@ export const programmeSearch = new ProgrammeSearch({
   },
   onSelect: renderGuidePreview,
   onActivate: activateProgramme,
+  onPick: (channel) => playChannel(channel),
   onMode: (searching) => {
     $('epg-body').hidden = searching;
     if (searching) grid.hide();
@@ -292,7 +294,9 @@ export function renderGuidePreview(channel, programme, { upcoming = false } = {}
   ].filter(Boolean).join(', ');
 
   const actions = $('epgv-actions');
-  const buttons = [{ label: t('guide.watch'), primary: true, onClick: () => playItem(channel) }];
+  // The channel is playing already, in the corner, since it was chosen;
+  // the way on is to its own list, where the big player has it.
+  const buttons = [{ label: t('guide.gotochannel'), primary: true, onClick: () => goToChannel(channel) }];
   if (catchupAvailable(channel, programme, now)) {
     buttons.unshift({ label: t(programme.stop > now ? 'guide.startover' : 'guide.watch.recording'), primary: true, onClick: () => playCatchup(channel, programme) });
     buttons[1].primary = false;
@@ -331,6 +335,19 @@ function activateProgramme(channel, programme) {
     toast(t('guide.starts', { title: programme.title, time: clock(programme.start) }), { action });
     return;
   }
+  playChannel(channel);
+}
+
+/**
+ * A channel chosen in the guide or its search, playing at once in the
+ * guide's corner — unless it already is, live or from its archive: a
+ * second click on the same channel, to read about another of its
+ * programmes, does not start it over.
+ */
+function playChannel(channel) {
+  const id = String(channel.id);
+  if (state.playing?.k === 0 && String(state.playing.id) === id) return;
+  if (state.catchup && String(state.catchup.channel?.id) === id) return;
   playItem(channel);
 }
 

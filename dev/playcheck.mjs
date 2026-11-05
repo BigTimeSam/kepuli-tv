@@ -199,6 +199,11 @@
 //                                     cache's expired rows are purged
 //   node dev/playcheck.mjs restorenav a reload naming a series does not open
 //                                     it over a group chosen meanwhile
+//   node dev/playcheck.mjs gotochannel a channel chosen in the guide's search
+//                                     plays in the corner; Go to channel opens
+//                                     its country standing on it, the channel
+//                                     in the address, and a reload stands on
+//                                     it again without playing
 //   node dev/playcheck.mjs guidekeep  the guide keeps its scroll and row over
 //                                     a language switch, and its days and the
 //                                     programme search's line follow it
@@ -4912,9 +4917,58 @@ async function episodenames(page) {
   }
 }
 
+/**
+ * A channel chosen in the guide's search plays at once in the guide's
+ * corner; Go to channel then opens its own country's list standing on it,
+ * still playing, with the channel in the address; a reload of that address
+ * stands on it again without playing it.
+ */
+async function gotochannel(page, { target }) {
+  const assert = (ok, message) => { if (!ok) throw new Error(message); };
+  await openLiveList(page, 3);
+  const app = `(await import('./js/app.js'))`;
+  // A channel of another country than the one on screen.
+  const pick = await evaluate(page, `(async () => {
+    const { state } = ${app};
+    const all = await state.lib.ensureFull('live');
+    const channel = all.find((c) => { const g = state.lib.groupOf('live', c.cats); return g && g !== state.group && c.epgId; });
+    return channel && { id: String(channel.id), n: channel.n, group: state.lib.groupOf('live', channel.cats), from: state.group };
+  })()`);
+  assert(pick, 'no channel of another country with programme data');
+  await evaluate(page, `document.getElementById('btn-guide').click()`);
+  await waitFor(page, `document.getElementById('main').classList.contains('guide')`, 'the guide');
+  await evaluate(page, `document.getElementById('programme-scope').value = 'all'; document.getElementById('programme-period').value = 'upcoming';
+    document.getElementById('programme-query').value = ${JSON.stringify(pick.n)}; document.getElementById('programme-form').requestSubmit()`);
+  await waitFor(page, `document.getElementById('programme-panel').dataset.state === 'done'`, 'the search for the channel', 60000);
+  await evaluate(page, `(() => { const head = [...document.querySelectorAll('.psr-head')].find((h) => h.querySelector('strong').title === ${JSON.stringify(pick.n)});
+    [...document.querySelectorAll('.psr-row')].sort((x, y) => x.dataset.index - y.dataset.index).find((r) => Number(r.dataset.index) > Number(head.dataset.index)).click(); })()`, { gesture: true });
+  await waitFor(page, `(async () => { const { state } = ${app}; return state.playing && String(state.playing.id) === ${JSON.stringify(pick.id)}; })()`, 'the chosen channel playing in the corner', 20000);
+  await waitFor(page, `(() => { const v = document.getElementById('video'); return v.readyState >= 2 && v.currentTime > 0.3; })()`, 'the picture in the corner', 20000);
+  const GO = `[...document.querySelectorAll('#epgv-actions button')].find((b) => b.textContent === 'Go to channel')`;
+  const buttons = await evaluate(page, `[...document.querySelectorAll('#epgv-actions button')].map((b) => b.textContent)`);
+  assert(buttons.includes('Go to channel') && !buttons.includes('Watch the channel'), `the preview's buttons: ${JSON.stringify(buttons)}`);
+  const before = await evaluate(page, `document.getElementById('video').currentTime`);
+  await evaluate(page, `${GO}.click()`, { gesture: true });
+  await waitFor(page, `!document.getElementById('main').classList.contains('guide')`, 'the guide closed');
+  await waitFor(page, `(async () => { const { state } = ${app}; return state.rows[state.cursor] && String(state.rows[state.cursor].id) === ${JSON.stringify(pick.id)}; })()`, 'the list standing on the channel', 20000);
+  const there = await evaluate(page, `(async () => { const { state } = ${app}; const v = document.getElementById('video');
+    return { group: ${ACTIVE_GROUP}, hash: location.hash, playing: String(state.playing?.id), time: v.currentTime, paused: v.paused,
+      selected: document.querySelector('#list .row.selected')?.querySelector('.row-name')?.title || null }; })()`);
+  assert(there.group.replace(/^[☆★]/, '') === pick.group && there.playing === pick.id && !there.paused && there.time >= before,
+    `after Go to channel: ${JSON.stringify({ pick, there, before })}`);
+  assert(there.hash.endsWith(`?channel=${pick.id}`) && there.hash.startsWith(`#/live/${encodeURIComponent(pick.group)}`), `the address: ${there.hash}`);
+  // The address alone, in a fresh load: the channel found and stood on, not played.
+  await page.call('Page.reload');
+  await waitFor(page, CONNECTED, 'the connection after the reload');
+  await waitFor(page, `(async () => { const { state } = ${app}; return state.rows[state.cursor] && String(state.rows[state.cursor].id) === ${JSON.stringify(pick.id)}; })()`, 'the channel stood on after the reload', 20000);
+  const back = await evaluate(page, `(async () => { const { state } = ${app}; return { group: ${ACTIVE_GROUP}, hash: location.hash, playing: !!state.playing }; })()`);
+  assert(back.group.replace(/^[☆★]/, '') === pick.group && back.hash.endsWith(`?channel=${pick.id}`) && !back.playing, `the reload: ${JSON.stringify(back)}`);
+  return { ok: true, detail: `${pick.n} of ${pick.group}, chosen in the guide's search from ${pick.from}: played in the corner, Go to channel stood on it in ${pick.group} still playing (${there.hash}); the reload stood on it again, not playing` };
+}
+
 const SCENARIOS = { buffering, livebuffering, filmbuffering, emptyfile, tsasmp4, refusedfile, badgateway, livebadgateway, channelrefused, noanswer, longfilm, catalogUi, setupClarity, welcome, fullscreenControl, clickpause, pickers, touchcaret, screenbutton, topmenu, scrollbars, channels, home, resumemkv, restore, programmes, catchup, seek, death, cancel, timeout, search, paste, keys, switching, resume, connections, livezap, livequiet, reconnect, accounts, listerror, a11y, subtitles, audio, wasmaudio, settings,
   lastchannel, nextepisode, continuewatching, reminders, update, seeklag, cuesretry, quota, catchupfreeze, catchupfull, twotabs, switchstop, resettabs,
-  refresh, restorenav, guidekeep, m3u, sync, holes, picks, flakyserver, accountform, stalker, record, guidefavs, categories, homecountry, noleak, perf, pseudo, startup, soak, phone, episodenames };
+  refresh, restorenav, guidekeep, m3u, sync, holes, picks, flakyserver, accountform, stalker, record, guidefavs, categories, homecountry, noleak, perf, pseudo, startup, soak, phone, episodenames, gotochannel };
 // The mock's whole-list answers stall for these, longer than the request limit.
 const SLOW_LIST_MS = { cancel: 60000, timeout: 60000 };
 // The media is sent slowly for these: the seek targets must lie outside the

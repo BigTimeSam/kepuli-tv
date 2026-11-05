@@ -354,6 +354,7 @@ export default {
  "guide.noepg": "Δεν υπάρχουν δεδομένα προγράμματος",
  "guide.noepg.channel": "Αυτό το κανάλι δεν έχει δεδομένα προγράμματος.",
  "guide.watch": "Δες το κανάλι",
+ "guide.gotochannel": "Μετάβαση στο κανάλι",
  "guide.upnext": "Σύντομα",
  "guide.watch.recording": "Δες την εγγραφή",
  "guide.norecording": "Η εκπομπή δεν έχει εγγραφή — το κουμπί ανοίγει το ζωντανό κανάλι",

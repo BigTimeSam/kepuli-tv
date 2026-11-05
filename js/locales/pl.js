@@ -370,6 +370,7 @@ export default {
  "guide.noepg": "Brak danych programu",
  "guide.noepg.channel": "Dla tego kanału nie ma danych programu.",
  "guide.watch": "Oglądaj kanał",
+ "guide.gotochannel": "Przejdź do kanału",
  "guide.upnext": "Wkrótce",
  "guide.watch.recording": "Oglądaj nagranie",
  "guide.norecording": "Program nie ma nagrania — przycisk uruchamia kanał na żywo",

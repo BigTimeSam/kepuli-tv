@@ -114,7 +114,9 @@ questions.
 
 The address bar names where you are: `#/live/Finland/312` is **Channels →
 Finland**, narrowed to a topic within it, and a series you have opened rides
-along in it. It is written as each list settles, so reloading the page
+along in it. The channel played last from the list is in it too:
+`#/live/Finland?channel=4321` opens Finland standing on that channel, ready
+for `Enter`, without starting it by itself. It is written as each list settles, so reloading the page
 comes back exactly there, episode list and all. The address is written over
 the current history entry rather than added to it: stepping back is what the
 breadcrumb above the list is for, and the browser's own back button stays a
@@ -600,10 +602,14 @@ selection and the search narrow the guide as well.
 **Back to channels** at the top left returns to the channel list. You can
 also close the guide with `Esc` or `g`.
 
-A click on a channel's name chooses the channel: the column shows its name,
-**Watch the channel**, the programme on now with its description and, under
-them, the next ten programmes with their times and titles. A double click on
-the name plays the channel straight away. The channels carry their names as
+A click on a channel's name or on one of its programmes, in the grid or in
+the programme search, plays the channel at once in the corner (unless it is
+playing already, live or from its archive), and the column shows its name,
+**Go to channel**, the programme with its description and, for a click on the
+name, the next ten programmes with their times and titles. Walking the grid
+with the arrow keys only shows; `Enter` plays. **Go to channel** closes the
+guide and opens the channel's own country in the list, standing on the
+channel, which carries on playing in the big player. The channels carry their names as
 the list shows them, without the provider's running number.
 
 The timeline runs back as far as the longest advertised channel archive in the

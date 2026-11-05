@@ -354,6 +354,7 @@ export default {
  "guide.noepg": "Nuk ka të dhëna programi",
  "guide.noepg.channel": "Ky kanal nuk ka të dhëna programi.",
  "guide.watch": "Shiko kanalin",
+ "guide.gotochannel": "Shko te kanali",
  "guide.upnext": "Së shpejti",
  "guide.watch.recording": "Shiko incizimin",
  "guide.norecording": "Programi nuk ka incizim — butoni hap kanalin drejtpërdrejt",

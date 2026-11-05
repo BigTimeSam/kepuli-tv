@@ -354,6 +354,7 @@ export default {
  "guide.noepg": "Няма данни за програмата",
  "guide.noepg.channel": "За този канал няма данни за програмата.",
  "guide.watch": "Гледай канала",
+ "guide.gotochannel": "Към канала",
  "guide.upnext": "Скоро",
  "guide.watch.recording": "Гледай записа",
  "guide.norecording": "Предаването няма запис — бутонът пуска канала на живо",

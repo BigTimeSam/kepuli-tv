@@ -370,6 +370,7 @@ export default {
  "guide.noepg": "Žiadne údaje o programe",
  "guide.noepg.channel": "Pre tento kanál nie sú údaje o programe.",
  "guide.watch": "Pozerať kanál",
+ "guide.gotochannel": "Prejsť na kanál",
  "guide.upnext": "Čoskoro",
  "guide.watch.recording": "Pozerať záznam",
  "guide.norecording": "Relácia nemá záznam — tlačidlo spustí živý kanál",

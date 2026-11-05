@@ -354,6 +354,7 @@ export default {
  "guide.noepg": "Geen programmagegevens",
  "guide.noepg.channel": "Voor deze zender zijn geen programmagegevens.",
  "guide.watch": "De zender bekijken",
+ "guide.gotochannel": "Naar de zender",
  "guide.upnext": "Straks",
  "guide.watch.recording": "De opname bekijken",
  "guide.norecording": "Het programma heeft geen opname — de knop start de zender live",

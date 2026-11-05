@@ -227,6 +227,22 @@ export class Library {
   }
 
   /**
+   * The group an item is filed under: the first of its categories that
+   * one of the type's groups holds ("Finland" for a channel in "Finland -
+   * Sport"), or null.
+   * @param {CatalogueType} type
+   * @param {string[]} categoryIds
+   * @returns {string|null}
+   */
+  groupOf(type, categoryIds) {
+    for (const id of categoryIds || []) {
+      const group = this.groups[type].find((g) => g.cats.some((c) => c.id === id));
+      if (group) return group.name;
+    }
+    return null;
+  }
+
+  /**
    * One group's entire contents (e.g. "Sweden"): the channels of all its
    * sub-categories as a single list. Fetched once, after which switching
    * between sub-categories is pure filtering in memory.

@@ -362,6 +362,7 @@ export default {
  "guide.noepg": "Nema podataka o programu",
  "guide.noepg.channel": "Za ovaj kanal nema podataka o programu.",
  "guide.watch": "Gledaj kanal",
+ "guide.gotochannel": "Idi na kanal",
  "guide.upnext": "Uskoro",
  "guide.watch.recording": "Gledaj snimak",
  "guide.norecording": "Emisija nema snimak — dugme pokreće kanal uživo",

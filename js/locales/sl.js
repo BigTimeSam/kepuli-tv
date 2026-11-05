@@ -370,6 +370,7 @@ export default {
  "guide.noepg": "Ni podatkov o oddajah",
  "guide.noepg.channel": "Za ta kanal ni podatkov o oddajah.",
  "guide.watch": "Glej kanal",
+ "guide.gotochannel": "Pojdi na kanal",
  "guide.upnext": "Sledi",
  "guide.watch.recording": "Glej posnetek",
  "guide.norecording": "Oddaja nima posnetka — gumb zažene kanal v živo",

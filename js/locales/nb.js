@@ -354,6 +354,7 @@ export default {
  "guide.noepg": "Ingen programdata",
  "guide.noepg.channel": "Det finnes ingen programdata for denne kanalen.",
  "guide.watch": "Se kanalen",
+ "guide.gotochannel": "Gå til kanalen",
  "guide.upnext": "Neste",
  "guide.watch.recording": "Se opptaket",
  "guide.norecording": "Programmet har ikke noe opptak — knappen starter kanalen direkte",

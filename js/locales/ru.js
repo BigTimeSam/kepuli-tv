@@ -370,6 +370,7 @@ export default {
  "guide.noepg": "Нет программы передач",
  "guide.noepg.channel": "Для этого канала нет программы передач.",
  "guide.watch": "Смотреть канал",
+ "guide.gotochannel": "Перейти к каналу",
  "guide.upnext": "Скоро",
  "guide.watch.recording": "Смотреть запись",
  "guide.norecording": "Записи этой передачи нет — кнопка включит канал в прямом эфире",
