@@ -285,6 +285,7 @@ export default {
  "info.next": "Volgende",
  "info.unsupported": " (niet ondersteund)",
  "filters.title": "Titels filteren",
+ "filters.channels": "Zenders filteren",
  "filters.year": "Jaar van uitgave",
  "filters.genre": "Genre",
  "filters.rating": "Minimale beoordeling",

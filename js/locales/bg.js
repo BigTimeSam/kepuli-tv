@@ -285,6 +285,7 @@ export default {
  "info.next": "Напред",
  "info.unsupported": " (не се поддържа)",
  "filters.title": "Филтрирай заглавията",
+ "filters.channels": "Филтриране на каналите",
  "filters.year": "Година на излизане",
  "filters.genre": "Жанр",
  "filters.rating": "Минимална оценка",

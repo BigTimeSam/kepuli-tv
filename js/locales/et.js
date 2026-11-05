@@ -285,6 +285,7 @@ export default {
  "info.next": "Edasi",
  "info.unsupported": " (ei toetata)",
  "filters.title": "Filtreeri pealkirju",
+ "filters.channels": "Filtreeri kanaleid",
  "filters.year": "Ilmumisaasta",
  "filters.genre": "Žanr",
  "filters.rating": "Minimaalne hinnang",

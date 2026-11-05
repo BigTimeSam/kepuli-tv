@@ -128,6 +128,18 @@
       <select id="group-select"></select>
     </label>
     <div class="crumbs" id="crumbs" hidden></div>
+    <!-- The channels' "Filter channels": the country's topics, moved in by
+         js/listfilters.js, which also puts the favourites strip inside the
+         films' filters. -->
+    <details class="media-filters channel-filters" id="channel-filters" hidden>
+      <summary class="section-toggle">
+        <svg class="section-icon" viewBox="0 0 20 20" aria-hidden="true"><path d="M3 4.5h14l-5.5 6.2v4.8l-3 1.5v-6.3z"/></svg>
+        <span class="section-label" id="channel-filters-label" data-i18n="filters.channels">Filter channels</span>
+        <span class="section-count" id="channel-filters-count" aria-live="polite"></span>
+        <svg class="section-chevron" viewBox="0 0 20 20" aria-hidden="true"><path d="m6 8 4 4 4-4"/></svg>
+      </summary>
+      <div class="channel-filters-body" id="channel-filters-body"></div>
+    </details>
     <!-- One Tab stop for all the chips, the arrows between them, as the
          tab strip above does: eight chips used to be eight stops on the way
          to the list. See wireSubcatsKeys in js/topicbar.js. -->

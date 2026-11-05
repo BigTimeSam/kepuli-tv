@@ -84,8 +84,11 @@ buttons along the top narrow it to a subject. The buttons are in alphabetical
 order, except for the country's own general category, which sits right after
 the *All* button.
 
-The button bar is as tall as its topics need, up to a ceiling of a quarter of
-the column: Albania's three take one row and reserve nothing, USA's 48 fill six
+On the channels the topics stand inside **Filter channels**, a fold above the
+list (`js/listfilters.js`), at their full height: folding it is what gives
+the list its room, and there the handle below is not drawn. Elsewhere (a
+group of films or series with several categories) the button bar is as tall
+as its topics need, up to a ceiling of a quarter of the column: Albania's three take one row and reserve nothing, USA's 48 fill six
 or seven before the rest is left to scroll. A ceiling counted in rows rather
 than in the column's height would be right for the small countries and short
 for exactly those whose topics are worth reading. The bar's lower edge is a
@@ -138,9 +141,10 @@ favourites** (or **Remove from favourites**) and **Hide channel**. Hiding
 applies at once, and the message that says so carries **Undo**. **Hidden
 (n)** under the list opens what has been hidden, each with **Show again**.
 
-**Favourites (n)**, folded above the list, gathers the favourites among the
-rows on screen — the channels of a country, the films of a genre, the
-series of a category — as a row of logos or covers, a press away. The list
+**Favourites (n)**, at the end of the films' and the series' **Filter
+titles**, gathers the favourites among the rows on screen — the films of a
+genre, the series of a category — as a row of covers, a press away. The
+channels have none: there it repeated the Favourites tab. The list
 below keeps them in their places in its order; nothing is taken out of it,
 and nothing moves. It shows only when the list holds a favourite, and only
 while a list is browsed: a search, a page opened from the list and the

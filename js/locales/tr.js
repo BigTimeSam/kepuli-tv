@@ -285,6 +285,7 @@ export default {
  "info.next": "Sonraki",
  "info.unsupported": " (desteklenmiyor)",
  "filters.title": "Başlıkları filtrele",
+ "filters.channels": "Kanalları filtrele",
  "filters.year": "Yapım yılı",
  "filters.genre": "Tür",
  "filters.rating": "En düşük puan",

@@ -277,6 +277,7 @@ export default {
  "info.next": "Berikutnya",
  "info.unsupported": " (tidak didukung)",
  "filters.title": "Saring judul",
+ "filters.channels": "Filter saluran",
  "filters.year": "Tahun rilis",
  "filters.genre": "Genre",
  "filters.rating": "Rating minimum",

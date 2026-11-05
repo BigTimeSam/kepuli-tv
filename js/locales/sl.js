@@ -301,6 +301,7 @@ export default {
  "info.next": "Naprej",
  "info.unsupported": " (ni podprto)",
  "filters.title": "Filtriraj naslove",
+ "filters.channels": "Filtriraj kanale",
  "filters.year": "Leto izida",
  "filters.genre": "Žanr",
  "filters.rating": "Najnižja ocena",

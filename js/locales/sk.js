@@ -301,6 +301,7 @@ export default {
  "info.next": "Ďalej",
  "info.unsupported": " (nepodporované)",
  "filters.title": "Filtrovať tituly",
+ "filters.channels": "Filtrovať kanály",
  "filters.year": "Rok vydania",
  "filters.genre": "Žáner",
  "filters.rating": "Minimálne hodnotenie",

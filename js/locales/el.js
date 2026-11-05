@@ -285,6 +285,7 @@ export default {
  "info.next": "Επόμενο",
  "info.unsupported": " (δεν υποστηρίζεται)",
  "filters.title": "Φιλτράρισμα τίτλων",
+ "filters.channels": "Φιλτράρισμα καναλιών",
  "filters.year": "Έτος κυκλοφορίας",
  "filters.genre": "Είδος",
  "filters.rating": "Ελάχιστη βαθμολογία",

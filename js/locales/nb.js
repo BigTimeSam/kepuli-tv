@@ -285,6 +285,7 @@ export default {
  "info.next": "Neste",
  "info.unsupported": " (støttes ikke)",
  "filters.title": "Filtrer titler",
+ "filters.channels": "Filtrer kanaler",
  "filters.year": "Utgivelsesår",
  "filters.genre": "Sjanger",
  "filters.rating": "Laveste vurdering",
