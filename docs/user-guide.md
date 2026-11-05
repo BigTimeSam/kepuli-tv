@@ -173,7 +173,11 @@ the player actually arrives.
   list, and the choice is remembered. Among covers the arrows move left,
   right and a line up or down.
 - Movie and series filters let you narrow titles by release year or rating
-  and change their sort order. Filters use the available metadata, so some
+  and change their sort order; films also by **Duration**, two handles from
+  the shortest to the longest film whose length is known, the list cut when a
+  handle is let go, and a film of unknown length left out while a range is
+  set (lengths arrive with the films' details for providers that leave them
+  out of the list). Filters use the available metadata, so some
   titles may be missing particular details. Active filters remain visible as
   removable chips even when the filter form is collapsed.
 - **Programme guide**, above the channel list on the **Channels** tab, opens

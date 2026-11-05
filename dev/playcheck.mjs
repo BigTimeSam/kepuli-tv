@@ -98,6 +98,8 @@
 //                                     in English and German
 //   node dev/playcheck.mjs channelorder the channel list's foot orders it by
 //                                     name or by number, as Settings does
+//   node dev/playcheck.mjs lengthfilter the films' length slider cuts the list
+//                                     to a range and its chip clears it
 //   node dev/playcheck.mjs scrollbars every box that scrolls keeps a bar in
 //                                     sight where the browser's would fade
 //   node dev/playcheck.mjs touchcaret on a touch screen the settings and a
@@ -1952,6 +1954,42 @@ async function channelorder(page) {
   const shared = Math.min(back.names.length, byName.names.length);
   assert(back.stored === 'az' && JSON.stringify(back.names.slice(0, shared)) === JSON.stringify(byName.names.slice(0, shared)), `back by name: ${JSON.stringify(back)}`);
   return { ok: true, detail: `by name ${byName.names.slice(0, 3).join(', ')}…; by number ${byNumber.names.slice(0, 3).join(', ')}…, stored and shown in Settings; and back` };
+}
+
+/**
+ * A film's length among the filters: two handles from the shortest to the
+ * longest film whose length is known, the list cut to the range when a
+ * handle is let go, the choice shown as a removable chip, and every film
+ * left inside the range. The mock gives lengths in a film's details only,
+ * as many providers do, so the slider appears as the visible rows' details
+ * arrive. KEPULI_LENGTH_SHOT=<file> keeps a picture of the cut list.
+ */
+async function lengthfilter(page) {
+  const assert = (ok, detail) => { if (!ok) throw new Error(detail); };
+  await evaluate(page, `document.querySelector('[data-tab="movie"]').click()`);
+  await waitFor(page, `document.querySelectorAll('#list .row').length > 1 && document.getElementById('list-progress').hidden`, 'movie rows');
+  await evaluate(page, `document.getElementById('media-filters').open = true`);
+  await waitFor(page, `!document.querySelector('.length-filter').hidden`, 'the length slider once lengths are known', 20000);
+  const before = await evaluate(page, `(() => { const [a, b] = document.querySelectorAll('.length-filter input'); return { min: +a.min, max: +a.max, from: +a.value, to: +b.value, text: document.querySelector('.length-filter output').textContent, rows: document.querySelectorAll('#list .row').length }; })()`);
+  assert(before.min < before.max && before.from === before.min && before.to === before.max && before.text === 'Any length', `the slider at rest: ${JSON.stringify(before)}`);
+  // The upper handle down to the middle, let go there.
+  const middle = Math.round((before.min + before.max) / 2 / 5) * 5;
+  await evaluate(page, `(() => { const b = document.querySelectorAll('.length-filter input')[1]; b.value = ${middle}; b.dispatchEvent(new Event('input')); b.dispatchEvent(new Event('change')); })()`);
+  await waitFor(page, `[...document.querySelectorAll('#media-filters-active .filter-chip, .filter-chip')].some((c) => /Duration/.test(c.textContent))`, 'the length chip');
+  const after = await evaluate(page, String.raw`(() => {
+    const minutes = (text) => { const h = /(\d+)h/.exec(text), m = /(\d+) min/.exec(text); return (h ? +h[1] * 60 : 0) + (m ? +m[1] : 0); };
+    return { text: document.querySelector('.length-filter output').textContent, count: document.querySelector('#media-filters .section-count').textContent,
+      lengths: [...document.querySelectorAll('#list .row')].map((r) => r.querySelector('.row-duration, .card-meta')?.textContent || '').map(minutes) }; })()`);
+  assert(after.lengths.length && after.lengths.every((m) => m > 0 && m <= middle) && /–/.test(after.text), `cut to ≤ ${middle} min: ${JSON.stringify(after)}`);
+  if (process.env.KEPULI_LENGTH_SHOT) {
+    const fs = await import('node:fs');
+    const { data } = await page.call('Page.captureScreenshot', { format: 'png' });
+    fs.writeFileSync(process.env.KEPULI_LENGTH_SHOT, Buffer.from(data, 'base64'));
+  }
+  // The chip takes the choice away again.
+  await evaluate(page, `[...document.querySelectorAll('.filter-chip')].find((c) => /Duration/.test(c.textContent)).click()`);
+  await waitFor(page, `document.querySelector('.length-filter output').textContent === 'Any length'`, 'the slider back at rest');
+  return { ok: true, detail: `${before.min}–${before.max} min known; up to ${middle} min left ${after.lengths.length} films (${after.count}), "${after.text}"; the chip reset it` };
 }
 
 /**
@@ -5005,7 +5043,7 @@ async function gotochannel(page, { target }) {
   return { ok: true, detail: `${pick.n} of ${pick.group}, chosen in the guide's search from ${pick.from}: played in the corner, Go to channel stood on it in ${pick.group} still playing (${there.hash}); the reload stood on it again, not playing` };
 }
 
-const SCENARIOS = { buffering, livebuffering, filmbuffering, emptyfile, tsasmp4, refusedfile, badgateway, livebadgateway, channelrefused, noanswer, longfilm, catalogUi, setupClarity, welcome, fullscreenControl, clickpause, pickers, touchcaret, screenbutton, topmenu, scrollbars, channelorder, channels, home, resumemkv, restore, programmes, catchup, seek, death, cancel, timeout, search, paste, keys, switching, resume, connections, livezap, livequiet, reconnect, accounts, listerror, a11y, subtitles, audio, wasmaudio, settings,
+const SCENARIOS = { buffering, livebuffering, filmbuffering, emptyfile, tsasmp4, refusedfile, badgateway, livebadgateway, channelrefused, noanswer, longfilm, catalogUi, setupClarity, welcome, fullscreenControl, clickpause, pickers, touchcaret, screenbutton, topmenu, scrollbars, channelorder, lengthfilter, channels, home, resumemkv, restore, programmes, catchup, seek, death, cancel, timeout, search, paste, keys, switching, resume, connections, livezap, livequiet, reconnect, accounts, listerror, a11y, subtitles, audio, wasmaudio, settings,
   lastchannel, nextepisode, continuewatching, reminders, update, seeklag, cuesretry, quota, catchupfreeze, catchupfull, twotabs, switchstop, resettabs,
   refresh, restorenav, guidekeep, m3u, sync, holes, picks, flakyserver, accountform, stalker, record, guidefavs, categories, homecountry, noleak, perf, pseudo, startup, soak, phone, episodenames, gotochannel };
 // The mock's whole-list answers stall for these, longer than the request limit.
