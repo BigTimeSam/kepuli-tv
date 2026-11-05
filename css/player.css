@@ -1871,3 +1871,7 @@ select:not([multiple]) {
 .search svg { top: 50%; }
 .tab-icon, .icon-button.labelled > svg, .groups-foot svg, .channel-guide > svg { translate: 0 .5px; }
 .groups-favonly input, .toggle input, .choice-row > input { translate: 0 .5px; }
+
+/* A field's hint longer than the field (a long language, a narrow window)
+   ends in an ellipsis rather than being cut mid-letter. */
+input[type="search"], input[type="text"], input[type="url"], input:not([type]) { text-overflow: ellipsis; }

@@ -3403,7 +3403,11 @@ async function picks(page, { target }) {
   assert(cards.some((c) => c.on && /On now/.test(c.text)), `no pick on now: ${JSON.stringify(cards)}`);
   await evaluate(page, `document.querySelector('.idle-pick:not(.on)').click()`, { gesture: true });
   await waitFor(page, `document.querySelectorAll('.idle-pick.reminded').length === 1`, 'the reminder from a pick');
-  const reminders = await evaluate(page, `chrome.storage.local.get(${JSON.stringify('reminders:' + key)}).then((d) => (Object.values(d)[0] || []).length)`);
+  // The card is marked as soon as the click lands; the stored list follows a
+  // moment later, which on the CI runner was after a single look.
+  const stored = `chrome.storage.local.get(${JSON.stringify('reminders:' + key)}).then((d) => (Object.values(d)[0] || []).length)`;
+  await waitFor(page, `${stored}.then((n) => n === 1)`, 'the reminder stored', 10000).catch(() => {});
+  const reminders = await evaluate(page, stored);
   assert(reminders === 1, `the reminder was not stored: ${reminders}`);
   return { ok: true, detail: `${cards.length} picks, "${cards[0].text}" first; one on now; a click on a later one set its reminder` };
 }
@@ -3865,6 +3869,9 @@ const MEASURE_OVERFLOW = `(() => {
       need = textWidth(el, text);
       have = el.clientWidth - parseFloat(s.paddingLeft) - parseFloat(s.paddingRight) - (s.appearance === 'none' ? 0 : 20);
     } else if (el.tagName === 'INPUT' && el.placeholder && !el.value && /^(text|search|url|password|)$/.test(el.type)) {
+      // A field's hint may end in an ellipsis where it is longer than the
+      // field (player.css sets text-overflow on inputs); the hint is a hint.
+      if (meantToCut(el)) continue;
       text = el.placeholder;
       need = textWidth(el, text);
       have = el.clientWidth - parseFloat(s.paddingLeft) - parseFloat(s.paddingRight);
