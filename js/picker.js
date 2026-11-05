@@ -22,6 +22,7 @@
 
 import { searchKey, searchTerms, matchesTerms } from './name.js';
 import { t } from './i18n.js';
+import { caretWelcome } from './caret.js';
 
 /** A list longer than this gets the filter field; a short one is read at a glance. */
 export const FILTER_FROM = 7;
@@ -167,7 +168,10 @@ function show(select, typed = '') {
     input.addEventListener('input', () => filter(input.value));
     input.value = typed;
     filter(typed, current);
-    input.focus();
+    // On a touch screen the list takes the focus instead, as it does for a
+    // picker without a filter: the keyboard would cover the choices.
+    if (caretWelcome() || typed) input.focus();
+    else list.focus();
   } else {
     setActive(typed ? typeAhead(typed, current) : Math.max(0, current));
     list.focus();

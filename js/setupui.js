@@ -9,6 +9,7 @@
 // the player calls in).
 
 import { $, el } from './dom.js';
+import { caretWelcome } from './caret.js';
 import { DEFAULT_LIFT, DEFAULT_SCALE, pictureHeight, subtitleLook } from './subdisplay.js';
 import { LANGUAGES, localeTag, t } from './i18n.js';
 import { Sync, loadSyncInfo, syncAvailable } from './sync.js';
@@ -286,6 +287,7 @@ export function showSetupSection(name) {
 function focusSetupSection() {
   const panel = document.querySelector('.setup-panel:not([hidden])');
   if (!panel) return;
+  if (!caretWelcome()) return;
   const shown = (node) => node.getClientRects().length;
   // A field to type in before a menu to choose from: on the connection
   // panel the first control is the protocol, which almost nobody changes,

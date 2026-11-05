@@ -13,6 +13,7 @@ import { nf } from './format.js';
 import { wireModal } from './modal.js';
 import { searchKey, searchTerms, matchesTerms } from './name.js';
 import { poster } from './poster.js';
+import { caretWelcome } from './caret.js';
 
 const $ = (id) => document.getElementById(id);
 
@@ -78,7 +79,7 @@ export class CountryPicker {
     $('countries-status').textContent = '';
     this.render();
     this.dialog.showModal();
-    $('countries-filter').focus();
+    if (caretWelcome()) $('countries-filter').focus();
   }
 
   render() {

@@ -72,6 +72,9 @@
 //                                     mid-playback without stopping the
 //                                     picture, and a remembered Finnish opens
 //                                     the next playback on the Finnish track
+//   node dev/playcheck.mjs touchcaret on a touch screen the settings and a
+//                                     long drop-down open without the caret
+//                                     in a field (no on-screen keyboard)
 //   node dev/playcheck.mjs wasmaudio  without WebCodecs (Firefox for Android)
 //                                     the AC-3 episode still sounds, encoded
 //                                     to AAC by the wasm module
@@ -1549,6 +1552,43 @@ async function pickers(page) {
   await evaluate(page, `document.getElementById('f-done').click()`);
   await waitFor(page, `!document.getElementById('setup').open`, 'settings closed');
   return { ok: true, detail: `long list filtered to ${narrowed.shown[0]}; Escape kept the dialog; short list without a filter chose ${picked.value}, and ${rebuilt.value} with its options rebuilt under it` };
+}
+
+/**
+ * On a touch screen nothing puts the caret in a text field unasked: a
+ * focused field opens the on-screen keyboard, which on a tablet covered
+ * half the screen every time the settings were opened. The settings, the
+ * country choice and a long drop-down with its filter open with the focus
+ * elsewhere; with a mouse (the pickers scenario) the caret still waits in
+ * the filter.
+ */
+async function touchcaret(page) {
+  if (!DEVTOOLS_PORT) return { ok: true, detail: 'skipped in Firefox: needs touch emulation, which the Marionette driver does not offer' };
+  await page.call('Emulation.setTouchEmulationEnabled', { enabled: true, maxTouchPoints: 5 });
+  await page.call('Emulation.setEmulatedMedia', { features: [{ name: 'pointer', value: 'coarse' }, { name: 'hover', value: 'none' }] });
+  try {
+    const coarse = await evaluate(page, `matchMedia('(pointer: coarse)').matches`);
+    if (!coarse) return { ok: false, detail: 'the emulation did not make the pointer coarse' };
+    const typing = `(() => { const a = document.activeElement; return a && (a.tagName === 'TEXTAREA' || (a.tagName === 'INPUT' && !/^(checkbox|radio|range|button|submit)$/.test(a.type))) ? a.id || a.className : null; })()`;
+    await evaluate(page, `document.getElementById('btn-settings').click()`);
+    await waitFor(page, `document.getElementById('setup').open`, 'settings');
+    await sleep(500);
+    const settings = await evaluate(page, typing);
+    await evaluate(page, `document.getElementById('tab-general').click()`);
+    await sleep(300);
+    await evaluate(page, `document.getElementById('f-lang').dispatchEvent(new MouseEvent('mousedown', { bubbles: true, cancelable: true, button: 0 }))`);
+    await sleep(400);
+    const picker = await evaluate(page, `(() => { const p = document.querySelector('.picker-pop'); return p ? { filter: !!p.querySelector('.picker-filter'), focus: ${typing} } : null; })()`);
+    await pressKey(page, 'Escape', 'Escape', 27);
+    await sleep(200);
+    await evaluate(page, `document.getElementById('f-done').click()`);
+    await waitFor(page, `!document.getElementById('setup').open`, 'settings closed');
+    const ok = settings === null && picker && picker.filter && picker.focus === null;
+    return { ok, detail: `settings opened with the caret in ${settings ?? 'no field'}; the language list ${picker ? `with its filter ${picker.filter ? 'shown' : 'missing'}, the caret in ${picker.focus ?? 'no field'}` : 'did not open'}` };
+  } finally {
+    await page.call('Emulation.setEmulatedMedia', { features: [] });
+    await page.call('Emulation.setTouchEmulationEnabled', { enabled: false });
+  }
 }
 
 /**
@@ -4155,7 +4195,7 @@ async function soak(page) {
   return { ok: true, detail };
 }
 
-const SCENARIOS = { buffering, livebuffering, filmbuffering, emptyfile, tsasmp4, refusedfile, badgateway, livebadgateway, channelrefused, noanswer, longfilm, catalogUi, setupClarity, fullscreenControl, clickpause, pickers, channels, home, resumemkv, restore, programmes, catchup, seek, death, cancel, timeout, search, paste, keys, switching, resume, connections, livezap, livequiet, reconnect, accounts, listerror, a11y, subtitles, audio, wasmaudio, settings,
+const SCENARIOS = { buffering, livebuffering, filmbuffering, emptyfile, tsasmp4, refusedfile, badgateway, livebadgateway, channelrefused, noanswer, longfilm, catalogUi, setupClarity, fullscreenControl, clickpause, pickers, touchcaret, channels, home, resumemkv, restore, programmes, catchup, seek, death, cancel, timeout, search, paste, keys, switching, resume, connections, livezap, livequiet, reconnect, accounts, listerror, a11y, subtitles, audio, wasmaudio, settings,
   lastchannel, nextepisode, continuewatching, reminders, update, seeklag, cuesretry, quota, catchupfreeze, catchupfull, twotabs, switchstop, resettabs,
   refresh, restorenav, guidekeep, m3u, sync, holes, picks, flakyserver, accountform, stalker, record, guidefavs, categories, noleak, perf, pseudo, startup, soak };
 // The mock's whole-list answers stall for these, longer than the request limit.
