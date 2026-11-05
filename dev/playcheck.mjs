@@ -4590,9 +4590,33 @@ async function soak(page) {
   return { ok: true, detail };
 }
 
+/**
+ * A series whose provider names every episode "Silent Fjord – S01E01" or
+ * "Silent Fjord S01E02 - Winter's End": its page shows the episodes by their
+ * own titles, "Episode 1" where there is none, and never the series' name
+ * again — the page's heading and the code beside each row say it already.
+ */
+async function episodenames(page) {
+  const assert = (ok, message) => { if (!ok) throw new Error(message); };
+  process.env.KEPULI_MOCK_EPISODE_NAMES = '1';
+  try {
+    await evaluate(page, `document.querySelector('#tabs [data-tab="series"]').click()`);
+    await click(page, '#groups', 'Nordic Noir');
+    await click(page, '#list', 'Silent Fjord');
+    await waitFor(page, `!document.getElementById('detail').hidden && document.querySelectorAll('#list .row').length > 2`, 'the episodes');
+    const rows = await evaluate(page, `[...document.querySelectorAll('#list .row')].slice(0, 3).map((r) => ({ name: r.querySelector('.row-name')?.textContent, code: r.querySelector('.row-ep')?.textContent }))`);
+    assert(rows.every((r) => !/Silent Fjord/.test(r.name)), `the series' name is still on the rows: ${JSON.stringify(rows)}`);
+    assert(rows[0].name === 'Episode 1' && rows[0].code === 'S01E01', `an episode with no title of its own: ${JSON.stringify(rows[0])}`);
+    assert(rows[1].name === "Winter's End" && !/S01E02/.test(rows[1].name), `an episode with a title: ${JSON.stringify(rows[1])}`);
+    return { ok: true, detail: rows.map((r) => `${r.code} "${r.name}"`).join(', ') };
+  } finally {
+    process.env.KEPULI_MOCK_EPISODE_NAMES = '';
+  }
+}
+
 const SCENARIOS = { buffering, livebuffering, filmbuffering, emptyfile, tsasmp4, refusedfile, badgateway, livebadgateway, channelrefused, noanswer, longfilm, catalogUi, setupClarity, welcome, fullscreenControl, clickpause, pickers, channels, home, resumemkv, restore, programmes, catchup, seek, death, cancel, timeout, search, paste, keys, switching, resume, connections, livezap, livequiet, reconnect, accounts, listerror, a11y, subtitles, audio, settings,
   lastchannel, nextepisode, continuewatching, reminders, update, seeklag, cuesretry, quota, catchupfreeze, catchupfull, twotabs, switchstop, resettabs,
-  refresh, restorenav, guidekeep, m3u, sync, holes, picks, flakyserver, accountform, stalker, record, guidefavs, categories, homecountry, noleak, perf, pseudo, startup, soak, phone };
+  refresh, restorenav, guidekeep, m3u, sync, holes, picks, flakyserver, accountform, stalker, record, guidefavs, categories, homecountry, noleak, perf, pseudo, startup, soak, phone, episodenames };
 // The mock's whole-list answers stall for these, longer than the request limit.
 const SLOW_LIST_MS = { cancel: 60000, timeout: 60000 };
 // The media is sent slowly for these: the seek targets must lie outside the

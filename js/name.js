@@ -243,6 +243,70 @@ export function homeGroup(groups, tags) {
 }
 
 /**
+ * An episode's name as its series' page shows it: without the series' name
+ * and the episode code the row already carries. Providers name episodes
+ * "Silent Fjord – S01E01" or "FI: Silent Fjord (2015) S01E03 Crossing", so a
+ * long series name filled every row of its own page, and the code on the
+ * right said the rest again. What is left is the episode's own title, or
+ * null when nothing is: the caller then says "Episode 3" in the viewer's
+ * language.
+ *
+ * The series' name goes only from the start, and only when a separator, a
+ * code or the end follows it: the series "Lost" keeps its episode "Lost
+ * Souls". `series` is every name the series goes by (as listed, tidied).
+ */
+const EPISODE_CODE = /^(?:S\d{1,3}\s*[._-]?\s*E\d{1,4}|\d{1,2}x\d{1,4}|E[Pp]?\s?\d{1,4})(?![\p{L}\p{N}])/iu;
+const EDGES = /^[\s\-–—:|.,·_/]+|[\s\-–—:|.,·_/]+$/gu;
+const TITLE_WORD = /[\p{L}\p{N}]+/gu;
+
+function seriesNames(series) {
+  const out = new Set();
+  for (const name of series.filter(Boolean)) {
+    out.add(name);
+    const bare = name.replace(/\s*[([]\s*\d{4}\s*[)\]]\s*$/u, '').replace(/^\s*[A-Z]{2,3}\s*[:|]\s*/u, '');
+    out.add(bare);
+    out.add(bare.replace(/^\s*[A-Z]{2,3}\s*[:|]\s*/u, ''));
+  }
+  return [...out].map((n) => n.match(TITLE_WORD)?.map(searchKey) || []).filter((w) => w.length);
+}
+
+/** Where `words` end in `text` when text starts with them, word by word; else -1. */
+function afterWords(text, words) {
+  const re = new RegExp(TITLE_WORD.source, 'gu');
+  let end = -1;
+  for (const word of words) {
+    const m = re.exec(text);
+    if (!m || searchKey(m[0]) !== word) return -1;
+    end = m.index + m[0].length;
+  }
+  // A year in brackets right after the name belongs to it.
+  const year = /^\s*[([]\s*\d{4}\s*[)\]]/u.exec(text.slice(end));
+  return year ? end + year[0].length : end;
+}
+
+export function episodeTitle(name, { series = [] } = {}) {
+  let text = String(name ?? '').trim();
+  const names = seriesNames(series).sort((a, b) => b.length - a.length);
+  for (let round = 0; round < 3; round++) {
+    const before = text;
+    // A country prefix the list carries ("FI: ") is no part of the title.
+    text = text.replace(/^\s*[A-Z]{2,3}\s*[:|]\s+/u, '');
+    for (const words of names) {
+      const end = afterWords(text, words);
+      if (end < 0) continue;
+      const rest = text.slice(end);
+      if (!rest.trim() || /^\s*[-–—:|.,·_/([]/u.test(rest) || EPISODE_CODE.test(rest.trim())) { text = rest; break; }
+    }
+    text = text.replace(EDGES, '');
+    const code = EPISODE_CODE.exec(text);
+    if (code) text = text.slice(code[0].length);
+    text = text.replace(EDGES, '');
+    if (text === before) break;
+  }
+  return text || null;
+}
+
+/**
  * Builds the tidier once for the visible set rather than per row: in a
  * virtualised list the same reasoning would repeat on every scroll.
  *

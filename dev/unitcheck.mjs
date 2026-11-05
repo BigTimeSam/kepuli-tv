@@ -14,7 +14,7 @@ globalThis.MediaSource = { isTypeSupported: (type) => /mp4a\.40/.test(type) };
 import { parseServer, parsePlaylistUrl, pastedKind, directSource, serverStamp, timeshiftUrl, streamUrl } from '../js/xtream.js';
 import { safeUrl, decodeField, XtreamApi, ApiError } from '../js/api.js';
 import { playlist } from '../js/external.js';
-import { nameCleaner, labelCodes, countryCodes, searchKey, searchTerms, matchesTerms, homeCountryCodes, homeGroup, viewerTags } from '../js/name.js';
+import { nameCleaner, labelCodes, countryCodes, searchKey, searchTerms, matchesTerms, homeCountryCodes, homeGroup, viewerTags, episodeTitle } from '../js/name.js';
 import { Library, buildGroups, cacheTtl } from '../js/library.js';
 import { channelKey, internationalChannels, isNationalTopic } from '../js/international.js';
 import { unwrap, repeats, check as checkListings } from './listings.mjs';
@@ -263,6 +263,20 @@ check('nameCleaner with no items is null', nameCleaner(['Finland'], []), null);
 check('a label names its country', labelCodes('Finland'), ['fi', 'fin']);
 check('a label that is the code the provider writes', labelCodes('FI'), ['fi', 'fin']);
 check('a code further along a label is a word', labelCodes('Movies in English'), []);
+{
+  // An episode's row on its series' page: neither the series' name nor the
+  // code the row shows beside it.
+  const long = ['Tämä on pitkä sarjan nimi'];
+  check('episode title: series name and code only, nothing left', episodeTitle('Tämä on pitkä sarjan nimi – S01E01', { series: long }), null);
+  check('episode title: series name and code before the title', episodeTitle('Tämä on pitkä sarjan nimi S01E02 - Paluu', { series: long }), 'Paluu');
+  check('episode title: folded case and a spaced code', episodeTitle('tämä on PITKÄ sarjan nimi - s1 e3', { series: long }), null);
+  check('episode title: country prefix, year and code', episodeTitle('FI: Silent Fjord (2015) S01E03 Crossing', { series: ['FI: Silent Fjord (2015)', 'Silent Fjord'] }), 'Crossing');
+  check('episode title: 1x04 and dashes', episodeTitle('Silent Fjord - 1x04 - Static', { series: ['Silent Fjord'] }), 'Static');
+  check('episode title: a colon after the series', episodeTitle('Silent Fjord: Low Tide', { series: ['Silent Fjord'] }), 'Low Tide');
+  check('episode title: a title that only begins like the series stays whole', episodeTitle('Lost Souls', { series: ['Lost'] }), 'Lost Souls');
+  check('episode title: an own title is left alone', episodeTitle('Northbound', { series: ['Silent Fjord'] }), 'Northbound');
+  check('episode title: a bare code is nothing', episodeTitle('S01E05', { series: ['Silent Fjord'] }), null);
+}
 {
   // The first country a new account's channels open at.
   const groups = ['Canada', 'United Kingdom', 'Finland', 'FI| Finland VIP', 'Sverige', 'Österreich', 'USA'].map((name) => ({ name }));
