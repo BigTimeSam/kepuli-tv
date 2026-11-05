@@ -18,7 +18,7 @@ import { reminderKey, reminders, toggleReminder } from './remindersui.js';
 import { renderInfoStrip } from './infostrip.js';
 import { t } from './i18n.js';
 import * as store from './config.js';
-import { activateTab, goToChannel, state, updateAddress, visibleGroups, visibleRows, vlist } from './app.js';
+import { activateTab, goToChannel, searchLimit, state, updateAddress, visibleGroups, visibleRows, vlist } from './app.js';
 import { openSetup } from './setupui.js';
 import { playItem } from './playing.js';
 import { toast } from './toast.js';
@@ -48,15 +48,17 @@ export const programmeSearch = new ProgrammeSearch({
   // Each channel by its own group's rules: the guide's favourites and its
   // all-channels search hold other countries than the list beside them.
   label: listName,
-  getChannels: async (scope, signal) => {
+  getChannels: async (scope, signal, { everyGroup = false } = {}) => {
     if (scope === 'all') {
       const library = state.lib;
       const channels = await library.ensureFull('live', { signal });
       if (signal.aborted || library !== state.lib) throw new DOMException('Cancelled', 'AbortError');
-      return visibleRows(channels);
+      return visibleRows(channels, { everyGroup });
     }
-    return state.rows.filter((c) => c.k === 0);
+    return guideChannels();
   },
+  limit: () => searchLimit('live'),
+  onLeave: () => focusGrid(),
   onSelect: renderGuidePreview,
   onActivate: activateProgramme,
   onPick: (channel) => playChannel(channel),
@@ -84,9 +86,11 @@ export async function openGuide() {
   // The guide shows channel rows, so it needs the channel tab's contents.
   if (state.tab !== 'live' || state.detail) await activateTab('live', { restore: true });
 
-  if (guideFavorites && !favoriteChannels().length) guideFavorites = false;
+  // The favourites stay chosen with none starred: the guide says so in
+  // their place, as "Filter countries" does, rather than turning the
+  // switch off behind the viewer's back.
   const channels = guideChannels();
-  if (!channels.length) { toast(t('guide.needgroup'), { kind: 'warn' }); return; }
+  if (!channels.length && !guideFavorites) { toast(t('guide.needgroup'), { kind: 'warn' }); return; }
 
   guideOpen = true;
   el.main.classList.add('guide');
@@ -98,7 +102,7 @@ export async function openGuide() {
   renderGuideFavorites();
   grid.epg = state.epg;
   grid.setPlaying(state.playing && state.playing.k === 0 ? state.playing.id : null);
-  grid.setChannels(channels);
+  setGridChannels(channels);
   grid.show();
   if (state.playing && state.playing.k === 0) grid.focusChannel(state.playing.id);
   focusGrid();
@@ -149,8 +153,10 @@ export function renderTheme() {
 
 // The guide narrowed to the favourite channels, from every group at once,
 // in the order they were starred. A choice of this browser's that stays
-// from one opening of the guide to the next (ui.guideFavorites); the list
-// beside the guide keeps the group it shows.
+// from one opening of the guide to the next (ui.guideFavorites), also
+// while no channel is starred; the list beside the guide keeps the group
+// it shows. Not tied to "Filter countries": the two answer different
+// questions, the countries a viewer watches and the channels they follow.
 export let guideFavorites = false;
 /** The guide's favourites switch as stored, at start-up. */
 export function restoreGuideFavorites(on) { guideFavorites = Boolean(on); }
@@ -172,27 +178,40 @@ function renderGuideFavorites() {
   $('epg-group').disabled = guideFavorites;
 }
 
+/**
+ * The grid's channels, and in place of an empty grid of favourites the
+ * line that says why it is empty and what to do, in the words "Filter
+ * countries" uses for its own favourites. A toast said it once, and the
+ * switch went off by itself.
+ */
+function setGridChannels(channels) {
+  const none = guideFavorites && !channels.length;
+  const wasNone = el.epg.classList.contains('no-channels');
+  $('epg-hint').hidden = !none;
+  $('epg-hint').textContent = none ? t('guide.favs.nofavs') : '';
+  // The grid, its days and its arrows go while it has no row to show:
+  // with nothing to measure, the days strip named a day long past.
+  el.epg.classList.toggle('no-channels', none);
+  grid.setChannels(channels);
+  // Back from none, the grid is measured again and starts at the present.
+  if (wasNone && !none && grid.open) grid.goNow();
+}
+
 export async function setGuideFavorites(on) {
-  if (on && !favoriteChannels().length) {
-    toast(t('guide.favs.none'), { kind: 'warn' });
-    on = false;
-  }
   guideFavorites = on;
   renderGuideFavorites();
   store.saveUiState({ guideFavorites: on });
   if (!guideOpen) return;
   const channels = guideChannels();
-  if (!channels.length) return;
-  grid.setChannels(channels);
+  if (!channels.length && !on) return;
+  setGridChannels(channels);
   if (state.playing && state.playing.k === 0) grid.focusChannel(state.playing.id);
 }
 
 /** A star given or taken while the guide shows the favourites: the guide follows. */
 export function favoritesChanged() {
   if (!guideOpen || !guideFavorites) return;
-  const channels = favoriteChannels();
-  if (!channels.length) { setGuideFavorites(false); return; }
-  grid.setChannels(channels);
+  setGridChannels(favoriteChannels());
 }
 
 export function renderGuideGroups() {
@@ -210,6 +229,9 @@ export function renderGuideGroups() {
   }
   select.replaceChildren(frag);
   select.value = state.group ?? '';
+  // Called again on a change of language, which the line about no
+  // favourites follows too.
+  if (!$('epg-hint').hidden) $('epg-hint').textContent = t('guide.favs.nofavs');
 }
 
 // The channel whose name was clicked in the guide: its panel lists what

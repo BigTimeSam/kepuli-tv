@@ -3,6 +3,27 @@ import { ratingValue } from './rating.js';
 import { isPicking } from './picker.js';
 import { duration, nf } from './format.js';
 
+/**
+ * The list's filter folds ("Filter channels", "Filter titles") say their
+ * state one way: the name, a dot while something in them narrows the list,
+ * and how many rows of how many are left. They used to say it three ways
+ * (a topic's name, a bare count, "n / total").
+ */
+export function foldSummary(caption, count, { label, shown, total, active }) {
+  caption.textContent = label + (active ? ' •' : '');
+  count.textContent = `${nf.format(shown)} / ${nf.format(total)}`;
+}
+
+/**
+ * Whether a filter fold opens, from what was stored when it was last
+ * opened or closed: the first time open, so that a viewer sees what can
+ * narrow the list once, and after that as it was left. One rule for both
+ * folds; the channels' opened and the films' stayed closed before.
+ */
+export function foldOpen(stored) {
+  return stored !== false;
+}
+
 export function releaseYear(value, name = '') {
   const explicit = /^(18\d{2}|19\d{2}|20\d{2}|21\d{2})(?:$|-)/.exec(String(value || '').trim());
   // A title such as "1917" is not a release year. Only use a year suffix.
@@ -270,8 +291,7 @@ export class MediaFilters {
     }
     this.renderLength(entries, type, filters);
     const active = Object.values(filters).some(Boolean);
-    this.caption.textContent = t('filters.title') + (active ? ' •' : '');
-    this.count.textContent = `${nf.format(results.length)} / ${nf.format(rows.length)}`;
+    foldSummary(this.caption, this.count, { label: t('filters.title'), shown: results.length, total: rows.length, active });
     this.reset.textContent = t('filters.reset');
     this.reset.disabled = !active;
     const missing = entries.some(e => !e.facts.year || !e.facts.rating || (type === 'series' && !e.facts.genres.length) || (type === 'movie' && !e.facts.minutes));

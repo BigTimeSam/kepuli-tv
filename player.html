@@ -97,6 +97,7 @@
          the arrows move a cursor inside it, and aria-activedescendant names
          the row the cursor is on. See markGroups in js/app.js. -->
     <!-- Favourites only: the starred groups, and those holding a starred topic. -->
+    <p class="groups-empty" id="groups-empty" role="status" hidden></p>
     <div class="groups-list" id="groups" role="listbox" tabindex="0" data-i18n-label="groups.aria"></div>
     <!-- The way to the countries the viewer watches on the channels, and to
          the categories on the films and the series. -->
@@ -399,6 +400,9 @@
          preview panel says the same thing in full, but as a live region it
          would read a whole description on every arrow press. -->
     <p id="epg-announce" class="sr-only" role="status" aria-live="polite"></p>
+    <!-- In place of the grid when the guide shows the favourite channels
+         and none is starred yet (js/guideui.js, setGridChannels). -->
+    <p id="epg-hint" class="epg-hint" role="status" hidden></p>
     <div class="epg-body" id="epg-body">
       <div class="epg-corner" id="epg-corner"></div>
       <div class="epg-times"><div class="epg-times-inner" id="epg-times-inner"></div></div>
@@ -446,6 +450,7 @@
       <span class="choice-name" id="countries-toggle-label" data-i18n="countries.toggle">Select all</span>
     </label>
     <div id="countries-list" class="choice-list" role="group" aria-labelledby="countries-title"></div>
+    <p class="editor-help" id="countries-empty" role="status" hidden></p>
     <div class="choice-actions modal-actions">
       <span id="countries-status" role="status"></span>
       <button type="button" id="countries-cancel" class="ghost" data-i18n="progress.cancel">Cancel</button>

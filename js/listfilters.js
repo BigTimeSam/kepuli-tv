@@ -16,9 +16,9 @@
 
 import { $, el } from './dom.js';
 import { t } from './i18n.js';
-import { nf } from './format.js';
+import { foldOpen, foldSummary } from './mediafilters.js';
 import * as store from './config.js';
-import { isCollection, state } from './app.js';
+import { isCollection, state, visibleRows, withoutInternational } from './app.js';
 
 let panel;
 let body;
@@ -48,9 +48,10 @@ export function wireListFilters(ui) {
   count = $('channel-filters-count');
   caption = $('channel-filters-label');
   for (const node of [el.subcats, el.subcatsGrip, $('fav-strip')]) remember(node);
-  // Open the first time: the topics were always in sight, and a viewer
-  // who has not folded them away should find them where they were.
-  panel.open = ui.channelFiltersOpen !== false;
+  // Open the first time, as "Filter titles": the topics were always in
+  // sight, and a viewer who has not folded them away should find them
+  // where they were.
+  panel.open = foldOpen(ui.channelFiltersOpen);
   panel.addEventListener('toggle', () => store.saveUiState({ channelFiltersOpen: panel.open }));
 }
 
@@ -66,9 +67,10 @@ export function placeListFilters(rows) {
     moveInto(el.subcats, body);
     moveInto(el.subcatsGrip, body);
     sendHome(strip);
-    caption.textContent = t('filters.channels') + (state.sub ? ' •' : '');
-    // The topic chosen says more than a number while the fold is closed.
-    count.textContent = state.sub ? state.lib.categoryName('live', state.sub) : nf.format(rows.length);
+    // A topic narrows the country's channels as a film filter narrows
+    // the films: how many of the country's are left, and the dot.
+    const total = state.sub ? withoutInternational(visibleRows(state.groupItems)).length : rows.length;
+    foldSummary(caption, count, { label: t('filters.channels'), shown: rows.length, total, active: Boolean(state.sub) });
     return;
   }
   sendHome(el.subcats);

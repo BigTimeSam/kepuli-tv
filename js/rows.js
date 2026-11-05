@@ -480,18 +480,28 @@ const EMPTY_ICONS = {
   list: '<path d="M4 5.5h12M4 10h12M4 14.5h7"/>',
 };
 
+/**
+ * An empty list's notice: a mark, a title, a line of text (or several, each
+ * a paragraph of its own) and the ways out. `action` is one `{ label,
+ * onClick }` or a list of them; the first is the primary one.
+ */
 export function emptyState(title, text, action, iconName = 'list') {
   const box = el('div', 'empty');
   const mark = icon(EMPTY_ICONS[iconName] || EMPTY_ICONS.list);
   mark.classList.add('empty-icon');
   box.appendChild(mark);
   box.appendChild(el('strong', null, title));
-  box.appendChild(el('div', null, text));
-  if (action) {
-    const button = el('button', 'primary', action.label);
-    button.type = 'button';
-    button.addEventListener('click', action.onClick);
-    box.appendChild(button);
+  for (const line of Array.isArray(text) ? text : [text]) box.appendChild(el('div', null, line));
+  const actions = (Array.isArray(action) ? action : [action]).filter(Boolean);
+  if (actions.length) {
+    const row = el('div', 'empty-actions');
+    actions.forEach(({ label, onClick }, i) => {
+      const button = el('button', i ? 'ghost' : 'primary', label);
+      button.type = 'button';
+      button.addEventListener('click', onClick);
+      row.appendChild(button);
+    });
+    box.appendChild(row);
   }
   return box;
 }

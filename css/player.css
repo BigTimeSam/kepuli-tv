@@ -417,6 +417,8 @@ main.guide #btn-copy { display: none; }
 }
 .groups-filter input:focus { border-color: var(--accent); }
 .groups-list { flex: 1; overflow-y: auto; padding: 6px; }
+.groups-empty { margin: 0; padding: 14px 16px 0; color: var(--muted); font-size: 0.8125rem; line-height: 1.45; }
+.groups-empty[hidden] { display: none; }
 /* The countries the viewer watches (the categories, on films and series),
    under the sidebar: as tall as the line under the list and the bar under
    the player (--foot-h), so that the three end on one line; at the left,
@@ -907,7 +909,8 @@ button.group-star, button.group-star:hover, .group.active .group-star:hover { wi
   border-radius: 50%; background: var(--panel-2); color: var(--accent-ink);
   fill: none; stroke: currentColor; stroke-width: 1.5; stroke-linecap: round; stroke-linejoin: round;
 }
-.empty button { margin-top: 12px; }
+.empty > .empty-actions { display: flex; flex-wrap: wrap; justify-content: center; gap: 8px; margin-top: 12px; }
+.empty > div + div { margin-top: 6px; }
 /* The list's own loading strip, above the rows it is fetching. It carries
    what the dialog used to: what is being loaded, how far it has come, and
    the way out of it. */
@@ -1654,7 +1657,7 @@ dialog::backdrop { background: var(--backdrop); backdrop-filter: blur(2px); }
 .choice-all { border: 1px solid var(--border); border-radius: 8px; font-weight: 600; }
 .choice-all input:disabled + .choice-name { color: var(--dim); }
 .choice-list { min-height: 0; max-height: min(56vh, 560px); overflow-y: auto; border: 1px solid var(--border); border-radius: 8px; }
-.choice-list:empty { display: none; }
+.choice-list:empty, .choice-list.none { display: none; }
 .choice-row { display: flex; align-items: center; gap: 10px; min-height: 42px; padding: 5px 12px; border-bottom: 1px solid var(--row-line); cursor: pointer; }
 .choice-row:last-child { border-bottom: 0; }
 .choice-row[hidden] { display: none; }
@@ -1750,6 +1753,11 @@ button.psr-head:focus-visible, .psr-more:focus-visible { outline-offset: -2px; }
 .epg-days { align-items: center; }
 select.epg-earlier { font: inherit; padding-right: 26px; background-position: right 8px center; }
 .epg-clock { color: var(--muted); font-size: 0.71875rem; font-variant-numeric: tabular-nums; white-space: nowrap; }
+
+.epg-hint { margin: 0; padding: 48px 28px 0; color: var(--muted); text-align: center; line-height: 1.5; }
+.epg-hint[hidden], .epg:has(#programme-panel:not([hidden])) .epg-hint { display: none; }
+.epg.no-channels .epg-body { display: none; }
+.epg.no-channels .epg-days, .epg.no-channels .epg-nav { visibility: hidden; }
 
 .epg-body {
   flex: 1; min-height: 0;

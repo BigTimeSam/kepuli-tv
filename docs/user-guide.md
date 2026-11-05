@@ -165,13 +165,22 @@ the player actually arrives.
   within the selected content type.
 - Above the list, **Filter channels** holds a country's topics, and the
   films' and series' **Filter titles** their filters with the favourites
-  among the list at its end; each folds away, and open or folded is
-  remembered. **Filter countries** at the foot of the sidebar (**Filter
+  among the list at its end. Both are open the first time and fold away,
+  and open or folded is remembered for each; folded or not, the heading
+  says how many of how many are shown (**2 / 15**), with a dot after the
+  name while a topic or a filter narrows the list. **Filter countries** at the foot of the sidebar (**Filter
   categories** on the films and the series) shows all of them, only the
   favourite ones (those you have starred), or the ones you tick in its
   list; a tick chooses that last mode by itself, and the list is kept when
   you switch to another. The button says which is on, such as
-  **Countries: favourites** or **Countries: 3/12**.
+  **Countries: favourites** or **Countries: 3/12**. A filter typed in
+  the sidebar or in the dialog that leaves nothing says so in the empty
+  column.
+- A search that finds nothing says so, with **Clear search** back to the
+  list. When **Filter countries** (or **Filter categories**) leaves some
+  out, it also says how many were searched, such as **Countries searched:
+  3/12**, with **Search all**, which runs the same search over every
+  country; the next search keeps to the filter again.
 - Click a channel or movie to start playback. For a series, choose a season
   and then an episode. **Back** restores the parent list's scroll position,
   selected item and search, including when the series is inside a favourite category.
@@ -461,7 +470,11 @@ password field is named **Password** alone.
 
 In the guide the arrows move between channels and programmes, `PgUp` and
 `PgDn` a screen at a time, `Home` returns to the present, `+` and `−` adjust
-the timeline's scale, `Enter` starts playback and `Esc` closes.
+the timeline's scale, `Enter` starts playback and `Esc` closes. The guide's
+search results take the same keys: `↓` from the search field into them, the
+arrows and `PgUp`/`PgDn`, `Home` and `End` through them, and `Enter` does
+what it does in the grid. The first `Esc` clears the search and returns to
+the grid, the next closes the guide.
 
 ## The buttons
 
@@ -652,13 +665,21 @@ turns the whole window into a grid view: channels as rows,
 time on the horizontal axis and a moving now line. The video continues in the
 top right corner and the selected programme shows on the left with its
 description. The grid shows the same set of channels as the list, so the group
-selection and the search narrow the guide as well.
+selection and the search narrow the guide as well. The star button beside the
+group shows your favourite channels alone, from every country; it is
+remembered from one opening to the next, also while no channel is starred,
+when the guide says so in the grid's place: "No channel is a favourite yet:
+star one in the list, and only the starred ones are shown." It is separate
+from the favourite mode of **Filter countries**.
 **Back to channels** at the top left returns to the channel list. You can
 also close the guide with `Esc` or `g`.
 
-A click on a channel's name or on one of its programmes, in the grid or in
-the programme search, plays the channel at once in the corner (unless it is
-playing already, live or from its archive), and the column shows its name,
+A click on a channel's name or on one of its programmes in the grid, or on a
+programme on now in the programme search, plays the channel at once in the
+corner (unless it is playing already, live or from its archive); a programme
+in the search that has ended or is still to come is only chosen, with
+**Watch the recording** or **Remind me** in the column, as the channel live
+would show something else. The column shows the channel's name,
 **Go to channel**, the programme with its description and, for a click on the
 name, the next ten programmes with their times and titles. Walking the grid
 with the arrow keys only shows; `Enter` plays. **Go to channel** closes the
@@ -714,8 +735,12 @@ all** with the number for the rest, and its heading opens them all or folds
 them back, so a short query that matches nearly everything still leaves each
 channel a few rows. The line above them gives the number found and the channels
 searched, and failed channels are counted separately. A search that finds
-nothing says so in the results' place, with the query. **Stop search** keeps partial results. Selecting a result
-shows its description and live/catch-up actions; **Back to guide** restores the
+nothing says so in the results' place, with the query and **Clear search**,
+and, when **Filter countries** leaves countries out, how many were searched
+and **Search all**, which searches every visible channel of every country.
+**Stop search** keeps partial results. Selecting a result
+shows its description and live/catch-up actions, and `Enter` on one plays
+its recording, offers a reminder or plays the channel, as in the grid; **Back to guide** restores the
 grid. Closing the guide or changing channels' scope cancels the search.
 
 Programme data is fetched at three levels of detail into the same cache: a list
