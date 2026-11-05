@@ -163,7 +163,7 @@ player.html        the Cast button next to PiP
 js/i18n.js         nine keys in both languages
 README.md          the button, the key, a Chromecast section under the routes
                    (the routes are in docs/internals.md since 2026-11-03)
-store-listing.txt  the feature and the key
+store/chrome-dashboard.txt  the feature and the key
 manifest.json      nothing
 ```
 

@@ -3,7 +3,7 @@
 Everything that leaves the machine is outward-facing: do it only when the
 owner has asked for it in the current conversation. Credentials are in
 `~/.config/kepuli-tv/` (mode 600): `cws.json`, `amo.json`, `openai-key`. The
-procedures and the dashboard fields are in `store-listing.txt`; the history
+procedures and the dashboard fields are in `store/chrome-dashboard.txt`; the history
 behind them in [development.md → Publishing to the stores](../docs/development.md#publishing-to-the-stores).
 
 ## What is in this directory
@@ -111,7 +111,7 @@ the last recording. Outputs in `dist/video/`: the mp4, a thumbnail and
 - YouTube chapters must each be at least 10 seconds; merge short scenes in the
   description by hand.
 - YouTube cannot replace a video's file: a new video is a new URL. Then update
-  `store/listings/*.txt` (all 31), `store-listing.txt` ("Promo video"), run
+  `store/listings/*.txt` (all 31), `store/chrome-dashboard.txt` ("Promo video"), run
   `node dev/listings.mjs`, send the AMO listing, set the Chrome promo field,
   and change `VIDEO` in `dev/site.mjs` (the Pages front page).
-- The current video is recorded in `store-listing.txt`.
+- The current video is recorded in `store/chrome-dashboard.txt`.

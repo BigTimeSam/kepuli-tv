@@ -44,7 +44,7 @@ export const SECTIONS = [
   { title: 'Languages', files: /^js\/(i18n\.js|locales\/)/ },
   // Whatever else in the runtime: app.js, the stylesheet, a new module.
   { title: 'Everything else in the player', files: /^(js\/|css\/)/ },
-  { title: 'Store pages and the website', files: /^(store\/|brand\/|_locales\/|store-listing\.txt|docs\/(index\.html|img\/|privacy\/|terms\/))/ },
+  { title: 'Store pages and the website', files: /^(store\/|brand\/|_locales\/|docs\/(index\.html|img\/|privacy\/|terms\/))/ },
   { title: 'Documentation', files: /^(README\.md|docs\/[^/]+\.md|FIREFOX\.md|CHROMECAST\.md)$/ },
   { title: 'Development (usually left out)', files: /./ },
 ];

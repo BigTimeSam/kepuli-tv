@@ -36,7 +36,7 @@
 // version it already has, so a zip not bumped fails there too.
 //
 // The listing — descriptions, screenshots, the promo video — is not part of
-// the API and stays the dashboard's (see store-listing.txt).
+// the API and stays the dashboard's (see store/chrome-dashboard.txt).
 //
 // Credentials stay outside the project, in ~/.config/kepuli-tv/cws.json
 // (mode 600) or in the environment:
@@ -45,7 +45,7 @@
 //
 //   CWS_CLIENT_ID, CWS_CLIENT_SECRET, CWS_REFRESH_TOKEN, CWS_PUBLISHER_ID
 //
-// How to get them is in store-listing.txt, "PUBLISHING THROUGH THE API".
+// How to get them is in store/chrome-dashboard.txt, "PUBLISHING THROUGH THE API".
 // No dependencies; the manifest is read with the system's own unzip.
 
 import { execFileSync } from 'node:child_process';

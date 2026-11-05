@@ -17,7 +17,7 @@
 // "no" — the Firefox package gets it under that name (dev/package.mjs).
 //
 // The checks are the Chrome Web Store's, which rejected the first
-// submission for its keyword policy (see store-listing.txt): the name at
+// submission for its keyword policy (see store/chrome-dashboard.txt): the name at
 // most 45 characters (shown in full on the store's tiles; the hard limit is
 // 75), the short description at most 132, the detailed one at most 16,000,
 // and no word that means something five times or more in the three

@@ -29,7 +29,7 @@ the same after the version. Each uses the form of address of that language's
 store listing. AMO offers no Danish, Bulgarian, Estonian, Indonesian,
 Lithuanian or Latvian: the sections in those are kept for the day it does
 and are not sent; see "SETTING THE LANGUAGES ON ADDONS.MOZILLA.ORG" in
-store-listing.txt.
+store/chrome-dashboard.txt.
 
 ### suomi (fi)
 

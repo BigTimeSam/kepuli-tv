@@ -205,7 +205,7 @@ firefox/            the Firefox version: its manifest, the build that assembles
 docs/               the GitHub Pages site: front page, privacy policy, terms of use
 FIREFOX.md          the Firefox version: what differs, how it is built and tested, what was measured
 CHROMECAST.md       the Chromecast assessment, and the design built from it
-store-listing.txt   the Chrome Web Store listing copy
+store/chrome-dashboard.txt   the Chrome Web Store listing copy
 vendor/             mpegts.js 1.8.0, hls.js 1.6.5 (local: MV3's CSP does not
                     allow remote scripts)
 vendor/ffaudio/     FFmpeg 7.1.1's ac3, eac3 and dca decoders as wasm
@@ -397,7 +397,7 @@ still in review first, `status` shows what the store holds). A release that
 adds languages runs `upload` first, which leaves the package as the draft, so
 that the dashboard offers the new languages for their descriptions, and
 `submit` once they are filled in. The one-time setup
-of its credentials is in `store-listing.txt`, under "PUBLISHING THROUGH THE API".
+of its credentials is in `store/chrome-dashboard.txt`, under "PUBLISHING THROUGH THE API".
 
 `node dev/amo-publish.mjs` does the same for AMO through its API (v5): it checks
 that the zip is the Firefox package of the current version, has AMO validate it,
@@ -426,7 +426,7 @@ Three things now stand against it:
   manifest without the same `service_worker` as the Chrome one. Do not
   remove that key to quiet an AMO warning about it.
 - **Check the file name in the upload dialog.** It must say `chrome` for the
-  Chrome Web Store and `firefox` for AMO. `store-listing.txt` says the same
+  Chrome Web Store and `firefox` for AMO. `store/chrome-dashboard.txt` says the same
   under *Publishing a new version*.
 - **Check what the store actually published.** Once the Chrome Web Store has
   approved a version, read the manifest of the package it serves. It must
@@ -463,7 +463,7 @@ whose `_locales/` is out of step, renames Norwegian from the Chrome
 store's `no` to Firefox's `nb_NO`, and leaves Albanian out of the Chrome
 package: the Chrome Web Store has no code for it, so its listing is
 Firefox's alone. How to enter the languages in each store is in
-`store-listing.txt`.
+`store/chrome-dashboard.txt`.
 
 #### Keeping the translations in step
 

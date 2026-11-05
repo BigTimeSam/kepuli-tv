@@ -17,7 +17,7 @@ Excluded from the release packages (`dev/package.mjs` packs an allowlist).
   `KEPULI_SHOTS_DIR` first, compare, then copy here.
 - The five views are fixed and named by number: 01 channels, 02 guide,
   03 series, 04 subtitles, 05 movie. A sixth or a renamed one means changing
-  `dev/store-screenshots.mjs`, the captions README and `store-listing.txt`.
+  `dev/store-screenshots.mjs`, the captions README and `store/chrome-dashboard.txt`.
 - Retake both sets whenever a release changes how those views look, look at
   all ten, then upload with the store tools (`store/AGENTS.md`).
 - Captions: change the English table and every language's section in

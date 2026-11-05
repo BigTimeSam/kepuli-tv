@@ -774,7 +774,7 @@ the extension's sync storage too.
   a manifest but still listed, on a looser policy, and on keys such as
   `host_permissions` or `content_scripts`. Adding a permission means writing
   its reason in that list first, then the store's justification
-  (`store-listing.txt`, `firefox/reviewer-notes.txt`).
+  (`store/chrome-dashboard.txt`, `firefox/reviewer-notes.txt`).
 - A stream the server redirects to another host fails the same way even when
   the server's own host is granted. After a failed stream the player asks the
   address once more with a `HEAD` request that does not follow redirects; if

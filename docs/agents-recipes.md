@@ -91,7 +91,7 @@ the two differ. Every change ends the same way, so it is said once here:
    translated; `node dev/listings.mjs --check` and
    `node dev/translations.mjs --check` must pass.
 4. The texts reach the stores only with the owner's go, through the store
-   tools (`store/AGENTS.md`, the procedures in `store-listing.txt`).
+   tools (`store/AGENTS.md`, the procedures in `store/chrome-dashboard.txt`).
 
 ## Retake the store screenshots
 

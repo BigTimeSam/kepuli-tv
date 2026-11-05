@@ -59,7 +59,7 @@ Firefox manifest and its tooling.
 | `store/listings/*.txt` | store texts in 31 languages; `_locales/` is generated from them |
 | `brand/` | icon sources, store screenshots (`screenshots/` Chrome, `firefox-screenshots/` AMO) |
 | `docs/` | GitHub Pages (`index.html` generated from README, privacy, terms) and the long docs |
-| `store-listing.txt` | the Chrome Web Store dashboard fields and the store procedures |
+| `store/chrome-dashboard.txt` | the Chrome Web Store dashboard fields and the store procedures |
 
 Long-form documentation: [user guide](docs/user-guide.md),
 [development](docs/development.md), [internals](docs/internals.md),
@@ -180,8 +180,8 @@ visual check); run it before asking for the go. The order that has worked:
 2. **Version.** Bump `version` in `manifest.json` and `firefox/manifest.json`
    (`node dev/package.mjs --check`). Update the version line in
    `firefox/reviewer-notes.txt` (≤ 3000 characters, line breaks count twice)
-   and add the release's note to `store-listing.txt` if the dashboard needs
-   anything.
+   and add a field's new text to `store/chrome-dashboard.txt` if the dashboard
+   needs one (a new permission's justification, say).
 3. **Texts.** `node dev/translations.mjs --check` and
    `node dev/listings.mjs --check` pass; docs updated (`docs/user-guide.md`,
    README feature list, `node dev/site.mjs`).
