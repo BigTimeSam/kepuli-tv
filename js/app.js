@@ -620,7 +620,7 @@ function rememberView() {
  * what the toolbar icon opens once the tab itself is gone.
  *
  * A collection has no groups, so its address carries no group segment:
- * #/fav and #/fav/- are not the same place.
+ * #/favorites and #/favorites/- are not the same place.
  */
 function currentRoute() {
   const view = { tab: state.tab };

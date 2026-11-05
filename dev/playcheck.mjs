@@ -3090,7 +3090,7 @@ async function restore(page, { target }) {
   await waitFor(page, `!document.getElementById('crumbs').hidden && document.querySelectorAll('#list .row').length > 0`, 'the category contents');
   const category = await crumb();
   const inside = await rows();
-  assert((await hash()).startsWith('#/fav?cat='), `the address does not name the category: "${await hash()}"`);
+  assert((await hash()).startsWith('#/favorites?cat='), `the address does not name the category: "${await hash()}"`);
   await forget();
   await refresh('a favourite category');
   await waitFor(page, `!document.getElementById('crumbs').hidden`, 'the restored category');

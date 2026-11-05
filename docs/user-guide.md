@@ -114,7 +114,9 @@ questions.
 
 The address bar names where you are: `#/live/Finland/312` is **Channels →
 Finland**, narrowed to a topic within it, and a series you have opened rides
-along in it. The channel played last from the list is in it too:
+along in it. The collections are named in words: `#/favorites?kind=category`
+is the favourite categories, `#/recent?kind=channel` the channels in the
+history. The channel played last from the list is in it too:
 `#/live/Finland?channel=4321` opens Finland standing on that channel, ready
 for `Enter`, without starting it by itself. It is written as each list settles, so reloading the page
 comes back exactly there, episode list and all. The address is written over

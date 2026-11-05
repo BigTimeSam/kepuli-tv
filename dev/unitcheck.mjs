@@ -776,10 +776,14 @@ check('a channel in its country', formatRoute({ tab: 'live', group: 'Finland', c
 check('a channel read back', parseRoute('#/live/Finland?channel=4321'), { tab: 'live', group: 'Finland', channel: '4321' });
 check('a channel only in the channels', parseRoute('#/movie/Drama?channel=4321'), { tab: 'movie', group: 'Drama' });
 check('All is a segment of its own', formatRoute({ tab: 'movie', group: null }), '#/movie/-');
-check('a collection carries no group', formatRoute({ tab: 'fav', kind: 1 }), '#/fav?kind=1');
+check('a collection carries no group, and its words', formatRoute({ tab: 'fav', kind: 1 }), '#/favorites?kind=movie');
+check('the types in words', [formatRoute({ tab: 'fav', kind: 'c' }), formatRoute({ tab: 'recent', kind: 0 }), formatRoute({ tab: 'recent', kind: 2 })],
+  ['#/favorites?kind=category', '#/recent?kind=channel', '#/recent?kind=series']);
+check('an older address still reads', [parseRoute('#/fav?kind=1'), parseRoute('#/recent?kind=0'), parseRoute('#/fav?kind=c')],
+  [{ tab: 'fav', kind: 1 }, { tab: 'recent', kind: 0 }, { tab: 'fav', kind: 'c' }]);
 check('a drill-down rides along', formatRoute({ tab: 'series', group: 'Drama', series: '1234' }), '#/series/Drama?series=1234');
 check('a series inside a favourite category', formatRoute({ tab: 'fav', cat: 'live:312', series: '99' }),
-  '#/fav?cat=live%3A312&series=99');
+  '#/favorites?cat=live%3A312&series=99');
 check('a group whose name is a path separator', formatRoute({ tab: 'live', group: 'A/B' }), '#/live/A%2FB');
 check('a group named like All is not All', trip({ tab: 'live', group: '-' }), { tab: 'live', group: '-' });
 
@@ -797,7 +801,7 @@ check('an empty address names no place', parseRoute(''), null);
 check('a bare hash names no place', parseRoute('#'), null);
 check('a tab that does not exist names no place', parseRoute('#/telly/Finland'), null);
 check('an address from elsewhere names no place', parseRoute('#some-anchor'), null);
-check('an unknown type filter is dropped, the place kept', parseRoute('#/fav?kind=7'), { tab: 'fav' });
+check('an unknown type filter is dropped, the place kept', parseRoute('#/favorites?kind=film'), { tab: 'fav' });
 check('a half-escaped group is taken as it stands', parseRoute('#/live/100%'), { tab: 'live', group: '100%' });
 check('extra segments are ignored', parseRoute('#/live/Finland/312/extra'), { tab: 'live', group: 'Finland', sub: '312' });
 

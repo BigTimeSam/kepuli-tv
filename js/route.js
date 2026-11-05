@@ -14,9 +14,15 @@
 //   #/live/Finland/312              a topic within the group (the category id)
 //   #/live/-                        All: the whole type, chosen rather than
 //                                   merely not chosen yet — see app.js
-//   #/fav?kind=1                    a collection narrowed to one type
+//   #/favorites?kind=movie          a collection narrowed to one type
 //   #/series/Drama/77?series=1234   a series opened from that list
-//   #/fav?cat=live:312&series=1234  a series inside a favourite category
+//   #/favorites?cat=live:312&series=1234  a series inside a favourite category
+//
+// Words rather than the code's own short names: the favourites are
+// "favorites" in the address and the types "category", "channel", "movie"
+// and "series", which a person reading or sharing an address understands.
+// The older "#/fav" and "kind=1" are still read, for the bookmarks made
+// with them.
 //   #/live/Finland?channel=4321     a channel in its country's list: the
 //                                   one playing there, or a link to it
 //
@@ -35,8 +41,13 @@ const CATEGORY_TABS = ['fav'];
 const SERIES_TABS = ['series', 'fav', 'recent'];
 const CHANNEL_TABS = ['live'];
 
-// A collection's type filter: the same values as KIND_ORDER in app.js.
+// A collection's type filter: the same values as KIND_ORDER in app.js, and
+// the word each has in the address.
 const KINDS = ['c', 0, 1, 2];
+const KIND_WORDS = new Map([['c', 'category'], [0, 'channel'], [1, 'movie'], [2, 'series']]);
+// A tab's word in the address, where it is not the tab's own id.
+const TAB_WORDS = new Map([['fav', 'favorites']]);
+const TAB_OF_WORD = new Map([...TAB_WORDS].map(([tab, word]) => [word, tab]));
 
 // "All" as a segment of its own, so that the whole type — a choice that
 // costs a full list — is told apart from a group not yet picked. A group
@@ -58,13 +69,13 @@ const decode = (value) => {
  *          channel?: string|null}} view
  */
 export function formatRoute(view) {
-  const parts = ['#', encodeURIComponent(view.tab)];
+  const parts = ['#', encodeURIComponent(TAB_WORDS.get(view.tab) || view.tab)];
   if (view.group !== undefined) {
     parts.push(view.group == null ? ALL : encode(view.group));
     if (view.sub != null) parts.push(encode(view.sub));
   }
   const params = new URLSearchParams();
-  if (view.kind != null) params.set('kind', String(view.kind));
+  if (view.kind != null) params.set('kind', KIND_WORDS.get(view.kind) ?? String(view.kind));
   if (view.cat != null) params.set('cat', String(view.cat));
   if (view.series != null) params.set('series', String(view.series));
   if (view.channel != null) params.set('channel', String(view.channel));
@@ -84,7 +95,8 @@ export function parseRoute(hash) {
   if (!text.startsWith('/')) return null;
   const [path, query] = text.split('?');
   const parts = path.split('/').slice(1);
-  const tab = decode(parts[0] || '');
+  const word = decode(parts[0] || '');
+  const tab = TAB_OF_WORD.get(word) || word;
   if (!TABS.includes(tab)) return null;
 
   const view = { tab };
@@ -94,7 +106,7 @@ export function parseRoute(hash) {
   const params = new URLSearchParams(query || '');
   const kind = params.get('kind');
   if (kind != null) {
-    const value = KINDS.find((k) => String(k) === kind);
+    const value = KINDS.find((k) => KIND_WORDS.get(k) === kind || String(k) === kind);
     if (value !== undefined) view.kind = value;
   }
   // A drill-down belongs to the tabs it can be made in: a favourite
