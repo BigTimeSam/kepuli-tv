@@ -158,7 +158,7 @@ export function playbackFacts({ ext, video, audio, subtitles, durationSec, bitra
   // The track's language beside its channels, when the file or the
   // provider names one: "AAC (6 channels, Finnish)".
   const spoken = audio && audio.language && shortLanguage(audio.language) !== 'und' ? languageName(shortLanguage(audio.language)) : null;
-  const audioDetail = [audio?.channels ? t('audio.channels', { n: audio.channels }) : '', spoken || ''].filter(Boolean).join(', ');
+  const audioDetail = [audio?.channels ? t('audio.channels', { count: audio.channels, n: audio.channels }) : '', spoken || ''].filter(Boolean).join(', ');
   add('audio', audio && qualified(audio.codec?.toUpperCase(), audioDetail), { unsupported: audio?.supported === false });
   if (subtitles) {
     const { total, shown } = subtitles;

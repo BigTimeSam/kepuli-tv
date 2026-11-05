@@ -59,7 +59,7 @@ keeps a picture of each view to look at.
 
 The product's core words (programme guide, favourites, recording, catch-up,
 channel, account, playlist, portal, history, Continue watching, subtitles,
-Settings) have one term per language, recorded in `store/i18n-glossary.json`
+Settings, genre, full screen) have one term per language, recorded in `store/i18n-glossary.json`
 as the translations already used it in most places. `node dev/glossarycheck.mjs`
 checks that every interface key and store listing whose English holds a
 concept says that language's term (any of its listed forms: a stem, or a few

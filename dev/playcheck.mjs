@@ -2213,7 +2213,7 @@ async function touchcaret(page) {
  * The logo is the way back to the start: from a series page with a search
  * in it and the guide open, to the channels, the first country, the top
  * of the list, and the empty player's page — what was playing stopped, the
- * channel first under Watched lately; a film playing stopped too, its place
+ * channel first under History; a film playing stopped too, its place
  * kept under Continue watching.
  */
 async function home(page) {
@@ -2270,9 +2270,9 @@ async function home(page) {
   }
   const after = { heading: await evaluate(page, `[...document.querySelectorAll('#idle-home h3')].map((h) => h.textContent)`), before: pointsBefore, points: await points() };
   assert(!after.heading.includes('Continue watching') && after.points <= after.before, `after taking every card off: ${JSON.stringify(after)}`);
-  // Watched lately turned off in Settings goes from the page at once, and comes back on.
+  // The History section turned off in Settings goes from the page at once, and comes back on.
   const headings = () => evaluate(page, `[...document.querySelectorAll('#idle-home h3')].map((h) => h.textContent)`);
-  assert((await headings()).includes('Watched lately'), 'no Watched lately to turn off');
+  assert((await headings()).includes('History'), 'no History section to turn off');
   const toggleRecent = async () => {
     await evaluate(page, `document.getElementById('btn-settings').click()`);
     await waitFor(page, `document.getElementById('setup').open`, 'settings');
@@ -2282,16 +2282,16 @@ async function home(page) {
     await waitFor(page, `!document.getElementById('setup').open`, 'settings saved');
   };
   await toggleRecent();
-  await waitFor(page, `![...document.querySelectorAll('#idle-home h3')].some((h) => h.textContent === 'Watched lately')`, 'Watched lately gone');
+  await waitFor(page, `![...document.querySelectorAll('#idle-home h3')].some((h) => h.textContent === 'History')`, 'the History section gone');
   await toggleRecent();
-  await waitFor(page, `[...document.querySelectorAll('#idle-home h3')].some((h) => h.textContent === 'Watched lately')`, 'Watched lately back');
+  await waitFor(page, `[...document.querySelectorAll('#idle-home h3')].some((h) => h.textContent === 'History')`, 'the History section back');
   // From the guide's column a tile is played where it lives: the guide gives way.
   await evaluate(page, `document.getElementById('btn-guide').click()`, { gesture: true });
   await waitFor(page, `document.querySelector('main').classList.contains('guide') && !document.getElementById('idle-home').hidden`, 'the guide over the empty player\'s page');
   await evaluate(page, `document.querySelector('.idle-channel').click()`, { gesture: true });
   await waitFor(page, `!document.querySelector('main').classList.contains('guide') && location.hash.startsWith('#/live') && ${PLAYING}`, 'the channel played in its list', 40000);
   await mouseClick(page, '#btn-home');
-  return { ok: true, detail: `from a series page and the guide to the channels of ${at.group}, the top of the list and the empty player's page, ${playing} stopped and first under Watched lately; a playing film stopped, under Continue watching, and taken off it with the ✕ until the heading went; Watched lately off and on again from Settings; from the guide's column a channel played in its own list` };
+  return { ok: true, detail: `from a series page and the guide to the channels of ${at.group}, the top of the list and the empty player's page, ${playing} stopped and first under History; a playing film stopped, under Continue watching, and taken off it with the ✕ until the heading went; History off and on again from Settings; from the guide's column a channel played in its own list` };
 }
 
 /**
@@ -2906,7 +2906,7 @@ async function channels(page) {
   await sleep(300);
   const chosen = await groupsShown();
   assert(chosen.includes('Sweden') && !chosen.includes('Finland') && chosen.length < allGroups.length, `the sidebar after choosing Sweden: ${JSON.stringify(chosen)}`);
-  assert(await evaluate(page, `(() => { const text = document.getElementById('btn-countries-text').textContent; return text.startsWith('1/') && text.endsWith(' countries chosen'); })()`), 'the button does not say what is chosen');
+  assert(await evaluate(page, `(() => { const text = document.getElementById('btn-countries-text').textContent; return text.startsWith('Countries: 1/'); })()`), 'the button does not say what is chosen');
   await evaluate(page, `document.getElementById('btn-countries').click()`);
   await waitFor(page, `document.getElementById('countries').open`, 'the countries dialog again');
   // Select all ticks every country, which is all of them again.
@@ -3313,8 +3313,8 @@ async function startCatchup(page) {
   })()`, { gesture: true });
   await waitFor(page, PLAYING, 'live channel');
   await evaluate(page, `document.getElementById('btn-guide').click()`);
-  await waitFor(page, `[...document.querySelectorAll('#epgv-actions button')].some(b=>b.textContent==='Start from beginning')`, 'start-over action');
-  await click(page, '#epgv-actions', 'Start from beginning', { gesture: true });
+  await waitFor(page, `[...document.querySelectorAll('#epgv-actions button')].some(b=>b.textContent==='Start from the beginning')`, 'start-over action');
+  await click(page, '#epgv-actions', 'Start from the beginning', { gesture: true });
   await waitFor(page, PLAYING, 'start-over playback');
 }
 
@@ -4069,8 +4069,8 @@ async function m3u(page, { target, requests }) {
   await waitFor(page, PLAYING, 'a playlist channel');
   assert(requests.some((r) => /^\/live\/demo\/demo\/\d+\.m3u8/.test(r)), 'the channel did not play from its playlist address');
   await evaluate(page, `document.getElementById('btn-guide').click()`);
-  await waitFor(page, `[...document.querySelectorAll('#epgv-actions button')].some(b=>b.textContent==='Start from beginning')`, 'start-over action');
-  await click(page, '#epgv-actions', 'Start from beginning', { gesture: true });
+  await waitFor(page, `[...document.querySelectorAll('#epgv-actions button')].some(b=>b.textContent==='Start from the beginning')`, 'start-over action');
+  await click(page, '#epgv-actions', 'Start from the beginning', { gesture: true });
   await waitFor(page, PLAYING, 'start-over playback');
   assert(requests.some((r) => /^\/timeshift\/demo\/demo\/\d+\/\d{4}-\d\d-\d\d:\d\d-\d\d\/\d+\.ts$/.test(r)), 'start over did not build the xc archive address');
   await evaluate(page, `document.querySelector('#epg-back, [data-guide-back], #guide-back')?.click()`);

@@ -251,7 +251,7 @@ export function leavePlayback() {
  * watched last. A home button that left the film running led nowhere the
  * eye could see, the start page showing only when nothing plays. Nothing
  * is lost by it: a film's place is kept and heads Continue watching, a
- * channel is the first of Watched lately, each a click from playing again,
+ * channel is the first of the start page's History, each a click from playing again,
  * and the account's one connection is let go at once.
  */
 export async function goHome() {

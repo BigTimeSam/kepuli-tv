@@ -288,7 +288,7 @@ does not start within 20 seconds. On the test server HLS often starts faster
 but trails the live edge by a segment length.
 
 In the test material 54% of the movies are `.mp4` and 44% `.mkv`. For
-unplayable ones, **Copy address** and **Open in an external player** are
+unplayable ones, **Copy the stream address** and **Open in an external player** are
 offered.
 
 What a provider answers decides what the player says. Measured against a real

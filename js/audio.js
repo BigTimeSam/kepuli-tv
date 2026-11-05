@@ -131,7 +131,7 @@ export const describeAll = (tracks) => tracks.filter(isAudio).map(describe);
 // languages, so they go in as they are; an unusual count gets the count.
 const LAYOUT = { 1: 'mono', 2: 'stereo', 6: '5.1', 7: '6.1', 8: '7.1' };
 
-const layout = (channels) => (channels ? LAYOUT[channels] || t('audio.channels', { n: channels }) : null);
+const layout = (channels) => (channels ? LAYOUT[channels] || t('audio.channels', { count: channels, n: channels }) : null);
 
 /**
  * The name shown in the selector: "Finnish (AC-3 5.1)", "English

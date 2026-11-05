@@ -585,7 +585,7 @@ async function walk() {
   const { x: kx, y: ky } = await centre(`document.querySelector('.idle-pick:not([hidden])') || document.querySelector('.idle-channel')`);
   await move(kx, ky, 800);
   await sleep(1800);
-  // Down to Watched lately, and back up.
+  // Down to History, and back up.
   const wheel = async (dy, times) => { for (let i = 0; i < times; i++) { await page.call('Input.dispatchMouseEvent', { type: 'mouseWheel', x: kx, y: ky, deltaX: 0, deltaY: dy }); await sleep(90); } };
   await wheel(120, 5);
   await sleep(2600);

@@ -168,7 +168,7 @@ the player actually arrives.
   favourite ones (those you have starred), or the ones you tick in its
   list; a tick chooses that last mode by itself, and the list is kept when
   you switch to another. The button says which is on, such as
-  **Countries: favourites** or **3/12 countries chosen**.
+  **Countries: favourites** or **Countries: 3/12**.
 - Click a channel or movie to start playback. For a series, choose a season
   and then an episode. **Back** restores the parent list's scroll position,
   selected item and search, including when the series is inside a favourite category.
@@ -386,7 +386,7 @@ interrupted channel-list load restores the previous list.
 | `f` | full screen |
 | `m` | mute |
 | `a` | the next audio track, when the file has more than one |
-| `s` | star what the cursor is on — a list row, or the sidebar row or topic chip the keyboard stands on |
+| `s` | star what the cursor is on — a list row, a category or a topic |
 | `+` `−` | subtitles larger or smaller, by ten per cent of the size the picture asks for |
 | `Shift`+`F10` | the menu of the channel the list stands on: a favourite or not, or hide it; the context-menu key does the same |
 | `Delete` | drop the history row the cursor is on |
@@ -451,7 +451,7 @@ the timeline's scale, `Enter` starts playback and `Esc` closes.
 
 ## The buttons
 
-The top bar starts with the logo, which goes back to the start — the channels, the first country chosen, the top of its list — closing the search, the guide and any page opened from the list, and stops what is playing for the empty player's page: a film's place is kept under **Continue watching** and a channel heads **Watched lately**, each a click from playing again. Continue watching shows the ten films and series watched last — left halfway or seen to the end; a series seen to the end of its last episode goes on with the next — newest at the left, in one row that scrolls sideways — with the ‹ and › at its ends, the trackpad or the keyboard — a series as one card; the ✕ in a cover's corner, on hover, forgets where it was left and takes it out of the history — every episode of a series — and the heading goes with the last card. **Settings › Viewing** turns each of the page's sections off: **On your channels now and soon**, **Continue watching** and **Watched lately**, all on to begin with. Then the five tabs, each with its mark before its name (the marks step aside between 600 and 1100 px, where they would push the buttons onto a second row), the search box, **Refresh lists** (a
+The top bar starts with the logo, which goes back to the start — the channels, the first country chosen, the top of its list — closing the search, the guide and any page opened from the list, and stops what is playing for the empty player's page: a film's place is kept under **Continue watching** and a channel heads **History**, each a click from playing again. Continue watching shows the ten films and series watched last — left halfway or seen to the end; a series seen to the end of its last episode goes on with the next — newest at the left, in one row that scrolls sideways — with the ‹ and › at its ends, the trackpad or the keyboard — a series as one card; the ✕ in a cover's corner, on hover, forgets where it was left and takes it out of the history — every episode of a series — and the heading goes with the last card. **Settings › Viewing** turns each of the page's sections off: **On your channels now and soon**, **Continue watching** and **History**, all on to begin with. Then the five tabs, each with its mark before its name (the marks step aside between 600 and 1100 px, where they would push the buttons onto a second row), the search box, **Refresh lists** (a
 circular arrow), **Help** (a question mark), the theme — a sun in the dark
 theme switches to the light one and a moon in the light theme back — then
 **Full screen** (four corners) and **Settings** at the far right. Full screen
@@ -655,7 +655,7 @@ the list shows them, without the provider's running number.
 The timeline runs back as far as the longest advertised channel archive in the
 current view, with at least two days of history, and five days forward. Invalid
 provider durations are bounded to one year. Past programmes are
-dimmed; those the channel's archive reaches get a **Watch the recording**
+dimmed; those the channel's archive reaches get a **Watch catch-up**
 button. The day strip above the grid has buttons from yesterday on — today and
 tomorrow are what the guide is opened for, and with a button for each day of
 a week's archive they sat behind a scroll at the strip's far end — and the
@@ -665,17 +665,17 @@ name is nudged into view.
 An upcoming programme offers **Remind me**, and pressing `Enter` on one offers
 it in the message that says when it starts. A bell marks the programme in the
 grid. A minute before it starts, a message names the programme and its
-channel, with **Watch**. Reminders belong to the account and are kept with
+channel, with **Go to channel**. Reminders belong to the account and are kept with
 it, but they are said only while a player is open: one from a closed player
 would need a background timer and the notifications permission, and Chrome
 disables an extension on update until a new permission like that has been
 accepted. A reminder that falls due in a hidden tab waits until the tab is
 looked at again, for as long as the programme is still on.
 
-**Start from beginning** is offered for an ongoing programme on an archive
+**Start from the beginning** is offered for an ongoing programme on an archive
 channel. Whether the provider makes that programme available before it ends
 depends on the service; the archive may stop at its latest available moment.
-**Back to live** returns to the channel. Archive playback is finite: reaching
+**Back to live** returns to the channel. Catch-up playback is finite: reaching
 its end does not trigger the live reconnection loop. Reload and Retry keep the
 archive programme selected. This is provider catch-up, not a local DVR buffer.
 

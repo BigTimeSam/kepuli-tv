@@ -10,8 +10,7 @@ valikoiman pitää tuntua pieneltä.
 
 → Kanavat aukeavat sekunnissa tai parissa, vaikka valikoima olisi valtava
 → Sadat sekavat kategoriat muuttuvat siistiksi maaluetteloksi
-→ Koko ikkunan ohjelmaopas (EPG) ja katsominen jälkikäteen (catchup), kun
-  palvelu sen tarjoaa
+→ Koko ikkunan ohjelmaopas (EPG) ja jälkikatselu, kun palvelu sen tarjoaa
 → MKV-elokuvat ja -jaksot toistuvat suoraan selaimessa, tekstitykset ja
   surround-ääni mukaan lukien
 → Tallenna kanava heti tai ohjelma oppaasta, ja säilytä se tiedostona
@@ -58,7 +57,7 @@ MITÄ SAAT
 YKSITYISYYS RAKENNETTU SISÄÄN
 
 Ei seurantaa, ei mainoksia, ei rekisteröitymistä. Kepuli-TV keskustelee vain
-oman palvelimesi kanssa ja pyytää luvan vain siihen osoitteeseen — laajemman
+oman palvelimesi kanssa ja pyytää luvan vain siihen osoitteeseen – laajemman
 pääsyn vain, jos itse sallit sen, kun palveluntarjoajasi ohjaa lähetykset
 muualle. Tallenteet pysyvät omalla koneellasi.
 
