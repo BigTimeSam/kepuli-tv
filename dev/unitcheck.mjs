@@ -27,7 +27,7 @@ import { languageSummary, orderedLanguageNames, trackLanguage } from '../js/lang
 import { LANGUAGES, keysOf, setLanguage, loadLanguage, supportedLanguage, t, pseudoText } from '../js/i18n.js';
 import { channelPreferences, visibilityFilter, sortChannels, CHANNEL_SORTS } from '../js/channelprefs.js';
 import { catchupAvailable, archiveDays, reminderDelay, sameChannels } from '../js/epggrid.js';
-import { searchProgrammes, mergeSorted, searchableChannels } from '../js/programmesearch.js';
+import { searchProgrammes, mergeSorted, searchableChannels, groupResults } from '../js/programmesearch.js';
 import { Epg } from '../js/epg.js';
 import { probeCacheTtl } from '../js/probe.js';
 import { formatRoute, parseRoute } from '../js/route.js';
@@ -111,6 +111,19 @@ check('invalid programme has no archive action', catchupAvailable({ archive: 7 }
   check('programme search explicitly counts failed channels and skips channels without EPG', [report.done, report.total, report.failed], [9, 9, 1]);
   await searchProgrammes(fakeEpg, channels.slice(0, 8), 'cup', { from: now, to: now + 2000 });
   check('repeated programme search reuses full EPG tables', calls, 9);
+  await searchProgrammes(fakeEpg, channels, 'channel 3', { from: now, to: now + 2000, onProgress: (r) => { report = r; } });
+  check('programme search finds a channel by its name', report.results.map((r) => r.channel.id), ['3']);
+  await searchProgrammes(fakeEpg, channels, 'channel 3 hockey', { from: now, to: now + 2000, onProgress: (r) => { report = r; } });
+  check('programme search takes words from the channel and the programme together', report.results.map((r) => r.channel.id), ['3']);
+  await searchProgrammes(fakeEpg, channels, 'channel 3 football', { from: now, to: now + 2000, onProgress: (r) => { report = r; } });
+  check('programme search still needs every word somewhere', report.results.length, 0);
+  {
+    const a = { id: 1, n: 'A' }, b = { id: 2, n: 'B' };
+    const at = (channel, start) => ({ channel, programme: { start } });
+    check('programme results are grouped by channel, the earliest channel first, each in time order',
+      groupResults([at(b, 1), at(a, 2), at(b, 3), at(a, 4)]).map((x) => (x.programme ? x.programme.start : `${x.channel.n}${x.count}`)),
+      ['B2', 1, 3, 'A2', 2, 4]);
+  }
   const abort = new AbortController();
   fakeEpg.cache.clear(); calls = 0;
   const running = searchProgrammes(fakeEpg, channels, 'cup', { signal: abort.signal, from: now, to: now + 2000 });

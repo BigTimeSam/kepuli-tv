@@ -376,6 +376,10 @@
         <button type="button" id="programme-clear" class="ghost" data-i18n="programmes.clear">Back to guide</button>
       </div>
       <div id="programme-results" class="programme-results"></div>
+      <!-- A search that has read every channel and found nothing says so
+           as the list's empty pages do, larger, where the results would be:
+           the status line above alone read as a search still at work. -->
+      <div id="programme-empty" class="programme-empty" hidden></div>
     </section>
     <!-- The cursor's whereabouts in one sentence, for a screen reader. The
          preview panel says the same thing in full, but as a live region it

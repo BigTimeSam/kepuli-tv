@@ -1612,16 +1612,43 @@ label.choice-row:hover { background: var(--row-hover); }
 .programme-form input { min-width: 180px; }
 .programme-panel { display: flex; flex: 1; flex-direction: column; min-height: 0; }
 .programme-panel[hidden], .epg-body[hidden] { display: none; }
-.programme-summary { padding: 8px 10px; color: var(--muted); border-bottom: 1px solid var(--border); font-size: 0.75rem; }
-.programme-summary span { flex: 1; }
+.programme-summary { padding: 10px 12px; color: var(--muted); border-bottom: 1px solid var(--border); font-size: 0.8125rem; }
+.programme-summary > span { flex: 1; }
+/* The number of results is what the line is for; the rest stays grey. */
+.psr-count { color: var(--text); font-size: 1rem; font-weight: 650; }
+.psr-failed { color: var(--warn); }
 .programme-results { flex: 1; min-height: 0; overflow-y: auto; }
-.programme-result { height: 64px; width: 100%; display: flex; flex-direction: column; justify-content: center; gap: 4px;
-  text-align: left; padding: 8px 14px; border: 0; border-bottom: 1px solid var(--border); background: transparent; color: var(--text); cursor: pointer; }
-.programme-result:hover, .programme-result:focus-visible { background: var(--panel-2); }
+.programme-results[hidden] { display: none; }
+/* Nothing found: the list's own empty notice, a size up, in the middle of
+   where the results would be, under its mark in the accent's circle as
+   the player's own page has it. */
+.programme-empty { flex: 1; display: grid; place-items: center; overflow-y: auto; }
+.programme-empty[hidden] { display: none; }
+.programme-empty .empty { max-width: 440px; }
+.programme-empty .empty-icon { width: 22px; height: 22px; padding: 11px; margin-bottom: 12px; background: var(--accent-soft); }
+.programme-empty .empty strong { font-size: 1.0625rem; font-weight: 650; letter-spacing: -0.005em; margin-bottom: 8px; }
+/* The results by channel: a heading with the logo and the name as the
+   guide writes it, then its programmes, each a row of when, what and, for
+   one on now, how far it has got. HEAD_H and ROW_H in
+   js/programmesearch.js are these heights. */
+.psr-head { height: 52px; display: flex; align-items: center; gap: 10px; padding: 0 14px; box-sizing: border-box;
+  background: var(--panel); border-bottom: 1px solid var(--border); }
+.psr-head strong { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 0.875rem; font-weight: 650; }
+.psr-logo { width: 34px; height: 26px; flex: none; object-fit: contain; border-radius: 3px; }
+.psr-n { flex: none; min-width: 1.6em; padding: 1px 7px; border-radius: 999px; background: var(--panel-2); color: var(--muted); font-size: 0.6875rem; text-align: center; }
+.psr-row { height: 60px; width: 100%; display: flex; align-items: center; gap: 14px; box-sizing: border-box;
+  text-align: left; padding: 0 14px 0 58px; border: 0; border-bottom: 1px solid var(--border); background: transparent; color: var(--text); cursor: pointer; }
+.psr-row:hover, .psr-row:focus-visible { background: var(--panel-2); }
 /* Inside the scrolling results a ring outside the row would be cut off. */
-.programme-result:focus-visible { outline-offset: -2px; }
-.programme-result strong, .programme-result span { max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.programme-result span { color: var(--muted); font-size: 0.75rem; }
+.psr-row:focus-visible { outline-offset: -2px; }
+.psr-when { flex: none; width: 4.75rem; display: flex; flex-direction: column; font-variant-numeric: tabular-nums; font-weight: 600; font-size: 0.875rem; }
+.psr-when small { color: var(--muted); font-weight: 400; font-size: 0.6875rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.psr-body { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 3px; }
+.psr-body strong, .psr-body span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.psr-body strong { font-weight: 600; }
+.psr-body span { color: var(--muted); font-size: 0.75rem; }
+.psr-now { flex: none; position: relative; overflow: hidden; padding: 2px 8px 4px; border-radius: 5px; background: var(--accent); color: #fff; font-size: 0.6875rem; font-weight: 600; }
+.psr-now i { position: absolute; left: 0; bottom: 0; height: 2px; background: rgba(255, 255, 255, .85); }
 .epg-days { min-width: 0; max-width: 34vw; overflow-x: auto; }
 
 @media (max-width: 600px) {

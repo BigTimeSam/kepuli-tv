@@ -3013,24 +3013,36 @@ async function programmes(page, { requests }) {
   assert(await evaluate(page, `document.querySelectorAll('#epg-days button').length + Math.max(0, (document.querySelector('#epg-days .epg-earlier')?.options.length || 1) - 1) >= 8
     && document.querySelector('#epg-days button')?.textContent === 'yesterday'`), 'archive duration did not extend guide history');
   const search = async (query, period = 'upcoming') => {
+    await evaluate(page, `document.getElementById('programme-panel').dataset.state = ''`);
     await evaluate(page, `document.getElementById('programme-query').value=${JSON.stringify(query)}; document.getElementById('programme-period').value=${JSON.stringify(period)}; document.getElementById('programme-form').requestSubmit()`);
-    await waitFor(page, `document.getElementById('programme-status').textContent.includes('Search finished')`, 'programme search');
+    await waitFor(page, `document.getElementById('programme-panel').dataset.state === 'done'`, 'programme search');
   };
   await search('Ice hockey');
-  assert(await evaluate(page, `document.querySelectorAll('.programme-result').length > 0`), 'programme title search found no hockey');
+  // Grouped by channel: a heading with the logo and the name, then its programmes.
+  const grouped = await evaluate(page, `(() => {
+    const heads = [...document.querySelectorAll('.psr-head')];
+    return { heads: heads.length, rows: document.querySelectorAll('.psr-row').length, logo: !!heads[0]?.querySelector('.psr-logo'),
+      firstIsHead: document.querySelector('.psr-head, .psr-row')?.classList.contains('psr-head'), count: document.querySelector('.psr-count')?.textContent }; })()`);
+  assert(grouped.heads > 0 && grouped.rows > 0 && grouped.logo && grouped.firstIsHead && Number(grouped.count) > 0, `programme title search, by channel: ${JSON.stringify(grouped)}`);
   assert(await evaluate(page, `getComputedStyle(document.getElementById('epg-body')).display === 'none'`), 'grid not replaced by programme results');
   const before = requests.filter((r) => r.includes('get_simple_data_table')).length;
   await search('behind the scenes');
-  assert(await evaluate(page, `document.querySelectorAll('.programme-result').length > 0`), 'description search found no results');
+  assert(await evaluate(page, `document.querySelectorAll('.psr-row').length > 0`), 'description search found no results');
   assert(requests.filter((r) => r.includes('get_simple_data_table')).length === before, 'repeated search refetched cached full tables');
   await search('No-such-programme-38472');
-  assert(await evaluate(page, `document.getElementById('programme-status').textContent.startsWith('0 results')`), 'empty search had no explicit result count');
+  const empty = await evaluate(page, `({ status: document.getElementById('programme-status').textContent, notice: document.getElementById('programme-empty').hidden ? null : document.getElementById('programme-empty').textContent, list: document.getElementById('programme-results').hidden })`);
+  assert(empty.status.startsWith('0 results') && !/finished/i.test(empty.status) && empty.notice?.includes('No-such-programme-38472') && empty.list, `an empty search: ${JSON.stringify(empty)}`);
+  // A channel's own name finds it, though no programme on it is called so.
+  const channelName = await evaluate(page, `document.querySelector('#epg-chans-inner .epg-chan-name')?.textContent || ''`);
+  await search(channelName);
+  const byName = await evaluate(page, `[...document.querySelectorAll('.psr-head strong')].map((h) => h.textContent)`);
+  assert(channelName && byName.includes(channelName), `a search for the channel "${channelName}": ${JSON.stringify(byName)}`);
   await search('News', 'past');
-  await evaluate(page, `document.querySelector('.programme-result').click()`);
+  await evaluate(page, `document.querySelector('.psr-row').click()`);
   await waitFor(page, `document.querySelector('#epgv-slot b')`, 'search result detail');
   await evaluate(page, `document.getElementById('programme-clear').click()`);
   assert(await evaluate(page, `!document.getElementById('epg-body').hidden && document.getElementById('programme-panel').hidden`), 'return to guide failed');
-  return { ok: true, detail: 'archive-length guide; title/description search, cached repeat, empty results, past results and return to grid' };
+  return { ok: true, detail: `archive-length guide; title/description search by channel (${grouped.heads} channels, ${grouped.rows} programmes), cached repeat, empty results with the notice, the channel "${channelName}" by its name, past results and return to grid` };
 }
 
 /**
@@ -3140,10 +3152,10 @@ async function guidekeep(page) {
   assert(Math.abs(after.top - before.top) < 2 && after.cursor === before.cursor, `the repaint moved the guide: ${JSON.stringify({ before, after })}`);
   assert(after.day === 'eilen', `the day buttons kept the old language: ${JSON.stringify(after)}`);
   await evaluate(page, `document.getElementById('programme-query').value = 'News'; document.getElementById('programme-scope').value = 'group'; document.getElementById('programme-form').requestSubmit()`);
-  await waitFor(page, `document.getElementById('programme-status').textContent.includes('Haku päättynyt')`, 'the Finnish programme search', 60000);
+  await waitFor(page, `document.getElementById('programme-panel').dataset.state === 'done' && document.getElementById('programme-status').textContent.includes('ohjelmatiedot tarjoavalta')`, 'the Finnish programme search', 60000);
   await language('en');
   const status = await evaluate(page, `({ text: document.getElementById('programme-status').textContent, shown: !document.getElementById('programme-panel').hidden })`);
-  assert(status.shown && status.text.includes('Search finished'), `the programme search after the switch: ${JSON.stringify(status)}`);
+  assert(status.shown && status.text.includes('channels with programme data searched'), `the programme search after the switch: ${JSON.stringify(status)}`);
   await evaluate(page, `document.getElementById('programme-clear').click()`);
   return { ok: true, detail: `scroll ${before.top} px and ${before.cursor} kept over a language switch; days said "${after.day}"; the search line followed back to English` };
 }

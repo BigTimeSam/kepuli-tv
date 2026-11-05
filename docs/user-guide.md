@@ -633,8 +633,9 @@ depends on the service; the archive may stop at its latest available moment.
 its end does not trigger the live reconnection loop. Reload and Retry keep the
 archive programme selected. This is provider catch-up, not a local DVR buffer.
 
-The guide's separate **Search programmes** form searches programme titles and
-descriptions. It searches the shown channels by default; **All visible channels**
+The guide's separate **Search programmes** form searches channel names,
+programme titles and descriptions: every word must be in one of them, so
+"Liiga 7" finds that channel's programmes and "Liiga 7 final" its final. It searches the shown channels by default; **All visible channels**
 loads the full channel catalogue and excludes personal hidden channels and
 categories. Only channels with programme identifiers can be searched. The
 period selector includes upcoming programmes, past programmes or both.
@@ -645,8 +646,12 @@ for 5,000 channels at most, so a search of thousands of channels does not keep
 every table it read. A search of all channels when more than 500 of them have
 programme data asks first, with a **Search all** button, since each channel
 costs its whole programme table.
-Results and channel progress appear as answers arrive; failed channels are
-counted separately. **Stop search** keeps partial results. Selecting a result
+Results appear as answers arrive, grouped by channel under its logo and
+name (as the guide writes it, without a provider's "FI:"), each programme
+with its day and time and the first line of its description, and **Now** on
+one being shown; the line above them gives the number found and the channels
+searched, and failed channels are counted separately. A search that finds
+nothing says so in the results' place, with the query. **Stop search** keeps partial results. Selecting a result
 shows its description and live/catch-up actions; **Back to guide** restores the
 grid. Closing the guide or changing channels' scope cancels the search.
 

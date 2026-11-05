@@ -1,6 +1,8 @@
 import { VirtualList } from './vlist.js';
 import { t } from './i18n.js';
-import { stampFmt } from './format.js';
+import { clock, shortDay, progressOf } from './format.js';
+import { poster } from './poster.js';
+import { emptyState } from './rows.js';
 import { archiveDays } from './epggrid.js';
 import { searchKey, searchTerms } from './name.js';
 
@@ -40,13 +42,19 @@ export async function searchProgrammes(epg, channels, query, { signal, from = -I
           epg.markUpdated(String(channel.id));
         }
         const seen = new Set();
+        // The channel's name counts as part of every programme on it: a
+        // viewer looks for "Liiga 7" as the list shows it, and the
+        // programmes there are all called "Liiga: No Broadcasting". Each
+        // word may be in either, so "liiga 7 hockey" finds that channel's
+        // hockey too.
+        const named = searchKey(channel.displayName || channel.n || '');
         for (const programme of listings || []) {
           if (programme.stop <= from || programme.start >= to) continue;
           const key = `${programme.start}:${programme.stop}:${programme.title}`;
           if (seen.has(key)) continue;
           seen.add(key);
           const text = searchKey(`${programme.title} ${programme.description || ''}`);
-          if (words.every((word) => text.includes(word))) fresh.push({ channel, programme });
+          if (words.every((word) => text.includes(word) || named.includes(word))) fresh.push({ channel, programme });
         }
       } catch (err) {
         if (signal?.aborted || err.name === 'AbortError') return;
@@ -70,6 +78,24 @@ export function searchableChannels(channels) {
 
 const resultOrder = (a, b) => a.programme.start - b.programme.start || a.channel.n.localeCompare(b.channel.n);
 
+/**
+ * The results, in time order, as the list shows them: each channel once,
+ * as a heading, with its programmes under it. A channel comes where its
+ * first programme came, so the earliest stays at the top. A heading is
+ * `{ channel, count }`, a programme `{ channel, programme }`.
+ */
+export function groupResults(results) {
+  const groups = new Map();
+  for (const result of results) {
+    const id = String(result.channel.id);
+    if (!groups.has(id)) groups.set(id, []);
+    groups.get(id).push(result);
+  }
+  const items = [];
+  for (const found of groups.values()) items.push({ channel: found[0].channel, count: found.length }, ...found);
+  return items;
+}
+
 /** Two sorted lists as one, in a new array; equal items keep `a`'s first. */
 export function mergeSorted(a, b, compare) {
   if (!b.length) return a;
@@ -89,18 +115,23 @@ export function mergeSorted(a, b, compare) {
 export const MANY_CHANNELS = 500;
 
 const $ = (id) => document.getElementById(id);
+// A channel's heading and a programme's row, in pixels; .psr-head and
+// .psr-row in player.css are as tall.
+const HEAD_H = 52, ROW_H = 60;
 
 export class ProgrammeSearch {
-  constructor({ getChannels, getEpg, onSelect, onActivate, onMode }) {
-    Object.assign(this, { getChannels, getEpg, onSelect, onActivate, onMode });
+  constructor({ getChannels, getEpg, onSelect, onActivate, onMode, label = (channel) => channel.n }) {
+    Object.assign(this, { getChannels, getEpg, onSelect, onActivate, onMode, label });
     this.results = [];
+    // What the list shows: the results grouped by channel (groupResults).
+    this.items = [];
     this.run = null;
     // What the status line says, kept as facts rather than text, so that a
     // change of language can say it again in the new one (renderStatus).
     this.status = null;
     // The all-channels search the viewer said yes to, see MANY_CHANNELS.
     this.confirmed = null;
-    this.list = new VirtualList($('programme-results'), 64, (i) => this.row(i));
+    this.list = new VirtualList($('programme-results'), ROW_H, (i) => this.row(i));
     $('programme-form').addEventListener('submit', (e) => { e.preventDefault(); this.search(); });
     $('programme-cancel').addEventListener('click', () => this.cancel());
     $('programme-clear').addEventListener('click', () => this.clear());
@@ -130,8 +161,7 @@ export class ProgrammeSearch {
 
   clear() {
     this.cancel();
-    this.results = [];
-    this.list.setCount(0);
+    this.show([]);
     this.status = null;
     this.offerAll(null);
     $('programme-query').value = '';
@@ -139,20 +169,46 @@ export class ProgrammeSearch {
     this.onMode(false);
   }
 
-  /** The status line, from this.status, in the language now in use. */
+  /**
+   * The status line, from this.status, in the language now in use: the
+   * number of results stands out, the channels searched follow in grey, and
+   * a search that has read every channel says nothing more about being done
+   * (the Stop button going away says it). A finished search that found
+   * nothing shows the larger empty notice in the results' place.
+   */
   renderStatus() {
     const s = this.status;
+    const line = $('programme-status');
+    line.replaceChildren();
     let text = '';
     if (s?.kind === 'loading') text = t('progress.loading');
     else if (s?.kind === 'error') text = t('programmes.error');
     else if (s?.kind === 'many') text = t('programmes.heavy', { count: s.count });
     else if (s?.kind === 'progress') {
-      text = t('programmes.status', { count: s.count, done: s.done, total: s.total })
-        + (s.failed ? `. ${t('programmes.failed', { count: s.failed })}` : '')
-        + (s.done === s.total ? `. ${t('programmes.complete')}` : '');
+      // The sentence is the translation's own; only the number is set apart,
+      // found by a marker in its place, so each language keeps its order.
+      const MARK = '\u0001';
+      const [before, after = ''] = t('programmes.status', { count: MARK, done: s.done, total: s.total }).split(MARK);
+      const count = document.createElement('strong');
+      count.className = 'psr-count';
+      count.textContent = String(s.count);
+      line.append(before, count, after);
+      if (s.failed) {
+        const failed = document.createElement('span');
+        failed.className = 'psr-failed';
+        failed.textContent = `. ${t('programmes.failed', { count: s.failed })}`;
+        line.append(failed);
+      }
     }
-    if (s?.cancelled) text += `${text ? '. ' : ''}${t('progress.cancelled')}`;
-    $('programme-status').textContent = text;
+    if (s?.cancelled) text += `${text || s?.kind === 'progress' ? '. ' : ''}${t('progress.cancelled')}`;
+    if (text) line.append(text);
+    const finished = s?.kind === 'progress' && s.done === s.total;
+    // For the tests and nothing else: whether the search has read every channel.
+    $('programme-panel').dataset.state = finished ? 'done' : '';
+    const none = finished && !s.count && !s.cancelled;
+    $('programme-results').hidden = none;
+    $('programme-empty').hidden = !none;
+    $('programme-empty').replaceChildren(...(none ? [emptyState(t('empty.nohits'), t('programmes.nohits.text', { query: s.query }), null, 'search')] : []));
     const more = $('programme-continue');
     if (!more.hidden) more.textContent = t('programmes.continue', { count: more.dataset.count });
   }
@@ -172,8 +228,7 @@ export class ProgrammeSearch {
     const asked = this.asked();
     const run = new AbortController();
     this.run = run;
-    this.results = [];
-    this.list.setCount(0);
+    this.show([]);
     $('programme-panel').hidden = false;
     $('programme-cancel').hidden = false;
     this.status = { kind: 'loading' };
@@ -197,9 +252,8 @@ export class ProgrammeSearch {
       await searchProgrammes(this.getEpg(), channels, query, { signal: run.signal, from, to,
         onProgress: ({ results, done, total, failed }) => {
           if (this.run !== run) return;
-          this.results = results;
-          this.list.setCount(results.length, { keepScroll: true });
-          this.status = { kind: 'progress', count: results.length, done, total, failed };
+          this.show(results, { keepScroll: true });
+          this.status = { kind: 'progress', count: results.length, done, total, failed, query };
           this.renderStatus();
         } });
     } catch (err) {
@@ -209,16 +263,62 @@ export class ProgrammeSearch {
     }
   }
 
+  /** The results into the list, grouped by channel. */
+  show(results, { keepScroll = false } = {}) {
+    this.results = results;
+    this.items = groupResults(results);
+    this.list.setCount(this.items.length, { keepScroll, heightAt: (i) => (this.items[i].programme ? ROW_H : HEAD_H) });
+  }
+
   row(index) {
-    const { channel, programme } = this.results[index];
+    const { channel, programme, count } = this.items[index];
+    if (!programme) {
+      // The channel's heading: its logo and its name as the guide writes
+      // it (without the provider's "FI:"), and how many programmes found.
+      const head = document.createElement('div');
+      head.className = 'psr-head';
+      head.appendChild(poster('psr-logo', channel.logo, 'channel'));
+      const name = document.createElement('strong');
+      name.textContent = this.label(channel);
+      name.title = channel.n;
+      const n = document.createElement('span');
+      n.className = 'psr-n';
+      n.textContent = String(count);
+      head.append(name, n);
+      return head;
+    }
+    const now = Date.now();
     const row = document.createElement('button');
     row.type = 'button';
-    row.className = 'programme-result';
+    row.className = 'psr-row';
+    const when = document.createElement('span');
+    when.className = 'psr-when';
+    const day = document.createElement('small');
+    day.textContent = shortDay(programme.start);
+    when.append(day, clock(programme.start));
+    const body = document.createElement('span');
+    body.className = 'psr-body';
     const title = document.createElement('strong');
     title.textContent = programme.title;
-    const meta = document.createElement('span');
-    meta.textContent = `${channel.n}, ${stampFmt.format(new Date(programme.start))}`;
-    row.append(title, meta);
+    body.appendChild(title);
+    if (programme.description) {
+      const desc = document.createElement('span');
+      desc.textContent = programme.description;
+      body.appendChild(desc);
+    }
+    row.append(when, body);
+    if (programme.start <= now && now < programme.stop) {
+      // On now: the guide's word and how far it has got, as the grid shows it.
+      row.classList.add('live');
+      const live = document.createElement('span');
+      live.className = 'psr-now';
+      live.textContent = t('guide.now');
+      const bar = document.createElement('i');
+      bar.style.width = `${Math.round(progressOf(programme, now) * 100)}%`;
+      live.appendChild(bar);
+      row.appendChild(live);
+    }
+    row.title = `${this.label(channel)}, ${shortDay(programme.start)} ${clock(programme.start)}–${clock(programme.stop)}`;
     row.addEventListener('click', () => this.onSelect(channel, programme));
     row.addEventListener('dblclick', () => this.onActivate(channel, programme));
     return row;

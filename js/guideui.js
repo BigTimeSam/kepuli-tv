@@ -42,6 +42,7 @@ export let guideOpen = false;
 
 export const programmeSearch = new ProgrammeSearch({
   getEpg: () => state.epg,
+  label: (channel) => (state.cleanName ? state.cleanName(channel.n, channel) : channel.n),
   getChannels: async (scope, signal) => {
     if (scope === 'all') {
       const library = state.lib;
