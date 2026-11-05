@@ -18,6 +18,7 @@ written here.
 | `playerlayout.js`, `theme.js`, `route.js` | narrow-window panes, colour theme, the address (`#/live/...`) and tab title |
 | `channelchoices.js` | the Choose countries / Choose categories dialog (`CountryPicker.show({ onSave, texts })`) and hidden channels |
 | `cataloguesearch.js`, `programmesearch.js`, `name.js` | catalogue search, guide search, name tidying and accent-folding search keys |
+| `titlemeta.js` | what a film's name and its list say beyond the name: the year a title repeats, which copy of a film is which, the other parts of a series of films, what the provider added lately |
 | `mediafilters.js`, `titleinfo.js`, `titlelinks.js`, `rating.js`, `format.js` | film/series filters and facts, details strip, IMDb/YouTube links (known services only), ratings, Intl formatters |
 
 **Providers**: each answers the same questions (account, categories,

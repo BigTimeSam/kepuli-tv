@@ -5,6 +5,7 @@
 // (a cycle that ES modules resolve: nothing here runs while the modules
 // load, only when the player calls in).
 
+import { isNew, versionLabels } from './titlemeta.js';
 import { clock, nf, stampFmt } from './format.js';
 import { favCategoryRow, itemRow, posterCard, sectionHeader } from './rows.js';
 import { nameCleaner, searchNameCleaner } from './name.js';
@@ -105,6 +106,30 @@ export function viewToggle() {
   return box;
 }
 
+// What the covers say beyond the name, worked out once per list rather than
+// per painted row: which copy each duplicated title is, and which films the
+// history has seen to the end.
+let marks = { rows: null, recents: null, resume: null, versions: new Map(), seen: new Set() };
+function coverMarks() {
+  if (marks.rows !== state.rows) marks = { ...marks, rows: state.rows, versions: versionLabels(state.rows) };
+  if (marks.recents !== state.recents || marks.resume !== state.resume) {
+    // A film the history marks seen: played past its last minutes
+    // (js/nextepisode.js), and not started again since (a resume point).
+    const seen = new Set();
+    for (const entry of state.recents) if (entry.k === 1 && entry.seen) seen.add(`1:${entry.id}`);
+    marks = { ...marks, recents: state.recents, resume: state.resume, seen };
+  }
+  return marks;
+}
+
+/** The marks of one film or series: its copy's tags, seen, new. */
+function coverFacts(item, key) {
+  if (item.k !== 1 && item.k !== 2) return {};
+  const { versions, seen } = coverMarks();
+  const watched = item.k === 1 && seen.has(key) && !state.resume.has(key);
+  return { versions: versions.get(key) || null, watched, isNew: !watched && isNew(item) };
+}
+
 export function renderRow(index) {
   const item = state.rows[index];
   const key = `${item.k}:${item.id}`;
@@ -116,6 +141,7 @@ export function renderRow(index) {
       domId: rowDomId(index),
       favorite: state.favorites.has(key),
       resume: state.resume.get(key),
+      ...coverFacts(item, key),
       onOpen: () => { state.cursor = index; openItem(item); },
       onFavorite: () => toggleFavorite(item),
     });
@@ -135,6 +161,7 @@ export function renderRow(index) {
     favorite: state.favorites.has(key),
     epg: item.k === 0 && state.epg ? state.epg.nowNext(item.id) : null,
     resume: state.resume.get(key),
+    ...(isCollection() && !state.detail ? {} : coverFacts(item, key)),
     // The favourites and the history mix the kinds: one picture for all, the
     // facts under the name and the actions in the menu (compactLine in
     // js/rows.js). The time of day went: the day's heading says when.

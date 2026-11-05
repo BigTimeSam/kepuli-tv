@@ -199,6 +199,11 @@
 //                                     cache's expired rows are purged
 //   node dev/playcheck.mjs restorenav a reload naming a series does not open
 //                                     it over a group chosen meanwhile
+//   node dev/playcheck.mjs filmdetails the copies of a film told apart on their
+//                                     covers, a film seen marked ✓, the title
+//                                     without its year, and the details' end
+//                                     time, original title, linked credits,
+//                                     sound language, other copies and parts
 //   node dev/playcheck.mjs gotochannel a channel chosen in the guide's search
 //                                     plays in the corner; Go to channel opens
 //                                     its country standing on it, the channel
@@ -4929,10 +4934,11 @@ async function gotochannel(page, { target }) {
   const app = `(await import('./js/app.js'))`;
   // A channel of another country than the one on screen.
   const pick = await evaluate(page, `(async () => {
-    const { state } = ${app};
+    const { state, groupOfType } = ${app};
     const all = await state.lib.ensureFull('live');
-    const channel = all.find((c) => { const g = state.lib.groupOf('live', c.cats); return g && g !== state.group && c.epgId; });
-    return channel && { id: String(channel.id), n: channel.n, group: state.lib.groupOf('live', channel.cats), from: state.group };
+    const groupOf = (c) => c.cats.map((cat) => groupOfType('live').get(cat)).find(Boolean);
+    const channel = all.find((c) => { const g = groupOf(c); return g && g !== state.group && c.epgId; });
+    return channel && { id: String(channel.id), n: channel.n, group: groupOf(channel), from: state.group };
   })()`);
   assert(pick, 'no channel of another country with programme data');
   await evaluate(page, `document.getElementById('btn-guide').click()`);
@@ -4966,9 +4972,85 @@ async function gotochannel(page, { target }) {
   return { ok: true, detail: `${pick.n} of ${pick.group}, chosen in the guide's search from ${pick.from}: played in the corner, Go to channel stood on it in ${pick.group} still playing (${there.hash}); the reload stood on it again, not playing` };
 }
 
+/**
+ * What the covers and the details say beyond a film's name: the copies of
+ * one film told apart on their covers, a film seen to the end marked, the
+ * player's title without the year and its line naming the group, and the
+ * details' end time, original title, linked credits, sound language and the
+ * other copies and parts, one of which then plays.
+ */
+async function filmdetails(page) {
+  const assert = (ok, message) => { if (!ok) throw new Error(message); };
+  process.env.KEPULI_MOCK_VERSIONS = '1';
+  const app = `(await import('./js/app.js'))`;
+  try {
+    // The list from before the switch is in the cache: the film list fresh.
+    await evaluate(page, `indexedDB.databases().then((dbs) => Promise.all(dbs.map((d) => new Promise((resolve) => {
+      const req = indexedDB.deleteDatabase(d.name); req.onsuccess = req.onerror = req.onblocked = () => resolve(d.name); }))))`);
+    await page.call('Page.reload');
+    await waitFor(page, CONNECTED, 'the connection');
+    // The reload restores the tab it left on, which can come after a click
+    // made too early: the films' tab is asked for until it is the one shown.
+    await waitFor(page, `(() => { const tab = document.querySelector('#tabs [data-tab="movie"]');
+      if (tab.getAttribute('aria-selected') !== 'true') tab.click();
+      return tab.getAttribute('aria-selected') === 'true' && [...document.querySelectorAll('#groups .group')].some((g) => g.textContent.includes('Action')); })()`, 'the film groups', 30000);
+    await click(page, '#groups', 'Action', { timeout: 30000 });
+    await waitFor(page, `document.querySelectorAll('#list .card').length > 8`, 'the Action covers', 30000);
+    // A cover by its film's id: the list's own id for the row (rowDomId).
+    const cardOf = (id) => `(async () => { const { state, vlist } = ${app}; const { rowDomId } = await import('./js/listnavigation.js');
+      const i = state.rowIndex.get('1:' + ${JSON.stringify(id)}); if (i == null) return null;
+      vlist.scrollToIndex(i); vlist.refresh(); await new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r)));
+      return document.getElementById(rowDomId(i)); })()`;
+    const covers = {};
+    for (const id of ['5000', '90001', '90002', '90003']) {
+      covers[id] = await evaluate(page, `(async () => { const card = await ${cardOf(id)}; return card ? [...card.querySelectorAll('.card-tag')].map((x) => x.textContent) : null; })()`);
+    }
+    assert(JSON.stringify(covers['90001']).includes('MKV') && JSON.stringify(covers['90002']).includes('4K') && Array.isArray(covers['5000']) && covers['5000'].length > 0
+      && Array.isArray(covers['90003']) && covers['90003'].length === 0, `the copies' tags: ${JSON.stringify(covers)}`);
+    // Seen to the end, as the history marks it; another only started is not.
+    await evaluate(page, `(async () => { const { state, vlist } = ${app}; const film = state.rows.find((x) => x.id === '5001');
+      state.recents = [{ ...film, watchedAt: Date.now(), seen: Date.now() }, { ...state.rows.find((x) => x.id === '5002'), watchedAt: Date.now() }, ...state.recents];
+      state.resume.delete('1:5001'); vlist.refresh(); })()`);
+    const seen = await evaluate(page, `(async () => (await ${cardOf('5001')})?.querySelector('.card-flag.watched')?.textContent || null)()`);
+    const started = await evaluate(page, `(async () => (await ${cardOf('5002')})?.querySelector('.card-flag.watched')?.textContent || null)()`);
+    assert(seen === '✓' && started === null, `the film seen to the end, and one only started: ${JSON.stringify([seen, started])}`);
+    // The first film playing.
+    await evaluate(page, `(async () => (await ${cardOf('5000')}).click())()`, { gesture: true });
+    await waitFor(page, PLAYING, 'the film', 30000);
+    await waitFor(page, `document.querySelector('.related') && document.querySelector('.title-credit-original')`, 'the details', 20000);
+    await sleep(500);
+    const strip = await evaluate(page, `({ title: document.getElementById('now-title').textContent, sub: document.getElementById('now-sub').textContent,
+      ends: document.getElementById('vod-ends')?.textContent, original: document.querySelector('.title-credit-original dd')?.textContent,
+      people: [...document.querySelectorAll('.title-credits a.person')].map((a) => a.href).slice(0, 2), audio: document.querySelector('.playback-fact-audio dd')?.textContent,
+      heads: [...document.querySelectorAll('.related h4')].map((h) => h.textContent),
+      tiles: [...document.querySelectorAll('.related-row')].map((r) => [...r.querySelectorAll('.related-tile')].map((t) => t.title)) })`);
+    assert(strip.title === 'Steel Horizon' && strip.sub.startsWith('Action'), `the title and its line: ${JSON.stringify(strip)}`);
+    assert(/^Ends at .+ · .+ left$/.test(strip.ends || ''), `the end time: ${strip.ends}`);
+    assert(strip.original === 'Det stille fjellet' && strip.people.length && strip.people.every((h) => h.startsWith('https://www.imdb.com/find/?') && h.includes('s=nm')), `the credits: ${JSON.stringify(strip)}`);
+    assert(/Norwegian/.test(strip.audio || ''), `the sound's language: ${strip.audio}`);
+    assert(JSON.stringify(strip.heads) === JSON.stringify(['Other versions', 'In the same series']) && strip.tiles[0].length === 2 && strip.tiles[1].length === 2
+      && strip.tiles[1][0].includes('The Return'), `the related titles: ${JSON.stringify(strip)}`);
+    // Played to its last minutes, the film is marked seen in the history and on its cover.
+    const fresh = await evaluate(page, `(async () => (await ${cardOf('5000')})?.querySelector('.card-flag.watched')?.textContent || null)()`);
+    await evaluate(page, `(() => { const v = document.getElementById('video'); v.currentTime = v.duration * 0.98; })()`);
+    await waitFor(page, `(async () => { const { state } = ${app}; return state.recents.find((r) => r.k === 1 && r.id === '5000')?.seen > 0; })()`, 'the film marked seen', 20000)
+      .catch(async (err) => { throw new Error(`${err.message}: ${await evaluate(page, `(async () => { const { state } = ${app}; const v = document.getElementById('video');
+        return JSON.stringify({ t: v.currentTime, d: v.duration, ended: v.ended, paused: v.paused, playing: state.playing?.id, resumeOn: state.settings.resumeEnabled,
+          recent: state.recents.filter((r) => r.k === 1).slice(0, 3).map((r) => [r.id, r.seen]) }); })()`)}`); });
+    const marked = await evaluate(page, `(async () => (await ${cardOf('5000')})?.querySelector('.card-flag.watched')?.textContent || null)()`);
+    assert(fresh === null && marked === '✓', `the film playing, then seen to its end: ${JSON.stringify([fresh, marked])}`);
+    // A part of the series plays from its tile.
+    await evaluate(page, `document.querySelectorAll('.related-row')[1].querySelector('.related-tile').click()`, { gesture: true });
+    await waitFor(page, `(async () => { const { state } = ${app}; return state.playing && state.playing.id === '90003'; })()`, 'the part from its tile', 20000);
+    return { ok: true, detail: `covers ${JSON.stringify(covers)}; ✓ on the film seen; "${strip.title}" in ${strip.sub}; ${strip.ends}; original "${strip.original}"; sound ${strip.audio}; ${strip.tiles.map((r) => r.length).join(' + ')} related, ✓ once played to its end, a part played from its tile` };
+  } finally {
+    process.env.KEPULI_MOCK_VERSIONS = '';
+  }
+}
+
 const SCENARIOS = { buffering, livebuffering, filmbuffering, emptyfile, tsasmp4, refusedfile, badgateway, livebadgateway, channelrefused, noanswer, longfilm, catalogUi, setupClarity, welcome, fullscreenControl, clickpause, pickers, touchcaret, screenbutton, topmenu, scrollbars, channels, home, resumemkv, restore, programmes, catchup, seek, death, cancel, timeout, search, paste, keys, switching, resume, connections, livezap, livequiet, reconnect, accounts, listerror, a11y, subtitles, audio, wasmaudio, settings,
   lastchannel, nextepisode, continuewatching, reminders, update, seeklag, cuesretry, quota, catchupfreeze, catchupfull, twotabs, switchstop, resettabs,
-  refresh, restorenav, guidekeep, m3u, sync, holes, picks, flakyserver, accountform, stalker, record, guidefavs, categories, homecountry, noleak, perf, pseudo, startup, soak, phone, episodenames, gotochannel };
+  refresh, restorenav, guidekeep, m3u, sync, holes, picks, flakyserver, accountform, stalker, record, guidefavs, categories, homecountry, noleak, perf, pseudo, startup, soak, phone, episodenames, gotochannel, filmdetails };
 // The mock's whole-list answers stall for these, longer than the request limit.
 const SLOW_LIST_MS = { cancel: 60000, timeout: 60000 };
 // The media is sent slowly for these: the seek targets must lie outside the

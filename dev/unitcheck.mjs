@@ -31,6 +31,7 @@ import { searchProgrammes, mergeSorted, searchableChannels, groupResults } from 
 import { Epg } from '../js/epg.js';
 import { probeCacheTtl } from '../js/probe.js';
 import { formatRoute, parseRoute } from '../js/route.js';
+import { titleWithoutYear, nameTags, versionLabels, franchiseKey, relatedTitles, isNew } from '../js/titlemeta.js';
 import { boxHeader, parseMoov } from '../js/mp4file.js';
 import { parseM3u, parseExtinf, classify, episodeOf, isDivider, shortHash, fillCatchup, catchupAddress, playlistAddress } from '../js/m3u.js';
 import { parseXmltv, parseXmltvTime, decodeXml, settle, channelMatchKey } from '../js/xmltv.js';
@@ -747,6 +748,26 @@ check('orderedLanguageNames: an unknown language is named, and last',
 // The address is written from the view and read back into one, so what
 // matters is that the pair agree: every place the player can be in must
 // survive the trip through the address bar.
+{
+  check('a title loses its own year at the end', [titleWithoutYear('Luottomies-elokuva: All in - 2024', 2024), titleWithoutYear('Iron Tide (2009)', 2009), titleWithoutYear('Blade Runner 2049', 1982), titleWithoutYear('2012', 2009)],
+    ['Luottomies-elokuva: All in', 'Iron Tide', 'Blade Runner 2049', '2012']);
+  check('a name\'s tags say which copy it is', nameTags('Lakana [Multi-Sub] 4K (2022)'), ['Multi-Sub', '4K']);
+  const film = (id, n, extra = {}) => ({ id, k: 1, n, year: 2022, ext: 'mp4', ...extra });
+  const labels = versionLabels([film('1', 'Lakana - 2022', { ext: 'mkv' }), film('2', 'Lakana - 2022'), film('3', 'Other - 2022'),
+    film('4', 'Marian paratiisi - 2019', { year: 2019 }), film('5', 'Marian paratiisi 4K - 2019', { year: 2019 }), film('6', 'Same - 2022'), film('7', 'Same - 2022'), film('8', 'Other 4K - 2022')]);
+  check('copies of one film are told apart by what differs', [labels.get('1:1'), labels.get('1:2'), labels.get('1:3'), labels.get('1:5'), labels.get('1:4'), labels.get('1:7'), labels.get('1:8')],
+    [['MKV'], ['MP4'], { version: 1 }, ['4K'], { version: 1 }, { version: 2 }, ['4K']]);
+  check('a series of films shares the part before the colon or the number',
+    [franchiseKey('Luottomies-elokuva: All in - 2024', 2024), franchiseKey('Luottomies-elokuva: Lepoloma'), franchiseKey('Iron Tide 2'), franchiseKey('Iron Tide'), franchiseKey('Love')],
+    ['luottomies-elokuva', 'luottomies-elokuva', 'iron tide', 'iron tide', null]);
+  const all = [film('a', 'Luottomies-elokuva: All in - 2024', { year: 2024 }), film('b', 'Luottomies-elokuva: Lepoloma - 2022'),
+    film('c', 'Luottomies-elokuva: All in - 2024', { year: 2024, ext: 'mkv' }), film('d', 'Something else - 2022'), film('e', 'Luottomies-elokuva: Lepoloma - 2022', { ext: 'mkv' })];
+  const related = relatedTitles(all[0], all);
+  check('the other copies and the other parts of a film', [related.versions.map((x) => x.id), related.parts.map((x) => x.id)], [['c'], ['b']]);
+  const now = Date.UTC(2026, 10, 5);
+  check('new for two weeks after the provider added it', [isNew({ added: now - 3 * 86400e3 }, now), isNew({ added: now - 20 * 86400e3 }, now), isNew({}, now), isNew({ added: now + 86400e3 }, now)], [true, false, false, false]);
+}
+
 const trip = (view) => parseRoute(formatRoute(view));
 check('the tab alone', formatRoute({ tab: 'live' }), '#/live');
 check('a group within it', formatRoute({ tab: 'live', group: 'Finland' }), '#/live/Finland');

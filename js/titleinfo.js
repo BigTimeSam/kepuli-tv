@@ -1,7 +1,8 @@
 import { t } from './i18n.js';
 import { duration, nf } from './format.js';
-import { titleLinks } from './titlelinks.js';
-import { languageSummary, orderedLanguageNames, shortLanguage } from './lang.js';
+import { personUrl, titleLinks } from './titlelinks.js';
+import { searchKey } from './name.js';
+import { languageName, languageSummary, orderedLanguageNames, shortLanguage } from './lang.js';
 import { ratingText } from './rating.js';
 
 /** "H264 (720p)", "AAC (2 ch)": the format, and what it carries in brackets. */
@@ -41,26 +42,54 @@ export function titleFacts(info, { episodes, seasons, duration: withDuration = f
  * out. The cast is the provider's own list, cut to its first names where
  * it runs long — the whole of it in the tooltip.
  */
-export function titleCredits(info) {
+/**
+ * Names as links to their search on IMDb, a comma between them; the rest
+ * after `limit` behind "…", with the whole list in the tooltip.
+ */
+function people(names, limit) {
+  const frag = document.createDocumentFragment();
+  names.slice(0, limit).forEach((name, i) => {
+    if (i) frag.append(', ');
+    const a = document.createElement('a');
+    a.href = personUrl(name);
+    a.target = '_blank';
+    a.rel = 'noopener noreferrer';
+    a.className = 'person';
+    a.textContent = name;
+    a.title = t('links.person', { name });
+    frag.append(a);
+  });
+  if (names.length > limit) frag.append(' …');
+  return frag;
+}
+
+export function titleCredits(info, { title = '' } = {}) {
   const list = document.createElement('dl');
   list.className = 'title-credits';
   if (!info) return list;
-  const add = (key, value, title = '') => {
-    const text = String(value ?? '').trim();
-    if (!text) return;
+  const add = (key, value, tooltip = '') => {
+    const node = typeof value === 'object' && value ? value : null;
+    const text = node ? '' : String(value ?? '').trim();
+    if (!node && !text) return;
+    if (node && !node.childNodes.length) return;
     const group = document.createElement('div');
     group.className = `title-credit-${key}`;
-    if (title) group.title = title;
+    if (tooltip) group.title = tooltip;
     const label = document.createElement('dt');
     label.textContent = t(`title.${key}`);
     const content = document.createElement('dd');
-    content.textContent = text;
+    if (node) content.append(node); else content.textContent = text;
     group.append(label, content);
     list.append(group);
   };
-  add('director', info.director);
-  const cast = String(info.cast || '').split(/\s*,\s*/).filter(Boolean);
-  add('cast', cast.length > 8 ? `${cast.slice(0, 8).join(', ')} …` : cast.join(', '), cast.length > 8 ? cast.join(', ') : '');
+  // The name it first came out under, when the provider's is another:
+  // a translated title is often the harder one to look up.
+  const original = String(info.originalTitle || '').trim();
+  if (original && searchKey(original) !== searchKey(title || info.title || '')) add('original', original);
+  const split = (value) => String(value || '').split(/\s*,\s*/).filter(Boolean);
+  add('director', people(split(info.director), 4));
+  const cast = split(info.cast);
+  add('cast', people(cast, 8), cast.length > 8 ? cast.join(', ') : '');
   add('country', info.country);
   add('age', info.age);
   // A full date says more than the year the facts already give; a bare
@@ -126,7 +155,11 @@ export function playbackFacts({ ext, video, audio, subtitles, durationSec, bitra
   if (ext) add('format', ext.toUpperCase());
   add('video', video && qualified(video.codec?.toUpperCase(), video.height ? `${video.height}p` : ''));
   if (bitrate > 0) add('bitrate', t('info.bitrate.value', { n: nf.format(Math.round(bitrate)) }));
-  add('audio', audio && qualified(audio.codec?.toUpperCase(), audio.channels ? t('audio.channels', { n: audio.channels }) : ''), { unsupported: audio?.supported === false });
+  // The track's language beside its channels, when the file or the
+  // provider names one: "AAC (6 channels, Finnish)".
+  const spoken = audio && audio.language && shortLanguage(audio.language) !== 'und' ? languageName(shortLanguage(audio.language)) : null;
+  const audioDetail = [audio?.channels ? t('audio.channels', { n: audio.channels }) : '', spoken || ''].filter(Boolean).join(', ');
+  add('audio', audio && qualified(audio.codec?.toUpperCase(), audioDetail), { unsupported: audio?.supported === false });
   if (subtitles) {
     const { total, shown } = subtitles;
     // Bitmap tracks are counted but never named, and an mp4's tracks are

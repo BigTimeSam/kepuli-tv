@@ -168,7 +168,11 @@ the player actually arrives.
 - Movies and series show as covers, as many across as the column has room
   for; the two marks at the foot of the list switch between covers and a
   list, and the choice is remembered. Among covers the arrows move left,
-  right and a line up or down.
+  right and a line up or down. A title the list holds more than once says
+  which copy is which after its facts (**MKV**, **4K**, **Multi-Sub**, or
+  **Version 2** when nothing written differs); a film you have seen to the
+  end carries a ✓ in its top corner, and one the provider added in the last
+  two weeks **New**. The list's rows say the same as badges.
 - Movie and series filters let you narrow titles by release year or rating
   and change their sort order. Filters use the available metadata, so some
   titles may be missing particular details. Active filters remain visible as
@@ -486,6 +490,19 @@ count or duration into labelled fields. **IMDb** opens the title directly when
 its ID is available; otherwise **Search IMDb** uses its name and year. **Trailer**
 appears only for a valid YouTube trailer. Links open in a new tab;
 constructing them requires no external API calls or API keys.
+
+While a film or an episode plays, the line under its facts says when it ends
+and how long is left (**Ends at 21:45 · 52 min left**), moving on with a pause
+and forward with a seek. The director's and the cast's names search IMDb for
+the person; the original title shows when the provider gives one that differs,
+and the sound names its language when the file or the provider does
+(**AAC (6 channels, Finnish)**). Under them, **Other versions** lists the other
+copies of the same film and **In the same series** its other parts
+("Title: The Return", "Title 2"), from the whole catalogue when it has been
+loaded and from the list on screen otherwise; a click plays one. The title above
+the picture leaves out a year at the end of the name, which the facts give,
+and the line under it names the group ("Nordic") rather than the provider's
+category ("Movies: Nordic").
 
 Movie rows show running time (for example, **1h 35 min**) instead of technical
 format badges. Missing durations load for visible rows, with two detail requests

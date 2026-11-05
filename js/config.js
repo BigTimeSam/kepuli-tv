@@ -720,8 +720,10 @@ export async function loadRecents() { return readPersonal('recents', []); }
 export function pushRecent(item) {
   const key = itemKey(item);
   return updatePersonal('recents', /** @type {ListItem[]} */ ([]), (list) => {
+    const before = list.find((r) => itemKey(r) === key);
     const rest = list.filter((r) => itemKey(r) !== key);
-    rest.unshift({ ...item, watchedAt: Date.now() });
+    // Seen to the end once stays seen when it is played again.
+    rest.unshift({ ...item, ...(before?.seen ? { seen: before.seen } : {}), watchedAt: Date.now() });
     return rest.slice(0, MAX_RECENTS);
   });
 }

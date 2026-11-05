@@ -123,9 +123,37 @@ export function cancelAutoNext() {
   autoNext = null;
   showOverlayActions(null);
 }
+/**
+ * Seen to the end: the history says so, for the ✓ on the film's cover
+ * (js/coversui.js). Once per play, the history being written rather than
+ * every five seconds of the credits; and at the end itself as well, as a
+ * last stretch shorter than those five seconds passed without a save.
+ */
+let seenNoted = null;
+function noteSeen(item) {
+  if (!item || item.k === 0 || seenNoted === item) return;
+  seenNoted = item;
+  const key = `${item.k}:${item.id}`;
+  store.patchRecent(key, { seen: Date.now() }).then((recents) => {
+    if (!recents) return;
+    state.recents = recents;
+    vlist.refresh();
+  });
+}
+el.video.addEventListener('ended', () => {
+  const item = state.playing;
+  if (!item || item.k === 0) return;
+  // Seen belongs to the history, which is kept with resume points off too.
+  noteSeen(item);
+  const key = `${item.k}:${item.id}`;
+  if (state.settings.resumeEnabled && state.resume.delete(key)) store.setResume(key, null);
+});
 el.video.addEventListener('timeupdate', () => {
   const item = state.playing;
-  if (!item || item.k === 0 || !state.settings.resumeEnabled) return;
+  if (!item || item.k === 0) return;
+  const { currentTime: at, duration: length } = el.video;
+  if (Number.isFinite(length) && length > 0 && at > length * 0.96) noteSeen(item);
+  if (!state.settings.resumeEnabled) return;
   const now = Date.now();
   if (now - lastResumeSave < 5000) return;
   lastResumeSave = now;

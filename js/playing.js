@@ -8,6 +8,7 @@
 // uses only js/dom.js and the browser; everything else waits until the
 // player calls in).
 
+import { titleWithoutYear } from './titlemeta.js';
 import { $, el } from './dom.js';
 import { ApiError } from './api.js';
 import { Playback } from './playback.js';
@@ -24,7 +25,7 @@ import { shareAs } from './streamhub.js';
 import { streamUrl } from './xtream.js';
 import { t } from './i18n.js';
 import * as store from './config.js';
-import { cast, noteChannel, offerAccess, playerLayout, refreshRows, renderSidebar, state, tabType, updateAddress, updatePlayerLayout, vlist } from './app.js';
+import { cast, groupOfType, noteChannel, offerAccess, playerLayout, refreshRows, renderSidebar, state, tabType, updateAddress, updatePlayerLayout, vlist } from './app.js';
 import { cancelAutoNext } from './nextepisode.js';
 import { leavePlayback, renderAudio, renderSubtitles, sizePicture } from './tracksui.js';
 
@@ -586,7 +587,10 @@ export const channelKey = (config, item) => `${store.accountKey(config)}|${item.
 
 export async function playItem(item, { startAt, allowSilent } = {}) {
   // Snapshot the visible name so later browsing cannot rename playback.
-  const displayName = (state.rows.includes(item) && state.cleanName ? state.cleanName(item.n, item) : null) || shownName(item);
+  const cleaned = (state.rows.includes(item) && state.cleanName ? state.cleanName(item.n, item) : null) || shownName(item);
+  // A film's year is in its details under the picture; at the end of the
+  // title as well it only pushed the title's own words out of the line.
+  const displayName = item.k === 1 || item.k === 2 ? titleWithoutYear(cleaned, item.year) : cleaned;
   item = withCurrentAddress({ ...item, displayName });
   const live = item.k === 0;
   const run = ++playRun;
@@ -674,7 +678,13 @@ export function renderNowSub() {
   // a channel still names its category.
   const type = TYPE_OF_KIND[item.k] || tabType();
   if (state.catchup) bits.push(t('player.catchup', { time: clock(state.catchup.start) }));
-  if (item.cats && item.cats.length && state.lib && type) bits.push(state.lib.categoryName(type, item.cats[0]));
+  // A channel's category says its country and its topic ("Finland -
+  // Sport"); a film's or a series' says "Movies: Finland", of which the
+  // group alone, as the sidebar names it, is the part that tells anything.
+  if (item.cats && item.cats.length && state.lib && type) {
+    const group = type === 'live' ? null : item.cats.map((cat) => groupOfType(type).get(cat)).find(Boolean);
+    bits.push(group || state.lib.categoryName(type, item.cats[0]));
+  }
   if (item.k === 3) bits.push(`S${item.season} E${item.episode}`);
   if (cast.connected) bits.push(t('cast.playing'));
   el.nowSub.textContent = bits.filter(Boolean).join(', ') || '—';

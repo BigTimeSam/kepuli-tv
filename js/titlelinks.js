@@ -26,6 +26,12 @@ export function trailerUrl(value) {
   return /^[\w-]{11}$/.test(id || '') ? `https://www.youtube.com/watch?v=${id}` : '';
 }
 
+/** A person's name searched on IMDb: the only place a name is sent, and only when clicked. */
+export function personUrl(name) {
+  const text = String(name ?? '').trim();
+  return text ? `https://www.imdb.com/find/?${new URLSearchParams({ q: text, s: 'nm' })}` : '';
+}
+
 /** Preserve identifiers before the API response is reduced and cached. */
 export function externalMetadata(info, fallback = {}) {
   const first = (values, parse) => values.map(parse).find(Boolean) || '';

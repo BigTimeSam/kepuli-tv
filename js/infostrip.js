@@ -9,6 +9,7 @@
 
 import { audioDetails, subtitleSummary } from './probe.js';
 import { clock, duration, progressOf } from './format.js';
+import { relatedTitles, titleWithoutYear, versionLabels } from './titlemeta.js';
 import { externalLinks, playbackFacts, titleCredits, titleFacts } from './titleinfo.js';
 import { poster } from './poster.js';
 import { shortLanguage } from './lang.js';
@@ -17,6 +18,7 @@ import { state, vlist } from './app.js';
 import { renderMediaSession } from './playercontrols.js';
 import { el } from './dom.js';
 import { addressChanges, freshItem, probeFor, updateStoredItem } from './coversui.js';
+import { openItem } from './seriesui.js';
 
 export function renderInfoStrip() {
   renderMediaSession();
@@ -95,6 +97,11 @@ export function renderInfoStrip() {
   // line that divides them from the title's.
   const add = (part) => { if (part.childElementCount) body.appendChild(part); };
   add(titleFacts(info || item, { duration: true }));
+  // When it ends, kept up to date as it plays (updateEnds).
+  const ends = document.createElement('p');
+  ends.className = 'vod-ends';
+  ends.id = 'vod-ends';
+  body.appendChild(ends);
   add(externalLinks(item, info));
   // A header that has been read is more precise than the API's data: it
   // knows the audio track and the subtitles, neither of which the API
@@ -102,7 +109,11 @@ export function renderInfoStrip() {
   const probed = probeFor(item);
   const header = probed && !probed.error ? probed : null;
   const video = header?.video || info?.video || item.video;
-  const audio = audioDetails(header, { active: state.activeAudio, language: state.settings.audioLang });
+  // The file's own track first; the provider's word for its language
+  // where the file names none (an MP4's track is often "und").
+  const heard = audioDetails(header, { active: state.activeAudio, language: state.settings.audioLang }) || info?.audio || null;
+  const named = (track) => track?.language && shortLanguage(track.language) !== 'und';
+  const audio = heard && !named(heard) && named(info?.audio) ? { ...heard, language: info.audio.language } : heard;
   const subtitles = subtitleDetails(item, probed);
   body.appendChild(playbackFacts({
     ext: item.ext,
@@ -122,10 +133,87 @@ export function renderInfoStrip() {
     plot.textContent = info.plot;
     body.appendChild(plot);
   }
-  add(titleCredits(info));
+  add(titleCredits(info, { title: item.n }));
+  if (item.k === 1 || item.k === 2) add(relatedPart(item));
   box.appendChild(body);
   el.infostrip.replaceChildren(box);
+  updateEnds();
 }
+
+/**
+ * The other copies of the film and the other parts of its series, from the
+ * whole catalogue when it is in memory and from the list on screen when it
+ * is not: each a small cover with its name, year and what tells a copy
+ * apart, a click playing it as the list would.
+ */
+let related = { item: null, pool: null, found: null };
+function relatedPart(item) {
+  const type = item.k === 1 ? 'movie' : 'series';
+  const pool = state.lib?.full?.[type] || state.rows;
+  // The strip is painted again on every fact that arrives; the catalogue
+  // can hold 55,000 films, read once per film and list.
+  if (related.item !== item || related.pool !== pool) related = { item, pool, found: relatedTitles(item, pool) };
+  const { versions, parts } = related.found;
+  const box = document.createElement('div');
+  box.className = 'related';
+  const labels = versions.length ? versionLabels([item, ...versions]) : new Map();
+  const section = (key, items) => {
+    if (!items.length) return;
+    const head = document.createElement('h4');
+    head.textContent = t(key);
+    const row = document.createElement('div');
+    row.className = 'related-row';
+    for (const other of items) {
+      const tile = document.createElement('button');
+      tile.type = 'button';
+      tile.className = 'related-tile';
+      tile.appendChild(poster('related-cover', other.logo, other.k === 2 ? 'series' : 'movie'));
+      const name = document.createElement('span');
+      name.className = 'related-name';
+      name.textContent = titleWithoutYear(other.n, other.year);
+      const meta = document.createElement('span');
+      meta.className = 'related-meta';
+      const tags = labels.get(`${other.k}:${other.id}`);
+      meta.textContent = [other.year, ...(Array.isArray(tags) ? tags : tags ? [t('cover.version', { n: tags.version })] : [])].filter(Boolean).join(' · ');
+      tile.title = other.n;
+      tile.append(name, meta);
+      tile.addEventListener('click', () => openItem(other));
+      row.appendChild(tile);
+    }
+    box.append(head, row);
+  };
+  section('info.related.versions', versions);
+  section('info.related.parts', parts);
+  return box;
+}
+
+/**
+ * "Ends at 17:45 · 52 min left" for the film or episode playing: from what
+ * is left of it at the speed it plays, so a pause moves the end on and a
+ * seek brings it forward. Nothing for a channel, or before the length is known.
+ */
+export function updateEnds() {
+  const line = document.getElementById('vod-ends');
+  if (!line) return;
+  const video = el.video;
+  const item = state.playing;
+  const total = Number.isFinite(video.duration) && video.duration > 0 ? video.duration : item?.details?.durationSec || item?.durationSec || 0;
+  const left = total > 0 ? Math.max(0, total - (video.currentTime || 0)) / (video.playbackRate || 1) : 0;
+  if (!item || item.k === 0 || left < 60) { line.textContent = ''; line.hidden = true; return; }
+  line.hidden = false;
+  line.textContent = `${t('info.ends', { time: clock(Date.now() + left * 1000) })} · ${t('info.left', { time: duration(left) })}`;
+}
+
+// The end moves as the film plays, is paused or is sought in; a minute's
+// steps are enough for a clock that shows minutes.
+let endsAt = 0;
+el.video.addEventListener('timeupdate', () => {
+  if (Date.now() - endsAt < 15000) return;
+  endsAt = Date.now();
+  updateEnds();
+});
+for (const type of ['seeked', 'ratechange', 'play', 'pause', 'durationchange']) el.video.addEventListener(type, updateEnds);
+setInterval(updateEnds, 30000);
 
 /**
  * The subtitles of the file, for the details: what the player found once it

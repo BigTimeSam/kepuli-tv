@@ -67,6 +67,7 @@ import { directSource, serverStamp } from './xtream.js';
  * @property {string} [plot]
  * @property {number|null} [rating]
  * @property {number} [ratingScale]
+ * @property {number} [added] when the provider added it, in milliseconds (films and series)
  * @property {object} [details] a film's details once they have been fetched, see js/library.js
  */
 
@@ -358,6 +359,7 @@ export class XtreamApi {
       releaseDate: info.releaseDate || info.release_date || '',
       country: info.country || '',
       age: info.age || info.mpaa_rating || '',
+      originalTitle: info.o_name || info.original_name || '',
       ...externalMetadata(info),
       cover: safeUrl(info.cover),
       rating: providerRating(info),
@@ -382,6 +384,7 @@ export class XtreamApi {
       releaseDate: info.releasedate || info.release_date || '',
       country: info.country || '',
       age: info.age || info.mpaa_rating || '',
+      originalTitle: info.o_name || info.original_name || '',
       cover: safeUrl(info.movie_image) || safeUrl(info.cover_big),
       rating: providerRating(info),
       ratingScale: 10,
@@ -488,6 +491,8 @@ function codecInfo(track) {
   const out = { codec: track.codec_name };
   if (track.width) { out.width = Number(track.width); out.height = Number(track.height) || 0; }
   if (track.channels) out.channels = Number(track.channels);
+  const language = track.tags?.language || track.language;
+  if (typeof language === 'string' && /^[a-z]{2,3}$/i.test(language)) out.language = language.toLowerCase();
   return out;
 }
 
@@ -569,7 +574,19 @@ function normalizeMovie(s) {
     ratingScale: 10,
     direct: directSource(s.direct_source),
     num: Number(s.num) || 0,
+    added: addedAt(s.added),
   };
+}
+
+/**
+ * When the provider added a title, from its seconds since 1970; 0 when it
+ * gives none or nonsense.
+ * @param {any} value
+ * @returns {number}
+ */
+function addedAt(value) {
+  const seconds = Number(value);
+  return Number.isFinite(seconds) && seconds > 0 ? seconds * 1000 : 0;
 }
 
 /**
@@ -600,6 +617,7 @@ function normalizeSeries(s) {
     ratingScale: 10,
     year: releaseYear(s.releaseDate || s.release_date || s.year, s.name),
     num: Number(s.num) || 0,
+    added: addedAt(s.last_modified),
   };
 }
 

@@ -627,9 +627,26 @@ const publicSeries = (origin, s) => ({ ...s, cover: origin + s.cover });
 // times the list and the scroll with it. Made once per N and kept, like the
 // rest, from fixed numbers rather than chance.
 let bulk = { n: 0, list: [] };
+// KEPULI_MOCK_VERSIONS: the first film twice more, as providers list one
+// film in several files (the same name as an MKV, and "4K" in the name),
+// and two later parts of it ("<title>: The Return", "<title> 2"), for the
+// covers' version tags and the details' other versions and parts; its
+// details then give an original title and a language for the sound
+// (filmDetails scenario).
+function versionsOf(movies) {
+  if (!process.env.KEPULI_MOCK_VERSIONS) return movies;
+  const first = movies[0];
+  const copy = (id, name, year, ext) => ({ ...first, num: id - 4999, stream_id: id, name, year, container_extension: ext });
+  return [...movies,
+    copy(90001, first.name, first.year, 'mkv'),
+    copy(90002, `${first.title} 4K (${first.year})`, first.year, first.container_extension),
+    copy(90003, `${first.title}: The Return (${first.year + 3})`, first.year + 3, 'mp4'),
+    copy(90004, `${first.title} 2 (${first.year + 5})`, first.year + 5, 'mp4')];
+}
+
 function moviesWithBulk() {
   const n = Number(process.env.KEPULI_MOCK_BULK) || 0;
-  if (!n) return vod.movies;
+  if (!n) return versionsOf(vod.movies);
   if (bulk.n !== n) {
     const nordic = vod.categories.find((c) => c.category_name === 'Movies: Nordic');
     bulk = { n, list: Array.from({ length: n }, (_, i) => ({
@@ -639,7 +656,7 @@ function moviesWithBulk() {
       category_id: nordic.category_id, category_ids: [Number(nordic.category_id)], container_extension: 'mp4', custom_sid: '', direct_source: '',
     })) };
   }
-  return [...vod.movies, ...bulk.list];
+  return versionsOf([...vod.movies, ...bulk.list]);
 }
 
 function api(req, res, url) {
@@ -677,13 +694,15 @@ function api(req, res, url) {
       return send(res, 200, { seasons: info.seasons.map((s) => ({ ...s, cover: origin + s.cover })), info: publicSeries(origin, info.info), episodes });
     }
     case 'get_vod_info': {
-      const m = vod.movies.find((x) => String(x.stream_id) === q.get('vod_id'));
+      const m = versionsOf(vod.movies).find((x) => String(x.stream_id) === q.get('vod_id'));
+      const versions = Boolean(process.env.KEPULI_MOCK_VERSIONS);
       if (!m) return send(res, 200, { info: {}, movie_data: {} });
       return send(res, 200, {
         info: {
           movie_image: origin + m.stream_icon, cover_big: origin + m.stream_icon, plot: m.plot, cast: m.cast, director: m.director, genre: m.genre,
           releasedate: `${m.year}-01-01`, country: 'Norway, Sweden', age: '12', rating: m.rating, duration_secs: m.duration * 60, duration: `${Math.floor(m.duration / 60)}:${String(m.duration % 60).padStart(2, '0')}:00`,
-          video: { codec_name: 'h264', width: 1920, height: 1080 }, audio: { codec_name: 'aac', channels: 2 }, bitrate: 4200, youtube_trailer: '',
+          video: { codec_name: 'h264', width: 1920, height: 1080 }, audio: { codec_name: 'aac', channels: 2, ...(versions ? { tags: { language: 'nor' } } : {}) }, bitrate: 4200, youtube_trailer: '',
+          ...(versions ? { o_name: 'Det stille fjellet' } : {}),
         },
         movie_data: { stream_id: m.stream_id, name: m.name, added: m.added, category_id: m.category_id, container_extension: m.container_extension, custom_sid: '', direct_source: '' },
       });

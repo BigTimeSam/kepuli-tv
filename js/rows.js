@@ -168,6 +168,14 @@ export function posterCard(item, ctx) {
     bar.appendChild(fill);
     cover.appendChild(bar);
   }
+  // Seen to the end, or new from the provider, in the cover's top corner,
+  // away from the star's: one of the two, as a title seen is not new.
+  const flag = ctx.watched ? ['watched', '✓', t('cover.watched')] : ctx.isNew ? ['new', t('cover.new'), t('cover.new.title')] : null;
+  if (flag) {
+    const mark = el('span', `card-flag ${flag[0]}`, flag[1]);
+    mark.title = flag[2];
+    cover.appendChild(mark);
+  }
   card.appendChild(cover);
   card.appendChild(quiet(star(ctx.favorite, ctx.onFavorite, 'row-star card-star')));
 
@@ -182,8 +190,18 @@ export function posterCard(item, ctx) {
   if (rating) bits.push(rating);
   const seconds = item.k === 1 ? item.details?.durationSec || item.durationSec || ctx.resume?.duration : 0;
   if (Number.isFinite(seconds) && seconds > 0) bits.push(duration(seconds, { compact: true }));
-  card.appendChild(el('div', 'card-meta', bits.join(', ') || '\u00a0'));
-  nameOption(card, [ctx.label || item.n, ctx.favorite ? t('favs.title') : null, bits.join(', ')]);
+  const meta = el('div', 'card-meta', bits.join(', ') || '\u00a0');
+  const tags = versionTags(ctx.versions);
+  // Which copy this is, when the list holds the title more than once: on
+  // the facts' own line, as the grid's lines are all one height.
+  // First, as the facts' end goes to an ellipsis when the line is full.
+  if (tags.length) {
+    if (!bits.length) meta.textContent = '';
+    meta.prepend(...tags.map((tag) => el('span', 'card-tag', tag)));
+  }
+  card.appendChild(meta);
+  nameOption(card, [ctx.label || item.n, ctx.favorite ? t('favs.title') : null, bits.join(', '), ...tags,
+    flag ? flag[2] : null]);
 
   card.addEventListener('click', ctx.onOpen);
   return card;
@@ -314,8 +332,17 @@ export const KIND_ICONS = {
 };
 
 /** The badges, each with the words a screen reader says for it in the row's name. */
+/** The words for ctx.versions (js/titlemeta.js, versionLabels): the tags, or "Version 2". */
+function versionTags(versions) {
+  if (!versions) return [];
+  return Array.isArray(versions) ? versions.slice(0, 3) : [t('cover.version', { n: versions.version })];
+}
+
 function badges(item, ctx) {
   const out = [];
+  for (const tag of versionTags(ctx.versions)) out.push([el('div', 'row-badge version', tag), tag]);
+  if (ctx.watched) out.push([explained(el('div', 'row-badge watched', '✓'), t('cover.watched')), t('cover.watched')]);
+  else if (ctx.isNew) out.push([el('div', 'row-badge new', t('cover.new')), t('cover.new.title')]);
   // A channel's archive is not said here: it is used from the programme
   // guide, which marks it on the channel, and on a list row the badge only
   // raised the question of what to do with it.

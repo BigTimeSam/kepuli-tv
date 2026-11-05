@@ -1739,7 +1739,7 @@ export async function goToChannel(channel) {
   if (guideOpen) closeGuide();
   playerLayout.showBrowse();
   const visible = visibleGroups('live');
-  const group = state.lib?.groupOf('live', channel.cats);
+  const group = (channel.cats || []).map((cat) => groupOfType('live').get(cat)).find(Boolean) ?? null;
   // A country the viewer has not chosen is not in the sidebar: All has it.
   const target = group && visible.some((g) => g.name === group) ? group : null;
   if (state.tab !== 'live') await activateTab('live');

@@ -642,6 +642,21 @@ button.series-favorite { flex: none; width: 32px; height: 32px; padding: 0; disp
 .title-links a > span { color: var(--muted); }
 .title-links a:hover { border-color: var(--accent); color: var(--text); }
 .title-links a:focus-visible { outline: 2px solid var(--accent-ink); outline-offset: 2px; }
+/* When the film playing ends, under its facts. */
+.vod-ends { margin: -4px 0 0; color: var(--muted); font-size: 0.75rem; font-variant-numeric: tabular-nums; }
+.vod-ends[hidden] { display: none; }
+/* Credits: each name a quiet link to its search on IMDb. */
+.title-credits a.person { color: inherit; text-decoration: none; border-bottom: 1px dotted var(--border-strong); }
+.title-credits a.person:hover, .title-credits a.person:focus-visible { color: var(--accent-ink); border-bottom-color: currentColor; }
+/* The other copies and the other parts of a series of films, as small covers in a row. */
+.related { display: grid; gap: 8px; margin-top: 4px; }
+.related h4 { margin: 6px 0 0; color: var(--muted); font-size: 0.6875rem; font-weight: 600; letter-spacing: .06em; text-transform: uppercase; }
+.related-row { display: flex; gap: 12px; overflow-x: auto; padding-bottom: 4px; }
+.related-tile { flex: none; width: 96px; display: flex; flex-direction: column; gap: 3px; padding: 0; border: 0; background: transparent; color: var(--text); text-align: left; cursor: pointer; font: inherit; }
+.related-cover { width: 96px; aspect-ratio: 2 / 3; border-radius: 6px; }
+.related-tile:hover .related-cover, .related-tile:focus-visible .related-cover { box-shadow: 0 0 0 2px var(--accent-2); }
+.related-name { font-size: 0.75rem; font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.related-meta { font-size: 0.6875rem; color: var(--muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .vodinfo-body { min-width: 0; flex: 1; }
 .vodinfo .title-links { margin-top: 0; margin-bottom: 10px; }
 .infostrip:has(.title-facts) { max-height: 210px; }
@@ -841,6 +856,15 @@ button.group-star, button.group-star:hover, .group.active .group-star:hover { wi
 .row.card.playing .card-poster { box-shadow: 0 0 0 2px var(--accent); }
 .card-poster .row-progress { position: absolute; left: 6px; right: 6px; bottom: 6px; width: auto; margin: 0; background: rgba(10, 12, 17, .7); }
 .card-star { position: absolute; top: 5px; left: 5px; background: rgba(10, 12, 17, .72); }
+/* Seen to the end, or new from the provider: the cover's top right corner,
+   the star having the left. */
+.card-flag { position: absolute; top: 6px; right: 6px; padding: 2px 7px; border-radius: 999px; font-size: 0.6875rem; font-weight: 650; line-height: 1.4; pointer-events: none; }
+.card-flag.new { background: var(--accent); color: #fff; }
+.card-flag.watched { min-width: 1.4em; text-align: center; background: rgba(10, 12, 17, .78); color: #7ee2a8; }
+/* Which copy of a title this is, after the facts on their line. */
+.card-tag { display: inline-block; margin-right: 5px; padding: 0 5px; border: 1px solid var(--border-strong); border-radius: 4px; font-size: 0.625rem; font-weight: 600; line-height: 1.5; color: var(--text); vertical-align: 1px; }
+.row-badge.new { color: #fff; background: var(--accent); border-color: var(--accent); }
+.row-badge.watched { color: #2fae6b; }
 /* The disc under the star is dark in either theme, and so are the star's
    colours: the light theme's grey was 2.2:1 on it, and its gold darker
    still. Three classes, to outlast the row star's colours in either
