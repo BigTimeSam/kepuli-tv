@@ -67,7 +67,7 @@ passwords**, the MAC address being as good as a password.
 
 ## Recording
 
-Recording is off until it is turned on under **Settings › Viewing › Enable
+Recording is off until it is turned on under **Settings › Playback › Enable
 recording**. Turning it on first shows a reminder — record only programmes you
 have the right to watch, for your own use, and never share recordings — and the
 box stays ticked only when that is acknowledged with **I understand, turn it
@@ -309,7 +309,7 @@ interrupted channel-list load restores the previous list.
   on the row; what was left halfway heads the history under **Continue
   watching**
 - **The next episode** after a ten-second countdown when one ends, with **Play
-  now** and **Cancel** over the picture; a switch under **Viewing** turns it off
+  now** and **Cancel** over the picture; a switch under **Playback** turns it off
 - **The previous channel** with `l`, as a television's own button has it
 - **Programme reminders** from the guide: a minute before the programme starts,
   a message names it with **Watch** — while the player is open
@@ -498,12 +498,13 @@ language at all, and there the count stands instead, beside the warning.
 
 ## Settings
 
-Settings always opens on **Connection**, with four focused tabs:
+Settings always opens on **Connection**, with five focused tabs:
 
 | Section | Holds |
 | --- | --- |
 | **Connection** | the provider address and credentials, entered as Xtream Codes fields, an M3U address, or a Stalker portal and its MAC address |
-| **Viewing** | interface language, the channel order, the appearance (dark, light, or the system's), the countries, the international channels, automatic programme data, remembered playback positions, the next episode and the technical read-out over the picture |
+| **Viewing** | interface language, the channel order, the appearance (dark, light, or the system's), the clock, the countries, the international channels, automatic programme data and the sections of the player's own page |
+| **Playback** | remembered playback positions, the next episode, the stream statistics over the picture and recording |
 | **Subtitles** | style and size, with a local preview |
 | **Account & data** | subscription details and cache information; an expandable **Manage stored data** section contains cache clearing and reset; the version running, and the update when one is waiting |
 
