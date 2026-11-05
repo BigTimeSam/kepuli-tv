@@ -65,10 +65,11 @@ const clampScale = (n) => Math.min(MAX_SCALE, Math.max(MIN_SCALE, Math.round(n /
 // on a 16:10 screen a 16:9 film has a bar of some 65 px under it — 6 % of
 // the box is 59 px, and the subtitles sat in the bar. SMPTE's title-safe
 // area, which Netflix points to, keeps text 5 % in from the picture's
-// edges; 8 % is inside it with room to spare. The viewer may set 0–30 %.
+// edges; 8 % was inside it with room to spare. The default has been 12 %
+// since 2026-11-05, as the owner chose it. The viewer may set 0–30 %.
 export const MIN_LIFT = 0;
 export const MAX_LIFT = 30;
-export const DEFAULT_LIFT = 8;
+export const DEFAULT_LIFT = 12;
 const clampLift = (n) => Math.min(MAX_LIFT, Math.max(MIN_LIFT, Math.round(n)));
 
 /**

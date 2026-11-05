@@ -18,7 +18,7 @@ import { playerLayout, state, updateAddress, updatePlayerLayout, vlist } from '.
 import { updateSetupActions } from './setupui.js';
 import { cancelAutoNext } from './nextepisode.js';
 import { renderAudio, renderSubtitles, sizePicture } from './tracksui.js';
-import { channelKey, itemAddress, newPlayRun, playItem, playback, renderNowSub } from './playing.js';
+import { channelKey, itemAddress, newPlayRun, playItem, playback, renderNowLogo, renderNowSub } from './playing.js';
 import { toast } from './toast.js';
 import { $, el } from './dom.js';
 import { grid, guideOpen, refreshGuidePreview } from './guideui.js';
@@ -352,6 +352,7 @@ async function playRecording(r) {
   $('btn-live').hidden = true;
   el.nowTitle.textContent = `${r.title} — ${t('rec.recorded', { time: dateTimeFmt.format(new Date(r.startedAt || r.start)) })}`;
   el.nowTitle.title = r.title;
+  renderNowLogo(null);
   el.nowSub.textContent = r.channel?.displayName || r.channel?.n || '';
   renderInfoStrip();
   renderRecordingState();
@@ -403,6 +404,7 @@ export function playCatchup(item, programme, { from = 0 } = {}) {
   $('btn-live').hidden = false;
   el.nowTitle.textContent = `${item.n} — ${programme.title}`;
   el.nowTitle.title = item.n;
+  renderNowLogo(item);
   updateAddress();
   renderNowSub();
   renderInfoStrip();

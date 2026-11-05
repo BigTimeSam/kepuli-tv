@@ -1,6 +1,7 @@
 import { t, localeTag } from './i18n.js';
 import { ratingValue } from './rating.js';
 import { isPicking } from './picker.js';
+import { duration } from './format.js';
 
 export function releaseYear(value, name = '') {
   const explicit = /^(18\d{2}|19\d{2}|20\d{2}|21\d{2})(?:$|-)/.exec(String(value || '').trim());
@@ -16,10 +17,14 @@ export function mediaFacts(item, details = item.details) {
     year: releaseYear(details?.releaseDate || item.year, item.n),
     genres,
     rating: ratingValue(details) || ratingValue(item),
+    // Whole minutes, 0 when unknown: the list gives a film's length for
+    // some providers, its details for the rest once they have been read.
+    minutes: Math.round((Number(details?.durationSec) || Number(item.durationSec) || 0) / 60),
   };
 }
 
-export const emptyFilters = () => ({ year: '', genre: '', rating: '', sort: '' });
+// length is "from:to" in minutes, both ends included; '' is any length.
+export const emptyFilters = () => ({ year: '', genre: '', rating: '', length: '', sort: '' });
 
 export function filterMedia(entries, filters) {
   const results = entries.filter(({ facts }) => {
@@ -30,6 +35,12 @@ export function filterMedia(entries, filters) {
     }
     if (filters.genre === 'missing' ? facts.genres.length : filters.genre && !facts.genres.includes(filters.genre)) return false;
     if (filters.rating === 'missing' ? facts.rating : filters.rating && facts.rating < Number(filters.rating)) return false;
+    if (filters.length) {
+      // A film whose length is not known is left out, as one without a
+      // year is when a year is chosen: it cannot be said to fit.
+      const [from, to] = filters.length.split(':').map(Number);
+      if (!facts.minutes || facts.minutes < from || facts.minutes > to) return false;
+    }
     return true;
   });
   if (filters.sort) results.sort((a, b) => {
@@ -82,6 +93,7 @@ export class MediaFilters {
         this.onChange();
       });
     }
+    controls.append(this.lengthControl());
     const foot = document.createElement('div');
     foot.className = 'media-filter-footer';
     this.note = document.createElement('span');
@@ -94,7 +106,99 @@ export class MediaFilters {
 
   get filtering() {
     const value = this.values[this.type];
-    return Boolean(value && (value.year || value.genre || value.rating));
+    return Boolean(value && (value.year || value.genre || value.rating || value.length));
+  }
+
+  /**
+   * A film's length, from the shortest to the longest the list holds: two
+   * handles on one track. The list is filtered when a handle is let go,
+   * not while it moves (55,000 films filtered on every step of a drag
+   * would make the handle lag); the words beside the label follow the
+   * drag. The handles cannot cross: the one moved pushes the other.
+   */
+  lengthControl() {
+    const label = document.createElement('label');
+    label.className = 'wide length-filter';
+    const head = document.createElement('span');
+    head.className = 'range-label';
+    this.lengthLabel = document.createElement('span');
+    this.lengthText = document.createElement('output');
+    head.append(this.lengthLabel, this.lengthText);
+    const pair = document.createElement('div');
+    pair.className = 'range-pair';
+    this.lengthInputs = ['from', 'to'].map((end) => {
+      const input = document.createElement('input');
+      input.type = 'range';
+      input.step = '5';
+      input.dataset.end = end;
+      pair.append(input);
+      return input;
+    });
+    const [from, to] = this.lengthInputs;
+    const moved = (input) => {
+      if (Number(from.value) > Number(to.value)) {
+        if (input === from) to.value = from.value; else from.value = to.value;
+      }
+      this.showLength();
+    };
+    for (const input of this.lengthInputs) {
+      input.addEventListener('input', () => moved(input));
+      input.addEventListener('change', () => {
+        const all = Number(from.value) <= Number(from.min) && Number(to.value) >= Number(to.max);
+        this.values[this.type].length = all ? '' : `${from.value}:${to.value}`;
+        this.onChange();
+      });
+    }
+    label.append(head, pair);
+    this.lengthField = label;
+    return label;
+  }
+
+  /** The range in words, and the track's lit part between the handles. */
+  showLength() {
+    const [from, to] = this.lengthInputs;
+    const min = Number(from.min), max = Number(from.max);
+    const all = Number(from.value) <= min && Number(to.value) >= max;
+    this.lengthText.textContent = all ? t('filters.anyLength')
+      : `${duration(Number(from.value) * 60, { compact: true })} – ${duration(Number(to.value) * 60, { compact: true })}`;
+    const share = (v) => `${max > min ? ((Number(v) - min) / (max - min)) * 100 : 0}%`;
+    this.lengthField.style.setProperty('--from', share(from.value));
+    this.lengthField.style.setProperty('--to', share(to.value));
+  }
+
+  /**
+   * The track's ends from the films the list holds, rounded out to ten
+   * minutes; hidden for series, whose list has no lengths, and where fewer
+   * than two lengths are known, unless a choice is in force.
+   */
+  renderLength(entries, type, filters) {
+    // A loop rather than Math.min(...list): 55,000 arguments is past what
+    // an engine promises to take.
+    let known = 0, low = Infinity, high = 0;
+    for (const { facts } of entries) {
+      if (!(facts.minutes > 0)) continue;
+      known++;
+      low = Math.min(low, facts.minutes);
+      high = Math.max(high, facts.minutes);
+    }
+    let min = known ? Math.floor(low / 10) * 10 : 0;
+    let max = known ? Math.ceil(high / 10) * 10 : 0;
+    const chosen = filters.length ? filters.length.split(':').map(Number) : null;
+    if (chosen) { min = Math.min(min || chosen[0], chosen[0]); max = Math.max(max, chosen[1]); }
+    this.lengthField.hidden = type !== 'movie' || (!chosen && (known < 2 || max - min < 10));
+    if (this.lengthField.hidden) return;
+    this.lengthLabel.textContent = t('title.duration');
+    const [from, to] = this.lengthInputs;
+    from.setAttribute('aria-label', `${t('title.duration')}: ${t('filters.length.from')}`);
+    to.setAttribute('aria-label', `${t('title.duration')}: ${t('filters.length.to')}`);
+    // An input is left alone while it is being dragged: the list's details
+    // arriving would otherwise move the handle under the finger.
+    if (document.activeElement && this.lengthInputs.includes(/** @type {HTMLInputElement} */ (document.activeElement)) && !chosen) return;
+    for (const input of this.lengthInputs) { input.min = String(min); input.max = String(max); }
+    from.value = String(chosen ? chosen[0] : min);
+    to.value = String(chosen ? chosen[1] : max);
+    this.lengthField.classList.toggle('active', Boolean(chosen));
+    this.showLength();
   }
 
   clear() {
@@ -168,12 +272,13 @@ export class MediaFilters {
       field.select.value = filters[key];
       field.select.classList.toggle('active', Boolean(filters[key]));
     }
+    this.renderLength(entries, type, filters);
     const active = Object.values(filters).some(Boolean);
     this.caption.textContent = t('filters.title') + (active ? ' •' : '');
     this.count.textContent = `${results.length.toLocaleString(localeTag())} / ${rows.length.toLocaleString(localeTag())}`;
     this.reset.textContent = t('filters.reset');
     this.reset.disabled = !active;
-    const missing = entries.some(e => !e.facts.year || !e.facts.rating || (type === 'series' && !e.facts.genres.length));
+    const missing = entries.some(e => !e.facts.year || !e.facts.rating || (type === 'series' && !e.facts.genres.length) || (type === 'movie' && !e.facts.minutes));
     // The genre field is hidden on movies because a film's genre there is
     // the provider's own category. A control that is present on Series and
     // gone on Movies needs to say why rather than leave it to be noticed.
@@ -191,7 +296,8 @@ export class MediaFilters {
     for (const [key, value] of Object.entries(filters)) {
       if (!value) continue;
       const field = this.fields[key];
-      const label = `${field.text.textContent}: ${field.select.selectedOptions[0]?.textContent || value}`;
+      const label = key === 'length' ? `${t('title.duration')}: ${this.lengthText.textContent}`
+        : `${field.text.textContent}: ${field.select.selectedOptions[0]?.textContent || value}`;
       const button = document.createElement('button');
       button.type = 'button';
       button.className = 'filter-chip';

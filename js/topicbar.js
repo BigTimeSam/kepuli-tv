@@ -278,6 +278,53 @@ export function renderListInfo() {
     spacer.className = 'spacer';
     el.listinfo.append(spacer, viewToggle());
   }
+  // The channel order at the foot of a channel list, as the films have
+  // list or covers there: the same choice as Settings' Channel order, a
+  // press away. A search and the favourites keep their own order.
+  if (state.tab === 'live' && !state.detail && !state.query && state.lib && !isCollection()) {
+    if (!el.listinfo.querySelector('.spacer')) {
+      const spacer = document.createElement('span');
+      spacer.className = 'spacer';
+      el.listinfo.append(spacer);
+    }
+    el.listinfo.append(channelOrderToggle());
+  }
+}
+
+// Name and number, as marks: an A with the arrow down the alphabet, and a #.
+const ORDER_MARKS = [
+  ['az', '<path d="M3.5 15 7 5l3.5 10M4.7 11.6h4.6M15 4.5v11M12.6 13.2 15 15.6l2.4-2.4"/>'],
+  ['num', '<path d="M8 3.5 6.5 16.5M13.5 3.5 12 16.5M4 7.5h12.5M3.5 12.5H16"/>'],
+];
+
+/**
+ * Two marks for the channel list's order: by name or by the provider's
+ * channel number. A list sorted Z–A counts as by name: the name mark is
+ * the one lit, and a press on it leaves that order alone.
+ */
+function channelOrderToggle() {
+  const box = document.createElement('span');
+  box.className = 'view-toggle';
+  box.setAttribute('role', 'group');
+  box.setAttribute('aria-label', t('setup.channelsort'));
+  const current = state.settings.channelSort === 'num' ? 'num' : 'az';
+  for (const [order, paths] of ORDER_MARKS) {
+    const button = document.createElement('button');
+    button.type = 'button';
+    button.title = t(`setup.channelsort.${order}`);
+    button.setAttribute('aria-label', button.title);
+    button.setAttribute('aria-pressed', String(current === order));
+    button.innerHTML = `<svg viewBox="0 0 20 20" aria-hidden="true">${paths}</svg>`;
+    button.addEventListener('click', () => setChannelOrder(order));
+    box.appendChild(button);
+  }
+  return box;
+}
+
+async function setChannelOrder(order) {
+  if ((state.settings.channelSort === 'num' ? 'num' : 'az') === order) return;
+  state.settings = await store.saveSettings({ channelSort: order });
+  await refreshRows();
 }
 
 /**

@@ -165,6 +165,12 @@ the player actually arrives.
   (S01E03) beside it. A provider that names every episode "Series name –
   S01E03" does not get the series' name repeated on every row: where an
   episode has no title of its own, the row says **Episode 3**.
+- Above the picture a channel's logo stands before its name, the one its row
+  shows (a television mark where the provider has none); a film, an episode
+  or a recording has its name alone.
+- A channel list's foot has two marks for its order: by name (an A with an
+  arrow) or by the provider's channel number (#), the same choice as
+  Settings › Viewing › Channel order.
 - Movies and series show as covers, as many across as the column has room
   for; the two marks at the foot of the list switch between covers and a
   list, and the choice is remembered. Among covers the arrows move left,
@@ -174,7 +180,11 @@ the player actually arrives.
   end carries a ✓ in its top corner, and one the provider added in the last
   two weeks **New**. The list's rows say the same as badges.
 - Movie and series filters let you narrow titles by release year or rating
-  and change their sort order. Filters use the available metadata, so some
+  and change their sort order; films also by **Duration**, two handles from
+  the shortest to the longest film whose length is known, the list cut when a
+  handle is let go, and a film of unknown length left out while a range is
+  set (lengths arrive with the films' details for providers that leave them
+  out of the list). Filters use the available metadata, so some
   titles may be missing particular details. Active filters remain visible as
   removable chips even when the filter form is collapsed.
 - **Programme guide**, above the channel list on the **Channels** tab, opens

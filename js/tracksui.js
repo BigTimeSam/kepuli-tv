@@ -12,7 +12,7 @@ import { label as audioLabel } from './audio.js';
 import { closeGuide, grid, guideOpen } from './guideui.js';
 import { duration } from './format.js';
 import { localeTag, t } from './i18n.js';
-import { newPlayRun, playback, renderNowSub, showOverlayActions } from './playing.js';
+import { newPlayRun, playback, renderNowLogo, renderNowSub, showOverlayActions } from './playing.js';
 import { rememberSubtitleLanguage, toggleMoreMenu } from './playercontrols.js';
 import { renderIdleOverlay } from './languageui.js';
 import { renderInfoStrip } from './infostrip.js';
@@ -228,6 +228,7 @@ export function leavePlayback() {
   $('btn-live').hidden = true;
   el.nowTitle.textContent = '';
   el.nowTitle.removeAttribute('title');
+  renderNowLogo(null);
   renderNowSub();
   renderInfoStrip();
   renderStatBadge();
