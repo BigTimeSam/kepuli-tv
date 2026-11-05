@@ -216,6 +216,7 @@ export default {
  "api.badjson": "Het antwoord van de server was niet te lezen. Het adres leidt misschien naar een webpagina in plaats van naar de server van de aanbieder: controleer de server en de poort.",
  "api.timeout": "De server antwoordde niet binnen {seconds} seconden. Probeer het opnieuw; blijft het gebeuren, dan is de server overbelast of het adres onjuist.",
  "api.episode": "Aflevering {number}",
+ "episode.code": "S{season} A{episode}",
  "player.idle": "Er wordt niets afgespeeld",
  "player.idle.text": "Kies een zender uit de lijst.",
  "player.idle.home": "Ga verder waar je gebleven was, of kies iets uit de lijst.",

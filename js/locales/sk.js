@@ -232,6 +232,7 @@ export default {
  "api.badjson": "Odpoveď servera sa nedala prečítať. Adresa možno vedie na webovú stránku namiesto servera poskytovateľa: skontroluj server a port.",
  "api.timeout": "Server neodpovedal do {seconds} sekúnd. Skús to znova; ak sa to opakuje, server je preťažený alebo je adresa nesprávna.",
  "api.episode": "Epizóda {number}",
+ "episode.code": "S{season} E{episode}",
  "player.idle": "Nič sa neprehráva",
  "player.idle.text": "Vyber kanál zo zoznamu.",
  "player.idle.home": "Pokračuj tam, kde si skončil, alebo si vyber niečo zo zoznamu.",

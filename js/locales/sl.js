@@ -232,6 +232,7 @@ export default {
  "api.badjson": "Odgovora strežnika ni bilo mogoče prebrati. Naslov morda vodi na spletno stran namesto na ponudnikov strežnik: preveri strežnik in vrata.",
  "api.timeout": "Strežnik se ni odzval v {seconds} sekundah. Poskusi znova; če se ponavlja, je strežnik preobremenjen ali pa je naslov napačen.",
  "api.episode": "Epizoda {number}",
+ "episode.code": "S{season} E{episode}",
  "player.idle": "Nič se ne predvaja",
  "player.idle.text": "Izberi kanal s seznama.",
  "player.idle.home": "Nadaljuj tam, kjer si končal, ali izberi kaj s seznama.",

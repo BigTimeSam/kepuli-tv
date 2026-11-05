@@ -15,7 +15,7 @@ import { ApiError } from './api.js';
 import { Playback } from './playback.js';
 import { StalkerSource } from './stalker.js';
 import { TYPE_OF_KIND, shownName, stripItem, withCurrentAddress } from './coversui.js';
-import { amount, clock, dateFmt, mbits, percent, seconds as secondsText, speed as speedText } from './format.js';
+import { amount, clock, dateFmt, episodeCode, mbits, percent, seconds as secondsText, speed as speedText } from './format.js';
 import { toast } from './toast.js';
 import { grid, guideOpen } from './guideui.js';
 import { hasDetails, loadVodDetails, renderInfoStrip } from './infostrip.js';
@@ -687,7 +687,7 @@ export function renderNowSub() {
     const group = type === 'live' ? null : item.cats.map((cat) => groupOfType(type).get(cat)).find(Boolean);
     bits.push(group || state.lib.categoryName(type, item.cats[0]));
   }
-  if (item.k === 3) bits.push(`S${item.season} E${item.episode}`);
+  if (item.k === 3) bits.push(episodeCode(item.season, item.episode));
   if (cast.connected) bits.push(t('cast.playing'));
   el.nowSub.textContent = bits.filter(Boolean).join(', ') || '—';
 }

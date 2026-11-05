@@ -216,6 +216,7 @@ export default {
  "api.badjson": "Svaret fra serveren kunne ikke leses. Adressen kan føre til en nettside i stedet for leverandørens server: sjekk serveren og porten.",
  "api.timeout": "Serveren svarte ikke innen {seconds} sekunder. Prøv igjen; skjer det stadig, er serveren overbelastet eller adressen feil.",
  "api.episode": "Episode {number}",
+ "episode.code": "S{season} E{episode}",
  "player.idle": "Ingenting spilles",
  "player.idle.text": "Velg en kanal fra listen.",
  "player.idle.home": "Fortsett der du slapp, eller velg noe fra listen.",

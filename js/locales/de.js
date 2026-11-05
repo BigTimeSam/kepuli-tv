@@ -216,6 +216,7 @@ export default {
  "api.badjson": "Die Antwort des Servers ließ sich nicht lesen. Die Adresse führt vielleicht zu einer Webseite statt zum Server des Anbieters: Server und Port prüfen.",
  "api.timeout": "Der Server hat nicht innerhalb von {seconds} Sekunden geantwortet. Erneut versuchen; passiert es immer wieder, ist der Server überlastet oder die Adresse falsch.",
  "api.episode": "Folge {number}",
+ "episode.code": "S{season} F{episode}",
  "player.idle": "Keine Wiedergabe",
  "player.idle.text": "Einen Kanal aus der Liste wählen.",
  "player.idle.home": "Dort weitermachen, wo du aufgehört hast, oder etwas aus der Liste wählen.",

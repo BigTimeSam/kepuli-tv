@@ -224,6 +224,7 @@ export default {
  "api.badjson": "Odgovor poslužitelja nije se mogao pročitati. Adresa možda vodi na web-stranicu umjesto na pružateljev poslužitelj: provjeri poslužitelj i priključak.",
  "api.timeout": "Poslužitelj nije odgovorio unutar {seconds} sekundi. Pokušaj ponovno; ako se ponavlja, poslužitelj je preopterećen ili je adresa pogrešna.",
  "api.episode": "Epizoda {number}",
+ "episode.code": "S{season} E{episode}",
  "player.idle": "Ništa se ne reproducira",
  "player.idle.text": "Odaberi kanal s popisa.",
  "player.idle.home": "Nastavi gdje si stao ili odaberi nešto s popisa.",

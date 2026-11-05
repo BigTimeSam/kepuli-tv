@@ -224,6 +224,7 @@ export default {
  "api.badjson": "Odgovor servera nije mogao da se pročita. Adresa možda vodi na veb-stranicu umesto na server provajdera: proveri server i port.",
  "api.timeout": "Server nije odgovorio u roku od {seconds} sekundi. Pokušaj ponovo; ako se ponavlja, server je preopterećen ili je adresa pogrešna.",
  "api.episode": "Epizoda {number}",
+ "episode.code": "S{season} E{episode}",
  "player.idle": "Ništa se ne reprodukuje",
  "player.idle.text": "Izaberi kanal sa liste.",
  "player.idle.home": "Nastavi gde si stao ili izaberi nešto sa liste.",

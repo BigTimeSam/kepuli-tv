@@ -216,6 +216,7 @@ export default {
  "api.badjson": "A szerver válaszát nem sikerült beolvasni. Lehet, hogy a cím egy weboldalra vezet a szolgáltató szervere helyett: ellenőrizd a szervert és a portot.",
  "api.timeout": "A szerver nem válaszolt {seconds} másodpercen belül. Próbáld újra; ha ismétlődik, a szerver túlterhelt, vagy hibás a cím.",
  "api.episode": "{number}. epizód",
+ "episode.code": "S{season} E{episode}",
  "player.idle": "Nincs lejátszás",
  "player.idle.text": "Válassz egy csatornát a listából.",
  "player.idle.home": "Folytasd, ahol abbahagytad, vagy válassz valamit a listából.",

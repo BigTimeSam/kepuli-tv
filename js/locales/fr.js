@@ -216,6 +216,7 @@ export default {
  "api.badjson": "La réponse du serveur n’a pas pu être lue. L’adresse mène peut-être à une page web plutôt qu’au serveur du fournisseur : vérifiez le serveur et le port.",
  "api.timeout": "Le serveur n’a pas répondu en {seconds} secondes. Réessayez ; si cela se répète, le serveur est surchargé ou l’adresse est erronée.",
  "api.episode": "Épisode {number}",
+ "episode.code": "S{season} É{episode}",
  "player.idle": "Aucune lecture",
  "player.idle.text": "Choisissez une chaîne dans la liste.",
  "player.idle.home": "Reprenez là où vous en étiez, ou choisissez quelque chose dans la liste.",

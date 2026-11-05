@@ -216,6 +216,7 @@ export default {
  "api.badjson": "Serveri vastust ei saanud lugeda. Aadress võib viia veebilehele, mitte pakkuja serverisse: kontrolli serverit ja porti.",
  "api.timeout": "Server ei vastanud {seconds} sekundi jooksul. Proovi uuesti; kui see kordub, on server ülekoormatud või aadress vale.",
  "api.episode": "Episood {number}",
+ "episode.code": "H{season} E{episode}",
  "player.idle": "Midagi ei esitata",
  "player.idle.text": "Vali loendist kanal.",
  "player.idle.home": "Jätka sealt, kus pooleli jäid, või vali loendist midagi.",

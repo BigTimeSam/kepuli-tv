@@ -8,7 +8,7 @@
 // they fire).
 
 import { closeGuide } from './guideui.js';
-import { duration, nf } from './format.js';
+import { duration, episodeCode, nf } from './format.js';
 import { el } from './dom.js';
 import { openSeries, renderDetail } from './seriesui.js';
 import { playItem, playback, showOverlayActions } from './playing.js';
@@ -96,7 +96,7 @@ async function startAutoNext(item) {
   let episode = null;
   try { episode = await nextEpisode(item); } catch { return; }
   if (!episode || state.playing !== item || !el.video.ended) return;
-  const label = `S${episode.season} E${episode.episode}: ${episode.displayName || episode.n}`;
+  const label = `${episodeCode(episode.season, episode.episode)}: ${episode.displayName || episode.n}`;
   let left = AUTONEXT_SECONDS;
   const paint = () => { el.overlayText.textContent = t('player.next.text', { episode: label, seconds: left }); };
   el.overlay.hidden = false;

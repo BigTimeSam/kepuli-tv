@@ -224,6 +224,7 @@ export default {
  "api.badjson": "Servera atbildi neizdevās nolasīt. Adrese var vest uz tīmekļa lapu, nevis sniedzēja serveri: pārbaudi serveri un portu.",
  "api.timeout": "Serveris neatbildēja {seconds} sekunžu laikā. Mēģini vēlreiz; ja tas atkārtojas, serveris ir pārslogots vai adrese nepareiza.",
  "api.episode": "{number}. sērija",
+ "episode.code": "S{season} E{episode}",
  "player.idle": "Nekas netiek atskaņots",
  "player.idle.text": "Izvēlies kanālu no saraksta.",
  "player.idle.home": "Turpini no vietas, kur apstājies, vai izvēlies ko no saraksta.",

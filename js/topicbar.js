@@ -258,7 +258,7 @@ export function renderListInfo() {
     const group = state.lib.group(type, state.group);
     parts.push(state.sub
       ? state.lib.categoryName(type, state.sub)
-      : `${state.group}${group && group.cats.length > 1 ? ` (${t('list.topics', { n: group.cats.length })})` : ''}`);
+      : `${state.group}${group && group.cats.length > 1 ? ` (${t('list.topics', { n: nf.format(group.cats.length) })})` : ''}`);
   }
 
   el.listinfo.replaceChildren(document.createTextNode(parts.join(', ')));

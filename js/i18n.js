@@ -236,6 +236,7 @@ const STRINGS = {
     'api.badjson': 'The server\'s answer could not be read. The address may lead to a web page rather than the provider\'s server: check the server and the port.',
     'api.timeout': 'The server did not answer within {seconds} seconds. Try again; if it keeps happening, the server is overloaded or the address is wrong.',
     'api.episode': 'Episode {number}',
+    'episode.code': 'S{season} E{episode}',
 
     /* ---------------------------------------------------------- player */
     'player.idle': 'Nothing playing',
@@ -976,6 +977,7 @@ const STRINGS = {
     'api.badjson': 'Palvelimen vastausta ei voitu lukea. Osoite voi johtaa verkkosivulle eikä palveluntarjoajan palvelimelle: tarkista palvelin ja portti.',
     'api.timeout': 'Palvelin ei vastannut {seconds} sekunnissa. Yritä uudelleen; jos tämä toistuu, palvelin on ylikuormittunut tai osoite on väärä.',
     'api.episode': 'Jakso {number}',
+    'episode.code': 'K{season} J{episode}',
 
     /* ---------------------------------------------------------- player */
     'player.idle': 'Ei toistoa',

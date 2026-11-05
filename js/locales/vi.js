@@ -208,6 +208,7 @@ export default {
  "api.badjson": "Không đọc được câu trả lời của máy chủ. Địa chỉ có thể dẫn tới một trang web thay vì máy chủ của nhà cung cấp: hãy kiểm tra máy chủ và cổng.",
  "api.timeout": "Máy chủ không trả lời trong {seconds} giây. Hãy thử lại; nếu cứ lặp lại, máy chủ đang quá tải hoặc địa chỉ bị sai.",
  "api.episode": "Tập {number}",
+ "episode.code": "Phần {season} Tập {episode}",
  "player.idle": "Chưa phát gì",
  "player.idle.text": "Hãy chọn một kênh trong danh sách.",
  "player.idle.home": "Xem tiếp từ chỗ đang dở, hoặc chọn một mục trong danh sách.",

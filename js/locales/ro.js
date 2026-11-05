@@ -224,6 +224,7 @@ export default {
  "api.badjson": "Răspunsul serverului nu a putut fi citit. Adresa poate duce la o pagină web în loc de serverul furnizorului: verifică serverul și portul.",
  "api.timeout": "Serverul nu a răspuns în {seconds} secunde. Încearcă din nou; dacă se repetă, serverul e supraîncărcat sau adresa e greșită.",
  "api.episode": "Episodul {number}",
+ "episode.code": "S{season} E{episode}",
  "player.idle": "Nu se redă nimic",
  "player.idle.text": "Alege un canal din listă.",
  "player.idle.home": "Continuă de unde ai rămas sau alege ceva din listă.",

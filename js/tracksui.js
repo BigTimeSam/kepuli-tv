@@ -10,8 +10,8 @@ import { $, el } from './dom.js';
 import { DEFAULT_LIFT, DEFAULT_SCALE, stepScale, subtitleLook } from './subdisplay.js';
 import { label as audioLabel } from './audio.js';
 import { closeGuide, grid, guideOpen } from './guideui.js';
-import { duration } from './format.js';
-import { localeTag, t } from './i18n.js';
+import { duration, wholePercent } from './format.js';
+import { t } from './i18n.js';
 import { newPlayRun, playback, renderNowLogo, renderNowSub, showOverlayActions } from './playing.js';
 import { rememberSubtitleLanguage, toggleMoreMenu } from './playercontrols.js';
 import { renderIdleOverlay } from './languageui.js';
@@ -144,7 +144,7 @@ export function chooseSubtitle() {
 const LOOK_FORMS = ['f', 'p'];
 
 /** A size as the slider says it: 100 % is the size the picture asks for. */
-const sizeText = (scale) => new Intl.NumberFormat(localeTag(), { style: 'percent' }).format(scale / 100);
+const sizeText = (scale) => wholePercent(scale / 100);
 
 /** One form's size and height controls: the sliders, what they say, and the ways back to the defaults. */
 export function showSubtitleSize(form, look) {

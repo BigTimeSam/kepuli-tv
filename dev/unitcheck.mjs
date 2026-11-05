@@ -24,7 +24,9 @@ import { cueText } from '../js/subs.js';
 import { subtitleLook, stepScale, pictureHeight, STYLES, MIN_SCALE, MAX_SCALE, DEFAULT_SCALE, SCALE_STEP, SIZE_SHARE, MIN_LIFT, MAX_LIFT, DEFAULT_LIFT } from '../js/subdisplay.js';
 import { describe, describeAll, label, preferred, route } from '../js/audio.js';
 import { languageSummary, orderedLanguageNames, trackLanguage } from '../js/lang.js';
-import { LANGUAGES, keysOf, setLanguage, loadLanguage, supportedLanguage, t, pseudoText } from '../js/i18n.js';
+import { LANGUAGES, keysOf, setLanguage, setEnglishRegion, loadLanguage, supportedLanguage, t, pseudoText } from '../js/i18n.js';
+import { setLocale, calendarDate, episodeCode, megabytes, amount, wholePercent } from '../js/format.js';
+import { ratingText } from '../js/rating.js';
 import { channelPreferences, visibilityFilter, sortChannels, CHANNEL_SORTS } from '../js/channelprefs.js';
 import { catchupAvailable, archiveDays, reminderDelay, sameChannels } from '../js/epggrid.js';
 import { searchProgrammes, mergeSorted, searchableChannels, groupResults } from '../js/programmesearch.js';
@@ -745,6 +747,40 @@ check('orderedLanguageNames: an unknown language is named, and last',
     check(`i18n: every key player.html uses resolves in ${lang}`, used.filter((k) => t(k) === k), []);
   }
   setLanguage('en');
+}
+
+/* ------------------------------------- format.js: in the language's own forms */
+
+// Dates, decimals and episode codes were written one way for every
+// language: "3.11.2026" in English, "★ 7.5" in Finnish, "S1 E2" in
+// Spanish. Each now comes from the language (Intl, or its own pattern).
+{
+  const inLanguage = (lang, region, fn) => {
+    setLanguage(lang);
+    setEnglishRegion(region);
+    setLocale();
+    try { return fn(); } finally { setLanguage('en'); setEnglishRegion(null); setLocale(); }
+  };
+  check('an episode\'s air date in each language\'s form', [
+    inLanguage('fi', null, () => calendarDate('2026-11-03')),
+    inLanguage('en', 'en-US', () => calendarDate('2026-11-03')),
+    inLanguage('en', 'en-GB', () => calendarDate('2026-11-03')),
+    inLanguage('de', null, () => calendarDate('2026-11-03')),
+    calendarDate('2026-02-30'), calendarDate('soon'),
+  ], ['3.11.2026', '11/3/2026', '03/11/2026', '3.11.2026', '', '']);
+  check('a rating in the language\'s decimals', [
+    inLanguage('fi', null, () => ratingText({ rating: 7.46 })),
+    inLanguage('en', 'en-GB', () => ratingText({ rating: 7.46 })),
+  ], ['★ 7,5', '★ 7.5']);
+  check('an episode code as each language\'s television writes it', [
+    inLanguage('en', null, () => episodeCode(1, 2)),
+    inLanguage('fi', null, () => episodeCode(1, 2)),
+    inLanguage('es', null, () => episodeCode(3, 10)),
+    inLanguage('de', null, () => episodeCode(1, 2)),
+  ], ['S1 E2', 'K1 J2', 'T3 E10', 'S1 F2']);
+  check('a stored size and a download\'s in the same decimals', inLanguage('fi', null, () => [megabytes(18_140_000), amount(18_140_000), megabytes(5000)]),
+    inLanguage('fi', null, () => [amount(18_140_000), t('size.mb', { n: '17,3' }), t('size.kb', { n: '5' })]));
+  check('a whole percentage in the language\'s form', inLanguage('fi', null, () => wholePercent(1.2)).replace(/\s/g, ' '), '120 %');
 }
 
 /* --------------------------------------------------- route.js: the address */

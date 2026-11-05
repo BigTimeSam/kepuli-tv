@@ -208,6 +208,7 @@ export default {
  "api.badjson": "Jawaban server tidak bisa dibaca. Alamatnya mungkin mengarah ke halaman web, bukan ke server penyedia: periksa server dan port.",
  "api.timeout": "Server tidak menjawab dalam {seconds} detik. Coba lagi; jika terus terjadi, server kelebihan beban atau alamatnya salah.",
  "api.episode": "Episode {number}",
+ "episode.code": "S{season} E{episode}",
  "player.idle": "Tidak ada yang diputar",
  "player.idle.text": "Pilih saluran dari daftar.",
  "player.idle.home": "Lanjutkan dari terakhir kamu berhenti, atau pilih sesuatu dari daftar.",

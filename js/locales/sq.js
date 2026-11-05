@@ -216,6 +216,7 @@ export default {
  "api.badjson": "Përgjigjja e serverit nuk mund të lexohej. Adresa mund të çojë në një faqe interneti në vend të serverit të ofruesit: kontrollo serverin dhe portën.",
  "api.timeout": "Serveri nuk u përgjigj brenda {seconds} sekondave. Provo sërish; nëse vazhdon, serveri është i mbingarkuar ose adresa e gabuar.",
  "api.episode": "Episodi {number}",
+ "episode.code": "S{season} E{episode}",
  "player.idle": "Asgjë nuk po luhet",
  "player.idle.text": "Zgjidh një kanal nga lista.",
  "player.idle.home": "Vazhdo aty ku mbete ose zgjidh diçka nga lista.",

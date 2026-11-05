@@ -216,6 +216,7 @@ export default {
  "api.badjson": "Sunucunun yanıtı okunamadı. Adres sağlayıcının sunucusu yerine bir web sayfasına gidiyor olabilir: sunucuyu ve bağlantı noktasını kontrol edin.",
  "api.timeout": "Sunucu {seconds} saniye içinde yanıt vermedi. Yeniden deneyin; tekrarlanırsa sunucu aşırı yüklüdür ya da adres yanlıştır.",
  "api.episode": "{number}. bölüm",
+ "episode.code": "S{season} B{episode}",
  "player.idle": "Oynatılan bir şey yok",
  "player.idle.text": "Listeden bir kanal seçin.",
  "player.idle.home": "Kaldığınız yerden devam edin ya da listeden bir şey seçin.",

@@ -232,6 +232,7 @@ export default {
  "api.badjson": "Serverio atsakymo nepavyko perskaityti. Adresas gali vesti į tinklalapį, o ne į tiekėjo serverį: patikrink serverį ir prievadą.",
  "api.timeout": "Serveris neatsakė per {seconds} s. Bandyk dar kartą; jei kartojasi, serveris perkrautas arba adresas neteisingas.",
  "api.episode": "{number} serija",
+ "episode.code": "S{season} E{episode}",
  "player.idle": "Nieko negroja",
  "player.idle.text": "Pasirink kanalą iš sąrašo.",
  "player.idle.home": "Tęsk ten, kur baigei, arba pasirink ką nors iš sąrašo.",
