@@ -1216,6 +1216,9 @@ async function connections(page, { requests }) {
     // than videoState's short excerpt since it says what to do next.
     const named = await evaluate(page, `document.getElementById('overlay-text').textContent`);
     if (!/another tab/.test(named)) return { ok: false, detail: `another tab: the failure says "${named}"` };
+    // The account's reason stands in for the stream's advice: changing the
+    // playback mode cannot free a connection, and saying both contradicts.
+    if (/TS or HLS|external player|Try again/.test(named)) return { ok: false, detail: `another tab: the failure still gives the format advice next to the account's reason: "${named}"` };
     await evaluate(page, `[...document.querySelectorAll('#overlay button')].find((b) => b.textContent === 'Play here').click()`, { gesture: true });
     await waitFor(page, PLAYING, 'the episode taken over from the other tab', 40000);
     notes.push(`another tab: "${named}", taken over`);

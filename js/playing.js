@@ -153,7 +153,7 @@ function onPlaybackState(s) {
     if (s.content || s.reachable) return;
     // Why it failed, when the account can say: a subscription that has run
     // out, or every connection already in use.
-    explainFailure(s.message);
+    explainFailure(s.message, s.cause);
     // A stream may point at a different server from the API, so the
     // permission is checked against this stream's own origin.
     if (state.playingSpec) {
@@ -224,8 +224,12 @@ async function freshAccount() {
  * named and offered to be ended; the second is waited out once and the
  * playback started again, so that "in use" is said only when it is someone
  * else's.
+ *
+ * The account's reason takes the place of the failure's advice (cause is
+ * the message without it): "change the playback mode" next to "every
+ * connection is in use" told the viewer to try what cannot help.
  */
-async function explainFailure(message) {
+async function explainFailure(message, cause = message) {
   const spec = state.playingSpec;
   const shown = () => !el.overlay.hidden && el.overlayText.textContent === message && state.playingSpec === spec;
   const account = await freshAccount();
@@ -233,15 +237,15 @@ async function explainFailure(message) {
   // An account that has run out or been shut says so whatever the count.
   const trouble = accountProblem(account) || accountProblem(account, { busy: true });
   if (!trouble) return;
-  if (accountProblem(account)) { el.overlayText.textContent = `${message} ${trouble}`; return; }
+  if (accountProblem(account)) { el.overlayText.textContent = `${cause} ${trouble}`; return; }
   const figures = { active: account.activeConnections, max: account.maxConnections };
   if (await otherTabPlaying()) {
     if (!shown()) return;
-    el.overlayText.textContent = `${message} ${t('account.othertab', figures)}`;
-    addOverlayAction({ label: t('player.playhere'), onClick: () => takeOver(spec, message) }, { first: true });
+    el.overlayText.textContent = `${cause} ${t('account.othertab', figures)}`;
+    addOverlayAction({ label: t('player.playhere'), onClick: () => takeOver(spec, message, cause) }, { first: true });
     return;
   }
-  el.overlayText.textContent = `${message} ${spec && spec.awaitedRelease ? t('account.busy.waited', figures) : trouble}`;
+  el.overlayText.textContent = `${cause} ${spec && spec.awaitedRelease ? t('account.busy.waited', figures) : trouble}`;
 }
 
 const RELEASE_WAIT_MS = 20000;
@@ -359,14 +363,14 @@ function tabMessage(type, answer) {
 }
 
 /** The other tab stops, and this one plays once the server has let go. */
-async function takeOver(spec, message) {
+async function takeOver(spec, message, cause) {
   if (state.playingSpec !== spec) return;
   await tabMessage('yield', 'yielded');
   if (state.playingSpec !== spec) return;
   const account = await freshAccount();
   if (state.playingSpec !== spec) return;
   if (account && connectionsFull(account)) {
-    awaitRelease(spec, { status: 'error', message }, { active: account.activeConnections, max: account.maxConnections });
+    awaitRelease(spec, { status: 'error', message, cause }, { active: account.activeConnections, max: account.maxConnections });
   } else {
     replay();
   }

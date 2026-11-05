@@ -231,7 +231,9 @@ interrupted channel-list load restores the previous list.
   too, and **Allow access** comes first among the buttons.
 - When a stream does not start, the message names the controls as they read
   on screen: **Auto** under the picture can be set to **TS** or **HLS**, and
-  the ☰ menu opens the stream in an external player.
+  the ☰ menu opens the stream in an external player. When the account turns
+  out to be the reason (run out, shut, or every connection in use), the
+  message says that instead, since another try or format would not help.
 - If cached information is outdated, clear the cache in Settings. Resetting
   everything also removes your saved connection details.
 - Report app bugs in [GitHub Issues](https://github.com/BigTimeSam/kepuli-tv/issues).

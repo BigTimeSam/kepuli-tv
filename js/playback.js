@@ -561,8 +561,7 @@ export class Playback {
    * @param {{ refused?: boolean }} [options]
    */
   async explain(spec, token, { refused = false } = {}) {
-    const generic = t('playback.nosource');
-    if (spec.live || spec.catchup || spec.recording) { this.onState({ status: 'error', message: generic, verdict: spec.verdict, refused }); return; }
+    if (spec.live || spec.catchup || spec.recording) { this.onState({ status: 'error', ...noSource(), verdict: spec.verdict, refused }); return; }
     if (spec.probe) return this.askServer(spec, token, spec.verdict);
     const known = await this.inspect(spec, token);
     if (!known) return;
@@ -612,7 +611,7 @@ export class Playback {
       this.onState({ status: 'error', message: t('playback.notplayed'), verdict: known, reachable: true });
       return;
     }
-    this.onState({ status: 'error', message: t('playback.nosource'), verdict: known });
+    this.onState({ status: 'error', ...noSource(), verdict: known });
   }
 
   /**
@@ -1392,6 +1391,18 @@ export class Playback {
     }
     return out;
   }
+}
+
+/**
+ * A stream that did not start, with what to try next. The cause is given on
+ * its own as well: when the account turns out to be the reason (run out,
+ * shut, every connection in use), the overlay says that in place of the
+ * advice, since a different playback mode or another try cannot help then.
+ * @returns {{ message: string, cause: string }}
+ */
+function noSource() {
+  const cause = t('playback.nosource');
+  return { message: `${cause} ${t('playback.nosource.next')}`, cause };
 }
 
 /**
