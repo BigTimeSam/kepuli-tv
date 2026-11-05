@@ -130,6 +130,30 @@ export function wireSubcatsResize() {
   new ResizeObserver(() => applySubcatsHeight()).observe(el.subcats.parentElement);
 }
 
+/**
+ * The chips are a toolbar: one Tab stop, held by the chosen chip, and the
+ * arrows between them, Home and End to the ends. The arrows move the focus
+ * only; Enter or Space chooses, since choosing loads a list. Up and down
+ * stay the list's, as they are from every other button.
+ */
+export function wireSubcatsKeys() {
+  el.subcats.addEventListener('keydown', (e) => {
+    const chips = [...el.subcats.querySelectorAll('.chip-main')];
+    const at = chips.indexOf(e.target);
+    if (at < 0 || e.ctrlKey || e.metaKey || e.altKey) return;
+    const next = e.key === 'ArrowRight' ? Math.min(at + 1, chips.length - 1)
+      : e.key === 'ArrowLeft' ? Math.max(at - 1, 0)
+      : e.key === 'Home' ? 0
+      : e.key === 'End' ? chips.length - 1 : -1;
+    if (next < 0) return;
+    e.preventDefault();
+    e.stopPropagation();
+    for (const chip of chips) chip.tabIndex = -1;
+    chips[next].tabIndex = 0;
+    chips[next].focus();
+  });
+}
+
 export async function selectSub(categoryId) {
   state.sub = categoryId;
   state.cursor = -1;
@@ -199,6 +223,7 @@ export function renderEmptyState() {
 }
 
 export function renderListInfo() {
+  renderListHeading();
   if (state.listLoading) {
     el.listinfo.textContent = t('progress.loading');
     return;
@@ -250,6 +275,17 @@ export function renderListInfo() {
     spacer.className = 'spacer';
     el.listinfo.append(spacer, viewToggle());
   }
+}
+
+/**
+ * The list column's heading, heard by a screen reader that walks the
+ * headings: the tab, and the group and topic the list shows.
+ */
+function renderListHeading() {
+  const type = tabType();
+  const group = !isCollection() && !state.query && state.lib && state.group ? state.group : null;
+  const where = group && state.sub ? state.lib.categoryName(type, state.sub) : group;
+  $('list-heading').textContent = [t(`tab.${state.tab}`), where].filter(Boolean).join(': ');
 }
 
 /**

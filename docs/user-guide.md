@@ -320,6 +320,7 @@ interrupted channel-list load restores the previous list.
 | Key | Action |
 | --- | --- |
 | `/` | go to the search box |
+| `Tab` | move between the areas of the page; the arrows move inside the sidebar, the tabs, the topics and the list |
 | `↑` `↓` `PgUp` `PgDn` | move in the list |
 | `Enter` | play / open a series |
 | `Backspace` | back to the series list |
@@ -356,8 +357,16 @@ it belongs. A system asking for more contrast is answered too: the borders
 that separate one panel from the next go to 3.7:1 and the muted text to
 9.8:1.
 
-Tab reaches the three places that hold a cursor of their own, one stop each:
-the tab strip, the sidebar and the list. Inside the strip the arrows move
+The first Tab stop on the page is **Skip to the list**, which appears at the
+top left when the keyboard reaches it and takes the focus straight to the
+list. Tab reaches the places that hold a cursor of their own, one stop each:
+the tab strip, the sidebar, the topic chips and the list; inside the topic
+chips the left and right arrows move between them and `Home` and `End` reach
+the ends, and `Enter` or `space` chooses one. Help lists the Tab key too.
+For a screen reader the page has headings (Kepuli-TV, the list's tab and
+group, the player), the player is a named region, and the overlay's title is
+said together with the sentence under it, so "Connection failed" or
+"Playback failed" is heard and not only what follows it. Inside the strip the arrows move
 between **Channels**, **Movies**, **Series**, **Favourites** and **History**,
 and `Home` and `End` reach its ends; the panel below takes its name from
 whichever is chosen. Inside the sidebar the arrows move a cursor down the

@@ -65,8 +65,16 @@
 //   node dev/playcheck.mjs listerror  a group that cannot be fetched while a
 //                                     channel plays: a toast, not the overlay
 //   node dev/playcheck.mjs a11y       roles and names for assistive technology,
-//                                     the cursor announced and marked
-//   node dev/playcheck.mjs audio      the three-track episode: the automatic
+//                                     the cursor announced and marked; the
+//                                     skip link first, the topic chips one
+//                                     stop, the overlay's title announced,
+//                                     headings and a named player
+//   node dev/playcheck.mjs welcome    the first run: the pasted address first
+//                                     and sent to its form, the permission
+//                                     prompt announced and a refusal
+//                                     explained, a way back from the closed
+//                                     dialog, no guide before a connection
+//   node dev/playcheck.mjs audio     the three-track episode: the automatic
 //                                     choice is heard as the English track's
 //                                     tone, the selector changes the track
 //                                     mid-playback without stopping the
@@ -1475,13 +1483,64 @@ async function a11y(page) {
   await pressKey(page, 'Enter', 'Enter', 13);
   await sleep(800);
   const chosen = await evaluate(page, ACTIVE_GROUP);
-  const ok = st.listRole === 'listbox' && Boolean(st.listName) && st.pointsAtCursor && st.cursorMark
+  const aid = await a11yWays(page);
+  const ok = aid.ok && st.listRole === 'listbox' && Boolean(st.listName) && st.pointsAtCursor && st.cursorMark
     && st.tablist === 'tablist' && st.selectedTabs.length === 1 && st.selectedTabs[0] === 'live'
     && st.tabStops.length === 1 && st.tabStops[0] === 'live' && st.panelNamedBy === 'tab-live'
     && st.toastRole === 'status' && st.unnamedIcons.length === 0
     && st.groupsRole === 'listbox' && st.groupsTabbable && st.optionRoles.join() === 'option'
     && st.rowsTabbable === 0 && st.pointsAtGroup && chosen === st.target;
-  return { ok, detail: `list ${st.listRole}/${st.listName}, cursor ${st.pointsAtCursor ? 'announced' : 'not announced'} and ${st.cursorMark ? 'marked' : 'unmarked'}, tabs ${st.tablist} selected ${st.selectedTabs.join(',')} with ${st.tabStops.length} stop naming ${st.panelNamedBy}, sidebar ${st.groupsRole} of ${st.optionRoles.join('/')} with ${st.rowsTabbable} tabbable rows, toast ${st.toastRole}, unnamed icon buttons ${st.unnamedIcons.length}, group by keyboard: "${st.target}" → "${chosen}"` };
+  return { ok, detail: `list ${st.listRole}/${st.listName}, cursor ${st.pointsAtCursor ? 'announced' : 'not announced'} and ${st.cursorMark ? 'marked' : 'unmarked'}, tabs ${st.tablist} selected ${st.selectedTabs.join(',')} with ${st.tabStops.length} stop naming ${st.panelNamedBy}, sidebar ${st.groupsRole} of ${st.optionRoles.join('/')} with ${st.rowsTabbable} tabbable rows, toast ${st.toastRole}, unnamed icon buttons ${st.unnamedIcons.length}, group by keyboard: "${st.target}" → "${chosen}"; ${aid.detail}` };
+}
+
+/**
+ * The ways around the page for a keyboard and a screen reader: the skip
+ * link is the first Tab stop and lands in the list, the topic chips are one
+ * stop with the arrows inside, the overlay says its title with its text,
+ * and the page, the list and the player have headings and the player a name.
+ */
+async function a11yWays(page) {
+  const focused = () => evaluate(page, `document.activeElement.id || document.activeElement.className`);
+  // From the top of the page.
+  // The body focused for a moment is where a fresh page starts: the next
+  // Tab goes to the page's first stop.
+  await evaluate(page, `(() => { document.body.tabIndex = -1; document.body.focus(); document.body.removeAttribute('tabindex'); })()`);
+  await pressKey(page, 'Tab', 'Tab', 9);
+  await sleep(150);
+  const skip = await evaluate(page, `(() => { const b = document.getElementById('skip-list'), r = b.getBoundingClientRect();
+    return { first: document.activeElement === b, seen: r.top >= 0 && r.bottom <= innerHeight && r.width > 0, text: b.textContent }; })()`);
+  // Enter with its text, as a keyboard sends it: a button acts on that.
+  await page.call('Input.dispatchKeyEvent', { type: 'keyDown', key: 'Enter', code: 'Enter', windowsVirtualKeyCode: 13, text: '\r' });
+  await page.call('Input.dispatchKeyEvent', { type: 'keyUp', key: 'Enter', code: 'Enter', windowsVirtualKeyCode: 13 });
+  await sleep(150);
+  const landed = await focused();
+  // A group with topics: the chips are one stop, held by the chosen chip.
+  await click(page, '#groups', 'Sweden');
+  await waitFor(page, `document.querySelectorAll('#subcats .chip-main').length > 2`, 'the topic chips');
+  const chips = await evaluate(page, `(() => { const all = [...document.querySelectorAll('#subcats .chip-main')];
+    return { stops: all.filter((b) => b.tabIndex === 0).map((b) => all.indexOf(b)), role: document.getElementById('subcats').getAttribute('role'),
+      name: document.getElementById('subcats').getAttribute('aria-label'), activeIsStop: document.querySelector('#subcats .chip.active .chip-main').tabIndex === 0, count: all.length }; })()`);
+  await evaluate(page, `document.querySelector('#subcats .chip.active .chip-main').focus()`);
+  await pressKey(page, 'ArrowRight', 'ArrowRight', 39);
+  await sleep(150);
+  const moved = await evaluate(page, `(() => { const all = [...document.querySelectorAll('#subcats .chip-main')];
+    return { at: all.indexOf(document.activeElement), stops: all.filter((b) => b.tabIndex === 0).map((b) => all.indexOf(b)), chosen: all.indexOf(document.querySelector('#subcats .chip.active .chip-main')) }; })()`);
+  await pressKey(page, 'End', 'End', 35);
+  await sleep(100);
+  const end = await evaluate(page, `[...document.querySelectorAll('#subcats .chip-main')].indexOf(document.activeElement)`);
+  const marks = await evaluate(page, `(() => { const said = document.getElementById('overlay-said');
+    const stage = document.getElementById('player-stage');
+    return { live: said?.getAttribute('aria-live'), atomic: said?.getAttribute('aria-atomic'), holdsTitle: Boolean(said?.contains(document.getElementById('overlay-title'))),
+      textLive: document.getElementById('overlay-text').getAttribute('aria-live'), elapsedHidden: document.getElementById('overlay-elapsed').getAttribute('aria-hidden'),
+      h1: [...document.querySelectorAll('h1')].map((h) => h.textContent.trim()),
+      list: document.getElementById('list-heading').textContent,
+      player: document.getElementById(stage.getAttribute('aria-labelledby') || '')?.textContent }; })()`);
+  const ok = skip.first && skip.seen && landed === 'list'
+    && chips.role === 'toolbar' && Boolean(chips.name) && chips.stops.length === 1 && chips.activeIsStop
+    && moved.at === moved.chosen + 1 && moved.stops.join() === String(moved.at) && end === chips.count - 1
+    && marks.live === 'polite' && marks.atomic === 'true' && marks.holdsTitle && !marks.textLive && marks.elapsedHidden === 'true'
+    && marks.h1.join() === 'Kepuli-TV' && /^Channels: Sweden/.test(marks.list) && marks.player === 'Player';
+  return { ok, detail: `skip link ${JSON.stringify(skip)} → ${landed}; chips ${JSON.stringify(chips)}, → ${JSON.stringify(moved)}, End ${end}; ${JSON.stringify(marks)}` };
 }
 
 /** The control stays with the video and preserves the subtitle overlay. */
@@ -2079,6 +2138,9 @@ async function settings(page, { requests, target }) {
   await press('f-save');
   await waitFor(page, `!document.getElementById('setup-error').hidden && !document.getElementById('f-save').disabled`, 'permission denial');
   assert(JSON.stringify(await saved()) === JSON.stringify(beforeConnection), 'denied permission committed settings');
+  // The refusal names the button as it reads for a changed account.
+  const refusal = await evaluate(page, `document.getElementById('setup-error').textContent`);
+  assert(/Press Save again and choose Allow/.test(refusal), `the refusal said "${refusal}"`);
   // The isolated headless profile cannot answer Chrome's permission prompt.
   await evaluate(page, `chrome.permissions.request = async () => true;`);
   const reconnectFrom = requests.length;
@@ -2138,9 +2200,6 @@ async function channels(page) {
     await evaluate(page, `document.querySelector('#setup-tabs [data-panel="general"]').click()`);
     await evaluate(page, `(() => { const c = document.getElementById('f-channelsort'); c.value = ${JSON.stringify(value)};
       c.dispatchEvent(new Event('input', { bubbles: true })); c.dispatchEvent(new Event('change', { bubbles: true })); })()`);
-  // The refusal names the button as it reads for a changed account.
-  const refusal = await evaluate(page, `document.getElementById('setup-error').textContent`);
-  assert(/Press Save again and choose Allow/.test(refusal), `the refusal said "${refusal}"`);
     await evaluate(page, `document.getElementById('f-save').click()`, { gesture: true });
     await waitFor(page, `!document.getElementById('setup').open`, `the saved channel order (${value})`);
   };
@@ -2699,65 +2758,6 @@ async function setupClarity(page) {
   return {ok:true, detail:'a pasted subscription URL opens the fields it decoded into, without saving; text that is no address says so, an address without credentials is a playlist with a guide field; controls above an unclipped 250 % preview at 320–1280px; playback saves 250 %'};
 }
 
-
-/** Covers and catalogue metadata use the same DOM in both browsers. */
-async function catalogUi(page) {
-  const assert = (ok, detail) => { if (!ok) throw new Error(detail); };
-  await evaluate(page, `document.querySelector('[data-tab="movie"]').click()`);
-  await waitFor(page, `document.querySelectorAll('#list .row').length > 1 && document.getElementById('list-progress').hidden`, 'movie rows');
-  // Covers first: the duration reaches the line under a cover as it does a row.
-  await waitFor(page, `document.querySelector('#list.covers .row.card') && [...document.querySelectorAll('#list .card-meta')].some((n) => /\\d+ ?min|\\dh/.test(n.textContent))`, 'movie duration on a cover');
-  await evaluate(page, `document.querySelector('.view-toggle button[aria-pressed="false"]').click()`);
-  await waitFor(page, `!document.getElementById('list').classList.contains('covers') && document.querySelector('#list .row-duration')`, 'movie duration metadata');
-  assert(await evaluate(page, `!document.getElementById('media-filters').hidden && document.getElementById('channel-tools').hidden && document.querySelector('.topbar-end').lastElementChild.id === 'btn-settings'`), 'movie navigation/filters');
-  const apply = (key,value) => evaluate(page, `(() => {const f=document.querySelector('#media-filters [name="${key}"]');f.value=${JSON.stringify(value)};f.dispatchEvent(new Event('change'));})()`);
-  await apply('rating','8');
-  await waitFor(page, `document.getElementById('list-progress').hidden && document.querySelectorAll('#list .row').length > 0`, 'rating filter');
-  assert(await evaluate(page, String.raw`[...document.querySelectorAll('#list .row-sub')].every(n => Number(n.textContent.match(/★\s*([\d.]+)/)?.[1]) >= 8)`), 'low rating leaked into filtered movies');
-  await apply('sort','rating');
-  const values = await evaluate(page, String.raw`[...document.querySelectorAll('#list .row-sub')].map(n=>Number(n.textContent.match(/★\s*([\d.]+)/)?.[1]))`);
-  assert(values.every((v,i)=>!i || values[i-1]>=v), 'rating sort order');
-  await evaluate(page, `document.querySelector('.media-filter-footer button').click()`);
-  await waitFor(page, `document.querySelectorAll('#list .row').length > 1`, 'filter reset');
-  await evaluate(page, `document.querySelector('#list .row').click()`, {gesture:true});
-  await waitFor(page, PLAYING, 'native movie playback');
-  await waitFor(page, `document.querySelector('#infostrip .title-links a') && document.querySelector('#infostrip .playback-facts')`, 'movie facts and external link');
-  assert(await evaluate(page, `document.querySelector('#infostrip .title-links a').href.startsWith('https://www.imdb.com/')`), 'IMDb link destination');
-  await playEpisode(page);
-  await waitFor(page, `document.querySelector('#detail .detail-cover.loaded:not(:disabled)')`, 'series cover');
-  await evaluate(page, `document.querySelector('#detail .detail-cover').click()`);
-  await waitFor(page, `document.querySelector('.poster-dialog[open] img')`, 'expanded cover');
-  await checkModal(page, '.poster-dialog', 'poster');
-  await evaluate(page, `document.querySelector('.poster-close').click()`);
-  assert(await evaluate(page, `!document.querySelector('.poster-dialog[open]')`), 'cover did not close');
-  await evaluate(page, `document.querySelector('[data-tab="recent"]').click()`);
-  await waitFor(page, `document.querySelectorAll('#list .row').length >= 2`, 'movie and episode history');
-  // Exercise actual image loading and error handling without a remote provider.
-  await evaluate(page, `import('./js/poster.js').then(({poster})=>{
-    const host=document.createElement('div');host.id='cover-check';document.body.append(host);
-    host.append(poster('row-logo','', 'channel'),poster('row-logo','data:image/png;base64,bm90aW1hZ2U=', 'channel'));
-  })`);
-  await waitFor(page, `!document.querySelector('#cover-check img')`, 'failed image fallback');
-  assert(await evaluate(page, `[...document.querySelectorAll('#cover-check svg')].every(svg=>getComputedStyle(svg).visibility==='visible')`), 'channel placeholder hidden');
-  await evaluate(page, `document.getElementById('cover-check').remove()`);
-  await openLiveList(page);
-  assert(await evaluate(page, `!document.getElementById('channel-tools').hidden && document.getElementById('media-filters').hidden`), 'channel navigation');
-  await evaluate(page, `document.getElementById('btn-guide').click()`);
-  await waitFor(page, `document.getElementById('main').classList.contains('guide')`, 'guide entry');
-  await mouseClick(page, '#epg-close');
-  assert(await evaluate(page, `!document.getElementById('main').classList.contains('guide') && document.activeElement.id==='btn-guide'`), 'guide return and focus');
-  return {ok:true,detail:'movie duration, rating filter/sort/reset, native playback, IMDb/facts, series cover expansion, history, failed/missing logo fallback and guide return'};
-}
-
-/* ----------------------------------------------------------- viewing aids */
-
-const NOW_TITLE = `document.getElementById('now-title').textContent`;
-
-async function lastchannel(page) {
-  await openLiveList(page, 4);
-  await evaluate(page, `document.getElementById('list').focus()`);
-  await pressKey(page, 'l', 'KeyL', 76);
-  await sleep(300);
 /**
  * The first run, before anything is connected: the address field comes
  * first and sends what is pasted to its form, the permission prompt is
@@ -2839,6 +2839,65 @@ async function welcome(page, { target }) {
   }
 }
 
+
+/** Covers and catalogue metadata use the same DOM in both browsers. */
+async function catalogUi(page) {
+  const assert = (ok, detail) => { if (!ok) throw new Error(detail); };
+  await evaluate(page, `document.querySelector('[data-tab="movie"]').click()`);
+  await waitFor(page, `document.querySelectorAll('#list .row').length > 1 && document.getElementById('list-progress').hidden`, 'movie rows');
+  // Covers first: the duration reaches the line under a cover as it does a row.
+  await waitFor(page, `document.querySelector('#list.covers .row.card') && [...document.querySelectorAll('#list .card-meta')].some((n) => /\\d+ ?min|\\dh/.test(n.textContent))`, 'movie duration on a cover');
+  await evaluate(page, `document.querySelector('.view-toggle button[aria-pressed="false"]').click()`);
+  await waitFor(page, `!document.getElementById('list').classList.contains('covers') && document.querySelector('#list .row-duration')`, 'movie duration metadata');
+  assert(await evaluate(page, `!document.getElementById('media-filters').hidden && document.getElementById('channel-tools').hidden && document.querySelector('.topbar-end').lastElementChild.id === 'btn-settings'`), 'movie navigation/filters');
+  const apply = (key,value) => evaluate(page, `(() => {const f=document.querySelector('#media-filters [name="${key}"]');f.value=${JSON.stringify(value)};f.dispatchEvent(new Event('change'));})()`);
+  await apply('rating','8');
+  await waitFor(page, `document.getElementById('list-progress').hidden && document.querySelectorAll('#list .row').length > 0`, 'rating filter');
+  assert(await evaluate(page, String.raw`[...document.querySelectorAll('#list .row-sub')].every(n => Number(n.textContent.match(/★\s*([\d.]+)/)?.[1]) >= 8)`), 'low rating leaked into filtered movies');
+  await apply('sort','rating');
+  const values = await evaluate(page, String.raw`[...document.querySelectorAll('#list .row-sub')].map(n=>Number(n.textContent.match(/★\s*([\d.]+)/)?.[1]))`);
+  assert(values.every((v,i)=>!i || values[i-1]>=v), 'rating sort order');
+  await evaluate(page, `document.querySelector('.media-filter-footer button').click()`);
+  await waitFor(page, `document.querySelectorAll('#list .row').length > 1`, 'filter reset');
+  await evaluate(page, `document.querySelector('#list .row').click()`, {gesture:true});
+  await waitFor(page, PLAYING, 'native movie playback');
+  await waitFor(page, `document.querySelector('#infostrip .title-links a') && document.querySelector('#infostrip .playback-facts')`, 'movie facts and external link');
+  assert(await evaluate(page, `document.querySelector('#infostrip .title-links a').href.startsWith('https://www.imdb.com/')`), 'IMDb link destination');
+  await playEpisode(page);
+  await waitFor(page, `document.querySelector('#detail .detail-cover.loaded:not(:disabled)')`, 'series cover');
+  await evaluate(page, `document.querySelector('#detail .detail-cover').click()`);
+  await waitFor(page, `document.querySelector('.poster-dialog[open] img')`, 'expanded cover');
+  await checkModal(page, '.poster-dialog', 'poster');
+  await evaluate(page, `document.querySelector('.poster-close').click()`);
+  assert(await evaluate(page, `!document.querySelector('.poster-dialog[open]')`), 'cover did not close');
+  await evaluate(page, `document.querySelector('[data-tab="recent"]').click()`);
+  await waitFor(page, `document.querySelectorAll('#list .row').length >= 2`, 'movie and episode history');
+  // Exercise actual image loading and error handling without a remote provider.
+  await evaluate(page, `import('./js/poster.js').then(({poster})=>{
+    const host=document.createElement('div');host.id='cover-check';document.body.append(host);
+    host.append(poster('row-logo','', 'channel'),poster('row-logo','data:image/png;base64,bm90aW1hZ2U=', 'channel'));
+  })`);
+  await waitFor(page, `!document.querySelector('#cover-check img')`, 'failed image fallback');
+  assert(await evaluate(page, `[...document.querySelectorAll('#cover-check svg')].every(svg=>getComputedStyle(svg).visibility==='visible')`), 'channel placeholder hidden');
+  await evaluate(page, `document.getElementById('cover-check').remove()`);
+  await openLiveList(page);
+  assert(await evaluate(page, `!document.getElementById('channel-tools').hidden && document.getElementById('media-filters').hidden`), 'channel navigation');
+  await evaluate(page, `document.getElementById('btn-guide').click()`);
+  await waitFor(page, `document.getElementById('main').classList.contains('guide')`, 'guide entry');
+  await mouseClick(page, '#epg-close');
+  assert(await evaluate(page, `!document.getElementById('main').classList.contains('guide') && document.activeElement.id==='btn-guide'`), 'guide return and focus');
+  return {ok:true,detail:'movie duration, rating filter/sort/reset, native playback, IMDb/facts, series cover expansion, history, failed/missing logo fallback and guide return'};
+}
+
+/* ----------------------------------------------------------- viewing aids */
+
+const NOW_TITLE = `document.getElementById('now-title').textContent`;
+
+async function lastchannel(page) {
+  await openLiveList(page, 4);
+  await evaluate(page, `document.getElementById('list').focus()`);
+  await pressKey(page, 'l', 'KeyL', 76);
+  await sleep(300);
   const none = await evaluate(page, `!document.getElementById('toast').hidden`);
   await evaluate(page, `document.querySelectorAll('#list .row')[0].click()`, { gesture: true });
   await waitFor(page, PLAYING, 'the first channel');

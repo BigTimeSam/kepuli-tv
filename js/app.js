@@ -46,7 +46,7 @@ import { applyListLayout, gridColumns, nameCleanerFor, onEpgUpdated, renderRow, 
 import { closeDetail, crumbLabel, episodesOfSeason, openItem, openSeries, renderDetail } from './seriesui.js';
 import { closeGuide, favoritesChanged, focusGrid, grid, guideFavorites, guideOpen, programmeSearch, renderGuideGroups, renderTheme, restoreGuideFavorites, setGuideFavorites, toggleGuide } from './guideui.js';
 
-import { ensureFull, renderEmptyState, renderListInfo, wireSubcatsResize } from './topicbar.js';
+import { ensureFull, renderEmptyState, renderListInfo, wireSubcatsKeys, wireSubcatsResize } from './topicbar.js';
 import { askExternal, playExternal } from './externalui.js';
 import { $, el } from './dom.js';
 import { categoryCountsFor, collectionItems, favCategoryEntry, isFavorite, isUnfinished, kindIndex, loadGroupItems, openFavCategory, refreshCatalogue, refreshWhenStale, removeFromHistory, renderSubcats, sectionsFor, toggleFavCategory } from './collections.js';
@@ -1705,6 +1705,13 @@ function playLastChannel() {
 }
 
 function wireUi() {
+  // The skip link's way to the list: the guide covers it and a narrow
+  // window may show the player's pane instead, so both make way first.
+  $('skip-list').addEventListener('click', () => {
+    if (guideOpen) closeGuide();
+    playerLayout.showBrowse();
+    el.list.focus();
+  });
   // The arrows walk the strip and Home and End reach its ends, which is what
   // a tab strip promises the moment it calls itself one. The same keys are
   // the list's while the focus is elsewhere, so they are taken only here.
@@ -1984,6 +1991,7 @@ async function init() {
   wireUi();
   wireMediaSession();
   wireSubcatsResize();
+  wireSubcatsKeys();
   watchInterest();
   await loadLists();
   // Not waited for: the list of recordings has nothing to do with connecting.
@@ -2047,6 +2055,7 @@ async function init() {
   if (!configured()) {
     if (await adoptSyncedAccount(state.accounts)) return;
     renderIdleOverlay();
+    renderEmptyState();
     openSetup();
     return;
   }
@@ -2055,5 +2064,4 @@ async function init() {
 
 const CACHE_PURGE_DELAY_MS = 20000;
 
-    renderEmptyState();
 init();
