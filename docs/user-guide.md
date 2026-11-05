@@ -344,7 +344,11 @@ countries or topics, `Home` and `End` reach its ends, and `Enter` or `space`
 chooses the row the cursor is on — the row being marked as the cursor's, which
 is a different thing from the group being shown. Both are listboxes, as the
 list itself already was, so a screen reader is told what the eye can see: which
-row is selected and which one the keyboard stands on.
+row is selected and which one the keyboard stands on. A row is named by what it
+shows — the name, then "Favourites" when it is one, then the line under it —
+rather than by the star in it, and the row playing is announced as the current
+one. In **Settings** the connection choices are one named group, and the
+password field is named **Password** alone.
 
 In the guide the arrows move between channels and programmes, `PgUp` and
 `PgDn` a screen at a time, `Home` returns to the present, `+` and `−` adjust

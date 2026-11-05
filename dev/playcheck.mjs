@@ -65,7 +65,10 @@
 //   node dev/playcheck.mjs listerror  a group that cannot be fetched while a
 //                                     channel plays: a toast, not the overlay
 //   node dev/playcheck.mjs a11y       roles and names for assistive technology,
-//                                     the cursor announced and marked
+//                                     the cursor announced and marked; rows
+//                                     named by their text, not their star;
+//                                     Settings' password and radio group;
+//                                     the playing row aria-current
 //   node dev/playcheck.mjs audio      the three-track episode: the automatic
 //                                     choice is heard as the English track's
 //                                     tone, the selector changes the track
@@ -1481,7 +1484,64 @@ async function a11y(page) {
     && st.toastRole === 'status' && st.unnamedIcons.length === 0
     && st.groupsRole === 'listbox' && st.groupsTabbable && st.optionRoles.join() === 'option'
     && st.rowsTabbable === 0 && st.pointsAtGroup && chosen === st.target;
-  return { ok, detail: `list ${st.listRole}/${st.listName}, cursor ${st.pointsAtCursor ? 'announced' : 'not announced'} and ${st.cursorMark ? 'marked' : 'unmarked'}, tabs ${st.tablist} selected ${st.selectedTabs.join(',')} with ${st.tabStops.length} stop naming ${st.panelNamedBy}, sidebar ${st.groupsRole} of ${st.optionRoles.join('/')} with ${st.rowsTabbable} tabbable rows, toast ${st.toastRole}, unnamed icon buttons ${st.unnamedIcons.length}, group by keyboard: "${st.target}" → "${chosen}"` };
+  const base = `list ${st.listRole}/${st.listName}, cursor ${st.pointsAtCursor ? 'announced' : 'not announced'} and ${st.cursorMark ? 'marked' : 'unmarked'}, tabs ${st.tablist} selected ${st.selectedTabs.join(',')} with ${st.tabStops.length} stop naming ${st.panelNamedBy}, sidebar ${st.groupsRole} of ${st.optionRoles.join('/')} with ${st.rowsTabbable} tabbable rows, toast ${st.toastRole}, unnamed icon buttons ${st.unnamedIcons.length}, group by keyboard: "${st.target}" → "${chosen}"`;
+  if (!ok) return { ok, detail: base };
+  return { ok: true, detail: `${base}; ${await a11yNames(page)}` };
+}
+
+/** The role and name Chrome's accessibility tree gives the first element a selector finds. */
+async function axNode(page, selector) {
+  const { result } = await page.call('Runtime.evaluate', { expression: `document.querySelector(${JSON.stringify(selector)})` });
+  if (!result.objectId) return null;
+  const { nodes } = await page.call('Accessibility.getPartialAXTree', { objectId: result.objectId, fetchRelatives: false });
+  const node = nodes.find((n) => !n.ignored) || nodes[0];
+  return node ? { role: node.role?.value, name: node.name?.value ?? '' } : null;
+}
+
+/**
+ * The a11y scenario's names, after the product audit: options named by
+ * their row rather than the star in it, Settings' password and radio
+ * group, the subtitle look button, and the playing row as aria-current.
+ * Leaves a channel playing.
+ */
+async function a11yNames(page) {
+  const assert = (ok, detail) => { if (!ok) throw new Error(detail); };
+  await page.call('Accessibility.enable');
+
+  const row = await axNode(page, '#list .row');
+  const group = await axNode(page, '#groups .group:has(button.group-star)');
+  const texts = await evaluate(page, `({ row: document.querySelector('#list .row .row-name').textContent,
+    group: document.querySelector('#groups .group:has(button.group-star) .group-name').textContent,
+    star: document.querySelector('#list .row .row-star').title })`);
+  assert(row?.role === 'option' && row.name.startsWith(texts.row) && !row.name.includes(texts.star),
+    `a list row is the ${row?.role} "${row?.name}", not named by "${texts.row}" first and without "${texts.star}"`);
+  assert(group?.role === 'option' && group.name.startsWith(texts.group) && !group.name.includes(texts.star),
+    `a sidebar row is the ${group?.role} "${group?.name}", not named by "${texts.group}" first and without "${texts.star}"`);
+
+  // "Aa" is no name; and the fields whose placeholder is the only word
+  // they show have one of their own.
+  const named = await evaluate(page, `(() => { const b = document.getElementById('btn-sublook');
+    return { sublook: b.getAttribute('aria-label') || '', title: b.title,
+      bare: ['search', 'category-filter', 'programme-query'].filter((id) => !(document.getElementById(id).getAttribute('aria-label') || '').trim()) }; })()`);
+  assert(named.sublook && named.sublook === named.title, `the subtitle look button is named "${named.sublook}"`);
+  assert(!named.bare.length, `fields named by their placeholder alone: ${named.bare.join(', ')}`);
+
+  await evaluate(page, `document.getElementById('btn-settings').click()`);
+  await waitFor(page, `document.getElementById('setup').open`, 'settings');
+  await sleep(300);
+  const password = await axNode(page, '#f-password');
+  const radios = await axNode(page, '#setup .radios');
+  const words = await evaluate(page, `({ password: document.querySelector('[data-i18n="setup.password"]').textContent, source: document.querySelector('[data-i18n="setup.source"]').textContent })`);
+  await evaluate(page, `document.getElementById('f-done').click()`);
+  await waitFor(page, `!document.getElementById('setup').open`, 'settings closed');
+  assert(password?.name === words.password, `the password field is named "${password?.name}", not "${words.password}"`);
+  assert(radios?.role === 'radiogroup' && radios.name === words.source, `the connection choice is a ${radios?.role} named "${radios?.name}"`);
+
+  await playFirstChannel(page);
+  const current = await evaluate(page, `(() => { const rows = [...document.querySelectorAll('#list .row')];
+    return { current: rows.filter((r) => r.getAttribute('aria-current') === 'true').map((r) => r.classList.contains('playing')), playing: rows.filter((r) => r.classList.contains('playing')).length }; })()`);
+  assert(current.playing === 1 && current.current.length === 1 && current.current[0], `aria-current: ${JSON.stringify(current)}`);
+  return `rows named "${row.name}" and "${group.name}", password "${password.name}", ${radios.role} "${radios.name}", sublook "${named.sublook}", aria-current on the playing row`;
 }
 
 /** The control stays with the video and preserves the subtitle overlay. */

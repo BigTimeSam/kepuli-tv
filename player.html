@@ -262,7 +262,7 @@
              watched, not against a preview in a dialog, so the same two
              controls open here as well. The button appears on the same
              condition as the selector beside it. -->
-        <button type="button" id="btn-sublook" class="ghost" data-i18n-title="player.subs.look" aria-expanded="false" aria-controls="sublook-pop" hidden>Aa</button>
+        <button type="button" id="btn-sublook" class="ghost" data-i18n-title="player.subs.look" data-i18n-label="player.subs.look" aria-expanded="false" aria-controls="sublook-pop" hidden>Aa</button>
         <!-- A live channel recorded from now on: to the end of the programme
              on now when the guide knows it, else until stopped. -->
         <button type="button" id="btn-record" class="ghost record-button" aria-pressed="false" hidden><span class="rec-dot" aria-hidden="true"></span><span class="button-label" id="btn-record-label" data-i18n="rec.start">Record</span></button>
@@ -572,8 +572,8 @@ on two lines as well.</div></div>
         <input id="f-name" type="text" autocomplete="off" spellcheck="false" data-i18n-placeholder="setup.name.placeholder" placeholder="e.g. Provider name">
       </label>
       <div class="field">
-        <span data-i18n="setup.source">Connection</span>
-        <div class="radios">
+        <span id="setup-source-label" data-i18n="setup.source">Connection</span>
+        <div class="radios" role="radiogroup" aria-labelledby="setup-source-label">
           <label class="radio">
             <input type="radio" name="source" value="xtream" checked>
             <span data-i18n="setup.source.xtream">Enter fields (Xtream Codes)</span>
@@ -605,9 +605,12 @@ on two lines as well.</div></div>
         <!-- A provider's password is long and random and typed by hand once.
              Without a way to look at it, a typo is found only by the
              connection failing, which names the wrong culprit. -->
-        <label class="field"><span data-i18n="setup.password">Password</span>
+        <!-- The field is named by its word alone: named by the label around
+             it, it took in the eye button's name as well ("Password Show the
+             password"). -->
+        <label class="field"><span id="f-password-label" data-i18n="setup.password">Password</span>
           <span class="field-reveal">
-            <input id="f-password" type="password" autocomplete="off">
+            <input id="f-password" type="password" autocomplete="off" aria-labelledby="f-password-label">
             <button type="button" id="f-password-show" aria-pressed="false" data-i18n-label="setup.password.show" data-i18n-title="setup.password.show">
               <svg viewBox="0 0 20 20" aria-hidden="true"><path d="M1.8 10S4.6 5 10 5s8.2 5 8.2 5-2.8 5-8.2 5-8.2-5-8.2-5Z"/><circle cx="10" cy="10" r="2.3"/></svg>
             </button>
