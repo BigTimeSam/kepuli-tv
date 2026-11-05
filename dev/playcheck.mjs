@@ -214,7 +214,16 @@
 //                                     ones or those chosen; a tick chooses the
 //                                     last, and the list stays for next time
 //   node dev/playcheck.mjs favorder   the favourites by name to begin with, the
-//                                     latest added first from their foot's mark
+//                                     latest added first from their foot's mark,
+//                                     Z–A from the name mark; a favourite
+//                                     category's foot; the history latest
+//                                     first, then by name; all in Settings
+//   node dev/playcheck.mjs tilekeys   the arrows, s and Delete on a Continue
+//                                     watching card act on the card, not the
+//                                     list's row
+//   node dev/playcheck.mjs routes     #/guide, ?movie= and #/history in the
+//                                     address; a reload reopens the guide and
+//                                     stands on the film without playing it
 //   node dev/playcheck.mjs gotochannel a channel chosen in the guide's search
 //                                     plays in the corner; Go to channel opens
 //                                     its country standing on it, the channel
@@ -1948,6 +1957,16 @@ async function channelorder(page) {
   assert(byName.marks.length === 2 && byName.marks[0] === 'Name (A–Z)' && byName.marks[1] === 'Channel number' && byName.pressed === 0, `the marks: ${JSON.stringify(byName)}`);
   const sorted = [...byName.names].sort((a, b) => a.localeCompare(b));
   assert(JSON.stringify(byName.names) === JSON.stringify(sorted), `by name the rows are ${byName.names.join(', ')}`);
+  // The name mark turns A–Z to Z–A and back; it once stayed at A–Z, lit
+  // while Z–A was set, and a press did nothing.
+  await evaluate(page, `document.querySelectorAll('#listinfo .view-toggle button')[0].click()`);
+  await waitFor(page, `document.querySelector('#listinfo .view-toggle button')?.dataset.order === 'za'`, 'Z–A from the name mark');
+  const backwards = await read();
+  const descending = [...backwards.names].sort((a, b) => b.localeCompare(a));
+  assert(backwards.stored === 'za' && backwards.pressed === 0 && backwards.marks[0] === 'Name (Z–A)'
+    && JSON.stringify(backwards.names) === JSON.stringify(descending) && backwards.names[0] !== byName.names[0], `Z–A: ${JSON.stringify(backwards)}`);
+  await evaluate(page, `document.querySelectorAll('#listinfo .view-toggle button')[0].click()`);
+  await waitFor(page, `document.querySelector('#listinfo .view-toggle button')?.dataset.order === 'az'`, 'A–Z again from the name mark');
   await evaluate(page, `document.querySelectorAll('#listinfo .view-toggle button')[1].click()`);
   await waitFor(page, `document.querySelectorAll('#listinfo .view-toggle button')[1]?.getAttribute('aria-pressed') === 'true'`, 'the number order');
   const byNumber = await read();
@@ -3511,11 +3530,17 @@ async function catalogUi(page) {
   await apply('rating','8');
   await waitFor(page, `document.getElementById('list-progress').hidden && document.querySelectorAll('#list .row').length > 0`, 'rating filter');
   assert(await evaluate(page, String.raw`[...document.querySelectorAll('#list .row-sub')].every(n => Number(n.textContent.match(/★\s*([\d.]+)/)?.[1]) >= 8)`), 'low rating leaked into filtered movies');
-  await apply('sort','rating');
+  // The order is the list's foot's, not one of the filters: Reset leaves it.
+  assert(await evaluate(page, `!document.querySelector('#media-filters [name="sort"]')`), 'an order among the filters');
+  await evaluate(page, `document.querySelector('#listinfo [data-order="rating"]').click()`);
+  await waitFor(page, `document.querySelector('#listinfo [data-order="rating"]')?.getAttribute('aria-pressed') === 'true'`, 'the rating order');
   const values = await evaluate(page, String.raw`[...document.querySelectorAll('#list .row-sub')].map(n=>Number(n.textContent.match(/★\s*([\d.]+)/)?.[1]))`);
   assert(values.every((v,i)=>!i || values[i-1]>=v), 'rating sort order');
   await evaluate(page, `document.querySelector('.media-filter-footer button').click()`);
   await waitFor(page, `document.querySelectorAll('#list .row').length > 1`, 'filter reset');
+  assert(await evaluate(page, `chrome.storage.local.get('settings').then((s) => s.settings.movieSort === 'rating' && document.querySelector('#listinfo [data-order="rating"]')?.getAttribute('aria-pressed') === 'true')`), 'Reset took the order with it');
+  await evaluate(page, `document.querySelector('#listinfo [data-order="az"]').click()`);
+  await waitFor(page, `document.querySelector('#listinfo [data-order="az"]')?.getAttribute('aria-pressed') === 'true'`, 'the name order again');
   await evaluate(page, `document.querySelector('#list .row').click()`, {gesture:true});
   await waitFor(page, PLAYING, 'native movie playback');
   await waitFor(page, `document.querySelector('#infostrip .title-links a') && document.querySelector('#infostrip .playback-facts')`, 'movie facts and external link');
@@ -5177,10 +5202,140 @@ async function favorder(page) {
     const expected = await evaluate(page, `(async () => { const { state } = ${app}; return [...state.favorites.values()].sort((a, b) => b.addedAt - a.addedAt).map((f) => f.displayName || f.n); })()`);
     const saved = await evaluate(page, `chrome.storage.local.get('settings').then((s) => s.settings.favoritesSort)`);
     assert(added.length === 3 && added.every((n, i) => expected[i].endsWith(n) || expected[i] === n) && saved === 'added', `latest added first: ${JSON.stringify({ added, expected, saved })}`);
-    return { ok: true, detail: `by name ${JSON.stringify(byName)}; latest added first ${JSON.stringify(added)}, kept in Settings` };
+    // The name mark: A–Z first, a second press Z–A, and the A turned to a Z.
+    const nameMark = `document.querySelector('#listinfo .order-toggle button')`;
+    await evaluate(page, `${nameMark}.click()`);
+    await waitFor(page, `${nameMark}?.dataset.order === 'az' && ${nameMark}.getAttribute('aria-pressed') === 'true'`, 'A–Z from the name mark');
+    await evaluate(page, `${nameMark}.click()`);
+    await waitFor(page, `${nameMark}?.dataset.order === 'za'`, 'Z–A from the name mark');
+    const backwards = await names();
+    const zaSaved = await evaluate(page, `chrome.storage.local.get('settings').then((s) => s.settings.favoritesSort)`);
+    assert(JSON.stringify(backwards) === JSON.stringify([...byName].reverse()) && zaSaved === 'za', `Z–A: ${JSON.stringify({ backwards, zaSaved })}`);
+    // A favourite category of channels has the channels' order at its foot.
+    const group = await evaluate(page, `(async () => { const { state } = ${app}; return state.lib.groups.live.find((g) => g.name !== state.group && g.cats.length)?.name; })()`);
+    await evaluate(page, `(async () => { const { state, refreshRows } = ${app}; const g = ${JSON.stringify(group)};
+      state.favorites.set('c:live:g:' + g, { k: 'c', id: 'live:g:' + g, t: 'live', c: null, g, n: g }); await refreshRows(); })()`);
+    await waitFor(page, `[...document.querySelectorAll('#list .row')].some((r) => r.textContent.includes(${JSON.stringify(group)}))`, 'the favourite category');
+    await evaluate(page, `(async () => { const { state } = ${app}; const { openFavCategory } = await import('./js/collections.js'); await openFavCategory(state.favorites.get('c:live:g:' + ${JSON.stringify(group)})); })()`);
+    await waitFor(page, `document.querySelectorAll('#list .row').length > 1 && document.querySelector('#listinfo .order-toggle')`, 'the order at the category\'s foot', 20000);
+    const inCategory = await evaluate(page, `[...document.querySelectorAll('#listinfo .order-toggle button')].map((b) => b.dataset.order + (b.getAttribute('aria-pressed') === 'true' ? '*' : ''))`);
+    assert(JSON.stringify(inCategory) === JSON.stringify(['az*', 'num']), `the marks in the favourite category: ${JSON.stringify(inCategory)}`);
+    // The history: the latest watched first, by name from its mark, and the
+    // same choice in Settings.
+    await evaluate(page, `(async () => { const { state } = ${app}; const rows = [...state.favorites.values()].filter((r) => r.k === 0);
+      const now = Date.now(); state.recents = [rows[1], rows[0], rows[2]].map((r, i) => ({ ...r, watchedAt: now - i * 60000 })); })()`);
+    await evaluate(page, `document.querySelector('#tabs [data-tab="recent"]').click()`);
+    await waitFor(page, `document.querySelectorAll('#list .row').length === 3 && document.querySelector('#listinfo .order-toggle')`, 'the history');
+    const history = await evaluate(page, `[...document.querySelectorAll('#listinfo .order-toggle button')].map((b) => b.dataset.order + (b.getAttribute('aria-pressed') === 'true' ? '*' : ''))`);
+    const watched = await names();
+    const expectedWatched = await evaluate(page, `(async () => { const { state } = ${app}; return state.recents.map((r) => r.displayName || r.n); })()`);
+    assert(JSON.stringify(history) === JSON.stringify(['watched*', 'az']) && watched.every((n, i) => expectedWatched[i].endsWith(n) || expectedWatched[i] === n),
+      `the history at first: ${JSON.stringify({ history, watched, expectedWatched })}`);
+    await evaluate(page, `document.querySelector('#listinfo [data-order="az"]').click()`);
+    await waitFor(page, `document.querySelector('#listinfo [data-order="az"]')?.getAttribute('aria-pressed') === 'true'`, 'the history by name');
+    const historyByName = await names();
+    await evaluate(page, `document.getElementById('btn-settings').click()`);
+    await waitFor(page, `document.getElementById('setup').open`, 'settings');
+    const fields = await evaluate(page, `['f-channelsort', 'f-favsort', 'f-moviesort', 'f-seriessort', 'f-historysort'].map((id) => document.getElementById(id).value)`);
+    await evaluate(page, `document.getElementById('f-done').click()`);
+    await waitFor(page, `!document.getElementById('setup').open`, 'settings closed');
+    assert(JSON.stringify(historyByName) === JSON.stringify(byName) && JSON.stringify(fields) === JSON.stringify(['az', 'za', 'az', 'az', 'az']),
+      `the history by name, and Settings: ${JSON.stringify({ historyByName, byName, fields })}`);
+    return { ok: true, detail: `by name ${JSON.stringify(byName)}; latest added first ${JSON.stringify(added)}; Z–A ${JSON.stringify(backwards)}; the channels' marks in a favourite category; the history latest first, then by name; all in Settings` };
   } finally {
-    await evaluate(page, `(async () => { const { state } = ${app}; const config = await import('./js/config.js'); state.settings = await config.saveSettings({ favoritesSort: 'az' }); })()`);
+    await evaluate(page, `(async () => { const { state } = ${app}; const config = await import('./js/config.js'); state.settings = await config.saveSettings({ favoritesSort: 'az', historySort: 'watched' });
+      for (const key of [...state.favorites.keys()]) if (key.startsWith('c:live:g:')) state.favorites.delete(key); })()`);
   }
+}
+
+/**
+ * The keys on a strip of tiles act on the tile with the focus, not on the
+ * list's row: on Continue watching an arrow steps to the next card and
+ * leaves the list's cursor where it was, `s` stars the card's film rather
+ * than the list's channel, and Delete forgets the card rather than doing
+ * anything to the list. Before, all three reached the list.
+ */
+async function tilekeys(page) {
+  const assert = (ok, message) => { if (!ok) throw new Error(message); };
+  const app = `(await import('./js/app.js'))`;
+  await openLiveList(page, 3);
+  const films = await evaluate(page, `(async () => { const { state } = ${app}; const config = await import('./js/config.js');
+    state.settings = await config.saveSettings({ resumeEnabled: true });
+    const films = (await state.lib.ensureFull('movie')).slice(0, 3); const now = Date.now();
+    for (const f of [...films].reverse()) state.recents = await config.pushRecent(f);
+    for (const f of films) state.resume.set('1:' + f.id, { position: 300, duration: 3000, at: now });
+    for (const f of films) state.favorites.delete('1:' + f.id);
+    state.cursor = 1; const { vlist } = ${app}; vlist.refresh();
+    (await import('./js/languageui.js')).renderIdleOverlay();
+    return films.map((f) => String(f.id)); })()`);
+  try {
+    await waitFor(page, `document.querySelectorAll('.idle-cards .idle-card').length === 3`, 'three cards under Continue watching');
+    const before = await evaluate(page, `(async () => { const { state } = ${app}; const row = state.rows[state.cursor]; return { cursor: state.cursor, key: row.k + ':' + row.id, starred: state.favorites.has(row.k + ':' + row.id) }; })()`);
+    await evaluate(page, `document.querySelector('.idle-cards .idle-card').focus()`);
+    await pressKey(page, 'ArrowRight', 'ArrowRight', 39);
+    const stepped = await evaluate(page, `[...document.querySelectorAll('.idle-cards .idle-card')].indexOf(document.activeElement)`);
+    await pressKey(page, 'ArrowDown', 'ArrowDown', 40);
+    await pressKey(page, 'ArrowUp', 'ArrowUp', 38);
+    const moved = await evaluate(page, `(async () => { const { state } = ${app}; return { home: !!document.activeElement.closest('#idle-home'), cursor: state.cursor }; })()`);
+    assert(stepped === 1 && moved.home && moved.cursor === before.cursor, `the arrows on a card: ${JSON.stringify({ before, stepped, moved })}`);
+    await evaluate(page, `document.querySelectorAll('.idle-cards .idle-card')[1].focus()`);
+    await pressKey(page, 's', 'KeyS', 83);
+    const starred = await evaluate(page, `(async () => { const { state } = ${app}; return { film: state.favorites.has('1:' + ${JSON.stringify(films[1])}), row: state.favorites.has(${JSON.stringify(before.key)}),
+      focus: document.activeElement?.className }; })()`);
+    assert(starred.film && starred.row === before.starred, `s on a card: ${JSON.stringify(starred)}`);
+    await evaluate(page, `document.querySelectorAll('.idle-cards .idle-card')[1].focus()`);
+    await pressKey(page, 'Delete', 'Delete', 46);
+    await waitFor(page, `document.querySelectorAll('.idle-cards .idle-card').length === 2`, 'the card forgotten');
+    const after = await evaluate(page, `(async () => { const { state } = ${app}; return { recents: state.recents.map((r) => String(r.id)), cursor: state.cursor, row: state.rows[state.cursor].k + ':' + state.rows[state.cursor].id }; })()`);
+    assert(!after.recents.includes(films[1]) && after.recents.includes(films[0]) && after.cursor === before.cursor && after.row === before.key, `Delete on a card: ${JSON.stringify(after)}`);
+    return { ok: true, detail: `the arrows stepped between the cards with the list's cursor kept at ${before.cursor}; s starred the card's film, not ${before.key}; Delete forgot the card` };
+  } finally {
+    await evaluate(page, `(async () => { const { state } = ${app}; for (const id of ${JSON.stringify(films)}) { state.favorites.delete('1:' + id); state.resume.delete('1:' + id); }
+      const config = await import('./js/config.js'); for (const id of ${JSON.stringify(films)}) await config.setFavorite('1:' + id, null);
+      state.recents = (await config.removeRecents(${JSON.stringify(films)}.map((id) => '1:' + id))) || state.recents; })()`);
+  }
+}
+
+/**
+ * The address names the guide (#/guide), a film in its list (?movie=)
+ * and the history in its own word (#/history, the older #/recent still
+ * read); a reload opens the guide again, and stands on the film without
+ * playing it.
+ */
+async function routes(page) {
+  const assert = (ok, message) => { if (!ok) throw new Error(message); };
+  const app = `(await import('./js/app.js'))`;
+  await openLiveList(page, 3);
+  await evaluate(page, `document.getElementById('btn-guide').click()`);
+  await waitFor(page, `document.getElementById('main').classList.contains('guide') && location.hash.startsWith('#/guide')`, 'the guide in the address');
+  const guide = await evaluate(page, `location.hash`);
+  await page.call('Page.reload');
+  await sleep(1000);
+  await waitFor(page, CONNECTED, 'the connection after the reload');
+  await waitFor(page, `document.getElementById('main').classList.contains('guide')`, 'the guide open again after the reload', 20000);
+  const reopened = await evaluate(page, `location.hash`);
+  await evaluate(page, `document.getElementById('epg-close').click()`);
+  await waitFor(page, `!document.getElementById('main').classList.contains('guide') && location.hash.startsWith('#/live')`, 'the guide closed, the address the channels\'');
+  // The history in its word, and the old one read and written over.
+  await evaluate(page, `document.querySelector('#tabs [data-tab="recent"]').click()`);
+  await waitFor(page, `location.hash.startsWith('#/history')`, 'the history\'s address');
+  await evaluate(page, `location.hash = '#/recent?kind=channel'`);
+  await waitFor(page, `location.hash === '#/history?kind=channel'`, 'the older address read and rewritten');
+  // A film playing is in the address, and a reload stands on it.
+  await evaluate(page, `document.querySelector('#tabs [data-tab="movie"]').click()`);
+  await click(page, '#groups', 'Action', { timeout: 30000 });
+  await waitFor(page, `document.querySelectorAll('#list .row').length > 2`, 'the films');
+  const film = await evaluate(page, `(async () => { const { state } = ${app}; return String(state.rows[2].id); })()`);
+  await evaluate(page, `document.querySelectorAll('#list .row')[2].click()`, { gesture: true });
+  await waitFor(page, `location.hash.endsWith('?movie=' + ${JSON.stringify(film)})`, 'the film in the address', 20000);
+  const filmHash = await evaluate(page, `location.hash`);
+  await page.call('Page.reload');
+  await sleep(1000);
+  await waitFor(page, CONNECTED, 'the connection after the reload');
+  await waitFor(page, `(async () => { const { state } = ${app}; return state.rows[state.cursor] && String(state.rows[state.cursor].id) === ${JSON.stringify(film)}; })()`, 'the film stood on after the reload', 20000);
+  const back = await evaluate(page, `(async () => { const { state } = ${app}; return { hash: location.hash, playing: !!state.playing }; })()`);
+  assert(back.hash === filmHash && !back.playing, `the reload: ${JSON.stringify({ filmHash, back })}`);
+  return { ok: true, detail: `${guide} reopened as ${reopened}; #/recent?kind=channel became #/history?kind=channel; ${filmHash} stood on after a reload, not playing` };
 }
 
 /**
@@ -5249,7 +5404,7 @@ async function countryfilter(page) {
 
 const SCENARIOS = { buffering, livebuffering, filmbuffering, emptyfile, tsasmp4, refusedfile, badgateway, livebadgateway, channelrefused, noanswer, longfilm, catalogUi, setupClarity, welcome, fullscreenControl, clickpause, pickers, touchcaret, screenbutton, topmenu, scrollbars, channelorder, lengthfilter, nowlogo, channels, home, resumemkv, restore, programmes, catchup, seek, death, cancel, timeout, search, paste, keys, switching, resume, connections, livezap, livequiet, reconnect, accounts, listerror, a11y, subtitles, audio, wasmaudio, settings,
   lastchannel, nextepisode, continuewatching, reminders, update, seeklag, cuesretry, quota, catchupfreeze, catchupfull, twotabs, switchstop, resettabs,
-  refresh, restorenav, guidekeep, m3u, sync, holes, picks, flakyserver, accountform, stalker, record, guidefavs, categories, homecountry, noleak, perf, pseudo, startup, soak, phone, episodenames, gotochannel, filmdetails, favorder, countryfilter };
+  refresh, restorenav, guidekeep, m3u, sync, holes, picks, flakyserver, accountform, stalker, record, guidefavs, categories, homecountry, noleak, perf, pseudo, startup, soak, phone, episodenames, gotochannel, filmdetails, favorder, countryfilter, tilekeys, routes };
 // The mock's whole-list answers stall for these, longer than the request limit.
 const SLOW_LIST_MS = { cancel: 60000, timeout: 60000 };
 // The media is sent slowly for these: the seek targets must lie outside the

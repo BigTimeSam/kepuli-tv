@@ -31,6 +31,8 @@ import { searchProgrammes, mergeSorted, searchableChannels, groupResults } from 
 import { Epg } from '../js/epg.js';
 import { probeCacheTtl } from '../js/probe.js';
 import { formatRoute, parseRoute } from '../js/route.js';
+import { neighbourTile } from '../js/listnavigation.js';
+import { LIST_ORDERS, ORDER_MARKS, ORDER_SETTINGS, listOrder, orderTitles, pressedOrder } from '../js/listorder.js';
 import { titleWithoutYear, nameTags, versionLabels, franchiseKey, relatedTitles, isNew } from '../js/titlemeta.js';
 import { boxHeader, parseMoov } from '../js/mp4file.js';
 import { parseM3u, parseExtinf, classify, episodeOf, isDivider, shortHash, fillCatchup, catchupAddress, playlistAddress } from '../js/m3u.js';
@@ -782,7 +784,18 @@ check('a channel only in the channels', parseRoute('#/movie/Drama?channel=4321')
 check('All is a segment of its own', formatRoute({ tab: 'movie', group: null }), '#/movie/-');
 check('a collection carries no group, and its words', formatRoute({ tab: 'fav', kind: 1 }), '#/favorites?kind=movie');
 check('the types in words', [formatRoute({ tab: 'fav', kind: 'c' }), formatRoute({ tab: 'recent', kind: 0 }), formatRoute({ tab: 'recent', kind: 2 })],
-  ['#/favorites?kind=category', '#/recent?kind=channel', '#/recent?kind=series']);
+  ['#/favorites?kind=category', '#/history?kind=channel', '#/history?kind=series']);
+check('the history is "history" in the address, and its older word still reads',
+  [formatRoute({ tab: 'recent' }), parseRoute('#/history?kind=movie'), parseRoute('#/recent?series=5')],
+  ['#/history', { tab: 'recent', kind: 1 }, { tab: 'recent', series: '5' }]);
+check('the guide alone, and over a group and a topic', [formatRoute({ tab: 'live', guide: true }), formatRoute({ tab: 'live', group: 'Finland', sub: '312', guide: true })],
+  ['#/guide', '#/guide/Finland/312']);
+check('the guide read back as the channels with the guide open', [parseRoute('#/guide'), parseRoute('#/guide/Finland?channel=4')],
+  [{ tab: 'live', guide: true }, { tab: 'live', guide: true, group: 'Finland', channel: '4' }]);
+check('the guide belongs to the channels alone', formatRoute({ tab: 'movie', group: 'Action', guide: true }), '#/movie/Action');
+check('a film in its list', [formatRoute({ tab: 'movie', group: 'Action', movie: '5000' }), parseRoute('#/movie/Action?movie=5000')],
+  ['#/movie/Action?movie=5000', { tab: 'movie', group: 'Action', movie: '5000' }]);
+check('a film only in the films', [parseRoute('#/live/Finland?movie=5000'), parseRoute('#/favorites?movie=5000')], [{ tab: 'live', group: 'Finland' }, { tab: 'fav' }]);
 check('an older address still reads', [parseRoute('#/fav?kind=1'), parseRoute('#/recent?kind=0'), parseRoute('#/fav?kind=c')],
   [{ tab: 'fav', kind: 1 }, { tab: 'recent', kind: 0 }, { tab: 'fav', kind: 'c' }]);
 check('a drill-down rides along', formatRoute({ tab: 'series', group: 'Drama', series: '1234' }), '#/series/Drama?series=1234');
@@ -1180,6 +1193,49 @@ check('a series named in the channels\' address is dropped', parseRoute('#/live/
 check('a favourite category belongs to the favourites alone',
   parseRoute('#/series/Drama?cat=live%3A1&series=5'), { tab: 'series', group: 'Drama', series: '5' });
 check('the history may hold a series', parseRoute('#/recent?series=5'), { tab: 'recent', series: '5' });
+
+/* -------------------------------------------- listorder.js: list orders */
+
+{
+  check('a list\'s order from the settings, its default for anything else',
+    [listOrder({}, 'live'), listOrder({ channelSort: 'za' }, 'live'), listOrder({ favoritesSort: 'added' }, 'fav'), listOrder({ favoritesSort: 'num' }, 'fav'),
+      listOrder({}, 'movie'), listOrder({ seriesSort: 'rating' }, 'series'), listOrder({}, 'recent'), listOrder({ historySort: 'za' }, 'recent')],
+    ['az', 'za', 'added', 'az', 'az', 'rating', 'watched', 'za']);
+  check('every list keeps its order in a setting of its own, and every order has a mark',
+    Object.keys(LIST_ORDERS).every((list) => ORDER_SETTINGS[list] && ORDER_MARKS[list].flat().sort().join() === [...LIST_ORDERS[list]].sort().join()), true);
+  // The name's mark turns A–Z to Z–A and back; the channels' once stayed
+  // at A–Z lit while Z–A was set, and a press did nothing.
+  const name = ORDER_MARKS.live[0];
+  check('a press on the lit name mark turns the order round, and back', [pressedOrder(name, 'az'), pressedOrder(name, 'za')], ['za', 'az']);
+  check('a press on a mark not lit takes its first order', [pressedOrder(name, 'num'), pressedOrder(['newest', 'oldest'], 'az'), pressedOrder(['rating'], 'za')], ['az', 'newest', 'rating']);
+  check('a lit mark of one order stays at it', pressedOrder(['num'], 'num'), 'num');
+  const films = [{ id: 'a', n: 'Alpha', added: 3 }, { id: 'b', n: 'Beta', added: 0 }, { id: 'c', n: 'Gamma', added: 9 }, { id: 'd', n: 'Delta', added: 5 }];
+  const facts = { a: { year: 2020, rating: 8 }, b: { year: 1999, rating: 6 }, c: { year: 2024, rating: 0 }, d: { year: 0, rating: 9 } };
+  const order = (o) => orderTitles(films, o, (item) => facts[item.id]).map((f) => f.id);
+  check('films by name stay as they came', order('az'), ['a', 'b', 'c', 'd']);
+  check('Z–A mirrors them', order('za'), ['d', 'c', 'b', 'a']);
+  check('the newest year first, an unknown year last', order('newest'), ['c', 'a', 'b', 'd']);
+  check('the oldest year first, an unknown year still last', order('oldest'), ['b', 'a', 'c', 'd']);
+  check('the best rated first, unrated last', order('rating'), ['d', 'a', 'b', 'c']);
+  check('the latest the provider added first, an unknown date last', order('added'), ['c', 'd', 'a', 'b']);
+  check('ordering does not change the catalogue', films.map((f) => f.id), ['a', 'b', 'c', 'd']);
+}
+
+/* --------------------------------- listnavigation.js: keys on a tile strip */
+
+{
+  // Two rows of three tiles, 100 wide and 50 high, and a fourth row's one.
+  const box = (col, row) => ({ left: col * 110, right: col * 110 + 100, top: row * 60, bottom: row * 60 + 50 });
+  const grid = [box(0, 0), box(1, 0), box(2, 0), box(0, 1), box(1, 1), box(2, 1), box(1, 2)];
+  check('left and right step a tile in the page\'s order, and stop at the ends',
+    [neighbourTile(grid, 1, 'ArrowRight'), neighbourTile(grid, 2, 'ArrowRight'), neighbourTile(grid, 0, 'ArrowLeft'), neighbourTile(grid, 6, 'ArrowRight')], [2, 3, -1, -1]);
+  check('down and up go to the nearest tile of the next row',
+    [neighbourTile(grid, 1, 'ArrowDown'), neighbourTile(grid, 4, 'ArrowUp'), neighbourTile(grid, 3, 'ArrowDown'), neighbourTile(grid, 5, 'ArrowDown')], [4, 1, 6, 6]);
+  check('no row that way is no tile', [neighbourTile(grid, 0, 'ArrowUp'), neighbourTile(grid, 6, 'ArrowDown')], [-1, -1]);
+  check('Home and End go to the ends', [neighbourTile(grid, 4, 'Home'), neighbourTile(grid, 0, 'End')], [0, 6]);
+  check('a carousel of one row has no row below', neighbourTile([box(0, 0), box(1, 0)], 0, 'ArrowDown'), -1);
+  check('other keys lead nowhere', neighbourTile(grid, 0, 'Enter'), -1);
+}
 
 /* ------------------------------------------------------- js/mp4file.js */
 

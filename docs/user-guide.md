@@ -115,10 +115,13 @@ questions.
 The address bar names where you are: `#/live/Finland/312` is **Channels →
 Finland**, narrowed to a topic within it, and a series you have opened rides
 along in it. The collections are named in words: `#/favorites?kind=category`
-is the favourite categories, `#/recent?kind=channel` the channels in the
-history. The channel played last from the list is in it too:
-`#/live/Finland?channel=4321` opens Finland standing on that channel, ready
-for `Enter`, without starting it by itself. It is written as each list settles, so reloading the page
+is the favourite categories, `#/history?kind=channel` the channels in the
+history (an older `#/recent` address still opens the history). The channel
+played last from the list is in it too: `#/live/Finland?channel=4321` opens
+Finland standing on that channel, ready for `Enter`, without starting it by
+itself, and a film the same way: `#/movie/Action?movie=5000` stands on the
+film in its list. The programme guide is `#/guide`, followed by the group
+and topic it shows (`#/guide/Finland`); a reload opens the guide again. It is written as each list settles, so reloading the page
 comes back exactly there, episode list and all. The address is written over
 the current history entry rather than added to it: stepping back is what the
 breadcrumb above the list is for, and the browser's own back button stays a
@@ -179,9 +182,18 @@ the player actually arrives.
 - Above the picture a channel's logo stands before its name, the one its row
   shows (a television mark where the provider has none); a film, an episode
   or a recording has its name alone.
-- A channel list's foot has two marks for its order: by name (an A with an
-  arrow) or by the provider's channel number (#), the same choice as
-  Settings › Viewing › Channel order.
+- Every list has the marks for its order at its foot, the same choice as
+  its field in Settings › Viewing, and the choice is remembered: the
+  channels by name or by the provider's channel number (#); the favourites
+  by name or the latest added first (a clock); the movies and the series by
+  name, by release year (a calendar), by rating (a star) or what the
+  provider added lately first (a clock); the history the latest watched
+  first (a clock turning back) or by name. The name mark shows an A for A–Z;
+  pressed again it turns the list round to Z–A and shows a Z, and the year
+  mark turns from the newest to the oldest the same way. A favourite
+  category has the order of its own type at its foot. A search keeps the
+  order of its hits. The history by name is headed by type, as the
+  favourites are, rather than by day.
 - Movies and series show as covers, as many across as the column has room
   for; the two marks at the foot of the list switch between covers and a
   list, and the choice is remembered. Among covers the arrows move left,
@@ -191,7 +203,7 @@ the player actually arrives.
   end carries a ✓ in its top corner, and one the provider added in the last
   two weeks **New**. The list's rows say the same as badges.
 - Movie and series filters let you narrow titles by release year or rating
-  and change their sort order; films also by **Duration**, two handles from
+  (their order is the list's foot's, and **Reset** leaves it); films also by **Duration**, two handles from
   the shortest to the longest film whose length is known, the list cut when a
   handle is let go, and a film of unknown length left out while a range is
   set (lengths arrive with the films' details for providers that leave them
@@ -348,9 +360,9 @@ interrupted channel-list load restores the previous list.
   and takes it on request, reopening where it was. **Account & data** names
   the version running
 - **Favourites** and **history** as tabs of their own — a whole category can be
-  a favourite too, see below. The favourites are in alphabetical order; the
-  two marks at the foot of their list switch between that and the latest
-  added first, and the choice is remembered
+  a favourite too, see below. The favourites are in alphabetical order to
+  begin with and the history the latest first; the marks at the foot of
+  either list choose another order, and the choice is remembered
 - **Thirty languages**, switched in the settings without a page reload
 - **M3U playlists and XMLTV guides** as well as Xtream servers: a playlist's
   channels, films and series, its programme guide and catch-up — see
@@ -379,17 +391,17 @@ interrupted channel-list load restores the previous list.
 | --- | --- |
 | `/` | go to the search box |
 | `Tab` | move between the areas of the page; the arrows move inside the sidebar, the tabs, the topics and the list |
-| `↑` `↓` `PgUp` `PgDn` | move in the list |
+| `↑` `↓` `PgUp` `PgDn` | move in the list; on a strip of tiles (the related titles under the picture, the favourites strip, the empty player's cards) the arrows, `Home` and `End` move between its tiles instead |
 | `Enter` | play / open a series |
 | `Backspace` | back to the series list |
 | `space` | pause (a click on the picture of a film or an episode does the same) |
 | `f` | full screen |
 | `m` | mute |
 | `a` | the next audio track, when the file has more than one |
-| `s` | star what the cursor is on — a list row, or the sidebar row or topic chip the keyboard stands on |
+| `s` | star what the cursor is on — a list row, or the sidebar row, topic chip or tile the keyboard stands on |
 | `+` `−` | subtitles larger or smaller, by ten per cent of the size the picture asks for |
 | `Shift`+`F10` | the menu of the channel the list stands on: a favourite or not, or hide it; the context-menu key does the same |
-| `Delete` | drop the history row the cursor is on |
+| `Delete` | drop the history row the cursor is on; on a **Continue watching** card, forget that card |
 | `n` `p` | next / previous; from a list that does not hold the episode, `n` plays the series' next one |
 | `l` | the previous channel; from a film or a recording, the last channel |
 | `g` | open and close the programme guide |
@@ -553,7 +565,7 @@ Settings always opens on **Connection**, with five focused tabs:
 | Section | Holds |
 | --- | --- |
 | **Connection** | the provider address and credentials, entered as Xtream Codes fields, an M3U address, or a Stalker portal and its MAC address |
-| **Viewing** | interface language, the channel order, the appearance (dark, light, or the system's), the clock, the countries, the international channels, automatic programme data and the sections of the player's own page |
+| **Viewing** | interface language, the order of each list (channels, favourites, movies, series, history), the appearance (dark, light, or the system's), the clock, the countries, the international channels, automatic programme data and the sections of the player's own page |
 | **Playback** | remembered playback positions, the next episode, the stream statistics over the picture and recording |
 | **Subtitles** | style and size, with a local preview |
 | **Account & data** | subscription details and cache information; an expandable **Manage stored data** section contains cache clearing and reset; the version running, and the update when one is waiting |

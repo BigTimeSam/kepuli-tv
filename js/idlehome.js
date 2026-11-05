@@ -9,6 +9,7 @@
 import { currentPicks, pickCard, tickIdlePage } from './picksui.js';
 import { el } from './dom.js';
 import { forgetUnfinished, isUnfinished } from './collections.js';
+import { bindTile } from './tilekeys.js';
 import { guideOpen } from './guideui.js';
 import { poster } from './poster.js';
 import { renderIdleOverlay } from './languageui.js';
@@ -104,6 +105,7 @@ export function renderIdleHome() {
       forget.innerHTML = '<svg viewBox="0 0 20 20" aria-hidden="true" focusable="false"><path d="m6 6 8 8M14 6l-8 8"/></svg>';
       forget.addEventListener('click', (event) => { event.stopPropagation(); forgetUnfinished(item, name.textContent); });
       wrap.append(card, forget);
+      bindTile(card, item, { remove: () => forgetUnfinished(item, name.textContent), also: [forget] });
       return wrap;
     })));
     idleCarousel(home.lastElementChild.querySelector('.idle-cards'));
@@ -115,6 +117,7 @@ export function renderIdleHome() {
       name.className = 'idle-name';
       name.textContent = shownName(item);
       tile.append(poster('idle-logo', item.logo, 'channel'), name);
+      bindTile(tile, item);
       return tile;
     })));
   }

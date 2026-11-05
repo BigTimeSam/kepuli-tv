@@ -114,7 +114,13 @@ into alphabetical order.
 **Name (A-Z)**, **Name (Z-A)** or **Channel number** — the provider's own
 numbering, and where a provider sends none, the stream id in its place. It is
 the answer to a list of hundreds: choose the order that already suits, then
-move the few favourites where they belong. Movies and series are unaffected.
+move the few favourites where they belong. The other lists have their own
+fields beside it, each the same choice as the marks at the list's foot
+(`js/listorder.js`): **Favourites order** (by name, or the latest added
+first), **Movie order** and **Series order** (by name, by release year either
+way, by rating, or what the provider added lately first; a title whose year,
+rating or date is not known goes last) and **History order** (the latest
+watched first, or by name).
 
 **Filter countries**, under the sidebar on the channels (and in Settings >
 Viewing), shows one of three: **All countries**, **Favourite countries

@@ -22,11 +22,13 @@ assert.deepEqual(ids({ year: 'missing' }), ['d']);
 assert.deepEqual(ids({ genre: 'missing' }), ['d']);
 assert.deepEqual(ids({ rating: 'missing' }), ['d']);
 assert.deepEqual(ids({ genre: 'fantasy' }), []);
-assert.deepEqual(ids({ sort: 'newest' }), ['c', 'a', 'b', 'd']);
-assert.deepEqual(ids({ sort: 'oldest' }), ['b', 'a', 'c', 'd']);
-assert.deepEqual(ids({ sort: 'rating' }), ['c', 'a', 'b', 'd']);
-assert.deepEqual(ids({}), ['a', 'b', 'c', 'd'], 'reset preserves the source order');
-assert.deepEqual(rows.map(item => item.id), ['a', 'b', 'c', 'd'], 'sorting must not mutate the catalogue');
+// The order is the list's own (js/listorder.js, checked in unitcheck.mjs):
+// a filter keeps the order the rows came in, and an old stored sort is
+// not one of the filters.
+assert.deepEqual(ids({}), ['a', 'b', 'c', 'd'], 'no filter keeps the source order');
+assert.deepEqual(ids({ sort: 'rating' }), ['a', 'b', 'c', 'd'], 'a sort is no longer a filter');
+assert.equal('sort' in emptyFilters(), false, 'Reset has no order to clear');
+assert.deepEqual(rows.map(item => item.id), ['a', 'b', 'c', 'd'], 'filtering must not mutate the catalogue');
 assert.equal(mediaFacts({ rating: 8 }, { rating: 9 }).rating, 9, 'use loaded details consistently with the row');
 assert.equal(mediaFacts({}, { rating: 9 }).rating, 9, 'detail ratings use ten points');
 assert.equal(mediaFacts({ rating: 11 }).rating, 0, 'reject an invalid rating');
@@ -51,4 +53,4 @@ assert.equal(movie.year, 2023);
 assert.equal(movie.genre, 'Drama');
 api.call = async () => [{ series_id: 1, name: 'Example (2022)' }];
 assert.equal((await api.streams('series'))[0].year, 2022);
-console.log('PASS: year extraction, combined filters, missing metadata, rating scale, stable sorting and API fields.');
+console.log('PASS: year extraction, combined filters, missing metadata, rating scale, the order left to the list, and API fields.');

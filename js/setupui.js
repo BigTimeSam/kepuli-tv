@@ -28,6 +28,7 @@ import { refreshGuidePreview, renderTheme } from './guideui.js';
 import { renderAccountList, renderAccountSwitcher, switchAccount } from './accountsui.js';
 import { hasAccess, requestAccess, requestAccessFor } from './permissions.js';
 import { toast } from './toast.js';
+import { ORDER_SETTINGS, listOrder } from './listorder.js';
 import { wireModal } from './modal.js';
 import * as store from './config.js';
 import { TYPE_KIND, accountAddress, adoptAccount, connect, kindLabel, offerLists, refreshRows, renderSidebar, resetting, same, startReset, state } from './app.js';
@@ -50,7 +51,7 @@ export function openSetup({ section, adding = false } = {}) {
   editAccount(adding ? 'new' : 'current', { render: false });
   renderLanguageOptions();
   $('f-lang').value = state.settings.lang in LANGUAGES ? state.settings.lang : 'auto';
-  $('f-channelsort').value = state.settings.channelSort;
+  for (const [list, field] of ORDER_FIELDS) $(field).value = listOrder(state.settings, list);
   $('f-theme').value = ['dark', 'light', 'system'].includes(state.settings.theme) ? state.settings.theme : 'dark';
   renderClockOptions();
   $('f-clock').value = ['24', '12'].includes(state.settings.clock) ? state.settings.clock : 'auto';
@@ -145,10 +146,13 @@ export function pickAccount(target) {
 let setupInitial = null;
 let setupSaving = false;
 
+// Each list's order and its field, see js/listorder.js.
+const ORDER_FIELDS = [['live', 'f-channelsort'], ['fav', 'f-favsort'], ['movie', 'f-moviesort'], ['series', 'f-seriessort'], ['recent', 'f-historysort']];
+
 function readSetupSettings() {
   return {
     lang: $('f-lang').value,
-    channelSort: $('f-channelsort').value,
+    ...Object.fromEntries(ORDER_FIELDS.map(([list, field]) => [ORDER_SETTINGS[list], $(field).value])),
     theme: $('f-theme').value,
     clock: $('f-clock').value,
     epgEnabled: $('f-epg').checked,
@@ -801,7 +805,7 @@ export function wireSetup() {
       // A new starting order, or the international channels shown or
       // hidden, repaints the channel list where it stands; a changed
       // connection is about to load it again anyway.
-      if ((settingsPatch.channelSort || 'showInternational' in settingsPatch) && (!changed || other)) {
+      if ((Object.values(ORDER_SETTINGS).some((key) => settingsPatch[key]) || 'showInternational' in settingsPatch) && (!changed || other)) {
         if ('showInternational' in settingsPatch) renderSidebar();
         await refreshRows({ keepScroll: true });
       }
