@@ -456,18 +456,21 @@ remaining player controls are below the picture:
 
 | Button | Action |
 | --- | --- |
-| `Auto` `TS` `HLS` | the engine for a live channel; `Auto` is described below |
+| `Auto` `TS` `HLS` (a film frame) | the engine for a live channel; `Auto` is described below |
 | the audio selector | the track, on a file that carries more than one; `a` steps to the next |
-| the subtitle selector | the language, on a file that carries subtitles |
+| the subtitle selector (a caption box) | the language, on a file that carries subtitles |
 | `Aa` | the look and the size of the subtitles, over the picture they are judged against |
-| `↻` | reload the stream |
 | `☰` | the menu of the rest, opened upward over the picture |
 
 The menu holds what is wanted now and then rather than during every programme:
-**Picture in picture**, **Cast to a Chromecast**, **Copy the stream address**
-and **Open in an external player**. Four buttons that said what they did in two
-letters and an arrow are four lines that say it in words, and the row keeps only
-what a viewer reaches for while watching. It opens upward — below the row is the
+**Reload the stream** (from the point it stopped at, for a stream stuck without
+an error), **Picture in picture**, **Cast to a Chromecast**, **Copy the stream
+address** and **Open in an external player**. Buttons that said what they did in
+two letters and an arrow are lines that say it in words, and the row keeps only
+what a viewer reaches for while watching. After a failed playback the message
+over the picture offers **Try again**, which also starts from where it stopped,
+and an external player; neither where the provider has no file, and no Try again
+for a sound track the browser cannot play, which would fail the same way. It opens upward — below the row is the
 bottom of the window — and closes on the button again, a click outside, Esc or a
 choice; the arrows, Home and End step through it. `x` and `c` still reach the
 external player and the Chromecast without it. The hamburger turns gold while a

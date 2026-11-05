@@ -906,10 +906,10 @@ async function cancel(page) {
   // Cancel, and the player underneath being live throughout.
   for (const control of ['Escape', 'lp-cancel']) {
     before = await loadAll(page);
-    const live = await evaluate(page, `(() => { const b = document.getElementById('btn-reload');
-      return !b.disabled && b.getClientRects().length > 0 && document.elementFromPoint(
+    const live = await evaluate(page, `(() => { const b = document.getElementById('btn-more');
+      return !b.disabled && b.getClientRects().length > 0 && b.contains(document.elementFromPoint(
         Math.round(b.getBoundingClientRect().left + b.getBoundingClientRect().width / 2),
-        Math.round(b.getBoundingClientRect().top + b.getBoundingClientRect().height / 2)) === b; })()`);
+        Math.round(b.getBoundingClientRect().top + b.getBoundingClientRect().height / 2))); })()`);
     if (!live) throw new Error('the loading strip left the player unreachable');
     if (control === 'Escape') await pressKey(page, 'Escape', 'Escape', 27);
     else await evaluate(page, `document.getElementById('${control}').click()`);
@@ -3654,9 +3654,9 @@ async function quota(page) {
  * #22: an archive programme whose server stops sending and keeps the
  * connection open, which raises nothing in mpegts.js. Paused by the viewer
  * meanwhile, nothing may be said; played on, the picture runs out the
- * buffer and stops, and the player must say so — with the external
- * player on offer and the row's ↻, which plays the programme again from
- * where it stopped — rather than leave a still picture.
+ * buffer and stops, and the player must say so with Try again — which
+ * plays the programme again from where it stopped — rather than leave a
+ * still picture.
  */
 async function catchupfreeze(page, { requests }) {
   process.env.KEPULI_MOCK_HANG_AT = String(3 * 1024 * 1024);
@@ -3672,12 +3672,12 @@ async function catchupfreeze(page, { requests }) {
     await waitFor(page, `${OVERLAY_TITLE} === 'Playback failed'`, 'the frozen picture reported', 90000);
     const said = await videoState(page);
     const took = ((Date.now() - t0) / 1000).toFixed(0);
-    if (!/froze/.test(said.overlay) || !said.actions.includes('Open in an external player')) return { ok: false, detail: `after ${took} s: "${said.overlay}" ${said.actions.join(' / ')}` };
+    if (!/froze/.test(said.overlay) || !said.actions.includes('Try again')) return { ok: false, detail: `after ${took} s: "${said.overlay}" ${said.actions.join(' / ')}` };
     const archive = requests.filter((r) => r.startsWith('/timeshift/')).length;
-    await evaluate(page, `document.getElementById('btn-reload').click()`, { gesture: true });
-    await waitFor(page, PLAYING, 'the programme after ↻', 40000);
+    await evaluate(page, `[...document.querySelectorAll('#overlay button')].find((b) => b.textContent === 'Try again').click()`, { gesture: true });
+    await waitFor(page, PLAYING, 'the programme after Try again', 40000);
     const again = requests.filter((r) => r.startsWith('/timeshift/')).length - archive;
-    return { ok: again > 0, detail: `no word while paused 40 s; played on, "${said.overlay}" after ${took} s, with ${said.actions.join(' / ')}; ↻ asked the archive ${again} time(s) and plays` };
+    return { ok: again > 0, detail: `no word while paused 40 s; played on, "${said.overlay}" after ${took} s, with ${said.actions.join(' / ')}; Try again asked the archive ${again} time(s) and plays` };
   } finally {
     process.env.KEPULI_MOCK_HANG_AT = '';
   }
@@ -3710,7 +3710,7 @@ async function catchupfull(page) {
     await sleep(1000);
   }
   const full = await evaluate(page, 'window.__quota');
-  const ok = Boolean(full && last.overlay && /froze/.test(last.overlay) && last.actions.includes('Open in an external player'));
+  const ok = Boolean(full && last.overlay && /froze/.test(last.overlay) && last.actions.includes('Try again'));
   return { ok, detail: `${full} full-buffer refusals; picture stopped near ${frozeAt ?? last.t} s; after ${((Date.now() - t0) / 1000).toFixed(0)} s: ${last.overlay ? `"${last.overlay}" ${last.actions.join(' / ')}` : 'no word'}` };
 }
 

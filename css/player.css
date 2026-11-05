@@ -396,7 +396,7 @@ main.guide > .epg { grid-area: 2 / 1 / 4 / 2; }
 /* The programme data shows in the guide's own panel, and six buttons do not
    fit in the narrow player box. */
 main.guide .infostrip,
-main.guide #mode,
+main.guide #mode-pick,
 main.guide #btn-pip,
 main.guide #btn-copy { display: none; }
 
@@ -1232,7 +1232,7 @@ main:not(.has-playback) .stagehead { display: none; }
    shrink at all. Measured in a 1024 px window — the narrowest the layout
    is drawn for — the actions still come out on one line. */
 .now-actions { display: flex; gap: 6px; align-items: center; flex: 0 1 auto; min-width: 0; }
-.now-actions > :not(.trackpick) { flex: none; }
+.now-actions > :not(.trackpick, .trackpick-mark) { flex: none; }
 .now-actions select { background: var(--panel-2); border: 1px solid var(--border); border-radius: 8px; padding: 6px 8px; }
 /* A track name can be long ("Swedish (Forced Narrative)", "English
    (Commentary, AC3 5.1)"): a selector must not push the other buttons off
@@ -1241,6 +1241,17 @@ main:not(.has-playback) .stagehead { display: none; }
    whole name is still in the menu it opens, and in its tooltip. */
 .now-actions .trackpick { flex: 0 1 auto; min-width: 90px; max-width: 190px; }
 .now-actions .trackpick[hidden] { display: none; }
+/* A selector with its mark before the value (the format's film frame, the
+   subtitles' caption box): the mark sits over the select's own padding,
+   as in the account switch, and goes with it when the select is hidden. */
+.select-mark { position: relative; display: inline-flex; align-items: center; min-width: 0; }
+.select-mark:has(> select[hidden]) { display: none; }
+.select-mark svg { position: absolute; left: 8px; width: 15px; height: 15px; pointer-events: none; fill: none; stroke: currentColor; stroke-width: 1.6; stroke-linecap: round; stroke-linejoin: round; color: var(--muted); }
+.now-actions .select-mark select { padding-left: 29px; }
+/* The subtitles' label takes the selector's place on the row: it is what
+   gives way when the row runs short, down to a readable stub. */
+.now-actions > .trackpick-mark { flex: 0 1 auto; min-width: 90px; max-width: 190px; }
+.trackpick-mark > .trackpick { width: 100%; min-width: 0; max-width: none; }
 /* The subtitle look, over the picture it is judged against. Above the row
    rather than in it, because the row is full and a popover that took part
    in its layout would push a button off the edge every time it opened. */

@@ -129,13 +129,17 @@ function onPlaybackState(s) {
     el.overlay.classList.remove('loading');
     el.overlayTitle.textContent = t('player.failed');
     el.overlayText.textContent = s.message;
-    // Only what this failure can use, so that the row fits a tablet. Right
-    // here an external player is worth the most: the browser has already
-    // given up. Try again and Copy address are not repeated: the row's ↻
-    // is the same retry, from the same position, and the ☰ menu copies the
-    // address. A provider without the file (s.content) leaves nothing an
-    // external player could fetch either.
-    const actions = s.content ? [] : [{ label: t('ext.title'), onClick: playExternal }];
+    // Only what this failure can use, so that the row fits a tablet. Try
+    // again starts from where it stopped, which choosing the title again
+    // does not do for an archive programme; right after it an external
+    // player is worth the most, as the browser has already given up. Copy
+    // address is in the ☰ menu. A provider without the file (s.content)
+    // leaves nothing a retry or an external player could fetch, and a track
+    // the browser cannot play (s.canSilent) fails the same way again.
+    const actions = s.content ? [] : [
+      ...(s.canSilent ? [] : [{ label: t('player.retry'), onClick: retryPlayback }]),
+      { label: t('ext.title'), onClick: playExternal },
+    ];
     // The picture will do but the audio track will not: silent playback is
     // on offer, not the default.
     if (s.canSilent) {

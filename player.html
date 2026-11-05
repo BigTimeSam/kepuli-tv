@@ -260,6 +260,14 @@
            lies the bottom of the window, and a menu that dropped downward
            would be a menu half off the screen. -->
       <div class="pop more-pop" id="more-pop" role="menu" data-i18n-label="player.more" hidden>
+        <!-- From the same point it stopped at: a stream stuck without an
+             error, or sound and picture apart. Here rather than on the row,
+             which a stream that plays does not need it on; after a failure
+             the overlay offers Try again instead. -->
+        <button type="button" role="menuitem" id="btn-reload" class="popitem">
+          <svg viewBox="0 0 20 20" aria-hidden="true"><path d="M15.6 7.2A6 6 0 1 0 16 12"/><path d="M16 3.5v4h-4"/></svg>
+          <span data-i18n="player.reload.title">Reload the stream</span>
+        </button>
         <button type="button" role="menuitem" id="btn-pip" class="popitem">
           <svg viewBox="0 0 20 20" aria-hidden="true"><rect x="2.5" y="4" width="15" height="12" rx="2"/><rect x="10" y="9.5" width="6" height="5" rx="1"/></svg>
           <span data-i18n="player.pip.title">Picture in picture</span>
@@ -283,13 +291,18 @@
       </div>
       <div class="now-actions">
         <button type="button" id="btn-live" class="ghost" data-i18n="guide.returnlive" hidden>Back to live</button>
-        <select id="mode" data-i18n-title="player.mode.title">
+        <!-- The two selectors carry a mark before their value, as the account
+             switch does: "Auto" and "No subtitles" alone did not say what
+             they choose. A film frame for the stream's format (Auto, TS,
+             HLS), a caption box for the subtitles. The label hides with its
+             selector (css: .select-mark:has(> select[hidden])). -->
+        <label class="select-mark" id="mode-pick"><svg viewBox="0 0 20 20" aria-hidden="true"><rect x="2.5" y="3.5" width="15" height="13" rx="1.5"/><path d="M6 3.5v13M14 3.5v13M2.5 7.5H6M2.5 12.5H6M14 7.5h3.5M14 12.5h3.5"/></svg><select id="mode" data-i18n-title="player.mode.title">
           <option value="auto">Auto</option>
           <option value="ts">TS</option>
           <option value="hls">HLS</option>
-        </select>
+        </select></label>
         <select id="audio" class="trackpick" data-i18n-title="player.audio.title" hidden></select>
-        <select id="subs" class="trackpick" data-i18n-title="player.subs.title" hidden></select>
+        <label class="select-mark trackpick-mark"><svg viewBox="0 0 20 20" aria-hidden="true"><rect x="2.5" y="4" width="15" height="12" rx="2"/><path d="M5.5 10.5h4M11.5 10.5h3M5.5 13h2.5M10 13h4.5"/></svg><select id="subs" class="trackpick" data-i18n-title="player.subs.title" hidden></select></label>
         <!-- The look of the subtitles is judged against the picture being
              watched, not against a preview in a dialog, so the same two
              controls open here as well. The button appears on the same
@@ -298,7 +311,6 @@
         <!-- A live channel recorded from now on: to the end of the programme
              on now when the guide knows it, else until stopped. -->
         <button type="button" id="btn-record" class="ghost record-button" aria-pressed="false" hidden><span class="rec-dot" aria-hidden="true"></span><span class="button-label" id="btn-record-label" data-i18n="rec.start">Record</span></button>
-        <button type="button" id="btn-reload" class="ghost" data-i18n-title="player.reload.title">↻</button>
         <button type="button" id="btn-more" class="ghost icon" data-i18n-title="player.more" data-i18n-label="player.more" aria-haspopup="menu" aria-expanded="false" aria-controls="more-pop">
           <svg viewBox="0 0 20 20" aria-hidden="true"><path d="M3 5.5h14M3 10h14M3 14.5h14"/></svg>
         </button>
