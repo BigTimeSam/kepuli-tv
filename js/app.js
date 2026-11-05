@@ -370,7 +370,7 @@ function showConnectionError(err) {
   ];
   showOverlayActions(actions);
   const address = accountAddress(state.config);
-  if (address) offerAccess(address, actions, () => connect());
+  if (address) offerAccess(address, actions, () => connect(), { explain: true });
   console.error('[iptv] yhteysvirhe', err);
 }
 
@@ -378,15 +378,21 @@ function showConnectionError(err) {
  * A missing host permission looks like the same network error as a server
  * that is down, so the cause cannot be deduced — check the permission and
  * offer to grant it only when it really is missing.
+ *
+ * explain adds the reason to the overlay's text. Only the connection's
+ * error asks for it: after a failed stream the account's own explanation
+ * (explainFailure in js/playing.js) is still on its way and writes the text
+ * only while it is the one it left, so a sentence added here first cost the
+ * viewer the account's word and the Play here of another tab's stream.
  */
-export async function offerAccess(url, actions, onGranted, { stream = false } = {}) {
+export async function offerAccess(url, actions, onGranted, { stream = false, explain = false } = {}) {
   if (!url) return;
   if (!(await hasAccess(url))) {
     if (el.overlay.hidden) return;            // tilanne ehti vaihtua
     // "The server did not answer" over a button that asks for access would
     // leave the viewer to work out that the two belong together.
     const why = t('error.grant.why', { origin: hostOf(url) });
-    if (!el.overlayText.textContent.endsWith(why)) el.overlayText.textContent = `${el.overlayText.textContent} ${why}`.trim();
+    if (explain && !el.overlayText.textContent.endsWith(why)) el.overlayText.textContent = `${el.overlayText.textContent} ${why}`.trim();
     showOverlayActions([grantAction(url, onGranted), ...actions]);
     return;
   }

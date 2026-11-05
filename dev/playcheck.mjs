@@ -1212,7 +1212,9 @@ async function connections(page, { requests }) {
     await sleep(1000);
     await playEpisodeRow(page, 0);
     await waitFor(page, `[...document.querySelectorAll('#overlay button')].some((b) => b.textContent === 'Play here')`, 'Play here', 40000);
-    const named = (await videoState(page)).overlay;
+    // The whole text: the stream's own sentence comes first, and is longer
+    // than videoState's short excerpt since it says what to do next.
+    const named = await evaluate(page, `document.getElementById('overlay-text').textContent`);
     if (!/another tab/.test(named)) return { ok: false, detail: `another tab: the failure says "${named}"` };
     await evaluate(page, `[...document.querySelectorAll('#overlay button')].find((b) => b.textContent === 'Play here').click()`, { gesture: true });
     await waitFor(page, PLAYING, 'the episode taken over from the other tab', 40000);
