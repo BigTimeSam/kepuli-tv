@@ -1309,12 +1309,16 @@ dialog::backdrop { background: var(--backdrop); backdrop-filter: blur(2px); }
    than the blocks, see .grid. */
 .setup { display: flex; flex-direction: column; }
 /* The rail is the top bar's own tabs component; only its width differs,
-   because four sections should fill the dialog rather than huddle left. */
+   because the sections should fill the dialog rather than huddle left. */
 .setup-tabs { align-self: stretch; }
 /* .tabs sets display: flex, and an explicit display beats [hidden] — the
    first run has no sections to offer and the rail has to go. */
 .setup-tabs[hidden] { display: none; }
-.setup-tabs button { flex: 1; justify-content: center; text-align: center; }
+/* Five sections leave each about a hundred pixels in a window of 600: a
+   name of two words (Russian "Аккаунт и данные") then goes onto a second
+   line rather than pushing the rail into a sideways scroll. A one-word name
+   keeps its own width, and the others share what is left. */
+.setup-tabs button { flex: 1; justify-content: center; text-align: center; white-space: normal; }
 /* One section at a time; only its contents scroll in a short window. */
 .setup-panel { display: flex; flex-direction: column; gap: 14px; }
 .setup-panel[hidden] { display: none; }

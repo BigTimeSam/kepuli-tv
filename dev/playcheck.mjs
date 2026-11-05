@@ -4229,7 +4229,7 @@ async function record(page) {
     assert(await evaluate(page, `document.getElementById('btn-record').hidden`), 'the Record button shows with recording off');
     await evaluate(page, `document.getElementById('btn-settings').click()`);
     await waitFor(page, `document.getElementById('setup').open`, 'settings');
-    await evaluate(page, `document.getElementById('tab-general').click()`);
+    await evaluate(page, `document.getElementById('tab-playback').click()`);
     await sleep(300);
     await evaluate(page, `document.getElementById('f-record').click()`, { gesture: true });
     await waitFor(page, `document.getElementById('rec-consent').open`, 'the recording reminder');
