@@ -10,6 +10,14 @@
 </head>
 <body>
 
+<!-- The first Tab stop: past the header, the sidebar and the topic chips
+     to the list itself. A button rather than a link to #list, because the
+     page's address is its route (#/live/...) and a fragment would change it. -->
+<button type="button" class="skip-link" id="skip-list" data-i18n="skip.list">Skip to the list</button>
+<!-- The page's heading for a screen reader's list of headings; the logo
+     beside it says the same to the eye. -->
+<h1 class="sr-only">Kepuli-TV</h1>
+
 <header class="topbar">
   <!-- Back to the start, as a site's logo is: the channels, the first
        country chosen, the top of its list. What is playing goes on. -->
@@ -69,7 +77,7 @@
       <svg viewBox="0 0 20 20" aria-hidden="true"><path d="m8 4-6 6 6 6M2 10h16"/></svg>
       <span data-i18n="guide.close">Back to channels</span>
     </button>
-    <h1 data-i18n="btn.guide">Programme guide</h1>
+    <h2 data-i18n="btn.guide">Programme guide</h2>
   </div>
   <aside class="groups" id="groups-col">
     <div class="groups-filter" id="groups-filter">
@@ -92,6 +100,9 @@
   </aside>
 
   <section class="listcol" id="listcol" role="tabpanel" aria-labelledby="tab-live">
+    <!-- Where the list stands, for a screen reader's headings: the tab and
+         the group, written by renderListInfo in js/topicbar.js. -->
+    <h2 class="sr-only" id="list-heading"></h2>
     <div class="channel-tools" id="channel-tools" hidden>
       <button type="button" id="btn-guide" class="channel-guide" data-i18n-title="btn.guide.title" aria-controls="epg" aria-expanded="false">
         <svg viewBox="0 0 20 20" aria-hidden="true"><rect x="2.5" y="3.5" width="15" height="13" rx="2"/><path d="M2.5 8h15M7 8v8.5M11 8v4M7 12h10.5"/></svg>
@@ -108,7 +119,10 @@
       <select id="group-select"></select>
     </label>
     <div class="crumbs" id="crumbs" hidden></div>
-    <div class="subcats" id="subcats" hidden></div>
+    <!-- One Tab stop for all the chips, the arrows between them, as the
+         tab strip above does: eight chips used to be eight stops on the way
+         to the list. See wireSubcatsKeys in js/topicbar.js. -->
+    <div class="subcats" id="subcats" role="toolbar" data-i18n-label="subcats.aria" hidden></div>
     <!-- The topic bar's lower edge is its handle: role and the value
          attributes make it a splitter for a keyboard and a screen reader
          too, see wireSubcatsResize. -->
@@ -153,7 +167,10 @@
     <div class="listinfo" id="listinfo"></div>
   </section>
 
-  <section class="stage" id="player-stage">
+  <section class="stage" id="player-stage" aria-labelledby="player-heading">
+    <!-- Outside the stage's header, which is hidden while nothing plays:
+         the heading must be there to jump to on the welcome page too. -->
+    <h2 class="sr-only" id="player-heading" data-i18n="layout.player">Player</h2>
     <!-- What is playing, over the picture rather than under it: the title
          heads the column, and the picture does not start at its very top. -->
     <header class="stagehead">
@@ -173,11 +190,17 @@
         <div class="overlay-inner">
           <!-- The title, and beside it, past ten seconds, how long the wait
                has lasted. -->
-          <div class="overlay-head">
-            <div class="overlay-title" id="overlay-title" data-i18n="player.idle">Nothing playing</div>
-            <div class="overlay-elapsed" id="overlay-elapsed" hidden></div>
+          <!-- The title and the sentence under it are said together when
+               either changes: "Connection failed" is the news, and it used
+               to go unheard. The time waited ticks every second and is
+               kept out of it. -->
+          <div class="overlay-said" id="overlay-said" aria-live="polite" aria-atomic="true">
+            <div class="overlay-head">
+              <div class="overlay-title" id="overlay-title" data-i18n="player.idle">Nothing playing</div>
+              <div class="overlay-elapsed" id="overlay-elapsed" aria-hidden="true" hidden></div>
+            </div>
+            <div class="overlay-text" id="overlay-text" data-i18n="player.idle.text">Pick a channel from the list.</div>
           </div>
-          <div class="overlay-text" id="overlay-text" data-i18n="player.idle.text" aria-live="polite">Pick a channel from the list.</div>
           <!-- How a start or a stall is coming along. The bar is the share
                of the bytes the picture waits for, when they are known, or
                else the download's speed against the film's bit rate; under
@@ -568,8 +591,15 @@ on two lines as well.</div></div>
         </div>
         <ul class="account-list" id="account-list"></ul>
       </div>
-      <label class="field"><span data-i18n="setup.name">Name (optional)</span>
-        <input id="f-name" type="text" autocomplete="off" spellcheck="false" data-i18n-placeholder="setup.name.placeholder" placeholder="e.g. Provider name">
+      <!-- Most providers send one long address, and it is the shortest way
+           in: on the first run and for a new account it comes first, and
+           fills in whichever form below it belongs to (pasteFirst in
+           js/setupui.js). The form's own fields stay for typing by hand. -->
+      <label class="field" id="paste-first" hidden>
+        <span data-i18n="setup.paste.first">Paste the address your provider sent (optional)</span>
+        <input id="f-paste-first" type="text" placeholder="http://example.tv:8080/get.php?username=…&amp;password=…" autocomplete="off" spellcheck="false" aria-describedby="paste-first-hint paste-first-status">
+        <span id="paste-first-hint" class="field-hint" data-i18n="setup.paste.first.hint">It fills in the fields below. Or choose how to connect and fill them in yourself.</span>
+        <span id="paste-first-status" class="playlist-status" role="status" hidden></span>
       </label>
       <div class="field">
         <span id="setup-source-label" data-i18n="setup.source">Connection</span>
@@ -647,6 +677,11 @@ on two lines as well.</div></div>
         <span id="epgurl-hint" class="field-hint" data-i18n="setup.epgurl.hint">Leave it empty when the playlist names its own guide.</span>
       </label>
 
+      <!-- The least needed field, so it comes after the ones that connect. -->
+      <label class="field"><span data-i18n="setup.name">Name (optional)</span>
+        <input id="f-name" type="text" autocomplete="off" spellcheck="false" data-i18n-placeholder="setup.name.placeholder" placeholder="e.g. Provider name">
+      </label>
+
       <p id="connection-security" class="connection-security" data-i18n="setup.security">Use HTTPS when your provider supports it. With HTTP, your username, password and viewing requests travel without encryption and can be read or changed by others on the network.</p>
     </section>
 
@@ -685,6 +720,9 @@ on two lines as well.</div></div>
       <p id="app-version" class="setup-note app-version"></p>
     </section>
 
+    <!-- On the first run the browser's permission prompt follows Connect;
+         said beforehand, it is expected rather than alarming. -->
+    <p id="setup-grant-note" class="field-hint grant-note" data-i18n="setup.grant.note" hidden>Next, your browser asks to let Kepuli-TV reach this server. Choose Allow: it is needed for the lists and the streams, and covers this server only.</p>
     <p id="setup-error" class="setup-error" role="alert" hidden></p>
     <div id="setup-discard" class="setup-discard" hidden>
       <p data-i18n="setup.discard.question">Discard unsaved changes?</p>

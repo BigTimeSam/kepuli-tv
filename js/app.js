@@ -46,7 +46,7 @@ import { applyListLayout, gridColumns, nameCleanerFor, onEpgUpdated, renderRow, 
 import { closeDetail, crumbLabel, episodesOfSeason, openItem, openSeries, renderDetail } from './seriesui.js';
 import { closeGuide, favoritesChanged, focusGrid, grid, guideFavorites, guideOpen, programmeSearch, renderGuideGroups, renderTheme, restoreGuideFavorites, setGuideFavorites, toggleGuide } from './guideui.js';
 
-import { ensureFull, renderEmptyState, renderListInfo, wireSubcatsResize } from './topicbar.js';
+import { ensureFull, renderEmptyState, renderListInfo, wireSubcatsKeys, wireSubcatsResize } from './topicbar.js';
 import { askExternal, playExternal } from './externalui.js';
 import { $, el } from './dom.js';
 import { categoryCountsFor, collectionItems, favCategoryEntry, isFavorite, isUnfinished, kindIndex, loadGroupItems, openFavCategory, refreshCatalogue, refreshWhenStale, removeFromHistory, renderSubcats, sectionsFor, toggleFavCategory } from './collections.js';
@@ -289,6 +289,7 @@ async function warmGuide(source) {
  */
 function dropConnectedView() {
   state.lib = null;
+  $('channel-tools').hidden = true;
   state.epg = null;
   state.account = null;
   state.detail = null;
@@ -369,7 +370,7 @@ function showConnectionError(err) {
   ];
   showOverlayActions(actions);
   const address = accountAddress(state.config);
-  if (address) offerAccess(address, actions, () => connect());
+  if (address) offerAccess(address, actions, () => connect(), { explain: true });
   console.error('[iptv] yhteysvirhe', err);
 }
 
@@ -377,11 +378,21 @@ function showConnectionError(err) {
  * A missing host permission looks like the same network error as a server
  * that is down, so the cause cannot be deduced — check the permission and
  * offer to grant it only when it really is missing.
+ *
+ * explain adds the reason to the overlay's text. Only the connection's
+ * error asks for it: after a failed stream the account's own explanation
+ * (explainFailure in js/playing.js) is still on its way and writes the text
+ * only while it is the one it left, so a sentence added here first cost the
+ * viewer the account's word and the Play here of another tab's stream.
  */
-export async function offerAccess(url, actions, onGranted, { stream = false } = {}) {
+export async function offerAccess(url, actions, onGranted, { stream = false, explain = false } = {}) {
   if (!url) return;
   if (!(await hasAccess(url))) {
     if (el.overlay.hidden) return;            // tilanne ehti vaihtua
+    // "The server did not answer" over a button that asks for access would
+    // leave the viewer to work out that the two belong together.
+    const why = t('error.grant.why', { origin: hostOf(url) });
+    if (explain && !el.overlayText.textContent.endsWith(why)) el.overlayText.textContent = `${el.overlayText.textContent} ${why}`.trim();
     showOverlayActions([grantAction(url, onGranted), ...actions]);
     return;
   }
@@ -403,10 +414,14 @@ export async function offerAccess(url, actions, onGranted, { stream = false } = 
   }, { first: true });
 }
 
+/** The host an address names, or the whole address when it is none. */
+function hostOf(url) {
+  try { return new URL(url).host; } catch { return url; }
+}
+
 /** A button that asks for the host permission and continues if granted. */
 function grantAction(url, onGranted) {
-  let origin = url;
-  try { origin = new URL(url).host; } catch { /* show the whole URL */ }
+  const origin = hostOf(url);
   return {
     label: t('error.grant', { origin }),
     // requestAccess is called before the first await, otherwise the user
@@ -812,7 +827,8 @@ export async function activateTab(tab, { restore = false } = {}) {
   catalogueSearch.reset();
   playerLayout.showBrowse();
   state.tab = tab;
-  $('channel-tools').hidden = tab !== 'live';
+  // The guide needs a connection: before one, its button would only say so.
+  $('channel-tools').hidden = tab !== 'live' || !state.lib;
   markTabs(tab);
   state.detail = null;
   state.cursor = -1;
@@ -1704,6 +1720,13 @@ function playLastChannel() {
 }
 
 function wireUi() {
+  // The skip link's way to the list: the guide covers it and a narrow
+  // window may show the player's pane instead, so both make way first.
+  $('skip-list').addEventListener('click', () => {
+    if (guideOpen) closeGuide();
+    playerLayout.showBrowse();
+    el.list.focus();
+  });
   // The arrows walk the strip and Home and End reach its ends, which is what
   // a tab strip promises the moment it calls itself one. The same keys are
   // the list's while the focus is elsewhere, so they are taken only here.
@@ -1983,6 +2006,7 @@ async function init() {
   wireUi();
   wireMediaSession();
   wireSubcatsResize();
+  wireSubcatsKeys();
   watchInterest();
   await loadLists();
   // Not waited for: the list of recordings has nothing to do with connecting.
@@ -2027,7 +2051,7 @@ async function init() {
   if (start.group !== undefined) state.lastGroup[state.tab] = start.group;
   if (start.kind !== undefined) state.lastKind[state.tab] = start.kind;
   storedSub = start.sub ?? null;
-  $('channel-tools').hidden = state.tab !== 'live';
+  $('channel-tools').hidden = state.tab !== 'live' || !state.lib;
   if (typeof ui.subcatsHeight === 'number') state.subcatsHeight = ui.subcatsHeight;
   restoreListView(ui.listView);
   watchGridWidth();
@@ -2046,6 +2070,7 @@ async function init() {
   if (!configured()) {
     if (await adoptSyncedAccount(state.accounts)) return;
     renderIdleOverlay();
+    renderEmptyState();
     openSetup();
     return;
   }

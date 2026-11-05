@@ -177,6 +177,16 @@
   overflow: hidden; clip-path: inset(50%); white-space: nowrap; border: 0;
 }
 
+/* The skip link waits above the page until the keyboard reaches it: it is
+   the first Tab stop, and only then does it come into sight, over the top
+   bar's left end. */
+.skip-link {
+  position: fixed; top: 6px; left: 6px; z-index: 1000; transform: translateY(-200%);
+  background: var(--accent); color: #fff; border: 0; border-radius: 8px; padding: 0.5rem 0.875rem;
+  font: inherit; font-weight: 600; cursor: pointer;
+}
+.skip-link:focus { transform: none; }
+
 html, body { height: 100%; margin: 0; overflow: hidden; }
 
 /* The type is on the body alone. On html it would set the root size that rem
@@ -320,7 +330,7 @@ main.guide {
 }
 .guide-header { display: none; }
 main.guide > .guide-header { grid-area: 1 / 1 / 2 / 3; display: flex; align-items: center; gap: 16px; padding: 8px 14px; background: var(--panel); border-bottom: 1px solid var(--border); }
-.guide-header h1 { margin: 0; font-size: 0.875rem; font-weight: 600; }
+.guide-header h2 { margin: 0; font-size: 0.875rem; font-weight: 600; }
 .guide-back { display: inline-flex; align-items: center; gap: 8px; flex: none; padding: 8px 12px; border: 1px solid var(--accent); border-radius: 7px; background: var(--accent-soft); color: var(--text); font-weight: 550; cursor: pointer; }
 .guide-back > svg { width: 18px; height: 18px; fill: none; stroke: currentColor; stroke-width: 1.5; stroke-linecap: round; stroke-linejoin: round; }
 .guide-back:hover { background: var(--accent-soft-hover); }
@@ -1419,6 +1429,8 @@ dialog::backdrop { background: var(--backdrop); backdrop-filter: blur(2px); }
 .setup-maintenance summary { cursor: pointer; color: var(--muted); padding: 4px 0; }
 .setup-maintenance[open] summary { margin-bottom: 10px; }
 .setup-error { margin: 0; color: var(--danger); font-size: 0.8125rem; }
+.setup > .grant-note { margin: 0; flex-shrink: 0; }
+.setup > .grant-note[hidden] { display: none; }
 .setup-discard { padding: 12px; border: 1px solid var(--border); border-radius: 9px; background: var(--panel-2); }
 .setup-discard p { margin: 0 0 10px; }
 .setup-tabs button:focus-visible, .setup-maintenance summary:focus-visible { outline: 2px solid var(--accent-ink); outline-offset: 2px; }

@@ -20,12 +20,12 @@ import { cacheClear, storageEstimate, wipeStorage } from './db.js';
 import { canRecord, renderRecordingState } from './recordingsui.js';
 import { clock, dateFmt, dateTimeFmt, megabytes, nf } from './format.js';
 import { normalizeMac, normalizePortal } from './stalker.js';
-import { parsePlaylistUrl, parseServer } from './xtream.js';
+import { parsePlaylistUrl, parseServer, pastedKind } from './xtream.js';
 import { playback, tabs } from './playing.js';
 import { playlistAddress } from './m3u.js';
 import { refreshGuidePreview, renderTheme } from './guideui.js';
 import { renderAccountList, renderAccountSwitcher, switchAccount } from './accountsui.js';
-import { requestAccess, requestAccessFor } from './permissions.js';
+import { hasAccess, requestAccess, requestAccessFor } from './permissions.js';
 import { toast } from './toast.js';
 import { wireModal } from './modal.js';
 import * as store from './config.js';
@@ -117,6 +117,15 @@ export function editAccount(target, { render = true } = {}) {
   $('f-epgurl').value = setupBase.epgUrl || '';
   $('f-portal').value = setupBase.type === 'stalker' ? setupBase.url || '' : '';
   $('f-mac').value = setupBase.type === 'stalker' ? setupBase.mac || '' : '';
+  // The address first where an account is being made: the first run, or
+  // one being added. The word on the permission prompt to come follows the
+  // address entered (updateGrantNote).
+  const making = setupAdding || !configured();
+  $('paste-first').hidden = !making;
+  $('f-paste-first').value = '';
+  showPasteFirstError(false);
+  $('setup-grant-note').hidden = !making;
+  $('playlist-hint').hidden = false;
   showPlaylistError(false);
   showSourceMode(baseMode(setupBase));
   showPassword(false);
@@ -220,6 +229,27 @@ export function updateSetupActions() {
     : setupSection === 'account' ? 'setup.account.immediate' : 'setup.unchanged');
   el.setupNote.classList.toggle('pending', dirty);
   if (!dirty) $('setup-discard').hidden = true;
+  updateGrantNote();
+}
+
+// The latest check of updateGrantNote: an answer to an older one is dropped.
+let grantCheck = 0;
+
+/**
+ * The note that the browser is about to ask for access, shown only where
+ * Connect or Save will ask: for an account being made, or one changed to
+ * another server, unless that server is allowed already. Before an address
+ * is entered on the first run it stands, as the prompt is then certain.
+ */
+async function updateGrantNote() {
+  const check = ++grantCheck;
+  const making = setupAdding || !configured();
+  if (!making && !connectionTargetChanged()) { $('setup-grant-note').hidden = true; return; }
+  const patch = readConnection();
+  const addresses = (patch.type === 'm3u' ? [patch.url, patch.epgUrl] : [accountAddress(patch)]).filter(Boolean);
+  if (!addresses.length) { $('setup-grant-note').hidden = !making; return; }
+  const allowed = (await Promise.all(addresses.map(hasAccess))).every(Boolean);
+  if (check === grantCheck) $('setup-grant-note').hidden = allowed;
 }
 
 function previewSetupLook() {
@@ -258,8 +288,8 @@ function closeSetup() {
   el.setup.close();
 }
 
-export function setupError(key, field) {
-  $('setup-error').textContent = t(key);
+export function setupError(key, field, params) {
+  $('setup-error').textContent = t(key, params);
   $('setup-error').hidden = false;
   if (field) { showSetupSection('connection'); $(field).focus(); }
 }
@@ -291,8 +321,8 @@ function focusSetupSection() {
   // panel the first control is the protocol, which almost nobody changes,
   // and starting there put the caret one Tab away from the server address
   // every single time.
-  // The account's name is optional and comes first only to sit above
-  // the fields it names; the caret goes to the first one that matters.
+  // The account's name is optional and never where the caret starts. On
+  // the first run the first field is the pasted address.
   const field = [...panel.querySelectorAll('input:not([type="radio"]):not(#f-name)')].find(shown)
     ?? [...panel.querySelectorAll('select')].find(shown);
   if (field) field.focus();
@@ -333,6 +363,45 @@ function showSourceMode(mode) {
 function showGuideField() {
   const pasted = $('f-paste').value.trim();
   $('src-epg').hidden = sourceMode() !== 'm3u' || !pasted || Boolean(parsePlaylistUrl(pasted));
+}
+
+/**
+ * The address pasted into the first field, put where it belongs: an Xtream
+ * subscription's into the server's fields, a portal into the portal's, a
+ * playlist into the playlist's, the form shown each time. The field stays,
+ * so an address typed by hand is never taken away half-way. Only a whole
+ * address (pasted, dropped, or left with Tab) is called wrong.
+ */
+function pasteFirst(event) {
+  const text = $('f-paste-first').value.trim();
+  const whole = event.type === 'change' || event.inputType === 'insertFromPaste' || event.inputType === 'insertFromDrop';
+  const kind = pastedKind(text);
+  showPasteFirstError(whole && Boolean(text) && !kind);
+  if (!kind) return;
+  if (kind === 'xtream') {
+    const parsed = parsePlaylistUrl(text);
+    for (const f of FIELDS) if (parsed[f] != null) $(`f-${f}`).value = parsed[f];
+    $('f-paste').value = '';
+  } else if (kind === 'stalker') $('f-portal').value = text;
+  else $('f-paste').value = text;
+  // A playlist sent on to its own field has been pasted once already: that
+  // field's hint, which says to paste it, would only say so a second time.
+  $('playlist-hint').hidden = kind === 'm3u';
+  showPlaylistError(false);
+  showSourceMode(kind);
+  updateSetupActions();
+  if (event.type !== 'input' || !whole) return;
+  // The next thing to do: check the fields it filled, or give the MAC
+  // address a portal needs; a playlist needs nothing more.
+  if (kind === 'xtream') $('f-host').focus();
+  else if (kind === 'stalker') $('f-mac').focus();
+}
+
+function showPasteFirstError(bad) {
+  const status = $('paste-first-status');
+  status.textContent = bad ? t('setup.m3u.bad') : '';
+  status.hidden = !bad;
+  $('f-paste-first').setAttribute('aria-invalid', String(bad));
 }
 
 /** The M3U field says only what is wrong; what is right, it shows. */
@@ -613,6 +682,8 @@ export function wireSetup() {
     updateSetupActions();
     $('f-host').focus();
   });
+  $('f-paste-first').addEventListener('input', pasteFirst);
+  $('f-paste-first').addEventListener('change', pasteFirst);
   $('f-host').addEventListener('change', splitServerField);
   $('f-add-account').addEventListener('click', () => pickAccount('new'));
   $('account-pick').addEventListener('change', (e) => switchAccount(e.target.value));
@@ -695,7 +766,9 @@ export function wireSetup() {
         ? await requestAccessFor([patch.url, patch.epgUrl].filter(Boolean))
         : await requestAccess(accountAddress(patch)));
       if (!granted) {
-        setupError('setup.nogrant');
+        // Named as the button reads, which is Connect for a new account
+        // and Save for a changed one.
+        setupError('setup.nogrant', null, { button: t(!configured() || setupAdding ? 'setup.connect' : 'setup.save') });
         return;
       }
       const previous = state.config;

@@ -15,6 +15,7 @@ import { activateTab, isAbort, isCollection, kindLabel, mediaFilters, openHidden
 import { hideProgress, progressSignal, showProgress, updateProgress } from './progressdialog.js';
 import { clearHistory } from './collections.js';
 import { $, el } from './dom.js';
+import { configured, openSetup } from './setupui.js';
 
 // A chip row advances 30.6 px and the bar's own padding adds 16, so one row
 // comes to 47 px and eight to 261. The fixed 144 px this used to have for
@@ -129,6 +130,30 @@ export function wireSubcatsResize() {
   new ResizeObserver(() => applySubcatsHeight()).observe(el.subcats.parentElement);
 }
 
+/**
+ * The chips are a toolbar: one Tab stop, held by the chosen chip, and the
+ * arrows between them, Home and End to the ends. The arrows move the focus
+ * only; Enter or Space chooses, since choosing loads a list. Up and down
+ * stay the list's, as they are from every other button.
+ */
+export function wireSubcatsKeys() {
+  el.subcats.addEventListener('keydown', (e) => {
+    const chips = [...el.subcats.querySelectorAll('.chip-main')];
+    const at = chips.indexOf(e.target);
+    if (at < 0 || e.ctrlKey || e.metaKey || e.altKey) return;
+    const next = e.key === 'ArrowRight' ? Math.min(at + 1, chips.length - 1)
+      : e.key === 'ArrowLeft' ? Math.max(at - 1, 0)
+      : e.key === 'Home' ? 0
+      : e.key === 'End' ? chips.length - 1 : -1;
+    if (next < 0) return;
+    e.preventDefault();
+    e.stopPropagation();
+    for (const chip of chips) chip.tabIndex = -1;
+    chips[next].tabIndex = 0;
+    chips[next].focus();
+  });
+}
+
 export async function selectSub(categoryId) {
   state.sub = categoryId;
   state.cursor = -1;
@@ -156,6 +181,9 @@ export async function ensureFull(type, reason, current = () => true) {
 }
 
 export function renderEmptyState() {
+  // Before the first connection there is no list to describe, and the
+  // column's heading would be an empty one: it names the tab all the same.
+  renderListHeading();
   const existing = el.list.querySelector('.empty');
   if (existing) existing.remove();
   if (state.rows.length > 0) return;
@@ -174,10 +202,14 @@ export function renderEmptyState() {
     el.list.appendChild(loading);
     return;
   }
-  // Before a connection — and while one is being made — the player's own
-  // overlay says what is missing. A second message calling the list an empty
-  // category would name the wrong thing.
-  if (!state.lib && !isCollection()) return;
+  // Before the first connection the list says so, with the way to make
+  // one: an empty column under the sidebar's empty one said nothing at all.
+  // While a connection is being made, the strip above it says that.
+  if (!state.lib && !isCollection()) {
+    if (configured()) return;
+    el.list.appendChild(emptyState(t('empty.noserver'), '', { label: t('setup.title.connect'), onClick: () => openSetup() }));
+    return;
+  }
   const type = tabType();
   const browse = { label: t('empty.browse'), onClick: () => activateTab('live') };
   let node;
@@ -194,6 +226,7 @@ export function renderEmptyState() {
 }
 
 export function renderListInfo() {
+  renderListHeading();
   if (state.listLoading) {
     el.listinfo.textContent = t('progress.loading');
     return;
@@ -245,6 +278,17 @@ export function renderListInfo() {
     spacer.className = 'spacer';
     el.listinfo.append(spacer, viewToggle());
   }
+}
+
+/**
+ * The list column's heading, heard by a screen reader that walks the
+ * headings: the tab, and the group and topic the list shows.
+ */
+function renderListHeading() {
+  const type = tabType();
+  const group = !isCollection() && !state.query && state.lib && state.group ? state.group : null;
+  const where = group && state.sub ? state.lib.categoryName(type, state.sub) : group;
+  $('list-heading').textContent = [t(`tab.${state.tab}`), where].filter(Boolean).join(': ');
 }
 
 /**

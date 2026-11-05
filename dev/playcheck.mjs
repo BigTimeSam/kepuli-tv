@@ -72,10 +72,18 @@
 //                                     kept under forced colours; one focus
 //                                     ring of 3:1; text contrast in both
 //                                     themes; 24 px hit areas
+//                                     the skip link first, the topic chips one
+//                                     stop, the overlay's title announced,
+//                                     headings and a named player
 //   node dev/playcheck.mjs phone      390 and 600 px in German: Settings'
 //                                     sections above Save, the guide's days
 //                                     the bar's whole width, its programme
 //                                     search one row until used
+//   node dev/playcheck.mjs welcome    the first run: the pasted address first
+//                                     and sent to its form, the permission
+//                                     prompt announced and a refusal
+//                                     explained, a way back from the closed
+//                                     dialog, no guide before a connection
 //   node dev/playcheck.mjs audio      the three-track episode: the automatic
 //                                     choice is heard as the English track's
 //                                     tone, the selector changes the track
@@ -760,7 +768,7 @@ async function channelrefused(page) {
     const got = await failureAfterClick(page, clickFirstChannel(page), 20000);
     await sleep(3000);
     const after = await evaluate(page, `document.getElementById('overlay-text').textContent`);
-    const ok = /stream request( with error 407|: the connection failed without an answer)/i.test(after) && !/in use/i.test(after) && got.secs < 5;
+    const ok = /(stream request with error 407|did not answer the request for this channel)/i.test(after) && !/in use/i.test(after) && got.secs < 5;
     return { ok, detail: `after ${got.secs.toFixed(1)} s "${got.title}": "${after}"` };
   } finally {
     process.env.KEPULI_MOCK_CHANNEL_REFUSED = '';
@@ -970,6 +978,21 @@ const CMD = 4;
 async function pressKey(page, key, code, keyCode, modifiers = 0) {
   await page.call('Input.dispatchKeyEvent', { type: 'keyDown', key, code, windowsVirtualKeyCode: keyCode, modifiers });
   await page.call('Input.dispatchKeyEvent', { type: 'keyUp', key, code, windowsVirtualKeyCode: keyCode, modifiers });
+}
+
+/**
+ * The headings a screen reader can jump to, read from Chrome's own
+ * accessibility tree: an element hidden by its parent's display: none is
+ * not there, however it is marked up. Null in Firefox, whose driver has
+ * no such tree.
+ * @returns {Promise<{ level: number, name: string }[] | null>}
+ */
+async function axHeadings(page) {
+  if (process.env.KEPULI_BROWSER === 'firefox') return null;
+  await page.call('Accessibility.enable');
+  const { nodes } = await page.call('Accessibility.getFullAXTree');
+  return nodes.filter((n) => !n.ignored && n.role?.value === 'heading')
+    .map((n) => ({ level: Number(n.properties?.find((p) => p.name === 'level')?.value?.value), name: String(n.name?.value ?? '').trim() }));
 }
 
 /**
@@ -1214,8 +1237,13 @@ async function connections(page, { requests }) {
     await sleep(1000);
     await playEpisodeRow(page, 0);
     await waitFor(page, `[...document.querySelectorAll('#overlay button')].some((b) => b.textContent === 'Play here')`, 'Play here', 40000);
-    const named = (await videoState(page)).overlay;
+    // The whole text: the stream's own sentence comes first, and is longer
+    // than videoState's short excerpt since it says what to do next.
+    const named = await evaluate(page, `document.getElementById('overlay-text').textContent`);
     if (!/another tab/.test(named)) return { ok: false, detail: `another tab: the failure says "${named}"` };
+    // The account's reason stands in for the stream's advice: changing the
+    // playback mode cannot free a connection, and saying both contradicts.
+    if (/TS or HLS|external player|Try again/.test(named)) return { ok: false, detail: `another tab: the failure still gives the format advice next to the account's reason: "${named}"` };
     await evaluate(page, `[...document.querySelectorAll('#overlay button')].find((b) => b.textContent === 'Play here').click()`, { gesture: true });
     await waitFor(page, PLAYING, 'the episode taken over from the other tab', 40000);
     notes.push(`another tab: "${named}", taken over`);
@@ -1485,15 +1513,16 @@ async function a11y(page) {
   await pressKey(page, 'Enter', 'Enter', 13);
   await sleep(800);
   const chosen = await evaluate(page, ACTIVE_GROUP);
-  const ok = st.listRole === 'listbox' && Boolean(st.listName) && st.pointsAtCursor && st.cursorMark
+  const aid = await a11yWays(page);
+  const ok = aid.ok && st.listRole === 'listbox' && Boolean(st.listName) && st.pointsAtCursor && st.cursorMark
     && st.tablist === 'tablist' && st.selectedTabs.length === 1 && st.selectedTabs[0] === 'live'
     && st.tabStops.length === 1 && st.tabStops[0] === 'live' && st.panelNamedBy === 'tab-live'
     && st.toastRole === 'status' && st.unnamedIcons.length === 0
     && st.groupsRole === 'listbox' && st.groupsTabbable && st.optionRoles.join() === 'option'
     && st.rowsTabbable === 0 && st.pointsAtGroup && chosen === st.target;
   const base = `list ${st.listRole}/${st.listName}, cursor ${st.pointsAtCursor ? 'announced' : 'not announced'} and ${st.cursorMark ? 'marked' : 'unmarked'}, tabs ${st.tablist} selected ${st.selectedTabs.join(',')} with ${st.tabStops.length} stop naming ${st.panelNamedBy}, sidebar ${st.groupsRole} of ${st.optionRoles.join('/')} with ${st.rowsTabbable} tabbable rows, toast ${st.toastRole}, unnamed icon buttons ${st.unnamedIcons.length}, group by keyboard: "${st.target}" → "${chosen}"`;
-  if (!ok) return { ok, detail: base };
-  return { ok: true, detail: `${base}; ${await a11yNames(page)}; ${await a11yLooks(page)}` };
+  if (!ok) return { ok, detail: `${base}; ${aid.detail}` };
+  return { ok: true, detail: `${base}; ${aid.detail}; ${await a11yNames(page)}; ${await a11yLooks(page)}` };
 }
 
 /** The role and name Chrome's accessibility tree gives the first element a selector finds. */
@@ -1714,6 +1743,61 @@ async function phone(page) {
     seen.push(`${width} px: sections above Save, days ${guide.days}/${guide.bar} px, search ${guide.form} px`);
   }
   return { ok: true, detail: seen.join('; ') };
+}
+
+/**
+ * The ways around the page for a keyboard and a screen reader: the skip
+ * link is the first Tab stop and lands in the list, the topic chips are one
+ * stop with the arrows inside, the overlay says its title with its text,
+ * and the page, the list and the player have headings and the player a name.
+ */
+async function a11yWays(page) {
+  const focused = () => evaluate(page, `document.activeElement.id || document.activeElement.className`);
+  // From the top of the page.
+  // The body focused for a moment is where a fresh page starts: the next
+  // Tab goes to the page's first stop.
+  await evaluate(page, `(() => { document.body.tabIndex = -1; document.body.focus(); document.body.removeAttribute('tabindex'); })()`);
+  await pressKey(page, 'Tab', 'Tab', 9);
+  await sleep(150);
+  const skip = await evaluate(page, `(() => { const b = document.getElementById('skip-list'), r = b.getBoundingClientRect();
+    return { first: document.activeElement === b, seen: r.top >= 0 && r.bottom <= innerHeight && r.width > 0, text: b.textContent }; })()`);
+  // Enter with its text, as a keyboard sends it: a button acts on that.
+  await page.call('Input.dispatchKeyEvent', { type: 'keyDown', key: 'Enter', code: 'Enter', windowsVirtualKeyCode: 13, text: '\r' });
+  await page.call('Input.dispatchKeyEvent', { type: 'keyUp', key: 'Enter', code: 'Enter', windowsVirtualKeyCode: 13 });
+  await sleep(150);
+  const landed = await focused();
+  // A group with topics: the chips are one stop, held by the chosen chip.
+  await click(page, '#groups', 'Sweden');
+  await waitFor(page, `document.querySelectorAll('#subcats .chip-main').length > 2`, 'the topic chips');
+  const chips = await evaluate(page, `(() => { const all = [...document.querySelectorAll('#subcats .chip-main')];
+    return { stops: all.filter((b) => b.tabIndex === 0).map((b) => all.indexOf(b)), role: document.getElementById('subcats').getAttribute('role'),
+      name: document.getElementById('subcats').getAttribute('aria-label'), activeIsStop: document.querySelector('#subcats .chip.active .chip-main').tabIndex === 0, count: all.length }; })()`);
+  await evaluate(page, `document.querySelector('#subcats .chip.active .chip-main').focus()`);
+  await pressKey(page, 'ArrowRight', 'ArrowRight', 39);
+  await sleep(150);
+  const moved = await evaluate(page, `(() => { const all = [...document.querySelectorAll('#subcats .chip-main')];
+    return { at: all.indexOf(document.activeElement), stops: all.filter((b) => b.tabIndex === 0).map((b) => all.indexOf(b)), chosen: all.indexOf(document.querySelector('#subcats .chip.active .chip-main')) }; })()`);
+  await pressKey(page, 'End', 'End', 35);
+  await sleep(100);
+  const end = await evaluate(page, `[...document.querySelectorAll('#subcats .chip-main')].indexOf(document.activeElement)`);
+  const marks = await evaluate(page, `(() => { const said = document.getElementById('overlay-said');
+    const stage = document.getElementById('player-stage');
+    return { live: said?.getAttribute('aria-live'), atomic: said?.getAttribute('aria-atomic'), holdsTitle: Boolean(said?.contains(document.getElementById('overlay-title'))),
+      textLive: document.getElementById('overlay-text').getAttribute('aria-live'), elapsedHidden: document.getElementById('overlay-elapsed').getAttribute('aria-hidden'),
+      h1: [...document.querySelectorAll('h1')].map((h) => h.textContent.trim()),
+      list: document.getElementById('list-heading').textContent,
+      player: document.getElementById(stage.getAttribute('aria-labelledby') || '')?.textContent }; })()`);
+  // With nothing playing the stage's header is hidden: the player's
+  // heading must still be one to jump to, and no heading may be empty.
+  const idle = await evaluate(page, `!document.querySelector('main').classList.contains('has-playback')`);
+  const heard = await axHeadings(page);
+  const headingsOk = !heard || (heard.some((h) => h.level === 2 && h.name === 'Player') && heard.every((h) => h.name));
+  const ok = idle && headingsOk && skip.first && skip.seen && landed === 'list'
+    && chips.role === 'toolbar' && Boolean(chips.name) && chips.stops.length === 1 && chips.activeIsStop
+    && moved.at === moved.chosen + 1 && moved.stops.join() === String(moved.at) && end === chips.count - 1
+    && marks.live === 'polite' && marks.atomic === 'true' && marks.holdsTitle && !marks.textLive && marks.elapsedHidden === 'true'
+    && marks.h1.join() === 'Kepuli-TV' && /^Channels: Sweden/.test(marks.list) && marks.player === 'Player';
+  return { ok, detail: `skip link ${JSON.stringify(skip)} → ${landed}; chips ${JSON.stringify(chips)}, → ${JSON.stringify(moved)}, End ${end}; ${JSON.stringify(marks)}; nothing playing ${idle}, headings heard ${JSON.stringify(heard)}` };
 }
 
 /** The control stays with the video and preserves the subtitle overlay. */
@@ -2311,6 +2395,9 @@ async function settings(page, { requests, target }) {
   await press('f-save');
   await waitFor(page, `!document.getElementById('setup-error').hidden && !document.getElementById('f-save').disabled`, 'permission denial');
   assert(JSON.stringify(await saved()) === JSON.stringify(beforeConnection), 'denied permission committed settings');
+  // The refusal names the button as it reads for a changed account.
+  const refusal = await evaluate(page, `document.getElementById('setup-error').textContent`);
+  assert(/Press Save again and choose Allow/.test(refusal), `the refusal said "${refusal}"`);
   // The isolated headless profile cannot answer Chrome's permission prompt.
   await evaluate(page, `chrome.permissions.request = async () => true;`);
   const reconnectFrom = requests.length;
@@ -2926,6 +3013,105 @@ async function setupClarity(page) {
   await waitFor(page, `!document.getElementById('setup').open`, 'saved 250 % subtitles');
   assert(await evaluate(page, `chrome.storage.local.get('settings').then(d=>d.settings.subtitleScale===250 && document.body.style.getPropertyValue('--sub-scale')==='2.5')`), 'preview scaling changed saved or playback size');
   return {ok:true, detail:'a pasted subscription URL opens the fields it decoded into, without saving; text that is no address says so, an address without credentials is a playlist with a guide field; controls above an unclipped 250 % preview at 320–1280px; playback saves 250 %'};
+}
+
+/**
+ * The first run, before anything is connected: the address field comes
+ * first and sends what is pasted to its form, the permission prompt is
+ * announced, a refusal says what to do, the closed dialog leaves a way back
+ * on the welcome and in the list, the guide's button waits for a
+ * connection, and a server that does not answer while the browser has not
+ * allowed it says both.
+ */
+async function welcome(page, { target }) {
+  const assert = (ok, message) => { if (!ok) throw new Error(message); };
+  const press = (expr) => evaluate(page, expr, { gesture: true });
+  const paste = (value) => evaluate(page, `(() => { const f = document.getElementById('f-paste-first'); f.focus(); f.value = ${JSON.stringify(value)};
+    f.dispatchEvent(new InputEvent('input', { bubbles: true, inputType: 'insertFromPaste' })); })()`);
+  const mode = () => evaluate(page, `document.querySelector('input[name="source"]:checked').value`);
+  await evaluate(page, `chrome.storage.local.remove('config').then(() => chrome.storage.local.set({ ui: { tab: 'live' } }))`);
+  await page.call('Page.navigate', { url: bare(target.url) });
+  await sleep(1000);
+  await waitFor(page, `document.getElementById('setup').open`, 'the first-run dialog', 10000);
+  const first = await evaluate(page, `(() => { const shown = (id) => document.getElementById(id).getClientRects().length > 0;
+    const panel = document.getElementById('panel-connection');
+    const fields = [...panel.querySelectorAll('label.field, div.field')].filter((n) => n.getClientRects().length).map((n) => n.id || n.querySelector('input,select')?.id || n.querySelector('input')?.name);
+    return { paste: shown('paste-first'), note: shown('setup-grant-note'), focus: document.activeElement.id, fields,
+      radios: [...document.querySelectorAll('input[name="source"]')].map((r) => r.parentElement.textContent.trim()),
+      noteText: document.getElementById('setup-grant-note').textContent }; })()`);
+  assert(first.paste && first.note && first.focus === 'f-paste-first', `the first run: ${JSON.stringify(first)}`);
+  assert(first.fields[0] === 'paste-first' && first.fields.at(-1) === 'f-name', `the order of the fields: ${JSON.stringify(first.fields)}`);
+  assert(first.radios.join(' | ') === 'Server and credentials (Xtream Codes) | Playlist address (M3U) | Stalker portal (MAC address)', `the radios: ${first.radios}`);
+  assert(/choose allow/i.test(first.noteText), `the note: ${first.noteText}`);
+  // Each kind of address to its own form.
+  await paste(`http://127.0.0.1:${MOCK_PORT}/get.php?username=demo&password=demo&type=m3u_plus`);
+  const xtream = await evaluate(page, `({ fields: ['scheme','host','port','username','password'].map((f) => document.getElementById('f-' + f).value), focus: document.activeElement.id })`);
+  assert(await mode() === 'xtream' && xtream.fields.join() === `http,127.0.0.1,${MOCK_PORT},demo,demo` && xtream.focus === 'f-host', `an Xtream address: ${await mode()} ${JSON.stringify(xtream)}`);
+  // The note on the prompt follows the address: none for a server the
+  // browser allows already (stood in for here, as the suite's profile has
+  // not allowed the mock server).
+  await evaluate(page, `window.realContains = chrome.permissions.contains; chrome.permissions.contains = async () => true;
+    document.getElementById('f-username').dispatchEvent(new Event('input', { bubbles: true }))`);
+  await sleep(200);
+  const allowedNote = await evaluate(page, `document.getElementById('setup-grant-note').hidden`);
+  await evaluate(page, `chrome.permissions.contains = window.realContains`);
+  assert(allowedNote, 'the note on the prompt stays for a server the browser allows already');
+  await paste('http://example.test/list.m3u');
+  assert(await mode() === 'm3u' && await evaluate(page, `document.getElementById('f-paste').value === 'http://example.test/list.m3u' && !document.getElementById('src-m3u').hidden`), `a playlist: ${await mode()}`);
+  await sleep(200);
+  // A server not allowed yet has the note; the playlist's own field, filled
+  // from the first, does not tell to paste it a second time.
+  const playlistNote = await evaluate(page, `({ note: !document.getElementById('setup-grant-note').hidden, hint: !document.getElementById('playlist-hint').hidden })`);
+  assert(playlistNote.note && !playlistNote.hint, `a playlist on another server: ${JSON.stringify(playlistNote)}`);
+  await paste('http://example.test:8080/c/');
+  assert(await mode() === 'stalker' && await evaluate(page, `document.getElementById('f-portal').value === 'http://example.test:8080/c/' && document.activeElement.id === 'f-mac'`), `a portal: ${await mode()}`);
+  await paste('example test');
+  assert(await evaluate(page, `!document.getElementById('paste-first-status').hidden`), 'text that is no address was taken');
+  // A refusal of the permission says what to do about it.
+  await paste(`http://127.0.0.1:${MOCK_PORT}/get.php?username=demo&password=demo`);
+  await evaluate(page, `window.realRequest = chrome.permissions.request; chrome.permissions.request = async () => false;`);
+  await press(`document.getElementById('f-save').click()`);
+  await waitFor(page, `!document.getElementById('setup-error').hidden && !document.getElementById('f-save').disabled`, 'the refusal');
+  const refused = await evaluate(page, `document.getElementById('setup-error').textContent`);
+  assert(/Press Connect again and choose Allow/.test(refused), `the refusal said "${refused}"`);
+  await evaluate(page, `chrome.permissions.request = window.realRequest`);
+  // Closed, the dialog leaves the welcome with a way back, and the list too.
+  await press(`document.getElementById('f-done').click()`);
+  await waitFor(page, `!document.getElementById('setup').open`, 'the dialog closed');
+  const idle = await evaluate(page, `(() => { const b = document.getElementById('welcome-connect'), empty = document.querySelector('#list .empty');
+    return { title: document.getElementById('overlay-title').textContent, text: document.getElementById('overlay-text').textContent,
+      button: b && b.getClientRects().length ? b.className + ':' + b.textContent : null,
+      empty: empty ? [empty.querySelector('strong').textContent, empty.querySelector('button')?.textContent].join(':') : null,
+      guide: document.getElementById('btn-guide').getClientRects().length > 0 }; })()`);
+  assert(idle.title === 'Welcome' && /already have\. Connect it/.test(idle.text) && idle.button === 'primary:Connect to your provider', `the welcome: ${JSON.stringify(idle)}`);
+  assert(idle.empty === 'Not connected yet:Connect to your provider' && !idle.guide, `the list before a connection: ${JSON.stringify(idle)}`);
+  // Before a connection the player and the list have their headings too,
+  // and neither is empty.
+  const heard = await axHeadings(page);
+  assert(!heard || (heard.some((h) => h.level === 2 && h.name === 'Player') && heard.some((h) => h.level === 2 && h.name === 'Channels') && heard.every((h) => h.name)), `the headings on the welcome: ${JSON.stringify(heard)}`);
+  await press(`document.getElementById('welcome-connect').click()`);
+  await waitFor(page, `document.getElementById('setup').open && document.activeElement.id === 'f-paste-first'`, 'the dialog again from the welcome');
+  // A server that does not answer, on a host the browser has not allowed:
+  // the text says both, over the button that asks for it.
+  const dead = MOCK_PORT + 7;
+  await paste(`http://127.0.0.1:${dead}/get.php?username=demo&password=demo`);
+  await evaluate(page, `window.realContains = chrome.permissions.contains; chrome.permissions.request = async () => true; chrome.permissions.contains = async () => false;`);
+  try {
+    await press(`document.getElementById('f-save').click()`);
+    await waitFor(page, `!document.getElementById('overlay').hidden && document.getElementById('overlay-title').textContent === 'Connection failed' && document.getElementById('overlay-actions').firstElementChild?.textContent.startsWith('Allow access')`, 'the connection error', 30000);
+    const failed = await evaluate(page, `document.getElementById('overlay-text').textContent`);
+    assert(/^The server did not answer\. .*The browser has not yet allowed Kepuli-TV to reach 127\.0\.0\.1:\d+\.$/.test(failed), `the connection error said "${failed}"`);
+    // Connected at last, the welcome's button is gone.
+    await evaluate(page, `chrome.permissions.contains = window.realContains; chrome.permissions.request = window.realRequest`);
+    await evaluate(page, `chrome.storage.local.set({ config: ${JSON.stringify(XTREAM_ACCOUNT)} })`);
+    await page.call('Page.navigate', { url: bare(target.url) });
+    await sleep(1000);
+    await waitFor(page, CONNECTED, 'the connection');
+    assert(await evaluate(page, `!document.getElementById('welcome-connect') && !document.getElementById('btn-guide').closest('[hidden]')`), 'the welcome stayed after connecting');
+    return { ok: true, detail: `address first and sent to its form (Xtream, playlist, portal), the prompt announced, "${refused}"; the welcome and the list offer Connect, no guide button; "${failed}"` };
+  } finally {
+    await evaluate(page, `if (window.realContains) chrome.permissions.contains = window.realContains; if (window.realRequest) chrome.permissions.request = window.realRequest;`);
+  }
 }
 
 
@@ -3727,7 +3913,7 @@ async function accountform(page, { target }) {
   await evaluate(page, `(() => { const f = document.getElementById('f-host'); f.value = 'example.tv'; f.dispatchEvent(new Event('input', { bubbles: true })); })()`);
   await press(`document.getElementById('f-save').click()`);
   const error = await evaluate(page, `document.getElementById('setup-error').textContent`);
-  assert(/Paste subscription URL \(M3U\)/.test(error), `the incomplete server: "${error}"`);
+  assert(/Playlist address \(M3U\)/.test(error), `the incomplete server: "${error}"`);
   return { ok: true, detail: `added and cancelled in the list, the other account edited and saved without a switch; "${error}"` };
 }
 
@@ -4403,7 +4589,7 @@ async function soak(page) {
   return { ok: true, detail };
 }
 
-const SCENARIOS = { buffering, livebuffering, filmbuffering, emptyfile, tsasmp4, refusedfile, badgateway, livebadgateway, channelrefused, noanswer, longfilm, catalogUi, setupClarity, fullscreenControl, clickpause, pickers, channels, home, resumemkv, restore, programmes, catchup, seek, death, cancel, timeout, search, paste, keys, switching, resume, connections, livezap, livequiet, reconnect, accounts, listerror, a11y, subtitles, audio, settings,
+const SCENARIOS = { buffering, livebuffering, filmbuffering, emptyfile, tsasmp4, refusedfile, badgateway, livebadgateway, channelrefused, noanswer, longfilm, catalogUi, setupClarity, welcome, fullscreenControl, clickpause, pickers, channels, home, resumemkv, restore, programmes, catchup, seek, death, cancel, timeout, search, paste, keys, switching, resume, connections, livezap, livequiet, reconnect, accounts, listerror, a11y, subtitles, audio, settings,
   lastchannel, nextepisode, continuewatching, reminders, update, seeklag, cuesretry, quota, catchupfreeze, catchupfull, twotabs, switchstop, resettabs,
   refresh, restorenav, guidekeep, m3u, sync, holes, picks, flakyserver, accountform, stalker, record, guidefavs, categories, homecountry, noleak, perf, pseudo, startup, soak, phone };
 // The mock's whole-list answers stall for these, longer than the request limit.

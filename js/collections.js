@@ -378,6 +378,10 @@ export function renderSubcats() {
     }, () => selectSub(cat.id)));
   }
   el.subcats.replaceChildren(frag);
+  // One Tab stop for the whole bar, on the chosen chip (wireSubcatsKeys).
+  const chips = [...el.subcats.querySelectorAll('.chip-main')];
+  const chosen = el.subcats.querySelector('.chip.active .chip-main') || chips[0];
+  for (const chip of chips) chip.tabIndex = chip === chosen ? 0 : -1;
   showSubcats(true);
   applySubcatsHeight();
 }
