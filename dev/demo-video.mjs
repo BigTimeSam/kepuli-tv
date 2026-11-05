@@ -81,7 +81,7 @@ const CAPTIONS = {
     disclaimer: 'Kepuli-TV contains no channels or content. You need your own IPTV subscription. Everything shown here is fictional demo content.',
     chapters: {
       intro: 'Introduction', start: 'Start page', resume: 'Continue watching', live: 'Live TV', zap: 'Switching channels', favourites: 'Favourites',
-      countries: 'Choose your countries', guide: 'Programme guide', search: 'Search', movies: 'Movies and categories', details: 'Title details',
+      countries: 'Filter countries', guide: 'Programme guide', search: 'Search', movies: 'Movies and categories', details: 'Title details',
       series: 'Series', mkv: 'MKV and subtitles', subsize: 'Subtitle size and height', record: 'Recording', recordings: 'Recordings',
       more: 'Picture-in-picture and Chromecast', history: 'History', accounts: 'Several accounts', sync: 'Sync between computers',
       keys: 'Keyboard shortcuts', theme: 'Dark and light theme', languages: 'Languages and clock', fullscreen: 'Full screen', outro: 'Get Kepuli-TV',
@@ -631,13 +631,14 @@ async function walk() {
   await click(byText('.row-menu', 'Add to favourites'), { pause: 900 });
   await click(`document.getElementById('fav-strip-toggle')`, { pause: 2200 });
   await click(`document.getElementById('fav-strip-toggle')`, { pause: 500 });
-  await click(`document.getElementById('groups-favonly')`, { pause: 2600 });
-  await click(`document.getElementById('groups-favonly')`, { pause: 700 });
 
   // Countries.
   await scene('countries', 'bottom', 3200);
   await sleep(2400);
   await click(`document.getElementById('btn-countries')`, { pause: 900 });
+  // The favourite countries alone for a moment, then the ones chosen: a tick
+  // in the list chooses that mode by itself.
+  await click(`document.querySelector('input[name="countries-mode"][value="favorites"]')`, { pause: 1800 });
   for (const name of ['Finland', 'Sweden', 'Norway']) {
     await click(`document.querySelector('#countries-list .choice-row[data-name="${name}"] input')`, { pause: 400 });
   }

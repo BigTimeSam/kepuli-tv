@@ -30,7 +30,11 @@ export class CountryPicker {
     wireModal(this.dialog, () => this.dialog.close());
     $('countries-cancel').addEventListener('click', () => this.dialog.close());
     $('countries-filter').addEventListener('input', () => this.filter());
+    for (const radio of this.dialog.querySelectorAll('input[name="countries-mode"]')) {
+      radio.addEventListener('change', () => { if (radio.checked) this.setMode(radio.value); });
+    }
     $('countries-toggle').addEventListener('change', () => {
+      if (this.mode !== 'chosen') this.setMode('chosen');
       const tick = $('countries-toggle').checked;
       for (const row of $('countries-list').children) {
         if (row.hidden) continue;
@@ -46,8 +50,11 @@ export class CountryPicker {
       button.disabled = true;
       try {
         // Every country ticked is the same as none: all of them, and a
-        // country the provider adds later shows too.
-        await (this.save || this.onSave)(this.chosen.size >= this.groups.length ? [] : [...this.chosen]);
+        // country the provider adds later shows too. The list is kept
+        // whatever the mode, so that choosing it again brings it back.
+        const every = this.chosen.size >= this.groups.length;
+        const mode = this.mode === 'chosen' && (every || !this.chosen.size) ? 'all' : this.mode;
+        await (this.save || this.onSave)({ mode, chosen: every ? [] : [...this.chosen] });
         this.dialog.close();
       } catch {
         $('countries-status').textContent = t('organize.savefailed');
@@ -62,11 +69,13 @@ export class CountryPicker {
    * @param {string[]} suggested groups to offer first: the browser's country
    * @param {boolean} first the first time, when the suggestion is ticked
    */
-  show({ groups, counts, chosen, suggested = [], first = false, onSave = null, texts = null }) {
+  show({ groups, counts, chosen, mode = 'chosen', favorites = [], suggested = [], first = false, onSave = null, texts = null }) {
     // The same dialog chooses the films' and the series' categories: their
     // own words and their own place to save, the countries' otherwise.
     this.save = onSave;
-    this.texts = { title: 'countries.title', help: 'countries.help', filter: 'countries.filter', all: 'countries.all', ...texts };
+    this.texts = { title: 'countries.title', help: 'countries.help', filter: 'countries.filter', all: 'countries.all', words: 'countries', ...texts };
+    for (const value of ['all', 'favorites', 'chosen']) $(`countries-mode-${value}`).textContent = t(`${this.texts.words}.mode.${value}`);
+    this.favorites = favorites.filter((name) => groups.some((g) => g.name === name));
     $('countries-title').textContent = t(this.texts.title);
     this.dialog.querySelector('.editor-help').textContent = t(this.texts.help);
     $('countries-filter').placeholder = t(this.texts.filter);
@@ -78,6 +87,7 @@ export class CountryPicker {
     $('countries-filter').value = '';
     $('countries-status').textContent = '';
     this.render();
+    this.setMode(mode);
     this.dialog.showModal();
     if (caretWelcome()) $('countries-filter').focus();
   }
@@ -96,6 +106,8 @@ export class CountryPicker {
       box.type = 'checkbox';
       box.checked = this.chosen.has(group.name);
       box.addEventListener('change', () => {
+        // A tick is a choice of its own: the list's mode comes with it.
+        if (this.mode !== 'chosen') this.setMode('chosen');
         if (box.checked) this.chosen.add(group.name); else this.chosen.delete(group.name);
         this.status();
       });
@@ -121,6 +133,17 @@ export class CountryPicker {
     this.filter();
   }
 
+  /**
+   * The mode chosen above the list. The list answers only "chosen" and is
+   * dimmed otherwise, but stays in reach: a tick in it chooses that mode.
+   */
+  setMode(mode) {
+    this.mode = ['all', 'favorites', 'chosen'].includes(mode) ? mode : 'all';
+    for (const radio of this.dialog.querySelectorAll('input[name="countries-mode"]')) radio.checked = radio.value === this.mode;
+    this.dialog.classList.toggle('choosing', this.mode === 'chosen');
+    this.status();
+  }
+
   filter() {
     const terms = searchTerms($('countries-filter').value);
     for (const row of $('countries-list').children) row.hidden = terms.length > 0 && !matchesTerms(row.dataset.key, terms);
@@ -129,6 +152,14 @@ export class CountryPicker {
   }
 
   status() {
+    if (this.mode === 'all') { $('countries-status').textContent = t(this.texts.all); return; }
+    if (this.mode === 'favorites') {
+      // The favourite ones, or what to do when there are none yet.
+      $('countries-status').textContent = this.favorites.length
+        ? t('countries.chosen', { count: this.favorites.length, n: nf.format(this.favorites.length), total: nf.format(this.groups.length) })
+        : t(`${this.texts.words}.mode.nofavs`);
+      return;
+    }
     $('countries-status').textContent = this.chosen.size
       ? t('countries.chosen', { count: this.chosen.size, n: nf.format(this.chosen.size), total: nf.format(this.groups.length) })
       : t(this.texts.all);

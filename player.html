@@ -97,7 +97,6 @@
          the arrows move a cursor inside it, and aria-activedescendant names
          the row the cursor is on. See markGroups in js/app.js. -->
     <!-- Favourites only: the starred groups, and those holding a starred topic. -->
-    <label class="groups-favonly" id="groups-favonly-row" hidden><input type="checkbox" id="groups-favonly"><span data-i18n="groups.favonly">Show favourites only</span></label>
     <div class="groups-list" id="groups" role="listbox" tabindex="0" data-i18n-label="groups.aria"></div>
     <!-- The way to the countries the viewer watches on the channels, and to
          the categories on the films and the series. -->
@@ -428,6 +427,14 @@
       <button type="button" data-modal-close></button>
     </div>
     <p class="editor-help" data-i18n="countries.help">The rest are left out of the lists, the search and the guide. You can change this at any time.</p>
+    <!-- Which of three filters: everything, the favourite ones, or those
+         ticked below; the list answers only the third. -->
+    <div class="choice-modes" role="radiogroup" aria-labelledby="countries-mode-label">
+      <span class="choice-modes-label" id="countries-mode-label" data-i18n="countries.mode">Show</span>
+      <label class="choice-mode"><input type="radio" name="countries-mode" value="all"><span id="countries-mode-all">All countries</span></label>
+      <label class="choice-mode"><input type="radio" name="countries-mode" value="favorites"><span id="countries-mode-favorites">Favourite countries only</span></label>
+      <label class="choice-mode"><input type="radio" name="countries-mode" value="chosen"><span id="countries-mode-chosen">Countries I choose</span></label>
+    </div>
     <div class="choice-filter">
       <svg viewBox="0 0 20 20" aria-hidden="true"><circle cx="9" cy="9" r="6"/><path d="M13.5 13.5 18 18"/></svg>
       <input id="countries-filter" type="search" data-i18n-placeholder="countries.filter" data-i18n-label="countries.filter" autocomplete="off" spellcheck="false">

@@ -210,6 +210,9 @@
 //                                     without its year, and the details' end
 //                                     time, original title, linked credits,
 //                                     sound language, other copies and parts
+//   node dev/playcheck.mjs countryfilter Filter countries: all, the favourite
+//                                     ones or those chosen; a tick chooses the
+//                                     last, and the list stays for next time
 //   node dev/playcheck.mjs favorder   the favourites by name to begin with, the
 //                                     latest added first from their foot's mark
 //   node dev/playcheck.mjs gotochannel a channel chosen in the guide's search
@@ -4501,7 +4504,8 @@ async function categories(page) {
     await waitFor(page, `document.querySelectorAll('#groups .group').length > 3 && !document.getElementById('btn-countries').hidden`, 'the film categories');
     await evaluate(page, `document.getElementById('btn-countries').click()`, { gesture: true });
     await waitFor(page, `document.getElementById('countries').open`, 'the dialog');
-    assert(await evaluate(page, `document.getElementById('countries-title').textContent`) === 'Which categories do you want to see?', 'the dialog speaks of countries');
+    const words = await evaluate(page, `[document.getElementById('countries-title').textContent, ...[...document.querySelectorAll('.choice-mode span')].map((s) => s.textContent)].join('|')`);
+    assert(words === 'Filter categories|All categories|Favourite categories only|Categories I choose', `the dialog speaks of countries: ${words}`);
     await evaluate(page, `[...document.querySelectorAll('#countries-list .choice-row')].filter((r) => ['Drama', 'Nordic'].includes(r.dataset.name)).forEach((r) => r.querySelector('input').click())`);
     await evaluate(page, `document.getElementById('countries-save').click()`);
     await waitFor(page, `!document.getElementById('countries').open && document.querySelectorAll('#groups .group').length === 3`, 'the sidebar down to the two');
@@ -4513,7 +4517,7 @@ async function categories(page) {
     await evaluate(page, `document.querySelector('#tabs [data-tab="movie"]').click()`);
     await waitFor(page, `document.querySelectorAll('#groups .group').length === 3`, 'the choice kept over a reload');
     await evaluate(page, `document.querySelector('#tabs [data-tab="series"]').click()`);
-    await waitFor(page, `document.querySelectorAll('#groups .group').length > 3 && document.getElementById('btn-countries-text').textContent === 'Choose categories'`, 'the series untouched');
+    await waitFor(page, `document.querySelectorAll('#groups .group').length > 3 && document.getElementById('btn-countries-text').textContent === 'Filter categories'`, 'the series untouched');
     return { ok: true, detail: `Drama and Nordic ticked: the sidebar ${JSON.stringify(after.groups)}, "${after.foot}", kept over a reload; the series untouched` };
   } finally {
     await evaluate(page, `chrome.storage.local.get(null).then((d) => Promise.all(Object.keys(d).filter((k) => k.startsWith('channels')).map((k) => chrome.storage.local.set({ [k]: { ...d[k], movieCategories: [], seriesCategories: [] } }))))`).catch(() => {});
@@ -4667,7 +4671,7 @@ async function perf(page) {
  * opened as player.html?pseudo=1 (js/i18n.js), where every string is
  * accented and about 40 % longer, and the main views are walked: the start
  * page, the channel list, the films' covers, a series, the programme guide,
- * every Settings panel, Choose countries and Help. In each, every visible box
+ * every Settings panel, Filter countries and Help. In each, every visible box
  * that holds text of its own (buttons, tabs, chips, list rows, labels, dialog
  * fields) is measured, and one whose text is wider than the box fails the
  * scenario, unless the box is meant to cut its text with an ellipsis or to
@@ -4803,8 +4807,8 @@ async function pseudoViews(page, plain) {
   }
   await evaluate(page, `document.getElementById('setup').close()`);
   await evaluate(page, `document.getElementById('btn-countries').click()`, { gesture: true });
-  await waitFor(page, `document.getElementById('countries').open`, 'Choose countries', 5000);
-  await look('Choose countries');
+  await waitFor(page, `document.getElementById('countries').open`, 'Filter countries', 5000);
+  await look('Filter countries');
   await evaluate(page, `document.getElementById('countries').close()`);
   await evaluate(page, `document.getElementById('btn-help').click()`, { gesture: true });
   await waitFor(page, `document.getElementById('help').open`, 'Help', 5000);
@@ -5179,9 +5183,73 @@ async function favorder(page) {
   }
 }
 
+/**
+ * "Filter countries": all of them, the favourite ones, or those chosen,
+ * one mode at a time; a tick in the list chooses the last, and the list
+ * chosen is kept while another mode is on. The sidebar has no box of its
+ * own for the favourites any more.
+ */
+async function countryfilter(page) {
+  const assert = (ok, message) => { if (!ok) throw new Error(message); };
+  const app = `(await import('./js/app.js'))`;
+  await openLiveList(page, 3);
+  const side = () => evaluate(page, `[...document.querySelectorAll('#groups .group')].map((g) => g.textContent.trim().replace(/^[☆★]/, '').replace(/\\s*[\\d\\s]+$/, ''))`);
+  const open = async () => {
+    await evaluate(page, `document.getElementById('btn-countries').click()`, { gesture: true });
+    await waitFor(page, `document.getElementById('countries').open`, 'Filter countries');
+  };
+  const save = async () => {
+    await evaluate(page, `document.getElementById('countries-save').click()`);
+    await waitFor(page, `!document.getElementById('countries').open`, 'the dialog closed');
+    await sleep(400);
+  };
+  const before = await side();
+  try {
+    // Two countries starred.
+    const starred = before.filter((g) => g !== 'All').slice(1, 3);
+    await evaluate(page, `(async () => { const { state } = ${app};
+      for (const g of ${JSON.stringify(starred)}) state.favorites.set('c:live:g:' + g, { k: 'c', id: 'live:g:' + g, t: 'live', c: null, g, n: g }); })()`);
+    const box = await evaluate(page, `!!document.getElementById('groups-favonly')`);
+    await open();
+    const dialog = await evaluate(page, `({ title: document.getElementById('countries-title').textContent,
+      modes: [...document.querySelectorAll('input[name="countries-mode"]')].map((r) => r.value + (r.checked ? '*' : '')),
+      labels: [...document.querySelectorAll('.choice-mode span')].map((s) => s.textContent) })`);
+    assert(!box && dialog.title === 'Filter countries' && dialog.modes.join() === 'all*,favorites,chosen'
+      && dialog.labels.join('|') === 'All countries|Favourite countries only|Countries I choose', `the dialog: ${JSON.stringify({ box, dialog })}`);
+    // The favourite countries only.
+    await evaluate(page, `document.querySelector('input[name="countries-mode"][value="favorites"]').click()`);
+    await save();
+    const favs = await side();
+    const button = await evaluate(page, `document.getElementById('btn-countries-text').textContent`);
+    const storedFavs = await evaluate(page, `(async () => { const { state } = ${app}; return state.channelPrefs.countriesMode; })()`);
+    assert(JSON.stringify(favs.filter((g) => g !== 'All').sort()) === JSON.stringify([...starred].sort()) && button === 'Countries: favourites' && storedFavs === 'favorites',
+      `favourites only: ${JSON.stringify({ favs, button, storedFavs })}`);
+    // A tick in the list chooses "Countries I choose" by itself.
+    const pick = before.filter((g) => g !== 'All')[0];
+    await open();
+    await evaluate(page, `document.querySelector('#countries-list .choice-row[data-name=${JSON.stringify(pick)}] input').click()`);
+    const switched = await evaluate(page, `document.querySelector('input[name="countries-mode"]:checked').value`);
+    await save();
+    const chosen = await side();
+    assert(switched === 'chosen' && JSON.stringify(chosen.filter((g) => g !== 'All')) === JSON.stringify([pick]), `chosen by a tick: ${JSON.stringify({ switched, chosen })}`);
+    // All again, the list kept for the next time.
+    await open();
+    await evaluate(page, `document.querySelector('input[name="countries-mode"][value="all"]').click()`);
+    await save();
+    const all = await side();
+    const kept = await evaluate(page, `(async () => { const { state } = ${app}; return [state.channelPrefs.countriesMode, state.channelPrefs.countries]; })()`);
+    assert(all.length === before.length && kept[0] === 'all' && JSON.stringify(kept[1]) === JSON.stringify([pick]), `all again: ${JSON.stringify({ all: all.length, before: before.length, kept })}`);
+    return { ok: true, detail: `favourites ${JSON.stringify(starred)} ("${button}"), ${pick} chosen by its tick, all again with the choice kept; no box in the sidebar` };
+  } finally {
+    await evaluate(page, `(async () => { const { state } = ${app}; const config = await import('./js/config.js');
+      for (const key of [...state.favorites.keys()]) if (key.startsWith('c:live:g:')) state.favorites.delete(key);
+      await config.saveChannelPreferences({ ...state.channelPrefs, countries: [], countriesMode: null }); })()`);
+  }
+}
+
 const SCENARIOS = { buffering, livebuffering, filmbuffering, emptyfile, tsasmp4, refusedfile, badgateway, livebadgateway, channelrefused, noanswer, longfilm, catalogUi, setupClarity, welcome, fullscreenControl, clickpause, pickers, touchcaret, screenbutton, topmenu, scrollbars, channelorder, lengthfilter, nowlogo, channels, home, resumemkv, restore, programmes, catchup, seek, death, cancel, timeout, search, paste, keys, switching, resume, connections, livezap, livequiet, reconnect, accounts, listerror, a11y, subtitles, audio, wasmaudio, settings,
   lastchannel, nextepisode, continuewatching, reminders, update, seeklag, cuesretry, quota, catchupfreeze, catchupfull, twotabs, switchstop, resettabs,
-  refresh, restorenav, guidekeep, m3u, sync, holes, picks, flakyserver, accountform, stalker, record, guidefavs, categories, homecountry, noleak, perf, pseudo, startup, soak, phone, episodenames, gotochannel, filmdetails, favorder };
+  refresh, restorenav, guidekeep, m3u, sync, holes, picks, flakyserver, accountform, stalker, record, guidefavs, categories, homecountry, noleak, perf, pseudo, startup, soak, phone, episodenames, gotochannel, filmdetails, favorder, countryfilter };
 // The mock's whole-list answers stall for these, longer than the request limit.
 const SLOW_LIST_MS = { cancel: 60000, timeout: 60000 };
 // The media is sent slowly for these: the seek targets must lie outside the

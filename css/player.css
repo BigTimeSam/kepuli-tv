@@ -424,15 +424,6 @@ main.guide #btn-copy { display: none; }
 .groups-foot[data-kind="categories"] .foot-countries, .groups-foot:not([data-kind="categories"]) .foot-categories { display: none; }
 .groups-foot:hover { color: var(--text); background: var(--row-hover); }
 .groups-foot:focus-visible { outline: 2px solid var(--accent-ink); outline-offset: -2px; }
-/* Favourites only, under the sidebar's filter. */
-.groups-favonly {
-  flex: none; display: flex; align-items: center; gap: 8px; margin: 0; padding: 1px 14px 8px;
-  border-bottom: 1px solid var(--border); color: var(--muted); font-size: 0.75rem; cursor: pointer;
-}
-.groups-favonly[hidden] { display: none; }
-.groups-filter:has(+ .groups-favonly:not([hidden])) { border-bottom: 0; }
-.groups-favonly:hover, .groups-favonly:has(input:checked) { color: var(--text); }
-.groups-favonly input { margin: 0; accent-color: var(--accent); }
 .groups-foot svg { width: 15px; height: 15px; flex: none; fill: none; stroke: currentColor; stroke-width: 1.5; stroke-linecap: round; stroke-linejoin: round; }
 
 .group { display: flex; align-items: center; gap: 8px; padding: 6px 9px; border-radius: 7px; cursor: pointer; color: var(--muted); }
@@ -1637,6 +1628,15 @@ dialog::backdrop { background: var(--backdrop); backdrop-filter: blur(2px); }
 .programme-form input, .programme-form select {
   color: var(--text); background: var(--panel-2); border: 1px solid var(--border); border-radius: 6px; padding: 7px 9px; min-width: 0;
 }
+/* "Filter countries": all, the favourite ones, or those chosen below. The
+   list answers only the third and stands dimmed otherwise; a tick in it
+   chooses the third. */
+.choice-modes { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 18px; padding: 2px 0 10px; }
+.choice-modes-label { flex-basis: 100%; color: var(--muted); font-size: 0.75rem; }
+.choice-mode { display: flex; align-items: center; gap: 7px; cursor: pointer; }
+.choice-mode > input { margin: 0; accent-color: var(--accent); }
+#countries:not(.choosing) #countries-all-row, #countries:not(.choosing) .choice-list { opacity: .55; }
+#countries:not(.choosing) .choice-list:hover, #countries:not(.choosing) #countries-all-row:hover { opacity: .8; }
 .choice-filter { position: relative; }
 .choice-filter svg { position: absolute; left: 10px; top: 50%; translate: 0 -50%; width: 14px; height: 14px; fill: none; stroke: var(--muted); stroke-width: 1.8; stroke-linecap: round; pointer-events: none; }
 .choice-filter input { width: 100%; padding: 7px 9px 7px 30px; color: var(--text); background: var(--panel-2); border: 1px solid var(--border); border-radius: 8px; }
@@ -2068,7 +2068,7 @@ select:not([multiple]) {
 .search svg, .groups-filter svg, .choice-filter svg, .search-field > svg { translate: 0 calc(-50% + 1px); }
 .search svg { top: 50%; }
 .tab-icon, .icon-button.labelled > svg, .groups-foot svg, .channel-guide > svg { translate: 0 .5px; }
-.groups-favonly input, .toggle input, .choice-row > input { translate: 0 .5px; }
+.toggle input, .choice-row > input, .choice-mode > input { translate: 0 .5px; }
 
 /* A field's hint longer than the field (a long language, a narrow window)
    ends in an ellipsis rather than being cut mid-letter. */

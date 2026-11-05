@@ -140,7 +140,7 @@ language's own country (Finnish opens Finland, Swedish Sweden, German for
 Austria Austria, Swedish for Finland Finland). US and British
 English say nothing about where you are, so with only those the list starts
 at the provider's first country, as it does when the provider has none of
-yours. Countries you have chosen with **Choose countries** start at the first
+yours. Countries you have chosen with **Filter countries** start at the first
 of them instead.
 
 A search is a detour rather than a place: it stays out of the address, and
@@ -163,8 +163,12 @@ the player actually arrives.
 - Above the list, **Filter channels** holds a country's topics, and the
   films' and series' **Filter titles** their filters with the favourites
   among the list at its end; each folds away, and open or folded is
-  remembered. **Show favourites only** under the sidebar's search narrows the
-  countries and categories to the starred ones.
+  remembered. **Filter countries** at the foot of the sidebar (**Filter
+  categories** on the films and the series) shows all of them, only the
+  favourite ones (those you have starred), or the ones you tick in its
+  list; a tick chooses that last mode by itself, and the list is kept when
+  you switch to another. The button says which is on, such as
+  **Countries: favourites** or **3/12 countries chosen**.
 - Click a channel or movie to start playback. For a series, choose a season
   and then an episode. **Back** restores the parent list's scroll position,
   selected item and search, including when the series is inside a favourite category.
@@ -221,7 +225,7 @@ dialog is open.
 
 - In **Settings**, X, Esc and clicking outside ask before discarding unsaved
   changes. **Cancel** discards the draft; **Save** applies it.
-- In **Choose countries**, X, Esc, clicking outside and **Cancel** leave the
+- In **Filter countries**, X, Esc, clicking outside and **Cancel** leave the
   choice as it was; **Save** applies it.
 - Enlarged covers close immediately without changing playback.
 

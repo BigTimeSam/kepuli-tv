@@ -52,7 +52,11 @@ function check(what, actual, expected) {
 
 const preferences = channelPreferences({ hiddenChannels: [1, '1'], hiddenCategories: ['sport'], pinned: ['3'], countries: ['Finland'], movieCategories: ['Drama', 'Drama'], channelOrder: ['9'] });
 check('preferences keep ids as strings, once, and drop what is no longer kept',
-  preferences, { hiddenChannels: ['1'], hiddenCategories: ['sport'], countries: ['Finland'], movieCategories: ['Drama'], seriesCategories: [] });
+  preferences, { hiddenChannels: ['1'], hiddenCategories: ['sport'], countries: ['Finland'], movieCategories: ['Drama'], seriesCategories: [],
+    countriesMode: null, movieCategoriesMode: null, seriesCategoriesMode: null });
+check('a filter mode is one of three, anything else none',
+  [channelPreferences({ countriesMode: 'favorites' }).countriesMode, channelPreferences({ movieCategoriesMode: 'chosen' }).movieCategoriesMode, channelPreferences({ seriesCategoriesMode: 'some' }).seriesCategoriesMode],
+  ['favorites', 'chosen', null]);
 const channelRows = [{ k: 0, id: '1', cats: ['news'] }, { k: 0, id: '2', cats: ['sport', 'news'] },
   { k: 0, id: '3', cats: ['news'] }, { k: 1, id: '1' }, { k: 0, id: '4', cats: ['new'] }];
 check('hidden channels and categories also filter overlapping categories, without hiding movies',

@@ -1100,16 +1100,12 @@ export function renderSidebar() {
   else renderCategories();
   markGroups();
   renderCountriesButton();
-  renderGroupsFoot();
 }
 
-/** Favourites only, under the sidebar's filter on the channels, the films and the series. */
+// The sidebar's old "Show favourites only" box, as stored before "Filter
+// countries" took it in: read once, for the mode of a type that has none
+// of its own yet (groupFilterMode).
 let groupsFavOnly = false;
-function renderGroupsFoot() {
-  const box = $('groups-favonly');
-  $('groups-favonly-row').hidden = isCollection() || !state.lib;
-  box.checked = groupsFavOnly;
-}
 
 /** "Choose countries", or how many are chosen, under the channels' sidebar. */
 function renderCountriesButton() {
@@ -1121,8 +1117,9 @@ function renderCountriesButton() {
   const chosen = live ? chosenCountries() : chosenCategories(type);
   button.dataset.kind = live ? 'countries' : 'categories';
   const total = nf.format(state.lib.groups[type].length);
-  $('btn-countries-text').textContent = live
-    ? (chosen ? t('countries.button.chosen', { count: chosen.size, n: nf.format(chosen.size), total }) : t('countries.button'))
+  const words = live ? 'countries' : 'categories';
+  $('btn-countries-text').textContent = chosen && groupFilterMode(type) === 'favorites' ? t(`${words}.button.favorites`)
+    : live ? (chosen ? t('countries.button.chosen', { count: chosen.size, n: nf.format(chosen.size), total }) : t('countries.button'))
     : (chosen ? t('categories.button.chosen', { n: nf.format(chosen.size), total }) : t('categories.button'));
 }
 
@@ -1226,11 +1223,7 @@ export function renderCategories() {
   const filter = terms.length > 0;
   // The filter matches sub-categories too, so that "sport" finds the
   // countries that have one even when the country's name lacks the word.
-  // Favourites only (the box under the sidebar's filter): the groups starred, and
-  // those holding a starred topic; the group open stays, so that the list
-  // beside it is not left without its row.
-  const starred = groupsFavOnly ? new Set([...state.favorites.values()].filter((f) => f.k === 'c' && f.t === type).map((f) => f.g)) : null;
-  const groups = visibleGroups(type).filter((g) => (!starred || starred.has(g.name) || state.group === g.name) && (!filter
+  const groups = visibleGroups(type).filter((g) => (!filter
     || matchesTerms(searchKey(g.name), terms)
     || g.cats.some((c) => matchesTerms(searchKey(c.name), terms))));
 
@@ -1319,9 +1312,38 @@ export function visibleGroups(type) {
  * one, nothing at all would be shown.
  */
 export function chosenCountries() {
-  const names = state.channelPrefs.countries;
-  const groups = state.lib?.groups.live;
-  if (!names.length || !groups) return null;
+  return groupFilter('live');
+}
+
+const MODE_PREFS = { live: 'countriesMode', movie: 'movieCategoriesMode', series: 'seriesCategoriesMode' };
+const LIST_PREFS = { live: 'countries', movie: 'movieCategories', series: 'seriesCategories' };
+
+/**
+ * How a type's groups are filtered ("Filter countries", "Filter
+ * categories"): all, the favourite ones, or those chosen. A type with no
+ * mode stored is as it was before the modes: chosen when a list was, the
+ * favourite ones when the sidebar's old box was ticked, all otherwise.
+ */
+export function groupFilterMode(type) {
+  const stored = state.channelPrefs[MODE_PREFS[type]];
+  if (stored) return stored;
+  return (state.channelPrefs[LIST_PREFS[type]] || []).length ? 'chosen' : groupsFavOnly ? 'favorites' : 'all';
+}
+
+/**
+ * The groups a type's filter lets through, or null for all of them: the
+ * chosen ones, or the favourite ones (a starred country, or one holding a
+ * starred topic). One the provider no longer has does not count, and
+ * nothing left counts as all — a filter with nothing in it would empty
+ * every list.
+ */
+function groupFilter(type) {
+  const groups = state.lib?.groups[type];
+  if (!groups) return null;
+  const mode = groupFilterMode(type);
+  const names = mode === 'chosen' ? state.channelPrefs[LIST_PREFS[type]] || []
+    : mode === 'favorites' ? [...state.favorites.values()].filter((f) => f.k === 'c' && f.t === type).map((f) => f.g)
+      : [];
   const chosen = new Set(names.filter((name) => groups.some((g) => g.name === name)));
   return chosen.size ? chosen : null;
 }
@@ -1333,11 +1355,7 @@ export function chosenCountries() {
  */
 const CATEGORY_PREFS = { movie: 'movieCategories', series: 'seriesCategories' };
 function chosenCategories(type) {
-  const names = state.channelPrefs[CATEGORY_PREFS[type]] || [];
-  const groups = state.lib?.groups[type];
-  if (!names.length || !groups) return null;
-  const chosen = new Set(names.filter((name) => groups.some((g) => g.name === name)));
-  return chosen.size ? chosen : null;
+  return groupFilter(type);
 }
 
 /** Category id → the name of the film or series group it is in. */
@@ -1434,7 +1452,7 @@ async function changeChannelChoices(prefs, message) {
   toast(message, { action: { label: t('row.undo'), onClick: () => saveChannelChoices(before) } });
 }
 
-const countryPicker = new CountryPicker((countries) => saveChannelChoices({ ...state.channelPrefs, countries }));
+const countryPicker = new CountryPicker(({ mode, chosen }) => saveChannelChoices({ ...state.channelPrefs, countries: chosen, countriesMode: mode }));
 const hiddenList = new HiddenList((prefs) => saveChannelChoices({ ...state.channelPrefs, ...prefs }));
 
 /**
@@ -1454,6 +1472,8 @@ function openCountryPicker({ first = false } = {}) {
     groups: state.lib.groups.live,
     counts: state.lib.groupCounts('live'),
     chosen: state.channelPrefs.countries,
+    mode: first ? 'chosen' : groupFilterMode('live'),
+    favorites: favoriteGroups('live'),
     suggested,
     first,
   });
@@ -1467,9 +1487,16 @@ function openCategoryPicker(type) {
     groups: state.lib.groups[type],
     counts: state.lib.groupCounts(type),
     chosen: state.channelPrefs[key],
-    onSave: (names) => saveChannelChoices({ ...state.channelPrefs, [key]: names }),
-    texts: { title: 'categories.title', help: 'categories.help', filter: 'categories.filter', all: 'categories.all' },
+    mode: groupFilterMode(type),
+    favorites: favoriteGroups(type),
+    onSave: ({ mode, chosen }) => saveChannelChoices({ ...state.channelPrefs, [key]: chosen, [MODE_PREFS[type]]: mode }),
+    texts: { title: 'categories.title', help: 'categories.help', filter: 'categories.filter', all: 'categories.all', words: 'categories' },
   });
+}
+
+/** The groups of a type with a star, or holding a starred topic, by name. */
+function favoriteGroups(type) {
+  return [...new Set([...state.favorites.values()].filter((f) => f.k === 'c' && f.t === type).map((f) => f.g))];
 }
 
 /**
@@ -1891,12 +1918,6 @@ function wireUi() {
   $('btn-copy').addEventListener('click', copyUrl);
   $('btn-ext').addEventListener('click', playExternal);
   $('btn-record').addEventListener('click', toggleRecordNow);
-  $('groups-favonly').addEventListener('change', (e) => {
-    groupsFavOnly = e.target.checked;
-    store.saveUiState({ groupsFavOnly });
-    state.groupCursor = null;
-    renderSidebar();
-  });
   $('btn-recordings').addEventListener('click', openRecordings);
   $('btn-recordings-menu').addEventListener('click', openRecordings);
   $('recordings-close').addEventListener('click', () => $('recordings').close());

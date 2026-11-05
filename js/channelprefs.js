@@ -8,8 +8,14 @@
 // dialog it took was the hardest thing in the app to use.
 import { sortItems } from './library.js';
 
+// How a type's groups are filtered: all of them, the favourite ones, or
+// those chosen in the list. Null for a stored value from before the modes,
+// which js/app.js (groupFilterMode) reads from what was stored then.
+export const FILTER_MODES = ['all', 'favorites', 'chosen'];
+
 export function channelPreferences(value = {}) {
   const ids = (key) => Array.isArray(value?.[key]) ? [...new Set(value[key].map(String))] : [];
+  const mode = (key) => (FILTER_MODES.includes(value?.[key]) ? value[key] : null);
   return {
     hiddenChannels: ids('hiddenChannels'),
     // Hidden by the editor that came before; still honoured, and offered
@@ -23,6 +29,12 @@ export function channelPreferences(value = {}) {
     // by name): what the sidebar, the lists and the search show.
     movieCategories: ids('movieCategories'),
     seriesCategories: ids('seriesCategories'),
+    // Which of the three filters each type's groups go through ("Filter
+    // countries", "Filter categories"); a list kept while another mode is
+    // on is there again when "chosen" is.
+    countriesMode: mode('countriesMode'),
+    movieCategoriesMode: mode('movieCategoriesMode'),
+    seriesCategoriesMode: mode('seriesCategoriesMode'),
   };
 }
 

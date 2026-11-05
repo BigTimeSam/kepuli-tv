@@ -116,24 +116,28 @@ numbering, and where a provider sends none, the stream id in its place. It is
 the answer to a list of hundreds: choose the order that already suits, then
 move the few favourites where they belong. Movies and series are unaffected.
 
-**Choose countries**, under the sidebar on the channels (and in Settings >
-Viewing), asks which countries the viewer watches: every live group with a
-box and a filter field, the browser's own country first and marked as the
-suggestion. The rest are left out of the sidebar, the lists, the search and
-the guide; the favourites and the history keep what was picked by hand.
-What is stored is the list of what to show, not of what to hide, so a
-country the provider adds later does not turn up uninvited; **Show all**
-clears it. The question is asked by itself once per account, after the first
-connection, when the provider has twenty groups or more.
+**Filter countries**, under the sidebar on the channels (and in Settings >
+Viewing), shows one of three: **All countries**, **Favourite countries
+only** (the starred ones and those holding a starred topic) or **Countries I
+choose**, every live group with a box and a filter field, the browser's own
+country first and marked as the suggestion. The list answers only the third
+mode and stands dimmed otherwise; a tick in it chooses that mode. What the
+filter leaves out is out of the sidebar, the lists, the search and the
+guide; the favourites and the history keep what was picked by hand. What is
+stored is the mode and the list of what to show, not of what to hide, so a
+country the provider adds later does not turn up uninvited, and the list is
+kept while another mode is on (js/app.js, groupFilter). Before the modes, a
+list meant the third and the sidebar's old "Show favourites only" box the
+second; a stored view from then is read that way. The question is asked by
+itself once per account, after the first connection, when the provider has
+twenty groups or more.
 
-**Choose categories**, in the same place on the films and the series, does the
-same for their categories, each tab its own choice: the dialog lists every
-category the provider offers, and those left unticked are out of the sidebar,
-**All**, the lists and the search, the favourites and the history again
-keeping what was picked. The choices belong to the account, are remembered
-across restarts and travel with sync like the countries. **Show favourites
-only**, under the sidebar's filter on all three tabs, narrows the sidebar to
-the starred groups and those holding a starred topic.
+**Filter categories**, in the same place on the films and the series, does the
+same for their categories, each tab its own mode and choice: what the
+filter leaves out is out of the sidebar, **All**, the lists and the search,
+the favourites and the history again keeping what was picked. The choices
+belong to the account, are remembered across restarts and travel with sync
+like the countries.
 
 Every channel row has a menu — the ⋯ at its right end, a right click, or the
 context-menu key and Shift+F10 on the row the list stands on: **Add to
@@ -264,7 +268,7 @@ as "there is no such channel" rather than as "type the umlaut". *cnn news*
 finds "News CNN" as well as "CNN News" — but the one that reads the way the
 query was typed still comes first, so the looser rule costs the exact match
 nothing. The same folding is used by the country and topic filter beside the
-list, by the filter in **Choose countries**, and by the programme search in
+list, by the filter in **Filter countries**, and by the programme search in
 the guide, so one spelling works everywhere a name is typed.
 
 ## Playback routes
