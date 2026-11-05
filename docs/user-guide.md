@@ -225,7 +225,9 @@ interrupted channel-list load restores the previous list.
   answers with a web page or an error message rather than a playlist — a
   login page, an expired-account notice — says **The address did not return
   an M3U playlist.** instead of showing the page's lines as channels; a
-  plain list of stream addresses with no `#EXTM3U` line is still read.
+  plain list of full `http://` or `https://` stream addresses with no
+  `#EXTM3U` line is still read (addresses relative to the playlist's own
+  need the `#EXTM3U` line).
 - If cached information is outdated, clear the cache in Settings. Resetting
   everything also removes your saved connection details.
 - Report app bugs in [GitHub Issues](https://github.com/BigTimeSam/kepuli-tv/issues).
