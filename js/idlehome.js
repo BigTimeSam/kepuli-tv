@@ -13,6 +13,7 @@ import { guideOpen } from './guideui.js';
 import { poster } from './poster.js';
 import { renderIdleOverlay } from './languageui.js';
 import { shownName } from './coversui.js';
+import { episodeCode } from './format.js';
 import { t } from './i18n.js';
 import * as store from './config.js';
 import { state } from './app.js';
@@ -90,7 +91,7 @@ export function renderIdleHome() {
       } else bar.style.visibility = 'hidden';
       const name = document.createElement('span');
       name.className = 'idle-name';
-      name.textContent = item.k === 3 ? `${item.seriesName || ''} S${item.season} E${item.episode}`.trim() : shownName(item);
+      name.textContent = item.k === 3 ? `${item.seriesName || ''} ${episodeCode(item.season, item.episode)}`.trim() : shownName(item);
       card.append(cover, name, bar);
       // The card is a button already, so the ✕ sits beside it in a wrapper
       // rather than in it: a button inside a button is not one.

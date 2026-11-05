@@ -9,13 +9,14 @@
 import { t, localeTag } from './i18n.js';
 
 export let nf, timeFmt, dateTimeFmt, dateFmt, dayFmt, weekdayFmt, stampFmt;
-let oneDecimal, twoDecimals, percentFmt;
+let oneDecimal, twoDecimals, percentFmt, wholePercentFmt, calendarFmt;
 
 export function setLocale(tag = localeTag(), { hourCycle = 'h23' } = {}) {
   nf = new Intl.NumberFormat(tag);
   oneDecimal = new Intl.NumberFormat(tag, { minimumFractionDigits: 1, maximumFractionDigits: 1 });
   twoDecimals = new Intl.NumberFormat(tag, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
   percentFmt = new Intl.NumberFormat(tag, { style: 'percent', minimumFractionDigits: 1, maximumFractionDigits: 1 });
+  wholePercentFmt = new Intl.NumberFormat(tag, { style: 'percent' });
   // The clock is the setting's (see hourCycle() in js/config.js), never the
   // language's own default: Greek and Albanian would otherwise read 03:00
   // μ.μ. and 03:00 e pasdites to a viewer who asked for neither.
@@ -23,6 +24,8 @@ export function setLocale(tag = localeTag(), { hourCycle = 'h23' } = {}) {
   timeFmt = new Intl.DateTimeFormat(tag, { hour: h12 ? 'numeric' : '2-digit', minute: '2-digit', hourCycle });
   dateTimeFmt = new Intl.DateTimeFormat(tag, { dateStyle: 'short', timeStyle: 'short', hourCycle });
   dateFmt = new Intl.DateTimeFormat(tag, { dateStyle: 'medium' });
+  // A calendar date read as UTC, so that no time zone moves it a day.
+  calendarFmt = new Intl.DateTimeFormat(tag, { day: 'numeric', month: 'numeric', year: 'numeric', timeZone: 'UTC' });
   dayFmt = new Intl.DateTimeFormat(tag, { weekday: 'short', day: 'numeric', month: 'numeric' });
   weekdayFmt = new Intl.DateTimeFormat(tag, { weekday: 'long' });
   stampFmt = new Intl.DateTimeFormat(tag, {
@@ -34,19 +37,23 @@ setLocale();
 
 export function clock(ms) { return ms ? timeFmt.format(new Date(ms)) : ''; }
 
-/** An ISO calendar date, without letting the viewer's time zone shift the day. */
+/**
+ * An ISO calendar date in the language's own short form ("3.11.2026",
+ * "03/11/2026", "11/3/2026"), without letting the viewer's time zone shift
+ * the day.
+ */
 export function calendarDate(value) {
   const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(String(value || '').trim());
   if (!match) return '';
   const [, year, month, day] = match.map(Number);
   const date = new Date(Date.UTC(year, month - 1, day));
   if (date.getUTCFullYear() !== year || date.getUTCMonth() !== month - 1 || date.getUTCDate() !== day) return '';
-  return `${day}.${month}.${year}`;
+  return calendarFmt.format(date);
 }
 
+/** A stored size: the same figures as a download's, in the language's decimals. */
 export function megabytes(bytes) {
-  if (bytes < 1024 * 1024) return t('size.kb', { n: Math.round(bytes / 1024) });
-  return t('size.mb', { n: (bytes / 1048576).toFixed(1) });
+  return amount(bytes);
 }
 
 /**
@@ -75,6 +82,24 @@ export function mbits(bitsPerSecond) {
 /** A share, 0 to 1, as a percentage with one decimal: "12,3 %". */
 export function percent(share) {
   return percentFmt.format(share);
+}
+
+/** A share as a whole percentage: "120 %", for the subtitles' size. */
+export function wholePercent(share) {
+  return wholePercentFmt.format(share);
+}
+
+/** A number with one decimal in the language's own form: "7,5" in Finnish. */
+export function oneDecimalNumber(value) {
+  return oneDecimal.format(value);
+}
+
+/**
+ * An episode's place in its series as the language's television writes
+ * it: "S1 E2", "K1 J2" in Finnish, "T1 E2" in Spanish.
+ */
+export function episodeCode(season, episode) {
+  return t('episode.code', { season: season ?? '', episode: episode ?? '' });
 }
 
 /** Seconds with one decimal, for the picture buffered ahead. */

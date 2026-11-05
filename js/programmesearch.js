@@ -198,12 +198,12 @@ export class ProgrammeSearch {
     let text = '';
     if (s?.kind === 'loading') text = t('progress.loading');
     else if (s?.kind === 'error') text = t('programmes.error');
-    else if (s?.kind === 'many') text = t('programmes.heavy', { count: s.count });
+    else if (s?.kind === 'many') text = t('programmes.heavy', { count: nf.format(s.count) });
     else if (s?.kind === 'progress') {
       // The sentence is the translation's own; only the number is set apart,
       // found by a marker in its place, so each language keeps its order.
       const MARK = '\u0001';
-      const [before, after = ''] = t('programmes.status', { count: MARK, done: s.done, total: s.total }).split(MARK);
+      const [before, after = ''] = t('programmes.status', { count: MARK, done: nf.format(s.done), total: nf.format(s.total) }).split(MARK);
       const count = document.createElement('strong');
       count.className = 'psr-count';
       count.textContent = nf.format(s.count);
@@ -211,7 +211,7 @@ export class ProgrammeSearch {
       if (s.failed) {
         const failed = document.createElement('span');
         failed.className = 'psr-failed';
-        failed.textContent = `. ${t('programmes.failed', { count: s.failed })}`;
+        failed.textContent = `. ${t('programmes.failed', { count: nf.format(s.failed) })}`;
         line.append(failed);
       }
     }
@@ -225,7 +225,7 @@ export class ProgrammeSearch {
     $('programme-empty').hidden = !none;
     $('programme-empty').replaceChildren(...(none ? [emptyState(t('empty.nohits'), t('programmes.nohits.text', { query: s.query }), null, 'search')] : []));
     const more = $('programme-continue');
-    if (!more.hidden) more.textContent = t('programmes.continue', { count: more.dataset.count });
+    if (!more.hidden) more.textContent = t('programmes.continue', { count: nf.format(Number(more.dataset.count)) });
   }
 
   /** The button that sets off an all-channels search of `count` channels; null takes it away. */

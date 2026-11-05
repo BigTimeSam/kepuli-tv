@@ -1,3 +1,5 @@
+import { oneDecimalNumber } from './format.js';
+
 // Ratings in the application use ten points. Zero means no rating.
 const valid = (value, scale) => {
   const number = Number(value);
@@ -22,5 +24,7 @@ export function ratingValue(info) {
 
 export function ratingText(info) {
   const value = ratingValue(info);
-  return value ? `★ ${value.toFixed(1)}` : '';
+  // In the language's own decimals: "★ 7,5" in Finnish, as the filters
+  // write their ratings.
+  return value ? `★ ${oneDecimalNumber(value)}` : '';
 }

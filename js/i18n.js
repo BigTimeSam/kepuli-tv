@@ -53,6 +53,7 @@ const STRINGS = {
     "setup.m3u.hint": "Paste the address your provider gave you. A get.php address fills in the connection fields; any other M3U playlist address is used as it is.",
     "view.list": "Show as a list",
     "view.grid": "Show as covers",
+    "view.label": "View",
     "organize.savefailed": "Could not save. Your changes are still here. Try again.",
     "programmes.placeholder": "Channel, programme title or description…",
     "programmes.scope": "Channels to search",
@@ -236,6 +237,7 @@ const STRINGS = {
     'api.badjson': 'The server’s answer could not be read. The address may lead to a web page rather than the provider’s server: check the server and the port.',
     'api.timeout': 'The server did not answer within {seconds} seconds. Try again; if it keeps happening, the server is overloaded or the address is wrong.',
     'api.episode': 'Episode {number}',
+    'episode.code': 'S{season} E{episode}',
 
     /* ---------------------------------------------------------- player */
     'player.idle': 'Nothing playing',
@@ -794,6 +796,7 @@ const STRINGS = {
     "setup.m3u.hint": "Liitä palveluntarjoajalta saamasi osoite. get.php-osoite täyttää yhteyskentät, ja muuta M3U-soittolistan osoitetta käytetään sellaisenaan.",
     "view.list": "Näytä listana",
     "view.grid": "Näytä kansikuvina",
+    "view.label": "Näkymä",
     "organize.savefailed": "Tallennus epäonnistui. Muutokset ovat tallella tässä näkymässä. Yritä uudelleen.",
     "programmes.placeholder": "Kanava, ohjelman nimi tai kuvaus…",
     "programmes.scope": "Haun kanavat",
@@ -977,6 +980,7 @@ const STRINGS = {
     'api.badjson': 'Palvelimen vastausta ei voitu lukea. Osoite voi johtaa verkkosivulle eikä palveluntarjoajan palvelimelle: tarkista palvelin ja portti.',
     'api.timeout': 'Palvelin ei vastannut {seconds} sekunnissa. Yritä uudelleen; jos tämä toistuu, palvelin on ylikuormittunut tai osoite on väärä.',
     'api.episode': 'Jakso {number}',
+    'episode.code': 'K{season} J{episode}',
 
     /* ---------------------------------------------------------- player */
     'player.idle': 'Ei toistoa',

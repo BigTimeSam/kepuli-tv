@@ -1,7 +1,7 @@
 import { t, localeTag } from './i18n.js';
 import { ratingValue } from './rating.js';
 import { isPicking } from './picker.js';
-import { duration } from './format.js';
+import { duration, nf } from './format.js';
 
 export function releaseYear(value, name = '') {
   const explicit = /^(18\d{2}|19\d{2}|20\d{2}|21\d{2})(?:$|-)/.exec(String(value || '').trim());
@@ -249,7 +249,7 @@ export class MediaFilters {
     const options = {
       year: [['', t('filters.allYears')], ...decades.map(y => [`${y}:${y + 9}`, `${y}–${y + 9}`]), ...years.map(y => [String(y), String(y)]), ['missing', t('filters.missing')]],
       genre: [['', t('filters.allGenres')], ...genres.map(g => [g, g.charAt(0).toLocaleUpperCase() + g.slice(1)]), ['missing', t('filters.missing')]],
-      rating: [['', t('filters.anyRating')], ...[6, 7, 8, 9].map(n => [String(n), `≥ ${n.toLocaleString(localeTag())} / 10`]), ['missing', t('filters.missing')]],
+      rating: [['', t('filters.anyRating')], ...[6, 7, 8, 9].map(n => [String(n), `≥ ${nf.format(n)} / 10`]), ['missing', t('filters.missing')]],
       sort: [['', t('filters.defaultOrder')], ['newest', t('filters.newest')], ['oldest', t('filters.oldest')], ['rating', t('filters.best')]],
     };
     for (const [key, field] of Object.entries(this.fields)) {
@@ -275,7 +275,7 @@ export class MediaFilters {
     this.renderLength(entries, type, filters);
     const active = Object.values(filters).some(Boolean);
     this.caption.textContent = t('filters.title') + (active ? ' •' : '');
-    this.count.textContent = `${results.length.toLocaleString(localeTag())} / ${rows.length.toLocaleString(localeTag())}`;
+    this.count.textContent = `${nf.format(results.length)} / ${nf.format(rows.length)}`;
     this.reset.textContent = t('filters.reset');
     this.reset.disabled = !active;
     const missing = entries.some(e => !e.facts.year || !e.facts.rating || (type === 'series' && !e.facts.genres.length) || (type === 'movie' && !e.facts.minutes));

@@ -22,7 +22,7 @@ import { channelKey, itemAddress, newPlayRun, playItem, playback, renderNowLogo,
 import { toast } from './toast.js';
 import { $, el } from './dom.js';
 import { grid, guideOpen, refreshGuidePreview } from './guideui.js';
-import { shownName, stripItem } from './coversui.js';
+import { listName, shownName, stripItem } from './coversui.js';
 import { renderInfoStrip } from './infostrip.js';
 
 // A live channel recorded to the browser's own storage (js/recorder.js):
@@ -95,7 +95,7 @@ async function addRecording(channel, { title, start, stop, programme = null }) {
     id: newRecordingId(),
     key: channelKey(config, channel),
     account: store.accountKey(config),
-    channel: stripItem({ ...channel, displayName: channel.displayName || (state.cleanName ? state.cleanName(channel.n, channel) : channel.n) }),
+    channel: stripItem({ ...channel, displayName: channel.displayName || listName(channel) }),
     title,
     start,
     stop,
@@ -232,7 +232,7 @@ export function openRecordings() {
 function recordingFacts(r) {
   const from = r.startedAt || r.start;
   const to = r.state === 'recording' ? Date.now() : r.endedAt || r.stop;
-  const bits = [r.channel?.displayName || r.channel?.n];
+  const bits = [r.channel ? shownName(r.channel) : ''];
   bits.push(`${dayLabel(from)} ${clock(from)}${r.stop || r.endedAt ? `–${clock(r.state === 'planned' ? r.stop : to)}` : ''}`);
   if (r.state !== 'planned' && to > from) bits.push(duration(Math.round((to - from) / 1000)));
   if (r.bytes) bits.push(megabytes(r.bytes));
@@ -353,7 +353,7 @@ async function playRecording(r) {
   el.nowTitle.textContent = `${r.title} — ${t('rec.recorded', { time: dateTimeFmt.format(new Date(r.startedAt || r.start)) })}`;
   el.nowTitle.title = r.title;
   renderNowLogo(null);
-  el.nowSub.textContent = r.channel?.displayName || r.channel?.n || '';
+  el.nowSub.textContent = r.channel ? shownName(r.channel) : '';
   renderInfoStrip();
   renderRecordingState();
   vlist.refresh();
@@ -402,7 +402,7 @@ export function playCatchup(item, programme, { from = 0 } = {}) {
   state.subtitleInfo = null;
   el.mode.disabled = true;
   $('btn-live').hidden = false;
-  el.nowTitle.textContent = `${item.n} — ${programme.title}`;
+  el.nowTitle.textContent = `${listName(item)} — ${programme.title}`;
   el.nowTitle.title = item.n;
   renderNowLogo(item);
   updateAddress();

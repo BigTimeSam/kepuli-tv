@@ -143,6 +143,18 @@ const EXTRA_CHANNEL = {
 };
 const liveChannels = () => (process.env.KEPULI_MOCK_EXTRA_CHANNEL ? [...live.channels, EXTRA_CHANNEL] : live.channels);
 
+// KEPULI_MOCK_COUNTRY_PREFIX: while set, every channel's name in the Xtream
+// list begins with its country's code, "FI: Aurora One", "SE: Nordic News",
+// as many providers write them; the player tidies each by its own country's
+// rules (the guidenames scenario).
+const COUNTRY_CODES = { Finland: 'FI', Sweden: 'SE', Norway: 'NO', Denmark: 'DK', Germany: 'DE', 'United Kingdom': 'UK', France: 'FR', Spain: 'ES', Italy: 'IT', Netherlands: 'NL', USA: 'US', Canada: 'CA' };
+const countryOfCategory = (id) => live.categories.find((c) => c.category_id === String(id))?.category_name.split(' - ')[0];
+const prefixed = (c) => {
+  if (!process.env.KEPULI_MOCK_COUNTRY_PREFIX) return c;
+  const code = COUNTRY_CODES[countryOfCategory(c.category_id)];
+  return code ? { ...c, name: `${code}: ${c.name}` } : c;
+};
+
 const epgCache = new Map();
 function programmes(channel) {
   if (epgCache.has(channel.stream_id)) return epgCache.get(channel.stream_id);
@@ -675,7 +687,7 @@ function api(req, res, url) {
     case 'get_live_categories': return send(res, 200, live.categories);
     case 'get_vod_categories': return send(res, 200, vod.categories);
     case 'get_series_categories': return send(res, 200, series.categories);
-    case 'get_live_streams': return sendList(withCategory(liveChannels()).map((c) => publicChannel(origin, c)));
+    case 'get_live_streams': return sendList(withCategory(liveChannels()).map((c) => publicChannel(origin, prefixed(c))));
     case 'get_vod_streams': return sendList(withCategory(moviesWithBulk()).map((m) => publicMovie(origin, m)));
     case 'get_series': return sendList(withCategory(series.list).map((s) => publicSeries(origin, s)));
     case 'get_series_info': {

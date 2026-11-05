@@ -418,7 +418,9 @@ the accent's text colour, at 3:1 or more against what lies around it in both
 themes. Under Windows' forced colours (High Contrast) the chosen tab, group,
 topic and day, the list's cursor and the playing row are drawn as outlines and
 edges in the system's highlight colour, which the system keeps where it
-replaces backgrounds. The stars, the row's ⋯ and the topic chips answer a tap
+replaces backgrounds; so are the order and list-or-covers marks, the guide
+search's results and the related covers under the mouse or the keyboard, and
+the covers' ✓ and **New** keep a border of their own. The stars, the row's ⋯ and the topic chips answer a tap
 anywhere in a 24px square around them; on a touch screen the row's buttons are
 32px and the chips 2rem high.
 

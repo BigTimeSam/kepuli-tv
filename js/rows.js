@@ -1,11 +1,12 @@
 // DOM builders for list rows. Kept apart from the application logic
 // because these run on every scroll frame and must stay light.
 
-import { clock, progressOf, duration, calendarDate } from './format.js';
+import { clock, progressOf, duration, calendarDate, episodeCode, nf } from './format.js';
 import { badge as probeBadge } from './probe.js';
 import { t } from './i18n.js';
 import { poster } from './poster.js';
 import { ratingText } from './rating.js';
+import { nameHasYear } from './titlemeta.js';
 
 const el = (tag, cls, text) => {
   const node = document.createElement(tag);
@@ -185,7 +186,7 @@ export function posterCard(item, ctx) {
 
   const bits = [];
   // A provider's name often carries the year already: "Iron Tide (2009)".
-  if (item.year && !String(ctx.label || item.n).includes(String(item.year))) bits.push(item.year);
+  if (item.year && !nameHasYear(ctx.label || item.n, item.year)) bits.push(item.year);
   const rating = ratingText(item.details) || ratingText(item);
   if (rating) bits.push(rating);
   const seconds = item.k === 1 ? item.details?.durationSec || item.durationSec || ctx.resume?.duration : 0;
@@ -237,12 +238,14 @@ function subLine(item, ctx) {
 
   const bits = [];
   const rating = ratingText(item.details) || ratingText(item);
+  // The year once: not again beside a name that says it already.
+  const year = item.year && !nameHasYear(ctx.label || item.n, item.year) ? item.year : null;
   if (item.k === 1) {
-    if (item.year) bits.push(item.year);
+    if (year) bits.push(year);
     if (rating) bits.push(rating);
   }
   if (item.k === 2) {
-    if (item.year) bits.push(item.year);
+    if (year) bits.push(year);
     if (item.genre) bits.push(item.genre.split(',')[0].trim());
     if (rating) bits.push(rating);
   }
@@ -262,8 +265,8 @@ function subLine(item, ctx) {
 function compactLine(item, ctx) {
   const bits = [];
   const rating = ratingText(item.details) || ratingText(item);
-  if (item.k === 3) bits.push(`S${item.season} E${item.episode}`);
-  if (item.k === 1 || item.k === 2) { if (item.year) bits.push(item.year); }
+  if (item.k === 3) bits.push(episodeCode(item.season, item.episode));
+  if ((item.k === 1 || item.k === 2) && item.year && !nameHasYear(ctx.label || item.n, item.year)) bits.push(item.year);
   if (item.k === 2 && item.genre) bits.push(item.genre.split(',')[0].trim());
   if (rating && item.k !== 3) bits.push(rating);
   const seconds = item.k === 1 ? item.details?.durationSec || item.durationSec || ctx.resume?.duration
@@ -403,8 +406,8 @@ export function categoryRow({ id, name, count, active, all, favorite, onFavorite
   const label = el('div', 'group-name', name);
   label.title = name;
   row.appendChild(label);
-  if (count != null) row.appendChild(el('div', 'group-count', String(count)));
-  nameOption(row, [name, favorite ? t('favs.title') : null, count != null ? String(count) : null]);
+  if (count != null) row.appendChild(el('div', 'group-count', typeof count === 'number' ? nf.format(count) : String(count)));
+  nameOption(row, [name, favorite ? t('favs.title') : null, count != null ? (typeof count === 'number' ? nf.format(count) : String(count)) : null]);
   row.addEventListener('click', () => onSelect(id));
   return row;
 }
@@ -418,7 +421,7 @@ export function chipRow({ label, count, active, title, favorite, onFavorite }, o
   const main = el('button', 'chip-main', label);
   main.type = 'button';
   if (title) main.title = title;
-  if (count != null) main.appendChild(el('span', 'n', String(count)));
+  if (count != null) main.appendChild(el('span', 'n', typeof count === 'number' ? nf.format(count) : String(count)));
   main.addEventListener('click', onSelect);
   box.appendChild(main);
   if (onFavorite) box.appendChild(star(favorite, onFavorite, 'chip-star'));

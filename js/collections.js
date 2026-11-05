@@ -89,7 +89,7 @@ export function favCategorySubtitle(entry) {
   const bits = [kindLabel(TYPE_KIND[entry.t])];
   if (entry.c == null) {
     const group = state.lib ? state.lib.group(entry.t, entry.g) : null;
-    if (group && group.cats.length > 1) bits.push(t('list.topics', { n: group.cats.length }));
+    if (group && group.cats.length > 1) bits.push(t('list.topics', { n: nf.format(group.cats.length) }));
   } else if (entry.g && entry.g !== entry.n) bits.push(entry.g);
   return bits.join(', ');
 }
@@ -326,14 +326,14 @@ export function refreshWhenStale() {
 export async function loadGroupItems(type, groupName, current = () => true) {
   const group = state.lib.group(type, groupName);
   const heavy = group && group.cats.length > 3 && !state.lib.isFull(type);
-  if (heavy) showProgress(t('progress.group', { group: groupName }), t('progress.categories', { done: 0, total: group.cats.length }), 0);
+  if (heavy) showProgress(t('progress.group', { group: groupName }), t('progress.categories', { done: nf.format(0), total: nf.format(group.cats.length) }), 0);
   try {
     return await state.lib.groupItems(type, groupName, {
       signal: progressSignal(),
       onProgress: (done, total) => {
         if (!heavy || !current()) return;
         fillBar(done / total);
-        el.lpText.textContent = t('progress.categories', { done, total });
+        el.lpText.textContent = t('progress.categories', { done: nf.format(done), total: nf.format(total) });
       },
     });
   } finally {

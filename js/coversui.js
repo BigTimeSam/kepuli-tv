@@ -90,6 +90,9 @@ export function viewToggle() {
   const box = document.createElement('span');
   box.className = 'view-toggle';
   box.setAttribute('role', 'group');
+  // Named as the order marks beside it are: a group a screen reader enters
+  // says what its two buttons choose between.
+  box.setAttribute('aria-label', t('view.label'));
   for (const [view, paths] of [
     ['list', '<path d="M4 5.5h12M4 10h12M4 14.5h12"/>'],
     ['grid', '<rect x="3.5" y="3.5" width="5" height="5" rx="1"/><rect x="11.5" y="3.5" width="5" height="5" rx="1"/><rect x="3.5" y="11.5" width="5" height="5" rx="1"/><rect x="11.5" y="11.5" width="5" height="5" rx="1"/>'],
@@ -244,6 +247,30 @@ function tidyName(name, item) {
 
 /** The name an item shows outside its list: its own tidied one, or tidied now. */
 export const shownName = (item) => item.displayName && item.displayName !== item.n ? item.displayName : tidyName(item.n, item);
+
+// The rows the list's tidier was made for, as a set, built again only when
+// the list itself is a new one: the guide asks for a label on every frame
+// it scrolls, and a search through an array of thousands each time would
+// show.
+let listRows = null, listRowSet = new Set();
+
+/**
+ * An item's name wherever it shows, by the rules of its own group. A row
+ * of the list on screen reads as the list does, with the tidier made for
+ * that list (which may know the topic as well as the country); anything
+ * else — another country's channel in the guide's favourites or its
+ * all-channels search, a related title, a favourite in the strip — is
+ * tidied by its own group's rules, never by those of the list beside it,
+ * which left "SE:" on a Swedish channel while "FI:" went from the Finnish.
+ */
+export function listName(item) {
+  if (!item) return '';
+  if (state.cleanName && state.rows) {
+    if (listRows !== state.rows) { listRows = state.rows; listRowSet = new Set(state.rows); }
+    if (listRowSet.has(item)) return state.cleanName(item.n, item) || item.n;
+  }
+  return shownName(item) || item.n;
+}
 
 /**
  * A history row states the time of day; the day comes from the section

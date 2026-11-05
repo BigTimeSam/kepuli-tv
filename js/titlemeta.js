@@ -24,6 +24,18 @@ export function titleWithoutYear(name, year) {
   return rest || text;
 }
 
+/**
+ * Whether a name says its year already ("Iron Tide (2009)", "2009: Lost
+ * Memories"): the facts beside it then leave the year out, rather than
+ * reading "Iron Tide (2009)" and "2009" again. A year inside a longer
+ * number is not one.
+ */
+export function nameHasYear(name, year) {
+  const value = Number(year);
+  if (!Number.isInteger(value) || value < 1000) return false;
+  return new RegExp(`(?:^|\\D)${value}(?:\\D|$)`).test(String(name ?? ''));
+}
+
 // Words in a name that say which copy of a film this is.
 const QUALITY = /\b(4k|uhd|2160p|fhd|1080p|hd|720p|sd|hdr10\+?|hdr|dolby ?vision|dv|3d|imax|multi[- ]?sub(?:s)?|multi[- ]?audio|dubbed|sub(?:bed)?)\b/gi;
 
