@@ -1165,6 +1165,14 @@ const { outgoingAccounts, incomingAccounts, joinRecents, joinResume, joinFavorit
   check('m3u: #EXTGRP when there is no group-title', entries[2].group, 'From EXTGRP');
   check('m3u: an address with no #EXTINF is named after its file', entries[3].name, 'bare.mp4');
   check('m3u: what is not http(s) is left out', entries.length, 4);
+  // A provider's page or error where the playlist should be: no entries,
+  // so that the viewer is told the address did not return a playlist.
+  check('m3u: an HTML page is no playlist', parseM3u('<!doctype html>\n<html>\n<head><title>Stalker</title></head>\n<body>Not found</body></html>\n', 'http://x.test/a.m3u').entries, []);
+  check('m3u: a JSON error is no playlist', parseM3u('{"user_info":{"auth":0},"message":"Account expired"}', 'http://x.test/get.php?type=m3u').entries, []);
+  check('m3u: a line of text is no playlist', parseM3u('Account expired\n', 'http://x.test/a.m3u').entries, []);
+  check('m3u: markup is no address even after the header', parseM3u('#EXTM3U\n#EXTINF:-1,A\n<b>gone</b>\nhttp://s.example/1\n', 'http://x.test/a.m3u').entries.map((e) => [e.name, e.url]), [['A', 'http://s.example/1']]);
+  check('m3u: a list of bare http addresses with no header still plays', parseM3u('http://s.example/live/1.ts\r\nhttps://s.example/films/Heat.mp4\r\n', 'http://x.test/a.m3u').entries.map((e) => e.url),
+    ['http://s.example/live/1.ts', 'https://s.example/films/Heat.mp4']);
   check('m3u: #EXTINF duration and title', parseExtinf('#EXTINF:5400 tvg-name="x",Film'), { duration: 5400, attrs: { 'tvg-name': 'x' }, title: 'Film' });
 }
 check('m3u: a panel\'s live, movie and series addresses', [

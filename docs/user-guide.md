@@ -210,7 +210,11 @@ interrupted channel-list load restores the previous list.
   checks by itself when you come back to it, once its lists are older than
   the cache keeps them.
 - If the connection fails, check the address and credentials in **Settings**
-  and make sure your subscription is still active.
+  and make sure your subscription is still active. A playlist address that
+  answers with a web page or an error message rather than a playlist — a
+  login page, an expired-account notice — says **The address did not return
+  an M3U playlist.** instead of showing the page's lines as channels; a
+  plain list of stream addresses with no `#EXTM3U` line is still read.
 - If cached information is outdated, clear the cache in Settings. Resetting
   everything also removes your saved connection details.
 - Report app bugs in [GitHub Issues](https://github.com/BigTimeSam/kepuli-tv/issues).

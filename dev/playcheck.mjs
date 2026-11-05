@@ -3294,7 +3294,18 @@ async function m3u(page, { target, requests }) {
   assert(requests.some((r) => r.startsWith('/player_api.php')), 'the switch did not reach the Xtream account');
   const config = await evaluate(page, `chrome.storage.local.get('config').then((d) => d.config.id)`);
   assert(config === 'pxt', `the stored account in use is ${config}`);
-  return { ok: true, detail: `playlist and gzipped guide read, programmes in the list, a channel played from its address, start over through catchup="xc", ${episodes} episodes, switched to the Xtream account` };
+  // An address that answers with a web page — a provider's login page, a
+  // captive portal — is said not to be a playlist, rather than read as one:
+  // the mock box's page once became a channel called "title>".
+  const notPlaylist = { ...M3U_ACCOUNT, url: `http://127.0.0.1:${MOCK_PORT}/c/`, name: 'Not a playlist', id: 'pnot' };
+  await evaluate(page, `chrome.storage.local.set({ config: ${JSON.stringify(notPlaylist)}, accounts: ${JSON.stringify([notPlaylist, M3U_ACCOUNT, XTREAM_ACCOUNT])}, ui: { tab: 'live' } })`);
+  await page.call('Page.navigate', { url: bare(target.url) });
+  await sleep(1000);
+  await waitFor(page, `!document.getElementById('overlay').hidden && document.getElementById('overlay-text').textContent.length > 0`, 'the connection error of a web page', 20000);
+  const said = await evaluate(page, `document.getElementById('overlay-text').textContent`);
+  const rows = await evaluate(page, `document.querySelectorAll('#list .row').length`);
+  assert(said === 'The address did not return an M3U playlist.' && rows === 0, `a web page as the playlist: "${said}", ${rows} rows`);
+  return { ok: true, detail: `playlist and gzipped guide read, programmes in the list, a channel played from its address, start over through catchup="xc", ${episodes} episodes, switched to the Xtream account; a web page: "${said}"` };
 }
 
 /**
