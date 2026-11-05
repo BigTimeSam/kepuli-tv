@@ -93,6 +93,9 @@
 //   node dev/playcheck.mjs screenbutton the header's button takes the whole
 //                                     player full screen; f puts the picture
 //                                     over it and returns to it
+//   node dev/playcheck.mjs topmenu    at a tablet's upright width the top bar
+//                                     keeps one row with a hamburger menu,
+//                                     in English and German
 //   node dev/playcheck.mjs touchcaret on a touch screen the settings and a
 //                                     long drop-down open without the caret
 //                                     in a field (no on-screen keyboard)
@@ -1750,6 +1753,81 @@ async function phone(page) {
     assert(guide.days >= guide.bar - 24 && guide.today && guide.page, `${width} px: the days take ${guide.days} of the bar's ${guide.bar} px, today ${guide.today ? 'shown whole' : 'clipped'}, the page ${guide.page ? 'fits' : 'overflows'}`);
     assert(guide.form <= 56, `${width} px: the programme search takes ${guide.form} px before it is used`);
     seen.push(`${width} px: sections above Save, days ${guide.days}/${guide.bar} px, search ${guide.form} px`);
+  }
+  return { ok: true, detail: seen.join('; ') };
+}
+
+/**
+ * The top bar on one row where it does not fit with all its buttons: at a
+ * tablet's upright 905 px, in English and in German (the longest tab
+ * names), Refresh, Help, the theme, full screen and Settings go behind the
+ * hamburger, the bar keeps one row, and the menu's items act as the
+ * buttons do; at 1280 px the buttons are back and the hamburger gone.
+ * KEPULI_TOPMENU_SHOT=<file> keeps a picture of the open menu.
+ */
+async function topmenu(page) {
+  const assert = (ok, detail) => { if (!ok) throw new Error(detail); };
+  const bar = `(() => { const box = (n) => n.getBoundingClientRect(); const shown = (id) => getComputedStyle(document.getElementById(id)).display !== 'none';
+    const parts = ['.brand', '#tabs', '.search', '.topbar-end'].map((s) => { const r = box(document.querySelector(s)); return r.top + r.height / 2; });
+    return { compact: document.querySelector('.topbar').classList.contains('compact'), rows: Math.max(...parts) - Math.min(...parts) > 8 ? 2 : 1,
+      menu: shown('btn-topmenu'), settings: shown('btn-settings'), screen: shown('btn-screen'), search: Math.round(box(document.querySelector('.search')).width),
+      fits: Math.round(box(document.querySelector('.topbar-end')).right) <= innerWidth }; })()`;
+  const width = async (w) => { await page.call('Emulation.setDeviceMetricsOverride', { width: w, height: 1000, deviceScaleFactor: 1, mobile: false }); await sleep(400); return evaluate(page, bar); };
+  const seen = [];
+  try {
+    const wide = await width(1280);
+    assert(!wide.compact && wide.rows === 1 && !wide.menu && wide.settings, `1280 px: ${JSON.stringify(wide)}`);
+    const upright = await width(905);
+    assert(upright.compact && upright.rows === 1 && upright.menu && !upright.settings && !upright.screen && upright.fits, `905 px: ${JSON.stringify(upright)}`);
+    seen.push(`905 px: one row with the menu, the search ${upright.search} px`);
+
+    await mouseClick(page, '#btn-topmenu');
+    await sleep(300);
+    const menu = await evaluate(page, `(() => { const pop = document.getElementById('topmenu-pop'), r = pop.getBoundingClientRect();
+      return { open: !pop.hidden, tall: r.height > 150, items: [...pop.querySelectorAll('.popitem')].map((i) => i.textContent.trim()), inside: r.right <= innerWidth && r.left >= 0,
+        focus: document.activeElement === pop.querySelector('.popitem'), expanded: document.getElementById('btn-topmenu').getAttribute('aria-expanded') }; })()`);
+    assert(menu.open && menu.tall && menu.items.length === 5 && menu.items.at(-1) === 'Settings' && menu.items.includes('Full screen') && menu.inside && menu.focus && menu.expanded === 'true', `the menu: ${JSON.stringify(menu)}`);
+    if (process.env.KEPULI_TOPMENU_SHOT) {
+      const fs = await import('node:fs');
+      const { data } = await page.call('Page.captureScreenshot', { format: 'png' });
+      fs.writeFileSync(process.env.KEPULI_TOPMENU_SHOT, Buffer.from(data, 'base64'));
+    }
+    // The arrows step, Esc closes and gives the focus back to the button.
+    await pressKey(page, 'ArrowDown', 'ArrowDown', 40);
+    const second = await evaluate(page, `document.activeElement.textContent.trim()`);
+    await pressKey(page, 'Escape', 'Escape', 27);
+    await sleep(150);
+    const closed = await evaluate(page, `({ hidden: document.getElementById('topmenu-pop').hidden, focus: document.activeElement.id })`);
+    assert(second === menu.items[1] && closed.hidden && closed.focus === 'btn-topmenu', `the keys: second ${second}, after Esc ${JSON.stringify(closed)}`);
+    // The theme from the menu is the theme button's own press.
+    const before = await evaluate(page, `document.documentElement.dataset.theme || 'dark'`);
+    await mouseClick(page, '#btn-topmenu');
+    await sleep(200);
+    await evaluate(page, `[...document.querySelectorAll('#topmenu-pop .popitem')].find((i) => /theme/.test(i.textContent)).click()`);
+    await sleep(300);
+    const after = await evaluate(page, `document.documentElement.dataset.theme`);
+    assert(after && after !== before && await evaluate(page, `document.getElementById('topmenu-pop').hidden`), `the theme from the menu: ${before} → ${after}`);
+    await evaluate(page, `document.getElementById('btn-theme').click()`);
+    // Settings from the menu opens the dialog.
+    await mouseClick(page, '#btn-topmenu');
+    await sleep(200);
+    await evaluate(page, `[...document.querySelectorAll('#topmenu-pop .popitem')].at(-1).click()`);
+    await waitFor(page, `document.getElementById('setup').open`, 'Settings from the menu');
+    await evaluate(page, `document.getElementById('f-done').click()`);
+    await waitFor(page, `!document.getElementById('setup').open`, 'settings closed');
+    seen.push(`the menu's ${menu.items.length} items, the arrows and Esc, the theme ${before} → ${after} and Settings work`);
+
+    // German has the longest tab names.
+    await evaluate(page, `chrome.storage.local.get('settings').then(({ settings }) => chrome.storage.local.set({ settings: { ...settings, lang: 'de' } }))`);
+    await page.call('Page.reload');
+    await sleep(1000);
+    await waitFor(page, `${CONNECTED} && document.documentElement.lang.startsWith('de')`, 'the player in German');
+    const german = await width(905);
+    assert(german.compact && german.rows === 1 && german.fits, `905 px in German: ${JSON.stringify(german)}`);
+    seen.push(`905 px in German: one row, the search ${german.search} px`);
+  } finally {
+    await evaluate(page, `chrome.storage.local.get('settings').then(({ settings }) => chrome.storage.local.set({ settings: { ...settings, lang: 'en' } }))`).catch(() => {});
+    await page.call('Emulation.clearDeviceMetricsOverride');
   }
   return { ok: true, detail: seen.join('; ') };
 }
@@ -4694,7 +4772,7 @@ async function soak(page) {
   return { ok: true, detail };
 }
 
-const SCENARIOS = { buffering, livebuffering, filmbuffering, emptyfile, tsasmp4, refusedfile, badgateway, livebadgateway, channelrefused, noanswer, longfilm, catalogUi, setupClarity, welcome, fullscreenControl, clickpause, pickers, touchcaret, screenbutton, channels, home, resumemkv, restore, programmes, catchup, seek, death, cancel, timeout, search, paste, keys, switching, resume, connections, livezap, livequiet, reconnect, accounts, listerror, a11y, subtitles, audio, wasmaudio, settings,
+const SCENARIOS = { buffering, livebuffering, filmbuffering, emptyfile, tsasmp4, refusedfile, badgateway, livebadgateway, channelrefused, noanswer, longfilm, catalogUi, setupClarity, welcome, fullscreenControl, clickpause, pickers, touchcaret, screenbutton, topmenu, channels, home, resumemkv, restore, programmes, catchup, seek, death, cancel, timeout, search, paste, keys, switching, resume, connections, livezap, livequiet, reconnect, accounts, listerror, a11y, subtitles, audio, wasmaudio, settings,
   lastchannel, nextepisode, continuewatching, reminders, update, seeklag, cuesretry, quota, catchupfreeze, catchupfull, twotabs, switchstop, resettabs,
   refresh, restorenav, guidekeep, m3u, sync, holes, picks, flakyserver, accountform, stalker, record, guidefavs, categories, homecountry, noleak, perf, pseudo, startup, soak, phone };
 // The mock's whole-list answers stall for these, longer than the request limit.

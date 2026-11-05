@@ -51,6 +51,7 @@ import { askExternal, playExternal } from './externalui.js';
 import { $, el } from './dom.js';
 import { categoryCountsFor, collectionItems, favCategoryEntry, isFavorite, isUnfinished, kindIndex, loadGroupItems, openFavCategory, refreshCatalogue, refreshWhenStale, removeFromHistory, renderSubcats, sectionsFor, toggleFavCategory } from './collections.js';
 import { clickPicture, enterFullscreen, moreItems, renderScreenButton, renderSeriesFavorite, toggleFullscreen, toggleMoreMenu, togglePause, toggleScreen, wireMediaSession } from './playercontrols.js';
+import { wireTopMenu } from './topmenu.js';
 import { cancelProgress, hideProgress, progressCtrl, progressSignal, showProgress, updateProgress } from './progressdialog.js';
 import { openHelp } from './help.js';
 import { copyUrl, toast } from './toast.js';
@@ -1811,6 +1812,7 @@ function wireUi() {
     state.settings = await store.saveSettings({ theme });
   });
   $('btn-screen').addEventListener('click', toggleScreen);
+  wireTopMenu();
   document.addEventListener('fullscreenchange', renderScreenButton);
   renderScreenButton();
   wireModal($('help'), () => $('help').close());

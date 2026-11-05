@@ -55,6 +55,7 @@ lists, series info, stream URL) for its kind:
 | `coversui.js`, `seriesui.js`, `guideui.js`, `picksui.js`, `topicbar.js`, `externalui.js` | covers or rows; a series' page; the guide in the player (grid, column, search, favourites); the start page's picks; the topic chips and their bar; the external player hand-off (moved out of `app.js`) |
 | `idlehome.js` | the empty player's page (continue watching, the viewer's channels, the picks' carousel) and the note of programmes the viewer stays with (moved out of `app.js`) |
 | `collections.js`, `playercontrols.js`, `progressdialog.js`, `help.js`, `languageui.js` | Favourites and History and favourite categories; the ☰ menu, full screen and media keys; the list-loading strip; the help dialog; switching language and the empty player's title (moved out of `app.js`) |
+| `topmenu.js` | the top bar's hamburger: below the width at which the bar fits on one row (measured, as tab names differ by language), Refresh, Help, the theme, full screen and Settings go into its menu |
 | `toast.js` | the message strip (`toast`) and copying a stream address: import `toast` from here |
 | `dom.js` | `$` and `el`, the page's elements looked up once: import them from here, not from `app.js` |
 

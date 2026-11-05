@@ -234,6 +234,7 @@ h2, h3 { font-weight: 600; }
    overflow: hidden above and no way to scroll to it. A window at half a
    1440 px screen, or the same screen at 200 % zoom, is exactly there. */
 .topbar {
+  position: relative; z-index: 6;
   display: flex; align-items: center; flex-wrap: wrap; gap: 8px 14px;
   flex: none; min-height: var(--topbar-h); padding: 6px 14px;
   background: var(--panel); border-bottom: 1px solid var(--border);
@@ -266,7 +267,10 @@ h2, h3 { font-weight: 600; }
    window, which cuts whatever lies outside it: the ring sits on the edge. */
 .tabs button:focus-visible { outline-offset: 0; }
 
-.search { position: relative; display: flex; align-items: center; flex: 1 1 200px; min-width: 190px; max-width: 380px; }
+/* The search takes the room the bar leaves it, up to 380 px, and gives way
+   down to 120 px before anything wraps: at 190 px it used to be the part
+   that pushed the buttons onto a second row. */
+.search { position: relative; display: flex; align-items: center; flex: 1 1 160px; min-width: 120px; max-width: 380px; }
 .search svg { position: absolute; left: 10px; width: 14px; height: 14px; fill: none; stroke: var(--muted); stroke-width: 1.8; stroke-linecap: round; pointer-events: none; }
 .search input { width: 100%; padding: 7px 34px 7px 30px; background: var(--panel-2); border: 1px solid var(--border); border-radius: 8px; }
 .search input:focus { border-color: var(--accent); }
@@ -290,6 +294,22 @@ h2, h3 { font-weight: 600; }
 .screen-button .screen-leave, .screen-button.on .screen-enter { display: none; }
 .screen-button.on .screen-leave { display: block; }
 .theme-button[data-next="light"] .theme-moon, .theme-button[data-next="dark"] .theme-sun { display: none; }
+/* Where the bar does not fit on one row (js/topmenu.js), its five buttons
+   go behind the hamburger, and the search may grow into their room. */
+.topmenu-button { display: none; }
+.topbar.compact .topmenu-button { display: inline-flex; }
+.topbar.compact :is(#btn-refresh, #btn-help, #btn-theme, #btn-screen, #btn-settings) { display: none; }
+/* The tighter gaps and the narrower search keep the bar on one row down
+   to some 680 px in English: at 700 px the hamburger was 4 px short. A row
+   wraps by the flex basis, not the minimum, so the basis comes down too;
+   the search still grows into whatever is left. */
+.topbar.compact { column-gap: 10px; }
+.topbar.compact .search { max-width: none; min-width: 100px; flex-basis: 100px; }
+#btn-topmenu[aria-expanded="true"] { color: var(--text); background: var(--row-hover); border-color: var(--border-strong); }
+/* Below the bar rather than above it, as the player's menu opens upward.
+   Two classes, because .pop further down sets the bottom edge and would
+   otherwise squeeze the panel to nothing between the two. */
+.pop.topmenu-pop { top: calc(100% - 2px); bottom: auto; right: 10px; z-index: 20; }
 
 button.ghost {
   background: var(--panel-2); border: 1px solid var(--border);

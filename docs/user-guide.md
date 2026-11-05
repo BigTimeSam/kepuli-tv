@@ -426,7 +426,12 @@ takes the whole player out of the browser's address bar and tabs, and on a
 phone or a tablet out of the system's bars too, for a quarter more height on
 a tablet; the corners turn inward, and a press on them, `Esc` or Android's
 back gesture returns. `f` still takes the picture alone full screen, and
-leaving it returns to the player still full screen. The sun and moon is the quick switch; Settings > Viewing > Appearance also offers *Same as the system*, which follows the operating system's light or dark mode while the player is open, and a press of the switch then picks the other of what is on screen. Dark is the default. The picture and the bar
+leaving it returns to the player still full screen. Where the bar does not fit on one row
+— a tablet held upright, a window at half a screen — Refresh, Help, the theme,
+Full screen and Settings go behind a hamburger (☰) at its right end, the
+search takes the room that is left, and the bar stays on one row; the
+recordings and the account switch stay in sight. Whether it fits is measured,
+so a language with longer tab names makes the switch at a wider window. The sun and moon is the quick switch; Settings > Viewing > Appearance also offers *Same as the system*, which follows the operating system's light or dark mode while the player is open, and a press of the switch then picks the other of what is on screen. Dark is the default. The picture and the bar
 under it stay dark in either, and the choice is kept with the settings and
 copied to `localStorage`, so a light theme does not flash dark at start
 (`js/theme.js`);

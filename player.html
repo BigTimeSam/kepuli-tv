@@ -68,7 +68,12 @@
          is what a press does, as the theme button's is. -->
     <button type="button" id="btn-screen" class="ghost icon-button screen-button" data-i18n-label="screen.enter" data-i18n-title="screen.enter"><svg class="screen-enter" viewBox="0 0 20 20" aria-hidden="true"><path d="M3 7.5V3h4.5M12.5 3H17v4.5M17 12.5V17h-4.5M7.5 17H3v-4.5"/></svg><svg class="screen-leave" viewBox="0 0 20 20" aria-hidden="true"><path d="M7.5 3v4.5H3M17 7.5h-4.5V3M12.5 17v-4.5H17M3 12.5h4.5V17"/></svg></button>
     <button type="button" id="btn-settings" class="ghost icon-button labelled"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/><circle cx="12" cy="12" r="3"/></svg><span class="button-label" data-i18n="btn.settings">Settings</span></button>
+    <!-- Where the five buttons before it go when the bar does not fit on
+         one row: a tablet held upright, a half-screen window. Shown only
+         then (js/topmenu.js measures); its items are made from the buttons. -->
+    <button type="button" id="btn-topmenu" class="ghost icon-button topmenu-button" data-i18n-label="player.more" data-i18n-title="player.more" aria-haspopup="menu" aria-expanded="false" aria-controls="topmenu-pop"><svg viewBox="0 0 20 20" aria-hidden="true"><path d="M3 5.5h14M3 10h14M3 14.5h14"/></svg></button>
   </div>
+  <div class="pop more-pop topmenu-pop" id="topmenu-pop" role="menu" data-i18n-label="player.more" hidden></div>
 </header>
 
 <main id="main">
