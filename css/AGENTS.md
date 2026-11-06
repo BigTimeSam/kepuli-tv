@@ -23,8 +23,10 @@ that follow the page from top bar to dialogs.
   that must keep their own shape need `align-self` (a stretched cover lost
   its 2:3 once).
 - **Narrow windows**: 600px is the breakpoint where browsing and playback each
-  take the whole width (`js/playerlayout.js`); 760px and 980px adjust the top
-  bar. Check a change at 600px.
+  take the whole width (`js/playerlayout.js`); 1180px narrows the sidebar,
+  the list and the guide's channel column; 601–1099px drops the tabs' marks;
+  760px and 980px adjust the top bar; 520px tightens Settings. Check a change
+  at 600px.
 - **Motion** respects `prefers-reduced-motion: reduce`; add the matching rule
   for any new animation or transition.
 - **Optical alignment** of icons beside labels is gathered in a block at the

@@ -43,8 +43,9 @@ portal). Real accounts are for the owner's manual testing only.
 | 8790 / 8791 | mock server / second mock account | | one run at a time |
 
 Every Chrome tool reads `KEPULI_DEV_PORT` and `KEPULI_DEV_PROFILE` (and
-`KEPULI_CHROME` for another browser binary: CI uses Chromium, as branded
-Chrome on Linux leaves an unpacked extension's pages blank); Firefox
+`KEPULI_CHROME` for another browser binary: CI uses Chrome for Testing with
+`KEPULI_LOAD_EXTENSION=1`, as branded Chrome on Linux leaves an unpacked
+extension's pages blank); Firefox
 tools `KEPULI_FIREFOX_PORT` and `KEPULI_FIREFOX_PROFILE`. So a test run that
 leaves the owner's browsers alone is:
 
@@ -67,7 +68,7 @@ data, so never point it at a profile someone uses.
 - `node dev/namecheck.mjs`: undefined names, missing imports and exports,
   use before declaration: what would be a `ReferenceError` or a module that
   does not load. Two seconds; run it after moving or renaming anything.
-- `node dev/playcheck.mjs [scenario …]`: about 80 browser scenarios (playback,
+- `node dev/playcheck.mjs [scenario …]`: about 95 browser scenarios (playback,
   recovery, guide, accounts, recording, the start page…), each against a fresh
   mock server. Run the scenarios near your change while working, and the full
   suite before a release. The scenario list and what each asserts is at the top

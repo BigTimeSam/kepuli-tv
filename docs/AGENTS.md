@@ -13,6 +13,7 @@ documentation read on GitHub.
 | `user-guide.md` | everything a user can do, in detail; the player's Help links here | hand / agent |
 | `development.md` | running from the source, structure, languages, graphics, publishing | hand / agent |
 | `internals.md` | data, categories, playback routes, connection modes, security notes | hand / agent |
+| `product-audit.md` | a dated audit of the first run and of accessibility (2026-11-04): proposals, not a description of the player as it is | hand / agent |
 | `agents-recipes.md` | step lists for the common changes, for agents and anyone working the same way (linked from the root `AGENTS.md`) | hand / agent |
 
 ## Rules

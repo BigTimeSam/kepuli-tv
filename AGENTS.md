@@ -130,8 +130,9 @@ Long-form documentation: [user guide](docs/user-guide.md),
 - `dev/mock/server.mjs` listens on 8790, and the accounts scenarios start a
   second one on 8791. Only one test browser at a time; stop stray mock servers
   (`lsof -iTCP:8790 -sTCP:LISTEN`) before a run.
-- Chrome ignores `--load-extension`; the tools load the extension through the
-  DevTools protocol (`Extensions.loadUnpacked`).
+- Branded Chrome ignores `--load-extension`; the tools load the extension
+  through the DevTools protocol (`Extensions.loadUnpacked`). Only CI's Chrome
+  for Testing takes the flag (`KEPULI_LOAD_EXTENSION=1`).
 - Headless Firefox is not supported by the drivers; Firefox runs open a window.
 - The Chrome Web Store locks the whole listing while a version is in review,
   and cancelling a review has a small daily quota. AMO throttles writes for
