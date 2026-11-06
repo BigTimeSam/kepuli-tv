@@ -1,3 +1,4 @@
+// @ts-check
 // Decoded audio back to AAC or Opus for MediaSource.
 //
 // Chrome decodes neither AC-3, E-AC-3 nor DTS, and in the measured library
@@ -176,6 +177,7 @@ async function measure(encoder) {
   const ONSET = 4 * FRAME;
   const TOTAL = 12 * FRAME;
   const packets = [];
+  /** @type {AudioDecoderConfig|null} */
   let config = null;
 
   const enc = new AudioEncoder({
@@ -211,7 +213,7 @@ async function measure(encoder) {
   if (encoder.name === 'aac' && !config) throw new Error('the encoder did not report its configuration');
 
   const description = encoder.name === 'aac' && config && config.description
-    ? new Uint8Array(config.description.buffer ? config.description.buffer : config.description).slice()
+    ? new Uint8Array(ArrayBuffer.isView(config.description) ? config.description.buffer : config.description).slice()
     : null;
 
   const frames = [];
@@ -455,7 +457,9 @@ class WasmBackend {
   /** @param {AacEncoder} encoder */
   constructor(encoder) {
     this.encoder = encoder;
+    /** @type {(frame: object) => void} */
     this.onFrame = () => {};
+    /** @type {(err: unknown) => void} */
     this.onError = () => {};
     this.since = 0;
   }

@@ -1,3 +1,4 @@
+// @ts-check
 // Playing an MP4 film through MediaSource, for Firefox.
 //
 // Firefox upgrades an extension page's http:// media to https:// and does
@@ -317,12 +318,11 @@ export class Mp4Player {
     }
     this.onAnswer();
     if (!res.ok) {
-      const err = new Error(`the server answered ${res.status}`);
-      err.status = res.status;
       // Refused by the file's own server, after the redirect: see
       // refusedByFileServer(); asking again would not change it.
-      if (refusedByFileServer(res)) err.unavailable = res.status;
-      else err.connection = true;
+      const refused = refusedByFileServer(res);
+      const err = Object.assign(new Error(`the server answered ${res.status}`),
+        { status: res.status, unavailable: refused ? res.status : 0, connection: !refused });
       try { ctrl.abort(); } catch { /* already closed */ }
       throw err;
     }
@@ -363,9 +363,7 @@ export class Mp4Player {
     if (!(await stream.fill(16))) {
       stream.close();
       if (emptyAnswer(stream.peek(stream.have))) {
-        const err = new Error(t('probe.empty'));
-        err.empty = true;
-        throw err;
+        throw Object.assign(new Error(t('probe.empty')), { empty: true });
       }
     }
     let at = 0;
@@ -636,6 +634,12 @@ export class Mp4Player {
 
 /** The bytes of a response read in order, from a known place in the file. */
 class ByteStream {
+  /**
+   * @param {ReadableStreamDefaultReader<Uint8Array>} reader
+   * @param {AbortController} ctrl
+   * @param {number} pos
+   * @param {(bytes: number) => void} [onBytes]
+   */
   constructor(reader, ctrl, pos, onBytes = () => {}) {
     this.reader = reader;
     this.ctrl = ctrl;
@@ -710,10 +714,7 @@ function within(promise, ctrl, ms = STALL_MS) {
   let timer;
   const stalled = new Promise((_, reject) => {
     timer = setTimeout(() => {
-      const err = new Error('the download stalled');
-      err.stalled = true;
-      err.connection = true;
-      reject(err);
+      reject(Object.assign(new Error('the download stalled'), { stalled: true, connection: true }));
       try { ctrl.abort(); } catch { /* already closed */ }
     }, ms);
   });

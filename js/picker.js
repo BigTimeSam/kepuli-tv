@@ -1,3 +1,4 @@
+// @ts-check
 // Every drop-down in the app, with a filter field.
 //
 // The menus run from two choices (http, https) to a few hundred (the
@@ -74,7 +75,7 @@ function options(select) {
   const out = [];
   for (const node of select.children) {
     if (node instanceof HTMLOptGroupElement) {
-      for (const option of node.children) if (!option.hidden) out.push({ option, group: node.label });
+      for (const option of node.querySelectorAll('option')) if (!option.hidden) out.push({ option, group: node.label });
     } else if (node instanceof HTMLOptionElement && !node.hidden) out.push({ option: node, group: null });
   }
   return out;

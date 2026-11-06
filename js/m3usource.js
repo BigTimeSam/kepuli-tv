@@ -1,3 +1,4 @@
+// @ts-check
 // An M3U playlist as a catalogue: the same questions js/api.js answers for
 // an Xtream account — the account, the categories, the lists, a series'
 // episodes, the programmes — answered from one downloaded file.
@@ -170,7 +171,10 @@ export class M3uSource {
     this.onProgress = null;
   }
 
-  /** The playlist, from the cache or downloaded. Shared by concurrent callers. */
+  /**
+   * The playlist, from the cache or downloaded. Shared by concurrent callers.
+   * @param {{signal?: AbortSignal, force?: boolean}} [options]
+   */
   load({ signal, force = false } = {}) {
     if (this.catalogue && !force) return Promise.resolve(this.catalogue);
     if (!this.loading) this.loading = this.fetchCatalogue({ signal, force }).finally(() => { this.loading = null; });
@@ -223,14 +227,20 @@ export class M3uSource {
     }
   }
 
-  /** The playlist downloaded again, and the guide with it. */
+  /**
+   * The playlist downloaded again, and the guide with it.
+   * @param {import('./api.js').RequestOptions} [options]
+   */
   async reload({ signal } = {}) {
     this.episodes = null;
     await this.load({ signal, force: true });
     if (this.guide?.available) this.guide.ready({ force: true }).catch(() => {});
   }
 
-  /** The account: a playlist has no subscription to describe, only what it holds. */
+  /**
+   * The account: a playlist has no subscription to describe, only what it holds.
+   * @param {import('./api.js').RequestOptions} [options]
+   */
   async account({ signal } = {}) {
     const c = await this.load({ signal });
     return {
@@ -252,11 +262,20 @@ export class M3uSource {
     };
   }
 
+  /**
+   * @param {string} type
+   * @param {import('./api.js').RequestOptions} [options]
+   */
   async categories(type, { signal } = {}) {
     const c = await this.load({ signal });
     return c.categories[type].map((cat) => ({ ...cat }));
   }
 
+  /**
+   * @param {string} type
+   * @param {string|null} categoryId
+   * @param {import('./api.js').StreamOptions} [options]
+   */
   async streams(type, categoryId, { signal, onProgress } = {}) {
     const c = await this.load({ signal });
     const list = c.items[type];
@@ -265,6 +284,10 @@ export class M3uSource {
     return (categoryId ? list.filter((it) => it.cats.includes(categoryId)) : list).map((it) => ({ ...it }));
   }
 
+  /**
+   * @param {string|number} seriesId
+   * @param {import('./api.js').RequestOptions} [options]
+   */
   async seriesInfo(seriesId, { signal } = {}) {
     const c = await this.load({ signal });
     const series = c.items.series.find((s) => s.id === seriesId);
@@ -278,6 +301,10 @@ export class M3uSource {
     };
   }
 
+  /**
+   * @param {string|number} vodId
+   * @param {import('./api.js').RequestOptions} [options]
+   */
   async vodInfo(vodId, { signal } = {}) {
     const c = await this.load({ signal });
     const movie = c.items.movie.find((m) => m.id === vodId);
@@ -300,6 +327,10 @@ export class M3uSource {
     return this.byId.get(String(streamId)) || null;
   }
 
+  /**
+   * @param {string|number} streamId
+   * @param {import('./api.js').RequestOptions} [options]
+   */
   async programmesOf(streamId, { signal } = {}) {
     await this.load({ signal });
     const item = this.channel(streamId);
@@ -308,12 +339,21 @@ export class M3uSource {
     return list.map((p) => ({ id: String(p.start), title: p.title, description: p.description, start: p.start, stop: p.stop }));
   }
 
-  /** The programmes from the one on now on, as many as asked for. */
+  /**
+   * The programmes from the one on now on, as many as asked for.
+   * @param {string|number} streamId
+   * @param {number} [limit]
+   * @param {import('./api.js').RequestOptions} [options]
+   */
   async shortEpg(streamId, limit = 4, { signal } = {}) {
     const now = Date.now();
     return (await this.programmesOf(streamId, { signal })).filter((p) => p.stop > now).slice(0, limit);
   }
 
+  /**
+   * @param {string|number} streamId
+   * @param {import('./api.js').RequestOptions} [options]
+   */
   async fullEpg(streamId, { signal } = {}) {
     return this.programmesOf(streamId, { signal });
   }

@@ -1,3 +1,4 @@
+// @ts-check
 // Playing MKV through MediaSource.
 //
 // Chrome will not take Matroska, but the H.264 or HEVC inside it is fine as
@@ -391,13 +392,12 @@ export class Remuxer {
       // Marked as the connection's failure rather than the file's: a
       // refusal is most often the account's one connection still counted,
       // and worth asking again after a moment, see startPump().
-      const err = new Error(`the server answered ${res.status}`);
-      err.status = res.status;
       // Refused after the redirect, by the server that holds the file: the
       // file's fault, not a connection still counted, see
       // refusedByFileServer().
-      if (refusedByFileServer(res)) err.unavailable = res.status;
-      else err.connection = true;
+      const refused = refusedByFileServer(res);
+      const err = Object.assign(new Error(`the server answered ${res.status}`),
+        { status: res.status, unavailable: refused ? res.status : 0, connection: !refused });
       try { ctrl.abort(); } catch { /* already closed */ }
       if (this.connection === ctrl) this.connection = null;
       if (this.pinned === ctrl) this.pinned = null;
@@ -461,9 +461,7 @@ export class Remuxer {
 
     if (emptyAnswer(bytes)) {
       try { ctrl.abort(); } catch { /* already closed */ }
-      const err = new Error(t('probe.empty'));
-      err.empty = true;
-      throw err;
+      throw Object.assign(new Error(t('probe.empty')), { empty: true });
     }
     const header = parseHeader(bytes);
     if (!header.ok) {
@@ -1481,9 +1479,7 @@ function within(promise, ctrl, ms = STALL_MS) {
   let timer;
   const stalled = new Promise((_, reject) => {
     timer = setTimeout(() => {
-      const err = new Error('the download stalled');
-      err.stalled = true;
-      reject(err);
+      reject(Object.assign(new Error('the download stalled'), { stalled: true }));
       try { ctrl.abort(); } catch { /* already closed */ }
     }, ms);
   });

@@ -1,3 +1,4 @@
+// @ts-check
 // A Stalker (Ministra) middleware portal as a catalogue: the same
 // questions js/api.js answers for an Xtream account, asked of the portal a
 // MAG set-top box talks to.
@@ -238,7 +239,10 @@ export class StalkerSource {
     this.meta = new Map();      // a film's or a series' row, for its details
   }
 
-  /** The session: the header rule, the handshake and the profile, once. */
+  /**
+   * The session: the header rule, the handshake and the profile, once.
+   * @param {import('./api.js').RequestOptions} [options]
+   */
   session({ signal } = {}) {
     if (!this.ready) {
       this.ready = this.open({ signal }).catch((err) => { this.ready = null; throw err; });
@@ -308,7 +312,11 @@ export class StalkerSource {
     }
   }
 
-  /** A request in the session; a token the portal has let go is renewed once. */
+  /**
+   * A request in the session; a token the portal has let go is renewed once.
+   * @param {Record<string, string>} params
+   * @param {{signal?: AbortSignal, retry?: boolean}} [options]
+   */
   async call(params, { signal, retry = true } = {}) {
     if (!this.token) await this.session({ signal });
     try {
@@ -322,6 +330,9 @@ export class StalkerSource {
     }
   }
 
+  /**
+   * @param {import('./api.js').RequestOptions} [options]
+   */
   async account({ signal } = {}) {
     await this.session({ signal });
     let info = {};
@@ -347,6 +358,10 @@ export class StalkerSource {
     };
   }
 
+  /**
+   * @param {string} type
+   * @param {import('./api.js').RequestOptions} [options]
+   */
   async categories(type, { signal } = {}) {
     const params = type === 'live' ? { type: 'itv', action: 'get_genres' }
       : { type: type === 'movie' ? 'vod' : 'series', action: 'get_categories' };
@@ -361,6 +376,11 @@ export class StalkerSource {
       .map((c) => ({ id: String(c.id), name: String(c.title || c.name || '') || t('categories.unnamed') }));
   }
 
+  /**
+   * @param {string} type
+   * @param {string|null} categoryId
+   * @param {import('./api.js').StreamOptions} [options]
+   */
   async streams(type, categoryId, { signal, onProgress } = {}) {
     if (type === 'live') return this.channels(categoryId, { signal, onProgress });
     const kind = type === 'movie' ? 'vod' : 'series';
@@ -413,7 +433,11 @@ export class StalkerSource {
     return categoryId && this.allChannels ? list.filter((it) => it.cats.includes(String(categoryId))) : list;
   }
 
-  /** Every page of a paged list, a few at a time. */
+  /**
+   * Every page of a paged list, a few at a time.
+   * @param {Record<string, string>} params
+   * @param {import('./api.js').StreamOptions} [options]
+   */
   async pages(params, { signal, onProgress } = {}) {
     const first = (await this.call({ ...params, p: '1' }, { signal }))?.js || {};
     const rows = rowsOf(first);
@@ -441,6 +465,10 @@ export class StalkerSource {
     return results.flat();
   }
 
+  /**
+   * @param {string|number} seriesId
+   * @param {import('./api.js').RequestOptions} [options]
+   */
   async seriesInfo(seriesId, { signal } = {}) {
     const row = this.meta.get(`2:${seriesId}`) || {};
     const seasons = await this.pages({ type: 'series', action: 'get_ordered_list', movie_id: String(seriesId), season_id: '0', episode_id: '0' }, { signal });
@@ -502,6 +530,11 @@ export class StalkerSource {
     };
   }
 
+  /**
+   * @param {string|number} streamId
+   * @param {number} [limit]
+   * @param {import('./api.js').RequestOptions} [options]
+   */
   async shortEpg(streamId, limit = 4, { signal } = {}) {
     const data = await this.call({ type: 'itv', action: 'get_short_epg', ch_id: String(streamId), size: String(Math.max(limit, 4)) }, { signal });
     const now = Date.now();
@@ -511,6 +544,8 @@ export class StalkerSource {
   /**
    * Today's programmes, the past ones included, and tomorrow's. Not
    * yesterday's: without the archive there is nothing to do with them.
+   * @param {string|number} streamId
+   * @param {import('./api.js').RequestOptions} [options]
    */
   async fullEpg(streamId, { signal } = {}) {
     const byStart = new Map();
@@ -529,6 +564,8 @@ export class StalkerSource {
   /**
    * The address to play an item from, asked of the portal now: its links
    * carry a token that may be good for one connection only.
+   * @param {object} item
+   * @param {import('./api.js').RequestOptions} [options]
    */
   async resolveUrl(item, { signal } = {}) {
     const cmd = item.cmd || '';

@@ -1,3 +1,4 @@
+// @ts-check
 // Reading a media file's header: what the container really holds.
 //
 // Xtream's metadata cannot be trusted. get_vod_info returns no codecs at
@@ -76,6 +77,11 @@ function cacheKey(url) {
 // One connection at a time. The chain does not break if one probe fails.
 let queue = Promise.resolve();
 
+/**
+ * @template T
+ * @param {() => Promise<T>} task
+ * @returns {Promise<T>}
+ */
 function serialize(task) {
   const run = queue.then(task, task);
   queue = run.then(() => {}, () => {});
@@ -98,6 +104,8 @@ export async function probe(url, { signal, force, onProgress } = {}) {
     const hit = memory.get(key) ?? await cacheGet(key, CACHE_TTL);
     if (hit) { memory.set(key, hit); return hit; }
   }
+  // What describe() found, or what went wrong, with the time it was read.
+  /** @type {{error?: string, empty?: boolean, unavailable?: number, at?: number, [field: string]: unknown}} */
   const info = await serialize(() => readHeader(url, signal, onProgress).then(parse, (err) => ({
     container: 'unknown',
     error: err && err.message ? err.message : String(err),
@@ -114,6 +122,11 @@ export async function probe(url, { signal, force, onProgress } = {}) {
   return info;
 }
 
+/**
+ * @param {string} url
+ * @param {AbortSignal} [signal]
+ * @param {(loaded: number, total: number) => void} [onProgress]
+ */
 async function readHeader(url, signal, onProgress = () => {}) {
   const ctrl = new AbortController();
   const relay = () => ctrl.abort();
@@ -136,9 +149,7 @@ async function readHeader(url, signal, onProgress = () => {}) {
       throw late ? new Error(t('playback.reason.timeout')) : err;
     }).finally(() => clearTimeout(unanswered));
     if (!res.ok) {
-      const err = new Error(`the server answered ${res.status}`);
-      if (refusedByFileServer(res)) err.unavailable = res.status;
-      throw err;
+      throw Object.assign(new Error(`the server answered ${res.status}`), { unavailable: refusedByFileServer(res) ? res.status : 0 });
     }
     const reader = res.body.getReader();
     const parts = [];
@@ -216,6 +227,10 @@ export const providerError = (status) => serverFault(status) || status === 404 |
  * then answers the header read one minute and "502 Bad Gateway" the next
  * (measured). Resolves to { status, ok, redirected }, or { error } when
  * there was no answer at all.
+ */
+/**
+ * @param {string} url
+ * @param {{signal?: AbortSignal, timeout?: number}} [options]
  */
 export async function answerOf(url, { signal, timeout = ANSWER_MS } = {}) {
   const ctrl = new AbortController();
