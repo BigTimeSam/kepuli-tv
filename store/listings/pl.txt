@@ -18,15 +18,6 @@ małego.
   (nagrywanie włącza się w Ustawieniach)
 
 
-DLACZEGO TO ZROBIŁEM
-
-Miałem dość aplikacji, z którymi trzeba było walczyć: niekończących się
-list kategorii, okien blokujących wszystko, gdy ładował się katalog, i plików,
-które po prostu nie chciały się odtworzyć. Zbudowałem więc taką, z jakiej sam
-chcę korzystać każdego wieczoru.
-- Samuli, twórca Kepuli-TV
-
-
 CO DOSTAJESZ
 
 • Wklej link M3U od dostawcy, a ustawienia wypełnią się same.
@@ -52,6 +43,8 @@ CO DOSTAJESZ
   ustawień rozmiaru tekstu i kontrastu.
 • W 30 językach. Mówi językiem Twojej przeglądarki, dopóki nie
   wybierzesz innego.
+• Przeszukuj audycje wszystkich kanałów naraz.
+• Filtruj filmy według roku, oceny i długości.
 
 
 PRYWATNOŚĆ OD PODSTAW
@@ -59,7 +52,8 @@ PRYWATNOŚĆ OD PODSTAW
 Bez śledzenia, bez reklam, bez rejestracji. Rozszerzenie łączy się tylko z
 Twoim własnym serwerem i prosi o zgodę tylko na ten adres — szerszy dostęp
 wyłącznie za Twoją zgodą, gdy dostawca przekierowuje strumienie gdzie indziej.
-Nagrania zostają na Twoim komputerze.
+Nagrania zostają na Twoim komputerze. Jedyny wyjątek: logo kanałów mogą być
+pobierane z publicznej kolekcji logotypów na GitHubie.
 
 
 UWAGA

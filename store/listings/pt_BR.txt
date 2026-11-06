@@ -16,14 +16,6 @@ criado em torno de uma ideia: um catálogo enorme deve parecer pequeno.
   (a gravação é ativada nas Configurações)
 
 
-POR QUE EU FIZ
-
-Cansei de apps que me faziam brigar com eles: listas de categorias
-sem fim, janelas que travavam tudo enquanto um catálogo carregava e arquivos
-que simplesmente não tocavam. Então fiz o app que eu queria usar toda noite.
-- Samuli, desenvolvedor do Kepuli-TV
-
-
 O QUE VOCÊ TEM
 
 • Cole o link M3U que seu provedor enviou e as configurações se preenchem
@@ -51,6 +43,8 @@ O QUE VOCÊ TEM
 • Visual escuro ou claro, e o teclado alcança tudo; o layout acompanha o
   tamanho do texto e o contraste definidos no seu navegador.
 • Em 30 idiomas. Ele fala o do seu navegador até você escolher outro.
+• Pesquise de uma vez em toda a programação.
+• Filtre filmes por ano, avaliação e duração.
 
 
 PRIVADO POR DESIGN
@@ -58,7 +52,8 @@ PRIVADO POR DESIGN
 Sem rastreamento, sem anúncios, sem cadastro. O Kepuli-TV só fala com o seu
 próprio servidor e pede permissão só para esse endereço — acesso mais amplo
 apenas se você permitir, quando o seu provedor envia as transmissões para
-outro lugar. As gravações ficam no seu computador.
+outro lugar. As gravações ficam no seu computador. A única exceção: os
+logotipos podem ser carregados de uma coleção pública de logotipos no GitHub.
 
 
 AVISO

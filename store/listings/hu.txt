@@ -17,15 +17,6 @@ listákat és Stalker portálokat játszik le, egyetlen gondolatra épülve: egy
   (a rögzítést a Beállításokban kell bekapcsolni)
 
 
-MIÉRT CSINÁLTAM
-
-Elegem lett az olyan alkalmazásokból, amelyekkel harcolni kell: végtelen
-kategórialisták, ablakok, amelyek mindent lefagyasztanak, amíg a lista
-töltődik, és fájlok, amelyek egyszerűen nem akarnak elindulni. Úgyhogy
-megépítettem azt, amelyiket magam is szívesen nyitom meg minden este.
-- Samuli, a Kepuli-TV fejlesztője
-
-
 MIT KAPSZ
 
 • Illeszd be a szolgáltatódtól kapott M3U-linket, és a beállítások maguktól
@@ -54,6 +45,8 @@ MIT KAPSZ
   követi a betűméret és a kontraszt beállításait.
 • 30 nyelven szól. Addig a böngésződ nyelvét használja, amíg másikat nem
   választasz.
+• Keress egyszerre az összes csatorna műsoraiban.
+• Szűrd a filmeket év, értékelés és hossz szerint.
 
 
 BEÉPÍTETT ADATVÉDELEM
@@ -61,7 +54,8 @@ BEÉPÍTETT ADATVÉDELEM
 Nincs követés, nincs reklám, nincs regisztráció. A bővítmény kizárólag a saját
 szerveredhez csatlakozik, és csak ahhoz a címhez kér engedélyt — szélesebb
 hozzáférést csak akkor, ha te adod meg, amikor a szolgáltatód máshová
-irányítja az adást. A felvételek a gépeden maradnak.
+irányítja az adást. A felvételek a gépeden maradnak. Az egyetlen kivétel: a
+csatornalogók egy nyilvános GitHub-logógyűjteményből is betöltődhetnek.
 
 
 FONTOS

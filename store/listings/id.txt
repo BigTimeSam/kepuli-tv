@@ -16,15 +16,6 @@ dari satu prinsip: katalog sebesar apa pun harus terasa ringan.
   (perekaman diaktifkan di Pengaturan)
 
 
-KENAPA SAYA MEMBUATNYA
-
-Saya bosan memakai aplikasi yang bikin kesal: deretan kategori tak
-berujung, dialog yang membekukan layar selama katalog dimuat, dan file yang
-tidak mau diputar. Jadi saya buat sendiri aplikasi yang ingin saya pakai
-setiap malam.
-- Samuli, pengembang Kepuli-TV
-
-
 YANG KAMU DAPATKAN
 
 • Tempel tautan M3U dari penyedia, dan semua kolom pengaturan terisi sendiri.
@@ -53,6 +44,8 @@ YANG KAMU DAPATKAN
   mengikuti ukuran teks dan kontras pilihanmu.
 • Hadir dalam 30 bahasa. Mengikuti bahasa browser-mu sampai kamu memilih yang
   lain.
+• Telusuri semua jadwal sekaligus.
+• Saring film menurut tahun, rating, dan durasi.
 
 
 PRIVAT SEJAK AWAL
@@ -60,7 +53,8 @@ PRIVAT SEJAK AWAL
 Tidak ada pelacakan, iklan, atau pendaftaran. Kepuli-TV hanya berhubungan
 dengan servermu sendiri dan meminta izin untuk alamat itu saja — akses yang
 lebih luas hanya jika kamu mengizinkan, yaitu ketika penyedia mengalihkan
-siaran ke tempat lain. Rekaman tetap tersimpan di komputermu.
+siaran ke tempat lain. Rekaman tetap tersimpan di komputermu. Satu-satunya
+pengecualian: logo bisa dimuat dari koleksi logo publik di GitHub.
 
 
 CATATAN PENTING

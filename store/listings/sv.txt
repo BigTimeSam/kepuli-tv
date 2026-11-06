@@ -17,14 +17,6 @@ Stalker-portaler och bygger på en enda idé: ett enormt utbud ska kännas litet
   (inspelning slås på i Inställningar)
 
 
-VARFÖR JAG GJORDE DEN
-
-Jag tröttnade på appar som fick mig att kämpa: ändlösa kategorilistor,
-dialogrutor som frös allt medan utbudet lästes in, och filer som helt enkelt
-inte ville fungera. Så jag byggde den jag själv ville använda varje kväll.
-- Samuli, Kepuli-TV:s utvecklare
-
-
 VAD DU FÅR
 
 • Klistra in M3U-länken du fick av din leverantör, så fylls inställningarna i
@@ -50,6 +42,8 @@ VAD DU FÅR
 • Ett mörkt eller ljust utseende, och tangentbordet når allt; layouten följer
   textstorleken och kontrastinställningarna.
 • På 30 språk. Den talar webbläsarens språk tills du väljer ett annat.
+• Sök bland alla kanalers program på en gång.
+• Filtrera filmer efter år, betyg och längd.
 
 
 PRIVAT FRÅN GRUNDEN
@@ -57,7 +51,8 @@ PRIVAT FRÅN GRUNDEN
 Ingen spårning, inga annonser, ingen registrering. Kepuli-TV pratar bara med
 din egen server och ber om tillstånd för just den adressen — bredare åtkomst
 bara om du själv tillåter det, när din leverantör skickar strömmar någon
-annanstans. Inspelningarna stannar på din dator.
+annanstans. Inspelningarna stannar på din dator. Enda undantaget: kanalernas
+logotyper kan hämtas från en offentlig logotypsamling på GitHub.
 
 
 OBS

@@ -17,15 +17,6 @@ postavený na jednom nápade: obrovský katalóg má pôsobiť malý.
   (nahrávanie sa zapína v Nastaveniach)
 
 
-PREČO SOM TO UROBIL
-
-Unavili ma aplikácie, s ktorými som musel bojovať: nekonečné zoznamy
-kategórií, okná, ktoré všetko zasekli, kým sa načítaval katalóg, a súbory, čo
-sa jednoducho nechceli prehrať. Tak som postavil takú, akú chcem používať sám
-každý večer.
-- Samuli, autor Kepuli-TV
-
-
 ČO ZÍSKAŠ
 
 • Vlož odkaz M3U od poskytovateľa a nastavenia sa vyplnia samy.
@@ -49,14 +40,17 @@ každý večer.
 • Tmavý alebo svetlý vzhľad, klávesnicou sa dostaneš všade; rozloženie sa
   riadi nastavením veľkosti textu a kontrastu.
 • V 30 jazykoch. Hovorí jazykom tvojho prehliadača, kým nevyberieš iný.
+• Prehľadaj relácie všetkých kanálov naraz.
+• Filtruj filmy podľa roka, hodnotenia a dĺžky.
 
 
 SÚKROMIE V ZÁKLADE
 
 Bez sledovania, bez reklám, bez registrácie. Kepuli-TV komunikuje iba s tvojím
 vlastným serverom a žiada o povolenie len pre túto adresu — širší prístup iba
-ak ho povolíš, keď poskytovateľ presmeruje streamy inam. Nahrávky zostanú
-na tvojom počítači.
+ak ho povolíš, keď poskytovateľ presmeruje streamy inam. Nahrávky zostanú na
+tvojom počítači. Jediná výnimka: logá kanálov sa môžu načítať z verejnej
+zbierky lôg na GitHube.
 
 
 POZNÁMKA

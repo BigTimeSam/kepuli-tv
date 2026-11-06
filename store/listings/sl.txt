@@ -18,15 +18,6 @@ majhen.
   (snemanje se vklopi v Nastavitvah)
 
 
-ZAKAJ SEM GA NAREDIL
-
-Naveličan sem bil aplikacij, s katerimi sem se moral prepirati:
-neskončnih seznamov kategorij, oken, ki so ustavila vse, medtem ko se je
-nalagal katalog, in datotek, ki se preprosto niso hotele predvajati. Zato sem
-naredil tisto, ki jo sam z veseljem odprem vsak večer.
-- Samuli, razvijalec Kepuli-TV
-
-
 KAJ DOBIŠ
 
 • Prilepi povezavo M3U, ki ti jo je poslal ponudnik, in nastavitve se
@@ -53,14 +44,17 @@ KAJ DOBIŠ
 • Temen ali svetel videz, s tipkovnico dosežeš vse; postavitev sledi
   nastavitvam velikosti besedila in kontrasta.
 • V 30 jezikih. Govori jezik tvojega brskalnika, dokler ne izbereš drugega.
+• Preišči oddaje vseh kanalov hkrati.
+• Filme filtriraj po letu, oceni in dolžini.
 
 
 ZASEBNOST ŽE V ZASNOVI
 
-Brez sledenja, brez oglasov, brez registracije. Razširitev se pogovarja samo
-s tvojim strežnikom in dovoljenje zahteva le za ta naslov — širši dostop samo
-če ga dovoliš, ko pretoke drugam usmeri tvoj ponudnik. Posnetki ostanejo na
-tvojem računalniku.
+Brez sledenja, brez oglasov, brez registracije. Razširitev se pogovarja samo s
+tvojim strežnikom in dovoljenje zahteva le za ta naslov — širši dostop samo če
+ga dovoliš, ko pretoke drugam usmeri tvoj ponudnik. Posnetki ostanejo na
+tvojem računalniku. Edina izjema: logotipi kanalov se lahko naložijo iz javne
+zbirke logotipov na GitHubu.
 
 
 OPOZORILO

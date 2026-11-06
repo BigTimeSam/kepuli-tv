@@ -16,14 +16,6 @@ built around one idea: a huge catalogue should feel small.
   (recording is turned on in Settings)
 
 
-WHY I MADE IT
-
-I got tired of apps that made me fight them: endless category lists,
-dialogs that froze everything while a catalogue loaded, and files that simply
-would not play. So I built the one I wanted to use every evening.
-- Samuli, developer of Kepuli-TV
-
-
 WHAT YOU GET
 
 • Paste the M3U link your provider sent you and the settings fill themselves.
@@ -50,6 +42,8 @@ WHAT YOU GET
   follows your text size and contrast settings.
 • In 30 languages. It speaks your browser's language until you choose
   another.
+• Search the programmes of every channel at once.
+• Filter movies by year, rating and length.
 
 
 PRIVATE BY DESIGN
@@ -57,6 +51,8 @@ PRIVATE BY DESIGN
 No tracking, no ads, no sign-up. Kepuli-TV talks only to your own server and
 asks permission for that address alone — wider access only if you allow it,
 when your provider sends streams elsewhere. Recordings stay on your computer.
+The one exception: channel logos may load from a public logo collection on
+GitHub.
 
 
 PLEASE NOTE

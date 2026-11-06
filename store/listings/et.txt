@@ -16,15 +16,6 @@ portaale ning on ehitatud ühe mõtte ümber: tohutu valik peab tunduma väike.
   (salvestamine lülitatakse sisse Seadetes)
 
 
-MIKS MA SEDA TEGIN
-
-Mul sai villand rakendustest, millega tuli maadelda: lõputud kategooriate
-nimekirjad, dialoogid, mis külmutasid kõik, kuni kataloog laadis, ja failid,
-mis lihtsalt ei tahtnud mängida. Ehitasin siis sellise, mida ise igal õhtul
-kasutada tahan.
-- Samuli, Kepuli-TV looja
-
-
 MIDA SA SAAD
 
 • Kleebi pakkuja saadetud M3U-link ja seaded täituvad ise.
@@ -48,14 +39,17 @@ MIDA SA SAAD
 • Tume või hele ilme, klaviatuuriga pääseb igale poole; paigutus järgib sinu
   teksti suuruse ja kontrasti seadeid.
 • 30 keeles. Ta räägib sinu brauseri keelt, kuni valid mõne muu.
+• Otsi korraga kõigi kanalite saateid.
+• Filtreeri filme aasta, hinnangu ja pikkuse järgi.
 
 
 PRIVAATSUS ALGUSEST PEALE
 
 Jälgimist, reklaami ega registreerumist pole. Kepuli-TV suhtleb ainult sinu
 enda serveriga ja küsib luba vaid selle aadressi jaoks — laiem ligipääs alles
-siis, kui sa selle annad ja teenusepakkuja suunab voogusid mujale.
-Salvestised jäävad sinu arvutisse.
+siis, kui sa selle annad ja teenusepakkuja suunab voogusid mujale. Salvestised
+jäävad sinu arvutisse. Ainus erand: kanalite logod võivad laaduda GitHubi
+avalikust logokogust.
 
 
 MÄRKUS

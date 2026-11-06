@@ -18,15 +18,6 @@ malen.
   (snimanje se uključuje u Postavkama)
 
 
-ZAŠTO SAM GA NAPRAVIO
-
-Dosadile su mi aplikacije s kojima se moraš boriti: beskrajni popisi
-kategorija, dijalozi koji sve zamrznu dok se katalog učitava i datoteke koje
-se jednostavno ne žele pokrenuti. Zato sam napravio onu koju sam i sam htio
-koristiti svake večeri.
-- Samuli, autor Kepuli-TV
-
-
 ŠTO DOBIVAŠ
 
 • Zalijepi M3U poveznicu koju ti je poslao pružatelj i postavke se popune
@@ -53,14 +44,17 @@ koristiti svake večeri.
 • Tamni ili svijetli izgled, tipkovnica dosiže sve; raspored prati postavke
   veličine teksta i kontrasta.
 • Na 30 jezika. Govori jezikom tvog preglednika dok ne odabereš drugi.
+• Pretraži emisije svih kanala odjednom.
+• Filtriraj filmove po godini, ocjeni i trajanju.
 
 
 PRIVATNOST PO ZAMISLI
 
 Bez praćenja, bez oglasa, bez registracije. Kepuli-TV komunicira samo s tvojim
-vlastitim poslužiteljem i traži dopuštenje samo za tu adresu — šire
-dopuštenje tek ako ga ti odobriš, kad pružatelj usmjerava tokove drugamo.
-Snimke ostaju na tvom računalu.
+vlastitim poslužiteljem i traži dopuštenje samo za tu adresu — šire dopuštenje
+tek ako ga ti odobriš, kad pružatelj usmjerava tokove drugamo. Snimke ostaju
+na tvom računalu. Jedina iznimka: logotipi kanala mogu se učitati iz javne
+zbirke logotipa na GitHubu.
 
 
 NAPOMENA

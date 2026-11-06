@@ -17,15 +17,6 @@ sukurtas vienos minties pagrindu: didžiulis katalogas turi atrodyti mažas.
   (įrašymas įjungiamas Nustatymuose)
 
 
-DĖL KO TAI SUKŪRIAU
-
-Man atsibodo programėlės, su kuriomis tekdavo kovoti: begaliniai
-kategorijų sąrašai, langai, užšaldantys viską, kol kraunamas katalogas, ir
-failai, kurie tiesiog negrodavo. Tad sukūriau tokią, kokią pats noriu
-naudoti kiekvieną vakarą.
-- Samuli, Kepuli-TV kūrėjas
-
-
 KĄ GAUSI
 
 • Įklijuok tiekėjo atsiųstą M3U nuorodą, o nustatymai užsipildys patys.
@@ -51,14 +42,17 @@ KĄ GAUSI
 • Tamsi arba šviesi išvaizda, viskas pasiekiama klaviatūra; išdėstymas
   prisitaiko prie teksto dydžio ir kontrasto nustatymų.
 • 30 kalbų. Kalbasi tavo naršyklės kalba, kol pasirinksi kitą.
+• Ieškok iškart visų kanalų laidose.
+• Filtruok filmus pagal metus, įvertinimą ir trukmę.
 
 
 PRIVATUMAS IŠ PRADŽIŲ
 
 Jokio sekimo, jokių reklamų, jokios registracijos. Plėtinys kalbasi tik su
-tavo paties serveriu ir prašo leidimo tik šiam adresui – platesnė prieiga
-tik jei leisi, kai tiekėjas nukreipia srautus kitur. Įrašai lieka tavo
-kompiuteryje.
+tavo paties serveriu ir prašo leidimo tik šiam adresui – platesnė prieiga tik
+jei leisi, kai tiekėjas nukreipia srautus kitur. Įrašai lieka tavo
+kompiuteryje. Vienintelė išimtis: kanalų logotipai gali būti įkeliami iš
+viešos logotipų kolekcijos GitHub.
 
 
 DĖMESIO

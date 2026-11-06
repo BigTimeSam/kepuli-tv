@@ -16,15 +16,6 @@ en is gebouwd rond één idee: een enorme catalogus moet klein aanvoelen.
   (opnemen zet je aan in Instellingen)
 
 
-WAAROM IK HET MAAKTE
-
-Ik was het zat dat apps me dwarszaten: eindeloze categorielijsten,
-vensters die alles blokkeerden terwijl een catalogus laadde, en bestanden die
-gewoon niet wilden spelen. Dus bouwde ik de speler die ik zelf elke avond wil
-gebruiken.
-- Samuli, ontwikkelaar van Kepuli-TV
-
-
 WAT JE KRIJGT
 
 • Plak de M3U-link die je provider je stuurde en de instellingen vullen
@@ -52,14 +43,17 @@ WAT JE KRIJGT
   indeling volgt je instellingen voor tekstgrootte en contrast.
 • In 30 talen. Het spreekt de taal van je browser totdat je een andere
   kiest.
+• Doorzoek de programma’s van alle zenders tegelijk.
+• Filter films op jaar, beoordeling en lengte.
 
 
 PRIVÉ VANAF HET BEGIN
 
-Geen tracking, geen advertenties, geen registratie. De extensie praat alleen met
-jouw server en vraagt alleen toestemming voor dat adres — bredere toegang
+Geen tracking, geen advertenties, geen registratie. De extensie praat alleen
+met jouw server en vraagt alleen toestemming voor dat adres — bredere toegang
 alleen als jij dat toestaat, wanneer je provider de streams naar een ander
-adres doorstuurt. Opnames blijven op je computer.
+adres doorstuurt. Opnames blijven op je computer. De enige uitzondering:
+zenderlogo’s kunnen worden geladen uit een openbare logoverzameling op GitHub.
 
 
 LET OP

@@ -18,15 +18,6 @@ paraître petit.
   (l'enregistrement s'active dans les Réglages)
 
 
-POURQUOI JE L'AI CRÉÉ
-
-J'en avais assez des applis contre lesquelles je devais me battre : des
-listes de catégories interminables, des fenêtres qui bloquaient tout pendant
-le chargement d'un catalogue, et des fichiers qui refusaient tout simplement
-de se lire. Alors j'ai fait celle que j'avais envie d'utiliser chaque soir.
-- Samuli, développeur de Kepuli-TV
-
-
 CE QUE TU OBTIENS
 
 • Colle le lien M3U envoyé par ton fournisseur et les réglages se remplissent
@@ -55,6 +46,8 @@ CE QUE TU OBTIENS
   la taille du texte et le contraste réglés dans ton navigateur.
 • En 30 langues. Il parle celle de ton navigateur jusqu'à ce que tu en
   choisisses une autre.
+• Cherche dans tous les programmes à la fois.
+• Filtre les films par année, note et durée.
 
 
 CONÇU POUR LA VIE PRIVÉE
@@ -62,7 +55,8 @@ CONÇU POUR LA VIE PRIVÉE
 Pas de suivi, pas de pub, pas d'inscription. Kepuli-TV ne parle qu'à ton
 propre serveur et ne demande l'autorisation que pour cette adresse — un accès
 plus large seulement si tu l'autorises, quand ton fournisseur envoie les flux
-ailleurs. Les enregistrements restent sur ton ordinateur.
+ailleurs. Les enregistrements restent sur ton ordinateur. Seule exception :
+les logos peuvent venir d’une collection publique de logos sur GitHub.
 
 
 À SAVOIR

@@ -17,14 +17,6 @@ portālus, un tas radīts ap vienu domu: milzīgam katalogam jāliekas mazam.
   (ierakstīšanu ieslēdz Iestatījumos)
 
 
-KAPĒC TO RADĪJU
-
-Man apnika lietotnes, ar kurām jācīnās: bezgalīgi kategoriju saraksti,
-logi, kas visu iesaldē, kamēr ielādējas katalogs, un faili, kas vienkārši
-netika atskaņoti. Tāpēc uztaisīju tādu, kādu pats gribu lietot katru vakaru.
-- Samuli, Kepuli-TV izstrādātājs
-
-
 KO TU SAŅEM
 
 • Ielīmē sniedzēja atsūtīto M3U saiti, un iestatījumi aizpildās paši.
@@ -49,6 +41,8 @@ KO TU SAŅEM
 • Tumšs vai gaišs izskats, viss pieejams ar tastatūru; izkārtojums pielāgojas
   teksta izmēra un kontrasta iestatījumiem.
 • 30 valodās. Tā runā tava pārlūka valodā, kamēr izvēlies citu.
+• Meklē uzreiz visu kanālu raidījumos.
+• Filtrē filmas pēc gada, vērtējuma un garuma.
 
 
 PRIVĀTI PĒC BŪTĪBAS
@@ -56,7 +50,8 @@ PRIVĀTI PĒC BŪTĪBAS
 Bez izsekošanas, bez reklāmām, bez reģistrācijas. Kepuli-TV sazinās tikai ar
 tavu serveri un lūdz atļauju tikai šai adresei — plašāka piekļuve vienīgi tad,
 ja tu to atļauj un sniedzējs novirza straumes citur. Ierakstītais paliek tavā
-datorā.
+datorā. Vienīgais izņēmums: kanālu logotipi var tikt ielādēti no publiskas
+logotipu kolekcijas GitHub.
 
 
 UZMANĪBU

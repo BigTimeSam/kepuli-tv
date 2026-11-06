@@ -18,15 +18,6 @@ hissettirmeli.
   (kayıt özelliği Ayarlar'dan açılır)
 
 
-NEDEN YAPTIM
-
-Beni kendileriyle uğraştıran uygulamalardan bıkmıştım: bitmeyen
-kategori listeleri, katalog yüklenirken her şeyi donduran pencereler ve
-bir türlü oynamayan dosyalar. Ben de her akşam kullanmak isteyeceğim
-uygulamayı kendim yaptım.
-- Samuli, Kepuli-TV geliştiricisi
-
-
 NELER SUNUYOR
 
 • Sağlayıcının gönderdiği M3U bağlantısını yapıştır, ayarlar kendiliğinden
@@ -54,6 +45,8 @@ NELER SUNUYOR
 • Koyu ya da açık görünüm; klavye her yere ulaşır, yerleşim de metin boyutu
   ve kontrast ayarlarını izler.
 • 30 dilde. Sen başka bir dil seçene kadar tarayıcının dilini konuşur.
+• Tüm kanalların programlarında tek seferde ara.
+• Filmleri yıla, puana ve süreye göre süz.
 
 
 GİZLİLİK ODAKLI TASARIM
@@ -61,7 +54,8 @@ GİZLİLİK ODAKLI TASARIM
 Takip yok, reklam yok, üyelik yok. Eklenti yalnızca senin sunucunla konuşur ve
 sadece o adres için izin ister; sağlayıcın yayınları başka bir yere
 yönlendirdiğinde daha geniş erişim ancak sen izin verirsen. Kayıtlar senin
-bilgisayarında kalır.
+bilgisayarında kalır. Tek istisna: kanal logoları GitHub'daki herkese açık bir
+logo koleksiyonundan yüklenebilir.
 
 
 LÜTFEN DİKKAT

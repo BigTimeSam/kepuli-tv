@@ -17,15 +17,6 @@ entwickelt mit einer einzigen Idee: Ein riesiger Katalog soll sich klein anfühl
   (die Aufnahme wird in den Einstellungen eingeschaltet)
 
 
-WARUM ICH ES GEBAUT HABE
-
-Ich hatte genug von Apps, gegen die ich ankämpfen musste: endlose
-Kategorielisten, Dialoge, die alles einfrieren, während ein Katalog lädt, und
-Dateien, die sich einfach nicht abspielen ließen. Also habe ich die App gebaut,
-die ich selbst jeden Abend nutzen wollte.
-- Samuli, Entwickler von Kepuli-TV
-
-
 WAS DU BEKOMMST
 
 • Füge den M3U-Link deines Anbieters ein, und die Einstellungen füllen sich
@@ -54,6 +45,8 @@ WAS DU BEKOMMST
   folgt deinen Einstellungen für Textgröße und Kontrast.
 • In 30 Sprachen. Sie spricht die Sprache deines Browsers, bis du eine
   andere wählst.
+• Durchsuche die Sendungen aller Kanäle auf einmal.
+• Filtere Filme nach Jahr, Bewertung und Länge.
 
 
 PRIVATSPHÄRE VON ANFANG AN
@@ -61,7 +54,9 @@ PRIVATSPHÄRE VON ANFANG AN
 Kein Tracking, keine Werbung, keine Anmeldung. Die Erweiterung spricht nur mit
 deinem eigenen Server und bittet nur um Erlaubnis für diese Adresse — weiteren
 Zugriff nur, wenn du ihn erlaubst, falls dein Anbieter Streams anderswohin
-leitet. Aufnahmen bleiben auf deinem Computer.
+leitet. Aufnahmen bleiben auf deinem Computer. Die einzige Ausnahme:
+Kanallogos können aus der öffentlichen Logosammlung tv-logos auf GitHub
+kommen.
 
 
 BITTE BEACHTEN

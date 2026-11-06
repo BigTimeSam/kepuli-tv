@@ -17,14 +17,6 @@ khi dùng.
   (bật tính năng ghi trong Cài đặt)
 
 
-VÌ SAO TÔI LÀM RA NÓ
-
-Tôi chán những ứng dụng cứ bắt mình vật lộn: danh mục dài bất tận, hộp
-thoại làm đứng cả màn hình mỗi khi tải kho kênh, và những tệp nhất quyết
-chẳng chịu phát. Thế nên tôi tự làm ra ứng dụng mà mình muốn dùng mỗi tối.
-- Samuli, tác giả Kepuli-TV
-
-
 BẠN SẼ NHẬN ĐƯỢC
 
 • Dán liên kết M3U nhà cung cấp gửi, phần cài đặt tự điền xong.
@@ -51,14 +43,17 @@ BẠN SẼ NHẬN ĐƯỢC
   độ tương phản bạn chọn.
 • Có 30 ngôn ngữ. Tự dùng ngôn ngữ của trình duyệt cho đến khi bạn chọn
   ngôn ngữ khác.
+• Tìm cùng lúc trên mọi kênh.
+• Lọc phim theo năm, điểm đánh giá và thời lượng.
 
 
 RIÊNG TƯ TỪ THIẾT KẾ
 
 Không theo dõi, không quảng cáo, khỏi đăng ký. Kepuli-TV chỉ nói chuyện với
 máy chủ của chính bạn và chỉ xin quyền cho đúng địa chỉ đó — quyền rộng hơn
-chỉ khi bạn đồng ý, lúc nhà cung cấp đẩy luồng sang nơi khác. Bản ghi nằm
-lại trên máy tính của bạn.
+chỉ khi bạn đồng ý, lúc nhà cung cấp đẩy luồng sang nơi khác. Bản ghi nằm lại
+trên máy tính của bạn. Ngoại lệ duy nhất: logo kênh có thể được tải từ một bộ
+sưu tập logo công khai trên GitHub.
 
 
 LƯU Ý

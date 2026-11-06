@@ -17,15 +17,6 @@ postavený na jediné myšlence: obrovský katalog má působit jako malý.
   (nahrávání se zapíná v Nastavení)
 
 
-PROČ JSEM TO UDĚLAL
-
-Omrzely mě aplikace, se kterými jsem musel bojovat: nekonečné seznamy
-kategorií, dialogy, které při načítání nabídky zablokovaly úplně všechno, a
-soubory, které prostě odmítaly hrát. Tak jsem postavil takovou, jakou chci
-používat každý večer.
-- Samuli, autor Kepuli-TV
-
-
 CO ZÍSKÁŠ
 
 • Vlož odkaz M3U, který ti poslal dodavatel služby, a nastavení se vyplní
@@ -50,14 +41,17 @@ CO ZÍSKÁŠ
 • Tmavý nebo světlý vzhled, klávesnicí se dostaneš úplně všude; rozvržení
   respektuje velikost textu i nastavení kontrastu.
 • Ve 30 jazycích. Mluví řečí tvého prohlížeče, dokud nevybereš jinou.
+• Prohledej pořady všech kanálů najednou.
+• Filtruj filmy podle roku, hodnocení a délky.
 
 
 SOUKROMÍ JAKO ZÁKLAD
 
 Žádné sledování, žádné reklamy, žádná registrace. Rozšíření komunikuje jen s
 tvým vlastním serverem a o oprávnění žádá pouze pro tuto jedinou adresu —
-širší přístup jen tehdy, když ho povolíš a streamy se posílají jinam.
-Nahrávky zůstávají v tvém počítači.
+širší přístup jen tehdy, když ho povolíš a streamy se posílají jinam. Nahrávky
+zůstávají v tvém počítači. Jediná výjimka: loga kanálů se mohou načítat z
+veřejné sbírky log na GitHubu.
 
 
 UPOZORNĚNÍ

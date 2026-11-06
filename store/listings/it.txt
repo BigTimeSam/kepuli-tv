@@ -16,15 +16,6 @@ Kepuli-TV riproduce account Xtream Codes, playlist M3U e portali Stalker, ed
   (la registrazione si attiva nelle Impostazioni)
 
 
-PERCHÉ L'HO FATTO
-
-Ero stufo delle app con cui dovevo litigare: elenchi di categorie
-infiniti, finestre che bloccavano tutto mentre un catalogo si caricava e file
-che semplicemente non partivano. Così ho creato quella che volevo usare ogni
-sera.
-- Samuli, sviluppatore di Kepuli-TV
-
-
 COSA OTTIENI
 
 • Incolla il link M3U che ti ha mandato il fornitore e le impostazioni si
@@ -53,14 +44,18 @@ COSA OTTIENI
   segue la dimensione del testo e il contrasto impostati nel browser.
 • In 30 lingue. Parla quella del tuo browser finché non ne scegli
   un'altra.
+• Cerca in una volta sola tra i programmi di tutti i canali.
+• Filtra i film per anno, valutazione e durata.
 
 
 PRIVATO PER SCELTA
 
-Niente tracciamento, niente pubblicità, nessuna iscrizione richiesta. Kepuli-TV
-parla solo con il tuo server e chiede il permesso solo per quell'indirizzo — un
-accesso più ampio solo se lo consenti tu, quando il tuo provider invia i
-flussi altrove. Le registrazioni restano sul tuo computer.
+Niente tracciamento, niente pubblicità, nessuna iscrizione richiesta.
+Kepuli-TV parla solo con il tuo server e chiede il permesso solo per
+quell'indirizzo — un accesso più ampio solo se lo consenti tu, quando il tuo
+provider invia i flussi altrove. Le registrazioni restano sul tuo computer.
+Unica eccezione: i loghi possono essere caricati da una raccolta pubblica di
+loghi su GitHub.
 
 
 DA SAPERE

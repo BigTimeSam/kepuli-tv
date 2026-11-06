@@ -16,15 +16,6 @@ având la bază o singură idee: un catalog uriaș trebuie să pară mic.
   (înregistrarea se activează din Setări)
 
 
-DE CE L-AM FĂCUT
-
-M-am săturat de aplicațiile cu care trebuie să te cerți: liste nesfârșite
-de categorii, ferestre care blocau totul cât se încărca oferta și fișiere
-care pur și simplu nu voiau să ruleze. Așa că am construit-o pe cea pe care
-vreau s-o folosesc în fiecare seară.
-- Samuli, dezvoltatorul Kepuli-TV
-
-
 CE PRIMEȘTI
 
 • Lipește linkul M3U primit de la furnizor și setările se completează singure.
@@ -51,6 +42,8 @@ CE PRIMEȘTI
 • Aspect întunecat sau luminos, toate funcțiile sunt accesibile din tastatură,
   iar interfața urmează setările tale de mărime a textului și de contrast.
 • În 30 de limbi. Vorbește limba browserului tău până alegi alta.
+• Caută deodată în emisiunile tuturor canalelor.
+• Filtrează filmele după an, notă și durată.
 
 
 CONFIDENȚIALITATE DE LA ÎNCEPUT
@@ -58,7 +51,8 @@ CONFIDENȚIALITATE DE LA ÎNCEPUT
 Fără urmărire, fără reclame, fără înregistrare. Extensia vorbește doar cu
 serverul tău și cere permisiune numai pentru acea adresă — acces mai larg doar
 dacă îl accepți, atunci când furnizorul trimite fluxurile în altă parte.
-Înregistrările rămân pe calculatorul tău.
+Înregistrările rămân pe calculatorul tău. Singura excepție: siglele canalelor
+se pot încărca dintr-o colecție publică de sigle de pe GitHub.
 
 
 DE REȚINUT

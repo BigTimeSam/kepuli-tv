@@ -49,6 +49,8 @@ mbrëmje.
 • Pamje e errët ose e çelët, gjithçka arrihet me tastierë; faqosja ndjek
   madhësinë e tekstit dhe kontrastin që ke caktuar.
 • Në 30 gjuhë. Flet gjuhën e shfletuesit derisa të zgjedhësh një tjetër.
+• Kërko njëherësh te programet e të gjitha kanaleve.
+• Filtro filmat sipas vitit, vlerësimit dhe kohëzgjatjes.
 
 
 PRIVATËSI NGA NDËRTIMI
@@ -56,7 +58,8 @@ PRIVATËSI NGA NDËRTIMI
 Pa gjurmim, pa reklama, pa regjistrim. Kepuli-TV flet vetëm me serverin tënd
 dhe kërkon leje për atë adresë dhe asnjë tjetër — qasje më të gjerë nëse e
 lejon ti, kur ofruesi i dërgon transmetimet gjetkë. Incizimet mbeten në
-kompjuterin tënd.
+kompjuterin tënd. I vetmi përjashtim: logot e kanaleve mund të ngarkohen nga
+një koleksion publik logosh në GitHub.
 
 
 VINI RE

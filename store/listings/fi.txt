@@ -17,15 +17,6 @@ valikoiman pitää tuntua pieneltä.
   (tallennus otetaan käyttöön asetuksista)
 
 
-MIKSI TEIN SEN
-
-Kyllästyin sovelluksiin, joiden kanssa piti tapella: loputtomiin
-kategorialistoihin, ikkunoihin, jotka jäädyttivät kaiken luettelon latautuessa,
-ja tiedostoihin, jotka eivät yksinkertaisesti toistuneet. Niinpä tein
-sellaisen, jota halusin käyttää joka ilta.
-- Samuli, Kepuli-TV:n kehittäjä
-
-
 MITÄ SAAT
 
 • Liitä palveluntarjoajasi lähettämä M3U-linkki, niin asetukset täyttyvät
@@ -52,6 +43,8 @@ MITÄ SAAT
 • Tumma tai vaalea ulkoasu, ja kaikkeen pääsee näppäimistöllä; asettelu
   noudattaa tekstikokoa ja kontrastiasetuksia.
 • 30 kielellä. Se puhuu selaimesi kieltä, kunnes valitset toisen.
+• Hae kaikkien kanavien ohjelmista kerralla.
+• Suodata elokuvia vuoden, arvosanan ja keston mukaan.
 
 
 YKSITYISYYS RAKENNETTU SISÄÄN
@@ -59,7 +52,8 @@ YKSITYISYYS RAKENNETTU SISÄÄN
 Ei seurantaa, ei mainoksia, ei rekisteröitymistä. Kepuli-TV keskustelee vain
 oman palvelimesi kanssa ja pyytää luvan vain siihen osoitteeseen – laajemman
 pääsyn vain, jos itse sallit sen, kun palveluntarjoajasi ohjaa lähetykset
-muualle. Tallenteet pysyvät omalla koneellasi.
+muualle. Tallenteet pysyvät omalla koneellasi. Ainoa poikkeus: kanavien logot
+voivat latautua julkisesta logokokoelmasta GitHubista.
 
 
 HUOM
