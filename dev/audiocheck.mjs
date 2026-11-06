@@ -28,12 +28,14 @@ import { cpSync, existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } fr
 import { homedir } from 'node:os';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
+// The files a package holds, from the packaging itself: a list of its own
+// here fell behind when _locales/ joined the manifest.
+import { SHARED } from './package.mjs';
 
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const CACHE = join(homedir(), '.cache', 'kepuli-tv-audiocheck');
 const MEDIA = join(ROOT, 'dev', 'wasm', 'media');
 const RATE = 48000;
-const SHARED = ['player.html', 'background.js', 'js', 'css', 'vendor', 'icons'];
 
 // The material and the block timestamps Matroska would give it: the files
 // are constant bit rate, so the byte offset maps to time, piecewise where
