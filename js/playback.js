@@ -1439,7 +1439,7 @@ function nativeChain(spec) {
  * @param {PlaySpec} spec
  * @returns {string[]}
  */
-function buildChain(spec) {
+export function buildChain(spec) {
   // A recording from the disk (js/recorder.js) is what it was recorded as.
   if (spec.recording) return spec.ext === 'mp4' ? ['native'] : ['mpegts'];
   if (/\.m3u8($|\?)/i.test(spec.url)) return ['hls'];
@@ -1448,7 +1448,10 @@ function buildChain(spec) {
     if (spec.mode === 'hls') return spec.hlsUrl ? ['hls', 'mpegts'] : ['mpegts'];
     return spec.hlsUrl ? ['mpegts', 'hls'] : ['mpegts'];
   }
-  if (/\.(ts|flv)($|\?)/i.test(spec.url)) return ['mpegts'];
+  // By the address or by the type the provider gave: neither browser plays
+  // MPEG-TS or FLV itself, and a file named without its extension once
+  // went to the native player and failed there.
+  if (/\.(ts|flv)($|\?)/i.test(spec.url) || /^(ts|flv)$/i.test(spec.ext || '')) return ['mpegts'];
   if (/\.(mp4|m4v|mov)($|\?)/i.test(spec.url) || /^(mp4|m4v|mov)$/i.test(spec.ext || '')) return nativeChain(spec);
   if (isPlayableExtension(spec.ext) || /\.(webm|ogv)($|\?)/i.test(spec.url)) return ['native'];
   return [];

@@ -1519,6 +1519,11 @@ check('xmltv: a playlist name and a guide name meet', ['FI: Yle TV1 HD', 'Yle TV
     engineReason(Object.assign(new Error('Said for you'), { said: true })),
     engineReason(null),
   ], [t('playback.reason.demux'), t('playback.reason.network'), 'Said for you', t('playback.reason.demux')]);
+  const { buildChain } = await import('../js/playback.js');
+  check('playback: the engines for a file by its address or by the type the provider gave', [
+    buildChain({ url: 'http://p/movie/u/p/1.ts' }), buildChain({ url: 'http://p/play?id=1', ext: 'ts' }), buildChain({ url: 'http://p/play?id=2', ext: 'flv' }),
+    buildChain({ url: 'http://p/a.m3u8' }), buildChain({ url: 'http://p/play?id=3', ext: 'avi' }),
+  ], [['mpegts'], ['mpegts'], ['mpegts'], ['hls'], []]);
 }
 
 // What the header says decides the route a file takes and the mark its row
