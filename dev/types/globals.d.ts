@@ -10,3 +10,9 @@
 
 declare const Hls: any;
 declare const mpegts: any;
+
+// The directory handle is async-iterable in every browser the player runs
+// in; TypeScript's DOM library does not say so yet.
+interface FileSystemDirectoryHandle {
+  entries(): AsyncIterableIterator<[string, FileSystemHandle]>;
+}

@@ -1,3 +1,4 @@
+// @ts-check
 // The keys on a strip of tiles: the related titles under the picture, the
 // films' favourites strip, and the empty player's Continue watching,
 // channels and picks. Each tile is a button of its own, outside the list,
@@ -47,12 +48,12 @@ export function handleTileKey(e) {
   const binding = bound.get(target);
   switch (e.key) {
     case 'ArrowLeft': case 'ArrowRight': case 'ArrowUp': case 'ArrowDown': case 'Home': case 'End': {
-      const tile = target.closest(TILES);
+      const tile = /** @type {HTMLElement|null} */ (target.closest(TILES));
       if (tile) {
         // Up and down may leave a strip for the one below it on the
         // empty player's page; left and right keep to the strip.
         const scope = e.key === 'ArrowUp' || e.key === 'ArrowDown' ? strip.closest('#idle-home') || strip : strip;
-        const tiles = [...scope.querySelectorAll(TILES)].filter(visible);
+        const tiles = [.../** @type {NodeListOf<HTMLElement>} */ (scope.querySelectorAll(TILES))].filter(visible);
         const next = tiles[neighbourTile(tiles.map((node) => node.getBoundingClientRect()), tiles.indexOf(tile), e.key)];
         if (next) {
           next.focus();
@@ -89,6 +90,6 @@ function star(item, strip, target) {
   toast(t(on ? 'fav.added' : 'fav.removed', { name: shownName(item) }));
   if (target.isConnected) return;
   const again = document.querySelectorAll(selector)[stripAt];
-  const tiles = again ? [...again.querySelectorAll(TILES)] : [];
+  const tiles = again ? [.../** @type {NodeListOf<HTMLElement>} */ (again.querySelectorAll(TILES))] : [];
   (tiles[Math.min(tileAt, tiles.length - 1)] || again?.closest('#fav-strip, .related, #idle-home')?.querySelector('button'))?.focus();
 }

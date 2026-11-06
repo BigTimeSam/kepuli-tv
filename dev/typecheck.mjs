@@ -41,13 +41,16 @@ const TYPESCRIPT = 'typescript@5.9';
 // nothing in it, and stays clean from then on.
 const TYPED = ['js/config.js', 'js/library.js', 'js/api.js',
   'js/playback.js', 'js/browser.js', 'js/channelprefs.js', 'js/db.js',
-  'js/ebml.js', 'js/epg.js', 'js/fetchtext.js', 'js/format.js',
-  'js/guide.js', 'js/i18n.js', 'js/international.js', 'js/lang.js',
-  'js/listorder.js', 'js/logos.js', 'js/m3u.js', 'js/m3usource.js',
-  'js/mediafilters.js', 'js/mkv.js', 'js/mp4.js', 'js/mp4file.js',
-  'js/mp4play.js', 'js/name.js', 'js/permissions.js', 'js/picker.js',
-  'js/picks.js', 'js/probe.js', 'js/rating.js', 'js/remux.js',
-  'js/stalker.js', 'js/subs.js', 'js/sync.js', 'js/titlemeta.js',
+  'js/dom.js', 'js/ebml.js', 'js/epg.js', 'js/epggrid.js', 'js/fetchtext.js',
+  'js/format.js', 'js/guide.js', 'js/help.js', 'js/i18n.js',
+  'js/international.js', 'js/lang.js', 'js/listorder.js', 'js/logos.js',
+  'js/m3u.js', 'js/m3usource.js', 'js/mediafilters.js', 'js/mkv.js',
+  'js/mp4.js', 'js/mp4file.js', 'js/mp4play.js', 'js/name.js',
+  'js/nextepisode.js', 'js/permissions.js', 'js/picker.js', 'js/picks.js',
+  'js/playing.js', 'js/poster.js', 'js/probe.js', 'js/rating.js',
+  'js/recorder.js', 'js/remux.js', 'js/route.js', 'js/stalker.js',
+  'js/streamhub.js', 'js/subdisplay.js', 'js/subs.js', 'js/sync.js',
+  'js/testclock.js', 'js/tilekeys.js', 'js/titleinfo.js', 'js/titlemeta.js',
   'js/transcode.js', 'js/xmltv.js', 'js/xtream.js'];
 
 const problems = [];

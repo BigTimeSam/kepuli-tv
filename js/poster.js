@@ -1,3 +1,4 @@
+// @ts-check
 // Decorative covers share one fallback in lists and detail views.
 // Their dimensions belong to the container, so loading cannot move the text.
 import { t } from './i18n.js';
@@ -15,7 +16,7 @@ export function poster(className, src, kind = 'movie', { expand = false, title =
   const frame = document.createElement(interactive ? 'button' : 'span');
   frame.className = `poster ${className}`;
   if (kind === 'channel') frame.classList.add('channel-logo');
-  if (interactive) {
+  if (frame instanceof HTMLButtonElement) {
     frame.type = 'button';
     frame.disabled = true;
     frame.title = t('poster.open', { title });
@@ -33,7 +34,7 @@ export function poster(className, src, kind = 'movie', { expand = false, title =
   img.addEventListener('load', () => {
     frame.classList.remove('loading');
     frame.classList.add('loaded');
-    if (interactive) frame.disabled = false;
+    if (frame instanceof HTMLButtonElement) frame.disabled = false;
   }, { once: true });
   img.addEventListener('error', () => {
     frame.classList.remove('loading', 'loaded');

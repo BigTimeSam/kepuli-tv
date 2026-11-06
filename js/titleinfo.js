@@ -1,3 +1,4 @@
+// @ts-check
 import { t, localeTag } from './i18n.js';
 import { duration, nf } from './format.js';
 import { personUrl, titleLinks } from './titlelinks.js';
@@ -8,6 +9,10 @@ import { ratingText } from './rating.js';
 /** "H264 (720p)", "AAC (2 ch)": the format, and what it carries in brackets. */
 const qualified = (main, detail) => (main && detail ? `${main} (${detail})` : main || detail || '');
 
+/**
+ * @param {object} info
+ * @param {{episodes?: number, seasons?: number, duration?: boolean}} [options]
+ */
 export function titleFacts(info, { episodes, seasons, duration: withDuration = false } = {}) {
   const list = document.createElement('dl');
   list.className = 'title-facts';

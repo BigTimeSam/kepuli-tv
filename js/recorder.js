@@ -1,3 +1,4 @@
+// @ts-check
 // Recording a live channel to the browser's own storage.
 //
 // A recording is the channel's stream as the provider sends it, written to
@@ -110,9 +111,10 @@ async function writePart(id, index, chunks) {
 /** The recording as one Blob: its parts, in order, read from disk as needed. */
 export async function recordingBlob(id, type = 'video/mp2t') {
   const dir = await folder(id);
+  /** @type {[string, FileSystemFileHandle][]} */
   const parts = [];
   for await (const [name, handle] of dir.entries()) {
-    if (handle.kind === 'file' && name.endsWith('.part')) parts.push([name, handle]);
+    if (handle instanceof FileSystemFileHandle && name.endsWith('.part')) parts.push([name, handle]);
   }
   parts.sort((a, b) => (a[0] < b[0] ? -1 : 1));
   const files = await Promise.all(parts.map(([, handle]) => handle.getFile()));
@@ -182,6 +184,10 @@ const looksHls = (url, type = '') => /\.m3u8?($|\?)/i.test(url) || /mpegurl/i.te
 /* ------------------------------------------------------------ recording */
 
 class Job {
+  /**
+   * @param {object} entry
+   * @param {{ key: string, openUrl: () => Promise<string>, fallbackUrl?: string, onProgress: (job: Job) => void }} how
+   */
   constructor(entry, { key, openUrl, fallbackUrl, onProgress }) {
     this.entry = entry;
     this.id = entry.id;
@@ -200,6 +206,8 @@ class Job {
     this.ext = 'ts';
     this.stopped = false;
     this.finishedBy = null;      // 'user' | 'end' | 'error'
+    /** @type {(() => void)|null} the shared connection's tap, closed on stop */
+    this.closeTap = null;
   }
 
   add(chunk) {
@@ -242,6 +250,7 @@ class Job {
  * starts, writes a part and ends.
  */
 export class Recorder {
+  /** @param {{onChange?: (job: object) => void}} [options] */
   constructor({ onChange = () => {} } = {}) {
     this.jobs = new Map();
     this.onChange = onChange;
@@ -347,9 +356,7 @@ export class Recorder {
     if (job.stopped) { handle.close(); return null; }
     if (looksHls(handle.url, handle.head.type)) { handle.close(); return handle.url; }
     if (!handle.head.ok) {
-      const err = new Error(`HTTP ${handle.head.status}`);
-      err.status = handle.head.status;
-      throw err;
+      throw Object.assign(new Error(`HTTP ${handle.head.status}`), { status: handle.head.status });
     }
     const abort = new Promise((resolve) => job.ctrl.signal.addEventListener('abort', resolve, { once: true }));
     const err = await Promise.race([done, abort]);
@@ -367,7 +374,7 @@ export class Recorder {
     let playlistUrl = url;
     while (!job.stopped && Date.now() < stopAt) {
       const res = await fetch(playlistUrl, { signal, cache: 'no-store', credentials: 'omit' });
-      if (!res.ok) { const err = new Error(`HTTP ${res.status}`); err.status = res.status; throw err; }
+      if (!res.ok) throw Object.assign(new Error(`HTTP ${res.status}`), { status: res.status });
       const list = parseHlsPlaylist(await res.text(), res.url || playlistUrl);
       if (list.variants.length) { playlistUrl = list.variants[0].uri; continue; }
       if (list.map && !mapped) {

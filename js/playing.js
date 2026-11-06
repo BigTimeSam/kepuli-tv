@@ -1,3 +1,4 @@
+// @ts-check
 // Playing an item: the engine's reports turned into what the overlay shows,
 // what the account says when a stream fails (connections in use, an
 // expired subscription), the player's other tabs that hold a connection,
@@ -179,7 +180,8 @@ function onPlaybackState(s) {
  * viewer is offered "try again" and "change the playback mode", which are
  * the two things that cannot help.
  *
- * @param {boolean} busy whether to count connections as well. At connect
+ * @param {object|null} account
+ * @param {{busy?: boolean}} [options] busy: whether to count connections as well. At connect
  *        time the count says nothing — no stream has been asked for yet —
  *        and only a failure makes it worth reading.
  */
@@ -586,6 +588,10 @@ export async function itemAddress(item, config = state.config, source = state.so
 /** A channel's place in the shared connections (js/streamhub.js). */
 export const channelKey = (config, item) => `${store.accountKey(config)}|${item.k}:${item.id}`;
 
+/**
+ * @param {object} item
+ * @param {{startAt?: number, allowSilent?: boolean}} [options]
+ */
 export async function playItem(item, { startAt, allowSilent } = {}) {
   // Snapshot the visible name so later browsing cannot rename playback.
   const cleaned = listName(item);

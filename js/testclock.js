@@ -1,3 +1,4 @@
+// @ts-check
 // A clock for the visual check, and for nothing else.
 //
 // dev/visualcheck.mjs compares the store views with reference pictures, and
@@ -19,7 +20,7 @@ if (at > 0) {
   const shift = at - Real.now();
   const now = () => Real.now() + shift;
   globalThis.Date = new Proxy(Real, {
-    construct: (target, args) => (args.length ? new target(...args) : new target(now())),
+    construct: (target, args) => Reflect.construct(target, args.length ? args : [now()]),
     apply: () => new Real(now()).toString(),
     get: (target, key) => (key === 'now' ? now : Reflect.get(target, key)),
   });

@@ -1,3 +1,4 @@
+// @ts-check
 // One connection to a live channel, however many in the page want it.
 //
 // A provider counts connections, and many accounts allow one. Recording the
@@ -130,7 +131,8 @@ class Upstream {
   }
 }
 
-let plainFetch = (...args) => globalThis.fetch(...args);
+/** @type {typeof fetch} */
+let plainFetch = (input, init) => globalThis.fetch(input, init);
 
 /** The connection to a channel: the running one, or a new one to the address. */
 function upstreamFor(key, url) {
@@ -192,7 +194,7 @@ async function sharedResponse(key, url, signal) {
  * the network as it is.
  */
 export function installFetchTap() {
-  if (globalThis.fetch.kepuliTap) return;
+  if ('kepuliTap' in globalThis.fetch) return;
   const original = globalThis.fetch.bind(globalThis);
   plainFetch = original;
   const tapped = function fetch(input, init = {}) {
@@ -205,8 +207,7 @@ export function installFetchTap() {
     if (method !== 'GET' || (range && !/^bytes=0-$/.test(range.trim()))) return original(input, init);
     return sharedResponse(key, url, init.signal);
   };
-  tapped.kepuliTap = true;
-  globalThis.fetch = tapped;
+  globalThis.fetch = Object.assign(tapped, { kepuliTap: true });
 }
 
 /**

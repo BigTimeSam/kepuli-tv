@@ -1,3 +1,4 @@
+// @ts-check
 // The subtitle display: the cues of the showing text track, drawn over the
 // picture by the app rather than by the browser.
 //
@@ -189,7 +190,7 @@ export class SubtitleDisplay {
     const cues = [];
     for (const track of this.video.textTracks) {
       if (track.mode !== 'showing' || !track.activeCues) continue;
-      for (const cue of track.activeCues) cues.push(cue);
+      for (const cue of track.activeCues) cues.push(/** @type {VTTCue} */ (cue));
     }
     // The same cue stays on screen across many cuechange events — a track
     // that gains a cue elsewhere fires one too — and rebuilding it would
@@ -216,7 +217,7 @@ export class SubtitleDisplay {
     const line = Math.round(Math.min(100, Math.max(0, 100 - rest / box * 100)) * 10) / 10;
     for (const track of this.video.textTracks) {
       if (track.mode !== 'showing' || !track.cues) continue;
-      for (const cue of track.cues) {
+      for (const cue of /** @type {Iterable<VTTCue>} */ (/** @type {unknown} */ (track.cues))) {
         if (cue.line === line && !cue.snapToLines) continue;
         cue.snapToLines = false;
         cue.lineAlign = 'end';

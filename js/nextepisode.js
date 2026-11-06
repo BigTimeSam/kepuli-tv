@@ -1,3 +1,4 @@
+// @ts-check
 // The place a film or an episode was left at, saved while it plays; the
 // next episode and its countdown at the end of one; the badge of the
 // stream's figures on the picture.

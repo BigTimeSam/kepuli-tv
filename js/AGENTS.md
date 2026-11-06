@@ -104,18 +104,20 @@ with the console open and run the scenarios of that feature. A
 
 - **Typed modules stay clean.** Most modules without DOM wiring begin with
   `// @ts-check` and carry JSDoc types; the list is `TYPED` in
-  `dev/typecheck.mjs` (38 modules: settings and storage, the data layer and
+  `dev/typecheck.mjs` (51 modules: settings and storage, the data layer and
   all three providers, the parsers and formatters, MKV and MP4, the
-  playback engine and the audio re-encoding, the picker). The shared shapes are typedefs: `Config`, `Settings`, `ListItem`
+  playback engine, starting playback, recording and the shared connection,
+  the guide's grid, the subtitles' layer, the address and `dom.js`). The shared shapes are typedefs: `Config`, `Settings`, `ListItem`
   in `config.js`; `CatalogueItem`, `Category`, `Programme`, `RequestOptions`,
   `StreamOptions` in `api.js`; `Provider`, `Group` in `library.js`;
   `PlaySpec`, `LoadInfo` in `playback.js`. New code in them gets its JSDoc
   too, and `node dev/typecheck.mjs` must report nothing: it counts every
   error the checker finds there. A cast is written `/** @type {T} */ (expr)`
   with a comment saying why the declared type is wrong; no `any` where the
-  shape is known. A module joins the list once it is clean. The UI modules
-  that wire the page (`app.js`, `setupui.js` and the other `*ui.js`) are not
-  typed: their errors are about DOM element types, and `namecheck.mjs`
+  shape is known. A module joins the list once it is clean. The modules
+  that wire the page (`app.js`, `setupui.js`, the other `*ui.js` and a few
+  more) are not typed yet: what is left there is mostly elements looked up
+  by id that the checker takes for a plain HTMLElement, and `namecheck.mjs`
   covers them for names and imports.
 - **Extension APIs through `browser.js`** (`api.storage…`), never a bare
   `chrome.` in shared code: Firefox runs the same file.

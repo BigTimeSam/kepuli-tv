@@ -1,3 +1,4 @@
+// @ts-check
 // The interactive programme guide: channels as rows, time on the
 // horizontal axis.
 //

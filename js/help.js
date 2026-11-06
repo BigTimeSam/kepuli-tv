@@ -1,3 +1,4 @@
+// @ts-check
 // The help dialog: the keyboard shortcuts, the guide's keys, and the note on
 // why the browser's back button leaves the player.
 //
@@ -54,5 +55,6 @@ export function openHelp() {
   });
   $('help-keys').replaceChildren(...rows(SHORTCUTS));
   $('help-keys-more').replaceChildren(...rows(MORE_SHORTCUTS));
-  if (!$('help').open) $('help').showModal();
+  const dialog = /** @type {HTMLDialogElement} */ ($('help'));
+  if (!dialog.open) dialog.showModal();
 }

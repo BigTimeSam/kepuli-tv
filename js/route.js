@@ -1,3 +1,4 @@
+// @ts-check
 // Where we are, as an address.
 //
 // The player is one page, and nothing outside it used to say which list was
@@ -52,7 +53,8 @@ const MOVIE_TABS = ['movie'];
 // A collection's type filter: the same values as KIND_ORDER in app.js, and
 // the word each has in the address.
 const KINDS = ['c', 0, 1, 2];
-const KIND_WORDS = new Map([['c', 'category'], [0, 'channel'], [1, 'movie'], [2, 'series']]);
+/** @type {Map<string|number, string>} */
+const KIND_WORDS = new Map(/** @type {[string|number, string][]} */ ([['c', 'category'], [0, 'channel'], [1, 'movie'], [2, 'series']]));
 // A tab's word in the address, where it is not the tab's own id.
 const TAB_WORDS = new Map([['fav', 'favorites'], ['recent', 'history']]);
 // The guide is the channel list's, so its word stands for the channels' tab.
