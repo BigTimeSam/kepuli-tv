@@ -253,7 +253,8 @@
   Xtream account goes without its password, a programme guide address that carries credentials
   goes blank, the stream addresses of your favourites and history stay behind (they often carry
   your user name and password), and a playlist whose address carries credentials does not go at
-  all, nor do its lists. The lists are named in the sync storage by a code made from the account,
+  all, nor do its lists. Without it, a Stalker portal account does not go either, as its MAC
+  address works as a password. The lists are named in the sync storage by a code made from the account,
   not by the account's address. Turning sync off stops it; the catalogue cache is never synced.
 </p>
 <p>
@@ -311,7 +312,8 @@
   </li>
   <li>
     <strong>Cover art and your provider's logos.</strong> The browser loads these images from the
-    addresses your provider put in the listing. Those may point to a third-party server, which
+    addresses your provider put in the listing (an address to a file page on github.com is read
+    as the same file on <code>raw.githubusercontent.com</code>, which is where GitHub serves it). Those may point to a third-party server, which
     then sees your IP address and browser details, exactly as when any web page loads an image.
     The extension does not choose these addresses and adds no identifiers to them.
   </li>
@@ -320,6 +322,13 @@
     the extension builds a playlist file or a URL and gives it to your operating system. The
     address contains your IPTV credentials, but it does not leave your device: it is passed
     locally to the player you installed, which opens the stream from your own server.
+  </li>
+  <li>
+    <strong>Links you click.</strong> A film's or a series' IMDb page and trailer on YouTube, a
+    search on IMDb for a person in its credits, and Help, which opens the user guide on GitHub,
+    open in a new tab only when you click them; that site then sees the visit as it sees any
+    other. The IMDb search sends the person's name, and nothing about your account or what you
+    watch.
   </li>
   <li>
     <strong>Copy to clipboard and playlist files.</strong> A stream URL is copied only when you

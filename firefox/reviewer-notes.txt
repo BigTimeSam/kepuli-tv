@@ -21,4 +21,4 @@ https://www.npmjs.com/package/mpegts.js/v/1.8.0
 
 vendor/ffaudio is our Emscripten 6.0.9 build of FFmpeg n7.1.1. The source ZIP contains the full FFmpeg source, our C wrapper and the exact build commands in its README.md. LGPL-2.1-or-later; no GPL or nonfree flags.
 
-The innerHTML warning in js/rows.js is a fixed SVG constant, LIST_ICON, with no user or provider input. Function-constructor warnings come from the unchanged upstream mpegts.js; the CSP forbids string evaluation. No remote code is loaded.
+Every innerHTML and insertAdjacentHTML write is a fixed SVG constant with no user or provider input; dev/htmlcheck.mjs enforces it. Function-constructor warnings come from the unchanged upstream mpegts.js; the CSP forbids string evaluation. No remote code is loaded.
