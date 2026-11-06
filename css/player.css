@@ -291,7 +291,7 @@ h2, h3 { font-weight: 600; }
 .filter-chip:hover { border-color: var(--accent); }
 
 .topbar-end { margin-left: auto; display: flex; align-items: center; flex: none; gap: 6px; }
-.icon-button { display: inline-flex; align-items: center; justify-content: center; gap: 7px; min-width: 34px; height: 32px; color: var(--muted); }
+.icon-button { display: inline-flex; align-items: center; justify-content: center; gap: 7px; min-width: 2.125rem; height: 2rem; color: var(--muted); }
 .icon-button:hover { color: var(--text); }
 .icon-button:not(.labelled) { padding: 0; width: 34px; }
 .icon-button svg { width: 17px; height: 17px; flex: none; fill: none; stroke: currentColor; stroke-width: 1.6; stroke-linecap: round; stroke-linejoin: round; }
@@ -476,7 +476,7 @@ button.group-star:hover { color: var(--text); background: var(--track); }
 /* The folding headings over the list — the filters, the favourites: the
    same mark, gap, type and fold, so that the two read as one family. */
 .section-toggle {
-  display: flex; align-items: center; gap: 8px; width: 100%; min-height: 36px; padding: 8px 12px;
+  display: flex; align-items: center; gap: 8px; width: 100%; min-height: 2.25rem; padding: 8px 12px;
   border: 0; background: none; color: var(--text); font: inherit; font-size: 0.78125rem; font-weight: 600;
   text-align: left; cursor: pointer; list-style: none;
 }
@@ -675,7 +675,7 @@ button.series-favorite { flex: none; width: 32px; height: 32px; padding: 0; disp
 .related { display: grid; gap: 8px; margin-top: 4px; }
 .related h4 { margin: 6px 0 0; color: var(--muted); font-size: 0.6875rem; font-weight: 600; letter-spacing: .06em; text-transform: uppercase; }
 .related-row { display: flex; gap: 12px; overflow-x: auto; padding-bottom: 4px; }
-.related-tile { flex: none; width: 96px; display: flex; flex-direction: column; gap: 3px; padding: 0; border: 0; background: transparent; color: var(--text); text-align: left; cursor: pointer; font: inherit; }
+.related-tile { flex: none; width: 6rem; display: flex; flex-direction: column; gap: 3px; padding: 0; border: 0; background: transparent; color: var(--text); text-align: left; cursor: pointer; font: inherit; }
 .related-cover { width: 96px; aspect-ratio: 2 / 3; border-radius: 6px; }
 /* Hover lifts the cover as a cover in the list does; the keyboard's focus
    is the accent outline every other tile and button has. */
@@ -686,7 +686,7 @@ button.series-favorite { flex: none; width: 32px; height: 32px; padding: 0; disp
 .related-meta { font-size: 0.6875rem; color: var(--muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .vodinfo-body { min-width: 0; flex: 1; }
 .vodinfo .title-links { margin-top: 0; margin-bottom: 10px; }
-.infostrip:has(.title-facts) { max-height: 210px; }
+.infostrip:has(.title-facts) { max-height: 13.125rem; }
 /* The picture's shape known (sizePicture in js/app.js): the box is as tall
    as the picture, so the column does not spend its height on black bands,
    and the details below take the rest — all of them where they fit. When
@@ -702,7 +702,7 @@ main:not(.guide) .stage:has(> .videowrap.sized:not(:fullscreen)) > .infostrip { 
 .vodinfo .meta { padding-top: 8px; border-top: 1px solid var(--border); }
 .vodinfo .meta:empty { display: none; }
 
-.detail-plot { color: var(--muted); font-size: 0.75rem; max-height: 66px; overflow-y: auto; }
+.detail-plot { color: var(--muted); font-size: 0.75rem; max-height: 4.125rem; overflow-y: auto; }
 .seasons { display: flex; gap: 5px; padding: 0 12px 10px; flex-wrap: wrap; }
 .season { background: var(--panel-2); border: 1px solid var(--border); border-radius: 7px; padding: 3px 10px; cursor: pointer; color: var(--muted); }
 .season:hover { color: var(--text); }
