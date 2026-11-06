@@ -2164,7 +2164,10 @@ async function screenbutton(page) {
   assert(await label() === 'Full screen', `the button's label before: ${await label()}`);
   await evaluate(page, `document.getElementById('btn-screen').click()`, { gesture: true });
   await waitFor(page, FULL, 'the player full screen');
-  assert(await label() === 'Leave full screen', `the button's label in full screen: ${await label()}`);
+  // The label follows the fullscreenchange event, a moment after the
+  // element changed: asked at once, it was the old one now and then.
+  await waitFor(page, `document.getElementById('btn-screen').getAttribute('aria-label') === 'Leave full screen'`, 'the label in full screen', 3000)
+    .catch(async () => assert(false, `the button's label in full screen: ${await label()}`));
   await playEpisode(page);
   await evaluate(page, `document.activeElement.blur()`);
   await pressKey(page, 'f', 'KeyF', 70);
@@ -2173,7 +2176,8 @@ async function screenbutton(page) {
   await waitFor(page, FULL, 'back to the player still full screen');
   await evaluate(page, `document.getElementById('btn-screen').click()`, { gesture: true });
   await waitFor(page, `!document.fullscreenElement`, 'out of full screen');
-  assert(await label() === 'Full screen', `the button's label after: ${await label()}`);
+  await waitFor(page, `document.getElementById('btn-screen').getAttribute('aria-label') === 'Full screen'`, 'the label after', 3000)
+    .catch(async () => assert(false, `the button's label after: ${await label()}`));
   return { ok: true, detail: 'the button took the player full screen and back, its label following; f put the picture over it and returned to the player full screen' };
 }
 
