@@ -2014,6 +2014,9 @@ async function lengthfilter(page) {
     return { text: document.querySelector('.length-filter output').textContent, count: document.querySelector('#media-filters .section-count').textContent,
       lengths: [...document.querySelectorAll('#list .row')].map((r) => r.querySelector('.row-duration, .card-meta')?.textContent || '').map(minutes) }; })()`);
   assert(after.lengths.length && after.lengths.every((m) => m > 0 && m <= middle) && /–/.test(after.text), `cut to ≤ ${middle} min: ${JSON.stringify(after)}`);
+  // A screen reader hears the handle's value as a length, not a bare number.
+  const spoken = await evaluate(page, `document.querySelectorAll('.length-filter input')[1].getAttribute('aria-valuetext')`);
+  assert(spoken && /min|h/.test(spoken) && !/^\d+$/.test(spoken), `the handle reads as ${JSON.stringify(spoken)}`);
   if (process.env.KEPULI_LENGTH_SHOT) {
     const fs = await import('node:fs');
     const { data } = await page.call('Page.captureScreenshot', { format: 'png' });
@@ -2899,6 +2902,10 @@ async function channels(page) {
   await menu(3);
   await choose('Hide channel');
   assert(!(await names()).includes(hide), 'the hidden channel is still listed');
+  // Undo stays while the keyboard is on it, past the strip's seven seconds.
+  await evaluate(page, `document.querySelector('#toast .toast-action').focus()`);
+  await sleep(8000);
+  assert(await evaluate(page, `!document.getElementById('toast').hidden`), 'the Undo strip went while it held the focus');
   await evaluate(page, `document.querySelector('#toast .toast-action').click()`);
   await waitFor(page, `[...document.querySelectorAll('#list .row-name')].some((n) => n.title === ${JSON.stringify(hide)})`, 'Undo bringing the channel back');
   await menu(3);

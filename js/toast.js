@@ -38,8 +38,14 @@ export function toast(text, { long = false, kind = 'info', action = null, durati
   el.toast.hidden = false;
   clearTimeout(toastTimer);
   // An error deserves the time it takes to read it, and so does a message
-  // with something in it to press.
-  toastTimer = setTimeout(() => { el.toast.hidden = true; }, duration ?? (long || action ? 7000 : 2800));
+  // with something in it to press. A strip that holds the pointer or the
+  // focus stays until they leave it: seven seconds were too short to reach
+  // Undo with the keyboard or a screen reader (WCAG 2.2.1).
+  const hide = () => {
+    if (el.toast.matches(':hover, :focus-within')) toastTimer = setTimeout(hide, 1000);
+    else el.toast.hidden = true;
+  };
+  toastTimer = setTimeout(hide, duration ?? (long || action ? 7000 : 2800));
 }
 
 /**

@@ -175,6 +175,8 @@ export class MediaFilters {
     const [from, to] = this.lengthInputs;
     const min = Number(from.min), max = Number(from.max);
     const all = Number(from.value) <= min && Number(to.value) >= max;
+    // A screen reader would otherwise read the handle as a bare "90".
+    for (const input of this.lengthInputs) input.setAttribute('aria-valuetext', duration(Number(input.value) * 60));
     this.lengthText.textContent = all ? t('filters.anyLength')
       : `${duration(Number(from.value) * 60, { compact: true })} – ${duration(Number(to.value) * 60, { compact: true })}`;
     const share = (v) => `${max > min ? ((Number(v) - min) / (max - min)) * 100 : 0}%`;
