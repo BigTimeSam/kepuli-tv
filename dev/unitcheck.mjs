@@ -1470,6 +1470,16 @@ check('xmltv: entities, references and CDATA', decodeXml('L&apos;equipe &amp; A&
   for (let i = 0; i < xml.length; i += 7) parser.push(xml.slice(i, i + 7));
   parser.end();
   check('xmltv: a guide read in pieces of seven characters reads the same', got, ['Nyheter', 'Before', 'Backwards']);
+  // A programme that never closes is skipped once it outgrows any real one,
+  // rather than holding the rest of the file and being searched again with
+  // every piece; what follows it is still read.
+  const broken = [];
+  const reader = new XmltvParser({ onProgramme: (id, p) => broken.push(p.title) });
+  reader.push('<tv><programme start="20261106200000 +0000" channel="a"><title>Open');
+  for (let i = 0; i < 40; i++) reader.push(' x'.repeat(1000));
+  reader.push('<programme start="20261106210000 +0000" stop="20261106220000 +0000" channel="a"><title>After</title></programme></tv>');
+  reader.end();
+  check('xmltv: an element that never closes lets the next one through, and the buffer stays small', [broken, reader.buffer.length < 1000], [['After'], true]);
 }
 check('xmltv: a playlist name and a guide name meet', ['FI: Yle TV1 HD', 'Yle TV1', '|FI| YLE TV 1 FHD', 'Ylé TV1'].map(channelMatchKey), ['yletv1', 'yletv1', 'yletv1', 'yletv1']);
 

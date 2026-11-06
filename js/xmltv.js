@@ -65,6 +65,7 @@ export function parseXmltvTime(text) {
  * The text of the element `name` in `body` in the preferred language, the
  * first one when none is in it, '' when there is none.
  */
+const MAX_ELEMENT = 64 * 1024;
 const PICKERS = new Map();
 function pick(body, name, languages) {
   if (!body.includes(`<${name}`)) return '';
@@ -125,6 +126,10 @@ export class XmltvParser {
       if (data[tagEnd - 1] === '/') { end = tagEnd + 1; body = ''; }
       else {
         const close = data.indexOf(`</${name}>`, tagEnd);
+        // An element that never closes would keep the rest of the file in
+        // the buffer and have it searched again with every piece. No real
+        // programme comes near 64 kB, so past that it is skipped.
+        if (close < 0 && data.length - open > MAX_ELEMENT) { at = open + 1; continue; }
         if (close < 0) { at = open; break; }
         end = close + name.length + 3;
         body = data.slice(tagEnd + 1, close);
