@@ -914,10 +914,10 @@ export class Playback {
       onNotice: (message) => this.onState({ status: 'notice', message }),
       onSubtitles: (info) => this.onState({ status: 'subtitles', ...info }),
       onAudio: (info) => this.onState({ status: 'audio', ...info }),
-      onError: (err) => finish(false, err && err.message ? err.message : t('playback.reason.demux')),
+      onError: (err) => finish(false, engineReason(err)),
     });
     this.engine = remuxer;
-    remuxer.start().catch((err) => finish(false, err && err.message ? err.message : String(err), { empty: Boolean(err && err.empty), unavailable: (err && err.unavailable) || 0 }));
+    remuxer.start().catch((err) => { console.warn('[iptv] the unpacker did not start', err); finish(false, engineReason(err), { empty: Boolean(err && err.empty), unavailable: (err && err.unavailable) || 0 }); });
   }
 
   /**
@@ -937,10 +937,10 @@ export class Playback {
       },
       onFirstAppend: () => this.tryPlay(),
       onNotice: (message) => this.onState({ status: 'notice', message }),
-      onError: (err) => finish(false, err && err.message ? err.message : t('playback.reason.demux')),
+      onError: (err) => finish(false, engineReason(err)),
     });
     this.engine = player;
-    player.start().catch((err) => finish(false, err && err.message ? err.message : String(err), { empty: Boolean(err && err.empty), unavailable: (err && err.unavailable) || 0 }));
+    player.start().catch((err) => { console.warn('[iptv] the MP4 reader did not start', err); finish(false, engineReason(err), { empty: Boolean(err && err.empty), unavailable: (err && err.unavailable) || 0 }); });
   }
 
   /** @param {PlaySpec} spec */
@@ -1391,6 +1391,20 @@ export class Playback {
     }
     return out;
   }
+}
+
+/**
+ * What the unpacker's or the MP4 reader's failure says to the viewer: its
+ * own message where it wrote one for the interface (marked `said`), else
+ * the kind of failure in the interface's words. Their messages are for the
+ * console ("SourceBuffer rejected the segment"), where the engines log them.
+ * @param {unknown} err
+ * @returns {string}
+ */
+export function engineReason(err) {
+  const e = /** @type {{said?: boolean, connection?: boolean, stalled?: boolean, message?: string}|null} */ (err);
+  if (e?.said && e.message) return e.message;
+  return t(e?.connection || e?.stalled ? 'playback.reason.network' : 'playback.reason.demux');
 }
 
 /**

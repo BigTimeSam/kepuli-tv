@@ -1067,9 +1067,9 @@ export class Remuxer {
       // Said to the viewer (playback.died), so in their language, and with
       // the last thing that broke it: "repeatedly" alone left them nothing
       // to tell a server gone from a network that drops.
-      this.onError(new Error(t('playback.reason.broke', {
+      this.onError(Object.assign(new Error(t('playback.reason.broke', {
         count: this.resumes, cause: this.state.netError || t('playback.reason.network'),
-      })));
+      })), { said: true }));
       return;
     }
     this.resumes++;

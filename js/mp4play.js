@@ -477,7 +477,7 @@ export class Mp4Player {
     const from = Math.min(pos, ...pendingFrom.filter((p) => p != null));
     if (this.resumes >= MAX_RESUMES) {
       const cause = broke instanceof Error ? broke.message : t('playback.reason.network');
-      this.fail(new Error(t('playback.reason.broke', { count: this.resumes, cause })));
+      this.fail(Object.assign(new Error(t('playback.reason.broke', { count: this.resumes, cause })), { said: true }));
       return;
     }
     this.resumes++;

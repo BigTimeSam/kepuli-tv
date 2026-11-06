@@ -1508,6 +1508,18 @@ check('xmltv: a playlist name and a guide name meet', ['FI: Yle TV1 HD', 'Yle TV
     ['http://tv.example/*', 'https://tv.example/*', null, null, 'http://[::1]/*']);
 }
 
+// What an engine threw for the console reached the screen as it was:
+// "SourceBuffer rejected the segment" in every language.
+{
+  const { engineReason } = await import('../js/playback.js');
+  check('playback: an engine\'s own words are shown only where it wrote them for the interface', [
+    engineReason(new Error('SourceBuffer rejected the segment')),
+    engineReason(Object.assign(new Error('the download stalled'), { stalled: true })),
+    engineReason(Object.assign(new Error('Said for you'), { said: true })),
+    engineReason(null),
+  ], [t('playback.reason.demux'), t('playback.reason.network'), 'Said for you', t('playback.reason.demux')]);
+}
+
 /* ------------------------------------------------- accounts and sync */
 
 check('accounts: an M3U account is its address', accountKey({ type: 'm3u', url: ' http://p/a.m3u ' }), 'm3u:http://p/a.m3u');
