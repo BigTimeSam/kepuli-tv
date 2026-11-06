@@ -1,6 +1,6 @@
 :root {
   /* The bars under the sidebar, the list and the player: one height. */
-  --foot-h: 53px;
+  --foot-h: 3.3125rem;
   --bg: #0a0c11;
   --panel: #11141c;
   --panel-2: #161a24;
@@ -26,7 +26,7 @@
   --sep-h: 2rem;              /* the same number as SEP_H in app.js */
   --topbar-h: 3.25rem;
   --epg-row: 3rem;
-  --epg-chan-w: 210px;
+  --epg-chan-w: 13.125rem;
   --epg-line: #1b2030;
   /* The tones between the ones above, named so that the light theme can
      give its own: a stronger border, a progress track, the resting star,
@@ -332,7 +332,7 @@ button.primary:hover { filter: brightness(1.1); }
 
 main {
   display: grid;
-  grid-template-columns: 224px minmax(300px, 380px) 1fr;
+  grid-template-columns: 14rem minmax(18.75rem, 23.75rem) 1fr;
   grid-template-rows: minmax(0, 1fr);
   flex: 1 1 auto; min-height: 0;
 }
@@ -351,7 +351,7 @@ main > .stage { grid-column: 3; }
    height for a preview that filled 105px of 227 — measured at 1024x700,
    4.8 channel rows were visible where the column now leaves 9. */
 main.guide {
-  grid-template-columns: minmax(0, 1fr) minmax(272px, 24vw);
+  grid-template-columns: minmax(0, 1fr) minmax(17rem, 24vw);
   /* The picture is as tall as 16:9 makes it and no taller; the programme's
      details above take whatever is left, because a long description is what
      grows and a stretched picture is only letterboxing. */
@@ -698,7 +698,7 @@ main:not(.guide) .stage:has(> .infostrip:not([hidden])) > .videowrap.sized:not(:
   flex: 0 1 auto; width: 100%; aspect-ratio: var(--pic-ratio); min-height: min(240px, 50%);
 }
 main:not(.guide) .stage:has(> .videowrap.sized:not(:fullscreen)) > .infostrip { flex: 1 1 auto; max-height: none; min-height: 0; }
-.vodinfo .title-facts { grid-template-columns: repeat(auto-fit, minmax(90px, 1fr)); }
+.vodinfo .title-facts { grid-template-columns: repeat(auto-fit, minmax(5.625rem, 1fr)); }
 .vodinfo .meta { padding-top: 8px; border-top: 1px solid var(--border); }
 .vodinfo .meta:empty { display: none; }
 
@@ -1112,7 +1112,7 @@ body[data-substyle="contrast"] { --cue-back: #000; }
 .idle-scroll.next { right: -14px; }
 .idle-scroll:hover { background: var(--row-hover); }
 .idle-scroll svg { width: 16px; height: 16px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
-.idle-channels { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 8px; }
+.idle-channels { display: grid; grid-template-columns: repeat(auto-fill, minmax(12.5rem, 1fr)); gap: 8px; }
 .idle-card[hidden], .idle-channel[hidden] { display: none; }
 .idle-card, .idle-channel {
   display: flex; min-width: 0; border: 1px solid var(--border); background: var(--panel); color: var(--text);
@@ -1144,7 +1144,7 @@ body[data-substyle="contrast"] { --cue-back: #000; }
 @media (hover: none) { .idle-forget { opacity: 1; } }
 /* The picks (js/picks.js): a programme per card, its channel's logo beside
    it. One row of them, as many as the window is wide for (fitIdleHome). */
-.idle-picks { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 10px; }
+.idle-picks { display: grid; grid-template-columns: repeat(auto-fill, minmax(15rem, 1fr)); gap: 10px; }
 .idle-pick[hidden] { display: none; }
 .idle-pick {
   position: relative; display: flex; align-items: flex-start; gap: 10px; min-width: 0; padding: 10px 12px 12px;
@@ -1463,7 +1463,7 @@ dialog::backdrop { background: var(--backdrop); backdrop-filter: blur(2px); }
   transform: translateX(-50%) scale(var(--sub-preview-scale, 1)); transform-origin: bottom center;
 }
 .sublook-preview .subdisplay .cue { max-width: none; white-space: pre; }
-.sublook-fields { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 10px; flex-shrink: 0; }
+.sublook-fields { display: grid; grid-template-columns: repeat(auto-fit, minmax(9.375rem, 1fr)); gap: 10px; flex-shrink: 0; }
 .field-hint { font-size: 0.75rem; color: var(--muted); line-height: 1.45; }
 .setup-row { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
 .setup-row > button { flex: none; }
@@ -1873,9 +1873,9 @@ select.epg-earlier { font: inherit; padding-right: 26px; background-position: ri
 ::-webkit-scrollbar-track { background: transparent; }
 
 @media (max-width: 1180px) {
-  main { grid-template-columns: 190px minmax(260px, 320px) 1fr; }
-  main.guide { grid-template-columns: minmax(0, 1fr) minmax(260px, 30vw); }
-  :root { --epg-chan-w: 170px; }
+  main { grid-template-columns: 11.875rem minmax(16.25rem, 20rem) 1fr; }
+  main.guide { grid-template-columns: minmax(0, 1fr) minmax(16.25rem, 30vw); }
+  :root { --epg-chan-w: 10.625rem; }
   /* Below this the player column is too narrow for the whole row even with
      the selectors at their stub width — measured, 1024 px leaves it about
      500 and the row needs 590. The buttons wrap to a second line rather
@@ -1887,8 +1887,8 @@ select.epg-earlier { font: inherit; padding-right: 26px; background-position: ri
    sidebar and list leave the picture 276 px at 800 — so the two that read
    text give up what they can and the picture keeps the rest. */
 @media (max-width: 980px) {
-  main { grid-template-columns: 158px minmax(212px, 260px) 1fr; }
-  :root { --epg-chan-w: 140px; }
+  main { grid-template-columns: 9.875rem minmax(13.25rem, 16.25rem) 1fr; }
+  :root { --epg-chan-w: 8.75rem; }
 }
 
 /* Narrower than this, a sidebar costs the list more than it gives: three
@@ -1983,7 +1983,7 @@ select:not([multiple]) {
    countries'. */
 .search-field { position: relative; display: flex; flex: 1; min-width: 0; }
 .search-field > svg { position: absolute; left: 10px; top: 50%; translate: 0 -50%; width: 14px; height: 14px; fill: none; stroke: var(--muted); stroke-width: 1.8; stroke-linecap: round; pointer-events: none; }
-.search-field > input { width: 100%; padding-left: 30px !important; }
+.search-field > input { width: 100%; padding-left: 30px; }
 .programme-form .search-field { min-width: 180px; }
 .picker-filter {
   flex: none; width: 100%; padding: 6px 8px; border: 1px solid var(--border); border-radius: 6px;

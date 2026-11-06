@@ -14,7 +14,7 @@ that follow the page from top bar to dialogs.
   `:root[data-theme="light"]`; the picture and the bar under it stay dark in
   both themes. `prefers-contrast: more` raises borders and muted text; check a
   new colour there too.
-- **Shared measures as variables**: `--foot-h` (53px, every column's footer
+- **Shared measures as variables**: `--foot-h` (3.3125rem, every column's footer
   is the same height), `--idle-gap`, `--pic-ratio`. Reuse them rather than
   repeating a number.
 - **Layouts that react to the content**: `.videowrap.sized` takes the video's
