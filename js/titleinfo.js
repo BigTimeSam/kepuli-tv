@@ -1,4 +1,4 @@
-import { t } from './i18n.js';
+import { t, localeTag } from './i18n.js';
 import { duration, nf } from './format.js';
 import { personUrl, titleLinks } from './titlelinks.js';
 import { searchKey } from './name.js';
@@ -96,7 +96,7 @@ export function titleCredits(info, { title = '' } = {}) {
   // year, or a date the browser cannot read, adds nothing.
   const released = /^\d{4}-\d{2}-\d{2}/.test(String(info.releaseDate || '')) ? new Date(`${String(info.releaseDate).slice(0, 10)}T12:00:00`) : null;
   if (released && !Number.isNaN(released.getTime()) && !/-01-01/.test(String(info.releaseDate).slice(4, 10))) {
-    add('released', released.toLocaleDateString(document.documentElement.lang || undefined, { year: 'numeric', month: 'long', day: 'numeric' }));
+    add('released', released.toLocaleDateString(localeTag(), { year: 'numeric', month: 'long', day: 'numeric' }));
   }
   return list;
 }
