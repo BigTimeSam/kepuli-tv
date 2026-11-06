@@ -1452,7 +1452,9 @@ function openCountryPicker({ first = false } = {}) {
     groups: state.lib.groups.live,
     counts: state.lib.groupCounts('live'),
     chosen: state.channelPrefs.countries,
-    mode: first ? 'chosen' : groupFilterMode('live'),
+    // The first time starts at all of them, the browser's own countries
+    // ticked below as a suggestion: a tick chooses them, Save keeps all.
+    mode: first ? 'all' : groupFilterMode('live'),
     favorites: favoriteGroups('live'),
     suggested,
     first,

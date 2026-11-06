@@ -68,6 +68,7 @@ export class CountryPicker {
    * @param {string[]} chosen the groups chosen now
    * @param {string[]} suggested groups to offer first: the browser's country
    * @param {boolean} first the first time, when the suggestion is ticked
+   *        (the mode the caller gives is then all, so it is only offered)
    */
   show({ groups, counts, chosen, mode = 'chosen', favorites = [], suggested = [], first = false, onSave = null, texts = null }) {
     // The same dialog chooses the films' and the series' categories: their

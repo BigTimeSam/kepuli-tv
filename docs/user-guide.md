@@ -173,7 +173,10 @@ the player actually arrives.
   favourite ones (those you have starred), or the ones you tick in its
   list; a tick chooses that last mode by itself, and the list is kept when
   you switch to another. The button says which is on, such as
-  **Countries: favourites** or **Countries: 3/12**. A filter typed in
+  **Countries: favourites** or **Countries: 3/12**. An account with twenty
+  countries or more opens the dialog once by itself, at all countries, with
+  the ones that match your browser's language ticked as a suggestion: a
+  tick chooses them, **Save** keeps all. A filter typed in
   the sidebar or in the dialog that leaves nothing says so in the empty
   column.
 - A search that finds nothing says so, with **Clear search** back to the
