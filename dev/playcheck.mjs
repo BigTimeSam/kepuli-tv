@@ -4824,6 +4824,13 @@ async function filterfolds(page) {
   const topic = await fold('channel-filters');
   const [shown, total] = topic.count.split(' / ');
   assert(topic.label === 'Filter channels •' && Number(shown) < Number(total) && total === every, `"Filter channels" with a topic: ${JSON.stringify(topic)}`);
+  // The topic is a chip under the fold, in sight with the fold closed, and
+  // its × takes it away.
+  const chip = await evaluate(page, `(() => { const host = document.getElementById('active-channel-filters'); return { shown: !host.hidden, text: host.textContent.trim(),
+    topic: document.querySelector('#subcats .chip.active .chip-main')?.firstChild?.textContent.trim() }; })()`);
+  assert(chip.shown && chip.text === `${chip.topic} ×`, `the topic's chip: ${JSON.stringify(chip)}`);
+  await evaluate(page, `document.querySelector('#active-channel-filters .filter-chip').click()`);
+  await waitFor(page, `document.getElementById('active-channel-filters').hidden && document.getElementById('channel-filters-label').textContent === 'Filter channels'`, 'the chip taking the topic away');
   await evaluate(page, `document.querySelector('#tabs [data-tab="movie"]').click()`);
   await waitFor(page, `!document.getElementById('media-filters').hidden && document.querySelector('#media-filters .section-count')?.textContent`, 'the films');
   const films = await fold('media-filters');

@@ -19,6 +19,7 @@ import { t } from './i18n.js';
 import { foldOpen, foldSummary } from './mediafilters.js';
 import * as store from './config.js';
 import { isCollection, state, visibleRows, withoutInternational } from './state.js';
+import { selectSub } from './topicbar.js';
 
 let panel;
 let body;
@@ -71,11 +72,33 @@ export function placeListFilters(rows) {
     // the films: how many of the country's are left, and the dot.
     const total = state.sub ? withoutInternational(visibleRows(state.groupItems)).length : rows.length;
     foldSummary(caption, count, { label: t('filters.channels'), shown: rows.length, total, active: Boolean(state.sub) });
+    renderTopicChip();
     return;
   }
+  $('active-channel-filters').hidden = true;
   sendHome(el.subcats);
   sendHome(el.subcatsGrip);
   const films = (state.tab === 'movie' || state.tab === 'series') && !$('media-filters').hidden;
   if (films) moveInto(strip, $('media-filters'));
   else sendHome(strip);
+}
+
+/**
+ * The topic narrowing the channels as a chip under the fold, "Sport ×": the
+ * dot after the fold's name was all there was to see with the fold closed.
+ * Its name is the chosen topic chip's, as the bar shows it.
+ */
+function renderTopicChip() {
+  const host = $('active-channel-filters');
+  const label = state.sub == null ? ''
+    : (el.subcats.querySelector('.chip.active .chip-main')?.firstChild?.textContent || state.lib?.categoryName('live', state.sub) || '').trim();
+  host.hidden = !label;
+  if (!label) { host.replaceChildren(); return; }
+  const button = document.createElement('button');
+  button.type = 'button';
+  button.className = 'filter-chip';
+  button.textContent = `${label} ×`;
+  button.setAttribute('aria-label', t('filters.remove', { filter: label }));
+  button.addEventListener('click', () => selectSub(null));
+  host.replaceChildren(button);
 }
