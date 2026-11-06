@@ -11,6 +11,19 @@ browsers as it is. `js/browser.js` holds the one line that differs, and
 `firefox/` holds the Firefox manifest and the tools that assemble the package
 from the shared files. There is no second copy of anything to keep in step.
 
+The release sections below are a dated record of what was checked then, not
+a description of the current suite: the checks a release needs now are in
+`AGENTS.md` (Release, step 4), and the scenarios in `dev/playcheck.mjs`.
+
+## After 1.6.3: the shared code changes
+
+Checked on 2026-11-06 in Firefox 157 on macOS against the mock provider,
+after the range downloads of `js/remux.js` and `js/mp4play.js` moved into
+`js/probe.js` and their SourceBuffer helpers into `js/mp4.js`: `catalogUi`,
+`emptyfile`, `refusedfile`, `tsasmp4`, `resumemkv`, `seek`, `death`,
+`welcome` and `keys` pass, `mp4play.js` being the route Firefox takes for a
+plain-HTTP MP4.
+
 ## Release 1.2.0 verification
 
 Checked on 2026-10-22 in Firefox 157 and Chrome on macOS, against the mock

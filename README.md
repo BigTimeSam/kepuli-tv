@@ -77,7 +77,8 @@ There is no build step: the files are what the browser runs. To try a change:
 - **Firefox:** `node firefox/build.mjs`, then `about:debugging` → **This
   Firefox** → **Load Temporary Add-on** → `firefox/dist/manifest.json`
 - **Tests:** `node dev/unitcheck.mjs`, and `node dev/playcheck.mjs` against the
-  mock server in `dev/mock/` (run `sh dev/mock/media.sh` once first)
+  mock server in `dev/mock/` (run `sh dev/mock/media.sh` once first); every
+  check is listed in `dev/AGENTS.md`
 
 More in [Developing Kepuli-TV](https://github.com/BigTimeSam/kepuli-tv/blob/main/docs/development.md)
 (structure, languages, screenshots, publishing) and

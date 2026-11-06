@@ -95,12 +95,26 @@ playback and recovery assertions through Marionette. A scenario name, such as
 first (`sh dev/mock/media.sh`). Use a dedicated test profile: the suite resets
 its extension settings and personal lists to demo data.
 
-### Note: `--load-extension` no longer works
+### The checks
 
-Chrome rejects the flag silently (152 gives `ERR_BLOCKED_BY_CLIENT` on the
-extension page). `dev/dev.mjs` therefore uses the DevTools protocol's
+Every check is a Node script in `dev/`, run from the project's root. The
+quick ones run in seconds and on every push in CI: `node dev/unitcheck.mjs`
+(pure functions), `node dev/namecheck.mjs`, `node dev/typecheck.mjs`,
+`node dev/htmlcheck.mjs` and `node dev/docscheck.mjs`. The browser ones run
+against the mock provider in a profile of their own: `node dev/playcheck.mjs`
+(about 95 scenarios; a smoke set of them on every push, all of them nightly),
+`node dev/uicheck.mjs` and `node dev/visualcheck.mjs` (the store views against
+reference pictures, macOS only). `node dev/release.mjs` runs them together
+before a release. What each one covers, the ports and profiles they use and
+how to write a scenario are in [`dev/AGENTS.md`](../dev/AGENTS.md).
+
+### Note: `--load-extension` and branded Chrome
+
+Branded Chrome rejects the flag silently (152 gives `ERR_BLOCKED_BY_CLIENT`
+on the extension page). `dev/dev.mjs` therefore uses the DevTools protocol's
 `Extensions.loadUnpacked` command, which also works as a reload when called
-with the same path.
+with the same path. Chrome for Testing still takes the flag, and CI uses it
+that way (`KEPULI_LOAD_EXTENSION=1`, see `dev/screenshot.mjs`).
 
 ### Troubleshooting
 
