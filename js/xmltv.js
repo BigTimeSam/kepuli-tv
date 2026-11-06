@@ -121,6 +121,7 @@ export class XmltvParser {
       }
       const name = isProgramme ? 'programme' : 'channel';
       const tagEnd = data.indexOf('>', open);
+      if (tagEnd < 0 && data.length - open > MAX_ELEMENT) { at = open + 1; continue; }
       if (tagEnd < 0) { at = open; break; }
       let end;
       let body;

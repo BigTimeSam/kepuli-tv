@@ -1364,6 +1364,15 @@ const { outgoingAccounts, incomingAccounts, joinRecents, joinResume, joinFavorit
   check('m3u: what is not http(s) is left out', entries.length, 4);
   // A provider's page or error where the playlist should be: no entries,
   // so that the viewer is told the address did not return a playlist.
+  {
+    // A file without line breaks is not held whole while it arrives.
+    const { M3uParser } = await import('../js/m3u.js');
+    const parser = new M3uParser('http://x.test/a.m3u');
+    for (let i = 0; i < 40; i++) parser.push('x'.repeat(4000));
+    const held = parser.rest.length;
+    parser.push('\n#EXTINF:-1,After\nhttp://x.test/after.ts\n');
+    check('m3u: a "line" past 64 kB is dropped and what follows is read', [held < 70000, parser.end().entries.map((e) => e.name)], [true, ['After']]);
+  }
   check('m3u: an HTML page is no playlist', parseM3u('<!doctype html>\n<html>\n<head><title>Stalker</title></head>\n<body>Not found</body></html>\n', 'http://x.test/a.m3u').entries, []);
   check('m3u: a JSON error is no playlist', parseM3u('{"user_info":{"auth":0},"message":"Account expired"}', 'http://x.test/get.php?type=m3u').entries, []);
   check('m3u: a line of text is no playlist', parseM3u('Account expired\n', 'http://x.test/a.m3u').entries, []);
@@ -1484,6 +1493,10 @@ check('xmltv: entities, references and CDATA', decodeXml('L&apos;equipe &amp; A&
   reader.push('<programme start="20261106210000 +0000" stop="20261106220000 +0000" channel="a"><title>After</title></programme></tv>');
   reader.end();
   check('xmltv: an element that never closes lets the next one through, and the buffer stays small', [broken, reader.buffer.length < 1000], [['After'], true]);
+  const unended = new XmltvParser({ onProgramme: () => {} });
+  unended.push('<tv><programme start="1" channel="a"');
+  for (let i = 0; i < 40; i++) unended.push(' x="y"'.repeat(300));
+  check('xmltv: a start tag that never ends is dropped too', unended.buffer.length < 70000, true);
 }
 check('xmltv: a playlist name and a guide name meet', ['FI: Yle TV1 HD', 'Yle TV1', '|FI| YLE TV 1 FHD', 'Ylé TV1'].map(channelMatchKey), ['yletv1', 'yletv1', 'yletv1', 'yletv1']);
 

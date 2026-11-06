@@ -73,6 +73,9 @@ function guideUrls(attrs) {
   return out;
 }
 
+// No line of a playlist comes near this; see M3uParser.push().
+const MAX_LINE = 64 * 1024;
+
 /**
  * The playlist, a piece at a time: push() each piece of text as it arrives,
  * end() when the download is done. Entries arrive through onEntry so that
@@ -102,7 +105,9 @@ export class M3uParser {
       this.line(data.slice(start, end));
       start = end + 1;
     }
-    this.rest = data.slice(start);
+    // A "line" past any address or #EXTINF is not one: a file without line
+    // breaks would otherwise be held whole and copied with every piece.
+    this.rest = data.length - start > MAX_LINE ? '' : data.slice(start);
   }
 
   end() {
