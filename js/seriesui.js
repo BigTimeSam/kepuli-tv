@@ -1,16 +1,15 @@
 // A series' page: its details, seasons and episodes, opened from the list
 // and kept in the address.
 //
-// Moved out of app.js. It takes the player's state and helpers from app.js
-// (a cycle that ES modules resolve: nothing here runs while the modules
-// load, only when the player calls in).
+// Moved out of app.js. It takes the player's state, and the parts app.js
+// builds, from js/state.js.
 
 import { externalLinks, titleFacts } from './titleinfo.js';
 import { poster } from './poster.js';
 import { t } from './i18n.js';
 import { episodeTitle } from './name.js';
 import { listName, toggleFavorite } from './coversui.js';
-import { beginListLoad, catalogueSearch, listNavigation, mediaFilters, refreshRows, showListError, state, updateAddress, vlist } from './app.js';
+import { beginListLoad, catalogueSearch, listNavigation, mediaFilters, refreshRows, showListError, state, updateAddress, vlist } from './state.js';
 import { playItem } from './playing.js';
 import { renderSeriesFavorite } from './playercontrols.js';
 import { openFavCategory } from './collections.js';

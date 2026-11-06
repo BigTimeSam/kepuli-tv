@@ -10,11 +10,13 @@ The heading is the text of a section's marker line, with its kind:
 A section runs to the next marker of either kind.
 
 What moves: the section's top-level definitions. What the module uses from
-app.js is imported from './app.js' (app.js exports it); what it uses from
-other modules is imported from them as app.js imports it (named, namespace
-or default); what app.js uses from the section is imported back; other
-modules that imported a moved name from './app.js' are pointed at the new
-module; app.js's imports it no longer uses are dropped.
+app.js is imported from './state.js', where app.js hands it over through
+provide(): a name state.js does not have yet is printed, to be added to its
+`export let` lines, its provide() and the provide() call in app.js. What it
+uses from other modules is imported from them as app.js imports it (named,
+namespace or default); what app.js uses from the section is imported back;
+other modules that imported a moved name from './state.js' are pointed at
+the new module; app.js's imports it no longer uses are dropped.
 
 It refuses when a variable would be assigned across the boundary (an
 imported binding cannot be assigned: give it a function, as newPlayRun()
@@ -131,7 +133,7 @@ for n in from_named:
 imports = [f"import {{ {', '.join(sorted(parts))} }} from {module};" for module, parts in by_module.items()]
 imports += [whole[n] for n in from_whole]
 if from_app:
-    imports.append(f"import {{ {', '.join(from_app)} }} from './app.js';")
+    imports.append(f"import {{ {', '.join(from_app)} }} from './state.js';")
 body = '\n'.join(section[1:]).strip('\n')
 B = r'(?![\w$])'
 for n in to_app:
@@ -142,12 +144,10 @@ open(os.path.join(ROOT, target), 'w').write(header.rstrip() + '\n\n' + '\n'.join
 
 # app.js: the section out, exports for what the module takes, the import back.
 out = rest
-for n in from_app:
-    out = re.sub(r'^(?!export )((?:async )?function\*? ' + re.escape(n) + B + ')', r'export \1', out, count=1, flags=re.M)
-    out = re.sub(r'^(?!export )((?:const|let|var|class) ' + re.escape(n) + B + ')', r'export \1', out, count=1, flags=re.M)
-    if not re.search(r'^export (?:async )?(?:function\*? |class |const |let |var )' + re.escape(n) + B, out, re.M) \
-            and not re.search(r'^export \{[^}]*(?<![\w$])' + re.escape(n) + B, out, re.M):
-        out += f'\nexport {{ {n} }};'
+state_js = open(os.path.join(ROOT, 'js/state.js')).read()
+unprovided = [n for n in from_app if not re.search(r'^export (?:let|const|function|async function)\b[^\n]*(?<![\w$])' + re.escape(n) + B, state_js, re.M)]
+if unprovided:
+    print('add to state.js (export let, provide) and to provide() in app.js:', unprovided)
 if to_app:
     out_lines = out.split('\n')
     last_import = max(i for i, l in enumerate(out_lines) if l.startswith('import '))
@@ -166,12 +166,12 @@ out = re.sub(r"^import \{([^}]*)\} from ('[^']+');", prune, out, flags=re.M)
 out = re.sub(r'\n{3,}', '\n\n', out)
 open(os.path.join(ROOT, 'js/app.js'), 'w').write(out)
 
-# Other modules that took a moved name from './app.js' take it from the new one.
+# Other modules that took a moved name from './state.js' take it from the new one.
 for other in glob.glob(os.path.join(ROOT, 'js', '*.js')):
     if other.endswith(('/app.js', '/' + mod)):
         continue
     text = open(other).read()
-    m = re.search(r"^import \{([^}]*)\} from './app.js';", text, re.M)
+    m = re.search(r"^import \{([^}]*)\} from './state.js';", text, re.M)
     if not m:
         continue
     names = [n.strip() for n in m.group(1).split(',') if n.strip()]
@@ -179,7 +179,7 @@ for other in glob.glob(os.path.join(ROOT, 'js', '*.js')):
     if not moved:
         continue
     keep = [n for n in names if n not in moved]
-    repl = (f"import {{ {', '.join(keep)} }} from './app.js';\n" if keep else '') + f"import {{ {', '.join(moved)} }} from './{mod}';"
+    repl = (f"import {{ {', '.join(keep)} }} from './state.js';\n" if keep else '') + f"import {{ {', '.join(moved)} }} from './{mod}';"
     open(other, 'w').write(text.replace(m.group(0), repl))
     print('imports pointed at', mod, 'in', os.path.basename(other), moved)
 print('written', target)

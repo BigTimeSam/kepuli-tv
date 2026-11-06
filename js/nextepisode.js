@@ -3,10 +3,10 @@
 // next episode and its countdown at the end of one; the badge of the
 // stream's figures on the picture.
 //
-// Moved out of app.js. It takes the player's state and helpers from app.js
-// (a cycle that ES modules resolve: the listeners and timers set up while
-// the modules load here use only js/dom.js, and call into app.js only when
-// they fire).
+// Moved out of app.js. It takes the player's state, and the parts app.js
+// builds, from js/state.js; the listeners and timers set up while the
+// modules load here use only js/dom.js, and call into app.js only when they
+// fire.
 
 import { closeGuide } from './guideui.js';
 import { duration, episodeCode, nf } from './format.js';
@@ -17,7 +17,7 @@ import { renderInfoStrip } from './infostrip.js';
 import { t } from './i18n.js';
 import { toast } from './toast.js';
 import * as store from './config.js';
-import { goToRoute, refreshRows, state, visibleGroups, vlist } from './app.js';
+import { goToRoute, refreshRows, state, visibleGroups, vlist } from './state.js';
 
 let lastResumeSave = 0;
 el.video.addEventListener('ended', () => {

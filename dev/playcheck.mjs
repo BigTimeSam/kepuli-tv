@@ -4559,7 +4559,7 @@ async function categories(page) {
 async function guideclick(page) {
   const assert = (ok, message) => { if (!ok) throw new Error(message); };
   const guide = `(await import('./js/guideui.js'))`;
-  const app = `(await import('./js/app.js'))`;
+  const app = `(await import('./js/state.js'))`;
   const playing = () => evaluate(page, `(async () => { const { state } = ${app}; return { live: state.playing && !state.catchup ? String(state.playing.id) : null, catchup: Boolean(state.catchup) }; })()`);
   const actions = () => evaluate(page, `[...document.querySelectorAll('#epgv-actions button')].map((b) => b.textContent)`);
   // Marks the first drawn programme of a kind and answers its channel's id.
@@ -4626,7 +4626,7 @@ async function guideclick(page) {
 async function programmekeys(page, { requests }) {
   const assert = (ok, message) => { if (!ok) throw new Error(message); };
   const guide = `(await import('./js/guideui.js'))`;
-  const app = `(await import('./js/app.js'))`;
+  const app = `(await import('./js/state.js'))`;
   const enter = async () => {
     await page.call('Input.dispatchKeyEvent', { type: 'keyDown', key: 'Enter', code: 'Enter', windowsVirtualKeyCode: 13, text: '\r' });
     await page.call('Input.dispatchKeyEvent', { type: 'keyUp', key: 'Enter', code: 'Enter', windowsVirtualKeyCode: 13 });
@@ -4738,7 +4738,7 @@ async function programmekeys(page, { requests }) {
  */
 async function searchlimit(page) {
   const assert = (ok, message) => { if (!ok) throw new Error(message); };
-  const app = `(await import('./js/app.js'))`;
+  const app = `(await import('./js/state.js'))`;
   const names = () => evaluate(page, `[...document.querySelectorAll('#list .row-name')].map((n) => n.title || n.textContent)`);
   const type = (id, value) => evaluate(page, `(() => { const f = document.getElementById(${JSON.stringify(id)}); f.value = ${JSON.stringify(value)}; f.dispatchEvent(new Event('input', { bubbles: true })); })()`);
   await openLiveList(page, 3);
@@ -4869,7 +4869,7 @@ async function guidefavs(page) {
   // "Filter countries" uses, in place of the grid; no warning toast.
   await evaluate(page, `document.getElementById('epg-favs').click()`, { gesture: true });
   await waitFor(page, `document.querySelectorAll('.epg-chan-name').length === 3`, 'the favourites on once more');
-  await evaluate(page, `(async () => { const { state } = await import('./js/app.js'); const { toggleFavorite } = await import('./js/coversui.js');
+  await evaluate(page, `(async () => { const { state } = await import('./js/state.js'); const { toggleFavorite } = await import('./js/coversui.js');
     for (const f of [...state.favorites.values()].filter((f) => f.k === 0)) toggleFavorite(f); })()`);
   const hint = `({ pressed: document.getElementById('epg-favs').getAttribute('aria-pressed'), hint: document.getElementById('epg-hint').hidden ? null : document.getElementById('epg-hint').textContent,
     grid: getComputedStyle(document.getElementById('epg-body')).display, toast: document.getElementById('toast').hidden ? null : document.getElementById('toast').textContent })`;
@@ -4900,7 +4900,7 @@ async function guidefavs(page) {
  */
 async function guidenames(page) {
   const assert = (ok, message) => { if (!ok) throw new Error(message); };
-  const app = `(await import('./js/app.js'))`;
+  const app = `(await import('./js/state.js'))`;
   const names = `[...document.querySelectorAll('.epg-chan-name')].map((n) => n.textContent)`;
   process.env.KEPULI_MOCK_COUNTRY_PREFIX = '1';
   try {
@@ -5420,7 +5420,7 @@ async function episodenames(page) {
 async function gotochannel(page, { target }) {
   const assert = (ok, message) => { if (!ok) throw new Error(message); };
   await openLiveList(page, 3);
-  const app = `(await import('./js/app.js'))`;
+  const app = `(await import('./js/state.js'))`;
   // A channel of another country than the one on screen.
   const pick = await evaluate(page, `(async () => {
     const { state, groupOfType } = ${app};
@@ -5471,7 +5471,7 @@ async function gotochannel(page, { target }) {
 async function filmdetails(page) {
   const assert = (ok, message) => { if (!ok) throw new Error(message); };
   process.env.KEPULI_MOCK_VERSIONS = '1';
-  const app = `(await import('./js/app.js'))`;
+  const app = `(await import('./js/state.js'))`;
   try {
     // The list from before the switch is in the cache: the film list fresh.
     await evaluate(page, `indexedDB.databases().then((dbs) => Promise.all(dbs.map((d) => new Promise((resolve) => {
@@ -5543,7 +5543,7 @@ async function filmdetails(page) {
  */
 async function favorder(page) {
   const assert = (ok, message) => { if (!ok) throw new Error(message); };
-  const app = `(await import('./js/app.js'))`;
+  const app = `(await import('./js/state.js'))`;
   await openLiveList(page, 3);
   // Three channels as the only favourites, added in an order that is not the alphabet's.
   await evaluate(page, `(async () => { const { state } = ${app}; const rows = state.rows.filter((r) => r.k === 0).slice(0, 3);
@@ -5617,7 +5617,7 @@ async function favorder(page) {
  */
 async function tilekeys(page) {
   const assert = (ok, message) => { if (!ok) throw new Error(message); };
-  const app = `(await import('./js/app.js'))`;
+  const app = `(await import('./js/state.js'))`;
   await openLiveList(page, 3);
   const films = await evaluate(page, `(async () => { const { state } = ${app}; const config = await import('./js/config.js');
     state.settings = await config.saveSettings({ resumeEnabled: true });
@@ -5643,9 +5643,11 @@ async function tilekeys(page) {
     const starred = await evaluate(page, `(async () => { const { state } = ${app}; return { film: state.favorites.has('1:' + ${JSON.stringify(films[1])}), row: state.favorites.has(${JSON.stringify(before.key)}),
       focus: document.activeElement?.className }; })()`);
     assert(starred.film && starred.row === before.starred, `s on a card: ${JSON.stringify(starred)}`);
+    // Counted before, not taken for three: one card fewer is what Delete does.
+    const cards = await evaluate(page, `document.querySelectorAll('.idle-cards .idle-card').length`);
     await evaluate(page, `document.querySelectorAll('.idle-cards .idle-card')[1].focus()`);
     await pressKey(page, 'Delete', 'Delete', 46);
-    await waitFor(page, `document.querySelectorAll('.idle-cards .idle-card').length === 2`, 'the card forgotten');
+    await waitFor(page, `document.querySelectorAll('.idle-cards .idle-card').length === ${cards - 1}`, `the card forgotten (${cards} before)`);
     const after = await evaluate(page, `(async () => { const { state } = ${app}; return { recents: state.recents.map((r) => String(r.id)), cursor: state.cursor, row: state.rows[state.cursor].k + ':' + state.rows[state.cursor].id }; })()`);
     assert(!after.recents.includes(films[1]) && after.recents.includes(films[0]) && after.cursor === before.cursor && after.row === before.key, `Delete on a card: ${JSON.stringify(after)}`);
     return { ok: true, detail: `the arrows stepped between the cards with the list's cursor kept at ${before.cursor}; s starred the card's film, not ${before.key}; Delete forgot the card` };
@@ -5709,7 +5711,7 @@ async function routes(page) {
  */
 async function countryfilter(page) {
   const assert = (ok, message) => { if (!ok) throw new Error(message); };
-  const app = `(await import('./js/app.js'))`;
+  const app = `(await import('./js/state.js'))`;
   await openLiveList(page, 3);
   const side = () => evaluate(page, `[...document.querySelectorAll('#groups .group')].map((g) => g.textContent.trim().replace(/^[☆★]/, '').replace(/\\s*[\\d\\s]+$/, ''))`);
   const open = async () => {

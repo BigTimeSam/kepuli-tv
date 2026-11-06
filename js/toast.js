@@ -1,14 +1,13 @@
 // The message strip at the bottom of the window (toast), with an optional
 // action button, and copying a stream address to the clipboard.
 //
-// Moved out of app.js. It takes the player's state and helpers from app.js
-// (a cycle that ES modules resolve: nothing here runs while the modules
-// load, only when the player calls in).
+// Moved out of app.js. It takes the player's state, and the parts app.js
+// builds, from js/state.js.
 
 import { duration } from './format.js';
 import { el } from './dom.js';
 import { t } from './i18n.js';
-import { state } from './app.js';
+import { state } from './state.js';
 
 let toastTimer = null;
 /**

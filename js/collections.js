@@ -2,9 +2,8 @@
 // kinds, and a whole category kept as a favourite: its row, opening it, and
 // its place in the address.
 //
-// Moved out of app.js. It takes the player's state and helpers from app.js
-// (a cycle that ES modules resolve: nothing here runs while the modules
-// load, only when the player calls in).
+// Moved out of app.js. It takes the player's state, and the parts app.js
+// builds, from js/state.js.
 
 import { HISTORY_ICONS, KIND_ICONS, chipRow } from './rows.js';
 import { applySubcatsHeight, selectSub } from './topicbar.js';
@@ -13,7 +12,7 @@ import { el } from './dom.js';
 import { renderDetail } from './seriesui.js';
 import { t } from './i18n.js';
 import * as store from './config.js';
-import { KIND_INDEX, KIND_ORDER, TYPE_KIND, beginListLoad, catalogueSearch, connecting, isAbort, isCollection, kindGroup, kindLabel, listNavigation, refreshRows, renderCategories, renderSidebar, showListError, state, tabType, updateAddress, visibleRows, vlist, withoutInternational } from './app.js';
+import { KIND_INDEX, KIND_ORDER, TYPE_KIND, beginListLoad, catalogueSearch, connecting, isAbort, isCollection, kindGroup, kindLabel, listNavigation, refreshRows, renderCategories, renderSidebar, showListError, state, tabType, updateAddress, visibleRows, vlist, withoutInternational } from './state.js';
 import { renderIdleOverlay } from './languageui.js';
 import { toast } from './toast.js';
 import { listOrder } from './listorder.js';

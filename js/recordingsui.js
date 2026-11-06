@@ -4,9 +4,8 @@
 // The recorder itself (writing the stream to the origin private file system)
 // is js/recorder.js; this is what the viewer sees of it.
 //
-// Moved out of app.js. It takes the player's state and helpers from app.js
-// (a cycle that ES modules resolve: nothing here runs while the modules
-// load, only when the player calls in).
+// Moved out of app.js. It takes the player's state, and the parts app.js
+// builds, from js/state.js.
 
 import { PAD_AFTER_MS, PAD_BEFORE_MS, Recorder, changeRecordings, deleteRecordingFiles, loadRecordings, newRecordingId, patchRecording, recordingBlob, recordingFileName, recordingSupported, settleOrphans, watchRecordings } from './recorder.js';
 import { catchupAvailable, reminderDelay } from './epggrid.js';
@@ -14,7 +13,7 @@ import { clock, dateTimeFmt, dayLabel, duration, megabytes } from './format.js';
 import { streamUrl, timeshiftUrl } from './xtream.js';
 import { t } from './i18n.js';
 import * as store from './config.js';
-import { playerLayout, state, updateAddress, updatePlayerLayout, vlist } from './app.js';
+import { playerLayout, state, updateAddress, updatePlayerLayout, vlist } from './state.js';
 import { updateSetupActions } from './setupui.js';
 import { cancelAutoNext } from './nextepisode.js';
 import { renderAudio, renderSubtitles, sizePicture } from './tracksui.js';

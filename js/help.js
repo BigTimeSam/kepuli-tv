@@ -2,9 +2,8 @@
 // The help dialog: the keyboard shortcuts, the guide's keys, and the note on
 // why the browser's back button leaves the player.
 //
-// Moved out of app.js. It takes the player's state and helpers from app.js
-// (a cycle that ES modules resolve: nothing here runs while the modules
-// load, only when the player calls in).
+// Moved out of app.js. It takes the player's state, and the parts app.js
+// builds, from js/state.js.
 
 import { $ } from './dom.js';
 import { t } from './i18n.js';

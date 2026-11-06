@@ -3,9 +3,8 @@
 // programme search, and the guide's favourites switch. The grid itself is
 // js/epggrid.js.
 //
-// Moved out of app.js. It takes the player's state and helpers from app.js
-// (a cycle that ES modules resolve: nothing here runs while the modules
-// load, only when the player calls in).
+// Moved out of app.js. It takes the player's state, and the parts app.js
+// builds, from js/state.js.
 
 import { EpgGrid, catchupAvailable } from './epggrid.js';
 import { ProgrammeSearch } from './programmesearch.js';
@@ -18,7 +17,7 @@ import { reminderKey, reminders, toggleReminder } from './remindersui.js';
 import { renderInfoStrip } from './infostrip.js';
 import { t } from './i18n.js';
 import * as store from './config.js';
-import { activateTab, goToChannel, searchLimit, state, updateAddress, visibleGroups, visibleRows, vlist } from './app.js';
+import { activateTab, goToChannel, searchLimit, state, updateAddress, visibleGroups, visibleRows, vlist } from './state.js';
 import { openSetup } from './setupui.js';
 import { playItem } from './playing.js';
 import { toast } from './toast.js';

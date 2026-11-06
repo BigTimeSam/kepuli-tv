@@ -2,9 +2,8 @@
 // (chosen by js/picks.js), drawn as cards, with a reminder or playback a
 // click away, and the page drawn again every minute while it shows.
 //
-// Moved out of app.js. It takes the player's state and helpers from app.js
-// (a cycle that ES modules resolve: nothing here runs while the modules
-// load, only when the player calls in).
+// Moved out of app.js. It takes the player's state, and the parts app.js
+// builds, from js/state.js.
 
 import { clock, dayLabel, progressOf } from './format.js';
 import { pickProgrammes, programmeKey } from './picks.js';
@@ -12,7 +11,7 @@ import { poster } from './poster.js';
 import { reminderKey, reminders, toggleReminder } from './remindersui.js';
 import { shownName } from './coversui.js';
 import { t } from './i18n.js';
-import { state } from './app.js';
+import { state } from './state.js';
 import { playFromHome } from './idlehome.js';
 import { renderIdleOverlay } from './languageui.js';
 import { el } from './dom.js';

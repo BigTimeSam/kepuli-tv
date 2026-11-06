@@ -8,7 +8,6 @@ import { Library, sortItems, cacheTtl as libraryCacheTtl } from './library.js';
 import { Epg } from './epg.js';
 
 import { VirtualList, watchLength } from './vlist.js';
-import { ListNavigation } from './listnavigation.js';
 import { CatalogueSearch } from './cataloguesearch.js';
 import { PlayerLayout } from './playerlayout.js';
 import { categoryRow, emptyState, KIND_ICONS } from './rows.js';
@@ -51,6 +50,7 @@ import { closeGuide, favoritesChanged, focusGrid, grid, guideFavorites, guideOpe
 import { ensureFull, orderList, renderEmptyState, renderListInfo, wireSubcatsKeys, wireSubcatsResize } from './topicbar.js';
 import { askExternal, playExternal } from './externalui.js';
 import { $, el } from './dom.js';
+import { state, TYPE_KIND, unit, kindLabel, KIND_ORDER, KIND_INDEX, kindGroup, ROW_H, setRowHeight, listNavigation, isCollection, tabType, isAbort, same, resetting, startReset, connecting, setConnecting, provide } from './state.js';
 import { categoryCountsFor, collectionItems, favCategoryEntry, isFavorite, isUnfinished, kindIndex, loadGroupItems, openFavCategory, refreshCatalogue, refreshWhenStale, removeFromHistory, renderSubcats, sectionsFor, toggleFavCategory } from './collections.js';
 import { clickPicture, enterFullscreen, moreItems, renderScreenButton, renderSeriesFavorite, toggleFullscreen, toggleMoreMenu, togglePause, toggleScreen, wireMediaSession } from './playercontrols.js';
 import { wireTopMenu } from './topmenu.js';
@@ -70,91 +70,16 @@ import { adoptSyncedAccount, configured, offerUpdate, openSetup, renderSyncBox, 
 // the channel on screen shares the player's connection.
 installFetchTap();
 
-const TYPE_OF_TAB = { live: 'live', movie: 'movie', series: 'series' };
-export const TYPE_KIND = { live: 0, movie: 1, series: 2 };
-
-/** "3 channels" — the type picks the key, the number picks the plural. */
-export const unit = (type, count) => t(`unit.${type || 'generic'}`, { count, n: nf.format(count) });
-
-// Favourites and history are not the server's lists but the user's own
-// collections: they are always in memory, mix all four types, and are
-// organised in the sidebar by type rather than by country.
-const COLLECTIONS = new Set(['fav', 'recent']);
-// 'c' = a favourite category: not a playable item but a door into a list,
-// see favCategoryEntry. In a collection it is a type of its own and comes
-// first, because one category row covers dozens of channels.
-export const kindLabel = (kind) => t(`kind.${kind}`);
-export const KIND_ORDER = ['c', 0, 1, 2];
-export const KIND_INDEX = new Map(KIND_ORDER.map((kind, i) => [kind, i]));
-// In a collection an episode is only part of a series, so it is counted and
-// labelled as a series — otherwise history would show a type that does not
-// exist among the tabs.
-export const kindGroup = (k) => (k === 3 ? 2 : k);
-// The row heights are --row-h and --sep-h in player.css, written in rem so
-// that they grow with the reader's own font setting. What they come to in
-// pixels is therefore the browser's answer rather than a number written here,
-// and it is asked again when the setting changes under a running page.
-export let ROW_H = 50;
 let SEP_H = 32;
 
-export const listNavigation = new ListNavigation(el.list);
-
-export const state = {
-  config: null, settings: null, account: null,
-  source: null, lib: null, epg: null,
-  tab: 'live',
-  group: null,            // the chosen country/subject, null = all
-  sub: null,              // a topic within the group (category_id)
-  groupItems: [],         // every item of the chosen group, in memory
-  categoryFilter: '', query: '',
-  searchAll: null,        // `${tab}\n${query}` of a search run past the groups' filter ("Search all")
-  cleanName: null,        // the row-name tidier, null = the name as it is
-  listLoading: false,
-  listError: null,
-  listRequest: 0,
-  kind: null,             // a collection's type filter, null = all
-  rows: [], rowIndex: new Map(), sections: new Map(),
-  get cursor() { return listNavigation.index; },
-  set cursor(index) { listNavigation.select(index); },
-  groupCursor: null,      // where the arrows stand in the sidebar, null = on whatever is chosen
-  // A drill-down into the list. A series and a favourite category share the
-  // same place and the same back button, so they are one state with two
-  // shapes:
-  //   { view: 'series',   item, info, season, back }
-  //   { view: 'category', entry, items, back }
-  // back carries the previous drill-down: a series opened from a favourite
-  // category returns to the category, not to the collection's root.
-  detail: null,
-  catCounts: null,        // the sizes of favourite categories, when known
-  playing: null, playingSpec: null, catchup: null,
-  subtitles: [],          // the subtitle tracks of the file being played
-  audioTracks: [],        // the audio tracks of the file being played, see js/audio.js
-  activeAudio: null,      // the track confirmed by the playback engine
-  playbackInfoLoading: false,
-  subtitleInfo: null,     // what the file being played holds, once the player has looked: { tracks, bitmap }
-  favorites: new Map(), recents: [], resume: new Map(),
-  accounts: [],           // every account added, see loadAccounts() in js/config.js
-  interests: {},          // the programmes watched, by title, for the picks (js/picks.js)
-  channelPrefs: channelPreferences(),
-  lastGroup: {}, lastKind: {},
-  // The channel the live list's address names: the one played last from it,
-  // or the one an address arrived with (see currentRoute).
-  routeChannel: null,
-  // The film the address names in its list (?movie=), as routeChannel
-  // does the channel: the one playing, or the one a reload stood on.
-  routeMovie: null,
-  subcatsHeight: null,    // the topic bar's height when dragged, null = automatic
-};
-
-export const isCollection = () => COLLECTIONS.has(state.tab);
-export const catalogueSearch = new CatalogueSearch(el.search, $('search-clear'), {
+const catalogueSearch = new CatalogueSearch(el.search, $('search-clear'), {
   state, refresh: () => refreshRows(), renderSidebar, isCollection,
   onSearch: () => { if (!guideOpen) playerLayout.showBrowse(); },
 });
-export const playerLayout = new PlayerLayout(el.main, {
+const playerLayout = new PlayerLayout(el.main, {
   browse: $('compact-browse'), watch: $('compact-player'), list: el.list, video: el.video, closeGuide,
 });
-export function updatePlayerLayout() {
+function updatePlayerLayout() {
   playerLayout.update({ connected: Boolean(state.lib), playing: Boolean(state.playing) });
 }
 
@@ -171,9 +96,8 @@ const takeStoredSub = () => { const id = storedSub; storedSub = null; return id;
 // waiting on the server, and the older one, finishing last, used to put its
 // account, its library — or its failure — over the newer one's.
 let connectRun = 0;
-export let connecting = false;
 
-export async function connect({ silent = false } = {}) {
+async function connect({ silent = false } = {}) {
   const run = ++connectRun;
   const stale = () => run !== connectRun;
   programmeSearch.clear();
@@ -183,8 +107,8 @@ export async function connect({ silent = false } = {}) {
   if (connecting && progressCtrl) { progressCtrl.abort(); hideProgress(); }
   const config = state.config;
   try {
-    if (!store.isConfigured(config)) { connecting = false; openSetup(); return false; }
-    connecting = true;
+    if (!store.isConfigured(config)) { setConnecting(false); openSetup(); return false; }
+    setConnecting(true);
     const playlist = config.type === 'm3u';
     // A playlist is the whole catalogue in one file, read once and kept
     // (js/m3usource.js); an Xtream server is asked one list at a time, and
@@ -216,7 +140,7 @@ export async function connect({ silent = false } = {}) {
     epg.enabled = state.settings.epgEnabled;
     await lib.loadCategories({ signal: progressSignal() });
     if (stale()) return false;
-    connecting = false;
+    setConnecting(false);
     hideProgress();
 
     renderNowSub();
@@ -236,7 +160,7 @@ export async function connect({ silent = false } = {}) {
     return true;
   } catch (err) {
     if (stale()) return false;
-    connecting = false;
+    setConnecting(false);
     hideProgress();
     // The list was emptied for a connection that never arrived: it must not
     // be left spinning for one.
@@ -254,7 +178,7 @@ function sourceFor(config) {
 }
 
 /** Where an account's catalogue comes from, for asking access to it. */
-export function accountAddress(config) {
+function accountAddress(config) {
   if (config.type === 'm3u' || config.type === 'stalker') return config.url || null;
   return config.host ? baseUrl(config) : null;
 }
@@ -315,7 +239,6 @@ function dropConnectedView() {
   showRows([], { loading: true });
 }
 
-export const isAbort = (err) => Boolean(err && err.name === 'AbortError');
 
 /**
  * A list that could not be fetched — a group, a series, the whole list —
@@ -324,7 +247,7 @@ export const isAbort = (err) => Boolean(err && err.name === 'AbortError');
  * happened; where there are no rows, the message takes their place with a
  * way to try again.
  */
-export function showListError(err, retry) {
+function showListError(err, retry) {
   finishListLoad();
   const message = err instanceof ApiError ? err.message : t('error.unexpected', { message: err.message });
   state.listError = message;
@@ -342,14 +265,14 @@ function finishListLoad() {
   renderListInfo();
 }
 
-export function showListCancelled(retry) {
+function showListCancelled(retry) {
   finishListLoad();
   if (state.rows.length) { toast(t('progress.cancelled')); return; }
   el.list.querySelector('.empty')?.remove();
   el.list.appendChild(emptyState(t('progress.cancelled'), '', { label: t('player.retry'), onClick: retry }));
 }
 
-export function beginListLoad({ keepScroll = false } = {}) {
+function beginListLoad({ keepScroll = false } = {}) {
   const request = ++state.listRequest;
   state.listError = null;
   showRows(keepScroll ? state.rows : [], { keepScroll, loading: true });
@@ -397,7 +320,7 @@ function showConnectionError(err) {
  * only while it is the one it left, so a sentence added here first cost the
  * viewer the account's word and the Play here of another tab's stream.
  */
-export async function offerAccess(url, actions, onGranted, { stream = false, explain = false } = {}) {
+async function offerAccess(url, actions, onGranted, { stream = false, explain = false } = {}) {
   if (!url) return;
   if (!(await hasAccess(url))) {
     if (el.overlay.hidden) return;            // tilanne ehti vaihtua
@@ -470,7 +393,7 @@ async function loadLists() {
  * address, its Retry, its resume point and the history entry it makes all
  * belong to the account being left, and the resume point is saved there.
  */
-export async function adoptAccount(config) {
+async function adoptAccount(config) {
   if (state.playing) leavePlayback();
   state.config = config;
   store.useAccount(config);
@@ -479,7 +402,6 @@ export async function adoptAccount(config) {
   renderAccountSwitcher();
 }
 
-export const same = (a, b) => JSON.stringify(a) === JSON.stringify(b);
 
 /**
  * A list of this account's changed in storage — by another tab, or by this
@@ -551,10 +473,6 @@ async function followAccount() {
   await connect();
 }
 
-// Set while this tab wipes everything, or reloads because another tab did.
-export let resetting = false;
-/** This tab is about to wipe everything: nothing it holds may be written back meanwhile. */
-export function startReset() { resetting = true; }
 
 /**
  * Reset everything in another tab: storage has been emptied under this one.
@@ -563,7 +481,7 @@ export function startReset() { resetting = true; }
  */
 function storageCleared() {
   if (resetting) return;
-  resetting = true;
+  startReset();
   playback.stop();
   location.reload();
 }
@@ -574,7 +492,7 @@ function storageCleared() {
  * name at a new address that has nothing of its own is offered the old
  * address's lists; they are copied, and stay under the old address too.
  */
-export async function offerLists(previous, config) {
+async function offerLists(previous, config) {
   if (!previous.host || previous.username !== config.username) return;
   if (await store.accountHasLists(config) || !(await store.accountHasLists(previous))) return;
   toast(t('setup.lists.left', { host: previous.host }), {
@@ -595,7 +513,6 @@ export async function offerLists(previous, config) {
 
 /* ================================================================= views */
 
-export function tabType() { return TYPE_OF_TAB[state.tab] || null; }
 
 /**
  * The view worth coming back to: the tab, the group and topic within it,
@@ -706,7 +623,7 @@ function pathLabels() {
  * make the browser's back button useless for leaving the player.
  */
 let address = '';
-export function updateAddress() {
+function updateAddress() {
   if (state.lib) {
     const hash = formatRoute(currentRoute());
     address = hash;
@@ -735,7 +652,7 @@ function onAddressChanged() {
   goToRoute(route);
 }
 
-export async function goToRoute(route) {
+async function goToRoute(route) {
   if (guideOpen) closeGuide();
   catalogueSearch.reset({ restore: false });
   if (route.group === undefined) delete state.lastGroup[route.tab];
@@ -871,7 +788,7 @@ function markTabs(tab) {
   }
 }
 
-export async function activateTab(tab, { restore = false } = {}) {
+async function activateTab(tab, { restore = false } = {}) {
   catalogueSearch.reset();
   playerLayout.showBrowse();
   state.tab = tab;
@@ -930,7 +847,7 @@ export async function activateTab(tab, { restore = false } = {}) {
  * filter changed, or a favourite starred, while the search's whole list was
  * still on its way used to throw the typed words away (js/cataloguesearch.js).
  */
-export async function refreshRows({ keepScroll = false, returnPosition = null, restoreFocus = false } = {}) {
+async function refreshRows({ keepScroll = false, returnPosition = null, restoreFocus = false } = {}) {
   const type = tabType();
   const library = state.lib;
   const request = beginListLoad({ keepScroll });
@@ -1030,7 +947,7 @@ export async function refreshRows({ keepScroll = false, returnPosition = null, r
   updateAddress();
 }
 
-export const mediaFilters = new MediaFilters($('media-filters'), () => {
+const mediaFilters = new MediaFilters($('media-filters'), () => {
   state.cursor = -1;
   return refreshRows();
 }, item => item.details || state.lib?.details.get(`${item.k === 1 ? 'vod' : 'series'}:v2:${item.id}`), $('active-media-filters'));
@@ -1047,7 +964,7 @@ export const mediaFilters = new MediaFilters($('media-filters'), () => {
  */
 let favStripOpen = false;
 
-export function renderFavStrip(rows) {
+function renderFavStrip(rows) {
   const strip = $('fav-strip');
   const browsing = !isCollection() && !state.detail && !state.query && !state.listLoading;
   // Not on the channels: their favourites are the Favourites tab's, and the
@@ -1096,7 +1013,7 @@ async function toggleFavStrip() {
  * The rows on screen. Everything painted from them follows in one call, so
  * that nothing on screen can belong to a list that is no longer shown.
  */
-export function showRows(rows, { keepScroll = false, loading = false } = {}) {
+function showRows(rows, { keepScroll = false, loading = false } = {}) {
   state.listLoading = loading;
   el.list.setAttribute('aria-busy', String(loading));
   // The programme search reads the channels on show, and another set of
@@ -1133,7 +1050,7 @@ export function showRows(rows, { keepScroll = false, loading = false } = {}) {
  * favourites and history get the same structure as the other views instead
  * of leaving the column empty.
  */
-export function renderSidebar() {
+function renderSidebar() {
   if (isCollection()) renderKinds();
   else renderCategories();
   markGroups();
@@ -1237,7 +1154,7 @@ async function selectKind(kind) {
   await refreshRows();
 }
 
-export function renderCategories() {
+function renderCategories() {
   const type = tabType();
   el.groupsFilter.hidden = false;
   // Countries on the channel tab, genres on the other two. The field above
@@ -1307,7 +1224,7 @@ function fillGroupPicker(options, chosen) {
   $('group-picker').hidden = !state.lib && !isCollection();
 }
 
-export async function selectGroup(name) {
+async function selectGroup(name) {
   catalogueSearch.reset();
   programmeSearch.clear();
   const before = { group: state.group, sub: state.sub, rows: state.rows, groupItems: state.groupItems };
@@ -1336,7 +1253,7 @@ export async function selectGroup(name) {
   }
 }
 
-export function visibleGroups(type) {
+function visibleGroups(type) {
   const groups = state.lib?.groups[type] || [];
   if (type !== 'live') {
     const chosen = chosenCategories(type);
@@ -1355,7 +1272,7 @@ export function visibleGroups(type) {
  * that a channel of a country left out is not taken for one the provider
  * does not have, and offers a search of them all.
  */
-export function searchLimit(type) {
+function searchLimit(type) {
   const chosen = groupFilter(type);
   if (!chosen) return null;
   return t(type === 'live' ? 'search.limited.countries' : 'search.limited.categories',
@@ -1363,7 +1280,7 @@ export function searchLimit(type) {
 }
 
 /** The search on show asked to run past the groups' filter ("Search all"): the words it was asked for, per tab. */
-export function searchesEveryGroup() {
+function searchesEveryGroup() {
   return Boolean(state.query) && state.searchAll === `${state.tab}\n${state.query}`;
 }
 
@@ -1372,7 +1289,7 @@ export function searchesEveryGroup() {
  * country the provider no longer has does not count: were it the only
  * one, nothing at all would be shown.
  */
-export function chosenCountries() {
+function chosenCountries() {
   return groupFilter('live');
 }
 
@@ -1385,7 +1302,7 @@ const LIST_PREFS = { live: 'countries', movie: 'movieCategories', series: 'serie
  * mode stored is as it was before the modes: chosen when a list was, the
  * favourite ones when the sidebar's old box was ticked, all otherwise.
  */
-export function groupFilterMode(type) {
+function groupFilterMode(type) {
   const stored = state.channelPrefs[MODE_PREFS[type]];
   if (stored) return stored;
   return (state.channelPrefs[LIST_PREFS[type]] || []).length ? 'chosen' : groupsFavOnly ? 'favorites' : 'all';
@@ -1421,7 +1338,7 @@ function chosenCategories(type) {
 
 /** Category id → the name of the film or series group it is in. */
 const groupOfCatByType = new WeakMap();
-export function groupOfType(type) {
+function groupOfType(type) {
   const groups = state.lib?.groups[type] || [];
   let map = groupOfCatByType.get(groups);
   if (!map) groupOfCatByType.set(groups, map = new Map(groups.flatMap((g) => g.cats.map((c) => [c.id, g.name]))));
@@ -1430,7 +1347,7 @@ export function groupOfType(type) {
 
 const groupOfCategory = new WeakMap();
 /** Category id → the name of the live group it is in. */
-export function liveGroupOf() {
+function liveGroupOf() {
   const groups = state.lib?.groups.live || [];
   let map = groupOfCategory.get(groups);
   if (!map) groupOfCategory.set(groups, map = new Map(groups.flatMap((g) => g.cats.map((c) => [c.id, g.name]))));
@@ -1443,7 +1360,7 @@ export function liveGroupOf() {
  * and the guide — but not out of the favourites and the history, which
  * hold what was picked by hand.
  */
-export function visibleRows(rows, { everyGroup = false } = {}) {
+function visibleRows(rows, { everyGroup = false } = {}) {
   const prefs = state.channelPrefs;
   const visible = visibilityFilter(prefs);
   const groups = new Set(visibleGroups('live').map((g) => g.name));
@@ -1471,7 +1388,7 @@ export function visibleRows(rows, { everyGroup = false } = {}) {
  * a search, a favourite or a recent channel was asked for by name. Until
  * the whole list is in, nothing can be told apart and nothing goes.
  */
-export function withoutInternational(rows) {
+function withoutInternational(rows) {
   if (state.settings.showInternational) return rows;
   const global = state.lib?.international();
   return global?.size ? rows.filter((item) => item.k !== 0 || !global.has(String(item.id))) : rows;
@@ -1523,7 +1440,7 @@ const hiddenList = new HiddenList((prefs) => saveChannelChoices({ ...state.chann
  * homeCountryCodes): a language chosen in Settings first, then the
  * browser's own tags with their regions.
  */
-export function browserTags() {
+function browserTags() {
   return viewerTags(state.settings?.lang, navigator.languages?.length ? navigator.languages : [navigator.language || '']);
 }
 
@@ -1585,7 +1502,7 @@ async function askCountriesOnce() {
   openCountryPicker({ first: true });
 }
 
-export async function openHiddenList() {
+async function openHiddenList() {
   if (!state.lib) return;
   if (state.channelPrefs.hiddenChannels.length && !await ensureFull('live', t('hidden.loading'))) return;
   const full = state.lib.full.live || [];
@@ -1597,7 +1514,7 @@ export async function openHiddenList() {
  * The actions on a row: a favourite or not, out of the history when it is
  * in it, and a channel hidden.
  */
-export function openItemMenu(item, at) {
+function openItemMenu(item, at) {
   const prefs = state.channelPrefs;
   const id = String(item.id);
   const name = listName(item);
@@ -1635,12 +1552,12 @@ function watchRowHeights() {
     if (usesGrid()) return;
     vlist.setRowHeight(ROW_H, state.sections.size ? (i) => ROW_H + (state.sections.has(i) ? SEP_H : 0) : null);
   };
-  ROW_H = watchLength('--row-h', ROW_H, (px) => { ROW_H = px; resize(); });
+  setRowHeight(watchLength('--row-h', ROW_H, (px) => { setRowHeight(px); resize(); }));
   SEP_H = watchLength('--sep-h', SEP_H, (px) => { SEP_H = px; resize(); });
   resize();
 }
 
-export const vlist = new VirtualList(el.list, ROW_H, renderRow, {
+const vlist = new VirtualList(el.list, ROW_H, renderRow, {
   onPaint: () => listNavigation.sync(),
   onVisible: (first, last) => {
     // In guide mode the list is hidden, and its visible rows would take the
@@ -1666,7 +1583,7 @@ export const vlist = new VirtualList(el.list, ROW_H, renderRow, {
 
 /* --------------------------------------------------------- Chromecast */
 
-export const cast = new Cast(el.video, renderCastState);
+const cast = new Cast(el.video, renderCastState);
 
 /**
  * The Cast button and the c key. A natively played file goes through the
@@ -1794,7 +1711,7 @@ function removeAtCursor() {
 
 function moveCursor(delta) { listNavigation.move(delta, vlist); }
 
-export function playRelative(delta) {
+function playRelative(delta) {
   if (!state.playing) return;
   const index = state.rowIndex.get(`${state.playing.k}:${state.playing.id}`);
   // An episode played from History or Favourites is not in the list on
@@ -1818,7 +1735,7 @@ export function playRelative(delta) {
 let lastChannel = null;
 let previousChannel = null;
 
-export function noteChannel(item) {
+function noteChannel(item) {
   state.routeChannel = String(item.id);
   if (lastChannel && String(lastChannel.id) !== String(item.id)) previousChannel = lastChannel;
   lastChannel = item;
@@ -1829,7 +1746,7 @@ export function noteChannel(item) {
  * standing on it, the guide closed. Playing goes on in the big player, or
  * starts if something else was playing. The guide's "Go to channel".
  */
-export async function goToChannel(channel) {
+async function goToChannel(channel) {
   if (guideOpen) closeGuide();
   playerLayout.showBrowse();
   const visible = visibleGroups('live');
@@ -2136,6 +2053,15 @@ function wireUi() {
 }
 
 /* ================================================================== start */
+
+provide({
+  vlist, mediaFilters, catalogueSearch, playerLayout, cast,
+  refreshRows, showRows, renderSidebar, renderCategories, renderFavStrip, updateAddress, goToRoute, activateTab,
+  visibleRows, visibleGroups, withoutInternational, groupOfType, liveGroupOf, chosenCountries, selectGroup,
+  searchLimit, searchesEveryGroup, beginListLoad, showListError, showListCancelled, openItemMenu, openHiddenList,
+  connect, adoptAccount, accountAddress, offerLists, offerAccess, browserTags,
+  goToChannel, playRelative, noteChannel, updatePlayerLayout,
+});
 
 applyTheme(earlyTheme());
 wirePickers();

@@ -1,9 +1,8 @@
 // The strip at the top of the list column while a list loads: what is being
 // fetched, how far it has come, and its own Cancel.
 //
-// Moved out of app.js. It takes the player's state and helpers from app.js
-// (a cycle that ES modules resolve: nothing here runs while the modules
-// load, only when the player calls in).
+// Moved out of app.js. It takes the player's state, and the parts app.js
+// builds, from js/state.js.
 
 import { el } from './dom.js';
 import { megabytes, nf, percent } from './format.js';

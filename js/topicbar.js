@@ -1,9 +1,8 @@
 // The topic bar above the channel list: the chips of a country's topics,
 // its height that the viewer can drag, and the counts on the chips.
 //
-// Moved out of app.js. It takes the player's state and helpers from app.js
-// (a cycle that ES modules resolve: nothing here runs while the modules
-// load, only when the player calls in).
+// Moved out of app.js. It takes the player's state, and the parts app.js
+// builds, from js/state.js.
 
 import { crumbLabel } from './seriesui.js';
 import { emptyState } from './rows.js';
@@ -12,7 +11,7 @@ import { t } from './i18n.js';
 import { viewToggle } from './coversui.js';
 import { LIST_ORDERS, ORDER_MARKS, ORDER_SETTINGS, listOrder, pressedOrder } from './listorder.js';
 import * as store from './config.js';
-import { activateTab, catalogueSearch, isAbort, isCollection, kindLabel, mediaFilters, openHiddenList, refreshRows, renderSidebar, searchesEveryGroup, searchLimit, showListCancelled, showListError, state, tabType, unit } from './app.js';
+import { activateTab, catalogueSearch, isAbort, isCollection, kindLabel, mediaFilters, openHiddenList, refreshRows, renderSidebar, searchesEveryGroup, searchLimit, showListCancelled, showListError, state, tabType, unit } from './state.js';
 import { hideProgress, progressSignal, showProgress, updateProgress } from './progressdialog.js';
 import { clearHistory } from './collections.js';
 import { $, el } from './dom.js';

@@ -2,9 +2,9 @@
 // languages they remember, the subtitles' look and size, the picture's
 // size, and leaving playback for the empty player.
 //
-// Moved out of app.js. It takes the player's state and helpers from app.js
-// (a cycle that ES modules resolve: what runs while the modules load here
-// uses only js/dom.js; everything else waits until the player calls in).
+// Moved out of app.js. It takes the player's state, and the parts app.js
+// builds, from js/state.js; what runs while the modules load here uses only
+// js/dom.js; everything else waits until the player calls in.
 
 import { $, el } from './dom.js';
 import { DEFAULT_LIFT, DEFAULT_SCALE, stepScale, subtitleLook } from './subdisplay.js';
@@ -20,7 +20,7 @@ import { shortLanguage } from './lang.js';
 import { homeGroup } from './name.js';
 import { toast } from './toast.js';
 import * as store from './config.js';
-import { activateTab, browserTags, chosenCountries, mediaFilters, playerLayout, renderSidebar, selectGroup, state, updateAddress, updatePlayerLayout, visibleGroups, vlist } from './app.js';
+import { activateTab, browserTags, chosenCountries, mediaFilters, playerLayout, renderSidebar, selectGroup, state, updateAddress, updatePlayerLayout, visibleGroups, vlist } from './state.js';
 import { cancelAutoNext, renderStatBadge } from './nextepisode.js';
 
 /**

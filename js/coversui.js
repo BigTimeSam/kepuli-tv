@@ -1,9 +1,8 @@
 // Films and series as covers or as rows: the grid's geometry, the switch
 // between the two views, a cover's card, and the favourite star on rows.
 //
-// Moved out of app.js. It takes the player's state and helpers from app.js
-// (a cycle that ES modules resolve: nothing here runs while the modules
-// load, only when the player calls in).
+// Moved out of app.js. It takes the player's state, and the parts app.js
+// builds, from js/state.js.
 
 import { isNew, versionLabels } from './titlemeta.js';
 import { clock, nf, stampFmt } from './format.js';
@@ -15,7 +14,7 @@ import { rowDomId } from './listnavigation.js';
 import { streamUrl } from './xtream.js';
 import { t } from './i18n.js';
 import * as store from './config.js';
-import { ROW_H, groupOfType, isCollection, listNavigation, liveGroupOf, openItemMenu, refreshRows, renderFavStrip, renderSidebar, same, showRows, state, tabType, vlist } from './app.js';
+import { ROW_H, groupOfType, isCollection, listNavigation, liveGroupOf, openItemMenu, refreshRows, renderFavStrip, renderSidebar, same, showRows, state, tabType, vlist } from './state.js';
 import { renderSeriesFavorite } from './playercontrols.js';
 import { favCategorySubtitle, openFavCategory, removeFromHistory, toggleFavCategory } from './collections.js';
 import { el } from './dom.js';

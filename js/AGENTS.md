@@ -62,7 +62,8 @@ lists, series info, stream URL) for its kind:
 | `listfilters.js` | the list's "Filter titles" folds: "Filter channels" with the topics, and the favourites strip inside the films' "Filter titles"; the parts are moved, not rebuilt |
 | `scrollhint.js` | a thin bar of the page's own over every box that holds more than it shows, where the browser's bar fades away (Firefox on Android and macOS); `SCROLLERS` names the boxes, and the `scrollbars` scenario fails on one that scrolls and is not named |
 | `toast.js` | the message strip (`toast`) and copying a stream address: import `toast` from here |
-| `dom.js` | `$` and `el`, the page's elements looked up once: import them from here, not from `app.js` |
+| `dom.js` | `$` and `el`, the page's elements looked up once: import them from here |
+| `state.js` | the player's `state`, the list's constants and the parts app.js builds and hands over with `provide()` (the list, the sidebar, the address, the connection): what a feature module takes from the player it takes from here |
 
 **Storage and settings**
 
@@ -83,11 +84,14 @@ lists, series info, stream URL) for its kind:
 (`recordingsui.js` was the first), with `uv run dev/splitsection.py
 "<heading>" js/<module>.js "<header>"` (`--dry` first: it names what
 crosses and refuses what cannot). A moved module imports `$` and `el`
-from `./dom.js`, and the player's `state` and helpers from `./app.js`, and app.js imports the
-module's entry points back: a cycle ES modules resolve, as long as nothing
-in the module runs while the modules load. Rules for the next ones: move a
+from `./dom.js`, and the player's `state` and what app.js builds from
+`./state.js`: app.js hands its parts over with `provide()` before the
+player starts, so no module imports app.js and app.js is in no import
+cycle. The feature modules still import one another (twenty of them form
+one strongly connected group), which ES modules resolve as long as nothing
+in a module runs while the modules load. Rules for the next ones: move a
 whole section (both `/* ---- */` and `/* ==== */` headings bound one, and
-nothing in the module may use an `app.js` binding while the modules load —
+nothing in the module may use a `state.js` binding app.js provides while the modules load —
 build such objects from `dom.js` only); a variable the other side assigns cannot cross
 (give it a function, as `newPlayRun()` for `playRun` and `startReset()` for
 `resetting`, or move consecutive sections together so that the variable
@@ -104,10 +108,10 @@ with the console open and run the scenarios of that feature. A
 
 - **Typed modules stay clean.** Most modules without DOM wiring begin with
   `// @ts-check` and carry JSDoc types; the list is `TYPED` in
-  `dev/typecheck.mjs` (51 modules: settings and storage, the data layer and
+  `dev/typecheck.mjs` (52 modules: settings and storage, the data layer and
   all three providers, the parsers and formatters, MKV and MP4, the
   playback engine, starting playback, recording and the shared connection,
-  the guide's grid, the subtitles' layer, the address and `dom.js`). The shared shapes are typedefs: `Config`, `Settings`, `ListItem`
+  the guide's grid, the subtitles' layer, the address, `dom.js` and `state.js`). The shared shapes are typedefs: `Config`, `Settings`, `ListItem`
   in `config.js`; `CatalogueItem`, `Category`, `Programme`, `RequestOptions`,
   `StreamOptions` in `api.js`; `Provider`, `Group` in `library.js`;
   `PlaySpec`, `LoadInfo` in `playback.js`. New code in them gets its JSDoc

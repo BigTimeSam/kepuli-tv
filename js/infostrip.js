@@ -3,9 +3,8 @@
 // format (js/titleinfo.js builds the parts), and the film's details fetched
 // when the provider has them.
 //
-// Moved out of app.js. It takes the player's state and helpers from app.js
-// (a cycle that ES modules resolve: nothing here runs while the modules
-// load, only when the player calls in).
+// Moved out of app.js. It takes the player's state, and the parts app.js
+// builds, from js/state.js.
 
 import { audioDetails, subtitleSummary } from './probe.js';
 import { clock, duration, progressOf } from './format.js';
@@ -14,7 +13,7 @@ import { externalLinks, playbackFacts, titleCredits, titleFacts } from './titlei
 import { poster } from './poster.js';
 import { shortLanguage } from './lang.js';
 import { t } from './i18n.js';
-import { state, vlist } from './app.js';
+import { state, vlist } from './state.js';
 import { renderMediaSession } from './playercontrols.js';
 import { el } from './dom.js';
 import { addressChanges, freshItem, listName, probeFor, shownName, updateStoredItem } from './coversui.js';

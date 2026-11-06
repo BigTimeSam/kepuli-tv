@@ -2,9 +2,8 @@
 // picks' carousel) and the note of programmes the viewer stays with, which
 // the picks learn from.
 //
-// Moved out of app.js. It takes the player's state and helpers from app.js
-// (a cycle that ES modules resolve: nothing here runs while the modules
-// load, only when the player calls in).
+// Moved out of app.js. It takes the player's state, and the parts app.js
+// builds, from js/state.js.
 
 import { currentPicks, pickCard, tickIdlePage } from './picksui.js';
 import { el } from './dom.js';
@@ -17,7 +16,7 @@ import { shownName } from './coversui.js';
 import { episodeCode } from './format.js';
 import { t } from './i18n.js';
 import * as store from './config.js';
-import { state } from './app.js';
+import { state } from './state.js';
 import { nextEpisode, playInPlace } from './nextepisode.js';
 import { playItem } from './playing.js';
 

@@ -3,10 +3,10 @@
 // computers, the storage used, the version and its update, resetting
 // everything), and the wiring of all of it.
 //
-// Moved out of app.js. It takes the player's state and helpers from app.js
-// (a cycle that ES modules resolve: what runs while the modules load here is
-// the Sync object, built from js/sync.js alone; everything else waits until
-// the player calls in).
+// Moved out of app.js. It takes the player's state, and the parts app.js
+// builds, from js/state.js; what runs while the modules load here is the
+// Sync object, built from js/sync.js alone; everything else waits until the
+// player calls in.
 
 import { $, el } from './dom.js';
 import { caretWelcome } from './caret.js';
@@ -31,7 +31,7 @@ import { toast } from './toast.js';
 import { ORDER_SETTINGS, listOrder } from './listorder.js';
 import { wireModal } from './modal.js';
 import * as store from './config.js';
-import { TYPE_KIND, accountAddress, adoptAccount, connect, kindLabel, offerLists, refreshRows, renderSidebar, resetting, same, startReset, state } from './app.js';
+import { TYPE_KIND, accountAddress, adoptAccount, connect, kindLabel, offerLists, refreshRows, renderSidebar, resetting, same, startReset, state } from './state.js';
 
 const FIELDS = ['scheme', 'host', 'port', 'username', 'password'];
 

@@ -49,9 +49,9 @@ const TYPED = ['js/config.js', 'js/library.js', 'js/api.js',
   'js/nextepisode.js', 'js/permissions.js', 'js/picker.js', 'js/picks.js',
   'js/playing.js', 'js/poster.js', 'js/probe.js', 'js/rating.js',
   'js/recorder.js', 'js/remux.js', 'js/route.js', 'js/stalker.js',
-  'js/streamhub.js', 'js/subdisplay.js', 'js/subs.js', 'js/sync.js',
-  'js/testclock.js', 'js/tilekeys.js', 'js/titleinfo.js', 'js/titlemeta.js',
-  'js/transcode.js', 'js/xmltv.js', 'js/xtream.js'];
+  'js/state.js', 'js/streamhub.js', 'js/subdisplay.js', 'js/subs.js',
+  'js/sync.js', 'js/testclock.js', 'js/tilekeys.js', 'js/titleinfo.js',
+  'js/titlemeta.js', 'js/transcode.js', 'js/xmltv.js', 'js/xtream.js'];
 
 const problems = [];
 for (const file of TYPED) {

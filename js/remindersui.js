@@ -2,9 +2,8 @@
 // and said a minute before the programme starts with Watch, while the player
 // is open in a tab.
 //
-// Moved out of app.js. It takes the player's state and helpers from app.js
-// (a cycle that ES modules resolve: nothing here runs while the modules
-// load, only when the player calls in).
+// Moved out of app.js. It takes the player's state, and the parts app.js
+// builds, from js/state.js.
 
 import { clock, duration } from './format.js';
 import { reminderDelay } from './epggrid.js';

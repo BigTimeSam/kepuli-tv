@@ -18,7 +18,7 @@ import { $, el } from './dom.js';
 import { t } from './i18n.js';
 import { foldOpen, foldSummary } from './mediafilters.js';
 import * as store from './config.js';
-import { isCollection, state, visibleRows, withoutInternational } from './app.js';
+import { isCollection, state, visibleRows, withoutInternational } from './state.js';
 
 let panel;
 let body;

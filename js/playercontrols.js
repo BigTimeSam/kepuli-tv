@@ -2,9 +2,8 @@
 // full screen (the browser's, and the player's own with its subtitle layer)
 // and the system's media keys and controls.
 //
-// Moved out of app.js. It takes the player's state and helpers from app.js
-// (a cycle that ES modules resolve: nothing here runs while the modules
-// load, only when the player calls in).
+// Moved out of app.js. It takes the player's state, and the parts app.js
+// builds, from js/state.js.
 
 import { $, el } from './dom.js';
 import { isFavorite } from './collections.js';
@@ -13,7 +12,7 @@ import { shortLanguage } from './lang.js';
 import { shownName } from './coversui.js';
 import { t } from './i18n.js';
 import * as store from './config.js';
-import { playRelative, playerLayout, state } from './app.js';
+import { playRelative, playerLayout, state } from './state.js';
 import { toggleSubtitleLook } from './tracksui.js';
 
 /** The items on offer: Cast is not among them without the API behind it. */

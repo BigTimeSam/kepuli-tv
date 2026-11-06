@@ -4,10 +4,10 @@
 // expired subscription), the player's other tabs that hold a connection,
 // the wait and its countdown, and the start of playback itself.
 //
-// Moved out of app.js. It takes the player's state and helpers from app.js
-// (a cycle that ES modules resolve: what runs while the modules load here
-// uses only js/dom.js and the browser; everything else waits until the
-// player calls in).
+// Moved out of app.js. It takes the player's state, and the parts app.js
+// builds, from js/state.js; what runs while the modules load here uses only
+// js/dom.js and the browser; everything else waits until the player calls
+// in.
 
 import { titleWithoutYear } from './titlemeta.js';
 import { $, el } from './dom.js';
@@ -27,7 +27,7 @@ import { shareAs } from './streamhub.js';
 import { streamUrl } from './xtream.js';
 import { t } from './i18n.js';
 import * as store from './config.js';
-import { cast, groupOfType, noteChannel, offerAccess, playerLayout, refreshRows, renderSidebar, state, tabType, updateAddress, updatePlayerLayout, vlist } from './app.js';
+import { cast, groupOfType, noteChannel, offerAccess, playerLayout, refreshRows, renderSidebar, state, tabType, updateAddress, updatePlayerLayout, vlist } from './state.js';
 import { cancelAutoNext } from './nextepisode.js';
 import { leavePlayback, renderAudio, renderSubtitles, sizePicture } from './tracksui.js';
 

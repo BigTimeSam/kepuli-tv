@@ -3,9 +3,8 @@
 // and the empty player's page: its title and text, and the watcher that
 // gives the overlay its page look while it says "Nothing playing".
 //
-// Moved out of app.js. It takes the player's state and helpers from app.js
-// (a cycle that ES modules resolve: nothing here runs while the modules
-// load, only when the player calls in).
+// Moved out of app.js. It takes the player's state, and the parts app.js
+// builds, from js/state.js.
 
 import { $, el } from './dom.js';
 import { applyStatic, loadLanguage, localeTag, setEnglishRegion, setLanguage, t } from './i18n.js';
@@ -14,7 +13,7 @@ import { renderDetail } from './seriesui.js';
 import { renderInfoStrip } from './infostrip.js';
 import { setLocale } from './format.js';
 import * as store from './config.js';
-import { catalogueSearch, refreshRows, renderSidebar, state, updateAddress } from './app.js';
+import { catalogueSearch, refreshRows, renderSidebar, state, updateAddress } from './state.js';
 import { configured, openSetup, renderAccountBox, setupSection, showSetupSection } from './setupui.js';
 import { renderAudio, renderSubtitles } from './tracksui.js';
 import { renderNowSub, showOverlayActions } from './playing.js';

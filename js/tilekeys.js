@@ -12,7 +12,7 @@
 // nothing here runs while the modules load, only when a key is pressed).
 
 import { shownName, toggleFavorite } from './coversui.js';
-import { state } from './app.js';
+import { state } from './state.js';
 import { t } from './i18n.js';
 import { toast } from './toast.js';
 import { neighbourTile } from './listnavigation.js';

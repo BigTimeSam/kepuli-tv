@@ -3,13 +3,12 @@
 // account to another with its own lists and cache. The accounts themselves
 // are stored by js/config.js.
 //
-// Moved out of app.js. It takes the player's state and helpers from app.js
-// (a cycle that ES modules resolve: nothing here runs while the modules
-// load, only when the player calls in).
+// Moved out of app.js. It takes the player's state, and the parts app.js
+// builds, from js/state.js.
 
 import { t } from './i18n.js';
 import * as store from './config.js';
-import { adoptAccount, connect, state } from './app.js';
+import { adoptAccount, connect, state } from './state.js';
 import { configured, editAccount, pickAccount, setupAdding, setupDirty, setupEditing, setupError } from './setupui.js';
 import { toast } from './toast.js';
 import { $, el } from './dom.js';
