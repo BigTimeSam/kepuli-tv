@@ -230,6 +230,7 @@ export default {
  "player.idle.channels": "Verlauf",
  "player.disconnected": "Nicht verbunden",
  "player.mode.title": "Wiedergabemodus",
+ "player.mode.auto": "Auto",
  "player.audio.title": "Tonspur",
  "player.subs.look": "Untertitel-Darstellung",
  "player.subs.title": "Untertitel",

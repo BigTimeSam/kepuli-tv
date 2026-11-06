@@ -246,6 +246,7 @@ export default {
  "player.idle.channels": "Historia",
  "player.disconnected": "Brak połączenia",
  "player.mode.title": "Tryb odtwarzania",
+ "player.mode.auto": "Auto",
  "player.audio.title": "Ścieżka dźwiękowa",
  "player.subs.look": "Wygląd napisów",
  "player.subs.title": "Napisy",

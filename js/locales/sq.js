@@ -230,6 +230,7 @@ export default {
  "player.idle.channels": "Historiku",
  "player.disconnected": "Pa lidhje",
  "player.mode.title": "Mënyra e luajtjes",
+ "player.mode.auto": "Auto",
  "player.audio.title": "Pista e zërit",
  "player.subs.look": "Pamja e titrave",
  "player.subs.title": "Titrat",

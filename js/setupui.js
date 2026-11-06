@@ -820,7 +820,7 @@ export function wireSetup() {
     } catch (err) {
       console.error('[iptv] settings save failed', err);
       if (!saved) setupError('setup.failed');
-      else toast(err.message, { kind: 'error' });
+      else toast(t('error.unexpected', { message: err.message }), { kind: 'error' });
     } finally {
       setupSaving = false;
       el.setup.querySelector('form').inert = false;

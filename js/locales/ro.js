@@ -238,6 +238,7 @@ export default {
  "player.idle.channels": "Istoric",
  "player.disconnected": "Neconectat",
  "player.mode.title": "Mod de redare",
+ "player.mode.auto": "Auto",
  "player.audio.title": "Pistă audio",
  "player.subs.look": "Aspectul subtitrării",
  "player.subs.title": "Subtitrări",

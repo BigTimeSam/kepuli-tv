@@ -230,6 +230,7 @@ export default {
  "player.idle.channels": "Geçmiş",
  "player.disconnected": "Bağlı değil",
  "player.mode.title": "Oynatma modu",
+ "player.mode.auto": "Otomatik",
  "player.audio.title": "Ses parçası",
  "player.subs.look": "Altyazı görünümü",
  "player.subs.title": "Altyazılar",

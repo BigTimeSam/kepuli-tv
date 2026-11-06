@@ -222,6 +222,7 @@ export default {
  "player.idle.channels": "Riwayat",
  "player.disconnected": "Tidak terhubung",
  "player.mode.title": "Mode pemutaran",
+ "player.mode.auto": "Otomatis",
  "player.audio.title": "Trek audio",
  "player.subs.look": "Tampilan subtitel",
  "player.subs.title": "Subtitel",

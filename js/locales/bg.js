@@ -230,6 +230,7 @@ export default {
  "player.idle.channels": "История",
  "player.disconnected": "Няма връзка",
  "player.mode.title": "Режим на възпроизвеждане",
+ "player.mode.auto": "Авто",
  "player.audio.title": "Звукова пътека",
  "player.subs.look": "Вид на субтитрите",
  "player.subs.title": "Субтитри",

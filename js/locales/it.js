@@ -230,6 +230,7 @@ export default {
  "player.idle.channels": "Cronologia",
  "player.disconnected": "Non connesso",
  "player.mode.title": "Modalità di riproduzione",
+ "player.mode.auto": "Auto",
  "player.audio.title": "Traccia audio",
  "player.subs.look": "Aspetto dei sottotitoli",
  "player.subs.title": "Sottotitoli",

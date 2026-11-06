@@ -246,6 +246,7 @@ export default {
  "player.idle.channels": "Історія",
  "player.disconnected": "Немає зв’язку",
  "player.mode.title": "Режим відтворення",
+ "player.mode.auto": "Авто",
  "player.audio.title": "Звукова доріжка",
  "player.subs.look": "Вигляд субтитрів",
  "player.subs.title": "Субтитри",

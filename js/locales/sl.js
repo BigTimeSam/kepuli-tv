@@ -246,6 +246,7 @@ export default {
  "player.idle.channels": "Zgodovina",
  "player.disconnected": "Brez povezave",
  "player.mode.title": "Način predvajanja",
+ "player.mode.auto": "Samodejno",
  "player.audio.title": "Zvočna sled",
  "player.subs.look": "Videz podnapisov",
  "player.subs.title": "Podnapisi",

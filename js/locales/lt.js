@@ -246,6 +246,7 @@ export default {
  "player.idle.channels": "Istorija",
  "player.disconnected": "Nėra ryšio",
  "player.mode.title": "Atkūrimo režimas",
+ "player.mode.auto": "Auto",
  "player.audio.title": "Garso takelis",
  "player.subs.look": "Subtitrų išvaizda",
  "player.subs.title": "Subtitrai",

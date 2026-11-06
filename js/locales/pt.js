@@ -230,6 +230,7 @@ export default {
  "player.idle.channels": "Histórico",
  "player.disconnected": "Desconectado",
  "player.mode.title": "Modo de reprodução",
+ "player.mode.auto": "Auto",
  "player.audio.title": "Faixa de áudio",
  "player.subs.look": "Aparência da legenda",
  "player.subs.title": "Legendas",

@@ -230,6 +230,7 @@ export default {
  "player.idle.channels": "Előzmények",
  "player.disconnected": "Nincs kapcsolat",
  "player.mode.title": "Lejátszási mód",
+ "player.mode.auto": "Auto",
  "player.audio.title": "Hangsáv",
  "player.subs.look": "Feliratok megjelenése",
  "player.subs.title": "Feliratok",

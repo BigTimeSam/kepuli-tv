@@ -230,6 +230,7 @@ export default {
  "player.idle.channels": "Historique",
  "player.disconnected": "Non connecté",
  "player.mode.title": "Mode de lecture",
+ "player.mode.auto": "Auto",
  "player.audio.title": "Piste audio",
  "player.subs.look": "Apparence des sous-titres",
  "player.subs.title": "Sous-titres",

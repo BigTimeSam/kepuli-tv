@@ -246,6 +246,7 @@ export default {
  "player.idle.channels": "História",
  "player.disconnected": "Bez pripojenia",
  "player.mode.title": "Režim prehrávania",
+ "player.mode.auto": "Auto",
  "player.audio.title": "Zvuková stopa",
  "player.subs.look": "Vzhľad titulkov",
  "player.subs.title": "Titulky",

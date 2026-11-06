@@ -238,6 +238,7 @@ export default {
  "player.idle.channels": "Vēsture",
  "player.disconnected": "Nav savienojuma",
  "player.mode.title": "Atskaņošanas režīms",
+ "player.mode.auto": "Auto",
  "player.audio.title": "Audio celiņš",
  "player.subs.look": "Subtitru izskats",
  "player.subs.title": "Subtitri",

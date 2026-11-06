@@ -230,6 +230,7 @@ export default {
  "player.idle.channels": "Ajalugu",
  "player.disconnected": "Ühendus puudub",
  "player.mode.title": "Esitusrežiim",
+ "player.mode.auto": "Auto",
  "player.audio.title": "Helirada",
  "player.subs.look": "Subtiitrite välimus",
  "player.subs.title": "Subtiitrid",

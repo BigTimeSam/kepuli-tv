@@ -230,6 +230,7 @@ export default {
  "player.idle.channels": "Ιστορικό",
  "player.disconnected": "Χωρίς σύνδεση",
  "player.mode.title": "Λειτουργία αναπαραγωγής",
+ "player.mode.auto": "Αυτόματο",
  "player.audio.title": "Κομμάτι ήχου",
  "player.subs.look": "Εμφάνιση υποτίτλων",
  "player.subs.title": "Υπότιτλοι",

@@ -230,6 +230,7 @@ export default {
  "player.idle.channels": "Historikk",
  "player.disconnected": "Ikke tilkoblet",
  "player.mode.title": "Avspillingsmodus",
+ "player.mode.auto": "Auto",
  "player.audio.title": "Lydspor",
  "player.subs.look": "Undertekstens utseende",
  "player.subs.title": "Undertekster",

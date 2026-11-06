@@ -749,6 +749,10 @@ check('orderedLanguageNames: an unknown language is named, and last',
     check(`i18n: every key player.html uses resolves in ${lang}`, used.filter((k) => t(k) === k), []);
   }
   setLanguage('en');
+  // The stream mode's "Auto" stayed English in every language: an option
+  // without a key is only allowed for a protocol's own name.
+  check('i18n: every option in player.html is translated or a protocol name',
+    [...html.matchAll(/<option(?![^>]*data-i18n)[^>]*>([^<]*)</g)].map((m) => m[1]).filter((s) => !['TS', 'HLS', 'http', 'https'].includes(s)), []);
 }
 
 /* ------------------------------------- format.js: in the language's own forms */

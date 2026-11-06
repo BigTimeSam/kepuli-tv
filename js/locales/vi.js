@@ -222,6 +222,7 @@ export default {
  "player.idle.channels": "Lịch sử",
  "player.disconnected": "Chưa kết nối",
  "player.mode.title": "Chế độ phát",
+ "player.mode.auto": "Tự động",
  "player.audio.title": "Luồng âm thanh",
  "player.subs.look": "Kiểu phụ đề",
  "player.subs.title": "Phụ đề",
