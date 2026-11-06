@@ -5660,7 +5660,6 @@ async function tilekeys(page) {
  */
 async function routes(page) {
   const assert = (ok, message) => { if (!ok) throw new Error(message); };
-  const app = `(await import('./js/app.js'))`;
   await openLiveList(page, 3);
   await evaluate(page, `document.getElementById('btn-guide').click()`);
   await waitFor(page, `document.getElementById('main').classList.contains('guide') && location.hash.startsWith('#/guide')`, 'the guide in the address');
@@ -5680,16 +5679,20 @@ async function routes(page) {
   // A film playing is in the address, and a reload stands on it.
   await evaluate(page, `document.querySelector('#tabs [data-tab="movie"]').click()`);
   await click(page, '#groups', 'Action', { timeout: 30000 });
+  // Read from the page, not from app.js's state: Firefox runs these
+  // scripts in a sandbox of its own, where import() gives a second copy of
+  // the module with nothing in it.
   await waitFor(page, `document.querySelectorAll('#list .row').length > 2`, 'the films');
-  const film = await evaluate(page, `(async () => { const { state } = ${app}; return String(state.rows[2].id); })()`);
+  const name = `(row) => row?.querySelector('.row-name')?.textContent.trim()`;
+  const film = await evaluate(page, `(${name})(document.querySelectorAll('#list .row')[2])`);
   await evaluate(page, `document.querySelectorAll('#list .row')[2].click()`, { gesture: true });
-  await waitFor(page, `location.hash.endsWith('?movie=' + ${JSON.stringify(film)})`, 'the film in the address', 20000);
+  await waitFor(page, `/[?&]movie=/.test(location.hash)`, 'the film in the address', 20000);
   const filmHash = await evaluate(page, `location.hash`);
   await page.call('Page.reload');
   await sleep(1000);
   await waitFor(page, CONNECTED, 'the connection after the reload');
-  await waitFor(page, `(async () => { const { state } = ${app}; return state.rows[state.cursor] && String(state.rows[state.cursor].id) === ${JSON.stringify(film)}; })()`, 'the film stood on after the reload', 20000);
-  const back = await evaluate(page, `(async () => { const { state } = ${app}; return { hash: location.hash, playing: !!state.playing }; })()`);
+  await waitFor(page, `(${name})(document.querySelector('#list .row[aria-selected="true"]')) === ${JSON.stringify(film)}`, 'the film stood on after the reload', 20000);
+  const back = await evaluate(page, `({ hash: location.hash, playing: Boolean(document.getElementById('video').currentSrc) })`);
   assert(back.hash === filmHash && !back.playing, `the reload: ${JSON.stringify({ filmHash, back })}`);
   return { ok: true, detail: `${guide} reopened as ${reopened}; #/recent?kind=channel became #/history?kind=channel; ${filmHash} stood on after a reload, not playing` };
 }
