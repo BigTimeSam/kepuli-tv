@@ -190,7 +190,10 @@ the player actually arrives.
   episode has no title of its own, the row says **Episode 3**.
 - Above the picture a channel's logo stands before its name, the one its row
   shows (a television mark where the provider has none); a film, an episode
-  or a recording has its name alone.
+  or a recording has its name alone. A channel's logo is looked for first in
+  tv-logos, a public collection on GitHub, because many providers' logo
+  addresses lead nowhere; GitHub then sees which logo files are loaded (see
+  the privacy policy).
 - Every list has the marks for its order at its foot, the same choice as
   its field in Settings › Viewing, and the choice is remembered: the
   channels by name or by the provider's channel number (#); the favourites
@@ -349,7 +352,10 @@ interrupted channel-list load restores the previous list.
 - **Unplayable files are marked in the list** before you click; once a file has
   been examined the mark sharpens according to its codecs
 - **Hand-off to an external player** (the player's `☰` menu or `x`) for what the
-  browser cannot do — see below
+  browser cannot do: a one-item `.m3u` file is saved, and the system opens it
+  in the player registered for playlists, VLC for one. The file holds the
+  stream address with your user name and password, so keep it as you keep
+  the password
 - **Chromecast** (the same menu or `c`): a natively played file goes to the
   device through the Remote Playback API, and for the rest the menu explains how
   Chrome's own tab casting does it — see below
