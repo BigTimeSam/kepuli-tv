@@ -29,6 +29,7 @@ export default {
  "categories.title": "Фильтр категорий",
  "categories.help": "Остальные не показываются в боковой панели, списках и поиске; избранное и история остаются. Это можно изменить в любой момент.",
  "categories.filter": "Категория…",
+ "categories.unnamed": "Категория без названия",
  "categories.all": "Показаны все категории",
  "countries.mode": "Показывать",
  "countries.mode.all": "Все страны",

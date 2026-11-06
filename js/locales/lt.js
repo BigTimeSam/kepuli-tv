@@ -29,6 +29,7 @@ export default {
  "categories.title": "Filtruoti kategorijas",
  "categories.help": "Kitos neįtraukiamos į šoninę juostą, sąrašus ir paiešką; mėgstami ir istorija lieka. Tai gali pakeisti bet kada.",
  "categories.filter": "Kategorija…",
+ "categories.unnamed": "Kategorija be pavadinimo",
  "categories.all": "Rodomos visos kategorijos",
  "countries.mode": "Rodyti",
  "countries.mode.all": "Visos šalys",

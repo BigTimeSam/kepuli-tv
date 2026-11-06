@@ -28,6 +28,7 @@ export default {
  "categories.title": "Filtrēt kategorijas",
  "categories.help": "Pārējās netiek rādītas sānjoslā, sarakstos un meklēšanā; izlase un vēsture paliek. To vari mainīt jebkurā laikā.",
  "categories.filter": "Kategorija…",
+ "categories.unnamed": "Kategorija bez nosaukuma",
  "categories.all": "Tiek rādītas visas kategorijas",
  "countries.mode": "Rādīt",
  "countries.mode.all": "Visas valstis",

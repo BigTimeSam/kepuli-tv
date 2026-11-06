@@ -27,6 +27,7 @@ export default {
  "categories.title": "Filtrar categorias",
  "categories.help": "As demais ficam fora da barra lateral, das listas e da busca; favoritos e histórico permanecem. Você pode mudar isso a qualquer momento.",
  "categories.filter": "Categoria…",
+ "categories.unnamed": "Categoria sem nome",
  "categories.all": "Todas as categorias são exibidas",
  "countries.mode": "Mostrar",
  "countries.mode.all": "Todos os países",

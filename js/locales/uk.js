@@ -29,6 +29,7 @@ export default {
  "categories.title": "Фільтр категорій",
  "categories.help": "Решта не показується на бічній панелі, у списках і пошуку; обране та історія залишаються. Це можна змінити будь-коли.",
  "categories.filter": "Категорія…",
+ "categories.unnamed": "Категорія без назви",
  "categories.all": "Показано всі категорії",
  "countries.mode": "Показувати",
  "countries.mode.all": "Усі країни",

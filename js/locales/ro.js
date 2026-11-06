@@ -28,6 +28,7 @@ export default {
  "categories.title": "Filtrează categoriile",
  "categories.help": "Celelalte sunt omise din bara laterală, liste și căutare; favoritele și istoricul rămân. Poți schimba asta oricând.",
  "categories.filter": "Categorie…",
+ "categories.unnamed": "Categorie fără nume",
  "categories.all": "Sunt afișate toate categoriile",
  "countries.mode": "Arată",
  "countries.mode.all": "Toate țările",

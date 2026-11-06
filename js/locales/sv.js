@@ -27,6 +27,7 @@ export default {
  "categories.title": "Filtrera kategorier",
  "categories.help": "Resten utelämnas från sidopanelen, listorna och sökningen; favoriter och historik finns kvar. Du kan ändra detta när som helst.",
  "categories.filter": "Kategori…",
+ "categories.unnamed": "Kategori utan namn",
  "categories.all": "Alla kategorier visas",
  "countries.mode": "Visa",
  "countries.mode.all": "Alla länder",

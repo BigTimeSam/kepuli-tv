@@ -26,6 +26,7 @@ export default {
  "categories.title": "Lọc danh mục",
  "categories.help": "Các danh mục khác bị ẩn khỏi thanh bên, danh sách và tìm kiếm; mục yêu thích và lịch sử vẫn giữ nguyên. Bạn có thể thay đổi bất cứ lúc nào.",
  "categories.filter": "Danh mục…",
+ "categories.unnamed": "Danh mục không tên",
  "categories.all": "Đang hiện tất cả danh mục",
  "countries.mode": "Hiển thị",
  "countries.mode.all": "Tất cả quốc gia",

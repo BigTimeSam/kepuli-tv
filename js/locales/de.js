@@ -27,6 +27,7 @@ export default {
  "categories.title": "Kategorien filtern",
  "categories.help": "Alle übrigen fehlen in der Seitenleiste, den Listen und der Suche; Favoriten und Verlauf bleiben unverändert. Das lässt sich jederzeit ändern.",
  "categories.filter": "Kategorie…",
+ "categories.unnamed": "Kategorie ohne Namen",
  "categories.all": "Alle Kategorien werden angezeigt",
  "countries.mode": "Anzeigen",
  "countries.mode.all": "Alle Länder",

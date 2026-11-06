@@ -26,6 +26,7 @@ export default {
  "categories.title": "Filter kategori",
  "categories.help": "Sisanya tidak ditampilkan di bilah samping, daftar, dan pencarian; favorit dan riwayat tetap. Kamu bisa mengubahnya kapan saja.",
  "categories.filter": "Kategori…",
+ "categories.unnamed": "Kategori tanpa nama",
  "categories.all": "Semua kategori ditampilkan",
  "countries.mode": "Tampilkan",
  "countries.mode.all": "Semua negara",

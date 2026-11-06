@@ -247,7 +247,7 @@ export class XtreamApi {
     const action = { live: 'get_live_categories', movie: 'get_vod_categories', series: 'get_series_categories' }[type];
     const raw = await this.call(action, null, { signal });
     if (!Array.isArray(raw)) throw new ApiError('muoto', t('api.nocategories'));
-    return raw.map((c) => ({ id: String(c.category_id), name: c.category_name || 'Nimetön' }));
+    return raw.map((c) => ({ id: String(c.category_id), name: c.category_name || t('categories.unnamed') }));
   }
 
   /**

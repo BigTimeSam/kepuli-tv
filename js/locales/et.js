@@ -27,6 +27,7 @@ export default {
  "categories.title": "Filtreeri kategooriaid",
  "categories.help": "Ülejäänud jäetakse külgribalt, loenditest ja otsingust välja; lemmikud ja ajalugu jäävad alles. Saad seda igal ajal muuta.",
  "categories.filter": "Kategooria…",
+ "categories.unnamed": "Nimeta kategooria",
  "categories.all": "Näidatakse kõiki kategooriaid",
  "countries.mode": "Näita",
  "countries.mode.all": "Kõik riigid",

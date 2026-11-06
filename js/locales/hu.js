@@ -27,6 +27,7 @@ export default {
  "categories.title": "Kategóriák szűrése",
  "categories.help": "A többi kimarad az oldalsávból, a listákból és a keresésből; a kedvencek és az előzmények maradnak. Bármikor módosíthatod.",
  "categories.filter": "Kategória…",
+ "categories.unnamed": "Névtelen kategória",
  "categories.all": "Minden kategória látható",
  "countries.mode": "Megjelenítés",
  "countries.mode.all": "Minden ország",

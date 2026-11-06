@@ -29,6 +29,7 @@ export default {
  "categories.title": "Filtriraj kategorije",
  "categories.help": "Ostale so izpuščene iz stranske vrstice, seznamov in iskanja; priljubljeni in zgodovina ostanejo. To lahko kadar koli spremeniš.",
  "categories.filter": "Kategorija…",
+ "categories.unnamed": "Kategorija brez imena",
  "categories.all": "Prikazane so vse kategorije",
  "countries.mode": "Prikaži",
  "countries.mode.all": "Vse države",

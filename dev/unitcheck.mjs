@@ -1135,6 +1135,10 @@ check('a title that is no base64 at all stays too', decodeField('Ylen uutiset'),
   check('401 and 512 are the credentials; 403 is a refusal of access, not of the password',
     results.map((r) => r.split(':')[0]), ['tunnistus', 'tunnistus', 'http', 'http']);
   check('and 403 says so in its own words', results[2].slice(5), t('api.denied'));
+  // A category without a name was called "Nimetön" in every language.
+  globalThis.fetch = async () => new Response(JSON.stringify([{ category_id: 7, category_name: '' }]));
+  try { check('a category without a name is named in the interface language', (await api.categories('live'))[0].name, 'Unnamed category'); }
+  finally { globalThis.fetch = realFetch; }
 
   // The zone is trusted only when it agrees with the server's own clock.
   const zoneOf = async (timezone, timeNow) => {

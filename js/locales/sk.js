@@ -29,6 +29,7 @@ export default {
  "categories.title": "Filtrovať kategórie",
  "categories.help": "Ostatné sa vynechajú z bočného panela, zoznamov a hľadania; obľúbené a história zostanú. Môžeš to kedykoľvek zmeniť.",
  "categories.filter": "Kategória…",
+ "categories.unnamed": "Kategória bez názvu",
  "categories.all": "Zobrazujú sa všetky kategórie",
  "countries.mode": "Zobraziť",
  "countries.mode.all": "Všetky krajiny",

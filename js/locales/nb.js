@@ -27,6 +27,7 @@ export default {
  "categories.title": "Filtrer kategorier",
  "categories.help": "Resten utelates fra sidepanelet, listene og søket; favoritter og historikk blir værende. Du kan endre dette når som helst.",
  "categories.filter": "Kategori…",
+ "categories.unnamed": "Kategori uten navn",
  "categories.all": "Alle kategorier vises",
  "countries.mode": "Vis",
  "countries.mode.all": "Alle land",

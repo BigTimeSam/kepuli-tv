@@ -27,6 +27,7 @@ export default {
  "categories.title": "Kategorileri filtrele",
  "categories.help": "Diğerleri kenar çubuğunda, listelerde ve aramada gösterilmez; favoriler ve geçmiş kalır. Bunu istediğiniz zaman değiştirebilirsiniz.",
  "categories.filter": "Kategori…",
+ "categories.unnamed": "Adsız kategori",
  "categories.all": "Tüm kategoriler gösteriliyor",
  "countries.mode": "Göster",
  "countries.mode.all": "Tüm ülkeler",

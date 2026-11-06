@@ -29,6 +29,7 @@ export default {
  "categories.title": "Filtruj kategorie",
  "categories.help": "Pozostałe są pomijane w panelu bocznym, na listach i w wyszukiwaniu; ulubione i historia zostają. Możesz to zmienić w każdej chwili.",
  "categories.filter": "Kategoria…",
+ "categories.unnamed": "Kategoria bez nazwy",
  "categories.all": "Wyświetlane są wszystkie kategorie",
  "countries.mode": "Pokaż",
  "countries.mode.all": "Wszystkie kraje",

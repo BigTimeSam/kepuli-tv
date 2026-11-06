@@ -27,6 +27,7 @@ export default {
  "categories.title": "Filtro kategoritë",
  "categories.help": "Të tjerat lihen jashtë shiritit anësor, listave dhe kërkimit; të preferuarat dhe historiku mbeten. Mund ta ndryshosh në çdo kohë.",
  "categories.filter": "Kategoria…",
+ "categories.unnamed": "Kategori pa emër",
  "categories.all": "Shfaqen të gjitha kategoritë",
  "countries.mode": "Shfaq",
  "countries.mode.all": "Të gjitha vendet",

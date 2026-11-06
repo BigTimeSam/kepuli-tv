@@ -358,7 +358,7 @@ export class StalkerSource {
     }
     return rows
       .filter((c) => c && c.id != null && String(c.id) !== '*')
-      .map((c) => ({ id: String(c.id), name: String(c.title || c.name || '') || 'Nimetön' }));
+      .map((c) => ({ id: String(c.id), name: String(c.title || c.name || '') || t('categories.unnamed') }));
   }
 
   async streams(type, categoryId, { signal, onProgress } = {}) {

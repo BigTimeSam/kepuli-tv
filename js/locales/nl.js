@@ -27,6 +27,7 @@ export default {
  "categories.title": "Categorieën filteren",
  "categories.help": "De rest blijft weg uit de zijbalk, de lijsten en het zoeken; favorieten en geschiedenis blijven. Je kunt dit altijd wijzigen.",
  "categories.filter": "Categorie…",
+ "categories.unnamed": "Categorie zonder naam",
  "categories.all": "Alle categorieën worden getoond",
  "countries.mode": "Tonen",
  "countries.mode.all": "Alle landen",
