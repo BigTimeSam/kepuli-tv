@@ -58,6 +58,16 @@ check('CI is green on this commit', () => {
   if (!run) return [false, 'no run for this commit yet'];
   return [run.conclusion === 'success', run.status === 'completed' ? run.conclusion : run.status];
 });
+// The push run holds only a smoke set of the browser scenarios; the whole
+// suite runs nightly or on demand, and a red night once went unnoticed
+// because nothing here asked for it.
+check('the whole browser suite is green on this commit', () => {
+  const sha = sh('git', ['rev-parse', 'HEAD']);
+  const runs = JSON.parse(sh('gh', ['run', 'list', '--workflow', 'checks.yml', '--commit', sha, '--json', 'status,conclusion,event']));
+  const run = runs.find((r) => r.event === 'schedule' || r.event === 'workflow_dispatch');
+  if (!run) return [false, 'no full run for this commit: gh workflow run Checks'];
+  return [run.conclusion === 'success', run.status === 'completed' ? run.conclusion : run.status];
+});
 check(`${version} is a new version`, () => {
   const tags = sh('git', ['tag', '--list', 'v*']).split('\n');
   return [!tags.includes(`v${version}`), tags.includes(`v${version}`) ? `v${version} is already tagged: bump both manifests` : ''];

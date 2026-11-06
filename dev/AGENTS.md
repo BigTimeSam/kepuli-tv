@@ -143,8 +143,10 @@ counted.
 `.github/workflows/checks.yml` runs the Node-only checks (unit, names, types, markup, area
 checks, listings, translations, the Pages page, the manifests, vendor/'s
 checksums, secrets) on
-every push and pull request, and `uicheck` plus the full `playcheck` in
-headless Chrome every night and on demand (`gh workflow run Checks`). Keep
+every push and pull request, together with `uicheck` and a smoke set of
+`playcheck` scenarios in headless Chrome for Testing (a pinned build); the full
+`playcheck` runs every night and on demand (`gh workflow run Checks`), and
+`dev/release.mjs` wants that full run green on the release commit. Keep
 new checks runnable there: no secrets, no provider, the mock server only.
 Look at a red run with `gh run list` and `gh run view --log-failed`.
 

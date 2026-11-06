@@ -1,5 +1,7 @@
-# The checks that need no browser, on every push and pull request; the
-# browser scenarios every night and on demand. Nothing here needs a
+# The checks that need no browser, and a smoke set of browser scenarios, on
+# every push and pull request; the whole browser suite every night and on
+# demand. The smoke set is there because a UI change broke catalogUi and
+# death on main and only the next night said so. Nothing here needs a
 # provider account or a secret: the browser job runs against the mock server.
 #
 # The visual check (dev/visualcheck.mjs) is not run here: its reference
@@ -70,7 +72,6 @@ jobs:
 
   browser:
     name: Browser scenarios (mock server, headless Chrome)
-    if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
     runs-on: ubuntu-latest
     timeout-minutes: 60
     env:
@@ -95,13 +96,22 @@ jobs:
       # Branded Chrome on the runner loads the unpacked extension over
       # DevTools but leaves its pages blank. Chrome for Testing is made for
       # this, and still takes --load-extension at start-up.
+      # A fixed build, so that a red run is the code's and not a new Chrome's.
+      # Raise it now and then, in a commit of its own.
       - name: Chrome for Testing for the browser checks
         run: |
-          out=$(npx -y @puppeteer/browsers install chrome@stable --path "$RUNNER_TEMP/browsers" | tail -1)
+          out=$(npx -y @puppeteer/browsers install chrome@157.0.8103.38 --path "$RUNNER_TEMP/browsers" | tail -1)
           echo "KEPULI_CHROME=${out#* }" >> "$GITHUB_ENV"
           echo "KEPULI_LOAD_EXTENSION=1" >> "$GITHUB_ENV"
           echo "using ${out#* }"
       - name: UI regressions
         run: node dev/uicheck.mjs
-      - name: Playback scenarios
-        run: node dev/playcheck.mjs
+      # Runs even when the UI check failed, so one red step does not hide
+      # what the scenarios would have said.
+      - name: Playback scenarios (a smoke set on a push, all of them otherwise)
+        if: success() || failure()
+        run: |
+          case "$GITHUB_EVENT_NAME" in
+            push|pull_request) node dev/playcheck.mjs welcome catalogUi channels home search keys settings death a11y routes ;;
+            *) node dev/playcheck.mjs ;;
+          esac

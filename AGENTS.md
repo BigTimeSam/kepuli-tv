@@ -186,7 +186,8 @@ visual check); run it before asking for the go. The order that has worked:
 3. **Texts.** `node dev/translations.mjs --check` and
    `node dev/listings.mjs --check` pass; docs updated (`docs/user-guide.md`,
    README feature list, `node dev/site.mjs`).
-4. **Tests.** The CI run of the release commit is green; locally
+4. **Tests.** The CI runs of the release commit are green, the push run and
+   a full one (`gh workflow run Checks`); locally
    `node dev/unitcheck.mjs`, the full `node dev/playcheck.mjs` in your own
    profile, the relevant scenarios in Firefox, `node dev/uicheck.mjs` and
    `node dev/visualcheck.mjs` (an intended change to the views: `--update`).

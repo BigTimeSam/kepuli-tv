@@ -3532,7 +3532,12 @@ async function catalogUi(page) {
   await waitFor(page, `document.querySelector('#list.covers .row.card') && [...document.querySelectorAll('#list .card-meta')].some((n) => /\\d+ ?min|\\dh/.test(n.textContent))`, 'movie duration on a cover');
   await evaluate(page, `document.querySelector('.view-toggle button[aria-pressed="false"]').click()`);
   await waitFor(page, `!document.getElementById('list').classList.contains('covers') && document.querySelector('#list .row-duration')`, 'movie duration metadata');
-  assert(await evaluate(page, `!document.getElementById('media-filters').hidden && document.getElementById('channel-tools').hidden && [...document.querySelector('.topbar-end').children].filter((c) => getComputedStyle(c).display !== 'none').at(-1).id === 'btn-settings'`), 'movie navigation/filters');
+  assert(await evaluate(page, `!document.getElementById('media-filters').hidden && document.getElementById('channel-tools').hidden`), 'the films\' filters in place of the channels\' tools');
+  // Settings ends the bar, or the hamburger does where the bar does not fit
+  // on one row: which depends on the fonts' widths, and the Linux runner's
+  // differ from this machine's.
+  const lastButton = await evaluate(page, `[...document.querySelector('.topbar-end').children].filter((c) => getComputedStyle(c).display !== 'none').at(-1)?.id`);
+  assert(lastButton === 'btn-settings' || lastButton === 'btn-topmenu', `the top bar ends with ${lastButton}, not Settings or its menu`);
   const apply = (key,value) => evaluate(page, `(() => {const f=document.querySelector('#media-filters [name="${key}"]');f.value=${JSON.stringify(value)};f.dispatchEvent(new Event('change'));})()`);
   await apply('rating','8');
   await waitFor(page, `document.getElementById('list-progress').hidden && document.querySelectorAll('#list .row').length > 0`, 'rating filter');
