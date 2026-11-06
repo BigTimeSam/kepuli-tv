@@ -345,3 +345,58 @@ export function durations(dts, fallback) {
   out[dts.length - 1] = dts.length > 1 ? out[dts.length - 2] : (fallback || 1);
   return out;
 }
+
+/* --------------------------------------------------------- source buffers */
+
+// The unpacker (js/remux.js) and the MP4 reader (js/mp4play.js) feed what
+// is built here into SourceBuffers the same way.
+
+/**
+ * A SourceBuffer's ranges, or null when the buffer cannot be read. When the
+ * MediaSource closes, buffered throws — which happens normally when
+ * playback is stopped mid-download.
+ */
+export function timeRanges(sb) {
+  if (!sb) return null;
+  try {
+    const ranges = sb.buffered;
+    return ranges.length ? ranges : null;
+  } catch {
+    return null;
+  }
+}
+
+/** Appends one segment and waits for the buffer to take it. */
+export function appendOnce(sb, data) {
+  return new Promise((resolve, reject) => {
+    const done = () => { sb.removeEventListener('updateend', done); sb.removeEventListener('error', bad); resolve(); };
+    const bad = () => { sb.removeEventListener('updateend', done); sb.removeEventListener('error', bad); reject(new Error('SourceBuffer rejected the segment')); };
+    sb.addEventListener('updateend', done);
+    sb.addEventListener('error', bad);
+    // What appendBuffer throws is passed on as it is: QuotaExceededError
+    // is the full buffer, which is waited out rather than reported. Run
+    // through bad() it became "rejected the segment", and a full buffer
+    // ended the film.
+    try {
+      sb.appendBuffer(data);
+    } catch (err) {
+      sb.removeEventListener('updateend', done);
+      sb.removeEventListener('error', bad);
+      reject(err);
+    }
+  });
+}
+
+/**
+ * Removes a stretch of a buffer and waits for it to be gone. Never throws:
+ * a buffer that cannot be read or has left its MediaSource has nothing to
+ * remove.
+ */
+export function removeNow(sb, from, to) {
+  if (!timeRanges(sb)) return Promise.resolve();
+  return new Promise((resolve) => {
+    const done = () => { sb.removeEventListener('updateend', done); resolve(); };
+    sb.addEventListener('updateend', done);
+    try { sb.remove(from, to); } catch { done(); }
+  });
+}

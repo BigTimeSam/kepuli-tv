@@ -24,7 +24,7 @@
 // lies. A seek reads from the keyframe at or before the target.
 
 import { t } from './i18n.js';
-import { initSegment, mediaSegment } from './mp4.js';
+import { initSegment, mediaSegment, appendOnce, removeNow, timeRanges } from './mp4.js';
 import { boxHeader, parseMoov } from './mp4file.js';
 import { emptyAnswer, fetchRange, within } from './probe.js';
 
@@ -688,37 +688,3 @@ class ByteStream {
 const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
 
-function timeRanges(sb) {
-  if (!sb) return null;
-  try {
-    const ranges = sb.buffered;
-    return ranges.length ? ranges : null;
-  } catch {
-    return null;
-  }
-}
-
-function appendOnce(sb, data) {
-  return new Promise((resolve, reject) => {
-    const done = () => { sb.removeEventListener('updateend', done); sb.removeEventListener('error', bad); resolve(); };
-    const bad = () => { sb.removeEventListener('updateend', done); sb.removeEventListener('error', bad); reject(new Error('SourceBuffer rejected the segment')); };
-    sb.addEventListener('updateend', done);
-    sb.addEventListener('error', bad);
-    try {
-      sb.appendBuffer(data);
-    } catch (err) {
-      sb.removeEventListener('updateend', done);
-      sb.removeEventListener('error', bad);
-      reject(err);
-    }
-  });
-}
-
-function removeNow(sb, from, to) {
-  if (!timeRanges(sb)) return Promise.resolve();
-  return new Promise((resolve) => {
-    const done = () => { sb.removeEventListener('updateend', done); resolve(); };
-    sb.addEventListener('updateend', done);
-    try { sb.remove(from, to); } catch { done(); }
-  });
-}

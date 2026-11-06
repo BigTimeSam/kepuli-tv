@@ -21,7 +21,7 @@
 import { parseHeader, ID, Reader } from './ebml.js';
 import { t } from './i18n.js';
 import { BufferedBytes, frames } from './mkv.js';
-import { initSegment, mediaSegment, decodeTimes, durations, VIDEO_TIMESCALE } from './mp4.js';
+import { initSegment, mediaSegment, decodeTimes, durations, VIDEO_TIMESCALE, appendOnce, removeNow, timeRanges } from './mp4.js';
 import { emptyAnswer, fetchRange, videoMime, within } from './probe.js';
 import { describeAll, passthroughMime, preferred as preferredAudio } from './audio.js';
 import { AudioTranscoder, encoderSetup, RATE as DECODED_RATE, CHANNELS as DECODED_CHANNELS } from './transcode.js';
@@ -770,7 +770,7 @@ export class Remuxer {
       for (let tries = 0; ; tries++) {
         if (stale()) return;
         try {
-          await this.appendOnce(sb, data);
+          await appendOnce(sb, data);
           return;
         } catch (err) {
           if (!err || err.name !== 'QuotaExceededError') { this.fail(err); return; }
@@ -824,25 +824,6 @@ export class Remuxer {
     return { ahead: Math.min(ahead, this.quotaAhead), behind };
   }
 
-  appendOnce(sb, data) {
-    return new Promise((resolve, reject) => {
-      const done = () => { sb.removeEventListener('updateend', done); sb.removeEventListener('error', bad); resolve(); };
-      const bad = () => { sb.removeEventListener('updateend', done); sb.removeEventListener('error', bad); reject(new Error('SourceBuffer rejected the segment')); };
-      sb.addEventListener('updateend', done);
-      sb.addEventListener('error', bad);
-      // What appendBuffer throws is passed on as it is: QuotaExceededError
-      // is the full buffer, which is waited out rather than reported. Run
-      // through bad() it became "rejected the segment", and a full buffer
-      // ended the film.
-      try {
-        sb.appendBuffer(data);
-      } catch (err) {
-        sb.removeEventListener('updateend', done);
-        sb.removeEventListener('error', bad);
-        reject(err);
-      }
-    });
-  }
 
   /** Removes the watched part from the buffer, so memory does not grow
    *  without bound. */
@@ -1418,20 +1399,6 @@ export class Remuxer {
   }
 }
 
-/**
- * Removes a stretch of a buffer and waits for it to be gone. Never throws:
- * a buffer that cannot be read or has left its MediaSource has nothing to
- * remove.
- */
-function removeNow(sb, from, to) {
-  if (!timeRanges(sb)) return Promise.resolve();
-  return new Promise((resolve) => {
-    const done = () => { sb.removeEventListener('updateend', done); resolve(); };
-    sb.addEventListener('updateend', done);
-    try { sb.remove(from, to); } catch { done(); }
-  });
-}
-
 /* ------------------------------------------------------------- helpers */
 
 const formatClock = (seconds) => {
@@ -1451,21 +1418,6 @@ function aheadIn(ranges, now) {
   // The playback position is outside the buffer: data is needed at once,
   // and the distance to some other range must not slow the download.
   return 0;
-}
-
-/**
- * A SourceBuffer's ranges, or null when the buffer cannot be read. When the
- * MediaSource closes, buffered throws — which happens normally when
- * playback is stopped mid-download.
- */
-function timeRanges(sb) {
-  if (!sb) return null;
-  try {
-    const ranges = sb.buffered;
-    return ranges.length ? ranges : null;
-  } catch {
-    return null;
-  }
 }
 
 /**
