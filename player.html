@@ -399,11 +399,22 @@
       <button type="submit" class="ghost" data-i18n="programmes.search">Search programmes</button>
     </form>
     <section id="programme-panel" class="programme-panel" hidden data-i18n-label="programmes.results">
+      <!-- As the list's loading strip (#list-progress): while it searches, the
+           spinner, what is searched for and Stop, then the channels read and
+           a bar; once done, one line of how many it found. -->
       <div class="programme-summary">
-        <span id="programme-status" role="status"></span>
-        <button type="button" id="programme-cancel" class="ghost" data-i18n="programmes.cancel" hidden>Stop search</button>
-        <button type="button" id="programme-continue" class="ghost" hidden></button>
-        <button type="button" id="programme-clear" class="ghost" data-i18n="programmes.clear">Back to guide</button>
+        <div class="lp-head">
+          <span class="lp-spinner" id="programme-spinner" aria-hidden="true" hidden></span>
+          <span class="lp-title" id="programme-status" role="status"></span>
+          <button type="button" id="programme-cancel" class="ghost" data-i18n="programmes.cancel" hidden>Stop search</button>
+          <button type="button" id="programme-continue" class="ghost" hidden></button>
+          <button type="button" id="programme-clear" class="ghost" data-i18n="programmes.clear">Back to guide</button>
+        </div>
+        <div class="lp-status" id="programme-progress" hidden>
+          <span class="lp-text" id="programme-channels"></span>
+          <span class="lp-percent" id="programme-percent" aria-hidden="true"></span>
+        </div>
+        <div class="bar" id="programme-bar" role="progressbar" aria-labelledby="programme-status" aria-describedby="programme-channels" aria-valuemin="0" aria-valuemax="100" hidden><div class="bar-fill" id="programme-fill"></div></div>
       </div>
       <div id="programme-results" class="programme-results"></div>
       <!-- A search that has read every channel and found nothing says so

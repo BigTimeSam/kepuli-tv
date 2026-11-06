@@ -1,6 +1,6 @@
 import { VirtualList } from './vlist.js';
 import { t } from './i18n.js';
-import { clock, shortDay, progressOf, nf } from './format.js';
+import { clock, shortDay, progressOf, nf, wholePercent } from './format.js';
 import { poster } from './poster.js';
 import { emptyState } from './rows.js';
 import { archiveDays } from './epggrid.js';
@@ -263,38 +263,42 @@ export class ProgrammeSearch {
   }
 
   /**
-   * The status line, from this.status, in the language now in use: the
-   * number of results stands out, the channels searched follow in grey, and
-   * a search that has read every channel says nothing more about being done
-   * (the Stop button going away says it). A finished search that found
-   * nothing shows the larger empty notice in the results' place.
+   * The status, from this.status, in the language now in use, as the list's
+   * loading strip shows a load: while the search runs, the spinner, what is
+   * searched for and the channels read so far over a bar; once it has read
+   * every channel or been stopped, one line of what it found and how many
+   * channels it read. A finished search that found nothing shows the larger
+   * empty notice in the results' place.
    */
   renderStatus() {
     const s = this.status;
-    const line = $('programme-status');
-    line.replaceChildren();
+    const running = s?.kind === 'loading' || (s?.kind === 'progress' && s.done < s.total && !s.cancelled);
+    const progress = s?.kind === 'progress';
+    const channels = progress ? t('programmes.channels', { done: nf.format(s.done), total: nf.format(s.total) }) : '';
     let text = '';
     if (s?.kind === 'loading') text = t('progress.loading');
     else if (s?.kind === 'error') text = t('programmes.error');
     else if (s?.kind === 'many') text = t('programmes.heavy', { count: nf.format(s.count) });
-    else if (s?.kind === 'progress') {
-      // The sentence is the translation's own; only the number is set apart,
-      // found by a marker in its place, so each language keeps its order.
-      const MARK = '\u0001';
-      const [before, after = ''] = t('programmes.status', { count: MARK, done: nf.format(s.done), total: nf.format(s.total) }).split(MARK);
-      const count = document.createElement('strong');
-      count.className = 'psr-count';
-      count.textContent = nf.format(s.count);
-      line.append(before, count, after);
-      if (s.failed) {
-        const failed = document.createElement('span');
-        failed.className = 'psr-failed';
-        failed.textContent = `. ${t('programmes.failed', { count: nf.format(s.failed) })}`;
-        line.append(failed);
-      }
+    else if (progress && running) text = t('programmes.searching', { query: s.query });
+    else if (progress) text = `${t('programmes.found', { count: nf.format(s.count) })} · ${channels}`;
+    if (s?.cancelled) text += `. ${t('progress.cancelled')}`;
+    // Channels that could not be read, in the warning's colour, after the
+    // channels while it runs and after the result once it is done.
+    const failed = progress && s.failed ? document.createElement('span') : null;
+    if (failed) {
+      failed.className = 'psr-failed';
+      failed.textContent = `. ${t('programmes.failed', { count: nf.format(s.failed) })}`;
     }
-    if (s?.cancelled) text += `${text || s?.kind === 'progress' ? '. ' : ''}${t('progress.cancelled')}`;
-    if (text) line.append(text);
+    $('programme-status').replaceChildren(text, ...(failed && !running ? [failed] : []));
+    $('programme-spinner').hidden = !running;
+    const share = progress && s.total ? s.done / s.total : 0;
+    $('programme-progress').hidden = $('programme-bar').hidden = !(progress && running);
+    if (progress && running) {
+      $('programme-channels').replaceChildren(channels, ...(failed ? [failed] : []));
+      $('programme-percent').textContent = wholePercent(share);
+      $('programme-fill').style.transform = `scaleX(${share})`;
+      $('programme-bar').setAttribute('aria-valuenow', String(Math.round(share * 100)));
+    }
     const finished = s?.kind === 'progress' && s.done === s.total;
     // For the tests and nothing else: whether the search has read every channel.
     $('programme-panel').dataset.state = finished ? 'done' : '';

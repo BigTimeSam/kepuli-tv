@@ -1634,7 +1634,7 @@ dialog::backdrop { background: var(--backdrop); backdrop-filter: blur(2px); }
 .choice-content { padding: 24px; display: flex; flex-direction: column; gap: 14px; max-height: calc(100dvh - 34px); }
 .editor-help { margin: 0; color: var(--muted); line-height: 1.5; }
 .editor-help[hidden] { display: none; }
-.programme-form, .programme-summary { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.programme-form { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
 .programme-form input { flex: 1; min-width: 150px; }
 .programme-form input, .programme-form select {
   color: var(--text); background: var(--panel-2); border: 1px solid var(--border); border-radius: 6px; padding: 7px 9px; min-width: 0;
@@ -1673,10 +1673,8 @@ label.choice-row:hover { background: var(--row-hover); }
 .programme-form input { min-width: 180px; }
 .programme-panel { display: flex; flex: 1; flex-direction: column; min-height: 0; }
 .programme-panel[hidden], .epg-body[hidden] { display: none; }
-.programme-summary { padding: 10px 12px; color: var(--muted); border-bottom: 1px solid var(--border); font-size: 0.8125rem; }
-.programme-summary > span { flex: 1; }
-/* The number of results is what the line is for; the rest stays grey. */
-.psr-count { color: var(--text); font-size: 1rem; font-weight: 650; }
+.programme-summary { display: flex; flex-direction: column; gap: 7px; flex: none; padding: 10px 12px; border-bottom: 1px solid var(--border); }
+.programme-summary .lp-head { flex-wrap: wrap; }
 .psr-failed { color: var(--warn); }
 .programme-results { flex: 1; min-height: 0; overflow-y: auto; }
 .programme-results[hidden] { display: none; }

@@ -3150,7 +3150,7 @@ async function programmes(page, { requests }) {
   const grouped = await evaluate(page, `(() => {
     const heads = [...document.querySelectorAll('.psr-head')];
     return { heads: heads.length, rows: document.querySelectorAll('.psr-row').length, logo: !!heads[0]?.querySelector('.psr-logo'),
-      firstIsHead: document.querySelector('.psr-head, .psr-row')?.classList.contains('psr-head'), count: document.querySelector('.psr-count')?.textContent }; })()`);
+      firstIsHead: document.querySelector('.psr-head, .psr-row')?.classList.contains('psr-head'), count: document.getElementById('programme-status').textContent.split('·')[0].replace(/[^0-9]/g, '') }; })()`);
   assert(grouped.heads > 0 && grouped.rows > 0 && grouped.logo && grouped.firstIsHead && Number(grouped.count) > 0, `programme title search, by channel: ${JSON.stringify(grouped)}`);
   assert(await evaluate(page, `getComputedStyle(document.getElementById('epg-body')).display === 'none'`), 'grid not replaced by programme results');
   const before = requests.filter((r) => r.includes('get_simple_data_table')).length;
@@ -3159,7 +3159,7 @@ async function programmes(page, { requests }) {
   assert(requests.filter((r) => r.includes('get_simple_data_table')).length === before, 'repeated search refetched cached full tables');
   await search('No-such-programme-38472');
   const empty = await evaluate(page, `({ status: document.getElementById('programme-status').textContent, notice: document.getElementById('programme-empty').hidden ? null : document.getElementById('programme-empty').textContent, list: document.getElementById('programme-results').hidden })`);
-  assert(empty.status.startsWith('0 results') && !/finished/i.test(empty.status) && empty.notice?.includes('No-such-programme-38472') && empty.list, `an empty search: ${JSON.stringify(empty)}`);
+  assert(empty.status.startsWith('Results: 0 ·') && !/finished/i.test(empty.status) && empty.notice?.includes('No-such-programme-38472') && empty.list, `an empty search: ${JSON.stringify(empty)}`);
   // A channel's own name finds it, though no programme on it is called so.
   const channelName = await evaluate(page, `document.querySelector('#epg-chans-inner .epg-chan-name')?.textContent || ''`);
   await search(channelName);
@@ -3176,7 +3176,7 @@ async function programmes(page, { requests }) {
     const head = shown.find((n) => n.matches('button.psr-head'));
     const after = shown.slice(shown.indexOf(head) + 1);
     const firstRows = after.findIndex((n) => !n.matches('.psr-row'));
-    return { count: Number(document.querySelector('.psr-count').textContent.replace(/[^0-9]/g, '')), dom: shown.length, expanded: head?.getAttribute('aria-expanded'),
+    return { count: Number(document.getElementById('programme-status').textContent.split('·')[0].replace(/[^0-9]/g, '')), dom: shown.length, expanded: head?.getAttribute('aria-expanded'),
       n: head?.querySelector('.psr-n').textContent, rows: firstRows, more: after[firstRows]?.textContent, heads: document.querySelectorAll('.psr-head').length };
   })()`);
   assert(wide.count > 200 && wide.expanded === 'false' && wide.rows === 3 && wide.more === `Show all ${wide.n}` && wide.dom < 60,
