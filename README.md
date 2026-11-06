@@ -16,8 +16,9 @@ and your details stay in your browser.
 
 - **Live TV** by country and topic, with what is on now, an interactive
   programme guide, catch-up and programme search
-- **Films and series** as covers, with the plot, rating, director, cast and the
-  file's format; playback resumes where you stopped, and the next episode follows
+- **Films and series** as covers or a list, filtered by category and length,
+  with the plot, rating, director, cast and the file's format; playback resumes
+  where you stopped, and the next episode follows
 - **A start page** with what you left halfway, what is on your channels now and
   soon, and the channels you watched lately
 - **MKV in the browser**, seeking included, with subtitles in the size and style
@@ -54,11 +55,12 @@ any stream address that contains them.
 
 ## Intended use
 
-Kepuli-TV is a player. It contains, hosts and indexes no media, channels,
-playlists or providers, and does nothing without credentials the user brings.
-Use it only for content you have the right to watch, such as your own
-subscription, and record only for your own use. The author does not provide,
-sell or advise on IPTV subscriptions, and such issues are closed.
+Kepuli-TV is only a player. It comes with no channels, playlists or media,
+does not host or link to any, and plays nothing until you add an account or a
+playlist from your own provider. Use it only for content you have the right to
+watch, such as your own subscription, and keep recordings for your own use.
+The author does not sell, provide or recommend IPTV subscriptions or
+providers, and GitHub issues asking for them are closed.
 
 Your credentials are kept in the browser's own storage on your computer, and
 reach other computers only if you turn on sync and include passwords. See the
