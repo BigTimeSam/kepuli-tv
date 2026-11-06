@@ -260,6 +260,10 @@ export class StalkerSource {
       } catch (err) {
         if (err?.name === 'AbortError') throw err;
         if (err instanceof ApiError && err.kind === 'http') reached = true;
+        // Every endpoint is on the same host: one that cannot be reached at
+        // all will not answer the next path either, and trying all five
+        // kept the viewer waiting for a hundred seconds.
+        if (err instanceof ApiError && err.kind === 'verkko' && !reached) break;
       }
     }
     if (!hello) throw new ApiError(reached ? 'muoto' : 'verkko', t(reached ? 'stalker.noportal' : 'api.unreachable'));
@@ -424,7 +428,11 @@ export class StalkerSource {
     const worker = async () => {
       while (next <= count) {
         const page = next++;
-        results[page - 1] = rowsOf((await this.call({ ...params, p: String(page) }, { signal }))?.js);
+        // One failed page of a few hundred lost the whole list; it is asked
+        // once more before the list gives up.
+        const ask = () => this.call({ ...params, p: String(page) }, { signal });
+        const answer = await ask().catch((err) => { if (err?.name === 'AbortError') throw err; return ask(); });
+        results[page - 1] = rowsOf(answer?.js);
         done++;
         if (onProgress) onProgress(done, count);
       }
