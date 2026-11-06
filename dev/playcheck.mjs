@@ -310,7 +310,7 @@
 
 import { startMockServer, connectionStats, MULTI_EPISODES, PORT as MOCK_PORT, STALKER_MAC, stalkerSeen, USER, PASS, T0 as MOCK_T0 } from './mock/server.mjs';
 // Run the same scenarios in Firefox with KEPULI_BROWSER=firefox.
-const { ensureChrome, openPlayer, session, sleep, PORT: CHROME_PORT } = await import(
+const { ensureChrome, openPlayer, session, sleep, evaluate, waitFor, PORT: CHROME_PORT } = await import(
   process.env.KEPULI_BROWSER === 'firefox' ? '../firefox/playcheck-driver.mjs' : './screenshot.mjs');
 // The DevTools port, for opening a second tab; the Firefox driver has none.
 const DEVTOOLS_PORT = process.env.KEPULI_BROWSER === 'firefox' ? null : CHROME_PORT;
@@ -321,23 +321,6 @@ const PLAYING = `(() => { const v = document.getElementById('video'); return v.r
 const CONNECTED = `document.querySelectorAll('#groups .group').length > 1 && document.getElementById('list-progress').hidden`;
 
 /* ------------------------------------------------------------ page helpers */
-
-async function evaluate(page, expression, { gesture = false } = {}) {
-  const { result, exceptionDetails } = await page.call('Runtime.evaluate', { expression, awaitPromise: true, returnByValue: true, userGesture: gesture });
-  if (exceptionDetails) throw new Error(exceptionDetails.exception?.description || exceptionDetails.text);
-  return result.value;
-}
-
-async function waitFor(page, expression, what, timeout = 25000) {
-  const t0 = Date.now();
-  for (;;) {
-    let value = false;
-    try { value = await evaluate(page, expression); } catch { /* mid-reload */ }
-    if (value) return value;
-    if (Date.now() - t0 > timeout) throw new Error(`timed out waiting for ${what}`);
-    await sleep(200);
-  }
-}
 
 async function click(page, root, text, { gesture = false, timeout = 10000 } = {}) {
   const expression = `(() => {

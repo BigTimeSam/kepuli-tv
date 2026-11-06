@@ -44,7 +44,7 @@ const HOST = 'iptv.example.com', MOCK_PORT = 8080;
 const PROFILE = mkdtempSync(join(tmpdir(), 'kepuli-video-'));
 process.env.KEPULI_DEV_PROFILE = PROFILE;
 process.env.KEPULI_DEV_PORT = process.env.KEPULI_VIDEO_PORT || '9370';
-const { ensureChrome, openPlayer, sleep } = await import('./screenshot.mjs');
+const { ensureChrome, openPlayer, sleep, evaluate: evaluateIn, waitFor: waitForIn } = await import('./screenshot.mjs');
 // Live channels as MPEG-TS, which is what the recorder keeps.
 process.env.KEPULI_MOCK_LIVE_TS = '1';
 const { startMockServer, USER, PASS, STALKER_MAC } = await import('./mock/server.mjs');
@@ -240,22 +240,8 @@ function connect(wsUrl) {
 
 let page;
 
-async function evaluate(expression, { gesture = false } = {}) {
-  const { result, exceptionDetails } = await page.call('Runtime.evaluate', { expression, awaitPromise: true, returnByValue: true, userGesture: gesture });
-  if (exceptionDetails) throw new Error(exceptionDetails.exception?.description || exceptionDetails.text);
-  return result.value;
-}
-
-async function waitFor(expression, what, timeout = 20000) {
-  const t0 = Date.now();
-  for (;;) {
-    let value = false;
-    try { value = await evaluate(expression); } catch { /* mid-reload */ }
-    if (value) return value;
-    if (Date.now() - t0 > timeout) throw new Error(`timed out waiting for ${what}`);
-    await sleep(150);
-  }
-}
+const evaluate = (expression, options) => evaluateIn(page, expression, options);
+const waitFor = (expression, what, timeout = 20000) => waitForIn(page, expression, what, timeout, 150);
 
 /* -------------------------------------------------------------- recorder */
 

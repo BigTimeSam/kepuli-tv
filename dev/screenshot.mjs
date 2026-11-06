@@ -82,6 +82,29 @@ export function session(wsUrl) {
   };
 }
 
+/**
+ * An expression's value in the page, promises awaited; an exception thrown
+ * there is thrown here. Only page.call is used, so the Firefox driver's
+ * page (firefox/playcheck-driver.mjs) takes it as well.
+ */
+export async function evaluate(page, expression, { gesture = false } = {}) {
+  const { result, exceptionDetails } = await page.call('Runtime.evaluate', { expression, awaitPromise: true, returnByValue: true, userGesture: gesture });
+  if (exceptionDetails) throw new Error(exceptionDetails.exception?.description || exceptionDetails.text);
+  return result.value;
+}
+
+/** Polls an expression until it is truthy; the page may be mid-reload meanwhile. */
+export async function waitFor(page, expression, what, timeout = 25000, every = 200) {
+  const t0 = Date.now();
+  for (;;) {
+    let value = false;
+    try { value = await evaluate(page, expression); } catch { /* mid-reload */ }
+    if (value) return value;
+    if (Date.now() - t0 > timeout) throw new Error(`timed out waiting for ${what}`);
+    await sleep(every);
+  }
+}
+
 /* ------------------------------------------------------------------ Chrome */
 
 export async function isRunning() {

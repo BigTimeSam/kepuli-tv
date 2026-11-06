@@ -10,26 +10,14 @@ import { join } from 'node:path';
 const work = mkdtempSync(join(tmpdir(), 'kepuli-ui-'));
 process.env.KEPULI_DEV_PROFILE = join(work, 'chrome');
 process.env.KEPULI_DEV_PORT = process.env.KEPULI_UI_PORT || '9341';
-const { ensureChrome, openPlayer, session, sleep, isRunning } = await import('./screenshot.mjs');
+const { ensureChrome, openPlayer, session, sleep, isRunning, evaluate: evaluateIn, waitFor: waitForIn } = await import('./screenshot.mjs');
 const { startMockServer } = await import('./mock/server.mjs');
 assert.equal(await isRunning(), false, 'the test port must be free; never reuse an existing profile');
 const server = await startMockServer(0);
 const port = server.address().port;
 let page;
-const evaluate = async expression => {
-  const { result, exceptionDetails } = await page.call('Runtime.evaluate', {
-    expression, awaitPromise: true, returnByValue: true, userGesture: true,
-  });
-  if (exceptionDetails) throw new Error(exceptionDetails.exception?.description || exceptionDetails.text);
-  return result.value;
-};
-const waitFor = async expression => {
-  for (let i = 0; i < 150; i++) {
-    if (await evaluate(expression)) return;
-    await sleep(100);
-  }
-  throw new Error(`Timed out: ${expression}`);
-};
+const evaluate = (expression) => evaluateIn(page, expression, { gesture: true });
+const waitFor = (expression) => waitForIn(page, expression, expression, 15000, 100);
 const settled = () => waitFor(`document.querySelector('#list').getAttribute('aria-busy') === 'false'`);
 const click = async selector => { await evaluate(`document.querySelector(${JSON.stringify(selector)}).click()`); await settled(); };
 const key = key => page.call('Input.dispatchKeyEvent', { type: 'keyDown', key });

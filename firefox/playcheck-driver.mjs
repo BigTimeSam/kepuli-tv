@@ -6,6 +6,7 @@ import { build, DIST } from './build.mjs';
 import { downscale, WIDTH, HEIGHT } from '../dev/screenshot.mjs';
 import { ensureFirefox, session as firefoxSession, sleep } from './marionette.mjs';
 export { sleep };
+export { evaluate, waitFor } from '../dev/screenshot.mjs';
 let client, url;
 export async function ensureChrome() {
   build();

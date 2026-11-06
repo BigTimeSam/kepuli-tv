@@ -36,7 +36,7 @@ import { startMockServer, PORT as MOCK_PORT, USER, PASS } from './mock/server.mj
 // The same five views in either browser, as dev/playcheck.mjs runs the same
 // scenarios in either: KEPULI_BROWSER=firefox swaps the driver underneath.
 const FIREFOX = process.env.KEPULI_BROWSER === 'firefox';
-const { ensureChrome, openPlayer, session, setViewport, clearViewport, capture, sleep } =
+const { ensureChrome, openPlayer, session, setViewport, clearViewport, capture, sleep, evaluate, waitFor } =
   await import(FIREFOX ? '../firefox/playcheck-driver.mjs' : './screenshot.mjs');
 
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '..');
@@ -49,23 +49,6 @@ const ONLY = process.env.KEPULI_SHOTS_VIEWS ? new Set(process.env.KEPULI_SHOTS_V
 
 /* ------------------------------------------------------------ page helpers */
 
-async function evaluate(page, expression, { gesture = false } = {}) {
-  const { result, exceptionDetails } = await page.call('Runtime.evaluate', { expression, awaitPromise: true, returnByValue: true, userGesture: gesture });
-  if (exceptionDetails) throw new Error(exceptionDetails.exception?.description || exceptionDetails.text);
-  return result.value;
-}
-
-/** Polls an expression until it is truthy. */
-async function waitFor(page, expression, what, timeout = 25000) {
-  const t0 = Date.now();
-  for (;;) {
-    let value = false;
-    try { value = await evaluate(page, expression); } catch { /* the page may be mid-reload */ }
-    if (value) return value;
-    if (Date.now() - t0 > timeout) throw new Error(`timed out waiting for ${what}`);
-    await sleep(200);
-  }
-}
 
 /**
  * Clicks the element under root whose text is `text` (or starts with it),
