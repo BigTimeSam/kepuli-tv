@@ -864,8 +864,11 @@ on two lines as well.</div></div>
 </dialog>
 
 <!-- The message strip. All three icons live here; the toast's kind class
-     shows the one that belongs to the message. -->
-<div class="toast info" id="toast" role="status" aria-live="polite" hidden>
+     shows the one that belongs to the message. What it says is announced
+     from #toast-live, which is never hidden: a live region that appears
+     with its text already in it is often not read at all. -->
+<div id="toast-live" class="sr-only" role="status" aria-live="polite"></div>
+<div class="toast info" id="toast" hidden>
   <svg data-kind="info" viewBox="0 0 20 20" aria-hidden="true"><circle cx="10" cy="10" r="7.2"/><circle cx="10" cy="6.6" r=".95" fill="currentColor" stroke="none"/><path d="M10 9.7v4.3"/></svg>
   <svg data-kind="warn" viewBox="0 0 20 20" aria-hidden="true"><path d="M10.87 3.6a1 1 0 0 0-1.74 0L2.3 15.9a1 1 0 0 0 .87 1.5h13.66a1 1 0 0 0 .87-1.5z"/><path d="M10 8.2v3.6"/><circle cx="10" cy="14.6" r=".95" fill="currentColor" stroke="none"/></svg>
   <svg data-kind="error" viewBox="0 0 20 20" aria-hidden="true"><circle cx="10" cy="10" r="7.2"/><path d="m7.6 7.6 4.8 4.8M12.4 7.6l-4.8 4.8"/></svg>

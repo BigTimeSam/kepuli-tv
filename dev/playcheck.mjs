@@ -1521,7 +1521,7 @@ async function a11y(page) {
       // A tab strip is one stop in the tab order, and its panel takes its name.
       tabStops: tabs.filter((b) => b.tabIndex === 0).map((b) => b.dataset.tab),
       panelNamedBy: document.getElementById('listcol').getAttribute('aria-labelledby'),
-      toastRole: document.getElementById('toast').getAttribute('role'),
+      toastRole: !document.getElementById('toast-live').hidden && document.getElementById('toast-live').getAttribute('role'),
       unnamedIcons: iconButtons.filter((b) => !b.getAttribute('aria-label')).map((b) => b.id || b.className),
       // The sidebar is a listbox of options, not a list of tabbable items.
       groupsRole: groups.getAttribute('role'), groupsTabbable: groups.tabIndex === 0,
@@ -2885,6 +2885,8 @@ async function channels(page) {
   await menu(3);
   await choose('Hide channel');
   assert(!(await names()).includes(hide), 'the hidden channel is still listed');
+  // What the strip says is announced from the region that is never hidden.
+  await waitFor(page, `document.getElementById('toast-text').textContent && document.getElementById('toast-live').textContent === document.getElementById('toast-text').textContent`, 'the message in the live region', 3000);
   // Undo stays while the keyboard is on it, past the strip's seven seconds.
   await evaluate(page, `document.querySelector('#toast .toast-action').focus()`);
   await sleep(8000);

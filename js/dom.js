@@ -25,5 +25,5 @@ export const el = {
   listProgress: $('list-progress'),
   epg: $('epg'), epgPreview: $('epg-preview'),
   lpTitle: $('lp-title'), lpFill: $('lp-fill'), lpText: $('lp-text'), lpPercent: $('lp-percent'),
-  toast: $('toast'), toastText: $('toast-text'),
+  toast: $('toast'), toastText: $('toast-text'), toastLive: $('toast-live'),
 };

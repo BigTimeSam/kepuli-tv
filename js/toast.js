@@ -34,7 +34,11 @@ export function toast(text, { long = false, kind = 'info', action = null, durati
   el.toast.classList.remove('info', 'warn', 'error');
   el.toast.classList.add(kind);
   // An error interrupts the reader; the rest can wait for a pause in speech.
-  el.toast.setAttribute('aria-live', kind === 'error' ? 'assertive' : 'polite');
+  // Emptied first and filled a moment later, so that the same message
+  // twice is announced twice.
+  el.toastLive.setAttribute('aria-live', kind === 'error' ? 'assertive' : 'polite');
+  el.toastLive.textContent = '';
+  setTimeout(() => { el.toastLive.textContent = text; }, 50);
   el.toast.hidden = false;
   clearTimeout(toastTimer);
   // An error deserves the time it takes to read it, and so does a message
