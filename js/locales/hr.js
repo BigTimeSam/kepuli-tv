@@ -383,8 +383,6 @@ export default {
  "cover.new.title": "Pružatelj je dodao u posljednja dva tjedna",
  "cover.watched": "Pogledano",
  "cover.version": "Verzija {n}",
- "info.ends": "Završava u {time}",
- "info.left": "Preostalo {time}",
  "title.original": "Izvorni naslov",
  "links.person": "Potraži {name} na IMDb-u",
  "info.related.versions": "Druge verzije",

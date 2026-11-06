@@ -101,8 +101,7 @@ const playerUrl = (url) => url.split('#')[0].split('?')[0] + (FROZEN === null ? 
 // the visual check to leave out. The guide's live programmes carry their
 // share played as a fill (.epg-prog > i) rounded to a per cent, which the
 // clock running on during the walk moved by a pixel on some runs.
-// The details' end time (#vod-ends) runs with the clock and the picture.
-const MASKED = ['#video', '#vod-ends', '#subdisplay', '#epg-preview video', '.row-progress', '.bar-fill', '.epgbar', '.nowbar',
+const MASKED = ['#video', '#subdisplay', '#epg-preview video', '.row-progress', '.bar-fill', '.epgbar', '.nowbar',
   '.epg-bar', '.overlay-bar', '.overlay-elapsed', '.epg-nowline', '.epg-nowhead', '.list-progress', '.epg-prog > i'];
 // Thrown by shoot once every view KEPULI_SHOTS_VIEWS asks for is taken: the
 // rest of the walk only sets up views nobody wants.

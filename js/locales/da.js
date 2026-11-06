@@ -375,8 +375,6 @@ export default {
  "cover.new.title": "Tilføjet af udbyderen inden for de sidste to uger",
  "cover.watched": "Set",
  "cover.version": "Version {n}",
- "info.ends": "Slutter kl. {time}",
- "info.left": "{time} tilbage",
  "title.original": "Originaltitel",
  "links.person": "Find {name} på IMDb",
  "info.related.versions": "Andre versioner",

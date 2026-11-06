@@ -375,8 +375,6 @@ export default {
  "cover.new.title": "Teenusepakkuja lisas selle viimase kahe nädala jooksul",
  "cover.watched": "Vaadatud",
  "cover.version": "Versioon {n}",
- "info.ends": "Lõpeb kell {time}",
- "info.left": "Jäänud {time}",
  "title.original": "Algne pealkiri",
  "links.person": "Otsi {name} IMDb-st",
  "info.related.versions": "Muud versioonid",

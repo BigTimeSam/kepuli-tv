@@ -3544,8 +3544,9 @@ async function catalogUi(page) {
   await waitFor(page, `document.querySelector('#listinfo [data-order="az"]')?.getAttribute('aria-pressed') === 'true'`, 'the name order again');
   await evaluate(page, `document.querySelector('#list .row').click()`, {gesture:true});
   await waitFor(page, PLAYING, 'native movie playback');
-  await waitFor(page, `document.querySelector('#infostrip .title-links a') && document.querySelector('#infostrip .playback-facts')`, 'movie facts and external link');
-  assert(await evaluate(page, `document.querySelector('#infostrip .title-links a').href.startsWith('https://www.imdb.com/')`), 'IMDb link destination');
+  // The IMDb link is in the ☰ menu while the film plays, not under the details.
+  await waitFor(page, `!document.getElementById('more-imdb').hidden && document.querySelector('#infostrip .playback-facts')`, 'movie facts and the menu\'s IMDb item');
+  assert(await evaluate(page, `document.getElementById('more-imdb').href.startsWith('https://www.imdb.com/') && !document.querySelector('#infostrip .title-links')`), 'IMDb link in the menu only');
   await playEpisode(page);
   await waitFor(page, `document.querySelector('#detail .detail-cover.loaded:not(:disabled)')`, 'series cover');
   await evaluate(page, `document.querySelector('#detail .detail-cover').click()`);
@@ -5509,12 +5510,11 @@ async function filmdetails(page) {
     await waitFor(page, `document.querySelector('.related') && document.querySelector('.title-credit-original')`, 'the details', 20000);
     await sleep(500);
     const strip = await evaluate(page, `({ title: document.getElementById('now-title').textContent, sub: document.getElementById('now-sub').textContent,
-      ends: document.getElementById('vod-ends')?.textContent, original: document.querySelector('.title-credit-original dd')?.textContent,
+      original: document.querySelector('.title-credit-original dd')?.textContent,
       people: [...document.querySelectorAll('.title-credits a.person')].map((a) => a.href).slice(0, 2), audio: document.querySelector('.playback-fact-audio dd')?.textContent,
       heads: [...document.querySelectorAll('.related h4')].map((h) => h.textContent),
       tiles: [...document.querySelectorAll('.related-row')].map((r) => [...r.querySelectorAll('.related-tile')].map((t) => t.title)) })`);
     assert(strip.title === 'Steel Horizon' && strip.sub.startsWith('Action'), `the title and its line: ${JSON.stringify(strip)}`);
-    assert(/^Ends at .+ · .+ left$/.test(strip.ends || ''), `the end time: ${strip.ends}`);
     assert(strip.original === 'Det stille fjellet' && strip.people.length && strip.people.every((h) => h.startsWith('https://www.imdb.com/find/?') && h.includes('s=nm')), `the credits: ${JSON.stringify(strip)}`);
     assert(/Norwegian/.test(strip.audio || ''), `the sound's language: ${strip.audio}`);
     assert(JSON.stringify(strip.heads) === JSON.stringify(['Other versions', 'In the same series']) && strip.tiles[0].length === 2 && strip.tiles[1].length === 2

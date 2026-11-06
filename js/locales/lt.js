@@ -391,8 +391,6 @@ export default {
  "cover.new.title": "Teikėjas pridėjo per pastarąsias dvi savaites",
  "cover.watched": "Peržiūrėta",
  "cover.version": "{n} versija",
- "info.ends": "Baigsis {time}",
- "info.left": "Liko {time}",
  "title.original": "Originalus pavadinimas",
  "links.person": "Ieškoti {name} IMDb",
  "info.related.versions": "Kitos versijos",

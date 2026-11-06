@@ -375,8 +375,6 @@ export default {
  "cover.new.title": "Добавено от доставчика през последните две седмици",
  "cover.watched": "Гледано",
  "cover.version": "Версия {n}",
- "info.ends": "Свършва в {time}",
- "info.left": "Остават {time}",
  "title.original": "Оригинално заглавие",
  "links.person": "Търси {name} в IMDb",
  "info.related.versions": "Други версии",

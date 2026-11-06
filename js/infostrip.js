@@ -7,9 +7,10 @@
 // builds, from js/state.js.
 
 import { audioDetails, subtitleSummary } from './probe.js';
-import { clock, duration, progressOf } from './format.js';
+import { clock, progressOf } from './format.js';
 import { relatedTitles, titleWithoutYear, versionLabels } from './titlemeta.js';
-import { externalLinks, playbackFacts, titleCredits, titleFacts } from './titleinfo.js';
+import { playbackFacts, titleCredits, titleFacts } from './titleinfo.js';
+import { titleLinks } from './titlelinks.js';
 import { poster } from './poster.js';
 import { shortLanguage } from './lang.js';
 import { t } from './i18n.js';
@@ -23,6 +24,7 @@ import { bindTile } from './tilekeys.js';
 export function renderInfoStrip() {
   renderMediaSession();
   const item = state.playing;
+  renderMenuLinks(null);
   // A recording's programme is in its title; the guide's now is not it.
   if (!item || item.recording) { el.infostrip.hidden = true; return; }
 
@@ -97,12 +99,7 @@ export function renderInfoStrip() {
   // line that divides them from the title's.
   const add = (part) => { if (part.childElementCount) body.appendChild(part); };
   add(titleFacts(info || item, { duration: true }));
-  // When it ends, kept up to date as it plays (updateEnds).
-  const ends = document.createElement('p');
-  ends.className = 'vod-ends';
-  ends.id = 'vod-ends';
-  body.appendChild(ends);
-  add(externalLinks(item, info));
+  renderMenuLinks(item, info);
   // A header that has been read is more precise than the API's data: it
   // knows the audio track and the subtitles, neither of which the API
   // reports.
@@ -137,7 +134,6 @@ export function renderInfoStrip() {
   if (item.k === 1 || item.k === 2) add(relatedPart(item));
   box.appendChild(body);
   el.infostrip.replaceChildren(box);
-  updateEnds();
 }
 
 /**
@@ -189,32 +185,23 @@ function relatedPart(item) {
 }
 
 /**
- * "Ends at 17:45 · 52 min left" for the film or episode playing: from what
- * is left of it at the speed it plays, so a pause moves the end on and a
- * seek brings it forward. Nothing for a channel, or before the length is known.
+ * The ☰ menu's IMDb and trailer items for the film or episode playing, as
+ * titleLinks() finds them; hidden for anything else.
+ * @param {object|null} item
+ * @param {object} [info]
  */
-export function updateEnds() {
-  const line = document.getElementById('vod-ends');
-  if (!line) return;
-  const video = el.video;
-  const item = state.playing;
-  const total = Number.isFinite(video.duration) && video.duration > 0 ? video.duration : item?.details?.durationSec || item?.durationSec || 0;
-  const left = total > 0 ? Math.max(0, total - (video.currentTime || 0)) / (video.playbackRate || 1) : 0;
-  if (!item || item.k === 0 || left < 60) { line.textContent = ''; line.hidden = true; return; }
-  line.hidden = false;
-  line.textContent = `${t('info.ends', { time: clock(Date.now() + left * 1000) })} · ${t('info.left', { time: duration(left) })}`;
+function renderMenuLinks(item, info) {
+  const links = item ? titleLinks(item, info) : [];
+  for (const service of ['imdb', 'trailer']) {
+    const node = /** @type {HTMLAnchorElement} */ (document.getElementById(`more-${service}`));
+    const link = links.find((l) => l.service === service);
+    node.hidden = !link;
+    if (!link) continue;
+    node.href = link.href;
+    node.title = t('links.newtab');
+    node.querySelector('span').textContent = `${t(`links.${service}${link.search ? '.search' : ''}`)} ↗`;
+  }
 }
-
-// The end moves as the film plays, is paused or is sought in; a minute's
-// steps are enough for a clock that shows minutes.
-let endsAt = 0;
-el.video.addEventListener('timeupdate', () => {
-  if (Date.now() - endsAt < 15000) return;
-  endsAt = Date.now();
-  updateEnds();
-});
-for (const type of ['seeked', 'ratechange', 'play', 'pause', 'durationchange']) el.video.addEventListener(type, updateEnds);
-setInterval(updateEnds, 30000);
 
 /**
  * The subtitles of the file, for the details: what the player found once it

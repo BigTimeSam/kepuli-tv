@@ -303,6 +303,18 @@
           <svg viewBox="0 0 20 20" aria-hidden="true"><path d="M11 3h6v6M17 3l-8 8M8 4H4a1 1 0 0 0-1 1v11a1 1 0 0 0 1 1h11a1 1 0 0 0 1-1v-4"/></svg>
           <span data-i18n="ext.title">Open in an external player</span>
         </button>
+        <!-- The title's IMDb page and trailer, when the provider names them
+             (an IMDb search otherwise): in the menu rather than as buttons
+             under the details, where they crowded the facts while the film
+             was already playing (renderMenuLinks in js/infostrip.js). -->
+        <a role="menuitem" id="more-imdb" class="popitem" target="_blank" rel="noopener noreferrer" hidden>
+          <svg viewBox="0 0 20 20" aria-hidden="true"><path d="M11 3h6v6M17 3l-8 8M8 4H4a1 1 0 0 0-1 1v11a1 1 0 0 0 1 1h11a1 1 0 0 0 1-1v-4"/></svg>
+          <span></span>
+        </a>
+        <a role="menuitem" id="more-trailer" class="popitem" target="_blank" rel="noopener noreferrer" hidden>
+          <svg viewBox="0 0 20 20" aria-hidden="true"><rect x="2.5" y="4" width="15" height="12" rx="2.5"/><path d="m8.5 7.5 4 2.5-4 2.5z"/></svg>
+          <span></span>
+        </a>
       </div>
       <div class="now-actions">
         <button type="button" id="btn-live" class="ghost" data-i18n="guide.returnlive" hidden>Back to live</button>

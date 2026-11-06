@@ -391,8 +391,6 @@ export default {
  "cover.new.title": "Poskytovatel přidal v posledních dvou týdnech",
  "cover.watched": "Zhlédnuto",
  "cover.version": "Verze {n}",
- "info.ends": "Končí v {time}",
- "info.left": "Zbývá {time}",
  "title.original": "Původní název",
  "links.person": "Hledat {name} na IMDb",
  "info.related.versions": "Další verze",

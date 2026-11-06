@@ -375,8 +375,6 @@ export default {
  "cover.new.title": "A szolgáltató az elmúlt két hétben adta hozzá",
  "cover.watched": "Megnézve",
  "cover.version": "{n}. változat",
- "info.ends": "Vége: {time}",
- "info.left": "Még {time}",
  "title.original": "Eredeti cím",
  "links.person": "{name} keresése az IMDb-n",
  "info.related.versions": "Más változatok",

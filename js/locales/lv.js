@@ -383,8 +383,6 @@ export default {
  "cover.new.title": "Pakalpojuma sniedzējs pievienoja pēdējās divās nedēļās",
  "cover.watched": "Noskatīts",
  "cover.version": "{n}. versija",
- "info.ends": "Beidzas {time}",
- "info.left": "Atlicis {time}",
  "title.original": "Oriģinālais nosaukums",
  "links.person": "Meklēt {name} IMDb",
  "info.related.versions": "Citas versijas",

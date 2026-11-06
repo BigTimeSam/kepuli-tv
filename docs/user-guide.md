@@ -550,9 +550,8 @@ its ID is available; otherwise **Search IMDb** uses its name and year. **Trailer
 appears only for a valid YouTube trailer. Links open in a new tab;
 constructing them requires no external API calls or API keys.
 
-While a film or an episode plays, the line under its facts says when it ends
-and how long is left (**Ends at 21:45 · 52 min left**), moving on with a pause
-and forward with a seek. The director's and the cast's names search IMDb for
+While a film or an episode plays, its IMDb page (or an IMDb search) and its
+trailer, where the provider names one, are in the player's ☰ menu. The director's and the cast's names search IMDb for
 the person; the original title shows when the provider gives one that differs,
 and the sound names its language when the file or the provider does
 (**AAC (6 channels, Finnish)**). Under them, **Other versions** lists the other

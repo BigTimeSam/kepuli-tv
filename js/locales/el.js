@@ -375,8 +375,6 @@ export default {
  "cover.new.title": "Προστέθηκε από τον πάροχο τις τελευταίες δύο εβδομάδες",
  "cover.watched": "Το είδατε",
  "cover.version": "Έκδοση {n}",
- "info.ends": "Λήγει στις {time}",
- "info.left": "Απομένουν {time}",
  "title.original": "Πρωτότυπος τίτλος",
  "links.person": "Αναζήτηση {name} στο IMDb",
  "info.related.versions": "Άλλες εκδόσεις",

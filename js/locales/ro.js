@@ -383,8 +383,6 @@ export default {
  "cover.new.title": "Adăugat de furnizor în ultimele două săptămâni",
  "cover.watched": "Văzut",
  "cover.version": "Versiunea {n}",
- "info.ends": "Se termină la {time}",
- "info.left": "Au mai rămas {time}",
  "title.original": "Titlu original",
  "links.person": "Caută {name} pe IMDb",
  "info.related.versions": "Alte versiuni",
