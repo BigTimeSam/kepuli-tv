@@ -391,7 +391,6 @@ export default {
  "fav.removed": "Dihapus dari favorit: {name}",
  "fav.series.add": "Tambah serial ke favorit",
  "fav.series.remove": "Hapus serial dari favorit",
- "ext.label": "VLC atau pemutar bawaan untuk file .m3u",
  "ext.title": "Buka di pemutar eksternal",
  "ext.nothing": "Tidak ada pemutaran untuk dikirim",
  "ext.handed": "Diteruskan ke pemutar eksternal",

@@ -407,7 +407,6 @@ export default {
  "fav.removed": "Uklonjeno iz omiljenog: {name}",
  "fav.series.add": "Dodaj seriju u omiljeno",
  "fav.series.remove": "Ukloni seriju iz omiljenog",
- "ext.label": "VLC ili drugi podrazumevani plejer za .m3u datoteke",
  "ext.title": "Otvori u spoljnom plejeru",
  "ext.nothing": "Nema reprodukcije za prosleđivanje",
  "ext.handed": "Prosleđeno spoljnom plejeru",

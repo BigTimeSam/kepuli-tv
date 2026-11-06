@@ -179,7 +179,7 @@ export class Mp4Player {
     this.closeConnection();
     try {
       if (this.ms && this.ms.readyState === 'open') this.ms.endOfStream();
-    } catch { /* jo suljettu */ }
+    } catch { /* already closed */ }
     if (this.objectUrl) { URL.revokeObjectURL(this.objectUrl); this.objectUrl = null; }
     this.ms = null;
   }
@@ -290,7 +290,7 @@ export class Mp4Player {
   closeConnection() {
     const open = this.connection;
     this.connection = null;
-    if (open) { try { open.abort(); } catch { /* jo suljettu */ } }
+    if (open) { try { open.abort(); } catch { /* already closed */ } }
   }
 
   /**
@@ -323,7 +323,7 @@ export class Mp4Player {
       // refusedByFileServer(); asking again would not change it.
       if (refusedByFileServer(res)) err.unavailable = res.status;
       else err.connection = true;
-      try { ctrl.abort(); } catch { /* jo suljettu */ }
+      try { ctrl.abort(); } catch { /* already closed */ }
       throw err;
     }
     // A server that ignores the range sends the file from its start; it is
@@ -494,7 +494,7 @@ export class Mp4Player {
       this.tracks.forEach((_, k) => flush(k));
       await Promise.all(this.queues);
       if (stale()) return;
-      try { if (this.ms.readyState === 'open') this.ms.endOfStream(); } catch { /* jo suljettu */ }
+      try { if (this.ms.readyState === 'open') this.ms.endOfStream(); } catch { /* already closed */ }
       return;
     }
     // Resumed from the oldest sample that did not go in.
@@ -699,7 +699,7 @@ class ByteStream {
   }
 
   close() {
-    try { this.ctrl.abort(); } catch { /* jo suljettu */ }
+    try { this.ctrl.abort(); } catch { /* already closed */ }
   }
 }
 
@@ -714,7 +714,7 @@ function within(promise, ctrl, ms = STALL_MS) {
       err.stalled = true;
       err.connection = true;
       reject(err);
-      try { ctrl.abort(); } catch { /* jo suljettu */ }
+      try { ctrl.abort(); } catch { /* already closed */ }
     }, ms);
   });
   return Promise.race([promise, stalled]).finally(() => clearTimeout(timer));

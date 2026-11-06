@@ -117,15 +117,6 @@ export function duration(totalSeconds, { compact = false } = {}) {
   return t('duration.m', { m });
 }
 
-export function clockDuration(seconds) {
-  if (!Number.isFinite(seconds) || seconds < 0) return '0:00';
-  const s = Math.floor(seconds % 60);
-  const m = Math.floor(seconds / 60) % 60;
-  const h = Math.floor(seconds / 3600);
-  const mm = h > 0 ? String(m).padStart(2, '0') : String(m);
-  return `${h > 0 ? h + ':' : ''}${mm}:${String(s).padStart(2, '0')}`;
-}
-
 /** Programme progress 0–1, or null when it is not on air. */
 export function progressOf(programme, now = Date.now()) {
   if (!programme || !programme.start || !programme.stop) return null;

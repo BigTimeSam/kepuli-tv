@@ -407,7 +407,6 @@ export default {
  "fav.removed": "{name} a fost eliminat din favorite",
  "fav.series.add": "Adaugă serialul la favorite",
  "fav.series.remove": "Elimină serialul din favorite",
- "ext.label": "VLC sau alt player implicit pentru .m3u",
  "ext.title": "Deschide într-un player extern",
  "ext.nothing": "Nu există nicio redare de predat",
  "ext.handed": "Predat unui player extern",

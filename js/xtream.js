@@ -133,14 +133,6 @@ export function timeshiftUrl(cfg, streamId, startMs, durationMinutes, serverUtcO
   return `${baseUrl(cfg)}/timeshift/${auth}/${Math.round(durationMinutes)}/${stamp}/${streamId}.ts`;
 }
 
-/**
- * VOD extensions the browser plays natively. Chrome supports neither
- * Matroska (.mkv) nor .avi, even when they hold H.264 + AAC.
- */
-export function isNativelyPlayable(url) {
-  return /\.(mp4|m4v|mov|webm|ogv)$/i.test(String(url).split('?')[0]);
-}
-
 /** Whether the container is playable in the browser judging by extension alone. */
 export function isPlayableExtension(ext) {
   return /^(mp4|m4v|mov|webm|ogv|ts|flv)$/i.test(String(ext || ''));

@@ -391,7 +391,6 @@ export default {
  "fav.removed": "Đã bỏ khỏi yêu thích: {name}",
  "fav.series.add": "Thêm phim bộ vào yêu thích",
  "fav.series.remove": "Bỏ phim bộ khỏi yêu thích",
- "ext.label": "VLC hoặc trình phát mặc định khác cho tệp .m3u",
  "ext.title": "Mở bằng trình phát ngoài",
  "ext.nothing": "Không có nội dung đang phát để chuyển",
  "ext.handed": "Đã chuyển sang trình phát ngoài",

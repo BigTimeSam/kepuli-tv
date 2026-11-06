@@ -415,7 +415,6 @@ export default {
  "fav.removed": "Odebráno z oblíbených: {name}",
  "fav.series.add": "Přidat seriál do oblíbených",
  "fav.series.remove": "Odebrat seriál z oblíbených",
- "ext.label": "VLC nebo jiný výchozí přehrávač souborů .m3u",
  "ext.title": "Otevřít v externím přehrávači",
  "ext.nothing": "Není co předat, nic se nepřehrává",
  "ext.handed": "Předáno externímu přehrávači",

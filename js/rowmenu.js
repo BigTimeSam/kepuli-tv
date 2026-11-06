@@ -62,8 +62,6 @@ export function closeRowMenu({ focus = false } = {}) {
   if (focus && returnFocus?.isConnected) returnFocus.focus({ preventScroll: true });
 }
 
-export const rowMenuOpen = () => Boolean(open);
-
 function place(pop, at) {
   const margin = 8;
   const box = pop.getBoundingClientRect();

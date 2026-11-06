@@ -399,7 +399,6 @@ export default {
  "fav.removed": "U hoq nga të preferuarat: {name}",
  "fav.series.add": "Shto serialin te të preferuarat",
  "fav.series.remove": "Hiq serialin nga të preferuarat",
- "ext.label": "VLC ose luajtësi tjetër i parazgjedhur për skedarë .m3u",
  "ext.title": "Hape në një luajtës të jashtëm",
  "ext.nothing": "Nuk ka luajtje për t'u kaluar",
  "ext.handed": "U kalua te luajtësi i jashtëm",

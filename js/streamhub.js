@@ -150,9 +150,6 @@ export function shareAs(url, key) {
   if (aliases.size > 50) aliases.delete(aliases.keys().next().value);
 }
 
-/** Whether a channel's connection is open. */
-export const isOpen = (key) => Boolean(upstreams.get(key) && !upstreams.get(key).done);
-
 /**
  * A fetch() of a shared address answered from the channel's connection: a
  * Response like the network's, its body the bytes from now on.

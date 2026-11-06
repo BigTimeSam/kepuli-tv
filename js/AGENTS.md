@@ -136,7 +136,7 @@ with the console open and run the scenarios of that feature. A
 - **Performance**: lists can hold 55,000 items. Anything per row runs on scroll
   frames; cache Intl instances (`format.js`); fetch lazily (`library.js`).
 - **Comments explain why** in full sentences, as the surrounding code does.
-  Some older comments are in Finnish; write new ones in English.
+  Comments are in English.
 
 ## Testing a change here
 

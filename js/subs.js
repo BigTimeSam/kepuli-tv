@@ -200,7 +200,7 @@ export class SubtitleTracks {
   }
 }
 
-/* ------------------------------------------------------------- raitavarasto */
+/* --------------------------------------------------------------- track store */
 
 // addTextTrack adds a track for good: the element offers no interface for
 // removing one, and changing src does not reliably take it away either.
@@ -237,7 +237,7 @@ function clearTrack(track) {
   } catch { /* the browser had already torn the track down */ }
 }
 
-/* ----------------------------------------------------------------- teksti */
+/* -------------------------------------------------------------------- text */
 
 /** The block payload as displayable text, or '' when there is none. */
 export function cueText(codecId, data) {

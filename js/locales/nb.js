@@ -399,7 +399,6 @@ export default {
  "fav.removed": "{name} ble fjernet fra favoritter",
  "fav.series.add": "Legg serien til i favoritter",
  "fav.series.remove": "Fjern serien fra favoritter",
- "ext.label": "VLC eller en annen standardspiller for .m3u",
  "ext.title": "Åpne i en ekstern spiller",
  "ext.nothing": "Det er ingen avspilling å sende videre",
  "ext.handed": "Sendt til en ekstern spiller",

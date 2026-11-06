@@ -415,7 +415,6 @@ export default {
  "fav.removed": "Pašalinta iš mėgstamų: {name}",
  "fav.series.add": "Pridėti serialą prie mėgstamų",
  "fav.series.remove": "Pašalinti serialą iš mėgstamų",
- "ext.label": "VLC ar kitas numatytasis .m3u failų grotuvas",
  "ext.title": "Atidaryti išoriniame grotuve",
  "ext.nothing": "Nėra ką perduoti",
  "ext.handed": "Perduota išoriniam grotuvui",

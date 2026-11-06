@@ -399,7 +399,6 @@ export default {
  "fav.removed": "{name} verwijderd uit favorieten",
  "fav.series.add": "Serie toevoegen aan favorieten",
  "fav.series.remove": "Serie verwijderen uit favorieten",
- "ext.label": "VLC of een andere standaardspeler voor .m3u",
  "ext.title": "Openen in een externe speler",
  "ext.nothing": "Er is niets om door te geven",
  "ext.handed": "Doorgegeven aan een externe speler",

@@ -407,7 +407,6 @@ export default {
  "fav.removed": "Noņemts no izlases: {name}",
  "fav.series.add": "Pievienot seriālu izlasei",
  "fav.series.remove": "Noņemt seriālu no izlases",
- "ext.label": "VLC vai cits noklusējuma .m3u failu atskaņotājs",
  "ext.title": "Atvērt ārējā atskaņotājā",
  "ext.nothing": "Nav atskaņošanas, ko nodot",
  "ext.handed": "Nodots ārējam atskaņotājam",

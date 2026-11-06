@@ -204,7 +204,7 @@ export class Remuxer {
     return { loaded: this.received, ...this.step, bitrate };
   }
 
-  /* ------------------------------------------------------------ elinkaari */
+  /* ------------------------------------------------------------ life cycle */
 
   async start() {
     this.ms = new MediaSource();
@@ -324,14 +324,14 @@ export class Remuxer {
     if (this.transcoder) { this.transcoder.close(); this.transcoder = null; }
     this.subtitleList = [];
     if (this.stream) {
-      try { this.stream.ctrl.abort(); } catch { /* jo suljettu */ }
+      try { this.stream.ctrl.abort(); } catch { /* already closed */ }
       this.stream = null;
     }
     this.closeConnection();
-    if (this.pinned) { try { this.pinned.abort(); } catch { /* jo suljettu */ } this.pinned = null; }
+    if (this.pinned) { try { this.pinned.abort(); } catch { /* already closed */ } this.pinned = null; }
     try {
       if (this.ms && this.ms.readyState === 'open') this.ms.endOfStream();
-    } catch { /* jo suljettu */ }
+    } catch { /* already closed */ }
     if (this.objectUrl) { URL.revokeObjectURL(this.objectUrl); this.objectUrl = null; }
     this.ms = null;
   }
@@ -343,12 +343,12 @@ export class Remuxer {
     this.onError(err);
   }
 
-  /* -------------------------------------------------------------- verkko */
+  /* -------------------------------------------------------------- network */
 
   closeConnection() {
     const open = this.connection;
     this.connection = null;
-    if (open) { try { open.abort(); } catch { /* jo suljettu */ } }
+    if (open) { try { open.abort(); } catch { /* already closed */ } }
   }
 
   /**
@@ -365,7 +365,7 @@ export class Remuxer {
     if (this.destroyed) throw new DOMException('the unpacker is gone', 'AbortError');
     this.closeConnection();
     if (this.stream) {
-      try { this.stream.ctrl.abort(); } catch { /* jo suljettu */ }
+      try { this.stream.ctrl.abort(); } catch { /* already closed */ }
       this.stream = null;
     }
     const ctrl = new AbortController();
@@ -398,7 +398,7 @@ export class Remuxer {
       // refusedByFileServer().
       if (refusedByFileServer(res)) err.unavailable = res.status;
       else err.connection = true;
-      try { ctrl.abort(); } catch { /* jo suljettu */ }
+      try { ctrl.abort(); } catch { /* already closed */ }
       if (this.connection === ctrl) this.connection = null;
       if (this.pinned === ctrl) this.pinned = null;
       throw err;
@@ -460,14 +460,14 @@ export class Remuxer {
     for (const chunk of chunks) { bytes.set(chunk, at); at += chunk.byteLength; }
 
     if (emptyAnswer(bytes)) {
-      try { ctrl.abort(); } catch { /* jo suljettu */ }
+      try { ctrl.abort(); } catch { /* already closed */ }
       const err = new Error(t('probe.empty'));
       err.empty = true;
       throw err;
     }
     const header = parseHeader(bytes);
     if (!header.ok) {
-      try { ctrl.abort(); } catch { /* jo suljettu */ }
+      try { ctrl.abort(); } catch { /* already closed */ }
       throw new Error('no track data found');
     }
     this.stream = { reader, ctrl, chunks, offset: 0 };
@@ -621,7 +621,7 @@ export class Remuxer {
     return active;
   }
 
-  /* ------------------------------------------------------------ ääniraita */
+  /* ------------------------------------------------------------------ audio */
 
   /**
    * The audio tracks and the one in play, for the selector. The same list
@@ -891,7 +891,7 @@ export class Remuxer {
     return keepFrom - start < (aggressive ? 1 : 5) ? null : [start, keepFrom];
   }
 
-  /* ---------------------------------------------------------------- pumppu */
+  /* ------------------------------------------------------------------ pump */
 
   /**
    * Reads the file from the given offset, demuxes the clusters and feeds the
@@ -1068,7 +1068,7 @@ export class Remuxer {
       broke = !complete && damaged === null && generation === this.generation && !this.destroyed;
     } finally {
       this.state.reading = false;
-      try { ctrl.abort(); } catch { /* jo suljettu */ }
+      try { ctrl.abort(); } catch { /* already closed */ }
       if (this.connection === ctrl) this.connection = null;
       await network.catch(() => {});
     }
@@ -1286,7 +1286,7 @@ export class Remuxer {
     } catch { /* the browser had already closed it */ }
   }
 
-  /* ---------------------------------------------------------------- kelaus */
+  /* ---------------------------------------------------------------- seeking */
 
   /**
    * The Cues table from the end of the file. Fetched once, and only if a
@@ -1371,7 +1371,7 @@ export class Remuxer {
     if (navigator.userActivation && navigator.userActivation.isActive) return;
     this.silentResumes++;
     const started = this.video.play();
-    if (started && started.catch) started.catch(() => { /* katsoja ehti painaa taukoa */ });
+    if (started && started.catch) started.catch(() => { /* the viewer paused first */ });
   }
 
   /** The file offset where the given moment starts, or null. */
@@ -1463,7 +1463,7 @@ function removeNow(sb, from, to) {
   });
 }
 
-/* ------------------------------------------------------------- apurit */
+/* ------------------------------------------------------------- helpers */
 
 const formatClock = (seconds) => {
   const total = Math.max(0, Math.round(seconds));
@@ -1484,7 +1484,7 @@ function within(promise, ctrl, ms = STALL_MS) {
       const err = new Error('the download stalled');
       err.stalled = true;
       reject(err);
-      try { ctrl.abort(); } catch { /* jo suljettu */ }
+      try { ctrl.abort(); } catch { /* already closed */ }
     }, ms);
   });
   return Promise.race([promise, stalled]).finally(() => clearTimeout(timer));

@@ -399,7 +399,6 @@ export default {
  "fav.removed": "{name} favorilerden kaldırıldı",
  "fav.series.add": "Diziyi favorilere ekle",
  "fav.series.remove": "Diziyi favorilerden kaldır",
- "ext.label": ".m3u için VLC veya başka bir varsayılan oynatıcı",
  "ext.title": "Harici oynatıcıda aç",
  "ext.nothing": "Aktarılacak bir oynatma yok",
  "ext.handed": "Harici oynatıcıya aktarıldı",

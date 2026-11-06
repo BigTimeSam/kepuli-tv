@@ -184,17 +184,6 @@ export async function cacheGetAll(prefix, maxAgeMs = Infinity) {
   }
 }
 
-export async function cacheAge(key) {
-  try {
-    const db = await openDB();
-    const { t } = tx(db, ['cache'], 'readonly');
-    const row = await request(t.objectStore('cache').get(key));
-    return row ? row.at : null;
-  } catch {
-    return null;
-  }
-}
-
 /** Deletes keys that start with the prefix; without one, the whole cache. */
 export async function cacheClear(prefix) {
   try {

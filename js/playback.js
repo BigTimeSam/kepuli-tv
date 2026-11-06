@@ -354,7 +354,7 @@ export class Playback {
   dropEngine() {
     const engine = this.engine;
     this.engine = null;
-    if (engine) { this.releasedAt = Date.now(); try { engine.destroy(); } catch { /* purettu */ } }
+    if (engine) { this.releasedAt = Date.now(); try { engine.destroy(); } catch { /* already torn down */ } }
   }
 
   /**
@@ -657,7 +657,7 @@ export class Playback {
       // have been refused outright, and a wait would then be for nothing.
       const engine = this.engine;
       this.engine = null;
-      if (engine) { try { engine.destroy(); } catch { /* purettu */ } }
+      if (engine) { try { engine.destroy(); } catch { /* already torn down */ } }
       // The server answered OK with nothing in it: no other engine gets a
       // picture out of that, see emptyAnswer() in js/probe.js.
       if (empty) return void this.nothingThere(spec);
@@ -1029,7 +1029,7 @@ export class Playback {
     }, STABLE_MS);
   }
 
-  /* --------------------------------------------------------- itsekorjaus */
+  /* ---------------------------------------------------------- self-repair */
 
   /**
    * The death of a live source shows up as three different states, and each
@@ -1211,7 +1211,7 @@ export class Playback {
     if (this.watchdog) { clearInterval(this.watchdog); this.watchdog = null; }
   }
 
-  /* ------------------------------------------------------------ lataus */
+  /* ------------------------------------------------------------ loading */
 
   /**
    * What the download has come to, from whichever engine plays: the bytes

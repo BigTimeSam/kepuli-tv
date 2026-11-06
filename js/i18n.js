@@ -446,7 +446,6 @@ const STRINGS = {
     'fav.series.remove': 'Remove series from favourites',
 
     /* ------------------------------------------------- external player */
-    'ext.label': 'VLC or another default player for .m3u',
     'ext.title': 'Open in an external player',
     'ext.nothing': 'There is no playback to hand over',
     'ext.handed': 'Handed to an external player',
@@ -1190,7 +1189,6 @@ const STRINGS = {
     'fav.series.remove': 'Poista sarja suosikeista',
 
     /* ------------------------------------------------- external player */
-    'ext.label': 'VLC tai muu .m3u:n oletussoitin',
     'ext.title': 'Avaa ulkoisessa soittimessa',
     'ext.nothing': 'Ei toistoa, jonka voisi luovuttaa',
     'ext.handed': 'Luovutettu ulkoiselle soittimelle',

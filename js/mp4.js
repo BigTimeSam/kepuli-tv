@@ -28,7 +28,7 @@
 
 export const VIDEO_TIMESCALE = 90000;
 
-/* ------------------------------------------------------------- laatikot */
+/* ----------------------------------------------------------------- boxes */
 
 const CHARS = (s) => [s.charCodeAt(0), s.charCodeAt(1), s.charCodeAt(2), s.charCodeAt(3)];
 
@@ -80,7 +80,7 @@ const join = (parts) => {
 // The identity matrix in 16.16 fixed point.
 const MATRIX = u32(0x10000, 0, 0, 0, 0x10000, 0, 0, 0, 0x40000000);
 
-/* --------------------------------------------------------- alkupala */
+/* ------------------------------------------------------ init segment */
 
 /**
  * @param {object[]} tracks [{ id, kind:'video'|'audio', timescale, codec,
@@ -262,7 +262,7 @@ function esds(asc) {
   return box('esds', join([u32(0), es]));
 }
 
-/* --------------------------------------------------------- mediapala */
+/* ------------------------------------------------------ media segment */
 
 /**
  * One moof+mdat. The samples are in decode order.
@@ -318,7 +318,7 @@ export function mediaSegment(sequence, trackId, samples, codec) {
   return join([moof, box('mdat', payload)]);
 }
 
-/* ------------------------------------------------------- ajoitus */
+/* --------------------------------------------------------- timing */
 
 /**
  * DTS and ctts for frames that only carry a PTS.

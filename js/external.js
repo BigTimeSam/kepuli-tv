@@ -22,11 +22,6 @@
 // The URL carries the Xtream credentials, so a downloaded playlist is as
 // sensitive as the account itself.
 
-import { t } from './i18n.js';
-
-/** Napin selitteeseen: mihin luovutus veisi. */
-export function externalLabel() { return t('ext.label'); }
-
 /**
  * Hands the stream over to an external player.
  *

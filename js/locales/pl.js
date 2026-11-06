@@ -415,7 +415,6 @@ export default {
  "fav.removed": "Usunięto z ulubionych: {name}",
  "fav.series.add": "Dodaj serial do ulubionych",
  "fav.series.remove": "Usuń serial z ulubionych",
- "ext.label": "VLC lub inny domyślny odtwarzacz plików .m3u",
  "ext.title": "Otwórz w zewnętrznym odtwarzaczu",
  "ext.nothing": "Brak odtwarzania do przekazania",
  "ext.handed": "Przekazano zewnętrznemu odtwarzaczowi",

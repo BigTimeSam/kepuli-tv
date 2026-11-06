@@ -415,7 +415,6 @@ export default {
  "fav.removed": "Odstranjeno iz priljubljenih: {name}",
  "fav.series.add": "Dodaj serijo med priljubljene",
  "fav.series.remove": "Odstrani serijo iz priljubljenih",
- "ext.label": "VLC ali drug privzeti predvajalnik datotek .m3u",
  "ext.title": "Odpri v zunanjem predvajalniku",
  "ext.nothing": "Nič se ne predvaja, zato ni ničesar za predajo",
  "ext.handed": "Predano zunanjemu predvajalniku",

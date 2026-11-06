@@ -71,7 +71,7 @@ function cacheKey(url) {
   }
 }
 
-/* ---------------------------------------------------------------- sarjoitus */
+/* ------------------------------------------------------------- serialisation */
 
 // One connection at a time. The chain does not break if one probe fails.
 let queue = Promise.resolve();
@@ -167,7 +167,7 @@ async function readHeader(url, signal, onProgress = () => {}) {
   }
 }
 
-/* ------------------------------------------------------------------ tunnistus */
+/* ------------------------------------------------------------------- detection */
 
 /**
  * Whether an answer that said OK carried nothing to play. Measured on a

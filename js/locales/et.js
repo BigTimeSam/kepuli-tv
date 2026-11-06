@@ -399,7 +399,6 @@ export default {
  "fav.removed": "Lemmikutest eemaldatud: {name}",
  "fav.series.add": "Lisa sari lemmikutesse",
  "fav.series.remove": "Eemalda sari lemmikutest",
- "ext.label": "VLC või mõni muu vaikimisi .m3u failide mängija",
  "ext.title": "Ava välises mängijas",
  "ext.nothing": "Pole esitust, mida üle anda",
  "ext.handed": "Üle antud välisele mängijale",

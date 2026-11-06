@@ -112,7 +112,7 @@ export class EpgGrid {
 
   get zoom() { return ZOOMS[this.zoomIndex]; }
 
-  /* ---------------------------------------------------------- aika-akseli */
+  /* -------------------------------------------------------------- time axis */
 
   minutes(ms) { return (ms - this.origin) / 60000; }
   x(ms) { return this.minutes(ms) * this.zoom; }
@@ -369,7 +369,7 @@ export class EpgGrid {
     this.nowHead.style.left = x;
   }
 
-  /* -------------------------------------------------------------- valinta */
+  /* -------------------------------------------------------------- selection */
 
   isSelected(row, p) {
     const sel = this.selection;
@@ -551,7 +551,7 @@ export class EpgGrid {
 
   rowsPerScreen() { return Math.max(1, Math.floor(this.el.scroll.clientHeight / ROW_H) - 1); }
 
-  /* ----------------------------------------------------------------- tila */
+  /* ---------------------------------------------------------------- state */
 
   /**
    * The channels the grid shows. The list repaints for many reasons that

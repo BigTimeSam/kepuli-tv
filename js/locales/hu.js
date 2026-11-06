@@ -399,7 +399,6 @@ export default {
  "fav.removed": "Eltávolítva a kedvencek közül: {name}",
  "fav.series.add": "Sorozat hozzáadása a kedvencekhez",
  "fav.series.remove": "Sorozat eltávolítása a kedvencek közül",
- "ext.label": "VLC vagy a .m3u fájlok más alapértelmezett lejátszója",
  "ext.title": "Megnyitás külső lejátszóban",
  "ext.nothing": "Nincs mit átadni",
  "ext.handed": "Átadva a külső lejátszónak",
