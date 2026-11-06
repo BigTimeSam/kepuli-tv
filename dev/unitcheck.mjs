@@ -21,7 +21,7 @@ import { unwrap, repeats, check as checkListings } from './listings.mjs';
 import { holds } from './glossarycheck.mjs';
 import { channelLogo, slugify } from '../js/logos.js';
 import { cueText } from '../js/subs.js';
-import { subtitleLook, stepScale, pictureHeight, STYLES, MIN_SCALE, MAX_SCALE, DEFAULT_SCALE, SCALE_STEP, SIZE_SHARE, MIN_LIFT, MAX_LIFT, DEFAULT_LIFT } from '../js/subdisplay.js';
+import { subtitleLook, stepScale, pictureHeight, STYLES, MIN_SCALE, MAX_SCALE, DEFAULT_SCALE, SCALE_STEP, SIZE_SHARE, MIN_PX, MIN_LIFT, MAX_LIFT, DEFAULT_LIFT } from '../js/subdisplay.js';
 import { describe, describeAll, label, preferred, route } from '../js/audio.js';
 import { languageSummary, orderedLanguageNames, trackLanguage } from '../js/lang.js';
 import { LANGUAGES, keysOf, setLanguage, setEnglishRegion, loadLanguage, supportedLanguage, t, pseudoText } from '../js/i18n.js';
@@ -560,6 +560,7 @@ check('no picture yet: taken as 16:9', pictureHeight(1920, 1200, 0, 0), 1080);
   const html = (await import('node:fs')).readFileSync(new URL('../player.html', import.meta.url), 'utf8');
   const sheet = (await import('node:fs')).readFileSync(new URL('../css/player.css', import.meta.url), 'utf8');
   check('player.css sizes the layer with the module\'s share', sheet.includes(`* var(--sub-scale, 1) * ${SIZE_SHARE})`), true);
+  check('player.css keeps the module\'s floor under the subtitles', sheet.includes(`font-size: max(${MIN_PX}px,`), true);
   for (const style of STYLES) {
     check(`player.css draws the look "${style}"`, sheet.includes(`body[data-substyle="${style}"] .videowrap .subdisplay .cue`), true);
   }
