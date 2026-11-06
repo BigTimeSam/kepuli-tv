@@ -167,7 +167,7 @@ async function readHeader(url, signal, onProgress = () => {}) {
     }
     // The connection must be released before returning, or the next request
     // is refused.
-    try { ctrl.abort(); } catch { /* the body had already ended */ }
+    ctrl.abort();
     const bytes = new Uint8Array(total);
     let offset = 0;
     for (const part of parts) { bytes.set(part, offset); offset += part.byteLength; }
@@ -199,6 +199,74 @@ export const emptyAnswer = (bytes) => bytes.length < 16;
  * waiting for a connection would not change it.
  */
 export const refusedByFileServer = (res) => !res.ok && (res.redirected || providerError(res.status));
+
+/* ------------------------------------------------------ ranged downloads */
+
+// The MKV unpacker (js/remux.js) and the MP4 reader (js/mp4play.js) read a
+// file in ranges the same way, with the helpers below.
+//
+// A read that yields nothing for this long is a dead connection: the server
+// accepted and went quiet, or the network went away under an open socket,
+// which raises no error at all. The wait is cut and treated as a break in
+// the download, which resumes like any other; a server that is really gone
+// then fails the resume, and that is reported. Without the limit the
+// picture would run out the buffer and stop without a word.
+const STALL_MS = 15000;
+
+/**
+ * A step of a download with a stall limit: reader.read() or the fetch
+ * itself. Past the limit the controller is aborted, so the underlying
+ * request ends too, and the rejection says why with the marks given.
+ * @template T
+ * @param {Promise<T>} promise
+ * @param {AbortController} ctrl
+ * @param {number} [ms]
+ * @param {object} [marks]
+ * @returns {Promise<T>}
+ */
+export function within(promise, ctrl, ms = STALL_MS, marks = { stalled: true }) {
+  let timer;
+  const stalled = new Promise((_, reject) => {
+    timer = setTimeout(() => {
+      reject(Object.assign(new Error('the download stalled'), marks));
+      ctrl.abort();
+    }, ms);
+  });
+  return Promise.race([promise, stalled]).finally(() => clearTimeout(timer));
+}
+
+/**
+ * One range of the file, on the controller given. A request the server has
+ * not answered within ANSWER_MS is a break, as is a failed connection; a
+ * refusal is marked as the connection's (most often the account's one
+ * connection still counted, worth asking again after a moment) unless the
+ * file's own server gave it after the redirect, see refusedByFileServer().
+ * onAnswer is told as soon as there is an answer at all.
+ * @param {string} url
+ * @param {AbortController} ctrl
+ * @param {number} from
+ * @param {number|null} to
+ * @param {() => void} onAnswer
+ * @returns {Promise<Response>}
+ */
+export async function fetchRange(url, ctrl, from, to, onAnswer) {
+  let res;
+  try {
+    res = await within(fetch(url, {
+      signal: ctrl.signal, cache: 'no-store', credentials: 'omit',
+      headers: { Range: to != null ? `bytes=${from}-${to}` : `bytes=${from}-` },
+    }), ctrl, ANSWER_MS);
+  } catch (err) {
+    if (err && err.name !== 'AbortError') err.connection = true;
+    throw err;
+  }
+  onAnswer();
+  if (res.ok) return res;
+  const refused = refusedByFileServer(res);
+  ctrl.abort();
+  throw Object.assign(new Error(`the server answered ${res.status}`),
+    { status: res.status, unavailable: refused ? res.status : 0, connection: !refused });
+}
 
 /**
  * Whether an answer is the provider's server failing rather than the

@@ -44,7 +44,7 @@ lists, series info, stream URL) for its kind:
 | Module | Role |
 | --- | --- |
 | `playback.js` | engine choice (native, hls.js, mpegts.js, MSE), life cycle, reconnection, error wording |
-| `probe.js`, `ebml.js` | reading file headers: what the container really holds |
+| `probe.js`, `ebml.js` | reading file headers: what the container really holds; the ranged downloads `remux.js` and `mp4play.js` share (`fetchRange`, `within`) |
 | `remux.js`, `mkv.js`, `mp4.js` | MKV unpacked into fMP4 for MediaSource, seeking included |
 | `mp4file.js`, `mp4play.js` | MP4 through MediaSource for Firefox (http media upgrade problem) |
 | `audio.js`, `ffaudio.js`, `transcode.js` | audio track choice, AC-3/E-AC-3/DTS decoding (wasm), re-encoding for MSE |

@@ -22,7 +22,7 @@ import { parseHeader, ID, Reader } from './ebml.js';
 import { t } from './i18n.js';
 import { BufferedBytes, frames } from './mkv.js';
 import { initSegment, mediaSegment, decodeTimes, durations, VIDEO_TIMESCALE } from './mp4.js';
-import { emptyAnswer, refusedByFileServer, videoMime } from './probe.js';
+import { emptyAnswer, fetchRange, videoMime, within } from './probe.js';
 import { describeAll, passthroughMime, preferred as preferredAudio } from './audio.js';
 import { AudioTranscoder, encoderSetup, RATE as DECODED_RATE, CHANNELS as DECODED_CHANNELS } from './transcode.js';
 import { SubtitleTracks, isSubtitle, isTextSubtitle, preferred as preferredSubtitle } from './subs.js';
@@ -85,17 +85,6 @@ const RESUME_DELAY_MS = 700;
 // than missing, and the next seek asks for it again.
 const CUES_RETRY_MS = 20000;
 
-// A read that yields nothing for this long is a dead connection: the server
-// accepted and went quiet, or the network went away under an open socket,
-// which raises no error at all. The wait is cut and treated as a break in
-// the download, which resumes like any other; a server that is really gone
-// then fails the resume, and that is reported. Without the limit the
-// picture would run out the buffer and stop without a word.
-const STALL_MS = 15000;
-// A request the server has not answered at all within this time is given
-// up as a break, see ANSWER_MS in js/playback.js: measured, a provider
-// answers within a second, refusals included.
-const ANSWER_MS = 5000;
 
 const AAC_FRAME_LENGTHS = [960, 1024, 1920, 2048];
 
@@ -325,11 +314,11 @@ export class Remuxer {
     if (this.transcoder) { this.transcoder.close(); this.transcoder = null; }
     this.subtitleList = [];
     if (this.stream) {
-      try { this.stream.ctrl.abort(); } catch { /* already closed */ }
+      this.stream.ctrl.abort();
       this.stream = null;
     }
     this.closeConnection();
-    if (this.pinned) { try { this.pinned.abort(); } catch { /* already closed */ } this.pinned = null; }
+    if (this.pinned) { this.pinned.abort(); this.pinned = null; }
     try {
       if (this.ms && this.ms.readyState === 'open') this.ms.endOfStream();
     } catch { /* already closed */ }
@@ -349,7 +338,7 @@ export class Remuxer {
   closeConnection() {
     const open = this.connection;
     this.connection = null;
-    if (open) { try { open.abort(); } catch { /* already closed */ } }
+    if (open) open.abort();
   }
 
   /**
@@ -366,12 +355,11 @@ export class Remuxer {
     if (this.destroyed) throw new DOMException('the unpacker is gone', 'AbortError');
     this.closeConnection();
     if (this.stream) {
-      try { this.stream.ctrl.abort(); } catch { /* already closed */ }
+      this.stream.ctrl.abort();
       this.stream = null;
     }
     const ctrl = new AbortController();
     if (pinned) this.pinned = ctrl; else this.connection = ctrl;
-    const range = to != null ? `bytes=${from}-${to}` : `bytes=${from}-`;
     // Every request but the first follows one of ours that has just been
     // let go, and a provider goes on counting a closed connection for a few
     // seconds: the player is told, so that a refusal now is taken for that
@@ -380,25 +368,8 @@ export class Remuxer {
     this.opened = true;
     let res;
     try {
-      res = await within(fetch(this.url, {
-        signal: ctrl.signal, cache: 'no-store', credentials: 'omit', headers: { Range: range },
-      }), ctrl, ANSWER_MS);
+      res = await fetchRange(this.url, ctrl, from, to, () => this.onAnswer());
     } catch (err) {
-      if (err && err.name !== 'AbortError') err.connection = true;
-      throw err;
-    }
-    this.onAnswer();
-    if (!res.ok) {
-      // Marked as the connection's failure rather than the file's: a
-      // refusal is most often the account's one connection still counted,
-      // and worth asking again after a moment, see startPump().
-      // Refused after the redirect, by the server that holds the file: the
-      // file's fault, not a connection still counted, see
-      // refusedByFileServer().
-      const refused = refusedByFileServer(res);
-      const err = Object.assign(new Error(`the server answered ${res.status}`),
-        { status: res.status, unavailable: refused ? res.status : 0, connection: !refused });
-      try { ctrl.abort(); } catch { /* already closed */ }
       if (this.connection === ctrl) this.connection = null;
       if (this.pinned === ctrl) this.pinned = null;
       throw err;
@@ -419,7 +390,7 @@ export class Remuxer {
       total += value.byteLength;
       this.received += value.byteLength;
     }
-    try { ctrl.abort(); } catch { /* the body had already ended */ }
+    ctrl.abort();
     if (this.connection === ctrl) this.connection = null;
     if (this.pinned === ctrl) this.pinned = null;
     const out = new Uint8Array(total);
@@ -460,12 +431,12 @@ export class Remuxer {
     for (const chunk of chunks) { bytes.set(chunk, at); at += chunk.byteLength; }
 
     if (emptyAnswer(bytes)) {
-      try { ctrl.abort(); } catch { /* already closed */ }
+      ctrl.abort();
       throw Object.assign(new Error(t('probe.empty')), { empty: true });
     }
     const header = parseHeader(bytes);
     if (!header.ok) {
-      try { ctrl.abort(); } catch { /* already closed */ }
+      ctrl.abort();
       throw new Error('no track data found');
     }
     this.stream = { reader, ctrl, chunks, offset: 0 };
@@ -1066,7 +1037,7 @@ export class Remuxer {
       broke = !complete && damaged === null && generation === this.generation && !this.destroyed;
     } finally {
       this.state.reading = false;
-      try { ctrl.abort(); } catch { /* already closed */ }
+      ctrl.abort();
       if (this.connection === ctrl) this.connection = null;
       await network.catch(() => {});
     }
@@ -1470,21 +1441,6 @@ const formatClock = (seconds) => {
   return `${mm}:${ss}`;
 };
 
-/**
- * A step of a download with a stall limit: reader.read() or the fetch
- * itself. Past the limit the controller is aborted, so the underlying
- * request ends too, and the rejection says why.
- */
-function within(promise, ctrl, ms = STALL_MS) {
-  let timer;
-  const stalled = new Promise((_, reject) => {
-    timer = setTimeout(() => {
-      reject(Object.assign(new Error('the download stalled'), { stalled: true }));
-      try { ctrl.abort(); } catch { /* already closed */ }
-    }, ms);
-  });
-  return Promise.race([promise, stalled]).finally(() => clearTimeout(timer));
-}
 
 /** How far a buffer's ranges reach past a moment, 0 when they do not cover it. */
 function aheadIn(ranges, now) {

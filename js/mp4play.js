@@ -26,7 +26,7 @@
 import { t } from './i18n.js';
 import { initSegment, mediaSegment } from './mp4.js';
 import { boxHeader, parseMoov } from './mp4file.js';
-import { emptyAnswer, refusedByFileServer } from './probe.js';
+import { emptyAnswer, fetchRange, within } from './probe.js';
 
 const BUFFER_AHEAD = 60;
 const BUFFER_BEHIND = 30;
@@ -39,9 +39,6 @@ const MIN_SEGMENT_FRAMES = 48;
 const AUDIO_SEGMENT_SAMPLES = 100;
 const MAX_RESUMES = 6;
 const RESUME_DELAY_MS = 700;
-const STALL_MS = 15000;
-// A request not answered at all within this time is a break, see js/remux.js.
-const ANSWER_MS = 5000;
 // An index larger than this is not a film's: a two-hour film's is a few
 // megabytes.
 const MAX_MOOV_BYTES = 64 * 1024 * 1024;
@@ -291,7 +288,7 @@ export class Mp4Player {
   closeConnection() {
     const open = this.connection;
     this.connection = null;
-    if (open) { try { open.abort(); } catch { /* already closed */ } }
+    if (open) open.abort();
   }
 
   /**
@@ -306,26 +303,7 @@ export class Mp4Player {
     this.connection = ctrl;
     this.onOpen(this.opened);
     this.opened = true;
-    let res;
-    try {
-      res = await within(fetch(this.url, {
-        signal: ctrl.signal, cache: 'no-store', credentials: 'omit',
-        headers: { Range: to != null ? `bytes=${from}-${to}` : `bytes=${from}-` },
-      }), ctrl, ANSWER_MS);
-    } catch (err) {
-      if (err && err.name !== 'AbortError') err.connection = true;
-      throw err;
-    }
-    this.onAnswer();
-    if (!res.ok) {
-      // Refused by the file's own server, after the redirect: see
-      // refusedByFileServer(); asking again would not change it.
-      const refused = refusedByFileServer(res);
-      const err = Object.assign(new Error(`the server answered ${res.status}`),
-        { status: res.status, unavailable: refused ? res.status : 0, connection: !refused });
-      try { ctrl.abort(); } catch { /* already closed */ }
-      throw err;
-    }
+    const res = await fetchRange(this.url, ctrl, from, to, () => this.onAnswer());
     // A server that ignores the range sends the file from its start; it is
     // read through to the place, slowly but correctly.
     const stream = new ByteStream(res.body.getReader(), ctrl, res.status === 206 || from === 0 ? from : 0, this.countBytes);
@@ -653,7 +631,7 @@ class ByteStream {
   /** Reads until n bytes are held or the response ends; true if they are. */
   async fill(n) {
     while (this.have < n && !this.done) {
-      const { done, value } = await within(this.reader.read(), this.ctrl);
+      const { done, value } = await within(this.reader.read(), this.ctrl, undefined, { stalled: true, connection: true });
       if (done) { this.done = true; break; }
       if (value && value.byteLength) { this.chunks.push(value); this.have += value.byteLength; this.onBytes(value.byteLength); }
     }
@@ -703,23 +681,12 @@ class ByteStream {
   }
 
   close() {
-    try { this.ctrl.abort(); } catch { /* already closed */ }
+    this.ctrl.abort();
   }
 }
 
 const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
-/** A step of a download with a stall limit, see the one in js/remux.js. */
-function within(promise, ctrl, ms = STALL_MS) {
-  let timer;
-  const stalled = new Promise((_, reject) => {
-    timer = setTimeout(() => {
-      reject(Object.assign(new Error('the download stalled'), { stalled: true, connection: true }));
-      try { ctrl.abort(); } catch { /* already closed */ }
-    }, ms);
-  });
-  return Promise.race([promise, stalled]).finally(() => clearTimeout(timer));
-}
 
 function timeRanges(sb) {
   if (!sb) return null;
