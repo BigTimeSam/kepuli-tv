@@ -1521,6 +1521,48 @@ check('xmltv: a playlist name and a guide name meet', ['FI: Yle TV1 HD', 'Yle TV
   ], [t('playback.reason.demux'), t('playback.reason.network'), 'Said for you', t('playback.reason.demux')]);
 }
 
+// What the header says decides the route a file takes and the mark its row
+// wears; none of it was asked about in Node.
+{
+  const { verdict, badge, videoMime, serverFault, providerError } = await import('../js/probe.js');
+  const mkv = (video, audio = []) => ({ container: 'matroska', video, audio });
+  const h264 = { codec: 'h264', supported: true, height: 720 };
+  const paths = [
+    { empty: true }, { unavailable: 404 }, { error: 'timed out' }, null,
+    { container: 'mp4' }, { container: 'mpegts' }, { container: 'avi' },
+    { container: 'matroska', truncated: true },
+    mkv({ codec: 'vc1', supported: false }), mkv(h264),
+  ].map((info) => verdict(info).path);
+  check('probe: the route a header gives', paths,
+    ['empty', 'unavailable', 'unknown', 'unknown', 'native', 'mpegts', 'none', 'unknown', 'none', 'silent']);
+  check('probe: a row is marked only where the file will not play as it is',
+    [badge({ container: 'mp4' }), badge(null), badge(mkv(h264))?.level, badge({ container: 'avi' })?.text],
+    [null, null, 'warn', t('probe.badge.none')]);
+  check('probe: the codec string from the header, the profile included',
+    [videoMime({ codecId: 'V_MPEG4/ISO/AVC', priv: Uint8Array.of(1, 0x64, 0x00, 0x28) }), videoMime({ codecId: 'V_MPEG4/ISO/AVC' }),
+      videoMime({ codecId: 'V_VP9' }), videoMime({ codecId: 'V_MS/VFW/FOURCC' })],
+    ['avc1.640028', 'avc1.42e01e', 'vp09.00.10.08', null]);
+  check('probe: a server fault and a title the provider says it has not, apart from the bandwidth limit',
+    [500, 502, 509, 404, 410, 403, 200].map((status) => [serverFault(status), providerError(status)]),
+    [[true, true], [true, true], [false, false], [false, true], [false, true], [false, false], [false, false]]);
+}
+
+// The formatters the details, the guide and the history headings use.
+{
+  const { mbits, percent, progressOf, shortDay, dayLabel } = await import('../js/format.js');
+  const { shortLanguage } = await import('../js/lang.js');
+  const { hourCycle } = await import('../js/config.js');
+  setLanguage('en'); setLocale('en-GB');
+  check('format: a rate below a megabit keeps two decimals, above it one', [mbits(450000), mbits(5_250_000)], ['0.45', '5.3']);
+  check('format: a share as a percentage with one decimal', percent(0.123), '12.3%');
+  check('format: a programme\'s progress only while it is on', [progressOf({ start: 1000, stop: 1100 }, 1025), progressOf({ start: 1000, stop: 1100 }, 1100), progressOf(null)], [0.25, null, null]);
+  const day = 86400e3, now = Date.now();
+  check('format: the guide\'s and the history\'s day words', [shortDay(now), shortDay(now + day), shortDay(now - day), dayLabel(now), dayLabel(now - day), dayLabel(0)],
+    [t('day.short.today'), t('day.short.tomorrow'), t('day.short.yesterday'), t('day.today'), t('day.yesterday'), t('day.earlier')]);
+  check('lang: a track\'s language code to the three letters the selector shows', ['en', 'fin', 'pt-BR', '', null].map(shortLanguage).map((c) => c.length <= 3), [true, true, true, true, true]);
+  check('config: the clock the setting asks for', [hourCycle({ clock: '12' }), hourCycle({ clock: '24' })], ['h12', 'h23']);
+}
+
 /* ------------------------------------------------- accounts and sync */
 
 check('accounts: an M3U account is its address', accountKey({ type: 'm3u', url: ' http://p/a.m3u ' }), 'm3u:http://p/a.m3u');
