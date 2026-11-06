@@ -1,3 +1,4 @@
+// @ts-check
 // M3U playlists: the extended M3U that IPTV services hand out.
 //
 // The format has no specification of its own; what is read here is what

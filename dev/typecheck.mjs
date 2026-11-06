@@ -39,7 +39,14 @@ const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const TYPESCRIPT = 'typescript@5.9';
 // The typed modules. A module joins the list once the checker finds
 // nothing in it, and stays clean from then on.
-const TYPED = ['js/config.js', 'js/library.js', 'js/api.js', 'js/playback.js'];
+const TYPED = ['js/config.js', 'js/library.js', 'js/api.js',
+  'js/playback.js', 'js/browser.js', 'js/channelprefs.js', 'js/db.js',
+  'js/ebml.js', 'js/epg.js', 'js/fetchtext.js', 'js/format.js',
+  'js/guide.js', 'js/i18n.js', 'js/international.js', 'js/lang.js',
+  'js/listorder.js', 'js/logos.js', 'js/m3u.js', 'js/mediafilters.js',
+  'js/mkv.js', 'js/mp4.js', 'js/mp4file.js', 'js/name.js',
+  'js/permissions.js', 'js/picks.js', 'js/rating.js', 'js/subs.js',
+  'js/sync.js', 'js/titlemeta.js', 'js/xmltv.js', 'js/xtream.js'];
 
 const problems = [];
 for (const file of TYPED) {

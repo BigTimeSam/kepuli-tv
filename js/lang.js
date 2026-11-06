@@ -1,3 +1,4 @@
+// @ts-check
 // Language codes and the names shown for them.
 //
 // Matroska marks a track's language either with ISO 639-2 (Language) or

@@ -1,3 +1,4 @@
+// @ts-check
 import { t, localeTag } from './i18n.js';
 import { ratingValue } from './rating.js';
 import { isPicking } from './picker.js';

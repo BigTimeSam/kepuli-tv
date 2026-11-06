@@ -1,3 +1,4 @@
+// @ts-check
 // A long text download — an M3U playlist, an XMLTV guide — read a piece at
 // a time as it arrives, and gunzipped on the way when it is gzip.
 //
@@ -18,8 +19,11 @@ const IDLE_MS = 20000;
  * Fetches the address and hands its text to onText piece by piece.
  * onProgress(received, total) gets the bytes as they arrive (compressed
  * ones, when the file is gzip: those are what the total counts).
+ * @param {string} url
+ * @param {{signal?: AbortSignal, onText: (text: string) => void,
+ *          onProgress?: (received: number, total: number) => void}} options
  */
-export async function streamText(url, { signal, onText, onProgress } = {}) {
+export async function streamText(url, { signal, onText, onProgress }) {
   const ctrl = new AbortController();
   const quiet = () => ctrl.abort(new DOMException('no data within the limit', 'TimeoutError'));
   let idle = setTimeout(quiet, IDLE_MS);

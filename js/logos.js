@@ -1,3 +1,4 @@
+// @ts-check
 // Channel logos from tv-logo/tv-logos.
 //
 // Every channel arrives with a logo address of the provider's own, and on

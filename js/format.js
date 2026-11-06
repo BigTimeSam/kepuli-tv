@@ -1,3 +1,4 @@
+// @ts-check
 // Formatters. One Intl instance per format: creating a new one for every
 // row would be measurable load in a virtualised list.
 //
@@ -11,6 +12,10 @@ import { t, localeTag } from './i18n.js';
 export let nf, timeFmt, dateTimeFmt, dateFmt, dayFmt, weekdayFmt, stampFmt;
 let oneDecimal, twoDecimals, percentFmt, wholePercentFmt, calendarFmt;
 
+/**
+ * @param {string} [tag]
+ * @param {{hourCycle?: 'h12'|'h23'}} [options]
+ */
 export function setLocale(tag = localeTag(), { hourCycle = 'h23' } = {}) {
   nf = new Intl.NumberFormat(tag);
   oneDecimal = new Intl.NumberFormat(tag, { minimumFractionDigits: 1, maximumFractionDigits: 1 });
@@ -156,5 +161,5 @@ export function dayLabel(ms) {
 function dayOffset(ms) {
   const a = new Date(ms); a.setHours(0, 0, 0, 0);
   const b = new Date(); b.setHours(0, 0, 0, 0);
-  return Math.round((a - b) / 86400e3);
+  return Math.round((a.getTime() - b.getTime()) / 86400e3);
 }

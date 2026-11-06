@@ -1,3 +1,4 @@
+// @ts-check
 // Fragmented MP4 (fMP4) for MediaSource.
 //
 // MSE will not take Matroska, but the H.264 or HEVC inside it is fine as it

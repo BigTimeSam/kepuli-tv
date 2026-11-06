@@ -1,3 +1,4 @@
+// @ts-check
 // The extension API namespace, and which engine runs the page.
 //
 // Chrome knows chrome; Firefox knows both chrome and browser, but only

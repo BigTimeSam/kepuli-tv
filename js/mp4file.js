@@ -1,3 +1,4 @@
+// @ts-check
 // Reading an ordinary MP4 file's index (the moov box) into sample tables.
 //
 // Firefox will not let the extension hand an http:// film to <video>: an

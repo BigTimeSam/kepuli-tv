@@ -1,3 +1,4 @@
+// @ts-check
 // Demuxing Matroska clusters from a stream.
 //
 // The file is not loaded into memory: the bytes arrive from the network a
@@ -169,7 +170,7 @@ const DESCEND = new Set([ID.Segment, ID.Cluster]);
  *
  * @param {BufferedBytes} bytes
  * @param {{timestampScale:number, tracks:Map<number,object>, onCluster?:Function,
- *          onStop?:(reason:string, position:number)=>void}} opts
+ *          onStop?:(reason:string, position:number)=>void, onResync?:Function}} opts
  * @yields {{track:number, pts:number, duration:number|null, keyframe:boolean, data:Uint8Array}}
  *         pts and duration in nanoseconds from the start of the file
  */

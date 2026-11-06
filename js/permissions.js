@@ -1,3 +1,4 @@
+// @ts-check
 // Optional host permissions.
 //
 // The manifest does not ask for access to every address at install time,

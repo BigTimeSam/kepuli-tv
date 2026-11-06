@@ -1,3 +1,4 @@
+// @ts-check
 // Building and parsing Xtream URLs.
 
 export function baseUrl(cfg) {

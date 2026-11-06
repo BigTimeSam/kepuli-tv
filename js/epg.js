@@ -1,3 +1,4 @@
+// @ts-check
 // Programme data lazily, one channel at a time.
 //
 // The whole XMLTV would be 4.8 MB gzipped and would go stale in a day, so

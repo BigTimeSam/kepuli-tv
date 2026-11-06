@@ -1,3 +1,4 @@
+// @ts-check
 // IndexedDB: a cache for API data.
 //
 // 'cache'  key → { value, at }   general TTL cache
@@ -49,7 +50,7 @@ function openDB() {
         ? req.transaction.objectStore('cache') : db.createObjectStore('cache');
       if (event.oldVersion > 0 && event.oldVersion < 4) {
         store.openKeyCursor().onsuccess = (e) => {
-          const cursor = e.target.result;
+          const cursor = /** @type {IDBRequest<IDBCursor|null>} */ (e.target).result;
           if (!cursor) return;
           if (!String(cursor.primaryKey).startsWith('probe:')) store.delete(cursor.primaryKey);
           cursor.continue();

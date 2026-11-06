@@ -1,3 +1,4 @@
+// @ts-check
 import { oneDecimalNumber } from './format.js';
 
 // Ratings in the application use ten points. Zero means no rating.

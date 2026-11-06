@@ -1,3 +1,4 @@
+// @ts-check
 // What a film's or a series' name and the list around it say beyond the
 // name itself: the year a title repeats, which of two copies of one film is
 // which, the other parts of the same series of films, and what the provider

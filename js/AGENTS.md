@@ -102,18 +102,20 @@ with the console open and run the scenarios of that feature. A
 
 ## How code is written here
 
-- **Typed modules stay clean.** `config.js`, `library.js`, `api.js` and
-  `playback.js` begin with `// @ts-check` and carry JSDoc types (the shared
-  shapes are typedefs: `Config`, `Settings`, `ListItem` in `config.js`;
-  `CatalogueItem`, `Category`, `Programme`, `RequestOptions`,
+- **Typed modules stay clean.** Most modules without DOM wiring begin with
+  `// @ts-check` and carry JSDoc types; the list is `TYPED` in
+  `dev/typecheck.mjs` (31 modules: settings and storage, the data layer and
+  the Xtream client, the parsers and formatters, MKV and MP4, the playback
+  engine). The shared shapes are typedefs: `Config`, `Settings`, `ListItem`
+  in `config.js`; `CatalogueItem`, `Category`, `Programme`, `RequestOptions`,
   `StreamOptions` in `api.js`; `Provider`, `Group` in `library.js`;
-  `PlaySpec`, `LoadInfo` in `playback.js`). New code in them gets its
-  JSDoc too, and `node dev/typecheck.mjs` must report nothing: it counts
-  every error the checker finds there. A cast is written
-  `/** @type {T} */ (expr)` with a comment saying why the declared type is
-  wrong; no `any` where the shape is known. A module joins the list in
-  `dev/typecheck.mjs` once it is clean. The other modules are not typed:
-  `namecheck.mjs` covers them for names and imports only.
+  `PlaySpec`, `LoadInfo` in `playback.js`. New code in them gets its JSDoc
+  too, and `node dev/typecheck.mjs` must report nothing: it counts every
+  error the checker finds there. A cast is written `/** @type {T} */ (expr)`
+  with a comment saying why the declared type is wrong; no `any` where the
+  shape is known. A module joins the list once it is clean. The UI modules
+  and `stalker.js`, `m3usource.js`, `probe.js`, `remux.js`, `mp4play.js` are
+  not typed yet: `namecheck.mjs` covers them for names and imports only.
 - **Extension APIs through `browser.js`** (`api.storage…`), never a bare
   `chrome.` in shared code: Firefox runs the same file.
 - **Per-account lists only through `config.js`**: `updatePersonal` takes a

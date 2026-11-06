@@ -1,3 +1,4 @@
+// @ts-check
 // Personal live-TV presentation. Provider data stays intact so hidden items
 // can always be restored and newly added channels keep appearing.
 //

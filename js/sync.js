@@ -1,3 +1,4 @@
+// @ts-check
 // Sync between computers: the accounts, the settings and each account's
 // favourites, channel lists, reminders, history and resume points carried
 // in the browser's own storage.sync, which Chrome and Firefox keep in the
@@ -174,6 +175,7 @@ function trimmed(name, value) {
  * prefs: { enabled, passwords } from storage.local 'sync'.
  */
 export class Sync {
+  /** @param {{onStatus?: (status: object) => void}} [options] */
   constructor({ onStatus } = {}) {
     this.onStatus = onStatus || (() => {});
     this.prefs = { enabled: false, passwords: false };
@@ -369,7 +371,7 @@ export class Sync {
     // key, and the key it is kept under here is found among the accounts.
     const metas = Object.entries(remote)
       .filter(([key, meta]) => /^r[0-9a-z]+$/.test(key) && meta && meta.n)
-      .sort(([, a], [, b]) => (b.n === 'accounts') - (a.n === 'accounts'));
+      .sort(([, a], [, b]) => Number(b.n === 'accounts') - Number(a.n === 'accounts'));
     for (const [, meta] of metas) {
       const name = meta.n;
       const mine = this.state[name];

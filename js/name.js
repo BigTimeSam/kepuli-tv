@@ -1,3 +1,4 @@
+// @ts-check
 // Tidying a channel name in a filtered view.
 //
 // The provider's name repeats what the sidebar selection already says:

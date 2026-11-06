@@ -1,3 +1,4 @@
+// @ts-check
 // XMLTV programme guides: the file that comes with an M3U playlist.
 //
 //   <tv>

@@ -1,3 +1,4 @@
+// @ts-check
 // The interface language.
 //
 // English is the default and at the same time the list that missing keys
@@ -1645,13 +1646,15 @@ export function t(key, params) {
  * repainting, but nothing else touches text written into the markup.
  */
 export function applyStatic(root = document) {
-  for (const node of root.querySelectorAll('[data-i18n]')) node.textContent = t(node.dataset.i18n);
-  for (const node of root.querySelectorAll('[data-i18n-title]')) {
+  /** @type {(selector: string) => NodeListOf<HTMLInputElement>} */
+  const all = (selector) => root.querySelectorAll(selector);
+  for (const node of all('[data-i18n]')) node.textContent = t(node.dataset.i18n);
+  for (const node of all('[data-i18n-title]')) {
     node.title = t(node.dataset.i18nTitle);
     // A button that shows a symbol rather than a word — ↻, ‹, − — has no
     // name a screen reader could say; the title is that name.
     if (node.tagName === 'BUTTON' && !/\p{L}/u.test(node.textContent)) node.setAttribute('aria-label', node.title);
   }
-  for (const node of root.querySelectorAll('[data-i18n-placeholder]')) node.placeholder = t(node.dataset.i18nPlaceholder);
-  for (const node of root.querySelectorAll('[data-i18n-label]')) node.setAttribute('aria-label', t(node.dataset.i18nLabel));
+  for (const node of all('[data-i18n-placeholder]')) node.placeholder = t(node.dataset.i18nPlaceholder);
+  for (const node of all('[data-i18n-label]')) node.setAttribute('aria-label', t(node.dataset.i18nLabel));
 }

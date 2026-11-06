@@ -1,3 +1,4 @@
+// @ts-check
 // The order of each list, chosen at its foot and kept as a setting: the
 // channels, the favourites, the films, the series and the history. Pure
 // functions and tables, so that the foot's marks, Settings and the list

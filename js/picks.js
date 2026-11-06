@@ -1,3 +1,4 @@
+// @ts-check
 // Picks for the empty player's page: what is on now and coming up on the
 // viewer's own channels, in the order the viewer is likely to want it.
 //
@@ -77,7 +78,10 @@ export function noteWatched(notes, title, now = Date.now()) {
  *        null when it has not been watched
  * @param {(item: object) => object[]|null} o.listings a channel's programmes
  * @param {Record<string, {t:string, n:number, at:number}>} o.notes what was watched
- * @param {Set<string>} o.reminded the programme keys with a reminder set
+ * @param {Set<string>} [o.reminded] the programme keys with a reminder set
+ * @param {number} [o.now]
+ * @param {number} [o.horizonMs] how far ahead a programme may start
+ * @param {number} [o.limit] how many picks at most
  * @returns {{channel: object, programme: object, on: boolean, score: number,
  *            why: 'watched'|'reminder'|'favorite'|'often'}[]}
  */
@@ -96,6 +100,7 @@ export function pickProgrammes({ channels, listings, notes = {}, reminded = new 
       if (!key) continue;
       const note = notes[key];
       let score = channelScore;
+      /** @type {'watched'|'reminder'|'favorite'|'often'} */
       let why = favorite ? 'favorite' : 'often';
       if (note) {
         score += (6 + 2 * Math.log2(1 + note.n)) * 0.5 ** ((now - note.at) / (30 * DAY));

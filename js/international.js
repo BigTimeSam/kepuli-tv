@@ -1,3 +1,4 @@
+// @ts-check
 // Which channels in a country's list are the world's channels rather than
 // the country's own.
 //

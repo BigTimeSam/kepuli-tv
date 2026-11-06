@@ -1,3 +1,4 @@
+// @ts-check
 // EBML and Matroska primitives. Shared by the header reader (probe.js) and
 // the demuxer (mkv.js).
 //

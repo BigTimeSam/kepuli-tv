@@ -1,3 +1,4 @@
+// @ts-check
 // An XMLTV programme guide for an M3U playlist's channels.
 //
 // The guide is one file for every channel, so it is downloaded once and
@@ -41,7 +42,10 @@ export class XmltvGuide {
 
   get available() { return this.urls.length > 0; }
 
-  /** The guide's index, from the cache or downloaded. Shared by concurrent callers. */
+  /**
+   * The guide's index, from the cache or downloaded. Shared by concurrent callers.
+   * @param {{signal?: AbortSignal, force?: boolean}} [options]
+   */
   ready({ signal, force = false } = {}) {
     if (!this.available) return Promise.resolve(false);
     if (this.index && !force && Date.now() - this.loadedAt < GUIDE_TTL) return Promise.resolve(true);
@@ -150,7 +154,11 @@ export class XmltvGuide {
     return null;
   }
 
-  /** A playlist channel's programmes, in time order, moved by its tvg-shift. */
+  /**
+   * A playlist channel's programmes, in time order, moved by its tvg-shift.
+   * @param {object} item
+   * @param {{signal?: AbortSignal}} [options]
+   */
   async programmes(item, { signal } = {}) {
     if (!(await this.ready({ signal }))) return [];
     const id = this.channelFor(item);

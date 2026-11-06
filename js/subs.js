@@ -1,3 +1,4 @@
+// @ts-check
 // Subtitle tracks from MKV to the <video> element.
 //
 // The container demuxer (remux.js) throws the blocks that belong to a
