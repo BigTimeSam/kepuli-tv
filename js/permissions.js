@@ -17,15 +17,17 @@
 // that is already granted the call returns true immediately without
 // showing a dialog, so a separate hasAccess() check must not precede it.
 
+import { api } from './browser.js';
+
 /**
  * https://host:port/path → "https://host/*", or null if not a web URL.
  *
  * The port is dropped on purpose: in Chrome's match pattern syntax the
  * host name may not contain a port, and a pattern with one is rejected as
  * invalid. A portless pattern covers every port on the host.
+ * @param {unknown} url
+ * @returns {string|null}
  */
-import { api } from './browser.js';
-
 export function originPattern(url) {
   let u;
   try {

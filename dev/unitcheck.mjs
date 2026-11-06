@@ -1487,6 +1487,14 @@ check('xmltv: entities, references and CDATA', decodeXml('L&apos;equipe &amp; A&
 }
 check('xmltv: a playlist name and a guide name meet', ['FI: Yle TV1 HD', 'Yle TV1', '|FI| YLE TV 1 FHD', 'Ylé TV1'].map(channelMatchKey), ['yletv1', 'yletv1', 'yletv1', 'yletv1']);
 
+// A match pattern may not carry a port, and only web addresses need access.
+{
+  const { originPattern } = await import('../js/permissions.js');
+  check('permissions: the pattern asked for is the host without its port, and nothing for a non-web address',
+    ['http://tv.example:8080/player_api.php?u=1', 'https://Tv.Example/x', 'ftp://tv.example/', 'not an address', 'http://[::1]:8790/'].map(originPattern),
+    ['http://tv.example/*', 'https://tv.example/*', null, null, 'http://[::1]/*']);
+}
+
 /* ------------------------------------------------- accounts and sync */
 
 check('accounts: an M3U account is its address', accountKey({ type: 'm3u', url: ' http://p/a.m3u ' }), 'm3u:http://p/a.m3u');
