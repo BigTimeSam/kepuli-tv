@@ -201,7 +201,7 @@ export class M3uSource {
     const { header } = parser.end();
     if (!entries.length) {
       // A page of HTML, a JSON error, an empty answer: not a playlist.
-      throw new ApiError('muoto', t(sawText ? 'm3u.notplaylist' : 'm3u.empty'));
+      throw new ApiError('format', t(sawText ? 'm3u.notplaylist' : 'm3u.empty'));
     }
     const built = buildCatalogue(entries, header, t('m3u.nogroup'));
     const value = {

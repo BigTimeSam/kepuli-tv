@@ -33,7 +33,7 @@ export async function streamText(url, { signal, onText, onProgress }) {
     try {
       res = await fetch(url, { signal: both, cache: 'no-store', credentials: 'omit' });
     } catch (err) { throw fetchError(err); }
-    if (res.status === 401 || res.status === 403 || res.status === 512) throw new ApiError('tunnistus', t('m3u.denied', { status: res.status }));
+    if (res.status === 401 || res.status === 403 || res.status === 512) throw new ApiError('auth', t('m3u.denied', { status: res.status }));
     if (!res.ok) throw new ApiError('http', t('api.status', { status: res.status }));
     const total = Number(res.headers.get('content-length')) || 0;
     const reader = res.body.getReader();
@@ -78,7 +78,7 @@ export async function streamText(url, { signal, onText, onProgress }) {
     }
     if (gzip) {
       await writer.close().catch(() => {});
-      try { await inflated; } catch { throw new ApiError('muoto', t('m3u.badgzip')); }
+      try { await inflated; } catch { throw new ApiError('format', t('m3u.badgzip')); }
     } else {
       const tail = decoder.decode();
       if (tail) onText(tail);
@@ -93,7 +93,7 @@ export async function streamText(url, { signal, onText, onProgress }) {
 function fetchError(err) {
   if (err instanceof ApiError) return err;
   if (err && err.name === 'AbortError') return err;
-  if (err && err.name === 'TimeoutError') return new ApiError('verkko', t('api.timeout', { seconds: IDLE_MS / 1000 }));
+  if (err && err.name === 'TimeoutError') return new ApiError('network', t('api.timeout', { seconds: IDLE_MS / 1000 }));
   console.warn('[iptv] the address could not be reached:', err);
-  return new ApiError('verkko', t('api.unreachable'));
+  return new ApiError('network', t('api.unreachable'));
 }

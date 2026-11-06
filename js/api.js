@@ -119,13 +119,13 @@ function deadline(signal, ms = REQUEST_MS) {
  *  @returns {Error} */
 function networkError(err) {
   if (err && err.name === 'AbortError') return err;
-  if (err && err.name === 'TimeoutError') return new ApiError('verkko', t('api.timeout', { seconds: REQUEST_MS / 1000 }));
+  if (err && err.name === 'TimeoutError') return new ApiError('network', t('api.timeout', { seconds: REQUEST_MS / 1000 }));
   // The browser's own words for it — "Failed to fetch", "NetworkError when
   // attempting to fetch resource" — are English in every language and say
   // no more than that the server was not reached, and a failed fetch has no
   // number to give. The sentence says it; the words go to the console.
   console.warn('[iptv] the server could not be reached:', err);
-  return new ApiError('verkko', t('api.unreachable'));
+  return new ApiError('network', t('api.unreachable'));
 }
 
 /**
@@ -137,7 +137,7 @@ function networkError(err) {
  * @param {number} status
  */
 function rejected(status) {
-  if (status === 512 || status === 401) throw new ApiError('tunnistus', t('api.rejected'));
+  if (status === 512 || status === 401) throw new ApiError('auth', t('api.rejected'));
   if (status === 403) throw new ApiError('http', t('api.denied'));
 }
 
@@ -199,7 +199,7 @@ export class XtreamApi {
       return JSON.parse(text);
     } catch {
       console.warn('[iptv] the answer was not JSON:', text.slice(0, 200));
-      throw new ApiError('muoto', t('api.notxtream'));
+      throw new ApiError('format', t('api.notxtream'));
     }
   }
 
@@ -211,9 +211,9 @@ export class XtreamApi {
     const data = await this.call('', null, { signal });
     if (!data || !data.user_info) {
       console.warn('[iptv] the answer had no user_info:', JSON.stringify(data).slice(0, 200));
-      throw new ApiError('muoto', t('api.notxtream'));
+      throw new ApiError('format', t('api.notxtream'));
     }
-    if (String(data.user_info.auth) !== '1') throw new ApiError('tunnistus', t('api.authfailed'));
+    if (String(data.user_info.auth) !== '1') throw new ApiError('auth', t('api.authfailed'));
     const u = data.user_info;
     const s = data.server_info || {};
     const utcOffset = serverUtcOffset(s);
@@ -246,7 +246,7 @@ export class XtreamApi {
   async categories(type, { signal } = {}) {
     const action = { live: 'get_live_categories', movie: 'get_vod_categories', series: 'get_series_categories' }[type];
     const raw = await this.call(action, null, { signal });
-    if (!Array.isArray(raw)) throw new ApiError('muoto', t('api.nocategories'));
+    if (!Array.isArray(raw)) throw new ApiError('format', t('api.nocategories'));
     return raw.map((c) => ({ id: String(c.category_id), name: c.category_name || t('categories.unnamed') }));
   }
 
@@ -265,7 +265,7 @@ export class XtreamApi {
     const raw = onProgress
       ? await this.callStreaming(action, params, { signal, onProgress })
       : await this.call(action, params, { signal });
-    if (!Array.isArray(raw)) throw new ApiError('muoto', t('api.nostreams'));
+    if (!Array.isArray(raw)) throw new ApiError('format', t('api.nostreams'));
     return raw.map(type === 'series' ? normalizeSeries : type === 'movie' ? normalizeMovie : normalizeLive);
   }
 
@@ -317,7 +317,7 @@ export class XtreamApi {
     try {
       return JSON.parse(parts.join(''));
     } catch {
-      throw new ApiError('muoto', t('api.badjson'));
+      throw new ApiError('format', t('api.badjson'));
     }
   }
 
@@ -423,8 +423,9 @@ export class XtreamApi {
 
 export class ApiError extends Error {
   /**
-   * @param {string} kind what failed, for the caller to tell apart: verkko
-   *        (the network), tunnistus (the credentials), http, muoto (the answer's form)
+   * @param {'network'|'auth'|'http'|'format'} kind what failed, for the caller
+   *        to tell apart: the network, the credentials, an HTTP status, the
+   *        answer's form
    * @param {string} message the sentence the viewer is shown
    */
   constructor(kind, message) {

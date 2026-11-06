@@ -251,8 +251,8 @@ export class StalkerSource {
   }
 
   async open({ signal }) {
-    if (!this.portal) throw new ApiError('muoto', t('stalker.badurl'));
-    if (!this.mac) throw new ApiError('muoto', t('stalker.badmac'));
+    if (!this.portal) throw new ApiError('format', t('stalker.badurl'));
+    if (!this.mac) throw new ApiError('format', t('stalker.badmac'));
     await portalRule(this.portal, this.mac).catch((err) => console.warn('[iptv] the portal header rule failed', err));
     let hello = null;
     let reached = false;
@@ -267,10 +267,10 @@ export class StalkerSource {
         // Every endpoint is on the same host: one that cannot be reached at
         // all will not answer the next path either, and trying all five
         // kept the viewer waiting for a hundred seconds.
-        if (err instanceof ApiError && err.kind === 'verkko' && !reached) break;
+        if (err instanceof ApiError && err.kind === 'network' && !reached) break;
       }
     }
-    if (!hello) throw new ApiError(reached ? 'muoto' : 'verkko', t(reached ? 'stalker.noportal' : 'api.unreachable'));
+    if (!hello) throw new ApiError(reached ? 'format' : 'network', t(reached ? 'stalker.noportal' : 'api.unreachable'));
     this.token = hello.token;
     const profile = await this.call({
       type: 'stb', action: 'get_profile', hd: '1', ver: 'ImageDescription: 0.2.18-r23-250; PORTAL version: 5.6.2; API Version: JS API version: 343',
@@ -281,7 +281,7 @@ export class StalkerSource {
     }, { signal, retry: false });
     const p = profile?.js;
     if (!p || p.blocked === '1' || p.status === 1 || (typeof p === 'object' && !Array.isArray(p) && !p.id && !p.mac && p.status != null && Number(p.status) !== 0)) {
-      throw new ApiError('tunnistus', t('stalker.rejected'));
+      throw new ApiError('auth', t('stalker.rejected'));
     }
     return p;
   }
@@ -298,17 +298,17 @@ export class StalkerSource {
       text = await res.text();
     } catch (err) {
       if (err?.name === 'AbortError') throw err;
-      if (err?.name === 'TimeoutError') throw new ApiError('verkko', t('api.timeout', { seconds: REQUEST_MS / 1000 }));
-      throw new ApiError('verkko', t('api.unreachable'));
+      if (err?.name === 'TimeoutError') throw new ApiError('network', t('api.timeout', { seconds: REQUEST_MS / 1000 }));
+      throw new ApiError('network', t('api.unreachable'));
     }
-    if (res.status === 401 || res.status === 403) throw new ApiError('tunnistus', t('stalker.rejected'));
+    if (res.status === 401 || res.status === 403) throw new ApiError('auth', t('stalker.rejected'));
     if (!res.ok) throw new ApiError('http', t('api.status', { status: res.status }));
     try {
       return JSON.parse(text.replace(/^﻿/, '').trim());
     } catch {
       // "Authorization failed." and the like, as plain text.
-      if (/authori[sz]ation failed|unauthori[sz]ed/i.test(text)) throw new ApiError('tunnistus', t('stalker.rejected'));
-      throw new ApiError('muoto', t('stalker.noportal'));
+      if (/authori[sz]ation failed|unauthori[sz]ed/i.test(text)) throw new ApiError('auth', t('stalker.rejected'));
+      throw new ApiError('format', t('stalker.noportal'));
     }
   }
 
@@ -322,7 +322,7 @@ export class StalkerSource {
     try {
       return await this.raw(this.endpoint, params, { signal, token: this.token });
     } catch (err) {
-      if (!retry || !(err instanceof ApiError) || err.kind !== 'tunnistus') throw err;
+      if (!retry || !(err instanceof ApiError) || err.kind !== 'auth') throw err;
       this.token = null;
       this.ready = null;
       await this.session({ signal });
@@ -368,7 +368,7 @@ export class StalkerSource {
     let rows;
     try { rows = rowsOf((await this.call(params, { signal }))?.js); } catch (err) {
       // A portal without series answers the question with nothing useful.
-      if (type === 'series' && err instanceof ApiError && err.kind !== 'verkko') return [];
+      if (type === 'series' && err instanceof ApiError && err.kind !== 'network') return [];
       throw err;
     }
     return rows
@@ -569,7 +569,7 @@ export class StalkerSource {
    */
   async resolveUrl(item, { signal } = {}) {
     const cmd = item.cmd || '';
-    if (!cmd) throw new ApiError('muoto', t('stalker.nolink'));
+    if (!cmd) throw new ApiError('format', t('stalker.nolink'));
     const live = item.k === 0;
     let address = null;
     try {
@@ -582,7 +582,7 @@ export class StalkerSource {
       if (err?.name === 'AbortError' || !cmdIsDirect(cmd)) throw err;
     }
     if (!address && cmdIsDirect(cmd)) address = cmdAddress(cmd);
-    if (!address) throw new ApiError('muoto', t('stalker.nolink'));
+    if (!address) throw new ApiError('format', t('stalker.nolink'));
     return address;
   }
 }

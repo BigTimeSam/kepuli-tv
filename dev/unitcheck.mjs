@@ -1133,7 +1133,7 @@ check('a title that is no base64 at all stays too', decodeField('Ylen uutiset'),
   for (const status of [401, 512, 403, 500]) results.push(await kindOf(status));
   globalThis.fetch = realFetch;
   check('401 and 512 are the credentials; 403 is a refusal of access, not of the password',
-    results.map((r) => r.split(':')[0]), ['tunnistus', 'tunnistus', 'http', 'http']);
+    results.map((r) => r.split(':')[0]), ['auth', 'auth', 'http', 'http']);
   check('and 403 says so in its own words', results[2].slice(5), t('api.denied'));
   // A category without a name was called "Nimetön" in every language.
   globalThis.fetch = async () => new Response(JSON.stringify([{ category_id: 7, category_name: '' }]));
@@ -1642,15 +1642,15 @@ check('accounts: what it takes to connect', [isConfigured({ type: 'm3u', url: 'h
     const paged = new StalkerSource({ url: 'http://portal.test/c/', mac: '00:1A:79:00:00:01' });
     const failed = new Set();
     paged.call = async ({ p }) => {
-      if (p === '3' && !failed.has(p)) { failed.add(p); throw new ApiError('verkko', 'once'); }
+      if (p === '3' && !failed.has(p)) { failed.add(p); throw new ApiError('network', 'once'); }
       return { js: { total_items: 50, max_page_items: 10, data: Array.from({ length: 10 }, (_, i) => ({ id: `${p}-${i}` })) } };
     };
     check('stalker: a page that failed once is asked again', (await paged.pages({ type: 'itv' }).catch(() => [])).length, 50);
     const away = new StalkerSource({ url: 'http://portal.test/c/', mac: '00:1A:79:00:00:01' });
     let tries = 0;
-    away.raw = async () => { tries++; throw new ApiError('verkko', 'unreachable'); };
+    away.raw = async () => { tries++; throw new ApiError('network', 'unreachable'); };
     const err = await away.open({}).catch((e) => e);
-    check('stalker: an unreachable portal is given up after one path', [tries, err?.kind], [1, 'verkko']);
+    check('stalker: an unreachable portal is given up after one path', [tries, err?.kind], [1, 'network']);
   }
   check('stalker: a MAC address in any of its usual forms', ['00:1a:79:ab:cd:ef', '001A79ABCDEF', '00-1A-79-AB-CD-EF', ' 00 1A 79 AB CD EF '].map(normalizeMac), Array(4).fill('00:1A:79:AB:CD:EF'));
   check('stalker: what is no MAC address', ['00:1A:79', '00:1A:79:AB:CD:EF:01', 'GG:1A:79:AB:CD:EF', ''].map(normalizeMac), [null, null, null, null]);
