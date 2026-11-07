@@ -45,6 +45,8 @@ WHAT YOU GET
 • Search the programmes of every channel at once.
 • Filter movies by year, rating and length, or show only your favourites.
 • Each film once in the list, its language versions on its own page.
+• A title's page shows others like it and whether its file plays here, and a ✓
+  marks what you have seen.
 
 
 PRIVATE BY DESIGN

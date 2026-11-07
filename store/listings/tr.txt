@@ -48,6 +48,8 @@ NELER SUNUYOR
 • Tüm kanalların programlarında tek seferde ara.
 • Filmleri yıla, puana ve süreye göre süz ya da sadece favorilerini göster.
 • Her film listede bir kez, dil sürümleri film sayfasında.
+• Her başlığın sayfası benzerlerini ve dosyanın burada oynayıp oynamadığını
+  gösterir; ✓ izlediklerini işaretler.
 
 
 GİZLİLİK ODAKLI TASARIM

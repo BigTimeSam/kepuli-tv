@@ -43,6 +43,8 @@ postavený na jednom nápade: obrovský katalóg má pôsobiť malý.
 • Prehľadaj relácie všetkých kanálov naraz.
 • Filtruj filmy podľa roka, hodnotenia a dĺžky či zobraz len obľúbené.
 • Každý film v zozname len raz, jeho jazykové verzie na jeho stránke.
+• Stránka titulu ukazuje podobné a či sa súbor tu prehrá; ✓ označí, čo už máš
+  za sebou.
 
 
 SÚKROMIE V ZÁKLADE

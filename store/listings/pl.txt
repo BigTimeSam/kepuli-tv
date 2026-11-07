@@ -46,6 +46,8 @@ CO DOSTAJESZ
 • Przeszukuj audycje wszystkich kanałów naraz.
 • Filtruj filmy według roku, oceny i długości albo pokaż wyłącznie ulubione.
 • Każdy film raz na liście, a jego wersje językowe na jego stronie.
+• Strona tytułu pokazuje podobne i to, czy plik odtworzy się tutaj; ✓ oznacza
+  obejrzane.
 
 
 PRYWATNOŚĆ OD PODSTAW

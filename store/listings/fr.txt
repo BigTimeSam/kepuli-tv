@@ -51,6 +51,8 @@ CE QUE TU OBTIENS
   favoris.
 • Chaque film une seule fois dans la liste, ses versions linguistiques sur sa
   page.
+• La page d'un titre montre des titres proches et si le fichier se lit ici ;
+  un ✓ marque ce que tu as vu.
 
 
 CONÇU POUR LA VIE PRIVÉE

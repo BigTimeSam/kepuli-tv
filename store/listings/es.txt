@@ -48,6 +48,8 @@ QUÉ OBTIENES
   favoritos.
 • Cada película aparece una sola vez, con sus versiones de idioma en su
   página.
+• La página de cada título muestra otros parecidos y si el archivo se
+  reproduce aquí; un ✓ marca lo que ya viste.
 
 
 PRIVADO POR DISEÑO

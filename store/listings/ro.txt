@@ -45,6 +45,8 @@ CE PRIMEȘTI
 • Caută deodată în emisiunile tuturor canalelor.
 • Filtrează filmele după an, notă și durată sau arată doar favoritele.
 • Fiecare film o singură dată în listă, cu versiunile de limbă pe pagina lui.
+• Pagina unui titlu arată titluri asemănătoare și dacă fișierul rulează aici;
+  un ✓ marchează ce ai văzut.
 
 
 CONFIDENȚIALITATE DE LA ÎNCEPUT

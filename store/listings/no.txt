@@ -46,6 +46,8 @@ HVA DU FÅR
 • Filtrer filmer etter år, vurdering og lengde – bare favorittene dine, om du
   vil.
 • Hver film én gang i listen, med språkversjonene på sin egen side.
+• En tittels side viser lignende og om filen kan spilles av her, og en ✓
+  markerer det du har sett.
 
 
 PRIVAT FRA GRUNNEN AV

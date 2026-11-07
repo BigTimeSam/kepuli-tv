@@ -47,6 +47,8 @@ malen.
 • Pretraži emisije svih kanala odjednom.
 • Filtriraj filmove po godini, ocjeni i trajanju ili prikaži samo favorite.
 • Svaki film jednom na popisu, njegove jezične verzije na njegovoj stranici.
+• Stranica naslova prikazuje slične i reproducira li se datoteka ovdje; ✓
+  označava već pogledano.
 
 
 PRIVATNOST PO ZAMISLI

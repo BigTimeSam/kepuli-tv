@@ -42,6 +42,8 @@ MIDA SA SAAD
 • Otsi korraga kõigi kanalite saateid.
 • Filtreeri filme aasta, hinnangu ja pikkuse järgi või vaid lemmikute järgi.
 • Iga film on loendis üks kord, keeleversioonid filmi lehel.
+• Pealkirja lehel on sarnased ja see, kas fail siin mängib; ✓ märgib, mida
+  oled näinud.
 
 
 PRIVAATSUS ALGUSEST PEALE

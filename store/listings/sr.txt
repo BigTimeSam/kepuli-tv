@@ -45,6 +45,8 @@ jednoj ideji: džinovski katalog treba da deluje mali.
 • Pretraži emisije svih kanala odjednom.
 • Filtriraj filmove po godini, oceni i trajanju ili prikaži samo omiljeno.
 • Svaki film jednom na listi, njegove jezičke verzije na njegovoj stranici.
+• Stranica naslova prikazuje slične i da li se datoteka ovde reprodukuje; ✓
+  označava već pogledano.
 
 
 PRIVATNOST PRE SVEGA

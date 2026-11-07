@@ -49,6 +49,8 @@ MIT KAPSZ
 • Szűrd a filmeket év, értékelés és hossz szerint, vagy csak a kedvenceidet
   mutasd.
 • Minden film egyszer a listában, nyelvi változatai az oldalán.
+• Egy cím oldala hasonlókat mutat, és azt, hogy a fájl lejátszható-e itt; a ✓
+  jelöli, amit már láttál.
 
 
 BEÉPÍTETT ADATVÉDELEM

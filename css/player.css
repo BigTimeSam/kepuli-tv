@@ -1804,7 +1804,7 @@ select.epg-earlier { font: inherit; padding-right: 26px; background-position: ri
 .epg-hint { margin: 0; padding: 48px 28px 0; color: var(--muted); text-align: center; line-height: 1.5; }
 .epg-hint[hidden], .epg:has(#programme-panel:not([hidden])) .epg-hint { display: none; }
 .epg.no-channels .epg-body { display: none; }
-.epg.no-channels .epg-days, .epg.no-channels .epg-nav { visibility: hidden; }
+.epg.no-channels .epg-days-scroll, .epg.no-channels .epg-nav { visibility: hidden; }
 
 .epg-body {
   flex: 1; min-height: 0;
@@ -2140,7 +2140,9 @@ input[type="search"], input[type="text"], input[type="url"], input:not([type]) {
    the choices open in its list), rather than taking a row of the four
    that the grid had left. */
 @media (max-width: 600px) {
-  .epg-days { flex: 1 0 100%; max-width: none; }
+  /* The days' box with its arrows (js/sidescroll.js) is the bar's item. */
+  .epg-days-scroll { flex: 1 0 100%; }
+  .epg-days { max-width: none; }
   .programme-form .search-field { flex: 1 1 140px; min-width: 140px; }
   .programme-form:not(:focus-within, :has(#programme-query:not(:placeholder-shown), select[aria-expanded="true"])) select { display: none; }
 }

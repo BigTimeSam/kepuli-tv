@@ -46,6 +46,8 @@ WAT JE KRIJGT
 • Doorzoek de programma’s van alle zenders tegelijk.
 • Filter films op jaar, beoordeling en lengte, of toon enkel je favorieten.
 • Elke film één keer in de lijst, met de taalversies op zijn pagina.
+• De pagina van een titel toont vergelijkbare titels en of het bestand hier
+  afspeelt; een ✓ markeert wat je zag.
 
 
 PRIVÉ VANAF HET BEGIN

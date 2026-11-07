@@ -48,6 +48,8 @@ YANG KAMU DAPATKAN
 • Saring film menurut tahun, rating, dan durasi, atau tampilkan favoritmu
   saja.
 • Setiap film muncul sekali, versi bahasanya ada di halamannya.
+• Halaman tiap judul menampilkan yang serupa dan apakah filenya bisa diputar
+  di sini; ✓ menandai yang sudah ditonton.
 
 
 PRIVAT SEJAK AWAL

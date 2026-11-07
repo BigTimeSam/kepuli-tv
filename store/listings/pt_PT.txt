@@ -48,6 +48,8 @@ O QUE TENS
 • Filtra os filmes por ano, classificação e duração ou mostra só os teus
   favoritos.
 • Cada filme aparece uma vez, com as versões de idioma na página dele.
+• A página de cada título mostra outros semelhantes e se o ficheiro é
+  reproduzido aqui; um ✓ marca o que já viste.
 
 
 PRIVADO POR DESIGN

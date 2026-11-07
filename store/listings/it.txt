@@ -49,6 +49,8 @@ COSA OTTIENI
   preferiti.
 • Ogni film una volta sola nell’elenco, con le versioni in altre lingue nella
   sua pagina.
+• La pagina di un titolo mostra titoli affini e se il file si riproduce qui;
+  una ✓ segna ciò che hai visto.
 
 
 PRIVATO PER SCELTA

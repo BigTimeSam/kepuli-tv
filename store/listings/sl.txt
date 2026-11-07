@@ -47,6 +47,8 @@ KAJ DOBIŠ
 • Preišči oddaje vseh kanalov hkrati.
 • Filme filtriraj po letu, oceni in dolžini ali prikaži samo priljubljene.
 • Vsak film na seznamu enkrat, njegove jezikovne različice na njegovi strani.
+• Stran naslova prikaže podobne in ali se datoteka tu predvaja; ✓ označi že
+  videno.
 
 
 ZASEBNOST ŽE V ZASNOVI

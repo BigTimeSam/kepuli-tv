@@ -44,6 +44,8 @@ CO ZÍSKÁŠ
 • Prohledej pořady všech kanálů najednou.
 • Filtruj filmy podle roku, hodnocení a délky nebo zobraz jen oblíbené.
 • Každý film v seznamu jen jednou, jeho jazykové verze na jeho stránce.
+• Stránka titulu ukazuje podobné a jestli se soubor tady přehraje; ✓ označí,
+  co už máš za sebou.
 
 
 SOUKROMÍ JAKO ZÁKLAD

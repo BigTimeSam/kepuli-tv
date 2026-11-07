@@ -49,6 +49,8 @@ WAS DU BEKOMMST
 • Filtere Filme nach Jahr, Bewertung und Länge oder zeige nur deine
   Favoriten.
 • Jeder Film einmal in der Liste, seine Sprachfassungen auf seiner Seite.
+• Die Seite eines Titels zeigt Ähnliches und ob die Datei hier läuft; ein ✓
+  markiert, was du gesehen hast.
 
 
 PRIVATSPHÄRE VON ANFANG AN

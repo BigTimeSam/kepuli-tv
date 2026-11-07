@@ -44,6 +44,8 @@ KO TU SAŅEM
 • Meklē uzreiz visu kanālu raidījumos.
 • Filtrē filmas pēc gada, vērtējuma un garuma vai rādi vien izlasi.
 • Katra filma sarakstā vienreiz, tās valodu versijas – filmas lapā.
+• Nosaukuma lapā redzami līdzīgie un vai fails šeit atskaņojas; ✓ atzīmē
+  redzēto.
 
 
 PRIVĀTI PĒC BŪTĪBAS

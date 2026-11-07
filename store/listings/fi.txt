@@ -47,6 +47,8 @@ MITÄ SAAT
 • Suodata elokuvia vuoden, arvosanan ja keston mukaan tai näytä vain
   suosikit.
 • Jokainen elokuva listassa kerran, sen kieliversiot elokuvan omalla sivulla.
+• Nimikkeen sivulla näkyvät samankaltaiset ja se, toistuuko tiedosto täällä,
+  ja ✓ merkitsee nähdyn.
 
 
 YKSITYISYYS RAKENNETTU SISÄÄN

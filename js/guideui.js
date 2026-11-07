@@ -40,7 +40,7 @@ export const grid = new EpgGrid({
   reminded: (channel, programme) => reminders.has(reminderKey(channel, programme)),
 });
 // The days scroll sideways where the bar is narrow.
-sideScroll($('epg-days'), { compact: true });
+sideScroll($('epg-days'), { compact: true, className: 'epg-days-scroll' });
 
 export let guideOpen = false;
 

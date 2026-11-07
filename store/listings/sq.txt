@@ -53,6 +53,8 @@ mbrëmje.
 • Filtro filmat sipas vitit, vlerësimit dhe kohëzgjatjes ose shfaq thjesht të
   preferuarat.
 • Çdo film një herë në listë, versionet e tij gjuhësore në faqen e tij.
+• Faqja e çdo titulli tregon të ngjashëm dhe nëse skedari luhet këtu; një ✓
+  shënon atë që ke parë.
 
 
 PRIVATËSI NGA NDËRTIMI

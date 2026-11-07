@@ -45,6 +45,8 @@ KĄ GAUSI
 • Ieškok iškart visų kanalų laidose.
 • Filtruok filmus pagal metus, įvertinimą ir trukmę arba rodyk tik mėgstamus.
 • Kiekvienas filmas sąraše vieną kartą, jo kalbų versijos – jo puslapyje.
+• Pavadinimo puslapyje – panašūs ir ar failas čia paleidžiamas; ✓ pažymi, ką
+  jau matei.
 
 
 PRIVATUMAS IŠ PRADŽIŲ

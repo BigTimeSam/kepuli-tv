@@ -17,8 +17,9 @@ and your details stay in your browser.
 - **Live TV** by country and topic, with what is on now, an interactive
   programme guide, catch-up and programme search
 - **Films and series** as covers or a list, filtered by category and length,
-  with the plot, rating, director, cast and the file's format; playback resumes
-  where you stopped, and the next episode follows
+  with the plot, rating, director, cast, titles alike and the file's format,
+  and whether it plays in your browser; films marked watched, playback
+  resumes where you stopped, and the next episode follows
 - **A start page** with what you left halfway, what is on your channels now and
   soon, and the channels you watched lately
 - **MKV in the browser**, seeking included, with subtitles in the size and style
