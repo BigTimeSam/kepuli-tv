@@ -37,15 +37,22 @@
 // printed and kept.
 //
 // The references are specific to the machine's fonts and rendering: they
-// were made on macOS, and a run elsewhere differs everywhere text is. Make
+// were made on macOS, and a run elsewhere differs everywhere text is. The
+// same machine can drift too: on 2026-11-07 every view's text moved by a
+// fraction of a pixel with the same Chrome and the same code, and all twelve
+// failed. So a view that fails is taken a second time from the commit that
+// made the references (the last to change dev/visual/), checked out beside
+// this one and run here and now; when this run matches that one, nothing in
+// the code changed the view, and it passes with a note to refresh the
+// references (--no-rerun leaves this out). Make
 // your own with --update on another system, and do not commit those. When a
 // change to the views is meant, check the difference images, then --update
 // and commit the new references with the change.
 //
 // No dependencies: PNG is read and written here with node:zlib.
 
-import { spawn } from 'node:child_process';
-import { copyFileSync, existsSync, mkdirSync, mkdtempSync, readFileSync, renameSync, rmSync, writeFileSync } from 'node:fs';
+import { execFileSync, spawn } from 'node:child_process';
+import { copyFileSync, existsSync, mkdirSync, mkdtempSync, readFileSync, renameSync, rmSync, symlinkSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -66,6 +73,7 @@ const CHANNEL_DIFF = 40, MAX_CHANGED = 150;
 
 const args = process.argv.slice(2);
 const UPDATE = args.includes('--update');
+const RERUN = !args.includes('--no-rerun');
 const keep = args.includes('--keep') ? resolve(args[args.indexOf('--keep') + 1]) : null;
 const work = keep || mkdtempSync(join(tmpdir(), 'kepuli-visual-'));
 const shots = join(work, 'shots');
@@ -122,20 +130,20 @@ function writePng(file, { width, height, rgb }) {
 /* ------------------------------------------------------------ the views */
 
 /** One run of store-screenshots.mjs into shots/, its pictures named with the set's prefix. */
-async function takeSet(set) {
-  const dir = join(shots, set.prefix || 'store');
+async function takeSet(set, into = shots, root = ROOT, profile = join(work, 'profile')) {
+  const dir = join(into, set.prefix || 'store');
   mkdirSync(dir, { recursive: true });
-  await takeViews(dir, set.env);
-  for (const view of set.views) for (const ext of ['.png', '.masks.json']) renameSync(join(dir, view + ext), join(shots, set.prefix + view + ext));
+  await takeViews(dir, set.env, root, profile);
+  for (const view of set.views) for (const ext of ['.png', '.masks.json']) renameSync(join(dir, view + ext), join(into, set.prefix + view + ext));
 }
 
-function takeViews(dir, extra) {
+function takeViews(dir, extra, root = ROOT, profile = join(work, 'profile')) {
   return new Promise((ok, fail) => {
     const env = {
       ...process.env, ...extra, KEPULI_SHOTS_DIR: dir, KEPULI_SHOTS_MASKS: '1', KEPULI_MOCK_NOW: NOW, KEPULI_HEADLESS: '1',
-      KEPULI_DEV_PORT: DEV_PORT, KEPULI_DEV_PROFILE: join(work, 'profile'), TZ: 'Europe/Helsinki',
+      KEPULI_DEV_PORT: DEV_PORT, KEPULI_DEV_PROFILE: profile, TZ: 'Europe/Helsinki',
     };
-    const child = spawn(process.execPath, [join(ROOT, 'dev', 'store-screenshots.mjs')], { env, stdio: ['ignore', 'pipe', 'inherit'] });
+    const child = spawn(process.execPath, [join(root, 'dev', 'store-screenshots.mjs')], { env, stdio: ['ignore', 'pipe', 'inherit'] });
     child.stdout.on('data', () => {});
     child.on('close', (code) => (code === 0 ? ok() : fail(new Error(`store-screenshots.mjs exited with ${code}`))));
   });
@@ -143,12 +151,12 @@ function takeViews(dir, extra) {
 
 const masks = (file) => (existsSync(file) ? JSON.parse(readFileSync(file, 'utf8')) : []);
 
-function compare(view) {
-  const now = readPng(join(shots, `${view}.png`)), ref = readPng(join(REFS, `${view}.png`));
+function compare(view, refs = REFS, tag = '') {
+  const now = readPng(join(shots, `${view}.png`)), ref = readPng(join(refs, `${view}.png`));
   if (now.width !== ref.width || now.height !== ref.height) return { view, changed: Infinity, note: `size ${now.width}x${now.height}, reference ${ref.width}x${ref.height}` };
   const { width, height } = now;
   const skip = new Uint8Array(width * height);
-  for (const [x0, y0, x1, y1] of [...masks(join(shots, `${view}.masks.json`)), ...masks(join(REFS, `${view}.masks.json`))]) {
+  for (const [x0, y0, x1, y1] of [...masks(join(shots, `${view}.masks.json`)), ...masks(join(refs, `${view}.masks.json`))]) {
     for (let y = Math.max(0, y0); y < Math.min(height, y1); y++) skip.fill(1, y * width + Math.max(0, x0), y * width + Math.min(width, x1));
   }
   const out = Buffer.from(now.rgb);
@@ -162,7 +170,7 @@ function compare(view) {
       box = box ? [Math.min(box[0], x), Math.min(box[1], y), Math.max(box[2], x), Math.max(box[3], y)] : [x, y, x, y];
     }
   }
-  const diff = join(work, `${view}.diff.png`);
+  const diff = join(work, `${view}${tag}.diff.png`);
   if (changed > MAX_CHANGED) writePng(diff, { width, height, rgb: out });
   return { view, changed, box, diff };
 }
@@ -207,13 +215,48 @@ if (UPDATE) {
 }
 const missing = VIEWS.filter((v) => !existsSync(join(REFS, `${v}.png`)));
 if (missing.length) { console.error(`no reference for ${missing.join(', ')}: run node dev/visualcheck.mjs --update`); process.exit(1); }
-let failed = 0;
-for (const view of VIEWS) {
-  const r = compare(view);
-  const bad = r.changed > MAX_CHANGED;
-  failed += bad;
-  console.log(`${bad ? 'FAIL' : 'ok  '}  ${view}  ${r.note || `${r.changed} pixels changed${r.box ? ` within x ${r.box[0]}–${r.box[2]}, y ${r.box[1]}–${r.box[3]}` : ''}`}${bad && !r.note ? `\n      ${r.diff}` : ''}`);
+const results = VIEWS.map((view) => compare(view));
+const failing = results.filter((r) => r.changed > MAX_CHANGED);
+
+// The second opinion: the references' own commit, taken here and now.
+const rerun = new Map();
+let base = '';
+if (failing.length && RERUN) {
+  const git = (...a) => execFileSync('git', a, { cwd: ROOT, encoding: 'utf8' }).trim();
+  base = git('log', '-1', '--format=%h', '--', 'dev/visual');
+  const tree = join(work, 'base');
+  const baseShots = join(work, 'base-shots');
+  console.log(`${failing.length} view(s) differ from the references: taking them again from ${base}, the references' commit …`);
+  try {
+    git('worktree', 'add', '--detach', '-q', tree, base);
+    // The mock's media is made, not committed (dev/mock/media.sh).
+    if (existsSync(join(ROOT, 'dev', 'mock', 'media'))) symlinkSync(join(ROOT, 'dev', 'mock', 'media'), join(tree, 'dev', 'mock', 'media'));
+    mkdirSync(baseShots, { recursive: true });
+    const wanted = new Set(failing.map((r) => r.view));
+    try {
+      for (const set of SETS.filter((st) => st.views.some((v) => wanted.has(st.prefix + v)))) await takeSet(set, baseShots, tree, join(work, 'profile-base'));
+    } finally {
+      await closeChrome();
+    }
+    for (const r of failing) rerun.set(r.view, compare(r.view, baseShots, '.against-base'));
+  } catch (err) {
+    console.log(`the second run did not complete: ${err.message.split('\n')[0]}`);
+  } finally {
+    try { git('worktree', 'remove', '--force', tree); } catch { /* removed with the work directory */ }
+  }
 }
+
+let failed = 0, drifted = 0;
+for (const r of results) {
+  const again = rerun.get(r.view);
+  const bad = r.changed > MAX_CHANGED && !(again && again.changed <= MAX_CHANGED);
+  failed += bad;
+  drifted += r.changed > MAX_CHANGED && !bad;
+  const said = r.note || `${r.changed} pixels changed${r.box ? ` within x ${r.box[0]}–${r.box[2]}, y ${r.box[1]}–${r.box[3]}` : ''}`;
+  const second = again ? `; against ${base} taken now ${again.note || `${again.changed}`}` : '';
+  console.log(`${bad ? 'FAIL' : 'ok  '}  ${r.view}  ${said}${second}${bad && !r.note ? `\n      ${again && !again.note ? again.diff : r.diff}` : ''}`);
+}
+if (drifted) console.log(`\n${drifted} view(s) differ from the references only as ${base} renders on this machine now: refresh them (node dev/visualcheck.mjs --update) when convenient.`);
 if (failed) console.log(`\n${failed} view(s) changed. The pictures are in ${work}. If the change is meant: node dev/visualcheck.mjs --update`);
 else if (!keep) rmSync(work, { recursive: true, force: true, maxRetries: 5, retryDelay: 500 });
 process.exit(failed ? 1 : 0);

@@ -85,7 +85,11 @@ data, so never point it at a profile someone uses.
   (changes in red). When a change to the views is meant, look at the
   differences, run `--update`, and commit the new references with the change.
   The references are macOS renderings; on another system make local ones and
-  do not commit them. The further views come from `store-screenshots.mjs`'s
+  do not commit them. A view that fails is taken again from the references'
+  own commit, checked out in a worktree and run on the same machine; if this
+  run matches that one, the machine's rendering drifted rather than the
+  code (it did, 2026-11-07), the view passes and the check says to refresh
+  the references (`--no-rerun` skips the second run, which doubles the time). The further views come from `store-screenshots.mjs`'s
   `KEPULI_SHOTS_THEME`, `KEPULI_SHOTS_WIDTH` and `KEPULI_SHOTS_VIEWS`;
   without them it takes the store pictures as before. About two minutes;
   pass your own `KEPULI_DEV_PORT` (its default is 9351). It stops when a
