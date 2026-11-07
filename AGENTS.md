@@ -209,7 +209,14 @@ visual check); run it before asking for the go. The order that has worked:
 8. **AMO**: `node dev/amo-publish.mjs` in the background (it waits out the
    throttling, then sends the listing and captions); confirm with
    `amo-publish.mjs status`. Usually public within minutes of the version.
-9. **Chrome Web Store**: `node dev/cws-publish.mjs upload` (or
+   New screenshots belong to the add-on, not the version: ask the owner for
+   their upload (`node dev/amo-screenshots.mjs && node dev/amo-publish.mjs captions`)
+   as soon as they are committed, as AMO may ask for an hour between two
+   of them (1.7.0); `release.mjs` reports when AMO is behind `brand/`.
+9. **Chrome Web Store**: the dashboard's sign-in is checked by
+   `release.mjs`, before the go; Google may want a passkey on this
+   machine, so the owner signs in while still at it. Then
+   `node dev/cws-publish.mjs upload` (or
    `upload --replace` if a version is still in review), then
    `node dev/cws-listing-fill.mjs` and `node dev/cws-screenshots.mjs` if texts
    or screenshots changed, then `node dev/cws-publish.mjs submit`. See

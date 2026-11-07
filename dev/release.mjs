@@ -90,6 +90,12 @@ check('the typed modules type-check', node('typecheck.mjs'));
 check('markup only from constants', node('htmlcheck.mjs'));
 check('the guides name what exists', node('docscheck.mjs'));
 check('no secrets in the repository', node('secretcheck.mjs', ['--all']));
+check('AMO has the screenshots in brand/', node('amo-screenshots.mjs', ['--check']));
+// The dashboard's sign-in lapses, and Google may then ask for a passkey on
+// this machine: found at 1.7.0 with the owner away, the Chrome half of the
+// release waited. Asked here, before the go, it is signed in while they are
+// still at the keyboard. It opens the store's own Chrome window.
+if (!QUICK) check('the Chrome Web Store dashboard opens signed in', node('cws-listing-fill.mjs', ['--signed-in']));
 if (!QUICK) check('UI regressions', node('uicheck.mjs'));
 if (VISUAL) check('the store views, light and narrow ones too, match their references', node('visualcheck.mjs'));
 

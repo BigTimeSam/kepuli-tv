@@ -14,6 +14,7 @@ behind them in [development.md → Publishing to the stores](../docs/development
 | `i18n-glossary.json` | the core concepts' term in each language, checked by `dev/glossarycheck.mjs` (see `js/locales/AGENTS.md`) | hand / agent |
 | `translations.json` | per language, hashes of the English each key and listing was translated from | `dev/translations.mjs --mark` only |
 | `cws-listing.json` | per language, a hash of the description last put in the Chrome dashboard | `dev/cws-listing-fill.mjs` / `cws-publish.mjs listing --done` only |
+| `amo-screenshots.json` | a hash of each picture last uploaded to AMO, read by `amo-screenshots.mjs --check` in `dev/release.mjs` | `dev/amo-screenshots.mjs` / `--done` only |
 
 `_locales/` (the manifest's translated name and summary) and `dist/listings/`
 (texts unwrapped for pasting) are generated from `listings/` by
@@ -91,7 +92,10 @@ behind them in [development.md → Publishing to the stores](../docs/development
    `dev/AGENTS.md`); `KEPULI_SHOTS_DIR` writes elsewhere to compare first.
 2. Look at all ten before uploading.
 3. Chrome: `node dev/cws-screenshots.mjs` (not during review). AMO:
-   `node dev/amo-screenshots.mjs && node dev/amo-publish.mjs captions`.
+   `node dev/amo-screenshots.mjs && node dev/amo-publish.mjs captions`,
+   in the background and early: it belongs to no version, and AMO's
+   throttling made it the last step of 1.7.0 by an hour. Both upload, so
+   both wait for the owner's go.
 4. Commit the new PNGs.
 
 Retake them whenever a release changes what the five views look like.

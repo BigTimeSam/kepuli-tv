@@ -10,6 +10,11 @@
 //                                            read all back and record them
 //   node dev/cws-listing-fill.mjs --dry      compare only
 //   node dev/cws-listing-fill.mjs --only fi de   just those languages
+//   node dev/cws-listing-fill.mjs --signed-in    only whether the dashboard
+//                                            opens signed in (dev/release.mjs
+//                                            asks before the go: Google asked
+//                                            for a passkey at 1.7.0, with the
+//                                            owner away from the machine)
 //
 // The first run opens the Chrome and stops at Google's sign-in: sign in to
 // the publisher's account in that window and run again. The sign-in stays in
@@ -113,6 +118,12 @@ async function open() {
     if (state.ready) return;
   }
   fail('the store listing page did not show its language menu and description field: has the dashboard changed?');
+}
+
+if (args.includes('--signed-in')) {
+  await open();
+  console.log('the dashboard opens signed in');
+  process.exit(0);
 }
 
 /** Switches the listing to one language and returns its description. */

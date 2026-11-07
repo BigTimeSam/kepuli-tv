@@ -4,6 +4,16 @@
 //   node dev/amo-screenshots.mjs           the numbered PNGs uploaded in order,
 //                                          then the old previews deleted
 //   node dev/amo-screenshots.mjs --dry     the previews AMO holds, nothing changed
+//   node dev/amo-screenshots.mjs --check   whether AMO has the pictures in
+//                                          brand/ (by the record below; offline)
+//   node dev/amo-screenshots.mjs --done    record the pictures in brand/ as
+//                                          AMO's, after an upload by hand
+//
+// What went up is recorded in store/amo-screenshots.json, a SHA-256 a file,
+// and dev/release.mjs asks --check. At 1.7.0 the screenshots went up after
+// the version and AMO asked for an hour between two of them; they belong to
+// the add-on, not to a version, so upload them as soon as they are
+// committed, days before a release if need be.
 //
 // Through AMO's API (v5), with the key dev/amo-publish.mjs uses
 // (~/.config/kepuli-tv/amo.json). The new ones go up first, so the page is
@@ -15,8 +25,8 @@
 // asked for 9,551 seconds on 2026-11-03). The wait is done here, quietly;
 // run this in the background, and chain captions after it.
 
-import { createHmac, randomUUID } from 'node:crypto';
-import { existsSync, readFileSync, readdirSync, statSync } from 'node:fs';
+import { createHash, createHmac, randomUUID } from 'node:crypto';
+import { existsSync, readFileSync, readdirSync, statSync, writeFileSync } from 'node:fs';
 import { homedir } from 'node:os';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -26,7 +36,23 @@ const DIR = join(ROOT, 'brand', 'firefox-screenshots');
 const API = 'https://addons.mozilla.org/api/v5';
 const ADDON = `/addons/addon/${encodeURIComponent('kepuli-tv@bigtimesam.github.io')}`;
 const CONFIG = join(homedir(), '.config', 'kepuli-tv', 'amo.json');
+const RECORD = join(ROOT, 'store', 'amo-screenshots.json');
 const fail = (m) => { console.error(`amo-screenshots: ${m}`); process.exit(1); };
+
+const files = readdirSync(DIR).filter((f) => /^\d\d-.*\.png$/.test(f)).sort();
+if (!files.length) fail(`no numbered PNGs in ${DIR}`);
+const hashes = () => Object.fromEntries(files.map((f) => [f, createHash('sha256').update(readFileSync(join(DIR, f))).digest('hex')]));
+const record = () => writeFileSync(RECORD, `${JSON.stringify(hashes(), null, 2)}\n`);
+
+if (process.argv.includes('--check')) {
+  const sent = existsSync(RECORD) ? JSON.parse(readFileSync(RECORD, 'utf8')) : {};
+  const behind = Object.entries(hashes()).filter(([f, h]) => sent[f] !== h).map(([f]) => f);
+  const gone = Object.keys(sent).filter((f) => !files.includes(f));
+  if (behind.length || gone.length) fail(`AMO is behind brand/firefox-screenshots/ in ${[...behind, ...gone].join(' ')}: node dev/amo-screenshots.mjs, then amo-publish.mjs captions`);
+  console.log(`AMO has the ${files.length} screenshots in brand/firefox-screenshots/`);
+  process.exit(0);
+}
+if (process.argv.includes('--done')) { record(); console.log(`recorded ${files.length} screenshots as AMO's`); process.exit(0); }
 
 if (!existsSync(CONFIG)) fail(`no key: ${CONFIG}`);
 if ((statSync(CONFIG).mode & 0o077) !== 0) fail(`${CONFIG} can be read by others: chmod 600 it`);
@@ -58,8 +84,6 @@ async function call(method, path, { json, form } = {}) {
 }
 
 const previews = async () => ((await call('GET', `${ADDON}/`)).previews || []).sort((a, b) => a.position - b.position);
-const files = readdirSync(DIR).filter((f) => /^\d\d-.*\.png$/.test(f)).sort();
-if (!files.length) fail(`no numbered PNGs in ${DIR}`);
 
 const before = await previews();
 console.log(`AMO holds ${before.length} preview(s): ${before.map((p) => p.id).join(' ')}`);
@@ -76,5 +100,6 @@ for (const [i, name] of files.entries()) {
 for (const p of before) { await call('DELETE', `${ADDON}/previews/${p.id}/`); console.log(`deleted the old ${p.id}`); }
 const after = await previews();
 const inOrder = JSON.stringify(after.map((p) => p.id)) === JSON.stringify(made);
+if (inOrder) record();
 console.log(`AMO holds ${after.length}: ${inOrder ? 'the new ones, in order' : 'NOT in the expected order, check the page'}; next: node dev/amo-publish.mjs captions`);
 process.exit(inOrder ? 0 : 1);
