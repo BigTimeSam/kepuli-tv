@@ -3447,7 +3447,11 @@ async function setupClarity(page) {
     await page.call('Emulation.setDeviceMetricsOverride', {width,height,deviceScaleFactor:1,mobile:false});
     for (const style of ['shadow','box','contrast']) {
       await change('f-substyle', style);
-      await sleep(120);
+      // The layer is sized again after the window's new size is laid out
+      // (a ResizeObserver): 120 ms was not always enough on CI or on a busy
+      // machine, so the sample is given up to two seconds to come inside.
+      await waitFor(page, `(() => { const f = document.querySelector('.sublook-preview').getBoundingClientRect(), s = document.querySelector('.sublook-preview .subdisplay').getBoundingClientRect();
+        return s.left >= f.left && s.right <= f.right && s.top >= f.top && s.bottom <= f.bottom; })()`, 'the sample inside its frame', 2000).catch(() => {});
       const fit = await evaluate(page, `(() => {
         const frame=document.querySelector('.sublook-preview').getBoundingClientRect(),
           sample=document.querySelector('.sublook-preview .subdisplay').getBoundingClientRect(),
