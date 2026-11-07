@@ -62,7 +62,7 @@ data, so never point it at a profile someone uses.
 - `node dev/unitcheck.mjs`: pure functions in Node, a few seconds. Run it
   after every change.
 - `node dev/typecheck.mjs`: every error TypeScript finds in the typed
-  modules (53 of them, listed in `TYPED` at its top: everything but most of
+  modules (54 of them, listed in `TYPED` at its top: everything but most of
   the modules that wire the page), all kinds counted. A few seconds; run it after changing one of them, or
   the JSDoc of something they import.
 - `node dev/namecheck.mjs`: undefined names, missing imports and exports,

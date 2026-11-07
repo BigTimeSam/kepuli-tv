@@ -3,6 +3,7 @@
 // Their dimensions belong to the container, so loading cannot move the text.
 import { t } from './i18n.js';
 import { wireModal } from './modal.js';
+import { svg } from './svg.js';
 
 const ICONS = {
   channel: '<rect x="3" y="6" width="18" height="14" rx="3"/><path d="m8 2 4 4 4-4M7 10h7v6H7zM17 11h.01M17 15h.01"/>',
@@ -23,7 +24,7 @@ export function poster(className, src, kind = 'movie', { expand = false, title =
     frame.setAttribute('aria-label', frame.title);
     frame.setAttribute('aria-haspopup', 'dialog');
   } else frame.setAttribute('aria-hidden', 'true');
-  frame.innerHTML = `<svg viewBox="0 0 24 24" aria-hidden="true">${ICONS[kind] || ICONS.movie}</svg>`;
+  frame.append(svg(ICONS[kind] || ICONS.movie, '0 0 24 24'));
   if (!url) return frame;
 
   const img = document.createElement('img');

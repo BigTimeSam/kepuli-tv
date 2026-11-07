@@ -2,14 +2,15 @@
 // Each caller owns what closing means: discard a draft, ask for confirmation,
 // abort a request, or simply close an image.
 import { t } from './i18n.js';
+import { svg } from './svg.js';
 
-const CLOSE_ICON = '<svg viewBox="0 0 20 20" aria-hidden="true" focusable="false"><path d="m5 5 10 10M15 5 5 15"/></svg>';
+const CLOSE_ICON = '<path d="m5 5 10 10M15 5 5 15"/>';
 
 export function wireModal(dialog, requestClose) {
   for (const button of dialog.querySelectorAll('[data-modal-close]')) {
     button.type = 'button';
     button.classList.add('modal-close');
-    button.innerHTML = CLOSE_ICON;
+    button.replaceChildren(svg(CLOSE_ICON));
     button.dataset.i18nTitle = button.dataset.i18nLabel = 'modal.close';
     button.title = t('modal.close');
     button.setAttribute('aria-label', button.title);

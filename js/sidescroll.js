@@ -9,6 +9,7 @@
 // for a mouse without a wheel that scrolls sideways.
 
 import { t } from './i18n.js';
+import { svg } from './svg.js';
 
 /**
  * The row put in a box with its two arrows. The arrows follow the row's
@@ -28,7 +29,7 @@ export function sideScroll(list, { compact = false, className = '' } = {}) {
     button.tabIndex = -1;
     button.title = t(dir < 0 ? 'player.idle.prev' : 'player.idle.next');
     button.setAttribute('aria-label', button.title);
-    button.innerHTML = `<svg viewBox="0 0 20 20" aria-hidden="true" focusable="false"><path d="${dir < 0 ? 'm12 4-6 6 6 6' : 'm8 4 6 6-6 6'}"/></svg>`;
+    button.append(svg(dir < 0 ? '<path d="m12 4-6 6 6 6"/>' : '<path d="m8 4 6 6-6 6"/>'));
     button.addEventListener('click', () => {
       const item = /** @type {HTMLElement|null} */ (list.firstElementChild);
       const step = item ? item.getBoundingClientRect().width + (parseFloat(getComputedStyle(list).columnGap) || 0) : 0;

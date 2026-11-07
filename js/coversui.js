@@ -20,6 +20,7 @@ import { el } from './dom.js';
 import { pickIds, refreshIdleSoon } from './picksui.js';
 import { grid, guideChannel, guideOpen, showGuideChannel } from './guideui.js';
 import { openItem } from './seriesui.js';
+import { svg } from './svg.js';
 
 // Films and series as covers rather than rows. A cover is what a film is
 // recognised by, and at 30x44 in a row it was a thumbnail of one. The
@@ -100,7 +101,7 @@ export function viewToggle() {
     button.title = t(`view.${view}`);
     button.setAttribute('aria-label', button.title);
     button.setAttribute('aria-pressed', String(listView === view));
-    button.innerHTML = `<svg viewBox="0 0 20 20" aria-hidden="true">${paths}</svg>`;
+    button.append(svg(paths));
     button.addEventListener('click', () => setListView(view));
     box.appendChild(button);
   }

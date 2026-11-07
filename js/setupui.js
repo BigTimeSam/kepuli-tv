@@ -474,7 +474,7 @@ export async function renderAccountBox() {
   if (!a) { box.hidden = true; return; }
   box.hidden = false;
   const estimate = await storageEstimate();
-  box.innerHTML = '';
+  box.replaceChildren();
   const head = document.createElement('div');
   const status = document.createElement('b');
   status.textContent = a.kind === 'm3u' ? t('accounts.kind.m3u') : a.kind === 'stalker' ? t('accounts.kind.stalker') : a.status + (a.trial ? t('account.trial') : '');

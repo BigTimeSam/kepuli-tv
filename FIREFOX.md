@@ -136,6 +136,7 @@ whose MV3 APIs return promises.
 | `minimum_chrome_version` | `116` | absent |
 | `browser_specific_settings.gecko.id` | absent | `kepuli-tv@bigtimesam.github.io`, mandatory for signing |
 | `browser_specific_settings.gecko.strict_min_version` | absent | `140.0`, for Firefox's built-in data-transmission consent |
+| `browser_specific_settings.gecko_android.strict_min_version` | absent | `142.0`: Firefox for Android reads `data_collection_permissions` from 142 on, and AMO's linter warns while Android's minimum is lower |
 | `browser_specific_settings.gecko.data_collection_permissions` | absent | `required: ["authenticationInfo"]`, because credentials are sent to the user's service |
 | everything else | the same | the same |
 

@@ -21,6 +21,7 @@ import * as store from './config.js';
 import { state } from './state.js';
 import { nextEpisode, playInPlace } from './nextepisode.js';
 import { playItem } from './playing.js';
+import { svg } from './svg.js';
 
 // A programme watched for this long is noted as one the viewer is
 // interested in (store.noteInterest, js/picks.js); zapping past does not
@@ -111,7 +112,7 @@ export function renderIdleHome() {
       forget.className = 'idle-forget';
       forget.title = t('player.idle.forget', { title: name.textContent });
       forget.setAttribute('aria-label', forget.title);
-      forget.innerHTML = '<svg viewBox="0 0 20 20" aria-hidden="true" focusable="false"><path d="m6 6 8 8M14 6l-8 8"/></svg>';
+      forget.append(svg('<path d="m6 6 8 8M14 6l-8 8"/>'));
       forget.addEventListener('click', (event) => { event.stopPropagation(); forgetUnfinished(item, name.textContent); });
       wrap.append(card, forget);
       // The star in the other corner: the film, or the series an episode

@@ -17,6 +17,7 @@ import { hideProgress, progressSignal, showProgress, updateProgress } from './pr
 import { clearHistory } from './collections.js';
 import { $, el } from './dom.js';
 import { configured, openSetup } from './setupui.js';
+import { svg } from './svg.js';
 
 // A chip row advances 30.6 px and the bar's own padding adds 16, so one row
 // comes to 47 px and eight to 261. The fixed 144 px this used to have for
@@ -382,7 +383,7 @@ function listOrderToggle(list) {
     button.dataset.order = shown;
     button.setAttribute('aria-label', orderName(shown));
     button.setAttribute('aria-pressed', String(lit));
-    button.innerHTML = `<svg viewBox="0 0 20 20" aria-hidden="true">${ORDER_ICONS[shown]}</svg>`;
+    button.append(svg(ORDER_ICONS[shown]));
     button.addEventListener('click', () => setListOrder(list, pressedOrder(orders, listOrder(state.settings, list))));
     box.appendChild(button);
   }

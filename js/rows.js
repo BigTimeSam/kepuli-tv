@@ -7,6 +7,7 @@ import { t } from './i18n.js';
 import { poster } from './poster.js';
 import { ratingText } from './rating.js';
 import { nameHasYear } from './titlemeta.js';
+import { svg } from './svg.js';
 
 const el = (tag, cls, text) => {
   const node = document.createElement(tag);
@@ -63,7 +64,7 @@ function more(onMenu) {
   button.setAttribute('aria-label', button.title);
   button.setAttribute('aria-haspopup', 'menu');
   button.tabIndex = -1;
-  button.innerHTML = '<svg viewBox="0 0 20 20" aria-hidden="true"><circle cx="4.5" cy="10" r="1.5"/><circle cx="10" cy="10" r="1.5"/><circle cx="15.5" cy="10" r="1.5"/></svg>';
+  button.append(svg('<circle cx="4.5" cy="10" r="1.5"/><circle cx="10" cy="10" r="1.5"/><circle cx="15.5" cy="10" r="1.5"/>'));
   button.addEventListener('click', (e) => { e.stopPropagation(); onMenu(button); });
   return button;
 }
@@ -347,11 +348,7 @@ function explained(node, sentence) {
 }
 
 export function icon(paths) {
-  const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
-  svg.setAttribute('viewBox', '0 0 20 20');
-  svg.setAttribute('aria-hidden', 'true');
-  svg.innerHTML = paths;
-  return svg;
+  return svg(paths);
 }
 const svgIcon = icon;
 
@@ -457,7 +454,7 @@ export function chipRow({ label, count, active, title, favorite, onFavorite }, o
 
 // Stacked lines: a category is by definition a set of items, not one.
 // The same stroke style as the search icon in the top bar.
-const LIST_ICON = '<svg viewBox="0 0 20 20" aria-hidden="true"><path d="M3.5 6h13M3.5 10h13M3.5 14h8"/></svg>';
+const LIST_ICON = '<path d="M3.5 6h13M3.5 10h13M3.5 14h8"/>';
 
 /**
  * A favourite category's row. Not a playable item but a door into a list,
@@ -471,7 +468,7 @@ export function favCategoryRow(entry, ctx) {
   row.appendChild(quiet(star(true, ctx.onFavorite)));
 
   const icon = el('div', 'row-cat-icon');
-  icon.innerHTML = LIST_ICON;
+  icon.append(svg(LIST_ICON));
   row.appendChild(icon);
 
   const body = el('div', 'row-body');

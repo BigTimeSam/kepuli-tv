@@ -62,6 +62,7 @@ lists, series info, stream URL) for its kind:
 | `topmenu.js` | the top bar's hamburger: below the width at which the bar fits on one row (measured, as tab names differ by language), Refresh, Help, the theme, full screen and Settings go into its menu |
 | `listfilters.js` | the list's filter folds: "Filter channels" with the topics and "Show only favourites" (`filterChannels`), both folds' stored state wired in `wireListFilters`; the parts are moved, not rebuilt |
 | `scrollhint.js` | a thin bar of the page's own over the player's details (`SCROLLERS`) when they hold more than they show, where the browser's bar fades away (Firefox on Android and macOS); lists and dialogs keep the browser's own |
+| `svg.js` | an icon as an element from SVG markup written in the source (`svg(inner, viewBox)`): every icon goes through it, never innerHTML, and `dev/htmlcheck.mjs` reads each call |
 | `toast.js` | the message strip (`toast`) and copying a stream address: import `toast` from here |
 | `dom.js` | `$` and `el`, the page's elements looked up once: import them from here |
 | `state.js` | the player's `state`, the list's constants and the parts app.js builds and hands over with `provide()` (the list, the sidebar, the address, the connection): what a feature module takes from the player it takes from here |
@@ -109,7 +110,7 @@ with the console open and run the scenarios of that feature. A
 
 - **Typed modules stay clean.** Most modules without DOM wiring begin with
   `// @ts-check` and carry JSDoc types; the list is `TYPED` in
-  `dev/typecheck.mjs` (53 modules: settings and storage, the data layer and
+  `dev/typecheck.mjs` (54 modules: settings and storage, the data layer and
   all three providers, the parsers and formatters, MKV and MP4, the
   playback engine, starting playback, recording and the shared connection,
   the guide's grid, the subtitles' layer, the address, `dom.js` and `state.js`). The shared shapes are typedefs: `Config`, `Settings`, `ListItem`
