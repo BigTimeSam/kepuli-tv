@@ -4291,7 +4291,7 @@ async function picks(page, { target }) {
   // What Aurora News 24 shows next, so that it can be "watched before".
   const next = await evaluate(page, `fetch('http://127.0.0.1:${MOCK_PORT}/player_api.php?username=demo&password=demo&action=get_short_epg&stream_id=1002&limit=3').then((r) => r.json()).then((d) => (d.epg_listings || []).map((p) => decodeURIComponent(escape(atob(p.title)))))`);
   const later = next.find((title, i) => i > 0);
-  const interests = { [later.toLowerCase().replace(/\s*·\s*episode.*$/, '').replace(/[^\p{L}\p{N}]+/gu, ' ').trim()]: { t: later, n: 2, at: Date.now() - 86400e3 } };
+  const interests = { [later.toLowerCase().replace(/\s*[·:]\s*episode.*$/, '').replace(/[^\p{L}\p{N}]+/gu, ' ').trim()]: { t: later, n: 2, at: Date.now() - 86400e3 } };
   await evaluate(page, `chrome.storage.local.set({ ui: { tab: 'live' }, ${JSON.stringify('favorites:' + key)}: [${JSON.stringify(ch(1000, 'Aurora One', 'auroraone.demo'))}], ${JSON.stringify('recents:' + key)}: [${JSON.stringify({ ...ch(1002, 'Aurora News 24', 'auroranews24.demo'), watchedAt: Date.now() - 3600e3 })}], ${JSON.stringify('interests:' + key)}: ${JSON.stringify(interests)} })`);
   // The page's clock (js/testclock.js) two minutes into the programme Aurora
   // One shows at the mock's now, so that a programme on now has the ten
@@ -4305,7 +4305,7 @@ async function picks(page, { target }) {
   await evaluate(page, `document.querySelector('dialog[open]')?.close()`);
   await waitFor(page, `document.querySelectorAll('.idle-pick:not([hidden])').length >= 2`, 'the picks', 20000);
   const cards = await evaluate(page, `[...document.querySelectorAll('.idle-pick:not([hidden])')].map((c) => ({ text: c.innerText.replace(/\\n/g, ' | '), on: c.classList.contains('on') }))`);
-  assert(cards[0].text.includes(later.replace(/\s*·.*$/, '')) && /Watched before/.test(cards[0].text), `the first pick is not the one watched before: ${JSON.stringify(cards)}`);
+  assert(cards[0].text.includes(later.replace(/\s*[·:].*$/, '')) && /Watched before/.test(cards[0].text), `the first pick is not the one watched before: ${JSON.stringify(cards)}`);
   assert(cards.some((c) => c.on && /On now/.test(c.text)), `no pick on now: ${JSON.stringify(cards)}`);
   await evaluate(page, `document.querySelector('.idle-pick:not(.on)').click()`, { gesture: true });
   await waitFor(page, `document.querySelectorAll('.idle-pick.reminded').length === 1`, 'the reminder from a pick');

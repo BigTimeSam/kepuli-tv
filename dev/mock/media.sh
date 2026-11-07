@@ -22,7 +22,7 @@ src() {
   printf -- '-f lavfi -i gradients=s=1280x720:r=25:%s:nb_colors=3:speed=0.01:duration=%s -f lavfi -t %s -i anullsrc=r=48000:cl=stereo' "$2" "$3" "$3"
 }
 text() {
-  printf -- "drawtext=fontfile=$FONT:text='%s':fontcolor=white:fontsize=72:x=(w-tw)/2:y=(h-th)/2-30,drawtext=fontfile=$FONT:text='Demo content · %%{pts\\\\:hms}':fontcolor=0xffffffaa:fontsize=30:x=(w-tw)/2:y=(h-th)/2+56" "$1"
+  printf -- "drawtext=fontfile=$FONT:text='%s':fontcolor=white:fontsize=72:x=(w-tw)/2:y=(h-th)/2-30,drawtext=fontfile=$FONT:text='Demo content, %%{pts\\\\:hms}':fontcolor=0xffffffaa:fontsize=30:x=(w-tw)/2:y=(h-th)/2+56" "$1"
 }
 VIDEO="-c:v libx264 -preset veryfast -crf 26 -pix_fmt yuv420p -g 50"
 AUDIO="-c:a aac -b:a 96k"

@@ -188,7 +188,7 @@ function programmes(channel) {
     const base = pick(r, pool.titles);
     const episodic = r() < 0.5;
     const total = between(r, 6, 12);
-    const title = episodic ? `${base} · Episode ${between(r, 1, total)}` : base;
+    const title = episodic ? `${base}: Episode ${between(r, 1, total)}` : base;
     const desc = pick(r, BLURBS).replace('{n}', String(between(r, 1, total))).replace('{m}', String(total)).replace('{title}', base);
     out.push({
       id: String(channel.stream_id * 1000 + n), epg_id: String(channel.stream_id), title: b64(title), lang: 'en',
@@ -934,11 +934,11 @@ function handle(req, res) {
   }
   if ((m = /^\/img\/poster\/movie\/(\d+)\.svg$/.exec(path))) {
     const x = vod.movies.find((v) => String(v.stream_id) === m[1]);
-    return x ? send(res, 200, posterSvg(x.title, `${x.year} · ${x.genre}`), 'image/svg+xml') : send(res, 404, 'no such poster', 'text/plain');
+    return x ? send(res, 200, posterSvg(x.title, `${x.year}, ${x.genre}`), 'image/svg+xml') : send(res, 404, 'no such poster', 'text/plain');
   }
   if ((m = /^\/img\/poster\/series\/(\d+)\.svg$/.exec(path))) {
     const x = series.list.find((s) => String(s.series_id) === m[1]);
-    return x ? send(res, 200, posterSvg(x.name, `${x.releaseDate.slice(0, 4)} · ${x.genre}`), 'image/svg+xml') : send(res, 404, 'no such poster', 'text/plain');
+    return x ? send(res, 200, posterSvg(x.name, `${x.releaseDate.slice(0, 4)}, ${x.genre}`), 'image/svg+xml') : send(res, 404, 'no such poster', 'text/plain');
   }
 
   // Streams. The credentials sit in the path, as in the real URL scheme.

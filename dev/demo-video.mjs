@@ -53,7 +53,7 @@ const { startMockServer, USER, PASS, STALKER_MAC } = await import('./mock/server
 
 const CAPTIONS = {
   en: {
-    intro: ['Kepuli-TV', 'An IPTV player for Chrome and Firefox', 'Free and open source · Bring your own Xtream Codes, M3U or Stalker subscription'],
+    intro: ['Kepuli-TV', 'An IPTV player for Chrome and Firefox', 'Free and open source. Bring your own Xtream Codes, M3U or Stalker subscription'],
     start: ['Your start page', 'What you left halfway, what is on your channels now and soon, and the channels you watched lately.'],
     resume: ['Pick up where you left off', 'One click and the film carries on from where you stopped, with its cast, director and details beside it.'],
     live: ['Live TV by country and topic', 'Pick a country, narrow it to a topic, and see what is on now on every channel.'],
@@ -664,7 +664,9 @@ async function walk() {
   await click(byText('#groups', 'Nordic'));
   await waitFor(ROWS, 'the movies');
   await click(`document.querySelector('button[aria-label="Show as covers"]')`, { pause: 1500 });
-  await click(byText('#list', 'Midsummer Ghosts'));
+  // The film the mock's movie.mp4 is titled with: every film plays that
+  // one file, and another's name over it read wrong in the video.
+  await click(byText('#list', 'Northern Lights'));
   await waitFor(PLAYING, 'the movie');
 
   await scene('details', 'left');
