@@ -5371,6 +5371,40 @@ async function perfplaylist(page, { target }) {
 }
 
 /**
+ * A cover from a provider on plain http, not on this machine's loopback:
+ * Firefox upgraded such an image to https and showed nothing, logos and
+ * covers alike, while the mock on 127.0.0.1 hid it (loopback is not
+ * upgraded). An image is served on this machine's own network address
+ * (with CORS, as the mock's are) and poster() is asked to show it; it has
+ * to load in Chrome and in Firefox (there through a fetch, as a blob).
+ */
+async function remoteimages(page) {
+  const { networkInterfaces } = await import('node:os');
+  const { createServer } = await import('node:http');
+  const address = Object.values(networkInterfaces()).flat().find((a) => a && a.family === 'IPv4' && !a.internal)?.address;
+  if (!address) return { ok: true, detail: 'no network address besides loopback here: nothing to test' };
+  const SVG = '<svg xmlns="http://www.w3.org/2000/svg" width="240" height="135"><rect width="240" height="135" fill="#7c5cff"/></svg>';
+  const server = createServer((req, res) => {
+    res.writeHead(200, { 'Content-Type': 'image/svg+xml', 'Access-Control-Allow-Origin': '*' });
+    res.end(SVG);
+  });
+  await new Promise((done) => server.listen(0, address, done));
+  const url = `http://${address}:${server.address().port}/logo.svg`;
+  try {
+    await evaluate(page, `(async () => { const { poster } = await import('./js/poster.js');
+      const frame = poster('remote-image-test', ${JSON.stringify(url)}, 'channel'); frame.id = 'remote-image-test';
+      document.body.append(frame); return true; })()`);
+    await waitFor(page, `(() => { const img = document.querySelector('#remote-image-test img'); return Boolean(img && img.complete && img.naturalWidth > 0); })()`, 'the remote http image', 15000)
+      .catch((err) => { throw new Error(`${err.message}: ${url} did not show`); });
+    const src = await evaluate(page, `document.querySelector('#remote-image-test img').src.split(':')[0]`);
+    return { ok: true, detail: `${url} showed (as ${src})` };
+  } finally {
+    await evaluate(page, `document.getElementById('remote-image-test')?.remove()`).catch(() => {});
+    server.close();
+  }
+}
+
+/**
  * Text that does not fit, found before a translator does. The player is
  * opened as player.html?pseudo=1 (js/i18n.js), where every string is
  * accented and about 40 % longer, and the main views are walked: the start
@@ -6268,7 +6302,7 @@ async function filmfacts(page) {
 
 const SCENARIOS = { buffering, livebuffering, filmbuffering, emptyfile, tsasmp4, refusedfile, badgateway, livebadgateway, channelrefused, noanswer, longfilm, catalogUi, setupClarity, welcome, fullscreenControl, clickpause, pickers, touchcaret, screenbutton, topmenu, scrollbars, channelorder, lengthfilter, nowlogo, channels, home, resumemkv, restore, programmes, catchup, seek, death, cancel, timeout, search, paste, keys, switching, resume, connections, livezap, livequiet, reconnect, accounts, listerror, a11y, subtitles, audio, wasmaudio, settings,
   lastchannel, nextepisode, continuewatching, reminders, update, seeklag, cuesretry, quota, catchupfreeze, catchupfull, twotabs, switchstop, resettabs,
-  refresh, restorenav, guidekeep, m3u, sync, holes, picks, flakyserver, accountform, stalker, record, guidefavs, guidenames, categories, homecountry, noleak, perf, pseudo, startup, soak, phone, episodenames, gotochannel, filmdetails, favorder, countryfilter, tilekeys, routes, programmekeys, searchlimit, filterfolds, guideclick, filmaddress, filmfacts, playlistfile, perflive, perfplaylist };
+  refresh, restorenav, guidekeep, m3u, sync, holes, picks, flakyserver, accountform, stalker, record, guidefavs, guidenames, categories, homecountry, noleak, perf, pseudo, startup, soak, phone, episodenames, gotochannel, filmdetails, favorder, countryfilter, tilekeys, routes, programmekeys, searchlimit, filterfolds, guideclick, filmaddress, filmfacts, playlistfile, perflive, perfplaylist, remoteimages };
 // The mock's whole-list answers stall for these, longer than the request limit.
 const SLOW_LIST_MS = { cancel: 60000, timeout: 60000 };
 // The media is sent slowly for these: the seek targets must lie outside the
