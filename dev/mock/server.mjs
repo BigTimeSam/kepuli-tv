@@ -141,7 +141,26 @@ const EXTRA_CHANNEL = {
   epg_channel_id: '', added: secs(T0), category_id: live.categories[0].category_id,
   category_ids: [Number(live.categories[0].category_id)], custom_sid: '', tv_archive: 0, direct_source: '', tv_archive_duration: 0, topic: 'General',
 };
-const liveChannels = () => (process.env.KEPULI_MOCK_EXTRA_CHANNEL ? [...live.channels, EXTRA_CHANNEL] : live.channels);
+// KEPULI_MOCK_BULK_LIVE=N: N invented channels more, dealt in turn to every
+// country and topic, with no programmes, for the size of a provider's live
+// list (the perflive and perfplaylist scenarios). Made once per N, from
+// fixed numbers.
+let bulkLive = { n: 0, list: [] };
+function bulkChannels() {
+  const n = Number(process.env.KEPULI_MOCK_BULK_LIVE) || 0;
+  if (bulkLive.n !== n) {
+    bulkLive = { n, list: Array.from({ length: n }, (_, i) => {
+      const cat = live.categories[i % live.categories.length];
+      return {
+        num: 20000 + i, name: `Bulk Channel ${String(i + 1).padStart(6, '0')}`, stream_type: 'live', stream_id: 200000 + i,
+        stream_icon: `/img/logo/${1000 + (i % 100)}.svg`, epg_channel_id: '', added: secs(T0 - 90 * 86400e3),
+        category_id: cat.category_id, category_ids: [Number(cat.category_id)], custom_sid: '', tv_archive: 0, direct_source: '', tv_archive_duration: 0, topic: 'General',
+      };
+    }) };
+  }
+  return bulkLive.list;
+}
+const liveChannels = () => [...live.channels, ...(process.env.KEPULI_MOCK_EXTRA_CHANNEL ? [EXTRA_CHANNEL] : []), ...bulkChannels()];
 
 // KEPULI_MOCK_COUNTRY_PREFIX: while set, every channel's name in the Xtream
 // list begins with its country's code, "FI: Aurora One", "SE: Nordic News",
@@ -783,8 +802,11 @@ function guideXml() {
     return `${d.getUTCFullYear()}${p(d.getUTCMonth() + 1)}${p(d.getUTCDate())}${p(d.getUTCHours())}${p(d.getUTCMinutes())}${p(d.getUTCSeconds())} +0000`;
   };
   const out = ['<?xml version="1.0" encoding="utf-8" ?><!DOCTYPE tv SYSTEM "xmltv.dtd"><tv generator-info-name="Kepuli-TV demo">'];
-  for (const c of liveChannels()) out.push(`<channel id="${escapeXml(c.epg_channel_id)}"><display-name>${escapeXml(c.name)}</display-name></channel>`);
-  for (const c of liveChannels()) {
+  // Only the channels with a guide id: the bulk ones (KEPULI_MOCK_BULK_LIVE)
+  // have none, and 100,000 of them took the server's memory.
+  const guided = liveChannels().filter((c) => c.epg_channel_id);
+  for (const c of guided) out.push(`<channel id="${escapeXml(c.epg_channel_id)}"><display-name>${escapeXml(c.name)}</display-name></channel>`);
+  for (const c of guided) {
     for (const p of programmes(c)) {
       out.push(`<programme start="${xmltvTime(p.start_timestamp)}" stop="${xmltvTime(p.stop_timestamp)}" channel="${escapeXml(c.epg_channel_id)}"><title lang="en">${escapeXml(Buffer.from(p.title, 'base64').toString('utf8'))}</title><desc lang="en">${escapeXml(Buffer.from(p.description, 'base64').toString('utf8'))}</desc></programme>`);
     }

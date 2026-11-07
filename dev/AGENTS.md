@@ -127,6 +127,14 @@ virtual, a search that walks the DOM or a leak, and reports the numbers
 every run: compare them with these before and after a change to the lists,
 search or rows.
 
+`perflive` does the same for 100,000 channels more, dealt to every country
+(`KEPULI_MOCK_BULK_LIVE`), under All, and opens a country of some 1,700 in
+the guide; `perfplaylist` reads the same channels as a 21 MB playlist file
+(201,560 lines) into a new account. On 2026-11-07 in Chrome: the list
+1.1 s, a scroll frame 17 ms, a search 227 ms, the guide 28 ms, 55 MB; the
+file read and connected in 0.96 s, All in 0.5 s, 58 MB. Firefox has no
+`performance.memory`, so its heap reads 0.
+
 The `startup` scenario opens the player three times with the catalogue cache
 dropped and three times with it kept, and takes the time from the
 navigation to the first channel rows drawn, noted in the page itself (bounds

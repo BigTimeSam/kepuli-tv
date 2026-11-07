@@ -5251,6 +5251,125 @@ async function perf(page) {
   }
 }
 
+/** The frames of a scroll through #list from top to bottom in sixty steps, and their 95th percentile. */
+async function scrollFrames(page) {
+  const frames = await evaluate(page, `new Promise((done) => {
+    const list = document.getElementById('list');
+    const steps = 60, gaps = [];
+    let i = 0, last = performance.now();
+    const step = (now) => {
+      gaps.push(now - last); last = now;
+      list.scrollTop = (list.scrollHeight - list.clientHeight) * (i / steps);
+      if (++i <= steps) requestAnimationFrame(step); else done(gaps.slice(2));
+    };
+    requestAnimationFrame(step);
+  })`);
+  const sorted = [...frames].sort((a, b) => a - b);
+  return { frames: frames.length, p95: Math.round(sorted[Math.floor(sorted.length * 0.95)]) };
+}
+
+const LIST_COUNT = `Number((document.getElementById('listinfo').textContent.match(/[\\d,.\\s ]+/) || ['0'])[0].replace(/[^\\d]/g, ''))`;
+const HEAP_MB = `performance.memory ? Math.round(performance.memory.usedJSHeapSize / 1048576) : 0`;
+
+/**
+ * A provider's live list at its largest: 100,000 channels more, dealt to
+ * every country (KEPULI_MOCK_BULK_LIVE). The whole list under All is fetched
+ * and drawn, scrolled, searched for a channel from its middle, a country of
+ * some 1,700 channels opened in the guide, and the heap read; bounds well
+ * above what this machine takes, as perf's for the films, and the numbers
+ * reported every run.
+ */
+async function perflive(page) {
+  const N = 100000;
+  const BOUNDS = { listMs: 30000, frameP95Ms: 50, searchMs: 5000, guideMs: 15000, heapMb: 700 };
+  process.env.KEPULI_MOCK_BULK_LIVE = String(N);
+  try {
+    await evaluate(page, `document.querySelector('#tabs [data-tab="live"]').click()`);
+    const t0 = Date.now();
+    await evaluate(page, `document.getElementById('btn-refresh').click()`);
+    await sleep(300);
+    await click(page, '#groups', 'All', { timeout: 60000 });
+    await waitFor(page, `${LIST_COUNT} >= ${N}`, `the ${N} channels under All`, 90000);
+    const listMs = Date.now() - t0;
+    const scroll = await scrollFrames(page);
+    const rowsInDom = await evaluate(page, `document.querySelectorAll('#list .row').length`);
+    await evaluate(page, `document.getElementById('list').scrollTop = 0`);
+    await sleep(300);
+    const s0 = Date.now();
+    await evaluate(page, `(() => { const s = document.getElementById('search'); s.focus(); s.value = 'Bulk Channel 050017'; s.dispatchEvent(new Event('input', { bubbles: true })); })()`);
+    await waitFor(page, `[...document.querySelectorAll('#list .row')].some((r) => r.textContent.includes('Bulk Channel 050017'))`, 'the search result', 30000);
+    const searchMs = Date.now() - s0;
+    await evaluate(page, `document.getElementById('search-clear')?.click()`);
+    await click(page, '#groups', 'Finland');
+    await waitFor(page, `${LIST_COUNT} > 1000`, 'Finland\'s channels', 30000);
+    const g0 = Date.now();
+    await evaluate(page, `document.getElementById('btn-guide').click()`);
+    await waitFor(page, `document.querySelectorAll('.epg-chan').length > 5`, 'the guide', 30000);
+    const guideMs = Date.now() - g0;
+    const guideRows = await evaluate(page, `document.querySelectorAll('.epg-chan').length`);
+    await evaluate(page, `document.getElementById('epg-close')?.click()`);
+    const heapMb = await evaluate(page, HEAP_MB);
+    const got = { listMs, frameP95Ms: scroll.p95, searchMs, guideMs, heapMb };
+    const over = Object.entries(BOUNDS).filter(([k, bound]) => got[k] > bound).map(([k, bound]) => `${k} ${got[k]} > ${bound}`);
+    if (rowsInDom > 400) over.push(`${rowsInDom} rows in the DOM: the list is not virtual any more`);
+    if (guideRows > 400) over.push(`${guideRows} channels drawn in the guide: its column is not virtual any more`);
+    if (over.length) throw new Error(`over the bounds: ${over.join('; ')}`);
+    return { ok: true, detail: `${N} channels more: list ${listMs} ms, scroll p95 frame ${scroll.p95} ms (${scroll.frames} frames, ${rowsInDom} rows in the DOM), search ${searchMs} ms, Finland's guide ${guideMs} ms (${guideRows} channels drawn), heap ${heapMb} MB` };
+  } finally {
+    process.env.KEPULI_MOCK_BULK_LIVE = '';
+    await evaluate(page, `document.getElementById('btn-refresh').click()`).catch(() => {});
+  }
+}
+
+/**
+ * The same 100,000 channels as a playlist file of some 200,000 lines,
+ * added as an account (importPlaylistFile): how long from Connect to the
+ * lists, the channels under All, and the heap after it.
+ */
+async function perfplaylist(page, { target }) {
+  const N = 100000;
+  const BOUNDS = { importMs: 60000, allMs: 20000, heapMb: 900 };
+  process.env.KEPULI_MOCK_BULK_LIVE = String(N);
+  try {
+    await evaluate(page, `chrome.storage.local.set({ config: ${JSON.stringify(XTREAM_ACCOUNT)}, accounts: ${JSON.stringify([XTREAM_ACCOUNT])} })`);
+    await page.call('Page.navigate', { url: bare(target.url) });
+    await sleep(1000);
+    await waitFor(page, CONNECTED, 'the connection');
+    await evaluate(page, `document.querySelector('dialog[open]')?.close()`);
+    await evaluate(page, `document.getElementById('btn-settings').click()`, { gesture: true });
+    await waitFor(page, `document.getElementById('setup').open`, 'the settings');
+    await evaluate(page, `document.getElementById('f-add-account').click()`, { gesture: true });
+    const size = await evaluate(page, `(async () => {
+      const text = await (await fetch(${JSON.stringify(M3U_ACCOUNT.url)})).text();
+      const input = document.getElementById('f-file');
+      const files = new DataTransfer();
+      files.items.add(new File([text], 'Big playlist.m3u', { type: 'audio/x-mpegurl' }));
+      input.files = files.files;
+      input.dispatchEvent(new Event('change', { bubbles: true }));
+      return { mb: Math.round(text.length / 1048576), lines: text.split('\\n').length };
+    })()`);
+    const t0 = Date.now();
+    await evaluate(page, `document.getElementById('f-save').click()`, { gesture: true });
+    await waitFor(page, `!document.getElementById('setup').open`, 'the file read in', 120000);
+    await waitFor(page, CONNECTED, 'the playlist', 120000);
+    const importMs = Date.now() - t0;
+    await evaluate(page, `document.querySelector('#tabs [data-tab="live"]').click()`);
+    const a0 = Date.now();
+    await click(page, '#groups', 'All', { timeout: 30000 });
+    await waitFor(page, `${LIST_COUNT} >= ${N}`, `the ${N} channels under All`, 60000);
+    const allMs = Date.now() - a0;
+    const scroll = await scrollFrames(page);
+    const heapMb = await evaluate(page, HEAP_MB);
+    const got = { importMs, allMs, heapMb };
+    const over = Object.entries(BOUNDS).filter(([k, bound]) => got[k] > bound).map(([k, bound]) => `${k} ${got[k]} > ${bound}`);
+    if (scroll.p95 > 50) over.push(`scroll p95 frame ${scroll.p95} ms`);
+    if (over.length) throw new Error(`over the bounds: ${over.join('; ')}`);
+    return { ok: true, detail: `a ${size.mb} MB file of ${size.lines} lines: read in and connected ${importMs} ms, All ${allMs} ms, scroll p95 frame ${scroll.p95} ms, heap ${heapMb} MB` };
+  } finally {
+    process.env.KEPULI_MOCK_BULK_LIVE = '';
+  }
+}
+
 /**
  * Text that does not fit, found before a translator does. The player is
  * opened as player.html?pseudo=1 (js/i18n.js), where every string is
@@ -6149,7 +6268,7 @@ async function filmfacts(page) {
 
 const SCENARIOS = { buffering, livebuffering, filmbuffering, emptyfile, tsasmp4, refusedfile, badgateway, livebadgateway, channelrefused, noanswer, longfilm, catalogUi, setupClarity, welcome, fullscreenControl, clickpause, pickers, touchcaret, screenbutton, topmenu, scrollbars, channelorder, lengthfilter, nowlogo, channels, home, resumemkv, restore, programmes, catchup, seek, death, cancel, timeout, search, paste, keys, switching, resume, connections, livezap, livequiet, reconnect, accounts, listerror, a11y, subtitles, audio, wasmaudio, settings,
   lastchannel, nextepisode, continuewatching, reminders, update, seeklag, cuesretry, quota, catchupfreeze, catchupfull, twotabs, switchstop, resettabs,
-  refresh, restorenav, guidekeep, m3u, sync, holes, picks, flakyserver, accountform, stalker, record, guidefavs, guidenames, categories, homecountry, noleak, perf, pseudo, startup, soak, phone, episodenames, gotochannel, filmdetails, favorder, countryfilter, tilekeys, routes, programmekeys, searchlimit, filterfolds, guideclick, filmaddress, filmfacts, playlistfile };
+  refresh, restorenav, guidekeep, m3u, sync, holes, picks, flakyserver, accountform, stalker, record, guidefavs, guidenames, categories, homecountry, noleak, perf, pseudo, startup, soak, phone, episodenames, gotochannel, filmdetails, favorder, countryfilter, tilekeys, routes, programmekeys, searchlimit, filterfolds, guideclick, filmaddress, filmfacts, playlistfile, perflive, perfplaylist };
 // The mock's whole-list answers stall for these, longer than the request limit.
 const SLOW_LIST_MS = { cancel: 60000, timeout: 60000 };
 // The media is sent slowly for these: the seek targets must lie outside the
