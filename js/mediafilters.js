@@ -19,10 +19,14 @@ export function foldSummary(caption, count, { label, shown, total, active }) {
  * Whether a filter fold opens, from what was stored when it was last
  * opened or closed: the first time open, so that a viewer sees what can
  * narrow the list once, and after that as it was left. One rule for both
- * folds; the channels' opened and the films' stayed closed before.
+ * folds; the channels' opened and the films' stayed closed before. On a
+ * phone (narrow) the first time is closed: open, the films' fold took
+ * half the screen above the covers (measured on a Pixel 7's 412 px).
+ * @param {boolean|undefined} stored
+ * @param {boolean} [narrow]
  */
-export function foldOpen(stored) {
-  return stored !== false;
+export function foldOpen(stored, narrow = false) {
+  return stored === undefined ? !narrow : stored !== false;
 }
 
 export function releaseYear(value, name = '') {

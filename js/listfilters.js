@@ -98,7 +98,8 @@ export function wireListFilters(ui, mediaFilters) {
   // and take about 140 px off the top of the list, whether or not anyone
   // was filtering. It stays however it was left (foldOpen).
   const titles = $('media-filters');
-  titles.open = foldOpen(ui.filtersOpen);
+  const narrow = matchMedia('(max-width: 600px)').matches;
+  titles.open = foldOpen(ui.filtersOpen, narrow);
   titles.addEventListener('toggle', () => store.saveUiState({ filtersOpen: titles.open }));
   mediaFilters.restore(ui.mediaFilters);
   mediaFilters.persist = (values) => store.saveUiState({ mediaFilters: values });
@@ -110,7 +111,7 @@ export function wireListFilters(ui, mediaFilters) {
   // Open the first time, as "Filter titles": the topics were always in
   // sight, and a viewer who has not folded them away should find them
   // where they were.
-  panel.open = foldOpen(ui.channelFiltersOpen);
+  panel.open = foldOpen(ui.channelFiltersOpen, narrow);
   panel.addEventListener('toggle', () => store.saveUiState({ channelFiltersOpen: panel.open }));
   channelFavsOnly = ui.channelFavsOnly === true;
   $('channel-favs').checked = channelFavsOnly;

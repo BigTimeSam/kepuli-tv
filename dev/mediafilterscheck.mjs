@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 import assert from 'node:assert/strict';
-import { releaseYear, mediaFacts, filterMedia, emptyFilters } from '../js/mediafilters.js';
+import { releaseYear, mediaFacts, filterMedia, emptyFilters, foldOpen } from '../js/mediafilters.js';
 import { XtreamApi } from '../js/api.js';
 
 assert.equal(releaseYear('2024-05-12', 'Name (1999)'), 2024);
@@ -61,4 +61,10 @@ assert.equal(movie.year, 2023);
 assert.equal(movie.genre, 'Drama');
 api.call = async () => [{ series_id: 1, name: 'Example (2022)' }];
 assert.equal((await api.streams('series'))[0].year, 2022);
-console.log('PASS: year extraction, combined filters, missing metadata, rating scale, the order left to the list, favourites only, and API fields.');
+// A filter fold: open the first time on a wide window, closed on a phone,
+// and afterwards as it was left, whatever the width.
+assert.equal(foldOpen(undefined), true);
+assert.equal(foldOpen(undefined, true), false);
+assert.equal(foldOpen(true, true), true);
+assert.equal(foldOpen(false), false);
+console.log('PASS: the folds’ first state, year extraction, combined filters, missing metadata, rating scale, the order left to the list, favourites only, and API fields.');

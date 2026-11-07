@@ -182,7 +182,8 @@ the player actually arrives.
   favourites** at their foot. What is in force shows as chips under the
   fold, each with a × to take it away, and **Reset** after them; the
   choices are kept over a reload or a closed player until Reset or the
-  logo, which starts afresh. Both are open the first time and fold away,
+  logo, which starts afresh. Both are open the first time (folded on a
+  phone, where they would take half the screen) and fold away,
   and open or folded is remembered for each; folded or not, the heading
   says how many of how many are shown (**2 / 15**), with a dot after the
   name while a topic or a filter narrows the list. **Filter countries** at the foot of the sidebar (**Filter
