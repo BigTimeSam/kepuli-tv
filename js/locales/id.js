@@ -367,7 +367,6 @@ export default {
  "cover.new": "Baru",
  "cover.new.title": "Ditambahkan penyedia dalam dua minggu terakhir",
  "cover.watched": "Sudah ditonton",
- "cover.version": "Versi {n}",
  "title.original": "Judul asli",
  "links.person": "Cari {name} di IMDb",
  "info.related.versions": "Versi lain",

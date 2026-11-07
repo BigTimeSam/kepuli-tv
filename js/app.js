@@ -10,7 +10,7 @@ import { Epg } from './epg.js';
 import { VirtualList, watchLength } from './vlist.js';
 import { CatalogueSearch } from './cataloguesearch.js';
 import { PlayerLayout } from './playerlayout.js';
-import { categoryRow, emptyState, KIND_ICONS } from './rows.js';
+import { categoryRow, emptyState, KIND_ICONS, setStar } from './rows.js';
 import { searchNameCleaner, searchKey, searchTerms, matchesTerms, labelCodes, homeCountryCodes, homeGroup, viewerTags } from './name.js';
 import { poster } from './poster.js';
 import { wireModal } from './modal.js';
@@ -56,6 +56,7 @@ import { clickPicture, enterFullscreen, moreItems, renderScreenButton, renderSer
 import { wireTopMenu } from './topmenu.js';
 import { wireScrollHints } from './scrollhint.js';
 import { channelFavsOnly, placeListFilters, wireListFilters } from './listfilters.js';
+import { oneCopyEach } from './titlemeta.js';
 import { cancelProgress, hideProgress, progressCtrl, progressSignal, showProgress, updateProgress } from './progressdialog.js';
 import { openHelp } from './help.js';
 import { copyUrl, toast } from './toast.js';
@@ -420,6 +421,7 @@ function showStoredList(name, value) {
     if (connected) {
       if (state.tab === 'fav') { renderSidebar(); refreshRows({ keepScroll: true }); }
       else { vlist.refresh(); refreshFavouriteFilter(); renderCategories(); renderSubcats(); }
+      for (const button of document.querySelectorAll('.idle-star[data-fav]')) setStar(/** @type {HTMLElement} */ (button), state.favorites.has(/** @type {HTMLElement} */ (button).dataset.fav));
       renderSeriesFavorite();
       favoritesChanged();
     }
@@ -938,6 +940,9 @@ async function refreshRows({ keepScroll = false, returnPosition = null, restoreF
     rows = orderTitles(rows, listOrder(state.settings, titleList), (item) => mediaFilters.factsOf(item));
   }
   const filterType = !isCollection() && !state.detail && (type === 'movie' || type === 'series') ? type : null;
+  // One card a title: its other copies are on its own page (js/infostrip.js).
+  state.titleRows = rows;
+  if (filterType) rows = oneCopyEach(rows);
   rows = mediaFilters.apply(rows, filterType);
   showRows(rows, { keepScroll });
   if (returnPosition) listNavigation.restore(vlist, returnPosition, {
@@ -2091,6 +2096,8 @@ async function init() {
   restoreListView(ui.listView);
   watchGridWidth();
   $('media-filters').open = foldOpen(ui.filtersOpen);
+  mediaFilters.restore(ui.mediaFilters);
+  mediaFilters.persist = (values) => store.saveUiState({ mediaFilters: values });
   wireListFilters(ui);
   markTabs(state.tab);
 

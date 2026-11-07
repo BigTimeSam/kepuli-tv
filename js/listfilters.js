@@ -20,13 +20,18 @@ import * as store from './config.js';
 import { isCollection, refreshRows, state, visibleRows, withoutInternational } from './state.js';
 import { selectSub } from './topicbar.js';
 
-// "Show only favourites" in "Filter channels": for this session, as the
+// "Show only favourites" in "Filter channels", kept across reloads as the
 // films' filters are (js/mediafilters.js).
 export let channelFavsOnly = false;
 
-function showChannelFavs(on) {
+function setChannelFavs(on) {
   channelFavsOnly = on;
   $('channel-favs').checked = on;
+  store.saveUiState({ channelFavsOnly: on });
+}
+
+function showChannelFavs(on) {
+  setChannelFavs(on);
   refreshRows();
 }
 
@@ -63,6 +68,8 @@ export function wireListFilters(ui) {
   // where they were.
   panel.open = foldOpen(ui.channelFiltersOpen);
   panel.addEventListener('toggle', () => store.saveUiState({ channelFiltersOpen: panel.open }));
+  channelFavsOnly = ui.channelFavsOnly === true;
+  $('channel-favs').checked = channelFavsOnly;
   $('channel-favs').addEventListener('change', (event) => showChannelFavs(/** @type {HTMLInputElement} */ (event.target).checked));
 }
 
@@ -118,6 +125,6 @@ function renderChannelChips() {
   reset.type = 'button';
   reset.className = 'media-filter-reset';
   reset.textContent = t('filters.reset');
-  reset.addEventListener('click', () => { channelFavsOnly = false; $('channel-favs').checked = false; if (state.sub != null) selectSub(null); else refreshRows(); });
+  reset.addEventListener('click', () => { setChannelFavs(false); if (state.sub != null) selectSub(null); else refreshRows(); });
   host.replaceChildren(...chips, reset);
 }

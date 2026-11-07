@@ -215,9 +215,9 @@ the player actually arrives.
 - Movies and series show as covers, as many across as the column has room
   for; the two marks at the foot of the list switch between covers and a
   list, and the choice is remembered. Among covers the arrows move left,
-  right and a line up or down. A title the list holds more than once says
-  which copy is which after its facts (**MKV**, **4K**, **Multi-Sub**, or
-  **Version 2** when nothing written differs); a film you have seen to the
+  right and a line up or down. A title the provider lists more than once
+  (each language it has, a 4K copy) is one cover, the first; its other
+  copies are under **Other versions** on its own page. A film you have seen to the
   end carries a ✓ in its top corner, and one the provider added in the last
   two weeks **New**. The list's rows say the same as badges.
 - Movie and series filters let you narrow titles by release year or rating
@@ -558,7 +558,9 @@ trailer, where the provider names one, are in the player's ☰ menu. The directo
 the person; the original title shows when the provider gives one that differs,
 and the sound names its language when the file or the provider does
 (**AAC (6 channels, Finnish)**). Under them, **Other versions** lists the other
-copies of the same film and **In the same series** its other parts
+copies of the same film, each named by what tells it apart (where it is
+filed, such as **Spanish** or **Thriller**, and **MKV**, **4K**,
+**Multi-Sub**; a copy nothing tells apart is left out), and **In the same series** its other parts
 ("Title: The Return", "Title 2"), from the whole catalogue when it has been
 loaded and from the list on screen otherwise; a click plays one. The title above
 the picture leaves out a year at the end of the name, which the facts give,

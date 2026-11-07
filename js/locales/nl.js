@@ -375,7 +375,6 @@ export default {
  "cover.new": "Nieuw",
  "cover.new.title": "Door de aanbieder toegevoegd in de afgelopen twee weken",
  "cover.watched": "Bekeken",
- "cover.version": "Versie {n}",
  "title.original": "Oorspronkelijke titel",
  "links.person": "{name} zoeken op IMDb",
  "info.related.versions": "Andere versies",

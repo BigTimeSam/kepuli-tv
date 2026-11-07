@@ -407,15 +407,17 @@ async function freshPlayer(target, page) {
   await evaluate(page, `chrome.storage.local.get(null).then((all) => chrome.storage.local.remove(Object.keys(all).filter((k) => /^(favorites|recents|resume|channels|reminders)(:|$)/.test(k))))`);
   // The accounts and sync of an earlier scenario (m3u, sync) go too.
   await evaluate(page, `Promise.all([chrome.storage.local.remove(['accounts', 'sync', 'syncState', 'syncStatus']), chrome.storage.sync ? chrome.storage.sync.clear() : null])`);
-  await evaluate(page, `chrome.storage.local.set({
-    config: { scheme: 'http', host: '127.0.0.1', port: '${MOCK_PORT}', username: 'demo', password: 'demo', sourceMode: 'xtream', streamMode: 'auto' },
-    settings: { lang: 'en', epgEnabled: true, resumeEnabled: false, subtitleLang: 'eng' },
-    ui: { tab: 'series' } })`);
   // The catalogue cache is dropped as the screenshot script does: a run
   // against another server would otherwise hand out that server's addresses.
   const origin = target.url.match(/^(?:chrome|moz)-extension:\/\/[^/]+/)[0];
   await page.call('Page.navigate', { url: `${origin}/css/player.css` });
   await sleep(500);
+  // Set once the player is gone: a write it still had under way (a filter
+  // chosen last thing) landed after this and carried the choices over.
+  await evaluate(page, `chrome.storage.local.set({
+    config: { scheme: 'http', host: '127.0.0.1', port: '${MOCK_PORT}', username: 'demo', password: 'demo', sourceMode: 'xtream', streamMode: 'auto' },
+    settings: { lang: 'en', epgEnabled: true, resumeEnabled: false, subtitleLang: 'eng' },
+    ui: { tab: 'series' } })`);
   await evaluate(page, `indexedDB.databases().then((dbs) => Promise.all(dbs.map((d) => new Promise((resolve) => {
     const req = indexedDB.deleteDatabase(d.name); req.onsuccess = req.onerror = req.onblocked = () => resolve(d.name); }))))`);
   await page.call('Page.navigate', { url: bare(target.url) });
@@ -1969,7 +1971,7 @@ async function lengthfilter(page) {
   const film = await evaluate(page, `(() => { const row = document.querySelector('#list .row'); window.__starred = row; row.querySelector('.row-star').click(); return row.querySelector('.row-name, .card-title')?.textContent.trim(); })()`, { gesture: true });
   const kept = await evaluate(page, `(() => { const row = document.querySelector('#list .row'); return { same: row === window.__starred, on: row.querySelector('.row-star').classList.contains('on'), spoken: row.getAttribute('aria-label') }; })()`);
   assert(kept.same && kept.on && /Favourites/.test(kept.spoken), `the starred card was rebuilt or not marked: ${JSON.stringify(kept)}`);
-  await evaluate(page, `document.querySelector('.media-filter-favs input').click()`);
+  await evaluate(page, `document.querySelector('#media-filters .media-filter-favs input').click()`);
   await waitFor(page, `document.querySelectorAll('#list .row').length === 1`, 'the favourite alone');
   const favsOnly = await evaluate(page, `({ name: document.querySelector('#list .row .row-name, #list .row .card-title')?.textContent.trim(),
     chips: [...document.querySelectorAll('#active-media-filters button')].map((b) => b.textContent) })`);
@@ -4844,7 +4846,24 @@ async function filterfolds(page) {
   await waitFor(page, `!document.getElementById('media-filters').hidden && document.querySelector('#media-filters .section-count')?.textContent`, 'the films');
   const films = await fold('media-filters');
   assert(films.open && films.label === 'Filter titles' && /^\d+ \/ \d+$/.test(films.count), `"Filter titles" at first: ${JSON.stringify(films)}`);
-  return { ok: true, detail: `both open the first time; channels "${channels.count}", with a topic "${topic.label}" "${topic.count}", only the favourites and back; films "${films.count}"` };
+  // The choices outlast a reload: a rating and "Show only favourites" for
+  // the films, "Show only favourites" for the channels.
+  await evaluate(page, `(() => { const f = document.querySelector('#media-filters [name="rating"]'); f.value = '7'; f.dispatchEvent(new Event('change')); document.querySelector('#media-filters .media-filter-favs input').click(); document.getElementById('channel-favs').click(); return true; })()`);
+  await sleep(600);
+  await page.call('Page.reload');
+  await sleep(1500);
+  await waitFor(page, `document.querySelectorAll('#groups .group').length > 1 && document.getElementById('list-progress').hidden`, 'the player again', 20000);
+  const ui = await evaluate(page, `chrome.storage.local.get('ui').then(({ ui }) => ({ channels: ui.channelFavsOnly, rating: ui.mediaFilters?.movie?.rating, favs: ui.mediaFilters?.movie?.favs }))`);
+  await evaluate(page, `document.querySelector('#tabs [data-tab="movie"]').click()`);
+  await waitFor(page, `!document.getElementById('media-filters').hidden && document.querySelector('#media-filters .section-count')?.textContent`, 'the films again');
+  const after = await evaluate(page, `({ rating: document.querySelector('#media-filters [name="rating"]').value, favs: document.querySelector('#media-filters .media-filter-favs input').checked,
+    chips: [...document.querySelectorAll('#active-media-filters .filter-chip')].length, channels: document.getElementById('channel-favs').checked })`);
+  assert(ui.channels === true && ui.rating === '7' && ui.favs === '1' && after.rating === '7' && after.favs && after.chips === 2 && after.channels, `the filters after a reload: ${JSON.stringify({ ui, after })}`);
+  await evaluate(page, `document.querySelector('#active-media-filters .media-filter-reset').click()`);
+  await evaluate(page, `document.querySelector('#tabs [data-tab="live"]').click()`);
+  await sleep(500);
+  await evaluate(page, `document.getElementById('channel-favs').checked && document.getElementById('channel-favs').click()`);
+  return { ok: true, detail: `both open the first time; channels "${channels.count}", with a topic "${topic.label}" "${topic.count}", only the favourites and back; films "${films.count}"; the choices kept over a reload` };
 }
 
 /**
@@ -5507,12 +5526,13 @@ async function filmdetails(page) {
       const i = state.rowIndex.get('1:' + ${JSON.stringify(id)}); if (i == null) return null;
       vlist.scrollToIndex(i); vlist.refresh(); await new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r)));
       return document.getElementById(rowDomId(i)); })()`;
+    // One card a title: the film's other copies (an MKV, a 4K) are on its
+    // own page, not in the list; a sequel is a title of its own.
     const covers = {};
     for (const id of ['5000', '90001', '90002', '90003']) {
-      covers[id] = await evaluate(page, `(async () => { const card = await ${cardOf(id)}; return card ? [...card.querySelectorAll('.card-tag')].map((x) => x.textContent) : null; })()`);
+      covers[id] = await evaluate(page, `(async () => Boolean(await ${cardOf(id)}))()`);
     }
-    assert(JSON.stringify(covers['90001']).includes('MKV') && JSON.stringify(covers['90002']).includes('4K') && Array.isArray(covers['5000']) && covers['5000'].length > 0
-      && Array.isArray(covers['90003']) && covers['90003'].length === 0, `the copies' tags: ${JSON.stringify(covers)}`);
+    assert(covers['5000'] && !covers['90001'] && !covers['90002'] && covers['90003'], `the copies in the list: ${JSON.stringify(covers)}`);
     // Seen to the end, as the history marks it; another only started is not.
     await evaluate(page, `(async () => { const { state, vlist } = ${app}; const film = state.rows.find((x) => x.id === '5001');
       state.recents = [{ ...film, watchedAt: Date.now(), seen: Date.now() }, { ...state.rows.find((x) => x.id === '5002'), watchedAt: Date.now() }, ...state.recents];
@@ -5529,12 +5549,13 @@ async function filmdetails(page) {
       original: document.querySelector('.title-credit-original dd')?.textContent,
       people: [...document.querySelectorAll('.title-credits a.person')].map((a) => a.href).slice(0, 2), audio: document.querySelector('.playback-fact-audio dd')?.textContent,
       heads: [...document.querySelectorAll('.related h4')].map((h) => h.textContent),
-      tiles: [...document.querySelectorAll('.related-row')].map((r) => [...r.querySelectorAll('.related-tile')].map((t) => t.title)) })`);
+      tiles: [...document.querySelectorAll('.related-row')].map((r) => [...r.querySelectorAll('.related-tile')].map((t) => t.title)),
+      versions: [...(document.querySelector('.related-row')?.querySelectorAll('.related-meta') || [])].map((m) => m.textContent) })`);
     assert(strip.title === 'Steel Horizon' && strip.sub.startsWith('Action'), `the title and its line: ${JSON.stringify(strip)}`);
     assert(strip.original === 'Det stille fjellet' && strip.people.length && strip.people.every((h) => h.startsWith('https://www.imdb.com/find/?') && h.includes('s=nm')), `the credits: ${JSON.stringify(strip)}`);
     assert(/Norwegian/.test(strip.audio || ''), `the sound's language: ${strip.audio}`);
     assert(JSON.stringify(strip.heads) === JSON.stringify(['Other versions', 'In the same series']) && strip.tiles[0].length === 2 && strip.tiles[1].length === 2
-      && strip.tiles[1][0].includes('The Return'), `the related titles: ${JSON.stringify(strip)}`);
+      && strip.tiles[1][0].includes('The Return') && strip.versions.some((v) => v.includes('MKV')) && strip.versions.some((v) => v.includes('4K')), `the related titles: ${JSON.stringify(strip)}`);
     // Played to its last minutes, the film is marked seen in the history and on its cover.
     const fresh = await evaluate(page, `(async () => (await ${cardOf('5000')})?.querySelector('.card-flag.watched')?.textContent || null)()`);
     await evaluate(page, `(() => { const v = document.getElementById('video'); v.currentTime = v.duration * 0.98; })()`);
@@ -5669,6 +5690,13 @@ async function tilekeys(page) {
     await waitFor(page, `document.querySelectorAll('.idle-cards .idle-card').length === ${cards - 1}`, `the card forgotten (${cards} before)`);
     const after = await evaluate(page, `(async () => { const { state } = ${app}; return { recents: state.recents.map((r) => String(r.id)), cursor: state.cursor, row: state.rows[state.cursor].k + ':' + state.rows[state.cursor].id }; })()`);
     assert(!after.recents.includes(films[1]) && after.recents.includes(films[0]) && after.cursor === before.cursor && after.row === before.key, `Delete on a card: ${JSON.stringify(after)}`);
+    // A star given elsewhere (a list, the player) shows on the card too.
+    const fromList = await evaluate(page, `(async () => { const { toggleFavorite } = await import('./js/coversui.js'); const { state } = ${app};
+      toggleFavorite(state.recents.find((r) => String(r.id) === ${JSON.stringify(films[0])}));
+      const on = Boolean(document.querySelectorAll('.idle-cards .idle-card-wrap')[0].querySelector('.idle-star.on'));
+      toggleFavorite(state.recents.find((r) => String(r.id) === ${JSON.stringify(films[0])}));
+      return on && !document.querySelectorAll('.idle-cards .idle-card-wrap')[0].querySelector('.idle-star.on'); })()`);
+    assert(fromList, 'a star given outside the card did not show on it');
     return { ok: true, detail: `the arrows stepped between the cards with the list's cursor kept at ${before.cursor}; s starred the card's film, not ${before.key}; Delete forgot the card` };
   } finally {
     await evaluate(page, `(async () => { const { state } = ${app}; for (const id of ${JSON.stringify(films)}) { state.favorites.delete('1:' + id); state.resume.delete('1:' + id); }

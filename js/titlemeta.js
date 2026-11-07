@@ -69,12 +69,37 @@ function titleKey(item) {
 }
 
 /**
- * Which copy each one is, for the titles a list holds more than once:
- * a map from `${k}:${id}` to the labels that tell it from the others — the
- * name's tags and the file's format, those of them that differ — or
- * `{ version: n }` when nothing written differs, numbered in list order.
+ * One copy of each title, the first: a provider files the same film under
+ * each language it has (Movies: Spanish, Movies: Arabic…) and sometimes
+ * twice under one, and a list of 57,000 showed it six times over, told
+ * apart by "Version 1, 2, 3". The copies are the film's own page's
+ * business (relatedTitles, versionLabels).
+ * @template T
+ * @param {T[]} items
+ * @returns {T[]}
  */
-export function versionLabels(items) {
+export function oneCopyEach(items) {
+  const seen = new Set();
+  return items.filter((item) => {
+    const it = /** @type {any} */ (item);
+    if (it.k !== 1 && it.k !== 2) return true;
+    const key = titleKey(it);
+    if (seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  });
+}
+
+/**
+ * Which copy each one is, for the titles a list holds more than once:
+ * a map from `${k}:${id}` to the labels that tell it from the others —
+ * where it is filed (placeOf: "Spanish", "Thriller"), the name's tags and
+ * the file's format, those of them that differ. A copy that nothing tells
+ * apart has none.
+ * @param {any[]} items
+ * @param {(item: any) => string} [placeOf]
+ */
+export function versionLabels(items, placeOf = () => '') {
   const groups = new Map();
   for (const item of items) {
     if (item.k !== 1 && item.k !== 2) continue;
@@ -85,13 +110,13 @@ export function versionLabels(items) {
   const labels = new Map();
   for (const copies of groups.values()) {
     if (copies.length < 2) continue;
-    const features = copies.map((item) => [...nameTags(item.n), ...(item.k === 1 && item.ext ? [String(item.ext).toUpperCase()] : [])]);
+    const features = copies.map((item) => [placeOf(item), ...nameTags(item.n), ...(item.k === 1 && item.ext ? [String(item.ext).toUpperCase()] : [])].filter(Boolean));
     // A feature every copy shares tells none of them apart.
     const count = new Map();
     for (const list of features) for (const f of new Set(list)) count.set(f, (count.get(f) || 0) + 1);
     copies.forEach((item, i) => {
       const own = features[i].filter((f) => count.get(f) < copies.length);
-      labels.set(`${item.k}:${item.id}`, own.length ? own : { version: i + 1 });
+      if (own.length) labels.set(`${item.k}:${item.id}`, own);
     });
   }
   return labels;

@@ -697,10 +697,18 @@ export async function saveSetup(configPatch, settingsPatch, { replace = false } 
 
 export async function loadUiState() { return read('ui', {}); }
 
+// One write after another: each reads what the last one wrote. Three
+// filters chosen in a row once read the same old state and the last write
+// took the other two away.
+let uiWrites = Promise.resolve();
+
 /** @param {Record<string, any>} patch */
-export async function saveUiState(patch) {
-  const ui = { ...(await loadUiState()), ...patch };
-  await api.storage.local.set({ ui });
+export function saveUiState(patch) {
+  uiWrites = uiWrites.catch(() => {}).then(async () => {
+    const ui = { ...(await loadUiState()), ...patch };
+    await api.storage.local.set({ ui });
+  });
+  return uiWrites;
 }
 
 /* ---------------------------------------------------------- favourites */

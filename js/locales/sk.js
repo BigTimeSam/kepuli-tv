@@ -391,7 +391,6 @@ export default {
  "cover.new": "Nové",
  "cover.new.title": "Poskytovateľ pridal za posledné dva týždne",
  "cover.watched": "Pozreté",
- "cover.version": "Verzia {n}",
  "title.original": "Pôvodný názov",
  "links.person": "Hľadať {name} na IMDb",
  "info.related.versions": "Ďalšie verzie",

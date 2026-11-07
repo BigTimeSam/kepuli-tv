@@ -375,7 +375,6 @@ export default {
  "cover.new": "Yeni",
  "cover.new.title": "Sağlayıcı son iki hafta içinde ekledi",
  "cover.watched": "İzlendi",
- "cover.version": "Sürüm {n}",
  "title.original": "Orijinal adı",
  "links.person": "IMDb'de {name} ara",
  "info.related.versions": "Diğer sürümler",

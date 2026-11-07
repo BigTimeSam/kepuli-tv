@@ -383,7 +383,6 @@ export default {
  "cover.new": "Jauns",
  "cover.new.title": "Pakalpojuma sniedzējs pievienoja pēdējās divās nedēļās",
  "cover.watched": "Noskatīts",
- "cover.version": "{n}. versija",
  "title.original": "Oriģinālais nosaukums",
  "links.person": "Meklēt {name} IMDb",
  "info.related.versions": "Citas versijas",

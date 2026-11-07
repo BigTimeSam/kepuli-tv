@@ -367,7 +367,6 @@ export default {
  "cover.new": "Mới",
  "cover.new.title": "Nhà cung cấp đã thêm trong hai tuần qua",
  "cover.watched": "Đã xem",
- "cover.version": "Phiên bản {n}",
  "title.original": "Tên gốc",
  "links.person": "Tìm {name} trên IMDb",
  "info.related.versions": "Phiên bản khác",

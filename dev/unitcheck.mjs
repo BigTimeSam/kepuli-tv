@@ -35,7 +35,7 @@ import { probeCacheTtl } from '../js/probe.js';
 import { formatRoute, parseRoute } from '../js/route.js';
 import { neighbourTile } from '../js/listnavigation.js';
 import { LIST_ORDERS, ORDER_MARKS, ORDER_SETTINGS, listOrder, orderTitles, pressedOrder } from '../js/listorder.js';
-import { titleWithoutYear, nameHasYear, nameTags, versionLabels, franchiseKey, relatedTitles, isNew } from '../js/titlemeta.js';
+import { titleWithoutYear, nameHasYear, nameTags, versionLabels, franchiseKey, relatedTitles, isNew, oneCopyEach } from '../js/titlemeta.js';
 import { boxHeader, parseMoov } from '../js/mp4file.js';
 import { parseM3u, parseExtinf, classify, episodeOf, isDivider, shortHash, fillCatchup, catchupAddress, playlistAddress } from '../js/m3u.js';
 import { parseXmltv, parseXmltvTime, decodeXml, settle, channelMatchKey } from '../js/xmltv.js';
@@ -806,8 +806,13 @@ check('orderedLanguageNames: an unknown language is named, and last',
   const film = (id, n, extra = {}) => ({ id, k: 1, n, year: 2022, ext: 'mp4', ...extra });
   const labels = versionLabels([film('1', 'Lakana - 2022', { ext: 'mkv' }), film('2', 'Lakana - 2022'), film('3', 'Other - 2022'),
     film('4', 'Marian paratiisi - 2019', { year: 2019 }), film('5', 'Marian paratiisi 4K - 2019', { year: 2019 }), film('6', 'Same - 2022'), film('7', 'Same - 2022'), film('8', 'Other 4K - 2022')]);
-  check('copies of one film are told apart by what differs', [labels.get('1:1'), labels.get('1:2'), labels.get('1:3'), labels.get('1:5'), labels.get('1:4'), labels.get('1:7'), labels.get('1:8')],
-    [['MKV'], ['MP4'], { version: 1 }, ['4K'], { version: 1 }, { version: 2 }, ['4K']]);
+  check('copies of one film are told apart by what differs, and nothing names what does not', [labels.get('1:1'), labels.get('1:2'), labels.get('1:3'), labels.get('1:5'), labels.get('1:4'), labels.get('1:7'), labels.get('1:8')],
+    [['MKV'], ['MP4'], undefined, ['4K'], undefined, undefined, ['4K']]);
+  // The same film filed under each language: the category tells them apart.
+  const filed = [film('s', 'Hungry - 2026', { cat: 'Spanish' }), film('a', 'Hungry - 2026', { cat: 'Arabic' }), film('t', 'Hungry - 2026', { cat: 'Thriller', ext: 'mkv' })];
+  const byPlace = versionLabels(filed, (item) => item.cat);
+  check('copies filed under other categories are named by them', ['1:s', '1:a', '1:t'].map((key) => byPlace.get(key)), [['Spanish', 'MP4'], ['Arabic', 'MP4'], ['Thriller', 'MKV']]);
+  check('one card a title in a list, the first copy', oneCopyEach([...filed, film('o', 'Other - 2022'), { k: 0, id: 'c', n: 'Hungry - 2026' }]).map((x) => x.id), ['s', 'o', 'c']);
   check('a series of films shares the part before the colon or the number',
     [franchiseKey('Luottomies-elokuva: All in - 2024', 2024), franchiseKey('Luottomies-elokuva: Lepoloma'), franchiseKey('Iron Tide 2'), franchiseKey('Iron Tide'), franchiseKey('Love')],
     ['luottomies-elokuva', 'luottomies-elokuva', 'iron tide', 'iron tide', null]);

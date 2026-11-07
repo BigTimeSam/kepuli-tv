@@ -873,7 +873,6 @@ button.group-star, button.group-star:hover, .group.active .group-star:hover { wi
 .card-flag.new { background: var(--accent); color: #fff; }
 .card-flag.watched { min-width: 1.4em; text-align: center; background: rgba(10, 12, 17, .78); color: var(--seen-on-cover); }
 /* Which copy of a title this is, after the facts on their line. */
-.card-tag { display: inline-block; margin-right: 5px; padding: 0 5px; border: 1px solid var(--border-strong); border-radius: 4px; font-size: 0.625rem; font-weight: 600; line-height: 1.5; color: var(--text); vertical-align: 1px; }
 .row-badge.new { color: #fff; background: var(--accent); border-color: var(--accent); }
 .row-badge.watched { color: var(--seen); }
 /* The disc under the star is dark in either theme, and so are the star's

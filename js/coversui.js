@@ -4,9 +4,9 @@
 // Moved out of app.js. It takes the player's state, and the parts app.js
 // builds, from js/state.js.
 
-import { isNew, versionLabels } from './titlemeta.js';
+import { isNew } from './titlemeta.js';
 import { clock, nf, stampFmt } from './format.js';
-import { favCategoryRow, itemRow, markFavorite, posterCard, sectionHeader } from './rows.js';
+import { favCategoryRow, itemRow, markFavorite, posterCard, sectionHeader, setStar } from './rows.js';
 import { nameCleaner, searchNameCleaner } from './name.js';
 import { peek } from './probe.js';
 import { renderInfoStrip } from './infostrip.js';
@@ -109,11 +109,9 @@ export function viewToggle() {
 }
 
 // What the covers say beyond the name, worked out once per list rather than
-// per painted row: which copy each duplicated title is, and which films the
-// history has seen to the end.
-let marks = { rows: null, recents: null, resume: null, versions: new Map(), seen: new Set() };
+// per painted row: which films the history has seen to the end.
+let marks = { recents: null, resume: null, seen: new Set() };
 function coverMarks() {
-  if (marks.rows !== state.rows) marks = { ...marks, rows: state.rows, versions: versionLabels(state.rows) };
   if (marks.recents !== state.recents || marks.resume !== state.resume) {
     // A film the history marks seen: played past its last minutes
     // (js/nextepisode.js), and not started again since (a resume point).
@@ -124,12 +122,12 @@ function coverMarks() {
   return marks;
 }
 
-/** The marks of one film or series: its copy's tags, seen, new. */
+/** The marks of one film or series: seen, new. */
 function coverFacts(item, key) {
   if (item.k !== 1 && item.k !== 2) return {};
-  const { versions, seen } = coverMarks();
+  const { seen } = coverMarks();
   const watched = item.k === 1 && seen.has(key) && !state.resume.has(key);
-  return { versions: versions.get(key) || null, watched, isNew: !watched && isNew(item) };
+  return { watched, isNew: !watched && isNew(item) };
 }
 
 export function renderRow(index) {
@@ -319,6 +317,8 @@ export function toggleFavorite(item) {
     markFavorite(vlist.nodes.get(state.rowIndex.get(key)), state.favorites.has(key));
     refreshFavouriteFilter();
   }
+  // The start page's cards of the same title, wherever the star was given.
+  for (const button of document.querySelectorAll(`.idle-star[data-fav="${CSS.escape(key)}"]`)) setStar(/** @type {HTMLElement} */ (button), state.favorites.has(key));
   renderSeriesFavorite();
   favoritesChanged();
 }

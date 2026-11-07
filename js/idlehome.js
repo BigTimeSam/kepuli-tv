@@ -13,7 +13,7 @@ import { guideOpen } from './guideui.js';
 import { poster } from './poster.js';
 import { renderIdleOverlay } from './languageui.js';
 import { shownName, toggleFavorite } from './coversui.js';
-import { setStar, star } from './rows.js';
+import { star } from './rows.js';
 import { episodeCode } from './format.js';
 import { t } from './i18n.js';
 import * as store from './config.js';
@@ -111,8 +111,11 @@ export function renderIdleHome() {
       const favorite = item.k === 3 ? (item.seriesId ? { k: 2, id: item.seriesId, n: item.seriesName || '', logo: item.seriesCover } : null) : item;
       if (favorite) {
         const key = `${favorite.k}:${favorite.id}`;
-        const button = star(state.favorites.has(key), () => { toggleFavorite(favorite); setStar(button, state.favorites.has(key)); }, 'idle-star');
+        const button = star(state.favorites.has(key), () => toggleFavorite(favorite), 'idle-star');
         button.tabIndex = 0;
+        // The favourite it stands for: a star given in a list or the
+        // player finds the card's too (toggleFavorite in js/coversui.js).
+        button.dataset.fav = key;
         wrap.append(button);
       }
       bindTile(card, favorite || item, { remove: () => forgetUnfinished(item, name.textContent), also: [forget, ...wrap.querySelectorAll('.idle-star')] });

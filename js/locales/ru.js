@@ -391,7 +391,6 @@ export default {
  "cover.new": "Новое",
  "cover.new.title": "Добавлено провайдером за последние две недели",
  "cover.watched": "Просмотрено",
- "cover.version": "Версия {n}",
  "title.original": "Оригинальное название",
  "links.person": "Найти {name} на IMDb",
  "info.related.versions": "Другие версии",

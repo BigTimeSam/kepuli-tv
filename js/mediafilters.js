@@ -75,7 +75,7 @@ export function filterMedia(entries, filters, isFavourite = () => false) {
   }).map(entry => entry.item);
 }
 
-/** Session-only experiments: movies and series keep separate choices. */
+/** Movies and series keep separate choices, kept across reloads (persist). */
 export class MediaFilters {
   constructor(host, onChange, detailsFor = item => item.details, activeHost = null, isFavourite = () => false) {
     this.host = host;
@@ -84,6 +84,8 @@ export class MediaFilters {
     this.onChange = onChange;
     this.detailsFor = detailsFor;
     this.values = { movie: emptyFilters(), series: emptyFilters() };
+    /** @type {((values: object) => void) | null} */
+    this.persist = null;
     this.type = null;
     // Each row's facts, kept with the details they were read from: a film's
     // details arriving rescans the list for the menus, and reading 55,000
@@ -114,7 +116,7 @@ export class MediaFilters {
       this.fields[key] = { label, text, select };
       select.addEventListener('change', () => {
         this.values[this.type][key] = select.value;
-        this.onChange();
+        this.changed();
       });
     }
     controls.append(this.lengthControl());
@@ -129,7 +131,7 @@ export class MediaFilters {
     favs.append(this.favs, this.favsText);
     this.favs.addEventListener('change', () => {
       this.values[this.type].favs = this.favs.checked ? '1' : '';
-      this.onChange();
+      this.changed();
     });
     // The favourites at the foot. Reset is with the chips of what is in
     // force (renderActive), where it is needed.
@@ -141,6 +143,21 @@ export class MediaFilters {
     this.reset.addEventListener('click', () => this.clear());
     foot.append(favs);
     this.host.append(this.summary, controls, foot);
+  }
+
+  /**
+   * A choice made: kept (the persist callback, set by the page), then the
+   * list filtered again. The choices outlast a reload and a closed player,
+   * as the folds' open state does.
+   */
+  changed() {
+    this.persist?.(this.values);
+    return this.onChange();
+  }
+
+  /** The choices kept from before, each type's over the empty set. */
+  restore(values) {
+    for (const type of ['movie', 'series']) this.values[type] = { ...emptyFilters(), ...(values?.[type] || {}) };
   }
 
   get filtering() {
@@ -189,7 +206,7 @@ export class MediaFilters {
       input.addEventListener('change', () => {
         const all = Number(from.value) <= Number(from.min) && Number(to.value) >= Number(to.max);
         this.values[this.type].length = all ? '' : `${from.value}:${to.value}`;
-        this.onChange();
+        this.changed();
       });
     }
     label.append(head, pair);
@@ -253,12 +270,13 @@ export class MediaFilters {
   clear() {
     if (!this.type) return;
     this.values[this.type] = emptyFilters();
-    this.onChange();
+    this.changed();
   }
 
   /** Both types back to no filter, folded: the start the logo goes back to. The list is the caller's to repaint. */
   resetAll() {
     this.values = { movie: emptyFilters(), series: emptyFilters() };
+    this.persist?.(this.values);
     this.host.open = false;
   }
 
@@ -351,7 +369,7 @@ export class MediaFilters {
       button.addEventListener('click', async () => {
         const heldFocus = document.activeElement === button;
         filters[key] = '';
-        await this.onChange();
+        await this.changed();
         if (heldFocus && document.activeElement === document.body) this.summary.focus();
       });
       buttons.push(button);

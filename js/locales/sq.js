@@ -375,7 +375,6 @@ export default {
  "cover.new": "E re",
  "cover.new.title": "Shtuar nga ofruesi në dy javët e fundit",
  "cover.watched": "E parë",
- "cover.version": "Versioni {n}",
  "title.original": "Titulli origjinal",
  "links.person": "Kërko {name} në IMDb",
  "info.related.versions": "Versione të tjera",

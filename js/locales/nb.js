@@ -375,7 +375,6 @@ export default {
  "cover.new": "Ny",
  "cover.new.title": "Lagt til av leverandøren de siste to ukene",
  "cover.watched": "Sett",
- "cover.version": "Versjon {n}",
  "title.original": "Originaltittel",
  "links.person": "Finn {name} på IMDb",
  "info.related.versions": "Andre versjoner",

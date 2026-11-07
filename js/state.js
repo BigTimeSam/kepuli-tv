@@ -60,7 +60,9 @@ export const state = {
   listError: null,
   listRequest: 0,
   kind: null,             // a collection's type filter, null = all
-  rows: [], rowIndex: new Map(), sections: new Map(),
+  // titleRows: the films or series before one card a title was kept, where
+  // a film's page finds its copies when the catalogue is not in memory.
+  rows: [], titleRows: [], rowIndex: new Map(), sections: new Map(),
   get cursor() { return listNavigation.index; },
   set cursor(index) { listNavigation.select(index); },
   groupCursor: null,      // where the arrows stand in the sidebar, null = on whatever is chosen

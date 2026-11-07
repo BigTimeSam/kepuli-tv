@@ -375,7 +375,6 @@ export default {
  "cover.new": "Ny",
  "cover.new.title": "Tillagd av leverantören de senaste två veckorna",
  "cover.watched": "Sedd",
- "cover.version": "Version {n}",
  "title.original": "Originaltitel",
  "links.person": "Sök {name} på IMDb",
  "info.related.versions": "Andra versioner",

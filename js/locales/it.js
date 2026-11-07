@@ -375,7 +375,6 @@ export default {
  "cover.new": "Nuovo",
  "cover.new.title": "Aggiunto dal fornitore nelle ultime due settimane",
  "cover.watched": "Visto",
- "cover.version": "Versione {n}",
  "title.original": "Titolo originale",
  "links.person": "Cerca {name} su IMDb",
  "info.related.versions": "Altre versioni",

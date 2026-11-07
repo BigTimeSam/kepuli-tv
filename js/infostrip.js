@@ -14,7 +14,7 @@ import { titleLinks } from './titlelinks.js';
 import { poster } from './poster.js';
 import { shortLanguage } from './lang.js';
 import { t } from './i18n.js';
-import { state, vlist } from './state.js';
+import { groupOfType, state, vlist } from './state.js';
 import { renderMediaSession } from './playercontrols.js';
 import { el } from './dom.js';
 import { addressChanges, freshItem, listName, probeFor, shownName, updateStoredItem } from './coversui.js';
@@ -145,14 +145,20 @@ export function renderInfoStrip() {
 let related = { item: null, pool: null, found: null };
 function relatedPart(item) {
   const type = item.k === 1 ? 'movie' : 'series';
-  const pool = state.lib?.full?.[type] || state.rows;
+  const pool = state.lib?.full?.[type] || state.titleRows;
   // The strip is painted again on every fact that arrives; the catalogue
   // can hold 55,000 films, read once per film and list.
   if (related.item !== item || related.pool !== pool) related = { item, pool, found: relatedTitles(item, pool) };
   const { versions, parts } = related.found;
   const box = document.createElement('div');
   box.className = 'related';
-  const labels = versions.length ? versionLabels([item, ...versions]) : new Map();
+  // Where each copy is filed, as the player's heading names it: "Spanish"
+  // of "Movies: Spanish", the group the sidebar shows.
+  const placeOf = (it) => (it.cats?.length && state.lib
+    ? it.cats.map((cat) => groupOfType(type).get(cat)).find(Boolean) || state.lib.categoryName(type, it.cats[0]) : '');
+  const labels = versions.length ? versionLabels([item, ...versions], placeOf) : new Map();
+  // A copy nothing tells apart from this one, or from another, is no choice.
+  const choices = versions.filter((other) => labels.has(`${other.k}:${other.id}`));
   const section = (key, items) => {
     if (!items.length) return;
     const head = document.createElement('h4');
@@ -169,8 +175,7 @@ function relatedPart(item) {
       name.textContent = titleWithoutYear(listName(other), other.year);
       const meta = document.createElement('span');
       meta.className = 'related-meta';
-      const tags = labels.get(`${other.k}:${other.id}`);
-      meta.textContent = [other.year, ...(Array.isArray(tags) ? tags : tags ? [t('cover.version', { n: tags.version })] : [])].filter(Boolean).join(' · ');
+      meta.textContent = [other.year, ...(labels.get(`${other.k}:${other.id}`) || [])].filter(Boolean).join(' · ');
       tile.title = other.n;
       tile.append(name, meta);
       tile.addEventListener('click', () => openItem(other));
@@ -179,7 +184,7 @@ function relatedPart(item) {
     }
     box.append(head, row);
   };
-  section('info.related.versions', versions);
+  section('info.related.versions', choices);
   section('info.related.parts', parts);
   return box;
 }
