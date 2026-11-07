@@ -116,6 +116,73 @@ const CAPTIONS = {
       outro: 'Kepuli-TV is free on the Chrome Web Store and Firefox Add-ons. It comes with no channels of its own, so bring your own subscription.',
     },
     otherLanguage: 'Deutsch',
+    // The interface's own words the script clicks by, as the app says them.
+    ui: { all: 'All', addFav: 'Add to favourites', covers: 'Show as covers', season: (n) => `Season ${n}`, clock12: '12-hour', english: 'English' },
+  },
+  fi: {
+    intro: ['Kepuli-TV', 'IPTV-soitin Chromeen ja Firefoxiin', 'Ilmainen ja avointa lähdekoodia. Tuo oma Xtream Codes-, M3U- tai Stalker-tilauksesi.'],
+    start: ['Aloitussivu', 'Kesken jääneet, mitä kanavillasi on nyt ja pian, ja viimeksi katsotut kanavat.'],
+    resume: ['Jatka siitä, mihin jäit', 'Yksi klikkaus, ja elokuva jatkuu siitä, mihin jäit. Näyttelijät, ohjaaja ja tiedot vierellä.'],
+    live: ['Live-TV maittain ja aiheittain', 'Valitse maa, rajaa aiheeseen ja näe, mitä jokaisella kanavalla on nyt.'],
+    zap: ['Kanavalta toiselle hetkessä', 'Nuolinäppäimet liikkuvat, Enter toistaa ja L palaa edelliselle kanavalle.'],
+    favourites: ['Suosikit', 'Merkitse kanava, elokuva tai sarja tähdellä, ja yksi valinta näyttää vain suosikit.'],
+    countries: ['Maat, joita katsot', 'Pidä vain haluamasi maat. Muut jäävät pois listoista, hausta ja ohjelmaoppaasta.'],
+    guide: ['Ohjelmaopas', 'Koko opas jokaiselle kanavalle tai vain suosikeille. Klikkaa kanavaa, niin näet, mitä on nyt ja seuraavaksi.'],
+    search: ['Haku', 'Paina / ja ala kirjoittaa. Mikä tahansa kanava sekunneissa, kymmenienkin tuhansien joukosta.'],
+    movies: ['Elokuvat', 'Valitse kiinnostavat kategoriat, selaa kansikuvia ja toista samassa ikkunassa.'],
+    details: ['Kaikki nimikkeestä', 'Vuosi, arvio, ohjaaja ja näyttelijät, miten tiedosto toistuu tässä selaimessa, ja samankaltaiset.'],
+    series: ['Sarjat', 'Kaudet ja jaksot yhdellä silmäyksellä, juonen, vuoden ja arvion kera.'],
+    mkv: ['MKV ja tekstitykset', 'Matroska-tiedostot toistuvat suoraan selaimessa tekstityksineen ja kaikkine ääniraitoineen, AC-3:kin.'],
+    subsize: ['Tekstitykset sopivan kokoisina', 'Säädä tekstitysten kokoa ja korkeutta. + ja − muuttavat kokoa katselun aikana.'],
+    record: ['Tallenna live-TV:tä', 'Ota tallennus käyttöön asetuksissa ja tallenna katsomasi ohjelma, tai suunnittele se ohjelmaoppaasta.'],
+    recordings: ['Tallenteesi', 'Tallenteet pysyvät selaimessasi. Toista ne tai tallenna tiedostoksi.'],
+    more: ['Ja paljon muuta', 'Kuva kuvassa, Chromecast, tai lähetä virta ulkoiseen soittimeen, kuten VLC:hen.'],
+    history: ['Historia', 'Jokainen katsomasi kanava, elokuva ja jakso yhden klikkauksen päässä.'],
+    accounts: ['Useita tilejä', 'Xtream Codes, M3U-soittolista tai Stalker-portaali rinnakkain. Vaihda niiden välillä yhdellä klikkauksella.'],
+    sync: ['Synkronointi koneiden välillä', 'Tilisi, suosikkisi, historiasi ja asetuksesi seuraavat sinua selaimen omalla synkronoinnilla.'],
+    keys: ['Tehty näppäimistölle', 'Paina ? nähdäksesi pikanäppäimet. Kaikki toimii myös ilman hiirtä.'],
+    theme: ['Tumma tai vaalea', 'Tumma ja vaalea teema, tai järjestelmän mukaan.'],
+    languages: ['Kolmekymmentä kieltä', 'Suomesta ja englannista saksaan, espanjaan, puolaan ja turkkiin. 12 tai 24 tunnin kello, kuten haluat.'],
+    fullscreen: ['Koko näyttö', 'Koko näyttö painikkeesta, F-näppäimellä tai kaksoisklikkauksella. Tekstitykset skaalautuvat kuvan mukana.'],
+    outro: ['Kepuli-TV', 'Ilmainen Chrome Web Storessa ja Firefoxin lisäosissa', 'github.com/BigTimeSam/kepuli-tv'],
+    disclaimer: 'Kepuli-TV ei sisällä kanavia eikä sisältöä. Tarvitset oman IPTV-tilauksen. Kaikki tässä näkyvä on keksittyä esittelysisältöä.',
+    chapters: {
+      intro: 'Johdanto', start: 'Aloitussivu', resume: 'Jatka katselua', live: 'Live-TV', zap: 'Kanavan vaihto', favourites: 'Suosikit',
+      countries: 'Maiden suodatus', guide: 'Ohjelmaopas', search: 'Haku', movies: 'Elokuvat ja kategoriat', details: 'Nimikkeen tiedot',
+      series: 'Sarjat', mkv: 'MKV ja tekstitykset', subsize: 'Tekstitysten koko ja korkeus', record: 'Tallennus', recordings: 'Tallenteet',
+      more: 'Kuva kuvassa ja Chromecast', history: 'Historia', accounts: 'Useita tilejä', sync: 'Synkronointi koneiden välillä',
+      keys: 'Pikanäppäimet', theme: 'Tumma ja vaalea teema', languages: 'Kielet ja kello', fullscreen: 'Koko näyttö', outro: 'Hanki Kepuli-TV',
+    },
+    voice: {
+      intro: 'Tässä on Kepuli-TV: ilmainen, avoimen lähdekoodin IPTV-soitin Chromeen ja Firefoxiin. Tuo oma tilauksesi ja katso kaikki suoraan selaimessa.',
+      start: 'Aloitussivu jatkaa siitä, mihin jäit: kesken jääneet elokuvat ja jaksot, mitä kanavillasi on nyt ja pian, ja viimeksi katsotut kanavat.',
+      resume: 'Yksi klikkaus, ja elokuva jatkuu juuri siitä, mihin jäit. Näyttelijät, ohjaaja ja kaikki tiedot ovat vierellä.',
+      live: 'Live-TV on järjestetty maittain ja aiheittain. Valitse maa, rajaa aihetta ja näe, mitä jokaisella kanavalla on juuri nyt.',
+      zap: 'Vaihda kanavaa nuolinäppäimillä, paina Enter toistaaksesi, ja L palauttaa edelliselle kanavalle.',
+      favourites: 'Merkitse rakkaimmat kanavat tähdellä, ja yksi valinta suodattimissa näyttää vain suosikit.',
+      countries: 'Pidä vain maat, joita katsot. Muut jäävät pois listoista, hausta ja ohjelmaoppaasta.',
+      guide: 'Ohjelmaopas kattaa jokaisen kanavan, tai vain suosikkisi. Klikkaa kanavaa, niin näet, mitä on nyt ja seuraavaksi.',
+      search: 'Paina kauttaviivaa ja ala kirjoittaa. Mikä tahansa kanava löytyy sekunneissa.',
+      movies: 'Elokuville ja sarjoille valitset kiinnostavat kategoriat, selaat kansikuvia ja toistat samassa ikkunassa.',
+      details: 'Jokainen nimike kertoo vuoden, arvion, ohjaajan ja näyttelijät. Tekniset tiedot kertovat, miten tiedosto toistuu selaimessasi, ja Samankaltaiset löytää lisää samanlaista.',
+      series: 'Sarjojen kaudet ja jaksot näkyvät yhdellä silmäyksellä.',
+      mkv: 'MKV-tiedostot toistuvat suoraan selaimessa tekstityksineen ja kaikkine ääniraitoineen.',
+      subsize: 'Tee tekstityksistä niin suuret kuin haluat, ja säädä niiden korkeutta.',
+      record: 'Haluatko säilyttää ohjelman? Ota tallennus käyttöön asetuksissa, muistutuksella tallentaa vain sitä, mihin sinulla on oikeus, ja paina Tallenna.',
+      recordings: 'Tallenteet pysyvät selaimessasi. Toista ne tai tallenna ne tietokoneellesi.',
+      more: 'Mukana ovat kuva kuvassa, Chromecast ja siirto soittimiin, kuten VLC:hen.',
+      history: 'Historia pitää kaiken katsomasi yhden klikkauksen päässä.',
+      accounts: 'Lisää useita tilejä, Xtream Codes, M3U-soittolista tai Stalker-portaali, ja vaihda niiden välillä yhdellä klikkauksella.',
+      sync: 'Kun synkronointi on päällä, tilisi, suosikkisi ja historiasi seuraavat sinua muille tietokoneillesi.',
+      keys: 'Kaikki toimii näppäimistöltä. Paina kysymysmerkkiä nähdäksesi pikanäppäimet.',
+      theme: 'Pidätkö vaaleammasta? Vaihda teemaa yhdellä klikkauksella.',
+      languages: 'Kepuli-TV puhuu kolmeakymmentä kieltä, kahdentoista tai kahdenkymmenenneljän tunnin kellolla.',
+      fullscreen: 'Ja isoon kuvaan riittää kaksoisklikkaus.',
+      outro: 'Kepuli-TV on ilmainen Chrome Web Storessa ja Firefoxin lisäosissa. Siinä ei ole omia kanavia, joten tuo oma tilauksesi.',
+    },
+    otherLanguage: 'Svenska',
+    voiceInstructions: 'Lämmin, varma suomenkielinen miesääni lyhyeen tuote-esittelyyn. Puhu luontevaa, selkeää suomea suomalaisella ääntämyksellä, rauhallisella tahdilla, pieni hymy äänessä. Älä kiirehdi lauseiden loppuja.',
+    ui: { all: 'Kaikki', addFav: 'Lisää suosikkeihin', covers: 'Näytä kansikuvina', season: (n) => `Kausi ${n}`, clock12: '12 tuntia', english: 'englanti' },
   },
 };
 const C = CAPTIONS[LANG];
@@ -134,7 +201,7 @@ const SILENT = process.argv.includes('--silent');
 // times kept beside it, without recording anew.
 const REMIX = process.argv.includes('--remix');
 const VOICE = { model: 'gpt-4o-mini-tts', voice: 'onyx',
-  instructions: 'Warm, confident male narrator for a short product demo video. Friendly and clear, natural unhurried pace, a slight smile in the voice. Do not rush the ends of sentences.' };
+  instructions: C.voiceInstructions || 'Warm, confident male narrator for a short product demo video. Friendly and clear, natural unhurried pace, a slight smile in the voice. Do not rush the ends of sentences.' };
 const voiceLength = {};
 
 function openaiKey() {
@@ -440,7 +507,9 @@ async function type(text, per = 110) {
 const byText = (root, text) => `(() => {
   const own = (n) => [...n.childNodes].filter((c) => c.nodeType === 3).map((c) => c.textContent).join('').trim();
   const nodes = [...document.querySelectorAll(${JSON.stringify(root + ' *')})].filter((n) => n.offsetParent !== null || n.closest('[popover]'));
-  return nodes.find((n) => own(n) === ${JSON.stringify(text)}) || nodes.find((n) => own(n).startsWith(${JSON.stringify(text)})); })()`;
+  const lower = ${JSON.stringify(text.toLowerCase())};
+  return nodes.find((n) => own(n) === ${JSON.stringify(text)}) || nodes.find((n) => own(n).startsWith(${JSON.stringify(text)}))
+    || nodes.find((n) => own(n).toLowerCase().startsWith(lower)); })()`;
 
 const PLAYING = `(() => { const v = document.getElementById('video'); return v.readyState >= 2 && v.currentTime > 0.3 && !v.paused; })()`;
 const ROWS = `document.querySelectorAll('#list .row').length > 0 && document.getElementById('list-progress').hidden`;
@@ -592,7 +661,7 @@ async function walk() {
   await waitFor(ROWS, 'the channel list');
   await sleep(800);
   await click(byText('#subcats', 'Sport'), { pause: 1100 });
-  await click(byText('#subcats', 'All'), { pause: 700 });
+  await click(byText('#subcats', C.ui.all), { pause: 700 });
   await click(byText('#list', 'Aurora One'));
   await waitFor(PLAYING, 'the live stream');
   await move(WIDTH * 0.74, HEIGHT * 0.86, 700);
@@ -614,7 +683,7 @@ async function walk() {
   await move(rx, ry, 700);
   await sleep(300);
   await click(`${row}.querySelector('.row-more')`, { pause: 700 });
-  await click(byText('.row-menu', 'Add to favourites'), { pause: 900 });
+  await click(byText('.row-menu', C.ui.addFav), { pause: 900 });
   await evaluate(`document.getElementById('channel-filters').open = true`);
   await click(`document.getElementById('channel-favs')`, { pause: 2600 });
   await click(`document.getElementById('channel-favs')`, { pause: 700 });
@@ -663,7 +732,7 @@ async function walk() {
   await say('movies', 'right');
   await click(byText('#groups', 'Nordic'));
   await waitFor(ROWS, 'the movies');
-  await click(`document.querySelector('button[aria-label="Show as covers"]')`, { pause: 1500 });
+  await click(`document.querySelector('button[aria-label=${JSON.stringify(C.ui.covers)}]')`, { pause: 1500 });
   // The film the mock's movie.mp4 is titled with: every film plays that
   // one file, and another's name over it read wrong in the video.
   await click(byText('#list', 'Northern Lights'));
@@ -686,8 +755,8 @@ async function walk() {
   await click(byText('#list', 'Silent Fjord'));
   await waitFor(`!document.getElementById('detail').hidden && document.querySelectorAll('#list .row').length > 0`, 'the series page');
   await sleep(1200);
-  await click(byText('#detail', 'Season 2'), { pause: 1100 });
-  await click(byText('#detail', 'Season 1'), { pause: 800 });
+  await click(byText('#detail', C.ui.season(2)), { pause: 1100 });
+  await click(byText('#detail', C.ui.season(1)), { pause: 800 });
 
   // An MKV episode with subtitles.
   await scene('mkv', 'left');
@@ -696,7 +765,7 @@ async function walk() {
   await waitFor(`(() => { const s = document.getElementById('subs'); return !s.hidden && s.options.length > 1; })()`, 'the subtitle tracks');
   await sleep(700);
   await click(`document.getElementById('subs')`, { pause: 800 });
-  await click(byText('.picker-pop', 'English'), { pause: 3000 });
+  await click(byText('.picker-pop', C.ui.english), { pause: 3000 });
 
   await scene('subsize', 'left');
   await click(`document.getElementById('btn-sublook')`, { pause: 1400 });
@@ -782,7 +851,7 @@ async function walk() {
   await click(`document.getElementById('btn-settings')`, { pause: 700 });
   await click(`document.getElementById('tab-general')`, { pause: 600 });
   await click(`document.getElementById('f-clock')`, { pause: 700 });
-  await click(byText('.picker-pop', '12-hour'), { pause: 900 });
+  await click(byText('.picker-pop', C.ui.clock12), { pause: 900 });
   await click(`document.getElementById('f-lang')`, { pause: 700 });
   await type(C.otherLanguage.slice(0, 3), 150);
   await sleep(500);
