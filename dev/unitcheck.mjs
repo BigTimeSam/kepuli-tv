@@ -44,6 +44,12 @@ import { readFileSync } from 'node:fs';
 
 let failed = 0;
 let count = 0;
+/** The player's stylesheets, as player.html links them, one after another. */
+function stylesheets() {
+  const read = (name) => readFileSync(new URL(`../${name}`, import.meta.url), 'utf8');
+  return [...read('player.html').matchAll(/<link rel="stylesheet" href="([^"]+)">/g)].map((m) => read(m[1])).join('\n');
+}
+
 function check(what, actual, expected) {
   count++;
   const a = JSON.stringify(actual);
@@ -562,11 +568,11 @@ check('no picture yet: taken as 16:9', pictureHeight(1920, 1200, 0, 0), 1080);
 // same order; the slider's bounds are the module's.
 {
   const html = (await import('node:fs')).readFileSync(new URL('../player.html', import.meta.url), 'utf8');
-  const sheet = (await import('node:fs')).readFileSync(new URL('../css/player.css', import.meta.url), 'utf8');
-  check('player.css sizes the layer with the module\'s share', sheet.includes(`* var(--sub-scale, 1) * ${SIZE_SHARE})`), true);
-  check('player.css keeps the module\'s floor under the subtitles', sheet.includes(`font-size: max(${MIN_PX}px,`), true);
+  const sheet = stylesheets();
+  check('playback.css sizes the layer with the module\'s share', sheet.includes(`* var(--sub-scale, 1) * ${SIZE_SHARE})`), true);
+  check('playback.css keeps the module\'s floor under the subtitles', sheet.includes(`font-size: max(${MIN_PX}px,`), true);
   for (const style of STYLES) {
-    check(`player.css draws the look "${style}"`, sheet.includes(`body[data-substyle="${style}"] .videowrap .subdisplay .cue`), true);
+    check(`playback.css draws the look "${style}"`, sheet.includes(`body[data-substyle="${style}"] .videowrap .subdisplay .cue`), true);
   }
   // The controls exist twice — f in the settings, p over the picture (see
   // LOOK_FORMS in app.js) — and each copy is checked on its own: a look
@@ -924,11 +930,11 @@ for (const name of scriptFiles) {
 check('every element the scripts look up by id is in player.html',
   [...lookups].filter(([id]) => !inMarkup.has(id) && !built.has(id)).map(([id, name]) => `${id} (js/${name})`), []);
 
-/* ------------------------------------------------- player.css: contrast */
+/* ------------------------------------------------- the stylesheets: contrast */
 
 // The text colours against every ground they sit on, by WCAG's formula:
 // 4.5:1 for the small text, and the selected row is a ground too.
-const css = source('css/player.css');
+const css = stylesheets();
 const cssVar = (name) => (css.match(new RegExp(`--${name}:\\s*(#[0-9a-f]{6})`, 'i')) || [])[1];
 const luminance = (hex) => {
   const [r, g, b] = [1, 3, 5].map((i) => parseInt(hex.slice(i, i + 2), 16) / 255)

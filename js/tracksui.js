@@ -136,7 +136,7 @@ export function chooseSubtitle() {
 
 /**
  * The look of the subtitles — the style and the size. The CSS reads both
- * from the body attributes (see player.css), and the settings dialog shows
+ * from the body attributes (see css/playback.css), and the settings dialog shows
  * the same choice, preview included.
  */
 // The same two controls exist twice: in the settings, where a preview
@@ -190,7 +190,7 @@ export async function chooseSubtitleLook(form) {
  * The picture's own shape, once the video knows it: the box is then as
  * tall as the picture and no taller, rather than black bands above and
  * below it, and the details under it get the room (.videowrap.sized in
- * player.css). Back to filling the column when nothing plays.
+ * css/playback.css). Back to filling the column when nothing plays.
  */
 export function sizePicture() {
   const { videoWidth: w, videoHeight: h } = el.video;

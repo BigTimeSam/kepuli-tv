@@ -1,0 +1,91 @@
+/* The topic chips and their bar (see player.css for the order). */
+
+/* ------------------------------------------------------------ topics */
+
+.subcats {
+  display: flex; gap: 5px; flex-wrap: wrap;
+  padding: 8px 10px; background: var(--panel);
+  /* The height comes from the content: a handful of topics take one row and
+     no empty space is reserved. The ceiling is a share of the column rather
+     than a count of chip rows (a row's advance is 30.6 px and the padding
+     16), so a country of three topics stays one row tall and one of forty
+     fills six or seven. applySubcatsHeight sets it, and the user's own
+     height with it; the value here only covers the first paint. */
+  max-height: min(144px, 20vh); overflow-y: auto;
+}
+.subcats[hidden] { display: none; }
+
+/* The bar's lower edge doubles as the handle: it is the border it replaced,
+   with a grip in the middle that grows visible under the pointer. A whole
+   band rather than a corner, because it is the edge the eye already reads
+   as the boundary between the topics and the list. */
+.subcats-grip {
+  flex: none; height: 8px; position: relative; cursor: row-resize;
+  background: var(--panel); border-bottom: 1px solid var(--border); outline: none;
+}
+.subcats-grip[hidden] { display: none; }
+/* The handle is drawn at its full 46 px and held short until the pointer
+   arrives. Growing it by its width would lay the element out again on
+   every frame of the transition; scaling it is the compositor's work
+   alone, and a solid bar scaled down loses nothing. */
+.subcats-grip::after {
+  content: ''; position: absolute; left: 50%; top: 3px; width: 46px; height: 2px;
+  transform: translateX(-50%) scaleX(.652); border-radius: 2px; background: var(--border);
+  transition: background .12s, transform .12s;
+}
+.subcats-grip:hover::after,
+.subcats-grip:focus-visible::after,
+.subcats-grip.dragging::after { background: var(--accent); transform: translateX(-50%) scaleX(1); }
+/* While dragging, the pointer belongs to the handle wherever it wanders: no
+   text is selected under it, and the chips and rows it passes do not answer
+   with a hand of their own. */
+body.resizing, body.resizing * { cursor: row-resize; }
+body.resizing { user-select: none; }
+
+/* A chip is a container for two buttons: the selection and the star. The
+   appearance — background, border, highlight — stays on the container, so
+   that both buttons look like parts of the same chip rather than buttons of
+   their own. */
+.chip {
+  display: inline-flex; align-items: center;
+  background: var(--panel-2); border: 1px solid var(--border); border-radius: 99px;
+  color: var(--muted); font-size: var(--fs-m); white-space: nowrap;
+}
+.chip:hover { color: var(--text); border-color: var(--border-strong); }
+.chip.active { background: var(--accent); border-color: var(--accent); color: #fff; }
+.chip-main {
+  background: none; border: 0; border-radius: 99px; padding: 3px 4px 3px 11px;
+  color: inherit; font: inherit; cursor: pointer;
+  /* 24 px, the least a target may be (WCAG 2.5.8); the text alone left
+     the chip 23 px high. */
+  min-height: 1.5rem;
+}
+.chip.plain .chip-main { padding-right: 11px; }
+/* The count in the chip's own colour: at 60 % opacity it was 2.9:1 on
+   either ground, under the 4.5:1 that text of this size needs. */
+.chip .n { margin-left: 5px; font-variant-numeric: tabular-nums; }
+/* Tight: the chip bar wraps in a narrow column, so every pixel the star
+   takes costs a row's height across the whole bar. */
+.chip-star {
+  border: 0; background: none; padding: 0 7px 0 0;
+  color: var(--star); cursor: pointer; font-size: var(--fs-xs); line-height: 1;
+}
+.chip-star:hover { color: var(--text); }
+.chip-star.on { color: var(--gold); }
+.chip.active .chip-star { color: rgba(255, 255, 255, .55); }
+.chip.active .chip-star:hover { color: #fff; }
+.chip.active .chip-star.on { color: #ffd884; }
+
+/* With a mouse, an empty star waits for the pointer: one on every country,
+   every topic and every row was a column of the same mark repeated down the
+   screen, and it said nothing until it was wanted. A favourite keeps its
+   star, and so does the row the keyboard stands on. A touch screen has no
+   hover, and a viewer who has asked for more contrast keeps every star in
+   sight, as both did before. */
+@media (hover: hover) and (pointer: fine) and (prefers-contrast: no-preference) {
+  .row-star:not(.on), .group-star:not(.on), .chip-star:not(.on), .row-more { opacity: 0; transition: opacity .12s; }
+  .row:hover .row-more, .row.selected .row-more,
+  .row:hover .row-star, .row.selected .row-star,
+  .group:hover .group-star, .groups-list:focus-visible .group.cursor .group-star,
+  .chip:hover .chip-star { opacity: 1; }
+}

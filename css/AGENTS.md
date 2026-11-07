@@ -1,8 +1,31 @@
-# css/: the player's one stylesheet
+# css/: the player's stylesheets
 
-`player.css` styles the whole interface (`player.html`). No preprocessor, no
-framework, no utility classes: plain CSS with custom properties, in sections
-that follow the page from top bar to dialogs.
+Thirteen stylesheets style the whole interface (`player.html`), linked in
+this order, which is the cascade's: one file was 2,181 lines, and the split
+kept every rule in its place. No preprocessor, no framework, no utility
+classes: plain CSS with custom properties.
+
+| File | What |
+| --- | --- |
+| `player.css` | the custom properties (colours, measures), both themes, `prefers-contrast`, the page's base rules, the scrollbars |
+| `topbar.css` | brand, tabs, search and the bar's buttons |
+| `layout.css` | the columns, the sidebar, the list's filter folds |
+| `topics.css` | the topic chips and their bar |
+| `details.css` | a series' or film's page: cover, facts, credits, related titles |
+| `list.css` | the list's rows and the covers' grid |
+| `playback.css` | the picture, subtitles, the empty player's page, the details strip, the controls under the picture |
+| `dialogs.css` | Settings and the other dialogs |
+| `guide.css` | the programme guide |
+| `narrow.css` | the breakpoints that reshape the page's columns (1180, 980, 760, 600 px) |
+| `pickers.css` | the selectors' chevron, the drop-down lists, the search fields' magnifier |
+| `recordings.css` | accounts and recordings |
+| `last.css` | what must win over everything above: optical alignment, the phone guide, forced colours |
+
+A rule goes into the file of what it styles. One that has to override a
+rule of a later file goes after it (`narrow.css`, `last.css`): the order of
+the links is the order of the cascade, so do not reorder them. A new file
+is linked in `player.html` at its place; `dev/unitcheck.mjs` reads them as
+the page links them.
 
 ## Rules
 
@@ -29,8 +52,8 @@ that follow the page from top bar to dialogs.
   at 600px.
 - **Motion** respects `prefers-reduced-motion: reduce`; add the matching rule
   for any new animation or transition.
-- **Optical alignment** of icons beside labels is gathered in a block at the
-  end of the file; align by measuring (icon centre against the text's visual
+- **Optical alignment** of icons beside labels is gathered in a block in
+  `last.css`; align by measuring (icon centre against the text's visual
   centre), not by eye, and keep the rule there.
 - Hover-only affordances (a ✕ on a card, an empty star) must also show on
   keyboard focus and on touch (`hover: none`).

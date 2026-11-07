@@ -95,7 +95,7 @@ export function fitTopBar() {
 
 export function wireTopMenu() {
   bar = document.querySelector('.topbar');
-  // A narrow window scrolls the tabs sideways (css/player.css).
+  // A narrow window scrolls the tabs sideways (css/narrow.css).
   sideScroll($('tabs'), { compact: true, className: 'tabs-scroll' });
   button = $('btn-topmenu');
   pop = $('topmenu-pop');

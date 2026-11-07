@@ -129,7 +129,7 @@ export class MediaFilters {
     // titles' facts afresh each time was the cost of it.
     this.facts = new WeakMap();
     // The same heading as "Filter channels": a mark, the name, what it
-    // counts and the fold, see .section-toggle in player.css.
+    // counts and the fold, see .section-toggle in css/layout.css.
     this.summary = document.createElement('summary');
     this.summary.className = 'section-toggle';
     this.summary.insertAdjacentHTML('afterbegin', '<svg class="section-icon" viewBox="0 0 20 20" aria-hidden="true"><path d="M3 4.5h14l-5.5 6.2v4.8l-3 1.5v-6.3z"/></svg>');

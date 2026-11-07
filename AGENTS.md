@@ -46,7 +46,7 @@ Firefox manifest and its tooling.
 | --- | --- |
 | `manifest.json`, `firefox/manifest.json` | the two manifests; version and shared keys must agree (`node dev/package.mjs --check`) |
 | `background.js` | toolbar click opens the player; uninstall URL; update notice |
-| `player.html`, `css/player.css` | the whole interface on one page |
+| `player.html`, `css/*.css` | the whole interface on one page; thirteen stylesheets linked in cascade order (`css/AGENTS.md`) |
 | `js/app.js` | the player's UI and state (large; search before reading) |
 | `js/api.js`, `js/m3usource.js`, `js/stalker.js` | the three provider kinds |
 | `js/playback.js`, `js/mkv.js`, `js/remux.js`, `js/mp4*.js`, `js/audio.js`, `js/ffaudio.js` | playback routes, MKV unpacking, audio decoding |

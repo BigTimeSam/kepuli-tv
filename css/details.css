@@ -1,0 +1,80 @@
+/* A series' or a film's page: covers, facts, credits, related titles (see player.css for the order). */
+
+/* ---------------------------------------------------- series details */
+
+.detail { border-bottom: 1px solid var(--border); background: var(--panel); }
+.detail-main { display: flex; gap: 12px; padding: 12px; }
+/* A quiet, fixed-size cover while loading, with an icon for missing art. */
+.poster { position: relative; display: grid; place-items: center; overflow: hidden; color: var(--muted); background: var(--panel-2); box-shadow: inset 0 0 0 1px var(--border); }
+.poster > svg { width: 58%; max-width: 32px; height: auto; fill: none; stroke: currentColor; stroke-width: 1.5; stroke-linecap: round; stroke-linejoin: round; opacity: .65; }
+.poster.loading > svg, .poster.loaded > svg { visibility: hidden; }
+.poster > img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; opacity: 0; }
+.poster.loaded > img { opacity: 1; }
+.poster.channel-logo { border-radius: 3px; }
+.poster.channel-logo > img { object-fit: contain; }
+.poster.channel-logo.loading > svg { visibility: visible; }
+.poster.channel-logo.loaded { background: transparent; box-shadow: none; }
+button.poster { padding: 0; border: 0; }
+button.poster:enabled { cursor: zoom-in; }
+button.poster:enabled:hover { box-shadow: 0 0 0 2px var(--accent); }
+button.poster:focus-visible { outline: 2px solid var(--accent-ink); outline-offset: 3px; }
+button.poster:disabled { cursor: default; }
+.detail-cover { width: 76px; height: 114px; flex: none; object-fit: cover; border-radius: 7px; background: var(--panel-2); }
+.detail-body { min-width: 0; flex: 1; }
+.detail-heading { display: flex; align-items: flex-start; gap: 8px; margin-bottom: 3px; }
+.detail-title { flex: 1; min-width: 0; font-weight: 650; font-size: 1rem; letter-spacing: -0.005em; overflow-wrap: anywhere; }
+button.series-favorite { flex: none; width: 32px; height: 32px; padding: 0; display: grid; place-items: center; font-size: 1.1875rem; line-height: 1; }
+.series-favorite:focus-visible { outline: 2px solid var(--accent-ink); outline-offset: 2px; }
+/* Labelled facts separate catalogue metadata from playback diagnostics. */
+.title-facts { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px 16px; margin: 2px 0 12px; }
+.title-facts > div { min-width: 0; }
+.title-facts dt { font-size: var(--fs-xs); color: var(--muted); margin-bottom: 3px; }
+.title-facts dd { margin: 0; font-size: var(--fs-m); font-weight: 550; color: var(--text); overflow-wrap: anywhere; }
+.title-fact-rating dd { color: var(--gold); font-variant-numeric: tabular-nums; }
+.row-duration { flex: none; color: var(--muted); font-size: var(--fs-xs); font-variant-numeric: tabular-nums; white-space: nowrap; }
+.title-links { display: flex; align-items: flex-start; flex-wrap: wrap; gap: 6px; margin-top: 12px; }
+.title-links a { display: inline-flex; align-items: center; gap: 6px; padding: 5px 8px; border: 1px solid var(--border); border-radius: 6px; font-size: var(--fs-xs); line-height: 1.4; color: var(--text); background: var(--panel-2); text-decoration: none; cursor: pointer; }
+.title-links a > span { color: var(--muted); }
+.title-links a:hover { border-color: var(--accent); color: var(--text); }
+.title-links a:focus-visible { outline: 2px solid var(--accent-ink); outline-offset: 2px; }
+/* When the film playing ends, under its facts. */
+/* Credits: each name a quiet link to its search on IMDb. */
+.title-credits a.person { color: inherit; text-decoration: none; border-bottom: 1px dotted var(--border-strong); }
+.title-credits a.person:hover, .title-credits a.person:focus-visible { color: var(--accent-ink); border-bottom-color: currentColor; }
+/* The other copies and the other parts of a series of films, as small covers in a row. */
+.related { display: grid; gap: 8px; margin-top: 4px; }
+.related h4 { margin: 6px 0 0; color: var(--muted); font-size: var(--fs-xs); font-weight: 600; letter-spacing: .06em; text-transform: uppercase; }
+.related-row { display: flex; gap: 12px; overflow-x: auto; padding-bottom: 4px; }
+.related-tile { flex: none; width: 6rem; display: flex; flex-direction: column; gap: 3px; padding: 0; border: 0; background: transparent; color: var(--text); text-align: left; cursor: pointer; font: inherit; }
+.related-cover { width: 96px; aspect-ratio: 2 / 3; border-radius: 6px; }
+/* Hover lifts the cover as a cover in the list does; the keyboard's focus
+   is the accent outline every other tile and button has. */
+.related-tile:hover .related-cover { box-shadow: inset 0 0 0 1px var(--border), 0 6px 18px rgba(0, 0, 0, .45); }
+.related-tile:focus-visible { outline: none; }
+.related-tile:focus-visible .related-cover { outline: 2px solid var(--accent-ink); outline-offset: 2px; }
+.related-name { font-size: var(--fs-m); font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.related-meta { display: flex; column-gap: 8px; font-size: var(--fs-xs); color: var(--muted); overflow: hidden; white-space: nowrap; }
+.related-meta .related-warn { color: var(--warn); }
+.vodinfo-body { min-width: 0; flex: 1; }
+.vodinfo .title-links { margin-top: 0; margin-bottom: 10px; }
+.infostrip:has(.title-facts) { max-height: 13.125rem; }
+/* The picture's shape known (sizePicture in js/app.js): the box is as tall
+   as the picture, so the column does not spend its height on black bands,
+   and the details below take the rest — all of them where they fit. When
+   the column is too low for both, the picture gives way first, down to
+   about half the column, and the details scroll after that. Not in the
+   guide, whose thumbnail has a shape of its own, nor in full screen, nor
+   with no details to show, when the picture keeps the whole column. */
+main:not(.guide) .stage:has(> .infostrip:not([hidden])) > .videowrap.sized:not(:fullscreen) {
+  flex: 0 1 auto; width: 100%; aspect-ratio: var(--pic-ratio); min-height: min(240px, 50%);
+}
+main:not(.guide) .stage:has(> .videowrap.sized:not(:fullscreen)) > .infostrip { flex: 1 1 auto; max-height: none; min-height: 0; }
+.vodinfo .title-facts { grid-template-columns: repeat(auto-fit, minmax(5.625rem, 1fr)); }
+.vodinfo .meta { padding-top: 8px; border-top: 1px solid var(--border); }
+.vodinfo .meta:empty { display: none; }
+
+.detail-plot { color: var(--muted); font-size: var(--fs-m); max-height: 4.125rem; overflow-y: auto; }
+.seasons { display: flex; gap: 5px; padding: 0 12px 10px; flex-wrap: wrap; }
+.season { background: var(--panel-2); border: 1px solid var(--border); border-radius: 7px; padding: 3px 10px; cursor: pointer; color: var(--muted); }
+.season:hover { color: var(--text); }
+.season.active { background: var(--accent); border-color: var(--accent); color: #fff; }

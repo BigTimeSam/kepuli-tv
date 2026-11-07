@@ -1,0 +1,218 @@
+/* The page's columns, the sidebar and the list's filter folds (see player.css for the order). */
+
+/* ------------------------------------------------------------- layout */
+
+main {
+  display: grid;
+  grid-template-columns: 14rem minmax(18.75rem, 23.75rem) 1fr;
+  grid-template-rows: minmax(0, 1fr);
+  flex: 1 1 auto; min-height: 0;
+}
+.groups, .listcol, .stage { min-height: 0; }
+/* The columns are named explicitly, because automatic placement would move
+   the rest to the left the moment a child is hidden — the list would then
+   slide into a zero-width column and vanish. */
+main > .groups { grid-column: 1; }
+main > .listcol { grid-column: 2; }
+main > .stage { grid-column: 3; }
+
+/* The grid is what the guide was opened for, so it gets the height and the
+   two things that describe one row of it stand beside it in a column of
+   their own: the programme's own details on top, the picture under them.
+   The band across the top that used to hold both cost the grid its whole
+   height for a preview that filled 105px of 227 — measured at 1024x700,
+   4.8 channel rows were visible where the column now leaves 9. */
+main.guide {
+  grid-template-columns: minmax(0, 1fr) minmax(17rem, 24vw);
+  /* The picture is as tall as 16:9 makes it and no taller; the programme's
+     details above take whatever is left, because a long description is what
+     grows and a stretched picture is only letterboxing. */
+  grid-template-rows: auto minmax(0, 1fr) auto;
+}
+.guide-header { display: none; }
+main.guide > .guide-header { grid-area: 1 / 1 / 2 / 3; display: flex; align-items: center; gap: 16px; padding: 8px 14px; background: var(--panel); border-bottom: 1px solid var(--border); }
+.guide-header h2 { margin: 0; font-size: 0.875rem; font-weight: 600; }
+.guide-back { display: inline-flex; align-items: center; gap: 8px; flex: none; padding: 8px 12px; border: 1px solid var(--accent); border-radius: 7px; background: var(--accent-soft); color: var(--text); font-weight: 550; cursor: pointer; }
+.guide-back > svg { width: 18px; height: 18px; fill: none; stroke: currentColor; stroke-width: 1.5; stroke-linecap: round; stroke-linejoin: round; }
+.guide-back:hover { background: var(--accent-soft-hover); }
+.guide-back:focus-visible { outline: 2px solid var(--accent-ink); outline-offset: 2px; }
+main.guide > .groups, main.guide > .listcol { display: none; }
+main.guide > .epgview { grid-area: 2 / 2; border-left: 1px solid var(--border); border-bottom: 0; }
+main.guide > .stage { grid-area: 3 / 2; min-height: 0; border-left: 1px solid var(--border); border-top: 1px solid var(--border); }
+/* In the guide the picture is a thumbnail beside the grid, so it is shaped
+   by its own aspect ratio rather than by whatever height a row hands it.
+   The floor is what a 16:9 picture comes to in the narrowest this column
+   goes (280px), below which it stops being watchable. */
+main.guide #videowrap:not(:fullscreen) { flex: none; aspect-ratio: 16 / 9; min-height: 153px; }
+/* With nothing playing the box holds the empty player's page rather than a
+   picture: it grows upwards to the page's own height, so that it does not
+   scroll while the column above stands empty, up to what the programme's
+   details leave free (they keep their own height and a margin). Once
+   something plays, it is the 16:9 thumbnail again. */
+main.guide:not(.has-playback) { grid-template-rows: auto minmax(auto, 1fr) minmax(0, max-content); }
+main.guide:not(.has-playback) > .epgview { min-height: auto; overflow: visible; padding-bottom: 20px; }
+main.guide:not(.has-playback) .epgv-desc { flex: none; }
+main.guide:not(.has-playback) #videowrap:not(:fullscreen) { aspect-ratio: auto; flex: 1 1 auto; }
+main.guide:not(.has-playback) #videowrap:not(:fullscreen) > video { position: absolute; inset: 0; }
+main.guide:not(.has-playback) #videowrap:not(:fullscreen) > .overlay { position: relative; inset: auto; height: 100%; min-height: 153px; }
+
+/* The preview is a column now, not a band: the two actions go under the
+   channel's name rather than beside it, and the description takes whatever
+   the picture below has not claimed. */
+main.guide > .epgview { gap: 6px; }
+main.guide .epgv-head { flex-wrap: wrap; }
+/* Two buttons side by side in a 272px column wrap to two lines each and
+   read as four; stacked they read as two. */
+main.guide .epgv-actions { flex: 1 0 100%; flex-direction: column; }
+main.guide .epgv-actions button { width: 100%; }
+main.guide .epgv-desc { flex: 1; }
+/* With the timetable under it, the description keeps to its own length
+   and the timetable follows straight after; the empty space goes below. */
+main.guide .epgv-desc:has(+ .epgv-next:not([hidden])) { flex: 0 1 auto; }
+main.guide .epgv-next { overflow-y: auto; min-height: 0; flex: 0 1 auto; align-content: start; }
+main.guide > .epg { grid-area: 2 / 1 / 4 / 2; }
+/* The programme data shows in the guide's own panel, and six buttons do not
+   fit in the narrow player box. */
+main.guide .infostrip,
+main.guide #mode-pick,
+main.guide #btn-pip,
+main.guide #btn-copy { display: none; }
+
+.groups { background: var(--panel); border-right: 1px solid var(--border); display: flex; flex-direction: column; }
+.groups-filter { position: relative; padding: 8px; border-bottom: 1px solid var(--border); }
+/* The same magnifier as the search in the top bar: this field searches too,
+   among the countries and their topics. */
+.groups-filter svg { position: absolute; left: 17px; top: 50%; translate: 0 -50%; width: 14px; height: 14px; fill: none; stroke: var(--muted); stroke-width: 1.8; stroke-linecap: round; pointer-events: none; }
+.groups-filter input {
+  width: 100%; padding: 5px 8px 5px 27px; background: var(--panel-2);
+  border: 1px solid var(--border); border-radius: 7px; font-size: var(--fs-m);
+}
+.groups-filter input:focus { border-color: var(--accent); }
+.groups-list { flex: 1; overflow-y: auto; padding: 6px; }
+.groups-empty { margin: 0; padding: 14px 16px 0; color: var(--muted); font-size: 0.8125rem; line-height: 1.45; }
+.groups-empty[hidden] { display: none; }
+/* The countries the viewer watches (the categories, on films and series),
+   under the sidebar: as tall as the line under the list and the bar under
+   the player (--foot-h), so that the three end on one line; at the left,
+   where the counts and labels of the other two lines begin. */
+.groups-foot {
+  flex: none; display: flex; align-items: center; justify-content: flex-start; gap: 8px; width: 100%; min-height: var(--foot-h);
+  padding: 0 14px; border: 0; border-top: 1px solid var(--border); background: var(--panel);
+  color: var(--muted); font: inherit; font-size: var(--fs-m); text-align: left; cursor: pointer;
+}
+.groups-foot[hidden] { display: none; }
+.groups-foot[data-kind="categories"] .foot-countries, .groups-foot:not([data-kind="categories"]) .foot-categories { display: none; }
+.groups-foot:hover { color: var(--text); background: var(--row-hover); }
+.groups-foot:focus-visible { outline: 2px solid var(--accent-ink); outline-offset: -2px; }
+.groups-foot svg { width: 15px; height: 15px; flex: none; fill: none; stroke: currentColor; stroke-width: 1.5; stroke-linecap: round; stroke-linejoin: round; }
+
+.group { display: flex; align-items: center; gap: 8px; padding: 6px 9px; border-radius: 7px; cursor: pointer; color: var(--muted); }
+.group:hover { background: var(--panel-2); color: var(--text); }
+.group-name { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+/* The kinds in the favourites and the history carry the tabs' marks. */
+.group-icon { width: 16px; height: 16px; flex: none; fill: none; stroke: currentColor; stroke-width: 1.6; stroke-linecap: round; stroke-linejoin: round; }
+.group-count { font-size: var(--fs-xs); color: var(--dim); font-variant-numeric: tabular-nums; }
+.group.all { color: var(--text); font-weight: 550; }
+/* The same highlight as on the tabs and the topic chips: the selection is
+   the whole row, not an outline. Last, so that it also beats the colour of
+   the .all row. */
+.group.active, .group.active:hover { background: var(--accent); color: #fff; }
+.group.active .group-count { color: #fff; }
+
+/* The star used to appear on hover alone, which is no gesture at all on a
+   touch screen and no help to anyone reading the sidebar rather than
+   sweeping it. It stands quietly instead, and brightens under the pointer.
+   The browser's own button padding is zeroed here and on the row star: it
+   left 6px for a 12px glyph, and a grid item that overflows its cell lands
+   on the start edge instead of the centre, so the star sat 3px right. */
+.group-star {
+  width: 18px; height: 18px; flex: none; display: grid; place-items: center;
+  border: 0; padding: 0; background: transparent; color: var(--star); cursor: pointer;
+  border-radius: 5px; font-size: var(--fs-m); line-height: 1;
+}
+/* Only the button reacts: the reservation on a starless row is an empty
+   div, and no highlight may light up behind which there is no button. */
+button.group-star:hover { color: var(--text); background: var(--track); }
+.group-star.on { color: var(--gold); }
+.group.active .group-star { color: rgba(255, 255, 255, .6); }
+.group.active .group-star:hover { background: rgba(0, 0, 0, .18); color: #fff; }
+.group.active .group-star.on { color: #ffd884; }
+
+.listcol { display: flex; flex-direction: column; border-right: 1px solid var(--border); min-width: 0; background: var(--list-bg); }
+.channel-tools { flex: none; padding: 8px 10px; border-bottom: 1px solid var(--border); background: var(--panel); }
+.channel-guide { display: flex; align-items: center; gap: 9px; width: 100%; padding: 8px 10px; border: 1px solid var(--border); border-radius: 7px; background: var(--panel-2); color: var(--text); font-weight: 550; text-align: left; cursor: pointer; }
+.channel-guide > svg { width: 18px; height: 18px; flex: none; fill: none; stroke: var(--accent-2); stroke-width: 1.5; stroke-linecap: round; stroke-linejoin: round; }
+.channel-guide-arrow { margin-left: auto; color: var(--muted); font-size: 1.125rem; line-height: 1; }
+.channel-guide:hover { border-color: var(--accent); background: var(--row-hover); }
+.channel-guide:focus-visible { outline: 2px solid var(--accent-ink); outline-offset: 2px; }
+/* The folding headings over the list, "Filter channels" and "Filter
+   titles": the same mark, gap, type and fold, so that they read as one. */
+.section-toggle {
+  display: flex; align-items: center; gap: 8px; width: 100%; min-height: 2.25rem; padding: 8px 12px;
+  border: 0; background: none; color: var(--text); font: inherit; font-size: 0.78125rem; font-weight: 600;
+  text-align: left; cursor: pointer; list-style: none;
+}
+.section-toggle::-webkit-details-marker { display: none; }
+.section-toggle:hover { background: var(--row-hover); }
+.section-toggle:focus-visible { outline: 2px solid var(--accent-ink); outline-offset: -2px; }
+.section-icon { width: 15px; height: 15px; flex: none; fill: none; stroke: var(--muted); stroke-width: 1.6; stroke-linecap: round; stroke-linejoin: round; }
+.section-label { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.section-count { flex: none; color: var(--muted); font-weight: 400; font-size: var(--fs-s); font-variant-numeric: tabular-nums; }
+.section-chevron { width: 14px; height: 14px; flex: none; fill: none; stroke: var(--muted); stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; transition: rotate .15s; }
+.section-toggle[aria-expanded="true"] .section-chevron, details[open] > .section-toggle .section-chevron { rotate: 180deg; }
+
+.media-filters { flex: none; border-bottom: 1px solid var(--border); background: var(--panel); }
+.media-filters[hidden] { display: none; }
+.media-filters[open] { padding-bottom: 10px; }
+.media-filters > :not(summary) { margin-inline: 12px; }
+.media-filters[open] > summary { margin-bottom: 6px; }
+/* Inside the folds (js/listfilters.js): the country's topics in the
+   channels' one, "Show only favourites" at the foot of either. */
+.channel-filters-body { display: flex; flex-direction: column; }
+.channel-filters-body > .subcats { padding: 0 0 2px; background: none; max-height: none; overflow: visible; }
+.channel-filters-body > .subcats-grip { display: none; }
+.media-filter-controls { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
+.media-filter-controls label { display: grid; gap: 4px; min-width: 0; color: var(--muted); font-size: var(--fs-xs); }
+.media-filter-controls label[hidden] { display: none; }
+.media-filter-controls label.wide { grid-column: 1 / -1; }
+/* A film's length between two handles (MediaFilters.lengthControl): two
+   native sliders laid over one track, each taking presses on its handle
+   only, so that either can be reached wherever the other stands. The
+   track's lit part runs between them (--from, --to set by the script). */
+.length-filter .range-label output { color: var(--text); }
+.length-filter.active .range-label output { color: var(--accent-ink); }
+.range-pair { position: relative; height: 26px; }
+.range-pair::before, .range-pair::after { content: ""; position: absolute; top: 11px; height: 4px; border-radius: 99px; }
+.range-pair::before { left: 0; right: 0; background: var(--panel-2); border: 1px solid var(--border); top: 10px; height: 6px; }
+.range-pair::after { left: var(--from, 0%); right: calc(100% - var(--to, 100%)); background: var(--accent); }
+.range-pair input { position: absolute; inset: 0; width: 100%; height: 26px; margin: 0; padding: 0; background: none; border: 0; pointer-events: none; -webkit-appearance: none; appearance: none; z-index: 1; }
+.range-pair input::-webkit-slider-runnable-track { background: none; border: 0; }
+.range-pair input::-moz-range-track { background: none; border: 0; }
+.range-pair input::-webkit-slider-thumb { -webkit-appearance: none; pointer-events: auto; width: 18px; height: 18px; border-radius: 50%; background: var(--text); border: 2px solid var(--accent); cursor: pointer; }
+.range-pair input::-moz-range-thumb { pointer-events: auto; width: 14px; height: 14px; border-radius: 50%; background: var(--text); border: 2px solid var(--accent); cursor: pointer; }
+.range-pair input:focus-visible { outline: none; }
+.range-pair input:focus-visible::-webkit-slider-thumb { outline: 2px solid var(--accent-ink); outline-offset: 2px; }
+.range-pair input:focus-visible::-moz-range-thumb { outline: 2px solid var(--accent-ink); outline-offset: 2px; }
+.media-filter-controls select { width: 100%; min-width: 0; padding: 6px 5px; border: 1px solid var(--border); border-radius: 6px; background: var(--panel-2); color: var(--text); font-size: var(--fs-s); cursor: pointer; }
+.media-filter-controls select.active { border-color: var(--accent); }
+.media-filter-footer { margin-top: 9px; }
+.media-filter-footer .media-filter-favs { color: var(--text); font-size: var(--fs-s); }
+.media-filter-reset { flex: none; margin-left: auto; padding: 0; border: 0; background: none; color: var(--accent-ink); font-size: var(--fs-s); cursor: pointer; }
+/* What is in force under a fold, as chips with Reset after them. */
+.active-filters { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; padding: 8px 10px; border-bottom: 1px solid var(--border); }
+.active-filters[hidden] { display: none; }
+.filter-chip { border: 1px solid var(--border); border-radius: 6px; padding: 5px 8px; color: var(--text); background: var(--panel-2); cursor: pointer; font-size: var(--fs-m); }
+.filter-chip:hover { border-color: var(--accent); }
+/* The × apart from the label (the second content keeps it out of the
+   name, which aria-label gives as "Remove …"). */
+.filter-chip::after { content: "×"; content: "×" / ""; margin-left: 7px; color: var(--muted); }
+.filter-chip:hover::after { color: var(--text); }
+.media-filters :focus-visible { outline: 2px solid var(--accent-ink); outline-offset: 2px; }
+
+.crumbs { display: flex; align-items: center; gap: 8px; padding: 8px 10px; border-bottom: 1px solid var(--border); color: var(--muted); }
+/* An explicit display beats the browser's [hidden] rule, so it has to be
+   overridden separately — otherwise a hidden breadcrumb leaves a band above
+   the list. */
+.crumbs[hidden] { display: none; }
+.crumbs button { background: var(--panel-2); border: 1px solid var(--border); border-radius: 6px; padding: 3px 8px; cursor: pointer; }
+.crumbs span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--text); }

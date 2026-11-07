@@ -33,7 +33,7 @@
 // on show while the video is paused, and for three seconds after the
 // pointer last moved over the picture — which is what Chrome and Firefox do.
 
-/** The looks on offer, in the order of the settings menu; player.css draws
+/** The looks on offer, in the order of the settings menu; css/playback.css draws
  *  them. The default has no box: text with a shadow, as the streaming
  *  services draw it. */
 export const STYLES = ['shadow', 'outline', 'yellow', 'box', 'contrast'];

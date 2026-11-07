@@ -1,0 +1,64 @@
+/* Accounts and recordings (see player.css for the order). */
+
+/* ----------------------------------------------------------- accounts */
+
+/* Settings → Connection: the accounts above the form. */
+.accounts { margin-bottom: 14px; }
+.accounts-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 8px; font-weight: 600; font-size: 0.8125rem; }
+.account-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 6px; }
+.account-row { display: flex; align-items: center; gap: 10px; padding: 8px 12px; background: var(--panel-2); border: 1px solid var(--border); border-radius: 10px; }
+/* The row picked for the form below is marked; the one in use says so in
+   its badge. The row's name and address are its button. */
+.account-row.selected { border-color: var(--accent); background: var(--row-hover); }
+.account-main {
+  display: flex; flex-direction: column; min-width: 0; margin-right: auto; flex: 1;
+  border: 0; background: none; color: inherit; font: inherit; text-align: left; padding: 0; cursor: pointer;
+}
+.account-main:focus-visible { outline: 2px solid var(--accent-ink); outline-offset: 3px; border-radius: 4px; }
+.account-main b { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.account-main span { color: var(--muted); font-size: var(--fs-s); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.account-current { color: var(--accent-ink); font-size: var(--fs-m); font-weight: 600; white-space: nowrap; }
+.account-row button { flex: none; white-space: nowrap; }
+.account-row button.armed { color: #fff; background: var(--danger); border-color: var(--danger); }
+
+/* Settings › Account & data: the sync's status line. */
+.sync-status { margin: 0; font-size: var(--fs-s); color: var(--muted); }
+.sync-status.error { color: var(--danger); }
+.sync-status:empty { display: none; }
+
+/* -------------------------------------------------------------- recordings */
+.grid .field.w-wide { grid-column: 1 / -1; }
+.rec-dot { display: inline-block; width: 10px; height: 10px; border-radius: 50%; background: var(--danger); flex: none; }
+.record-button { display: inline-flex; align-items: center; gap: 6px; }
+.record-button[aria-pressed="true"] { color: var(--danger); border-color: var(--danger); }
+/* Recording: the dot beats, on Record (Stop) or, for a recording the
+   button does not show, on ☰. */
+.record-button[aria-pressed="true"] .rec-dot { animation: rec-pulse 1.6s ease-in-out infinite; }
+#btn-more.recording { position: relative; }
+#btn-more.recording::after {
+  content: ""; position: absolute; top: 4px; right: 4px; width: 7px; height: 7px; border-radius: 50%;
+  background: var(--danger); animation: rec-pulse 1.6s ease-in-out infinite;
+}
+@keyframes rec-pulse { 50% { opacity: .35; } }
+@media (prefers-reduced-motion: reduce) { .record-button .rec-dot, #btn-more.recording::after { animation: none; } }
+#recordings { width: min(680px, calc(100vw - 32px)); max-height: calc(100dvh - 32px); }
+#rec-consent { width: min(520px, calc(100vw - 32px)); }
+.rec-consent-text p { margin: 0 0 10px; }
+.rec-consent-text p:last-child { margin-bottom: 0; }
+.recordings-list .choice-row { align-items: center; gap: 12px; padding: 8px 12px; }
+.rec-info { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+.rec-info b { font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.rec-info small { color: var(--muted); font-size: 0.78rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.rec-facts { display: flex; flex-wrap: wrap; column-gap: 14px; }
+.rec-info .rec-state { color: var(--danger); }
+.rec-actions { display: flex; gap: 6px; flex: none; }
+.rec-actions .ghost { padding: 4px 10px; }
+.rec-actions .rec-icon { display: grid; place-items: center; width: 32px; padding: 0; }
+.rec-icon svg { width: 16px; height: 16px; fill: none; stroke: currentColor; stroke-width: 1.6; stroke-linecap: round; stroke-linejoin: round; }
+
+/* The guide's favourites switch. */
+.epg-favs { display: inline-flex; align-items: center; gap: 6px; }
+.epg-favs svg { width: 15px; height: 15px; fill: none; stroke: currentColor; stroke-width: 1.6; stroke-linejoin: round; }
+.epg-favs[aria-pressed="true"] { color: var(--accent-ink); border-color: var(--accent); }
+.epg-favs[aria-pressed="true"] svg { fill: currentColor; }
+.epg-select:disabled { opacity: .5; cursor: default; }

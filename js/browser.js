@@ -18,7 +18,7 @@ export const api = globalThis.browser ?? globalThis.chrome;
 /**
  * Whether the page runs in Gecko — Firefox and its forks. Asked of the
  * engine rather than the user agent, which a fork names otherwise and a
- * spoofer names as another browser; it is the test css/player.css makes
+ * spoofer names as another browser; it is the test the stylesheets make
  * with @supports (-moz-appearance: none).
  */
 export function isGecko() {

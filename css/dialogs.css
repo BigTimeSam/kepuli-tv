@@ -1,0 +1,270 @@
+/* Settings and the other dialogs (see player.css for the order). */
+
+/* ----------------------------------------------------------- dialogs */
+
+dialog { border: 1px solid var(--border); background: var(--panel); color: var(--text); border-radius: 14px; padding: 0; box-shadow: 0 24px 70px rgba(0, 0, 0, .6); }
+dialog::backdrop { background: var(--backdrop); backdrop-filter: blur(2px); }
+.modal-head { display: flex; align-items: center; gap: 12px; flex-shrink: 0; }
+.modal-head h2 { flex: 1; min-width: 0; margin: 0; font-size: 1rem; font-weight: 600; line-height: 1.4; }
+.modal-close { display: grid; place-items: center; flex: none; width: 32px; height: 32px; padding: 0; border: 1px solid var(--border); border-radius: 7px; background: transparent; color: var(--muted); cursor: pointer; }
+.modal-close > svg { display: block; width: 18px; height: 18px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; }
+.modal-close:hover { color: var(--text); background: var(--panel-2); }
+.modal-close:focus-visible { outline: 2px solid var(--accent-ink); outline-offset: 2px; }
+.modal-actions { display: flex; align-items: center; justify-content: flex-end; gap: 10px; flex-wrap: wrap; flex-shrink: 0; border-top: 1px solid var(--border); padding-top: 14px; }
+.modal-actions > button { min-height: 32px; }
+.poster-dialog { max-width: calc(100vw - 32px); max-height: calc(100dvh - 32px); overflow: hidden; }
+.poster-dialog .modal-head { padding: 12px 16px; }
+.poster-dialog h2 { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.poster-dialog > img { display: block; margin: auto; width: auto; height: auto; max-width: calc(100vw - 34px); max-height: calc(100vh - 90px); max-height: calc(100dvh - 90px); object-fit: contain; }
+
+/* The form is a column of blocks — the title, the section rail, the one
+   visible section, the action row — and one gap keeps them apart. A gap
+   rather than a margin on each block, so that a block without one cannot
+   sit flush against its neighbour, and a hidden block leaves no double
+   space behind. The rows inside the credential grid sit a little tighter
+   than the blocks, see .grid. */
+.setup { display: flex; flex-direction: column; }
+/* The rail is the top bar's own tabs component; only its width differs,
+   because the sections should fill the dialog rather than huddle left. */
+.setup-tabs { align-self: stretch; }
+/* .tabs sets display: flex, and an explicit display beats [hidden] — the
+   first run has no sections to offer and the rail has to go. */
+.setup-tabs[hidden] { display: none; }
+/* Five sections leave each about a hundred pixels in a window of 600: a
+   name of two words (Russian "Аккаунт и данные") then goes onto a second
+   line rather than pushing the rail into a sideways scroll. A one-word name
+   keeps its own width, and the others share what is left. */
+.setup-tabs button { flex: 1; justify-content: center; text-align: center; white-space: normal; }
+/* One section at a time; only its contents scroll in a short window. */
+.setup-panel { display: flex; flex-direction: column; gap: 14px; }
+.setup-panel[hidden] { display: none; }
+.setup-note { margin: 0; color: var(--muted); font-size: var(--fs-s); line-height: 1.5; }
+/* The caution edge takes the warning colour rather than the gold a
+   favourited star is drawn in, which is what it borrowed before. */
+.connection-security { margin: 0; padding: 10px 12px; border-left: 3px solid var(--warn); background: var(--panel-2); color: var(--text); font-size: var(--fs-m); line-height: 1.5; }
+
+/* Clearing the cache and starting over are a year apart in use from
+   anything else in here, so they sit at the foot of their own section
+   rather than beside Done in every one of them. Each says what it takes
+   with it: the words are the guard, the red is only the warning. */
+.danger-rows { display: flex; flex-direction: column; gap: 10px; }
+.danger-row { display: flex; align-items: center; gap: 14px; }
+.danger-row span { color: var(--muted); font-size: var(--fs-s); line-height: 1.45; min-width: 0; }
+.danger-row button { flex: none; margin-left: auto; white-space: nowrap; }
+
+.field { display: flex; flex-direction: column; gap: 4px; }
+.field[hidden] { display: none; }        /* an explicit display beats [hidden], see .crumbs */
+.field span code { background: var(--panel-2); padding: 1px 4px; border-radius: 4px; }
+.field span { color: var(--muted); font-size: var(--fs-s); }
+.field input, .field select { background: var(--panel-2); border: 1px solid var(--border); border-radius: 8px; padding: 7px 9px; width: 100%; }
+
+/* The password and the eye that shows it, in one field-shaped box. */
+.field-reveal { position: relative; display: block; }
+.field-reveal input { padding-right: 38px; }
+.field-reveal button {
+  position: absolute; right: 4px; top: 50%; transform: translateY(-50%);
+  display: grid; place-items: center; width: 30px; height: 30px; padding: 0;
+  border: 0; border-radius: 7px; background: transparent; color: var(--muted); cursor: pointer;
+}
+.field-reveal button:hover { color: var(--text); background: var(--row-hover); }
+.field-reveal button.on { color: var(--accent-2); }
+.field-reveal button:focus-visible { outline: 2px solid var(--accent-ink); outline-offset: -2px; }
+.field-reveal svg { width: 17px; height: 17px; fill: none; stroke: currentColor; stroke-width: 1.6; stroke-linecap: round; stroke-linejoin: round; }
+
+/* Where the details come from, said inside the dialog: it is modal, so the
+   top bar's own Help cannot be reached while it is open. */
+.setup-help { display: inline-flex; align-items: baseline; gap: 5px; margin-left: 4px; color: var(--accent-ink); text-decoration: none; white-space: nowrap; }
+.setup-help:hover { text-decoration: underline; }
+.setup-help:focus-visible { outline: 2px solid var(--accent-ink); outline-offset: 3px; border-radius: 4px; }
+.setup-help svg { width: 12px; height: 12px; fill: none; stroke: currentColor; stroke-width: 1.7; stroke-linecap: round; stroke-linejoin: round; }
+.field input:focus, .field select:focus { border-color: var(--accent); }
+.grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; }
+.grid[hidden] { display: none; }         /* an explicit display beats [hidden], see .crumbs */
+.grid .w-scheme { grid-column: span 1; }
+.grid .w-host { grid-column: span 2; }
+.grid .w-port { grid-column: span 1; }
+.grid .field:nth-child(n+4) { grid-column: span 2; }
+/* Two fields that belong together on one line, as .grid does for the
+   connection form; below 520px they go one above the other. Two to a
+   row in the settings dialog rather than four: a quarter of the dialog cut
+   the Clock's "Automaattinen (22.30)" in Finnish (found by the pseudo
+   scenario in dev/playcheck.mjs, KEPULI_OVERFLOW_LANG=fi). */
+.field-pair { display: grid; grid-template-columns: repeat(auto-fit, minmax(15rem, 1fr)); gap: 10px; }
+
+/* Choosing the connection mode. Chips would be too light here: the choice
+   changes the whole form, so it may look like a choice. */
+.radios { display: flex; gap: 8px; }
+.radio {
+  display: flex; align-items: center; gap: 7px; cursor: pointer;
+  padding: 7px 12px; border: 1px solid var(--border); border-radius: 9px;
+  background: var(--panel-2); color: var(--muted);
+}
+.radio:hover { color: var(--text); border-color: var(--border-strong); }
+.radio input { accent-color: var(--accent); width: 15px; height: 15px; margin: 0; }
+.radio:has(input:checked) { border-color: var(--accent); color: var(--text); }
+
+/* The subtitle look, with a preview: the choice is judged by eye, and the
+   picture is not always there to judge it on. The same rules draw the
+   preview as the layer, and the frame stands in for the picture: the text
+   is the same share of its height as it will be of the film's. The ground
+   is a stand-in for a bright, uneven picture — the case a look has to
+   survive. */
+.sublook { display: flex; flex-direction: column; gap: 12px; flex: 1; min-height: 0; }
+/* Controls keep their place above a bounded preview. A sample too wide
+   for a narrow frame is scaled down to fit; nothing else is. */
+.sublook-preview {
+  /* 16:9, sized by fitSubtitlePreview() to the room under the controls. */
+  position: relative; flex: none; align-self: flex-start; overflow: hidden; box-sizing: border-box;
+  border: 1px solid var(--border); border-radius: 9px;
+  background:
+    radial-gradient(ellipse at 18% 12%, rgba(255, 219, 160, .55), transparent 55%),
+    radial-gradient(ellipse at 85% 80%, rgba(34, 211, 238, .18), transparent 50%),
+    linear-gradient(165deg, #55648a, #1a2030 55%, #0a0c11);
+}
+.sublook-preview .subdisplay {
+  left: 50%; right: auto; width: max-content;
+  transform: translateX(-50%) scale(var(--sub-preview-scale, 1)); transform-origin: bottom center;
+}
+.sublook-preview .subdisplay .cue { max-width: none; white-space: pre; }
+.sublook-fields { display: grid; grid-template-columns: repeat(auto-fit, minmax(9.375rem, 1fr)); gap: 10px; flex-shrink: 0; }
+/* A field that must be filled in has a * after its name (and
+   aria-required on its input); one that need not says nothing. */
+/* The second content leaves the * out of the field's accessible name
+   ("Password", not "Password *"), where the browser knows the form. */
+.field.req > span:first-child::after, .field.req > .group-head label > span::after { content: " *"; content: " *" / ""; color: var(--muted); }
+.field-hint { font-size: var(--fs-m); color: var(--muted); line-height: 1.45; }
+/* Two classes, to beat the muted colour .field gives every span in it. */
+.field .playlist-status { color: var(--danger); }
+.radios { flex-wrap: wrap; }
+.range-label { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; }
+.range-label > span:first-child { flex: 1; }
+/* Back to 100 %: a word beside the number, there only when it is not 100. */
+.range-reset { border: 0; background: none; padding: 0; font: inherit; font-size: var(--fs-m); color: var(--accent-ink); cursor: pointer; text-decoration: underline; text-underline-offset: 2px; }
+.range-reset[hidden] { display: none; }
+.range-label output { font-variant-numeric: tabular-nums; }
+.field input[type="range"] { padding: 0; border: 0; background: none; height: 33px; accent-color: var(--accent); cursor: pointer; }
+
+.toggles { display: flex; flex-direction: column; gap: 7px; }
+.toggle { display: flex; align-items: center; gap: 8px; color: var(--muted); cursor: pointer; }
+.toggle input { accent-color: var(--accent); width: 15px; height: 15px; }
+
+.account-box { font-size: var(--fs-m); color: var(--muted); }
+.account-box[hidden] { display: none; }
+.account-box b { color: var(--text); font-weight: 600; }
+.account-box .cols { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px 12px; margin-top: 6px; }
+
+/* Status and actions share one footer across all settings tabs. */
+.setup-actions .setup-note { flex: 1; min-width: 180px; }
+/* Unsaved work says so twice: a yellow mark before the words, so the
+   pending save is caught by the eye and not only by the reader. The
+   mark is inline, so a note that wraps still wraps around it. */
+#setup-note > svg { display: none; width: 15px; height: 15px; margin-right: 5px; vertical-align: -3px; color: var(--warn); fill: none; stroke: currentColor; stroke-width: 1.7; stroke-linecap: round; stroke-linejoin: round; }
+#setup-note.pending > svg { display: inline; }
+.setup-actions .armed { color: #fff; background: var(--danger); border-color: var(--danger); }
+
+/* A stable frame keeps navigation and the shared save action in place. */
+#setup { width: min(760px, calc(100vw - 32px)); max-height: calc(100dvh - 32px); }
+.setup { width: 100%; max-height: calc(100dvh - 34px); padding: 24px; gap: 20px; }
+.setup-head, .setup-tabs, .setup > .setup-actions { flex-shrink: 0; }
+/* As tall as the window allows, up to a point: the connection section
+   holds the accounts above the form, and 320 px showed only the list. The
+   height is still one for every section, so that the rail and Save stay
+   put when the section changes; a short window shrinks it (min-height 0). */
+.setup-panel { min-height: 0; height: clamp(320px, calc(100dvh - 290px), 620px); overflow-y: auto; padding: 2px; }
+#panel-subs { overflow: hidden; }
+.setup-intro { margin: 0 0 2px; color: var(--muted); font-size: 0.8125rem; line-height: 1.5; }
+/* A hint belongs to the field above it, not to the space between fields. */
+.setup-panel > .field-hint { margin: -8px 0 0; }
+.setup .toggles { gap: 0; }
+/* Close and unruled: the groups' headings and rules set the rows apart. */
+.setup .toggle { padding: 5px 0; color: var(--text); }
+.setup .toggle input { flex-shrink: 0; }
+/* Settings in groups, each under a small heading and a rule. */
+.setup-group { display: flex; flex-direction: column; gap: 8px; padding-top: 10px; border-top: 1px solid var(--border); }
+.setup-group:first-of-type { padding-top: 0; border-top: 0; }
+.setup-group h3, .setup-panel > .group-head h3, .sublook > h3 { margin: 0; font-size: 0.8125rem; font-weight: 600; }
+.setup-group .field-hint { margin: 0; }
+/* A setting's explanation waits behind a ? beside it, and opens under it. */
+.toggle-line, .group-head { display: flex; align-items: center; gap: 6px; }
+.hint-btn {
+  /* The mark stays small; what takes a press is 24 px, as WCAG 2.5.8 asks:
+     a transparent 3 px border round the drawn ring, taken back by the
+     margin. A ::after reaching out instead counted as text overflowing the
+     button (scrollWidth). */
+  flex: none; box-sizing: border-box; width: 1.5rem; height: 1.5rem; margin: -3px; padding: 0; border-radius: 50%;
+  border: 3px solid transparent; box-shadow: inset 0 0 0 1px var(--border); background: transparent; color: var(--muted);
+  font-size: var(--fs-xs); font-weight: 700; line-height: 1; cursor: pointer;
+}
+.hint-btn:hover, .hint-btn[aria-expanded="true"] { color: var(--text); box-shadow: inset 0 0 0 1px var(--muted); }
+.toggle-line + .field-hint { margin-top: -6px; padding-left: 23px; }
+/* Language, appearance and clock in one row where they fit. */
+.setup-group .field-pair { grid-template-columns: repeat(auto-fit, minmax(12rem, 1fr)); }
+.setup > .setup-actions { margin-top: 0; }
+.setup > .setup-actions button { margin-left: 0; }
+.setup button.primary:disabled { opacity: .45; cursor: default; filter: none; }
+.setup > .setup-actions .setup-note { font-size: var(--fs-m); }
+.help-foot { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+/* At the start of its own row, not after a sentence: no gap before it. */
+.help-foot > .setup-help { margin-left: 0; }
+.app-version { margin-left: auto; text-align: right; }
+.setup-error { margin: 0; color: var(--danger); font-size: 0.8125rem; }
+.setup > .grant-note { margin: 0; flex-shrink: 0; }
+.setup > .grant-note[hidden] { display: none; }
+.setup-discard { padding: 12px; border: 1px solid var(--border); border-radius: 9px; background: var(--panel-2); }
+.setup-discard p { margin: 0 0 10px; }
+.setup-tabs button:focus-visible { outline: 2px solid var(--accent-ink); outline-offset: 2px; }
+@media (max-width: 520px) {
+  .setup { padding: 18px 14px; gap: 16px; }
+  .setup-tabs button { padding: 8px 5px; font-size: var(--fs-m); white-space: normal; }
+  .setup > .setup-actions .setup-note { flex-basis: 100%; }
+  .setup > .setup-actions #f-done { margin-left: auto; }
+  .setup .danger-row { align-items: flex-start; flex-direction: column; }
+  .setup .account-box .cols { grid-template-columns: repeat(2, 1fr); }
+  .setup .sublook-fields { grid-template-columns: 1fr; }
+  .setup .field-pair { grid-template-columns: 1fr; }
+  .setup .grid { grid-template-columns: minmax(72px, 1fr) minmax(0, 2fr) minmax(64px, 1fr); }
+  .setup .grid .w-host { grid-column: span 1; }
+  .setup .grid .field:nth-child(n+4) { grid-column: 1 / -1; }
+}
+
+.bar { height: 4px; background: var(--border); border-radius: 99px; overflow: hidden; }
+/* The bar is scaled rather than widened: changing width and margin would
+   force a re-layout on every frame, and an indeterminate load spins for
+   minutes. The gradient is squeezed into the visible part instead of only
+   its head showing — in a six-pixel bar the difference does not register.
+   The fill comes from JS: scaleX(0…1). */
+.bar-fill { height: 100%; width: 100%; transform: scaleX(0); transform-origin: 0 50%; background: linear-gradient(90deg, var(--accent), var(--accent-2)); transition: transform .15s ease; }
+.bar.indeterminate .bar-fill { animation: slide 1.1s ease-in-out infinite; transition: none; }
+/* scaleX(.35) matches the old width of 35%, and because translateX computes
+   percentages from the unscaled width, the numbers for the movement are the
+   same as they were in margin-left: from behind one edge to behind the
+   other. */
+@keyframes slide {
+  0% { transform: translateX(-35%) scaleX(.35); }
+  100% { transform: translateX(100%) scaleX(.35); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .bar.indeterminate .bar-fill { animation: none; }
+  .bar-fill { transition: none; }
+  .bar.indeterminate .bar-fill { transform: scaleX(.35); }
+}
+
+.toast { position: fixed; bottom: 18px; left: 50%; transform: translateX(-50%); display: flex; align-items: center; gap: 9px; background: var(--panel-2); border: 1px solid var(--border); padding: 9px 16px; border-radius: 10px; box-shadow: 0 10px 32px rgba(0, 0, 0, .5); z-index: 10; max-width: 70vw; }
+.toast[hidden] { display: none; }
+/* The switch the message is asking for, inside the message. */
+.toast-action {
+  flex: none; margin-left: 4px; padding: 4px 10px; cursor: pointer;
+  color: var(--text); background: transparent; border: 1px solid var(--border);
+  border-radius: 7px; font: inherit; font-weight: 550;
+}
+.toast-action:hover { background: var(--row-hover); border-color: var(--border-strong); }
+.toast-action:focus-visible { outline: 2px solid var(--accent-ink); outline-offset: 2px; }
+/* Only the icon of the message's own kind is shown; the other two wait. */
+.toast > svg { display: none; flex: none; width: 16px; height: 16px; fill: none; stroke: currentColor; stroke-width: 1.7; stroke-linecap: round; stroke-linejoin: round; }
+.toast.info > svg[data-kind="info"] { display: block; color: var(--accent-2); }
+.toast.warn > svg[data-kind="warn"] { display: block; color: var(--warn); }
+.toast.error > svg[data-kind="error"] { display: block; color: var(--danger); }
+/* The colour carries the same weight as the icon: a warning is yellow, an
+   error red, and the text stays at full contrast on both grounds. */
+.toast.warn { background: var(--toast-warn); border-color: var(--toast-warn-line); }
+.toast.error { background: var(--toast-error); border-color: var(--toast-error-line); }

@@ -1,0 +1,55 @@
+/* The selectors' own chevron, the drop-down lists (js/picker.js) and the
+   search fields' magnifier (see player.css for the order). */
+
+/* The selectors draw their own chevron. The browser's sits against the
+   right edge whatever the padding, so a menu with room on the left had none
+   on the right; this one stands as far in from the edge as the text does.
+   Last in the file and one class strong, so that it outlasts every
+   selector's own background shorthand above. */
+select:not([multiple]) {
+  appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'%3E%3Cpath d='M1 1l4 4 4-4' fill='none' stroke='%238d95aa' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 10px center;
+  background-size: 10px 6px;
+  padding-right: 28px;
+}
+.media-filter-controls select:not([multiple]) { background-position: right 7px center; padding-right: 21px; }
+@media (prefers-contrast: more) {
+  select:not([multiple]) {
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'%3E%3Cpath d='M1 1l4 4 4-4' fill='none' stroke='%23b6bdcd' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+  }
+}
+
+/* The drop-down lists (js/picker.js): the select stays the control, and
+   this is the list it opens, in the top layer over dialogs. */
+.picker-pop {
+  position: fixed; inset: auto; margin: 0; padding: 4px;
+  display: flex; flex-direction: column; gap: 4px; overflow: hidden;
+  background: var(--panel); color: var(--text); border: 1px solid var(--border-strong);
+  border-radius: 9px; box-shadow: 0 14px 34px rgba(0, 0, 0, .45); font-size: 0.8125rem;
+}
+/* A search field's magnifier, where the field has no frame of its own to
+   carry it: the guide's programme search, the drop-downs' filter. The same
+   mark at the same size as the top bar's search, the sidebar's and the
+   countries'. */
+.search-field { position: relative; display: flex; flex: 1; min-width: 0; }
+.search-field > svg { position: absolute; left: 10px; top: 50%; translate: 0 -50%; width: 14px; height: 14px; fill: none; stroke: var(--muted); stroke-width: 1.8; stroke-linecap: round; pointer-events: none; }
+.search-field > input { width: 100%; padding-left: 30px; }
+.programme-form .search-field { min-width: 180px; }
+.picker-filter {
+  flex: none; width: 100%; padding: 6px 8px; border: 1px solid var(--border); border-radius: 6px;
+  background: var(--panel-2); color: var(--text);
+}
+.picker-filter:focus { border-color: var(--accent); }
+.picker-list { list-style: none; margin: 0; padding: 0; overflow-y: auto; min-height: 0; outline: none; }
+.picker-option {
+  padding: 6px 9px; border-radius: 5px; cursor: pointer;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.picker-option[hidden], .picker-group[hidden], .picker-empty[hidden] { display: none; }
+.picker-option.active { background: var(--row-hover); }
+.picker-option[aria-selected="true"] { color: var(--accent-ink); font-weight: 600; }
+.picker-option[aria-disabled="true"] { color: var(--dim); cursor: default; }
+.picker-group { padding: 8px 9px 3px; color: var(--muted); font-size: var(--fs-xs); font-weight: 600; text-transform: uppercase; letter-spacing: .04em; }
+.picker-empty { margin: 0; padding: 8px 9px; color: var(--muted); }

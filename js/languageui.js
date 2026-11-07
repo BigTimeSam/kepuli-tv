@@ -83,7 +83,7 @@ export async function applyLanguage(lang) {
 
 /** The player's idle state: either a welcome or a prompt to pick a channel. */
 // The overlay is the empty player's own page while it says so, and is
-// painted as a page of the app then (.overlay.idle in player.css) rather
+// painted as a page of the app then (.overlay.idle in css/playback.css) rather
 // than as a message over the picture. Watched rather than set in every one
 // of the places that put another message there.
 new MutationObserver(() => {

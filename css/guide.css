@@ -1,0 +1,278 @@
+/* The programme guide (see player.css for the order). */
+
+/* ------------------------------------------------- programme guide */
+
+.epgview, .epg { min-width: 0; min-height: 0; }
+.epgview[hidden], .epg[hidden] { display: none; }
+
+.epgview {
+  display: flex; flex-direction: column; gap: 4px;
+  padding: 12px 14px; overflow: hidden;
+  background: var(--panel); border-bottom: 1px solid var(--border);
+}
+.epgv-head { display: flex; align-items: center; gap: 10px; }
+.epgv-logo { width: 44px; height: 34px; object-fit: contain; flex: none; }
+.epgv-chan { min-width: 0; flex: 1; }
+.epgv-name { font-weight: 600; font-size: 0.875rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.epgv-meta { color: var(--muted); font-size: var(--fs-s); display: flex; gap: 8px; flex-wrap: wrap; }
+.epgv-actions { display: flex; gap: 6px; flex: none; }
+.epgv-slot { color: var(--accent-2); font-variant-numeric: tabular-nums; font-size: var(--fs-m); margin-top: 4px; }
+.epgv-slot b { color: var(--text); font-weight: 600; font-size: 0.8125rem; margin-left: 8px; }
+.epgv-desc { color: var(--muted); font-size: var(--fs-m); overflow-y: auto; min-height: 0; }
+/* What comes after, under the programme on now: a timetable, so the
+   times stand in one column and the titles in the next. */
+.epgv-next { list-style: none; margin: 4px 0 0; padding: 8px 0 0; border-top: 1px solid var(--border);
+  display: grid; grid-template-columns: auto 1fr; column-gap: 10px; row-gap: 4px; font-size: var(--fs-m); flex: none; }
+.epgv-next[hidden] { display: none; }
+.epgv-next li { display: contents; }
+.epgv-next-time { color: var(--accent-2); font-variant-numeric: tabular-nums; }
+.epgv-next-title { color: var(--text); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+.epg { display: flex; flex-direction: column; background: var(--epg-bg); }
+
+/* Personal channel list and programme search share the player's controls. */
+/* The help, which is mostly a two-column list of keys and what they do. */
+#help { width: min(560px, calc(100vw - 32px)); max-height: calc(100dvh - 32px); }
+.help-content { padding: 24px; display: flex; flex-direction: column; gap: 12px; max-height: calc(100dvh - 34px); overflow-y: auto; }
+.help-content h3 { margin: 4px 0 0; font-size: var(--fs-m); font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
+/* One width for the key column in both lists, folded or not, so that they
+   read as one: the widest key, ↑ ↓ PgUp PgDn, fits. */
+.help-keys { display: grid; grid-template-columns: 7.25rem 1fr; gap: 6px 14px; margin: 0; align-items: baseline; }
+.help-keys dt { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: var(--fs-s); color: var(--text); background: var(--panel-2); border: 1px solid var(--border); border-radius: 6px; padding: 3px 7px; justify-self: start; white-space: nowrap; }
+.help-keys dd { margin: 0; color: var(--muted); }
+.help-note { margin: 0; color: var(--muted); line-height: 1.5; }
+/* The rest of the keys, folded under the heading every fold in the app
+   wears, its edge lined up with the list above. */
+.help-more { margin: 0 -12px; border-top: 1px solid var(--border); border-bottom: 1px solid var(--border); }
+.help-more[open] { padding: 0 12px 12px; }
+.help-more[open] > .section-toggle { margin: 0 -12px; width: calc(100% + 24px); }
+.help-more .help-keys { margin: 6px 0 14px; }
+
+/* The countries the viewer watches and what they have hidden
+   (js/channelchoices.js). */
+#countries, #hidden { width: min(560px, calc(100vw - 32px)); max-height: calc(100dvh - 32px); }
+.choice-content { padding: 24px; display: flex; flex-direction: column; gap: 14px; max-height: calc(100dvh - 34px); }
+.editor-help { margin: 0; color: var(--muted); line-height: 1.5; }
+.editor-help[hidden] { display: none; }
+.programme-form { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.programme-form input { flex: 1; min-width: 150px; }
+.programme-form input, .programme-form select {
+  color: var(--text); background: var(--panel-2); border: 1px solid var(--border); border-radius: 6px; padding: 7px 9px; min-width: 0;
+}
+/* "Filter countries": all, the favourite ones, or those chosen below. The
+   list answers only the third and stands dimmed otherwise; a tick in it
+   chooses the third. */
+.choice-modes { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 18px; padding: 2px 0 10px; }
+.choice-modes-label { flex-basis: 100%; color: var(--muted); font-size: var(--fs-m); }
+.choice-mode { display: flex; align-items: center; gap: 7px; cursor: pointer; }
+.choice-mode > input { margin: 0; accent-color: var(--accent); }
+#countries:not(.choosing) #countries-all-row, #countries:not(.choosing) .choice-list { opacity: .55; }
+#countries:not(.choosing) .choice-list:hover, #countries:not(.choosing) #countries-all-row:hover { opacity: .8; }
+.choice-filter { position: relative; }
+.choice-filter svg { position: absolute; left: 10px; top: 50%; translate: 0 -50%; width: 14px; height: 14px; fill: none; stroke: var(--muted); stroke-width: 1.8; stroke-linecap: round; pointer-events: none; }
+.choice-filter input { width: 100%; padding: 7px 9px 7px 30px; color: var(--text); background: var(--panel-2); border: 1px solid var(--border); border-radius: 8px; }
+.choice-filter input:focus { border-color: var(--accent); }
+.choice-all { border: 1px solid var(--border); border-radius: 8px; font-weight: 600; }
+.choice-all input:disabled + .choice-name { color: var(--dim); }
+.choice-list { min-height: 0; max-height: min(56vh, 560px); overflow-y: auto; border: 1px solid var(--border); border-radius: 8px; }
+.choice-list:empty, .choice-list.none { display: none; }
+.choice-row { display: flex; align-items: center; gap: 10px; min-height: 42px; padding: 5px 12px; border-bottom: 1px solid var(--row-line); cursor: pointer; }
+.choice-row:last-child { border-bottom: 0; }
+.choice-row[hidden] { display: none; }
+div.choice-row { cursor: default; }
+label.choice-row:hover { background: var(--row-hover); }
+.choice-row input { accent-color: var(--accent); flex: none; width: 16px; height: 16px; }
+.choice-name { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.choice-count { color: var(--muted); font-size: var(--fs-m); font-variant-numeric: tabular-nums; flex: none; }
+.choice-tag { color: var(--accent-ink); font-size: var(--fs-xs); font-weight: 600; border: 1px solid currentColor; border-radius: 5px; padding: 0 5px; flex: none; }
+.choice-logo { width: 30px; height: 22px; flex: none; }
+.choice-row .ghost { padding: 4px 10px; flex: none; }
+.choice-actions span { flex: 1; color: var(--muted); font-size: var(--fs-m); }
+
+.programme-form { padding: 8px 10px; border-bottom: 1px solid var(--border); background: var(--panel); }
+.programme-form input { min-width: 180px; }
+.programme-panel { display: flex; flex: 1; flex-direction: column; min-height: 0; }
+.programme-panel[hidden], .epg-body[hidden] { display: none; }
+.programme-summary { display: flex; flex-direction: column; gap: 7px; flex: none; padding: 10px 12px; border-bottom: 1px solid var(--border); }
+.programme-summary .lp-head { flex-wrap: wrap; }
+.psr-failed { color: var(--warn); }
+.programme-results { flex: 1; min-height: 0; overflow-y: auto; }
+.programme-results[hidden] { display: none; }
+/* Nothing found: the list's own empty notice, a size up, in the middle of
+   where the results would be, under its mark in the accent's circle as
+   the player's own page has it. */
+.programme-empty { flex: 1; display: grid; place-items: center; overflow-y: auto; }
+.programme-empty[hidden] { display: none; }
+.programme-empty .empty { max-width: 440px; }
+.programme-empty .empty-icon, .recordings-empty .empty-icon { width: 22px; height: 22px; padding: 11px; margin-bottom: 12px; background: var(--accent-soft); }
+.programme-empty .empty strong, .recordings-empty .empty strong { font-size: 1.0625rem; font-weight: 650; letter-spacing: -0.005em; margin-bottom: 8px; }
+/* The results by channel: a heading with the logo and the name as the
+   guide writes it, then its programmes, each a row of when, what and, for
+   one on now, how far it has got. HEAD_H and ROW_H in
+   js/programmesearch.js are these heights. */
+.psr-head { height: 52px; display: flex; align-items: center; gap: 10px; padding: 0 14px; box-sizing: border-box;
+  background: var(--panel); border-bottom: 1px solid var(--border); }
+button.psr-head { width: 100%; border: 0; border-bottom: 1px solid var(--border); color: var(--text); font: inherit; text-align: left; cursor: pointer; }
+button.psr-head:hover, button.psr-head:focus-visible { background: var(--panel-2); }
+button.psr-head:focus-visible, .psr-more:focus-visible { outline-offset: -2px; }
+/* The fold's chevron: down while the channel shows all, right while it
+   shows its first few. */
+.psr-fold { flex: none; width: 7px; height: 7px; margin: 0 4px 3px 2px; border: solid var(--muted); border-width: 0 1.5px 1.5px 0; transform: rotate(-45deg); transition: transform .15s; }
+.psr-head[aria-expanded="true"] .psr-fold { transform: rotate(45deg); }
+@media (prefers-reduced-motion: reduce) { .psr-fold { transition: none; } }
+/* "Show all 17", under the first few, where the titles start. */
+.psr-more { height: 44px; width: 100%; display: block; box-sizing: border-box; padding: 0 14px 0 calc(58px + 4.75rem + 14px); border: 0; border-bottom: 1px solid var(--border);
+  background: transparent; color: var(--accent-ink); font: inherit; font-size: 0.8125rem; font-weight: 600; text-align: left; cursor: pointer; }
+.psr-more:hover, .psr-more:focus-visible { background: var(--panel-2); text-decoration: underline; }
+.psr-head strong { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 0.875rem; font-weight: 650; }
+.psr-logo { width: 34px; height: 26px; flex: none; object-fit: contain; border-radius: 3px; }
+.psr-n { flex: none; min-width: 1.6em; padding: 1px 7px; border-radius: 999px; background: var(--panel-2); color: var(--muted); font-size: var(--fs-xs); text-align: center; }
+.psr-row { height: 60px; width: 100%; display: flex; align-items: center; gap: 14px; box-sizing: border-box;
+  text-align: left; padding: 0 14px 0 58px; border: 0; border-bottom: 1px solid var(--border); background: transparent; color: var(--text); cursor: pointer; }
+.psr-row:hover, .psr-row:focus-visible { background: var(--panel-2); }
+/* Inside the scrolling results a ring outside the row would be cut off. */
+.psr-row:focus-visible { outline-offset: -2px; }
+.psr-when { flex: none; width: 4.75rem; display: flex; flex-direction: column; font-variant-numeric: tabular-nums; font-weight: 600; font-size: 0.875rem; }
+.psr-when small { color: var(--muted); font-weight: 400; font-size: var(--fs-xs); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.psr-body { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 3px; }
+.psr-body strong, .psr-body span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.psr-body strong { font-weight: 600; }
+.psr-body span { color: var(--muted); font-size: var(--fs-m); }
+.psr-now { flex: none; position: relative; overflow: hidden; padding: 2px 8px 4px; border-radius: 5px; background: var(--accent); color: #fff; font-size: var(--fs-xs); font-weight: 600; }
+.psr-now i { position: absolute; left: 0; bottom: 0; height: 2px; background: rgba(255, 255, 255, .85); }
+.epg-days { min-width: 0; max-width: 34vw; overflow-x: auto; }
+
+@media (max-width: 600px) {
+  .choice-content { padding: 16px; gap: 10px; }
+  .editor-help { font-size: var(--fs-m); line-height: 1.4; }
+  .choice-actions { padding-top: 10px; }
+  .choice-actions span { flex-basis: 100%; }
+}
+
+.epg-bar {
+  display: flex; align-items: center; gap: 8px; flex-wrap: wrap;
+  padding: 6px 10px; background: var(--panel); border-top: 1px solid var(--border);
+  border-bottom: 1px solid var(--border);
+}
+.epg-bar .spacer { flex: 1; }
+.epg-bar button.ghost { padding: 4px 9px; }
+.epg-select { background: var(--panel-2); border: 1px solid var(--border); border-radius: 8px; padding: 5px 8px; max-width: 220px; }
+.epg-nav { display: flex; gap: 3px; }
+.epg-days { display: flex; gap: 3px; overflow-x: auto; }
+.epg-day {
+  background: transparent; border: 1px solid transparent; border-radius: 7px;
+  padding: 4px 9px; cursor: pointer; color: var(--muted); white-space: nowrap;
+}
+.epg-day:hover { color: var(--text); background: var(--panel-2); }
+.epg-day.active { background: var(--panel-2); border-color: var(--border); color: var(--text); }
+/* The archive's older days, in one menu before yesterday. */
+.epg-days { align-items: center; }
+select.epg-earlier { font: inherit; padding-right: 26px; background-position: right 8px center; }
+.epg-clock { color: var(--muted); font-size: var(--fs-s); font-variant-numeric: tabular-nums; white-space: nowrap; }
+
+.epg-hint { margin: 0; padding: 48px 28px 0; color: var(--muted); text-align: center; line-height: 1.5; }
+.epg-hint[hidden], .epg:has(#programme-panel:not([hidden])) .epg-hint { display: none; }
+.epg.no-channels .epg-body { display: none; }
+.epg.no-channels .epg-days-scroll, .epg.no-channels .epg-nav { visibility: hidden; }
+
+.epg-body {
+  flex: 1; min-height: 0;
+  display: grid;
+  grid-template-columns: var(--epg-chan-w) minmax(0, 1fr);
+  grid-template-rows: 28px minmax(0, 1fr);
+}
+
+.epg-corner {
+  grid-area: 1 / 1; display: flex; align-items: center; padding: 0 10px;
+  background: var(--panel); border-right: 1px solid var(--border); border-bottom: 1px solid var(--border);
+  color: var(--text); font-weight: 550; font-size: var(--fs-s);
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+
+/* The header row and the channel column scroll with the grid by translating:
+   scrollbars of their own would show as three overlapping bars. */
+.epg-times { grid-area: 1 / 2; overflow: hidden; position: relative; background: var(--panel); border-bottom: 1px solid var(--border); }
+.epg-times-inner { position: relative; height: 100%; will-change: transform; }
+.epg-tick {
+  position: absolute; top: 0; bottom: 0; display: flex; align-items: center;
+  padding-left: 7px; color: var(--muted); font-size: var(--fs-s);
+  font-variant-numeric: tabular-nums; border-left: 1px solid var(--epg-line);
+}
+.epg-tick.hour { border-left-color: var(--tick-hour); color: var(--text); }
+.epg-tick.day { border-left-color: var(--accent); color: var(--accent-2); font-weight: 600; }
+
+.epg-chans { grid-area: 2 / 1; overflow: hidden; position: relative; background: var(--panel); border-right: 1px solid var(--border); }
+.epg-chans-inner { position: relative; will-change: transform; }
+.epg-chan {
+  position: absolute; left: 0; right: 0; height: var(--epg-row);
+  display: flex; align-items: center; gap: 8px; padding: 0 9px;
+  border-bottom: 1px solid var(--row-line); cursor: pointer;
+}
+.epg-chan:hover { background: var(--row-hover); }
+.epg-chan.cursor { background: var(--selected); box-shadow: inset 3px 0 0 var(--accent-2); }
+.epg-chan.playing { background: linear-gradient(90deg, rgba(124, 92, 255, .22), transparent); box-shadow: inset 2px 0 0 var(--accent); }
+.epg-chan-logo { width: 30px; height: 24px; flex: none; object-fit: contain; border-radius: 3px; }
+.epg-chan-body { min-width: 0; flex: 1; display: flex; align-items: baseline; gap: 6px; }
+.epg-chan-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 0.78125rem; }
+.epg-chan-rec { flex: none; font-size: var(--fs-xs); color: var(--accent-2); border: 1px solid var(--archive-line); border-radius: 5px; padding: 0 4px; }
+
+.epg-scroll { grid-area: 2 / 2; overflow: auto; outline: none; }
+/* The keyboard's whereabouts: the container that takes the arrows shows it. */
+.epg-scroll:focus-visible { outline: 2px solid var(--accent-ink); outline-offset: -2px; }
+/* Inside the ring, a row's own mark at the left edge steps in beside it
+   rather than under it. */
+#list:focus-visible .row.selected { box-shadow: inset 5px 0 0 var(--accent-2); }
+#list:focus-visible .row.playing { box-shadow: inset 4px 0 0 var(--accent); }
+/* The sidebar's own focus ring, and inside it the row the arrows are on.
+   Two different things: .active is the group being shown, .cursor is where
+   the keyboard stands, and either can be on a row the other is not. */
+.groups-list:focus-visible { outline: 2px solid var(--accent-ink); outline-offset: -2px; }
+.groups-list:focus-visible .group.cursor { box-shadow: inset 0 0 0 2px var(--accent-2); }
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation-duration: 0.01ms !important; animation-iteration-count: 1 !important; transition-duration: 0s !important; }
+}
+.epg-canvas {
+  position: relative;
+  background-image:
+    repeating-linear-gradient(90deg, var(--tick-hour) 0 1px, transparent 1px var(--hour, 300px)),
+    repeating-linear-gradient(90deg, var(--epg-line) 0 1px, transparent 1px var(--slot, 150px)),
+    repeating-linear-gradient(0deg, transparent 0 calc(var(--epg-row) - 1px), var(--epg-line) calc(var(--epg-row) - 1px) var(--epg-row));
+}
+
+.epg-prog {
+  position: absolute; height: calc(var(--epg-row) - 6px);
+  display: flex; align-items: center; overflow: hidden;
+  background: var(--panel-2); border: 1px solid var(--border); border-radius: 6px;
+  cursor: pointer; font-size: var(--fs-m);
+}
+.epg-prog:hover { background: var(--row-hover); border-color: var(--border-strong); }
+.epg-prog-label { padding: 0 8px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.epg-prog.clipped::before { content: "‹"; position: absolute; left: calc(var(--clip, 0px) + 5px); color: var(--dim); }
+.epg-prog.past { background: var(--prog-past); color: var(--dim); }
+.epg-prog.past.rec { color: var(--muted); border-color: var(--archive-line); }
+.epg-prog.live { background: var(--prog-live); border-color: var(--prog-live-line); }
+.epg-prog.sel { outline: 2px solid var(--accent); outline-offset: -2px; background: var(--prog-sel); color: var(--text); }
+.epg-prog.remind { border-color: var(--accent); }
+/* A bell ahead of the title of a programme with a reminder: the border
+   alone would be a colour doing the work of a mark. */
+.epg-prog.remind .epg-prog-label::before {
+  content: ""; display: inline-block; width: 10px; height: 10px; margin-right: 5px; vertical-align: -1px;
+  background: var(--accent-2);
+  -webkit-mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20'%3E%3Cpath d='M10 2a5 5 0 0 0-5 5v3.6L3.3 13.4A1 1 0 0 0 4.2 15h11.6a1 1 0 0 0 .9-1.6L15 10.6V7a5 5 0 0 0-5-5zm-2 14a2 2 0 0 0 4 0z'/%3E%3C/svg%3E") center / contain no-repeat;
+  mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20'%3E%3Cpath d='M10 2a5 5 0 0 0-5 5v3.6L3.3 13.4A1 1 0 0 0 4.2 15h11.6a1 1 0 0 0 .9-1.6L15 10.6V7a5 5 0 0 0-5-5zm-2 14a2 2 0 0 0 4 0z'/%3E%3C/svg%3E") center / contain no-repeat;
+}
+.epg-prog.empty { background: transparent; border-style: dashed; color: var(--dim); cursor: default; }
+.epg-prog.empty:hover { background: transparent; border-color: var(--border); }
+/* The progress of the programme on air — the same information as the bar on
+   a list row. */
+.epg-prog.live i { position: absolute; left: 0; bottom: 0; height: 2px; background: linear-gradient(90deg, var(--accent), var(--accent-2)); }
+
+.epg-nowline { position: absolute; top: 0; width: 2px; background: var(--accent-2); pointer-events: none; z-index: 2; }
+.epg-nowline[hidden] { display: none; }
+.epg-nowhead { position: absolute; top: 0; bottom: 0; width: 2px; background: var(--accent-2); pointer-events: none; }
+.epg-nowhead::after {
+  content: ""; position: absolute; bottom: 0; left: 50%; transform: translateX(-50%);
+  border-left: 5px solid transparent; border-right: 5px solid transparent;
+  border-bottom: 6px solid var(--accent-2);
+}
+.epg-nowhead[hidden] { display: none; }

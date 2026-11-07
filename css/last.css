@@ -1,0 +1,68 @@
+/* Last, see player.css for the order: what has to come after every other rule, the optical alignment of icons beside labels, the narrow layouts that override the sections above, and forced colours. */
+
+/* Optical alignment, measured against the glyphs (the middle of the
+   x-height and the cap height), not the line boxes: a box centred on its
+   line sits higher than the letters beside it, which have room for
+   descenders below them. The boxes half a pixel down. The marks before a
+   label half a pixel up: centred on the line they sat a pixel or two under
+   the middle of the capitals (measured at 2x, 2026-11-07), which is where
+   a mark beside mixed-case text reads as level. The magnifiers stay
+   centred on the field:
+   their handle already draws the ink lower than the ring, and a pixel
+   more set them visibly below the placeholder (measured at 2x: the ring's
+   centre 2 px under the letters' with it, level without). */
+.search svg { top: 50%; translate: 0 -50%; }
+.tab-icon, .icon-button.labelled > svg, .groups-foot svg, .channel-guide > svg, .section-icon { translate: 0 -.5px; }
+.toggle input, .choice-row > input, .choice-mode > input { translate: 0 .5px; }
+
+/* A field's hint longer than the field (a long language, a narrow window)
+   ends in an ellipsis rather than being cut mid-letter. */
+input[type="search"], input[type="text"], input[type="url"], input:not([type]) { text-overflow: ellipsis; }
+
+/* The guide on a phone (390 to 600 px): the days get a row of their own
+   instead of a third of the width, which showed "Früher" and a clipped
+   "ge" in German, and scroll sideways there. The programme search keeps
+   the field and its button on one row; the two choices that narrow it
+   come in under them once the field is in use (focused, filled, or one of
+   the choices open in its list), rather than taking a row of the four
+   that the grid had left. */
+@media (max-width: 600px) {
+  /* The days' box with its arrows (js/sidescroll.js) is the bar's item. */
+  .epg-days-scroll { flex: 1 0 100%; }
+  .epg-days { max-width: none; }
+  .programme-form .search-field { flex: 1 1 140px; min-width: 140px; }
+  .programme-form:not(:focus-within, :has(#programme-query:not(:placeholder-shown), select[aria-expanded="true"])) select { display: none; }
+}
+
+/* Forced colours (Windows High Contrast): the system replaces every
+   background and drops every box-shadow, and with them went each mark of
+   where you are: the chosen tab, group, topic, season and day, the list's
+   cursor and the playing row all looked like the rest. Outlines and
+   borders survive, drawn in the system's own highlight colour. */
+@media (forced-colors: active) {
+  .tabs button.active, .group.active, .chip.active, .season.active, .epg-day.active,
+  .compact-nav button[aria-pressed="true"], .listinfo .view-toggle button[aria-pressed="true"],
+  .epg-favs[aria-pressed="true"], .account-row.selected, .picker-option[aria-selected="true"] {
+    outline: 2px solid Highlight; outline-offset: -2px;
+  }
+  #list .row.selected, .epg-chan.cursor, .picker-option.active, .epg-prog.sel { outline: 2px solid Highlight; outline-offset: -2px; }
+  .groups-list:focus-visible .group.cursor { outline: 2px dashed Highlight; outline-offset: -4px; }
+  #list .row.playing, .epg-chan.playing { border-left: 4px solid Highlight; }
+  .row.card.selected .card-poster, .row.card.playing .card-poster { outline: 3px solid Highlight; outline-offset: 2px; }
+  .list-frame:has(> .list:focus-visible)::after { border: 2px solid Highlight; }
+  /* Marks drawn as a fill, a progress share, and the bars' fill. */
+  .row-progress i, .bar-fill, .overlay-bar-fill, .psr-now i { background: Highlight; forced-color-adjust: none; }
+  /* The chips that said themselves by a coloured ground alone: a cover's
+     ✓ and New, the list's New badge, the guide search's "now" and its
+     counts. A border keeps them chips; the ✓ keeps a colour of its own. */
+  .card-flag, .row-badge.new, .psr-now, .psr-n { border: 1px solid CanvasText; }
+  .card-flag.watched, .row-badge.watched { color: Highlight; }
+  /* Hover and focus that were a ring of shadow or a ground: the related
+     covers, the guide search's results and their channel headings, the
+     filter chips. */
+  .related-tile:is(:hover, :focus-visible) .related-cover { outline: 2px solid Highlight; outline-offset: 2px; }
+  .psr-row:is(:hover, :focus-visible), button.psr-head:is(:hover, :focus-visible), .psr-more:is(:hover, :focus-visible),
+  .filter-chip:hover { outline: 2px solid Highlight; outline-offset: -2px; }
+  /* The order marks and the list or covers marks, wherever they stand. */
+  .view-toggle button[aria-pressed="true"] { outline: 2px solid Highlight; outline-offset: -2px; }
+}

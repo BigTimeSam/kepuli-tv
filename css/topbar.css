@@ -1,0 +1,92 @@
+/* The top bar: brand, tabs, search and its buttons (see player.css for the order). */
+
+/* ------------------------------------------------------------ top bar */
+
+/* Measured before this wrapped: at 800 px the search box was 43 px wide and
+   at 760 px the Settings button ended 25 px past the right edge, with
+   overflow: hidden above and no way to scroll to it. A window at half a
+   1440 px screen, or the same screen at 200 % zoom, is exactly there. */
+.topbar {
+  position: relative; z-index: 6;
+  display: flex; align-items: center; flex-wrap: wrap; gap: 8px 14px;
+  flex: none; min-height: var(--topbar-h); padding: 6px 14px;
+  background: var(--panel); border-bottom: 1px solid var(--border);
+}
+
+.brand {
+  display: flex; align-items: center; gap: 8px; font: inherit; font-weight: 650; letter-spacing: -0.01em; white-space: nowrap;
+  /* The same size and corners as a tab beside it, so that the logo lights
+     up as the chosen tab does. */
+  color: var(--text); background: none; border: 0; padding: 5px 11px; margin: -5px -11px; border-radius: 6px; cursor: pointer;
+}
+.brand:hover { background: var(--row-hover); }
+.brand:focus-visible { outline: 2px solid var(--accent-ink); outline-offset: 0; }
+/* The same television as in the extension icon. A 48px source, so the mark
+   stays sharp on a high-density display too. */
+.brand-mark { width: 18px; height: 18px; background: url("../icons/icon48.png") center / contain no-repeat; }
+
+.tabs { display: flex; gap: 2px; background: var(--panel-2); padding: 3px; border-radius: 9px; }
+.tabs button { border: 0; background: transparent; color: var(--muted); padding: 5px 11px; border-radius: 6px; cursor: pointer; white-space: nowrap;
+  display: inline-flex; align-items: center; gap: 6px; }
+.tab-icon { width: 15px; height: 15px; flex: none; fill: none; stroke: currentColor; stroke-width: 1.6; stroke-linecap: round; stroke-linejoin: round; }
+/* The marks take some 100 px. Between the narrow layout, where the tabs
+   have a row of their own, and about 1100 px they would push the buttons
+   on the right onto a second row; there the names alone stay. Measured
+   in all thirteen languages: the longest fits on one row from 1080 px. */
+@media (min-width: 601px) and (max-width: 1099px) { .tab-icon { display: none; } }
+.tabs button:hover { color: var(--text); }
+.tabs button.active { background: var(--accent); color: #fff; }
+/* The strip's own padding is 3px and it scrolls sideways in a narrow
+   window, which cuts whatever lies outside it: the ring sits on the edge. */
+.tabs button:focus-visible { outline-offset: 0; }
+
+/* The search takes the room the bar leaves it, up to 380 px, and gives way
+   down to 120 px before anything wraps: at 190 px it used to be the part
+   that pushed the buttons onto a second row. */
+.search { position: relative; display: flex; align-items: center; flex: 1 1 160px; min-width: 120px; max-width: 380px; }
+.search svg { position: absolute; left: 10px; width: 14px; height: 14px; fill: none; stroke: var(--muted); stroke-width: 1.8; stroke-linecap: round; pointer-events: none; }
+.search input { width: 100%; padding: 7px 34px 7px 30px; background: var(--panel-2); border: 1px solid var(--border); border-radius: 8px; }
+.search input:focus { border-color: var(--accent); }
+.search input::-webkit-search-cancel-button { display: none; }
+.search-clear { position: absolute; right: 3px; width: 30px; height: 30px; padding: 0; border: 0; border-radius: 5px; background: transparent; color: var(--muted); cursor: pointer; font-size: 1.125rem; }
+.search-clear:hover { color: var(--text); background: var(--row-hover); }
+.search-clear[hidden] { display: none; }
+.compact-nav { display: none; }
+
+.topbar-end { margin-left: auto; display: flex; align-items: center; flex: none; gap: 6px; }
+.icon-button { display: inline-flex; align-items: center; justify-content: center; gap: 7px; min-width: 2.125rem; height: 2rem; color: var(--muted); }
+.icon-button:hover { color: var(--text); }
+.icon-button:not(.labelled) { padding: 0; width: 34px; }
+.icon-button svg { width: 17px; height: 17px; flex: none; fill: none; stroke: currentColor; stroke-width: 1.6; stroke-linecap: round; stroke-linejoin: round; }
+.icon-button .button-label { color: var(--text); }
+/* The full screen button shows where a press leads: corners out, or in. */
+.screen-button .screen-leave, .screen-button.on .screen-enter { display: none; }
+.screen-button.on .screen-leave { display: block; }
+.theme-button[data-next="light"] .theme-moon, .theme-button[data-next="dark"] .theme-sun { display: none; }
+/* Where the bar does not fit on one row (js/topmenu.js), its five buttons
+   go behind the hamburger, and the search may grow into their room. */
+.topmenu-button { display: none; }
+.topbar.compact .topmenu-button { display: inline-flex; }
+.topbar.compact :is(#btn-refresh, #btn-help, #btn-theme, #btn-screen, #btn-settings) { display: none; }
+/* The tighter gaps and the narrower search keep the bar on one row down
+   to some 680 px in English: at 700 px the hamburger was 4 px short. A row
+   wraps by the flex basis, not the minimum, so the basis comes down too;
+   the search still grows into whatever is left. */
+.topbar.compact { column-gap: 10px; }
+.topbar.compact .search { max-width: none; min-width: 100px; flex-basis: 100px; }
+#btn-topmenu[aria-expanded="true"] { color: var(--text); background: var(--row-hover); border-color: var(--border-strong); }
+/* Below the bar rather than above it, as the player's menu opens upward.
+   Two classes, because .pop further down sets the bottom edge and would
+   otherwise squeeze the panel to nothing between the two. */
+.pop.topmenu-pop { top: calc(100% - 2px); bottom: auto; right: 10px; z-index: 20; }
+
+button.ghost {
+  background: var(--panel-2); border: 1px solid var(--border);
+  border-radius: 8px; padding: 6px 11px; cursor: pointer;
+}
+button.ghost:hover { background: var(--row-hover); border-color: var(--border-strong); }
+button.ghost:disabled { opacity: .4; cursor: default; }
+button.ghost.danger { color: var(--danger); }
+button.ghost.on { color: var(--gold); border-color: var(--gold-line); }
+button.primary { background: var(--accent); border: 1px solid var(--accent); color: #fff; border-radius: 8px; padding: 6px 14px; cursor: pointer; font-weight: 550; }
+button.primary:hover { filter: brightness(1.1); }

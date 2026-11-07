@@ -129,7 +129,7 @@ export const MANY_CHANNELS = 500;
 
 const $ = (id) => document.getElementById(id);
 // A channel's heading and a programme's row, in pixels; .psr-head and
-// .psr-row in player.css are as tall.
+// .psr-row in css/guide.css are as tall.
 const HEAD_H = 52, ROW_H = 60, MORE_H = 44;
 
 export class ProgrammeSearch {

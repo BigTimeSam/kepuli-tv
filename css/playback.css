@@ -1,0 +1,437 @@
+/* The player: the picture, the subtitles, the empty player's page, the details strip and the controls under the picture (see player.css for the order). */
+
+/* ----------------------------------------------------------- player */
+
+.stage { display: flex; flex-direction: column; min-width: 0; background: #06070a; }
+.videowrap { flex: 1; position: relative; background: #000; min-height: 0; }
+video { width: 100%; height: 100%; display: block; background: #000; }
+
+/* Full screen: the browser's own button takes the bare <video>, where the
+   browser draws the subtitles itself for the duration (js/subdisplay.js,
+   mode); the double click and f take the wrapper, subtitle layer and all
+   (enterFullscreen in js/app.js). */
+
+/* --------------------------------------------------------- subtitles */
+
+/* The subtitles are drawn by the app in a layer over the picture, see
+   js/subdisplay.js. The size is a share of the picture's height, so the
+   same in a window and in full screen, where the wrapper goes and the
+   layer with it: --sub-scale in the body's style is the viewer's choice,
+   --pic-h on the wrapper the picture's height. */
+.videowrap:fullscreen { background: #000; }
+
+.subdisplay {
+  /* From the picture's bottom edge, the bar under a letterboxed film not
+     counted: --sub-lift is the viewer's height, a share of the picture. */
+  --sub-rest: calc(var(--pic-bar, 0px) + var(--pic-h, 450px) * var(--sub-lift, 0.08));
+  position: absolute; left: 5%; right: 5%; bottom: var(--sub-rest);
+  display: flex; flex-direction: column; align-items: center; justify-content: flex-end; gap: .3em;
+  pointer-events: none; text-align: center;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  /* A share of the picture's height (js/subdisplay.js): --pic-h is the
+     picture without its bars, --sub-scale the viewer's size, 1 at 100 %. */
+  font-size: max(14px, calc(var(--pic-h, 450px) * var(--sub-scale, 1) * 0.05)); font-weight: 500; line-height: 1.3;
+  transition: bottom .2s ease;
+}
+/* Above the browser's controls while they are likely on show, see wake()
+   in js/subdisplay.js. */
+.videowrap.controls .subdisplay { bottom: max(var(--sub-rest), 132px); }
+/* And above the subtitle-look popover while that is open: it is opened to
+   judge the subtitles by, so it is the one thing that must not cover
+   them. */
+.videowrap.looking .subdisplay { bottom: max(var(--sub-rest), 210px); }
+
+/* One box per cue, lines and all. The measures are in em, so that the
+   padding and the corners follow the text. Line breaks come from the file;
+   a line the box cannot hold is wrapped in balance rather than left with a
+   word on the second row. */
+.subdisplay .cue {
+  max-width: 100%; color: #fff;
+  white-space: pre-line; text-wrap: balance; overflow-wrap: break-word;
+}
+
+/* The looks: the names are the values of the settings menu. */
+body[data-substyle="box"] .videowrap .subdisplay .cue,
+.sublook[data-substyle="box"] .subdisplay .cue {
+  background: rgba(0, 0, 0, .62); border-radius: .3em; padding: .2em .55em .26em;
+  text-shadow: 0 .04em .1em rgba(0, 0, 0, .55);
+}
+body[data-substyle="shadow"] .videowrap .subdisplay .cue,
+.sublook[data-substyle="shadow"] .subdisplay .cue {
+  text-shadow: 0 0 .12em rgba(0, 0, 0, .95), 0 .06em .16em rgba(0, 0, 0, .9), 0 .12em .4em rgba(0, 0, 0, .55);
+}
+body[data-substyle="outline"] .videowrap .subdisplay .cue,
+.sublook[data-substyle="outline"] .subdisplay .cue,
+body[data-substyle="yellow"] .videowrap .subdisplay .cue,
+.sublook[data-substyle="yellow"] .subdisplay .cue {
+  font-weight: 600;
+  text-shadow: -.06em -.06em 0 #000, .06em -.06em 0 #000, -.06em .06em 0 #000, .06em .06em 0 #000,
+               0 -.08em 0 #000, 0 .08em 0 #000, -.08em 0 0 #000, .08em 0 0 #000, 0 .1em .25em rgba(0, 0, 0, .6);
+}
+/* A real stroke where it can be painted under the fill — Chrome 123,
+   Firefox; the shadow stack above stands in elsewhere. */
+@supports (paint-order: stroke fill) {
+  body[data-substyle="outline"] .videowrap .subdisplay .cue,
+  .sublook[data-substyle="outline"] .subdisplay .cue,
+  body[data-substyle="yellow"] .videowrap .subdisplay .cue,
+  .sublook[data-substyle="yellow"] .subdisplay .cue {
+    -webkit-text-stroke: .07em #000; paint-order: stroke fill;
+    text-shadow: 0 .08em .22em rgba(0, 0, 0, .6);
+  }
+}
+body[data-substyle="yellow"] .videowrap .subdisplay .cue,
+.sublook[data-substyle="yellow"] .subdisplay .cue { color: #ffe14d; }
+body[data-substyle="contrast"] .videowrap .subdisplay .cue,
+.sublook[data-substyle="contrast"] .subdisplay .cue {
+  background: #000; border-radius: .12em; padding: .22em .6em .28em; font-weight: 600;
+}
+
+/* The browser's own drawing, kept for the case where the video element
+   itself is full screen — Firefox's own button, see js/subdisplay.js — and
+   hidden the rest of the time. It approximates the look as far as ::cue
+   goes: no padding, no corners, each line a box of its own. */
+body[data-subrender="overlay"] video::cue { visibility: hidden; opacity: 0; }
+body[data-subrender="overlay"] video::-webkit-media-text-track-container { display: none; }
+/* The look reaches ::cue through custom properties set on the body: Chrome
+   applies a plain video::cue rule to the cues but not one behind an
+   attribute of the body, and left with the plain rule every look became
+   the dark box in the browser's own full screen. */
+video::cue {
+  color: var(--cue-color, #fff); background: var(--cue-back, rgba(0, 0, 0, .62)); line-height: 1.25;
+  text-shadow: var(--cue-shadow, none);
+  /* The browser draws only for a bare <video> taken full screen, which is
+     then the whole screen: the same share, of the screen's height. */
+  font-size: calc(var(--sub-scale, 1) * 5vh);
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+}
+body[data-substyle="shadow"] {
+  --cue-back: transparent;
+  --cue-shadow: 0 0 .12em rgba(0, 0, 0, .95), 0 .06em .16em rgba(0, 0, 0, .9), 0 .12em .4em rgba(0, 0, 0, .55);
+}
+body[data-substyle="outline"], body[data-substyle="yellow"] {
+  --cue-back: transparent;
+  --cue-shadow: -.06em -.06em 0 #000, .06em -.06em 0 #000, -.06em .06em 0 #000, .06em .06em 0 #000,
+                0 -.08em 0 #000, 0 .08em 0 #000, -.08em 0 0 #000, .08em 0 0 #000, 0 .1em .25em rgba(0, 0, 0, .6);
+}
+body[data-substyle="yellow"] { --cue-color: #ffe14d; }
+body[data-substyle="contrast"] { --cue-back: #000; }
+
+.overlay { position: absolute; inset: 0; display: grid; place-items: center; background: radial-gradient(circle at 50% 45%, #12151f, #06070a 70%); text-align: center; padding: 24px; }
+:root[data-theme="light"] .overlay.idle { background: var(--bg); color: var(--text); }
+:root[data-theme="light"] .stage { background: var(--bg); }
+.overlay[hidden] { display: none; }
+.overlay-inner { max-width: 480px; }
+.overlay-head { margin-bottom: 6px; }
+.overlay-title { font-size: 1.0625rem; font-weight: 650; letter-spacing: -0.005em; }
+.overlay-text { color: var(--muted); }
+.overlay-actions { margin-top: 14px; display: flex; gap: 8px; justify-content: center; }
+.now-title:empty { display: none; }
+
+/* The empty player's page: covers to carry on with, then channels. */
+/* The whole of the player's area, rather than a column down its middle;
+   what does not fit is hidden by fitIdleHome in js/app.js, and the overlay
+   scrolls for a window too low for even one row. */
+/* The heading has as much room above it as below it, down to the line
+   that closes it off (--idle-gap, both ends): it stands in its own band. */
+.overlay:has(.idle-home:not([hidden])) { --idle-gap: clamp(20px, 4.5vh, 44px); overflow-y: auto; place-items: start center; padding: var(--idle-gap) clamp(16px, 3vw, 40px) clamp(16px, 5vh, 48px); }
+.overlay-inner:has(.idle-home:not([hidden])) { max-width: 1200px; width: 100%; }
+/* The page's own heading, set apart by a mark rather than by size: a
+   television in the accent's soft circle over the title, and a hairline
+   under the line of text that closes the heading off from the sections. */
+.overlay.idle .overlay-head::before {
+  content: ""; display: block; width: 44px; height: 44px; margin: 0 auto 10px; border-radius: 999px;
+  background: var(--accent-soft) center / 22px no-repeat url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20' fill='none' stroke='%237c5cff' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Crect x='2.5' y='5' width='15' height='10.5' rx='1.8'/%3E%3Cpath d='M7 2.5 10 5l3-2.5M6.5 18h7'/%3E%3C/svg%3E");
+}
+.overlay-inner:has(.idle-home:not([hidden])) .overlay-text { padding-bottom: var(--idle-gap); border-bottom: 1px solid var(--border); }
+.idle-home { margin-top: 22px; display: grid; gap: 22px; text-align: left; }
+/* The display above outranks the browser's own rule for [hidden]: without
+   this the page stayed on screen, narrow and spilling over the picture,
+   under "Connecting…" and "Examining the file", which hide it. */
+.idle-home[hidden] { display: none; }
+.idle-home h3 { margin: 0 0 10px; font-size: var(--fs-xs); font-weight: 600; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
+/* A cover's width follows the height there is: a low window gets small
+   covers and still room for the channels under them. */
+.idle-home { --idle-card: clamp(92px, calc((100dvh - 330px) * 0.26), 168px); }
+.idle-home > section { min-width: 0; }
+/* Continue watching: one row that scrolls sideways (idleCarousel). The
+   padding keeps the focus ring inside the scroller, which would clip it. */
+.idle-cards {
+  display: flex; gap: 12px; overflow-x: auto; overscroll-behavior-x: contain;
+  scroll-snap-type: x proximity; scroll-padding: 0 3px; scrollbar-width: none;
+  padding: 3px; margin: -3px;
+}
+.idle-cards::-webkit-scrollbar { display: none; }
+.idle-cards > .idle-card-wrap { flex: none; width: var(--idle-card); scroll-snap-align: start; }
+/* A row that scrolls sideways, with its ‹ and › (js/sidescroll.js): over
+   the row's ends, or inside them in a toolbar (compact). */
+.side-scroll { position: relative; min-width: 0; }
+.side-scroll-arrow {
+  position: absolute; top: 50%; z-index: 1; width: 34px; height: 34px; padding: 0; transform: translateY(-50%);
+  display: grid; place-items: center; border-radius: 999px; cursor: pointer;
+  border: 1px solid var(--border-strong); background: var(--panel); color: var(--text);
+  box-shadow: 0 2px 10px rgba(0, 0, 0, .45);
+}
+.side-scroll-arrow[hidden] { display: none; }
+.side-scroll-arrow.prev { left: -14px; }
+.side-scroll-arrow.next { right: -14px; }
+.side-scroll-arrow:hover { background: var(--row-hover); }
+.side-scroll-arrow svg { width: 16px; height: 16px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+.side-scroll.compact .side-scroll-arrow { width: 24px; height: 24px; box-shadow: 0 1px 6px rgba(0, 0, 0, .35); }
+.side-scroll.compact .side-scroll-arrow.prev { left: 0; }
+.side-scroll.compact .side-scroll-arrow.next { right: 0; }
+.side-scroll.compact .side-scroll-arrow svg { width: 13px; height: 13px; }
+/* A film's rows of tiles reach the strip's edge: the arrows stay inside it. */
+.related .side-scroll-arrow.prev { left: 2px; }
+.related .side-scroll-arrow.next { right: 2px; }
+.idle-channels { display: grid; grid-template-columns: repeat(auto-fill, minmax(12.5rem, 1fr)); gap: 8px; }
+.idle-card[hidden], .idle-channel[hidden] { display: none; }
+.idle-card, .idle-channel {
+  display: flex; min-width: 0; border: 1px solid var(--border); background: var(--panel); color: var(--text);
+  font: inherit; text-align: left; cursor: pointer; border-radius: 9px;
+}
+.idle-card { flex-direction: column; gap: 7px; padding: 7px; }
+.idle-channel { align-items: center; gap: 10px; padding: 8px 10px; }
+.idle-card:hover, .idle-channel:hover { background: var(--row-hover); border-color: var(--border-strong); }
+.idle-card:focus-visible, .idle-channel:focus-visible { outline: 2px solid var(--accent-ink); outline-offset: 2px; }
+.idle-cover { width: 100%; aspect-ratio: 2 / 3; border-radius: 6px; }
+.idle-logo { width: 44px; height: 30px; flex: none; border-radius: 4px; }
+.idle-name { font-size: 0.8125rem; font-weight: 550; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.idle-card .row-progress { width: 100%; margin-top: 0; }
+/* The ✕ that takes a card off Continue watching: in the cover's top right
+   corner, shown on hover and on focus — and always where nothing hovers. */
+.idle-card-wrap { position: relative; display: flex; min-width: 0; }
+.idle-card-wrap[hidden] { display: none; }
+.idle-card-wrap > .idle-card { flex: 1; }
+.idle-forget {
+  position: absolute; top: 12px; right: 12px; width: 28px; height: 28px; padding: 0;
+  display: grid; place-items: center; border-radius: 999px; cursor: pointer;
+  border: 1px solid rgba(255, 255, 255, .25); background: rgba(10, 12, 18, .78); color: #fff;
+  opacity: 0; transition: opacity .12s, background-color .12s;
+}
+.idle-forget svg { width: 14px; height: 14px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; }
+.idle-card-wrap:hover .idle-forget, .idle-forget:focus-visible { opacity: 1; }
+.idle-forget:hover { background: rgba(200, 40, 50, .92); border-color: transparent; }
+/* The card's star across from its ✕, alike in shape; a favourite's stays
+   in sight. */
+.idle-star {
+  position: absolute; top: 12px; left: 12px; width: 28px; height: 28px; padding: 0;
+  display: grid; place-items: center; border-radius: 999px; cursor: pointer; font-size: 15px; line-height: 1;
+  border: 1px solid rgba(255, 255, 255, .25); background: rgba(10, 12, 18, .78); color: #fff;
+  opacity: 0; transition: opacity .12s;
+}
+.idle-card-wrap:hover .idle-star, .idle-star:focus-visible, .idle-star.on { opacity: 1; }
+.idle-star.on { color: #ffc857; }
+.idle-forget:focus-visible, .idle-star:focus-visible { outline: 2px solid var(--accent-ink); outline-offset: 2px; }
+@media (hover: none) { .idle-forget, .idle-star { opacity: 1; } }
+/* The picks (js/picks.js): a programme per card, its channel's logo beside
+   it. One row of them, as many as the window is wide for (fitIdleHome). */
+.idle-picks { display: grid; grid-template-columns: repeat(auto-fill, minmax(15rem, 1fr)); gap: 10px; }
+.idle-pick[hidden] { display: none; }
+.idle-pick {
+  position: relative; display: flex; align-items: flex-start; gap: 10px; min-width: 0; padding: 10px 12px 12px;
+  border: 1px solid var(--border); background: var(--panel); color: var(--text);
+  font: inherit; text-align: left; cursor: pointer; border-radius: 9px; overflow: hidden;
+}
+.idle-pick:hover { background: var(--row-hover); border-color: var(--border-strong); }
+.idle-pick:focus-visible { outline: 2px solid var(--accent-ink); outline-offset: 2px; }
+.idle-pick-logo { width: 44px; height: 30px; flex: none; border-radius: 4px; margin-top: 2px; }
+.idle-pick-body { display: flex; flex-direction: column; gap: 3px; min-width: 0; }
+.idle-pick-when { display: flex; align-items: center; gap: 5px; font-size: var(--fs-xs); font-weight: 600; color: var(--muted); }
+.idle-pick.on .idle-pick-when { color: var(--accent); }
+.idle-pick-title {
+  font-size: 0.875rem; font-weight: 600; line-height: 1.3;
+  display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;
+}
+.idle-pick-where { font-size: var(--fs-s); color: var(--muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.idle-pick .row-progress { position: absolute; left: 0; right: 0; bottom: 0; width: auto; margin: 0; border-radius: 0; }
+/* A bell before a later programme's time: hollow until a reminder is set. */
+.idle-pick-bell {
+  width: 11px; height: 11px; flex: none; background: currentColor;
+  -webkit-mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20' fill='none' stroke='black' stroke-width='1.8' stroke-linejoin='round'%3E%3Cpath d='M5 8a5 5 0 0 1 10 0v4l1.5 2.5h-13L5 12z'/%3E%3Cpath d='M8 16.5a2 2 0 0 0 4 0'/%3E%3C/svg%3E") center / contain no-repeat;
+  mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20' fill='none' stroke='black' stroke-width='1.8' stroke-linejoin='round'%3E%3Cpath d='M5 8a5 5 0 0 1 10 0v4l1.5 2.5h-13L5 12z'/%3E%3Cpath d='M8 16.5a2 2 0 0 0 4 0'/%3E%3C/svg%3E") center / contain no-repeat;
+}
+.idle-pick.reminded .idle-pick-when { color: var(--accent); }
+.idle-pick.reminded .idle-pick-bell {
+  -webkit-mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20' fill='black' stroke='black' stroke-width='1.8' stroke-linejoin='round'%3E%3Cpath d='M5 8a5 5 0 0 1 10 0v4l1.5 2.5h-13L5 12z'/%3E%3Cpath d='M8 16.5a2 2 0 0 0 4 0' fill='none'/%3E%3C/svg%3E");
+  mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20' fill='black' stroke='black' stroke-width='1.8' stroke-linejoin='round'%3E%3Cpath d='M5 8a5 5 0 0 1 10 0v4l1.5 2.5h-13L5 12z'/%3E%3Cpath d='M8 16.5a2 2 0 0 0 4 0' fill='none'/%3E%3C/svg%3E");
+}
+.overlay.loading .overlay-title::after {
+  content: ""; display: inline-block; width: 12px; height: 12px; margin-left: 8px;
+  border: 2px solid var(--accent); border-right-color: transparent; border-radius: 50%;
+  animation: spin .8s linear infinite; vertical-align: -1px;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+
+/* A start's or a stall's progress, in a column of its own width: the
+   title with the time waited at its right, the bar, and under it the
+   figures, the speed at the left and what the film needs at the right.
+   The figures are tabular so that a count going up twice a second does
+   not shake the line. */
+.overlay.waiting .overlay-inner { width: min(320px, 80vw); text-align: left; }
+.overlay.waiting .overlay-head { display: flex; align-items: baseline; justify-content: space-between; gap: 16px; }
+.overlay.waiting .overlay-actions { justify-content: flex-start; }
+.overlay-elapsed { flex: none; color: var(--dim); font-variant-numeric: tabular-nums; }
+.overlay-elapsed[hidden] { display: none; }
+.overlay-text:empty { display: none; }
+.overlay-load { margin-top: 10px; display: grid; gap: 6px; font-size: 0.8125rem; }
+.overlay-load[hidden], .overlay-load [hidden] { display: none; }
+.overlay-bar { height: 4px; border-radius: 2px; background: var(--track); overflow: hidden; }
+.overlay-bar-fill { height: 100%; width: 0; background: var(--accent); transition: width .45s linear; }
+.overlay-bar.slow .overlay-bar-fill { background: var(--warn); }
+.overlay-figures, .overlay-slow { color: var(--muted); font-variant-numeric: tabular-nums; }
+.overlay-slow { display: flex; justify-content: space-between; gap: 16px; }
+.overlay-slow.only, .overlay-speed .value.slow { color: var(--warn); }
+/* Stopped mid-film, the picture stays in sight around the account, which
+   sits on a card of its own: dimming alone left the words on top of
+   whatever the frozen frame held. Clicks go through to the controls. */
+.overlay.stall { background: rgba(6, 7, 10, .3); pointer-events: none; }
+.overlay.stall .overlay-inner {
+  background: rgba(10, 12, 17, .9); border: 1px solid var(--border);
+  border-radius: 10px; padding: 14px 20px;
+}
+@media (prefers-reduced-motion: reduce) { .overlay-bar-fill { transition: none; } }
+
+.statbadge {
+  position: absolute; top: 12px; left: 12px;
+  max-width: calc(100% - 80px); overflow-wrap: anywhere;
+  background: rgba(10, 12, 17, .78); border: 1px solid var(--border);
+  border-radius: 7px; padding: 4px 8px; font-size: var(--fs-xs); color: var(--muted);
+  font-variant-numeric: tabular-nums; pointer-events: none;
+}
+
+.infostrip { border-top: 1px solid var(--border); background: var(--panel); padding: 9px 12px; max-height: 132px; overflow-y: auto; }
+.infostrip[hidden] { display: none; }
+.epgnow { display: flex; align-items: baseline; gap: 8px; }
+.epgnow-time { color: var(--accent-2); font-variant-numeric: tabular-nums; flex: none; font-size: var(--fs-s); }
+.epgnow-title { font-weight: 600; font-size: 0.875rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.epgbar { height: 3px; background: var(--track); border-radius: 2px; margin: 6px 0; overflow: hidden; }
+.epgbar i { display: block; height: 100%; background: linear-gradient(90deg, var(--accent), var(--accent-2)); }
+.epgdesc { color: var(--muted); font-size: var(--fs-m); }
+/* The programme on next reads in the same two columns as the one on now,
+   under a label in the same voice as the day headings in the lists. The
+   rule above it is dropped when nothing is on now: then this is the whole
+   strip, and a line across the top of it would separate nothing. */
+.epgnext { display: flex; align-items: baseline; gap: 8px; font-size: var(--fs-s); }
+.epgnext:not(:first-child) { margin-top: 7px; padding-top: 6px; border-top: 1px solid var(--border); }
+.epgnext-label { flex: none; font-size: var(--fs-xs); letter-spacing: .06em; text-transform: uppercase; color: var(--dim); }
+.epgnext-time { flex: none; color: var(--accent-2); font-variant-numeric: tabular-nums; }
+.epgnext-title { color: var(--text); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.vodinfo { display: flex; gap: 10px; }
+/* align-self: the row's stretch would otherwise make the cover as tall as
+   the facts beside it, the poster's 2:3 lost and its picture cropped. */
+.info-cover { width: 54px; height: 80px; border-radius: 5px; flex: none; align-self: flex-start; }
+/* With the picture at its own height the details have room (see
+   .videowrap.sized), and the cover need not be a stamp: it grows with the
+   window, a poster's 2:3, up to about the height of the facts beside it. */
+main:not(.guide) .stage:has(> .videowrap.sized:not(:fullscreen)) .vodinfo { gap: 16px; }
+main:not(.guide) .stage:has(> .videowrap.sized:not(:fullscreen)) .info-cover { width: clamp(72px, 8vw, 136px); height: auto; aspect-ratio: 2 / 3; border-radius: 7px; }
+.playback-facts { display: flex; flex-wrap: wrap; gap: 10px 20px; margin: 0 0 8px; padding-top: 8px; border-top: 1px solid var(--border); }
+.playback-facts:empty { display: none; }
+.vodinfo-body > .playback-facts:first-child { padding-top: 0; border-top: 0; }
+.playback-facts > div { min-width: 0; }
+.playback-facts dt { color: var(--muted); font-size: var(--fs-xs); margin-bottom: 3px; }
+.playback-facts dd { display: flex; align-items: baseline; flex-wrap: wrap; gap: 4px 6px; margin: 0; color: var(--text); font-size: var(--fs-s); overflow-wrap: anywhere; }
+.playback-facts dd.playback-pending { align-items: center; min-width: 86px; color: var(--muted); }
+.playback-pending .fact-spinner { width: 14px; height: 14px; }
+.playback-warning { color: var(--gold); font-size: var(--fs-xs); }
+/* The format, the picture, the bit rate, the size and the way it plays,
+   folded under the audio and the subtitles (playbackFacts). */
+.tech-facts { margin: -2px 0 8px; }
+.tech-toggle { display: inline-flex; align-items: center; gap: 4px; list-style: none; color: var(--muted); font-size: var(--fs-xs); cursor: pointer; border-radius: 4px; }
+.tech-toggle::-webkit-details-marker { display: none; }
+.tech-toggle:hover { color: var(--text); }
+.tech-toggle:focus-visible { outline: 2px solid var(--accent-ink); outline-offset: 2px; }
+.tech-facts[open] > .tech-toggle .section-chevron { rotate: 180deg; }
+.tech-facts > .playback-facts { margin: 8px 0 0; padding-top: 0; border-top: 0; }
+.vodinfo .plot { color: var(--muted); font-size: var(--fs-m); }
+/* Who made it, under the plot (titleCredits in js/titleinfo.js): the
+   label in a narrow column and the names beside it, line by line. */
+.title-credits { display: grid; grid-template-columns: max-content minmax(0, 1fr); gap: 5px 14px; margin: 12px 0 0; padding-top: 10px; border-top: 1px solid var(--border); font-size: var(--fs-s); }
+.title-credits:empty { display: none; }
+.title-credits > div { display: contents; }
+.title-credits dt { color: var(--muted); }
+.title-credits dd { margin: 0; color: var(--text); overflow-wrap: anywhere; }
+
+/* Three selectors and seven buttons do not fit beside the title in a
+   narrow player column — 1280 px of window leaves it about 675 — and a
+   button pushed off the edge is a button the viewer cannot reach. The row
+   therefore wraps: the title keeps its line and the actions drop below it,
+   and if even they do not fit on one line they wrap among themselves. */
+.nowbar { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; min-height: var(--foot-h); padding: 9px 12px; background: var(--panel); border-top: 1px solid var(--border); }
+.now { min-width: 0; flex: 1; }
+/* The title over the picture, on the theme's panel; with nothing playing
+   the empty player's page says it all, and the head is left out. */
+.now-logo { width: 44px; height: 30px; flex: none; margin-right: 10px; }
+.now-logo[hidden] { display: none; }
+.stagehead { flex: none; display: flex; align-items: center; min-height: var(--foot-h); padding: 7px 14px; background: var(--panel); border-bottom: 1px solid var(--border); color: var(--text); }
+main:not(.has-playback) .stagehead { display: none; }
+/* The bar under the picture holds the controls alone now: to the right. */
+.nowbar { justify-content: flex-end; }
+/* What is playing is the largest words on the page after the brand: at
+   the body's 13 px it was the same size as every row name in the list. */
+.now-title { font-weight: 650; font-size: 0.9375rem; letter-spacing: -0.005em; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.now-sub { color: var(--muted); font-size: var(--fs-s); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+/* The buttons are never dropped and never wrap: what gives when the row
+   runs short is the two track selectors, which is why the actions may
+   shrink at all. Measured in a 1024 px window — the narrowest the layout
+   is drawn for — the actions still come out on one line. */
+.now-actions { display: flex; gap: 6px; align-items: center; flex: 0 1 auto; min-width: 0; }
+.now-actions > :not(.trackpick, .trackpick-mark) { flex: none; }
+.now-actions select { background: var(--panel-2); border: 1px solid var(--border); border-radius: 8px; padding: 6px 8px; }
+/* A track name can be long ("Swedish (Forced Narrative)", "English
+   (Commentary, AC3 5.1)"): a selector must not push the other buttons off
+   the row. It is given the width it asks for up to a ceiling, and taken
+   back down to a readable stub before anything else on the row goes — the
+   whole name is still in the menu it opens, and in its tooltip. */
+.now-actions .trackpick { flex: 0 1 auto; min-width: 90px; max-width: 190px; }
+.now-actions .trackpick[hidden] { display: none; }
+/* A selector with its mark before the value (the format's film frame, the
+   subtitles' caption box): the mark sits over the select's own padding,
+   as in the account switch, and goes with it when the select is hidden. */
+.select-mark { position: relative; display: inline-flex; align-items: center; min-width: 0; }
+.select-mark:has(> select[hidden]) { display: none; }
+.select-mark svg { position: absolute; left: 8px; width: 15px; height: 15px; pointer-events: none; fill: none; stroke: currentColor; stroke-width: 1.6; stroke-linecap: round; stroke-linejoin: round; color: var(--muted); }
+.now-actions .select-mark select { padding-left: 29px; }
+/* "Playback mode:" between the mark and the value, in the select's box;
+   the select's left padding follows its width (wireUi in js/app.js). Left out
+   where the bar is short of room: the narrow layout and the guide's
+   corner player. */
+.select-mark .select-label { position: absolute; left: 29px; pointer-events: none; color: var(--muted); white-space: nowrap; }
+.select-mark .select-label::after { content: ":"; }
+@media (max-width: 1099px) { .select-mark .select-label { display: none; } }
+main.guide .select-mark .select-label { display: none; }
+/* The subtitles' label takes the selector's place on the row: it is what
+   gives way when the row runs short, down to a readable stub. */
+.now-actions > .trackpick-mark { flex: 0 1 auto; min-width: 90px; max-width: 190px; }
+.trackpick-mark > .trackpick { width: 100%; min-width: 0; max-width: none; }
+/* The subtitle look, over the picture it is judged against. Above the row
+   rather than in it, because the row is full and a popover that took part
+   in its layout would push a button off the edge every time it opened. */
+.nowbar { position: relative; }
+.pop {
+  position: absolute; z-index: 5; bottom: calc(100% - 4px); right: 12px;
+  display: flex; flex-direction: column; gap: 12px; width: 250px;
+  padding: 14px; background: var(--panel); border: 1px solid var(--border);
+  border-radius: 12px; box-shadow: 0 18px 44px rgba(0, 0, 0, .55);
+}
+.pop[hidden] { display: none; }
+#btn-sublook[aria-expanded="true"], #btn-more[aria-expanded="true"] { color: var(--text); background: var(--row-hover); border-color: var(--border-strong); }
+
+/* The menu of the actions that are wanted now and then. Same panel, but a
+   list rather than a form: no padding of its own, so a row can light up
+   edge to edge, and the room a word needs rather than a fixed width. */
+.more-pop { width: auto; min-width: 216px; max-width: min(320px, calc(100vw - 24px)); gap: 2px; padding: 6px; }
+.popitem {
+  display: flex; align-items: center; gap: 10px; width: 100%;
+  padding: 8px 10px; border: 0; border-radius: 8px; background: transparent;
+  color: var(--text); font: inherit; text-align: left; cursor: pointer; text-decoration: none;
+}
+.popitem[hidden] { display: none; }
+.popitem:hover { background: var(--row-hover); }
+.popitem:focus-visible { outline: 2px solid var(--accent-ink); outline-offset: -2px; }
+/* The same gold as the row's own Cast button had while a device plays. */
+.popitem.on { color: var(--gold); }
+.popitem svg { flex: none; width: 16px; height: 16px; fill: none; stroke: currentColor; stroke-width: 1.7; stroke-linecap: round; stroke-linejoin: round; }
+
+/* A button with a drawn symbol: the same height as the ones with a word. */
+.now-actions .icon svg { display: block; width: 14px; height: 19px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }

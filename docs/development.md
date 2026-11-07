@@ -31,7 +31,7 @@ can be changed with the environment variables `KEPULI_DEV_PORT` and
 
 | Changed | Enough |
 | --- | --- |
-| `js/*.js`, `css/player.css`, `player.html` | reload the player tab (`⌘R`) |
+| `js/*.js`, `css/*.css`, `player.html` | reload the player tab (`⌘R`) |
 | `manifest.json`, `background.js` | the extension's ↻ on the `chrome://extensions` page |
 
 A page reload reads the files from disk again — ES modules included — so the
@@ -149,7 +149,7 @@ links — and warns about anything else. No dependencies.
 manifest.json       MV3 manifest
 background.js       a click on the icon opens the player
 player.html         the whole interface on one page
-css/player.css
+css/*.css           its stylesheets, thirteen, linked in the cascade's order
 js/api.js           player_api.php client, base64 EPG, time zones
 js/xtream.js        building the Xtream URLs, parsing a pasted M3U address
 js/m3u.js           reading M3U playlists, what a row is, catch-up addresses
