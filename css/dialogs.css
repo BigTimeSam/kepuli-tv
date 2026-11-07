@@ -135,6 +135,9 @@ dialog::backdrop { background: var(--backdrop); backdrop-filter: blur(2px); }
 .field-hint { font-size: var(--fs-m); color: var(--muted); line-height: 1.45; }
 /* Two classes, to beat the muted colour .field gives every span in it. */
 .field .playlist-status { color: var(--danger); }
+/* The playlist as a file, under its address: the button and the file's name. */
+.playlist-file { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin-top: 6px; }
+.playlist-file-name { color: var(--muted); font-size: var(--fs-m); overflow-wrap: anywhere; }
 .radios { flex-wrap: wrap; }
 .range-label { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; }
 .range-label > span:first-child { flex: 1; }

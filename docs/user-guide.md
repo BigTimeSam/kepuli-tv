@@ -42,7 +42,14 @@ with an empty form under it — an Xtream server or an M3U playlist, with a name
 of your choosing — and saving connects to it; **Cancel** in its row takes it
 away again. An Xtream server needs its server, user name and password; a
 playlist that needs no sign-in, such as a free one, goes under **Playlist
-address (M3U)**. A new account's form starts on **Playlist address (M3U)**,
+address (M3U)**. A playlist you have as a file (`.m3u`, `.m3u8`, or gzipped)
+is chosen with **Choose a file…** under the address: the account is named
+after the file, and the playlist is read into this browser when you press
+**Connect**, so nothing is downloaded for it. To bring it up to date, choose
+the file again in **Settings**; the account stays the same, its favourites
+and history with it. Sync carries such an account to your other computers
+but not the file: there the player asks you to choose it again. A new
+account's form starts on **Playlist address (M3U)**,
 as the first run does. Once there are two, **Switch** in another account's
 row switches to it. Each account keeps its own favourites, history, resume points,
 reminders and channel lists, and its own catalogue in the cache, so switching
@@ -405,8 +412,9 @@ interrupted channel-list load restores the previous list.
   begin with and the history the latest first; the marks at the foot of
   either list choose another order, and the choice is remembered
 - **Thirty languages**, switched in the settings without a page reload
-- **M3U playlists and XMLTV guides** as well as Xtream servers: a playlist's
-  channels, films and series, its programme guide and catch-up — see
+- **M3U playlists and XMLTV guides** as well as Xtream servers, a playlist
+  by its address or as a file: its channels, films and series, its
+  programme guide and catch-up — see
   [Connection mode](internals.md#connection-mode)
 - **Stalker portals** by portal address and MAC address, as a MAG box sees
   them — see [Stalker portals](#stalker-portals)

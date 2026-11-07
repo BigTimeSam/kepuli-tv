@@ -24,6 +24,11 @@
 // day, and favourites, history and resume points must still find the item.
 // The address goes with the item and is brought up to date from the list
 // when it is played (withCurrentAddress in js/app.js).
+//
+// A playlist can also be a file the viewer chooses (importPlaylistFile):
+// read once, kept in the cache with no time limit, as there is nothing to
+// download again, and chosen once more to bring it up to date. Another
+// computer the account syncs to has no file: it says so (m3u.file.again).
 
 import { t } from './i18n.js';
 import { cacheEntry, cacheGet, cachePutMany } from './db.js';
@@ -156,9 +161,77 @@ export function buildCatalogue(entries, header = {}, noGroup = 'Other') {
   };
 }
 
+/**
+ * What a cached catalogue was read from: the address, or the file's account.
+ * @param {{ url?: string, fileId?: string }} config
+ */
+const sourceOf = (config) => (config.fileId ? `file:${config.fileId}` : config.url);
+
+/**
+ * A playlist read through `read` (which hands its text on piece by piece),
+ * made into a catalogue and put in the cache under `scope`.
+ * @param {string} source the address, or file:<id>
+ * @param {string} scope
+ * @param {(onText: (text: string) => void) => Promise<unknown>} read
+ */
+async function readPlaylist(source, scope, read) {
+  const entries = [];
+  // A file has no address of its own for relative entries to start from.
+  const parser = new M3uParser(source.startsWith('file:') ? '' : source, (entry) => entries.push(entry));
+  let sawText = false;
+  await read((text) => { if (text) sawText = true; parser.push(text); });
+  const { header } = parser.end();
+  if (!entries.length) {
+    // A page of HTML, a JSON error, an empty answer: not a playlist.
+    throw new ApiError('format', t(sawText ? 'm3u.notplaylist' : 'm3u.empty'));
+  }
+  const built = buildCatalogue(entries, header, t('m3u.nogroup'));
+  const value = {
+    url: source,
+    categories: built.categories,
+    items: built.items,
+    guides: header.guides,
+  };
+  const rows = [...built.episodes].map(([id, list]) => [`${scope}m3u:eps:${id}`, list]);
+  rows.push([`${scope}m3u:catalogue`, value]);
+  // The episodes stay in memory only if the cache would not take them.
+  const episodes = (await cachePutMany(rows)) ? null : built.episodes;
+  return { value, episodes };
+}
+
+/**
+ * A playlist file the viewer chose, read into the cache of the account it
+ * belongs to (scope, the account's key and "|"), gunzipped when it is gzip.
+ * Returns how many channels, films and series it holds; throws the same
+ * errors as a downloaded playlist when it is none.
+ * @param {Blob} file
+ * @param {{ fileId: string }} config
+ * @param {string} scope
+ */
+export async function importPlaylistFile(file, config, scope) {
+  const head = new Uint8Array(await file.slice(0, 2).arrayBuffer());
+  const gzip = head[0] === 0x1f && head[1] === 0x8b;
+  const { value, episodes } = await readPlaylist(sourceOf(config), scope, async (onText) => {
+    let stream = file.stream();
+    if (gzip) stream = stream.pipeThrough(new DecompressionStream('gzip'));
+    const reader = stream.pipeThrough(new TextDecoderStream()).getReader();
+    try {
+      for (;;) {
+        const { done, value: text } = await reader.read();
+        if (done) return;
+        onText(text);
+      }
+    } catch { throw new ApiError('format', t('m3u.notplaylist')); }
+  });
+  // What would not fit in the cache is lost with the page: the file is
+  // read again from the start the next time, so it has to fit.
+  if (episodes) throw new ApiError('format', t('m3u.file.toolarge'));
+  return { live: value.items.live.length, movie: value.items.movie.length, series: value.items.series.length };
+}
+
 export class M3uSource {
   /**
-   * @param {{ url: string, epgUrl?: string }} config
+   * @param {{ url: string, epgUrl?: string, file?: string, fileId?: string }} config
    * @param {string} scope the cache prefix: the account's key and "|"
    */
   constructor(config, scope = '') {
@@ -183,37 +256,27 @@ export class M3uSource {
 
   async fetchCatalogue({ signal, force }) {
     const key = `${this.scope}m3u:catalogue`;
+    const source = sourceOf(this.config);
+    if (this.config.fileId) {
+      // A file is not downloaded again: force reads the cache once more.
+      const cached = await cacheEntry(key);
+      if (!cached || cached.value.url !== source) throw new ApiError('format', t('m3u.file.again', { name: this.config.file }));
+      this.useCatalogue(cached.value, cached.at);
+      return this.catalogue;
+    }
     if (!force) {
       const cached = await cacheEntry(key, PLAYLIST_TTL);
-      if (cached && cached.value.url === this.config.url) {
+      if (cached && cached.value.url === source) {
         this.useCatalogue(cached.value, cached.at);
         return this.catalogue;
       }
     }
-    const entries = [];
-    const parser = new M3uParser(this.config.url, (entry) => entries.push(entry));
-    let sawText = false;
-    await streamText(this.config.url, {
+    const { value, episodes } = await readPlaylist(source, this.scope, (onText) => streamText(this.config.url, {
       signal,
       onProgress: this.onProgress,
-      onText: (text) => { if (text) sawText = true; parser.push(text); },
-    });
-    const { header } = parser.end();
-    if (!entries.length) {
-      // A page of HTML, a JSON error, an empty answer: not a playlist.
-      throw new ApiError('format', t(sawText ? 'm3u.notplaylist' : 'm3u.empty'));
-    }
-    const built = buildCatalogue(entries, header, t('m3u.nogroup'));
-    const value = {
-      url: this.config.url,
-      categories: built.categories,
-      items: built.items,
-      guides: header.guides,
-    };
-    const rows = [...built.episodes].map(([id, list]) => [`${this.scope}m3u:eps:${id}`, list]);
-    rows.push([key, value]);
-    // The episodes stay in memory only if the cache would not take them.
-    this.episodes = (await cachePutMany(rows)) ? null : built.episodes;
+      onText,
+    }));
+    this.episodes = episodes;
     this.useCatalogue(value, Date.now());
     return this.catalogue;
   }

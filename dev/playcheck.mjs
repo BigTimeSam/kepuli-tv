@@ -4397,6 +4397,68 @@ async function accountform(page, { target }) {
 }
 
 
+/**
+ * A playlist chosen as a file (importPlaylistFile in js/m3usource.js): the
+ * account is added from it, named after it, and connects without asking
+ * any address for the list; a reload reads it from the cache; a browser
+ * that does not have it (another computer, the cache cleared) says to
+ * choose it again; chosen again in Settings it is the same account.
+ */
+async function playlistfile(page, { target, requests }) {
+  const assert = (ok, message) => { if (!ok) throw new Error(message); };
+  const press = (expr) => evaluate(page, expr, { gesture: true });
+  await evaluate(page, `chrome.storage.local.set({ config: ${JSON.stringify(XTREAM_ACCOUNT)}, accounts: ${JSON.stringify([XTREAM_ACCOUNT])} })`);
+  await page.call('Page.navigate', { url: bare(target.url) });
+  await sleep(1000);
+  await waitFor(page, CONNECTED, 'the connection');
+  await evaluate(page, `document.querySelector('dialog[open]')?.close()`);
+  // The file as a viewer's: the mock's playlist, handed to the file field
+  // the way a choice in the browser's dialog arrives.
+  const choose = (name) => evaluate(page, `(async () => {
+    const text = await (await fetch(${JSON.stringify(M3U_ACCOUNT.url)})).text();
+    const input = document.getElementById('f-file');
+    const files = new DataTransfer();
+    files.items.add(new File([text], ${JSON.stringify(name)}, { type: 'audio/x-mpegurl' }));
+    input.files = files.files;
+    input.dispatchEvent(new Event('change', { bubbles: true }));
+    return true; })()`);
+  await press(`document.getElementById('btn-settings').click()`);
+  await waitFor(page, `document.getElementById('setup').open`, 'the settings');
+  await press(`document.getElementById('f-add-account').click()`);
+  await choose('Living room.m3u');
+  const form = await evaluate(page, `({ name: document.getElementById('f-name').value, shown: document.getElementById('f-file-name').textContent, guide: !document.getElementById('src-epg').hidden, save: document.getElementById('f-save').disabled })`);
+  assert(form.name === 'Living room' && form.shown === 'Playlist file: Living room.m3u' && form.guide && !form.save, `the form after the choice: ${JSON.stringify(form)}`);
+  requests.length = 0;
+  await press(`document.getElementById('f-save').click()`);
+  await waitFor(page, `!document.getElementById('setup').open && chrome.storage.local.get('config').then((d) => Boolean(d.config.fileId))`, 'the file\'s account in use', 30000);
+  await waitFor(page, CONNECTED, 'the playlist from the file', 30000);
+  const config = await evaluate(page, `chrome.storage.local.get('config').then((d) => d.config)`);
+  assert(config.type === 'm3u' && !config.url && config.file === 'Living room.m3u' && config.name === 'Living room', `the account: ${JSON.stringify(config)}`);
+  assert(!requests.includes('/playlist.m3u'), 'the playlist was downloaded although it came as a file');
+  await openLiveList(page, 2);
+  const rows = await evaluate(page, `document.querySelectorAll('#list .row').length`);
+  assert(rows > 1, `the channels of the file: ${rows}`);
+  // Read again from the cache, not asked for again.
+  await page.call('Page.reload');
+  await waitFor(page, CONNECTED, 'the playlist after a reload', 30000);
+  // Another computer's browser: the account came, the file did not.
+  await evaluate(page, `(async () => { const { cacheClear } = await import('./js/db.js'); await cacheClear(); return true; })()`);
+  await page.call('Page.reload');
+  await waitFor(page, `document.body.innerText.includes('Choose it again in Settings')`, 'the note to choose the file again', 30000);
+  // Chosen again: the same account, its id kept.
+  await evaluate(page, `document.querySelector('dialog[open]')?.close()`);
+  await press(`document.getElementById('btn-settings').click()`);
+  await waitFor(page, `document.getElementById('setup').open`, 'the settings again');
+  const before = await evaluate(page, `document.getElementById('f-file-name').textContent`);
+  await choose('Living room.m3u');
+  await press(`document.getElementById('f-save').click()`);
+  await waitFor(page, `!document.getElementById('setup').open`, 'the settings saved', 30000);
+  await waitFor(page, CONNECTED, 'the playlist chosen again', 30000);
+  const again = await evaluate(page, `chrome.storage.local.get(['config', 'accounts']).then((d) => ({ id: d.config.fileId, accounts: d.accounts.length }))`);
+  assert(again.id === config.fileId && again.accounts === 2, `chosen again: ${JSON.stringify(again)} (was ${config.fileId})`);
+  return { ok: true, detail: `"${form.shown}" named the account "${config.name}", ${rows} rows with no download; kept over a reload; without the file "${before}" and the note to choose it; chosen again, the same account` };
+}
+
 const STALKER_ACCOUNT = { type: 'stalker', url: `http://127.0.0.1:${MOCK_PORT}/c/`, mac: STALKER_MAC, name: 'Demo portal', id: 'pst', sourceMode: 'stalker', streamMode: 'auto' };
 
 /**
@@ -5247,7 +5309,7 @@ const MEASURE_OVERFLOW = `(() => {
       have = el.clientWidth - parseFloat(s.paddingLeft) - parseFloat(s.paddingRight) - (s.appearance === 'none' ? 0 : 20);
     } else if (el.tagName === 'INPUT' && el.placeholder && !el.value && /^(text|search|url|password|)$/.test(el.type)) {
       // A field's hint may end in an ellipsis where it is longer than the
-      // field (player.css sets text-overflow on inputs); the hint is a hint.
+      // field (css/last.css sets text-overflow on inputs); the hint is a hint.
       if (meantToCut(el)) continue;
       text = el.placeholder;
       need = textWidth(el, text);
@@ -6087,7 +6149,7 @@ async function filmfacts(page) {
 
 const SCENARIOS = { buffering, livebuffering, filmbuffering, emptyfile, tsasmp4, refusedfile, badgateway, livebadgateway, channelrefused, noanswer, longfilm, catalogUi, setupClarity, welcome, fullscreenControl, clickpause, pickers, touchcaret, screenbutton, topmenu, scrollbars, channelorder, lengthfilter, nowlogo, channels, home, resumemkv, restore, programmes, catchup, seek, death, cancel, timeout, search, paste, keys, switching, resume, connections, livezap, livequiet, reconnect, accounts, listerror, a11y, subtitles, audio, wasmaudio, settings,
   lastchannel, nextepisode, continuewatching, reminders, update, seeklag, cuesretry, quota, catchupfreeze, catchupfull, twotabs, switchstop, resettabs,
-  refresh, restorenav, guidekeep, m3u, sync, holes, picks, flakyserver, accountform, stalker, record, guidefavs, guidenames, categories, homecountry, noleak, perf, pseudo, startup, soak, phone, episodenames, gotochannel, filmdetails, favorder, countryfilter, tilekeys, routes, programmekeys, searchlimit, filterfolds, guideclick, filmaddress, filmfacts };
+  refresh, restorenav, guidekeep, m3u, sync, holes, picks, flakyserver, accountform, stalker, record, guidefavs, guidenames, categories, homecountry, noleak, perf, pseudo, startup, soak, phone, episodenames, gotochannel, filmdetails, favorder, countryfilter, tilekeys, routes, programmekeys, searchlimit, filterfolds, guideclick, filmaddress, filmfacts, playlistfile };
 // The mock's whole-list answers stall for these, longer than the request limit.
 const SLOW_LIST_MS = { cancel: 60000, timeout: 60000 };
 // The media is sent slowly for these: the seek targets must lie outside the

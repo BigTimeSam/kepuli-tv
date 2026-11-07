@@ -24,6 +24,7 @@ import { normalizeMac, normalizePortal } from './stalker.js';
 import { parsePlaylistUrl, parseServer, pastedKind } from './xtream.js';
 import { playback, tabs } from './playing.js';
 import { playlistAddress } from './m3u.js';
+import { importPlaylistFile } from './m3usource.js';
 import { refreshGuidePreview } from './guideui.js';
 import { THEMES, renderTheme, resolveTheme } from './theme.js';
 import { renderAccountList } from './accountsui.js';
@@ -97,6 +98,11 @@ export let setupSection = 'connection';
 export let setupEditing = 'current';
 export let setupAdding = false;
 let setupBase = null;
+// A playlist file chosen in the form and not yet read in (the account is
+// saved with it), and the id its account goes by: the edited account's own
+// when it was a file already, so that its lists stay with it.
+/** @type {{ file: File, fileId: string }|null} */
+let picked = null;
 
 /** The configuration the form edits for a choice in the list. */
 function accountFor(target) {
@@ -132,6 +138,9 @@ export function editAccount(target, { render = true } = {}) {
   for (const f of FIELDS) $(`f-${f}`).value = setupBase[f] ?? '';
   $('f-name').value = setupBase.name || '';
   $('f-paste').value = setupBase.type === 'm3u' ? setupBase.url || '' : '';
+  picked = null;
+  $('f-file').value = '';
+  showPickedFile();
   $('f-epgurl').value = setupBase.epgUrl || '';
   $('f-portal').value = setupBase.type === 'stalker' ? setupBase.url || '' : '';
   $('f-mac').value = setupBase.type === 'stalker' ? setupBase.mac || '' : '';
@@ -194,13 +203,31 @@ function readConnection() {
     return { type: 'stalker', url: normalizePortal(typed) || typed, mac: normalizeMac($('f-mac').value) || $('f-mac').value.trim(), name, sourceMode: 'stalker' };
   }
   if (sourceMode() === 'm3u' && pasted && !parsePlaylistUrl(pasted)) {
-    return { type: 'm3u', url: playlistAddress(pasted) || pasted, epgUrl: $('f-epgurl').value.trim(), name, sourceMode: 'm3u' };
+    return { type: 'm3u', url: playlistAddress(pasted) || pasted, epgUrl: $('f-epgurl').value.trim(), file: '', fileId: '', name, sourceMode: 'm3u' };
+  }
+  const file = playlistFile();
+  if (sourceMode() === 'm3u' && !pasted && file) {
+    return { type: 'm3u', url: '', epgUrl: $('f-epgurl').value.trim(), ...file, name, sourceMode: 'm3u' };
   }
   return { type: 'xtream', ...readSetup(), name, sourceMode: sourceMode() };
 }
 
+/** The playlist file of the form: one just chosen, or the edited account's. */
+function playlistFile() {
+  if (picked) return { file: picked.file.name, fileId: picked.fileId };
+  const base = setupBase || state.config;
+  return base?.type === 'm3u' && base.fileId ? { file: base.file, fileId: base.fileId } : null;
+}
+
+/** The chosen file's name under the button, or the edited account's. */
+function showPickedFile() {
+  const file = playlistFile();
+  $('f-file-name').hidden = !file || Boolean($('f-paste').value.trim());
+  $('f-file-name').textContent = file ? t('setup.m3u.file.chosen', { name: file.file }) : '';
+}
+
 /** The keys that say where the connection goes, for the form's kind. */
-const connectionKeys = (c) => ['type', ...(c.type === 'm3u' ? ['url', 'epgUrl'] : c.type === 'stalker' ? ['url', 'mac'] : FIELDS)];
+const connectionKeys = (c) => ['type', ...(c.type === 'm3u' ? ['url', 'epgUrl', 'fileId'] : c.type === 'stalker' ? ['url', 'mac'] : FIELDS)];
 
 /** The form an account opens in. */
 const baseMode = (c) => (c.type === 'm3u' ? 'm3u' : c.type === 'stalker' ? 'stalker' : c.sourceMode === 'stalker' ? 'xtream' : c.sourceMode);
@@ -209,6 +236,8 @@ const baseMode = (c) => (c.type === 'm3u' ? 'm3u' : c.type === 'stalker' ? 'stal
 function connectionTargetChanged() {
   const c = readConnection();
   const base = setupBase || state.config;
+  // A file chosen again is read again, whatever its name.
+  if (picked && c.fileId === picked.fileId) return true;
   return connectionKeys(c).some((key) => String(c[key] ?? '') !== String((key === 'type' ? base.type || 'xtream' : base[key]) ?? ''));
 }
 
@@ -216,7 +245,7 @@ function setupConnectionChanged() {
   const base = setupBase || state.config;
   if (setupAdding) {
     const c = readConnection();
-    return Boolean(c.name || (c.type === 'm3u' || c.type === 'stalker' ? c.url || c.mac : c.host || c.username || c.password) || $('f-paste').value.trim());
+    return Boolean(c.name || (c.type === 'm3u' || c.type === 'stalker' ? c.url || c.mac || picked : c.host || c.username || c.password) || $('f-paste').value.trim());
   }
   return connectionTargetChanged() || $('f-name').value.trim() !== (base.name || '')
     || sourceMode() !== baseMode(base)
@@ -257,7 +286,8 @@ async function updateGrantNote() {
   if (!making && !connectionTargetChanged()) { $('setup-grant-note').hidden = true; return; }
   const patch = readConnection();
   const addresses = (patch.type === 'm3u' ? [patch.url, patch.epgUrl] : [accountAddress(patch)]).filter(Boolean);
-  if (!addresses.length) { $('setup-grant-note').hidden = !making; return; }
+  // A file asks for nothing, unless a guide's address goes with it.
+  if (!addresses.length) { $('setup-grant-note').hidden = !making || Boolean(patch.fileId); return; }
   const allowed = (await Promise.all(addresses.map(hasAccess))).every(Boolean);
   if (check === grantCheck) $('setup-grant-note').hidden = allowed;
 }
@@ -386,7 +416,7 @@ function showSourceMode(mode) {
 /** The guide's address belongs to a playlist, not to an Xtream subscription's address. */
 function showGuideField() {
   const pasted = $('f-paste').value.trim();
-  $('src-epg').hidden = sourceMode() !== 'm3u' || !pasted || Boolean(parsePlaylistUrl(pasted));
+  $('src-epg').hidden = sourceMode() !== 'm3u' || (pasted ? Boolean(parsePlaylistUrl(pasted)) : !playlistFile());
 }
 
 /** The M3U field says only what is wrong; what is right, it shows. */
@@ -675,6 +705,25 @@ export function wireSetup() {
     return true;
   };
   $('f-paste').addEventListener('change', (e) => toPortal(e.target));
+  // The playlist as a file: the address gives way to it, and it to an
+  // address typed after it.
+  $('f-file-pick').addEventListener('click', () => $('f-file').click());
+  $('f-file').addEventListener('change', (e) => {
+    const file = /** @type {HTMLInputElement} */ (e.target).files?.[0];
+    if (!file) return;
+    const base = setupBase || state.config;
+    picked = { file, fileId: !setupAdding && base?.type === 'm3u' && base.fileId ? base.fileId : crypto.randomUUID() };
+    $('f-paste').value = '';
+    showPlaylistError(false);
+    if (!$('f-name').value.trim()) $('f-name').value = file.name.replace(/\.(m3u8?|txt)(\.gz)?$/i, '');
+    showPickedFile();
+    showGuideField();
+    updateSetupActions();
+  });
+  $('f-paste').addEventListener('input', () => {
+    if (picked && $('f-paste').value.trim()) { picked = null; $('f-file').value = ''; }
+    showPickedFile();
+  });
   $('f-paste').addEventListener('input', (e) => {
     const parsed = parsePlaylistUrl(e.target.value);
     // An address with no credentials in it is a playlist of its own, kept
@@ -737,7 +786,7 @@ export function wireSetup() {
     // complete: an Xtream subscription's is read into the fields, any other
     // is a playlist.
     const pasted = $('f-paste').value.trim();
-    if (sourceMode() === 'm3u' && (connectionEdited || pasted)) {
+    if (sourceMode() === 'm3u' && (connectionEdited || pasted) && (pasted || !playlistFile())) {
       const parsed = parsePlaylistUrl(pasted);
       if (parsed) {
         for (const f of FIELDS) if (parsed[f] != null) $(`f-${f}`).value = parsed[f];
@@ -776,6 +825,21 @@ export function wireSetup() {
         // and Save for a changed one.
         setupError('setup.nogrant', null, { button: t(!configured() || setupAdding ? 'setup.connect' : 'setup.save') });
         return;
+      }
+      // A file is read into the account's cache before the account is
+      // saved, so that what it connects to is there; what was cached of
+      // the account before (its lists, the old file) goes first.
+      if (picked && patch.fileId === picked.fileId) {
+        const scope = `${store.accountKey(patch)}|`;
+        await cacheClear(scope);
+        try {
+          await importPlaylistFile(picked.file, patch, scope);
+        } catch (err) {
+          $('setup-error').textContent = err.message || t('m3u.notplaylist');
+          $('setup-error').hidden = false;
+          return;
+        }
+        picked = null;
       }
       const previous = state.config;
       // A new account is a whole configuration of its own, with an id of

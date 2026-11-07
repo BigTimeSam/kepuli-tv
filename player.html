@@ -781,6 +781,13 @@ before the storm closes the road.</div></div>
              accepted opens the fields it filled, which says the same thing
              by showing it. -->
         <span id="playlist-status" class="playlist-status" role="status" hidden></span>
+        <!-- Or the playlist as a file: read into this browser when the
+             account is saved (importPlaylistFile in js/m3usource.js). -->
+        <div class="playlist-file">
+          <button type="button" id="f-file-pick" class="ghost" data-i18n="setup.m3u.file">Choose a file…</button>
+          <span id="f-file-name" class="playlist-file-name" hidden></span>
+          <input id="f-file" type="file" accept=".m3u,.m3u8,.gz,audio/x-mpegurl,audio/mpegurl,application/x-mpegurl,application/vnd.apple.mpegurl,text/plain" hidden>
+        </div>
       </div>
       <!-- A Stalker portal knows the viewer by the MAC address the provider
            registered for them; there is no user name or password. -->

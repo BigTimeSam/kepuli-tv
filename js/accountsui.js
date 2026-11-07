@@ -16,8 +16,8 @@ import { $, el } from './dom.js';
 /** What kind of account, and where: "Xtream Codes, example.tv". */
 function accountWhere(a) {
   if (a.type === 'm3u' || a.type === 'stalker') {
-    let host = a.url;
-    try { host = new URL(a.url).hostname; } catch { /* the address as it is */ }
+    let host = a.fileId ? a.file : a.url;
+    if (!a.fileId) try { host = new URL(a.url).hostname; } catch { /* the address as it is */ }
     const kind = t(a.type === 'm3u' ? 'accounts.kind.m3u' : 'accounts.kind.stalker');
     // An unnamed one is named by its host already.
     return store.accountLabel(a) === host ? kind : `${kind}, ${host}`;

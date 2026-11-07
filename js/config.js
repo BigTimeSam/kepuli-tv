@@ -29,6 +29,10 @@ const CONNECTION_DEFAULTS = {
   type: 'xtream',           // xtream | m3u | stalker
   scheme: 'http', host: '', port: '8080', username: '', password: '',
   url: '', epgUrl: '', mac: '',
+  // An M3U playlist read from a file instead of an address: the file's name
+  // and an id of the account's own, as there is no address to know it by.
+  // The playlist itself is in this browser's cache alone (js/m3usource.js).
+  file: '', fileId: '',
   // The name the viewer gave the account, for the account menu; empty
   // means one made from the address (accountLabel).
   name: '',
@@ -73,7 +77,7 @@ const MAC = /^([0-9A-F]{2}:){5}[0-9A-F]{2}$/i;
  */
 export function isConfigured(c) {
   if (!c) return false;
-  if (c.type === 'm3u') return Boolean(c.url);
+  if (c.type === 'm3u') return Boolean(c.url || c.fileId);
   if (c.type === 'stalker') return Boolean(c.url && MAC.test(c.mac || ''));
   return Boolean(c.host && c.username && c.password);
 }
@@ -86,6 +90,7 @@ export function isConfigured(c) {
 export function accountLabel(c) {
   if (!c) return '';
   if (c.name && c.name.trim()) return c.name.trim();
+  if (c.type === 'm3u' && c.fileId) return c.file || '';
   if (c.type === 'm3u' || c.type === 'stalker') {
     try { return new URL(c.url).hostname; } catch { return c.url || ''; }
   }
@@ -267,7 +272,7 @@ const DEFAULT_PORTS = { http: '80', https: '443' };
  * @returns {string}
  */
 export function accountKey(c) {
-  if (c.type === 'm3u') return `m3u:${String(c.url || '').trim()}`;
+  if (c.type === 'm3u') return c.fileId ? `m3u-file:${c.fileId}` : `m3u:${String(c.url || '').trim()}`;
   if (c.type === 'stalker') return `stalker:${String(c.url || '').trim()}|${String(c.mac || '').toUpperCase()}`;
   const scheme = String(c.scheme || 'http').trim().toLowerCase();
   const host = String(c.host || '').trim().toLowerCase();
