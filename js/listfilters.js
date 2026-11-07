@@ -2,12 +2,11 @@
 //
 // The list column used to stack up to three bands above the rows: the
 // topic chips, the films' filters and the favourites strip, each taking
-// height of its own. Now the films and the series keep their favourites
-// inside "Filter titles", and the channels have "Filter channels" holding
-// the country's topics, at their full height, as the fold itself is what
-// gives the list its room back. The channels have no favourites strip:
-// the Favourites tab holds them. Folded, the list starts one row below the
-// column's head.
+// height of its own. Now the films and the series have "Filter titles"
+// (with "Show only favourites" in it, js/mediafilters.js), and the
+// channels "Filter channels" holding the country's topics, at their full
+// height, as the fold itself is what gives the list its room back.
+// Folded, the list starts one row below the column's head.
 //
 // The parts are the same elements wherever they stand, moved rather than
 // rebuilt, so their listeners and their keys go with them; on the other
@@ -48,7 +47,7 @@ export function wireListFilters(ui) {
   body = $('channel-filters-body');
   count = $('channel-filters-count');
   caption = $('channel-filters-label');
-  for (const node of [el.subcats, el.subcatsGrip, $('fav-strip')]) remember(node);
+  for (const node of [el.subcats, el.subcatsGrip]) remember(node);
   // Open the first time, as "Filter titles": the topics were always in
   // sight, and a viewer who has not folded them away should find them
   // where they were.
@@ -59,7 +58,6 @@ export function wireListFilters(ui) {
 /** Each part where the tab on show wants it, and the channels' fold's heading. */
 export function placeListFilters(rows) {
   if (!panel) return;
-  const strip = $('fav-strip');
   const channels = state.tab === 'live' && !state.detail && !state.query && Boolean(state.lib) && !isCollection();
   panel.hidden = !channels;
   if (channels) {
@@ -67,7 +65,6 @@ export function placeListFilters(rows) {
     // its whole height inside the fold.
     moveInto(el.subcats, body);
     moveInto(el.subcatsGrip, body);
-    sendHome(strip);
     // A topic narrows the country's channels as a film filter narrows
     // the films: how many of the country's are left, and the dot.
     const total = state.sub ? withoutInternational(visibleRows(state.groupItems)).length : rows.length;
@@ -78,9 +75,6 @@ export function placeListFilters(rows) {
   $('active-channel-filters').hidden = true;
   sendHome(el.subcats);
   sendHome(el.subcatsGrip);
-  const films = (state.tab === 'movie' || state.tab === 'series') && !$('media-filters').hidden;
-  if (films) moveInto(strip, $('media-filters'));
-  else sendHome(strip);
 }
 
 /**
@@ -97,7 +91,7 @@ function renderTopicChip() {
   const button = document.createElement('button');
   button.type = 'button';
   button.className = 'filter-chip';
-  button.textContent = `${label} ×`;
+  button.textContent = label;
   button.setAttribute('aria-label', t('filters.remove', { filter: label }));
   button.addEventListener('click', () => selectSub(null));
   host.replaceChildren(button);

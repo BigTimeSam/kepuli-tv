@@ -28,6 +28,13 @@ assert.deepEqual(ids({ genre: 'fantasy' }), []);
 assert.deepEqual(ids({}), ['a', 'b', 'c', 'd'], 'no filter keeps the source order');
 assert.deepEqual(ids({ sort: 'rating' }), ['a', 'b', 'c', 'd'], 'a sort is no longer a filter');
 assert.equal('sort' in emptyFilters(), false, 'Reset has no order to clear');
+// "Show only favourites" is one filter among the others: it narrows to the
+// starred titles and combines with the rest.
+const starred = new Set(['b', 'c']);
+const favs = filters => filterMedia(entries, { ...emptyFilters(), favs: '1', ...filters }, item => starred.has(item.id)).map(item => item.id);
+assert.deepEqual(favs({}), ['b', 'c'], 'only the favourites');
+assert.deepEqual(favs({ rating: '9' }), ['c'], 'the favourites and a rating');
+assert.deepEqual(filterMedia(entries, { ...emptyFilters(), favs: '1' }).map(item => item.id), [], 'none starred, none shown');
 assert.deepEqual(rows.map(item => item.id), ['a', 'b', 'c', 'd'], 'filtering must not mutate the catalogue');
 assert.equal(mediaFacts({ rating: 8 }, { rating: 9 }).rating, 9, 'use loaded details consistently with the row');
 assert.equal(mediaFacts({}, { rating: 9 }).rating, 9, 'detail ratings use ten points');
@@ -53,4 +60,4 @@ assert.equal(movie.year, 2023);
 assert.equal(movie.genre, 'Drama');
 api.call = async () => [{ series_id: 1, name: 'Example (2022)' }];
 assert.equal((await api.streams('series'))[0].year, 2022);
-console.log('PASS: year extraction, combined filters, missing metadata, rating scale, the order left to the list, and API fields.');
+console.log('PASS: year extraction, combined filters, missing metadata, rating scale, the order left to the list, favourites only, and API fields.');

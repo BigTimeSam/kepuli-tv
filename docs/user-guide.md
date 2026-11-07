@@ -8,18 +8,20 @@ switching audio tracks, pausing playback and entering full screen.
 ## Getting started
 
 1. Open the player using the Kepuli-TV icon in your browser toolbar.
-2. Paste the address your provider sent into the first field, **Paste the
-   address your provider sent**, where the caret starts. It fills in the form
-   it belongs to: an Xtream subscription's address (`get.php?username=…&password=…`)
-   the server, port, user name and password under **Server and credentials
-   (Xtream Codes)**, a portal's address (ending in `/c/`) **Stalker portal
-   (MAC address)**, which then asks for the MAC address, and any other web
-   address **Playlist address (M3U)**. Or choose one of the three yourself
+2. Paste the address your provider sent into **Subscription or playlist
+   address**, where the form starts (**Playlist address (M3U)**, with the
+   caret in it). It fills in the form it belongs to: an address with a user
+   name and password in it (`get.php?username=…&password=…`, or the guide's
+   `xmltv.php?…`) the server, port, user name and password under **Server and credentials (Xtream Codes)**, a portal's
+   address (ending in `/c/`) **Stalker portal (MAC address)**, which then asks
+   for the MAC address, and any other web address stays as the playlist's.
+   Or choose one of the three yourself
    and fill it in by hand. You need your own subscription: the app does not
    include channels or content. The dialog says as much on a first run and
    links to these steps; the eye at the end of the password field shows what
    was typed — a provider's password is long, random and entered by hand
-   exactly once. **Name (optional)** comes last.
+   exactly once. **Name** comes before the fields that connect; the fields
+   that must be filled in have a * after their name.
 3. Press **Connect**. Unless the browser already allows that server, the
    dialog says beforehand that the browser will now ask to let Kepuli-TV
    reach it: choose **Allow**, which covers that server only. Refused, the dialog says so and that pressing **Connect**
@@ -40,8 +42,8 @@ with an empty form under it — an Xtream server or an M3U playlist, with a name
 of your choosing — and saving connects to it; **Cancel** in its row takes it
 away again. An Xtream server needs its server, user name and password; a
 playlist that needs no sign-in, such as a free one, goes under **Playlist
-address (M3U)**. A new account's form starts with the same **Paste the address
-your provider sent** field as the first run. Once there are two, the top bar carries the
+address (M3U)**. A new account's form starts on **Playlist address (M3U)**,
+as the first run does. Once there are two, the top bar carries the
 name of the account in use, and a click on it lists the others: one click
 switches. Each account keeps its own favourites, history, resume points,
 reminders and channel lists, and its own catalogue in the cache, so switching
@@ -164,8 +166,10 @@ the player actually arrives.
   the list using the categories on the left. The search field finds titles
   within the selected content type.
 - Above the list, **Filter channels** holds a country's topics, and the
-  films' and series' **Filter titles** their filters with the favourites
-  among the list at its end. Both are open the first time and fold away,
+  films' and series' **Filter titles** their filters, with **Show only
+  favourites** at its foot and a **?** for what the filters can and cannot
+  tell; what is in force shows as chips under it, with **Reset** after
+  them. Both are open the first time and fold away,
   and open or folded is remembered for each; folded or not, the heading
   says how many of how many are shown (**2 / 15**), with a dot after the
   name while a topic or a filter narrows the list. **Filter countries** at the foot of the sidebar (**Filter
@@ -197,8 +201,8 @@ the player actually arrives.
   tv-logos, a public collection on GitHub, because many providers' logo
   addresses lead nowhere; GitHub then sees which logo files are loaded (see
   the privacy policy).
-- Every list has the marks for its order at its foot, the same choice as
-  its field in Settings › Viewing, and the choice is remembered: the
+- Every list has the marks for its order at its foot, and the choice is
+  remembered: the
   channels by name or by the provider's channel number (#); the favourites
   by name or the latest added first (a clock); the movies and the series by
   name, by release year (a calendar), by rating (a star) or what the
@@ -375,8 +379,8 @@ interrupted channel-list load restores the previous list.
   `p` do, and the seek keys move a film or a recording
 - **Updates offered** rather than held back silently: the browser does not
   take an update while the player is open, so the player says one is ready
-  and takes it on request, reopening where it was. **Account & data** names
-  the version running
+  and takes it on request, reopening where it was. The foot of **Help** names
+  the version running, with the update's button when one is waiting
 - **Favourites** and **history** as tabs of their own — a whole category can be
   a favourite too, see below. The favourites are in alphabetical order to
   begin with and the history the latest first; the marks at the foot of
@@ -409,7 +413,7 @@ interrupted channel-list load restores the previous list.
 | --- | --- |
 | `/` | go to the search box |
 | `Tab` | move between the areas of the page; the arrows move inside the sidebar, the tabs, the topics and the list |
-| `↑` `↓` `PgUp` `PgDn` | move in the list; on a strip of tiles (the related titles under the picture, the favourites strip, the empty player's cards) the arrows, `Home` and `End` move between its tiles instead |
+| `↑` `↓` `PgUp` `PgDn` | move in the list; on a strip of tiles (the related titles under the picture, the empty player's cards) the arrows, `Home` and `End` move between its tiles instead |
 | `Enter` | play / open a series |
 | `Backspace` | back to the series list |
 | `space` | pause (a click on the picture of a film or an episode does the same) |
@@ -500,7 +504,7 @@ leaving it returns to the player still full screen. Where the bar does not fit o
 Full screen and Settings go behind a hamburger (☰) at its right end, the
 search takes the room that is left, and the bar stays on one row; the
 recordings and the account switch stay in sight. Whether it fits is measured,
-so a language with longer tab names makes the switch at a wider window. The sun and moon is the quick switch; Settings > Viewing > Appearance also offers *Same as the system*, which follows the operating system's light or dark mode while the player is open, and a press of the switch then picks the other of what is on screen. Dark is the default. The picture and the bar
+so a language with longer tab names makes the switch at a wider window. The sun and moon is the quick switch; Settings > Viewing > Appearance starts on *Automatic*, named with the theme it comes to now (*Automatic (dark)*), which follows the operating system's light or dark mode while the player is open; a press of the switch picks the other of what is on screen and keeps it. The picture and the bar
 under it stay dark in either, and the choice is kept with the settings and
 copied to `localStorage`, so a light theme does not flash dark at start
 (`js/theme.js`);
@@ -588,10 +592,10 @@ Settings always opens on **Connection**, with five focused tabs:
 | Section | Holds |
 | --- | --- |
 | **Connection** | the provider address and credentials, entered as Xtream Codes fields, an M3U address, or a Stalker portal and its MAC address |
-| **Viewing** | interface language, the order of each list (channels, favourites, movies, series, history), the appearance (dark, light, or the system's), the clock, the countries, the international channels, automatic programme data and the sections of the player's own page |
+| **Viewing** | in four groups: *Language and appearance* (interface language, dark, light or the system's, the clock), *Channels* (the countries, the international channels), *Start page* (its sections) and *Programme guide* (automatic programme data) |
 | **Playback** | remembered playback positions, the next episode, the stream statistics over the picture and recording |
 | **Subtitles** | style and size, with a local preview |
-| **Account & data** | subscription details and cache information; an expandable **Manage stored data** section contains cache clearing and reset; the version running, and the update when one is waiting |
+| **Account & data** | in three groups: *Subscription* (its details and the cache), *Sync between computers* and *Manage stored data* (cache clearing and reset) |
 
 Changes on every tab remain drafts until **Save**. Switching tabs keeps the
 draft; **Cancel** discards it. The cross, Escape and a backdrop click ask
@@ -605,8 +609,8 @@ connection does not require its address to be pasted again when saving viewing
 preferences. Cache clearing and reset require a clean form and remain explicit
 actions, with a separate confirmation for reset.
 
-Before credentials exist, the tabs are hidden, **Paste the address your
-provider sent** comes first, a line above the buttons says that the browser
+Before credentials exist, the tabs are hidden, the form starts on
+**Playlist address (M3U)**, a line above the buttons says that the browser
 will ask for access to the server next, and **Connect** saves the initial
 connection. Otherwise the same **Save** action is available from every tab.
 

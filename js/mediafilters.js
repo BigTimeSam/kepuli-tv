@@ -48,10 +48,16 @@ export function mediaFacts(item, details = item.details) {
 // length is "from:to" in minutes, both ends included; '' is any length.
 // The order is not a filter: it is chosen at the list's foot and kept as a
 // setting (js/listorder.js), so Reset and the chips leave it alone.
-export const emptyFilters = () => ({ year: '', genre: '', rating: '', length: '' });
+export const emptyFilters = () => ({ year: '', genre: '', rating: '', length: '', favs: '' });
 
-export function filterMedia(entries, filters) {
-  return entries.filter(({ facts }) => {
+/**
+ * @param {{ item: any, facts: any }[]} entries
+ * @param {ReturnType<typeof emptyFilters>} filters
+ * @param {(item: any) => boolean} [isFavourite] for "Show only favourites"
+ */
+export function filterMedia(entries, filters, isFavourite = () => false) {
+  return entries.filter(({ item, facts }) => {
+    if (filters.favs && !isFavourite(item)) return false;
     if (filters.year === 'missing' && facts.year) return false;
     if (filters.year && filters.year !== 'missing') {
       const [from, to = from] = filters.year.split(':').map(Number);
@@ -71,8 +77,9 @@ export function filterMedia(entries, filters) {
 
 /** Session-only experiments: movies and series keep separate choices. */
 export class MediaFilters {
-  constructor(host, onChange, detailsFor = item => item.details, activeHost = null) {
+  constructor(host, onChange, detailsFor = item => item.details, activeHost = null, isFavourite = () => false) {
     this.host = host;
+    this.isFavourite = isFavourite;
     this.activeHost = activeHost;
     this.onChange = onChange;
     this.detailsFor = detailsFor;
@@ -111,19 +118,38 @@ export class MediaFilters {
       });
     }
     controls.append(this.lengthControl());
+    // The favourites among the list's titles, a filter like the others:
+    // a fold of tiles above the list showed them once more, and took a row
+    // of its own with none in it.
+    const favs = document.createElement('label');
+    favs.className = 'toggle media-filter-favs';
+    this.favs = document.createElement('input');
+    this.favs.type = 'checkbox';
+    this.favsText = document.createElement('span');
+    favs.append(this.favs, this.favsText);
+    this.favs.addEventListener('change', () => {
+      this.values[this.type].favs = this.favs.checked ? '1' : '';
+      this.onChange();
+    });
+    // The favourites at the foot. Reset is with the chips of what is in
+    // force (renderActive), where it is needed.
     const foot = document.createElement('div');
     foot.className = 'media-filter-footer';
-    this.note = document.createElement('span');
     this.reset = document.createElement('button');
     this.reset.type = 'button';
+    this.reset.className = 'media-filter-reset';
     this.reset.addEventListener('click', () => this.clear());
-    foot.append(this.note, this.reset);
+    foot.append(favs);
     this.host.append(this.summary, controls, foot);
   }
 
   get filtering() {
     const value = this.values[this.type];
-    return Boolean(value && (value.year || value.genre || value.rating || value.length));
+    return Boolean(value && Object.values(value).some(Boolean));
+  }
+
+  get favouritesOnly() {
+    return Boolean(this.values[this.type]?.favs);
   }
 
   /**
@@ -159,7 +185,7 @@ export class MediaFilters {
       this.showLength();
     };
     for (const input of this.lengthInputs) {
-      input.addEventListener('input', () => moved(input));
+      input.addEventListener('input', () => { this.lengthChosen = false; moved(input); });
       input.addEventListener('change', () => {
         const all = Number(from.value) <= Number(from.min) && Number(to.value) >= Number(to.max);
         this.values[this.type].length = all ? '' : `${from.value}:${to.value}`;
@@ -175,7 +201,10 @@ export class MediaFilters {
   showLength() {
     const [from, to] = this.lengthInputs;
     const min = Number(from.min), max = Number(from.max);
-    const all = Number(from.value) <= min && Number(to.value) >= max;
+    // A choice in force is said as its range even where the list's lengths
+    // all fit in it: "Any length" over a filter that still left out the
+    // films of no known length read as no filter, over an empty list.
+    const all = !this.lengthChosen && Number(from.value) <= min && Number(to.value) >= max;
     // A screen reader would otherwise read the handle as a bare "90".
     for (const input of this.lengthInputs) input.setAttribute('aria-valuetext', duration(Number(input.value) * 60));
     this.lengthText.textContent = all ? t('filters.anyLength')
@@ -217,6 +246,7 @@ export class MediaFilters {
     from.value = String(chosen ? chosen[0] : min);
     to.value = String(chosen ? chosen[1] : max);
     this.lengthField.classList.toggle('active', Boolean(chosen));
+    this.lengthChosen = Boolean(chosen);
     this.showLength();
   }
 
@@ -261,7 +291,7 @@ export class MediaFilters {
     // per-title genre metadata must not narrow those results a second time.
     if (type === 'movie') filters.genre = '';
     const entries = rows.map(item => ({ item, facts: this.factsOf(item) }));
-    const results = filterMedia(entries, filters);
+    const results = filterMedia(entries, filters, this.isFavourite);
     const years = [...new Set(entries.map(e => e.facts.year).filter(Boolean))].sort((a, b) => b - a);
     const decades = [...new Set(years.map(y => Math.floor(y / 10) * 10))];
     const genres = type === 'series' ? [...new Set(entries.flatMap(e => e.facts.genres))].sort((a, b) => a.localeCompare(b, localeTag())) : [];
@@ -293,16 +323,12 @@ export class MediaFilters {
       field.select.classList.toggle('active', Boolean(filters[key]));
     }
     this.renderLength(entries, type, filters);
+    this.favs.checked = Boolean(filters.favs);
+    this.favsText.textContent = t('filters.favs');
     const active = Object.values(filters).some(Boolean);
     foldSummary(this.caption, this.count, { label: t('filters.title'), shown: results.length, total: rows.length, active });
     this.reset.textContent = t('filters.reset');
     this.reset.disabled = !active;
-    const missing = entries.some(e => !e.facts.year || !e.facts.rating || (type === 'series' && !e.facts.genres.length) || (type === 'movie' && !e.facts.minutes));
-    // The genre field is hidden on movies because a film's genre there is
-    // the provider's own category. A control that is present on Series and
-    // gone on Movies needs to say why rather than leave it to be noticed.
-    this.note.textContent = [type === 'movie' ? t('filters.genre.movie') : '', missing ? t('filters.incomplete') : '']
-      .filter(Boolean).join(' ');
     this.renderActive(filters);
     return results;
   }
@@ -315,12 +341,12 @@ export class MediaFilters {
     for (const [key, value] of Object.entries(filters)) {
       if (!value) continue;
       const field = this.fields[key];
-      const label = key === 'length' ? `${t('title.duration')}: ${this.lengthText.textContent}`
+      const label = key === 'favs' ? t('filters.favs') : key === 'length' ? `${t('title.duration')}: ${this.lengthText.textContent}`
         : `${field.text.textContent}: ${field.select.selectedOptions[0]?.textContent || value}`;
       const button = document.createElement('button');
       button.type = 'button';
       button.className = 'filter-chip';
-      button.textContent = `${label} ×`;
+      button.textContent = label;
       button.setAttribute('aria-label', t('filters.remove', { filter: label }));
       button.addEventListener('click', async () => {
         const heldFocus = document.activeElement === button;
@@ -330,7 +356,7 @@ export class MediaFilters {
       });
       buttons.push(button);
     }
-    this.activeHost.replaceChildren(...buttons);
+    this.activeHost.replaceChildren(...buttons, ...(buttons.length ? [this.reset] : []));
     this.activeHost.hidden = !buttons.length;
   }
 }

@@ -8,12 +8,13 @@
 // has the last word once it arrives.
 //
 // 'system' follows the operating system's light or dark mode, and keeps
-// following it while the player is open.
+// following it while the player is open. It is the default, shown in
+// Settings as Automatic with the theme it comes to now.
 
 export const THEMES = ['dark', 'light', 'system'];
 const KEY = 'kepuli-theme';
 const lightSystem = matchMedia('(prefers-color-scheme: light)');
-let chosen = 'dark';
+let chosen = 'system';
 
 /** The theme a setting comes to now: 'system' read from the system. */
 export function resolveTheme(theme) {
@@ -23,7 +24,7 @@ export function resolveTheme(theme) {
 
 /** Applies a setting and returns the theme in force, dark or light. */
 export function applyTheme(theme) {
-  chosen = THEMES.includes(theme) ? theme : 'dark';
+  chosen = THEMES.includes(theme) ? theme : 'system';
   const value = resolveTheme(chosen);
   document.documentElement.dataset.theme = value;
   try { localStorage.setItem(KEY, chosen); } catch { /* storage refused: the setting still applies */ }

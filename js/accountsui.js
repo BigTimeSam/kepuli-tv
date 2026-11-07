@@ -36,6 +36,9 @@ export function renderAccountList() {
   box.hidden = !configured() || !accounts.length;
   list.replaceChildren();
   $('f-add-account').hidden = setupAdding;
+  // The connection's explanation is the first run's; beside a list of
+  // accounts it opens from the ? by their heading.
+  $('connection-help').hidden = !box.hidden && $('accounts-help').getAttribute('aria-expanded') !== 'true';
   if (box.hidden) return;
   const row = (a, { isNew = false } = {}) => {
     const li = document.createElement('li');

@@ -110,7 +110,7 @@ export function setConnecting(value) { connecting = value; }
 // What app.js builds and the modules use: the list and its parts, the
 // sidebar, the address, the connection, playback's neighbours.
 export let vlist, mediaFilters, catalogueSearch, playerLayout, cast;
-export let refreshRows, showRows, renderSidebar, renderCategories, renderFavStrip, updateAddress, goToRoute, activateTab;
+export let refreshRows, showRows, renderSidebar, renderCategories, refreshFavouriteFilter, updateAddress, goToRoute, activateTab;
 export let visibleRows, visibleGroups, withoutInternational, groupOfType, liveGroupOf, chosenCountries, selectGroup;
 export let searchLimit, searchesEveryGroup, beginListLoad, showListError, showListCancelled, openItemMenu, openHiddenList;
 export let connect, adoptAccount, accountAddress, offerLists, offerAccess, browserTags;
@@ -120,7 +120,7 @@ export let goToChannel, playRelative, noteChannel, updatePlayerLayout;
 export function provide(parts) {
   ({
     vlist, mediaFilters, catalogueSearch, playerLayout, cast,
-    refreshRows, showRows, renderSidebar, renderCategories, renderFavStrip, updateAddress, goToRoute, activateTab,
+    refreshRows, showRows, renderSidebar, renderCategories, refreshFavouriteFilter, updateAddress, goToRoute, activateTab,
     visibleRows, visibleGroups, withoutInternational, groupOfType, liveGroupOf, chosenCountries, selectGroup,
     searchLimit, searchesEveryGroup, beginListLoad, showListError, showListCancelled, openItemMenu, openHiddenList,
     connect, adoptAccount, accountAddress, offerLists, offerAccess, browserTags,

@@ -171,6 +171,9 @@ check('subscription URL decodes credential components and preserves the port',
   { scheme: 'http', host: 'example.test', port: '8080', username: 'demo+user', password: 'p&=+' });
 check('subscription URL uses the HTTPS default port', parsePlaylistUrl('https://example.test/get.php?username=u&password=p')?.port, '443');
 check('subscription URL requires both credentials', parsePlaylistUrl('https://example.test/get.php?username=u'), null);
+// Providers send the guide's address too, and some viewers paste that one:
+// the server and credentials are the same whatever script it names.
+check('the guide\'s xmltv.php address is a subscription too', [pastedKind('http://example.test:8080/xmltv.php?username=u&password=p'), parsePlaylistUrl('http://example.test:8080/xmltv.php?username=u&password=p')?.host], ['xtream', 'example.test']);
 check('subscription URL rejects unsupported protocols', parsePlaylistUrl('ftp://example.test/get.php?username=u&password=p'), null);
 
 // The first field in Settings sends a pasted address to the form it
@@ -577,11 +580,9 @@ check('no picture yet: taken as 16:9', pictureHeight(1920, 1200, 0, 0), 1080);
     const lift = html.match(new RegExp(`<input id="${form}-sublift" type="range" min="(\\d+)" max="(\\d+)" step="1" value="(\\d+)"`));
     check(`player.html's height slider has the module's bounds and default (${form})`, lift && lift.slice(1).map(Number), [MIN_LIFT, MAX_LIFT, DEFAULT_LIFT]);
   }
-  // The same for the channel order: a value the settings offer but the
+  // The same for the channel order: an order the foot offers but the
   // sorting does not know would silently leave the list alphabetical.
-  const orders = html.match(/<select id="f-channelsort">([^]*?)<\/select>/);
-  const offered = orders && [...orders[1].matchAll(/<option value="(\w+)" data-i18n="setup\.channelsort\.\w+">/g)].map((m) => m[1]);
-  check("player.html offers the channel orders in the module's order", offered, CHANNEL_SORTS);
+  check("the channels' foot offers the sorting's orders", LIST_ORDERS.live, CHANNEL_SORTS);
 }
 
 /* --------------------------------------------------- audio.js: the track */
@@ -751,9 +752,10 @@ check('orderedLanguageNames: an unknown language is named, and last',
   }
   setLanguage('en');
   // The stream mode's "Auto" stayed English in every language: an option
-  // without a key is only allowed for a protocol's own name.
+  // without a key is only allowed for a protocol's own name, or empty for
+  // the code to name (the theme's Automatic, with the theme it comes to).
   check('i18n: every option in player.html is translated or a protocol name',
-    [...html.matchAll(/<option(?![^>]*data-i18n)[^>]*>([^<]*)</g)].map((m) => m[1]).filter((s) => !['TS', 'HLS', 'http', 'https'].includes(s)), []);
+    [...html.matchAll(/<option(?![^>]*data-i18n)[^>]*>([^<]*)</g)].map((m) => m[1]).filter((s) => s && !['TS', 'HLS', 'http', 'https'].includes(s)), []);
 }
 
 /* ------------------------------------- format.js: in the language's own forms */
@@ -1566,6 +1568,16 @@ check('xmltv: a playlist name and a guide name meet', ['FI: Yle TV1 HD', 'Yle TV
     [t('day.short.today'), t('day.short.tomorrow'), t('day.short.yesterday'), t('day.today'), t('day.yesterday'), t('day.earlier')]);
   check('lang: a track\'s language code to the three letters the selector shows', ['en', 'fin', 'pt-BR', '', null].map(shortLanguage).map((c) => c.length <= 3), [true, true, true, true, true]);
   check('config: the clock the setting asks for', [hourCycle({ clock: '12' }), hourCycle({ clock: '24' })], ['h12', 'h23']);
+  // Automatic follows an American English browser only while the interface
+  // is in English: Finnish chosen in such a browser once got 10:30 PM.
+  const realNavigator = Object.getOwnPropertyDescriptor(globalThis, 'navigator');
+  Object.defineProperty(globalThis, 'navigator', { value: { language: 'en-US', languages: ['en-US'] }, configurable: true });
+  check('config: the automatic clock is 12-hour only for English in a 12-hour country',
+    [hourCycle({ clock: 'auto', lang: 'en' }, 'America/New_York'), hourCycle({ clock: 'auto', lang: 'fi' }, 'America/New_York'),
+      hourCycle({ clock: 'auto', lang: 'de' }, 'America/New_York'), hourCycle({ clock: 'auto' }, 'Australia/Sydney')], ['h12', 'h23', 'h23', 'h12']);
+  // A Finn with the browser in American English is still in Helsinki.
+  check('config: the automatic clock in Europe is 24-hour, English or not', [hourCycle({ clock: 'auto', lang: 'en' }, 'Europe/Helsinki'), hourCycle({ clock: 'auto' }, 'Europe/London')], ['h23', 'h23']);
+  Object.defineProperty(globalThis, 'navigator', realNavigator);
 }
 
 /* ------------------------------------------------- accounts and sync */

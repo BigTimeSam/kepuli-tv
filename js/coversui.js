@@ -14,7 +14,7 @@ import { rowDomId } from './listnavigation.js';
 import { streamUrl } from './xtream.js';
 import { t } from './i18n.js';
 import * as store from './config.js';
-import { ROW_H, groupOfType, isCollection, listNavigation, liveGroupOf, openItemMenu, refreshRows, renderFavStrip, renderSidebar, same, showRows, state, tabType, vlist } from './state.js';
+import { ROW_H, groupOfType, isCollection, listNavigation, liveGroupOf, openItemMenu, refreshRows, refreshFavouriteFilter, renderSidebar, same, showRows, state, tabType, vlist } from './state.js';
 import { renderSeriesFavorite } from './playercontrols.js';
 import { favCategorySubtitle, openFavCategory, removeFromHistory, toggleFavCategory } from './collections.js';
 import { el } from './dom.js';
@@ -315,7 +315,7 @@ export function toggleFavorite(item) {
   else state.favorites.set(key, { ...stripItem(item), addedAt: Date.now() });
   store.setFavorite(key, state.favorites.get(key) || null);
   if (state.tab === 'fav') { renderSidebar(); refreshRows({ keepScroll: true }); }
-  else { vlist.refresh(); renderFavStrip(state.rows); }
+  else { vlist.refresh(); refreshFavouriteFilter(); }
   renderSeriesFavorite();
   favoritesChanged();
 }

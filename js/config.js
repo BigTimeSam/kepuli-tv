@@ -126,17 +126,22 @@ export function browserEnglish() {
 /**
  * The clock a setting stands for, as Intl's hourCycle: '24' and '12' as
  * they say, and 'auto' — the default — the browser's own convention, but
- * only for English. A television guide is read on the 24-hour clock in
- * most of the languages the app speaks even where the language's own
- * default is 12-hour (Greek, Albanian), while English readers in the
- * United States, Canada, Australia or India expect 10:30 PM.
- * @param {{ clock?: string }|null} [settings]
+ * only while the interface is in English. A television guide is read on
+ * the 24-hour clock in most of the languages the app speaks even where the
+ * language's own default is 12-hour (Greek, Albanian), while English
+ * readers in the United States, Canada, Australia or India expect
+ * 10:30 PM. A browser in American English with the interface in Finnish
+ * once got 10:30 PM. Nor is a browser's English where the viewer lives:
+ * many Finns keep it in en-US, so a time zone in Europe, where the
+ * 24-hour clock is the rule, gets the 24-hour clock in English too.
+ * @param {{ clock?: string, lang?: string }|null} [settings]
+ * @param {string} [zone] the time zone, the system's by default
  * @returns {'h12'|'h23'}
  */
-export function hourCycle(settings) {
+export function hourCycle(settings, zone = Intl.DateTimeFormat().resolvedOptions().timeZone) {
   if (settings?.clock === '12') return 'h12';
   if (settings?.clock === '24') return 'h23';
-  const tag = browserEnglish();
+  const tag = interfaceLanguage(settings) === 'en' && !/^(Europe|Arctic)\//.test(zone || '') && browserEnglish();
   if (!tag) return 'h23';
   try {
     const cycle = new Intl.DateTimeFormat(tag, { hour: 'numeric' }).resolvedOptions().hourCycle;
@@ -195,9 +200,9 @@ const SETTINGS_DEFAULTS = {
   // told apart. Shown, because the provider files them there and a Finnish
   // feed of a global channel cannot be told from the channel itself.
   showInternational: true,
-  // dark | light, from the button at the right end of the header. Dark
-  // first: the app is for watching television, mostly in the evening.
-  theme: 'dark',
+  // system | dark | light: the system's mode until the button at the right
+  // end of the header or Settings chooses one.
+  theme: 'system',
   // auto | 24 | 12, see hourCycle().
   clock: 'auto',
   // The interface language and the subtitle language are not here: both

@@ -615,8 +615,7 @@ async function walk() {
   await sleep(300);
   await click(`${row}.querySelector('.row-more')`, { pause: 700 });
   await click(byText('.row-menu', 'Add to favourites'), { pause: 900 });
-  await click(`document.getElementById('fav-strip-toggle')`, { pause: 2200 });
-  await click(`document.getElementById('fav-strip-toggle')`, { pause: 500 });
+  await sleep(1500);
 
   // Countries.
   await scene('countries', 'bottom', 3200);

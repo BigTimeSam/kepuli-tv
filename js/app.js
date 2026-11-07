@@ -419,7 +419,7 @@ function showStoredList(name, value) {
     state.favorites = new Map(list.map((item) => [store.itemKey(item), item]));
     if (connected) {
       if (state.tab === 'fav') { renderSidebar(); refreshRows({ keepScroll: true }); }
-      else { vlist.refresh(); renderFavStrip(state.rows); renderCategories(); renderSubcats(); }
+      else { vlist.refresh(); refreshFavouriteFilter(); renderCategories(); renderSubcats(); }
       renderSeriesFavorite();
       favoritesChanged();
     }
@@ -503,7 +503,7 @@ async function offerLists(previous, config) {
         if (store.accountKey(state.config) !== store.accountKey(config)) return;
         await store.copyAccountLists(previous, config);
         await loadLists();
-        if (state.lib) { await showChannelChoices(); renderFavStrip(state.rows); }
+        if (state.lib) await showChannelChoices();
         if (!state.playing && !el.idleHome.hidden) renderIdleOverlay();
         toast(t('setup.lists.brought'));
       },
@@ -950,63 +950,16 @@ async function refreshRows({ keepScroll = false, returnPosition = null, restoreF
 const mediaFilters = new MediaFilters($('media-filters'), () => {
   state.cursor = -1;
   return refreshRows();
-}, item => item.details || state.lib?.details.get(`${item.k === 1 ? 'vod' : 'series'}:v2:${item.id}`), $('active-media-filters'));
+}, item => item.details || state.lib?.details.get(`${item.k === 1 ? 'vod' : 'series'}:v2:${item.id}`), $('active-media-filters'),
+  (item) => state.favorites.has(`${item.k}:${item.id}`));
 
 /**
- * The favourites among the rows on screen, folded away above the list: a
- * country of six hundred channels holds the viewer's five somewhere in it,
- * and this finds them without taking them out of the order below. Only in
- * a list being browsed — a search, a page opened from the list and the
- * collections are lists of their own. Open or folded is remembered. Its
- * heading is there with none in it as well, saying how one gets there: a
- * strip that appeared with the first star pushed the whole list down under
- * the hand that gave it.
+ * A star given or taken while "Show only favourites" narrows the films or
+ * the series: the list follows at once. Otherwise the rows repaint their
+ * own stars and nothing else changes.
  */
-let favStripOpen = false;
-
-function renderFavStrip(rows) {
-  const strip = $('fav-strip');
-  const browsing = !isCollection() && !state.detail && !state.query && !state.listLoading;
-  // Not on the channels: their favourites are the Favourites tab's, and the
-  // strip under "Filter channels" only repeated it.
-  strip.hidden = !browsing || !['movie', 'series'].includes(state.tab);
-  const items = $('fav-strip-items');
-  if (strip.hidden) { items.replaceChildren(); return; }
-  const favs = rows.filter((item) => state.favorites.has(`${item.k}:${item.id}`));
-  $('fav-strip-count').textContent = nf.format(favs.length);
-  $('fav-strip-toggle').setAttribute('aria-expanded', String(favStripOpen));
-  items.hidden = !favStripOpen;
-  if (!favStripOpen) { items.replaceChildren(); return; }
-  if (!favs.length) {
-    const hint = document.createElement('p');
-    hint.className = 'fav-strip-empty';
-    hint.textContent = t('favs.empty');
-    items.replaceChildren(hint);
-    return;
-  }
-  const playing = state.playing ? `${state.playing.k}:${state.playing.id}` : null;
-  items.replaceChildren(...favs.map((item) => {
-    const tile = document.createElement('button');
-    tile.type = 'button';
-    tile.className = 'fav-tile' + (playing === `${item.k}:${item.id}` ? ' playing' : '');
-    const name = listName(item);
-    tile.title = item.n;
-    const picture = item.k === 0 ? poster('fav-logo', item.logo, 'channel')
-      : poster('fav-cover', item.logo, item.k === 2 ? 'series' : 'movie');
-    const label = document.createElement('span');
-    label.className = 'fav-name';
-    label.textContent = name;
-    tile.append(picture, label);
-    tile.addEventListener('click', () => openItem(item));
-    bindTile(tile, item);
-    return tile;
-  }));
-}
-
-async function toggleFavStrip() {
-  favStripOpen = !favStripOpen;
-  renderFavStrip(state.rows);
-  await store.saveUiState({ favStripOpen });
+function refreshFavouriteFilter() {
+  if (mediaFilters.favouritesOnly) refreshRows({ keepScroll: true });
 }
 
 /**
@@ -1034,7 +987,6 @@ function showRows(rows, { keepScroll = false, loading = false } = {}) {
   // narrow it without a filter of its own.
   if (guideOpen && state.tab === 'live' && !guideFavorites) grid.setChannels(rows.filter((it) => it.k === 0));
   renderSubcats();
-  renderFavStrip(rows);
   placeListFilters(rows);
   renderListInfo();
   renderEmptyState();
@@ -1856,7 +1808,6 @@ function wireUi() {
   $('btn-settings').addEventListener('click', openSetup);
   $('btn-help').addEventListener('click', openHelp);
   $('btn-home').addEventListener('click', goHome);
-  $('fav-strip-toggle').addEventListener('click', toggleFavStrip);
   $('btn-countries').addEventListener('click', () => (tabType() === 'live' ? openCountryPicker() : openCategoryPicker(tabType())));
   $('f-countries').addEventListener('click', () => openCountryPicker());
   new ResizeObserver(() => fitIdleHome()).observe(el.overlay);
@@ -2058,7 +2009,7 @@ function wireUi() {
 
 provide({
   vlist, mediaFilters, catalogueSearch, playerLayout, cast,
-  refreshRows, showRows, renderSidebar, renderCategories, renderFavStrip, updateAddress, goToRoute, activateTab,
+  refreshRows, showRows, renderSidebar, renderCategories, refreshFavouriteFilter, updateAddress, goToRoute, activateTab,
   visibleRows, visibleGroups, withoutInternational, groupOfType, liveGroupOf, chosenCountries, selectGroup,
   searchLimit, searchesEveryGroup, beginListLoad, showListError, showListCancelled, openItemMenu, openHiddenList,
   connect, adoptAccount, accountAddress, offerLists, offerAccess, browserTags,
@@ -2110,7 +2061,6 @@ async function init() {
   renderCastState();
 
   const ui = await store.loadUiState();
-  favStripOpen = Boolean(ui.favStripOpen);
   groupsFavOnly = ui.groupsFavOnly === true;
   restoreGuideFavorites(ui.guideFavorites);
   // The address names this tab's place; the stored view names the place any

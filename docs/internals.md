@@ -659,12 +659,12 @@ merely the extension.
 
 The settings offer **Server and credentials (Xtream Codes)**, **Playlist
 address (M3U)** and **Stalker portal (MAC address)**. On the first run and for
-a new account a field above them, **Paste the address your provider sent**,
-takes any of the three: `pastedKind` in `js/xtream.js` sends an Xtream
-subscription's address into the server's fields, a portal's (`/c/`,
-`stalker_portal/`, `portal.php`) into the portal's, and any other web address
-into the playlist's, and shows that form. The playlist form itself takes two
-kinds of address.
+a new account the form starts on the playlist, whose field takes any of the
+three: an Xtream subscription's address goes into the server's fields, a
+portal's (`pastedKind` in `js/xtream.js`: `/c/`, `stalker_portal/`,
+`portal.php`) into the portal's, each showing its form, and any other web
+address stays as the playlist's. The playlist form itself takes two kinds of
+address.
 
 **An Xtream subscription's address** — the HTTP or HTTPS `get.php` address with
 `username` and `password` in it — is read into the fields: protocol, server,

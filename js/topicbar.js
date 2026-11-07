@@ -269,7 +269,10 @@ export function renderListInfo() {
       : `${state.group}${group && group.cats.length > 1 ? ` (${t('list.topics', { n: nf.format(group.cats.length) })})` : ''}`);
   }
 
-  el.listinfo.replaceChildren(document.createTextNode(parts.join(', ')));
+  // The tab's own mark before the count, so the line reads as the list's
+  // summary: the same drawing as the tab above, nothing new to learn.
+  const mark = document.querySelector(`#tabs [data-tab="${state.tab}"] .tab-icon`)?.cloneNode(true);
+  el.listinfo.replaceChildren(...(mark ? [mark] : []), document.createTextNode(parts.join(', ')));
   const hidden = state.channelPrefs.hiddenChannels.length + state.channelPrefs.hiddenCategories.length;
   if (state.tab === 'live' && state.lib && hidden) {
     const spacer = document.createElement('span');
@@ -335,7 +338,7 @@ const ORDER_ICONS = {
   watched: '<path d="M4.2 10a5.8 5.8 0 1 0 1.7-4.1M3.8 3.4v3h3"/><path d="M10 6.8V10l2.4 1.5"/>',
 };
 
-/** What each order is called, on its mark and in Settings. */
+/** What each order is called, on its mark. */
 export function orderName(order) {
   switch (order) {
     case 'az': case 'za': case 'num': return t(`setup.channelsort.${order}`);
@@ -344,7 +347,7 @@ export function orderName(order) {
   }
 }
 
-// The name of each list's order, for its group of marks and its field in Settings.
+// The name of each list's order, for its group of marks.
 const ORDER_LABELS = { live: 'setup.channelsort', fav: 'favs.sort', movie: 'setup.moviesort', series: 'setup.seriessort', recent: 'setup.historysort' };
 
 /**

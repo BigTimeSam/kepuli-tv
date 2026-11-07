@@ -18,8 +18,8 @@ import { toast } from './toast.js';
 import { neighbourTile } from './listnavigation.js';
 
 // The strips, and the tiles in them that the arrows step between.
-const STRIPS = ['.related-row', '#fav-strip-items', '.idle-cards', '.idle-channels', '.idle-picks'];
-const TILES = '.related-tile, .fav-tile, .idle-card, .idle-channel, .idle-pick';
+const STRIPS = ['.related-row', '.idle-cards', '.idle-channels', '.idle-picks'];
+const TILES = '.related-tile, .idle-card, .idle-channel, .idle-pick';
 
 // What each tile stands for: the item `s` stars, and what Delete does.
 const bound = new WeakMap();
@@ -91,5 +91,5 @@ function star(item, strip, target) {
   if (target.isConnected) return;
   const again = document.querySelectorAll(selector)[stripAt];
   const tiles = again ? [.../** @type {NodeListOf<HTMLElement>} */ (again.querySelectorAll(TILES))] : [];
-  (tiles[Math.min(tileAt, tiles.length - 1)] || again?.closest('#fav-strip, .related, #idle-home')?.querySelector('button'))?.focus();
+  (tiles[Math.min(tileAt, tiles.length - 1)] || again?.closest('.related, #idle-home')?.querySelector('button'))?.focus();
 }

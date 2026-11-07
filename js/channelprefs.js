@@ -3,9 +3,9 @@
 // can always be restored and newly added channels keep appearing.
 //
 // What a viewer arranges is small on purpose: the countries they watch and
-// the odd channel hidden; their favourites open each list (js/app.js,
-// renderFavStrip). A full order of every channel, edited in a dialog of its
-// own, was what came before; nobody arranges five hundred rows, and the
+// the odd channel hidden; their favourites are the Favourites tab's. A
+// full order of every channel, edited in a dialog of its own, was what
+// came before; nobody arranges five hundred rows, and the
 // dialog it took was the hardest thing in the app to use.
 import { sortItems } from './library.js';
 

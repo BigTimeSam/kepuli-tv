@@ -1,8 +1,8 @@
 // @ts-check
 // The order of each list, chosen at its foot and kept as a setting: the
 // channels, the favourites, the films, the series and the history. Pure
-// functions and tables, so that the foot's marks, Settings and the list
-// itself read the same choices, and Node can check them.
+// functions and tables, so that the foot's marks and the list itself
+// read the same choices, and Node can check them.
 //
 // Each list once kept its order its own way: the channels as a setting
 // with a mark that could not reach Z–A, the favourites as a setting with no

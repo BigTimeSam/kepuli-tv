@@ -285,10 +285,14 @@ h2, h3 { font-weight: 600; }
 .search-clear:hover { color: var(--text); background: var(--row-hover); }
 .search-clear[hidden] { display: none; }
 .compact-nav { display: none; }
-.active-filters { display: flex; flex-wrap: wrap; gap: 6px; padding: 8px 10px; border-bottom: 1px solid var(--border); }
+.active-filters { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; padding: 8px 10px; border-bottom: 1px solid var(--border); }
 .active-filters[hidden] { display: none; }
 .filter-chip { border: 1px solid var(--border); border-radius: 6px; padding: 5px 8px; color: var(--text); background: var(--panel-2); cursor: pointer; font-size: .75rem; }
 .filter-chip:hover { border-color: var(--accent); }
+/* The × apart from the label (the second content keeps it out of the
+   name, which aria-label gives as "Remove …"). */
+.filter-chip::after { content: "×"; content: "×" / ""; margin-left: 7px; color: var(--muted); }
+.filter-chip:hover::after { color: var(--text); }
 
 .topbar-end { margin-left: auto; display: flex; align-items: center; flex: none; gap: 6px; }
 .icon-button { display: inline-flex; align-items: center; justify-content: center; gap: 7px; min-width: 2.125rem; height: 2rem; color: var(--muted); }
@@ -500,7 +504,6 @@ button.group-star:hover { color: var(--text); background: var(--track); }
 .channel-filters-body { display: flex; flex-direction: column; }
 .channel-filters-body > .subcats { padding: 0 0 2px; background: none; max-height: none; overflow: visible; }
 .channel-filters-body > .subcats-grip { display: none; }
-.media-filters > .fav-strip { margin: 10px 0 -10px; border-top: 1px solid var(--border); border-bottom: 0; background: none; }
 .media-filter-controls { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
 .media-filter-controls label { display: grid; gap: 4px; min-width: 0; color: var(--muted); font-size: 0.6875rem; }
 .media-filter-controls label[hidden] { display: none; }
@@ -525,9 +528,9 @@ button.group-star:hover { color: var(--text); background: var(--track); }
 .range-pair input:focus-visible::-moz-range-thumb { outline: 2px solid var(--accent-ink); outline-offset: 2px; }
 .media-filter-controls select { width: 100%; min-width: 0; padding: 6px 5px; border: 1px solid var(--border); border-radius: 6px; background: var(--panel-2); color: var(--text); font-size: 0.71875rem; cursor: pointer; }
 .media-filter-controls select.active { border-color: var(--accent); }
-.media-filter-footer { display: flex; align-items: baseline; gap: 8px; justify-content: space-between; margin-top: 9px; color: var(--muted); font-size: 0.6875rem; }
-.media-filter-footer button { flex: none; padding: 0; border: 0; background: none; color: var(--accent-ink); font-size: inherit; cursor: pointer; }
-.media-filter-footer button:disabled { color: var(--muted); opacity: .5; cursor: default; }
+.media-filter-footer { display: flex; align-items: center; gap: 8px; margin-top: 9px; color: var(--muted); font-size: 0.6875rem; }
+.media-filter-footer .media-filter-favs { margin-right: auto; color: var(--text); font-size: 0.71875rem; }
+.media-filter-reset { flex: none; margin-left: auto; padding: 0; border: 0; background: none; color: var(--accent-ink); font-size: 0.71875rem; cursor: pointer; }
 .media-filters :focus-visible { outline: 2px solid var(--accent-ink); outline-offset: 2px; }
 
 .crumbs { display: flex; align-items: center; gap: 8px; padding: 8px 10px; border-bottom: 1px solid var(--border); color: var(--muted); }
@@ -830,27 +833,10 @@ button.group-star, button.group-star:hover, .group.active .group-star:hover { wi
 .daysep::after { content: ""; flex: 1; height: 1px; margin-left: 2px; background: var(--border); }
 .daysep-icon { width: 14px; height: 14px; flex: none; fill: none; stroke: currentColor; stroke-width: 1.6; stroke-linecap: round; stroke-linejoin: round; }
 
-/* The list's favourites, folded away above it (renderFavStrip in js/app.js). */
-.fav-strip { flex: none; border-bottom: 1px solid var(--border); background: var(--panel); }
-.fav-strip-items { display: flex; gap: 8px; overflow-x: auto; padding: 10px 12px; }
-/* With no favourite yet, a line saying how one gets here, with the same
-   space above and below it as the tiles have. It used to keep the tiles'
-   height in waiting, which read as an empty box. */
-.fav-strip-empty { margin: 0; color: var(--muted); font-size: 0.75rem; line-height: 1.45; }
-.fav-tile {
-  flex: none; display: flex; flex-direction: column; align-items: center; gap: 5px; width: 96px; padding: 6px;
-  border: 1px solid var(--border); border-radius: 8px; background: var(--panel-2); color: var(--text);
-  font: inherit; font-size: 0.6875rem; cursor: pointer;
-}
-.fav-tile:hover { background: var(--row-hover); border-color: var(--border-strong); }
-.fav-tile:focus-visible { outline: 2px solid var(--accent-ink); outline-offset: 2px; }
-.fav-tile.playing { border-color: var(--accent); }
-.fav-name { max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.fav-logo { width: 64px; height: 36px; border-radius: 4px; }
-.fav-cover { width: 56px; aspect-ratio: 2 / 3; border-radius: 4px; }
 
 .listinfo { min-height: var(--foot-h); padding: 7px 10px; border-top: 1px solid var(--border); color: var(--muted); font-size: 0.71875rem; background: var(--panel); font-variant-numeric: tabular-nums; display: flex; align-items: center; gap: 8px; }
 .listinfo .spacer { flex: 1; }
+.listinfo > .tab-icon { display: block; flex: none; width: 14px; height: 14px; margin-right: -2px; }
 .listinfo button { background: none; border: 0; padding: 0; font: inherit; color: var(--muted); cursor: pointer; text-decoration: underline; text-underline-offset: 2px; }
 .listinfo button:hover { color: var(--text); }
 .listinfo button.armed { color: var(--danger); }
@@ -1384,7 +1370,7 @@ dialog::backdrop { background: var(--backdrop); backdrop-filter: blur(2px); }
    rather than beside Done in every one of them. Each says what it takes
    with it: the words are the guard, the red is only the warning. */
 .danger-rows { display: flex; flex-direction: column; gap: 10px; }
-.danger-row { display: flex; align-items: center; gap: 14px; padding: 10px 12px; background: var(--panel-2); border: 1px solid var(--border); border-radius: 10px; }
+.danger-row { display: flex; align-items: center; gap: 14px; }
 .danger-row span { color: var(--muted); font-size: 0.71875rem; line-height: 1.45; min-width: 0; }
 .danger-row button { flex: none; margin-left: auto; white-space: nowrap; }
 
@@ -1449,7 +1435,8 @@ dialog::backdrop { background: var(--backdrop); backdrop-filter: blur(2px); }
 /* Controls keep their place above a bounded preview. A sample too wide
    for a narrow frame is scaled down to fit; nothing else is. */
 .sublook-preview {
-  position: relative; flex: 1; min-height: 0; overflow: hidden;
+  /* 16:9, sized by fitSubtitlePreview() to the room under the controls. */
+  position: relative; flex: none; align-self: flex-start; overflow: hidden; box-sizing: border-box;
   border: 1px solid var(--border); border-radius: 9px;
   background:
     radial-gradient(ellipse at 18% 12%, rgba(255, 219, 160, .55), transparent 55%),
@@ -1462,6 +1449,11 @@ dialog::backdrop { background: var(--backdrop); backdrop-filter: blur(2px); }
 }
 .sublook-preview .subdisplay .cue { max-width: none; white-space: pre; }
 .sublook-fields { display: grid; grid-template-columns: repeat(auto-fit, minmax(9.375rem, 1fr)); gap: 10px; flex-shrink: 0; }
+/* A field that must be filled in has a * after its name (and
+   aria-required on its input); one that need not says nothing. */
+/* The second content leaves the * out of the field's accessible name
+   ("Password", not "Password *"), where the browser knows the form. */
+.field.req > span:first-child::after, .field.req > .group-head label > span::after { content: " *"; content: " *" / ""; color: var(--muted); }
 .field-hint { font-size: 0.75rem; color: var(--muted); line-height: 1.45; }
 .setup-row { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
 .setup-row > button { flex: none; }
@@ -1480,7 +1472,7 @@ dialog::backdrop { background: var(--backdrop); backdrop-filter: blur(2px); }
 .toggle { display: flex; align-items: center; gap: 8px; color: var(--muted); cursor: pointer; }
 .toggle input { accent-color: var(--accent); width: 15px; height: 15px; }
 
-.account-box { background: var(--panel-2); border: 1px solid var(--border); border-radius: 9px; padding: 10px 12px; font-size: 0.75rem; color: var(--muted); }
+.account-box { font-size: 0.75rem; color: var(--muted); }
 .account-box[hidden] { display: none; }
 .account-box b { color: var(--text); font-weight: 600; }
 .account-box .cols { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px 12px; margin-top: 6px; }
@@ -1508,22 +1500,21 @@ dialog::backdrop { background: var(--backdrop); backdrop-filter: blur(2px); }
 /* A hint belongs to the field above it, not to the space between fields. */
 .setup-panel > .field-hint { margin: -8px 0 0; }
 .setup .toggles { gap: 0; }
-.setup .toggle { padding: 14px 0; border-bottom: 1px solid var(--border); color: var(--text); }
+/* Close and unruled: the groups' headings and rules set the rows apart. */
+.setup .toggle { padding: 5px 0; color: var(--text); }
 .setup .toggle input { flex-shrink: 0; }
 .setup > .setup-actions { margin-top: 0; }
 .setup > .setup-actions button { margin-left: 0; }
 .setup button.primary:disabled { opacity: .45; cursor: default; filter: none; }
 .setup > .setup-actions .setup-note { font-size: 0.75rem; }
-.app-version { text-align: right; }
-.setup-maintenance { border-top: 1px solid var(--border); padding-top: 14px; }
-.setup-maintenance summary { cursor: pointer; color: var(--muted); padding: 4px 0; }
-.setup-maintenance[open] summary { margin-bottom: 10px; }
+.help-foot { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+.app-version { margin-left: auto; text-align: right; }
 .setup-error { margin: 0; color: var(--danger); font-size: 0.8125rem; }
 .setup > .grant-note { margin: 0; flex-shrink: 0; }
 .setup > .grant-note[hidden] { display: none; }
 .setup-discard { padding: 12px; border: 1px solid var(--border); border-radius: 9px; background: var(--panel-2); }
 .setup-discard p { margin: 0 0 10px; }
-.setup-tabs button:focus-visible, .setup-maintenance summary:focus-visible { outline: 2px solid var(--accent-ink); outline-offset: 2px; }
+.setup-tabs button:focus-visible { outline: 2px solid var(--accent-ink); outline-offset: 2px; }
 @media (max-width: 520px) {
   .setup { padding: 18px 14px; gap: 16px; }
   .setup-tabs button { padding: 8px 5px; font-size: 0.75rem; white-space: normal; }
@@ -2036,11 +2027,23 @@ select:not([multiple]) {
 .link-button { border: 0; padding: 0; background: none; color: var(--accent); cursor: pointer; font: inherit; text-decoration: underline; }
 
 /* Settings → Account & data: sync between computers. */
-.sync-box { margin: 4px 0 14px; padding: 12px 14px; background: var(--panel-2); border: 1px solid var(--border); border-radius: 10px; }
-.sync-box h3 { margin: 0 0 8px; font-size: 0.8125rem; font-weight: 600; }
-.sync-box .toggles { margin: 0; }
-.sync-box .field-hint { margin: 6px 0 0; }
-.sync-status { margin: 6px 0 0; font-size: 0.71875rem; color: var(--muted); }
+/* Settings › Viewing in groups, each under a small heading and a rule. */
+.setup-group { display: flex; flex-direction: column; gap: 8px; padding-top: 10px; border-top: 1px solid var(--border); }
+.setup-group:first-of-type { padding-top: 0; border-top: 0; }
+.setup-group h3, .setup-panel > .group-head h3, .sublook > h3 { margin: 0; font-size: 0.8125rem; font-weight: 600; }
+.setup-group .field-hint { margin: 0; }
+/* A setting's explanation waits behind a ? beside it, and opens under it. */
+.toggle-line, .group-head { display: flex; align-items: center; gap: 6px; }
+.hint-btn {
+  flex: none; width: 1.125rem; height: 1.125rem; padding: 0; border-radius: 50%;
+  border: 1px solid var(--border); background: transparent; color: var(--muted);
+  font-size: 0.6875rem; font-weight: 700; line-height: 1; cursor: pointer;
+}
+.hint-btn:hover, .hint-btn[aria-expanded="true"] { color: var(--text); border-color: var(--muted); }
+.toggle-line + .field-hint { margin-top: -6px; padding-left: 23px; }
+/* Language, appearance and clock in one row where they fit. */
+.setup-group .field-pair { grid-template-columns: repeat(auto-fit, minmax(12rem, 1fr)); }
+.sync-status { margin: 0; font-size: 0.71875rem; color: var(--muted); }
 .sync-status.error { color: var(--danger); }
 .sync-status:empty { display: none; }
 
@@ -2077,11 +2080,16 @@ select:not([multiple]) {
 /* Optical alignment, measured against the glyphs (the middle of the
    x-height and the cap height), not the line boxes: a box centred on its
    line sits higher than the letters beside it, which have room for
-   descenders below them. The magnifiers 1 px, the 15 px marks and the
-   boxes half a pixel — one device pixel on a 2x screen. */
-.search svg, .groups-filter svg, .choice-filter svg, .search-field > svg { translate: 0 calc(-50% + 1px); }
-.search svg { top: 50%; }
-.tab-icon, .icon-button.labelled > svg, .groups-foot svg, .channel-guide > svg { translate: 0 .5px; }
+   descenders below them. The boxes half a pixel down. The marks before a
+   label half a pixel up: centred on the line they sat a pixel or two under
+   the middle of the capitals (measured at 2x, 2026-11-07), which is where
+   a mark beside mixed-case text reads as level. The magnifiers stay
+   centred on the field:
+   their handle already draws the ink lower than the ring, and a pixel
+   more set them visibly below the placeholder (measured at 2x: the ring's
+   centre 2 px under the letters' with it, level without). */
+.search svg { top: 50%; translate: 0 -50%; }
+.tab-icon, .icon-button.labelled > svg, .groups-foot svg, .channel-guide > svg, .section-icon { translate: 0 -.5px; }
 .toggle input, .choice-row > input, .choice-mode > input { translate: 0 .5px; }
 
 /* A field's hint longer than the field (a long language, a narrow window)
@@ -2115,7 +2123,7 @@ input[type="search"], input[type="text"], input[type="url"], input:not([type]) {
   #list .row.selected, .epg-chan.cursor, .picker-option.active, .epg-prog.sel { outline: 2px solid Highlight; outline-offset: -2px; }
   .groups-list:focus-visible .group.cursor { outline: 2px dashed Highlight; outline-offset: -4px; }
   #list .row.playing, .epg-chan.playing { border-left: 4px solid Highlight; }
-  .row.card.selected .card-poster, .row.card.playing .card-poster, .fav-tile.playing { outline: 3px solid Highlight; outline-offset: 2px; }
+  .row.card.selected .card-poster, .row.card.playing .card-poster { outline: 3px solid Highlight; outline-offset: 2px; }
   .list-frame:has(> .list:focus-visible)::after { border: 2px solid Highlight; }
   /* Marks drawn as a fill, a progress share, and the bars' fill. */
   .row-progress i, .bar-fill, .overlay-bar-fill, .psr-now i { background: Highlight; forced-color-adjust: none; }
@@ -2129,7 +2137,7 @@ input[type="search"], input[type="text"], input[type="url"], input:not([type]) {
      filter chips. */
   .related-tile:is(:hover, :focus-visible) .related-cover { outline: 2px solid Highlight; outline-offset: 2px; }
   .psr-row:is(:hover, :focus-visible), button.psr-head:is(:hover, :focus-visible), .psr-more:is(:hover, :focus-visible),
-  .filter-chip:hover, .fav-tile:hover { outline: 2px solid Highlight; outline-offset: -2px; }
+  .filter-chip:hover { outline: 2px solid Highlight; outline-offset: -2px; }
   /* The order marks and the list or covers marks, wherever they stand. */
   .view-toggle button[aria-pressed="true"] { outline: 2px solid Highlight; outline-offset: -2px; }
 }

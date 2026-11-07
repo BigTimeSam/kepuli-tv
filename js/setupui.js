@@ -12,6 +12,7 @@ import { $, el } from './dom.js';
 import { caretWelcome } from './caret.js';
 import { DEFAULT_LIFT, DEFAULT_SCALE, pictureHeight, subtitleLook } from './subdisplay.js';
 import { LANGUAGES, localeTag, t } from './i18n.js';
+import { THEMES, resolveTheme } from './theme.js';
 import { Sync, loadSyncInfo, syncAvailable } from './sync.js';
 import { api } from './browser.js';
 import { applyLanguage, renderIdleOverlay } from './languageui.js';
@@ -28,7 +29,6 @@ import { refreshGuidePreview, renderTheme } from './guideui.js';
 import { renderAccountList, renderAccountSwitcher, switchAccount } from './accountsui.js';
 import { hasAccess, requestAccess, requestAccessFor } from './permissions.js';
 import { toast } from './toast.js';
-import { ORDER_SETTINGS, listOrder } from './listorder.js';
 import { wireModal } from './modal.js';
 import * as store from './config.js';
 import { TYPE_KIND, accountAddress, adoptAccount, connect, kindLabel, offerLists, refreshRows, renderSidebar, resetting, same, startReset, state } from './state.js';
@@ -51,8 +51,8 @@ export function openSetup({ section, adding = false } = {}) {
   editAccount(adding ? 'new' : 'current', { render: false });
   renderLanguageOptions();
   $('f-lang').value = state.settings.lang in LANGUAGES ? state.settings.lang : 'auto';
-  for (const [list, field] of ORDER_FIELDS) $(field).value = listOrder(state.settings, list);
-  $('f-theme').value = ['dark', 'light', 'system'].includes(state.settings.theme) ? state.settings.theme : 'dark';
+  $('f-theme').options[0].textContent = t('setup.theme.auto', { example: t(`setup.theme.${resolveTheme('system')}`).toLocaleLowerCase(localeTag()) });
+  $('f-theme').value = THEMES.includes(state.settings.theme) ? state.settings.theme : 'system';
   renderClockOptions();
   $('f-clock').value = ['24', '12'].includes(state.settings.clock) ? state.settings.clock : 'auto';
   $('f-epg').checked = state.settings.epgEnabled;
@@ -70,7 +70,6 @@ export function openSetup({ section, adding = false } = {}) {
   previewSetupLook();
   $('setup-error').hidden = true;
   $('setup-discard').hidden = true;
-  document.querySelector('.setup-maintenance').open = false;
   renderAccountBox();
   const first = !configured();
   el.setup.classList.toggle('firstrun', first);
@@ -113,21 +112,21 @@ export function editAccount(target, { render = true } = {}) {
   setupEditing = target === state.config.id ? 'current' : target;
   setupAdding = setupEditing === 'new';
   setupBase = accountFor(setupEditing);
+  // An account being made (the first run, or one being added) opens on the
+  // playlist address: most providers send one long address, and that field
+  // puts an Xtream subscription's or a portal's into its own form. The base
+  // says so too, or the untouched form would count as edited and a synced
+  // account could not take its place (adoptSyncedAccount).
+  const making = setupAdding || !configured();
+  if (making) setupBase = { ...setupBase, sourceMode: 'm3u' };
   for (const f of FIELDS) $(`f-${f}`).value = setupBase[f] ?? '';
   $('f-name').value = setupBase.name || '';
   $('f-paste').value = setupBase.type === 'm3u' ? setupBase.url || '' : '';
   $('f-epgurl').value = setupBase.epgUrl || '';
   $('f-portal').value = setupBase.type === 'stalker' ? setupBase.url || '' : '';
   $('f-mac').value = setupBase.type === 'stalker' ? setupBase.mac || '' : '';
-  // The address first where an account is being made: the first run, or
-  // one being added. The word on the permission prompt to come follows the
-  // address entered (updateGrantNote).
-  const making = setupAdding || !configured();
-  $('paste-first').hidden = !making;
-  $('f-paste-first').value = '';
-  showPasteFirstError(false);
+  // The permission prompt to come is said beforehand (updateGrantNote).
   $('setup-grant-note').hidden = !making;
-  $('playlist-hint').hidden = false;
   showPlaylistError(false);
   showSourceMode(baseMode(setupBase));
   showPassword(false);
@@ -146,13 +145,9 @@ export function pickAccount(target) {
 let setupInitial = null;
 let setupSaving = false;
 
-// Each list's order and its field, see js/listorder.js.
-const ORDER_FIELDS = [['live', 'f-channelsort'], ['fav', 'f-favsort'], ['movie', 'f-moviesort'], ['series', 'f-seriessort'], ['recent', 'f-historysort']];
-
 function readSetupSettings() {
   return {
     lang: $('f-lang').value,
-    ...Object.fromEntries(ORDER_FIELDS.map(([list, field]) => [ORDER_SETTINGS[list], $(field).value])),
     theme: $('f-theme').value,
     clock: $('f-clock').value,
     epgEnabled: $('f-epg').checked,
@@ -272,9 +267,22 @@ function previewSetupLook() {
  * height as the subtitles will be of the film's. Only a sample too wide
  * for a narrow frame is scaled down to fit.
  */
+/**
+ * The preview is a 16:9 picture, as large as the room under the controls
+ * allows: a frame stretched to the room's own shape was not a picture, and
+ * the text did not look the share of it that it is of a film's.
+ */
 function fitSubtitlePreview() {
   const frame = document.querySelector('#panel-subs .sublook-preview');
+  const room = frame.parentElement;
   const sample = frame.querySelector('.subdisplay');
+  // The room less the controls and the heading above the frame, and their gaps.
+  const above = [...room.children].filter((node) => node !== frame);
+  const gap = parseFloat(getComputedStyle(room).rowGap) || 0;
+  const height = room.clientHeight - above.reduce((sum, node) => sum + /** @type {HTMLElement} */ (node).offsetHeight + gap, 0);
+  const width = Math.floor(Math.min(room.clientWidth, Math.max(0, height) * 16 / 9));
+  frame.style.width = `${width}px`;
+  frame.style.height = `${Math.floor(width * 9 / 16)}px`;
   if (!frame.clientWidth || !frame.clientHeight) return;
   frame.style.setProperty('--pic-h', `${Math.round(pictureHeight(frame.clientWidth, frame.clientHeight))}px`);
   if (!sample.offsetWidth) return;
@@ -327,8 +335,8 @@ function focusSetupSection() {
   // panel the first control is the protocol, which almost nobody changes,
   // and starting there put the caret one Tab away from the server address
   // every single time.
-  // The account's name is optional and never where the caret starts. On
-  // the first run the first field is the pasted address.
+  // The account's name is optional and never where the caret starts. A new
+  // account's first field is the playlist's address.
   const field = [...panel.querySelectorAll('input:not([type="radio"]):not(#f-name)')].find(shown)
     ?? [...panel.querySelectorAll('select')].find(shown);
   if (field) field.focus();
@@ -369,45 +377,6 @@ function showSourceMode(mode) {
 function showGuideField() {
   const pasted = $('f-paste').value.trim();
   $('src-epg').hidden = sourceMode() !== 'm3u' || !pasted || Boolean(parsePlaylistUrl(pasted));
-}
-
-/**
- * The address pasted into the first field, put where it belongs: an Xtream
- * subscription's into the server's fields, a portal into the portal's, a
- * playlist into the playlist's, the form shown each time. The field stays,
- * so an address typed by hand is never taken away half-way. Only a whole
- * address (pasted, dropped, or left with Tab) is called wrong.
- */
-function pasteFirst(event) {
-  const text = $('f-paste-first').value.trim();
-  const whole = event.type === 'change' || event.inputType === 'insertFromPaste' || event.inputType === 'insertFromDrop';
-  const kind = pastedKind(text);
-  showPasteFirstError(whole && Boolean(text) && !kind);
-  if (!kind) return;
-  if (kind === 'xtream') {
-    const parsed = parsePlaylistUrl(text);
-    for (const f of FIELDS) if (parsed[f] != null) $(`f-${f}`).value = parsed[f];
-    $('f-paste').value = '';
-  } else if (kind === 'stalker') $('f-portal').value = text;
-  else $('f-paste').value = text;
-  // A playlist sent on to its own field has been pasted once already: that
-  // field's hint, which says to paste it, would only say so a second time.
-  $('playlist-hint').hidden = kind === 'm3u';
-  showPlaylistError(false);
-  showSourceMode(kind);
-  updateSetupActions();
-  if (event.type !== 'input' || !whole) return;
-  // The next thing to do: check the fields it filled, or give the MAC
-  // address a portal needs; a playlist needs nothing more.
-  if (kind === 'xtream') $('f-host').focus();
-  else if (kind === 'stalker') $('f-mac').focus();
-}
-
-function showPasteFirstError(bad) {
-  const status = $('paste-first-status');
-  status.textContent = bad ? t('setup.m3u.bad') : '';
-  status.hidden = !bad;
-  $('f-paste-first').setAttribute('aria-invalid', String(bad));
 }
 
 /** The M3U field says only what is wrong; what is right, it shows. */
@@ -489,7 +458,6 @@ export async function adoptSyncedAccount(accounts) {
 export async function renderAccountBox() {
   const box = $('account-box');
   const a = state.account;
-  renderVersion();
   renderSyncBox();
   // A section that is simply empty tells the viewer nothing about why.
   $('account-none').hidden = Boolean(a);
@@ -624,14 +592,23 @@ function renderClockOptions() {
   const evening = new Date(2026, 0, 1, 22, 30);
   const sample = (cycle) => new Intl.DateTimeFormat(localeTag(), { hour: cycle === 'h12' ? 'numeric' : '2-digit', minute: '2-digit', hourCycle: cycle }).format(evening);
   $('f-clock').replaceChildren(
-    option('auto', t('setup.clock.auto', { example: sample(store.hourCycle({ clock: 'auto' })) })),
+    option('auto', t('setup.clock.auto', { example: sample(store.hourCycle({ ...state.settings, clock: 'auto' })) })),
     option('24', t('setup.clock.24', { example: sample('h23') })),
     option('12', t('setup.clock.12', { example: sample('h12') })),
   );
 }
 
 export function wireSetup() {
-  new ResizeObserver(fitSubtitlePreview).observe(document.querySelector('#panel-subs .sublook-preview'));
+  renderVersion();
+  // A ? beside a setting opens its explanation under it, and closes it.
+  el.setup.addEventListener('click', (event) => {
+    const button = /** @type {Element} */ (event.target).closest('.hint-btn');
+    if (!button) return;
+    const open = button.getAttribute('aria-expanded') !== 'true';
+    button.setAttribute('aria-expanded', String(open));
+    $(button.getAttribute('aria-controls')).hidden = !open;
+  });
+  new ResizeObserver(fitSubtitlePreview).observe(document.querySelector('#panel-subs .sublook'));
   // Dialog controls edit a draft. Only the local subtitle sample previews it.
   for (const event of ['input', 'change']) {
     el.setup.querySelector('form').addEventListener(event, () => {
@@ -678,6 +655,17 @@ export function wireSetup() {
     // An address with no credentials in it is a playlist of its own, kept
     // as it is; only text that is no address at all is wrong.
     showPlaylistError(Boolean(e.target.value.trim()) && !parsed && !playlistAddress(e.target.value));
+    // A portal's address pasted here goes to the portal's form, which then
+    // asks for the MAC address.
+    if (!parsed && pastedKind(e.target.value) === 'stalker' && (e.inputType === 'insertFromPaste' || e.inputType === 'insertFromDrop')) {
+      $('f-portal').value = e.target.value.trim();
+      e.target.value = '';
+      showPlaylistError(false);
+      showSourceMode('stalker');
+      updateSetupActions();
+      $('f-mac').focus();
+      return;
+    }
     if (!parsed) return;
     for (const f of FIELDS) if (parsed[f] != null) $(`f-${f}`).value = parsed[f];
     // An address that arrived whole has been said in full. One being typed
@@ -688,8 +676,6 @@ export function wireSetup() {
     updateSetupActions();
     $('f-host').focus();
   });
-  $('f-paste-first').addEventListener('input', pasteFirst);
-  $('f-paste-first').addEventListener('change', pasteFirst);
   $('f-host').addEventListener('change', splitServerField);
   $('f-add-account').addEventListener('click', () => pickAccount('new'));
   $('account-pick').addEventListener('change', (e) => switchAccount(e.target.value));
@@ -802,11 +788,11 @@ export function wireSetup() {
       if (!state.playing && !el.overlay.hidden && el.overlayTitle.textContent === t('player.idle')) renderIdleOverlay();
       if (settingsPatch.theme) renderTheme();
       if (settingsPatch.lang || settingsPatch.clock) await applyLanguage(store.interfaceLanguage(state.settings));
-      // A new starting order, or the international channels shown or
-      // hidden, repaints the channel list where it stands; a changed
-      // connection is about to load it again anyway.
-      if ((Object.values(ORDER_SETTINGS).some((key) => settingsPatch[key]) || 'showInternational' in settingsPatch) && (!changed || other)) {
-        if ('showInternational' in settingsPatch) renderSidebar();
+      // The international channels shown or hidden repaint the channel
+      // list where it stands; a changed connection is about to load it
+      // again anyway.
+      if ('showInternational' in settingsPatch && (!changed || other)) {
+        renderSidebar();
         await refreshRows({ keepScroll: true });
       }
       state.accounts = await store.loadAccounts();

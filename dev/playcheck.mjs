@@ -102,8 +102,8 @@
 //                                     to a range and its chip clears it
 //   node dev/playcheck.mjs nowlogo    a channel's logo before its name above
 //                                     the picture, none for a film
-//   node dev/playcheck.mjs scrollbars every box that scrolls keeps a bar in
-//                                     sight where the browser's would fade
+//   node dev/playcheck.mjs scrollbars the details under the picture keep a
+//                                     bar in sight, lists and dialogs do not
 //   node dev/playcheck.mjs touchcaret on a touch screen the settings and a
 //                                     long drop-down open without the caret
 //                                     in a field (no on-screen keyboard)
@@ -1860,67 +1860,51 @@ async function topmenu(page) {
 async function scrollbars(page) {
   const assert = (ok, detail) => { if (!ok) throw new Error(detail); };
   const STYLE = `(() => { const s = document.createElement('style'); s.id = 'overlay-bars'; s.textContent = '::-webkit-scrollbar { width: 0 !important; height: 0 !important; }'; document.head.append(s); return true; })()`;
-  // Every box that scrolls now, whether it has a bar beside it, and whether
-  // the module knows it: a box nobody named would go without.
-  const AUDIT = `import('./js/scrollhint.js').then(({ SCROLLERS }) => new Promise((done) => requestAnimationFrame(() => requestAnimationFrame(() => {
-    const bars = [...document.querySelectorAll('.scrollhint:not([hidden])')].map((b) => b.getBoundingClientRect());
-    const boxes = [...document.querySelectorAll('body *')].filter((n) => !n.closest('.scrollhint-layer')).filter((n) => {
-      const st = getComputedStyle(n); return /(auto|scroll)/.test(st.overflowY) && n.scrollHeight - n.clientHeight > 1 && n.clientHeight > 20 && n.getClientRects().length; });
-    done(boxes.map((n) => { const r = n.getBoundingClientRect();
-      return { box: n.id || n.className || n.tagName, named: n.matches(SCROLLERS), bar: bars.some((b) => b.left >= r.right - 12 && b.right <= r.right + 1 && b.top >= r.top - 1 && b.bottom <= r.bottom + 1) }; }));
-  }))))`;
-  const check = async (where) => {
-    const seen = await evaluate(page, AUDIT);
-    const bad = seen.filter((b) => !b.named || !b.bar);
-    assert(seen.length && !bad.length, `${where}: ${JSON.stringify(bad.length ? bad : seen)}`);
-    return seen.map((b) => b.box);
-  };
-  const seen = [];
+  // The bars drawn now, each with the box it lies over (by its right edge).
+  const BARS = `new Promise((done) => requestAnimationFrame(() => requestAnimationFrame(() => done(
+    [...document.querySelectorAll('.scrollhint:not([hidden])')].map((b) => { const r = b.getBoundingClientRect();
+      const over = [...document.querySelectorAll('#list, #infostrip, .help-content')].find((n) => { const o = n.getBoundingClientRect();
+        return n.getClientRects().length && r.left >= o.right - 12 && r.right <= o.right + 1 && r.top >= o.top - 1 && r.bottom <= o.bottom + 1; });
+      return { top: Math.round(r.top), over: over ? over.id || over.className : null }; })))))`;
   await page.call('Emulation.setDeviceMetricsOverride', { width: 905, height: 700, deviceScaleFactor: 1, mobile: false });
   try {
     await evaluate(page, STYLE);
     await sleep(300);
-    await evaluate(page, `document.querySelector('#tabs [data-tab="live"]').click()`);
-    await waitFor(page, `document.querySelectorAll('#list .row').length > 0`, 'the channel rows');
-    seen.push(...await check('the channels'));
-    // The bar follows the list as it scrolls.
-    const before = await evaluate(page, `(() => { const r = document.getElementById('list').getBoundingClientRect(); const b = [...document.querySelectorAll('.scrollhint:not([hidden])')].find((x) => Math.abs(x.getBoundingClientRect().right - r.right) < 12); return b && b.getBoundingClientRect().top; })()`);
-    await evaluate(page, `document.getElementById('list').scrollTop = 99999`);
+    await playFirstChannel(page);
+    // A list goes on past its edge with rows cut in half; it keeps the
+    // browser's own bar, which shows while it scrolls.
+    const listBars = (await evaluate(page, BARS)).filter((b) => b.over === 'list');
+    assert(!listBars.length && await evaluate(page, `document.getElementById('list').scrollHeight > document.getElementById('list').clientHeight + 1`), `the channel list: ${JSON.stringify(listBars)}`);
+    // The details under the picture, longer than their box as a film's
+    // plot often is, end on a line of text: a bar says there is more.
+    await evaluate(page, `(() => { const p = document.createElement('p'); p.id = 'long-plot'; p.textContent = 'A long plot that goes on. '.repeat(80); document.getElementById('infostrip').append(p); return true; })()`);
+    const strip = (await evaluate(page, BARS)).filter((b) => b.over === 'infostrip');
+    assert(strip.length === 1, `the details under the picture: ${JSON.stringify(await evaluate(page, BARS))}`);
+    await evaluate(page, `document.getElementById('infostrip').scrollTop = 99999`);
     await sleep(300);
-    const after = await evaluate(page, `(() => { const r = document.getElementById('list').getBoundingClientRect(); const b = [...document.querySelectorAll('.scrollhint:not([hidden])')].find((x) => Math.abs(x.getBoundingClientRect().right - r.right) < 12); return b && b.getBoundingClientRect().top; })()`);
-    assert(before != null && after > before + 20, `the list's bar did not follow the scroll: ${before} → ${after}`);
-    await evaluate(page, `document.getElementById('list').scrollTop = 0`);
-
-    await evaluate(page, `document.querySelector('#tabs [data-tab="series"]').click()`);
-    await click(page, '#groups', 'Nordic Noir');
-    await click(page, '#list', 'Silent Fjord');
-    await waitFor(page, `!document.getElementById('detail').hidden && document.querySelector('.detail-plot')`, 'the series page');
-    // A plot longer than its box, as a provider's often is.
-    await evaluate(page, `(() => { const p = document.querySelector('.detail-plot'); p.textContent = (p.textContent + ' ').repeat(6); return true; })()`);
-    seen.push(...await check('a series\' page'));
-
-    await evaluate(page, `document.getElementById('btn-settings').click()`);
-    await waitFor(page, `document.getElementById('setup').open`, 'settings');
-    seen.push(...await check('Settings'));
-    await evaluate(page, `document.getElementById('f-done').click()`);
-    await waitFor(page, `!document.getElementById('setup').open`, 'settings closed');
-
+    const moved = (await evaluate(page, BARS)).filter((b) => b.over === 'infostrip');
+    assert(moved.length === 1 && moved[0].top > strip[0].top + 5, `the details' bar did not follow the scroll: ${strip[0].top} → ${JSON.stringify(moved)}`);
+    // Nor does a dialog get one: the help, longer than its box in a window
+    // of 700 px.
     await evaluate(page, `document.getElementById('btn-help').click()`);
-    await waitFor(page, `document.getElementById('help').open`, 'help');
-    seen.push(...await check('Help'));
+    await waitFor(page, `document.getElementById('help').open`, 'the help');
+    const dialog = (await evaluate(page, BARS)).filter((b) => b.over !== 'infostrip');
+    assert(!dialog.length, `the help: ${JSON.stringify(dialog)}`);
     await evaluate(page, `document.getElementById('help').close()`);
-
     // With Chrome's own bars, which stay, nothing is drawn beside them.
-    await evaluate(page, `document.getElementById('overlay-bars').remove()`);
-    await evaluate(page, `document.getElementById('list').scrollTop = 1`);
-    await sleep(300);
-    const doubled = await evaluate(page, `document.querySelectorAll('.scrollhint:not([hidden])').length`);
-    assert(doubled === 0, `${doubled} bars drawn beside Chrome's own`);
+    // Firefox has no ::-webkit-scrollbar to keep them, so its overlay bars
+    // still get ours.
+    if (await evaluate(page, `CSS.supports('selector(::-webkit-scrollbar)')`)) {
+      await evaluate(page, `document.getElementById('overlay-bars').remove()`);
+      await evaluate(page, `document.getElementById('infostrip').scrollTop = 1`);
+      const doubled = (await evaluate(page, BARS)).length;
+      assert(doubled === 0, `${doubled} bars drawn beside Chrome's own`);
+    }
   } finally {
-    await evaluate(page, `document.getElementById('overlay-bars')?.remove()`).catch(() => {});
+    await evaluate(page, `(() => { document.getElementById('overlay-bars')?.remove(); document.getElementById('long-plot')?.remove(); return true; })()`).catch(() => {});
     await page.call('Emulation.clearDeviceMetricsOverride');
   }
-  return { ok: true, detail: `a bar on every box that scrolls: ${[...new Set(seen)].join(', ')}; it follows the list; none beside Chrome's own bars` };
+  return { ok: true, detail: 'a bar over the details under the picture that follows their scroll; none over the list or the help; none beside Chrome\'s own bars' };
 }
 
 /**
@@ -1954,12 +1938,6 @@ async function channelorder(page) {
   await waitFor(page, `document.querySelectorAll('#listinfo .view-toggle button')[1]?.getAttribute('aria-pressed') === 'true'`, 'the number order');
   const byNumber = await read();
   assert(byNumber.stored === 'num' && JSON.stringify(byNumber.names) !== JSON.stringify(byName.names), `by number: ${JSON.stringify(byNumber)}`);
-  await evaluate(page, `document.getElementById('btn-settings').click()`);
-  await waitFor(page, `document.getElementById('setup').open`, 'settings');
-  const inSettings = await evaluate(page, `document.getElementById('f-channelsort').value`);
-  await evaluate(page, `document.getElementById('f-done').click()`);
-  await waitFor(page, `!document.getElementById('setup').open`, 'settings closed');
-  assert(inSettings === 'num', `Settings' Channel order says ${inSettings}`);
   await evaluate(page, `document.querySelectorAll('#listinfo .view-toggle button')[0].click()`);
   await waitFor(page, `document.querySelectorAll('#listinfo .view-toggle button')[0]?.getAttribute('aria-pressed') === 'true'`, 'the name order');
   const back = await read();
@@ -1984,8 +1962,17 @@ async function lengthfilter(page) {
   await waitFor(page, `document.querySelectorAll('#list .row').length > 1 && document.getElementById('list-progress').hidden`, 'movie rows');
   await evaluate(page, `document.getElementById('media-filters').open = true`);
   await waitFor(page, `!document.querySelector('.length-filter').hidden`, 'the length slider once lengths are known', 20000);
-  // The films' favourites are inside "Filter titles", at its end.
-  assert(await evaluate(page, `document.getElementById('media-filters').lastElementChild?.id === 'fav-strip' && !document.getElementById('fav-strip').hidden`), 'the favourites strip is not inside the films\' filters');
+  // "Show only favourites" at the foot of "Filter titles": the starred
+  // film alone, its chip and Reset beside it, and back.
+  const film = await evaluate(page, `(() => { const row = document.querySelector('#list .row'); row.querySelector('.row-star').click(); return row.querySelector('.row-name, .card-title')?.textContent.trim(); })()`, { gesture: true });
+  await evaluate(page, `document.querySelector('.media-filter-favs input').click()`);
+  await waitFor(page, `document.querySelectorAll('#list .row').length === 1`, 'the favourite alone');
+  const favsOnly = await evaluate(page, `({ name: document.querySelector('#list .row .row-name, #list .row .card-title')?.textContent.trim(),
+    chips: [...document.querySelectorAll('#active-media-filters button')].map((b) => b.textContent) })`);
+  assert(favsOnly.name === film && favsOnly.chips.join() === 'Show only favourites,Reset', `only the favourites: ${JSON.stringify({ film, favsOnly })}`);
+  await evaluate(page, `document.querySelector('#active-media-filters .media-filter-reset').click()`);
+  await waitFor(page, `document.querySelectorAll('#list .row').length > 1 && document.getElementById('active-media-filters').hidden`, 'the list back after Reset');
+  await evaluate(page, `document.querySelector('#list .row .row-star').click()`, { gesture: true });
   const before = await evaluate(page, `(() => { const [a, b] = document.querySelectorAll('.length-filter input'); return { min: +a.min, max: +a.max, from: +a.value, to: +b.value, text: document.querySelector('.length-filter output').textContent, rows: document.querySelectorAll('#list .row').length }; })()`);
   assert(before.min < before.max && before.from === before.min && before.to === before.max && before.text === 'Any length', `the slider at rest: ${JSON.stringify(before)}`);
   // The upper handle down to the middle, let go there.
@@ -2124,27 +2111,27 @@ async function pickers(page) {
   await sleep(300);
   assert(!(await pop()) && await evaluate(page, `document.getElementById('setup').open && document.getElementById('f-lang').value === ${JSON.stringify(before)}`),
     'Escape closed more than the list, or changed the choice');
-  await evaluate(page, `window.__picked = []; document.getElementById('f-channelsort').addEventListener('change', (e) => __picked.push(e.target.value), { once: true })`);
-  await mouseClick(page, '#f-channelsort');
+  await evaluate(page, `window.__picked = []; document.getElementById('f-theme').addEventListener('change', (e) => __picked.push(e.target.value), { once: true })`);
+  await mouseClick(page, '#f-theme');
   await sleep(300);
   const short = await pop();
-  assert(short?.open && !short.filter && short.shown.length === 3, `the order list: ${JSON.stringify(short)}`);
+  assert(short?.open && !short.filter && short.shown.length === 3, `the appearance list: ${JSON.stringify(short)}`);
   await mouseClick(page, '.picker-option:nth-child(3)');
   await sleep(300);
-  const picked = await evaluate(page, `({ value: document.getElementById('f-channelsort').value, heard: __picked, open: !!document.querySelector('.picker-pop') })`);
-  assert(picked.value === 'num' && picked.heard[0] === 'num' && !picked.open, `the choice: ${JSON.stringify(picked)}`);
+  const picked = await evaluate(page, `({ value: document.getElementById('f-theme').value, heard: __picked, open: !!document.querySelector('.picker-pop') })`);
+  assert(picked.value === 'light' && picked.heard[0] === 'light' && !picked.open, `the choice: ${JSON.stringify(picked)}`);
   // The options rebuilt while the list is open, as the media filters do
   // when a film's details arrive: the choice is made by its value, not
   // lost on an <option> that is no longer in the select.
-  await evaluate(page, `window.__picked = []; document.getElementById('f-channelsort').addEventListener('change', (e) => __picked.push(e.target.value), { once: true })`);
-  await mouseClick(page, '#f-channelsort');
+  await evaluate(page, `window.__picked = []; document.getElementById('f-theme').addEventListener('change', (e) => __picked.push(e.target.value), { once: true })`);
+  await mouseClick(page, '#f-theme');
   await sleep(300);
-  await evaluate(page, `(() => { const s = document.getElementById('f-channelsort');
+  await evaluate(page, `(() => { const s = document.getElementById('f-theme');
     s.replaceChildren(...[...s.options].map((o) => new Option(o.textContent, o.value, false, o.selected))); })()`);
   await mouseClick(page, '.picker-option:nth-child(2)');
   await sleep(300);
-  const rebuilt = await evaluate(page, `({ value: document.getElementById('f-channelsort').value, heard: __picked, open: !!document.querySelector('.picker-pop') })`);
-  assert(rebuilt.value === 'za' && rebuilt.heard[0] === 'za' && !rebuilt.open, `the choice after a rebuild: ${JSON.stringify(rebuilt)}`);
+  const rebuilt = await evaluate(page, `({ value: document.getElementById('f-theme').value, heard: __picked, open: !!document.querySelector('.picker-pop') })`);
+  assert(rebuilt.value === 'dark' && rebuilt.heard[0] === 'dark' && !rebuilt.open, `the choice after a rebuild: ${JSON.stringify(rebuilt)}`);
   // Cancel discards the draft: the choice above was never saved.
   await evaluate(page, `document.getElementById('f-done').click()`);
   await waitFor(page, `!document.getElementById('setup').open`, 'settings closed');
@@ -2162,7 +2149,9 @@ async function screenbutton(page) {
   const label = () => evaluate(page, `document.getElementById('btn-screen').getAttribute('aria-label')`);
   const FULL = `document.fullscreenElement === document.documentElement`;
   assert(await label() === 'Full screen', `the button's label before: ${await label()}`);
-  await evaluate(page, `document.getElementById('btn-screen').click()`, { gesture: true });
+  // A real press: Firefox takes a script's click for no gesture and
+  // refuses it full screen.
+  await mouseClick(page, '#btn-screen');
   await waitFor(page, FULL, 'the player full screen');
   // The label follows the fullscreenchange event, a moment after the
   // element changed: asked at once, it was the old one now and then.
@@ -2174,7 +2163,7 @@ async function screenbutton(page) {
   await waitFor(page, `document.fullscreenElement?.id === 'videowrap'`, 'the picture full screen over the player');
   await pressKey(page, 'f', 'KeyF', 70);
   await waitFor(page, FULL, 'back to the player still full screen');
-  await evaluate(page, `document.getElementById('btn-screen').click()`, { gesture: true });
+  await mouseClick(page, '#btn-screen');
   await waitFor(page, `!document.fullscreenElement`, 'out of full screen');
   await waitFor(page, `document.getElementById('btn-screen').getAttribute('aria-label') === 'Full screen'`, 'the label after', 3000)
     .catch(async () => assert(false, `the button's label after: ${await label()}`));
@@ -2809,13 +2798,11 @@ async function channels(page) {
   // Where the list starts is a setting; the arrangement made below then has
   // the last word over it.
   const setSort = async (value) => {
-    await evaluate(page, `document.getElementById('btn-settings').click()`, { gesture: true });
-    await waitFor(page, `document.getElementById('setup').open`, 'the settings dialog');
-    await evaluate(page, `document.querySelector('#setup-tabs [data-panel="general"]').click()`);
-    await evaluate(page, `(() => { const c = document.getElementById('f-channelsort'); c.value = ${JSON.stringify(value)};
-      c.dispatchEvent(new Event('input', { bubbles: true })); c.dispatchEvent(new Event('change', { bubbles: true })); })()`);
-    await evaluate(page, `document.getElementById('f-save').click()`, { gesture: true });
-    await waitFor(page, `!document.getElementById('setup').open`, `the saved channel order (${value})`);
+    for (let i = 0; i < 3 && await evaluate(page, `chrome.storage.local.get('settings').then((d) => d.settings?.channelSort || 'az')`) !== value; i++) {
+      await evaluate(page, `document.querySelectorAll('#listinfo .view-toggle button')[${value === 'num' ? 1 : 0}].click()`);
+      await sleep(300);
+    }
+    await waitFor(page, `chrome.storage.local.get('settings').then((d) => (d.settings?.channelSort || 'az') === ${JSON.stringify(value)})`, `the channel order (${value})`);
   };
   // The list paints only what is on screen, so it is judged by its two ends.
   const ends = async () => {
@@ -2866,7 +2853,6 @@ async function channels(page) {
   // The list paints what fits.
   const after = await names();
   assert(after.length > 4 && JSON.stringify(after) === JSON.stringify(before.slice(0, after.length)), `a favourite moved in the list: ${JSON.stringify({ before, after })}`);
-  assert(await evaluate(page, `document.getElementById('fav-strip').hidden && !document.getElementById('channel-filters').contains(document.getElementById('fav-strip'))`), 'the channels show a favourites strip');
   const starred = await evaluate(page, `[...document.querySelectorAll('#list .row')].filter((r) => r.querySelector('.row-star.on, [aria-pressed="true"]')).length`);
   assert(JSON.stringify(await menu(2)) === JSON.stringify(['Remove from favourites', 'Hide channel']), 'the menu of a favourite');
   await evaluate(page, `document.querySelector('.row-menu .popitem').click()`);
@@ -3423,7 +3409,10 @@ async function setupClarity(page) {
 async function welcome(page, { target }) {
   const assert = (ok, message) => { if (!ok) throw new Error(message); };
   const press = (expr) => evaluate(page, expr, { gesture: true });
-  const paste = (value) => evaluate(page, `(() => { const f = document.getElementById('f-paste-first'); f.focus(); f.value = ${JSON.stringify(value)};
+  // Into the playlist's field, the one a new account opens on, which
+  // sends an Xtream subscription's or a portal's address to its own form.
+  const paste = (value) => evaluate(page, `(() => { document.querySelector('input[name="source"][value="m3u"]').click();
+    const f = document.getElementById('f-paste'); f.focus(); f.value = ${JSON.stringify(value)};
     f.dispatchEvent(new InputEvent('input', { bubbles: true, inputType: 'insertFromPaste' })); })()`);
   const mode = () => evaluate(page, `document.querySelector('input[name="source"]:checked').value`);
   await evaluate(page, `chrome.storage.local.remove('config').then(() => chrome.storage.local.set({ ui: { tab: 'live' } }))`);
@@ -3433,11 +3422,11 @@ async function welcome(page, { target }) {
   const first = await evaluate(page, `(() => { const shown = (id) => document.getElementById(id).getClientRects().length > 0;
     const panel = document.getElementById('panel-connection');
     const fields = [...panel.querySelectorAll('label.field, div.field')].filter((n) => n.getClientRects().length).map((n) => n.id || n.querySelector('input,select')?.id || n.querySelector('input')?.name);
-    return { paste: shown('paste-first'), note: shown('setup-grant-note'), focus: document.activeElement.id, fields,
+    return { mode: document.querySelector('input[name="source"]:checked').value, note: shown('setup-grant-note'), focus: document.activeElement.id, fields,
       radios: [...document.querySelectorAll('input[name="source"]')].map((r) => r.parentElement.textContent.trim()),
       noteText: document.getElementById('setup-grant-note').textContent }; })()`);
-  assert(first.paste && first.note && first.focus === 'f-paste-first', `the first run: ${JSON.stringify(first)}`);
-  assert(first.fields[0] === 'paste-first' && first.fields.at(-1) === 'f-name', `the order of the fields: ${JSON.stringify(first.fields)}`);
+  assert(first.mode === 'm3u' && first.note && first.focus === 'f-paste', `the first run: ${JSON.stringify(first)}`);
+  assert(first.fields.join() === 'source,f-name,src-m3u', `the order of the fields: ${JSON.stringify(first.fields)}`);
   assert(first.radios.join(' | ') === 'Server and credentials (Xtream Codes) | Playlist address (M3U) | Stalker portal (MAC address)', `the radios: ${first.radios}`);
   assert(/choose allow/i.test(first.noteText), `the note: ${first.noteText}`);
   // Each kind of address to its own form.
@@ -3456,14 +3445,12 @@ async function welcome(page, { target }) {
   await paste('http://example.test/list.m3u');
   assert(await mode() === 'm3u' && await evaluate(page, `document.getElementById('f-paste').value === 'http://example.test/list.m3u' && !document.getElementById('src-m3u').hidden`), `a playlist: ${await mode()}`);
   await sleep(200);
-  // A server not allowed yet has the note; the playlist's own field, filled
-  // from the first, does not tell to paste it a second time.
-  const playlistNote = await evaluate(page, `({ note: !document.getElementById('setup-grant-note').hidden, hint: !document.getElementById('playlist-hint').hidden })`);
-  assert(playlistNote.note && !playlistNote.hint, `a playlist on another server: ${JSON.stringify(playlistNote)}`);
+  // A server not allowed yet has the note.
+  assert(await evaluate(page, `!document.getElementById('setup-grant-note').hidden`), 'a playlist on another server has no note on the prompt');
   await paste('http://example.test:8080/c/');
   assert(await mode() === 'stalker' && await evaluate(page, `document.getElementById('f-portal').value === 'http://example.test:8080/c/' && document.activeElement.id === 'f-mac'`), `a portal: ${await mode()}`);
   await paste('example test');
-  assert(await evaluate(page, `!document.getElementById('paste-first-status').hidden`), 'text that is no address was taken');
+  assert(await evaluate(page, `!document.getElementById('playlist-status').hidden`), 'text that is no address was taken');
   // A refusal of the permission says what to do about it.
   await paste(`http://127.0.0.1:${MOCK_PORT}/get.php?username=demo&password=demo`);
   await evaluate(page, `window.realRequest = chrome.permissions.request; chrome.permissions.request = async () => false;`);
@@ -3487,7 +3474,7 @@ async function welcome(page, { target }) {
   const heard = await axHeadings(page);
   assert(!heard || (heard.some((h) => h.level === 2 && h.name === 'Player') && heard.some((h) => h.level === 2 && h.name === 'Channels') && heard.every((h) => h.name)), `the headings on the welcome: ${JSON.stringify(heard)}`);
   await press(`document.getElementById('welcome-connect').click()`);
-  await waitFor(page, `document.getElementById('setup').open && document.activeElement.id === 'f-paste-first'`, 'the dialog again from the welcome');
+  await waitFor(page, `document.getElementById('setup').open && document.activeElement.id === 'f-paste'`, 'the dialog again from the welcome');
   // A server that does not answer, on a host the browser has not allowed:
   // the text says both, over the button that asks for it.
   const dead = MOCK_PORT + 7;
@@ -3505,7 +3492,7 @@ async function welcome(page, { target }) {
     await sleep(1000);
     await waitFor(page, CONNECTED, 'the connection');
     assert(await evaluate(page, `!document.getElementById('welcome-connect') && !document.getElementById('btn-guide').closest('[hidden]')`), 'the welcome stayed after connecting');
-    return { ok: true, detail: `address first and sent to its form (Xtream, playlist, portal), the prompt announced, "${refused}"; the welcome and the list offer Connect, no guide button; "${failed}"` };
+    return { ok: true, detail: `the playlist's address first, an address pasted there sent to its form (Xtream, playlist, portal), the prompt announced, "${refused}"; the welcome and the list offer Connect, no guide button; "${failed}"` };
   } finally {
     await evaluate(page, `if (window.realContains) chrome.permissions.contains = window.realContains; if (window.realRequest) chrome.permissions.request = window.realRequest;`);
   }
@@ -3537,7 +3524,8 @@ async function catalogUi(page) {
   await waitFor(page, `document.querySelector('#listinfo [data-order="rating"]')?.getAttribute('aria-pressed') === 'true'`, 'the rating order');
   const values = await evaluate(page, String.raw`[...document.querySelectorAll('#list .row-sub')].map(n=>Number(n.textContent.match(/★\s*([\d.]+)/)?.[1]))`);
   assert(values.every((v,i)=>!i || values[i-1]>=v), 'rating sort order');
-  await evaluate(page, `document.querySelector('.media-filter-footer button').click()`);
+  // Reset is with the chips of what is in force.
+  await evaluate(page, `document.querySelector('#active-media-filters .media-filter-reset').click()`);
   await waitFor(page, `document.querySelectorAll('#list .row').length > 1`, 'filter reset');
   assert(await evaluate(page, `chrome.storage.local.get('settings').then((s) => s.settings.movieSort === 'rating' && document.querySelector('#listinfo [data-order="rating"]')?.getAttribute('aria-pressed') === 'true')`), 'Reset took the order with it');
   await evaluate(page, `document.querySelector('#listinfo [data-order="az"]').click()`);
@@ -3688,10 +3676,12 @@ async function update(page) {
   await evaluate(page, `chrome.storage.local.set({ updateReady: '99.0.0' })`);
   await waitFor(page, `!document.getElementById('toast').hidden && document.getElementById('toast-text').textContent.includes('99.0.0')`, 'the update message');
   const said = await evaluate(page, `document.getElementById('toast-text').textContent`);
-  await evaluate(page, `document.getElementById('btn-settings').click(); document.getElementById('tab-account').click()`);
+  // The version and the update's button at the foot of the help.
+  await evaluate(page, `document.getElementById('btn-help').click()`);
+  await waitFor(page, `document.getElementById('help').open`, 'the help');
   const line = await evaluate(page, `document.getElementById('app-version').textContent`);
   const running = await evaluate(page, `chrome.runtime.getManifest().version`);
-  await evaluate(page, `chrome.storage.local.remove('updateReady'); document.getElementById('f-done').click()`);
+  await evaluate(page, `chrome.storage.local.remove('updateReady'); document.getElementById('help').close()`);
   return { ok: line === `Kepuli-TV ${running} Update to 99.0.0`, detail: `"${said}"; "${line}"` };
 }
 
@@ -4321,6 +4311,8 @@ async function accountform(page, { target }) {
   await press(`document.getElementById('btn-settings').click()`);
   await waitFor(page, `document.getElementById('setup').open`, 'the settings again');
   await press(`document.getElementById('f-add-account').click()`);
+  // A new account opens on the playlist; the server's form is chosen.
+  await evaluate(page, `document.querySelector('input[name="source"][value="xtream"]').click()`);
   await evaluate(page, `(() => { const f = document.getElementById('f-host'); f.value = 'example.tv'; f.dispatchEvent(new Event('input', { bubbles: true })); })()`);
   await press(`document.getElementById('f-save').click()`);
   const error = await evaluate(page, `document.getElementById('setup-error').textContent`);
@@ -4828,7 +4820,7 @@ async function filterfolds(page) {
   // its × takes it away.
   const chip = await evaluate(page, `(() => { const host = document.getElementById('active-channel-filters'); return { shown: !host.hidden, text: host.textContent.trim(),
     topic: document.querySelector('#subcats .chip.active .chip-main')?.firstChild?.textContent.trim() }; })()`);
-  assert(chip.shown && chip.text === `${chip.topic} ×`, `the topic's chip: ${JSON.stringify(chip)}`);
+  assert(chip.shown && chip.text === chip.topic, `the topic's chip: ${JSON.stringify(chip)}`);
   await evaluate(page, `document.querySelector('#active-channel-filters .filter-chip').click()`);
   await waitFor(page, `document.getElementById('active-channel-filters').hidden && document.getElementById('channel-filters-label').textContent === 'Filter channels'`, 'the chip taking the topic away');
   await evaluate(page, `document.querySelector('#tabs [data-tab="movie"]').click()`);
@@ -5601,14 +5593,10 @@ async function favorder(page) {
     await evaluate(page, `document.querySelector('#listinfo [data-order="az"]').click()`);
     await waitFor(page, `document.querySelector('#listinfo [data-order="az"]')?.getAttribute('aria-pressed') === 'true'`, 'the history by name');
     const historyByName = await names();
-    await evaluate(page, `document.getElementById('btn-settings').click()`);
-    await waitFor(page, `document.getElementById('setup').open`, 'settings');
-    const fields = await evaluate(page, `['f-channelsort', 'f-favsort', 'f-moviesort', 'f-seriessort', 'f-historysort'].map((id) => document.getElementById(id).value)`);
-    await evaluate(page, `document.getElementById('f-done').click()`);
-    await waitFor(page, `!document.getElementById('setup').open`, 'settings closed');
-    assert(JSON.stringify(historyByName) === JSON.stringify(byName) && JSON.stringify(fields) === JSON.stringify(['az', 'za', 'az', 'az', 'az']),
-      `the history by name, and Settings: ${JSON.stringify({ historyByName, byName, fields })}`);
-    return { ok: true, detail: `by name ${JSON.stringify(byName)}; latest added first ${JSON.stringify(added)}; Z–A ${JSON.stringify(backwards)}; the channels' marks in a favourite category; the history latest first, then by name; all in Settings` };
+    const stored = await evaluate(page, `chrome.storage.local.get('settings').then((d) => [d.settings.favoritesSort, d.settings.historySort])`);
+    assert(JSON.stringify(historyByName) === JSON.stringify(byName) && stored.join() === 'za,az',
+      `the history by name, and the orders kept: ${JSON.stringify({ historyByName, byName, stored })}`);
+    return { ok: true, detail: `by name ${JSON.stringify(byName)}; latest added first ${JSON.stringify(added)}; Z–A ${JSON.stringify(backwards)}; the channels' marks in a favourite category; the history latest first, then by name; each kept as a setting` };
   } finally {
     await evaluate(page, `(async () => { const { state } = ${app}; const config = await import('./js/config.js'); state.settings = await config.saveSettings({ favoritesSort: 'az', historySort: 'watched' });
       for (const key of [...state.favorites.keys()]) if (key.startsWith('c:live:g:')) state.favorites.delete(key); })()`);

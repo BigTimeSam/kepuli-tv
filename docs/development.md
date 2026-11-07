@@ -241,9 +241,10 @@ speaks Brazilian Portuguese to it.
 Settings > Clock is **Automatic**, **24-hour** or **12-hour**, each shown with
 an evening time written its way. Automatic is 24-hour in every language —
 Greek and Albanian included, whose own default is 12-hour, as a television
-guide is read on the 24-hour clock there — except English in a browser whose
-English is of a 12-hour region (en-US, en-CA, en-AU, en-IN…), which gets
-10:30 PM. English dates follow the browser's region too: month before day in
+guide is read on the 24-hour clock there — except an English interface in a
+browser whose English is of a 12-hour region (en-US, en-CA, en-AU, en-IN…),
+which gets 10:30 PM unless the system's time zone is in Europe: many Finns
+keep the browser in en-US and still read 22:30. English dates follow the browser's region too: month before day in
 the United States, day before month in the en-GB the app otherwise writes. Settings > Language starts on **Browser
 language**, which names the language it comes to: the first one in
 `navigator.languages` the app speaks (`no` and `nn` count as Bokmål), English

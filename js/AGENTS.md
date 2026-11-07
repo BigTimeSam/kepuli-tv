@@ -60,7 +60,7 @@ lists, series info, stream URL) for its kind:
 | `collections.js`, `playercontrols.js`, `progressdialog.js`, `help.js`, `languageui.js` | Favourites and History and favourite categories; the ☰ menu, full screen and media keys; the list-loading strip; the help dialog; switching language and the empty player's title (moved out of `app.js`) |
 | `topmenu.js` | the top bar's hamburger: below the width at which the bar fits on one row (measured, as tab names differ by language), Refresh, Help, the theme, full screen and Settings go into its menu |
 | `listfilters.js` | the list's "Filter titles" folds: "Filter channels" with the topics, and the favourites strip inside the films' "Filter titles"; the parts are moved, not rebuilt |
-| `scrollhint.js` | a thin bar of the page's own over every box that holds more than it shows, where the browser's bar fades away (Firefox on Android and macOS); `SCROLLERS` names the boxes, and the `scrollbars` scenario fails on one that scrolls and is not named |
+| `scrollhint.js` | a thin bar of the page's own over the player's details (`SCROLLERS`) when they hold more than they show, where the browser's bar fades away (Firefox on Android and macOS); lists and dialogs keep the browser's own |
 | `toast.js` | the message strip (`toast`) and copying a stream address: import `toast` from here |
 | `dom.js` | `$` and `el`, the page's elements looked up once: import them from here |
 | `state.js` | the player's `state`, the list's constants and the parts app.js builds and hands over with `provide()` (the list, the sidebar, the address, the connection): what a feature module takes from the player it takes from here |
