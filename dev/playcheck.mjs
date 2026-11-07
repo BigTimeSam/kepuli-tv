@@ -3491,9 +3491,18 @@ async function welcome(page, { target }) {
     f.dispatchEvent(new InputEvent('input', { bubbles: true, inputType: 'insertFromPaste' })); })()`);
   const mode = () => evaluate(page, `document.querySelector('input[name="source"]:checked').value`);
   await evaluate(page, `chrome.storage.local.remove('config').then(() => chrome.storage.local.set({ ui: { tab: 'live' } }))`);
+  // The player open now answers the account's removal itself; given its
+  // moment first, it no longer reloaded under the next step (CI, twice:
+  // "Inspected target navigated or closed").
+  await sleep(800);
   await page.call('Page.navigate', { url: bare(target.url) });
   await sleep(1000);
   await waitFor(page, `document.getElementById('setup').open`, 'the first-run dialog', 10000);
+  // The same page a moment later, not one loaded again after it.
+  const loaded = await evaluate(page, `performance.timeOrigin`);
+  await sleep(700);
+  await waitFor(page, `document.getElementById('setup').open && performance.timeOrigin === ${loaded}`, 'the first-run dialog to stay', 10000)
+    .catch(async () => { await waitFor(page, `document.getElementById('setup').open`, 'the first-run dialog after a reload', 10000); await sleep(700); });
   const first = await evaluate(page, `(() => { const shown = (id) => document.getElementById(id).getClientRects().length > 0;
     const panel = document.getElementById('panel-connection');
     const fields = [...panel.querySelectorAll('label.field, div.field')].filter((n) => n.getClientRects().length).map((n) => n.id || n.querySelector('input,select')?.id || n.querySelector('input')?.name);
@@ -4606,15 +4615,20 @@ async function record(page) {
     await evaluate(page, `chrome.storage.local.get('recordings').then((d) => {
       const r = d.recordings[0];
       const now = Date.now();
-      return chrome.storage.local.set({ recordings: [...d.recordings, { id: 'rplan', key: r.key, account: r.account, channel: ${JSON.stringify(channel)}, title: 'Planned', start: now + 2000, stop: now + 10000, programme: { start: now + 2000, stop: now + 10000 }, state: 'planned', bytes: 0, createdAt: now }] });
+      return chrome.storage.local.set({ recordings: [...d.recordings, { id: 'rplan', key: r.key, account: r.account, channel: ${JSON.stringify(channel)}, title: 'Planned', start: now + 2000, stop: now + 25000, programme: { start: now + 2000, stop: now + 25000 }, state: 'planned', bytes: 0, createdAt: now }] });
     })`);
-    await waitFor(page, `chrome.storage.local.get('recordings').then((d) => d.recordings.find((r) => r.id === 'rplan')?.state === 'recording')`, 'the plan started', 15000);
+    // Twenty-three seconds of it: with eight, CI's slower machine twice saw
+    // the plan go by before it was looked at. A timeout says where it stood.
+    const planState = `chrome.storage.local.get('recordings').then((d) => JSON.stringify(d.recordings.find((r) => r.id === 'rplan')))`;
+    await waitFor(page, `chrome.storage.local.get('recordings').then((d) => d.recordings.find((r) => r.id === 'rplan')?.state === 'recording')`, 'the plan started', 25000)
+      .catch(async (err) => { throw new Error(`${err.message}: ${await evaluate(page, planState)}`); });
     // Under way with nothing playing, so no Record button: the dot on ☰,
     // and its name says so.
     await waitFor(page, `document.getElementById('btn-more').classList.contains('recording')`, 'the dot on ☰', 5000);
     const named = await evaluate(page, `document.getElementById('btn-more').getAttribute('aria-label')`);
     assert(/Recording now/.test(named), `☰ while a plan records: "${named}"`);
-    await waitFor(page, `chrome.storage.local.get('recordings').then((d) => d.recordings.find((r) => r.id === 'rplan')?.state === 'done')`, 'the plan ended', 30000);
+    await waitFor(page, `chrome.storage.local.get('recordings').then((d) => d.recordings.find((r) => r.id === 'rplan')?.state === 'done')`, 'the plan ended', 45000)
+      .catch(async (err) => { throw new Error(`${err.message}: ${await evaluate(page, planState)}`); });
     const planned = (await list()).find((r) => r.id === 'rplan');
     assert(planned.bytes > 50000, `the plan recorded ${planned.bytes} bytes`);
     return { ok: true, detail: `${Math.round(done.bytes / 1024)} kB in ${onDisk.parts} part(s) through the player's own connection (1 open, none refused), played back from the disk; a plan recorded ${Math.round(planned.bytes / 1024)} kB by itself` };
