@@ -4,7 +4,7 @@
 // The player is one codebase. Everything under js/, css/, vendor/ and
 // icons/, with player.html and background.js, runs in both browsers as it
 // is — js/browser.js holds the one line that differs. Only the manifest is
-// Firefox's own (background.scripts beside the service worker,
+// Firefox's own (background.scripts instead of the service worker,
 // browser_specific_settings, no minimum_chrome_version), and it lives in
 // this directory. This script copies the shared files next to it into
 // firefox/dist/, which is what Firefox loads and what the zip is made of.

@@ -51,6 +51,18 @@ const PREFS = {
   'browser.sessionstore.resume_from_crash': false,
   'media.autoplay.default': 0,
   'media.autoplay.blocking_policy': 0,
+  // Full screen on a script's request, for the same reason: Firefox grants
+  // it only within a gesture it trusts, and the scenarios that test the
+  // double click and the button (fullscreenControl, clickpause,
+  // screenbutton, subtitles) timed out waiting for it. No transition, so
+  // the picture's size is final when they measure it.
+  'full-screen-api.allow-trusted-requests-only': false,
+  'full-screen-api.transition-duration.enter': '0 0',
+  'full-screen-api.transition-duration.leave': '0 0',
+  // On macOS full screen is a Space of its own, and the window it leaves
+  // behind reads as hidden: every scenario after the first full screen
+  // found "the player tab is not visible". Within the window instead.
+  'full-screen-api.macos-native-full-screen': false,
   // Reloading the add-on closes its tab. If that was the last tab the window
   // would go with it, and Marionette cannot open a session in a Firefox
   // without a window — measured. So the window stays.

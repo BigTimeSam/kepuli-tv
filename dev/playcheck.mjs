@@ -5949,18 +5949,23 @@ async function filmaddress(page) {
       state.settings = await config.saveSettings({ resumeEnabled: true });
       const film = (await state.lib.ensureFull('movie')).find((f) => String(f.id) === '5000');
       state.recents = await config.pushRecent(film);
-      state.resume.set('1:5000', { position: 300, duration: 3000, at: Date.now() });
+      // Within the mock's two-minute file: at 300 s Firefox resumed past
+      // its end and the film stood still.
+      state.resume.set('1:5000', { position: 30, duration: 120, at: Date.now() });
       (await import('./js/languageui.js')).renderIdleOverlay(); return true; })()`);
     await waitFor(page, `document.querySelector('.idle-cards .idle-card')`, 'the film under Continue watching');
     const channels = await evaluate(page, `location.hash`);
-    await evaluate(page, `document.querySelector('.idle-cards .idle-card').click()`, { gesture: true });
+    // A real click: Firefox lets a film play only on the viewer's gesture.
+    await mouseClick(page, '.idle-cards .idle-card');
     await waitFor(page, PLAYING, 'the film from the start page', 30000);
     await waitFor(page, `/^#\\/movie\\/[^?]+\\?movie=5000$/.test(location.hash)`, 'the film\'s own address', 5000).catch(() => {});
     const fromHome = await evaluate(page, `location.hash`);
     assert(/^#\/movie\/[^?]+\?movie=5000$/.test(fromHome), `from the start page (over ${channels}) the address is ${fromHome}`);
     // Another copy of it, from the tile under the picture.
     await waitFor(page, `document.querySelector('.related-tile')`, 'the other copies', 20000);
-    const copy = await evaluate(page, `(() => { const tile = [...document.querySelectorAll('.related-tile')][0]; tile.click(); return tile.title; })()`, { gesture: true });
+    const copy = await evaluate(page, `document.querySelector('.related-tile').title`);
+    await evaluate(page, `document.querySelector('.related-tile').scrollIntoView({ block: 'nearest' })`);
+    await mouseClick(page, '.related-tile');
     await waitFor(page, `(async () => { const { state } = ${app}; return state.playing && String(state.playing.id) !== '5000'; })()`, 'the copy playing', 30000);
     await sleep(500);
     const fromTile = await evaluate(page, `(async () => { const { state } = ${app}; return { hash: location.hash, id: String(state.playing.id) }; })()`);
@@ -6092,6 +6097,11 @@ const THROTTLED = new Set(['longfilm', 'seek', 'death', 'reconnect', 'connection
 /* -------------------------------------------------------------------- main */
 
 const wanted = process.argv.slice(2).filter((a) => SCENARIOS[a]);
+// Scenarios that read what only Chrome's DevTools protocol gives, with why;
+// Firefox's run says SKIP for them instead of failing.
+const CHROME_ONLY = {
+  a11y: 'reads the accessibility tree through Chrome\'s DevTools protocol, which Marionette has no counterpart of',
+};
 const unknown = process.argv.slice(2).filter((a) => !SCENARIOS[a]);
 if (unknown.length) { console.error(`unknown scenario ${unknown.join(' ')}; the choices are ${Object.keys(SCENARIOS).join(' and ')}`); process.exit(1); }
 
@@ -6099,6 +6109,7 @@ await ensureChrome(['--autoplay-policy=no-user-gesture-required', ...(process.en
 let failed = 0;
 try {
   for (const name of wanted.length ? wanted : Object.keys(SCENARIOS)) {
+    if (process.env.KEPULI_BROWSER === 'firefox' && CHROME_ONLY[name]) { console.log(`SKIP  ${name}: ${CHROME_ONLY[name]}`); continue; }
     // A mock server of its own for every scenario, one of them kills it —
     // sending slowly, so that the file is not on the browser's side whole
     // before the scenario begins (see KEPULI_MOCK_THROTTLE in the server).

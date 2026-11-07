@@ -92,7 +92,12 @@ data, so never point it at a profile someone uses.
   browser already answers on that port, as the playcheck one stays running:
   that one's pictures differ in every view.
 - `KEPULI_BROWSER=firefox node dev/playcheck.mjs [scenario]`: the same in
-  Firefox through Marionette (opens a window).
+  Firefox through Marionette (opens a window). It runs a test copy of the
+  package (`firefox/dist-test/`) whose page loads one module more, so that
+  a scenario's `import('./js/…')` reaches the player's own modules (without
+  it Marionette got a second, empty copy of each); the add-on has no such
+  module. `a11y` reads Chrome's accessibility tree and says SKIP there
+  (`CHROME_ONLY`); every other scenario runs in both.
 - `node dev/vendorcheck.mjs`: `vendor/` is exactly the third-party code
   listed in `vendor/CHECKSUMS`, hash and upstream version; under a second.
 - Smaller checks for one area each: `dev/demuxcheck.mjs`, `dev/audiocheck.mjs`,

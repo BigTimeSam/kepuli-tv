@@ -1,18 +1,45 @@
 // Marionette adapter for the browser interactions used by dev/playcheck.mjs.
 // The assertions and app code are shared with Chrome; input uses real
 // WebDriver actions, not synthetic DOM events.
-import { readFileSync, unlinkSync, writeFileSync } from 'node:fs';
+import { cpSync, readFileSync, rmSync, unlinkSync, writeFileSync } from 'node:fs';
+import { join } from 'node:path';
 import { build, DIST } from './build.mjs';
 import { downscale, WIDTH, HEIGHT } from '../dev/screenshot.mjs';
 import { ensureFirefox, session as firefoxSession, sleep } from './marionette.mjs';
 export { sleep };
 export { evaluate, waitFor } from '../dev/screenshot.mjs';
 let client, url;
+
+// A scenario that reaches into the player imports its modules
+// (import('./js/state.js')). Chrome runs that in the page, so it gets the
+// player's own modules; Marionette's script is not one of the page's, and
+// Firefox gave it a module map of its own, a second copy of every module
+// with nothing loaded (state.lib null), which failed 18 scenarios. So the
+// tests run a copy of the package with one module more, loaded by the
+// page, that imports for them: kepuliImport, which every import('./js/…')
+// in a scenario's script is turned into. The add-on itself has no such
+// thing; the copy is made here and nowhere else.
+const TEST_DIST = `${DIST}-test`;
+const HOOK = `// Test copy only (firefox/playcheck-driver.mjs): an import in the page's own module map.
+globalThis.kepuliImport = (path) => import(path.replace('./js/', './'));
+`;
+function testCopy() {
+  rmSync(TEST_DIST, { recursive: true, force: true });
+  cpSync(DIST, TEST_DIST, { recursive: true });
+  writeFileSync(join(TEST_DIST, 'js', 'testhook.js'), HOOK);
+  const html = join(TEST_DIST, 'player.html');
+  const page = readFileSync(html, 'utf8');
+  if (!page.includes('</head>')) throw new Error('player.html has no </head> to load the test hook before');
+  writeFileSync(html, page.replace('</head>', '<script type="module" src="js/testhook.js"></script>\n</head>'));
+}
+const pageImports = (expression) => expression.replace(/(?<![\w$.])import\((?=\s*['"`]\.\/js\/)/g, 'window.kepuliImport(');
+
 export async function ensureChrome() {
   build();
+  testCopy();
   await ensureFirefox();
   client = await firefoxSession();
-  const id = await client.installTemporary(DIST);
+  const id = await client.installTemporary(TEST_DIST);
   url = await client.extensionUrl(id, 'player.html');
   await client.ensureWindow();
   await client.navigate(url);
@@ -54,7 +81,7 @@ export async function capture(page, out) {
   }
 }
 
-const KEYS = { Enter: '\uE007', Escape: '\uE00C', Tab: '\uE004', Backspace: '\uE003', ArrowDown: '\uE015', ArrowUp: '\uE013', ArrowLeft: '\uE012', ArrowRight: '\uE014', PageDown: '\uE00F', PageUp: '\uE00E', Home: '\uE011', End: '\uE010', Shift: '\uE008', Control: '\uE009', Alt: '\uE00A', Meta: '\uE03D' };
+const KEYS = { Enter: '\uE007', Escape: '\uE00C', Tab: '\uE004', Backspace: '\uE003', ArrowDown: '\uE015', ArrowUp: '\uE013', ArrowLeft: '\uE012', ArrowRight: '\uE014', PageDown: '\uE00F', PageUp: '\uE00E', Delete: '\uE017', Home: '\uE011', End: '\uE010', Shift: '\uE008', Control: '\uE009', Alt: '\uE00A', Meta: '\uE03D' };
 async function actions(type, id, actions) { await client.call('WebDriver:PerformActions', { actions: [{type,id,...(type==='pointer'?{parameters:{pointerType:'mouse'}}:{}),actions}] }); }
 async function viewport(width, height) {
   const chrome = await client.evaluate('return {w:outerWidth-innerWidth,h:outerHeight-innerHeight}');
@@ -75,13 +102,21 @@ export function session() {
       switch(method) {
         case 'Runtime.evaluate': {
           // Firefox extension promises use browser.*, including test stubs.
-          const value=await client.evaluate('const chrome=globalThis.browser; return eval(arguments[0]);', [p.expression]);
+          const value=await client.evaluate('const chrome=globalThis.browser; return eval(arguments[0]);', [pageImports(p.expression)]);
           return {result:{value}};
         }
         case 'Page.navigate': await client.navigate(p.url); return {};
         case 'Page.reload': await client.refresh(); return {};
         case 'Page.bringToFront': return {};
         case 'Browser.getWindowForTarget': return {windowId:1};
+        case 'Browser.getVersion': return {userAgent:await client.evaluate('return navigator.userAgent')};
+        // The browser's languages: Chrome overrides them per page, Firefox
+        // takes them from a preference, which navigator.languages follows.
+        case 'Network.setUserAgentOverride':
+          await client.privileged(p.acceptLanguage
+            ? 'Services.prefs.setStringPref("intl.accept_languages", arguments[0]);'
+            : 'Services.prefs.clearUserPref("intl.accept_languages");', [p.acceptLanguage || '']);
+          return {};
         case 'Browser.setWindowBounds': return {};
         case 'Emulation.setDeviceMetricsOverride': await viewport(p.width,p.height); return {};
         case 'Emulation.clearDeviceMetricsOverride': await viewport(1280,800); return {};
