@@ -23,6 +23,15 @@ import { toast } from './toast.js';
 import { $, el } from './dom.js';
 import { sideScroll } from './sidescroll.js';
 
+// A phone's guide (css/last.css): a tap on a programme opens its panel as a
+// sheet rather than starting the channel, which there would play unseen
+// under the guide; the zoom is one, about an hour and a half across.
+const PHONE = '(max-width: 600px)';
+const phone = () => matchMedia(PHONE).matches;
+const PHONE_ZOOM = 1;
+function openSheet() { el.main.classList.add('guide-sheet'); }
+export function closeSheet() { el.main.classList.remove('guide-sheet'); }
+
 export const grid = new EpgGrid({
   scroll: $('epg-scroll'), canvas: $('epg-canvas'),
   timesInner: $('epg-times-inner'), chansInner: $('epg-chans-inner'),
@@ -35,7 +44,7 @@ export const grid = new EpgGrid({
   onActivate: activateProgramme,
   onChannel: (channel) => channel && showGuideChannel(channel),
   onPlay: (channel) => channel && playChannel(channel),
-  onPick: (channel, programme) => channel && pickProgramme(channel, programme),
+  onPick: (channel, programme) => channel && (phone() ? openSheet() : pickProgramme(channel, programme)),
   onWindow: (items, from, to) => state.epg && state.epg.setVisibleWindow(items, from, to),
   reminded: (channel, programme) => reminders.has(reminderKey(channel, programme)),
 });
@@ -62,9 +71,10 @@ export const programmeSearch = new ProgrammeSearch({
   onLeave: () => focusGrid(),
   onSelect: renderGuidePreview,
   onActivate: activateProgramme,
-  onPick: (channel, programme) => pickProgramme(channel, programme),
+  onPick: (channel, programme) => (phone() ? openSheet() : pickProgramme(channel, programme)),
   onMode: (searching) => {
     $('epg-body').hidden = searching;
+    if (!searching) showProgrammeSearch(false);
     if (searching) grid.hide();
     else if (guideOpen && !grid.open) grid.show();
   },
@@ -104,6 +114,7 @@ export async function openGuide() {
   grid.epg = state.epg;
   grid.setPlaying(state.playing && state.playing.k === 0 ? state.playing.id : null);
   setGridChannels(channels);
+  if (phone()) grid.zoomIndex = PHONE_ZOOM;
   grid.show();
   if (state.playing && state.playing.k === 0) grid.focusChannel(state.playing.id);
   focusGrid();
@@ -122,6 +133,8 @@ export function closeGuide() {
   const restoreFocus = el.epg.contains(document.activeElement) || el.epgPreview.contains(document.activeElement)
     || document.activeElement === $('epg-close');
   guideOpen = false;
+  closeSheet();
+  showProgrammeSearch(false);
   programmeSearch.clear();
   grid.hide();
   el.main.classList.remove('guide');
@@ -132,6 +145,38 @@ export function closeGuide() {
   vlist.refresh();
   renderInfoStrip();
   updateAddress();
+}
+
+/** The phone's programme search, shown behind its mark or put away. */
+function showProgrammeSearch(on) {
+  el.epg.classList.toggle('searching', on);
+  $('epg-search').setAttribute('aria-expanded', String(on));
+  if (on) $('programme-query').focus();
+}
+
+/**
+ * The phone's controls: the search's mark, and the sheet's close button,
+ * swipe and Escape (before the guide's own Escape, which would close it).
+ */
+export function wirePhoneGuide() {
+  $('epg-search').addEventListener('click', () => showProgrammeSearch(!el.epg.classList.contains('searching')));
+  $('epgv-close').addEventListener('click', closeSheet);
+  let startY = null;
+  el.epgPreview.addEventListener('pointerdown', (e) => { startY = e.clientY; });
+  el.epgPreview.addEventListener('pointerup', (e) => {
+    if (startY != null && e.clientY - startY > 60 && el.epgPreview.scrollTop <= 0) closeSheet();
+    startY = null;
+  });
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape' && el.main.classList.contains('guide-sheet')) {
+      e.stopImmediatePropagation();
+      e.preventDefault();
+      closeSheet();
+      focusGrid();
+    }
+  }, true);
+  // Turned wider than a phone, the sheet is the side panel again.
+  matchMedia(PHONE).addEventListener('change', (e) => { if (!e.matches) closeSheet(); });
 }
 
 /** A group selector for the guide: the sidebar is hidden in guide mode. */

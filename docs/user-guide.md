@@ -727,6 +727,18 @@ remembered from one opening to the next, also while no channel is starred,
 when the guide says so in the grid's place: "No channel is a favourite yet:
 star one in the list, and only the starred ones are shown." It is separate
 from the favourite mode of **Filter countries**.
+
+On a phone (a window 600 px or narrower) the guide keeps to two rows of
+controls, the way back (←), the group, the favourites' star and the
+search's magnifier, then the days, and gives the rest to the grid: some
+ten channels on a Pixel 7 where four showed. Swipe to move in time; **Now**
+floats in the corner once the time on screen no longer holds it. A tap on a
+programme opens its details as a sheet from the bottom, with **Start from
+the beginning**, **Go to channel** or **Remind me**, and plays nothing until
+you choose; swipe it down, or press its ✕, to close it. The search hides
+behind the magnifier, and the scale is fixed at about an hour and a half
+across.
+
 **Back to channels** at the top left returns to the channel list. You can
 also close the guide with `Esc` or `g`.
 

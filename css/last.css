@@ -27,6 +27,56 @@ input[type="search"], input[type="text"], input[type="url"], input:not([type]) {
    the choices open in its list), rather than taking a row of the four
    that the grid had left. */
 @media (max-width: 600px) {
+  /* The guide on a phone: two rows of controls and the grid under them,
+     some ten channels where four showed. The way back is the bar's first
+     mark rather than a row of its own; the clock, the steps and the zoom go
+     (the phone has a clock, a swipe moves the time and the scale is one),
+     Now floats only once the time is scrolled away from it, the search waits
+     behind a mark, and the panel of the programme chosen is a sheet that a
+     tap opens and a swipe down closes (js/guideui.js). */
+  main.guide { grid-template-rows: minmax(0, 1fr); position: relative; }
+  main.guide > .guide-header { position: absolute; top: 0; left: 0; z-index: 3; padding: 7px 0 0 8px; background: none; border: 0; }
+  main.guide > .guide-header h2 { display: none; }
+  main.guide .guide-back { padding: 6px 8px; }
+  main.guide .guide-back > span, .epg-favs > span {
+    position: absolute; width: 1px; height: 1px; margin: -1px; padding: 0;
+    overflow: hidden; clip-path: inset(50%); white-space: nowrap; border: 0;
+  }
+  main.guide > .epg { grid-area: 1 / 1; position: relative; }
+  .epg-bar { gap: 6px; }
+  .epg-bar .spacer, .epg-clock, #epg-prev, #epg-next, .epg-nav:has(#epg-in) { display: none; }
+  /* Room for the way back on the first row only: the days keep the width. */
+  #epg-group { flex: 1 1 0; min-width: 0; max-width: none; margin-left: 46px; }
+  .epg-search-toggle { display: inline-flex; }
+  .programme-form { display: none; }
+  .epg.searching .programme-form, .epg:has(#programme-panel:not([hidden])) .programme-form { display: flex; }
+  .epg-nav:has(#epg-now) { position: absolute; right: 14px; bottom: 16px; z-index: 4; }
+  .epg:not(.away-from-now) .epg-nav:has(#epg-now) { display: none; }
+  .epg-bar #epg-now { padding: 8px 16px; border: 0; border-radius: 999px; background: var(--accent); color: #fff; box-shadow: 0 4px 14px rgba(0, 0, 0, .35); }
+  :root { --epg-chan-w: 6.5rem; }
+  .epg-chan { gap: 6px; padding: 0 6px; }
+  .epg-chan-logo { width: 26px; height: 20px; }
+  .epg-chan-body { display: block; }
+  .epg-chan-name { display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; white-space: normal; line-height: 1.2; font-size: var(--fs-s); }
+  .epg-chan-rec { display: none; }
+  main.guide > .epgview {
+    position: fixed; left: 0; right: 0; bottom: 0; z-index: 20; max-height: 60vh; overflow-y: auto;
+    border: 1px solid var(--border); border-bottom: 0; border-radius: 14px 14px 0 0;
+    padding-bottom: calc(14px + env(safe-area-inset-bottom, 0px));
+    box-shadow: 0 -8px 24px rgba(0, 0, 0, .35);
+    transform: translateY(105%); visibility: hidden; transition: transform .2s ease, visibility 0s .2s;
+  }
+  main.guide.guide-sheet > .epgview { transform: none; visibility: visible; transition: transform .2s ease; }
+  .epgv-head { flex-wrap: wrap; touch-action: pan-x; }
+  .epgv-close { display: inline-flex; order: 2; }
+  .epgv-actions { order: 3; flex: 1 0 100%; flex-wrap: wrap; }
+  .epgv-actions button { flex: 1 1 auto; }
+}
+@media (max-width: 600px) and (prefers-reduced-motion: reduce) {
+  main.guide > .epgview, main.guide.guide-sheet > .epgview { transition: none; }
+}
+@media (max-width: 600px) {
+
   /* The days' box with its arrows (js/sidescroll.js) is the bar's item. */
   .epg-days-scroll { flex: 1 0 100%; }
   .epg-days { max-width: none; }

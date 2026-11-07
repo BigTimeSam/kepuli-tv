@@ -361,6 +361,9 @@
         <div class="epgv-meta" id="epgv-meta"></div>
       </div>
       <div class="epgv-actions" id="epgv-actions"></div>
+      <!-- On a phone the panel is a sheet over the guide, opened by a tap
+           on a programme; this closes it, as a swipe down does. -->
+      <button type="button" id="epgv-close" class="ghost icon epgv-close" data-i18n-title="modal.close" data-i18n-label="modal.close"><svg viewBox="0 0 20 20" aria-hidden="true"><path d="m5 5 10 10M15 5 5 15"/></svg></button>
     </div>
     <div class="epgv-slot" id="epgv-slot"></div>
     <div class="epgv-desc" id="epgv-desc"></div>
@@ -372,6 +375,9 @@
       <select id="epg-group" class="epg-select" data-i18n-title="guide.group.title"></select>
       <!-- The favourite channels alone, whatever group they are in. -->
       <button type="button" id="epg-favs" class="ghost epg-favs" aria-pressed="false" data-i18n-title="guide.favs.title"><svg viewBox="0 0 20 20" aria-hidden="true"><path d="m10 2.8 2.2 4.5 5 .7-3.6 3.5.9 4.9L10 14.1l-4.5 2.3.9-4.9L2.8 8l5-.7z"/></svg><span data-i18n="tab.fav">Favourites</span></button>
+      <!-- On a phone the programme search waits behind this, the bar
+           keeping two rows (js/guideui.js); elsewhere it is not shown. -->
+      <button type="button" id="epg-search" class="ghost icon epg-search-toggle" aria-expanded="false" aria-controls="programme-form" data-i18n-title="programmes.search" data-i18n-label="programmes.search"><svg viewBox="0 0 20 20" aria-hidden="true"><circle cx="9" cy="9" r="6"/><path d="M13.5 13.5 18 18"/></svg></button>
       <div class="epg-days" id="epg-days"></div>
       <div class="spacer"></div>
       <div class="epg-nav">

@@ -5405,6 +5405,51 @@ async function remoteimages(page) {
 }
 
 /**
+ * The guide on a phone (412 x 800): two rows of controls over the grid and
+ * some ten channels in it, where four showed; no clock, steps or zoom; a
+ * tap on a programme opens its panel as a sheet and plays nothing, Escape
+ * closes the sheet and leaves the guide open; the search waits behind its
+ * mark; Now floats only once the time is scrolled away from it.
+ */
+async function phoneguide(page) {
+  const assert = (ok, message) => { if (!ok) throw new Error(message); };
+  await page.call('Emulation.setDeviceMetricsOverride', { width: 412, height: 800, deviceScaleFactor: 1, mobile: true });
+  try {
+    await waitFor(page, `document.querySelectorAll('#list .row').length > 1`, 'the channels');
+    await evaluate(page, `document.getElementById('btn-guide').click()`);
+    await waitFor(page, `document.querySelectorAll('.epg-prog').length > 5`, 'the guide', 30000);
+    await sleep(500);
+    const look = await evaluate(page, `(() => {
+      const shown = (id) => { const n = document.getElementById(id); return Boolean(n && n.offsetParent !== null); };
+      const top = document.getElementById('epg-scroll').getBoundingClientRect().top;
+      const chans = [...document.querySelectorAll('.epg-chan')].filter((c) => { const r = c.getBoundingClientRect(); return r.top >= top && r.bottom <= innerHeight; }).length;
+      return { chans, top: Math.round(top), clock: shown('epg-clock'), prev: shown('epg-prev'), zoom: shown('epg-in'), now: shown('epg-now'),
+        search: shown('epg-search'), form: shown('programme-query'), sheet: getComputedStyle(document.getElementById('epg-preview')).visibility }; })()`);
+    assert(look.chans >= 9 && !look.clock && !look.prev && !look.zoom && !look.now && look.search && !look.form && look.sheet === 'hidden', `the phone's guide: ${JSON.stringify(look)}`);
+    await evaluate(page, `document.querySelector('.epg-prog').click()`);
+    await sleep(400);
+    const sheet = await evaluate(page, `({ open: document.getElementById('main').classList.contains('guide-sheet'), shown: getComputedStyle(document.getElementById('epg-preview')).visibility, played: Boolean(document.getElementById('video').currentSrc), actions: document.querySelectorAll('#epgv-actions button').length })`);
+    assert(sheet.open && sheet.shown === 'visible' && !sheet.played && sheet.actions > 0, `a tap on a programme: ${JSON.stringify(sheet)}`);
+    await page.call('Input.dispatchKeyEvent', { type: 'keyDown', key: 'Escape', code: 'Escape', windowsVirtualKeyCode: 27 });
+    await page.call('Input.dispatchKeyEvent', { type: 'keyUp', key: 'Escape', code: 'Escape', windowsVirtualKeyCode: 27 });
+    await sleep(300);
+    const after = await evaluate(page, `({ sheet: document.getElementById('main').classList.contains('guide-sheet'), guide: !document.getElementById('epg').hidden })`);
+    assert(!after.sheet && after.guide, `Escape on the sheet: ${JSON.stringify(after)}`);
+    await evaluate(page, `document.getElementById('epg-scroll').scrollLeft += 1500`);
+    await waitFor(page, `document.getElementById('epg-now').offsetParent !== null`, 'Now, once the time is scrolled away', 5000);
+    await evaluate(page, `document.getElementById('epg-now').click()`);
+    await waitFor(page, `document.getElementById('epg-now').offsetParent === null`, 'Now gone again at now', 5000);
+    await evaluate(page, `document.getElementById('epg-search').click()`);
+    const searching = await evaluate(page, `({ form: document.getElementById('programme-query').offsetParent !== null, focus: document.activeElement.id })`);
+    assert(searching.form && searching.focus === 'programme-query', `the search behind its mark: ${JSON.stringify(searching)}`);
+    return { ok: true, detail: `${look.chans} channels under a ${look.top} px top; a tap opened the sheet with ${sheet.actions} actions and played nothing, Escape closed it; Now floated away from now; the search opened focused` };
+  } finally {
+    await evaluate(page, `document.getElementById('epg-close')?.click()`).catch(() => {});
+    await page.call('Emulation.clearDeviceMetricsOverride').catch(() => {});
+  }
+}
+
+/**
  * Text that does not fit, found before a translator does. The player is
  * opened as player.html?pseudo=1 (js/i18n.js), where every string is
  * accented and about 40 % longer, and the main views are walked: the start
@@ -6302,7 +6347,7 @@ async function filmfacts(page) {
 
 const SCENARIOS = { buffering, livebuffering, filmbuffering, emptyfile, tsasmp4, refusedfile, badgateway, livebadgateway, channelrefused, noanswer, longfilm, catalogUi, setupClarity, welcome, fullscreenControl, clickpause, pickers, touchcaret, screenbutton, topmenu, scrollbars, channelorder, lengthfilter, nowlogo, channels, home, resumemkv, restore, programmes, catchup, seek, death, cancel, timeout, search, paste, keys, switching, resume, connections, livezap, livequiet, reconnect, accounts, listerror, a11y, subtitles, audio, wasmaudio, settings,
   lastchannel, nextepisode, continuewatching, reminders, update, seeklag, cuesretry, quota, catchupfreeze, catchupfull, twotabs, switchstop, resettabs,
-  refresh, restorenav, guidekeep, m3u, sync, holes, picks, flakyserver, accountform, stalker, record, guidefavs, guidenames, categories, homecountry, noleak, perf, pseudo, startup, soak, phone, episodenames, gotochannel, filmdetails, favorder, countryfilter, tilekeys, routes, programmekeys, searchlimit, filterfolds, guideclick, filmaddress, filmfacts, playlistfile, perflive, perfplaylist, remoteimages };
+  refresh, restorenav, guidekeep, m3u, sync, holes, picks, flakyserver, accountform, stalker, record, guidefavs, guidenames, categories, homecountry, noleak, perf, pseudo, startup, soak, phone, episodenames, gotochannel, filmdetails, favorder, countryfilter, tilekeys, routes, programmekeys, searchlimit, filterfolds, guideclick, filmaddress, filmfacts, playlistfile, perflive, perfplaylist, remoteimages, phoneguide };
 // The mock's whole-list answers stall for these, longer than the request limit.
 const SLOW_LIST_MS = { cancel: 60000, timeout: 60000 };
 // The media is sent slowly for these: the seek targets must lie outside the

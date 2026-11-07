@@ -45,7 +45,7 @@ import { loadReminders, reminders, showReminders } from './remindersui.js';
 import { renderInfoStrip } from './infostrip.js';
 import { applyListLayout, gridColumns, isWatched, nameCleanerFor, onEpgUpdated, renderRow, restoreListView, listName, shownName, toggleFavorite, toggleWatched, usesGrid, watchGridWidth } from './coversui.js';
 import { closeDetail, crumbLabel, episodesOfSeason, openItem, openSeries, renderDetail } from './seriesui.js';
-import { closeGuide, favoritesChanged, focusGrid, grid, guideFavorites, guideOpen, openGuide, programmeSearch, renderGuideGroups, restoreGuideFavorites, setGuideFavorites, toggleGuide } from './guideui.js';
+import { closeGuide, favoritesChanged, focusGrid, grid, guideFavorites, guideOpen, openGuide, programmeSearch, renderGuideGroups, restoreGuideFavorites, setGuideFavorites, toggleGuide, wirePhoneGuide } from './guideui.js';
 
 import { ensureFull, orderList, renderEmptyState, renderListInfo, wireSubcatsKeys, wireSubcatsResize } from './topicbar.js';
 import { askExternal, playExternal } from './externalui.js';
@@ -1946,6 +1946,7 @@ function wireUi() {
   $('btn-live').addEventListener('click', () => state.catchup && playItem(state.catchup.channel));
   $('btn-guide').addEventListener('click', toggleGuide);
   $('epg-close').addEventListener('click', closeGuide);
+  wirePhoneGuide();
   $('epg-now').addEventListener('click', () => { grid.goNow(); focusGrid(); });
   $('epg-prev').addEventListener('click', () => { grid.nudge(-30); focusGrid(); });
   $('epg-next').addEventListener('click', () => { grid.nudge(30); focusGrid(); });

@@ -219,6 +219,10 @@ export class EpgGrid {
     this.paintChannels(first, last);
     this.paintBlocks(first, last, scrollLeft, clientWidth);
     this.moveNow();
+    // Now is offered where the time on screen does not hold it (a phone's
+    // guide floats the button only then, css/last.css).
+    const nowX = this.x(Date.now());
+    this.el.scroll.closest('.epg')?.classList.toggle('away-from-now', nowX < scrollLeft || nowX > scrollLeft + clientWidth);
 
     this.el.corner.textContent = shortDay(from);
     for (const day of this.dayButtons) {
