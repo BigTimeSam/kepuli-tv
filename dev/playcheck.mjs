@@ -5925,9 +5925,64 @@ async function countryfilter(page) {
   }
 }
 
+/**
+ * Whatever is opened has an address of its own, wherever it was opened
+ * from: a film from the start page or from a tile under the picture (a
+ * copy the list does not show, one card a title), a series from the
+ * channels' tab. The address names it in its own list, and a reload stands
+ * on it there. Before, the address stayed on the list beside it and left
+ * the film out, as that list did not hold it.
+ */
+async function filmaddress(page) {
+  const assert = (ok, message) => { if (!ok) throw new Error(message); };
+  const app = `(await import('./js/state.js'))`;
+  process.env.KEPULI_MOCK_VERSIONS = '1';
+  try {
+    await openLiveList(page, 3);
+    // A film half seen, on the start page's Continue watching.
+    await evaluate(page, `(async () => { const { state } = ${app}; const config = await import('./js/config.js');
+      state.settings = await config.saveSettings({ resumeEnabled: true });
+      const film = (await state.lib.ensureFull('movie')).find((f) => String(f.id) === '5000');
+      state.recents = await config.pushRecent(film);
+      state.resume.set('1:5000', { position: 300, duration: 3000, at: Date.now() });
+      (await import('./js/languageui.js')).renderIdleOverlay(); return true; })()`);
+    await waitFor(page, `document.querySelector('.idle-cards .idle-card')`, 'the film under Continue watching');
+    const channels = await evaluate(page, `location.hash`);
+    await evaluate(page, `document.querySelector('.idle-cards .idle-card').click()`, { gesture: true });
+    await waitFor(page, PLAYING, 'the film from the start page', 30000);
+    await waitFor(page, `/^#\\/movie\\/[^?]+\\?movie=5000$/.test(location.hash)`, 'the film\'s own address', 5000).catch(() => {});
+    const fromHome = await evaluate(page, `location.hash`);
+    assert(/^#\/movie\/[^?]+\?movie=5000$/.test(fromHome), `from the start page (over ${channels}) the address is ${fromHome}`);
+    // Another copy of it, from the tile under the picture.
+    await waitFor(page, `document.querySelector('.related-tile')`, 'the other copies', 20000);
+    const copy = await evaluate(page, `(() => { const tile = [...document.querySelectorAll('.related-tile')][0]; tile.click(); return tile.title; })()`, { gesture: true });
+    await waitFor(page, `(async () => { const { state } = ${app}; return state.playing && String(state.playing.id) !== '5000'; })()`, 'the copy playing', 30000);
+    await sleep(500);
+    const fromTile = await evaluate(page, `(async () => { const { state } = ${app}; return { hash: location.hash, id: String(state.playing.id) }; })()`);
+    assert(new RegExp(`^#/movie/[^?]+\\?movie=${fromTile.id}$`).test(fromTile.hash), `"${copy}" from its tile: ${JSON.stringify(fromTile)}`);
+    // The address reloaded: the films, the list standing on the title's card.
+    await page.call('Page.reload');
+    await waitFor(page, CONNECTED, 'the connection');
+    await waitFor(page, `(async () => { const { state } = ${app}; const row = state.rows[state.cursor];
+      return state.tab === 'movie' && row && row.k === 1 && /^#\\/movie\\//.test(location.hash) && /movie=/.test(location.hash); })()`, 'the film\'s list after the reload', 30000);
+    const landed = await evaluate(page, `(async () => { const { state } = ${app}; const row = state.rows[state.cursor]; return { hash: location.hash, row: row.n, id: String(row.id) }; })()`);
+    assert(['5000', fromTile.id].includes(landed.id), `after the reload: ${JSON.stringify(landed)}`);
+    // A series from the channels' tab.
+    await openLiveList(page, 3);
+    const series = await evaluate(page, `(async () => { const { state } = ${app}; const item = (await state.lib.ensureFull('series'))[0];
+      await (await import('./js/seriesui.js')).openSeries(item); return String(item.id); })()`);
+    await sleep(500);
+    const seriesHash = await evaluate(page, `location.hash`);
+    assert(new RegExp(`^#/series/[^?]+\\?series=${series}$`).test(seriesHash), `a series from the channels: ${seriesHash}`);
+    return { ok: true, detail: `start page ${fromHome}; "${copy}" ${fromTile.hash}; reloaded on "${landed.row}"; series ${seriesHash}` };
+  } finally {
+    delete process.env.KEPULI_MOCK_VERSIONS;
+  }
+}
+
 const SCENARIOS = { buffering, livebuffering, filmbuffering, emptyfile, tsasmp4, refusedfile, badgateway, livebadgateway, channelrefused, noanswer, longfilm, catalogUi, setupClarity, welcome, fullscreenControl, clickpause, pickers, touchcaret, screenbutton, topmenu, scrollbars, channelorder, lengthfilter, nowlogo, channels, home, resumemkv, restore, programmes, catchup, seek, death, cancel, timeout, search, paste, keys, switching, resume, connections, livezap, livequiet, reconnect, accounts, listerror, a11y, subtitles, audio, wasmaudio, settings,
   lastchannel, nextepisode, continuewatching, reminders, update, seeklag, cuesretry, quota, catchupfreeze, catchupfull, twotabs, switchstop, resettabs,
-  refresh, restorenav, guidekeep, m3u, sync, holes, picks, flakyserver, accountform, stalker, record, guidefavs, guidenames, categories, homecountry, noleak, perf, pseudo, startup, soak, phone, episodenames, gotochannel, filmdetails, favorder, countryfilter, tilekeys, routes, programmekeys, searchlimit, filterfolds, guideclick };
+  refresh, restorenav, guidekeep, m3u, sync, holes, picks, flakyserver, accountform, stalker, record, guidefavs, guidenames, categories, homecountry, noleak, perf, pseudo, startup, soak, phone, episodenames, gotochannel, filmdetails, favorder, countryfilter, tilekeys, routes, programmekeys, searchlimit, filterfolds, guideclick, filmaddress };
 // The mock's whole-list answers stall for these, longer than the request limit.
 const SLOW_LIST_MS = { cancel: 60000, timeout: 60000 };
 // The media is sent slowly for these: the seek targets must lie outside the

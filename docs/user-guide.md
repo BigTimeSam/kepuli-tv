@@ -123,7 +123,11 @@ history (an older `#/recent` address still opens the history). The channel
 played last from the list is in it too: `#/live/Finland?channel=4321` opens
 Finland standing on that channel, ready for `Enter`, without starting it by
 itself, and a film the same way: `#/movie/Action?movie=5000` stands on the
-film in its list. The programme guide is `#/guide`, followed by the group
+film in its list. A film, a channel or a series opened from somewhere
+else (the start page, a tile under the picture, another copy of the
+title) has its own address in its own list, so it can be linked and
+reloaded too: until you choose another place in the sidebar, the address
+names it rather than the list beside it. The programme guide is `#/guide`, followed by the group
 and topic it shows (`#/guide/Finland`); a reload opens the guide again. It is written as each list settles, so reloading the page
 comes back exactly there, episode list and all. The address is written over
 the current history entry rather than added to it: stepping back is what the

@@ -56,7 +56,7 @@ import { clickPicture, enterFullscreen, moreItems, renderScreenButton, renderSer
 import { wireTopMenu } from './topmenu.js';
 import { wireScrollHints } from './scrollhint.js';
 import { channelsByFavourite, filterChannels, placeListFilters, wireListFilters } from './listfilters.js';
-import { oneCopyEach } from './titlemeta.js';
+import { oneCopyEach, titleKey } from './titlemeta.js';
 import { cancelProgress, hideProgress, progressCtrl, progressSignal, showProgress, updateProgress } from './progressdialog.js';
 import { openHelp } from './help.js';
 import { copyUrl, toast } from './toast.js';
@@ -554,6 +554,8 @@ function rememberView() {
  * #/favorites and #/favorites/- are not the same place.
  */
 function currentRoute() {
+  const own = ownRoute();
+  if (own) return own;
   const view = { tab: state.tab };
   // A search is a detour rather than a place. It empties the group while it
   // runs, so the address stays on the group it took over from — which is
@@ -588,6 +590,43 @@ function currentRoute() {
     else if (detail.view === 'category') view.cat = detail.entry.id;
   }
   return view;
+}
+
+// What is playing and the place it was started from, see ownRoute.
+let started = { item: null, place: '' };
+
+/**
+ * The address of a film, a channel or a series opened from outside the
+ * list on screen: a tile under the picture (another copy, a sequel), the
+ * start page, a series from the channels' tab. It is in its own list, by
+ * the group it is filed in, and a reload or a shared address stands on it
+ * there. Without this the address named the list beside it and left the
+ * film out, as the list did not hold it. It holds until the viewer goes
+ * somewhere else in the sidebar; then the list is the place again.
+ */
+function ownRoute() {
+  if (!state.lib || guideOpen || state.query) return null;
+  const chain = [];
+  for (let detail = state.detail; detail; detail = detail.back) chain.push(detail.view, detail.item?.id ?? detail.entry?.id);
+  const place = JSON.stringify([state.tab, state.group, state.sub, state.kind, ...chain]);
+  if (state.playing !== started.item) started = { item: state.playing, place };
+  const groupOf = (type, item) => {
+    const group = (item.cats || []).map((cat) => groupOfType(type).get(cat)).find(Boolean);
+    return group && visibleGroups(type).some((g) => g.name === group) ? group : null;
+  };
+  const series = state.detail?.view === 'series' ? state.detail.item : null;
+  if (series && !['series', 'fav', 'recent'].includes(state.tab)) {
+    return { tab: 'series', group: groupOf('series', series), series: String(series.id) };
+  }
+  const item = state.playing;
+  if (!item || state.detail || state.catchup || started.place !== place) return null;
+  if (item.k === 1 && !(state.tab === 'movie' && state.rowIndex.has(`1:${item.id}`))) {
+    return { tab: 'movie', group: groupOf('movie', item), movie: String(item.id) };
+  }
+  if (item.k === 0 && !(state.tab === 'live' && state.rowIndex.has(`0:${item.id}`))) {
+    return { tab: 'live', group: groupOf('live', item), channel: String(item.id) };
+  }
+  return null;
 }
 
 /** A topic by the name on its chip: "Sport", or "General" for a group's own. */
@@ -709,6 +748,11 @@ async function restoreDetail(arrival) {
   }
   // A film the same way: the list stands on it, and Enter plays it.
   if (pending.movie && state.tab === 'movie') {
+    // Another copy of a title stands on the title's card, whose page has
+    // the copies (one card a title, js/titlemeta.js).
+    const copy = state.titleRows.find((x) => x.k === 1 && String(x.id) === pending.movie);
+    const card = copy && state.rows.find((x) => x.k === 1 && titleKey(x) === titleKey(copy));
+    if (card) pending.movie = String(card.id);
     const index = state.rowIndex.get(`1:${pending.movie}`);
     if (index != null) {
       state.routeMovie = pending.movie;

@@ -30,6 +30,10 @@
 //                                   one playing there, or a link to it
 //   #/movie/Action?movie=5000       a film in its list: the one playing
 //                                   there, whose details the strip shows
+//                                   (opened from elsewhere, the start
+//                                   page or a tile, it is named in its
+//                                   own list all the same: ownRoute in
+//                                   app.js)
 //   #/guide                         the programme guide, open over the
 //   #/guide/Finland/312             channel list it shows: "guide" stands
 //                                   in the place of "live", group and

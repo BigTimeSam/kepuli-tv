@@ -63,7 +63,7 @@ export function nameTags(name) {
 }
 
 /** The title alone, for telling copies of one film apart from different films. */
-function titleKey(item) {
+export function titleKey(item) {
   const bare = titleWithoutYear(String(item.n ?? '').replace(/[[(][^\])]*[\])]/g, ' ').replace(QUALITY, ' '), item.year);
   return `${item.k}|${searchKey(bare).replace(/\s+/g, ' ').trim()}|${item.year || ''}`;
 }
