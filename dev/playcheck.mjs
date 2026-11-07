@@ -1990,9 +1990,54 @@ async function lengthfilter(page) {
     return { text: document.querySelector('.length-filter output').textContent, count: document.querySelector('#media-filters .section-count').textContent,
       lengths: [...document.querySelectorAll('#list .row')].map((r) => r.querySelector('.row-duration, .card-meta')?.textContent || '').map(minutes) }; })()`);
   assert(after.lengths.length && after.lengths.every((m) => m > 0 && m <= middle) && /–/.test(after.text), `cut to ≤ ${middle} min: ${JSON.stringify(after)}`);
+  // Settled, the cut list stays as it is: a loop once drew it again every
+  // 400 ms while a length was chosen (an idle reading queue asking for a
+  // refilter, the refilter's paint asking the queue), and its covers flashed.
+  await sleep(1500);
+  await evaluate(page, `(() => { window.__first = document.querySelector('#list .row'); window.__paints = 0;
+    window.__watch = new MutationObserver((m) => { window.__paints += m.filter((r) => r.type === 'childList').length; });
+    window.__watch.observe(document.getElementById('list'), { childList: true, subtree: true }); return true; })()`);
+  await sleep(2500);
+  const steady = await evaluate(page, `(() => { window.__watch.disconnect(); return { same: document.querySelector('#list .row') === window.__first, paints: window.__paints }; })()`);
+  assert(steady.same && steady.paints === 0, `the cut list kept being drawn again: ${JSON.stringify(steady)}`);
   // A screen reader hears the handle's value as a length, not a bare number.
   const spoken = await evaluate(page, `document.querySelectorAll('.length-filter input')[1].getAttribute('aria-valuetext')`);
   assert(spoken && /min|h/.test(spoken) && !/^\d+$/.test(spoken), `the handle reads as ${JSON.stringify(spoken)}`);
+  // Under All the length is out of force and the lengths are not read:
+  // a scroll through the whole catalogue asked the provider for every
+  // film's details, a request each. The range is kept for the next
+  // category (below), its chip and the slider out of sight here.
+  const cutRows = after.lengths.length;
+  await evaluate(page, `performance.clearResourceTimings(); true`);
+  await click(page, '#groups', 'All');
+  await waitFor(page, `document.querySelectorAll('#list .row').length > ${cutRows}`, 'the whole catalogue under All');
+  for (let i = 0; i < 4; i++) { await evaluate(page, `document.getElementById('list').scrollTop += 600; true`); await sleep(300); }
+  await sleep(800);
+  const all = await evaluate(page, `({ slider: !document.querySelector('.length-filter').hidden,
+    chip: [...document.querySelectorAll('.filter-chip')].some((c) => /Duration/.test(c.textContent)),
+    asked: performance.getEntriesByType('resource').filter((e) => /get_vod_info/.test(e.name)).length,
+    spinner: !document.querySelector('#media-filters .section-spinner').hidden })`);
+  assert(!all.slider && !all.chip && !all.asked && !all.spinner, `under All: ${JSON.stringify(all)}`);
+  // In another category the range keeps the scale it was chosen on: only
+  // the films inside it show there, and their lengths alone made the track
+  // as short as the range, the handles at both its ends.
+  // Their lengths forgotten, as a category not opened before has none
+  // (the mock gives a length in the list as well: that goes too, and the
+  // filters' own memory of what they read).
+  await evaluate(page, `(async () => { const { state, mediaFilters } = await import('./js/state.js'); state.lib.details.clear(); state.lib.movieAttempts.clear(); mediaFilters.facts = new WeakMap();
+    for (const list of [state.rows, state.titleRows, state.lib.full?.movie || [], ...state.lib.byCategory.values()]) for (const item of list) { delete item.details; delete item.durationSec; } return true; })()`);
+  await click(page, '#groups', 'Action');
+  await sleep(1200);
+  const elsewhere = await evaluate(page, `(() => { const [a, b] = document.querySelectorAll('.length-filter input'); return { from: +a.value, to: +b.value, min: +a.min, max: +b.max }; })()`);
+  assert(elsewhere.to === middle && elsewhere.max > middle, `the range in another category: ${JSON.stringify(elsewhere)}`);
+  // The films there whose lengths are not known yet are in the list, marked,
+  // after any that fit: left out, they were never read and the list stayed
+  // empty. Read as they show, those that do not fit drop out.
+  assert(await evaluate(page, `document.querySelectorAll('#list .row').length > 0`), 'the list empty in a category whose lengths were not known');
+  await waitFor(page, String.raw`(() => { const minutes = (text) => { const h = /(\d+)h/.exec(text), m = /(\d+) min/.exec(text); return (h ? +h[1] * 60 : 0) + (m ? +m[1] : 0); };
+    const rows = [...document.querySelectorAll('#list .row')];
+    return rows.length > 0 && rows.every((r) => !/length unknown/.test(r.textContent) && minutes(r.querySelector('.row-duration, .card-meta')?.textContent || '') > 0
+      && minutes(r.querySelector('.row-duration, .card-meta')?.textContent || '') <= ${middle}); })()`, 'the lengths read and the films that fit left', 20000);
   if (process.env.KEPULI_LENGTH_SHOT) {
     const fs = await import('node:fs');
     const { data } = await page.call('Page.captureScreenshot', { format: 'png' });
@@ -2000,8 +2045,10 @@ async function lengthfilter(page) {
   }
   // The chip takes the choice away again.
   await evaluate(page, `[...document.querySelectorAll('.filter-chip')].find((c) => /Duration/.test(c.textContent)).click()`);
-  await waitFor(page, `document.querySelector('.length-filter output').textContent === 'Any length'`, 'the slider back at rest');
-  return { ok: true, detail: `${before.min}–${before.max} min known; up to ${middle} min left ${after.lengths.length} films (${after.count}), "${after.text}"; the chip reset it` };
+  // At rest, or out of sight where no lengths are known (the category above).
+  await waitFor(page, `![...document.querySelectorAll('.filter-chip')].some((c) => /Duration/.test(c.textContent))
+    && (document.querySelector('.length-filter').hidden || document.querySelector('.length-filter output').textContent === 'Any length')`, 'the slider back at rest');
+  return { ok: true, detail: `${before.min}–${before.max} min known; up to ${middle} min left ${after.lengths.length} films (${after.count}), "${after.text}"; out of force and nothing read under All (${all.asked} requests); kept its scale in another category; the chip reset it` };
 }
 
 /**
@@ -2782,6 +2829,17 @@ async function settings(page, { requests, target }) {
   if (look.size !== '1.4' || savedSize !== 140 || look.mirror !== '140') return { ok: false, detail: `the popover left ${JSON.stringify(look)}, stored ${savedSize}` };
   if (!look.cues || look.covered) return { ok: false, detail: `the popover covers ${look.covered} of ${look.cues} cue(s)` };
 
+  // A setting's explanation waits behind its ?: opened under it, closed again.
+  await open();
+  await waitFor(page, `document.getElementById('setup').open`, 'the settings for the ?', 5000);
+  await tab('general');
+  await evaluate(page, `document.querySelector('[aria-controls="international-hint"]').click()`);
+  const hint = await evaluate(page, `({ shown: !document.getElementById('international-hint').hidden, pressed: document.querySelector('[aria-controls="international-hint"]').getAttribute('aria-expanded') })`);
+  await evaluate(page, `document.querySelector('[aria-controls="international-hint"]').click()`);
+  assert(hint.shown && hint.pressed === 'true' && await evaluate(page, `document.getElementById('international-hint').hidden`), `the ? hint: ${JSON.stringify(hint)}`);
+  await press('f-done');
+  await waitFor(page, `!document.getElementById('setup').open`, 'the settings closed after the ?');
+
   // Without credentials the dialog is not settings at all: there is nothing
   // to set until there is something to connect to.
   await evaluate(page, `chrome.storage.local.remove('config')`);
@@ -3457,6 +3515,11 @@ async function welcome(page, { target }) {
   assert(await mode() === 'stalker' && await evaluate(page, `document.getElementById('f-portal').value === 'http://example.test:8080/c/' && document.activeElement.id === 'f-mac'`), `a portal: ${await mode()}`);
   await paste('example test');
   assert(await evaluate(page, `!document.getElementById('playlist-status').hidden`), 'text that is no address was taken');
+  // A portal's address typed rather than pasted goes to its form when the
+  // field is left; it was saved as a playlist before.
+  await evaluate(page, `(() => { document.querySelector('input[name="source"][value="m3u"]').click(); const f = document.getElementById('f-paste'); f.value = 'http://example.test:8080/c/';
+    f.dispatchEvent(new InputEvent('input', { bubbles: true, inputType: 'insertText' })); f.dispatchEvent(new Event('change', { bubbles: true })); })()`);
+  assert(await mode() === 'stalker' && await evaluate(page, `document.getElementById('f-portal').value === 'http://example.test:8080/c/'`), `a typed portal: ${await mode()}`);
   // A refusal of the permission says what to do about it.
   await paste(`http://127.0.0.1:${MOCK_PORT}/get.php?username=demo&password=demo`);
   await evaluate(page, `window.realRequest = chrome.permissions.request; chrome.permissions.request = async () => false;`);
@@ -3498,6 +3561,15 @@ async function welcome(page, { target }) {
     await sleep(1000);
     await waitFor(page, CONNECTED, 'the connection');
     assert(await evaluate(page, `!document.getElementById('welcome-connect') && !document.getElementById('btn-guide').closest('[hidden]')`), 'the welcome stayed after connecting');
+    // An Xtream account that came without its password (from sync) opens
+    // on its own form, waiting for the password, not on a new playlist.
+    // Made from a get.php address in the playlist's field: sourceMode m3u.
+    await evaluate(page, `chrome.storage.local.set({ config: { ...${JSON.stringify(XTREAM_ACCOUNT)}, password: '', sourceMode: 'm3u' } })`);
+    await page.call('Page.navigate', { url: bare(target.url) });
+    await sleep(1000);
+    await waitFor(page, `document.getElementById('setup').open`, 'the form waiting for the password', 10000);
+    const waiting = await evaluate(page, `({ mode: document.querySelector('input[name="source"]:checked').value, host: document.getElementById('f-host').value })`);
+    assert(waiting.mode === 'xtream' && waiting.host === XTREAM_ACCOUNT.host, `an account without its password: ${JSON.stringify(waiting)}`);
     return { ok: true, detail: `the playlist's address first, an address pasted there sent to its form (Xtream, playlist, portal), the prompt announced, "${refused}"; the welcome and the list offer Connect, no guide button; "${failed}"` };
   } finally {
     await evaluate(page, `if (window.realContains) chrome.permissions.contains = window.realContains; if (window.realRequest) chrome.permissions.request = window.realRequest;`);
@@ -4417,6 +4489,12 @@ async function record(page) {
     await evaluate(page, `document.getElementById('f-save').click()`);
     await waitFor(page, `!document.getElementById('setup').open`, 'settings saved');
     await waitFor(page, `chrome.storage.local.get('settings').then((d) => d.settings.recordingEnabled === true)`, 'recording on in the settings');
+    // None yet: the dialog says so as the start page does, nothing more.
+    await evaluate(page, `document.getElementById('btn-recordings-menu').click()`, { gesture: true });
+    await waitFor(page, `document.getElementById('recordings').open`, 'the empty recordings');
+    const none = await evaluate(page, `({ said: document.querySelector('#recordings-empty .empty strong')?.textContent, note: document.getElementById('recordings-note').textContent })`);
+    await evaluate(page, `document.getElementById('recordings').close()`);
+    assert(none.said === 'No recordings yet' && !none.note, `the empty recordings: ${JSON.stringify(none)}`);
     const before = connectionStats();
     await waitFor(page, `!document.getElementById('btn-record').hidden`, 'the Record button');
     await evaluate(page, `document.getElementById('btn-record').click()`, { gesture: true });
@@ -4444,6 +4522,8 @@ async function record(page) {
     // Played back from the disk.
     await evaluate(page, `document.getElementById('btn-recordings-menu').click()`, { gesture: true });
     await waitFor(page, `document.getElementById('recordings').open && document.querySelectorAll('#recordings-list .choice-row').length === 1`, 'the recordings');
+    const total = await evaluate(page, `document.getElementById('recordings-note').textContent`);
+    assert(/^Recordings take [\d.]+ MB in all\.$/.test(total), `the recordings' total: "${total}"`);
     await evaluate(page, `[...document.querySelectorAll('#recordings-list button')].find((b) => b.textContent === 'Play').click()`, { gesture: true });
     await waitFor(page, `${PLAYING} && document.getElementById('video').currentTime > 2`, 'the recording played back', 30000);
     // A plan, with nothing playing: carried out at its time.
@@ -4456,6 +4536,11 @@ async function record(page) {
       return chrome.storage.local.set({ recordings: [...d.recordings, { id: 'rplan', key: r.key, account: r.account, channel: ${JSON.stringify(channel)}, title: 'Planned', start: now + 2000, stop: now + 10000, programme: { start: now + 2000, stop: now + 10000 }, state: 'planned', bytes: 0, createdAt: now }] });
     })`);
     await waitFor(page, `chrome.storage.local.get('recordings').then((d) => d.recordings.find((r) => r.id === 'rplan')?.state === 'recording')`, 'the plan started', 15000);
+    // Under way with nothing playing, so no Record button: the dot on ☰,
+    // and its name says so.
+    await waitFor(page, `document.getElementById('btn-more').classList.contains('recording')`, 'the dot on ☰', 5000);
+    const named = await evaluate(page, `document.getElementById('btn-more').getAttribute('aria-label')`);
+    assert(/Recording now/.test(named), `☰ while a plan records: "${named}"`);
     await waitFor(page, `chrome.storage.local.get('recordings').then((d) => d.recordings.find((r) => r.id === 'rplan')?.state === 'done')`, 'the plan ended', 30000);
     const planned = (await list()).find((r) => r.id === 'rplan');
     assert(planned.bytes > 50000, `the plan recorded ${planned.bytes} bytes`);
@@ -4841,6 +4926,9 @@ async function filterfolds(page) {
   assert(favs.name === starredName && favs.label === 'Filter channels •' && favs.chips.join() === 'Show only favourites,Reset', `only the favourite channels: ${JSON.stringify({ starredName, favs })}`);
   await evaluate(page, `document.querySelector('#list .row .row-star').click()`, { gesture: true });
   await waitFor(page, `document.querySelectorAll('#list .row').length === 0`, 'the unstarred channel gone at once');
+  // None left: the list says so as the films' filters do, with Reset.
+  const emptied = await evaluate(page, `({ said: document.querySelector('#list .empty strong')?.textContent, reset: document.querySelector('#list .empty .primary')?.textContent })`);
+  assert(emptied.said === 'No favourite channels here' && emptied.reset === 'Reset', `no favourite channel left: ${JSON.stringify(emptied)}`);
   await evaluate(page, `document.querySelector('#active-channel-filters .media-filter-reset').click()`);
   await waitFor(page, `document.querySelectorAll('#list .row').length > 1 && document.getElementById('active-channel-filters').hidden && !document.getElementById('channel-favs').checked`, 'every channel back after Reset');
   await evaluate(page, `document.querySelector('#tabs [data-tab="movie"]').click()`);
@@ -4861,10 +4949,18 @@ async function filterfolds(page) {
     chips: [...document.querySelectorAll('#active-media-filters .filter-chip')].length, channels: document.getElementById('channel-favs').checked })`);
   assert(ui.channels === true && ui.rating === '7' && ui.favs === '1' && after.rating === '7' && after.favs && after.chips === 2 && after.channels, `the filters after a reload: ${JSON.stringify({ ui, after })}`);
   await evaluate(page, `document.querySelector('#active-media-filters .media-filter-reset').click()`);
+  // The logo starts afresh: the channels' "Show only favourites" goes too,
+  // and the list with it, also from the channels of the same country,
+  // where nothing else asks for the list to be drawn again.
   await evaluate(page, `document.querySelector('#tabs [data-tab="live"]').click()`);
-  await sleep(500);
-  await evaluate(page, `document.getElementById('channel-favs').checked && document.getElementById('channel-favs').click()`);
-  return { ok: true, detail: `both open the first time; channels "${channels.count}", with a topic "${topic.label}" "${topic.count}", only the favourites and back; films "${films.count}"; the choices kept over a reload` };
+  await waitFor(page, `document.getElementById('channel-favs').checked && !document.getElementById('active-channel-filters').hidden`, 'the channels narrowed to the favourites');
+  // Settled first: the tab's own drawing still under way once redrew the
+  // list for the logo and hid a logo that left it narrowed.
+  await sleep(1000);
+  await evaluate(page, `document.getElementById('btn-home').click()`, { gesture: true });
+  await waitFor(page, `!document.getElementById('channel-favs').checked && document.getElementById('active-channel-filters').hidden && document.querySelectorAll('#list .row').length > 1
+    && chrome.storage.local.get('ui').then(({ ui }) => ui.channelFavsOnly === false)`, 'the logo clearing the channels\' favourites and the list');
+  return { ok: true, detail: `both open the first time; channels "${channels.count}", with a topic "${topic.label}" "${topic.count}", only the favourites, empty with Reset, and back; films "${films.count}"; the choices kept over a reload, cleared by the logo` };
 }
 
 /**

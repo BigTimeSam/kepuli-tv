@@ -66,7 +66,6 @@ export function paintIdleStars() {
  *
  * @returns {boolean} whether there was anything to show
  */
-
 export function renderIdleHome() {
   const home = el.idleHome;
   home.replaceChildren();
@@ -119,7 +118,7 @@ export function renderIdleHome() {
       const favorite = item.k === 3 ? (item.seriesId ? { k: 2, id: item.seriesId, n: item.seriesName || '', logo: item.seriesCover } : null) : item;
       if (favorite) {
         const key = store.itemKey(favorite);
-        const button = star(state.favorites.has(key), () => toggleFavorite(favorite), 'idle-star');
+        const button = star(state.favorites.has(key), () => toggleFavorite(favorite), 'idle-star', item.k === 3 ? item.seriesName || name.textContent : name.textContent);
         button.tabIndex = 0;
         // The favourite it stands for, for paintIdleStars.
         button.dataset.fav = key;

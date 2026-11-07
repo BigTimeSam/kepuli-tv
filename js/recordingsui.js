@@ -319,11 +319,15 @@ function renderRecordingsList() {
         del.dataset.armed = '1';
         del.classList.remove('rec-icon');
         del.textContent = t('rec.delete.confirm');
+        del.title = t('rec.delete.confirm');
+        del.setAttribute('aria-label', del.title);
         setTimeout(() => {
           if (!del.isConnected) return;
           delete del.dataset.armed;
           del.classList.add('rec-icon');
           del.replaceChildren(icon(REC_ICONS.delete));
+          del.title = t('rec.delete');
+          del.setAttribute('aria-label', del.title);
         }, 4000);
       }, { danger: true, mark: 'delete' });
     }

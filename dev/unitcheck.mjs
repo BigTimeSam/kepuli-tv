@@ -1214,7 +1214,7 @@ await quietly(async () => {
 check('each cached row has its time: categories, lists, episodes, details, file headers',
   ['acc|cats:live', 'acc|full:movie', 'acc|series:v2:1', 'acc|vod:v2:1', 'probe:h:movie:1.mkv', 'other']
     .map((key) => probeCacheTtl(key) ?? cacheTtl(key)),
-  [24 * 3600e3, 6 * 3600e3, 24 * 3600e3, 7 * 24 * 3600e3, 90 * 24 * 3600e3, null]);
+  [24 * 3600e3, 6 * 3600e3, 24 * 3600e3, 90 * 24 * 3600e3, 90 * 24 * 3600e3, null]);
 
 {
   // A search of all channels used to keep every whole table it read.

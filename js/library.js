@@ -108,7 +108,10 @@ const TTL = {
   categories: 24 * 3600e3,
   full: 6 * 3600e3,
   seriesInfo: 24 * 3600e3,
-  vodInfo: 7 * 24 * 3600e3,
+  // A film's details (its length above all, which the length filter reads
+  // a film a request) hardly ever change: a season's worth of days spares
+  // the provider those requests. The series' keep a day for new episodes.
+  vodInfo: 90 * 24 * 3600e3,
 };
 
 /**
@@ -170,6 +173,10 @@ export class Library {
     this.movieWorkers = 0;
     /** @type {Set<string>} */
     this.movieAttempts = new Set();
+    this.movieLooked = new Set();    // looked up in the cache only (All), see warmMovieDurations
+
+    /** @type {(() => void) | null} called when the last film's details being read have arrived */
+    this.onMoviesIdle = null;
   }
 
   /* ------------------------------------------------------------ categories */
@@ -517,8 +524,10 @@ export class Library {
    * Only the current viewport needs durations; scrolling replaces the queue.
    * @param {CatalogueItem[]} items
    * @param {(id: string, info: any) => void} onUpdate
+   * @param {{ fetch?: boolean }} [options] fetch: false puts on the rows only
+   *        what the cache holds and asks the provider nothing
    */
-  warmMovieDurations(items, onUpdate) {
+  warmMovieDurations(items, onUpdate, { fetch = true } = {}) {
     for (const item of items) {
       if (item.k !== 1 || item.details) continue;
       const cached = this.details.get(`vod:v2:${item.id}`);
@@ -528,8 +537,24 @@ export class Library {
         onUpdate(item.id, cached);
       }
     }
-    this.movieQueue = items.filter(item => item.k === 1 && !item.durationSec && !item.details && !this.movieAttempts.has(item.id))
-      .map(item => ({ item, onUpdate }));
+    const wanted = items.filter(item => item.k === 1 && !item.durationSec && !item.details && !this.movieAttempts.has(item.id));
+    if (!fetch) {
+      this.movieQueue = [];
+      for (const item of wanted) {
+        const key = `vod:v2:${item.id}`;
+        if (this.movieLooked.has(key)) continue;
+        this.movieLooked.add(key);
+        cacheGet(this.scope + key, TTL.vodInfo).then((info) => {
+          if (!info) return;
+          this.details.set(key, info);
+          item.details = info;
+          item.durationSec = info.durationSec;
+          onUpdate(item.id, info);
+        });
+      }
+      return;
+    }
+    this.movieQueue = wanted.map(item => ({ item, onUpdate }));
     this.drainMovieDurations();
   }
 
@@ -548,6 +573,10 @@ export class Library {
       }).finally(() => {
         this.movieWorkers--;
         this.drainMovieDurations();
+        // Idle only when the last request just ended: said on every drain,
+        // an idle queue asked the list to refilter, the refilter's paint
+        // asked the queue, and a cut list was drawn every 400 ms.
+        if (!this.movieWorkers && !this.movieQueue.length) this.onMoviesIdle?.();
       });
     }
   }

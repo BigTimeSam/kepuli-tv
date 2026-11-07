@@ -18,7 +18,9 @@ function accountWhere(a) {
   if (a.type === 'm3u' || a.type === 'stalker') {
     let host = a.url;
     try { host = new URL(a.url).hostname; } catch { /* the address as it is */ }
-    return `${t(a.type === 'm3u' ? 'accounts.kind.m3u' : 'accounts.kind.stalker')}, ${host}`;
+    const kind = t(a.type === 'm3u' ? 'accounts.kind.m3u' : 'accounts.kind.stalker');
+    // An unnamed one is named by its host already.
+    return store.accountLabel(a) === host ? kind : `${kind}, ${host}`;
   }
   // The host is in the name already when that is user@host.
   return store.accountLabel(a).endsWith(`@${a.host}`) ? t('accounts.kind.xtream') : `${t('accounts.kind.xtream')}, ${a.host}`;
@@ -111,7 +113,7 @@ export function renderAccountList() {
  * are the other account's, and the catalogue is its own — from the cache
  * when it was opened lately, since each account's is kept apart.
  */
-export async function switchAccount(id) {
+async function switchAccount(id) {
   const target = (state.accounts || []).find((a) => a.id === id);
   if (!target || target.id === state.config.id) return;
   if (el.setup.open) el.setup.close();

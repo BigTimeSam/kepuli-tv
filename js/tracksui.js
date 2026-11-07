@@ -6,6 +6,7 @@
 // builds, from js/state.js; what runs while the modules load here uses only
 // js/dom.js; everything else waits until the player calls in.
 
+import { resetChannelFilters } from './listfilters.js';
 import { $, el } from './dom.js';
 import { DEFAULT_LIFT, DEFAULT_SCALE, stepScale, subtitleLook } from './subdisplay.js';
 import { label as audioLabel } from './audio.js';
@@ -259,13 +260,18 @@ export async function goHome() {
   playerLayout.showBrowse();
   if (state.playing) leavePlayback();
   mediaFilters.resetAll();
+  // Already on the channels of the same country, the list is drawn again
+  // only for this: it stayed narrowed to the favourites under a box ticked off.
+  const narrowed = resetChannelFilters();
   state.categoryFilter = '';
   el.categoryFilter.value = '';
   const groups = visibleGroups('live');
   const group = chosenCountries() ? groups[0]?.name
     : (groups.some((g) => g.name === state.lastGroup.live) ? state.lastGroup.live : homeGroup(groups, browserTags())) ?? null;
-  if (state.tab !== 'live') await activateTab('live');
-  if (state.group !== group || state.sub || state.detail || state.query) await selectGroup(group);
+  // From another tab activateTab draws the list already, without the filter.
+  const wasLive = state.tab === 'live';
+  if (!wasLive) await activateTab('live');
+  if (state.group !== group || state.sub || state.detail || state.query || (narrowed && wasLive)) await selectGroup(group);
   else renderSidebar();
   state.cursor = -1;
   el.list.scrollTop = 0;

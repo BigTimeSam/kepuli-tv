@@ -23,6 +23,10 @@ import { isFavorite, topicLabel } from './collections.js';
 
 // "Show only favourites" in "Filter channels", kept across reloads as the
 // films' filters are (js/mediafilters.js).
+// The channels' fold is markup in player.html, the films' is built by
+// MediaFilters: the channels' holds the topic bar, moved in whole (it is the
+// same element on every tab), the films' only its own fields. The chips,
+// Reset and "Show only favourites" are the same in both.
 let channelFavsOnly = false;
 
 /** A country's channels as "Filter channels" narrows them beyond its topic. */
@@ -33,6 +37,17 @@ export function filterChannels(rows) {
 /** Whether a star changes what "Filter channels" shows. */
 export const channelsByFavourite = () => channelFavsOnly;
 
+/**
+ * "Show only favourites" off without a repaint, for the logo's start and
+ * Reset, which draw the list themselves.
+ * @returns {boolean} whether it was on, and the list wants drawing again
+ */
+export function resetChannelFilters() {
+  if (!channelFavsOnly) return false;
+  setChannelFavs(false);
+  return true;
+}
+
 function setChannelFavs(on) {
   channelFavsOnly = on;
   $('channel-favs').checked = on;
@@ -41,7 +56,13 @@ function setChannelFavs(on) {
 
 function showChannelFavs(on) {
   setChannelFavs(on);
-  refreshRows();
+  return refreshRows();
+}
+
+/** Reset: the topic and "Show only favourites" both, the list drawn once. */
+export function clearChannelFilters() {
+  resetChannelFilters();
+  return state.sub != null ? selectSub(null) : refreshRows();
 }
 
 let panel;
@@ -129,10 +150,17 @@ function renderChannelChips() {
   const host = $('active-channel-filters');
   const cat = state.sub == null ? null : state.lib?.group('live', state.group)?.cats.find((c) => c.id === state.sub);
   const topic = state.sub == null ? '' : cat ? topicLabel(cat) : state.lib?.categoryName('live', state.sub) || '';
+  // A chip taken away with the keyboard hands the focus to the fold's
+  // heading, as the films' chips do: the chips are built again under it.
+  const back = (act) => async () => {
+    const held = host.contains(document.activeElement);
+    await act();
+    if (held && (!document.activeElement || document.activeElement === document.body)) panel.querySelector('summary')?.focus();
+  };
   const chips = [
-    ...(topic ? [filterChip(topic, () => selectSub(null))] : []),
-    ...(channelFavsOnly ? [filterChip(t('filters.favs'), () => showChannelFavs(false))] : []),
+    ...(topic ? [filterChip(topic, back(() => selectSub(null)))] : []),
+    ...(channelFavsOnly ? [filterChip(t('filters.favs'), back(() => showChannelFavs(false)))] : []),
   ];
   host.hidden = !chips.length;
-  host.replaceChildren(...chips, ...(chips.length ? [resetButton(() => { setChannelFavs(false); if (state.sub != null) selectSub(null); else refreshRows(); })] : []));
+  host.replaceChildren(...chips, ...(chips.length ? [resetButton(back(clearChannelFilters))] : []));
 }

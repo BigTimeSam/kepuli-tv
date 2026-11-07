@@ -19,9 +19,12 @@ const el = (tag, cls, text) => {
  * The same star in three places: on a list row, on a sidebar group and on
  * a topic chip. The class changes; the gesture and the meaning do not.
  */
-export function star(isFav, onToggle, cls = 'row-star') {
+export function star(isFav, onToggle, cls = 'row-star', name = '') {
   const button = el('button', cls, '');
   button.type = 'button';
+  // A star outside a row (the start page's cards) is named with its title:
+  // a row of "Add to favourites" said nothing about which.
+  if (name) button.dataset.name = name;
   setStar(button, isFav);
   // Out of the tab order: the keyboard walks the rows with the arrows and
   // has the star next to the player for the row it is on. Reachable by
@@ -34,7 +37,8 @@ export function star(isFav, onToggle, cls = 'row-star') {
 export function setStar(button, isFav) {
   button.classList.toggle('on', isFav);
   button.textContent = isFav ? '★' : '☆';
-  button.title = t(isFav ? 'row.fav.remove' : 'row.fav.add');
+  button.title = button.dataset.name ? t(isFav ? 'row.fav.remove.named' : 'row.fav.add.named', { title: button.dataset.name })
+    : t(isFav ? 'row.fav.remove' : 'row.fav.add');
   button.setAttribute('aria-label', button.title);
 }
 
@@ -216,6 +220,7 @@ export function posterCard(item, ctx) {
   if (rating) bits.push(rating);
   const seconds = item.k === 1 ? item.details?.durationSec || item.durationSec || ctx.resume?.duration : 0;
   if (Number.isFinite(seconds) && seconds > 0) bits.push(duration(seconds, { compact: true }));
+  else if (ctx.lengthUnknown) bits.push(t('filters.length.unknown'));
   const meta = el('div', 'card-meta', bits.join(', ') || '\u00a0');
   card.appendChild(meta);
   nameOption(card, [ctx.label || item.n, ctx.favorite ? t('favs.title') : null, bits.join(', '),
@@ -289,6 +294,7 @@ function compactLine(item, ctx) {
   const seconds = item.k === 1 ? item.details?.durationSec || item.durationSec || ctx.resume?.duration
     : item.k === 3 ? item.durationSec : 0;
   if (Number.isFinite(seconds) && seconds > 0) bits.push(duration(seconds, { compact: true }));
+  else if (ctx.lengthUnknown) bits.push(t('filters.length.unknown'));
   if (!bits.length) return null;
   const sub = el('div', 'row-sub');
   sub.appendChild(el('span', 'txt', bits.join(', ')));

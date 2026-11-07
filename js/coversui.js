@@ -14,12 +14,11 @@ import { rowDomId } from './listnavigation.js';
 import { streamUrl } from './xtream.js';
 import { t } from './i18n.js';
 import * as store from './config.js';
-import { ROW_H, groupOfType, isCollection, listNavigation, liveGroupOf, openItemMenu, refreshRows, favouriteChanged, renderSidebar, same, showRows, state, tabType, vlist } from './state.js';
-import { renderSeriesFavorite } from './playercontrols.js';
+import { ROW_H, groupOfType, isCollection, listNavigation, liveGroupOf, openItemMenu, refreshRows, favouriteChanged, renderSidebar, same, showRows, state, tabType, vlist, mediaFilters } from './state.js';
 import { favCategorySubtitle, openFavCategory, removeFromHistory, toggleFavCategory } from './collections.js';
 import { el } from './dom.js';
 import { pickIds, refreshIdleSoon } from './picksui.js';
-import { favoritesChanged, grid, guideChannel, guideOpen, showGuideChannel } from './guideui.js';
+import { grid, guideChannel, guideOpen, showGuideChannel } from './guideui.js';
 import { openItem } from './seriesui.js';
 
 // Films and series as covers rather than rows. A cover is what a film is
@@ -127,7 +126,10 @@ function coverFacts(item, key) {
   if (item.k !== 1 && item.k !== 2) return {};
   const { seen } = coverMarks();
   const watched = item.k === 1 && seen.has(key) && !state.resume.has(key);
-  return { watched, isNew: !watched && isNew(item) };
+  // A length chosen and this film's not known yet: the card says so (it is
+  // in the list until its length is read, see filterMedia).
+  const lengthUnknown = item.k === 1 && mediaFilters.byLength && !(item.details?.durationSec || item.durationSec);
+  return { watched, isNew: !watched && isNew(item), lengthUnknown };
 }
 
 export function renderRow(index) {
@@ -315,8 +317,6 @@ export function toggleFavorite(item) {
   if (state.tab === 'fav') { renderSidebar(); refreshRows({ keepScroll: true }); }
   else markFavorite(vlist.nodes.get(state.rowIndex.get(key)), state.favorites.has(key));
   favouriteChanged(item);
-  renderSeriesFavorite();
-  favoritesChanged();
 }
 
 /**

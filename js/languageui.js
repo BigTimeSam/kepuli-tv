@@ -16,6 +16,7 @@ import * as store from './config.js';
 import { catalogueSearch, refreshRows, renderSidebar, state, updateAddress } from './state.js';
 import { configured, openSetup, renderAccountBox, setupSection, showSetupSection } from './setupui.js';
 import { renderAudio, renderSubtitles } from './tracksui.js';
+import { renderRecordingState } from './recordingsui.js';
 import { renderNowSub, showOverlayActions } from './playing.js';
 import { renderIdleHome } from './idlehome.js';
 import { renderEmptyState } from './topicbar.js';
@@ -54,6 +55,9 @@ export async function applyLanguage(lang) {
   const playing = state.activeAudio?.number ?? null;
   state.audioTracks = null;
   renderAudio(audio, playing);
+  // The Record button's and ☰'s names add the recording's state to what
+  // applyStatic wrote back.
+  renderRecordingState();
   // applyStatic has just written every data-i18n node, the dialog's title
   // and section note among them: both depend on where the dialog stands,
   // so they are set again from that.

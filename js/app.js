@@ -65,7 +65,7 @@ import { fitIdleHome, paintIdleStars, watchInterest } from './idlehome.js';
 import { accountProblem, addOverlayAction, playItem, playback, renderNowSub, showOverlayActions, tabs } from './playing.js';
 import { applySubtitleLook, chooseAudio, chooseSubtitle, cycleAudio, goHome, leavePlayback, stepSubtitleSize, toggleSubtitleLook } from './tracksui.js';
 import { nextEpisode, playEpisode } from './nextepisode.js';
-import { adoptSyncedAccount, configured, offerUpdate, openSetup, renderSyncBox, setupDirty, showStoredSettings, sync, wireSetup } from './setupui.js';
+import { adoptSyncedAccount, configured, offerUpdate, openSetup, renderSyncBox, setupDirty, showStoredSettings, sync, wireSetup, renderThemeAuto } from './setupui.js';
 
 // Live channels are read through js/streamhub.js, so that a recording of
 // the channel on screen shares the player's connection.
@@ -423,11 +423,12 @@ function showStoredList(name, value) {
         // A copy starred in another tab may be the one a film's card should
         // now be (one card a title keeps the starred copy): the films' and
         // the series' lists are drawn again, the others repaint their stars.
-        if (state.tab === 'movie' || state.tab === 'series') refreshRows({ keepScroll: true }); else vlist.refresh();
-        favouriteChanged(); renderCategories(); renderSubcats();
+        // Not when "Show only favourites" is on: favouriteChanged draws it.
+        if ((state.tab === 'movie' || state.tab === 'series') && !mediaFilters.favouritesOnly) refreshRows({ keepScroll: true });
+        else if (state.tab !== 'movie' && state.tab !== 'series' && !(state.tab === 'live' && channelsByFavourite())) vlist.refresh();
+        renderCategories(); renderSubcats();
       }
-      renderSeriesFavorite();
-      favoritesChanged();
+      favouriteChanged();
     }
   } else if (name === 'recents') {
     const list = value || [];
@@ -946,7 +947,7 @@ async function refreshRows({ keepScroll = false, returnPosition = null, restoreF
   // One card a title: its other copies are on its own page (js/infostrip.js).
   state.titleRows = rows;
   if (filterType) rows = oneCopyEach(rows, isFavorite);
-  rows = mediaFilters.apply(rows, filterType);
+  rows = mediaFilters.apply(rows, filterType, { lengths: lengthsRead() });
   showRows(rows, { keepScroll });
   if (returnPosition) listNavigation.restore(vlist, returnPosition, {
     focus: typeof restoreFocus === 'function' ? restoreFocus() : restoreFocus,
@@ -959,18 +960,20 @@ async function refreshRows({ keepScroll = false, returnPosition = null, restoreF
 }
 
 const mediaFilters = new MediaFilters(/** @type {HTMLDetailsElement} */ ($('media-filters')), {
-  onChange: () => { state.cursor = -1; return refreshRows(); },
+  onChange: ({ keepScroll = false } = {}) => { if (!keepScroll) state.cursor = -1; return refreshRows({ keepScroll }); },
   detailsFor: (item) => item.details || state.lib?.details.get(`${item.k === 1 ? 'vod' : 'series'}:v2:${item.id}`),
   activeHost: $('active-media-filters'),
   isFavourite: isFavorite,
+  reading: () => Boolean(state.lib && (state.lib.movieWorkers > 0 || state.lib.movieQueue.length > 0)),
 });
 
 /**
  * After a star is given or taken anywhere (a list, the player, the start
  * page, another tab): the list follows when "Show only favourites" narrows
  * it, or when the starred film is a copy the list did not show (one card a
- * title keeps the starred copy, js/titlemeta.js), and the start page's
- * cards say the same.
+ * title keeps the starred copy, js/titlemeta.js); the start page's cards,
+ * the series page's star and the guide's favourites follow. The one hook
+ * for all of them.
  * @param {object} [item] the title starred, when it is one
  */
 function favouriteChanged(item) {
@@ -978,6 +981,9 @@ function favouriteChanged(item) {
     && state.titleRows.some((row) => row.k === item.k && String(row.id) === String(item.id));
   if (mediaFilters.favouritesOnly || (channelsByFavourite() && state.tab === 'live') || copyAway) refreshRows({ keepScroll: true });
   paintIdleStars();
+  renderSeriesFavorite();
+  // The guide's favourites view follows as well (js/guideui.js).
+  favoritesChanged();
 }
 
 /**
@@ -1535,23 +1541,45 @@ const vlist = new VirtualList(el.list, ROW_H, renderRow, {
     // In guide mode the list is hidden, and its visible rows would take the
     // programme-data queue away from the grid.
     if (state.epg && !guideOpen) state.epg.setVisible(state.rows.slice(first, last));
-    const lib = state.lib;
-    if (lib) lib.warmMovieDurations(guideOpen ? [] : state.rows.slice(first, last), (id, info) => {
-      if (state.lib !== lib) return;
-      mediaFilters.metadataChanged();
-      const index = state.rowIndex.get(`1:${id}`);
-      if (index != null) {
-        state.rows[index].details = info;
-        state.rows[index].durationSec = info.durationSec;
-        vlist.refreshRow(index);
-      }
-      if (state.playing?.k === 1 && state.playing.id === id) {
-        state.playing.details = info;
-        renderInfoStrip();
-      }
-    });
+    warmDurations(guideOpen ? [] : state.rows.slice(first, last));
   },
 });
+
+/**
+ * The films' lengths read for the rows on screen, two at a time
+ * (js/library.js): the provider gives a film's length with its details
+ * only, one request a film. A length chosen does not read ahead: the films
+ * of unknown length stay in the list, at its end, and drop out once their
+ * lengths are known and do not fit (js/mediafilters.js).
+ */
+function warmDurations(visible) {
+  const lib = state.lib;
+  if (!lib) return;
+  // The last length read: the list's spinner and its words stop.
+  lib.onMoviesIdle = () => { if (state.lib === lib) mediaFilters.metadataChanged(); };
+  // Across every film (All, or a search of them all) only the lengths kept
+  // from before are put on the rows: a scroll through thousands of films
+  // asked the provider for each one's details.
+  lib.warmMovieDurations(visible, (id, info) => {
+    if (state.lib !== lib) return;
+    mediaFilters.metadataChanged();
+    const index = state.rowIndex.get(`1:${id}`);
+    if (index != null) {
+      state.rows[index].details = info;
+      state.rows[index].durationSec = info.durationSec;
+      vlist.refreshRow(index);
+    }
+    if (state.playing?.k === 1 && state.playing.id === id) {
+      state.playing.details = info;
+      renderInfoStrip();
+    }
+  }, { fetch: lengthsRead() });
+}
+
+/** Whether the films' lengths are read and filtered by: in a category, not across them all. */
+function lengthsRead() {
+  return state.group != null;
+}
 
 /* --------------------------------------------------------- Chromecast */
 
@@ -1825,7 +1853,7 @@ function wireUi() {
   $('btn-countries').addEventListener('click', () => (tabType() === 'live' ? openCountryPicker() : openCategoryPicker(tabType())));
   $('f-countries').addEventListener('click', () => openCountryPicker());
   new ResizeObserver(() => fitIdleHome()).observe(el.overlay);
-  onSystemTheme(() => renderTheme(state.settings.theme));
+  onSystemTheme(() => { renderTheme(state.settings.theme); renderThemeAuto(); });
   // The button turns what is on screen into the other one, and so leaves
   // "the system's" for a choice of its own; Settings has the way back.
   $('btn-theme').addEventListener('click', async () => {

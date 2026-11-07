@@ -38,6 +38,11 @@ const FIELDS = ['scheme', 'host', 'port', 'username', 'password'];
 /** Whether there is anything to connect with yet. */
 export const configured = () => store.isConfigured(state.config);
 
+/** "Automatic (dark)": the theme the system's mode comes to now, said again when it changes. */
+export function renderThemeAuto() {
+  $('f-theme').options[0].textContent = t('setup.theme.auto', { example: t(`setup.theme.${resolveTheme('system')}`).toLocaleLowerCase(localeTag()) });
+}
+
 /**
  * The settings, or — before there are any credentials — the one thing
  * that matters then. With nothing to connect with, sections would offer a
@@ -51,7 +56,7 @@ export function openSetup({ section, adding = false } = {}) {
   editAccount(adding ? 'new' : 'current', { render: false });
   renderLanguageOptions();
   $('f-lang').value = state.settings.lang in LANGUAGES ? state.settings.lang : 'auto';
-  $('f-theme').options[0].textContent = t('setup.theme.auto', { example: t(`setup.theme.${resolveTheme('system')}`).toLocaleLowerCase(localeTag()) });
+  renderThemeAuto();
   $('f-theme').value = THEMES.includes(state.settings.theme) ? state.settings.theme : 'system';
   renderClockOptions();
   $('f-clock').value = ['24', '12'].includes(state.settings.clock) ? state.settings.clock : 'auto';
@@ -117,8 +122,13 @@ export function editAccount(target, { render = true } = {}) {
   // puts an Xtream subscription's or a portal's into its own form. The base
   // says so too, or the untouched form would count as edited and a synced
   // account could not take its place (adoptSyncedAccount).
-  const making = setupAdding || !configured();
+  // A synced account that came without its password is no new one: it
+  // opens on its own form, waiting for the password (adoptSyncedAccount).
+  const making = setupAdding || (!configured() && !setupBase.host && !setupBase.url);
   if (making) setupBase = { ...setupBase, sourceMode: 'm3u' };
+  // ...and an Xtream one waits on the server's form, where the password
+  // is, even when it was made from a playlist address (sourceMode m3u).
+  else if (!configured() && setupBase.host && (setupBase.type || 'xtream') === 'xtream') setupBase = { ...setupBase, sourceMode: 'xtream' };
   for (const f of FIELDS) $(`f-${f}`).value = setupBase[f] ?? '';
   $('f-name').value = setupBase.name || '';
   $('f-paste').value = setupBase.type === 'm3u' ? setupBase.url || '' : '';
@@ -593,6 +603,14 @@ function renderClockOptions() {
 
 export function wireSetup() {
   renderVersion();
+  // Each ? is described by the setting or heading it stands beside: nine
+  // buttons named "Help" alone said nothing about which help.
+  for (const button of el.setup.querySelectorAll('.hint-btn')) {
+    const beside = button.previousElementSibling;
+    if (!beside) continue;
+    beside.id ||= `${button.getAttribute('aria-controls')}-for`;
+    button.setAttribute('aria-describedby', beside.id);
+  }
   // A ? beside a setting opens its explanation under it, and closes it.
   el.setup.addEventListener('click', (event) => {
     const button = /** @type {Element} */ (event.target).closest('.hint-btn');
@@ -643,22 +661,26 @@ export function wireSetup() {
   // Pasting an address is a way of filling the fields, not a mode of its
   // own: the fields it filled are what the viewer wants to see, so the
   // dialog goes there rather than reporting the fill and offering a button.
+  // A portal's address here goes to the portal's form, which then asks
+  // for the MAC address: pasted or dropped at once, typed when it is left
+  // (change, which also comes before a press of Save takes the focus).
+  const toPortal = (field) => {
+    if (parsePlaylistUrl(field.value) || pastedKind(field.value) !== 'stalker') return false;
+    $('f-portal').value = field.value.trim();
+    field.value = '';
+    showPlaylistError(false);
+    showSourceMode('stalker');
+    updateSetupActions();
+    $('f-mac').focus();
+    return true;
+  };
+  $('f-paste').addEventListener('change', (e) => toPortal(e.target));
   $('f-paste').addEventListener('input', (e) => {
     const parsed = parsePlaylistUrl(e.target.value);
     // An address with no credentials in it is a playlist of its own, kept
     // as it is; only text that is no address at all is wrong.
     showPlaylistError(Boolean(e.target.value.trim()) && !parsed && !playlistAddress(e.target.value));
-    // A portal's address pasted here goes to the portal's form, which then
-    // asks for the MAC address.
-    if (!parsed && pastedKind(e.target.value) === 'stalker' && (e.inputType === 'insertFromPaste' || e.inputType === 'insertFromDrop')) {
-      $('f-portal').value = e.target.value.trim();
-      e.target.value = '';
-      showPlaylistError(false);
-      showSourceMode('stalker');
-      updateSetupActions();
-      $('f-mac').focus();
-      return;
-    }
+    if ((e.inputType === 'insertFromPaste' || e.inputType === 'insertFromDrop') && toPortal(e.target)) return;
     if (!parsed) return;
     for (const f of FIELDS) if (parsed[f] != null) $(`f-${f}`).value = parsed[f];
     // An address that arrived whole has been said in full. One being typed
@@ -779,11 +801,7 @@ export function wireSetup() {
       refreshGuidePreview();
       if (!state.playing && !el.overlay.hidden && el.overlayTitle.textContent === t('player.idle')) renderIdleOverlay();
       if (settingsPatch.theme) renderTheme(state.settings.theme);
-      if (settingsPatch.lang || settingsPatch.clock) {
-        await applyLanguage(store.interfaceLanguage(state.settings));
-        // The static names are the new language's; the ones the state adds to are said again.
-        renderRecordingState();
-      }
+      if (settingsPatch.lang || settingsPatch.clock) await applyLanguage(store.interfaceLanguage(state.settings));
       // The international channels shown or hidden repaint the channel
       // list where it stands; a changed connection is about to load it
       // again anyway.

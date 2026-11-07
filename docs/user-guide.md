@@ -43,7 +43,7 @@ of your choosing — and saving connects to it; **Cancel** in its row takes it
 away again. An Xtream server needs its server, user name and password; a
 playlist that needs no sign-in, such as a free one, goes under **Playlist
 address (M3U)**. A new account's form starts on **Playlist address (M3U)**,
-as the first run does. Once there are two, **Use** in another account's
+as the first run does. Once there are two, **Switch** in another account's
 row switches to it. Each account keeps its own favourites, history, resume points,
 reminders and channel lists, and its own catalogue in the cache, so switching
 back is quick. **Remove** takes an account and its lists away, after asking twice.
@@ -81,7 +81,7 @@ recorded.
 the end of the programme on now (with a few minutes over), or until it is
 stopped when the guide does not know the programme. In the guide, **Record** on
 a programme on now or later plans it, a minute before to three minutes after.
-While a channel is recorded, the dot on its **Stop** button beats; a recording
+While a channel is recorded, the dot on its **Stop recording** button beats; a recording
 under way that the button does not show (another channel, a film playing)
 beats as a dot on `☰`. The recordings are listed under **Recordings** in the
 player's `☰` menu, where each can be played, saved to the computer as a `.ts`
@@ -169,7 +169,9 @@ the player actually arrives.
 - Above the list, **Filter channels** holds a country's topics, and the
   films' and series' **Filter titles** their filters; both have **Show only
   favourites** at their foot. What is in force shows as chips under the
-  fold, each with a × to take it away, and **Reset** after them. Both are open the first time and fold away,
+  fold, each with a × to take it away, and **Reset** after them; the
+  choices are kept over a reload or a closed player until Reset or the
+  logo, which starts afresh. Both are open the first time and fold away,
   and open or folded is remembered for each; folded or not, the heading
   says how many of how many are shown (**2 / 15**), with a dot after the
   name while a topic or a filter narrows the list. **Filter countries** at the foot of the sidebar (**Filter
@@ -224,9 +226,15 @@ the player actually arrives.
 - Movie and series filters let you narrow titles by release year or rating
   (their order is the list's foot's, and **Reset** leaves it); films also by **Duration**, two handles from
   the shortest to the longest film whose length is known, the list cut when a
-  handle is let go, and a film of unknown length left out while a range is
-  set (lengths arrive with the films' details for providers that leave them
-  out of the list). Filters use the available metadata, so some
+  handle is let go. Many providers give a film's length only with its
+  details, one request a film, read as its row comes on screen: while a
+  range is set, a film whose length is not known yet stays at the end of
+  the list marked *length unknown*, and drops out once its length is read
+  and does not fit; a spinner beside the count turns while lengths are
+  being read. A range keeps the scale it was chosen on in another
+  category. **Duration** is there in a category only: under **All**, or a
+  search of the whole catalogue, the slider is hidden and a range set
+  before waits for the next category. Filters use the available metadata, so some
   titles may be missing particular details. Active filters remain visible as
   removable chips even when the filter form is collapsed.
 - **Programme guide**, above the channel list on the **Channels** tab, opens
@@ -568,8 +576,10 @@ and the line under it names the group ("Nordic") rather than the provider's
 category ("Movies: Nordic").
 
 Movie rows show running time (for example, **1h 35 min**) instead of technical
-format badges. Missing durations load for visible rows, with two detail requests
-at a time and cached results reused. If the provider supplies no duration, it is
+format badges. Missing durations load for visible rows in a
+category, with two detail requests at a time; under **All** only the
+durations already known are shown, as reading them for the whole catalogue
+would take a request a film. A film's details are kept for 90 days. If the provider supplies no duration, it is
 omitted.
 
 File format, video, audio and subtitles have separate labels in the playback

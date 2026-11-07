@@ -733,7 +733,6 @@ main:not(.guide) .stage:has(> .videowrap.sized:not(:fullscreen)) > .infostrip { 
 .row:hover { background: var(--row-hover); }
 .row.selected { background: var(--selected); box-shadow: inset 3px 0 0 var(--accent-2); }
 .row.playing { background: linear-gradient(90deg, rgba(124, 92, 255, .2), transparent 70%); box-shadow: inset 2px 0 0 var(--accent); }
-.row.unplayable .row-name { color: var(--dim); }
 
 /* 3.2:1 even on the selected row, where the ground is lightest. At the old
    #394052 it was 1.84:1 against the list and 1.47:1 on that row — a control
@@ -920,6 +919,8 @@ button.group-star, button.group-star:hover, .group.active .group-star:hover { wi
 @media (prefers-reduced-motion: reduce) { .lp-spinner { animation: none; } }
 
 .list-loading { display: flex; align-items: center; justify-content: center; gap: 10px; }
+.section-toggle .section-spinner { width: 12px; height: 12px; border-width: 2px; }
+.section-spinner[hidden] { display: none; }
 .list-spinner, .fact-spinner { width: 20px; height: 20px; flex: none; border: 2px solid var(--border); border-top-color: var(--accent); border-radius: 50%; animation: spin .8s linear infinite; }
 @media (prefers-reduced-motion: reduce) { .list-spinner, .fact-spinner { animation: none; } }
 
@@ -1135,8 +1136,8 @@ body[data-substyle="contrast"] { --cue-back: #000; }
 }
 .idle-card-wrap:hover .idle-star, .idle-star:focus-visible, .idle-star.on { opacity: 1; }
 .idle-star.on { color: #ffc857; }
-.idle-forget:focus-visible { outline: 2px solid var(--accent-ink); outline-offset: 2px; }
-@media (hover: none) { .idle-forget { opacity: 1; } }
+.idle-forget:focus-visible, .idle-star:focus-visible { outline: 2px solid var(--accent-ink); outline-offset: 2px; }
+@media (hover: none) { .idle-forget, .idle-star { opacity: 1; } }
 /* The picks (js/picks.js): a programme per card, its channel's logo beside
    it. One row of them, as many as the window is wide for (fitIdleHome). */
 .idle-picks { display: grid; grid-template-columns: repeat(auto-fill, minmax(15rem, 1fr)); gap: 10px; }
@@ -1528,11 +1529,13 @@ dialog::backdrop { background: var(--backdrop); backdrop-filter: blur(2px); }
 /* A setting's explanation waits behind a ? beside it, and opens under it. */
 .toggle-line, .group-head { display: flex; align-items: center; gap: 6px; }
 .hint-btn {
-  flex: none; width: 1.125rem; height: 1.125rem; padding: 0; border-radius: 50%;
+  position: relative; flex: none; width: 1.125rem; height: 1.125rem; padding: 0; border-radius: 50%;
   border: 1px solid var(--border); background: transparent; color: var(--muted);
   font-size: var(--fs-xs); font-weight: 700; line-height: 1; cursor: pointer;
 }
 .hint-btn:hover, .hint-btn[aria-expanded="true"] { color: var(--text); border-color: var(--muted); }
+/* The mark stays small; what takes a press is 24 px, as WCAG 2.5.8 asks. */
+.hint-btn::after { content: ""; position: absolute; inset: -3px; }
 .toggle-line + .field-hint { margin-top: -6px; padding-left: 23px; }
 /* Language, appearance and clock in one row where they fit. */
 .setup-group .field-pair { grid-template-columns: repeat(auto-fit, minmax(12rem, 1fr)); }
@@ -1819,7 +1822,6 @@ select.epg-earlier { font: inherit; padding-right: 26px; background-position: ri
 .epg-chan.playing { background: linear-gradient(90deg, rgba(124, 92, 255, .22), transparent); box-shadow: inset 2px 0 0 var(--accent); }
 .epg-chan-logo { width: 30px; height: 24px; flex: none; object-fit: contain; border-radius: 3px; }
 .epg-chan-body { min-width: 0; flex: 1; display: flex; align-items: baseline; gap: 6px; }
-.epg-chan-num { color: var(--dim); font-size: var(--fs-xs); font-variant-numeric: tabular-nums; flex: none; }
 .epg-chan-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 0.78125rem; }
 .epg-chan-rec { flex: none; font-size: var(--fs-xs); color: var(--accent-2); border: 1px solid var(--archive-line); border-radius: 5px; padding: 0 4px; }
 
@@ -2044,7 +2046,6 @@ select:not([multiple]) {
 .account-current { color: var(--accent-ink); font-size: var(--fs-m); font-weight: 600; white-space: nowrap; }
 .account-row button { flex: none; white-space: nowrap; }
 .account-row button.armed { color: #fff; background: var(--danger); border-color: var(--danger); }
-.link-button { border: 0; padding: 0; background: none; color: var(--accent); cursor: pointer; font: inherit; text-decoration: underline; }
 
 /* Settings › Account & data: the sync's status line. */
 .sync-status { margin: 0; font-size: var(--fs-s); color: var(--muted); }

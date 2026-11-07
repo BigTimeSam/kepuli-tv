@@ -4,6 +4,7 @@
 // Moved out of app.js. It takes the player's state, and the parts app.js
 // builds, from js/state.js.
 
+import { channelsByFavourite, clearChannelFilters } from './listfilters.js';
 import { crumbLabel } from './seriesui.js';
 import { emptyState } from './rows.js';
 import { nf } from './format.js';
@@ -218,7 +219,17 @@ export function renderEmptyState() {
   const type = tabType();
   const browse = { label: t('empty.browse'), onClick: () => activateTab('live') };
   let node;
-  if (mediaFilters.filtering) node = emptyState(t('filters.nohits'), t('filters.nohits.text'), { label: t('filters.reset'), onClick: () => mediaFilters.clear() }, 'search');
+  // A filter that left nothing says so, with Reset, the channels' "Show
+  // only favourites" as the films' filters ("Category is empty" was wrong).
+  // Reset takes itself away with the empty list: the focus goes to the list.
+  const reset = (clear) => ({ label: t('filters.reset'), onClick: async () => {
+    await clear();
+    if (!document.activeElement || document.activeElement === document.body) el.list.focus();
+  } });
+  if (mediaFilters.filtering) node = emptyState(t('filters.nohits'), t('filters.nohits.text'), reset(() => mediaFilters.clear()), 'search');
+  else if (type === 'live' && channelsByFavourite() && !state.query && !state.detail && !isCollection()) {
+    node = emptyState(t('filters.nohits.channels'), t('filters.nohits.text'), reset(clearChannelFilters), 'search');
+  }
   else if (state.query) {
     // A search that found nothing says what it did not read — the
     // countries or the categories "Filter countries/categories" leaves out —

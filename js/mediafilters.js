@@ -56,7 +56,12 @@ export const emptyFilters = () => ({ year: '', genre: '', rating: '', length: ''
  * @param {(item: any) => boolean} [isFavourite] for "Show only favourites"
  */
 export function filterMedia(entries, filters, isFavourite = () => false) {
-  return entries.filter(({ item, facts }) => {
+  // With a length chosen, a film whose length is not known yet stays, after
+  // the ones that fit: the provider gives lengths a film at a time, read as
+  // the rows come on screen, and leaving those films out kept them from
+  // ever being read. Once known and outside the range, a film drops out.
+  const unknown = [];
+  const fits = entries.filter(({ item, facts }) => {
     if (filters.favs && !isFavourite(item)) return false;
     if (filters.year === 'missing' && facts.year) return false;
     if (filters.year && filters.year !== 'missing') {
@@ -66,13 +71,13 @@ export function filterMedia(entries, filters, isFavourite = () => false) {
     if (filters.genre === 'missing' ? facts.genres.length : filters.genre && !facts.genres.includes(filters.genre)) return false;
     if (filters.rating === 'missing' ? facts.rating : filters.rating && facts.rating < Number(filters.rating)) return false;
     if (filters.length) {
-      // A film whose length is not known is left out, as one without a
-      // year is when a year is chosen: it cannot be said to fit.
       const [from, to] = filters.length.split(':').map(Number);
-      if (!facts.minutes || facts.minutes < from || facts.minutes > to) return false;
+      if (!facts.minutes) { unknown.push(item); return false; }
+      if (facts.minutes < from || facts.minutes > to) return false;
     }
     return true;
   }).map(entry => entry.item);
+  return unknown.length ? [...fits, ...unknown] : fits;
 }
 
 /**
@@ -105,11 +110,12 @@ export function resetButton(onClick) {
 export class MediaFilters {
   /**
    * @param {HTMLDetailsElement} host
-   * @param {{ onChange: () => any, detailsFor?: (item: any) => any, activeHost?: HTMLElement | null,
-   *   isFavourite?: (item: any) => boolean, persist?: ((values: object) => void) | null }} options
+   * @param {{ onChange: (options?: { keepScroll?: boolean }) => any, detailsFor?: (item: any) => any, activeHost?: HTMLElement | null,
+   *   isFavourite?: (item: any) => boolean, persist?: ((values: object) => void) | null, reading?: () => boolean }} options
    */
-  constructor(host, { onChange, detailsFor = (item) => item.details, activeHost = null, isFavourite = () => false, persist = null }) {
+  constructor(host, { onChange, detailsFor = (item) => item.details, activeHost = null, isFavourite = () => false, persist = null, reading = () => false }) {
     this.host = host;
+    this.readingNow = reading;
     this.isFavourite = isFavourite;
     this.activeHost = activeHost;
     this.onChange = onChange;
@@ -117,6 +123,7 @@ export class MediaFilters {
     this.values = { movie: emptyFilters(), series: emptyFilters() };
     this.persist = persist;
     this.type = null;
+    this.lengthsHere = true;
     // Each row's facts, kept with the details they were read from: a film's
     // details arriving rescans the list for the menus, and reading 55,000
     // titles' facts afresh each time was the cost of it.
@@ -128,10 +135,16 @@ export class MediaFilters {
     this.summary.insertAdjacentHTML('afterbegin', '<svg class="section-icon" viewBox="0 0 20 20" aria-hidden="true"><path d="M3 4.5h14l-5.5 6.2v4.8l-3 1.5v-6.3z"/></svg>');
     this.caption = document.createElement('span');
     this.caption.className = 'section-label';
+    // Turning while the films' lengths a chosen length wants are read: the
+    // count is still growing.
+    this.spinner = document.createElement('span');
+    this.spinner.className = 'lp-spinner section-spinner';
+    this.spinner.setAttribute('aria-hidden', 'true');
+    this.spinner.hidden = true;
     this.count = document.createElement('span');
     this.count.className = 'section-count';
     this.count.setAttribute('aria-live', 'polite');
-    this.summary.append(this.caption, this.count);
+    this.summary.append(this.caption, this.spinner, this.count);
     this.summary.insertAdjacentHTML('beforeend', '<svg class="section-chevron" viewBox="0 0 20 20" aria-hidden="true"><path d="m6 8 4 4 4-4"/></svg>');
     const controls = document.createElement('div');
     controls.className = 'media-filter-controls';
@@ -192,6 +205,16 @@ export class MediaFilters {
     return Boolean(value && Object.values(value).some(Boolean));
   }
 
+  /** Whether the lengths a chosen length wants are still being read. */
+  get reading() {
+    return this.byLength && this.readingNow();
+  }
+
+  /** Whether a length is chosen for the type on show. */
+  get byLength() {
+    return Boolean(this.lengthsHere && this.values[this.type]?.length);
+  }
+
   get favouritesOnly() {
     return Boolean(this.values[this.type]?.favs);
   }
@@ -232,6 +255,7 @@ export class MediaFilters {
       input.addEventListener('input', () => { this.lengthChosen = false; moved(input); });
       input.addEventListener('change', () => {
         const all = Number(from.value) <= Number(from.min) && Number(to.value) >= Number(to.max);
+        this.lengthScale = [Number(from.min), Number(to.max)];
         this.values[this.type].length = all ? '' : `${from.value}:${to.value}`;
         this.changed();
       });
@@ -264,6 +288,8 @@ export class MediaFilters {
    * than two lengths are known, unless a choice is in force.
    */
   renderLength(entries, type, filters) {
+    // Out of force here: hidden, and the scale a range was chosen on kept.
+    if (!this.lengthsHere) { this.lengthField.hidden = true; return; }
     // A loop rather than Math.min(...list): 55,000 arguments is past what
     // an engine promises to take.
     let known = 0, low = Infinity, high = 0;
@@ -276,7 +302,16 @@ export class MediaFilters {
     let min = known ? Math.floor(low / 10) * 10 : 0;
     let max = known ? Math.ceil(high / 10) * 10 : 0;
     const chosen = filters.length ? filters.length.split(':').map(Number) : null;
-    if (chosen) { min = Math.min(min || chosen[0], chosen[0]); max = Math.max(max, chosen[1]); }
+    // A range in force keeps the scale it was chosen on, widened by the
+    // list's own: in another category only the films inside the range show,
+    // their lengths are the only ones known, and the handles sat at both
+    // ends of a track as short as the range. Without a scale (after a
+    // reload) an hour to three around it.
+    if (chosen) {
+      const [lowEnd, highEnd] = this.lengthScale || [Math.min(60, chosen[0]), Math.max(180, chosen[1])];
+      min = Math.min(known ? min : Infinity, chosen[0], lowEnd);
+      max = Math.max(max, chosen[1], highEnd);
+    } else if (known >= 2) this.lengthScale = [min, max];
     this.lengthField.hidden = type !== 'movie' || (!chosen && (known < 2 || max - min < 10));
     if (this.lengthField.hidden) return;
     this.lengthLabel.textContent = t('title.duration');
@@ -297,7 +332,7 @@ export class MediaFilters {
   clear() {
     if (!this.type) return;
     this.values[this.type] = emptyFilters();
-    this.changed();
+    return this.changed();
   }
 
   /** Both types back to no filter, folded: the start the logo goes back to. The list is the caller's to repaint. */
@@ -320,21 +355,35 @@ export class MediaFilters {
     clearTimeout(this.metadataTimer);
     this.metadataTimer = setTimeout(() => {
       // Populate choices as visible movies get their optional details.
-      // Keep an active result set steady until the viewer changes a filter.
-      if (this.type && !Object.values(this.values[this.type]).some(Boolean)) this.apply(this.rows, this.type);
-    }, 100);
+      // Keep an active result set steady until the viewer changes a filter;
+      // the length's track still takes in the lengths that arrived.
+      if (!this.type) return;
+      if (!Object.values(this.values[this.type]).some(Boolean)) this.apply(this.rows, this.type);
+      // A length chosen: the films whose lengths arrived may fit it now, and
+      // the list is filtered again, where it stands. Without this a category
+      // opened with a length in force showed nothing: only the films known
+      // to fit were in it, and only those had their lengths read.
+      else if (this.byLength) this.onChange({ keepScroll: true });
+      else this.renderLength(this.rows.map((item) => ({ item, facts: this.factsOf(item) })), this.type, this.values[this.type]);
+    }, this.byLength ? 400 : 100);
   }
 
-  apply(rows, type) {
+  apply(rows, type, { lengths = true } = {}) {
     this.type = type;
     this.rows = rows;
+    // A length is a choice for a category's films only: across the whole
+    // catalogue their lengths, read a film a request, would take thousands
+    // of requests to fill in. The choice is kept, out of force, for the
+    // next category.
+    this.lengthsHere = lengths;
     this.host.hidden = !type;
     if (this.activeHost) this.activeHost.hidden = !type;
     if (!type) return rows;
-    const filters = this.values[type];
+    const stored = this.values[type];
+    const filters = lengths ? stored : { ...stored, length: '' };
     // Movie genres are selected through the provider's categories. Sparse
     // per-title genre metadata must not narrow those results a second time.
-    if (type === 'movie') filters.genre = '';
+    if (type === 'movie') stored.genre = filters.genre = '';
     const entries = rows.map(item => ({ item, facts: this.factsOf(item) }));
     const results = filterMedia(entries, filters, this.isFavourite);
     const years = [...new Set(entries.map(e => e.facts.year).filter(Boolean))].sort((a, b) => b - a);
@@ -372,6 +421,7 @@ export class MediaFilters {
     this.favsText.textContent = t('filters.favs');
     const active = Object.values(filters).some(Boolean);
     foldSummary(this.caption, this.count, { label: t('filters.title'), shown: results.length, total: rows.length, active });
+    this.spinner.hidden = !this.reading;
     this.reset.textContent = t('filters.reset');
     this.renderActive(filters);
     return results;
@@ -389,7 +439,7 @@ export class MediaFilters {
         : `${field.text.textContent}: ${field.select.selectedOptions[0]?.textContent || value}`;
       const button = filterChip(label, async () => {
         const heldFocus = document.activeElement === button;
-        filters[key] = '';
+        this.values[this.type][key] = '';
         await this.changed();
         if (heldFocus && document.activeElement === document.body) this.summary.focus();
       });
