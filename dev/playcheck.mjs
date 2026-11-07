@@ -404,7 +404,7 @@ async function freshPlayer(target, page) {
   const visibility = await evaluate(page, 'document.visibilityState');
   if (visibility !== 'visible') throw new Error('the player tab is not visible; raise the dev Chrome window or run headless');
   // The personal lists are kept per account, so every account's copy goes.
-  await evaluate(page, `chrome.storage.local.get(null).then((all) => chrome.storage.local.remove(Object.keys(all).filter((k) => /^(favorites|recents|resume|channels|reminders)(:|$)/.test(k))))`);
+  await evaluate(page, `chrome.storage.local.get(null).then((all) => chrome.storage.local.remove(Object.keys(all).filter((k) => /^(favorites|recents|resume|seen|channels|reminders)(:|$)/.test(k))))`);
   // The accounts and sync of an earlier scenario (m3u, sync) go too.
   await evaluate(page, `Promise.all([chrome.storage.local.remove(['accounts', 'sync', 'syncState', 'syncStatus']), chrome.storage.sync ? chrome.storage.sync.clear() : null])`);
   // The catalogue cache is dropped as the screenshot script does: a run
