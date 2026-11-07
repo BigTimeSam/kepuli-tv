@@ -17,7 +17,7 @@
   },
   "permissions": ["storage", "unlimitedStorage", "declarativeNetRequestWithHostAccess"],
   "optional_host_permissions": ["http://*/*", "https://*/*"],
-  "background": { "service_worker": "background.js", "scripts": ["background.js"] },
+  "background": { "scripts": ["background.js"] },
   "action": {
     "default_title": "Kepuli-TV",
     "default_icon": { "16": "icons/icon16.png", "32": "icons/icon32.png", "48": "icons/icon48.png", "128": "icons/icon128.png" }

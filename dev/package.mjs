@@ -196,13 +196,12 @@ export function check(source = gitSource()) {
   for (const target of Object.keys(TARGETS)) problems.push(...permissionProblems(target, m[target]));
   if (!m.chrome.background?.service_worker) problems.push('the Chrome manifest needs background.service_worker');
   if (!Array.isArray(m.firefox.background?.scripts)) problems.push('the Firefox manifest needs background.scripts: Firefox has no service worker');
-  // The Chrome Web Store has twice been given the Firefox package: 1.2.1
-  // and 1.2.5 went out with background.scripts alone, which Chrome ignores
-  // in Manifest V3, so no service worker ran and the toolbar button did
-  // nothing. With service_worker beside scripts the wrong package still
-  // works: Chrome takes the service worker and ignores scripts, Firefox
-  // takes scripts and ignores the service worker.
-  if (m.firefox.background?.service_worker !== m.chrome.background?.service_worker) problems.push('the Firefox manifest needs the same background.service_worker as Chrome, so that the package works should it reach the Chrome Web Store');
+  // The Chrome Web Store has twice been given the Firefox package (1.2.1,
+  // 1.2.5). The Firefox manifest once carried Chrome's service_worker too,
+  // so that the wrong package would still start; AMO's linter warns of it
+  // on every upload, and cws-publish.mjs now refuses a package with gecko
+  // settings before it reaches the store, so the key is kept out instead.
+  if (m.firefox.background?.service_worker) problems.push('the Firefox manifest has background.service_worker, which Firefox ignores and AMO warns of: keep it in the Chrome manifest alone');
   if (!m.firefox.browser_specific_settings?.gecko?.id) problems.push('browser_specific_settings.gecko.id is missing: AMO requires it');
   return problems;
 }

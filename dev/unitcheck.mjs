@@ -24,7 +24,7 @@ import { cueText } from '../js/subs.js';
 import { subtitleLook, stepScale, pictureHeight, STYLES, MIN_SCALE, MAX_SCALE, DEFAULT_SCALE, SCALE_STEP, SIZE_SHARE, MIN_PX, MIN_LIFT, MAX_LIFT, DEFAULT_LIFT } from '../js/subdisplay.js';
 import { describe, describeAll, label, preferred, route } from '../js/audio.js';
 import { languageSummary, orderedLanguageNames, trackLanguage } from '../js/lang.js';
-import { LANGUAGES, keysOf, setLanguage, setEnglishRegion, loadLanguage, supportedLanguage, t, pseudoText } from '../js/i18n.js';
+import { LANGUAGES, LOCALES, keysOf, setLanguage, setEnglishRegion, loadLanguage, supportedLanguage, t, pseudoText } from '../js/i18n.js';
 import { setLocale, calendarDate, episodeCode, megabytes, amount, wholePercent, fileSize } from '../js/format.js';
 import { pictureSize } from '../js/titleinfo.js';
 import { ratingText } from '../js/rating.js';
@@ -714,6 +714,11 @@ check('orderedLanguageNames: an unknown language is named, and last',
 // markup can reach a screen.
 {
   const langs = Object.keys(LANGUAGES);
+  // The loaders are spelled out for AMO's linter; a language added to one
+  // list and not the other would load nothing, or never be offered.
+  const files = (await import('node:fs')).readdirSync(new URL('../js/locales/', import.meta.url)).filter((f) => f.endsWith('.js')).map((f) => f.slice(0, -3)).sort();
+  check('a loader for every language module and none other', Object.keys(LOCALES).sort(), files);
+  check('every language is built in or has a loader', langs.filter((l) => !['en', 'fi'].includes(l)).sort(), files);
   for (const lang of langs) await loadLanguage(lang);
   // A plural is one key whatever forms the language has: Polish carries
   // .few and .many where English has only .one and .other.

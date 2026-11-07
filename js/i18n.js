@@ -1551,6 +1551,22 @@ const STRINGS = {
   },
 };
 
+// Each language's module, named in full: the add-on linter AMO's reviewers
+// read flags an import() whose address is built, so the table spells them
+// out (dev/unitcheck.mjs checks it against LANGUAGES and js/locales/).
+export const LOCALES = {
+  sv: () => import('./locales/sv.js'), nb: () => import('./locales/nb.js'), da: () => import('./locales/da.js'),
+  de: () => import('./locales/de.js'), nl: () => import('./locales/nl.js'), fr: () => import('./locales/fr.js'),
+  es: () => import('./locales/es.js'), pt: () => import('./locales/pt.js'), it: () => import('./locales/it.js'),
+  pl: () => import('./locales/pl.js'), tr: () => import('./locales/tr.js'), cs: () => import('./locales/cs.js'),
+  hu: () => import('./locales/hu.js'), ro: () => import('./locales/ro.js'), hr: () => import('./locales/hr.js'),
+  sq: () => import('./locales/sq.js'), el: () => import('./locales/el.js'), ru: () => import('./locales/ru.js'),
+  uk: () => import('./locales/uk.js'), bg: () => import('./locales/bg.js'), sk: () => import('./locales/sk.js'),
+  sl: () => import('./locales/sl.js'), sr: () => import('./locales/sr.js'), lt: () => import('./locales/lt.js'),
+  lv: () => import('./locales/lv.js'), et: () => import('./locales/et.js'), id: () => import('./locales/id.js'),
+  vi: () => import('./locales/vi.js'),
+};
+
 let current = DEFAULT_LANGUAGE;
 
 /**
@@ -1558,9 +1574,9 @@ let current = DEFAULT_LANGUAGE;
  * before setLanguage; a language that fails to load leaves English.
  */
 export async function loadLanguage(lang) {
-  if (STRINGS[lang] || !Object.hasOwn(LANGUAGES, lang)) return;
+  if (STRINGS[lang] || !Object.hasOwn(LOCALES, lang)) return;
   try {
-    STRINGS[lang] = (await import(`./locales/${lang}.js`)).default;
+    STRINGS[lang] = (await LOCALES[lang]()).default;
   } catch (err) {
     console.warn('[iptv] language not loaded:', lang, err);
   }

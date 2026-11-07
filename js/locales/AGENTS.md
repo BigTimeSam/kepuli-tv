@@ -9,7 +9,7 @@ Background: [development.md → Language](../../docs/development.md#language) an
 
 | File | Holds |
 | --- | --- |
-| `js/i18n.js` | English (`en`, the fallback) and Finnish (`fi`), plus `LANGUAGES`, `t()` and `applyStatic()` |
+| `js/i18n.js` | English (`en`, the fallback) and Finnish (`fi`), plus `LANGUAGES`, `LOCALES` (each module's loader, spelled out for AMO's linter: a new language goes into both), `t()` and `applyStatic()` |
 | `js/locales/<lang>.js` | each of the other 28 languages: `export default { "key": "text", … }`, one key per line |
 | `player.html` | static text marked `data-i18n`, `data-i18n-title`, `data-i18n-label`, `data-i18n-placeholder`; the English in the markup is only the first paint |
 | `store/listings/<locale>.txt` | store name, summary and description per language |

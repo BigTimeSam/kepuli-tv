@@ -434,12 +434,13 @@ version twice, so each time cost a version (1.2.2, 1.2.6).
 
 Three things now stand against it:
 
-- **The packages forgive the mix-up.** Since 1.2.6 the Firefox manifest
-  names `background.service_worker` beside `background.scripts`. Chrome takes
-  the service worker and ignores the scripts, and Firefox does the opposite,
-  so either zip starts in Chrome. `dev/package.mjs` refuses a Firefox
-  manifest without the same `service_worker` as the Chrome one. Do not
-  remove that key to quiet an AMO warning about it.
+- **The upload refuses the wrong package.** `node dev/cws-publish.mjs upload`
+  reads the zip's manifest first and stops at gecko settings or a missing
+  `background.service_worker`. From 1.2.6 to 1.7.0 the Firefox manifest
+  also named Chrome's `service_worker`, so that the wrong zip would still
+  start; AMO's linter warned of it on every version, and since 1.8.0 the key
+  is in the Chrome manifest alone (`dev/package.mjs` keeps it out of
+  Firefox's). Upload through the tool, not the dashboard.
 - **Check the file name in the upload dialog.** It must say `chrome` for the
   Chrome Web Store and `firefox` for AMO. `store/chrome-dashboard.txt` says the same
   under *Publishing a new version*.

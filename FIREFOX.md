@@ -132,7 +132,7 @@ whose MV3 APIs return promises.
 
 | Key | Chrome | Firefox |
 | --- | --- | --- |
-| `background` | `service_worker: "background.js"` | `scripts: ["background.js"]` — Firefox has no service workers for extensions — and the same `service_worker` beside it, which Firefox ignores, so that the package still starts should it reach the Chrome Web Store by mistake (1.2.1 and 1.2.5 did) |
+| `background` | `service_worker: "background.js"` | `scripts: ["background.js"]` — Firefox has no service workers for extensions. From 1.2.6 to 1.7.0 the same `service_worker` stood beside it, so that the package would still start should it reach the Chrome Web Store by mistake (1.2.1 and 1.2.5 did); since 1.8.0 `cws-publish.mjs` refusing such a package is the guard, and AMO's linter no longer warns |
 | `minimum_chrome_version` | `116` | absent |
 | `browser_specific_settings.gecko.id` | absent | `kepuli-tv@bigtimesam.github.io`, mandatory for signing |
 | `browser_specific_settings.gecko.strict_min_version` | absent | `140.0`, for Firefox's built-in data-transmission consent |
