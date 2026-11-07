@@ -2943,6 +2943,9 @@ async function channels(page) {
   await waitFor(page, `document.getElementById('toast-text').textContent && document.getElementById('toast-live').textContent === document.getElementById('toast-text').textContent`, 'the message in the live region', 3000);
   // Undo stays while the keyboard is on it, past the strip's seven seconds.
   await evaluate(page, `document.querySelector('#toast .toast-action').focus()`);
+  // Another message meanwhile waits for the strip to be left: it took
+  // Undo's place on CI once, from under the focus.
+  await evaluate(page, `import('./js/toast.js').then(({ toast }) => { toast('Another message'); return true; })`);
   await sleep(8000);
   assert(await evaluate(page, `!document.getElementById('toast').hidden`), 'the Undo strip went while it held the focus');
   // Said in full when it is not there: on CI it went missing twice with the

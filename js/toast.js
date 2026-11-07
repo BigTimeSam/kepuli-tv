@@ -10,6 +10,16 @@ import { t } from './i18n.js';
 import { state } from './state.js';
 
 let toastTimer = null;
+// A message that came while the viewer was on the strip's button (Undo,
+// say): shown once they have left it or pressed it, not in its place. A
+// later message had taken Undo away from under the keyboard's focus.
+let waiting = null;
+function next() {
+  if (!waiting) return;
+  const [text, options] = waiting;
+  waiting = null;
+  toast(text, options);
+}
 /**
  * The message strip at the bottom of the window. `kind` colours it: an error
  * arrives in red, a warning in yellow, and everything else keeps the panel's
@@ -17,6 +27,10 @@ let toastTimer = null;
  * thing that separates a failure from a note.
  */
 export function toast(text, { long = false, kind = 'info', action = null, duration = null } = {}) {
+  if (!el.toast.hidden && el.toast.querySelector('.toast-action') && el.toast.matches(':focus-within')) {
+    waiting = [text, { long, kind, action, duration }];
+    return;
+  }
   el.toastText.textContent = text;
   // A message that names what is wrong can carry the thing that fixes it:
   // "Programme data is switched off in settings" said so and then left the
@@ -27,7 +41,7 @@ export function toast(text, { long = false, kind = 'info', action = null, durati
     button.type = 'button';
     button.className = 'toast-action';
     button.textContent = action.label;
-    button.addEventListener('click', () => { clearTimeout(toastTimer); el.toast.hidden = true; action.onClick(); });
+    button.addEventListener('click', () => { clearTimeout(toastTimer); el.toast.hidden = true; action.onClick(); next(); });
     el.toast.appendChild(button);
   }
   el.toast.classList.remove('info', 'warn', 'error');
@@ -46,7 +60,7 @@ export function toast(text, { long = false, kind = 'info', action = null, durati
   // Undo with the keyboard or a screen reader (WCAG 2.2.1).
   const hide = () => {
     if (el.toast.matches(':hover, :focus-within')) toastTimer = setTimeout(hide, 1000);
-    else el.toast.hidden = true;
+    else { el.toast.hidden = true; next(); }
   };
   toastTimer = setTimeout(hide, duration ?? (long || action ? 7000 : 2800));
 }
