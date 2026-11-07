@@ -546,7 +546,7 @@ export default {
  "order.watched": "Prima gli ultimi visti",
  "setup.subs.style": "Stile",
  "setup.subs.size": "Dimensione",
- "setup.subs.sample": "I sottotitoli appaiono così,\nanche su due righe.",
+ "setup.subs.sample": "Dovremmo andare a nord\nprima che la tempesta chiuda la strada.",
  "subs.style.shadow": "Ombra",
  "subs.style.outline": "Contorno",
  "subs.style.yellow": "Giallo",

@@ -459,7 +459,7 @@ export default {
  "order.watched": "Xem gần đây trước",
  "setup.subs.style": "Kiểu",
  "setup.subs.size": "Cỡ chữ",
- "setup.subs.sample": "Phụ đề sẽ trông thế này,\nkể cả khi có hai dòng.",
+ "setup.subs.sample": "Ta nên đi về phía bắc\ntrước khi bão chặn đường.",
  "subs.style.shadow": "Đổ bóng",
  "subs.style.outline": "Viền",
  "subs.style.yellow": "Vàng",

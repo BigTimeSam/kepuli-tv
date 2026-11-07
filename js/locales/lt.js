@@ -483,7 +483,7 @@ export default {
  "order.watched": "Neseniai žiūrėti pirma",
  "setup.subs.style": "Stilius",
  "setup.subs.size": "Dydis",
- "setup.subs.sample": "Štai kaip atrodo subtitrai,\nnet ir dviejose eilutėse.",
+ "setup.subs.sample": "Turėtume važiuoti į šiaurę,\nkol audra neuždarė kelio.",
  "subs.style.shadow": "Šešėlis",
  "subs.style.outline": "Kontūras",
  "subs.style.yellow": "Geltona",

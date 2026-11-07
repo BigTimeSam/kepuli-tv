@@ -467,7 +467,7 @@ export default {
  "order.watched": "Të shikuarat së fundi në krye",
  "setup.subs.style": "Stili",
  "setup.subs.size": "Madhësia",
- "setup.subs.sample": "Kështu duken titrat,\nedhe në dy rreshta.",
+ "setup.subs.sample": "Duhet të nisemi drejt veriut\npara se stuhia të mbyllë rrugën.",
  "subs.style.shadow": "Hije",
  "subs.style.outline": "Kontur",
  "subs.style.yellow": "E verdhë",

@@ -475,7 +475,7 @@ export default {
  "order.watched": "Cele văzute recent primele",
  "setup.subs.style": "Stil",
  "setup.subs.size": "Dimensiune",
- "setup.subs.sample": "Așa arată subtitrarea,\nși pe două rânduri.",
+ "setup.subs.sample": "Ar trebui să pornim spre nord\nînainte ca furtuna să închidă drumul.",
  "subs.style.shadow": "Umbră",
  "subs.style.outline": "Contur",
  "subs.style.yellow": "Galben",

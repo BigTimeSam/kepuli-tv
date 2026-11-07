@@ -483,7 +483,7 @@ export default {
  "order.watched": "Nazadnje gledano najprej",
  "setup.subs.style": "Slog",
  "setup.subs.size": "Velikost",
- "setup.subs.sample": "Tako izgledajo podnapisi,\ntudi v dveh vrsticah.",
+ "setup.subs.sample": "Morali bi na sever,\npreden nevihta zapre cesto.",
  "subs.style.shadow": "Senca",
  "subs.style.outline": "Obroba",
  "subs.style.yellow": "Rumeno",

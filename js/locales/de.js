@@ -546,7 +546,7 @@ export default {
  "order.watched": "Zuletzt angesehene zuerst",
  "setup.subs.style": "Stil",
  "setup.subs.size": "Größe",
- "setup.subs.sample": "So sehen Untertitel aus,\nauch in zwei Zeilen.",
+ "setup.subs.sample": "Wir sollten nach Norden fahren,\nbevor der Sturm die Straße sperrt.",
  "subs.style.shadow": "Schatten",
  "subs.style.outline": "Kontur",
  "subs.style.yellow": "Gelb",

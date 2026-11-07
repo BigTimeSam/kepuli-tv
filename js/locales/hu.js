@@ -467,7 +467,7 @@ export default {
  "order.watched": "Legutóbb nézettek elöl",
  "setup.subs.style": "Stílus",
  "setup.subs.size": "Méret",
- "setup.subs.sample": "Így néz ki a felirat,\nkét sorban is.",
+ "setup.subs.sample": "Észak felé kellene indulnunk,\nmielőtt a vihar lezárja az utat.",
  "subs.style.shadow": "Árnyék",
  "subs.style.outline": "Körvonal",
  "subs.style.yellow": "Sárga",

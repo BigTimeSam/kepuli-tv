@@ -459,7 +459,7 @@ export default {
  "order.watched": "Terakhir ditonton dulu",
  "setup.subs.style": "Gaya",
  "setup.subs.size": "Ukuran",
- "setup.subs.sample": "Begini tampilan subtitel,\nbahkan dalam dua baris.",
+ "setup.subs.sample": "Kita harus ke utara\nsebelum badai menutup jalan.",
  "subs.style.shadow": "Bayangan",
  "subs.style.outline": "Garis tepi",
  "subs.style.yellow": "Kuning",

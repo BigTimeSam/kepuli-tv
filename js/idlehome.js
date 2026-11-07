@@ -12,7 +12,8 @@ import { bindTile } from './tilekeys.js';
 import { guideOpen } from './guideui.js';
 import { poster } from './poster.js';
 import { renderIdleOverlay } from './languageui.js';
-import { shownName } from './coversui.js';
+import { shownName, toggleFavorite } from './coversui.js';
+import { setStar, star } from './rows.js';
 import { episodeCode } from './format.js';
 import { t } from './i18n.js';
 import * as store from './config.js';
@@ -105,7 +106,16 @@ export function renderIdleHome() {
       forget.innerHTML = '<svg viewBox="0 0 20 20" aria-hidden="true" focusable="false"><path d="m6 6 8 8M14 6l-8 8"/></svg>';
       forget.addEventListener('click', (event) => { event.stopPropagation(); forgetUnfinished(item, name.textContent); });
       wrap.append(card, forget);
-      bindTile(card, item, { remove: () => forgetUnfinished(item, name.textContent), also: [forget] });
+      // The star in the other corner: the film, or the series an episode
+      // belongs to, as the lists star them; s on the card stars the same.
+      const favorite = item.k === 3 ? (item.seriesId ? { k: 2, id: item.seriesId, n: item.seriesName || '', logo: item.seriesCover } : null) : item;
+      if (favorite) {
+        const key = `${favorite.k}:${favorite.id}`;
+        const button = star(state.favorites.has(key), () => { toggleFavorite(favorite); setStar(button, state.favorites.has(key)); }, 'idle-star');
+        button.tabIndex = 0;
+        wrap.append(button);
+      }
+      bindTile(card, favorite || item, { remove: () => forgetUnfinished(item, name.textContent), also: [forget, ...wrap.querySelectorAll('.idle-star')] });
       return wrap;
     })));
     idleCarousel(home.lastElementChild.querySelector('.idle-cards'));

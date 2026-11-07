@@ -546,7 +546,7 @@ export default {
  "order.watched": "Lo último visto primero",
  "setup.subs.style": "Estilo",
  "setup.subs.size": "Tamaño",
- "setup.subs.sample": "Los subtítulos se ven así,\ny también en dos líneas.",
+ "setup.subs.sample": "Deberíamos ir hacia el norte\nantes de que la tormenta cierre la carretera.",
  "subs.style.shadow": "Sombra",
  "subs.style.outline": "Contorno",
  "subs.style.yellow": "Amarillo",

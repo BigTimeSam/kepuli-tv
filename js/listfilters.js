@@ -17,8 +17,18 @@ import { $, el } from './dom.js';
 import { t } from './i18n.js';
 import { foldOpen, foldSummary } from './mediafilters.js';
 import * as store from './config.js';
-import { isCollection, state, visibleRows, withoutInternational } from './state.js';
+import { isCollection, refreshRows, state, visibleRows, withoutInternational } from './state.js';
 import { selectSub } from './topicbar.js';
+
+// "Show only favourites" in "Filter channels": for this session, as the
+// films' filters are (js/mediafilters.js).
+export let channelFavsOnly = false;
+
+function showChannelFavs(on) {
+  channelFavsOnly = on;
+  $('channel-favs').checked = on;
+  refreshRows();
+}
 
 let panel;
 let body;
@@ -53,6 +63,7 @@ export function wireListFilters(ui) {
   // where they were.
   panel.open = foldOpen(ui.channelFiltersOpen);
   panel.addEventListener('toggle', () => store.saveUiState({ channelFiltersOpen: panel.open }));
+  $('channel-favs').addEventListener('change', (event) => showChannelFavs(/** @type {HTMLInputElement} */ (event.target).checked));
 }
 
 /** Each part where the tab on show wants it, and the channels' fold's heading. */
@@ -67,9 +78,10 @@ export function placeListFilters(rows) {
     moveInto(el.subcatsGrip, body);
     // A topic narrows the country's channels as a film filter narrows
     // the films: how many of the country's are left, and the dot.
-    const total = state.sub ? withoutInternational(visibleRows(state.groupItems)).length : rows.length;
-    foldSummary(caption, count, { label: t('filters.channels'), shown: rows.length, total, active: Boolean(state.sub) });
-    renderTopicChip();
+    const active = state.sub != null || channelFavsOnly;
+    const total = active ? withoutInternational(visibleRows(state.groupItems)).length : rows.length;
+    foldSummary(caption, count, { label: t('filters.channels'), shown: rows.length, total, active });
+    renderChannelChips();
     return;
   }
   $('active-channel-filters').hidden = true;
@@ -78,21 +90,34 @@ export function placeListFilters(rows) {
 }
 
 /**
- * The topic narrowing the channels as a chip under the fold, "Sport ×": the
- * dot after the fold's name was all there was to see with the fold closed.
- * Its name is the chosen topic chip's, as the bar shows it.
+ * What narrows the channels as chips under the fold, "Sport ×", "Show only
+ * favourites ×", and Reset after them, as the films' filters show theirs:
+ * the dot after the fold's name was all there was to see with the fold
+ * closed. A topic's name is its chip's in the bar.
  */
-function renderTopicChip() {
+function renderChannelChips() {
   const host = $('active-channel-filters');
-  const label = state.sub == null ? ''
+  const topic = state.sub == null ? ''
     : (el.subcats.querySelector('.chip.active .chip-main')?.firstChild?.textContent || state.lib?.categoryName('live', state.sub) || '').trim();
-  host.hidden = !label;
-  if (!label) { host.replaceChildren(); return; }
-  const button = document.createElement('button');
-  button.type = 'button';
-  button.className = 'filter-chip';
-  button.textContent = label;
-  button.setAttribute('aria-label', t('filters.remove', { filter: label }));
-  button.addEventListener('click', () => selectSub(null));
-  host.replaceChildren(button);
+  const chip = (label, onClick) => {
+    const button = document.createElement('button');
+    button.type = 'button';
+    button.className = 'filter-chip';
+    button.textContent = label;
+    button.setAttribute('aria-label', t('filters.remove', { filter: label }));
+    button.addEventListener('click', onClick);
+    return button;
+  };
+  const chips = [
+    ...(topic ? [chip(topic, () => selectSub(null))] : []),
+    ...(channelFavsOnly ? [chip(t('filters.favs'), () => showChannelFavs(false))] : []),
+  ];
+  host.hidden = !chips.length;
+  if (!chips.length) { host.replaceChildren(); return; }
+  const reset = document.createElement('button');
+  reset.type = 'button';
+  reset.className = 'media-filter-reset';
+  reset.textContent = t('filters.reset');
+  reset.addEventListener('click', () => { channelFavsOnly = false; $('channel-favs').checked = false; if (state.sub != null) selectSub(null); else refreshRows(); });
+  host.replaceChildren(...chips, reset);
 }

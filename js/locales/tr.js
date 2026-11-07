@@ -467,7 +467,7 @@ export default {
  "order.watched": "Önce son izlenenler",
  "setup.subs.style": "Stil",
  "setup.subs.size": "Boyut",
- "setup.subs.sample": "Altyazılar böyle görünür,\niki satırda da.",
+ "setup.subs.sample": "Fırtına yolu kapatmadan\nkuzeye gitmeliyiz.",
  "subs.style.shadow": "Gölge",
  "subs.style.outline": "Kontur",
  "subs.style.yellow": "Sarı",

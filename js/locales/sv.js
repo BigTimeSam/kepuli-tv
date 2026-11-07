@@ -546,7 +546,7 @@ export default {
  "order.watched": "Senast sedda först",
  "setup.subs.style": "Stil",
  "setup.subs.size": "Storlek",
- "setup.subs.sample": "Undertexter ser ut så här,\näven på två rader.",
+ "setup.subs.sample": "Vi borde åka norrut\ninnan stormen stänger vägen.",
  "subs.style.shadow": "Skugga",
  "subs.style.outline": "Kontur",
  "subs.style.yellow": "Gul",

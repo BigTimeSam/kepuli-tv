@@ -1124,6 +1124,16 @@ body[data-substyle="contrast"] { --cue-back: #000; }
 .idle-forget svg { width: 14px; height: 14px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; }
 .idle-card-wrap:hover .idle-forget, .idle-forget:focus-visible { opacity: 1; }
 .idle-forget:hover { background: rgba(200, 40, 50, .92); border-color: transparent; }
+/* The card's star across from its ✕, alike in shape; a favourite's stays
+   in sight. */
+.idle-star {
+  position: absolute; top: 12px; left: 12px; width: 28px; height: 28px; padding: 0;
+  display: grid; place-items: center; border-radius: 999px; cursor: pointer; font-size: 15px; line-height: 1;
+  border: 1px solid rgba(255, 255, 255, .25); background: rgba(10, 12, 18, .78); color: #fff;
+  opacity: 0; transition: opacity .12s;
+}
+.idle-card-wrap:hover .idle-star, .idle-star:focus-visible, .idle-star.on { opacity: 1; }
+.idle-star.on { color: #ffc857; }
 .idle-forget:focus-visible { outline: 2px solid var(--accent-ink); outline-offset: 2px; }
 @media (hover: none) { .idle-forget { opacity: 1; } }
 /* The picks (js/picks.js): a programme per card, its channel's logo beside
@@ -1508,6 +1518,8 @@ dialog::backdrop { background: var(--backdrop); backdrop-filter: blur(2px); }
 .setup button.primary:disabled { opacity: .45; cursor: default; filter: none; }
 .setup > .setup-actions .setup-note { font-size: 0.75rem; }
 .help-foot { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+/* At the start of its own row, not after a sentence: no gap before it. */
+.help-foot > .setup-help { margin-left: 0; }
 .app-version { margin-left: auto; text-align: right; }
 .setup-error { margin: 0; color: var(--danger); font-size: 0.8125rem; }
 .setup > .grant-note { margin: 0; flex-shrink: 0; }

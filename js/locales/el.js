@@ -467,7 +467,7 @@ export default {
  "order.watched": "Πρώτα όσα είδατε πιο πρόσφατα",
  "setup.subs.style": "Στυλ",
  "setup.subs.size": "Μέγεθος",
- "setup.subs.sample": "Έτσι φαίνονται οι υπότιτλοι,\nκαι σε δύο γραμμές.",
+ "setup.subs.sample": "Πρέπει να πάμε βόρεια\nπριν η καταιγίδα κλείσει τον δρόμο.",
  "subs.style.shadow": "Σκιά",
  "subs.style.outline": "Περίγραμμα",
  "subs.style.yellow": "Κίτρινο",

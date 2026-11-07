@@ -546,7 +546,7 @@ export default {
  "order.watched": "Derniers regardés d’abord",
  "setup.subs.style": "Style",
  "setup.subs.size": "Taille",
- "setup.subs.sample": "Les sous-titres ressemblent à ceci,\négalement sur deux lignes.",
+ "setup.subs.sample": "Nous devrions partir vers le nord\navant que la tempête ne coupe la route.",
  "subs.style.shadow": "Ombre",
  "subs.style.outline": "Contour",
  "subs.style.yellow": "Jaune",

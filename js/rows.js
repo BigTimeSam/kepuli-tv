@@ -19,17 +19,23 @@ const el = (tag, cls, text) => {
  * The same star in three places: on a list row, on a sidebar group and on
  * a topic chip. The class changes; the gesture and the meaning do not.
  */
-function star(isFav, onToggle, cls = 'row-star') {
-  const button = el('button', cls + (isFav ? ' on' : ''), isFav ? '★' : '☆');
+export function star(isFav, onToggle, cls = 'row-star') {
+  const button = el('button', cls, '');
   button.type = 'button';
-  button.title = t(isFav ? 'row.fav.remove' : 'row.fav.add');
-  button.setAttribute('aria-label', button.title);
+  setStar(button, isFav);
   // Out of the tab order: the keyboard walks the rows with the arrows and
   // has the star next to the player for the row it is on. Reachable by
   // Tab, hundreds of stars would stand between the list and the player.
   button.tabIndex = -1;
   button.addEventListener('click', (e) => { e.stopPropagation(); onToggle(); });
   return button;
+}
+
+export function setStar(button, isFav) {
+  button.classList.toggle('on', isFav);
+  button.textContent = isFav ? '★' : '☆';
+  button.title = t(isFav ? 'row.fav.remove' : 'row.fav.add');
+  button.setAttribute('aria-label', button.title);
 }
 
 function remove(title, onRemove) {
@@ -80,9 +86,28 @@ function listOption(className, ctx) {
  * beginning with the same three words. The words are the ones on screen,
  * joined; "favourite" is the Favourites tab's own name.
  */
+// Each row's and card's spoken parts, for markFavorite to change one.
+const spokenParts = new WeakMap();
+
 function nameOption(option, parts) {
+  spokenParts.set(option, parts);
   option.setAttribute('aria-label', parts.filter(Boolean).join(', '));
   return option;
+}
+
+/**
+ * A painted row's or card's star and spoken name changed where they are:
+ * repainting the list for a star rebuilt every card on screen and loaded
+ * its picture again, and the whole list flashed.
+ */
+export function markFavorite(node, isFav) {
+  const button = node?.querySelector('.row-star');
+  if (!button) return;
+  setStar(button, isFav);
+  const parts = spokenParts.get(node);
+  if (!parts) return;
+  parts[1] = isFav ? t('favs.title') : null;
+  nameOption(node, parts);
 }
 
 /**

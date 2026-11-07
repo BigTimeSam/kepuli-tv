@@ -475,7 +475,7 @@ export default {
  "order.watched": "Nedavno gledano prvo",
  "setup.subs.style": "Stil",
  "setup.subs.size": "Veličina",
- "setup.subs.sample": "Ovako izgledaju titlovi,\ni u dva retka.",
+ "setup.subs.sample": "Trebali bismo krenuti na sjever\nprije nego što oluja zatvori cestu.",
  "subs.style.shadow": "Sjena",
  "subs.style.outline": "Obrub",
  "subs.style.yellow": "Žuto",

@@ -483,7 +483,7 @@ export default {
  "order.watched": "Ostatnio oglądane najpierw",
  "setup.subs.style": "Styl",
  "setup.subs.size": "Rozmiar",
- "setup.subs.sample": "Tak wyglądają napisy,\nrównież w dwóch wierszach.",
+ "setup.subs.sample": "Powinniśmy ruszyć na północ,\nzanim burza zamknie drogę.",
  "subs.style.shadow": "Cień",
  "subs.style.outline": "Kontur",
  "subs.style.yellow": "Żółty",

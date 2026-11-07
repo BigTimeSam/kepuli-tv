@@ -483,7 +483,7 @@ export default {
  "order.watched": "Naposledy pozerané prvé",
  "setup.subs.style": "Štýl",
  "setup.subs.size": "Veľkosť",
- "setup.subs.sample": "Takto vyzerajú titulky,\naj na dvoch riadkoch.",
+ "setup.subs.sample": "Mali by sme vyraziť na sever,\nkým búrka neuzavrie cestu.",
  "subs.style.shadow": "Tieň",
  "subs.style.outline": "Obrys",
  "subs.style.yellow": "Žltý",

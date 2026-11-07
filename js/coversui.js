@@ -6,7 +6,7 @@
 
 import { isNew, versionLabels } from './titlemeta.js';
 import { clock, nf, stampFmt } from './format.js';
-import { favCategoryRow, itemRow, posterCard, sectionHeader } from './rows.js';
+import { favCategoryRow, itemRow, markFavorite, posterCard, sectionHeader } from './rows.js';
 import { nameCleaner, searchNameCleaner } from './name.js';
 import { peek } from './probe.js';
 import { renderInfoStrip } from './infostrip.js';
@@ -315,7 +315,10 @@ export function toggleFavorite(item) {
   else state.favorites.set(key, { ...stripItem(item), addedAt: Date.now() });
   store.setFavorite(key, state.favorites.get(key) || null);
   if (state.tab === 'fav') { renderSidebar(); refreshRows({ keepScroll: true }); }
-  else { vlist.refresh(); refreshFavouriteFilter(); }
+  else {
+    markFavorite(vlist.nodes.get(state.rowIndex.get(key)), state.favorites.has(key));
+    refreshFavouriteFilter();
+  }
   renderSeriesFavorite();
   favoritesChanged();
 }

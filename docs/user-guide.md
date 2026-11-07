@@ -166,10 +166,9 @@ the player actually arrives.
   the list using the categories on the left. The search field finds titles
   within the selected content type.
 - Above the list, **Filter channels** holds a country's topics, and the
-  films' and series' **Filter titles** their filters, with **Show only
-  favourites** at its foot and a **?** for what the filters can and cannot
-  tell; what is in force shows as chips under it, with **Reset** after
-  them. Both are open the first time and fold away,
+  films' and series' **Filter titles** their filters; both have **Show only
+  favourites** at their foot. What is in force shows as chips under the
+  fold, each with a × to take it away, and **Reset** after them. Both are open the first time and fold away,
   and open or folded is remembered for each; folded or not, the heading
   says how many of how many are shown (**2 / 15**), with a dot after the
   name while a topic or a filter narrows the list. **Filter countries** at the foot of the sidebar (**Filter
@@ -491,7 +490,7 @@ the grid, the next closes the guide.
 
 ## The buttons
 
-The top bar starts with the logo, which goes back to the start — the channels, the first country chosen, the top of its list — closing the search, the guide and any page opened from the list, and stops what is playing for the empty player's page: a film's place is kept under **Continue watching** and a channel heads **History**, each a click from playing again. Continue watching shows the ten films and series watched last — left halfway or seen to the end; a series seen to the end of its last episode goes on with the next — newest at the left, in one row that scrolls sideways — with the ‹ and › at its ends, the trackpad or the keyboard — a series as one card; the ✕ in a cover's corner, on hover, forgets where it was left and takes it out of the history — every episode of a series — and the heading goes with the last card. **Settings › Viewing** turns each of the page's sections off: **On your channels now and soon**, **Continue watching** and **History**, all on to begin with. Then the five tabs, each with its mark before its name (the marks step aside between 600 and 1100 px, where they would push the buttons onto a second row), the search box, **Refresh lists** (a
+The top bar starts with the logo, which goes back to the start — the channels, the first country chosen, the top of its list — closing the search, the guide and any page opened from the list, and stops what is playing for the empty player's page: a film's place is kept under **Continue watching** and a channel heads **History**, each a click from playing again. Continue watching shows the ten films and series watched last — left halfway or seen to the end; a series seen to the end of its last episode goes on with the next — newest at the left, in one row that scrolls sideways — with the ‹ and › at its ends, the trackpad or the keyboard — a series as one card; the ✕ in a cover's corner, on hover, forgets where it was left and takes it out of the history — every episode of a series — and the heading goes with the last card. The ☆ in the other corner stars the film, or the series of an episode, as the lists do, and stays in sight on a favourite. **Settings › Viewing** turns each of the page's sections off: **On your channels now and soon**, **Continue watching** and **History**, all on to begin with. Then the five tabs, each with its mark before its name (the marks step aside between 600 and 1100 px, where they would push the buttons onto a second row), the search box, **Refresh lists** (a
 circular arrow), **Help** (a question mark), the theme — a sun in the dark
 theme switches to the light one and a moon in the light theme back — then
 **Full screen** (four corners) and **Settings** at the far right. Full screen

@@ -546,7 +546,7 @@ export default {
  "order.watched": "Vistos por último primeiro",
  "setup.subs.style": "Estilo",
  "setup.subs.size": "Tamanho",
- "setup.subs.sample": "As legendas ficam assim,\ntambém em duas linhas.",
+ "setup.subs.sample": "Devíamos seguir para o norte\nantes que a tempestade feche a estrada.",
  "subs.style.shadow": "Sombra",
  "subs.style.outline": "Contorno",
  "subs.style.yellow": "Amarelo",

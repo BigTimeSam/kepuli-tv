@@ -475,7 +475,7 @@ export default {
  "order.watched": "Pēdējie skatītie vispirms",
  "setup.subs.style": "Stils",
  "setup.subs.size": "Izmērs",
- "setup.subs.sample": "Šādi izskatās subtitri,\narī divās rindās.",
+ "setup.subs.sample": "Mums jābrauc uz ziemeļiem,\npirms vētra slēdz ceļu.",
  "subs.style.shadow": "Ēna",
  "subs.style.outline": "Kontūra",
  "subs.style.yellow": "Dzeltens",

@@ -1964,7 +1964,11 @@ async function lengthfilter(page) {
   await waitFor(page, `!document.querySelector('.length-filter').hidden`, 'the length slider once lengths are known', 20000);
   // "Show only favourites" at the foot of "Filter titles": the starred
   // film alone, its chip and Reset beside it, and back.
-  const film = await evaluate(page, `(() => { const row = document.querySelector('#list .row'); row.querySelector('.row-star').click(); return row.querySelector('.row-name, .card-title')?.textContent.trim(); })()`, { gesture: true });
+  // A star changes the card where it is: repainting the list for it
+  // rebuilt every card and loaded its picture again, a flash of the list.
+  const film = await evaluate(page, `(() => { const row = document.querySelector('#list .row'); window.__starred = row; row.querySelector('.row-star').click(); return row.querySelector('.row-name, .card-title')?.textContent.trim(); })()`, { gesture: true });
+  const kept = await evaluate(page, `(() => { const row = document.querySelector('#list .row'); return { same: row === window.__starred, on: row.querySelector('.row-star').classList.contains('on'), spoken: row.getAttribute('aria-label') }; })()`);
+  assert(kept.same && kept.on && /Favourites/.test(kept.spoken), `the starred card was rebuilt or not marked: ${JSON.stringify(kept)}`);
   await evaluate(page, `document.querySelector('.media-filter-favs input').click()`);
   await waitFor(page, `document.querySelectorAll('#list .row').length === 1`, 'the favourite alone');
   const favsOnly = await evaluate(page, `({ name: document.querySelector('#list .row .row-name, #list .row .card-title')?.textContent.trim(),
@@ -4818,16 +4822,29 @@ async function filterfolds(page) {
   assert(topic.label === 'Filter channels •' && Number(shown) < Number(total) && total === every, `"Filter channels" with a topic: ${JSON.stringify(topic)}`);
   // The topic is a chip under the fold, in sight with the fold closed, and
   // its × takes it away.
-  const chip = await evaluate(page, `(() => { const host = document.getElementById('active-channel-filters'); return { shown: !host.hidden, text: host.textContent.trim(),
+  const chip = await evaluate(page, `(() => { const host = document.getElementById('active-channel-filters'); return { shown: !host.hidden, text: host.querySelector('.filter-chip')?.textContent.trim(),
     topic: document.querySelector('#subcats .chip.active .chip-main')?.firstChild?.textContent.trim() }; })()`);
   assert(chip.shown && chip.text === chip.topic, `the topic's chip: ${JSON.stringify(chip)}`);
   await evaluate(page, `document.querySelector('#active-channel-filters .filter-chip').click()`);
   await waitFor(page, `document.getElementById('active-channel-filters').hidden && document.getElementById('channel-filters-label').textContent === 'Filter channels'`, 'the chip taking the topic away');
+  // "Show only favourites" at the fold's foot: the starred channel alone,
+  // the dot, its chip and Reset; a star taken away empties the list at
+  // once, and Reset brings every channel back.
+  const starredName = await evaluate(page, `(() => { const row = document.querySelectorAll('#list .row')[1]; row.querySelector('.row-star').click(); return row.querySelector('.row-name').textContent.trim(); })()`, { gesture: true });
+  await evaluate(page, `document.getElementById('channel-favs').click()`);
+  await waitFor(page, `document.querySelectorAll('#list .row').length === 1`, 'the favourite channel alone');
+  const favs = await evaluate(page, `({ name: document.querySelector('#list .row .row-name').textContent.trim(), label: document.getElementById('channel-filters-label').textContent,
+    chips: [...document.querySelectorAll('#active-channel-filters button')].map((b) => b.textContent) })`);
+  assert(favs.name === starredName && favs.label === 'Filter channels •' && favs.chips.join() === 'Show only favourites,Reset', `only the favourite channels: ${JSON.stringify({ starredName, favs })}`);
+  await evaluate(page, `document.querySelector('#list .row .row-star').click()`, { gesture: true });
+  await waitFor(page, `document.querySelectorAll('#list .row').length === 0`, 'the unstarred channel gone at once');
+  await evaluate(page, `document.querySelector('#active-channel-filters .media-filter-reset').click()`);
+  await waitFor(page, `document.querySelectorAll('#list .row').length > 1 && document.getElementById('active-channel-filters').hidden && !document.getElementById('channel-favs').checked`, 'every channel back after Reset');
   await evaluate(page, `document.querySelector('#tabs [data-tab="movie"]').click()`);
   await waitFor(page, `!document.getElementById('media-filters').hidden && document.querySelector('#media-filters .section-count')?.textContent`, 'the films');
   const films = await fold('media-filters');
   assert(films.open && films.label === 'Filter titles' && /^\d+ \/ \d+$/.test(films.count), `"Filter titles" at first: ${JSON.stringify(films)}`);
-  return { ok: true, detail: `both open the first time; channels "${channels.count}", with a topic "${topic.label}" "${topic.count}"; films "${films.count}"` };
+  return { ok: true, detail: `both open the first time; channels "${channels.count}", with a topic "${topic.label}" "${topic.count}", only the favourites and back; films "${films.count}"` };
 }
 
 /**
@@ -5638,6 +5655,13 @@ async function tilekeys(page) {
     const starred = await evaluate(page, `(async () => { const { state } = ${app}; return { film: state.favorites.has('1:' + ${JSON.stringify(films[1])}), row: state.favorites.has(${JSON.stringify(before.key)}),
       focus: document.activeElement?.className }; })()`);
     assert(starred.film && starred.row === before.starred, `s on a card: ${JSON.stringify(starred)}`);
+    // The card's own star says so, and a click on another card's stars its
+    // film; a second click takes it away.
+    const marks = await evaluate(page, `[...document.querySelectorAll('.idle-cards .idle-card-wrap')].map((w) => Boolean(w.querySelector('.idle-star.on')))`);
+    assert(marks[1] && !marks[0], `the cards' stars after s: ${JSON.stringify(marks)}`);
+    const clickStar = () => evaluate(page, `(async () => { document.querySelectorAll('.idle-cards .idle-star')[0].click(); await new Promise((r) => setTimeout(r, 300));
+      const { state } = ${app}; return state.favorites.has('1:' + ${JSON.stringify(films[0])}); })()`);
+    assert(await clickStar() && !(await clickStar()), 'the star on a card did not star and unstar its film');
     // Counted before, not taken for three: one card fewer is what Delete does.
     const cards = await evaluate(page, `document.querySelectorAll('.idle-cards .idle-card').length`);
     await evaluate(page, `document.querySelectorAll('.idle-cards .idle-card')[1].focus()`);

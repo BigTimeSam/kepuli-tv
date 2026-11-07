@@ -467,7 +467,7 @@ export default {
  "order.watched": "Sist sett først",
  "setup.subs.style": "Stil",
  "setup.subs.size": "Størrelse",
- "setup.subs.sample": "Underteksten ser slik ut,\nogså på to linjer.",
+ "setup.subs.sample": "Vi bør dra nordover\nfør stormen stenger veien.",
  "subs.style.shadow": "Skygge",
  "subs.style.outline": "Kontur",
  "subs.style.yellow": "Gul",

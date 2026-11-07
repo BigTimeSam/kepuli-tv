@@ -467,7 +467,7 @@ export default {
  "order.watched": "Първо последно гледаните",
  "setup.subs.style": "Стил",
  "setup.subs.size": "Размер",
- "setup.subs.sample": "Така изглеждат субтитрите,\nдори на два реда.",
+ "setup.subs.sample": "Трябва да тръгнем на север,\nпреди бурята да затвори пътя.",
  "subs.style.shadow": "Сянка",
  "subs.style.outline": "Контур",
  "subs.style.yellow": "Жълт",

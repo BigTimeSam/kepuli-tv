@@ -546,7 +546,7 @@ export default {
  "order.watched": "Laatst bekeken eerst",
  "setup.subs.style": "Stijl",
  "setup.subs.size": "Grootte",
- "setup.subs.sample": "Ondertitels zien er zo uit,\nook op twee regels.",
+ "setup.subs.sample": "We moeten naar het noorden\nvoordat de storm de weg afsluit.",
  "subs.style.shadow": "Schaduw",
  "subs.style.outline": "Omlijning",
  "subs.style.yellow": "Geel",

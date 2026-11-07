@@ -467,7 +467,7 @@ export default {
  "order.watched": "Viimati vaadatud eespool",
  "setup.subs.style": "Stiil",
  "setup.subs.size": "Suurus",
- "setup.subs.sample": "Nii näevad subtiitrid välja,\nka kahel real.",
+ "setup.subs.sample": "Peaksime minema põhja poole,\nenne kui torm tee sulgeb.",
  "subs.style.shadow": "Vari",
  "subs.style.outline": "Kontuur",
  "subs.style.yellow": "Kollane",

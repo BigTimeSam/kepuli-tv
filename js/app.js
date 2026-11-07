@@ -55,7 +55,7 @@ import { categoryCountsFor, collectionItems, favCategoryEntry, isFavorite, isUnf
 import { clickPicture, enterFullscreen, moreItems, renderScreenButton, renderSeriesFavorite, toggleFullscreen, toggleMoreMenu, togglePause, toggleScreen, wireMediaSession } from './playercontrols.js';
 import { wireTopMenu } from './topmenu.js';
 import { wireScrollHints } from './scrollhint.js';
-import { placeListFilters, wireListFilters } from './listfilters.js';
+import { channelFavsOnly, placeListFilters, wireListFilters } from './listfilters.js';
 import { cancelProgress, hideProgress, progressCtrl, progressSignal, showProgress, updateProgress } from './progressdialog.js';
 import { openHelp } from './help.js';
 import { copyUrl, toast } from './toast.js';
@@ -922,7 +922,10 @@ async function refreshRows({ keepScroll = false, returnPosition = null, restoreF
   // day): their names are tidied, not sorted by.
   if (!channelList && state.cleanName && !state.query && state.detail?.view !== 'series' && !(isCollection() && !state.detail)) rows = sortItems(rows, (name, item) => state.cleanName(name, item));
   rows = visibleRows(rows, { everyGroup: searchesEveryGroup() });
-  if (type === 'live' && !state.query && !state.detail && !isCollection()) rows = withoutInternational(rows);
+  if (type === 'live' && !state.query && !state.detail && !isCollection()) {
+    rows = withoutInternational(rows);
+    if (channelFavsOnly) rows = rows.filter((item) => state.favorites.has(`${item.k}:${item.id}`));
+  }
   // The setting says where the list starts; the personal arrangement, made
   // in Organize channels, has the last word over it.
   if (channelList) {
@@ -954,12 +957,12 @@ const mediaFilters = new MediaFilters($('media-filters'), () => {
   (item) => state.favorites.has(`${item.k}:${item.id}`));
 
 /**
- * A star given or taken while "Show only favourites" narrows the films or
- * the series: the list follows at once. Otherwise the rows repaint their
+ * A star given or taken while "Show only favourites" narrows the channels,
+ * the films or the series: the list follows at once. Otherwise the rows repaint their
  * own stars and nothing else changes.
  */
 function refreshFavouriteFilter() {
-  if (mediaFilters.favouritesOnly) refreshRows({ keepScroll: true });
+  if (mediaFilters.favouritesOnly || (channelFavsOnly && state.tab === 'live')) refreshRows({ keepScroll: true });
 }
 
 /**

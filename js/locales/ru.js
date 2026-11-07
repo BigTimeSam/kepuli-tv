@@ -483,7 +483,7 @@ export default {
  "order.watched": "Сначала недавно просмотренные",
  "setup.subs.style": "Стиль",
  "setup.subs.size": "Размер",
- "setup.subs.sample": "Так выглядят субтитры,\nв том числе в две строки.",
+ "setup.subs.sample": "Нам пора на север,\nпока буря не перекрыла дорогу.",
  "subs.style.shadow": "Тень",
  "subs.style.outline": "Контур",
  "subs.style.yellow": "Жёлтый",
