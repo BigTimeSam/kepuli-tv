@@ -687,6 +687,7 @@ button.series-favorite { flex: none; width: 32px; height: 32px; padding: 0; disp
 .related-tile:focus-visible .related-cover { outline: 2px solid var(--accent-ink); outline-offset: 2px; }
 .related-name { font-size: var(--fs-m); font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .related-meta { display: flex; column-gap: 8px; font-size: var(--fs-xs); color: var(--muted); overflow: hidden; white-space: nowrap; }
+.related-meta .related-warn { color: var(--warn); }
 .vodinfo-body { min-width: 0; flex: 1; }
 .vodinfo .title-links { margin-top: 0; margin-bottom: 10px; }
 .infostrip:has(.title-facts) { max-height: 13.125rem; }
@@ -873,6 +874,7 @@ button.group-star, button.group-star:hover, .group.active .group-star:hover { wi
 .card-flag { position: absolute; top: 6px; right: 6px; padding: 2px 7px; border-radius: 999px; font-size: var(--fs-xs); font-weight: 650; line-height: 1.4; pointer-events: none; }
 .card-flag.new { background: var(--accent); color: #fff; }
 .card-flag.watched { min-width: 1.4em; text-align: center; background: rgba(10, 12, 17, .78); color: var(--seen-on-cover); }
+.card-flag.warn { background: rgba(10, 12, 17, .82); color: var(--warn); border: 1px solid var(--warn-line); }
 /* Which copy of a title this is, after the facts on their line. */
 .row-badge.new { color: #fff; background: var(--accent); border-color: var(--accent); }
 .row-badge.watched { color: var(--seen); }
@@ -1077,7 +1079,6 @@ body[data-substyle="contrast"] { --cue-back: #000; }
    covers and still room for the channels under them. */
 .idle-home { --idle-card: clamp(92px, calc((100dvh - 330px) * 0.26), 168px); }
 .idle-home > section { min-width: 0; }
-.idle-carousel { position: relative; min-width: 0; }
 /* Continue watching: one row that scrolls sideways (idleCarousel). The
    padding keeps the focus ring inside the scroller, which would clip it. */
 .idle-cards {
@@ -1087,17 +1088,27 @@ body[data-substyle="contrast"] { --cue-back: #000; }
 }
 .idle-cards::-webkit-scrollbar { display: none; }
 .idle-cards > .idle-card-wrap { flex: none; width: var(--idle-card); scroll-snap-align: start; }
-.idle-scroll {
+/* A row that scrolls sideways, with its ‹ and › (js/sidescroll.js): over
+   the row's ends, or inside them in a toolbar (compact). */
+.side-scroll { position: relative; min-width: 0; }
+.side-scroll-arrow {
   position: absolute; top: 50%; z-index: 1; width: 34px; height: 34px; padding: 0; transform: translateY(-50%);
   display: grid; place-items: center; border-radius: 999px; cursor: pointer;
   border: 1px solid var(--border-strong); background: var(--panel); color: var(--text);
   box-shadow: 0 2px 10px rgba(0, 0, 0, .45);
 }
-.idle-scroll[hidden] { display: none; }
-.idle-scroll.prev { left: -14px; }
-.idle-scroll.next { right: -14px; }
-.idle-scroll:hover { background: var(--row-hover); }
-.idle-scroll svg { width: 16px; height: 16px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+.side-scroll-arrow[hidden] { display: none; }
+.side-scroll-arrow.prev { left: -14px; }
+.side-scroll-arrow.next { right: -14px; }
+.side-scroll-arrow:hover { background: var(--row-hover); }
+.side-scroll-arrow svg { width: 16px; height: 16px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+.side-scroll.compact .side-scroll-arrow { width: 24px; height: 24px; box-shadow: 0 1px 6px rgba(0, 0, 0, .35); }
+.side-scroll.compact .side-scroll-arrow.prev { left: 0; }
+.side-scroll.compact .side-scroll-arrow.next { right: 0; }
+.side-scroll.compact .side-scroll-arrow svg { width: 13px; height: 13px; }
+/* A film's rows of tiles reach the strip's edge: the arrows stay inside it. */
+.related .side-scroll-arrow.prev { left: 2px; }
+.related .side-scroll-arrow.next { right: 2px; }
 .idle-channels { display: grid; grid-template-columns: repeat(auto-fill, minmax(12.5rem, 1fr)); gap: 8px; }
 .idle-card[hidden], .idle-channel[hidden] { display: none; }
 .idle-card, .idle-channel {
@@ -1249,6 +1260,15 @@ main:not(.guide) .stage:has(> .videowrap.sized:not(:fullscreen)) .info-cover { w
 .playback-facts dd.playback-pending { align-items: center; min-width: 86px; color: var(--muted); }
 .playback-pending .fact-spinner { width: 14px; height: 14px; }
 .playback-warning { color: var(--gold); font-size: var(--fs-xs); }
+/* The format, the picture, the bit rate, the size and the way it plays,
+   folded under the audio and the subtitles (playbackFacts). */
+.tech-facts { margin: -2px 0 8px; }
+.tech-toggle { display: inline-flex; align-items: center; gap: 4px; list-style: none; color: var(--muted); font-size: var(--fs-xs); cursor: pointer; border-radius: 4px; }
+.tech-toggle::-webkit-details-marker { display: none; }
+.tech-toggle:hover { color: var(--text); }
+.tech-toggle:focus-visible { outline: 2px solid var(--accent-ink); outline-offset: 2px; }
+.tech-facts[open] > .tech-toggle .section-chevron { rotate: 180deg; }
+.tech-facts > .playback-facts { margin: 8px 0 0; padding-top: 0; border-top: 0; }
 .vodinfo .plot { color: var(--muted); font-size: var(--fs-m); }
 /* Who made it, under the plot (titleCredits in js/titleinfo.js): the
    label in a narrow column and the names beside it, line by line. */
@@ -1947,7 +1967,7 @@ select.epg-earlier { font: inherit; padding-right: 26px; background-position: ri
   /* The top bar's tabs only: the same class draws the Settings sections,
      which this order put under Save on a phone, after it in neither the
      reading order nor the focus order. */
-  .topbar > .tabs { order: 2; }
+  .topbar > .tabs-scroll { order: 2; max-width: 100%; }
   .search { order: 3; }
   .icon-button .button-label {
     position: absolute; width: 1px; height: 1px; margin: -1px; padding: 0;

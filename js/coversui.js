@@ -121,11 +121,37 @@ function coverMarks() {
   return marks;
 }
 
+/**
+ * Whether a film shows as seen: its own mark, the viewer's or the player's
+ * (js/config.js, loadSeen), else the history's from before there was one;
+ * and not started again since (a resume point).
+ * @param {string} key
+ */
+export function isWatched(key) {
+  if (state.resume.has(key)) return false;
+  const mark = state.seen.get(key);
+  return mark ? mark.on : coverMarks().seen.has(key);
+}
+
+/**
+ * A film marked seen or unwatched from its row's menu. Seen, its resume
+ * point goes, as it does when a film is played to its end.
+ * @param {{ k: number, id: string }} item
+ */
+export function toggleWatched(item) {
+  const key = `${item.k}:${item.id}`;
+  const on = !isWatched(key);
+  state.seen.set(key, { at: Date.now(), on });
+  store.setSeen(key, on);
+  if (on && state.resume.delete(key)) store.setResume(key, null);
+  vlist.refresh();
+  refreshIdleSoon();
+}
+
 /** The marks of one film or series: seen, new. */
 function coverFacts(item, key) {
   if (item.k !== 1 && item.k !== 2) return {};
-  const { seen } = coverMarks();
-  const watched = item.k === 1 && seen.has(key) && !state.resume.has(key);
+  const watched = item.k === 1 && isWatched(key);
   // A length chosen and this film's not known yet: the card says so (it is
   // in the list until its length is read, see filterMedia).
   const lengthUnknown = item.k === 1 && mediaFilters.byLength && !(item.details?.durationSec || item.durationSec);
@@ -144,8 +170,10 @@ export function renderRow(index) {
       favorite: state.favorites.has(key),
       resume: state.resume.get(key),
       ...coverFacts(item, key),
+      probe: item.k === 1 ? probeFor(item) : null,
       onOpen: () => { state.cursor = index; openItem(item); },
       onFavorite: () => toggleFavorite(item),
+      onMenu: item.k === 1 ? (at) => { state.cursor = index; openItemMenu(item, at); } : null,
     });
   }
   const row = item.k === 'c' ? favCategoryRow(item, {
@@ -174,7 +202,7 @@ export function renderRow(index) {
     onOpen: () => { state.cursor = index; openItem(item); },
     onFavorite: () => toggleFavorite(item),
     onRemove: state.tab === 'recent' ? () => removeFromHistory(item) : null,
-    onMenu: item.k === 0 || (isCollection() && !state.detail) ? (at) => { state.cursor = index; openItemMenu(item, at); } : null,
+    onMenu: item.k === 0 || item.k === 1 || (isCollection() && !state.detail) ? (at) => { state.cursor = index; openItemMenu(item, at); } : null,
     removeTitle: t('row.remove.history'),
   });
 

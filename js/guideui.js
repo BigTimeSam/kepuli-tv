@@ -21,6 +21,7 @@ import { openSetup } from './setupui.js';
 import { playItem } from './playing.js';
 import { toast } from './toast.js';
 import { $, el } from './dom.js';
+import { sideScroll } from './sidescroll.js';
 
 export const grid = new EpgGrid({
   scroll: $('epg-scroll'), canvas: $('epg-canvas'),
@@ -38,6 +39,8 @@ export const grid = new EpgGrid({
   onWindow: (items, from, to) => state.epg && state.epg.setVisibleWindow(items, from, to),
   reminded: (channel, programme) => reminders.has(reminderKey(channel, programme)),
 });
+// The days scroll sideways where the bar is narrow.
+sideScroll($('epg-days'), { compact: true });
 
 export let guideOpen = false;
 

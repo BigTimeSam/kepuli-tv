@@ -135,6 +135,8 @@ function noteSeen(item) {
   if (!item || item.k === 0 || seenNoted === item) return;
   seenNoted = item;
   const key = `${item.k}:${item.id}`;
+  state.seen.set(key, { at: Date.now(), on: true });
+  store.setSeen(key, true);
   store.patchRecent(key, { seen: Date.now() }).then((recents) => {
     if (!recents) return;
     state.recents = recents;

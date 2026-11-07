@@ -157,10 +157,11 @@ export function franchiseKey(name, year) {
 }
 
 /**
- * The other copies of this title and the other parts of its series, from
- * the items at hand (the list on screen, or the whole catalogue when it is
- * loaded), each list in order of year and then name, without the item
- * itself. Parts are at most `limit`.
+ * The other copies of this title, the other parts of its series and the
+ * titles most like it, from the items at hand (the list on screen, or the
+ * whole catalogue when it is loaded), without the item itself: copies and
+ * parts in order of year and then name, the alike best first. Parts and
+ * alike are at most `limit` each.
  */
 export function relatedTitles(item, items, { limit = 12 } = {}) {
   const own = titleKey(item);
@@ -168,19 +169,38 @@ export function relatedTitles(item, items, { limit = 12 } = {}) {
   const versions = [];
   const parts = [];
   const seenParts = new Set();
+  // Alike: filed in one of the same categories, of a genre in common, or
+  // out within five years of it; two of the three, a shared category
+  // counting as two. Scored rather than filtered, the best first.
+  const cats = new Set(item.cats || []);
+  const genres = genreSet(item.genre);
+  const year = Number(item.year) || 0;
+  /** @type {Map<string, { other: any, score: number }>} */
+  const alike = new Map();
   for (const other of items) {
     if (other === item || other.k !== item.k || String(other.id) === String(item.id)) continue;
     const key = titleKey(other);
     if (key === own) versions.push(other);
-    else if (series && franchiseKey(other.n, other.year) === series && !seenParts.has(key)) {
+    else if (series && franchiseKey(other.n, other.year) === series) {
       // One copy of each other part: the versions of a part are its own page's business.
-      seenParts.add(key);
-      parts.push(other);
+      if (!seenParts.has(key)) { seenParts.add(key); parts.push(other); }
+    } else {
+      const score = ((other.cats || []).some((cat) => cats.has(cat)) ? 2 : 0)
+        + (genres.size && other.genre && [...genreSet(other.genre)].some((g) => genres.has(g)) ? 1 : 0)
+        + (year && Math.abs((Number(other.year) || 0) - year) <= 5 ? 1 : 0);
+      // One copy of each title, the first met.
+      if (score >= 2 && !alike.has(key)) alike.set(key, { other, score });
     }
   }
   const order = (a, b) => (Number(a.year) || 0) - (Number(b.year) || 0) || String(a.n).localeCompare(String(b.n));
-  return { versions: versions.sort(order), parts: parts.sort(order).slice(0, limit) };
+  const similar = [...alike.values()]
+    .sort((a, b) => b.score - a.score || (Number(b.other.rating) || 0) - (Number(a.other.rating) || 0))
+    .slice(0, limit).map((entry) => entry.other);
+  return { versions: versions.sort(order), parts: parts.sort(order).slice(0, limit), similar };
 }
+
+/** A provider's genre line as a set of words: "Action, Thriller" → action, thriller. */
+const genreSet = (text) => new Set(String(text || '').toLowerCase().split(/\s*[,/|&]\s*/).filter(Boolean));
 
 /** Days for which a title the provider added still counts as new. */
 export const NEW_DAYS = 14;

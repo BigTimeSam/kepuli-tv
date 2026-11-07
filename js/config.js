@@ -231,6 +231,7 @@ const SETTINGS_DEFAULTS = {
 
 const MAX_RECENTS = 60;
 const MAX_RESUME = 400;
+const MAX_SEEN = 2000;
 
 /** @param {{ k: number|string, id: string }} item */
 export const itemKey = (item) => `${item.k}:${item.id}`;
@@ -436,7 +437,7 @@ export function watchAccounts(onChange) {
 
 /* ------------------------------------------------------ personal lists */
 
-export const PERSONAL = ['favorites', 'recents', 'resume', 'reminders', 'channels', 'interests'];
+export const PERSONAL = ['favorites', 'recents', 'resume', 'reminders', 'channels', 'interests', 'seen'];
 
 /**
  * @param {string} name
@@ -836,6 +837,31 @@ export function noteInterest(title) {
   return updatePersonal('interests', {}, (notes) => noteWatched(notes, title));
 }
 
+/* ---------------------------------------------------------- seen marks */
+
+// Which films the viewer has seen, marked by the player at the end of one
+// or by the viewer from the row's menu: { at, on } by item key, `on` false
+// for one marked unwatched, so that the mark carries over sync like any
+// other and the later of two computers' choices wins (js/sync.js). The
+// history kept the mark before and still holds it for its entries, but it
+// keeps sixty titles: a film seen a year ago lost its ✓.
+/** @returns {Promise<Map<string, { at: number, on: boolean }>>} */
+export async function loadSeen() {
+  return new Map(Object.entries(await readPersonal('seen', {})));
+}
+
+/**
+ * A title marked seen (true) or unwatched (false).
+ * @param {string} key
+ * @param {boolean} on
+ */
+export function setSeen(key, on) {
+  return updatePersonal('seen', /** @type {Record<string, { at: number, on: boolean }>} */ ({}), (marks) => {
+    marks[key] = { at: Date.now(), on };
+    return resumeObject(marks, MAX_SEEN);
+  });
+}
+
 /* ------------------------------------------------------- resume points */
 
 /** @returns {Promise<Map<string, ResumePoint>>} */
@@ -844,12 +870,14 @@ export async function loadResume() {
 }
 
 /**
- * The resume points as stored: the oldest dropped, so that storage does not grow without bound.
- * @param {Record<string, ResumePoint>} points
- * @returns {Record<string, ResumePoint>}
+ * Entries kept by when they were written, the newest `max`: the resume
+ * points and the seen marks, so that storage does not grow without bound.
+ * @template {{ at: number }} T
+ * @param {Record<string, T>} points
+ * @returns {Record<string, T>}
  */
-export function resumeObject(points) {
-  const entries = Object.entries(points).sort((a, b) => b[1].at - a[1].at).slice(0, MAX_RESUME);
+export function resumeObject(points, max = MAX_RESUME) {
+  const entries = Object.entries(points).sort((a, b) => b[1].at - a[1].at).slice(0, max);
   return Object.fromEntries(entries);
 }
 

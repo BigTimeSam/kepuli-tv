@@ -226,7 +226,14 @@ the player actually arrives.
   (each language it has, a 4K copy) is one cover, the first; its other
   copies are under **Other versions** on its own page. A film you have seen to the
   end carries a ✓ in its top corner, and one the provider added in the last
-  two weeks **New**. The list's rows say the same as badges.
+  two weeks **New**. The list's rows say the same as badges, with the film's
+  first genre on its line (on a cover, in its tooltip). A film's menu (right
+  click, a long press, or the context-menu key) has **Mark as watched** and
+  **Mark as unwatched**: the mark is kept apart from the history, so a film
+  seen long ago keeps its ✓, and it syncs with the rest. A film whose file
+  an earlier reading found the browser cannot play, or play with sound,
+  says **NOT SUPPORTED** or **NO SOUND** on its cover before it is clicked
+  again.
 - Movie and series filters let you narrow titles by release year or rating
   (their order is the list's foot's, and **Reset** leaves it); films also by **Duration**, two handles from
   the shortest to the longest film whose length is known, the list cut when a
@@ -569,12 +576,25 @@ While a film or an episode plays, its IMDb page (or an IMDb search) and its
 trailer, where the provider names one, are in the player's ☰ menu. The director's and the cast's names search IMDb for
 the person; the original title shows when the provider gives one that differs,
 and the sound names its language when the file or the provider does
-(**AAC (6 channels, Finnish)**). Under them, **Other versions** lists the other
+(**AAC (5.1, Finnish)**). The audio and the subtitles are in sight;
+**Technical details** folds away how the file plays here (**Directly in
+the browser**, **Audio decoded by the player**, **Without sound**, **Not in
+this browser**), its format, the picture's size (**1920×800, 1080p**,
+measured from the picture once it plays), the bit rate and the file's size
+where the header read gave it, and stays open or shut as you left it.
+TMDb is in the ☰ menu beside IMDb when the provider names the film's TMDb
+id. Under them, **Other versions** lists the other
 copies of the same film, each named by what tells it apart (where it is
 filed, such as **Spanish** or **Thriller**, and **MKV**, **4K**,
 **Multi-Sub**; a copy nothing tells apart is left out), and **In the same series** its other parts
-("Title: The Return", "Title 2"), from the whole catalogue when it has been
-loaded and from the list on screen otherwise; a click plays one. The title above
+("Title: The Return", "Title 2"), and **Similar** up to twelve titles
+filed in the same category, of a genre in common or from about the same
+years, the best rated first, from the whole catalogue when it has been
+loaded and from the list on screen otherwise; a click plays one. A copy
+an earlier reading found will not play here says so on its tile. A row
+wider than the strip scrolls sideways, with ‹ and › at its ends for a
+mouse, as Continue watching on the start page, the guide's days and the
+tabs in a narrow window do. The title above
 the picture leaves out a year at the end of the name, which the facts give,
 and the line under it names the group ("Nordic") rather than the provider's
 category ("Movies: Nordic").

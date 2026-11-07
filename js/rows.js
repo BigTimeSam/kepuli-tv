@@ -200,7 +200,11 @@ export function posterCard(item, ctx) {
   }
   // Seen to the end, or new from the provider, in the cover's top corner,
   // away from the star's: one of the two, as a title seen is not new.
-  const flag = ctx.watched ? ['watched', '✓', t('cover.watched')] : ctx.isNew ? ['new', t('cover.new'), t('cover.new.title')] : null;
+  // A file the header read found the browser cannot play, or play with
+  // sound, says so first: before the click rather than after it.
+  const known = ctx.probe ? probeBadge(ctx.probe) : null;
+  const flag = known ? ['warn', known.text, known.title] : ctx.watched ? ['watched', '✓', t('cover.watched')]
+    : ctx.isNew ? ['new', t('cover.new'), t('cover.new.title')] : null;
   if (flag) {
     const mark = el('span', `card-flag ${flag[0]}`, flag[1]);
     mark.title = flag[2];
@@ -223,9 +227,14 @@ export function posterCard(item, ctx) {
   else if (ctx.lengthUnknown) bits.push(t('filters.length.unknown'));
   const meta = el('div', 'card-meta', bits.join(', ') || '\u00a0');
   card.appendChild(meta);
-  nameOption(card, [ctx.label || item.n, ctx.favorite ? t('favs.title') : null, bits.join(', '),
+  // The genre has no room on the cover's line; the card's name and its
+  // tooltip carry it.
+  const genre = firstGenre(item);
+  if (genre) name.title = `${item.n}\n${genre}`;
+  nameOption(card, [ctx.label || item.n, ctx.favorite ? t('favs.title') : null, genre, bits.join(', '),
     flag ? flag[2] : null]);
 
+  if (ctx.onMenu) card.addEventListener('contextmenu', (e) => { e.preventDefault(); ctx.onMenu({ x: e.clientX, y: e.clientY }); });
   card.addEventListener('click', ctx.onOpen);
   return card;
 }
@@ -248,6 +257,9 @@ export const HISTORY_ICONS = {
   day: '<rect x="3" y="4.5" width="14" height="12.5" rx="1.8"/><path d="M3 8.5h14M7 2.8v3.4M13 2.8v3.4"/>',
 };
 
+/** The first of a title's genres, from the list or from its details once read. */
+const firstGenre = (item) => String(item.genre || item.details?.genre || '').split(',')[0].trim();
+
 function subLine(item, ctx) {
   if (ctx.compact && item.k !== 0) return compactLine(item, ctx);
   if (item.k === 0) {
@@ -262,13 +274,12 @@ function subLine(item, ctx) {
   const rating = ratingText(item.details) || ratingText(item);
   // The year once: not again beside a name that says it already.
   const year = item.year && !nameHasYear(ctx.label || item.n, item.year) ? item.year : null;
-  if (item.k === 1) {
+  // A film's or a series' first genre, as the provider's list gives it:
+  // under All, or a search, the category does not say it.
+  if (item.k === 1 || item.k === 2) {
     if (year) bits.push(year);
-    if (rating) bits.push(rating);
-  }
-  if (item.k === 2) {
-    if (year) bits.push(year);
-    if (item.genre) bits.push(item.genre.split(',')[0].trim());
+    const genre = firstGenre(item);
+    if (genre) bits.push(genre);
     if (rating) bits.push(rating);
   }
   if (item.k === 3) {
@@ -372,7 +383,7 @@ function badges(item, ctx) {
       out.push([explained(el('div', 'row-duration', text), t('title.duration')), `${t('title.duration')} ${text}`]);
     }
   }
-  if (item.k === 3) {
+  if (item.k === 1 || item.k === 3) {
     // Show actual playback limitations from the header, never a format
     // badge inferred from an extension (including an unprobed MKV).
     const known = ctx.probe ? probeBadge(ctx.probe) : null;

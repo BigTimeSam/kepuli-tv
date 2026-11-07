@@ -39,7 +39,7 @@ const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const TYPESCRIPT = 'typescript@5.9';
 // The typed modules. A module joins the list once the checker finds
 // nothing in it, and stays clean from then on.
-const TYPED = ['js/config.js', 'js/library.js', 'js/api.js',
+const TYPED = ['js/config.js', 'js/library.js', 'js/api.js', 'js/sidescroll.js',
   'js/playback.js', 'js/browser.js', 'js/channelprefs.js', 'js/db.js',
   'js/dom.js', 'js/ebml.js', 'js/epg.js', 'js/epggrid.js', 'js/fetchtext.js',
   'js/format.js', 'js/guide.js', 'js/help.js', 'js/i18n.js',

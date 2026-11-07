@@ -566,7 +566,7 @@ async function walk() {
   const { x: cx, y: cy } = await centre(`document.querySelector('.idle-card-wrap')`);
   await move(cx, cy, 900);
   await sleep(1400);
-  await click(`document.querySelector('.idle-scroll.next')`, { pause: 1300 });
+  await click(`document.querySelector('.idle-home .side-scroll-arrow.next')`, { pause: 1300 });
   await click(`document.querySelector('.idle-scroll.prev:not([hidden])') || document.querySelector('.idle-scroll.prev')`, { pause: 1100 });
   const { x: kx, y: ky } = await centre(`document.querySelector('.idle-pick:not([hidden])') || document.querySelector('.idle-channel')`);
   await move(kx, ky, 800);

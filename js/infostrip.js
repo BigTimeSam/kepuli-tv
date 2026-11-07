@@ -6,7 +6,8 @@
 // Moved out of app.js. It takes the player's state, and the parts app.js
 // builds, from js/state.js.
 
-import { audioDetails, subtitleSummary } from './probe.js';
+import { audioDetails, badge, subtitleSummary, verdict } from './probe.js';
+import * as store from './config.js';
 import { clock, progressOf } from './format.js';
 import { relatedTitles, titleWithoutYear, versionLabels } from './titlemeta.js';
 import { playbackFacts, titleCredits, titleFacts } from './titleinfo.js';
@@ -20,6 +21,26 @@ import { el } from './dom.js';
 import { addressChanges, freshItem, listName, probeFor, shownName, updateStoredItem } from './coversui.js';
 import { openItem } from './seriesui.js';
 import { bindTile } from './tilekeys.js';
+import { sideScroll } from './sidescroll.js';
+
+// The technical details' fold, open or shut as the viewer left it, over
+// the strip's repaints and over reloads (the ui state).
+let techOpen = false;
+store.loadUiState().then((ui) => { techOpen = Boolean(ui.techOpen); });
+const keepTechOpen = (open) => { techOpen = open; store.saveUiState({ techOpen: open }); };
+
+/**
+ * How the file plays here, in words, with the header read's reason as the
+ * tooltip: directly, with its audio decoded by the player, without sound,
+ * or not at all. Without a header read, a film whose picture is on plays
+ * directly: only a file the browser takes as it is goes unread.
+ */
+function playbackWay(item, header) {
+  if (!header) return state.playing === item && el.video.videoWidth > 0 ? { text: t('info.playback.direct'), title: '' } : null;
+  const found = verdict(header);
+  const word = { native: 'direct', mpegts: 'direct', remux: found.decoded ? 'decoded' : 'direct', silent: 'silent', none: 'none' }[found.path];
+  return word ? { text: t(`info.playback.${word}`), title: found.reason } : null;
+}
 
 export function renderInfoStrip() {
   renderMediaSession();
@@ -105,7 +126,11 @@ export function renderInfoStrip() {
   // reports.
   const probed = probeFor(item);
   const header = probed && !probed.error ? probed : null;
-  const video = header?.video || info?.video || item.video;
+  const known = header?.video || info?.video || item.video;
+  // The picture on screen measures itself exactly; the header and the
+  // provider are the word for it before it plays.
+  const shown = state.playing === item && el.video.videoWidth > 0;
+  const video = shown ? { ...known, width: el.video.videoWidth, height: el.video.videoHeight } : known;
   // The file's own track first; the provider's word for its language
   // where the file names none (an MP4's track is often "und").
   const heard = audioDetails(header, { active: state.activeAudio, language: state.settings.audioLang }) || info?.audio || null;
@@ -118,6 +143,10 @@ export function renderInfoStrip() {
     audio,
     subtitles,
     bitrate: info?.bitrate || 0,
+    size: Number(header?.size) || 0,
+    playback: playbackWay(item, header),
+    open: techOpen,
+    onToggle: keepTechOpen,
     loading: {
       video: !video && ((!header && state.playbackInfoLoading) || Boolean(item.detailsLoading)),
       audio: !audio && !header && state.playbackInfoLoading,
@@ -149,7 +178,7 @@ function relatedPart(item) {
   // The strip is painted again on every fact that arrives; the catalogue
   // can hold 55,000 films, read once per film and list.
   if (related.item !== item || related.pool !== pool) related = { item, pool, found: relatedTitles(item, pool) };
-  const { versions, parts } = related.found;
+  const { versions, parts, similar } = related.found;
   const box = document.createElement('div');
   box.className = 'related';
   // Where each copy is filed, as the player's heading names it: "Spanish"
@@ -179,6 +208,11 @@ function relatedPart(item) {
       // spaced by the stylesheet's gap.
       meta.append(...[other.year, ...(labels.get(`${other.k}:${other.id}`) || [])].filter(Boolean)
         .map((text) => Object.assign(document.createElement('span'), { textContent: String(text) })));
+      // A copy the header read found will not play here, or not with sound,
+      // says so before it is chosen over this one.
+      const known = probeFor(other);
+      const warning = known ? badge(known) : null;
+      if (warning) meta.append(Object.assign(document.createElement('span'), { className: 'related-warn', textContent: warning.text, title: warning.title }));
       tile.title = other.n;
       tile.append(name, meta);
       tile.addEventListener('click', () => openItem(other));
@@ -186,9 +220,11 @@ function relatedPart(item) {
       row.appendChild(tile);
     }
     box.append(head, row);
+    sideScroll(row);
   };
   section('info.related.versions', choices);
   section('info.related.parts', parts);
+  section('info.related.similar', similar);
   return box;
 }
 
@@ -200,7 +236,7 @@ function relatedPart(item) {
  */
 function renderMenuLinks(item, info) {
   const links = item ? titleLinks(item, info) : [];
-  for (const service of ['imdb', 'trailer']) {
+  for (const service of ['imdb', 'tmdb', 'trailer']) {
     const node = /** @type {HTMLAnchorElement} */ (document.getElementById(`more-${service}`));
     const link = links.find((l) => l.service === service);
     node.hidden = !link;
@@ -248,7 +284,7 @@ export async function loadVodDetails(item) {
       item.details = info;
       // The film's own answer names its container; an empty one says
       // nothing, and a whole list in memory is the fresher word (its cache
-      // lasts hours, a film's details a week).
+      // lasts hours, a film's details 90 days).
       if (info.ext && !freshItem(item)) {
         const patch = addressChanges(item, { ext: info.ext });
         if (patch) updateStoredItem(item, patch);

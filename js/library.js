@@ -510,7 +510,8 @@ export class Library {
    * @returns {Promise<any>} the film's details, see vodInfo() in js/api.js
    */
   async movieDetails(vodId) {
-    const key = `vod:v2:${vodId}`;
+    // v3 keeps the TMDb id a panel names (externalMetadata in js/titlelinks.js).
+    const key = `vod:v3:${vodId}`;
     if (this.details.has(key)) return this.details.get(key);
     return this.share(key, async () => {
       let info = await cacheGet(this.scope + key, TTL.vodInfo);
@@ -530,7 +531,7 @@ export class Library {
   warmMovieDurations(items, onUpdate, { fetch = true } = {}) {
     for (const item of items) {
       if (item.k !== 1 || item.details) continue;
-      const cached = this.details.get(`vod:v2:${item.id}`);
+      const cached = this.details.get(`vod:v3:${item.id}`);
       if (cached) {
         item.details = cached;
         item.durationSec = cached.durationSec;
@@ -541,7 +542,7 @@ export class Library {
     if (!fetch) {
       this.movieQueue = [];
       for (const item of wanted) {
-        const key = `vod:v2:${item.id}`;
+        const key = `vod:v3:${item.id}`;
         if (this.movieLooked.has(key)) continue;
         this.movieLooked.add(key);
         cacheGet(this.scope + key, TTL.vodInfo).then((info) => {

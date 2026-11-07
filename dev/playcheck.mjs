@@ -4897,6 +4897,11 @@ async function filterfolds(page) {
   const assert = (ok, message) => { if (!ok) throw new Error(message); };
   const fold = (id) => evaluate(page, `(() => { const d = document.getElementById(${JSON.stringify(id)}); return { open: d.open, label: d.querySelector('.section-label').textContent, count: d.querySelector('.section-count').textContent }; })()`);
   await openLiveList(page, 3);
+  // While a country's channels load, the fold is not there: it said "0 / 0"
+  // with a favourites switch over a list that had not come yet.
+  const loading = await evaluate(page, `(async () => { const { beginListLoad } = await import('./js/state.js'); beginListLoad();
+    return document.getElementById('channel-filters').hidden; })()`);
+  assert(loading, '"Filter channels" in sight while the channels were loading');
   await click(page, '#groups', 'Finland');
   await waitFor(page, `document.querySelectorAll('#subcats .chip-main').length > 2`, 'the topics');
   const channels = await fold('channel-filters');
@@ -5665,7 +5670,7 @@ async function filmdetails(page) {
     assert(strip.title === 'Steel Horizon' && strip.sub.startsWith('Action'), `the title and its line: ${JSON.stringify(strip)}`);
     assert(strip.original === 'Det stille fjellet' && strip.people.length && strip.people.every((h) => h.startsWith('https://www.imdb.com/find/?') && h.includes('s=nm')), `the credits: ${JSON.stringify(strip)}`);
     assert(/Norwegian/.test(strip.audio || ''), `the sound's language: ${strip.audio}`);
-    assert(JSON.stringify(strip.heads) === JSON.stringify(['Other versions', 'In the same series']) && strip.tiles[0].length === 2 && strip.tiles[1].length === 2
+    assert(JSON.stringify(strip.heads) === JSON.stringify(['Other versions', 'In the same series', 'Similar']) && strip.tiles[0].length === 2 && strip.tiles[1].length === 2
       && strip.tiles[1][0].includes('The Return') && strip.versions.some((v) => v.includes('MKV')) && strip.versions.some((v) => v.includes('4K')), `the related titles: ${JSON.stringify(strip)}`);
     // Played to its last minutes, the film is marked seen in the history and on its cover.
     const fresh = await evaluate(page, `(async () => (await ${cardOf('5000')})?.querySelector('.card-flag.watched')?.textContent || null)()`);
@@ -5980,9 +5985,104 @@ async function filmaddress(page) {
   }
 }
 
+/**
+ * A film's page and card, from the details the player already has: the
+ * audio and the subtitles in sight and the rest under "Technical details"
+ * (the picture's size, the file's size from the header read, how it plays),
+ * the fold kept over a reload; TMDb in the ☰ menu where the panel names
+ * the id; titles alike under the film; a film marked watched and unwatched
+ * from its card's menu, the mark kept in storage; and a film the header
+ * read found unplayable says so on its card before it is clicked again.
+ */
+async function filmfacts(page) {
+  const assert = (ok, message) => { if (!ok) throw new Error(message); };
+  const app = `(await import('./js/state.js'))`;
+  const openFilms = async () => {
+    await waitFor(page, `(() => { const tab = document.querySelector('#tabs [data-tab="movie"]');
+      if (tab.getAttribute('aria-selected') !== 'true') tab.click();
+      return tab.getAttribute('aria-selected') === 'true' && [...document.querySelectorAll('#groups .group')].some((g) => g.textContent.includes('Action')); })()`, 'the film groups', 30000);
+    await click(page, '#groups', 'Action', { timeout: 30000 });
+    await waitFor(page, `document.querySelectorAll('#list .card').length > 4`, 'the Action covers', 30000);
+  };
+  const cardOf = (id) => `(async () => { const { state, vlist } = ${app}; const { rowDomId } = await import('./js/listnavigation.js');
+    const i = state.rowIndex.get('1:' + ${JSON.stringify(id)}); if (i == null) return null;
+    vlist.scrollToIndex(i); vlist.refresh(); await new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r)));
+    return document.getElementById(rowDomId(i)); })()`;
+  await openFilms();
+  // An MKV: its header is read before it plays, which gives the file's size.
+  const mkv = await evaluate(page, `(async () => { const { state } = ${app}; return String(state.rows.find((x) => x.ext === 'mkv')?.id || ''); })()`);
+  const avi = await evaluate(page, `(async () => { const { state } = ${app}; return String(state.rows.find((x) => x.ext === 'avi')?.id || ''); })()`);
+  assert(mkv && avi, `an MKV and an AVI in Action: ${JSON.stringify({ mkv, avi })}`);
+  await evaluate(page, `(async () => (await ${cardOf(mkv)}).click())()`, { gesture: true });
+  await waitFor(page, PLAYING, 'the MKV film', 30000);
+  await waitFor(page, `document.querySelector('#infostrip .tech-facts') && document.querySelector('#infostrip .playback-fact-audio')`, 'the facts', 20000);
+  await sleep(800);
+  const strip = () => evaluate(page, `(() => { const fold = document.querySelector('#infostrip .tech-facts');
+    const fact = (key) => document.querySelector('#infostrip .playback-fact-' + key + ' dd')?.textContent || null;
+    const inFold = (key) => Boolean(fold?.querySelector('.playback-fact-' + key));
+    return { open: fold?.open, audio: fact('audio'), audioInSight: !inFold('audio'), subtitlesInSight: Boolean(document.querySelector('#infostrip .playback-fact-subtitles')) && !inFold('subtitles'),
+      video: fact('video'), size: fact('size'), playback: fact('playback'), format: fact('format'), formatFolded: inFold('format'),
+      similar: [...document.querySelectorAll('#infostrip .related h4')].map((h) => h.textContent),
+      tmdb: document.getElementById('more-tmdb').hidden ? null : document.getElementById('more-tmdb').href }; })()`);
+  const first = await strip();
+  assert(first.open === false && first.audioInSight && first.subtitlesInSight && first.formatFolded, `the fold and what is in sight: ${JSON.stringify(first)}`);
+  assert(/\d+×\d+, (4K|1080p|720p)/.test(first.video || '') && /(GB|MB|kB)$/.test(first.size || '') && first.playback && /^[25]\.[01]|^[0-9]\.[0-9]/.test((first.audio || '').replace(/^[A-Z0-9-]+ \(/, '')),
+    `the technical details: ${JSON.stringify(first)}`);
+  assert(new RegExp(`^https://www\\.themoviedb\\.org/movie/${900000 + Number(mkv)}$`).test(first.tmdb || ''), `TMDb in the menu: ${first.tmdb}`);
+  assert(first.similar.includes('Similar'), `titles alike under the film: ${JSON.stringify(first.similar)}`);
+  // The fold opened stays open over the strip's repaints and a reload.
+  await evaluate(page, `(() => { const fold = document.querySelector('#infostrip .tech-facts'); fold.open = true; fold.dispatchEvent(new Event('toggle')); return true; })()`);
+  await sleep(600);
+  await page.call('Page.reload');
+  await waitFor(page, CONNECTED, 'the connection');
+  await openFilms();
+  await evaluate(page, `(async () => (await ${cardOf(mkv)}).click())()`, { gesture: true });
+  await waitFor(page, `document.querySelector('#infostrip .tech-facts')`, 'the facts after the reload', 30000);
+  const kept = await evaluate(page, `document.querySelector('#infostrip .tech-facts').open`);
+  assert(kept === true, 'the technical details folded again after a reload');
+  // Watched by hand, from the card's menu, and unwatched again.
+  const menu = async (id) => {
+    await evaluate(page, `(async () => { const card = await ${cardOf(id)}; const r = card.getBoundingClientRect();
+      card.dispatchEvent(new MouseEvent('contextmenu', { bubbles: true, cancelable: true, clientX: r.left + 20, clientY: r.top + 20 })); return true; })()`);
+    await waitFor(page, `document.querySelector('.row-menu:popover-open')`, 'the card\'s menu');
+    return evaluate(page, `[...document.querySelectorAll('.row-menu .popitem')].map((b) => b.textContent)`);
+  };
+  const pick = async (label) => {
+    await evaluate(page, `[...document.querySelectorAll('.row-menu .popitem')].find((b) => b.textContent === ${JSON.stringify(label)}).click()`);
+    await sleep(400);
+  };
+  const other = await evaluate(page, `(async () => { const { state } = ${app}; return String(state.rows.find((x) => x.ext === 'mp4' && String(x.id) !== ${JSON.stringify(mkv)})?.id); })()`);
+  const before = await menu(other);
+  assert(before.includes('Mark as watched'), `the card's menu: ${JSON.stringify(before)}`);
+  await pick('Mark as watched');
+  const marked = await evaluate(page, `(async () => { const { state } = ${app}; const card = await ${cardOf(other)};
+    const stored = Object.entries(await chrome.storage.local.get(null)).find(([k]) => k.startsWith('seen:'))?.[1] || {};
+    return { flag: card.querySelector('.card-flag.watched')?.textContent || null, stored: stored['1:' + ${JSON.stringify(other)}]?.on }; })()`);
+  assert(marked.flag === '✓' && marked.stored === true, `marked watched: ${JSON.stringify(marked)}`);
+  const after = await menu(other);
+  assert(after.includes('Mark as unwatched'), `the menu of a film seen: ${JSON.stringify(after)}`);
+  await pick('Mark as unwatched');
+  const unmarked = await evaluate(page, `(async () => (await ${cardOf(other)}).querySelector('.card-flag.watched') === null)()`);
+  assert(unmarked, 'the ✓ stayed after Mark as unwatched');
+  // A film whose header read found a video codec the browser does not
+  // play (an MPEG-2 Matroska, as read and kept): its card says so before
+  // it is clicked again. Written into the cache as probe() writes it.
+  await evaluate(page, `(async () => { const { state, vlist } = ${app}; const { streamUrl } = await import('./js/xtream.js');
+    const { cachePut } = await import('./js/db.js'); const { warmCache } = await import('./js/probe.js');
+    const item = state.rows.find((x) => String(x.id) === ${JSON.stringify(avi)}); const u = new URL(streamUrl(state.config, item, 'ts'));
+    const parts = u.pathname.split('/').filter(Boolean);
+    await cachePut('probe:' + u.host + ':' + (parts.length >= 4 ? parts[0] : '') + ':' + parts[parts.length - 1],
+      { container: 'matroska', video: { codec: 'mpeg2', codecId: 'V_MPEG2', mime: null, supported: false, width: 720, height: 576 }, audio: [], subtitles: [], at: Date.now() });
+    await warmCache(); vlist.refresh(); return true; })()`);
+  await sleep(300);
+  const warned = await evaluate(page, `(async () => (await ${cardOf(avi)})?.querySelector('.card-flag.warn')?.textContent || null)()`);
+  assert(warned, 'the card of a film that does not play here says nothing of it');
+  return { ok: true, detail: `audio "${first.audio}", video "${first.video}", ${first.size}, "${first.playback}", folded and kept open; TMDb ${first.tmdb}; ${first.similar.join(', ')}; watched and unwatched from the menu; a film that does not play "${warned}"` };
+}
+
 const SCENARIOS = { buffering, livebuffering, filmbuffering, emptyfile, tsasmp4, refusedfile, badgateway, livebadgateway, channelrefused, noanswer, longfilm, catalogUi, setupClarity, welcome, fullscreenControl, clickpause, pickers, touchcaret, screenbutton, topmenu, scrollbars, channelorder, lengthfilter, nowlogo, channels, home, resumemkv, restore, programmes, catchup, seek, death, cancel, timeout, search, paste, keys, switching, resume, connections, livezap, livequiet, reconnect, accounts, listerror, a11y, subtitles, audio, wasmaudio, settings,
   lastchannel, nextepisode, continuewatching, reminders, update, seeklag, cuesretry, quota, catchupfreeze, catchupfull, twotabs, switchstop, resettabs,
-  refresh, restorenav, guidekeep, m3u, sync, holes, picks, flakyserver, accountform, stalker, record, guidefavs, guidenames, categories, homecountry, noleak, perf, pseudo, startup, soak, phone, episodenames, gotochannel, filmdetails, favorder, countryfilter, tilekeys, routes, programmekeys, searchlimit, filterfolds, guideclick, filmaddress };
+  refresh, restorenav, guidekeep, m3u, sync, holes, picks, flakyserver, accountform, stalker, record, guidefavs, guidenames, categories, homecountry, noleak, perf, pseudo, startup, soak, phone, episodenames, gotochannel, filmdetails, favorder, countryfilter, tilekeys, routes, programmekeys, searchlimit, filterfolds, guideclick, filmaddress, filmfacts };
 // The mock's whole-list answers stall for these, longer than the request limit.
 const SLOW_LIST_MS = { cancel: 60000, timeout: 60000 };
 // The media is sent slowly for these: the seek targets must lie outside the

@@ -7,6 +7,7 @@
 
 import { currentPicks, pickCard, tickIdlePage } from './picksui.js';
 import { el } from './dom.js';
+import { sideScroll } from './sidescroll.js';
 import { forgetUnfinished, isUnfinished } from './collections.js';
 import { bindTile } from './tilekeys.js';
 import { guideOpen } from './guideui.js';
@@ -127,7 +128,7 @@ export function renderIdleHome() {
       bindTile(card, favorite || item, { remove: () => forgetUnfinished(item, name.textContent), also: [forget, ...wrap.querySelectorAll('.idle-star')] });
       return wrap;
     })));
-    idleCarousel(home.lastElementChild.querySelector('.idle-cards'));
+    sideScroll(home.lastElementChild.querySelector('.idle-cards'));
   }
   if (channels.length) {
     home.appendChild(idleSection('player.idle.channels', 'idle-channels', channels.map((item) => {
@@ -161,7 +162,6 @@ export function renderIdleHome() {
 export function fitIdleHome() {
   const home = el.idleHome;
   if (home.hidden || el.overlay.hidden) return;
-  for (const list of home.querySelectorAll('.idle-cards')) list.syncScroll?.();
   const lists = [...home.querySelectorAll('.idle-picks, .idle-channels')];
   for (const list of lists) for (const tile of list.children) tile.hidden = false;
   const style = getComputedStyle(el.overlay);
@@ -189,42 +189,6 @@ function idleSection(titleKey, listClass, tiles) {
   list.append(...tiles);
   section.append(heading, list);
   return section;
-}
-
-/**
- * A row of covers that scrolls sideways, a ‹ and a › over its ends for the
- * mouse: each shown only while there is more that way, and a press moves
- * by what the row shows, less one cover so that the last stays in sight.
- * The keyboard needs neither — a focused cover scrolls itself into view.
- */
-function idleCarousel(list) {
-  const carousel = document.createElement('div');
-  carousel.className = 'idle-carousel';
-  list.replaceWith(carousel);
-  const arrow = (dir) => {
-    const button = document.createElement('button');
-    button.type = 'button';
-    button.className = `idle-scroll ${dir < 0 ? 'prev' : 'next'}`;
-    button.tabIndex = -1;
-    button.title = t(dir < 0 ? 'player.idle.prev' : 'player.idle.next');
-    button.setAttribute('aria-label', button.title);
-    button.innerHTML = `<svg viewBox="0 0 20 20" aria-hidden="true" focusable="false"><path d="${dir < 0 ? 'm12 4-6 6 6 6' : 'm8 4 6 6-6 6'}"/></svg>`;
-    button.addEventListener('click', () => {
-      const tile = list.firstElementChild;
-      const step = tile ? tile.getBoundingClientRect().width + (parseFloat(getComputedStyle(list).columnGap) || 0) : 0;
-      list.scrollBy({ left: dir * Math.max(step, list.clientWidth - step), behavior: 'smooth' });
-    });
-    return button;
-  };
-  const prev = arrow(-1), next = arrow(1);
-  carousel.append(prev, list, next);
-  list.syncScroll = () => {
-    const max = list.scrollWidth - list.clientWidth;
-    prev.hidden = list.scrollLeft <= 1;
-    next.hidden = list.scrollLeft >= max - 1;
-  };
-  list.addEventListener('scroll', list.syncScroll, { passive: true });
-  requestAnimationFrame(list.syncScroll);
 }
 
 /**

@@ -33,7 +33,7 @@ const CHUNK = 7000;
 const LOCK = 'kepuli-tv-sync';
 const QUICK_MS = 3000;          // the accounts, the settings, favourites
 const SLOW_MS = 60000;          // the history and the resume points
-const KEEP = { recents: 25, resume: 100 };
+const KEEP = { recents: 25, resume: 100, seen: 500 };
 const QUOTA = 100 * 1024;
 
 const area = () => api.storage.sync;
@@ -165,6 +165,7 @@ export function joinFavorites(a = [], b = []) {
 function trimmed(name, value) {
   if (name === 'recents') return (value || []).slice(0, KEEP.recents);
   if (name === 'resume') return joinResume(value || {}, {}, KEEP.resume);
+  if (name === 'seen') return joinResume(value || {}, {}, KEEP.seen);
   return value;
 }
 
@@ -406,6 +407,8 @@ export class Sync {
     const list = name.slice(0, name.indexOf(':'));
     if (list === 'recents') return joinRecents(keepAddresses(list, remote, local), local);
     if (list === 'resume') return joinResume(local, remote);
+    // The seen marks join as the resume points do: the later of each.
+    if (list === 'seen') return joinResume(local, remote, 2000);
     if (list === 'favorites' && join) return joinFavorites(local, keepAddresses(list, remote, local));
     return keepAddresses(list, remote, local);
   }

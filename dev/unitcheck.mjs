@@ -25,7 +25,8 @@ import { subtitleLook, stepScale, pictureHeight, STYLES, MIN_SCALE, MAX_SCALE, D
 import { describe, describeAll, label, preferred, route } from '../js/audio.js';
 import { languageSummary, orderedLanguageNames, trackLanguage } from '../js/lang.js';
 import { LANGUAGES, keysOf, setLanguage, setEnglishRegion, loadLanguage, supportedLanguage, t, pseudoText } from '../js/i18n.js';
-import { setLocale, calendarDate, episodeCode, megabytes, amount, wholePercent } from '../js/format.js';
+import { setLocale, calendarDate, episodeCode, megabytes, amount, wholePercent, fileSize } from '../js/format.js';
+import { pictureSize } from '../js/titleinfo.js';
 import { ratingText } from '../js/rating.js';
 import { channelPreferences, visibilityFilter, sortChannels, CHANNEL_SORTS } from '../js/channelprefs.js';
 import { catchupAvailable, archiveDays, reminderDelay, sameChannels } from '../js/epggrid.js';
@@ -789,6 +790,8 @@ check('orderedLanguageNames: an unknown language is named, and last',
   ], ['S1 E2', 'K1 J2', 'T3 E10', 'S1 F2']);
   check('a stored size and a download\'s in the same decimals', inLanguage('fi', null, () => [megabytes(18_140_000), amount(18_140_000), megabytes(5000)]),
     inLanguage('fi', null, () => [amount(18_140_000), t('size.mb', { n: '17,3' }), t('size.kb', { n: '5' })]));
+  check('a film\'s size in gigabytes, a smaller one as a download\'s', inLanguage('fi', null, () => [fileSize(4.5 * 1024 ** 3), fileSize(700 * 1048576)]),
+    inLanguage('fi', null, () => [t('size.gb', { n: '4,5' }), t('size.mb', { n: '700,0' })]));
   check('a whole percentage in the language\'s form', inLanguage('fi', null, () => wholePercent(1.2)).replace(/\s/g, ' '), '120 %');
   check('a name that says its year already', [nameHasYear('Iron Tide (2009)', 2009), nameHasYear('2009: Lost Memories', '2009'), nameHasYear('Iron Tide', 2009), nameHasYear('Iron Tide 120090', 2009), nameHasYear('Blade Runner 2049', 1982), nameHasYear('Anything', null)],
     [true, true, false, false, false, false]);
@@ -823,6 +826,21 @@ check('orderedLanguageNames: an unknown language is named, and last',
     film('c', 'Luottomies-elokuva: All in - 2024', { year: 2024, ext: 'mkv' }), film('d', 'Something else - 2022'), film('e', 'Luottomies-elokuva: Lepoloma - 2022', { ext: 'mkv' })];
   const related = relatedTitles(all[0], all);
   check('the other copies and the other parts of a film', [related.versions.map((x) => x.id), related.parts.map((x) => x.id)], [['c'], ['b']]);
+  // Alike: a category in common counts two, a genre or a year within five
+  // one each; two wanted, the best first, then the higher rating, one copy
+  // a title, and never a copy or a part of the film itself.
+  const pool = [film('x', 'Iron Tide', { cats: ['7'], genre: 'Action, Thriller', year: 2010 }),
+    film('p', 'Iron Tide 2', { cats: ['7'], year: 2012 }),
+    film('s1', 'Steel Horizon', { cats: ['7'], genre: 'Action', year: 2011, rating: 6 }),
+    film('s2', 'Crossfire Alley', { cats: ['7'], year: 1990, rating: 9 }),
+    film('s3', 'Night Runner', { cats: ['9'], genre: 'thriller', year: 2013 }),
+    film('s3b', 'Night Runner', { cats: ['8'], genre: 'thriller', year: 2013 }),
+    film('n1', 'Paper Moons', { cats: ['9'], genre: 'Comedy', year: 2011 }),
+    film('n2', 'Glasshouse', { cats: ['9'], genre: 'Thriller', year: 1980 })];
+  check('the titles most like a film, best first', relatedTitles(pool[0], pool).similar.map((x) => x.id), ['s1', 's2', 's3']);
+  // The class by the wider measure: a letterboxed 1080p film is 800 lines.
+  check('a picture\'s size and class', [pictureSize({ width: 3840, height: 1600 }), pictureSize({ width: 1920, height: 800 }), pictureSize({ width: 1280, height: 534 }), pictureSize({ height: 576 }), pictureSize(null)],
+    ['3840×1600, 4K', '1920×800, 1080p', '1280×534, 720p', '576p', '']);
   const now = Date.UTC(2026, 10, 5);
   check('new for two weeks after the provider added it', [isNew({ added: now - 3 * 86400e3 }, now), isNew({ added: now - 20 * 86400e3 }, now), isNew({}, now), isNew({ added: now + 86400e3 }, now)], [true, false, false, false]);
 }
@@ -1194,12 +1212,12 @@ await quietly(async () => {
   check('a category opened twice is fetched once', [before, again], [['Channel 1'], ['Channel 1']]);
   await lib.groupItems('live', 'Finland');
   lib.details.set('series:v2:7', { episodes: [] });
-  lib.details.set('vod:v2:8', { durationSec: 60 });
+  lib.details.set('vod:v3:8', { durationSec: 60 });
   await lib.refresh();
   const after = (await lib.categoryItems('live', '1')).map((it) => it.n);
   check('Refresh fetches a category opened earlier again', after, ['Channel 3']);
   check('Refresh forgets the series\' episodes and keeps the films\' details',
-    [lib.details.has('series:v2:7'), lib.details.has('vod:v2:8')], [false, true]);
+    [lib.details.has('series:v2:7'), lib.details.has('vod:v3:8')], [false, true]);
   const now = Date.now();
   check('lists just fetched are not stale', lib.isStale(now), false);
   check('categories older than a day are', lib.isStale(now + 25 * 3600e3), true);
@@ -1212,7 +1230,7 @@ await quietly(async () => {
 });
 
 check('each cached row has its time: categories, lists, episodes, details, file headers',
-  ['acc|cats:live', 'acc|full:movie', 'acc|series:v2:1', 'acc|vod:v2:1', 'probe:h:movie:1.mkv', 'other']
+  ['acc|cats:live', 'acc|full:movie', 'acc|series:v2:1', 'acc|vod:v3:1', 'probe:h:movie:1.mkv', 'other']
     .map((key) => probeCacheTtl(key) ?? cacheTtl(key)),
   [24 * 3600e3, 6 * 3600e3, 24 * 3600e3, 90 * 24 * 3600e3, 90 * 24 * 3600e3, null]);
 

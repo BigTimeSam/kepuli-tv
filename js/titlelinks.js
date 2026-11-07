@@ -39,7 +39,17 @@ export function externalMetadata(info, fallback = {}) {
     title: [info.name, info.title, fallback.name].find(v => typeof v === 'string' && v.trim())?.trim() || '',
     imdbId: first([info.imdb_id, info.imdb, info.imdb_url, info.external_ids?.imdb_id, fallback.imdb_id], imdbId),
     trailer: first([info.youtube_trailer, info.trailer, fallback.youtube_trailer], trailerUrl),
+    // Many panels pass on the id they matched the title to on TMDb.
+    tmdbId: first([info.tmdb_id, info.tmdb, fallback.tmdb_id], tmdbId),
   };
+}
+
+/** A TMDb id as a panel gives it: a number, or a themoviedb.org address. */
+export function tmdbId(value) {
+  const text = String(value ?? '').trim();
+  if (/^\d{1,9}$/.test(text) && Number(text) > 0) return text;
+  const url = webUrl(text);
+  return url && /^(www\.)?themoviedb\.org$/.test(url.hostname) ? url.pathname.match(/^\/(?:movie|tv)\/(\d{1,9})(?:[-/]|$)/)?.[1] || '' : '';
 }
 
 export function titleLinks(item, info = {}) {
@@ -52,6 +62,10 @@ export function titleLinks(item, info = {}) {
   const links = [];
   if (imdb || query) links.push({ service: 'imdb', search: !imdb, href: imdb
     ? `https://www.imdb.com/title/${imdb}/` : `https://www.imdb.com/find/?${new URLSearchParams({ q: query, s: 'tt' })}` });
+  // The film's or the series' page on TMDb, only where the panel named its
+  // id: a search there would be a guess, as IMDb's search already is.
+  const tmdb = (item.k === 1 || item.k === 2) && tmdbId(info.tmdbId);
+  if (tmdb) links.push({ service: 'tmdb', href: `https://www.themoviedb.org/${item.k === 1 ? 'movie' : 'tv'}/${tmdb}` });
   if (trailer) links.push({ service: 'trailer', href: trailer });
   return links;
 }

@@ -120,7 +120,11 @@ export function wireListFilters(ui, mediaFilters) {
 /** Each part where the tab on show wants it, and the channels' fold's heading. */
 export function placeListFilters(rows) {
   if (!panel) return;
-  const channels = state.tab === 'live' && !state.detail && !state.query && Boolean(state.lib) && !isCollection();
+  // Not while the country's channels are still loading: "0 / 0" and a
+  // switch for favourites over a list that is not there yet said nothing.
+  // A reload that keeps its rows keeps the fold too.
+  const channels = state.tab === 'live' && !state.detail && !state.query && Boolean(state.lib) && !isCollection()
+    && !(state.listLoading && !rows.length);
   panel.hidden = !channels;
   if (channels) {
     // The grip goes in too, where the stylesheet hides it: the bar takes

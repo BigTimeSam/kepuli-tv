@@ -1,6 +1,6 @@
 // @ts-check
 import { t, localeTag } from './i18n.js';
-import { duration, nf } from './format.js';
+import { duration, fileSize, nf } from './format.js';
 import { personUrl, titleLinks } from './titlelinks.js';
 import { searchKey } from './name.js';
 import { languageName, languageSummary, orderedLanguageNames, shortLanguage } from './lang.js';
@@ -126,18 +126,47 @@ export function externalLinks(item, info) {
   return nav;
 }
 
-export function playbackFacts({ ext, video, audio, subtitles, durationSec, bitrate = 0, loading = {} }) {
+/**
+ * A picture's size in words: "3840×1600, 4K", "1920×800, 1080p", or the
+ * lines alone where the width is not known. The class goes by the wider of
+ * the two measures, as a film's picture is often letterboxed: 1920×800 is
+ * a 1080p file.
+ */
+export function pictureSize(video) {
+  if (!video?.height) return '';
+  const { width = 0, height } = video;
+  const label = width >= 3200 || height >= 2000 ? '4K' : width >= 1800 || height >= 1000 ? '1080p'
+    : width >= 1200 || height >= 700 ? '720p' : `${height}p`;
+  return width ? `${width}×${height}, ${label}` : label;
+}
+
+// The channels as the audio world writes them, the same in every language;
+// an unusual count is said as a count.
+const LAYOUT = { 1: '1.0', 2: '2.0', 3: '2.1', 6: '5.1', 7: '6.1', 8: '7.1' };
+const channelLayout = (n) => LAYOUT[n] || t('audio.channels', { count: n, n });
+
+/**
+ * The file's facts. The audio and the subtitles are in sight, as they
+ * decide whether one can follow the film; the format, the picture, the
+ * bit rate, the size and the way it plays are under "Technical details",
+ * folded unless the viewer opened it (`open`, kept by the caller through
+ * `onToggle`).
+ */
+export function playbackFacts({ ext, video, audio, subtitles, bitrate = 0, size = 0, playback = null, loading = {}, open = false, onToggle = null }) {
+  const out = document.createDocumentFragment();
   const list = document.createElement('dl');
   list.className = 'playback-facts';
+  const tech = document.createElement('dl');
+  tech.className = 'playback-facts';
   list.setAttribute('aria-busy', String(Object.values(loading).some(Boolean)));
-  const add = (key, value, { unsupported = false, title = '' } = {}) => {
+  const add = (key, value, { unsupported = false, title = '', into = list } = {}) => {
     const pending = !value && loading[key];
     if (!value && !pending) return;
     const group = document.createElement('div');
     group.className = `playback-fact-${key}`;
     if (title) group.title = title;
     const label = document.createElement('dt');
-    label.textContent = t(key === 'duration' ? 'title.duration' : `info.${key}`);
+    label.textContent = t(`info.${key}`);
     const content = document.createElement('dd');
     if (pending) {
       content.className = 'playback-pending';
@@ -154,16 +183,12 @@ export function playbackFacts({ ext, video, audio, subtitles, durationSec, bitra
       content.append(warning);
     }
     group.append(label, content);
-    list.append(group);
+    into.append(group);
   };
-  if (durationSec) add('duration', duration(durationSec));
-  if (ext) add('format', ext.toUpperCase());
-  add('video', video && qualified(video.codec?.toUpperCase(), video.height ? `${video.height}p` : ''));
-  if (bitrate > 0) add('bitrate', t('info.bitrate.value', { n: nf.format(Math.round(bitrate)) }));
   // The track's language beside its channels, when the file or the
-  // provider names one: "AAC (6 channels, Finnish)".
+  // provider names one: "AAC (5.1, Finnish)".
   const spoken = audio && audio.language && shortLanguage(audio.language) !== 'und' ? languageName(shortLanguage(audio.language)) : null;
-  const audioDetail = [audio?.channels ? t('audio.channels', { count: audio.channels, n: audio.channels }) : '', spoken || ''].filter(Boolean).join(', ');
+  const audioDetail = [audio?.channels ? channelLayout(audio.channels) : '', spoken || ''].filter(Boolean).join(', ');
   add('audio', audio && qualified(audio.codec?.toUpperCase(), audioDetail), { unsupported: audio?.supported === false });
   if (subtitles) {
     const { total, shown } = subtitles;
@@ -177,5 +202,24 @@ export function playbackFacts({ ext, video, audio, subtitles, durationSec, bitra
       title: orderedLanguageNames(subtitles.languages).join(', '),
     });
   } else add('subtitles', '');
-  return list;
+  if (playback) add('playback', playback.text, { title: playback.title, into: tech });
+  if (ext) add('format', ext.toUpperCase(), { into: tech });
+  add('video', video && qualified(video.codec?.toUpperCase(), pictureSize(video)), { into: tech });
+  if (bitrate > 0) add('bitrate', t('info.bitrate.value', { n: nf.format(Math.round(bitrate)) }), { into: tech });
+  if (size > 0) add('size', fileSize(size), { into: tech });
+  out.append(list);
+  if (tech.childElementCount) {
+    const fold = document.createElement('details');
+    fold.className = 'tech-facts';
+    fold.open = open;
+    const summary = document.createElement('summary');
+    summary.className = 'tech-toggle';
+    summary.append(Object.assign(document.createElement('span'), { textContent: t('info.tech') }));
+    summary.insertAdjacentHTML('beforeend', '<svg class="section-chevron" viewBox="0 0 20 20" aria-hidden="true"><path d="m6 8 4 4 4-4"/></svg>');
+    fold.append(summary, tech);
+    if (onToggle) fold.addEventListener('toggle', () => onToggle(fold.open));
+    out.append(fold);
+  }
+  return out;
 }
+

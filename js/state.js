@@ -81,7 +81,7 @@ export const state = {
   activeAudio: null,      // the track confirmed by the playback engine
   playbackInfoLoading: false,
   subtitleInfo: null,     // what the file being played holds, once the player has looked: { tracks, bitmap }
-  favorites: new Map(), recents: [], resume: new Map(),
+  favorites: new Map(), recents: [], resume: new Map(), seen: new Map(),
   accounts: [],           // every account added, see loadAccounts() in js/config.js
   interests: {},          // the programmes watched, by title, for the picks (js/picks.js)
   channelPrefs: channelPreferences(),

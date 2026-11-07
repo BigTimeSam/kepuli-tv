@@ -71,6 +71,11 @@ export function amount(bytes) {
   return t('size.mb', { n: oneDecimal.format(bytes / 1048576) });
 }
 
+/** A file's size: a film's runs to gigabytes, said with one decimal. */
+export function fileSize(bytes) {
+  return bytes >= 1024 ** 3 ? t('size.gb', { n: oneDecimal.format(bytes / 1024 ** 3) }) : amount(bytes);
+}
+
 /** A download speed, bytes a second. */
 export function speed(bytesPerSecond) {
   return t('size.rate', { amount: amount(bytesPerSecond) });

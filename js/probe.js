@@ -106,7 +106,10 @@ export async function probe(url, { signal, force, onProgress } = {}) {
   }
   // What describe() found, or what went wrong, with the time it was read.
   /** @type {{error?: string, empty?: boolean, unavailable?: number, at?: number, [field: string]: unknown}} */
-  const info = await serialize(() => readHeader(url, signal, onProgress).then(parse, (err) => ({
+  const info = await serialize(() => readHeader(url, signal, onProgress).then(({ bytes, size }) => {
+    const found = parse(bytes);
+    return size && !found.error ? { ...found, size } : found;
+  }, (err) => ({
     container: 'unknown',
     error: err && err.message ? err.message : String(err),
     ...(err && err.unavailable ? { unavailable: err.unavailable } : {}),
@@ -156,6 +159,9 @@ async function readHeader(url, signal, onProgress = () => {}) {
     let total = 0;
     // A file shorter than the header read says so in the answer's length.
     const length = Number(res.headers.get('content-length'));
+    // The whole file's size, for the details: a 206 names it after the
+    // slash of its Content-Range ("bytes 0-262143/4512345678").
+    const size = Number(/\/(\d+)$/.exec(res.headers.get('content-range') || '')?.[1]) || 0;
     const wanted = length > 0 ? Math.min(HEADER_BYTES, length) : HEADER_BYTES;
     onProgress(0, wanted);
     while (total < HEADER_BYTES) {
@@ -171,7 +177,7 @@ async function readHeader(url, signal, onProgress = () => {}) {
     const bytes = new Uint8Array(total);
     let offset = 0;
     for (const part of parts) { bytes.set(part, offset); offset += part.byteLength; }
-    return bytes;
+    return { bytes, size };
   } finally {
     clearTimeout(timer);
     if (signal) signal.removeEventListener('abort', relay);

@@ -19,6 +19,7 @@
 // full screen's words and marks are whatever their buttons show now.
 
 import { $ } from './dom.js';
+import { sideScroll } from './sidescroll.js';
 
 // The buttons that go into the menu, in the bar's order.
 const MOVED = ['btn-refresh', 'btn-help', 'btn-theme', 'btn-screen', 'btn-settings'];
@@ -94,6 +95,8 @@ export function fitTopBar() {
 
 export function wireTopMenu() {
   bar = document.querySelector('.topbar');
+  // A narrow window scrolls the tabs sideways (css/player.css).
+  sideScroll($('tabs'), { compact: true, className: 'tabs-scroll' });
   button = $('btn-topmenu');
   pop = $('topmenu-pop');
   button.addEventListener('click', () => toggle());

@@ -39,7 +39,7 @@ await new Promise(resolve => setImmediate(resolve));
 lib.warmMovieDurations([movie('b'), movie('e')], updated);
 assert.equal(calls.length, 4, 'failed or missing durations must not retry on every render');
 assert.deepEqual(updates, [['a', 5700], ['e', 0], ['f', 3600]]);
-lib.details.set('vod:v2:f', { durationSec: 3600 });
+lib.details.set('vod:v3:f', { durationSec: 3600 });
 const cached = movie('f');
 lib.warmMovieDurations([cached, { ...movie('g'), durationSec: 100 }, { k: 0, id: 'live' }], updated);
 assert.equal(cached.durationSec, 3600);

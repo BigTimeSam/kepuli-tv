@@ -43,7 +43,7 @@ import { askRecordingConsent, closeRecordingConsent, loadRecordingList, openReco
 import { renderAccountList } from './accountsui.js';
 import { loadReminders, reminders, showReminders } from './remindersui.js';
 import { renderInfoStrip } from './infostrip.js';
-import { applyListLayout, gridColumns, nameCleanerFor, onEpgUpdated, renderRow, restoreListView, listName, shownName, toggleFavorite, usesGrid, watchGridWidth } from './coversui.js';
+import { applyListLayout, gridColumns, isWatched, nameCleanerFor, onEpgUpdated, renderRow, restoreListView, listName, shownName, toggleFavorite, toggleWatched, usesGrid, watchGridWidth } from './coversui.js';
 import { closeDetail, crumbLabel, episodesOfSeason, openItem, openSeries, renderDetail } from './seriesui.js';
 import { closeGuide, favoritesChanged, focusGrid, grid, guideFavorites, guideOpen, openGuide, programmeSearch, renderGuideGroups, restoreGuideFavorites, setGuideFavorites, toggleGuide } from './guideui.js';
 
@@ -384,6 +384,7 @@ async function loadLists() {
   state.favorites = await store.loadFavorites();
   state.recents = await store.loadRecents();
   state.resume = await store.loadResume();
+  state.seen = await store.loadSeen();
   state.channelPrefs = await store.loadChannelPreferences();
   state.interests = await store.loadInterests();
   await loadReminders();
@@ -439,6 +440,11 @@ function showStoredList(name, value) {
     const points = value || {};
     if (same(points, store.resumeObject(Object.fromEntries(state.resume)))) return;
     state.resume = new Map(Object.entries(points));
+    vlist.refresh();
+  } else if (name === 'seen') {
+    const marks = value || {};
+    if (same(marks, Object.fromEntries(state.seen))) return;
+    state.seen = new Map(Object.entries(marks));
     vlist.refresh();
   } else if (name === 'reminders') {
     if (same((value || []).filter((r) => r.stop > Date.now()), [...reminders.values()])) return;
@@ -1047,6 +1053,12 @@ function showRows(rows, { keepScroll = false, loading = false } = {}) {
   state.rowIndex = new Map(rows.map((it, i) => [`${it.k}:${it.id}`, i]));
   state.sections = sectionsFor(rows);
   applyListLayout();
+  // The fold over the channels before the list measures itself: shown
+  // after, it pushed the list down under a scroll already made, and the
+  // row the list stood on went out of sight (it is hidden while a list
+  // loads, see placeListFilters).
+  renderSubcats();
+  placeListFilters(rows);
   vlist.setCount(rows.length, {
     keepScroll,
     heightAt: state.sections.size ? (i) => ROW_H + (state.sections.has(i) ? SEP_H : 0) : null,
@@ -1054,8 +1066,6 @@ function showRows(rows, { keepScroll = false, loading = false } = {}) {
   // The guide shows the same set as the list, so search and group selection
   // narrow it without a filter of its own.
   if (guideOpen && state.tab === 'live' && !guideFavorites) grid.setChannels(rows.filter((it) => it.k === 0));
-  renderSubcats();
-  placeListFilters(rows);
   renderListInfo();
   renderEmptyState();
   catalogueSearch.render();
@@ -1542,6 +1552,8 @@ function openItemMenu(item, at) {
   const name = listName(item);
   const favorite = state.favorites.has(`${item.k}:${item.id}`);
   const items = [{ label: t(favorite ? 'row.fav.remove' : 'row.fav.add'), onClick: () => toggleFavorite(item) }];
+  // A film's ✓ by hand: one seen elsewhere, or one stopped near the end.
+  if (item.k === 1) items.push({ label: t(isWatched(`1:${id}`) ? 'row.seen.unmark' : 'row.seen.mark'), onClick: () => toggleWatched(item) });
   if (state.tab === 'recent' && !state.detail) items.push({ label: t('row.remove.history'), onClick: () => removeFromHistory(item) });
   if (item.k === 0) {
     items.push({
@@ -2049,7 +2061,7 @@ function wireUi() {
     // Shift+F10 where a keyboard has none.
     if (e.key === 'ContextMenu' || (e.key === 'F10' && e.shiftKey)) {
       const item = state.rows[state.cursor];
-      if (item && (item.k === 0 || (isCollection() && !state.detail && item.k !== 'c'))) {
+      if (item && (item.k === 0 || item.k === 1 || (isCollection() && !state.detail && item.k !== 'c'))) {
         e.preventDefault();
         const node = vlist.nodes.get(state.cursor);
         openItemMenu(item, node?.querySelector('.row-more') || node || el.list);

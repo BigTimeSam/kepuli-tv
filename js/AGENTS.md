@@ -56,6 +56,7 @@ lists, series info, stream URL) for its kind:
 | `recordingsui.js` | the recording UI: Record button and reminder, the list, plans from the guide, catch-up playback (moved out of `app.js`) |
 | `accountsui.js`, `remindersui.js`, `infostrip.js` | the account list in Settings and switching to another account; programme reminders; the details strip under the picture (moved out of `app.js`) |
 | `coversui.js`, `seriesui.js`, `guideui.js`, `picksui.js`, `topicbar.js`, `externalui.js` | covers or rows; a series' page; the guide in the player (grid, column, search, favourites); the start page's picks; the topic chips and their bar; the external player hand-off (moved out of `app.js`) |
+| `sidescroll.js` | a row that scrolls sideways with its ‹ and › (the start page's covers, a film's related rows, the guide's days, the narrow window's tabs) |
 | `idlehome.js` | the empty player's page (continue watching, the viewer's channels, the picks' carousel) and the note of programmes the viewer stays with (moved out of `app.js`); `paintIdleStars` after a favourite changes |
 | `collections.js`, `playercontrols.js`, `progressdialog.js`, `help.js`, `languageui.js` | Favourites and History and favourite categories; the ☰ menu, full screen and media keys; the list-loading strip; the help dialog; switching language and the empty player's title (moved out of `app.js`) |
 | `topmenu.js` | the top bar's hamburger: below the width at which the bar fits on one row (measured, as tab names differ by language), Refresh, Help, the theme, full screen and Settings go into its menu |
@@ -108,7 +109,7 @@ with the console open and run the scenarios of that feature. A
 
 - **Typed modules stay clean.** Most modules without DOM wiring begin with
   `// @ts-check` and carry JSDoc types; the list is `TYPED` in
-  `dev/typecheck.mjs` (52 modules: settings and storage, the data layer and
+  `dev/typecheck.mjs` (53 modules: settings and storage, the data layer and
   all three providers, the parsers and formatters, MKV and MP4, the
   playback engine, starting playback, recording and the shared connection,
   the guide's grid, the subtitles' layer, the address, `dom.js` and `state.js`). The shared shapes are typedefs: `Config`, `Settings`, `ListItem`
