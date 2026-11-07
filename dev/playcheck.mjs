@@ -2945,7 +2945,11 @@ async function channels(page) {
   await evaluate(page, `document.querySelector('#toast .toast-action').focus()`);
   await sleep(8000);
   assert(await evaluate(page, `!document.getElementById('toast').hidden`), 'the Undo strip went while it held the focus');
-  await evaluate(page, `document.querySelector('#toast .toast-action').click()`);
+  // Said in full when it is not there: on CI it went missing twice with the
+  // strip still up, and "null" told nothing of what the strip said instead.
+  const undo = await evaluate(page, `(() => { const b = document.querySelector('#toast .toast-action'); if (b) { b.click(); return ''; }
+    return JSON.stringify({ text: document.getElementById('toast-text').textContent, hidden: document.getElementById('toast').hidden, focus: document.activeElement?.id || document.activeElement?.className }); })()`);
+  assert(!undo, `no Undo on the strip after holding the focus: ${undo}`);
   await waitFor(page, `[...document.querySelectorAll('#list .row-name')].some((n) => n.title === ${JSON.stringify(hide)})`, 'Undo bringing the channel back');
   await menu(3);
   await choose('Hide channel');
