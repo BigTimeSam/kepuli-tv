@@ -63,7 +63,7 @@ const CAPTIONS = {
     guide: ['Programme guide', 'A full guide for every channel, or just your favourites. Click a channel for what is on now and next.'],
     search: ['Search', 'Press / and start typing. Any channel in seconds, even among tens of thousands.'],
     movies: ['Movies', 'Choose the categories you care about, browse by cover, and play in the same window.'],
-    details: ['Everything about the title', 'Year, rating, director, cast, country and age rating, with the format and bit rate of the file.'],
+    details: ['Everything about the title', 'Year, rating, director and cast, how the file plays here, and titles like it.'],
     series: ['Series', 'Seasons and episodes at a glance, with the plot, the year and the rating.'],
     mkv: ['MKV with subtitles', 'Matroska files play right in the browser, with their subtitles and every audio track, even AC-3.'],
     subsize: ['Subtitles your size', 'Set the size and the height of the subtitles. + and − change the size while you watch.'],
@@ -99,7 +99,7 @@ const CAPTIONS = {
       guide: 'The programme guide covers every channel, or just your favourites. Click a channel to see what’s on now and next.',
       search: 'Press slash and start typing. Any channel turns up in seconds.',
       movies: 'For films and series, choose the categories you care about, browse by cover, and play in the same window.',
-      details: 'Every title shows its year, rating, director and cast, and even the format and bit rate of the file.',
+      details: 'Every title shows its year, rating, director and cast. Technical details tell how the file plays in your browser, and Similar finds more like it.',
       series: 'Series show their seasons and episodes at a glance.',
       mkv: 'MKV files play right in the browser, with their subtitles and every audio track.',
       subsize: 'Make the subtitles as big as you like, and set their height.',
@@ -567,7 +567,7 @@ async function walk() {
   await move(cx, cy, 900);
   await sleep(1400);
   await click(`document.querySelector('.idle-home .side-scroll-arrow.next')`, { pause: 1300 });
-  await click(`document.querySelector('.idle-scroll.prev:not([hidden])') || document.querySelector('.idle-scroll.prev')`, { pause: 1100 });
+  await click(`document.querySelector('.idle-home .side-scroll-arrow.prev:not([hidden])') || document.querySelector('.idle-home .side-scroll-arrow.prev')`, { pause: 1100 });
   const { x: kx, y: ky } = await centre(`document.querySelector('.idle-pick:not([hidden])') || document.querySelector('.idle-channel')`);
   await move(kx, ky, 800);
   await sleep(1800);
@@ -668,8 +668,13 @@ async function walk() {
   await waitFor(PLAYING, 'the movie');
 
   await scene('details', 'left');
+  await click(`document.querySelector('.tech-toggle')`, { pause: 2200 });
+  await evaluate(`document.querySelector('.related')?.scrollIntoView({ behavior: 'smooth', block: 'end' })`);
+  await sleep(1400);
   await move(WIDTH * 0.8, HEIGHT * 0.86, 800);
-  await sleep(4200);
+  await sleep(2600);
+  // Folded again, so the later scenes show the page as it first opens.
+  await click(`document.querySelector('.tech-toggle')`, { pause: 300 });
 
   // A series.
   await scene('series', 'right');
