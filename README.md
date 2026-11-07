@@ -36,9 +36,9 @@ and your details stay in your browser.
 ## Getting started
 
 1. Install Kepuli-TV from your browser's store and click its toolbar icon.
-2. Paste your provider's M3U address, or enter the Xtream Codes server, user
-   name and password, or a Stalker portal with the MAC address registered to
-   your subscription.
+2. Paste your provider's M3U address (or choose the playlist as a file), or
+   enter the Xtream Codes server, user name and password, or a Stalker portal
+   with the MAC address registered to your subscription.
 3. Pick a country and a channel. Press `?` for the keyboard shortcuts.
 
 Kepuli-TV contains no channels or content: you need your own subscription.
