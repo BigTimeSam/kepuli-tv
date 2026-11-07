@@ -44,7 +44,9 @@ MITÄ SAAT
   noudattaa tekstikokoa ja kontrastiasetuksia.
 • 30 kielellä. Se puhuu selaimesi kieltä, kunnes valitset toisen.
 • Hae kaikkien kanavien ohjelmista kerralla.
-• Suodata elokuvia vuoden, arvosanan ja keston mukaan.
+• Suodata elokuvia vuoden, arvosanan ja keston mukaan tai näytä vain
+  suosikit.
+• Jokainen elokuva listassa kerran, sen kieliversiot elokuvan omalla sivulla.
 
 
 YKSITYISYYS RAKENNETTU SISÄÄN

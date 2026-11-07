@@ -280,7 +280,7 @@ export class ProgrammeSearch {
     else if (s?.kind === 'error') text = t('programmes.error');
     else if (s?.kind === 'many') text = t('programmes.heavy', { count: nf.format(s.count) });
     else if (progress && running) text = t('programmes.searching', { query: s.query });
-    else if (progress) text = `${t('programmes.found', { count: nf.format(s.count) })} · ${channels}`;
+    else if (progress) text = `${t('programmes.found', { count: nf.format(s.count) })}, ${channels}`;
     if (s?.cancelled) text += `. ${t('progress.cancelled')}`;
     // Channels that could not be read, in the warning's colour, after the
     // channels while it runs and after the result once it is done.

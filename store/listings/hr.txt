@@ -45,7 +45,8 @@ malen.
   veličine teksta i kontrasta.
 • Na 30 jezika. Govori jezikom tvog preglednika dok ne odabereš drugi.
 • Pretraži emisije svih kanala odjednom.
-• Filtriraj filmove po godini, ocjeni i trajanju.
+• Filtriraj filmove po godini, ocjeni i trajanju ili prikaži samo favorite.
+• Svaki film jednom na popisu, njegove jezične verzije na njegovoj stranici.
 
 
 PRIVATNOST PO ZAMISLI

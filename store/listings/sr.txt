@@ -43,7 +43,8 @@ jednoj ideji: džinovski katalog treba da deluje mali.
   podešavanja veličine teksta i kontrasta.
 • Na 30 jezika. Govori jezikom tvog pregledača dok ne izabereš drugi.
 • Pretraži emisije svih kanala odjednom.
-• Filtriraj filmove po godini, oceni i trajanju.
+• Filtriraj filmove po godini, oceni i trajanju ili prikaži samo omiljeno.
+• Svaki film jednom na listi, njegove jezičke verzije na njegovoj stranici.
 
 
 PRIVATNOST PRE SVEGA

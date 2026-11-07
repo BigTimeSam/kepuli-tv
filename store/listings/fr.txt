@@ -47,7 +47,10 @@ CE QUE TU OBTIENS
 • En 30 langues. Il parle celle de ton navigateur jusqu'à ce que tu en
   choisisses une autre.
 • Cherche dans tous les programmes à la fois.
-• Filtre les films par année, note et durée.
+• Filtre les films par année, note et durée, ou affiche seulement tes
+  favoris.
+• Chaque film une seule fois dans la liste, ses versions linguistiques sur sa
+  page.
 
 
 CONÇU POUR LA VIE PRIVÉE

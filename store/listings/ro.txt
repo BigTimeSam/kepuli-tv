@@ -43,7 +43,8 @@ CE PRIMEȘTI
   iar interfața urmează setările tale de mărime a textului și de contrast.
 • În 30 de limbi. Vorbește limba browserului tău până alegi alta.
 • Caută deodată în emisiunile tuturor canalelor.
-• Filtrează filmele după an, notă și durată.
+• Filtrează filmele după an, notă și durată sau arată doar favoritele.
+• Fiecare film o singură dată în listă, cu versiunile de limbă pe pagina lui.
 
 
 CONFIDENȚIALITATE DE LA ÎNCEPUT

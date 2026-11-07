@@ -13,7 +13,7 @@ import { guideOpen } from './guideui.js';
 import { poster } from './poster.js';
 import { renderIdleOverlay } from './languageui.js';
 import { shownName, toggleFavorite } from './coversui.js';
-import { star } from './rows.js';
+import { setStar, star } from './rows.js';
 import { episodeCode } from './format.js';
 import { t } from './i18n.js';
 import * as store from './config.js';
@@ -50,6 +50,13 @@ export function watchInterest() {
 const IDLE_CONTINUE = 10;
 const IDLE_CHANNELS = 24;
 
+/** The cards' stars as the favourites stand, after one changed elsewhere. */
+export function paintIdleStars() {
+  for (const button of el.idleHome.querySelectorAll('.idle-star[data-fav]')) {
+    setStar(/** @type {HTMLElement} */ (button), state.favorites.has(/** @type {HTMLElement} */ (button).dataset.fav));
+  }
+}
+
 /**
  * The empty player's own page. The picture's place was 60 % of the window
  * in black with one sentence in it; what was left halfway and the channels
@@ -59,6 +66,7 @@ const IDLE_CHANNELS = 24;
  *
  * @returns {boolean} whether there was anything to show
  */
+
 export function renderIdleHome() {
   const home = el.idleHome;
   home.replaceChildren();
@@ -110,11 +118,10 @@ export function renderIdleHome() {
       // belongs to, as the lists star them; s on the card stars the same.
       const favorite = item.k === 3 ? (item.seriesId ? { k: 2, id: item.seriesId, n: item.seriesName || '', logo: item.seriesCover } : null) : item;
       if (favorite) {
-        const key = `${favorite.k}:${favorite.id}`;
+        const key = store.itemKey(favorite);
         const button = star(state.favorites.has(key), () => toggleFavorite(favorite), 'idle-star');
         button.tabIndex = 0;
-        // The favourite it stands for: a star given in a list or the
-        // player finds the card's too (toggleFavorite in js/coversui.js).
+        // The favourite it stands for, for paintIdleStars.
         button.dataset.fav = key;
         wrap.append(button);
       }

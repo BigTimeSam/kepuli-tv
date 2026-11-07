@@ -6,7 +6,7 @@
 
 import { isNew } from './titlemeta.js';
 import { clock, nf, stampFmt } from './format.js';
-import { favCategoryRow, itemRow, markFavorite, posterCard, sectionHeader, setStar } from './rows.js';
+import { favCategoryRow, itemRow, markFavorite, posterCard, sectionHeader } from './rows.js';
 import { nameCleaner, searchNameCleaner } from './name.js';
 import { peek } from './probe.js';
 import { renderInfoStrip } from './infostrip.js';
@@ -14,7 +14,7 @@ import { rowDomId } from './listnavigation.js';
 import { streamUrl } from './xtream.js';
 import { t } from './i18n.js';
 import * as store from './config.js';
-import { ROW_H, groupOfType, isCollection, listNavigation, liveGroupOf, openItemMenu, refreshRows, refreshFavouriteFilter, renderSidebar, same, showRows, state, tabType, vlist } from './state.js';
+import { ROW_H, groupOfType, isCollection, listNavigation, liveGroupOf, openItemMenu, refreshRows, favouriteChanged, renderSidebar, same, showRows, state, tabType, vlist } from './state.js';
 import { renderSeriesFavorite } from './playercontrols.js';
 import { favCategorySubtitle, openFavCategory, removeFromHistory, toggleFavCategory } from './collections.js';
 import { el } from './dom.js';
@@ -313,12 +313,8 @@ export function toggleFavorite(item) {
   else state.favorites.set(key, { ...stripItem(item), addedAt: Date.now() });
   store.setFavorite(key, state.favorites.get(key) || null);
   if (state.tab === 'fav') { renderSidebar(); refreshRows({ keepScroll: true }); }
-  else {
-    markFavorite(vlist.nodes.get(state.rowIndex.get(key)), state.favorites.has(key));
-    refreshFavouriteFilter();
-  }
-  // The start page's cards of the same title, wherever the star was given.
-  for (const button of document.querySelectorAll(`.idle-star[data-fav="${CSS.escape(key)}"]`)) setStar(/** @type {HTMLElement} */ (button), state.favorites.has(key));
+  else markFavorite(vlist.nodes.get(state.rowIndex.get(key)), state.favorites.has(key));
+  favouriteChanged(item);
   renderSeriesFavorite();
   favoritesChanged();
 }

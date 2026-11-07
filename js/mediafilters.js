@@ -75,24 +75,54 @@ export function filterMedia(entries, filters, isFavourite = () => false) {
   }).map(entry => entry.item);
 }
 
+/**
+ * A chip of what narrows a list, "Sport ×": the × in the stylesheet, the
+ * name for a screen reader "Remove filter: Sport". Both folds' chips.
+ * @param {string} label
+ * @param {() => void} onClick
+ */
+export function filterChip(label, onClick) {
+  const button = document.createElement('button');
+  button.type = 'button';
+  button.className = 'filter-chip';
+  button.textContent = label;
+  button.setAttribute('aria-label', t('filters.remove', { filter: label }));
+  button.addEventListener('click', onClick);
+  return button;
+}
+
+/** Reset, after the chips. @param {() => void} onClick */
+export function resetButton(onClick) {
+  const button = document.createElement('button');
+  button.type = 'button';
+  button.className = 'media-filter-reset';
+  button.textContent = t('filters.reset');
+  button.addEventListener('click', onClick);
+  return button;
+}
+
 /** Movies and series keep separate choices, kept across reloads (persist). */
 export class MediaFilters {
-  constructor(host, onChange, detailsFor = item => item.details, activeHost = null, isFavourite = () => false) {
+  /**
+   * @param {HTMLDetailsElement} host
+   * @param {{ onChange: () => any, detailsFor?: (item: any) => any, activeHost?: HTMLElement | null,
+   *   isFavourite?: (item: any) => boolean, persist?: ((values: object) => void) | null }} options
+   */
+  constructor(host, { onChange, detailsFor = (item) => item.details, activeHost = null, isFavourite = () => false, persist = null }) {
     this.host = host;
     this.isFavourite = isFavourite;
     this.activeHost = activeHost;
     this.onChange = onChange;
     this.detailsFor = detailsFor;
     this.values = { movie: emptyFilters(), series: emptyFilters() };
-    /** @type {((values: object) => void) | null} */
-    this.persist = null;
+    this.persist = persist;
     this.type = null;
     // Each row's facts, kept with the details they were read from: a film's
     // details arriving rescans the list for the menus, and reading 55,000
     // titles' facts afresh each time was the cost of it.
     this.facts = new WeakMap();
-    // The same heading as the favourites above the list: a mark, the name,
-    // what it counts and the fold, see .section-toggle in player.css.
+    // The same heading as "Filter channels": a mark, the name, what it
+    // counts and the fold, see .section-toggle in player.css.
     this.summary = document.createElement('summary');
     this.summary.className = 'section-toggle';
     this.summary.insertAdjacentHTML('afterbegin', '<svg class="section-icon" viewBox="0 0 20 20" aria-hidden="true"><path d="M3 4.5h14l-5.5 6.2v4.8l-3 1.5v-6.3z"/></svg>');
@@ -137,10 +167,7 @@ export class MediaFilters {
     // force (renderActive), where it is needed.
     const foot = document.createElement('div');
     foot.className = 'media-filter-footer';
-    this.reset = document.createElement('button');
-    this.reset.type = 'button';
-    this.reset.className = 'media-filter-reset';
-    this.reset.addEventListener('click', () => this.clear());
+    this.reset = resetButton(() => this.clear());
     foot.append(favs);
     this.host.append(this.summary, controls, foot);
   }
@@ -346,7 +373,6 @@ export class MediaFilters {
     const active = Object.values(filters).some(Boolean);
     foldSummary(this.caption, this.count, { label: t('filters.title'), shown: results.length, total: rows.length, active });
     this.reset.textContent = t('filters.reset');
-    this.reset.disabled = !active;
     this.renderActive(filters);
     return results;
   }
@@ -361,12 +387,7 @@ export class MediaFilters {
       const field = this.fields[key];
       const label = key === 'favs' ? t('filters.favs') : key === 'length' ? `${t('title.duration')}: ${this.lengthText.textContent}`
         : `${field.text.textContent}: ${field.select.selectedOptions[0]?.textContent || value}`;
-      const button = document.createElement('button');
-      button.type = 'button';
-      button.className = 'filter-chip';
-      button.textContent = label;
-      button.setAttribute('aria-label', t('filters.remove', { filter: label }));
-      button.addEventListener('click', async () => {
+      const button = filterChip(label, async () => {
         const heldFocus = document.activeElement === button;
         filters[key] = '';
         await this.changed();

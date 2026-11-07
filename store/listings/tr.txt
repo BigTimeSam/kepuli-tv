@@ -46,7 +46,8 @@ NELER SUNUYOR
   ve kontrast ayarlarını izler.
 • 30 dilde. Sen başka bir dil seçene kadar tarayıcının dilini konuşur.
 • Tüm kanalların programlarında tek seferde ara.
-• Filmleri yıla, puana ve süreye göre süz.
+• Filmleri yıla, puana ve süreye göre süz ya da sadece favorilerini göster.
+• Her film listede bir kez, dil sürümleri film sayfasında.
 
 
 GİZLİLİK ODAKLI TASARIM

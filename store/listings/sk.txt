@@ -41,7 +41,8 @@ postavený na jednom nápade: obrovský katalóg má pôsobiť malý.
   riadi nastavením veľkosti textu a kontrastu.
 • V 30 jazykoch. Hovorí jazykom tvojho prehliadača, kým nevyberieš iný.
 • Prehľadaj relácie všetkých kanálov naraz.
-• Filtruj filmy podľa roka, hodnotenia a dĺžky.
+• Filtruj filmy podľa roka, hodnotenia a dĺžky či zobraz len obľúbené.
+• Každý film v zozname len raz, jeho jazykové verzie na jeho stránke.
 
 
 SÚKROMIE V ZÁKLADE

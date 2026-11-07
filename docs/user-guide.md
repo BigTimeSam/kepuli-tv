@@ -43,9 +43,8 @@ of your choosing — and saving connects to it; **Cancel** in its row takes it
 away again. An Xtream server needs its server, user name and password; a
 playlist that needs no sign-in, such as a free one, goes under **Playlist
 address (M3U)**. A new account's form starts on **Playlist address (M3U)**,
-as the first run does. Once there are two, the top bar carries the
-name of the account in use, and a click on it lists the others: one click
-switches. Each account keeps its own favourites, history, resume points,
+as the first run does. Once there are two, **Use** in another account's
+row switches to it. Each account keeps its own favourites, history, resume points,
 reminders and channel lists, and its own catalogue in the cache, so switching
 back is quick. **Remove** takes an account and its lists away, after asking twice.
 
@@ -82,9 +81,11 @@ recorded.
 the end of the programme on now (with a few minutes over), or until it is
 stopped when the guide does not know the programme. In the guide, **Record** on
 a programme on now or later plans it, a minute before to three minutes after.
-The recordings are listed under **Recordings** in the top bar and the player's
-`☰` menu, where each can be played, saved to the computer as a `.ts` file (an
-`.mp4` for an fMP4 HLS channel) or deleted.
+While a channel is recorded, the dot on its **Stop** button beats; a recording
+under way that the button does not show (another channel, a film playing)
+beats as a dot on `☰`. The recordings are listed under **Recordings** in the
+player's `☰` menu, where each can be played, saved to the computer as a `.ts`
+file (an `.mp4` for an fMP4 HLS channel) or deleted.
 
 A recording is the stream as the provider sends it, written to the browser's own
 storage (`js/recorder.js`, the origin private file system) in parts of a few
@@ -306,7 +307,7 @@ interrupted channel-list load restores the previous list.
   the browser has not allowed Kepuli-TV to reach the server, it says that
   too, and **Allow access** comes first among the buttons.
 - When a stream does not start, the message names the controls as they read
-  on screen: **Auto** under the picture can be set to **TS** or **HLS**, and
+  on screen: **Playback mode: Automatic** under the picture can be set to **TS** or **HLS**, and
   the ☰ menu opens the stream in an external player. When the account turns
   out to be the reason (run out, shut, or every connection in use), the
   message says that instead, since another try or format would not help.
@@ -393,7 +394,7 @@ interrupted channel-list load restores the previous list.
 - **Recording** a live channel now or a programme from the guide, to the
   browser's own storage, played back or saved as a file — see
   [Recording](#recording)
-- **Several accounts**, switched from the top bar, each with its own lists
+- **Several accounts**, switched in Settings › Connection, each with its own lists
 - **Sync between computers** through the browser's own sync, off until asked for
 - **A one-question form when the extension is removed** (`runtime.setUninstallURL` in
   `background.js`): why the viewer left, one click and Submit, on Google Forms. The
@@ -501,8 +502,7 @@ back gesture returns. `f` still takes the picture alone full screen, and
 leaving it returns to the player still full screen. Where the bar does not fit on one row
 — a tablet held upright, a window at half a screen — Refresh, Help, the theme,
 Full screen and Settings go behind a hamburger (☰) at its right end, the
-search takes the room that is left, and the bar stays on one row; the
-recordings and the account switch stay in sight. Whether it fits is measured,
+search takes the room that is left, and the bar stays on one row. Whether it fits is measured,
 so a language with longer tab names makes the switch at a wider window. The sun and moon is the quick switch; Settings > Viewing > Appearance starts on *Automatic*, named with the theme it comes to now (*Automatic (dark)*), which follows the operating system's light or dark mode while the player is open; a press of the switch picks the other of what is on screen and keeps it. The picture and the bar
 under it stay dark in either, and the choice is kept with the settings and
 copied to `localStorage`, so a light theme does not flash dark at start
@@ -524,7 +524,7 @@ remaining player controls are below the picture:
 
 | Button | Action |
 | --- | --- |
-| `Auto` `TS` `HLS` (a film frame) | the engine for a live channel; `Auto` is described below |
+| **Playback mode** `Automatic` `TS` `HLS` (a film frame) | the engine for a live channel; *Automatic* is described below (the name before the value where the bar has room) |
 | the audio selector | the track, on a file that carries more than one; `a` steps to the next |
 | the subtitle selector (a caption box) | the language, on a file that carries subtitles |
 | `Aa` | the look and the size of the subtitles, over the picture they are judged against |

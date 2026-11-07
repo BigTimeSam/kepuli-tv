@@ -42,7 +42,8 @@ CO ZÍSKÁŠ
   respektuje velikost textu i nastavení kontrastu.
 • Ve 30 jazycích. Mluví řečí tvého prohlížeče, dokud nevybereš jinou.
 • Prohledej pořady všech kanálů najednou.
-• Filtruj filmy podle roku, hodnocení a délky.
+• Filtruj filmy podle roku, hodnocení a délky nebo zobraz jen oblíbené.
+• Každý film v seznamu jen jednou, jeho jazykové verze na jeho stránce.
 
 
 SOUKROMÍ JAKO ZÁKLAD

@@ -43,15 +43,6 @@
   </div>
 
   <div class="topbar-end">
-    <!-- The account in use, and the others a click away, in the app's own
-         drop-down (js/picker.js). Shown only once there is more than one:
-         with one account there is nothing to switch to. Adding, changing and
-         removing accounts belong to Settings alone. -->
-    <label class="account-switch" id="account-switch" hidden><svg viewBox="0 0 20 20" aria-hidden="true"><circle cx="10" cy="7" r="3.2"/><path d="M3.8 17a6.2 6.2 0 0 1 12.4 0"/></svg><select id="account-pick" data-i18n-title="accounts.switch" data-i18n-label="accounts.switch"></select></label>
-    <!-- The recordings: shown once there is one, made or planned, and red
-         while one is being made, so that a recording under way is never out
-         of sight. -->
-    <button type="button" id="btn-recordings" class="ghost recordings-button" data-i18n-title="rec.title" hidden><span class="rec-dot" aria-hidden="true"></span><span class="button-label" id="btn-recordings-label" data-i18n="rec.title">Recordings</span></button>
     <!-- Refresh and Help are wanted now and then, so they are marks with
          their names in the label and the tooltip; Settings keeps its word
          where there is room for it. -->
@@ -129,8 +120,7 @@
     </label>
     <div class="crumbs" id="crumbs" hidden></div>
     <!-- The channels' "Filter channels": the country's topics, moved in by
-         js/listfilters.js, which also puts the favourites strip inside the
-         films' filters. -->
+         js/listfilters.js, and "Show only favourites" at its foot. -->
     <details class="media-filters channel-filters" id="channel-filters" hidden>
       <summary class="section-toggle">
         <svg class="section-icon" viewBox="0 0 20 20" aria-hidden="true"><path d="M3 4.5h14l-5.5 6.2v4.8l-3 1.5v-6.3z"/></svg>
@@ -316,9 +306,10 @@
              switch does: "Auto" and "No subtitles" alone did not say what
              they choose. A film frame for the stream's format (Auto, TS,
              HLS), a caption box for the subtitles. The label hides with its
-             selector (css: .select-mark:has(> select[hidden])). -->
-        <label class="select-mark" id="mode-pick"><svg viewBox="0 0 20 20" aria-hidden="true"><rect x="2.5" y="3.5" width="15" height="13" rx="1.5"/><path d="M6 3.5v13M14 3.5v13M2.5 7.5H6M2.5 12.5H6M14 7.5h3.5M14 12.5h3.5"/></svg><select id="mode" data-i18n-title="player.mode.title">
-          <option value="auto" data-i18n="player.mode.auto">Auto</option>
+             selector (css: .select-mark:has(> select[hidden])). The format's
+             name, "Playback mode: Automatic", where the bar has room for it. -->
+        <label class="select-mark" id="mode-pick"><svg viewBox="0 0 20 20" aria-hidden="true"><rect x="2.5" y="3.5" width="15" height="13" rx="1.5"/><path d="M6 3.5v13M14 3.5v13M2.5 7.5H6M2.5 12.5H6M14 7.5h3.5M14 12.5h3.5"/></svg><span class="select-label" id="mode-label" data-i18n="player.mode.title" aria-hidden="true">Playback mode</span><select id="mode" data-i18n-title="player.mode.title">
+          <option value="auto" data-i18n="player.mode.auto">Automatic</option>
           <option value="ts">TS</option>
           <option value="hls">HLS</option>
         </select></label>
@@ -332,6 +323,10 @@
         <!-- A live channel recorded from now on: to the end of the programme
              on now when the guide knows it, else until stopped. -->
         <button type="button" id="btn-record" class="ghost record-button" aria-pressed="false" hidden><span class="rec-dot" aria-hidden="true"></span><span class="button-label" id="btn-record-label" data-i18n="rec.start">Record</span></button>
+        <!-- A recording under way on another channel, or while a film
+             plays, shows as a beating dot on ☰, where the recordings are:
+             the top bar's own Recordings button blinked for the one being
+             made beside it (js/recordingsui.js renderRecordingState). -->
         <button type="button" id="btn-more" class="ghost icon" data-i18n-title="player.more" data-i18n-label="player.more" aria-haspopup="menu" aria-expanded="false" aria-controls="more-pop">
           <svg viewBox="0 0 20 20" aria-hidden="true"><path d="M3 5.5h14M3 10h14M3 14.5h14"/></svg>
         </button>
@@ -498,10 +493,10 @@
       <h2 id="recordings-title" data-i18n="rec.title">Recordings</h2>
       <button type="button" data-modal-close></button>
     </div>
-    <p class="editor-help" id="recordings-empty" data-i18n="rec.empty">Nothing recorded yet. Record a channel from the player, or a programme from the guide.</p>
+    <div class="recordings-empty" id="recordings-empty" hidden></div>
     <div id="recordings-list" class="choice-list recordings-list" role="list" aria-labelledby="recordings-title"></div>
     <div class="choice-actions modal-actions">
-      <span id="recordings-note" data-i18n="rec.note">Recordings are made in this browser, while Kepuli-TV is open in a tab.</span>
+      <span id="recordings-note"></span>
       <button type="button" id="recordings-close" class="primary" data-i18n="hidden.done">Done</button>
     </div>
   </div>
@@ -572,7 +567,7 @@
       </section>
       <section class="setup-group" aria-labelledby="group-channels">
         <h3 id="group-channels" data-i18n="tab.live">Channels</h3>
-        <div class="setup-row">
+        <div class="group-head">
           <button type="button" id="f-countries" class="ghost" data-i18n="countries.button">Filter countries</button>
           <button type="button" class="hint-btn" aria-expanded="false" aria-controls="countries-hint" data-i18n-label="btn.help">?</button>
         </div>
@@ -803,7 +798,7 @@ before the storm closes the road.</div></div>
       </section>
       <!-- Sync acts at once, like the buttons below: it is a choice about
            this browser rather than a preference to save with the rest. -->
-      <section class="setup-group sync-box" id="sync-box" aria-labelledby="sync-title">
+      <section class="setup-group" id="sync-box" aria-labelledby="sync-title">
         <div class="group-head">
           <h3 id="sync-title" data-i18n="sync.title">Sync between computers</h3>
           <button type="button" class="hint-btn" aria-expanded="false" aria-controls="sync-hint" data-i18n-label="btn.help">?</button>

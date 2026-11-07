@@ -11,6 +11,9 @@
 // following it while the player is open. It is the default, shown in
 // Settings as Automatic with the theme it comes to now.
 
+import { $ } from './dom.js';
+import { t } from './i18n.js';
+
 export const THEMES = ['dark', 'light', 'system'];
 const KEY = 'kepuli-theme';
 const lightSystem = matchMedia('(prefers-color-scheme: light)');
@@ -39,4 +42,20 @@ export function earlyTheme() {
 /** Calls back when the system changes its mode while 'system' is chosen. */
 export function onSystemTheme(callback) {
   lightSystem.addEventListener('change', () => { if (chosen === 'system') callback(); });
+}
+
+/**
+ * The theme in force, and the button that changes it: the button shows
+ * and names the theme it leads to, a sun in the dark and a moon in the
+ * light, so that its label says what a press will do.
+ * @param {string} setting the theme setting: dark, light or system
+ */
+export function renderTheme(setting) {
+  const theme = applyTheme(setting);
+  const button = $('btn-theme');
+  const next = theme === 'light' ? 'dark' : 'light';
+  button.dataset.next = next;
+  button.dataset.i18nLabel = button.dataset.i18nTitle = `theme.to.${next}`;
+  button.setAttribute('aria-label', t(`theme.to.${next}`));
+  button.title = t(`theme.to.${next}`);
 }

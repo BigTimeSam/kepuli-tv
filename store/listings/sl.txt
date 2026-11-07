@@ -45,7 +45,8 @@ KAJ DOBIŠ
   nastavitvam velikosti besedila in kontrasta.
 • V 30 jezikih. Govori jezik tvojega brskalnika, dokler ne izbereš drugega.
 • Preišči oddaje vseh kanalov hkrati.
-• Filme filtriraj po letu, oceni in dolžini.
+• Filme filtriraj po letu, oceni in dolžini ali prikaži samo priljubljene.
+• Vsak film na seznamu enkrat, njegove jezikovne različice na njegovi strani.
 
 
 ZASEBNOST ŽE V ZASNOVI

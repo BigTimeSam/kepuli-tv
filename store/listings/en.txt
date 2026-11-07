@@ -43,7 +43,8 @@ WHAT YOU GET
 • In 30 languages. It speaks your browser's language until you choose
   another.
 • Search the programmes of every channel at once.
-• Filter movies by year, rating and length.
+• Filter movies by year, rating and length, or show only your favourites.
+• Each film once in the list, its language versions on its own page.
 
 
 PRIVATE BY DESIGN

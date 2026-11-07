@@ -517,7 +517,7 @@ async function buffering(page) {
   if (!seen.some((v) => v.bar > 0)) problems.push('no bar');
   // The speed stands with the bytes, or — the film's bit rate known —
   // under them against what the film needs.
-  if (!seen.some((v) => / \/ /.test(v.figures) && (/ · .*\/s$/.test(v.figures) || / Mbit\/s \| needs .* Mbit\/s$/.test(v.slow)))) {
+  if (!seen.some((v) => / \/ /.test(v.figures) && (/, .*\/s$/.test(v.figures) || / Mbit\/s \| needs .* Mbit\/s$/.test(v.slow)))) {
     problems.push(`no bytes against a total with a speed: ${[...new Set(seen.map((v) => `${v.figures} ${v.slow}`))].slice(-3).join(' | ')}`);
   }
   if (!seen.some((v) => /^1\d s$/.test(v.elapsed))) problems.push('no time waited after ten seconds');
@@ -577,7 +577,7 @@ async function livebuffering(page) {
     const start = seen.filter((v) => v.overlay && !v.stall && /^Buffering/.test(v.title));
     if (start.some((v) => v.bar != null || v.title !== 'Buffering…')) problems.push('the live start showed a share, which it cannot know');
     // The start is over within a second here, too soon for a speed.
-    if (!start.some((v) => /^\d+ kB( · \d+ kB\/s)?$/.test(v.figures))) problems.push(`the live start showed no bytes: ${[...new Set(start.map((v) => v.figures))].join(' | ')}`);
+    if (!start.some((v) => /^\d+ kB(, \d+ kB\/s)?$/.test(v.figures))) problems.push(`the live start showed no bytes: ${[...new Set(start.map((v) => v.figures))].join(' | ')}`);
     const stalled = seen.filter((v) => v.overlay && v.stall);
     if (!stalled.length) problems.push('no stall was shown');
     if (!stalled.some((v) => /\d+ kB\/s/.test(v.figures))) problems.push(`the stall showed no speed: ${[...new Set(stalled.map((v) => v.figures))].join(' | ')}`);
@@ -3142,7 +3142,7 @@ async function programmes(page, { requests }) {
   const grouped = await evaluate(page, `(() => {
     const heads = [...document.querySelectorAll('.psr-head')];
     return { heads: heads.length, rows: document.querySelectorAll('.psr-row').length, logo: !!heads[0]?.querySelector('.psr-logo'),
-      firstIsHead: document.querySelector('.psr-head, .psr-row')?.classList.contains('psr-head'), count: document.getElementById('programme-status').textContent.split('·')[0].replace(/[^0-9]/g, '') }; })()`);
+      firstIsHead: document.querySelector('.psr-head, .psr-row')?.classList.contains('psr-head'), count: document.getElementById('programme-status').textContent.split(', ')[0].replace(/[^0-9]/g, '') }; })()`);
   assert(grouped.heads > 0 && grouped.rows > 0 && grouped.logo && grouped.firstIsHead && Number(grouped.count) > 0, `programme title search, by channel: ${JSON.stringify(grouped)}`);
   assert(await evaluate(page, `getComputedStyle(document.getElementById('epg-body')).display === 'none'`), 'grid not replaced by programme results');
   const before = requests.filter((r) => r.includes('get_simple_data_table')).length;
@@ -3151,7 +3151,7 @@ async function programmes(page, { requests }) {
   assert(requests.filter((r) => r.includes('get_simple_data_table')).length === before, 'repeated search refetched cached full tables');
   await search('No-such-programme-38472');
   const empty = await evaluate(page, `({ status: document.getElementById('programme-status').textContent, notice: document.getElementById('programme-empty').hidden ? null : document.getElementById('programme-empty').textContent, list: document.getElementById('programme-results').hidden })`);
-  assert(empty.status.startsWith('Results: 0 ·') && !/finished/i.test(empty.status) && empty.notice?.includes('No-such-programme-38472') && empty.list, `an empty search: ${JSON.stringify(empty)}`);
+  assert(empty.status.startsWith('Results: 0,') && !/finished/i.test(empty.status) && empty.notice?.includes('No-such-programme-38472') && empty.list, `an empty search: ${JSON.stringify(empty)}`);
   // A channel's own name finds it, though no programme on it is called so.
   const channelName = await evaluate(page, `document.querySelector('#epg-chans-inner .epg-chan-name')?.textContent || ''`);
   await search(channelName);
@@ -3168,7 +3168,7 @@ async function programmes(page, { requests }) {
     const head = shown.find((n) => n.matches('button.psr-head'));
     const after = shown.slice(shown.indexOf(head) + 1);
     const firstRows = after.findIndex((n) => !n.matches('.psr-row'));
-    return { count: Number(document.getElementById('programme-status').textContent.split('·')[0].replace(/[^0-9]/g, '')), dom: shown.length, expanded: head?.getAttribute('aria-expanded'),
+    return { count: Number(document.getElementById('programme-status').textContent.split(', ')[0].replace(/[^0-9]/g, '')), dom: shown.length, expanded: head?.getAttribute('aria-expanded'),
       n: head?.querySelector('.psr-n').textContent, rows: firstRows, more: after[firstRows]?.textContent, heads: document.querySelectorAll('.psr-head').length };
   })()`);
   assert(wide.count > 200 && wide.expanded === 'false' && wide.rows === 3 && wide.more === `Show all ${wide.n}` && wide.dom < 60,
@@ -4104,15 +4104,13 @@ async function m3u(page, { target, requests }) {
   await click(page, '#list', 'Silent Fjord');
   await waitFor(page, `!document.getElementById('detail').hidden && document.querySelectorAll('#list .row').length > 5`, 'the episodes');
   const episodes = await evaluate(page, `document.querySelectorAll('#list .row').length`);
-  // The account menu: shown with two accounts, and a click switches.
-  const picked = (name) => `(() => { const s = document.getElementById('account-pick'); return s.options[s.selectedIndex]?.text === '${name}'; })()`;
-  assert(await evaluate(page, `!document.getElementById('account-switch').hidden && ${picked('Demo playlist')}`), 'the account switch is not there');
-  // The app's own drop-down opens on a press of the select.
-  await evaluate(page, `document.getElementById('account-pick').dispatchEvent(new MouseEvent('mousedown', { bubbles: true, button: 0 }))`, { gesture: true });
-  await evaluate(page, `[...document.querySelectorAll('.picker-pop .picker-option')].find((li) => li.textContent === 'Demo server').click()`, { gesture: true });
-  // The select shows the choice at once; the switch is done when the
-  // stored account is the other one and its server has been asked.
-  await waitFor(page, `${picked('Demo server')} && chrome.storage.local.get('config').then((d) => d.config.id === 'pxt')`, 'the Xtream account');
+  // Another account is chosen in Settings (the top bar has no switch: it
+  // is done seldom): its row's Use. The switch is done when the stored
+  // account is the other one and its server has been asked.
+  await evaluate(page, `document.getElementById('btn-settings').click()`, { gesture: true });
+  await waitFor(page, `document.getElementById('setup').open && document.querySelectorAll('#account-list .account-row').length === 2`, 'the accounts in Settings');
+  await evaluate(page, `[...document.querySelectorAll('#account-list .account-row')].find((r) => r.textContent.includes('Demo server')).querySelector('button.ghost').click()`, { gesture: true });
+  await waitFor(page, `!document.getElementById('setup').open && chrome.storage.local.get('config').then((d) => d.config.id === 'pxt')`, 'the Xtream account');
   for (let i = 0; i < 40 && !requests.some((r) => r.startsWith('/player_api.php')); i++) await sleep(250);
   await waitFor(page, CONNECTED, 'the Xtream account connected');
   assert(requests.some((r) => r.startsWith('/player_api.php')), 'the switch did not reach the Xtream account');
@@ -4427,7 +4425,7 @@ async function record(page) {
     assert(await evaluate(page, PLAYING), 'the picture stopped while recording');
     const during = connectionStats();
     assert(during.refused.length === before.refused.length && during.open === 1, `while recording: ${during.open} open, refused ${during.refused.slice(before.refused.length).join(' | ')}`);
-    assert(await evaluate(page, `document.getElementById('btn-record').getAttribute('aria-pressed') === 'true' && document.getElementById('btn-recordings').classList.contains('on')`), 'the buttons do not show the recording');
+    assert(await evaluate(page, `document.getElementById('btn-record').getAttribute('aria-pressed') === 'true' && !document.getElementById('btn-more').classList.contains('recording')`), 'the Record button does not show the recording, or ☰ shows it twice');
     await evaluate(page, `document.getElementById('btn-record').click()`, { gesture: true });
     await waitFor(page, `chrome.storage.local.get('recordings').then((d) => (d.recordings || []).some((r) => r.state === 'done'))`, 'the recording saved', 20000);
     const [done] = await list();
@@ -4444,7 +4442,7 @@ async function record(page) {
     })()`);
     assert(onDisk.size === done.bytes && onDisk.first === 0x47, `on the disk ${JSON.stringify(onDisk)}, listed ${done.bytes}`);
     // Played back from the disk.
-    await evaluate(page, `document.getElementById('btn-recordings').click()`, { gesture: true });
+    await evaluate(page, `document.getElementById('btn-recordings-menu').click()`, { gesture: true });
     await waitFor(page, `document.getElementById('recordings').open && document.querySelectorAll('#recordings-list .choice-row').length === 1`, 'the recordings');
     await evaluate(page, `[...document.querySelectorAll('#recordings-list button')].find((b) => b.textContent === 'Play').click()`, { gesture: true });
     await waitFor(page, `${PLAYING} && document.getElementById('video').currentTime > 2`, 'the recording played back', 30000);
@@ -4701,6 +4699,9 @@ async function programmekeys(page, { requests }) {
   await evaluate(page, `${rowAt(past)}.then((row) => row.focus())`);
   await enter();
   await waitFor(page, `(async () => Boolean(${app}.state.catchup))()`, 'the recording after Enter', 10000);
+  // The request reaches the server a moment after the state says catch-up:
+  // asked at once, a slower machine (CI) had not sent it yet.
+  for (let i = 0; i < 50 && requests.filter((r) => r.startsWith('/timeshift/')).length <= archived; i++) await sleep(100);
   assert(requests.filter((r) => r.startsWith('/timeshift/')).length > archived, 'Enter did not ask for the archive');
 
   // Escape: the search first, then the guide.
@@ -5533,6 +5534,20 @@ async function filmdetails(page) {
       covers[id] = await evaluate(page, `(async () => Boolean(await ${cardOf(id)}))()`);
     }
     assert(covers['5000'] && !covers['90001'] && !covers['90002'] && covers['90003'], `the copies in the list: ${JSON.stringify(covers)}`);
+    // A copy not shown starred (from its own page, say): the card becomes
+    // that copy, starred, and "Show only favourites" keeps it.
+    const swapped = await evaluate(page, `(async () => { const { state } = ${app}; const { toggleFavorite } = await import('./js/coversui.js');
+      toggleFavorite(state.titleRows.find((x) => String(x.id) === '90001'));
+      await new Promise((r) => setTimeout(r, 500));
+      const shown = state.rows.some((x) => String(x.id) === '90001') && !state.rows.some((x) => String(x.id) === '5000');
+      document.querySelector('#media-filters .media-filter-favs input').click();
+      await new Promise((r) => setTimeout(r, 500));
+      const kept = state.rows.map((x) => String(x.id));
+      document.querySelector('#media-filters .media-filter-favs input').click();
+      toggleFavorite(state.titleRows.find((x) => String(x.id) === '90001'));
+      await new Promise((r) => setTimeout(r, 300));
+      return { shown, kept }; })()`);
+    assert(swapped.shown && swapped.kept.join() === '90001', `a starred copy in the list: ${JSON.stringify(swapped)}`);
     // Seen to the end, as the history marks it; another only started is not.
     await evaluate(page, `(async () => { const { state, vlist } = ${app}; const film = state.rows.find((x) => x.id === '5001');
       state.recents = [{ ...film, watchedAt: Date.now(), seen: Date.now() }, { ...state.rows.find((x) => x.id === '5002'), watchedAt: Date.now() }, ...state.recents];

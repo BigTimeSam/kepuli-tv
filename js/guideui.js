@@ -8,7 +8,6 @@
 
 import { EpgGrid, catchupAvailable } from './epggrid.js';
 import { ProgrammeSearch } from './programmesearch.js';
-import { applyTheme } from './theme.js';
 import { clock, duration } from './format.js';
 import { freshItem, listName } from './coversui.js';
 import { playCatchup, recordingOf, recordingOn, toggleProgrammeRecording } from './recordingsui.js';
@@ -133,20 +132,6 @@ export function closeGuide() {
 }
 
 /** A group selector for the guide: the sidebar is hidden in guide mode. */
-/**
- * The theme in force, and the button that changes it: the button shows
- * and names the theme it leads to, a sun in the dark and a moon in the
- * light, so that its label says what a press will do.
- */
-export function renderTheme() {
-  const theme = applyTheme(state.settings.theme);
-  const button = $('btn-theme');
-  const next = theme === 'light' ? 'dark' : 'light';
-  button.dataset.next = next;
-  button.dataset.i18nLabel = button.dataset.i18nTitle = `theme.to.${next}`;
-  button.setAttribute('aria-label', t(`theme.to.${next}`));
-  button.title = t(`theme.to.${next}`);
-}
 
 /* The guide's favourites. */
 

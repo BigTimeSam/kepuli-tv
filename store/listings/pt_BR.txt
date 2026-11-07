@@ -44,7 +44,8 @@ O QUE VOCÊ TEM
   tamanho do texto e o contraste definidos no seu navegador.
 • Em 30 idiomas. Ele fala o do seu navegador até você escolher outro.
 • Pesquise de uma vez em toda a programação.
-• Filtre filmes por ano, avaliação e duração.
+• Filtre filmes por ano, avaliação e duração ou mostre só seus favoritos.
+• Cada filme uma vez na lista, com as versões de idioma na página dele.
 
 
 PRIVADO POR DESIGN

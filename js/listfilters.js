@@ -15,14 +15,23 @@
 
 import { $, el } from './dom.js';
 import { t } from './i18n.js';
-import { foldOpen, foldSummary } from './mediafilters.js';
+import { filterChip, foldOpen, foldSummary, resetButton } from './mediafilters.js';
 import * as store from './config.js';
 import { isCollection, refreshRows, state, visibleRows, withoutInternational } from './state.js';
 import { selectSub } from './topicbar.js';
+import { isFavorite, topicLabel } from './collections.js';
 
 // "Show only favourites" in "Filter channels", kept across reloads as the
 // films' filters are (js/mediafilters.js).
-export let channelFavsOnly = false;
+let channelFavsOnly = false;
+
+/** A country's channels as "Filter channels" narrows them beyond its topic. */
+export function filterChannels(rows) {
+  return channelFavsOnly ? rows.filter(isFavorite) : rows;
+}
+
+/** Whether a star changes what "Filter channels" shows. */
+export const channelsByFavourite = () => channelFavsOnly;
 
 function setChannelFavs(on) {
   channelFavsOnly = on;
@@ -57,7 +66,21 @@ function moveInto(node, parent) {
   if (node.parentElement !== parent) parent.append(node);
 }
 
-export function wireListFilters(ui) {
+/**
+ * Both folds wired from what was stored: open or folded, and their choices
+ * ("Filter titles"' through its MediaFilters, js/mediafilters.js).
+ * @param {Record<string, any>} ui
+ * @param {import('./mediafilters.js').MediaFilters} mediaFilters
+ */
+export function wireListFilters(ui, mediaFilters) {
+  // The films' fold used to open itself on every visit to Movies and Series
+  // and take about 140 px off the top of the list, whether or not anyone
+  // was filtering. It stays however it was left (foldOpen).
+  const titles = $('media-filters');
+  titles.open = foldOpen(ui.filtersOpen);
+  titles.addEventListener('toggle', () => store.saveUiState({ filtersOpen: titles.open }));
+  mediaFilters.restore(ui.mediaFilters);
+  mediaFilters.persist = (values) => store.saveUiState({ mediaFilters: values });
   panel = $('channel-filters');
   body = $('channel-filters-body');
   count = $('channel-filters-count');
@@ -104,27 +127,12 @@ export function placeListFilters(rows) {
  */
 function renderChannelChips() {
   const host = $('active-channel-filters');
-  const topic = state.sub == null ? ''
-    : (el.subcats.querySelector('.chip.active .chip-main')?.firstChild?.textContent || state.lib?.categoryName('live', state.sub) || '').trim();
-  const chip = (label, onClick) => {
-    const button = document.createElement('button');
-    button.type = 'button';
-    button.className = 'filter-chip';
-    button.textContent = label;
-    button.setAttribute('aria-label', t('filters.remove', { filter: label }));
-    button.addEventListener('click', onClick);
-    return button;
-  };
+  const cat = state.sub == null ? null : state.lib?.group('live', state.group)?.cats.find((c) => c.id === state.sub);
+  const topic = state.sub == null ? '' : cat ? topicLabel(cat) : state.lib?.categoryName('live', state.sub) || '';
   const chips = [
-    ...(topic ? [chip(topic, () => selectSub(null))] : []),
-    ...(channelFavsOnly ? [chip(t('filters.favs'), () => showChannelFavs(false))] : []),
+    ...(topic ? [filterChip(topic, () => selectSub(null))] : []),
+    ...(channelFavsOnly ? [filterChip(t('filters.favs'), () => showChannelFavs(false))] : []),
   ];
   host.hidden = !chips.length;
-  if (!chips.length) { host.replaceChildren(); return; }
-  const reset = document.createElement('button');
-  reset.type = 'button';
-  reset.className = 'media-filter-reset';
-  reset.textContent = t('filters.reset');
-  reset.addEventListener('click', () => { setChannelFavs(false); if (state.sub != null) selectSub(null); else refreshRows(); });
-  host.replaceChildren(...chips, reset);
+  host.replaceChildren(...chips, ...(chips.length ? [resetButton(() => { setChannelFavs(false); if (state.sub != null) selectSub(null); else refreshRows(); })] : []));
 }

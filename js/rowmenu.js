@@ -12,9 +12,7 @@ let open = null;   // { pop, opener, onClose }
 
 /**
  * @param {{ x: number, y: number } | Element} at a point, or the element to sit beside
- * @param {{ label: string, onClick: () => void, danger?: boolean, checked?: boolean, separator?: boolean }[]} items
- *        checked marks the one chosen of several (the account in use);
- *        separator draws a line above the item.
+ * @param {{ label: string, onClick: () => void, danger?: boolean }[]} items
  * @param {{ label?: string, returnFocus?: Element }} [options]
  */
 export function openRowMenu(at, items, { label = '', returnFocus = null } = {}) {
@@ -28,12 +26,7 @@ export function openRowMenu(at, items, { label = '', returnFocus = null } = {}) 
     const button = document.createElement('button');
     button.type = 'button';
     button.className = 'popitem' + (item.danger ? ' danger' : '');
-    button.setAttribute('role', item.checked === undefined ? 'menuitem' : 'menuitemradio');
-    if (item.checked !== undefined) {
-      button.setAttribute('aria-checked', String(item.checked));
-      button.classList.add('radio');
-    }
-    if (item.separator) button.classList.add('separated');
+    button.setAttribute('role', 'menuitem');
     button.tabIndex = -1;
     button.textContent = item.label;
     button.addEventListener('click', () => { closeRowMenu({ focus: true }); item.onClick(); });

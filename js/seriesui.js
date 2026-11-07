@@ -35,9 +35,8 @@ export async function openSeries(item) {
   // Keep the parent list's rules: the episode list is a different set and
   // must not infer new prefixes from its repeated series title.
   // The series' name as its row showed it, or, opened from somewhere else
-  // than the list (a related title, the favourites strip, the empty
-  // player's page), tidied by its own group's rules rather than by the
-  // list's beside it.
+  // than the list (a related title, the empty player's page), tidied by its
+  // own group's rules rather than by the list's beside it.
   const sourceItem = item;
   const seriesTitle = listName(sourceItem);
   // An episode's row says only what the page does not: its own title, the

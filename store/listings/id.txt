@@ -45,7 +45,9 @@ YANG KAMU DAPATKAN
 • Hadir dalam 30 bahasa. Mengikuti bahasa browser-mu sampai kamu memilih yang
   lain.
 • Telusuri semua jadwal sekaligus.
-• Saring film menurut tahun, rating, dan durasi.
+• Saring film menurut tahun, rating, dan durasi, atau tampilkan favoritmu
+  saja.
+• Setiap film muncul sekali, versi bahasanya ada di halamannya.
 
 
 PRIVAT SEJAK AWAL

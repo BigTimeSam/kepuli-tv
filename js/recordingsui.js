@@ -20,6 +20,7 @@ import { renderAudio, renderSubtitles, sizePicture } from './tracksui.js';
 import { channelKey, itemAddress, newPlayRun, playItem, playback, renderNowLogo, renderNowSub } from './playing.js';
 import { toast } from './toast.js';
 import { $, el } from './dom.js';
+import { emptyState, icon } from './rows.js';
 import { grid, guideOpen, refreshGuidePreview } from './guideui.js';
 import { listName, shownName, stripItem } from './coversui.js';
 import { renderInfoStrip } from './infostrip.js';
@@ -202,7 +203,11 @@ async function startDueRecordings() {
   armRecordings();
 }
 
-/** The Record button, and the recordings button in the top bar. */
+/**
+ * The Record button, its dot beating while this channel is recorded, and
+ * the same dot on ☰ (where the recordings are) while one is under way that
+ * the Record button does not show.
+ */
 export function renderRecordingState() {
   const item = state.playing;
   const button = $('btn-record');
@@ -212,13 +217,14 @@ export function renderRecordingState() {
   button.setAttribute('aria-pressed', String(Boolean(running)));
   $('btn-record-label').textContent = t(running ? 'rec.stop' : 'rec.start');
   button.title = running ? t('rec.stop.title', { title: running.title }) : t('rec.start.title');
-  const top = $('btn-recordings');
-  const recordingNow = recordings.some((r) => r.state === 'recording');
-  top.hidden = !recordings.length;
+  const elsewhere = recordings.some((r) => r.state === 'recording') && !running;
+  const more = $('btn-more');
+  more.classList.toggle('recording', elsewhere);
+  // Its name says so too, for a screen reader: the dot is a picture only.
+  more.title = elsewhere ? `${t('player.more')}, ${t('rec.now')}` : t('player.more');
+  more.setAttribute('aria-label', more.title);
   // The list stays reachable while there is anything in it, turned off or not.
   $('btn-recordings-menu').hidden = !recordingOn() && !recordings.length;
-  top.classList.toggle('on', recordingNow);
-  top.title = t(recordingNow ? 'rec.now' : 'rec.title');
   if ($('recordings').open) renderRecordingsList();
 }
 
@@ -227,16 +233,23 @@ export function openRecordings() {
   if (!$('recordings').open) $('recordings').showModal();
 }
 
-/** "20.00–21.05 · 1 h 5 min · 1.2 GB" and the like. */
+/** When, how long and how much: "Today 20.00–21.05", "1 h 5 min", "1.2 GB". */
 function recordingFacts(r) {
   const from = r.startedAt || r.start;
   const to = r.state === 'recording' ? Date.now() : r.endedAt || r.stop;
-  const bits = [r.channel ? shownName(r.channel) : ''];
+  const bits = [];
   bits.push(`${dayLabel(from)} ${clock(from)}${r.stop || r.endedAt ? `–${clock(r.state === 'planned' ? r.stop : to)}` : ''}`);
   if (r.state !== 'planned' && to > from) bits.push(duration(Math.round((to - from) / 1000)));
   if (r.bytes) bits.push(megabytes(r.bytes));
-  return bits.filter(Boolean).join(' · ');
+  return bits;
 }
+
+// The two quieter actions as marks, named in their tooltip and for a
+// screen reader: three words a row made the list a wall of buttons.
+const REC_ICONS = {
+  save: '<path d="M10 3v9.5M6 9l4 4 4-4M4 16.5h12"/>',
+  delete: '<path d="M4 5.5h12M8 5.5V4h4v1.5M5.5 5.5l.8 10.5h7.4l.8-10.5M8.5 8.5v5M11.5 8.5v5"/>',
+};
 
 const RECORDING_STATES = { planned: 'rec.state.planned', recording: 'rec.state.recording', partial: 'rec.state.partial', failed: 'rec.state.failed' };
 
@@ -245,9 +258,15 @@ function renderRecordingsList() {
   const order = { recording: 0, planned: 1 };
   const sorted = recordings.slice().sort((a, b) => (order[a.state] ?? 2) - (order[b.state] ?? 2)
     || (a.state === 'planned' ? a.start - b.start : (b.startedAt || b.start) - (a.startedAt || a.start)));
-  $('recordings-empty').hidden = sorted.length > 0;
+  // Empty, the dialog says so as the empty player's page does: a mark and
+  // a heading, nothing to read through.
+  const empty = $('recordings-empty');
+  empty.hidden = sorted.length > 0;
+  empty.replaceChildren(...(empty.hidden ? [] : [emptyState(t('rec.empty'), [], null, 'record')]));
   const total = recordings.reduce((sum, r) => sum + (r.bytes || 0), 0);
-  $('recordings-note').textContent = total ? `${t('rec.note')} ${t('rec.total', { size: megabytes(total) })}` : t('rec.note');
+  // Only what they take: where and when they are made is said where
+  // recording is turned on.
+  $('recordings-note').textContent = total ? t('rec.total', { size: megabytes(total) }) : '';
   list.replaceChildren(...sorted.map((r) => {
     const row = document.createElement('div');
     row.className = 'choice-row';
@@ -256,9 +275,13 @@ function renderRecordingsList() {
     info.className = 'rec-info';
     const title = document.createElement('b');
     title.textContent = r.title;
+    const channel = document.createElement('small');
+    channel.textContent = r.channel ? shownName(r.channel) : '';
+    // When, how long and how much, apart by space rather than by dots.
     const facts = document.createElement('small');
-    facts.textContent = recordingFacts(r);
-    info.append(title, facts);
+    facts.className = 'rec-facts';
+    facts.append(...recordingFacts(r).map((text) => Object.assign(document.createElement('span'), { textContent: text })));
+    info.append(title, channel, facts);
     if (RECORDING_STATES[r.state]) {
       const stateLine = document.createElement('small');
       stateLine.className = r.state === 'planned' ? '' : 'rec-state';
@@ -269,11 +292,15 @@ function renderRecordingsList() {
     }
     const actions = document.createElement('div');
     actions.className = 'rec-actions';
-    const button = (label, onClick, { danger = false } = {}) => {
+    const button = (label, onClick, { danger = false, mark = '' } = {}) => {
       const b = document.createElement('button');
       b.type = 'button';
-      b.className = danger ? 'ghost danger' : 'ghost';
-      b.textContent = label;
+      b.className = (danger ? 'ghost danger' : 'ghost') + (mark ? ' rec-icon' : '');
+      if (mark) {
+        b.title = label;
+        b.setAttribute('aria-label', label);
+        b.append(icon(REC_ICONS[mark]));
+      } else b.textContent = label;
       b.addEventListener('click', onClick);
       actions.appendChild(b);
       return b;
@@ -282,16 +309,23 @@ function renderRecordingsList() {
     else if (r.state === 'recording') button(t('rec.stop'), () => endRecording(r));
     if ((r.state === 'done' || r.state === 'partial') && r.bytes) {
       button(t('rec.play'), () => playRecording(r));
-      button(t('rec.save'), () => saveRecording(r));
+      button(t('rec.save'), () => saveRecording(r), { mark: 'save' });
     }
     if (r.state !== 'planned' && r.state !== 'recording') {
       // Asked twice: a recording deleted is gone from the disk.
+      // The mark asks in words the second time.
       const del = button(t('rec.delete'), () => {
         if (del.dataset.armed) { deleteRecording(r); return; }
         del.dataset.armed = '1';
+        del.classList.remove('rec-icon');
         del.textContent = t('rec.delete.confirm');
-        setTimeout(() => { if (del.isConnected) { delete del.dataset.armed; del.textContent = t('rec.delete'); } }, 4000);
-      }, { danger: true });
+        setTimeout(() => {
+          if (!del.isConnected) return;
+          delete del.dataset.armed;
+          del.classList.add('rec-icon');
+          del.replaceChildren(icon(REC_ICONS.delete));
+        }, 4000);
+      }, { danger: true, mark: 'delete' });
     }
     row.append(info, actions);
     return row;

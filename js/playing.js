@@ -472,7 +472,7 @@ function renderLoadView() {
     if (f.speed != null && !rate) parts.push(speedText(f.speed));
     if (f.loaded == null && f.ahead > 0.05) parts.push(t('player.buffered', { seconds: secondsText(f.ahead) }));
   }
-  el.overlayFigures.textContent = parts.join(' · ');
+  el.overlayFigures.textContent = parts.join(', ');
   el.overlayFigures.hidden = !parts.length;
   const slow = Boolean(f && f.slow);
   const share = f && f.total ? Math.min(1, f.loaded / f.total)

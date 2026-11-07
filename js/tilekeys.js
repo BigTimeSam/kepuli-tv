@@ -1,8 +1,8 @@
 // @ts-check
-// The keys on a strip of tiles: the related titles under the picture, the
-// films' favourites strip, and the empty player's Continue watching,
-// channels and picks. Each tile is a button of its own, outside the list,
-// and the keys used to reach past it to the list: an arrow moved the list's
+// The keys on a strip of tiles: the related titles under the picture and
+// the empty player's Continue watching, channels and picks. Each tile is a
+// button of its own, outside the list, and the keys used to reach past it
+// to the list: an arrow moved the list's
 // cursor, `s` starred the list's row and Delete took the list's row out of
 // the history, whatever tile had the focus. Here the keys act on the tile
 // that has the focus instead: the arrows step between the tiles, `s` stars

@@ -813,6 +813,9 @@ check('orderedLanguageNames: an unknown language is named, and last',
   const byPlace = versionLabels(filed, (item) => item.cat);
   check('copies filed under other categories are named by them', ['1:s', '1:a', '1:t'].map((key) => byPlace.get(key)), [['Spanish', 'MP4'], ['Arabic', 'MP4'], ['Thriller', 'MKV']]);
   check('one card a title in a list, the first copy', oneCopyEach([...filed, film('o', 'Other - 2022'), { k: 0, id: 'c', n: 'Hungry - 2026' }]).map((x) => x.id), ['s', 'o', 'c']);
+  // A starred copy is the one kept, in the first copy's place: kept out,
+  // its card had no star and "Show only favourites" lost the title.
+  check('one card a title keeps the starred copy', oneCopyEach([...filed, film('o', 'Other - 2022')], (x) => x.id === 'a').map((x) => x.id), ['a', 'o']);
   check('a series of films shares the part before the colon or the number',
     [franchiseKey('Luottomies-elokuva: All in - 2024', 2024), franchiseKey('Luottomies-elokuva: Lepoloma'), franchiseKey('Iron Tide 2'), franchiseKey('Iron Tide'), franchiseKey('Love')],
     ['luottomies-elokuva', 'luottomies-elokuva', 'iron tide', 'iron tide', null]);
@@ -1592,7 +1595,7 @@ check('accounts: the label is the name, or the address', [
   accountLabel({ type: 'm3u', url: 'http://lists.example/a.m3u' }),
   accountLabel({ type: 'xtream', host: 'tv.example', username: 'me' }),
   accountLabel({ type: 'xtream', host: 'tv.example', name: ' Home ' }),
-], ['lists.example', 'tv.example · me', 'Home']);
+], ['lists.example', 'me@tv.example', 'Home']);
 check('accounts: what it takes to connect', [isConfigured({ type: 'm3u', url: 'http://x' }), isConfigured({ type: 'xtream', host: 'h', username: 'u' })], [true, false]);
 {
   const accounts = [

@@ -46,7 +46,9 @@ MIT KAPSZ
 • 30 nyelven szól. Addig a böngésződ nyelvét használja, amíg másikat nem
   választasz.
 • Keress egyszerre az összes csatorna műsoraiban.
-• Szűrd a filmeket év, értékelés és hossz szerint.
+• Szűrd a filmeket év, értékelés és hossz szerint, vagy csak a kedvenceidet
+  mutasd.
+• Minden film egyszer a listában, nyelvi változatai az oldalán.
 
 
 BEÉPÍTETT ADATVÉDELEM

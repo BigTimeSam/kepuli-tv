@@ -91,6 +91,9 @@ export function favCategoryEntry(type, groupName, cat) {
 
 export const isFavorite = (entry) => state.favorites.has(`${entry.k}:${entry.id}`);
 
+/** A topic's name on its chip and wherever it is named: its part after the country, or General. */
+export const topicLabel = (cat) => cat.sub || t('subcats.general');
+
 /**
  * A row's subtitle: what and from where. The type is needed because a
  * collection mixes channel, movie and series categories; the group because
@@ -402,7 +405,7 @@ export function renderSubcats() {
     if (count === 0) continue;
     const entry = favCategoryEntry(type, group.name, cat);
     frag.appendChild(chipRow({
-      label: cat.sub || t('subcats.general'), count: nf.format(count), active: state.sub === cat.id, title: cat.name,
+      label: topicLabel(cat), count: nf.format(count), active: state.sub === cat.id, title: cat.name,
       favorite: isFavorite(entry),
       onFavorite: () => toggleFavCategory(entry),
     }, () => selectSub(cat.id)));

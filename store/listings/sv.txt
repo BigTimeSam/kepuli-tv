@@ -43,7 +43,9 @@ VAD DU FÅR
   textstorleken och kontrastinställningarna.
 • På 30 språk. Den talar webbläsarens språk tills du väljer ett annat.
 • Sök bland alla kanalers program på en gång.
-• Filtrera filmer efter år, betyg och längd.
+• Filtrera filmer efter år, betyg och längd – bara dina favoriter, om du
+  vill.
+• Varje film en gång i listan, med språkversionerna på sin egen sida.
 
 
 PRIVAT FRÅN GRUNDEN

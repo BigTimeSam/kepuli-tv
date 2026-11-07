@@ -89,7 +89,8 @@ export function accountLabel(c) {
   if (c.type === 'm3u' || c.type === 'stalker') {
     try { return new URL(c.url).hostname; } catch { return c.url || ''; }
   }
-  return c.username ? `${c.host} · ${c.username}` : c.host || '';
+  // demo@example.tv: the form an account on a server is written in.
+  return c.username ? `${c.username}@${c.host}` : c.host || '';
 }
 
 /**

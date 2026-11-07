@@ -44,7 +44,8 @@ CO DOSTAJESZ
 • W 30 językach. Mówi językiem Twojej przeglądarki, dopóki nie
   wybierzesz innego.
 • Przeszukuj audycje wszystkich kanałów naraz.
-• Filtruj filmy według roku, oceny i długości.
+• Filtruj filmy według roku, oceny i długości albo pokaż wyłącznie ulubione.
+• Każdy film raz na liście, a jego wersje językowe na jego stronie.
 
 
 PRYWATNOŚĆ OD PODSTAW

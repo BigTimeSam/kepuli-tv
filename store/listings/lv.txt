@@ -42,7 +42,8 @@ KO TU SAŅEM
   teksta izmēra un kontrasta iestatījumiem.
 • 30 valodās. Tā runā tava pārlūka valodā, kamēr izvēlies citu.
 • Meklē uzreiz visu kanālu raidījumos.
-• Filtrē filmas pēc gada, vērtējuma un garuma.
+• Filtrē filmas pēc gada, vērtējuma un garuma vai rādi vien izlasi.
+• Katra filma sarakstā vienreiz, tās valodu versijas – filmas lapā.
 
 
 PRIVĀTI PĒC BŪTĪBAS

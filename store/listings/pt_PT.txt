@@ -45,7 +45,9 @@ O QUE TENS
   tamanho do texto e o contraste definidos no teu navegador.
 • Em 30 idiomas. Usa o do teu navegador até escolheres outro.
 • Pesquisa de uma vez a programação de todos os canais.
-• Filtra os filmes por ano, classificação e duração.
+• Filtra os filmes por ano, classificação e duração ou mostra só os teus
+  favoritos.
+• Cada filme aparece uma vez, com as versões de idioma na página dele.
 
 
 PRIVADO POR DESIGN

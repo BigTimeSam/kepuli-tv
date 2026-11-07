@@ -12,7 +12,6 @@ import { $, el } from './dom.js';
 import { caretWelcome } from './caret.js';
 import { DEFAULT_LIFT, DEFAULT_SCALE, pictureHeight, subtitleLook } from './subdisplay.js';
 import { LANGUAGES, localeTag, t } from './i18n.js';
-import { THEMES, resolveTheme } from './theme.js';
 import { Sync, loadSyncInfo, syncAvailable } from './sync.js';
 import { api } from './browser.js';
 import { applyLanguage, renderIdleOverlay } from './languageui.js';
@@ -25,13 +24,14 @@ import { normalizeMac, normalizePortal } from './stalker.js';
 import { parsePlaylistUrl, parseServer, pastedKind } from './xtream.js';
 import { playback, tabs } from './playing.js';
 import { playlistAddress } from './m3u.js';
-import { refreshGuidePreview, renderTheme } from './guideui.js';
-import { renderAccountList, renderAccountSwitcher, switchAccount } from './accountsui.js';
+import { refreshGuidePreview } from './guideui.js';
+import { THEMES, renderTheme, resolveTheme } from './theme.js';
+import { renderAccountList } from './accountsui.js';
 import { hasAccess, requestAccess, requestAccessFor } from './permissions.js';
 import { toast } from './toast.js';
 import { wireModal } from './modal.js';
 import * as store from './config.js';
-import { TYPE_KIND, accountAddress, adoptAccount, connect, kindLabel, offerLists, refreshRows, renderSidebar, resetting, same, startReset, state } from './state.js';
+import { accountAddress, adoptAccount, connect, offerLists, refreshRows, renderSidebar, resetting, same, startReset, state } from './state.js';
 
 const FIELDS = ['scheme', 'host', 'port', 'username', 'password'];
 
@@ -420,7 +420,7 @@ export async function showStoredSettings(next) {
   const settings = await store.loadSettings();
   if (same(settings, before)) return;
   state.settings = settings;
-  if (settings.theme !== before.theme) renderTheme();
+  if (settings.theme !== before.theme) renderTheme(settings.theme);
   if (settings.lang !== before.lang || settings.clock !== before.clock) await applyLanguage(store.interfaceLanguage(settings));
   applySubtitleLook(settings);
   renderStatBadge();
@@ -472,15 +472,11 @@ export async function renderAccountBox() {
   box.appendChild(head);
   const cols = document.createElement('div');
   cols.className = 'cols';
-  const loaded = ['live', 'movie', 'series'].filter((type) => state.lib && state.lib.isFull(type));
   // A playlist has no subscription to describe: what it holds, where its
   // guide comes from and when it was read are what there is to say.
   const rows = a.kind === 'stalker' ? [
-    [t('setup.stalker.url'), (() => { try { return new URL(a.portal).host; } catch { return a.portal; } })()],
-    [t('setup.stalker.mac'), a.mac],
     [t('account.valid.label'), a.expiresAt ? dateFmt.format(new Date(a.expiresAt)) : '–'],
     [t('account.cache'), estimate ? megabytes(estimate.usage || 0) : '–'],
-    [t('account.lists'), loaded.map((type) => kindLabel(TYPE_KIND[type])).join(', ') || t('account.none')],
   ] : a.kind === 'm3u' ? [
     [t('account.channels'), nf.format(a.counts.live)],
     [t('account.movies'), nf.format(a.counts.movie)],
@@ -491,10 +487,7 @@ export async function renderAccountBox() {
   ] : [
     [t('account.connections.label'), a.maxConnections ? `${a.activeConnections} / ${a.maxConnections}` : '–'],
     [t('account.valid.label'), a.expiresAt ? dateFmt.format(new Date(a.expiresAt)) : '–'],
-    [t('account.formats'), a.outputFormats.join(', ') || '–'],
-    [t('account.servertime'), a.serverTimezone || '–'],
     [t('account.cache'), estimate ? megabytes(estimate.usage || 0) : '–'],
-    [t('account.lists'), loaded.map((type) => kindLabel(TYPE_KIND[type])).join(', ') || t('account.none')],
   ];
   for (const [label, value] of rows) {
     const cell = document.createElement('div');
@@ -678,7 +671,6 @@ export function wireSetup() {
   });
   $('f-host').addEventListener('change', splitServerField);
   $('f-add-account').addEventListener('click', () => pickAccount('new'));
-  $('account-pick').addEventListener('change', (e) => switchAccount(e.target.value));
   // Sync is a choice about this browser and acts at once (see player.html).
   $('f-sync').addEventListener('change', async (e) => {
     await sync.setPrefs({ enabled: e.target.checked });
@@ -786,8 +778,12 @@ export function wireSetup() {
       renderRecordingState();
       refreshGuidePreview();
       if (!state.playing && !el.overlay.hidden && el.overlayTitle.textContent === t('player.idle')) renderIdleOverlay();
-      if (settingsPatch.theme) renderTheme();
-      if (settingsPatch.lang || settingsPatch.clock) await applyLanguage(store.interfaceLanguage(state.settings));
+      if (settingsPatch.theme) renderTheme(state.settings.theme);
+      if (settingsPatch.lang || settingsPatch.clock) {
+        await applyLanguage(store.interfaceLanguage(state.settings));
+        // The static names are the new language's; the ones the state adds to are said again.
+        renderRecordingState();
+      }
       // The international channels shown or hidden repaint the channel
       // list where it stands; a changed connection is about to load it
       // again anyway.
@@ -796,7 +792,6 @@ export function wireSetup() {
         await refreshRows({ keepScroll: true });
       }
       state.accounts = await store.loadAccounts();
-      renderAccountSwitcher();
       if (changed && !other) {
         await connect();
         if (moved && !setupAdding) offerLists(previous, state.config);

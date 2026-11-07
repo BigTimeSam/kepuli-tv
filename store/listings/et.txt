@@ -40,7 +40,8 @@ MIDA SA SAAD
   teksti suuruse ja kontrasti seadeid.
 • 30 keeles. Ta räägib sinu brauseri keelt, kuni valid mõne muu.
 • Otsi korraga kõigi kanalite saateid.
-• Filtreeri filme aasta, hinnangu ja pikkuse järgi.
+• Filtreeri filme aasta, hinnangu ja pikkuse järgi või vaid lemmikute järgi.
+• Iga film on loendis üks kord, keeleversioonid filmi lehel.
 
 
 PRIVAATSUS ALGUSEST PEALE

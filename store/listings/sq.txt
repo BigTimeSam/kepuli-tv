@@ -50,7 +50,9 @@ mbrëmje.
   madhësinë e tekstit dhe kontrastin që ke caktuar.
 • Në 30 gjuhë. Flet gjuhën e shfletuesit derisa të zgjedhësh një tjetër.
 • Kërko njëherësh te programet e të gjitha kanaleve.
-• Filtro filmat sipas vitit, vlerësimit dhe kohëzgjatjes.
+• Filtro filmat sipas vitit, vlerësimit dhe kohëzgjatjes ose shfaq thjesht të
+  preferuarat.
+• Çdo film një herë në listë, versionet e tij gjuhësore në faqen e tij.
 
 
 PRIVATËSI NGA NDËRTIMI

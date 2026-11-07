@@ -43,7 +43,8 @@ KĄ GAUSI
   prisitaiko prie teksto dydžio ir kontrasto nustatymų.
 • 30 kalbų. Kalbasi tavo naršyklės kalba, kol pasirinksi kitą.
 • Ieškok iškart visų kanalų laidose.
-• Filtruok filmus pagal metus, įvertinimą ir trukmę.
+• Filtruok filmus pagal metus, įvertinimą ir trukmę arba rodyk tik mėgstamus.
+• Kiekvienas filmas sąraše vieną kartą, jo kalbų versijos – jo puslapyje.
 
 
 PRIVATUMAS IŠ PRADŽIŲ

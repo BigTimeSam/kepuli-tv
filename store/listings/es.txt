@@ -44,7 +44,10 @@ QUÉ OBTIENES
   tamaño de texto y el contraste que tengas en el navegador.
 • En 30 idiomas. Habla el de tu navegador hasta que elijas otro.
 • Busca a la vez en la programación de todos los canales.
-• Filtra las películas por año, valoración y duración.
+• Filtra las películas por año, valoración y duración, o muestra solo tus
+  favoritos.
+• Cada película aparece una sola vez, con sus versiones de idioma en su
+  página.
 
 
 PRIVADO POR DISEÑO

@@ -289,7 +289,7 @@ the guide, so one spelling works everywhere a name is typed.
 | VOD `.mkv` | Matroska unpacked into fMP4 → MediaSource |
 | VOD `.avi` | not supported |
 
-`Auto` tries TS first on live channels (lower latency) and moves to HLS if TS
+*Automatic* (`auto`) tries TS first on live channels (lower latency) and moves to HLS if TS
 does not start within 20 seconds. On the test server HLS often starts faster
 but trails the live edge by a segment length.
 

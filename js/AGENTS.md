@@ -12,16 +12,16 @@ written here.
 
 | Module | Role |
 | --- | --- |
-| `app.js` (~2,050 lines, being split) | state, the connection, the account in this tab, the address (`#/live/...`), the sidebar, rows, the list's keys and Chromecast, and the start-up wiring. One `state` object near the top; sections are marked `/* ---- name */`. Find with `grep -n "^/\* -" js/app.js` and read the section you change |
+| `app.js` (~2,100 lines, being split) | state, the connection, the account in this tab, the address (`#/live/...`), the sidebar, rows, the list's keys and Chromecast, and the start-up wiring. One `state` object near the top; sections are marked `/* ---- name */`. Find with `grep -n "^/\* -" js/app.js` and read the section you change |
 | `rows.js`, `vlist.js`, `listnavigation.js` | list rows (built on every scroll frame: keep them light), the virtualised list, cursor and return positions by item, and which tile an arrow leads to in a strip |
 | `listorder.js` | each list's order (channels, favourites, films, series, history): the choices, the setting each is kept in, the marks at the list's foot and the films' orders by year, rating and date added |
-| `tilekeys.js` | the keys on a strip of tiles (related titles, the favourites strip, the empty player's cards): arrows between the tiles, `s` and Delete on the tile with the focus, not the list's row |
+| `tilekeys.js` | the keys on a strip of tiles (related titles, the empty player's cards): arrows between the tiles, `s` and Delete on the tile with the focus, not the list's row |
 | `picker.js`, `modal.js`, `rowmenu.js`, `poster.js` | shared UI parts: every drop-down, dialog closing, the row menu, covers with fallback. Reuse them |
-| `playerlayout.js`, `theme.js`, `route.js` | narrow-window panes, colour theme, the address (`#/live/...`) and tab title |
+| `playerlayout.js`, `theme.js`, `route.js` | narrow-window panes, colour theme and its button (`renderTheme`), the address (`#/live/...`) and tab title |
 | `channelchoices.js` | the Filter countries / Filter categories dialog (`CountryPicker.show({ mode, onSave, texts })`: all, the favourite ones, or those chosen) and hidden channels |
 | `cataloguesearch.js`, `programmesearch.js`, `name.js` | catalogue search, guide search, name tidying and accent-folding search keys |
-| `titlemeta.js` | what a film's name and its list say beyond the name: the year a title repeats, which copy of a film is which, the other parts of a series of films, what the provider added lately |
-| `mediafilters.js`, `titleinfo.js`, `titlelinks.js`, `rating.js`, `format.js` | film/series filters and facts, details strip, IMDb/YouTube links (known services only), ratings, Intl formatters |
+| `titlemeta.js` | what a film's name and its list say beyond the name: the year a title repeats, which copy of a film is which, the other parts of a series of films, what the provider added lately, one card a title (`oneCopyEach`, the starred copy first) |
+| `mediafilters.js` (also `filterChip`, `resetButton` for both folds), `titleinfo.js`, `titlelinks.js`, `rating.js`, `format.js` | film/series filters and facts, details strip, IMDb/YouTube links (known services only), ratings, Intl formatters |
 
 **Providers**: each answers the same questions (account, categories,
 lists, series info, stream URL) for its kind:
@@ -56,10 +56,10 @@ lists, series info, stream URL) for its kind:
 | `recordingsui.js` | the recording UI: Record button and reminder, the list, plans from the guide, catch-up playback (moved out of `app.js`) |
 | `accountsui.js`, `remindersui.js`, `infostrip.js` | the account list and switcher; programme reminders; the details strip under the picture (moved out of `app.js`) |
 | `coversui.js`, `seriesui.js`, `guideui.js`, `picksui.js`, `topicbar.js`, `externalui.js` | covers or rows; a series' page; the guide in the player (grid, column, search, favourites); the start page's picks; the topic chips and their bar; the external player hand-off (moved out of `app.js`) |
-| `idlehome.js` | the empty player's page (continue watching, the viewer's channels, the picks' carousel) and the note of programmes the viewer stays with (moved out of `app.js`) |
+| `idlehome.js` | the empty player's page (continue watching, the viewer's channels, the picks' carousel) and the note of programmes the viewer stays with (moved out of `app.js`); `paintIdleStars` after a favourite changes |
 | `collections.js`, `playercontrols.js`, `progressdialog.js`, `help.js`, `languageui.js` | Favourites and History and favourite categories; the ☰ menu, full screen and media keys; the list-loading strip; the help dialog; switching language and the empty player's title (moved out of `app.js`) |
 | `topmenu.js` | the top bar's hamburger: below the width at which the bar fits on one row (measured, as tab names differ by language), Refresh, Help, the theme, full screen and Settings go into its menu |
-| `listfilters.js` | the list's "Filter titles" folds: "Filter channels" with the topics, and the favourites strip inside the films' "Filter titles"; the parts are moved, not rebuilt |
+| `listfilters.js` | the list's filter folds: "Filter channels" with the topics and "Show only favourites" (`filterChannels`), both folds' stored state wired in `wireListFilters`; the parts are moved, not rebuilt |
 | `scrollhint.js` | a thin bar of the page's own over the player's details (`SCROLLERS`) when they hold more than they show, where the browser's bar fades away (Firefox on Android and macOS); lists and dialogs keep the browser's own |
 | `toast.js` | the message strip (`toast`) and copying a stream address: import `toast` from here |
 | `dom.js` | `$` and `el`, the page's elements looked up once: import them from here |

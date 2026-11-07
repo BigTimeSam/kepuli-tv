@@ -104,7 +104,7 @@ export function pickCard(pick) {
   title.textContent = programme.title;
   const where = document.createElement('span');
   where.className = 'idle-pick-where';
-  where.textContent = `${name} · ${t(`picks.why.${why}`)}`;
+  where.textContent = `${name}, ${t(`picks.why.${why}`)}`;
   body.append(when, title, where);
   card.append(logo, body);
   if (on) {

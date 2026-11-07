@@ -10,11 +10,11 @@ import { Epg } from './epg.js';
 import { VirtualList, watchLength } from './vlist.js';
 import { CatalogueSearch } from './cataloguesearch.js';
 import { PlayerLayout } from './playerlayout.js';
-import { categoryRow, emptyState, KIND_ICONS, setStar } from './rows.js';
+import { categoryRow, emptyState, KIND_ICONS } from './rows.js';
 import { searchNameCleaner, searchKey, searchTerms, matchesTerms, labelCodes, homeCountryCodes, homeGroup, viewerTags } from './name.js';
 import { poster } from './poster.js';
 import { wireModal } from './modal.js';
-import { MediaFilters, foldOpen } from './mediafilters.js';
+import { MediaFilters } from './mediafilters.js';
 import { listOrder, orderTitles } from './listorder.js';
 import { bindTile, handleTileKey } from './tilekeys.js';
 
@@ -35,17 +35,17 @@ import { warmCache, probeCacheTtl } from './probe.js';
 import { SubtitleDisplay } from './subdisplay.js';
 import { pickEncoder } from './transcode.js';
 import * as store from './config.js';
-import { applyTheme, earlyTheme, onSystemTheme } from './theme.js';
+import { applyTheme, earlyTheme, onSystemTheme, renderTheme } from './theme.js';
 import { wirePickers } from './picker.js';
 import { nf } from './format.js';
 import { t, applyStatic, setLanguage, loadLanguage } from './i18n.js';
 import { askRecordingConsent, closeRecordingConsent, loadRecordingList, openRecordings, retryPlayback, toggleRecordNow } from './recordingsui.js';
-import { renderAccountList, renderAccountSwitcher } from './accountsui.js';
+import { renderAccountList } from './accountsui.js';
 import { loadReminders, reminders, showReminders } from './remindersui.js';
 import { renderInfoStrip } from './infostrip.js';
 import { applyListLayout, gridColumns, nameCleanerFor, onEpgUpdated, renderRow, restoreListView, listName, shownName, toggleFavorite, usesGrid, watchGridWidth } from './coversui.js';
 import { closeDetail, crumbLabel, episodesOfSeason, openItem, openSeries, renderDetail } from './seriesui.js';
-import { closeGuide, favoritesChanged, focusGrid, grid, guideFavorites, guideOpen, openGuide, programmeSearch, renderGuideGroups, renderTheme, restoreGuideFavorites, setGuideFavorites, toggleGuide } from './guideui.js';
+import { closeGuide, favoritesChanged, focusGrid, grid, guideFavorites, guideOpen, openGuide, programmeSearch, renderGuideGroups, restoreGuideFavorites, setGuideFavorites, toggleGuide } from './guideui.js';
 
 import { ensureFull, orderList, renderEmptyState, renderListInfo, wireSubcatsKeys, wireSubcatsResize } from './topicbar.js';
 import { askExternal, playExternal } from './externalui.js';
@@ -55,13 +55,13 @@ import { categoryCountsFor, collectionItems, favCategoryEntry, isFavorite, isUnf
 import { clickPicture, enterFullscreen, moreItems, renderScreenButton, renderSeriesFavorite, toggleFullscreen, toggleMoreMenu, togglePause, toggleScreen, wireMediaSession } from './playercontrols.js';
 import { wireTopMenu } from './topmenu.js';
 import { wireScrollHints } from './scrollhint.js';
-import { channelFavsOnly, placeListFilters, wireListFilters } from './listfilters.js';
+import { channelsByFavourite, filterChannels, placeListFilters, wireListFilters } from './listfilters.js';
 import { oneCopyEach } from './titlemeta.js';
 import { cancelProgress, hideProgress, progressCtrl, progressSignal, showProgress, updateProgress } from './progressdialog.js';
 import { openHelp } from './help.js';
 import { copyUrl, toast } from './toast.js';
 import { applyLocale, renderIdleOverlay } from './languageui.js';
-import { fitIdleHome, watchInterest } from './idlehome.js';
+import { fitIdleHome, paintIdleStars, watchInterest } from './idlehome.js';
 import { accountProblem, addOverlayAction, playItem, playback, renderNowSub, showOverlayActions, tabs } from './playing.js';
 import { applySubtitleLook, chooseAudio, chooseSubtitle, cycleAudio, goHome, leavePlayback, stepSubtitleSize, toggleSubtitleLook } from './tracksui.js';
 import { nextEpisode, playEpisode } from './nextepisode.js';
@@ -400,7 +400,6 @@ async function adoptAccount(config) {
   store.useAccount(config);
   lastChannel = previousChannel = null;
   await loadLists();
-  renderAccountSwitcher();
 }
 
 
@@ -420,8 +419,13 @@ function showStoredList(name, value) {
     state.favorites = new Map(list.map((item) => [store.itemKey(item), item]));
     if (connected) {
       if (state.tab === 'fav') { renderSidebar(); refreshRows({ keepScroll: true }); }
-      else { vlist.refresh(); refreshFavouriteFilter(); renderCategories(); renderSubcats(); }
-      for (const button of document.querySelectorAll('.idle-star[data-fav]')) setStar(/** @type {HTMLElement} */ (button), state.favorites.has(/** @type {HTMLElement} */ (button).dataset.fav));
+      else {
+        // A copy starred in another tab may be the one a film's card should
+        // now be (one card a title keeps the starred copy): the films' and
+        // the series' lists are drawn again, the others repaint their stars.
+        if (state.tab === 'movie' || state.tab === 'series') refreshRows({ keepScroll: true }); else vlist.refresh();
+        favouriteChanged(); renderCategories(); renderSubcats();
+      }
       renderSeriesFavorite();
       favoritesChanged();
     }
@@ -462,7 +466,7 @@ function accountChangedElsewhere(config) {
     followAccount();
     return;
   }
-  toast(t('account.elsewhere', { host: store.accountLabel(config) }), {
+  toast(t('account.elsewhere', { name: store.accountLabel(config) }), {
     long: true, action: { label: t('account.elsewhere.follow'), onClick: followAccount },
   });
 }
@@ -925,8 +929,7 @@ async function refreshRows({ keepScroll = false, returnPosition = null, restoreF
   if (!channelList && state.cleanName && !state.query && state.detail?.view !== 'series' && !(isCollection() && !state.detail)) rows = sortItems(rows, (name, item) => state.cleanName(name, item));
   rows = visibleRows(rows, { everyGroup: searchesEveryGroup() });
   if (type === 'live' && !state.query && !state.detail && !isCollection()) {
-    rows = withoutInternational(rows);
-    if (channelFavsOnly) rows = rows.filter((item) => state.favorites.has(`${item.k}:${item.id}`));
+    rows = filterChannels(withoutInternational(rows));
   }
   // The setting says where the list starts; the personal arrangement, made
   // in Organize channels, has the last word over it.
@@ -942,7 +945,7 @@ async function refreshRows({ keepScroll = false, returnPosition = null, restoreF
   const filterType = !isCollection() && !state.detail && (type === 'movie' || type === 'series') ? type : null;
   // One card a title: its other copies are on its own page (js/infostrip.js).
   state.titleRows = rows;
-  if (filterType) rows = oneCopyEach(rows);
+  if (filterType) rows = oneCopyEach(rows, isFavorite);
   rows = mediaFilters.apply(rows, filterType);
   showRows(rows, { keepScroll });
   if (returnPosition) listNavigation.restore(vlist, returnPosition, {
@@ -955,19 +958,26 @@ async function refreshRows({ keepScroll = false, returnPosition = null, restoreF
   updateAddress();
 }
 
-const mediaFilters = new MediaFilters($('media-filters'), () => {
-  state.cursor = -1;
-  return refreshRows();
-}, item => item.details || state.lib?.details.get(`${item.k === 1 ? 'vod' : 'series'}:v2:${item.id}`), $('active-media-filters'),
-  (item) => state.favorites.has(`${item.k}:${item.id}`));
+const mediaFilters = new MediaFilters(/** @type {HTMLDetailsElement} */ ($('media-filters')), {
+  onChange: () => { state.cursor = -1; return refreshRows(); },
+  detailsFor: (item) => item.details || state.lib?.details.get(`${item.k === 1 ? 'vod' : 'series'}:v2:${item.id}`),
+  activeHost: $('active-media-filters'),
+  isFavourite: isFavorite,
+});
 
 /**
- * A star given or taken while "Show only favourites" narrows the channels,
- * the films or the series: the list follows at once. Otherwise the rows repaint their
- * own stars and nothing else changes.
+ * After a star is given or taken anywhere (a list, the player, the start
+ * page, another tab): the list follows when "Show only favourites" narrows
+ * it, or when the starred film is a copy the list did not show (one card a
+ * title keeps the starred copy, js/titlemeta.js), and the start page's
+ * cards say the same.
+ * @param {object} [item] the title starred, when it is one
  */
-function refreshFavouriteFilter() {
-  if (mediaFilters.favouritesOnly || (channelFavsOnly && state.tab === 'live')) refreshRows({ keepScroll: true });
+function favouriteChanged(item) {
+  const copyAway = item && (item.k === 1 || item.k === 2) && !state.rowIndex.has(store.itemKey(item))
+    && state.titleRows.some((row) => row.k === item.k && String(row.id) === String(item.id));
+  if (mediaFilters.favouritesOnly || (channelsByFavourite() && state.tab === 'live') || copyAway) refreshRows({ keepScroll: true });
+  paintIdleStars();
 }
 
 /**
@@ -1791,10 +1801,6 @@ function wireUi() {
     e.stopPropagation();
   });
 
-  // The filter panel used to open itself on every visit to Movies and
-  // Series and take about 140 px off the top of the list, whether or not
-  // anyone was filtering. It stays however it was left (foldOpen).
-  $('media-filters').addEventListener('toggle', () => store.saveUiState({ filtersOpen: $('media-filters').open }));
 
   let filterTimer = null;
   $('group-select').addEventListener('change', (e) => {
@@ -1819,13 +1825,13 @@ function wireUi() {
   $('btn-countries').addEventListener('click', () => (tabType() === 'live' ? openCountryPicker() : openCategoryPicker(tabType())));
   $('f-countries').addEventListener('click', () => openCountryPicker());
   new ResizeObserver(() => fitIdleHome()).observe(el.overlay);
-  onSystemTheme(renderTheme);
+  onSystemTheme(() => renderTheme(state.settings.theme));
   // The button turns what is on screen into the other one, and so leaves
   // "the system's" for a choice of its own; Settings has the way back.
   $('btn-theme').addEventListener('click', async () => {
     const theme = document.documentElement.dataset.theme === 'light' ? 'dark' : 'light';
     state.settings = { ...state.settings, theme };
-    renderTheme();
+    renderTheme(theme);
     state.settings = await store.saveSettings({ theme });
   });
   $('btn-screen').addEventListener('click', toggleScreen);
@@ -1838,6 +1844,13 @@ function wireUi() {
   // that vanished on Esc would look as if the loading had finished.
   $('lp-cancel').addEventListener('click', cancelProgress);
 
+  // "Playback mode:" before the value, in the select's box: its left
+  // padding follows the label's width, whatever the language; none where
+  // the stylesheet leaves the label out.
+  const modeLabel = $('mode-label');
+  new ResizeObserver(() => {
+    el.mode.style.paddingLeft = modeLabel.offsetWidth ? `${modeLabel.offsetLeft + modeLabel.offsetWidth + 6}px` : '';
+  }).observe(modeLabel);
   el.mode.addEventListener('change', () => {
     store.saveConfig({ streamMode: el.mode.value });
     if (state.playing) playItem(state.playing);
@@ -1859,7 +1872,6 @@ function wireUi() {
   $('btn-copy').addEventListener('click', copyUrl);
   $('btn-ext').addEventListener('click', playExternal);
   $('btn-record').addEventListener('click', toggleRecordNow);
-  $('btn-recordings').addEventListener('click', openRecordings);
   $('btn-recordings-menu').addEventListener('click', openRecordings);
   $('recordings-close').addEventListener('click', () => $('recordings').close());
   $('f-record').addEventListener('change', askRecordingConsent);
@@ -2017,7 +2029,7 @@ function wireUi() {
 
 provide({
   vlist, mediaFilters, catalogueSearch, playerLayout, cast,
-  refreshRows, showRows, renderSidebar, renderCategories, refreshFavouriteFilter, updateAddress, goToRoute, activateTab,
+  refreshRows, showRows, renderSidebar, renderCategories, favouriteChanged, updateAddress, goToRoute, activateTab,
   visibleRows, visibleGroups, withoutInternational, groupOfType, liveGroupOf, chosenCountries, selectGroup,
   searchLimit, searchesEveryGroup, beginListLoad, showListError, showListCancelled, openItemMenu, openHiddenList,
   connect, adoptAccount, accountAddress, offerLists, offerAccess, browserTags,
@@ -2033,7 +2045,7 @@ async function init() {
   await store.migrateAccountKeys(state.config);
   store.useAccount(state.config);
   state.settings = await store.loadSettings();
-  renderTheme();
+  renderTheme(state.settings.theme);
   const lang = store.interfaceLanguage(state.settings);
   await loadLanguage(lang);
   setLanguage(lang);
@@ -2055,13 +2067,11 @@ async function init() {
   store.watchStorage({ onList: showStoredList, onAccount: accountChangedElsewhere, onCleared: storageCleared });
   store.watchAccounts((accounts) => {
     state.accounts = accounts;
-    renderAccountSwitcher();
     if (el.setup.open) renderAccountList();
     adoptSyncedAccount(accounts);
   });
   store.watchSettings(showStoredSettings);
   store.watchSyncStatus(() => { if (el.setup.open) renderSyncBox(); });
-  renderAccountSwitcher();
   sync.start();
   el.mode.value = state.config.streamMode || 'auto';
   applySubtitleLook(state.settings);
@@ -2095,10 +2105,7 @@ async function init() {
   if (typeof ui.subcatsHeight === 'number') state.subcatsHeight = ui.subcatsHeight;
   restoreListView(ui.listView);
   watchGridWidth();
-  $('media-filters').open = foldOpen(ui.filtersOpen);
-  mediaFilters.restore(ui.mediaFilters);
-  mediaFilters.persist = (values) => store.saveUiState({ mediaFilters: values });
-  wireListFilters(ui);
+  wireListFilters(ui, mediaFilters);
   markTabs(state.tab);
 
   window.addEventListener('hashchange', onAddressChanged);

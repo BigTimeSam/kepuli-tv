@@ -58,7 +58,7 @@ const CAPTIONS = {
     resume: ['Pick up where you left off', 'One click and the film carries on from where you stopped, with its cast, director and details beside it.'],
     live: ['Live TV by country and topic', 'Pick a country, narrow it to a topic, and see what is on now on every channel.'],
     zap: ['Zap in a second', 'Arrow keys move, Enter plays, and L jumps back to the channel you watched before.'],
-    favourites: ['Favourites', 'Star a channel, a film or a series. Favourites gather at the top, or show them alone.'],
+    favourites: ['Favourites', 'Star a channel, a film or a series, and one tick shows only your favourites.'],
     countries: ['The countries you watch', 'Keep only the countries you want. The rest stay out of the lists, the search and the guide.'],
     guide: ['Programme guide', 'A full guide for every channel, or just your favourites. Click a channel for what is on now and next.'],
     search: ['Search', 'Press / and start typing. Any channel in seconds, even among tens of thousands.'],
@@ -94,7 +94,7 @@ const CAPTIONS = {
       resume: 'One click, and the film carries on right where you stopped, with the cast, the director and all the details beside it.',
       live: 'Live TV is sorted by country and topic. Pick a country, narrow it down, and see what’s on now on every channel.',
       zap: 'Zap with the arrow keys, press Enter to play, and L to jump back to the channel before.',
-      favourites: 'Star the channels you love. Favourites gather at the top of every list, or show them on their own.',
+      favourites: 'Star the channels you love, and one tick in the filters shows only your favourites.',
       countries: 'Keep only the countries you watch. The rest stay out of the lists, the search and the guide.',
       guide: 'The programme guide covers every channel, or just your favourites. Click a channel to see what’s on now and next.',
       search: 'Press slash and start typing. Any channel turns up in seconds.',
@@ -607,7 +607,7 @@ async function walk() {
   await key('Enter', { pause: 2000 });
   await key('l', { pause: 2400 });
 
-  // Favourites: from the row's menu, at the top, and alone.
+  // Favourites: from the row's menu, then the list narrowed to them.
   await scene('favourites', 'right');
   const row = `[...document.querySelectorAll('#list .row')].find((r) => r.textContent.includes('Aurora Cinema Nordic'))`;
   const { x: rx, y: ry } = await centre(row);
@@ -615,7 +615,9 @@ async function walk() {
   await sleep(300);
   await click(`${row}.querySelector('.row-more')`, { pause: 700 });
   await click(byText('.row-menu', 'Add to favourites'), { pause: 900 });
-  await sleep(1500);
+  await evaluate(`document.getElementById('channel-filters').open = true`);
+  await click(`document.getElementById('channel-favs')`, { pause: 2600 });
+  await click(`document.getElementById('channel-favs')`, { pause: 700 });
 
   // Countries.
   await scene('countries', 'bottom', 3200);
@@ -703,7 +705,7 @@ async function walk() {
   await waitFor(PLAYING, 'the channel to record', 30000);
   await sleep(1200);
   await click(`document.getElementById('btn-settings')`, { pause: 700 });
-  await click(`document.getElementById('tab-general')`, { pause: 600 });
+  await click(`document.getElementById('tab-playback')`, { pause: 600 });
   await click(`document.getElementById('f-record')`, { pause: 900 });
   await waitFor(`document.getElementById('rec-consent').open`, 'the recording reminder');
   await sleep(2600);
@@ -716,7 +718,8 @@ async function walk() {
 
   await scene('recordings', 'bottom', 2600);
   await sleep(2000);
-  await click(`document.getElementById('btn-recordings')`, { pause: 3200 });
+  await click(`document.getElementById('btn-more')`, { pause: 700 });
+  await click(`document.getElementById('btn-recordings-menu')`, { pause: 3200 });
   await click(`document.getElementById('recordings-close')`, { pause: 600 });
 
   await scene('more', 'left');

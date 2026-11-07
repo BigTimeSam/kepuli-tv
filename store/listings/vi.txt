@@ -44,7 +44,9 @@ BẠN SẼ NHẬN ĐƯỢC
 • Có 30 ngôn ngữ. Tự dùng ngôn ngữ của trình duyệt cho đến khi bạn chọn
   ngôn ngữ khác.
 • Tìm cùng lúc trên mọi kênh.
-• Lọc phim theo năm, điểm đánh giá và thời lượng.
+• Lọc phim theo năm, điểm đánh giá và thời lượng, hoặc chỉ hiện mục yêu
+  thích.
+• Mỗi phim xuất hiện một lần, các phiên bản ngôn ngữ ở trang riêng của phim.
 
 
 RIÊNG TƯ TỪ THIẾT KẾ

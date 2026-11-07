@@ -175,7 +175,10 @@ function relatedPart(item) {
       name.textContent = titleWithoutYear(listName(other), other.year);
       const meta = document.createElement('span');
       meta.className = 'related-meta';
-      meta.textContent = [other.year, ...(labels.get(`${other.k}:${other.id}`) || [])].filter(Boolean).join(' · ');
+      // Its year and what tells the copy apart, each a span of its own,
+      // spaced by the stylesheet's gap.
+      meta.append(...[other.year, ...(labels.get(`${other.k}:${other.id}`) || [])].filter(Boolean)
+        .map((text) => Object.assign(document.createElement('span'), { textContent: String(text) })));
       tile.title = other.n;
       tile.append(name, meta);
       tile.addEventListener('click', () => openItem(other));

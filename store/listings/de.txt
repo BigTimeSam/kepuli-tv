@@ -46,7 +46,9 @@ WAS DU BEKOMMST
 • In 30 Sprachen. Sie spricht die Sprache deines Browsers, bis du eine
   andere wählst.
 • Durchsuche die Sendungen aller Kanäle auf einmal.
-• Filtere Filme nach Jahr, Bewertung und Länge.
+• Filtere Filme nach Jahr, Bewertung und Länge oder zeige nur deine
+  Favoriten.
+• Jeder Film einmal in der Liste, seine Sprachfassungen auf seiner Seite.
 
 
 PRIVATSPHÄRE VON ANFANG AN

@@ -45,7 +45,10 @@ COSA OTTIENI
 • In 30 lingue. Parla quella del tuo browser finché non ne scegli
   un'altra.
 • Cerca in una volta sola tra i programmi di tutti i canali.
-• Filtra i film per anno, valutazione e durata.
+• Filtra i film per anno, valutazione e durata, o mostra solo i tuoi
+  preferiti.
+• Ogni film una volta sola nell’elenco, con le versioni in altre lingue nella
+  sua pagina.
 
 
 PRIVATO PER SCELTA

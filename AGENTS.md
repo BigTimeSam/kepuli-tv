@@ -112,6 +112,11 @@ Long-form documentation: [user guide](docs/user-guide.md),
   `docs/user-guide.md` (and the README's feature list if it is a key feature);
   a change to the README is followed by `node dev/site.mjs`; a change to the
   store texts by `node dev/listings.mjs`.
+- **No "·" between pieces of text.** A line of facts joined by middle dots
+  ("Today 13.25 · 2 min · 96.7 MB") reads as clutter. Set the pieces apart by
+  layout (a flex row with a gap, a line each, a heading and its value) or,
+  in running text and tooltips, by a comma. Reading a provider's names that
+  contain one (`js/name.js`, `js/picks.js`) is another matter.
 - **Both browsers.** The code is shared; when you touch playback, storage,
   permissions or the manifest, run the relevant scenario in Firefox too.
 

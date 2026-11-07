@@ -1,6 +1,6 @@
 // The accounts in the player: the list under Settings › Connection with
-// Use and Remove, the account switcher in the top bar, and switching from one
-// account to another with its own lists and cache. The accounts themselves
+// Use and Remove, and switching from one account to another with its own
+// lists and cache. The accounts themselves
 // are stored by js/config.js.
 //
 // Moved out of app.js. It takes the player's state, and the parts app.js
@@ -13,14 +13,15 @@ import { configured, editAccount, pickAccount, setupAdding, setupDirty, setupEdi
 import { toast } from './toast.js';
 import { $, el } from './dom.js';
 
-/** What kind of account, and where: "Xtream Codes · example.tv". */
+/** What kind of account, and where: "Xtream Codes, example.tv". */
 function accountWhere(a) {
   if (a.type === 'm3u' || a.type === 'stalker') {
     let host = a.url;
     try { host = new URL(a.url).hostname; } catch { /* the address as it is */ }
-    return `${t(a.type === 'm3u' ? 'accounts.kind.m3u' : 'accounts.kind.stalker')} · ${host}`;
+    return `${t(a.type === 'm3u' ? 'accounts.kind.m3u' : 'accounts.kind.stalker')}, ${host}`;
   }
-  return `${t('accounts.kind.xtream')} · ${a.host}`;
+  // The host is in the name already when that is user@host.
+  return store.accountLabel(a).endsWith(`@${a.host}`) ? t('accounts.kind.xtream') : `${t('accounts.kind.xtream')}, ${a.host}`;
 }
 
 /**
@@ -95,7 +96,6 @@ export function renderAccountList() {
         toast(t('accounts.removed', { name: store.accountLabel(a) }));
         if (setupEditing === a.id) editAccount('current');
         else renderAccountList();
-        renderAccountSwitcher();
       });
       li.append(use, remove);
     }
@@ -105,14 +105,6 @@ export function renderAccountList() {
   if (setupAdding) list.append(row(null, { isNew: true }));
 }
 
-/** The header's account button: there once there is more than one account. */
-export function renderAccountSwitcher() {
-  const accounts = state.accounts || [];
-  $('account-switch').hidden = accounts.length < 2 || !configured();
-  const select = $('account-pick');
-  select.replaceChildren(...accounts.map((a) => new Option(store.accountLabel(a), a.id)));
-  select.value = state.config.id;
-}
 
 /**
  * Another account of the list in use: what is playing stops, the lists
@@ -126,7 +118,6 @@ export async function switchAccount(id) {
   const config = await store.switchConfig(target);
   await adoptAccount(config);
   el.mode.value = state.config.streamMode || 'auto';
-  renderAccountSwitcher();
   toast(t('accounts.switched', { name: store.accountLabel(config) }));
   await connect();
 }

@@ -69,25 +69,38 @@ function titleKey(item) {
 }
 
 /**
- * One copy of each title, the first: a provider files the same film under
- * each language it has (Movies: Spanish, Movies: Arabic…) and sometimes
- * twice under one, and a list of 57,000 showed it six times over, told
- * apart by "Version 1, 2, 3". The copies are the film's own page's
- * business (relatedTitles, versionLabels).
+ * One copy of each title, in the first copy's place: a provider files the
+ * same film under each language it has (Movies: Spanish, Movies: Arabic…)
+ * and sometimes twice under one, and a list of 57,000 showed it six times
+ * over, told apart by "Version 1, 2, 3". The copy shown is the first, or
+ * the one `prefer` picks (the starred one: a favourite copy kept out of the
+ * list would leave the card unstarred and "Show only favourites" without
+ * it). The others are the film's own page's business (relatedTitles).
  * @template T
  * @param {T[]} items
+ * @param {(item: T) => boolean} [prefer]
  * @returns {T[]}
  */
-export function oneCopyEach(items) {
-  const seen = new Set();
-  return items.filter((item) => {
+export function oneCopyEach(items, prefer = () => false) {
+  const chosen = new Map();
+  for (const item of items) {
     const it = /** @type {any} */ (item);
-    if (it.k !== 1 && it.k !== 2) return true;
+    if (it.k !== 1 && it.k !== 2) continue;
     const key = titleKey(it);
-    if (seen.has(key)) return false;
-    seen.add(key);
-    return true;
-  });
+    const had = chosen.get(key);
+    if (!had || (!prefer(had) && prefer(item))) chosen.set(key, item);
+  }
+  const placed = new Set();
+  const out = [];
+  for (const item of items) {
+    const it = /** @type {any} */ (item);
+    if (it.k !== 1 && it.k !== 2) { out.push(item); continue; }
+    const key = titleKey(it);
+    if (placed.has(key)) continue;
+    placed.add(key);
+    out.push(chosen.get(key));
+  }
+  return out;
 }
 
 /**

@@ -329,7 +329,7 @@ function explained(node, sentence) {
   return node;
 }
 
-function icon(paths) {
+export function icon(paths) {
   const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
   svg.setAttribute('viewBox', '0 0 20 20');
   svg.setAttribute('aria-hidden', 'true');
@@ -488,6 +488,7 @@ const EMPTY_ICONS = {
   history: '<path d="M3.5 10a6.5 6.5 0 1 0 1.9-4.6"/><path d="M3.2 3.2v3.4h3.4"/><path d="M10 6.5v3.8l2.6 1.5"/>',
   search: '<circle cx="9" cy="9" r="5.5"/><path d="m13.2 13.2 4 4"/>',
   list: '<path d="M4 5.5h12M4 10h12M4 14.5h7"/>',
+  record: '<circle cx="10" cy="10" r="6.5"/><circle cx="10" cy="10" r="2.6"/>',
 };
 
 /**
