@@ -437,6 +437,9 @@ async function freshPlayer(target, page) {
  * the channel list rather than trusting the timing.
  */
 async function openLiveList(page, minRows = 1) {
+  // The scenario before may leave the page loading again (welcome removes
+  // the account); twice on CI the tab was not there yet to click.
+  await waitFor(page, `document.querySelector('#tabs [data-tab="live"]')`, 'the Channels tab');
   await evaluate(page, `document.querySelector('#tabs [data-tab="live"]').click()`);
   await waitFor(page, `document.querySelectorAll('#list .row').length >= ${minRows}`, 'the channel rows');
 }
