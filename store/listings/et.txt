@@ -21,7 +21,7 @@ MIDA SA SAAD
 • Kleebi pakkuja saadetud M3U-link ja seaded täituvad ise.
 • Mitu kontot: Xtream Codes, M3U-esitusloend koos XMLTV-kavaga või Stalkeri
   portaal sinu digiboksi MAC-aadressiga. Vahetus ühe klõpsuga ja soovi korral
-  sünkroonimine sinu arvutite vahel.
+  sünkroonimine sinu seadmete vahel.
 • Otsing, mis ei vaata täpitähti ega sõnajärge, ning filter igas menüüs.
 • Pooleli jäänu ootab üleval ja järgmine episood algab ise.
 • Andmete laadimine ei blokeeri ekraani ning mängiv pilt jätkab mängimist.
@@ -51,7 +51,7 @@ PRIVAATSUS ALGUSEST PEALE
 Jälgimist, reklaami ega registreerumist pole. Kepuli-TV suhtleb ainult sinu
 enda serveriga ja küsib luba vaid selle aadressi jaoks — laiem ligipääs alles
 siis, kui sa selle annad ja teenusepakkuja suunab voogusid mujale. Salvestised
-jäävad sinu arvutisse. Ainus erand: kanalite logod võivad laaduda GitHubi
+jäävad sinu seadmesse. Ainus erand: kanalite logod võivad laaduda GitHubi
 avalikust logokogust.
 
 
@@ -65,8 +65,9 @@ elad.
 
 ALUSTA
 
-Klõpsa tööriistaribal ikooni ja sisesta server ja kasutajaandmed,
-esitusloendi link või portaal koos MAC-aadressiga ning sinu loend ilmub.
+Klõpsa tööriistaribal ikooni ja sisesta server ja kasutajaandmed, esitusloendi
+link või portaal koos MAC-aadressiga ning sinu loend ilmub. iPhone'is paigalda
+see Orioni laienduste poest, Android-telefonis Firefoxi.
 
 
 NÄE TÖÖS

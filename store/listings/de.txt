@@ -21,9 +21,10 @@ WAS DU BEKOMMST
 
 • Füge den M3U-Link deines Anbieters ein, und die Einstellungen füllen sich
   von selbst.
-• Mehrere Konten: Xtream Codes, eine M3U-Playlist mit ihrer XMLTV-Programmübersicht oder
-  ein Stalker-Portal mit der MAC-Adresse deiner Box. Wechsle mit einem Klick
-  und synchronisiere sie auf Wunsch zwischen deinen Computern.
+• Mehrere Konten: Xtream Codes, eine M3U-Playlist mit ihrer
+  XMLTV-Programmübersicht oder ein Stalker-Portal mit der MAC-Adresse deiner
+  Box. Wechsle mit einem Klick und synchronisiere sie auf Wunsch zwischen
+  deinen Geräten.
 • Eine Suche, die Akzente und Wortreihenfolge ignoriert, und in jedem Menü
   ein Filter.
 • Was du halb gesehen hast, wartet ganz oben, und die nächste Folge startet
@@ -58,9 +59,8 @@ PRIVATSPHÄRE VON ANFANG AN
 Kein Tracking, keine Werbung, keine Anmeldung. Die Erweiterung spricht nur mit
 deinem eigenen Server und bittet nur um Erlaubnis für diese Adresse — weiteren
 Zugriff nur, wenn du ihn erlaubst, falls dein Anbieter Streams anderswohin
-leitet. Aufnahmen bleiben auf deinem Computer. Die einzige Ausnahme:
-Kanallogos können aus der öffentlichen Logosammlung tv-logos auf GitHub
-kommen.
+leitet. Aufnahmen bleiben auf deinem Gerät. Die einzige Ausnahme: Kanallogos
+können aus der öffentlichen Logosammlung tv-logos auf GitHub kommen.
 
 
 BITTE BEACHTEN
@@ -75,7 +75,8 @@ LOS GEHT'S
 
 Klicke auf das Symbol in der Symbolleiste und gib Server und Zugangsdaten,
 einen Playlist-Link oder ein Portal mit seiner MAC-Adresse ein, und schon
-erscheint deine Liste.
+erscheint deine Liste. Auf dem iPhone installierst du sie im Browser Orion aus
+dessen Erweiterungsstore, auf einem Android-Handy in Firefox.
 
 
 SO SIEHT ES AUS

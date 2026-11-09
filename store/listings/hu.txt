@@ -21,9 +21,9 @@ MIT KAPSZ
 
 • Illeszd be a szolgáltatódtól kapott M3U-linket, és a beállítások maguktól
   kitöltődnek.
-• Több fiók: Xtream Codes, M3U-lista XMLTV-műsorfüzettel vagy Stalker
-  portál a beltéri egységed MAC-címével. Egy kattintással váltasz, és ha
-  szeretnéd, szinkronizálod őket a gépeid között.
+• Több fiók: Xtream Codes, M3U-lista XMLTV-műsorfüzettel vagy Stalker portál a
+  beltéri egységed MAC-címével. Egy kattintással váltasz, és ha szeretnéd,
+  szinkronizálod őket az eszközeid között.
 • Keresés, amely nem törődik az ékezetekkel és a szavak sorrendjével, és
   szűrő minden menüben.
 • Ami félbemaradt, az legfelül vár, a következő epizód pedig magától indul.
@@ -58,8 +58,8 @@ BEÉPÍTETT ADATVÉDELEM
 Nincs követés, nincs reklám, nincs regisztráció. A bővítmény kizárólag a saját
 szerveredhez csatlakozik, és csak ahhoz a címhez kér engedélyt — szélesebb
 hozzáférést csak akkor, ha te adod meg, amikor a szolgáltatód máshová
-irányítja az adást. A felvételek a gépeden maradnak. Az egyetlen kivétel: a
-csatornalogók egy nyilvános GitHub-logógyűjteményből is betöltődhetnek.
+irányítja az adást. A felvételek az eszközödön maradnak. Az egyetlen kivétel:
+a csatornalogók egy nyilvános GitHub-logógyűjteményből is betöltődhetnek.
 
 
 FONTOS
@@ -74,7 +74,8 @@ ELINDULÁS
 
 Kattints az eszköztár ikonjára, és add meg a szervert és a belépési adatokat,
 egy lejátszási lista linkjét vagy egy portált a MAC-címével, és megjelenik a
-lista.
+lista. iPhone-on az Orion böngészőbe telepítheted a bővítményboltjából,
+Android telefonon a Firefoxba.
 
 
 NÉZD MEG MŰKÖDÉS KÖZBEN

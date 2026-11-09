@@ -22,9 +22,9 @@ KAJ DOBIŠ
 
 • Prilepi povezavo M3U, ki ti jo je poslal ponudnik, in nastavitve se
   izpolnijo same.
-• Več računov: Xtream Codes, seznam predvajanja M3U z vodičem XMLTV ali
-  portal Stalker z naslovom MAC tvojega sprejemnika. Preklopiš z enim klikom,
-  po želji pa jih sinhroniziraš med svojimi računalniki.
+• Več računov: Xtream Codes, seznam predvajanja M3U z vodičem XMLTV ali portal
+  Stalker z naslovom MAC tvojega sprejemnika. Preklopiš z enim klikom, po
+  želji pa jih sinhroniziraš med svojimi napravami.
 • Iskanje, ki prezre naglase in vrstni red besed, ter filter v vsakem meniju.
 • Kar si pustil na pol poti, čaka na vrhu, naslednja epizoda pa se zažene
   sama.
@@ -55,9 +55,9 @@ ZASEBNOST ŽE V ZASNOVI
 
 Brez sledenja, brez oglasov, brez registracije. Razširitev se pogovarja samo s
 tvojim strežnikom in dovoljenje zahteva le za ta naslov — širši dostop samo če
-ga dovoliš, ko pretoke drugam usmeri tvoj ponudnik. Posnetki ostanejo na
-tvojem računalniku. Edina izjema: logotipi kanalov se lahko naložijo iz javne
-zbirke logotipov na GitHubu.
+ga dovoliš, ko pretoke drugam usmeri tvoj ponudnik. Posnetki ostanejo na tvoji
+napravi. Edina izjema: logotipi kanalov se lahko naložijo iz javne zbirke
+logotipov na GitHubu.
 
 
 OPOZORILO
@@ -69,9 +69,10 @@ obdržati, in poskrbi, da je storitev zakonita tam, kjer živiš.
 
 KAKO ZAČETI
 
-Klikni ikono v orodni vrstici in vnesi strežnik s podatki za prijavo,
-povezavo do seznama ali portal z njegovim naslovom MAC, pa se tvoj seznam
-pojavi.
+Klikni ikono v orodni vrstici in vnesi strežnik s podatki za prijavo, povezavo
+do seznama ali portal z njegovim naslovom MAC, pa se tvoj seznam pojavi. Na
+iPhonu jo namestiš v brskalnik Orion iz njegove trgovine z razširitvami, na
+telefonu Android pa v Firefox.
 
 
 OGLEJ SI V AKCIJI

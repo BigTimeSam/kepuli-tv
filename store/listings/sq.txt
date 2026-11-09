@@ -30,7 +30,7 @@ mbrëmje.
 • Ngjit lidhjen M3U që ta ka dërguar ofruesi dhe cilësimet plotësohen vetë.
 • Disa llogari: Xtream Codes, listë M3U me udhëzuesin e saj XMLTV, ose portal
   Stalker me adresën MAC të kutisë sate. Kalo me një klikim dhe, po të duash,
-  sinkronizoji mes kompjuterëve të tu.
+  sinkronizoji mes pajisjeve të tua.
 • Kërkim që nuk ia vë veshin theksave e renditjes së fjalëve, plus filtër në
   çdo meny.
 • Ç'ke lënë përgjysmë të pret në krye, ndërsa episodi pasues niset vetë.
@@ -62,8 +62,8 @@ PRIVATËSI NGA NDËRTIMI
 Pa gjurmim, pa reklama, pa regjistrim. Kepuli-TV flet vetëm me serverin tënd
 dhe kërkon leje për atë adresë dhe asnjë tjetër — qasje më të gjerë nëse e
 lejon ti, kur ofruesi i dërgon transmetimet gjetkë. Incizimet mbeten në
-kompjuterin tënd. I vetmi përjashtim: logot e kanaleve mund të ngarkohen nga
-një koleksion publik logosh në GitHub.
+pajisjen tënde. I vetmi përjashtim: logot e kanaleve mund të ngarkohen nga një
+koleksion publik logosh në GitHub.
 
 
 VINI RE
@@ -77,7 +77,9 @@ jeton.
 FILLO
 
 Kliko ikonën në shiritin e veglave dhe shkruaj serverin me kredencialet, një
-lidhje liste ose një portal me adresën e tij MAC, dhe lista shfaqet.
+lidhje liste ose një portal me adresën e tij MAC, dhe lista shfaqet. Në
+iPhone, instaloje në shfletuesin Orion nga dyqani i tij i shtesave; në një
+telefon Android, në Firefox.
 
 
 SHIKOJE NË VEPRIM

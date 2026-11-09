@@ -20,9 +20,9 @@ postavený na jednom nápade: obrovský katalóg má pôsobiť malý.
 ČO ZÍSKAŠ
 
 • Vlož odkaz M3U od poskytovateľa a nastavenia sa vyplnia samy.
-• Viac účtov: Xtream Codes, playlist M3U s jeho sprievodcom XMLTV alebo
-  portál Stalker s MAC adresou tvojho prijímača. Prepneš jedným kliknutím
-  a ak chceš, synchronizuješ ich medzi svojimi počítačmi.
+• Viac účtov: Xtream Codes, playlist M3U s jeho sprievodcom XMLTV alebo portál
+  Stalker s MAC adresou tvojho prijímača. Prepneš jedným kliknutím a ak chceš,
+  synchronizuješ ich medzi svojimi zariadeniami.
 • Vyhľadávanie, ktoré ignoruje diakritiku a poradie slov, a filter v každej
   ponuke.
 • Čo si nedopozeral, čaká hore a ďalšia epizóda sa spustí sama.
@@ -52,7 +52,7 @@ SÚKROMIE V ZÁKLADE
 Bez sledovania, bez reklám, bez registrácie. Kepuli-TV komunikuje iba s tvojím
 vlastným serverom a žiada o povolenie len pre túto adresu — širší prístup iba
 ak ho povolíš, keď poskytovateľ presmeruje streamy inam. Nahrávky zostanú na
-tvojom počítači. Jediná výnimka: logá kanálov sa môžu načítať z verejnej
+tvojom zariadení. Jediná výnimka: logá kanálov sa môžu načítať z verejnej
 zbierky lôg na GitHube.
 
 
@@ -67,7 +67,9 @@ nahrávaj len to, čo si smieš ponechať, a uisti sa, že služba je tam, kde
 AKO ZAČAŤ
 
 Klikni na ikonu na paneli nástrojov a zadaj server s prihlasovacími údajmi,
-odkaz na playlist alebo portál s jeho MAC adresou a zoznam sa objaví.
+odkaz na playlist alebo portál s jeho MAC adresou a zoznam sa objaví. Na
+iPhone ho nainštaluješ v prehliadači Orion z jeho obchodu s rozšíreniami, na
+telefóne s Androidom vo Firefoxe.
 
 
 UKÁŽKA V PRAXI

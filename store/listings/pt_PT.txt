@@ -23,7 +23,7 @@ O QUE TENS
   preenchem-se sozinhas.
 • Várias contas: Xtream Codes, uma lista M3U com o guia XMLTV ou um portal
   Stalker com o endereço MAC da tua box. Muda com um clique e, se quiseres,
-  sincroniza-as entre os teus computadores.
+  sincroniza-as entre os teus dispositivos.
 • Uma pesquisa que ignora acentos e a ordem das palavras, e um filtro em
   todos os menus.
 • O que deixaste a meio fica à espera no topo, e o episódio seguinte arranca
@@ -57,7 +57,7 @@ PRIVADO POR DESIGN
 Sem rastreio, sem anúncios, sem registo. O Kepuli-TV só comunica com o teu
 próprio servidor e pede autorização apenas para esse endereço — acesso mais
 alargado só se o permitires, quando o teu fornecedor envia as transmissões
-para outro lado. As gravações ficam no teu computador. A única exceção: os
+para outro lado. As gravações ficam no teu dispositivo. A única exceção: os
 logótipos podem ser carregados de uma coleção pública de logótipos no GitHub.
 
 
@@ -72,7 +72,8 @@ COMO COMEÇAR
 
 Clica no ícone da barra de ferramentas e indica o teu servidor e as
 credenciais, uma ligação para a playlist ou um portal com o endereço MAC, e a
-lista aparece.
+lista aparece. No iPhone, instala-a no Orion a partir da loja de extensões
+dele; num telemóvel Android, no Firefox.
 
 
 VÊ EM AÇÃO

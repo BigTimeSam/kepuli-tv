@@ -23,7 +23,7 @@ MITÄ SAAT
   itsestään.
 • Useita tilejä: Xtream Codes, M3U-soittolista XMLTV-oppaineen tai
   Stalker-portaali boksisi MAC-osoitteella. Vaihda yhdellä napsautuksella ja
-  synkronoi ne halutessasi koneidesi välillä.
+  synkronoi ne halutessasi laitteidesi välillä.
 • Haku, joka ei välitä aksenteista eikä sanajärjestyksestä, ja suodatin
   jokaisessa valikossa.
 • Puolivälissä jäänyt odottaa ylhäällä, ja seuraava jakso alkaa itsestään.
@@ -56,8 +56,8 @@ YKSITYISYYS RAKENNETTU SISÄÄN
 Ei seurantaa, ei mainoksia, ei rekisteröitymistä. Kepuli-TV keskustelee vain
 oman palvelimesi kanssa ja pyytää luvan vain siihen osoitteeseen – laajemman
 pääsyn vain, jos itse sallit sen, kun palveluntarjoajasi ohjaa lähetykset
-muualle. Tallenteet pysyvät omalla koneellasi. Ainoa poikkeus: kanavien logot
-voivat latautua julkisesta logokokoelmasta GitHubista.
+muualle. Tallenteet pysyvät omalla laitteellasi. Ainoa poikkeus: kanavien
+logot voivat latautua julkisesta logokokoelmasta GitHubista.
 
 
 HUOM
@@ -72,6 +72,8 @@ ALKUUN
 
 Napsauta työkalupalkin kuvaketta ja syötä palvelimesi tunnuksineen,
 soittolistan linkki tai portaali MAC-osoitteineen, niin listasi ilmestyy.
+iPhonella asennat sen Orion-selaimeen sen laajennuskaupasta,
+Android-puhelimella Firefoxiin.
 
 
 KATSO SE TOIMINNASSA

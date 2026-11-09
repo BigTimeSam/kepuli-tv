@@ -22,9 +22,9 @@ NELER SUNUYOR
 
 • Sağlayıcının gönderdiği M3U bağlantısını yapıştır, ayarlar kendiliğinden
   dolsun.
-• Birden çok hesap: Xtream Codes, XMLTV rehberiyle bir M3U oynatma listesi ya da
-  cihazının MAC adresiyle bir Stalker portalı. Tek tıkla geçiş yap, istersen
-  bilgisayarların arasında eşitle.
+• Birden çok hesap: Xtream Codes, XMLTV rehberiyle bir M3U oynatma listesi ya
+  da cihazının MAC adresiyle bir Stalker portalı. Tek tıkla geçiş yap,
+  istersen cihazların arasında eşitle.
 • Aksan işaretlerini ve kelime sırasını yok sayan bir arama ve her menüde bir
   filtre.
 • Yarıda bıraktığın her şey en üstte bekler, sonraki bölüm kendiliğinden
@@ -57,8 +57,8 @@ GİZLİLİK ODAKLI TASARIM
 Takip yok, reklam yok, üyelik yok. Eklenti yalnızca senin sunucunla konuşur ve
 sadece o adres için izin ister; sağlayıcın yayınları başka bir yere
 yönlendirdiğinde daha geniş erişim ancak sen izin verirsen. Kayıtlar senin
-bilgisayarında kalır. Tek istisna: kanal logoları GitHub'daki herkese açık bir
-logo koleksiyonundan yüklenebilir.
+cihazında kalır. Tek istisna: kanal logoları GitHub'daki herkese açık bir logo
+koleksiyonundan yüklenebilir.
 
 
 LÜTFEN DİKKAT
@@ -71,8 +71,10 @@ olduğundan emin ol.
 
 BAŞLARKEN
 
-Araç çubuğundaki simgeye tıkla; sunucunu ve giriş bilgilerini, bir oynatma listesi
-bağlantısını ya da MAC adresiyle bir portalı gir, listen karşına çıkar.
+Araç çubuğundaki simgeye tıkla; sunucunu ve giriş bilgilerini, bir oynatma
+listesi bağlantısını ya da MAC adresiyle bir portalı gir, listen karşına
+çıkar. iPhone'da Orion tarayıcısına onun eklenti mağazasından, Android
+telefonda Firefox'a kurarsın.
 
 
 NASIL ÇALIŞTIĞINI GÖR

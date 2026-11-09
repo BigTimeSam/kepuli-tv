@@ -23,7 +23,7 @@ CO ZÍSKÁŠ
   samo.
 • Několik účtů: Xtream Codes, playlist M3U s průvodcem XMLTV nebo portál
   Stalker s MAC adresou tvého set-top boxu. Přepneš jedním kliknutím a když
-  chceš, synchronizuješ je mezi svými počítači.
+  chceš, synchronizuješ je mezi svými zařízeními.
 • Hledání, které ignoruje diakritiku a pořadí slov, a filtr v každé nabídce.
 • Co jsi nechal v půlce, čeká nahoře, a další epizoda se pustí sama.
 • Při načítání dat nic nezablokuje obrazovku a co hraje, hraje dál.
@@ -53,7 +53,7 @@ SOUKROMÍ JAKO ZÁKLAD
 Žádné sledování, žádné reklamy, žádná registrace. Rozšíření komunikuje jen s
 tvým vlastním serverem a o oprávnění žádá pouze pro tuto jedinou adresu —
 širší přístup jen tehdy, když ho povolíš a streamy se posílají jinam. Nahrávky
-zůstávají v tvém počítači. Jediná výjimka: loga kanálů se mohou načítat z
+zůstávají v tvém zařízení. Jediná výjimka: loga kanálů se mohou načítat z
 veřejné sbírky log na GitHubu.
 
 
@@ -67,7 +67,9 @@ smíš ponechat, a ujisti se, že je taková služba tam, kde žiješ, legální
 JAK ZAČÍT
 
 Klikni na ikonu na liště nástrojů a zadej server a přihlašovací údaje, odkaz
-na playlist nebo portál s jeho MAC adresou, a tvůj seznam se objeví.
+na playlist nebo portál s jeho MAC adresou, a tvůj seznam se objeví. Na iPhonu
+ho nainstaluješ v prohlížeči Orion z jeho obchodu s rozšířeními, na telefonu s
+Androidem ve Firefoxu.
 
 
 UKÁZKA V AKCI

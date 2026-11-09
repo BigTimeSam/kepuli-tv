@@ -21,8 +21,8 @@ jednoj ideji: džinovski katalog treba da deluje mali.
 
 • Nalepi M3U link koji ti je poslao provajder i podešavanja se popune sama.
 • Više naloga: Xtream Codes, M3U plejlista sa svojim XMLTV vodičem ili Stalker
-  portal sa MAC adresom tvog risivera. Prebacuješ jednim klikom, a po želji
-  ih sinhronizuješ između svojih računara.
+  portal sa MAC adresom tvog risivera. Prebacuješ jednim klikom, a po želji ih
+  sinhronizuješ između svojih uređaja.
 • Pretraga koja ne mari za dijakritike i redosled reči, plus filter u svakom
   meniju.
 • Ono što si ostavio na pola čeka na vrhu, a sledeća epizoda kreće sama.
@@ -54,8 +54,8 @@ PRIVATNOST PRE SVEGA
 Bez praćenja, bez reklama, bez registracije. Dodatak komunicira samo sa tvojim
 serverom i traži dozvolu isključivo za tu adresu — šira dozvola samo ako je
 odobriš, kada provajder preusmerava strimove na drugo mesto. Snimci ostaju na
-tvom računaru. Jedini izuzetak: logotipi kanala mogu se učitati iz javne
-zbirke logotipa na GitHubu.
+tvom uređaju. Jedini izuzetak: logotipi kanala mogu se učitati iz javne zbirke
+logotipa na GitHubu.
 
 
 NAPOMENA
@@ -68,7 +68,9 @@ nalog, koristi ga samo za sadržaj koji imaš pravo da gledaš, snimaj samo ono
 KAKO DA POČNEŠ
 
 Klikni ikonicu na traci sa alatkama i upiši server i podatke za prijavu, link
-plejliste ili portal sa njegovom MAC adresom, i tvoja lista se pojavljuje.
+plejliste ili portal sa njegovom MAC adresom, i tvoja lista se pojavljuje. Na
+iPhone-u ga instaliraj u pregledač Orion iz njegove prodavnice dodataka, a na
+Android telefonu u Firefox.
 
 
 POGLEDAJ U AKCIJI

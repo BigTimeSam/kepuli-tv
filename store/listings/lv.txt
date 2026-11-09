@@ -20,9 +20,9 @@ portālus, un tas radīts ap vienu domu: milzīgam katalogam jāliekas mazam.
 KO TU SAŅEM
 
 • Ielīmē sniedzēja atsūtīto M3U saiti, un iestatījumi aizpildās paši.
-• Vairāki konti: Xtream Codes, M3U atskaņošanas saraksts ar XMLTV ceļvedi
-  vai Stalker portāls ar tava priedēkļa MAC adresi. Pārslēdz ar vienu klikšķi
-  un, ja vēlies, sinhronizē tos starp saviem datoriem.
+• Vairāki konti: Xtream Codes, M3U atskaņošanas saraksts ar XMLTV ceļvedi vai
+  Stalker portāls ar tava priedēkļa MAC adresi. Pārslēdz ar vienu klikšķi un,
+  ja vēlies, sinhronizē tos starp savām ierīcēm.
 • Meklēšana, kurai nav svarīgi diakritiskie burti un vārdu secība, un filtrs
   katrā izvēlnē.
 • Kas palicis pusē, gaida augšā, un nākamā sērija sākas pati.
@@ -53,7 +53,7 @@ PRIVĀTI PĒC BŪTĪBAS
 Bez izsekošanas, bez reklāmām, bez reģistrācijas. Kepuli-TV sazinās tikai ar
 tavu serveri un lūdz atļauju tikai šai adresei — plašāka piekļuve vienīgi tad,
 ja tu to atļauj un sniedzējs novirza straumes citur. Ierakstītais paliek tavā
-datorā. Vienīgais izņēmums: kanālu logotipi var tikt ielādēti no publiskas
+ierīcē. Vienīgais izņēmums: kanālu logotipi var tikt ielādēti no publiskas
 logotipu kolekcijas GitHub.
 
 
@@ -66,8 +66,10 @@ un pārliecinies, ka pakalpojums ir likumīgs tur, kur dzīvo.
 
 KĀ SĀKT
 
-Noklikšķini uz ikonas rīkjoslā, ievadi serveri un pieteikšanās datus,
-saraksta saiti vai portālu ar tā MAC adresi, un tavs saraksts parādīsies.
+Noklikšķini uz ikonas rīkjoslā, ievadi serveri un pieteikšanās datus, saraksta
+saiti vai portālu ar tā MAC adresi, un tavs saraksts parādīsies. iPhone
+tālrunī to instalē lietotnē Orion no tās paplašinājumu veikala, bet Android
+tālrunī – Firefox.
 
 
 SKATI DARBĪBĀ

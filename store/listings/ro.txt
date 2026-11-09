@@ -21,7 +21,7 @@ CE PRIMEȘTI
 • Lipește linkul M3U primit de la furnizor și setările se completează singure.
 • Mai multe conturi: Xtream Codes, un playlist M3U cu ghidul lui XMLTV sau un
   portal Stalker cu adresa MAC a receptorului tău. Comuți dintr-un clic și,
-  dacă vrei, le sincronizezi între calculatoarele tale.
+  dacă vrei, le sincronizezi între dispozitivele tale.
 • Căutare care ignoră diacriticele și ordinea cuvintelor, plus un filtru în
   fiecare meniu.
 • Ce ai lăsat la jumătate te așteaptă sus, iar episodul următor pornește
@@ -54,7 +54,7 @@ CONFIDENȚIALITATE DE LA ÎNCEPUT
 Fără urmărire, fără reclame, fără înregistrare. Extensia vorbește doar cu
 serverul tău și cere permisiune numai pentru acea adresă — acces mai larg doar
 dacă îl accepți, atunci când furnizorul trimite fluxurile în altă parte.
-Înregistrările rămân pe calculatorul tău. Singura excepție: siglele canalelor
+Înregistrările rămân pe dispozitivul tău. Singura excepție: siglele canalelor
 se pot încărca dintr-o colecție publică de sigle de pe GitHub.
 
 
@@ -68,9 +68,10 @@ locuiești.
 
 CUM ÎNCEPI
 
-Dă clic pe pictograma din bara de instrumente și introdu serverul și datele
-de autentificare, un link de playlist sau un portal cu adresa lui MAC, iar
-lista ta apare.
+Dă clic pe pictograma din bara de instrumente și introdu serverul și datele de
+autentificare, un link de playlist sau un portal cu adresa lui MAC, iar lista
+ta apare. Pe iPhone, o instalezi în browserul Orion din magazinul lui de
+extensii; pe un telefon Android, în Firefox.
 
 
 VEZI-O ÎN ACȚIUNE

@@ -22,7 +22,7 @@ KĄ GAUSI
 • Įklijuok tiekėjo atsiųstą M3U nuorodą, o nustatymai užsipildys patys.
 • Kelios paskyros: Xtream Codes, M3U grojaraštis su XMLTV gidu arba Stalker
   portalas su tavo priedėlio MAC adresu. Perjungi vienu spustelėjimu, o jei
-  nori, sinchronizuoji jas tarp savo kompiuterių.
+  nori, sinchronizuoji jas tarp savo įrenginių.
 • Paieška, kuriai nesvarbūs diakritiniai ženklai ir žodžių tvarka, bei filtras
   kiekviename meniu.
 • Tai, ką pradėjai, bet nebaigei, laukia viršuje, o kita serija
@@ -53,9 +53,9 @@ PRIVATUMAS IŠ PRADŽIŲ
 
 Jokio sekimo, jokių reklamų, jokios registracijos. Plėtinys kalbasi tik su
 tavo paties serveriu ir prašo leidimo tik šiam adresui – platesnė prieiga tik
-jei leisi, kai tiekėjas nukreipia srautus kitur. Įrašai lieka tavo
-kompiuteryje. Vienintelė išimtis: kanalų logotipai gali būti įkeliami iš
-viešos logotipų kolekcijos GitHub.
+jei leisi, kai tiekėjas nukreipia srautus kitur. Įrašai lieka tavo įrenginyje.
+Vienintelė išimtis: kanalų logotipai gali būti įkeliami iš viešos logotipų
+kolekcijos GitHub.
 
 
 DĖMESIO
@@ -69,7 +69,8 @@ PRADĖK
 
 Spustelėk įrankių juostos piktogramą ir įvesk serverį bei prisijungimo
 duomenis, grojaraščio nuorodą arba portalą su jo MAC adresu – ir tavo sąrašas
-pasirodys.
+pasirodys. iPhone telefone jį įdiegsi programėlėje Orion iš jos plėtinių
+parduotuvės, o Android telefone – Firefox.
 
 
 PAMATYK VEIKIANT

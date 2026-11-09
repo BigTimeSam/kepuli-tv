@@ -24,7 +24,7 @@ malen.
   same.
 • Više računa: Xtream Codes, M3U popis za reprodukciju s XMLTV vodičem ili
   Stalker portal s MAC adresom tvog uređaja. Prebacuješ jednim klikom, a po
-  želji ih sinkroniziraš između svojih računala.
+  želji ih sinkroniziraš između svojih uređaja.
 • Pretraga koja ne mari za dijakritičke znakove i redoslijed riječi te filtar
   u svakom izborniku.
 • Što si ostavio na pola, čeka na vrhu, a sljedeća epizoda kreće sama.
@@ -56,7 +56,7 @@ PRIVATNOST PO ZAMISLI
 Bez praćenja, bez oglasa, bez registracije. Kepuli-TV komunicira samo s tvojim
 vlastitim poslužiteljem i traži dopuštenje samo za tu adresu — šire dopuštenje
 tek ako ga ti odobriš, kad pružatelj usmjerava tokove drugamo. Snimke ostaju
-na tvom računalu. Jedina iznimka: logotipi kanala mogu se učitati iz javne
+na tvom uređaju. Jedina iznimka: logotipi kanala mogu se učitati iz javne
 zbirke logotipa na GitHubu.
 
 
@@ -71,7 +71,8 @@ KAKO POČETI
 
 Klikni ikonu na alatnoj traci i upiši poslužitelj i pristupne podatke,
 poveznicu na popis za reprodukciju ili portal s njegovom MAC adresom i tvoj
-popis se pojavljuje.
+popis se pojavljuje. Na iPhoneu ga instaliraj u preglednik Orion iz njegove
+trgovine proširenja, a na Android telefonu u Firefox.
 
 
 POGLEDAJ U AKCIJI

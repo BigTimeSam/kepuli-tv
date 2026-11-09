@@ -23,7 +23,7 @@ CO DOSTAJESZ
 • Wklej link M3U od dostawcy, a ustawienia wypełnią się same.
 • Kilka kont: Xtream Codes, playlista M3U z przewodnikiem XMLTV albo portal
   Stalker z adresem MAC Twojego dekodera. Przełączasz jednym kliknięciem, a
-  jeśli chcesz, synchronizujesz je między komputerami.
+  jeśli chcesz, synchronizujesz je między urządzeniami.
 • Wyszukiwanie, które ignoruje akcenty i kolejność słów, oraz filtr w każdym
   menu.
 • To, co przerwałeś w połowie, czeka na górze, a następny odcinek włącza się
@@ -55,7 +55,7 @@ PRYWATNOŚĆ OD PODSTAW
 Bez śledzenia, bez reklam, bez rejestracji. Rozszerzenie łączy się tylko z
 Twoim własnym serwerem i prosi o zgodę tylko na ten adres — szerszy dostęp
 wyłącznie za Twoją zgodą, gdy dostawca przekierowuje strumienie gdzie indziej.
-Nagrania zostają na Twoim komputerze. Jedyny wyjątek: logo kanałów mogą być
+Nagrania zostają na Twoim urządzeniu. Jedyny wyjątek: logo kanałów mogą być
 pobierane z publicznej kolekcji logotypów na GitHubie.
 
 
@@ -70,7 +70,9 @@ gdzie mieszkasz.
 JAK ZACZĄĆ
 
 Kliknij ikonę na pasku narzędzi i wpisz serwer z danymi logowania, link do
-playlisty albo portal z jego adresem MAC, a Twoja lista się pojawi.
+playlisty albo portal z jego adresem MAC, a Twoja lista się pojawi. Na iPhonie
+zainstalujesz je w przeglądarce Orion z jej sklepu z rozszerzeniami, a na
+telefonie z Androidem w Firefoksie.
 
 
 ZOBACZ W DZIAŁANIU

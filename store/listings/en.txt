@@ -21,7 +21,7 @@ WHAT YOU GET
 • Paste the M3U link your provider sent you and the settings fill themselves.
 • Several accounts: Xtream Codes, an M3U playlist with its XMLTV guide, or a
   Stalker portal with your box's MAC address. Switch in one click, and sync
-  them between your computers if you like.
+  them between your devices if you like.
 • Search that ignores accents and word order, and a filter in every menu.
 • Whatever you left halfway waits at the top, and the next episode starts by
   itself.
@@ -53,7 +53,7 @@ PRIVATE BY DESIGN
 
 No tracking, no ads, no sign-up. Kepuli-TV talks only to your own server and
 asks permission for that address alone — wider access only if you allow it,
-when your provider sends streams elsewhere. Recordings stay on your computer.
+when your provider sends streams elsewhere. Recordings stay on your device.
 The one exception: channel logos may load from a public logo collection on
 GitHub.
 
@@ -67,8 +67,9 @@ what you may keep, and make sure the service is lawful where you live.
 
 GET STARTED
 
-Click the toolbar icon and enter your server and credentials, a playlist
-link, or a portal with its MAC address, and your list appears.
+Click the toolbar icon and enter your server and credentials, a playlist link,
+or a portal with its MAC address, and your list appears. On an iPhone, install
+it in Orion from its extension store; on an Android phone, in Firefox.
 
 
 SEE IT IN ACTION

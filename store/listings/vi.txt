@@ -22,7 +22,7 @@ BẠN SẼ NHẬN ĐƯỢC
 • Dán liên kết M3U nhà cung cấp gửi, phần cài đặt tự điền xong.
 • Nhiều tài khoản: Xtream Codes, danh sách phát M3U kèm lịch XMLTV, hoặc cổng
   Stalker với địa chỉ MAC của đầu thu. Chuyển chỉ bằng một cú nhấp, và đồng bộ
-  giữa các máy tính của bạn nếu muốn.
+  giữa các thiết bị của bạn nếu muốn.
 • Tìm kiếm bỏ qua dấu và thứ tự từ, kèm bộ lọc trong mọi menu.
 • Xem dở đến đâu, mục đó nằm ngay đầu danh sách; tập tiếp theo tự chạy.
 • Chẳng có hộp thoại nào chặn màn hình khi tải dữ liệu; nội dung đang phát
@@ -56,7 +56,7 @@ RIÊNG TƯ TỪ THIẾT KẾ
 Không theo dõi, không quảng cáo, khỏi đăng ký. Kepuli-TV chỉ nói chuyện với
 máy chủ của chính bạn và chỉ xin quyền cho đúng địa chỉ đó — quyền rộng hơn
 chỉ khi bạn đồng ý, lúc nhà cung cấp đẩy luồng sang nơi khác. Bản ghi nằm lại
-trên máy tính của bạn. Ngoại lệ duy nhất: logo kênh có thể được tải từ một bộ
+trên thiết bị của bạn. Ngoại lệ duy nhất: logo kênh có thể được tải từ một bộ
 sưu tập logo công khai trên GitHub.
 
 
@@ -70,8 +70,9 @@ bạn được phép giữ, và bảo đảm dịch vụ hợp pháp tại nơi 
 BẮT ĐẦU
 
 Nhấp biểu tượng trên thanh công cụ rồi nhập máy chủ và thông tin đăng nhập,
-liên kết danh sách phát, hoặc cổng kèm địa chỉ MAC, và danh sách của bạn
-sẽ hiện ra.
+liên kết danh sách phát, hoặc cổng kèm địa chỉ MAC, và danh sách của bạn sẽ
+hiện ra. Trên iPhone, hãy cài vào Orion từ cửa hàng tiện ích của nó; trên điện
+thoại Android, cài vào Firefox.
 
 
 XEM THỬ

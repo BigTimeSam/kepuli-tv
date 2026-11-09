@@ -22,7 +22,7 @@ WAT JE KRIJGT
   zichzelf in.
 • Meerdere accounts: Xtream Codes, een M3U-afspeellijst met XMLTV-gids, of een
   Stalker-portal met het MAC-adres van je box. Wissel met één klik, en
-  synchroniseer ze desgewenst tussen je computers.
+  synchroniseer ze desgewenst tussen je apparaten.
 • Zoeken dat accenten en woordvolgorde negeert, en een filter in elk menu.
 • Wat je halverwege hebt gelaten staat bovenaan klaar, en de volgende
   aflevering start vanzelf.
@@ -55,7 +55,7 @@ PRIVÉ VANAF HET BEGIN
 Geen tracking, geen advertenties, geen registratie. De extensie praat alleen
 met jouw server en vraagt alleen toestemming voor dat adres — bredere toegang
 alleen als jij dat toestaat, wanneer je provider de streams naar een ander
-adres doorstuurt. Opnames blijven op je computer. De enige uitzondering:
+adres doorstuurt. Opnames blijven op je apparaat. De enige uitzondering:
 zenderlogo’s kunnen worden geladen uit een openbare logoverzameling op GitHub.
 
 
@@ -69,7 +69,9 @@ enkel op wat je mag bewaren, en zorg dat de dienst legaal is waar je woont.
 AAN DE SLAG
 
 Klik op het icoon in de werkbalk en vul je server en inloggegevens in, een
-afspeellijstlink of een portal met zijn MAC-adres, en je lijst verschijnt.
+afspeellijstlink of een portal met zijn MAC-adres, en je lijst verschijnt. Op
+een iPhone installeer je hem in Orion via de extensiewinkel ervan, op een
+Android-telefoon in Firefox.
 
 
 ZIE HET IN ACTIE

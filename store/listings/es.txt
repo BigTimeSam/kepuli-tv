@@ -22,7 +22,7 @@ QUÉ OBTIENES
 • Pega el enlace M3U que te envió tu proveedor y los ajustes se rellenan solos.
 • Varias cuentas: Xtream Codes, una lista M3U con su guía XMLTV o un portal
   Stalker con la dirección MAC de tu receptor. Cambia con un clic y, si
-  quieres, sincronízalas entre tus ordenadores.
+  quieres, sincronízalas entre tus dispositivos.
 • Una búsqueda que ignora los acentos y el orden de las palabras, y un filtro
   en cada menú.
 • Lo que dejaste a medias te espera arriba, y el siguiente episodio empieza
@@ -57,7 +57,7 @@ PRIVADO POR DISEÑO
 Sin rastreo, sin anuncios, sin registro. Kepuli-TV solo habla con tu propio
 servidor y pide permiso solo para esa dirección; un acceso más amplio, solo si
 tú lo permites, cuando tu proveedor envía las emisiones a otro sitio. Las
-grabaciones se quedan en tu ordenador. La única excepción: los logotipos
+grabaciones se quedan en tu dispositivo. La única excepción: los logotipos
 pueden cargarse desde una colección pública de logotipos en GitHub.
 
 
@@ -70,9 +70,10 @@ lo que puedas conservar y asegúrate de que el servicio sea legal donde vives.
 
 PRIMEROS PASOS
 
-Haz clic en el icono de la barra de herramientas e introduce tu servidor y
-tus credenciales, un enlace de suscripción o un portal con su dirección MAC, y
-aparecerá tu lista.
+Haz clic en el icono de la barra de herramientas e introduce tu servidor y tus
+credenciales, un enlace de suscripción o un portal con su dirección MAC, y
+aparecerá tu lista. En un iPhone, instálala en Orion desde su tienda de
+extensiones; en un móvil Android, en Firefox.
 
 
 MÍRALO EN ACCIÓN

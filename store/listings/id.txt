@@ -21,7 +21,7 @@ YANG KAMU DAPATKAN
 • Tempel tautan M3U dari penyedia, dan semua kolom pengaturan terisi sendiri.
 • Beberapa akun: Xtream Codes, daftar putar M3U beserta panduan XMLTV, atau
   portal Stalker dengan alamat MAC perangkatmu. Ganti dalam satu klik, dan
-  sinkronkan antarkomputermu bila mau.
+  sinkronkan antarperangkatmu bila mau.
 • Pencarian yang tak peduli aksen maupun urutan kata, plus filter di setiap
   menu.
 • Tontonan yang belum selesai menunggu di bagian atas, lalu episode berikutnya
@@ -57,7 +57,7 @@ PRIVAT SEJAK AWAL
 Tidak ada pelacakan, iklan, atau pendaftaran. Kepuli-TV hanya berhubungan
 dengan servermu sendiri dan meminta izin untuk alamat itu saja — akses yang
 lebih luas hanya jika kamu mengizinkan, yaitu ketika penyedia mengalihkan
-siaran ke tempat lain. Rekaman tetap tersimpan di komputermu. Satu-satunya
+siaran ke tempat lain. Rekaman tetap tersimpan di perangkatmu. Satu-satunya
 pengecualian: logo bisa dimuat dari koleksi logo publik di GitHub.
 
 
@@ -72,7 +72,8 @@ tinggal.
 MULAI DI SINI
 
 Klik ikon di bilah alat, isi server dan data login, tautan daftar putar, atau
-portal dengan alamat MAC-nya, lalu katalogmu muncul.
+portal dengan alamat MAC-nya, lalu katalogmu muncul. Di iPhone, pasang di
+browser Orion dari toko ekstensinya; di ponsel Android, di Firefox.
 
 
 LIHAT CARA KERJANYA

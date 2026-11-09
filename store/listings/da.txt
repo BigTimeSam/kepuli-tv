@@ -21,7 +21,7 @@ HVAD DU FÅR
 • Indsæt M3U-linket fra din udbyder, så udfylder indstillingerne sig selv.
 • Flere slags konti: Xtream Codes, M3U-afspilningsliste med XMLTV-guide og
   Stalker-portal med din boks' MAC-adresse. Skift med ét klik, og synkronisér
-  dem mellem dine computere, hvis du vil.
+  dem mellem dine enheder, hvis du vil.
 • Søgning, der ignorerer accenter og ordrækkefølge, og et filter i hver menu.
 • Det, du lod ligge halvvejs, venter øverst, og næste afsnit starter af sig
   selv.
@@ -53,8 +53,8 @@ PRIVAT FRA GRUNDEN
 Ingen sporing, ingen reklamer, ingen tilmelding. Kepuli-TV taler kun med din
 egen server og beder om tilladelse til netop den adresse — bredere adgang kun
 hvis du selv tillader det, når din udbyder sender streams et andet sted hen.
-Optagelser bliver på din computer. Den eneste undtagelse: kanallogoer kan
-hentes fra en offentlig logosamling på GitHub.
+Optagelser bliver på din enhed. Den eneste undtagelse: kanallogoer kan hentes
+fra en offentlig logosamling på GitHub.
 
 
 BEMÆRK
@@ -68,7 +68,8 @@ KOM I GANG
 
 Klik på ikonet på værktøjslinjen, og indtast server og loginoplysninger, et
 link til en afspilningsliste eller en portal med dens MAC-adresse, så dukker
-listen op.
+listen op. På en iPhone installerer du den i browseren Orion fra dens
+udvidelsesbutik, og på en Android-telefon i Firefox.
 
 
 SE DET I BRUG
