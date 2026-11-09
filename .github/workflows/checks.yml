@@ -27,13 +27,13 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
         with:
           node-version: 22
       - name: Dummy media for the mock server (cached by media.sh)
         id: media
-        uses: actions/cache@v4
+        uses: actions/cache@v6
         with:
           path: dev/mock/media
           key: mock-media-${{ hashFiles('dev/mock/media.sh') }}
@@ -80,13 +80,13 @@ jobs:
       KEPULI_DEV_PROFILE: /tmp/kepuli-profile
       TZ: Europe/Helsinki
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
         with:
           node-version: 22
       - name: Dummy media for the mock server (cached by media.sh)
         id: media
-        uses: actions/cache@v4
+        uses: actions/cache@v6
         with:
           path: dev/mock/media
           key: mock-media-${{ hashFiles('dev/mock/media.sh') }}
