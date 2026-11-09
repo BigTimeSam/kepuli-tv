@@ -35,7 +35,7 @@ portal). Real accounts are for the owner's manual testing only.
 | --- | --- | --- | --- |
 | 9222 | the owner's development Chrome (`dev/dev.mjs`) | `~/.cache/kepuli-tv-dev` | **no**, read-only probes at most |
 | 2828 | the owner's development Firefox (`firefox/dev.mjs`) | `~/.cache/kepuli-tv-firefox` | **no** |
-| 9333 (suggested) | your test Chrome | a scratch directory | yes |
+| 9333 (suggested) | your test Chrome | a scratch directory | yes, if free: another agent's session may hold it, and the tools then attach to that browser (`lsof -nP -iTCP:9333 -sTCP:LISTEN`; take another port) |
 | 2838 (suggested) | your test Firefox | a scratch directory | yes |
 | 9341 | `dev/uicheck.mjs` (`KEPULI_UI_PORT`) | temporary | yes |
 | 9370 | `dev/demo-video.mjs` (`KEPULI_VIDEO_PORT`) | temporary | yes |

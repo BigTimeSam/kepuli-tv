@@ -2918,8 +2918,15 @@ async function settings(page, { requests, target }) {
 
   // Without credentials the dialog is not settings at all: there is nothing
   // to set until there is something to connect to.
+  // The open player answers the removal by loading itself again
+  // (storageCleared); a navigation sent at the same moment collided with
+  // that reload and got no answer (CI, three times: "Page.navigate: no
+  // answer in 45 s"). The player's own reload is waited for, and the
+  // navigation is only the fallback should it not come.
+  const before = await evaluate(page, `performance.timeOrigin`);
   await evaluate(page, `chrome.storage.local.remove('config')`);
-  await page.call('Page.navigate', { url: bare(target.url) });
+  const reloaded = await waitFor(page, `performance.timeOrigin !== ${before}`, 'the player reloading itself', 8000).then(() => true, () => false);
+  if (!reloaded) await page.call('Page.navigate', { url: bare(target.url) });
   await sleep(1200);
   await waitFor(page, `document.getElementById('setup').open`, 'the first-run dialog', 10000);
   const first = await evaluate(page, `({ rail: getComputedStyle(document.getElementById('setup-tabs')).display,
