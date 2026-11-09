@@ -216,7 +216,7 @@ export default {
  "error.grant.all": "Tillåt alla adresser",
  "error.grant.all.why": "Servern skickar den här strömmen vidare till en annan adress, som spelaren bara får läsa med ditt tillstånd. Webbläsaren berättar inte för spelaren vilken adress det är, så tillståndet som efterfrågas gäller alla adresser.",
  "error.noserver": "Inte ansluten till någon leverantör än. Öppna Inställningar för att ansluta.",
- "api.unreachable": "Servern svarade inte. Kontrollera serverns adress i Inställningar och att datorn är ansluten till nätet. Om det fungerade förut kan leverantörens server ligga nere: försök igen om några minuter.",
+ "api.unreachable": "Servern svarade inte. Kontrollera serverns adress i Inställningar och internetanslutningen. Om det fungerade förut kan leverantörens server ligga nere: försök igen om några minuter.",
  "api.rejected": "Servern godtog inte det här användarnamnet och lösenordet. Kontrollera dem i Inställningar; kopiera dem från leverantörens meddelande så undviker du skrivfel.",
  "api.denied": "Servern nekade åtkomst. Anslutningen kan vara blockerad, eller tjänsten begränsad där du är. Leverantören kan berätta vilken adress du ska använda där du är.",
  "api.status": "Leverantörens server svarade med fel {status}. Felet ligger hos leverantören: försök igen om några minuter.",

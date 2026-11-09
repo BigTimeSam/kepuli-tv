@@ -216,7 +216,7 @@ export default {
  "error.grant.all": "Tüm adreslere izin ver",
  "error.grant.all.why": "Sunucu bu yayını başka bir adrese yönlendiriyor; oynatıcı orayı yalnızca izninizle okuyabilir. Tarayıcı oynatıcıya bunun hangi adres olduğunu söylemediği için istenen izin tüm adresleri kapsar.",
  "error.noserver": "Henüz bir sağlayıcıya bağlı değil. Bağlanmak için Ayarlar’ı açın.",
- "api.unreachable": "Sunucu yanıt vermedi. Ayarlar’da sunucu adresini ve bu bilgisayarın çevrimiçi olduğunu kontrol edin. Daha önce çalıştıysa sağlayıcının sunucusu çökmüş olabilir: birkaç dakika sonra yeniden deneyin.",
+ "api.unreachable": "Sunucu yanıt vermedi. Ayarlar’da sunucu adresini ve internet bağlantınızı kontrol edin. Daha önce çalıştıysa sağlayıcının sunucusu çökmüş olabilir: birkaç dakika sonra yeniden deneyin.",
  "api.rejected": "Sunucu bu kullanıcı adını ve parolayı kabul etmedi. Ayarlar’da kontrol edin; bunları sağlayıcınızın mesajından kopyalamak yazım hatalarını önler.",
  "api.denied": "Sunucu erişimi reddetti. Bağlantı engellenmiş ya da hizmet bulunduğunuz yerde kısıtlanmış olabilir. Sağlayıcınız bulunduğunuz yerden hangi adresi kullanacağınızı söyleyebilir.",
  "api.status": "Sağlayıcının sunucusu {status} hatasıyla yanıt verdi. Sorun sağlayıcı tarafında: birkaç dakika sonra yeniden deneyin.",

@@ -232,7 +232,7 @@ export default {
  "error.grant.all": "Povoliť všetky adresy",
  "error.grant.all.why": "Server presmeruje tento stream na inú adresu, ktorú smie prehrávač čítať len s tvojím súhlasom. Prehliadač prehrávaču nepovie, o akú adresu ide, preto žiadosť o súhlas zahŕňa všetky adresy.",
  "error.noserver": "Zatiaľ nie si pripojený k poskytovateľovi. Otvor Nastavenia a pripoj sa.",
- "api.unreachable": "Server neodpovedal. Skontroluj adresu servera v Nastaveniach a či je počítač online. Ak to predtým fungovalo, server poskytovateľa môže mať výpadok: skús to znova o pár minút.",
+ "api.unreachable": "Server neodpovedal. Skontroluj adresu servera v Nastaveniach a pripojenie na internet. Ak to predtým fungovalo, server poskytovateľa môže mať výpadok: skús to znova o pár minút.",
  "api.rejected": "Server neprijal toto používateľské meno a heslo. Skontroluj ich v Nastaveniach; keď ich skopíruješ zo správy od poskytovateľa, vyhneš sa preklepom.",
  "api.denied": "Server odmietol prístup. Pripojenie môže byť blokované alebo služba obmedzená tam, kde si. Poskytovateľ ti povie, akú adresu odtiaľ použiť.",
  "api.status": "Server poskytovateľa odpovedal chybou {status}. Chyba je na strane poskytovateľa: skús to znova o pár minút.",

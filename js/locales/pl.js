@@ -232,7 +232,7 @@ export default {
  "error.grant.all": "Zezwól na wszystkie adresy",
  "error.grant.all.why": "Serwer przekierowuje ten strumień pod inny adres, który odtwarzacz może czytać tylko za twoją zgodą. Przeglądarka nie mówi odtwarzaczowi, jaki to adres, więc prośba o zgodę obejmuje wszystkie adresy.",
  "error.noserver": "Jeszcze nie ma połączenia z dostawcą. Otwórz Ustawienia, aby się połączyć.",
- "api.unreachable": "Serwer nie odpowiedział. Sprawdź adres serwera w Ustawieniach i czy komputer jest online. Jeśli wcześniej działało, serwer dostawcy może mieć awarię: spróbuj ponownie za kilka minut.",
+ "api.unreachable": "Serwer nie odpowiedział. Sprawdź adres serwera w Ustawieniach i połączenie z internetem. Jeśli wcześniej działało, serwer dostawcy może mieć awarię: spróbuj ponownie za kilka minut.",
  "api.rejected": "Serwer nie przyjął tej nazwy użytkownika i hasła. Sprawdź je w Ustawieniach; skopiowanie ich z wiadomości od dostawcy pozwala uniknąć literówek.",
  "api.denied": "Serwer odmówił dostępu. Połączenie może być zablokowane albo usługa ograniczona w miejscu, w którym jesteś. Dostawca powie Ci, jakiego adresu używać z Twojej lokalizacji.",
  "api.status": "Serwer dostawcy odpowiedział błędem {status}. Problem leży po stronie dostawcy: spróbuj ponownie za kilka minut.",

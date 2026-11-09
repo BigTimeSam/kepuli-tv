@@ -216,7 +216,7 @@ export default {
  "error.grant.all": "Permitir todas las direcciones",
  "error.grant.all.why": "El servidor envía esta emisión a otra dirección, que el reproductor solo puede leer con tu permiso. El navegador no le dice al reproductor cuál es, así que el permiso que se pide abarca todas las direcciones.",
  "error.noserver": "Aún no hay conexión con un proveedor. Abre Ajustes para conectarte.",
- "api.unreachable": "El servidor no respondió. Comprueba la dirección del servidor en Ajustes y que este ordenador tiene conexión. Si antes funcionaba, puede que el servidor del proveedor esté caído: vuelve a intentarlo en unos minutos.",
+ "api.unreachable": "El servidor no respondió. Comprueba la dirección del servidor en Ajustes y tu conexión a internet. Si antes funcionaba, puede que el servidor del proveedor esté caído: vuelve a intentarlo en unos minutos.",
  "api.rejected": "El servidor no aceptó este usuario y esta contraseña. Compruébalos en Ajustes; si los copias del mensaje de tu proveedor, evitarás errores al escribir.",
  "api.denied": "El servidor denegó el acceso. Puede que la conexión esté bloqueada o el servicio restringido donde estás. Tu proveedor puede decirte qué dirección usar desde donde estás.",
  "api.status": "El servidor del proveedor respondió con el error {status}. El fallo es del proveedor: vuelve a intentarlo en unos minutos.",

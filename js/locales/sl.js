@@ -232,7 +232,7 @@ export default {
  "error.grant.all": "Dovoli vse naslove",
  "error.grant.all.why": "Strežnik ta pretok preusmeri na drug naslov, ki ga predvajalnik lahko bere samo s tvojim dovoljenjem. Brskalnik predvajalniku ne pove, za kateri naslov gre, zato prošnja za dovoljenje zajame vse naslove.",
  "error.noserver": "Še ni povezave s ponudnikom. Odpri Nastavitve in se poveži.",
- "api.unreachable": "Strežnik se ni odzval. Preveri naslov strežnika v Nastavitvah in ali je računalnik povezan s spletom. Če je prej delovalo, je strežnik ponudnika morda nedosegljiv: poskusi znova čez nekaj minut.",
+ "api.unreachable": "Strežnik se ni odzval. Preveri naslov strežnika v Nastavitvah in internetno povezavo. Če je prej delovalo, je strežnik ponudnika morda nedosegljiv: poskusi znova čez nekaj minut.",
  "api.rejected": "Strežnik ni sprejel tega uporabniškega imena in gesla. Preveri ju v Nastavitvah; če ju kopiraš iz ponudnikovega sporočila, se izogneš tipkarskim napakam.",
  "api.denied": "Strežnik je zavrnil dostop. Povezava je morda blokirana ali storitev omejena tam, kjer si. Ponudnik ti lahko pove, kateri naslov uporabiti od tam.",
  "api.status": "Strežnik ponudnika je odgovoril z napako {status}. Težava je na strani ponudnika: poskusi znova čez nekaj minut.",

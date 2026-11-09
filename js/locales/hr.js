@@ -224,7 +224,7 @@ export default {
  "error.grant.all": "Dopusti sve adrese",
  "error.grant.all.why": "Poslužitelj preusmjerava ovaj tok na drugu adresu koju reproduktor smije čitati samo uz tvoje dopuštenje. Preglednik reproduktoru ne govori koja je to adresa, pa zahtjev za dopuštenje obuhvaća sve adrese.",
  "error.noserver": "Još nema veze s pružateljem. Otvori Postavke i poveži se.",
- "api.unreachable": "Poslužitelj nije odgovorio. Provjeri adresu poslužitelja u Postavkama i je li računalo na mreži. Ako je prije radilo, pružateljev poslužitelj možda ne radi: pokušaj ponovno za nekoliko minuta.",
+ "api.unreachable": "Poslužitelj nije odgovorio. Provjeri adresu poslužitelja u Postavkama i internetsku vezu. Ako je prije radilo, pružateljev poslužitelj možda ne radi: pokušaj ponovno za nekoliko minuta.",
  "api.rejected": "Poslužitelj nije prihvatio ovo korisničko ime i lozinku. Provjeri ih u Postavkama; ako ih kopiraš iz pružateljeve poruke, izbjeći ćeš pogreške pri upisu.",
  "api.denied": "Poslužitelj je odbio pristup. Veza je možda blokirana ili je usluga ograničena tamo gdje jesi. Pružatelj ti može reći koju adresu koristiti odande.",
  "api.status": "Pružateljev poslužitelj odgovorio je pogreškom {status}. Problem je na strani pružatelja: pokušaj ponovno za nekoliko minuta.",

@@ -216,7 +216,7 @@ export default {
  "error.grant.all": "Luba kõik aadressid",
  "error.grant.all.why": "Server suunab selle voo teisele aadressile, mida mängija tohib lugeda ainult sinu loal. Brauser ei ütle mängijale, mis aadress see on, seega hõlmab luba kõiki aadresse.",
  "error.noserver": "Pakkujaga pole veel ühendust. Ühendamiseks ava Seaded.",
- "api.unreachable": "Server ei vastanud. Kontrolli seadetes serveri aadressi ja seda, et arvuti on võrgus. Kui see varem töötas, võib pakkuja server maas olla: proovi mõne minuti pärast uuesti.",
+ "api.unreachable": "Server ei vastanud. Kontrolli seadetes serveri aadressi ja internetiühendust. Kui see varem töötas, võib pakkuja server maas olla: proovi mõne minuti pärast uuesti.",
  "api.rejected": "Server ei võtnud seda kasutajanime ja parooli vastu. Kontrolli neid seadetes; kui kopeerid need pakkuja sõnumist, väldid trükivigu.",
  "api.denied": "Server keelas juurdepääsu. Ühendus võib olla blokeeritud või teenus piiratud seal, kus sa oled. Pakkuja oskab öelda, millist aadressi sealt kasutada.",
  "api.status": "Pakkuja server vastas veaga {status}. Viga on pakkuja poolel: proovi mõne minuti pärast uuesti.",

@@ -216,7 +216,7 @@ export default {
  "error.grant.all": "Permitir todos os endereços",
  "error.grant.all.why": "O servidor encaminha esta transmissão para outro endereço, que o player só pode ler com a sua permissão. O navegador não diz ao player qual é, por isso a permissão pedida abrange todos os endereços.",
  "error.noserver": "Ainda não há conexão com um provedor. Abra Configurações para conectar.",
- "api.unreachable": "O servidor não respondeu. Confira o endereço do servidor em Configurações e se este computador está on-line. Se funcionava antes, o servidor do provedor pode estar fora do ar: tente de novo em alguns minutos.",
+ "api.unreachable": "O servidor não respondeu. Confira o endereço do servidor em Configurações e sua conexão com a internet. Se funcionava antes, o servidor do provedor pode estar fora do ar: tente de novo em alguns minutos.",
  "api.rejected": "O servidor não aceitou este usuário e esta senha. Confira-os em Configurações; copiá-los da mensagem do seu provedor evita erros de digitação.",
  "api.denied": "O servidor recusou o acesso. A conexão pode estar bloqueada, ou o serviço restrito onde você está. Seu provedor pode dizer qual endereço usar de onde você está.",
  "api.status": "O servidor do provedor respondeu com o erro {status}. O problema é do lado do provedor: tente de novo em alguns minutos.",

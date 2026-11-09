@@ -224,7 +224,7 @@ export default {
  "error.grant.all": "Atļaut visas adreses",
  "error.grant.all.why": "Serveris šo straumi novirza uz citu adresi, ko atskaņotājs drīkst lasīt tikai ar tavu atļauju. Pārlūks atskaņotājam neizpauž, kāda tā ir, tāpēc atļaujas lūgums aptver visas adreses.",
  "error.noserver": "Vēl nav savienojuma ar sniedzēju. Atver Iestatījumus, lai savienotos.",
- "api.unreachable": "Serveris neatbildēja. Pārbaudi servera adresi Iestatījumos un to, vai dators ir tiešsaistē. Ja agrāk darbojās, sniedzēja serveris var nedarboties: mēģini vēlreiz pēc dažām minūtēm.",
+ "api.unreachable": "Serveris neatbildēja. Pārbaudi servera adresi Iestatījumos un interneta savienojumu. Ja agrāk darbojās, sniedzēja serveris var nedarboties: mēģini vēlreiz pēc dažām minūtēm.",
  "api.rejected": "Serveris nepieņēma šo lietotājvārdu un paroli. Pārbaudi tos Iestatījumos; ja tos nokopē no sniedzēja ziņas, izvairīsies no drukas kļūdām.",
  "api.denied": "Serveris liedza piekļuvi. Savienojums var būt bloķēts vai pakalpojums ierobežots tur, kur tu atrodies. Sniedzējs var pateikt, kuru adresi izmantot no turienes.",
  "api.status": "Sniedzēja serveris atbildēja ar kļūdu {status}. Problēma ir sniedzēja pusē: mēģini vēlreiz pēc dažām minūtēm.",

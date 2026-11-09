@@ -208,7 +208,7 @@ export default {
  "error.grant.all": "Izinkan semua alamat",
  "error.grant.all.why": "Server mengalihkan siaran ini ke alamat lain, yang hanya bisa dibaca pemutar dengan izinmu. Peramban tidak memberi tahu pemutar alamat mana itu, jadi permintaan izin mencakup semua alamat.",
  "error.noserver": "Belum terhubung ke penyedia. Buka Pengaturan untuk menghubungkan.",
- "api.unreachable": "Server tidak menjawab. Periksa alamat server di Pengaturan dan pastikan komputer ini online. Jika sebelumnya berjalan, server penyedia mungkin sedang mati: coba lagi dalam beberapa menit.",
+ "api.unreachable": "Server tidak menjawab. Periksa alamat server di Pengaturan dan koneksi internet. Jika sebelumnya berjalan, server penyedia mungkin sedang mati: coba lagi dalam beberapa menit.",
  "api.rejected": "Server tidak menerima nama pengguna dan kata sandi ini. Periksa keduanya di Pengaturan; menyalinnya dari pesan penyedia menghindari salah ketik.",
  "api.denied": "Server menolak akses. Koneksi mungkin diblokir, atau layanan dibatasi di lokasi Anda. Penyedia bisa memberi tahu alamat mana yang dipakai dari lokasi Anda.",
  "api.status": "Server penyedia menjawab dengan galat {status}. Masalahnya ada di pihak penyedia: coba lagi dalam beberapa menit.",

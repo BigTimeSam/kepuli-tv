@@ -216,7 +216,7 @@ export default {
  "error.grant.all": "Consenti tutti gli indirizzi",
  "error.grant.all.why": "Il server inoltra questo flusso a un altro indirizzo, che il player può leggere solo con il tuo permesso. Il browser non dice al player quale sia, quindi il permesso richiesto vale per tutti gli indirizzi.",
  "error.noserver": "Non ancora connesso a un provider. Apri Impostazioni per connetterti.",
- "api.unreachable": "Il server non ha risposto. Controlla l’indirizzo del server in Impostazioni e che questo computer sia online. Se prima funzionava, il server del provider potrebbe essere fuori servizio: riprova tra qualche minuto.",
+ "api.unreachable": "Il server non ha risposto. Controlla l’indirizzo del server in Impostazioni e la connessione a Internet. Se prima funzionava, il server del provider potrebbe essere fuori servizio: riprova tra qualche minuto.",
  "api.rejected": "Il server non ha accettato questo nome utente e questa password. Controllali in Impostazioni; copiarli dal messaggio del provider evita errori di battitura.",
  "api.denied": "Il server ha negato l’accesso. La connessione potrebbe essere bloccata, o il servizio limitato dove ti trovi. Il provider può dirti quale indirizzo usare da dove ti trovi.",
  "api.status": "Il server del provider ha risposto con l’errore {status}. Il problema è del provider: riprova tra qualche minuto.",

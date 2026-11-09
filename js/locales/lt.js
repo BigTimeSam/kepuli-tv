@@ -232,7 +232,7 @@ export default {
  "error.grant.all": "Leisti visus adresus",
  "error.grant.all.why": "Serveris nukreipia šį srautą kitu adresu, kurį grotuvas gali skaityti tik su tavo leidimu. Naršyklė grotuvui nepasako, koks tai adresas, todėl leidimo prašoma visiems adresams.",
  "error.noserver": "Dar neprisijungta prie tiekėjo. Atidaryk Nustatymus, kad prisijungtum.",
- "api.unreachable": "Serveris neatsakė. Patikrink serverio adresą Nustatymuose ir ar kompiuteris prisijungęs prie tinklo. Jei anksčiau veikė, tiekėjo serveris gali neveikti: bandyk dar kartą po kelių minučių.",
+ "api.unreachable": "Serveris neatsakė. Patikrink serverio adresą Nustatymuose ir interneto ryšį. Jei anksčiau veikė, tiekėjo serveris gali neveikti: bandyk dar kartą po kelių minučių.",
  "api.rejected": "Serveris nepriėmė šio naudotojo vardo ir slaptažodžio. Patikrink juos Nustatymuose; nukopijavęs juos iš tiekėjo žinutės, išvengsi rašybos klaidų.",
  "api.denied": "Serveris atmetė prieigą. Ryšys gali būti užblokuotas arba paslauga ribojama ten, kur esi. Tiekėjas gali pasakyti, kokį adresą naudoti iš ten.",
  "api.status": "Tiekėjo serveris atsakė klaida {status}. Problema tiekėjo pusėje: bandyk dar kartą po kelių minučių.",

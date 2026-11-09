@@ -224,7 +224,7 @@ export default {
  "error.grant.all": "Permite toate adresele",
  "error.grant.all.why": "Serverul trimite acest flux mai departe la o altă adresă, pe care playerul o poate citi doar cu permisiunea ta. Browserul nu-i spune playerului despre ce adresă e vorba, așa că permisiunea cerută acoperă toate adresele.",
  "error.noserver": "Încă nu există conexiune cu un furnizor. Deschide Setări ca să te conectezi.",
- "api.unreachable": "Serverul nu a răspuns. Verifică adresa serverului în Setări și dacă acest computer e conectat la internet. Dacă înainte mergea, serverul furnizorului poate fi căzut: încearcă din nou peste câteva minute.",
+ "api.unreachable": "Serverul nu a răspuns. Verifică adresa serverului în Setări și conexiunea la internet. Dacă înainte mergea, serverul furnizorului poate fi căzut: încearcă din nou peste câteva minute.",
  "api.rejected": "Serverul nu a acceptat acest nume de utilizator și această parolă. Verifică-le în Setări; dacă le copiezi din mesajul furnizorului, eviți greșelile de tastare.",
  "api.denied": "Serverul a refuzat accesul. Conexiunea poate fi blocată sau serviciul restricționat acolo unde ești. Furnizorul îți poate spune ce adresă să folosești de unde ești.",
  "api.status": "Serverul furnizorului a răspuns cu eroarea {status}. Problema e la furnizor: încearcă din nou peste câteva minute.",

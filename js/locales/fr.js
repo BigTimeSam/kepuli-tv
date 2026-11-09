@@ -216,7 +216,7 @@ export default {
  "error.grant.all": "Autoriser toutes les adresses",
  "error.grant.all.why": "Le serveur renvoie ce flux vers une autre adresse, que le lecteur ne peut lire qu’avec votre autorisation. Le navigateur n’indique pas au lecteur de quelle adresse il s’agit, l’autorisation demandée couvre donc toutes les adresses.",
  "error.noserver": "Pas encore connecté à un fournisseur. Ouvrez Réglages pour vous connecter.",
- "api.unreachable": "Le serveur n’a pas répondu. Vérifiez l’adresse du serveur dans Réglages, et que cet ordinateur est en ligne. Si cela fonctionnait avant, le serveur du fournisseur est peut-être en panne : réessayez dans quelques minutes.",
+ "api.unreachable": "Le serveur n’a pas répondu. Vérifiez l’adresse du serveur dans Réglages, et votre connexion à Internet. Si cela fonctionnait avant, le serveur du fournisseur est peut-être en panne : réessayez dans quelques minutes.",
  "api.rejected": "Le serveur n’a pas accepté ce nom d’utilisateur et ce mot de passe. Vérifiez-les dans Réglages ; les copier depuis le message de votre fournisseur évite les fautes de frappe.",
  "api.denied": "Le serveur a refusé l’accès. La connexion est peut-être bloquée, ou le service restreint là où vous êtes. Votre fournisseur peut vous dire quelle adresse utiliser depuis votre emplacement.",
  "api.status": "Le serveur du fournisseur a répondu par l’erreur {status}. Le problème vient du fournisseur : réessayez dans quelques minutes.",

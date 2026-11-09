@@ -208,7 +208,7 @@ export default {
  "error.grant.all": "Cho phép mọi địa chỉ",
  "error.grant.all.why": "Máy chủ chuyển hướng luồng này sang một địa chỉ khác, mà trình phát chỉ được đọc khi bạn cho phép. Trình duyệt không báo địa chỉ đó cho trình phát, nên yêu cầu cấp quyền áp dụng cho mọi địa chỉ.",
  "error.noserver": "Chưa kết nối với nhà cung cấp nào. Hãy mở Cài đặt để kết nối.",
- "api.unreachable": "Máy chủ không trả lời. Hãy kiểm tra địa chỉ máy chủ trong Cài đặt và xem máy tính có đang trực tuyến không. Nếu trước đây vẫn chạy, máy chủ của nhà cung cấp có thể đang gặp sự cố: hãy thử lại sau vài phút.",
+ "api.unreachable": "Máy chủ không trả lời. Hãy kiểm tra địa chỉ máy chủ trong Cài đặt và kết nối internet. Nếu trước đây vẫn chạy, máy chủ của nhà cung cấp có thể đang gặp sự cố: hãy thử lại sau vài phút.",
  "api.rejected": "Máy chủ không chấp nhận tên người dùng và mật khẩu này. Hãy kiểm tra chúng trong Cài đặt; sao chép từ tin nhắn của nhà cung cấp sẽ tránh gõ nhầm.",
  "api.denied": "Máy chủ từ chối truy cập. Kết nối có thể bị chặn, hoặc dịch vụ bị giới hạn ở nơi bạn đang ở. Nhà cung cấp có thể cho bạn biết nên dùng địa chỉ nào từ nơi bạn ở.",
  "api.status": "Máy chủ của nhà cung cấp trả lời bằng lỗi {status}. Lỗi nằm ở phía nhà cung cấp: hãy thử lại sau vài phút.",

@@ -216,7 +216,7 @@ export default {
  "error.grant.all": "Minden cím engedélyezése",
  "error.grant.all.why": "A szerver ezt az adást egy másik címre irányítja át, amelyet a lejátszó csak az engedélyeddel olvashat. A böngésző nem árulja el a lejátszónak, melyik címről van szó, ezért a kérés minden címre vonatkozik.",
  "error.noserver": "Még nincs kapcsolat szolgáltatóval. Nyisd meg a Beállításokat a csatlakozáshoz.",
- "api.unreachable": "A szerver nem válaszolt. Ellenőrizd a szerver címét a Beállításokban, és hogy a számítógép csatlakozik-e a hálózathoz. Ha korábban működött, a szolgáltató szervere leállhatott: próbáld újra néhány perc múlva.",
+ "api.unreachable": "A szerver nem válaszolt. Ellenőrizd a szerver címét a Beállításokban, és az internetkapcsolatot. Ha korábban működött, a szolgáltató szervere leállhatott: próbáld újra néhány perc múlva.",
  "api.rejected": "A szerver nem fogadta el ezt a felhasználónevet és jelszót. Ellenőrizd őket a Beállításokban; ha a szolgáltató üzenetéből másolod őket, elkerülöd az elgépelést.",
  "api.denied": "A szerver megtagadta a hozzáférést. Lehet, hogy a kapcsolat le van tiltva, vagy a szolgáltatás korlátozott ott, ahol vagy. A szolgáltató meg tudja mondani, melyik címet használd onnan.",
  "api.status": "A szolgáltató szervere {status} hibával válaszolt. A hiba a szolgáltatónál van: próbáld újra néhány perc múlva.",

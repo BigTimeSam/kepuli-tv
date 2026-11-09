@@ -216,7 +216,7 @@ export default {
  "error.grant.all": "Alle adressen toestaan",
  "error.grant.all.why": "De server stuurt deze stream door naar een ander adres, dat de speler alleen met je toestemming mag lezen. De browser vertelt de speler niet welk adres het is, dus de gevraagde toestemming geldt voor alle adressen.",
  "error.noserver": "Nog niet verbonden met een aanbieder. Open Instellingen om verbinding te maken.",
- "api.unreachable": "De server antwoordde niet. Controleer het serveradres in Instellingen en of deze computer online is. Werkte het eerder wel, dan ligt de server van de aanbieder misschien plat: probeer het over een paar minuten opnieuw.",
+ "api.unreachable": "De server antwoordde niet. Controleer het serveradres in Instellingen en je internetverbinding. Werkte het eerder wel, dan ligt de server van de aanbieder misschien plat: probeer het over een paar minuten opnieuw.",
  "api.rejected": "De server accepteerde deze gebruikersnaam en dit wachtwoord niet. Controleer ze in Instellingen; kopieer ze uit het bericht van je aanbieder om typefouten te voorkomen.",
  "api.denied": "De server weigerde de toegang. De verbinding is misschien geblokkeerd, of de dienst beperkt waar je bent. Je aanbieder kan je vertellen welk adres je vanaf je locatie gebruikt.",
  "api.status": "De server van de aanbieder antwoordde met fout {status}. Dit ligt bij de aanbieder: probeer het over een paar minuten opnieuw.",

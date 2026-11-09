@@ -216,7 +216,7 @@ export default {
  "error.grant.all": "Alle Adressen erlauben",
  "error.grant.all.why": "Der Server leitet diesen Stream an eine andere Adresse weiter, die der Player nur mit deiner Erlaubnis lesen darf. Der Browser verrät dem Player nicht, welche Adresse es ist, daher gilt die erbetene Erlaubnis für alle Adressen.",
  "error.noserver": "Noch nicht mit einem Anbieter verbunden. Zum Verbinden die Einstellungen öffnen.",
- "api.unreachable": "Der Server hat nicht geantwortet. Die Serveradresse in den Einstellungen prüfen und ob dieser Computer online ist. Hat es vorher funktioniert, ist der Server des Anbieters vielleicht ausgefallen: in ein paar Minuten erneut versuchen.",
+ "api.unreachable": "Der Server hat nicht geantwortet. Die Serveradresse in den Einstellungen prüfen und die Internetverbindung. Hat es vorher funktioniert, ist der Server des Anbieters vielleicht ausgefallen: in ein paar Minuten erneut versuchen.",
  "api.rejected": "Der Server hat diesen Benutzernamen und dieses Passwort nicht akzeptiert. Beides in den Einstellungen prüfen; aus der Nachricht des Anbieters kopiert, gibt es keine Tippfehler.",
  "api.denied": "Der Server hat den Zugriff verweigert. Die Verbindung ist vielleicht gesperrt oder der Dienst an deinem Standort eingeschränkt. Der Anbieter kann sagen, welche Adresse von deinem Standort aus zu verwenden ist.",
  "api.status": "Der Server des Anbieters hat mit Fehler {status} geantwortet. Das liegt beim Anbieter: in ein paar Minuten erneut versuchen.",

@@ -216,7 +216,7 @@ export default {
  "error.grant.all": "Lejo të gjitha adresat",
  "error.grant.all.why": "Serveri e ridrejton këtë transmetim te një adresë tjetër, të cilën luajtësi mund ta lexojë vetëm me lejen tënde. Shfletuesi nuk i thotë luajtësit cila është adresa, ndaj kërkesa për leje përfshin të gjitha adresat.",
  "error.noserver": "Ende pa lidhje me një ofrues. Hap Cilësimet për t'u lidhur.",
- "api.unreachable": "Serveri nuk u përgjigj. Kontrollo adresën e serverit te Cilësimet dhe që kompjuteri është në linjë. Nëse më parë funksiononte, serveri i ofruesit mund të jetë jashtë funksionit: provo sërish pas disa minutash.",
+ "api.unreachable": "Serveri nuk u përgjigj. Kontrollo adresën e serverit te Cilësimet dhe lidhjen me internetin. Nëse më parë funksiononte, serveri i ofruesit mund të jetë jashtë funksionit: provo sërish pas disa minutash.",
  "api.rejected": "Serveri nuk e pranoi këtë emër përdoruesi dhe fjalëkalim. Kontrolloji te Cilësimet; po t'i kopjosh nga mesazhi i ofruesit, shmang gabimet e shkrimit.",
  "api.denied": "Serveri e refuzoi qasjen. Lidhja mund të jetë e bllokuar ose shërbimi i kufizuar aty ku je. Ofruesi mund të të thotë cilën adresë të përdorësh që andej.",
  "api.status": "Serveri i ofruesit u përgjigj me gabimin {status}. Problemi është nga ana e ofruesit: provo sërish pas disa minutash.",

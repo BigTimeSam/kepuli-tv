@@ -216,7 +216,7 @@ export default {
  "error.grant.all": "Tillad alle adresser",
  "error.grant.all.why": "Serveren sender denne stream videre til en anden adresse, som afspilleren kun må læse med din tilladelse. Browseren fortæller ikke afspilleren, hvilken adresse det er, så den tilladelse, der bedes om, gælder alle adresser.",
  "error.noserver": "Ikke forbundet til en udbyder endnu. Åbn Indstillinger for at oprette forbindelse.",
- "api.unreachable": "Serveren svarede ikke. Tjek serverens adresse i Indstillinger, og at computeren er online. Hvis det virkede før, er udbyderens server måske nede: prøv igen om et par minutter.",
+ "api.unreachable": "Serveren svarede ikke. Tjek serverens adresse i Indstillinger, og din internetforbindelse. Hvis det virkede før, er udbyderens server måske nede: prøv igen om et par minutter.",
  "api.rejected": "Serveren godtog ikke dette brugernavn og denne adgangskode. Tjek dem i Indstillinger; kopierer du dem fra udbyderens besked, undgår du tastefejl.",
  "api.denied": "Serveren nægtede adgang. Forbindelsen kan være blokeret, eller tjenesten begrænset, hvor du er. Din udbyder kan fortælle dig, hvilken adresse du skal bruge, hvor du er.",
  "api.status": "Udbyderens server svarede med fejl {status}. Fejlen ligger hos udbyderen: prøv igen om et par minutter.",

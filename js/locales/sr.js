@@ -224,7 +224,7 @@ export default {
  "error.grant.all": "Dozvoli sve adrese",
  "error.grant.all.why": "Server preusmerava ovaj stream na drugu adresu, koju plejer sme da čita samo uz tvoju dozvolu. Pregledač ne kaže plejeru o kojoj je adresi reč, pa zahtev za dozvolu obuhvata sve adrese.",
  "error.noserver": "Još nema veze sa provajderom. Otvori Podešavanja i poveži se.",
- "api.unreachable": "Server nije odgovorio. Proveri adresu servera u Podešavanjima i da li je računar na mreži. Ako je ranije radilo, server provajdera možda ne radi: pokušaj ponovo za nekoliko minuta.",
+ "api.unreachable": "Server nije odgovorio. Proveri adresu servera u Podešavanjima i internet vezu. Ako je ranije radilo, server provajdera možda ne radi: pokušaj ponovo za nekoliko minuta.",
  "api.rejected": "Server nije prihvatio ovo korisničko ime i lozinku. Proveri ih u Podešavanjima; ako ih kopiraš iz poruke provajdera, izbeći ćeš greške pri kucanju.",
  "api.denied": "Server je odbio pristup. Veza je možda blokirana ili je usluga ograničena tamo gde si. Provajder ti može reći koju adresu da koristiš odatle.",
  "api.status": "Server provajdera je odgovorio greškom {status}. Problem je na strani provajdera: pokušaj ponovo za nekoliko minuta.",
