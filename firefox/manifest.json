@@ -2,12 +2,12 @@
   "manifest_version": 3,
   "name": "__MSG_appName__",
   "default_locale": "en",
-  "version": "1.8.0",
+  "version": "1.9.0",
   "description": "__MSG_appDesc__",
   "browser_specific_settings": {
     "gecko": {
       "id": "kepuli-tv@bigtimesam.github.io",
-      "strict_min_version": "140.0",
+      "strict_min_version": "130.0",
       "data_collection_permissions": { "required": ["authenticationInfo"] }
     },
     "gecko_android": { "strict_min_version": "142.0" }

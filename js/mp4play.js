@@ -24,7 +24,7 @@
 // lies. A seek reads from the keyframe at or before the target.
 
 import { t } from './i18n.js';
-import { initSegment, mediaSegment, appendOnce, removeNow, timeRanges } from './mp4.js';
+import { initSegment, mediaSegment, appendOnce, removeNow, timeRanges, newMediaSource, attachMediaSource, mse } from './mp4.js';
 import { boxHeader, parseMoov } from './mp4file.js';
 import { emptyAnswer, fetchRange, within } from './probe.js';
 
@@ -122,10 +122,9 @@ export class Mp4Player {
   get recovering() { return this.resumes > 0; }
 
   async start() {
-    this.ms = new MediaSource();
-    this.objectUrl = URL.createObjectURL(this.ms);
+    this.ms = newMediaSource(this.video);
     const open = new Promise((resolve) => this.ms.addEventListener('sourceopen', resolve, { once: true }));
-    this.video.src = this.objectUrl;
+    this.objectUrl = attachMediaSource(this.video, this.ms);
     await open;
     if (this.destroyed) return;
 
@@ -196,7 +195,7 @@ export class Mp4Player {
    * and is said to.
    */
   chooseTracks(movie) {
-    const playable = (track) => track.codec && MediaSource.isTypeSupported(this.mimeOf(track));
+    const playable = (track) => track.codec && mse()?.isTypeSupported(this.mimeOf(track));
     const video = movie.tracks.find((tr) => tr.kind === 'video' && playable(tr));
     if (!video) {
       const found = movie.tracks.find((tr) => tr.kind === 'video');

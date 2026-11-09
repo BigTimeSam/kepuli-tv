@@ -8,7 +8,7 @@ and your details stay in your browser.
 | Browser | Install |
 | --- | --- |
 | Google Chrome 116 or newer | [Chrome Web Store](https://chromewebstore.google.com/detail/kepuli-tv/okkgclcakhjhldkdcblgagoaibghpfmi) |
-| Mozilla Firefox 140 or newer | [Firefox Add-ons](https://addons.mozilla.org/firefox/addon/kepuli-tv/) |
+| Mozilla Firefox 130 or newer, and Orion on the iPhone | [Firefox Add-ons](https://addons.mozilla.org/firefox/addon/kepuli-tv/) |
 
 **[Watch the four-minute tour on YouTube](https://youtu.be/Wr4FcXlTbOM)**
 

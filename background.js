@@ -18,16 +18,25 @@ const PLAYER_URL = api.runtime.getURL('player.html');
 // document's URL is player.html#/live/Finland rather than the bare one, and
 // a filter that asks for the bare URL finds nothing and opens a second
 // player beside the first.
+// A browser that lacks getContexts, as Orion on the iPhone does, finds
+// none: there the click went dead, as the call threw before the tab was
+// opened, so a new player is the answer whenever the open one cannot be
+// looked for.
 async function playerTab() {
-  const contexts = await api.runtime.getContexts({ contextTypes: ['TAB'] });
-  return contexts.find((context) => String(context.documentUrl).split('#')[0] === PLAYER_URL) || null;
+  try {
+    const contexts = await api.runtime.getContexts({ contextTypes: ['TAB'] });
+    return contexts.find((context) => String(context.documentUrl).split('#')[0] === PLAYER_URL) || null;
+  } catch {
+    return null;
+  }
 }
 
 api.action.onClicked.addListener(async () => {
   const open = await playerTab();
   if (open) {
     await api.tabs.update(open.tabId, { active: true });
-    await api.windows.update(open.windowId, { focused: true });
+    // A phone's browser has no windows to bring forward.
+    await api.windows?.update(open.windowId, { focused: true }).catch(() => {});
   } else {
     await api.tabs.create({ url: PLAYER_URL });
   }
@@ -39,7 +48,7 @@ api.action.onClicked.addListener(async () => {
 // the update is taken at once — Firefox would otherwise hold it until the
 // browser restarts, because this listener exists. With one open, the
 // player is told, and it offers the reload itself (js/app.js).
-api.runtime.onUpdateAvailable.addListener(async ({ version }) => {
+api.runtime.onUpdateAvailable?.addListener(async ({ version }) => {
   if (!(await playerTab())) { api.runtime.reload(); return; }
   await api.storage.local.set({ updateReady: version });
 });
@@ -64,17 +73,29 @@ api.runtime.onInstalled.addListener(async () => {
 const UNINSTALL_FORM = 'https://docs.google.com/forms/d/e/1FAIpQLSciTzjI2cooCll5fFJSqsd3SjHpKIF_jDdyNhmATqmkwvcl0A/viewform';
 const UNINSTALL_ENTRY = 'entry.141293273';
 
+// Which browser the answers come from, asked of the engine: Orion names
+// itself Chrome on a Mac in its user agent, and its pages are
+// chrome-extension:// ones, so the form said "chrome" for the iPhone. Only
+// the iPhone's WebKit has ManagedMediaSource without MediaSource (see
+// nativeHls in js/browser.js).
+function engineName() {
+  const url = api.runtime.getURL('');
+  if (/^moz-extension:/.test(url)) return 'firefox';
+  if (/^safari-web-extension:/.test(url)) return 'safari';
+  if (typeof globalThis.MediaSource === 'undefined' && 'ManagedMediaSource' in globalThis) return 'webkit';
+  return 'chrome';
+}
+
 async function setUninstallForm() {
   if (!api.runtime.setUninstallURL) return;
   const { settings } = await api.storage.local.get('settings');
   const lang = settings && settings.lang && settings.lang !== 'auto' ? settings.lang : (navigator.language || '').slice(0, 2);
-  const engine = globalThis.browser && globalThis.browser.runtime && /moz-extension:/.test(api.runtime.getURL('')) ? 'firefox' : 'chrome';
-  const facts = `${api.runtime.getManifest().version} · ${engine} · ${lang}`;
+  const facts = `${api.runtime.getManifest().version} · ${engineName()} · ${lang}`;
   await api.runtime.setUninstallURL(`${UNINSTALL_FORM}?usp=pp_url&${UNINSTALL_ENTRY}=${encodeURIComponent(facts)}`);
 }
 
 api.runtime.onInstalled.addListener(() => { setUninstallForm().catch(() => {}); });
-api.runtime.onStartup.addListener(() => { setUninstallForm().catch(() => {}); });
+api.runtime.onStartup?.addListener(() => { setUninstallForm().catch(() => {}); });
 api.storage.onChanged.addListener((changes, area) => {
   if (area === 'local' && changes.settings) setUninstallForm().catch(() => {});
 });

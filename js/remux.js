@@ -21,7 +21,7 @@
 import { parseHeader, ID, Reader } from './ebml.js';
 import { t } from './i18n.js';
 import { BufferedBytes, frames } from './mkv.js';
-import { initSegment, mediaSegment, decodeTimes, durations, VIDEO_TIMESCALE, appendOnce, removeNow, timeRanges } from './mp4.js';
+import { initSegment, mediaSegment, decodeTimes, durations, VIDEO_TIMESCALE, appendOnce, removeNow, timeRanges, newMediaSource, attachMediaSource } from './mp4.js';
 import { emptyAnswer, fetchRange, videoMime, within } from './probe.js';
 import { describeAll, passthroughMime, preferred as preferredAudio } from './audio.js';
 import { AudioTranscoder, encoderSetup, RATE as DECODED_RATE, CHANNELS as DECODED_CHANNELS } from './transcode.js';
@@ -197,10 +197,9 @@ export class Remuxer {
   /* ------------------------------------------------------------ life cycle */
 
   async start() {
-    this.ms = new MediaSource();
-    this.objectUrl = URL.createObjectURL(this.ms);
+    this.ms = newMediaSource(this.video);
     const open = new Promise((resolve) => this.ms.addEventListener('sourceopen', resolve, { once: true }));
-    this.video.src = this.objectUrl;
+    this.objectUrl = attachMediaSource(this.video, this.ms);
     await open;
     if (this.destroyed) return;
 

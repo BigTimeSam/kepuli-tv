@@ -28,6 +28,13 @@ switching audio tracks, pausing playback and entering full screen.
    again brings the question back. You can change your connection details
    and the interface language later in **Settings**.
 
+On an iPhone, Kepuli-TV runs in the Orion browser, which installs Firefox
+add-ons: in Orion's menu choose **Extensions**, then **+** and **Install
+Firefox extension**, search for Kepuli-TV and install it. Then choose
+**Kepuli-TV** in Orion's menu to open the player. Films and
+episodes play there, an MKV file read a piece at a time, and a live channel
+plays through the iPhone's own player as HLS.
+
 Closed before a connection, the dialog leaves the welcome in the player with
 a **Connect to your provider** button, and the list says **Not connected yet**
 with the same button; the programme guide's button appears once there is a

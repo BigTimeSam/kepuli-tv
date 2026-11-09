@@ -135,7 +135,7 @@ whose MV3 APIs return promises.
 | `background` | `service_worker: "background.js"` | `scripts: ["background.js"]` — Firefox has no service workers for extensions. From 1.2.6 to 1.7.0 the same `service_worker` stood beside it, so that the package would still start should it reach the Chrome Web Store by mistake (1.2.1 and 1.2.5 did); since 1.8.0 `cws-publish.mjs` refusing such a package is the guard, and AMO's linter no longer warns |
 | `minimum_chrome_version` | `116` | absent |
 | `browser_specific_settings.gecko.id` | absent | `kepuli-tv@bigtimesam.github.io`, mandatory for signing |
-| `browser_specific_settings.gecko.strict_min_version` | absent | `140.0`, for Firefox's built-in data-transmission consent |
+| `browser_specific_settings.gecko.strict_min_version` | absent | `130.0`: Orion on the iPhone asks AMO for add-ons as Firefox 130 (`app=firefox&appversion=130.0`, measured 2026-11-09), and at `140.0` (1.0.7 to 1.8.0) its store did not list Kepuli-TV. Firefox 140 and later ask the built-in data-transmission consent at installation; 130 to 139 do not, and there nothing is sent before the viewer enters their own service and grants its host |
 | `browser_specific_settings.gecko_android.strict_min_version` | absent | `142.0`: Firefox for Android reads `data_collection_permissions` from 142 on, and AMO's linter warns while Android's minimum is lower |
 | `browser_specific_settings.gecko.data_collection_permissions` | absent | `required: ["authenticationInfo"]`, because credentials are sent to the user's service |
 | everything else | the same | the same |
@@ -153,7 +153,9 @@ script knows about it. That is what keeps the two from drifting apart.
 
 The declaration concerns transmission to the user's own server, even though
 the developer receives nothing. Version 1.0.7 declares `authenticationInfo`
-and requires Firefox 140 so Firefox obtains consent at installation. HTTP
+and required Firefox 140 so Firefox obtains consent at installation; 1.9.0
+lowers the minimum to 130 so that Orion's store lists the add-on (see the
+table above). HTTP
 support remains available for user-supplied services; the connection form
 explains the lack of encryption and recommends HTTPS where supported. The
 AMO assessment and its remaining uncertainty are in `firefox/AMO-PUBLISH.md`.
@@ -301,6 +303,25 @@ encoder in the wasm module (`js/transcode.js`), which encodes 30 seconds in
 392 ms on the tablet, 76x real time; an AC-3 5.1 episode played with sound
 and no dropped frame. `firefox/android.mjs` installs the checkout on such a
 device and drives it.
+
+### Orion on the iPhone
+
+Orion installs Firefox add-ons on iOS and runs them in WebKit. Measured on
+iOS 26.7 with the device cabled to a Mac and inspected through
+`pymobiledevice3 webinspector cdp`:
+
+- `runtime.getContexts` and `windows` are missing: `background.js` opens a
+  new player tab when it cannot look for an open one.
+- There is no `MediaSource`, only `ManagedMediaSource`, which opens only
+  with `disableRemotePlayback` set and is put in the element as its
+  `srcObject` (`js/mp4.js`: `mse`, `newMediaSource`, `attachMediaSource`).
+- An extension's `fetch()` answers only once the whole response has come:
+  4 MB arrived at once after 5.2 s, and `bytes=0-` of a 1.9 GB episode gave
+  nothing in 25 s. Open-ended reads are therefore asked for as bounded
+  pieces, one at a time (`piecewise` and `inPieces` in `js/probe.js`).
+- HLS is the browser's own: a live channel plays its HLS address in the
+  `<video>` element (`nativeHls` in `js/browser.js`), as mpegts.js and
+  hls.js would read the stream with that same `fetch()`.
 
 ## The development loop
 

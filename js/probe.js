@@ -256,22 +256,108 @@ export function within(promise, ctrl, ms = STALL_MS, marks = { stalled: true }) 
  * @returns {Promise<Response>}
  */
 export async function fetchRange(url, ctrl, from, to, onAnswer) {
+  if (to == null && piecewise()) return inPieces(url, ctrl, from, onAnswer);
+  const res = await askRange(url, ctrl, from, to, ANSWER_MS);
+  onAnswer();
+  return res;
+}
+
+/** @param {string} url @param {AbortController} ctrl @param {number} from @param {number|null} to @param {number} ms */
+async function askRange(url, ctrl, from, to, ms) {
   let res;
   try {
     res = await within(fetch(url, {
       signal: ctrl.signal, cache: 'no-store', credentials: 'omit',
       headers: { Range: to != null ? `bytes=${from}-${to}` : `bytes=${from}-` },
-    }), ctrl, ANSWER_MS);
+    }), ctrl, ms);
   } catch (err) {
     if (err && err.name !== 'AbortError') err.connection = true;
     throw err;
   }
-  onAnswer();
   if (res.ok) return res;
   const refused = refusedByFileServer(res);
   ctrl.abort();
   throw Object.assign(new Error(`the server answered ${res.status}`),
     { status: res.status, unavailable: refused ? res.status : 0, connection: !refused });
+}
+
+/**
+ * Whether a download has to be asked for in pieces. Orion on the iPhone
+ * hands an extension's fetch() its answer only once the whole of it has
+ * arrived (measured: 4 MB came at once after 5.2 s, and "bytes=0-" of a
+ * 1.9 GB episode gave nothing in 25 s), so the open-ended read every film
+ * starts with never began. The iPhone is told by its MediaSource, of which
+ * it has only the managed kind.
+ */
+export function piecewise() {
+  return typeof MediaSource === 'undefined' && 'ManagedMediaSource' in globalThis;
+}
+
+// The first piece is small, for the picture to start soon and to come
+// within ANSWER_MS; the others are sized to arrive in about PIECE_SECONDS
+// at the speed measured, well inside STALL_MS.
+export const FIRST_PIECE = 512 * 1024;
+const PIECE_SECONDS = 4;
+const MIN_PIECE = 256 * 1024;
+const MAX_PIECE = 8 * 1024 * 1024;
+
+/**
+ * "From here to the end" as one answer whose body is read a bounded range
+ * at a time. A piece is asked for only after the last one has come, so
+ * an account allowed one connection never holds two; the stream asks for
+ * the next while the reader is busy with the last (highWaterMark).
+ * @param {string} url
+ * @param {AbortController} ctrl
+ * @param {number} from
+ * @param {() => void} onAnswer
+ * @returns {Promise<Response>}
+ */
+async function inPieces(url, ctrl, from, onAnswer) {
+  let started = performance.now();
+  const first = await askRange(url, ctrl, from, from + FIRST_PIECE - 1, ANSWER_MS);
+  onAnswer();
+  // A server that ignores the range sends the whole file: nothing to piece.
+  if (first.status !== 206) return first;
+  const total = Number(/\/(\d+)$/.exec(first.headers.get('content-range') || '')?.[1]) || 0;
+  let size = FIRST_PIECE;
+  let at = from;
+  /** @param {Uint8Array} bytes */
+  const took = (bytes) => {
+    const seconds = Math.max(0.2, (performance.now() - started) / 1000);
+    size = Math.min(MAX_PIECE, Math.max(MIN_PIECE, Math.round(bytes.byteLength / seconds * PIECE_SECONDS)));
+    at += bytes.byteLength;
+  };
+  const body = new ReadableStream({
+    async start(controller) {
+      const bytes = new Uint8Array(await first.arrayBuffer());
+      took(bytes);
+      controller.enqueue(bytes);
+      if (bytes.byteLength < FIRST_PIECE || (total && at >= total)) controller.close();
+    },
+    async pull(controller) {
+      started = performance.now();
+      const asked = size;
+      let bytes;
+      try {
+        const res = await askRange(url, ctrl, at, at + asked - 1, STALL_MS);
+        bytes = new Uint8Array(await res.arrayBuffer());
+      } catch (err) {
+        // Past the end a server may answer 416 rather than a short piece.
+        if (/** @type {any} */ (err)?.status === 416) { controller.close(); return; }
+        controller.error(err);
+        return;
+      }
+      took(bytes);
+      if (bytes.byteLength) controller.enqueue(bytes);
+      if (bytes.byteLength < asked || (total && at >= total)) controller.close();
+    },
+  }, { highWaterMark: 2 });
+  const headers = new Headers({ 'content-type': first.headers.get('content-type') || '' });
+  if (total) {
+    headers.set('content-length', String(total - from));
+    headers.set('content-range', `bytes ${from}-${total - 1}/${total}`);
+  }
+  return new Response(body, { status: 206, headers });
 }
 
 /**

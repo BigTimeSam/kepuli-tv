@@ -24,3 +24,15 @@ export const api = globalThis.browser ?? globalThis.chrome;
 export function isGecko() {
   return typeof CSS !== 'undefined' && CSS.supports('-moz-appearance', 'none');
 }
+
+/**
+ * Whether HLS is the browser's own to play and MediaSource is not there:
+ * the iPhone's WebKit, which Orion runs on. There mpegts.js and hls.js have
+ * no plain MediaSource and fetch the stream themselves, and a live channel
+ * did not start; the <video> element plays the channel's HLS address.
+ * Chrome answers canPlayType for HLS too, but has MediaSource.
+ */
+export function nativeHls() {
+  return typeof MediaSource === 'undefined' && typeof document !== 'undefined'
+    && document.createElement('video').canPlayType('application/vnd.apple.mpegurl') !== '';
+}

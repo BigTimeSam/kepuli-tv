@@ -19,7 +19,7 @@ import { t } from './i18n.js';
 import { probe, verdict, serverFault, providerError, answerOf } from './probe.js';
 import { Remuxer } from './remux.js';
 import { Mp4Player } from './mp4play.js';
-import { isGecko } from './browser.js';
+import { isGecko, nativeHls } from './browser.js';
 
 /**
  * What is to be played, as app.js asks for it. The fields after `relink`
@@ -310,6 +310,9 @@ export class Playback {
         if (engine.detachMediaElement) engine.detachMediaElement();
       } catch { /* the engine had already been torn down */ }
     }
+    // A ManagedMediaSource sits in srcObject (attachMediaSource in
+    // js/mp4.js), which would win over the next item's src.
+    this.video.srcObject = null;
     this.video.removeAttribute('src');
     this.video.load();
   }
@@ -334,6 +337,9 @@ export class Playback {
     if (this.cleanup) { this.cleanup(); this.cleanup = null; }
     this.cutProbe();
     this.dropEngine();
+    // A ManagedMediaSource sits in srcObject (attachMediaSource in
+    // js/mp4.js), which would win over the next item's src.
+    this.video.srcObject = null;
     this.video.removeAttribute('src');
     this.video.load();
     this.token++;
@@ -952,7 +958,7 @@ export class Playback {
     // lets go of the file before explain() reads its header — left set,
     // the element would go on asking for it beside the read.
     this.engine = {
-      destroy: () => { video.removeAttribute('src'); video.load(); },
+      destroy: () => { video.srcObject = null; video.removeAttribute('src'); video.load(); },
     };
     if (spec.startAt > 0) {
       // The listener belongs to this attempt. Abandoned before the metadata
@@ -971,7 +977,8 @@ export class Playback {
       const drop = this.cleanup;
       this.cleanup = () => { video.removeEventListener('loadedmetadata', seek); if (drop) drop(); };
     }
-    video.src = spec.url;
+    // A live channel on the iPhone plays as HLS, see buildChain.
+    video.src = spec.live && spec.hlsUrl && nativeHls() ? spec.hlsUrl : spec.url;
     this.tryPlay();
   }
 
@@ -1442,7 +1449,10 @@ function nativeChain(spec) {
 export function buildChain(spec) {
   // A recording from the disk (js/recorder.js) is what it was recorded as.
   if (spec.recording) return spec.ext === 'mp4' ? ['native'] : ['mpegts'];
-  if (/\.m3u8($|\?)/i.test(spec.url)) return ['hls'];
+  if (/\.m3u8($|\?)/i.test(spec.url)) return nativeHls() ? ['native'] : ['hls'];
+  // The iPhone: its own player takes the channel's HLS address, see
+  // startNative; mpegts.js stays as the second try.
+  if (spec.live && spec.hlsUrl && nativeHls()) return ['native', 'mpegts'];
   if (spec.live) {
     if (spec.mode === 'ts') return ['mpegts'];
     if (spec.mode === 'hls') return spec.hlsUrl ? ['hls', 'mpegts'] : ['mpegts'];

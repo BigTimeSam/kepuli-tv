@@ -48,6 +48,7 @@
 // priming delay.
 
 import { AacEncoder, PcmDecoder, decodable } from './ffaudio.js';
+import { mse } from './mp4.js';
 
 export const RATE = 48000;
 export const CHANNELS = 2;
@@ -115,12 +116,12 @@ export function encoderSetup() {
 }
 
 async function choose() {
-  if (typeof MediaSource === 'undefined') return { setup: null, retry: false };
+  if (!mse()) return { setup: null, retry: false };
   let tried = false;
   if (typeof AudioEncoder !== 'undefined' && typeof AudioDecoder !== 'undefined') {
     for (const encoder of ENCODERS) {
       try {
-        if (!MediaSource.isTypeSupported(`audio/mp4; codecs="${encoder.mime}"`)) continue;
+        if (!mse()?.isTypeSupported(`audio/mp4; codecs="${encoder.mime}"`)) continue;
         const check = await AudioEncoder.isConfigSupported(encoderConfig(encoder));
         if (!check || !check.supported) continue;
         tried = true;
@@ -131,7 +132,7 @@ async function choose() {
       }
     }
   }
-  if (!MediaSource.isTypeSupported(`audio/mp4; codecs="${WASM_AAC.mime}"`)) return { setup: null, retry: tried };
+  if (!mse()?.isTypeSupported(`audio/mp4; codecs="${WASM_AAC.mime}"`)) return { setup: null, retry: tried };
   try {
     // The delay is the encoder's own report, FFmpeg's initial_padding,
     // and needs no round trip: dev/wasm/verify.mjs decodes the frames with

@@ -2703,8 +2703,11 @@ async function audio(page, { requests, target }) {
 
   // The selector offers all three, with the English one chosen.
   const menu = await evaluate(page, `(() => { const s = document.getElementById('audio');
-    return { hidden: s.hidden, options: [...s.options].map((o) => o.textContent), value: s.value }; })()`);
+    const mark = s.closest('.select-mark')?.querySelector('svg')?.getBoundingClientRect();
+    return { hidden: s.hidden, options: [...s.options].map((o) => o.textContent), value: s.value, mark: Boolean(mark?.width) }; })()`);
   if (menu.hidden || menu.options.length !== 3) return { ok: false, detail: `the selector: ${JSON.stringify(menu)}` };
+  // Its speaker mark, as the other two selectors have theirs.
+  if (!menu.mark) return { ok: false, detail: 'the audio selector shows no mark before its value' };
   // A third selector on a row that was already full: every button has to
   // stay on screen, at the narrowest width the layout is drawn for as well.
   for (const width of [1024, 1280, 1512]) {

@@ -8,7 +8,7 @@ measurements is `../FIREFOX.md`.
 
 | File | What |
 | --- | --- |
-| `manifest.json` | Firefox's manifest: `background.scripts` alone (no `service_worker`: AMO's linter warned of it, and `cws-publish.mjs` refuses a package with gecko settings, the guard against the store mix-ups of 1.2.1 and 1.2.5), `browser_specific_settings.gecko` (id `kepuli-tv@bigtimesam.github.io`, Firefox 140+, data consent) and `gecko_android` (Firefox for Android 142+, the first to read that consent key) |
+| `manifest.json` | Firefox's manifest: `background.scripts` alone (no `service_worker`: AMO's linter warned of it, and `cws-publish.mjs` refuses a package with gecko settings, the guard against the store mix-ups of 1.2.1 and 1.2.5), `browser_specific_settings.gecko` (id `kepuli-tv@bigtimesam.github.io`, Firefox 130+, which is what Orion on the iPhone asks AMO as; data consent from 140) and `gecko_android` (Firefox for Android 142+, the first to read that consent key) |
 | `build.mjs` | assembles `firefox/dist/` for the development loop (`--zip`, `--check`) |
 | `dev.mjs` | the owner's Firefox loop (port 2828, `~/.cache/kepuli-tv-firefox`): do not run it as an agent; use your own port and profile |
 | `marionette.mjs`, `playcheck-driver.mjs` | Marionette speaking directly (the test profile's preferences: autoplay and full screen on a script's request, full screen within the window on macOS), and the driver that lets `dev/playcheck.mjs` and `dev/store-screenshots.mjs` run in Firefox (`KEPULI_BROWSER=firefox`), with the test copy's import hook |

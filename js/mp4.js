@@ -366,6 +366,48 @@ export function timeRanges(sb) {
   }
 }
 
+/**
+ * The MediaSource of this browser, asked at the call (the unit tests set
+ * one after the import). The iPhone's WebKit, which Orion runs on, has
+ * none, only ManagedMediaSource (iOS 17.1): without it every MKV film there
+ * failed with "The video codec H264 cannot be decoded".
+ * @returns {typeof MediaSource | undefined}
+ */
+export function mse() {
+  return globalThis.MediaSource ?? /** @type {any} */ (globalThis).ManagedMediaSource;
+}
+
+/**
+ * A new MediaSource for the video element. ManagedMediaSource opens only
+ * when the element cannot be sent to AirPlay, which could not play a
+ * source made in the page anyway.
+ * @param {HTMLVideoElement} video
+ * @returns {MediaSource}
+ */
+export function newMediaSource(video) {
+  if (!globalThis.MediaSource) video.disableRemotePlayback = true;
+  return new /** @type {typeof MediaSource} */ (mse())();
+}
+
+/**
+ * The MediaSource put in the element: as an object URL, or, for a
+ * ManagedMediaSource, as the element's srcObject, as mpegts.js does; the
+ * iPhone's WebKit did not play a film given it by URL. The object URL is
+ * returned to be revoked, null when there is none.
+ * @param {HTMLVideoElement} video
+ * @param {MediaSource} ms
+ * @returns {string|null}
+ */
+export function attachMediaSource(video, ms) {
+  if (!globalThis.MediaSource) {
+    video.srcObject = /** @type {any} */ (ms);
+    return null;
+  }
+  const url = URL.createObjectURL(ms);
+  video.src = url;
+  return url;
+}
+
 /** Appends one segment and waits for the buffer to take it. */
 export function appendOnce(sb, data) {
   return new Promise((resolve, reject) => {

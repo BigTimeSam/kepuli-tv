@@ -24,6 +24,7 @@
 
 import { t } from './i18n.js';
 import { decodable } from './ffaudio.js';
+import { mse } from './mp4.js';
 import { isLanguageName, languageLabel, sameish, shortLanguage, shorten, trackLanguage } from './lang.js';
 
 const AUDIO_TYPE = 2;
@@ -72,7 +73,7 @@ const supportCache = new Map();
 export function supports(type) {
   if (!supportCache.has(type)) {
     let ok = false;
-    try { ok = typeof MediaSource !== 'undefined' && MediaSource.isTypeSupported(type); } catch { ok = false; }
+    try { ok = Boolean(mse()?.isTypeSupported(type)); } catch { ok = false; }
     supportCache.set(type, ok);
   }
   return supportCache.get(type);

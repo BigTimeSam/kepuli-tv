@@ -1594,6 +1594,20 @@ check('xmltv: a playlist name and a guide name meet', ['FI: Yle TV1 HD', 'Yle TV
     buildChain({ url: 'http://p/movie/u/p/1.ts' }), buildChain({ url: 'http://p/play?id=1', ext: 'ts' }), buildChain({ url: 'http://p/play?id=2', ext: 'flv' }),
     buildChain({ url: 'http://p/a.m3u8' }), buildChain({ url: 'http://p/play?id=3', ext: 'avi' }),
   ], [['mpegts'], ['mpegts'], ['mpegts'], ['hls'], []]);
+  const live = { url: 'http://p/live/u/p/1.ts', hlsUrl: 'http://p/live/u/p/1.m3u8', live: true };
+  check('playback: a live channel goes to mpegts.js first where there is MediaSource', buildChain(live), ['mpegts', 'hls']);
+  // The iPhone's WebKit (Orion): no MediaSource, HLS its own. Every live
+  // channel there failed to start in mpegts.js and hls.js.
+  const plain = globalThis.MediaSource;
+  try {
+    delete globalThis.MediaSource;
+    globalThis.document = /** @type {any} */ ({ createElement: () => ({ canPlayType: (type) => (/mpegurl/.test(type) ? 'maybe' : '') }) });
+    check('playback: on the iPhone a live channel and an HLS address go to its own player',
+      [buildChain(live), buildChain({ url: 'http://p/a.m3u8' })], [['native', 'mpegts'], ['native']]);
+  } finally {
+    globalThis.MediaSource = plain;
+    delete globalThis.document;
+  }
 }
 
 // What the header says decides the route a file takes and the mark its row
@@ -1919,6 +1933,141 @@ check('another word does not hold the term', holds('Textens utseende', { forms: 
     ['One sentence on what this release is about, for users.', '', '### Player', '', '- Seeking is quicker.', '- Subtitles stay in step.', '',
       '### Guide', '', '- The guide scrolls to now.', '', '### Packages', '', '- `kepuli-tv-chrome-1.7.0.zip` — Chrome',
       '- `kepuli-tv-firefox-1.7.0.zip` — Firefox', '- `kepuli-tv-firefox-1.7.0-amo-source.zip` — the source archive for AMO review', '']);
+}
+
+/* ----------------------------------------------- mp4.js: ManagedMediaSource */
+
+{
+  // The iPhone's WebKit (Orion) has only ManagedMediaSource: with MediaSource
+  // asked for alone, every MKV film there "could not be decoded".
+  const { mse, newMediaSource, attachMediaSource } = await import('../js/mp4.js');
+  const { supports } = await import('../js/audio.js');
+  const plain = globalThis.MediaSource;
+  class Managed { static isTypeSupported(type) { return /avc1/.test(type); } }
+  try {
+    delete globalThis.MediaSource;
+    globalThis.ManagedMediaSource = Managed;
+    check('ManagedMediaSource stands in where MediaSource is missing', mse() === Managed, true);
+    check('a codec is asked of ManagedMediaSource', supports('video/mp4; codecs="avc1.640028"'), true);
+    const video = { disableRemotePlayback: false };
+    const made = newMediaSource(/** @type {any} */ (video));
+    check('a ManagedMediaSource is made with remote playback off, or it never opens',
+      [made instanceof Managed, video.disableRemotePlayback], [true, true]);
+    // Given by object URL the iPhone did not play the film.
+    check('a ManagedMediaSource goes in as srcObject, with no URL to revoke',
+      [attachMediaSource(/** @type {any} */ (video), made), /** @type {any} */ (video).srcObject === made], [null, true]);
+  } finally {
+    globalThis.MediaSource = plain;
+    delete globalThis.ManagedMediaSource;
+  }
+  check('MediaSource itself where there is one', mse() === plain, true);
+}
+
+/* ----------------------------------------------- probe.js: reading in pieces */
+
+{
+  // Orion on the iPhone answers an extension's fetch() only once all of it
+  // has come, so "bytes=0-" of an episode never began: the open-ended read
+  // is asked for as bounded pieces, one at a time.
+  const { fetchRange, FIRST_PIECE } = await import('../js/probe.js');
+  const file = new Uint8Array(3 * FIRST_PIECE + 12345).map((_, i) => (i * 7) & 255);
+  const asked = [];
+  let open = 0, most = 0;
+  const plainFetch = globalThis.fetch;
+  const plain = globalThis.MediaSource;
+  globalThis.fetch = async (_url, { headers }) => {
+    const [, a, b] = /bytes=(\d+)-(\d*)/.exec(headers.Range);
+    asked.push(headers.Range);
+    open++; most = Math.max(most, open);
+    await new Promise((r) => setTimeout(r, 5));
+    open--;
+    const from = Number(a), to = b ? Math.min(Number(b), file.length - 1) : file.length - 1;
+    return new Response(file.slice(from, to + 1), { status: 206, headers: { 'content-range': `bytes ${from}-${to}/${file.length}` } });
+  };
+  try {
+    delete globalThis.MediaSource;
+    globalThis.ManagedMediaSource = class {};
+    const res = await fetchRange('http://p/film.mkv', new AbortController(), 1000, null, () => {});
+    const got = new Uint8Array(await res.arrayBuffer());
+    check('read in pieces: the bytes from 1000 to the end, in order', [got.length, got.every((v, i) => v === file[i + 1000])], [file.length - 1000, true]);
+    check('read in pieces: every request bounded, and never two at once',
+      [asked.every((r) => /bytes=\d+-\d+$/.test(r)), most, asked[0], res.headers.get('content-length')],
+      [true, 1, `bytes=1000-${1000 + FIRST_PIECE - 1}`, String(file.length - 1000)]);
+    delete globalThis.ManagedMediaSource;
+    globalThis.MediaSource = plain;
+    asked.length = 0;
+    await fetchRange('http://p/film.mkv', new AbortController(), 0, null, () => {});
+    check('one open-ended request where MediaSource is there', asked, ['bytes=0-']);
+  } finally {
+    globalThis.fetch = plainFetch;
+    globalThis.MediaSource = plain;
+    delete globalThis.ManagedMediaSource;
+  }
+}
+
+/* ----------------------------------------------- background.js: the click */
+
+{
+  // Orion on the iPhone has no runtime.getContexts and no windows: the click
+  // on the icon threw before the player was opened, and nothing happened.
+  const { runInNewContext } = await import('node:vm');
+  const source = (await import('node:fs')).readFileSync(new URL('../background.js', import.meta.url), 'utf8');
+  const click = async (runtime, windows) => {
+    const created = [];
+    let onClick;
+    const event = () => ({ addListener() {} });
+    const chrome = {
+      runtime: { getURL: (path) => `ext://id/${path}`, getManifest: () => ({ version: '0' }), onInstalled: event(), ...runtime },
+      action: { onClicked: { addListener(f) { onClick = f; } } },
+      tabs: { create: async (tab) => created.push(tab.url), update: async () => created.push('focused') },
+      storage: { local: { get: async () => ({}) }, onChanged: event() },
+      ...(windows ? { windows } : {}),
+    };
+    runInNewContext(source, { chrome, navigator: { language: 'en' }, URL });
+    await onClick();
+    return created;
+  };
+  check('the icon opens the player where getContexts and windows are missing (Orion)', await click({}, null), ['ext://id/player.html']);
+  check('the icon brings the open player forward where it can find it',
+    await click({ getContexts: async () => [{ documentUrl: 'ext://id/player.html#/live', tabId: 1, windowId: 1 }], onUpdateAvailable: { addListener() {} }, onStartup: { addListener() {} } },
+      { update: async () => {} }), ['focused']);
+
+  // The uninstall form is told the browser. Orion names itself Chrome on a
+  // Mac and its pages are chrome-extension:// ones; the form said "chrome".
+  const formEngine = async (base, globals = {}) => {
+    const installed = [];
+    let address = '';
+    const event = () => ({ addListener() {} });
+    const chrome = {
+      runtime: {
+        getURL: (path) => `${base}${path}`, getManifest: () => ({ version: '1' }),
+        onInstalled: { addListener(f) { installed.push(f); } },
+        setUninstallURL: async (url) => { address = url; },
+      },
+      action: { onClicked: event() },
+      tabs: { create: async () => {} },
+      storage: { local: { get: async () => ({}), remove: async () => {} }, onChanged: event() },
+    };
+    runInNewContext(source, { chrome, navigator: { language: 'en' }, URL, ...globals });
+    for (const f of installed) await f();
+    await new Promise((resolve) => setTimeout(resolve, 0));
+    return decodeURIComponent(address).split(' · ')[1];
+  };
+  check('the uninstall form names Chrome', await formEngine('chrome-extension://id/'), 'chrome');
+  check('the uninstall form names Firefox', await formEngine('moz-extension://id/'), 'firefox');
+  check('the uninstall form names the iPhone\'s WebKit (Orion)',
+    await formEngine('chrome-extension://id/', { ManagedMediaSource: class {} }), 'webkit');
+}
+
+/* ------------------------------------- firefox/manifest.json: Orion finds it */
+
+{
+  // Orion on the iPhone searches AMO as Firefox 130 (app=firefox&appversion=
+  // 130.0, measured 2026-11-09), and AMO leaves out an add-on whose minimum
+  // is above that: at 140 its store found nothing by the name.
+  const gecko = JSON.parse((await import('node:fs')).readFileSync(new URL('../firefox/manifest.json', import.meta.url), 'utf8'))
+    .browser_specific_settings.gecko;
+  check('the Firefox minimum is no higher than the version Orion asks AMO as', parseFloat(gecko.strict_min_version) <= 130, true);
 }
 
 /* ------------------------------------------------------------------ done */
