@@ -435,6 +435,8 @@ export default {
  "ext.confirm": "Otworzyć w zewnętrznym odtwarzaczu?",
  "ext.confirm.text": "Odtwarzanie zatrzyma się tutaj, a plik playlisty zostanie zapisany w pobranych. Zawiera adres serwera, nazwę użytkownika i hasło jawnym tekstem i pozostaje tam do czasu usunięcia.",
  "ext.handed.text": "Playlista została pobrana — otwórz ją z pobranych plików przeglądarki. Zawiera dane logowania, więc usuń ją po zakończeniu.",
+ "ext.confirm.vlc": "Odtwarzanie zatrzyma się tutaj i będzie kontynuowane w VLC. Bez VLC otworzy się jego strona w Google Play.",
+ "ext.handed.vlc": "Odtwarzanie trwa w VLC. Wróć tutaj, aby znów oglądać w przeglądarce.",
  "ext.continue": "Kontynuuj w przeglądarce",
  "cast.title": "Prześlij na Chromecast",
  "cast.nothing": "Brak odtwarzania do przesłania",

@@ -419,6 +419,8 @@ export default {
  "ext.confirm": "Åpne i en ekstern spiller?",
  "ext.confirm.text": "Avspillingen stopper her, og en spillelistefil lagres i nedlastingene dine. Den inneholder serveradressen, brukernavnet og passordet ditt i klartekst, og blir liggende til du sletter den.",
  "ext.handed.text": "Spillelisten ble lastet ned — åpne den fra nettleserens nedlastinger. Den inneholder påloggingsopplysningene dine, så slett den når du er ferdig.",
+ "ext.confirm.vlc": "Avspillingen stopper her og fortsetter i VLC. Uten VLC åpnes appens side i Google Play.",
+ "ext.handed.vlc": "Avspillingen fortsetter i VLC. Kom tilbake hit for å se i nettleseren igjen.",
  "ext.continue": "Fortsett i nettleseren",
  "cast.title": "Cast til en Chromecast",
  "cast.nothing": "Det er ingen avspilling å caste",

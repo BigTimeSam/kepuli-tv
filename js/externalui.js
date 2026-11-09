@@ -5,7 +5,7 @@
 // Moved out of app.js. It takes the player's state, and the parts app.js
 // builds, from js/state.js.
 
-import { handOff } from './external.js';
+import { handOff, onAndroid } from './external.js';
 import { renderInfoStrip } from './infostrip.js';
 import { retryPlayback } from './recordingsui.js';
 import { t } from './i18n.js';
@@ -41,8 +41,11 @@ export function playExternal() {
   const name = state.playing ? handOffName(state.playing) : 'Stream';
   const spec = state.playingSpec;
   // The resume position is where the browser got to, not where playback
-  // started.
-  const startAt = spec.live ? 0 : Math.floor(el.video.currentTime || spec.startAt || 0);
+  // started. A film watched to its end starts over: handed the end itself,
+  // VLC finished at once and closed (measured on Android).
+  const at = spec.live ? 0 : Math.floor(el.video.currentTime || spec.startAt || 0);
+  const length = el.video.duration;
+  const startAt = Number.isFinite(length) && at > length - 10 ? 0 : at;
   playback.stop();
   state.playbackInfoLoading = false;
   renderInfoStrip();
@@ -51,7 +54,7 @@ export function playExternal() {
   el.overlay.hidden = false;
   el.overlay.classList.remove('loading');
   el.overlayTitle.textContent = t('ext.handed');
-  el.overlayText.textContent = t('ext.handed.text');
+  el.overlayText.textContent = t(onAndroid() ? 'ext.handed.vlc' : 'ext.handed.text');
   showOverlayActions([
     { label: t('ext.continue'), onClick: () => state.catchup ? retryPlayback() : state.playing && playItem(state.playing, { startAt }) },
     { label: t('player.copyurl'), onClick: copyUrl },
@@ -61,8 +64,8 @@ export function playExternal() {
 /**
  * The x key asks before handing over; the menu item does not.
  *
- * The hand-off is not a small thing done twice: it stops playback, and it
- * writes a playlist file into the downloads folder carrying the server
+ * The hand-off is not a small thing done twice: it stops playback, and
+ * (except on Android, where VLC is handed the stream) it writes a playlist file into the downloads folder carrying the server
  * address, the user name and the password in clear text, where it stays
  * until someone deletes it. A single stray keystroke should not do that —
  * and stray keystrokes do reach here, because the focus is deliberately
@@ -77,7 +80,7 @@ export function askExternal() {
   el.overlay.hidden = false;
   el.overlay.classList.remove('loading');
   el.overlayTitle.textContent = t('ext.confirm');
-  el.overlayText.textContent = t('ext.confirm.text');
+  el.overlayText.textContent = t(onAndroid() ? 'ext.confirm.vlc' : 'ext.confirm.text');
   const close = () => { el.overlay.hidden = true; showOverlayActions(null); };
   showOverlayActions([
     { label: t('ext.title'), onClick: () => { close(); playExternal(); } },

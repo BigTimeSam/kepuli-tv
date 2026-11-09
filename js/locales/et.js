@@ -419,6 +419,8 @@ export default {
  "ext.confirm": "Kas avada välises mängijas?",
  "ext.confirm.text": "Esitus peatub siin ja esitusloendi fail salvestatakse allalaadimistesse. See sisaldab serveri aadressi, kasutajanime ja parooli lihttekstina ning jääb sinna, kuni selle kustutad.",
  "ext.handed.text": "Esitusloend laaditi alla — ava see brauseri allalaadimistest. See sisaldab sisselogimisandmeid, seega kustuta see pärast kasutamist.",
+ "ext.confirm.vlc": "Esitus peatub siin ja jätkub VLC-s. Kui VLC-d pole, avaneb selle leht Google Plays.",
+ "ext.handed.vlc": "Esitus jätkub VLC-s. Tule siia tagasi, et taas brauseris vaadata.",
  "ext.continue": "Jätka brauseris",
  "cast.title": "Edasta Chromecastile",
  "cast.nothing": "Pole esitust, mida edastada",

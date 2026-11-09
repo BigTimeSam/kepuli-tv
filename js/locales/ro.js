@@ -427,6 +427,8 @@ export default {
  "ext.confirm": "Deschizi într-un player extern?",
  "ext.confirm.text": "Redarea se oprește aici, iar un fișier de playlist se salvează în descărcări. Conține adresa serverului, numele de utilizator și parola în text clar și rămâne acolo până îl ștergi.",
  "ext.handed.text": "Playlistul a fost descărcat — deschide-l din descărcările browserului. Conține datele tale de autentificare, deci șterge-l când ai terminat.",
+ "ext.confirm.vlc": "Redarea se oprește aici și continuă în VLC. Fără VLC, Google Play se deschide la pagina lui.",
+ "ext.handed.vlc": "Redarea continuă în VLC. Revino aici ca să vizionezi din nou în browser.",
  "ext.continue": "Continuă în browser",
  "cast.title": "Transmite pe un Chromecast",
  "cast.nothing": "Nu există nicio redare de transmis",

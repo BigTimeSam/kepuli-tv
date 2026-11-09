@@ -19,8 +19,24 @@
 // a `vlc://` scheme at all, so for the most common player the file route
 // was the only one anyway.
 //
+// On Android the file route is a poor one: the download lands in a folder
+// the viewer has to find, and nothing opens it on its own. There an
+// intent: link names VLC's package, and Firefox for Android offers "Open
+// this link in VLC app?"; VLC plays the address with the title and the
+// position as extras (measured on Android 16, Firefox 159, VLC 3.7.1: the
+// film started at the position, under its name). Without VLC, Android
+// follows browser_fallback_url to VLC's page on Google Play.
+//
 // The URL carries the Xtream credentials, so a downloaded playlist is as
-// sensitive as the account itself.
+// sensitive as the account itself. The intent leaves no file behind.
+
+const VLC_PACKAGE = 'org.videolan.vlc';
+const VLC_STORE = `https://play.google.com/store/apps/details?id=${VLC_PACKAGE}`;
+
+/** Whether the player runs on Android, where VLC is handed the stream directly. */
+export function onAndroid() {
+  return typeof navigator !== 'undefined' && /\bAndroid\b/.test(navigator.userAgent);
+}
 
 /**
  * Hands the stream over to an external player.
@@ -33,7 +49,31 @@
  * @param {string} name item name for the playlist line and the file name
  */
 export function handOff(spec, name) {
-  downloadPlaylist(spec, name);
+  if (onAndroid()) click(vlcIntent(spec, name));
+  else downloadPlaylist(spec, name);
+}
+
+/**
+ * The stream as an Android intent for VLC: the address without its scheme
+ * after intent://, the scheme, the package, the title and the position (in
+ * milliseconds) as extras. Android decodes the extras' values, so they are
+ * encoded here; a ';' or a '#' in a title would otherwise end the extra or
+ * the intent.
+ * @param {{url: string, startAt?: number}} spec
+ * @param {string} name
+ */
+export function vlcIntent(spec, name) {
+  const url = new URL(String(spec.url).replace(/[\r\n]+/g, ''));
+  const parts = [
+    `scheme=${url.protocol.slice(0, -1)}`,
+    'type=video/*',
+    `package=${VLC_PACKAGE}`,
+    `S.title=${encodeURIComponent(title(name))}`,
+  ];
+  if (spec.startAt > 0) parts.push(`l.position=${Math.floor(spec.startAt) * 1000}`);
+  parts.push(`S.browser_fallback_url=${encodeURIComponent(VLC_STORE)}`);
+  const auth = url.username ? `${url.username}${url.password ? `:${url.password}` : ''}@` : '';
+  return `intent://${auth}${url.host}${url.pathname}${url.search}#Intent;${parts.join(';')};end`;
 }
 
 /** A one-item playlist. */
@@ -68,11 +108,11 @@ function downloadPlaylist(spec, name) {
   setTimeout(() => URL.revokeObjectURL(href), 60000);
 }
 
-/** An anchor click: the download needs the download attribute. */
-function click(href, download) {
+/** An anchor click: a download needs the download attribute, an intent none. */
+function click(href, download = '') {
   const a = document.createElement('a');
   a.href = href;
-  a.download = download;
+  if (download) a.download = download;
   a.style.display = 'none';
   document.body.appendChild(a);
   a.click();

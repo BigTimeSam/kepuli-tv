@@ -419,6 +419,8 @@ export default {
  "ext.confirm": "Harici oynatıcıda açılsın mı?",
  "ext.confirm.text": "Oynatma burada durur ve indirilenlerinize bir oynatma listesi dosyası kaydedilir. Dosya sunucu adresini, kullanıcı adınızı ve parolanızı açık metin olarak içerir ve siz silene kadar orada kalır.",
  "ext.handed.text": "Oynatma listesi indirildi — tarayıcının indirilenlerinden açın. Kimlik bilgilerinizi içerdiği için işiniz bitince silin.",
+ "ext.confirm.vlc": "Oynatma burada durur ve VLC’de devam eder. VLC yoksa Google Play’de sayfası açılır.",
+ "ext.handed.vlc": "Oynatma VLC’de devam ediyor. Tarayıcıda yeniden izlemek için buraya dönün.",
  "ext.continue": "Tarayıcıda devam et",
  "cast.title": "Chromecast’e yansıt",
  "cast.nothing": "Yansıtılacak bir oynatma yok",

@@ -6651,9 +6651,60 @@ async function filmfacts(page) {
   return { ok: true, detail: `audio "${first.audio}", video "${first.video}", ${first.size}, "${first.playback}", folded and kept open; TMDb ${first.tmdb}; ${first.similar.join(', ')}; watched and unwatched from the menu; a film that does not play "${warned}"` };
 }
 
+/**
+ * The hand-off to an external player, both ways. On a computer a one-item
+ * playlist is downloaded; on Android (the user agent says so) an intent:
+ * link hands the stream to VLC with the title and the position, and no file
+ * is written. The anchor's click is caught, so nothing is downloaded or
+ * left for another app here; that VLC plays what it is given was measured
+ * on an Android emulator (Firefox 159, VLC 3.7.1).
+ */
+async function handoff(page) {
+  const assert = (ok, message) => { if (!ok) throw new Error(message); };
+  await openLiveList(page, 3);
+  const handOver = (android) => evaluate(page, `(async () => {
+    const { state } = await import('./js/state.js');
+    const { playItem } = await import('./js/playing.js');
+    const { askExternal, playExternal } = await import('./js/externalui.js');
+    const { t } = await import('./js/i18n.js');
+    // On the prototype: Chrome ignores an own property on navigator.
+    const agent = Object.getOwnPropertyDescriptor(Navigator.prototype, 'userAgent');
+    if (${android}) Object.defineProperty(Navigator.prototype, 'userAgent', { get: () => 'Mozilla/5.0 (Android 16; Mobile; rv:159.0) Gecko/159.0 Firefox/159.0', configurable: true });
+    const clicks = [];
+    const click = HTMLAnchorElement.prototype.click;
+    HTMLAnchorElement.prototype.click = function () { clicks.push({ href: this.href, download: this.download }); };
+    try {
+      const film = (await state.lib.ensureFull('movie')).find((f) => String(f.id) === '5000');
+      playItem(film, { startAt: 42 });
+      for (let i = 0; i < 100 && !state.playingSpec; i++) await new Promise((r) => setTimeout(r, 100));
+      askExternal();
+      const asked = document.getElementById('overlay-text').textContent;
+      playExternal();
+      const told = document.getElementById('overlay-text').textContent;
+      return { clicks, asked, told,
+        texts: { confirm: t('ext.confirm.text'), confirmVlc: t('ext.confirm.vlc'), handed: t('ext.handed.text'), handedVlc: t('ext.handed.vlc') } };
+    } finally {
+      HTMLAnchorElement.prototype.click = click;
+      Object.defineProperty(Navigator.prototype, 'userAgent', agent);
+    }
+  })()`);
+  const desktop = await handOver(false);
+  assert(desktop.clicks.length === 1 && /^blob:/.test(desktop.clicks[0].href) && /\.m3u$/.test(desktop.clicks[0].download),
+    `on a computer: ${JSON.stringify(desktop.clicks)}`);
+  assert(desktop.asked === desktop.texts.confirm && desktop.told === desktop.texts.handed, `on a computer the overlay said "${desktop.asked}", then "${desktop.told}"`);
+  const android = await handOver(true);
+  const [intent] = android.clicks;
+  assert(android.clicks.length === 1 && !intent.download
+    && /^intent:\/\/[^#]+\/movie\/demo\/demo\/5000\.mp4#Intent;scheme=http;type=video\/\*;package=org\.videolan\.vlc;S\.title=[^;]+;l\.position=\d+000;S\.browser_fallback_url=[^;]+;end$/.test(intent.href),
+    `on Android: ${JSON.stringify(android.clicks)}`);
+  assert(android.asked === android.texts.confirmVlc && android.told === android.texts.handedVlc, `on Android the overlay said "${android.asked}", then "${android.told}"`);
+  const position = Number(/l\.position=(\d+)/.exec(intent.href)[1]) / 1000;
+  return { ok: true, detail: `a computer downloads ${desktop.clicks[0].download}; Android hands VLC the film at ${position} s with no file, and the overlay names VLC` };
+}
+
 const SCENARIOS = { buffering, livebuffering, filmbuffering, emptyfile, tsasmp4, refusedfile, badgateway, livebadgateway, channelrefused, noanswer, longfilm, catalogUi, setupClarity, welcome, fullscreenControl, clickpause, pickers, touchcaret, screenbutton, topmenu, scrollbars, channelorder, lengthfilter, nowlogo, channels, home, resumemkv, restore, programmes, catchup, seek, death, cancel, timeout, search, paste, keys, switching, resume, connections, livezap, livequiet, reconnect, accounts, listerror, a11y, subtitles, audio, wasmaudio, settings,
   lastchannel, nextepisode, continuewatching, reminders, update, seeklag, cuesretry, quota, catchupfreeze, catchupfull, twotabs, switchstop, resettabs,
-  refresh, restorenav, guidekeep, removeaccount, m3u, sync, holes, picks, flakyserver, accountform, stalker, record, guidefavs, guidenames, categories, homecountry, noleak, perf, pseudo, startup, soak, phone, episodenames, gotochannel, filmdetails, favorder, countryfilter, tilekeys, routes, programmekeys, searchlimit, filterfolds, focusrings, xtreamoffer, guideclick, filmaddress, filmfacts, playlistfile, perflive, perfplaylist, remoteimages, phoneguide };
+  refresh, restorenav, guidekeep, removeaccount, m3u, sync, holes, picks, flakyserver, accountform, stalker, record, guidefavs, guidenames, categories, homecountry, noleak, perf, pseudo, startup, soak, phone, episodenames, gotochannel, filmdetails, favorder, countryfilter, tilekeys, routes, programmekeys, searchlimit, filterfolds, focusrings, xtreamoffer, guideclick, filmaddress, filmfacts, playlistfile, perflive, perfplaylist, remoteimages, phoneguide, handoff };
 // The mock's whole-list answers stall for these, longer than the request limit.
 const SLOW_LIST_MS = { cancel: 60000, timeout: 60000 };
 // The media is sent slowly for these: the seek targets must lie outside the

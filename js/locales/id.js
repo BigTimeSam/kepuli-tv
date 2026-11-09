@@ -411,6 +411,8 @@ export default {
  "ext.confirm": "Buka di pemutar eksternal?",
  "ext.confirm.text": "Pemutaran berhenti di sini dan file daftar putar disimpan ke folder unduhan. Isinya memuat alamat server, nama pengguna, dan kata sandi dalam teks biasa, dan tetap di sana sampai kamu menghapusnya.",
  "ext.handed.text": "Daftar putar sudah diunduh — buka dari daftar unduhan peramban. Isinya data login, jadi hapus setelah selesai.",
+ "ext.confirm.vlc": "Pemutaran berhenti di sini dan berlanjut di VLC. Tanpa VLC, Google Play terbuka di halamannya.",
+ "ext.handed.vlc": "Pemutaran berlanjut di VLC. Kembali ke sini untuk menonton lagi di browser.",
  "ext.continue": "Lanjutkan di peramban",
  "cast.title": "Kirim ke Chromecast",
  "cast.nothing": "Tidak ada pemutaran untuk dikirim",

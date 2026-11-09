@@ -419,6 +419,8 @@ export default {
  "ext.confirm": "Åbn i en ekstern afspiller?",
  "ext.confirm.text": "Afspilningen stopper her, og en afspilningslistefil gemmes i dine downloads. Den indeholder serveradressen, dit brugernavn og din adgangskode i klartekst og bliver liggende, indtil du sletter den.",
  "ext.handed.text": "Afspilningslisten blev downloadet — åbn den fra browserens downloads. Den indeholder dine loginoplysninger, så slet den, når du er færdig med den.",
+ "ext.confirm.vlc": "Afspilningen stopper her og fortsætter i VLC. Uden VLC åbner Google Play på appens side.",
+ "ext.handed.vlc": "Afspilningen fortsætter i VLC. Kom tilbage hertil for at se i browseren igen.",
  "ext.continue": "Fortsæt i browseren",
  "cast.title": "Cast til en Chromecast",
  "cast.nothing": "Der er ingen afspilning at caste",

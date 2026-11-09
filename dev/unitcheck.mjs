@@ -13,7 +13,7 @@ globalThis.MediaSource = { isTypeSupported: (type) => /mp4a\.40/.test(type) };
 
 import { parseServer, parsePlaylistUrl, pastedKind, directSource, serverStamp, timeshiftUrl, streamUrl } from '../js/xtream.js';
 import { safeUrl, decodeField, XtreamApi, ApiError } from '../js/api.js';
-import { playlist } from '../js/external.js';
+import { playlist, vlcIntent } from '../js/external.js';
 import { nameCleaner, labelCodes, countryCodes, searchKey, searchTerms, matchesTerms, homeCountryCodes, homeGroup, viewerTags, episodeTitle } from '../js/name.js';
 import { Library, buildGroups, cacheTtl } from '../js/library.js';
 import { channelKey, internationalChannels, isNationalTopic } from '../js/international.js';
@@ -1153,6 +1153,15 @@ check('a cached item with a bad direct_source plays from the server\'s own addre
 check('a line break in the address adds no line to the playlist',
   playlist({ url: 'http://a.example/x.ts\r\n#EXTVLCOPT:evil' }, 'Name\nTwo').split('\n'),
   ['#EXTM3U', '#EXTINF:-1,Name Two', 'http://a.example/x.ts#EXTVLCOPT:evil', '']);
+
+// On Android the stream goes to VLC as an intent: link. The title's ';'
+// and '#' would end the extra or the intent if they were left as they are.
+check('an episode goes to VLC with its title and position',
+  vlcIntent({ url: 'http://tv.example:8080/series/u/p/42.mkv', startAt: 61.7 }, 'A; B #1'),
+  'intent://tv.example:8080/series/u/p/42.mkv#Intent;scheme=http;type=video/*;package=org.videolan.vlc;S.title=A%3B%20B%20%231;l.position=61000;S.browser_fallback_url=https%3A%2F%2Fplay.google.com%2Fstore%2Fapps%2Fdetails%3Fid%3Dorg.videolan.vlc;end');
+check('a live channel over HTTPS keeps its query and starts at the edge',
+  vlcIntent({ url: 'https://tv.example/play?token=a&id=7', startAt: 0 }, 'News'),
+  'intent://tv.example/play?token=a&id=7#Intent;scheme=https;type=video/*;package=org.videolan.vlc;S.title=News;S.browser_fallback_url=https%3A%2F%2Fplay.google.com%2Fstore%2Fapps%2Fdetails%3Fid%3Dorg.videolan.vlc;end');
 
 /* ---------------------------------------------- api.js: EPG text decoding */
 

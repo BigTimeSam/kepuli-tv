@@ -427,6 +427,8 @@ export default {
  "ext.confirm": "Atvērt ārējā atskaņotājā?",
  "ext.confirm.text": "Atskaņošana šeit apstāsies, un atskaņošanas saraksta fails tiks saglabāts lejupielādēs. Tajā ir servera adrese, lietotājvārds un parole atklātā tekstā, un tas tur paliek, līdz to izdzēsīsi.",
  "ext.handed.text": "Atskaņošanas saraksts ir lejupielādēts — atver to no pārlūka lejupielādēm. Tajā ir pieteikšanās dati, tāpēc pēc lietošanas izdzēs to.",
+ "ext.confirm.vlc": "Atskaņošana šeit apstāsies un turpināsies VLC. Bez VLC atvērsies tā lapa Google Play.",
+ "ext.handed.vlc": "Atskaņošana turpinās VLC. Atgriezies šeit, lai atkal skatītos pārlūkā.",
  "ext.continue": "Turpināt pārlūkā",
  "cast.title": "Pārraidīt uz Chromecast",
  "cast.nothing": "Nav atskaņošanas, ko pārraidīt",

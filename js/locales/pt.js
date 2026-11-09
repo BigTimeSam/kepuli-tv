@@ -419,6 +419,8 @@ export default {
  "ext.confirm": "Abrir em um player externo?",
  "ext.confirm.text": "A reprodução para aqui e um arquivo de playlist é salvo em seus downloads. Ele contém o endereço do servidor, seu usuário e sua senha em texto simples, e fica lá até você apagá-lo.",
  "ext.handed.text": "A playlist foi baixada — abra-a pelos downloads do navegador. Ela contém suas credenciais, então apague-a quando terminar.",
+ "ext.confirm.vlc": "A reprodução para aqui e continua no VLC. Sem o VLC, o Google Play abre na página dele.",
+ "ext.handed.vlc": "A reprodução continua no VLC. Volte aqui para assistir de novo no navegador.",
  "ext.continue": "Continuar no navegador",
  "cast.title": "Transmitir para um Chromecast",
  "cast.nothing": "Não há reprodução para transmitir",

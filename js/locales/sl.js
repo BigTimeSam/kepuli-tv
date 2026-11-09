@@ -435,6 +435,8 @@ export default {
  "ext.confirm": "Odpreti v zunanjem predvajalniku?",
  "ext.confirm.text": "Predvajanje se bo tukaj ustavilo, datoteka seznama predvajanja pa se shrani med prenose. Vsebuje naslov strežnika, uporabniško ime in geslo v navadnem besedilu in tam ostane, dokler je ne izbrišeš.",
  "ext.handed.text": "Seznam predvajanja je prenesen — odpri ga med prenosi brskalnika. Vsebuje prijavne podatke, zato ga po uporabi izbriši.",
+ "ext.confirm.vlc": "Predvajanje se bo tukaj ustavilo in nadaljevalo v VLC. Brez VLC se odpre njegova stran v Google Play.",
+ "ext.handed.vlc": "Predvajanje se nadaljuje v VLC. Vrni se sem, da spet gledaš v brskalniku.",
  "ext.continue": "Nadaljuj v brskalniku",
  "cast.title": "Predvajaj na Chromecast",
  "cast.nothing": "Nič se ne predvaja, zato ni ničesar za pošiljanje",

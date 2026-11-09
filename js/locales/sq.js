@@ -419,6 +419,8 @@ export default {
  "ext.confirm": "Ta hapësh në një luajtës të jashtëm?",
  "ext.confirm.text": "Luajtja ndalon këtu dhe skedari i listës ruhet te shkarkimet. Përmban adresën e serverit, emrin e përdoruesit dhe fjalëkalimin në tekst të hapur dhe qëndron aty derisa ta fshish.",
  "ext.handed.text": "Lista u shkarkua — hape nga shkarkimet e shfletuesit. Përmban kredencialet, ndaj fshije kur të mbarosh.",
+ "ext.confirm.vlc": "Luajtja ndalon këtu dhe vazhdon në VLC. Pa VLC, hapet faqja e tij në Google Play.",
+ "ext.handed.vlc": "Luajtja vazhdon në VLC. Kthehu këtu për të parë sërish në shfletues.",
  "ext.continue": "Vazhdo në shfletues",
  "cast.title": "Transmeto në Chromecast",
  "cast.nothing": "Nuk ka luajtje për t'u transmetuar",

@@ -419,6 +419,8 @@ export default {
  "ext.confirm": "Openen in een externe speler?",
  "ext.confirm.text": "Het afspelen stopt hier en een afspeellijstbestand wordt opgeslagen in je downloads. Het bevat het serveradres, je gebruikersnaam en je wachtwoord in leesbare tekst en blijft daar staan tot je het verwijdert.",
  "ext.handed.text": "De afspeellijst is gedownload — open hem via de downloads van de browser. Hij bevat je inloggegevens, dus verwijder hem als je klaar bent.",
+ "ext.confirm.vlc": "Het afspelen stopt hier en gaat verder in VLC. Zonder VLC opent Google Play op de pagina van de app.",
+ "ext.handed.vlc": "Het afspelen gaat verder in VLC. Kom hier terug om weer in de browser te kijken.",
  "ext.continue": "Doorgaan in de browser",
  "cast.title": "Casten naar een Chromecast",
  "cast.nothing": "Er is niets om te casten",

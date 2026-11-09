@@ -411,6 +411,8 @@ export default {
  "ext.confirm": "Mở bằng trình phát ngoài?",
  "ext.confirm.text": "Việc phát sẽ dừng tại đây và một tệp danh sách phát sẽ được lưu vào thư mục tải xuống. Tệp chứa địa chỉ máy chủ, tên người dùng và mật khẩu dạng văn bản thường, và sẽ nằm đó cho đến khi bạn xóa.",
  "ext.handed.text": "Đã tải danh sách phát xuống — hãy mở nó từ mục tải xuống của trình duyệt. Tệp chứa thông tin đăng nhập, nên hãy xóa sau khi dùng xong.",
+ "ext.confirm.vlc": "Việc phát sẽ dừng tại đây và tiếp tục trong VLC. Nếu chưa có VLC, Google Play sẽ mở trang của ứng dụng.",
+ "ext.handed.vlc": "Việc phát đã chuyển sang VLC. Quay lại đây để xem tiếp trong trình duyệt.",
  "ext.continue": "Xem tiếp trong trình duyệt",
  "cast.title": "Truyền sang Chromecast",
  "cast.nothing": "Không có nội dung đang phát để truyền",

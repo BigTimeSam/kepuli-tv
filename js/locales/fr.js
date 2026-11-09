@@ -419,6 +419,8 @@ export default {
  "ext.confirm": "Ouvrir dans un lecteur externe ?",
  "ext.confirm.text": "La lecture s’arrête ici et un fichier de playlist est enregistré dans vos téléchargements. Il contient l’adresse du serveur, votre identifiant et votre mot de passe en clair, et y reste jusqu’à ce que vous le supprimiez.",
  "ext.handed.text": "La playlist a été téléchargée — ouvrez-la depuis les téléchargements du navigateur. Elle contient vos identifiants : supprimez-la quand vous avez terminé.",
+ "ext.confirm.vlc": "La lecture s’arrête ici et continue dans VLC. Sans VLC, Google Play s’ouvre sur sa page.",
+ "ext.handed.vlc": "La lecture continue dans VLC. Revenez ici pour regarder de nouveau dans le navigateur.",
  "ext.continue": "Continuer dans le navigateur",
  "cast.title": "Diffuser sur un Chromecast",
  "cast.nothing": "Aucune lecture à diffuser",

@@ -435,6 +435,8 @@ export default {
  "ext.confirm": "Atidaryti išoriniame grotuve?",
  "ext.confirm.text": "Atkūrimas čia sustos, o grojaraščio failas bus išsaugotas atsisiuntimuose. Jame serverio adresas, naudotojo vardas ir slaptažodis yra atviru tekstu, ir jis ten lieka, kol jį ištrinsi.",
  "ext.handed.text": "Grojaraštis atsisiųstas — atidaryk jį iš naršyklės atsisiuntimų. Jame yra prisijungimo duomenys, todėl baigęs ištrink.",
+ "ext.confirm.vlc": "Atkūrimas čia sustos ir tęsis VLC. Jei VLC nėra, atsidarys jo puslapis „Google Play“.",
+ "ext.handed.vlc": "Atkūrimas tęsiasi VLC. Grįžk čia, jei vėl nori žiūrėti naršyklėje.",
  "ext.continue": "Tęsti naršyklėje",
  "cast.title": "Transliuoti į Chromecast",
  "cast.nothing": "Nėra ką transliuoti",

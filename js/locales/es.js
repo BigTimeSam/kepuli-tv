@@ -419,6 +419,8 @@ export default {
  "ext.confirm": "¿Abrir en un reproductor externo?",
  "ext.confirm.text": "La reproducción se detiene aquí y se guarda un archivo de lista en tus descargas. Contiene la dirección del servidor, tu usuario y tu contraseña en texto claro, y se queda ahí hasta que lo borres.",
  "ext.handed.text": "Se descargó la lista: ábrela desde las descargas del navegador. Contiene tus credenciales, así que bórrala cuando termines.",
+ "ext.confirm.vlc": "La reproducción se detiene aquí y continúa en VLC. Sin VLC, se abre su página en Google Play.",
+ "ext.handed.vlc": "La reproducción sigue en VLC. Vuelve aquí para ver de nuevo en el navegador.",
  "ext.continue": "Continuar en el navegador",
  "cast.title": "Enviar a un Chromecast",
  "cast.nothing": "No hay reproducción que enviar",

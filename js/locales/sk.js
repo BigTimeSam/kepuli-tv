@@ -435,6 +435,8 @@ export default {
  "ext.confirm": "Otvoriť v externom prehrávači?",
  "ext.confirm.text": "Prehrávanie sa tu zastaví a súbor playlistu sa uloží medzi stiahnuté. Obsahuje adresu servera, používateľské meno a heslo v čitateľnom texte a zostane tam, kým ho neodstrániš.",
  "ext.handed.text": "Playlist sa stiahol — otvor ho zo stiahnutých súborov prehliadača. Obsahuje prihlasovacie údaje, preto ho po skončení odstráň.",
+ "ext.confirm.vlc": "Prehrávanie sa tu zastaví a pokračuje vo VLC. Bez VLC sa otvorí jeho stránka v Google Play.",
+ "ext.handed.vlc": "Prehrávanie pokračuje vo VLC. Vráť sa sem, ak chceš znova pozerať v prehliadači.",
  "ext.continue": "Pokračovať v prehliadači",
  "cast.title": "Prenášať na Chromecast",
  "cast.nothing": "Nič sa neprehráva, nie je čo prenášať",

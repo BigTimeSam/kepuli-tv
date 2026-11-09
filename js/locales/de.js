@@ -419,6 +419,8 @@ export default {
  "ext.confirm": "In externem Player öffnen?",
  "ext.confirm.text": "Die Wiedergabe stoppt hier, und eine Playlist-Datei wird in den Downloads gespeichert. Sie enthält Serveradresse, Benutzername und Passwort im Klartext und bleibt dort, bis sie gelöscht wird.",
  "ext.handed.text": "Die Playlist wurde heruntergeladen — über die Downloads des Browsers öffnen. Sie enthält die Zugangsdaten, daher nach der Nutzung löschen.",
+ "ext.confirm.vlc": "Die Wiedergabe stoppt hier und geht in VLC weiter. Ohne VLC öffnet sich Google Play auf der Seite der App.",
+ "ext.handed.vlc": "Die Wiedergabe läuft jetzt in VLC. Hierher zurückkehren, um wieder im Browser zu schauen.",
  "ext.continue": "Im Browser fortfahren",
  "cast.title": "Auf einen Chromecast streamen",
  "cast.nothing": "Es gibt keine Wiedergabe zum Streamen",

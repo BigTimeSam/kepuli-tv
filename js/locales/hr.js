@@ -427,6 +427,8 @@ export default {
  "ext.confirm": "Otvoriti u vanjskom reproduktoru?",
  "ext.confirm.text": "Reprodukcija će se ovdje zaustaviti, a datoteka popisa za reprodukciju spremit će se u preuzimanja. Sadrži adresu poslužitelja, korisničko ime i lozinku u čitljivom tekstu i ostaje tamo dok je ne izbrišeš.",
  "ext.handed.text": "Popis za reprodukciju je preuzet — otvori ga iz preuzimanja preglednika. Sadrži prijavne podatke, pa ga izbriši kad završiš.",
+ "ext.confirm.vlc": "Reprodukcija će se ovdje zaustaviti i nastaviti u VLC-u. Bez VLC-a otvara se njegova stranica na Google Playu.",
+ "ext.handed.vlc": "Reprodukcija se nastavlja u VLC-u. Vrati se ovamo za ponovno gledanje u pregledniku.",
  "ext.continue": "Nastavi u pregledniku",
  "cast.title": "Prebaci na Chromecast",
  "cast.nothing": "Nema reprodukcije za prebacivanje",

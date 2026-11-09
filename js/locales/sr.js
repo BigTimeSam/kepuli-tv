@@ -427,6 +427,8 @@ export default {
  "ext.confirm": "Otvoriti u spoljnom plejeru?",
  "ext.confirm.text": "Reprodukcija će se ovde zaustaviti, a datoteka plejliste biće sačuvana u preuzimanjima. Sadrži adresu servera, korisničko ime i lozinku u običnom tekstu i ostaje tamo dok je ne obrišeš.",
  "ext.handed.text": "Plejlista je preuzeta — otvori je iz preuzimanja u pregledaču. Sadrži podatke za prijavu, zato je obriši kad završiš.",
+ "ext.confirm.vlc": "Reprodukcija će se ovde zaustaviti i nastaviti u VLC-u. Bez VLC-a otvara se njegova stranica na Google Play-u.",
+ "ext.handed.vlc": "Reprodukcija se nastavlja u VLC-u. Vrati se ovde da ponovo gledaš u pregledaču.",
  "ext.continue": "Nastavi u pregledaču",
  "cast.title": "Prebaci na Chromecast",
  "cast.nothing": "Nema reprodukcije za prebacivanje",
