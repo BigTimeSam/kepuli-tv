@@ -100,7 +100,7 @@
          the arrows move a cursor inside it, and aria-activedescendant names
          the row the cursor is on. See markGroups in js/app.js. -->
     <!-- Favourites only: the starred groups, and those holding a starred topic. -->
-    <p class="groups-empty" id="groups-empty" role="status" hidden></p>
+    <div class="groups-empty" id="groups-empty" role="status" hidden></div>
     <div class="groups-list" id="groups" role="listbox" tabindex="0" data-i18n-label="groups.aria"></div>
     <!-- The way to the countries the viewer watches on the channels, and to
          the categories on the films and the series. -->
@@ -484,9 +484,12 @@
       <span class="choice-name" id="countries-toggle-label" data-i18n="countries.toggle">Select all</span>
     </label>
     <div id="countries-list" class="choice-list" role="group" aria-labelledby="countries-title"></div>
-    <p class="editor-help" id="countries-empty" role="status" hidden></p>
+    <div class="choice-empty" id="countries-empty" role="status" hidden></div>
     <div class="choice-actions modal-actions">
-      <span id="countries-status" role="status"></span>
+      <!-- The status and, unseen in the same cell, every text it can
+           take: the row is as tall as the longest of them, so that
+           choosing a mode does not make the dialog jump. -->
+      <span class="choice-status"><span id="countries-status" role="status"></span><span id="countries-status-room" aria-hidden="true"></span></span>
       <button type="button" id="countries-cancel" class="ghost" data-i18n="progress.cancel">Cancel</button>
       <button type="button" id="countries-save" class="primary" data-i18n="setup.save">Save</button>
     </div>

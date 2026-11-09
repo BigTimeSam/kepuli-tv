@@ -8,7 +8,10 @@
 
 import { t } from './i18n.js';
 import * as store from './config.js';
-import { adoptAccount, connect, state } from './state.js';
+import { accountAddress, adoptAccount, connect, startReset, state } from './state.js';
+import { requestAccess } from './permissions.js';
+import { cacheClear } from './db.js';
+import { playback } from './playing.js';
 import { configured, editAccount, pickAccount, setupAdding, setupDirty, setupEditing, setupError } from './setupui.js';
 import { toast } from './toast.js';
 import { $, el } from './dom.js';
@@ -28,9 +31,9 @@ function accountWhere(a) {
 
 /**
  * The accounts in Settings, each with what can be done with it: the one in
- * use is marked, the others can be switched to or removed. Removing asks
- * twice, like Reset everything, since an account's favourites and history
- * go with it.
+ * use is marked, the others can be switched to, and any can be removed.
+ * Removing asks twice, like Reset everything, since an account's
+ * favourites and history go with it.
  */
 export function renderAccountList() {
   const box = $('accounts');
@@ -67,20 +70,23 @@ export function renderAccountList() {
       cancel.textContent = t('progress.cancel');
       cancel.addEventListener('click', () => editAccount('current'));
       li.append(cancel);
-    } else if (inUse) {
-      const badge = document.createElement('span');
-      badge.className = 'account-current';
-      badge.textContent = t('accounts.current');
-      li.append(badge);
     } else {
-      const use = document.createElement('button');
-      use.type = 'button';
-      use.className = 'ghost';
-      use.textContent = t('accounts.use');
-      use.addEventListener('click', () => {
-        if (setupDirty()) { setupError('setup.maintenance.pending'); return; }
-        switchAccount(a.id);
-      });
+      if (inUse) {
+        const badge = document.createElement('span');
+        badge.className = 'account-current';
+        badge.textContent = t('accounts.current');
+        li.append(badge);
+      } else {
+        const use = document.createElement('button');
+        use.type = 'button';
+        use.className = 'ghost';
+        use.textContent = t('accounts.use');
+        use.addEventListener('click', () => {
+          if (setupDirty()) { setupError('setup.maintenance.pending'); return; }
+          switchAccount(a.id);
+        });
+        li.append(use);
+      }
       const remove = document.createElement('button');
       remove.type = 'button';
       remove.className = 'ghost danger';
@@ -94,12 +100,12 @@ export function renderAccountList() {
           return;
         }
         clearTimeout(armed);
-        state.accounts = await store.removeAccount(a.id);
-        toast(t('accounts.removed', { name: store.accountLabel(a) }));
+        if (inUse) { await removeAccountInUse(a); return; }
+        await removeAccount(a);
         if (setupEditing === a.id) editAccount('current');
         else renderAccountList();
       });
-      li.append(use, remove);
+      li.append(remove);
     }
     return li;
   };
@@ -107,6 +113,47 @@ export function renderAccountList() {
   if (setupAdding) list.append(row(null, { isNew: true }));
 }
 
+
+/**
+ * An account off the list with its favourites and history (js/config.js)
+ * and its catalogue in the cache, which is kept under the account's key:
+ * left there, a playlist file read in stayed in the browser's storage for
+ * good. Both stay while another entry of the list is the same account.
+ */
+async function removeAccount(a) {
+  state.accounts = await store.removeAccount(a.id);
+  const key = store.accountKey(a);
+  if (!state.accounts.some((other) => store.accountKey(other) === key)) await cacheClear(`${key}|`);
+  toast(t('accounts.removed', { name: store.accountLabel(a) }));
+}
+
+/**
+ * The account in use removed. With another in the list, that one is taken
+ * into use first, as Use would, and the removed one goes after it; the
+ * last one leaves the player as it was before the first: the page starts
+ * again at the welcome, the language, theme and the other settings kept.
+ * Nothing of the player's may be written back meanwhile (startReset): the
+ * place in what was playing would make the account's lists again.
+ */
+async function removeAccountInUse(a) {
+  if (setupDirty()) { setupError('setup.maintenance.pending'); return; }
+  const next = (state.accounts || []).find((other) => other.id !== a.id);
+  if (next) {
+    if (el.setup.open) el.setup.close();
+    const config = await store.switchConfig(next);
+    await adoptAccount(config);
+    el.mode.value = state.config.streamMode || 'auto';
+    await removeAccount(a);
+    await connect();
+    return;
+  }
+  startReset();
+  playback.stop();
+  state.accounts = await store.removeAccount(a.id);
+  await cacheClear(`${store.accountKey(a)}|`);
+  await store.forgetConfig();
+  location.reload();
+}
 
 /**
  * Another account of the list in use: what is playing stops, the lists
@@ -121,5 +168,45 @@ async function switchAccount(id) {
   await adoptAccount(config);
   el.mode.value = state.config.streamMode || 'auto';
   toast(t('accounts.switched', { name: store.accountLabel(config) }));
+  await connect();
+}
+
+/**
+ * A playlist that is an Xtream panel's list (js/m3u.js, xtreamPanel) says
+ * so once, after its first connection, with the way to the server itself:
+ * a list downloaded as type=m3u has no categories for its films and
+ * series, no covers and no guide ids, and the server's API has them all.
+ * The server becomes an account of its own beside the playlist, or the
+ * one in the list already is taken into use; nothing changes unasked.
+ * Once per account in this browser (the ui state), taken up or not.
+ * @param {{ scheme: string, host: string, port: string, username: string, password: string } | null | undefined} panel
+ */
+export async function offerXtream(panel) {
+  const config = state.config;
+  if (!panel || config.type !== 'm3u') return;
+  const playlist = store.accountKey(config);
+  const ui = await store.loadUiState();
+  const offered = Array.isArray(ui.xtreamOffered) ? ui.xtreamOffered : [];
+  if (offered.includes(playlist)) return;
+  await store.saveUiState({ xtreamOffered: [...offered, playlist] });
+  const server = { ...store.blankConfig(), type: 'xtream', sourceMode: 'xtream', ...panel };
+  const offer = (text) => toast(text, { long: true, action: { label: t('m3u.xtream.use'), onClick: () => useXtream(server, offer) } });
+  offer(t('m3u.xtream.offer', { host: panel.host }));
+}
+
+async function useXtream(server, offer) {
+  // Asked in the press itself, while the browser still counts it as one.
+  if (!(await requestAccess(accountAddress(server)))) {
+    offer(t('setup.nogrant', { button: t('m3u.xtream.use') }));
+    return;
+  }
+  const key = store.accountKey(server);
+  const known = (state.accounts || []).find((a) => store.accountKey(a) === key);
+  if (known) { await switchAccount(known.id); return; }
+  if (el.setup.open) el.setup.close();
+  const { config } = await store.saveSetup(server, {}, { replace: true });
+  state.accounts = await store.loadAccounts();
+  await adoptAccount(config);
+  el.mode.value = state.config.streamMode || 'auto';
   await connect();
 }

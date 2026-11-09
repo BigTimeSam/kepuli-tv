@@ -771,6 +771,12 @@ export function wireSetup() {
     showSetupSection(tabs[next].dataset.panel);
     tabs[next].focus();
   });
+  // In a phone's width the rail scrolls sideways (a one-word name does not
+  // wrap), and the browser left a tab focused at its end half under the
+  // edge, ring and all. scroll-padding on the rail keeps the ring's room.
+  el.setupTabs.addEventListener('focusin', (event) => {
+    if (event.target instanceof HTMLElement && event.target !== el.setupTabs) event.target.scrollIntoView({ block: 'nearest', inline: 'nearest' });
+  });
   el.setupTabs.addEventListener('click', (e) => {
     const button = e.target.closest('button[data-panel]');
     if (!button) return;

@@ -701,6 +701,8 @@ export default {
  "sync.status.error": "Sinhronizācija neizdevās ({message}). To mēģinās vēlreiz, kad atskaņotājs nākamreiz tiks atvērts.",
  "sync.password.needed": "{name} atnāca no cita datora bez paroles. Ievadi to, lai izveidotu savienojumu.",
  "m3u.guide.access": "Atskaņošanas saraksta programmas ceļvedis atrodas serverī {host}, kuram atskaņotājs vēl nevar piekļūt.",
+ "m3u.xtream.offer": "Šis atskaņošanas saraksts nāk no Xtream Codes servera {host}. Savienojot ar serveri, filmām un seriāliem ir kategorijas, vāciņi un programmas ceļvedis.",
+ "m3u.xtream.use": "Savienot kā Xtream Codes",
  "remux.gap": "Pakalpojuma sniedzēja faila kopijā ir tukšas daļas, tāpēc attēls tās pārlec. Pirmā bija pie {time}.",
  "remux.gap.again": "Izlaistas {seconds} s, kas pakalpojuma sniedzēja failā ir tukšas.",
  "player.idle.picks": "Tagad un drīzumā tavos kanālos",

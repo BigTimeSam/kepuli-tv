@@ -693,6 +693,8 @@ export default {
  "countries.toggle": "Selecionar tudo",
  "countries.toggle.shown": "Selecionar os exibidos",
  "m3u.guide.access": "O guia de programação da playlist está em {host}, ao qual o player ainda não tem acesso.",
+ "m3u.xtream.offer": "Esta playlist vem do servidor Xtream Codes {host}. Conectado ao servidor, os filmes e séries têm suas categorias, capas e guia de programação.",
+ "m3u.xtream.use": "Conectar como Xtream Codes",
  "remux.gap": "A cópia deste arquivo no provedor tem partes vazias, então a imagem pula por cima delas. A primeira apareceu em {time}.",
  "remux.gap.again": "Pulados {seconds} s que estão vazios no arquivo do provedor.",
  "player.idle.picks": "Agora e em breve nos seus canais",

@@ -693,6 +693,8 @@ export default {
  "countries.toggle": "Zgjidh të gjitha",
  "countries.toggle.shown": "Zgjidh të gjitha të dukshmet",
  "m3u.guide.access": "Udhëzuesi i programeve të listës është në {host}, ku luajtësi nuk ka ende qasje.",
+ "m3u.xtream.offer": "Kjo listë vjen nga serveri Xtream Codes {host}. Të lidhur me serverin, filmat dhe serialet kanë kategoritë, kopertinat dhe udhëzuesin e programeve.",
+ "m3u.xtream.use": "Lidhu si Xtream Codes",
  "remux.gap": "Kopja e këtij skedari te ofruesi ka pjesë bosh, prandaj figura i kapërcen. E para erdhi te {time}.",
  "remux.gap.again": "U kapërcyen {seconds} s që janë bosh në skedarin e ofruesit.",
  "player.idle.picks": "Tani dhe së shpejti në kanalet e tua",

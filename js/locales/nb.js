@@ -693,6 +693,8 @@ export default {
  "sync.status.error": "Synkroniseringen mislyktes ({message}). Den prøves igjen neste gang spilleren åpnes.",
  "sync.password.needed": "{name} kom fra en annen datamaskin uten passordet sitt. Skriv det inn for å koble til.",
  "m3u.guide.access": "Spillelistens programguide ligger på {host}, som spilleren ikke har tilgang til ennå.",
+ "m3u.xtream.offer": "Denne spillelisten kommer fra Xtream Codes-serveren {host}. Koblet til serveren får filmene og seriene sine kategorier, omslag og programguide.",
+ "m3u.xtream.use": "Koble til som Xtream Codes",
  "remux.gap": "Leverandørens kopi av filen har tomme deler, så bildet hopper over dem. Den første kom ved {time}.",
  "remux.gap.again": "Hoppet over {seconds} s som er tomme i leverandørens fil.",
  "player.idle.picks": "Nå og snart på kanalene dine",

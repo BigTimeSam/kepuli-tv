@@ -55,10 +55,13 @@ function subcatsBounds() {
  * empty panel, and the list needs the pixels more.
  */
 export function applySubcatsHeight() {
-  if (el.subcats.hidden) return;
   // Inside the channels' fold the bar is as tall as its chips: folding the
-  // whole of it is what gives the list its room.
+  // whole of it is what gives the list its room. Asked before the bar's
+  // hidden state, as a ceiling left over from the bar's own place wins over
+  // the stylesheet and let a long country's chips run under "Show only
+  // favourites".
   if (el.subcats.closest('.channel-filters')) { el.subcats.style.maxHeight = ''; return; }
+  if (el.subcats.hidden) return;
   const bounds = subcatsBounds();
   const cap = state.subcatsHeight == null
     ? bounds.auto

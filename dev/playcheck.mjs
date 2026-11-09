@@ -79,6 +79,14 @@
 //                                     sections above Save, the guide's days
 //                                     the bar's whole width, its programme
 //                                     search one row until used
+//   node dev/playcheck.mjs xtreamoffer  an Xtream panel's plain list as a
+//                                     playlist: its headings the channels'
+//                                     groups, the server offered once and,
+//                                     taken up, an account of its own in use
+//   node dev/playcheck.mjs removeaccount  the account in use removed in
+//                                     Settings: the other one in use, the
+//                                     removed one's lists and catalogue gone;
+//                                     the last one: the welcome, settings kept
 //   node dev/playcheck.mjs welcome    the first run: the pasted address first
 //                                     and sent to its form, the permission
 //                                     prompt announced and a refusal
@@ -292,6 +300,12 @@
 //                                     the start and the end must not have
 //                                     grown past a bound (KEPULI_SOAK_ZAPS
 //                                     sets the number of zaps, 9)
+//   node dev/playcheck.mjs focusrings every element Tab reaches, in the lists,
+//                                     the guide, a film's and a series' page,
+//                                     each section of Settings and the
+//                                     dialogs, at 1280, 760 and 400 px: its
+//                                     focus ring painted a colour of its own
+//                                     must be in sight on all four sides
 //
 // The driver is the one dev/store-screenshots.mjs uses, from the same
 // profile (KEPULI_DEV_PROFILE) and port (KEPULI_DEV_PORT), and it needs the
@@ -308,6 +322,7 @@
 // the rate in bytes per second (60 kB/s). Exit code 0 when every scenario
 // passes, 1 otherwise.
 
+import { decodePng } from './screenshot.mjs';
 import { startMockServer, connectionStats, MULTI_EPISODES, PORT as MOCK_PORT, STALKER_MAC, stalkerSeen, USER, PASS, T0 as MOCK_T0 } from './mock/server.mjs';
 // Run the same scenarios in Firefox with KEPULI_BROWSER=firefox.
 const { ensureChrome, openPlayer, session, sleep, evaluate, waitFor, PORT: CHROME_PORT } = await import(
@@ -1475,6 +1490,61 @@ async function accounts(page, { target }) {
     await reconnectOn(MOCK_PORT);
     const back = await favCount();
     return { ok: first === 1 && elsewhere === 0 && back === 1, detail: `favourites: ${first} on port ${MOCK_PORT}, ${elsewhere} on port ${OTHER_PORT}, ${back} back on ${MOCK_PORT}` };
+  } finally {
+    other.closeAllConnections();
+    await new Promise((resolve) => other.close(resolve));
+  }
+}
+
+/**
+ * The account in use removed from Settings. With another in the list, that
+ * one is taken into use and the removed one's favourites and catalogue go;
+ * the last one leaves the player at the welcome, its settings kept.
+ */
+async function removeaccount(page, { target }) {
+  const assert = (ok, message) => { if (!ok) throw new Error(message); };
+  const OTHER_PORT = MOCK_PORT + 1;
+  const other = await startMockServer(OTHER_PORT);
+  const removeInUse = async () => {
+    await evaluate(page, `document.getElementById('btn-settings').click()`, { gesture: true });
+    await waitFor(page, `document.querySelector('#account-list .account-row.current .danger')`, 'Remove beside the account in use');
+    // Twice: the first press only asks.
+    await evaluate(page, `document.querySelector('#account-list .account-row.current .danger').click()`, { gesture: true });
+    const asked = await evaluate(page, `document.querySelector('#account-list .account-row.current .danger').textContent`);
+    assert(asked === 'Remove for good?', `the first press: "${asked}"`);
+    await evaluate(page, `document.querySelector('#account-list .account-row.current .danger').click()`, { gesture: true });
+  };
+  const stored = () => evaluate(page, `chrome.storage.local.get(null).then((all) => ({ keys: Object.keys(all), config: all.config || null, accounts: (all.accounts || []).map((a) => a.name || a.port), theme: all.settings?.theme }))`);
+  const cached = (port) => evaluate(page, `import('./js/db.js').then((db) => db.cacheGetAll('http://127.0.0.1:${port}/demo|')).then((rows) => rows.length)`);
+  try {
+    await openLiveList(page, 1);
+    await evaluate(page, `document.querySelector('#list .row button').click()`);   // a favourite
+    // A second account on the other port, and a theme of the browser's.
+    await evaluate(page, `chrome.storage.local.get(['config', 'settings']).then(({ config, settings }) => chrome.storage.local.set({
+      accounts: [{ ...config, id: 'first', name: 'First' }, { ...config, id: 'second', name: 'Second', port: '${OTHER_PORT}' }],
+      config: { ...config, id: 'first', name: 'First' }, settings: { ...settings, theme: 'light' } }))`);
+    await page.call('Page.navigate', { url: bare(target.url) });
+    await sleep(1000);
+    await waitFor(page, CONNECTED, 'the first account');
+    const before = { cache: await cached(MOCK_PORT), keys: (await stored()).keys.filter((k) => k.includes(`:${MOCK_PORT}/`)) };
+    assert(before.cache > 0 && before.keys.length > 0, `the first account's lists and cache before: ${JSON.stringify(before)}`);
+    await removeInUse();
+    await waitFor(page, `chrome.storage.local.get('accounts').then(({ accounts }) => accounts.length === 1)`, 'the account off the list');
+    await waitFor(page, `!document.getElementById('setup').open && ${CONNECTED}`, 'the other account in use');
+    const switched = await stored();
+    const left = { cache: await cached(MOCK_PORT), keys: switched.keys.filter((k) => k.includes(`:${MOCK_PORT}/`)) };
+    assert(switched.config?.port === String(OTHER_PORT) && switched.accounts.join() === 'Second', `after removing the one in use: ${JSON.stringify(switched)}`);
+    assert(left.cache === 0 && !left.keys.length, `the removed account's lists and cache: ${JSON.stringify(left)}`);
+    const toastText = await evaluate(page, `document.getElementById('toast').textContent`);
+    assert(/First removed/.test(toastText), `the toast: "${toastText}"`);
+    // The last one: the welcome again, the settings kept.
+    await removeInUse();
+    await sleep(1500);
+    await waitFor(page, `document.getElementById('setup').open && !document.getElementById('account-list').children.length`, 'the welcome', 15000);
+    const last = await stored();
+    assert(!last.config && !last.accounts.length && last.theme === 'light', `after removing the last: ${JSON.stringify(last)}`);
+    assert(!last.keys.some((k) => k.includes(`:${OTHER_PORT}/`)) && await cached(OTHER_PORT) === 0, `the last account's lists or cache stayed: ${JSON.stringify(last.keys)}`);
+    return { ok: true, detail: 'the one in use removed: the other in use, its favourites and catalogue gone; the last removed: the welcome, the theme kept' };
   } finally {
     other.closeAllConnections();
     await new Promise((resolve) => other.close(resolve));
@@ -3607,6 +3677,15 @@ async function catalogUi(page) {
   await waitFor(page, `document.querySelectorAll('#list .row').length > 1 && document.getElementById('list-progress').hidden`, 'movie rows');
   // Covers first: the duration reaches the line under a cover as it does a row.
   await waitFor(page, `document.querySelector('#list.covers .row.card') && [...document.querySelectorAll('#list .card-meta')].some((n) => /\\d+ ?min|\\dh/.test(n.textContent))`, 'movie duration on a cover');
+  // An arrow moves the cursor and keeps the covers: each was built again as
+  // a new image, hidden until it loaded, and the grid blinked at every press.
+  await evaluate(page, `(() => { document.getElementById('list').focus(); for (const img of document.querySelectorAll('#list .card-poster')) img.dataset.kept = '1'; return true; })()`);
+  await pressKey(page, 'ArrowRight', 'ArrowRight', 39);
+  await pressKey(page, 'ArrowRight', 'ArrowRight', 39);
+  await sleep(300);
+  const arrows = await evaluate(page, `(() => { const imgs = [...document.querySelectorAll('#list .card-poster')];
+    return { imgs: imgs.length, kept: imgs.filter((i) => i.dataset.kept).length, cursor: [...document.querySelectorAll('#list .row')].findIndex((r) => r.classList.contains('selected')) }; })()`);
+  assert(arrows.imgs > 0 && arrows.kept === arrows.imgs && arrows.cursor >= 1, `the covers after two arrows: ${JSON.stringify(arrows)}`);
   await evaluate(page, `document.querySelector('.view-toggle button[aria-pressed="false"]').click()`);
   await waitFor(page, `!document.getElementById('list').classList.contains('covers') && document.querySelector('#list .row-duration')`, 'movie duration metadata');
   assert(await evaluate(page, `!document.getElementById('media-filters').hidden && document.getElementById('channel-tools').hidden`), 'the films\' filters in place of the channels\' tools');
@@ -4153,6 +4232,47 @@ async function resettabs(page, { target }) {
 
 const M3U_ACCOUNT = { type: 'm3u', url: `http://127.0.0.1:${MOCK_PORT}/playlist.m3u`, epgUrl: '', name: 'Demo playlist', id: 'pm3u', sourceMode: 'm3u', streamMode: 'auto' };
 const XTREAM_ACCOUNT = { type: 'xtream', scheme: 'http', host: '127.0.0.1', port: String(MOCK_PORT), username: 'demo', password: 'demo', name: 'Demo server', id: 'pxt', sourceMode: 'xtream', streamMode: 'auto' };
+
+/**
+ * An Xtream panel's plain list (type=m3u) as a playlist account: no
+ * attributes, a heading row before each category. The headings are the
+ * channels' groups, and the player offers, once, the server the list comes
+ * from: taken up, it is an account of its own in use, with the server's
+ * categories for the films too.
+ */
+async function xtreamoffer(page, { target, requests }) {
+  const assert = (ok, message) => { if (!ok) throw new Error(message); };
+  const PLAIN = { ...M3U_ACCOUNT, url: `http://127.0.0.1:${MOCK_PORT}/playlist-plain.m3u`, name: 'Plain list', id: 'plain' };
+  await evaluate(page, `chrome.storage.local.set({ config: ${JSON.stringify(PLAIN)}, accounts: ${JSON.stringify([PLAIN])}, ui: { tab: 'live' } })`);
+  requests.length = 0;
+  await page.call('Page.navigate', { url: bare(target.url) });
+  await sleep(1000);
+  await waitFor(page, CONNECTED, 'the plain list');
+  const groups = await evaluate(page, `[...document.querySelectorAll('#groups .group')].map((g) => g.dataset.id ?? g.textContent.trim())`);
+  assert(groups.some((g) => /Finland/.test(g)) && !groups.some((g) => /^Other/.test(g) || /=====/.test(g)), `the channels' groups from the headings: ${JSON.stringify(groups)}`);
+  assert(!requests.some((r) => r.startsWith('/player_api.php')), 'the playlist asked the Xtream API before the offer was taken');
+  await waitFor(page, `!document.getElementById('toast').hidden && document.querySelector('#toast .toast-action')?.textContent === 'Connect as Xtream Codes'`, 'the offer of the Xtream server');
+  const said = await evaluate(page, `document.getElementById('toast-text')?.textContent || document.getElementById('toast').textContent`);
+  assert(said.includes('Xtream Codes server 127.0.0.1'), `the offer: "${said}"`);
+  // The browser's own prompt would wait for a person: the server is the
+  // mock's, to which the profile has access already.
+  await evaluate(page, `chrome.permissions.request = async () => true; document.querySelector('#toast .toast-action').click()`, { gesture: true });
+  await waitFor(page, `chrome.storage.local.get(['config', 'accounts']).then(({ config, accounts }) => config.type === 'xtream' && accounts.length === 2)`, 'the server as an account in use')
+    .catch(async (err) => { throw new Error(`${err.message}: ${JSON.stringify(await evaluate(page, `chrome.storage.local.get(['config', 'accounts']).then(({ config, accounts }) => ({ type: config.type, n: accounts.length, toast: document.getElementById('toast-text').textContent }))`))}`); });
+  await waitFor(page, CONNECTED, 'the server connected');
+  const stored = await evaluate(page, `chrome.storage.local.get(['config', 'accounts', 'ui']).then(({ config, accounts, ui }) => ({ config: [config.type, config.host, config.port, config.username, config.password], kinds: accounts.map((a) => a.type), offered: ui.xtreamOffered }))`);
+  assert(stored.config.join() === `xtream,127.0.0.1,${MOCK_PORT},demo,demo` && stored.kinds.join() === 'm3u,xtream' && stored.offered.length === 1, `the accounts after the offer: ${JSON.stringify(stored)}`);
+  assert(requests.some((r) => r.startsWith('/player_api.php')), 'the server\'s API was not asked');
+  // Once: the playlist again says nothing more.
+  await evaluate(page, `chrome.storage.local.set({ config: ${JSON.stringify(PLAIN)} })`);
+  await page.call('Page.navigate', { url: bare(target.url) });
+  await sleep(1000);
+  await waitFor(page, CONNECTED, 'the plain list again');
+  await sleep(1500);
+  const again = await evaluate(page, `document.querySelector('#toast .toast-action')?.textContent || ''`);
+  assert(again !== 'Connect as Xtream Codes', 'the offer came again');
+  return { ok: true, detail: `${groups.length} groups from the headings; offered once, taken up: the server an account of its own in use` };
+}
 
 /**
  * The mock's catalogue as an M3U playlist with its gzipped XMLTV guide: the
@@ -4930,10 +5050,25 @@ async function searchlimit(page) {
     // Finland alone, chosen in the dialog; a filter there that leaves nothing says so.
     await evaluate(page, `document.getElementById('btn-countries').click()`, { gesture: true });
     await waitFor(page, `document.getElementById('countries').open`, 'Filter countries');
+    // Choosing a mode leaves the dialog where it is: the status under the
+    // list took one line in one mode and two in another, and the centred
+    // dialog jumped at each choice (or, at its full height, the list did).
+    const heights = await evaluate(page, `(() => { const d = document.getElementById('countries'); const first = d.querySelector('input[name="countries-mode"]:checked');
+      const seen = ['favorites', 'chosen', 'all'].map((m) => { d.querySelector('input[value="' + m + '"]').click(); const r = d.getBoundingClientRect(); return [m, Math.round(r.top), Math.round(r.height), Math.round(d.querySelector('.choice-actions').getBoundingClientRect().height)].join(' '); });
+      first.click(); return seen; })()`);
+    assert(new Set(heights.map((h) => h.replace(/^\S+ /, ''))).size === 1, `the dialog moved between the modes: ${JSON.stringify(heights)}`);
     await type('countries-filter', 'zzqqxx');
-    const dialog = await evaluate(page, `({ empty: document.getElementById('countries-empty').hidden ? null : document.getElementById('countries-empty').textContent, list: getComputedStyle(document.getElementById('countries-list')).display })`);
-    assert(dialog.empty === 'The search “zzqqxx” returned nothing.' && dialog.list === 'none', `the dialog's filter with no match: ${JSON.stringify(dialog)}`);
+    const dialog = await evaluate(page, `({ empty: document.getElementById('countries-empty').hidden ? null : [...document.querySelectorAll('#countries-empty .empty > strong, #countries-empty .empty > div')].map((n) => n.textContent).join(' | '), list: getComputedStyle(document.getElementById('countries-list')).display,
+      selectAll: getComputedStyle(document.getElementById('countries-all-row')).display })`);
+    assert(dialog.empty === 'No matches | The search “zzqqxx” returned nothing.' && dialog.list === 'none' && dialog.selectAll === 'none', `the dialog's filter with no match: ${JSON.stringify(dialog)}`);
     await type('countries-filter', '');
+    assert(await evaluate(page, `getComputedStyle(document.getElementById('countries-all-row')).display !== 'none'`), '"Select all" stayed away after the filter was cleared');
+    // "Select all" ticks at the first click, from "All countries" too:
+    // choosing the mode set the box back from the rows before it was read.
+    const selectAll = await evaluate(page, `(() => { document.querySelector('#countries input[value="all"]').click(); const box = document.getElementById('countries-toggle'); box.click();
+      const rows = [...document.querySelectorAll('#countries-list input')]; const seen = { box: box.checked, mode: document.querySelector('#countries input[name="countries-mode"]:checked').value, ticked: rows.filter((r) => r.checked).length, rows: rows.length };
+      box.click(); return seen; })()`);
+    assert(selectAll.box && selectAll.mode === 'chosen' && selectAll.ticked === selectAll.rows, `"Select all" at the first click: ${JSON.stringify(selectAll)}`);
     await evaluate(page, `document.querySelector('#countries-list .choice-row[data-name="Finland"] input').click(); document.getElementById('countries-save').click()`);
     await waitFor(page, `!document.getElementById('countries').open`, 'the countries saved');
     await sleep(400);
@@ -4942,8 +5077,8 @@ async function searchlimit(page) {
     // The sidebar's filter with no match.
     await type('category-filter', 'zzqqxx');
     await sleep(300);
-    const side = await evaluate(page, `({ empty: document.getElementById('groups-empty').hidden ? null : document.getElementById('groups-empty').textContent, rows: document.querySelectorAll('#groups .group').length })`);
-    assert(side.empty === 'The search “zzqqxx” returned nothing.' && side.rows === 0, `the sidebar's filter with no match: ${JSON.stringify(side)}`);
+    const side = await evaluate(page, `({ empty: document.getElementById('groups-empty').hidden ? null : [...document.querySelectorAll('#groups-empty .empty > strong, #groups-empty .empty > div')].map((n) => n.textContent).join(' | '), rows: document.querySelectorAll('#groups .group').length })`);
+    assert(side.empty === 'No matches | The search “zzqqxx” returned nothing.' && side.rows === 0, `the sidebar's filter with no match: ${JSON.stringify(side)}`);
     await type('category-filter', '');
     await sleep(300);
     assert(await evaluate(page, `document.getElementById('groups-empty').hidden`), 'the sidebar line stayed after the filter was cleared');
@@ -4983,6 +5118,139 @@ async function searchlimit(page) {
  * their state the same way: the name, a dot while they narrow the list,
  * and "shown / total".
  */
+/**
+ * Every focus ring in sight. A ring is drawn outside its element, and a
+ * scroller cuts what passes its padding, a neighbour laid over it hides
+ * it, a page that overflows the window by a few pixels scrolls it away:
+ * the account's Add, Settings' fields at the panel's edges, the folds'
+ * headings, the guide's days under the strip's arrows, a cover at the top
+ * of the details lost a side or all of it. Each element Tab reaches is
+ * focused, its ring painted a colour nothing else on the page has, and a
+ * screenshot of it read: on each side, most of the ring's middle 60 % must
+ * show. A link that wraps onto two lines is left out: its ring follows
+ * each line, not one box.
+ */
+async function focusrings(page) {
+  const assert = (ok, message) => { if (!ok) throw new Error(message); };
+  const js = (expression) => evaluate(page, expression, { gesture: true }).catch((err) => { throw new Error(`${err.message} in ${expression.slice(0, 90)}`); });
+  const COLLECT = `(() => {
+    if (!document.getElementById('ring-probe')) { const s = document.createElement('style'); s.id = 'ring-probe'; s.textContent = ':focus-visible { outline-color: #ff00ff !important; }'; document.head.append(s); }
+    const scope = document.querySelector('dialog[open]') || document;
+    window.__rings = [...scope.querySelectorAll('button, select, summary, a[href], input, textarea, [tabindex]')].filter((n) => {
+      if (n.disabled || n.closest('[hidden], [inert]') || n.tabIndex < 0 || n.getClientRects().length !== 1) return false;
+      const r = n.getBoundingClientRect(), cs = getComputedStyle(n);
+      return r.width >= 1 && r.height >= 1 && cs.visibility !== 'hidden'; });
+    return window.__rings.length; })()`;
+  // After the browser's own scroll and the one js/sidescroll.js adds.
+  const focus = (i) => `(async () => { const n = window.__rings[${i}]; n.focus(); await new Promise((r) => setTimeout(r, 120));
+    if (document.activeElement !== n || !n.matches(':focus-visible')) return null;
+    const cs = getComputedStyle(n); if (cs.outlineStyle === 'none' || parseFloat(cs.outlineWidth) < 1) return null;
+    const r = n.getBoundingClientRect(); if (r.bottom < 0 || r.top > innerHeight || r.right < 0 || r.left > innerWidth) return null;
+    const name = (x) => x.tagName.toLowerCase() + (x.id ? '#' + x.id : x.classList.length ? '.' + [...x.classList].slice(0, 2).join('.') : '');
+    const p = []; for (let x = n; x && p.length < 3; x = x.parentElement) p.unshift(name(x));
+    return { name: p.join(' > '), l: r.left, t: r.top, r: r.right, b: r.bottom, w: parseFloat(cs.outlineWidth), o: parseFloat(cs.outlineOffset), vw: innerWidth, vh: innerHeight }; })()`;
+  const lost = new Map();
+  let looked = 0;
+  const look = async (label) => {
+    // A key first: the focus that follows shows its ring (:focus-visible).
+    for (const type of ['keyDown', 'keyUp']) await page.call('Input.dispatchKeyEvent', { type, key: 'Shift', code: 'ShiftLeft', windowsVirtualKeyCode: 16 });
+    const count = await js(COLLECT);
+    for (let i = 0; i < count; i++) {
+      const g = await js(focus(i));
+      if (!g) continue;
+      looked++;
+      const out = g.o + g.w;
+      const box = { x: Math.max(0, Math.floor(g.l - out - 1)), y: Math.max(0, Math.floor(g.t - out - 1)) };
+      box.width = Math.min(g.vw, Math.ceil(g.r + out + 1)) - box.x;
+      box.height = Math.min(g.vh, Math.ceil(g.b + out + 1)) - box.y;
+      if (box.width < 2 || box.height < 2) continue;
+      const { data } = await page.call('Page.captureScreenshot', { format: 'png', clip: { ...box, scale: 1 } });
+      const img = decodePng(Buffer.from(data, 'base64'));
+      const ring = (x, y) => {
+        x = Math.round(x - box.x); y = Math.round(y - box.y);
+        if (x < 0 || y < 0 || x >= img.width || y >= img.height) return false;
+        const at = (y * img.width + x) * 3;
+        return img.rgb[at] > 180 && img.rgb[at + 1] < 110 && img.rgb[at + 2] > 180;
+      };
+      const missing = (side) => {
+        let miss = 0, n = 0;
+        for (let f = 0.2; f <= 0.8; f += 0.05) {
+          n++;
+          let hit = false;
+          for (let d = -0.5; d <= g.w + 0.5 && !hit; d += 0.5) {
+            const point = { top: [g.l + (g.r - g.l) * f, g.t - out + d], bottom: [g.l + (g.r - g.l) * f, g.b + out - d - 1],
+              left: [g.l - out + d, g.t + (g.b - g.t) * f], right: [g.r + out - d - 1, g.t + (g.b - g.t) * f] }[side];
+            hit = ring(...point);
+          }
+          if (!hit) miss++;
+        }
+        return miss / n;
+      };
+      const sides = ['top', 'right', 'bottom', 'left'].filter((side) => missing(side) > 0.3);
+      if (sides.length) {
+        const key = `${g.name} (${sides.join(', ')})`;
+        if (!lost.has(key)) lost.set(key, []);
+        lost.get(key).push(label);
+      }
+    }
+    await js(`document.activeElement?.blur(), true`);
+  };
+  const closeDialogs = async () => { await js(`(() => { for (const d of document.querySelectorAll('dialog[open]')) d.close(); return true; })()`); await sleep(200); };
+  try {
+    for (const width of [1280, 760, 400]) {
+      await page.call('Emulation.setDeviceMetricsOverride', { width, height: 800, deviceScaleFactor: 1, mobile: false });
+      await sleep(400);
+      await openLiveList(page, 2);
+      await sleep(500);
+      await look(`${width} channels`);
+      await js(`document.querySelector('#list .row').click(), true`);
+      await sleep(1500);
+      await look(`${width} a channel playing`);
+      await js(`(document.querySelector('.channel-guide:not([hidden])') || document.getElementById('btn-guide')).click(), true`);
+      await waitFor(page, `document.querySelector('main.guide')`, 'the guide');
+      await sleep(800);
+      await look(`${width} the guide`);
+      await js(`document.getElementById('epg-close').click(), true`);
+      await sleep(500);
+      for (const tab of ['movie', 'series', 'fav', 'recent']) {
+        await js(`document.querySelector('#tabs [data-tab="${tab}"]').click(), true`);
+        await sleep(1200);
+        await look(`${width} ${tab}`);
+        if (tab === 'movie' || tab === 'series') {
+          await waitFor(page, `document.querySelector('#list .row')`, `the ${tab} rows`);
+          await js(`document.querySelector('#list .row').click(), true`);
+          await sleep(1500);
+          await look(`${width} ${tab} details`);
+        }
+      }
+      await openLiveList(page, 2);
+      await js(`document.getElementById('btn-settings').click(), true`);
+      await waitFor(page, `document.getElementById('setup').open`, 'Settings');
+      for (const panel of ['connection', 'general', 'playback', 'subs', 'account']) {
+        await js(`document.getElementById('tab-${panel}').click(), true`);
+        await sleep(400);
+        await look(`${width} Settings ${panel}`);
+      }
+      await closeDialogs();
+      await js(`document.getElementById('btn-countries').click(), true`);
+      await waitFor(page, `document.getElementById('countries').open`, 'Filter countries');
+      await look(`${width} Filter countries`);
+      await closeDialogs();
+      await js(`document.getElementById('btn-help').click(), true`);
+      await sleep(600);
+      await look(`${width} Help`);
+      await closeDialogs();
+    }
+  } finally {
+    await closeDialogs().catch(() => {});
+    await js(`document.getElementById('ring-probe')?.remove(), true`).catch(() => {});
+    await page.call('Emulation.setDeviceMetricsOverride', { width: 1280, height: 800, deviceScaleFactor: 1, mobile: false }).catch(() => {});
+  }
+  assert(looked > 200, `only ${looked} focus rings looked at`);
+  assert(!lost.size, `rings not wholly in sight:\n${[...lost].map(([what, where]) => `  ${what}: ${where.join(', ')}`).join('\n')}`);
+  return { ok: true, detail: `${looked} focus rings in the lists, the guide, the details, Settings and the dialogs at 1280, 760 and 400 px, each in sight on all four sides` };
+}
+
 async function filterfolds(page) {
   const assert = (ok, message) => { if (!ok) throw new Error(message); };
   const fold = (id) => evaluate(page, `(() => { const d = document.getElementById(${JSON.stringify(id)}); return { open: d.open, label: d.querySelector('.section-label').textContent, count: d.querySelector('.section-count').textContent }; })()`);
@@ -5049,6 +5317,13 @@ async function filterfolds(page) {
   // where nothing else asks for the list to be drawn again.
   await evaluate(page, `document.querySelector('#tabs [data-tab="live"]').click()`);
   await waitFor(page, `document.getElementById('channel-favs').checked && !document.getElementById('active-channel-filters').hidden`, 'the channels narrowed to the favourites');
+  // The topics' bar in the fold keeps no ceiling from its own place: after
+  // a reload one did, as an inline style that beat the fold's stylesheet,
+  // and a long country's chips ran under "Show only favourites".
+  const bar = await evaluate(page, `(() => { const bar = document.getElementById('subcats'); const last = [...bar.querySelectorAll('.chip')].at(-1);
+    return { inFold: Boolean(bar.closest('#channel-filters')), maxHeight: bar.style.maxHeight, lastChip: last && Math.round(last.getBoundingClientRect().bottom),
+      footer: Math.round(document.querySelector('#channel-filters .media-filter-footer').getBoundingClientRect().top) }; })()`);
+  assert(bar.inFold && !bar.maxHeight && bar.lastChip <= bar.footer, `the topics in the fold after a reload: ${JSON.stringify(bar)}`);
   // Settled first: the tab's own drawing still under way once redrew the
   // list for the logo and hid a logo that left it narrowed.
   await sleep(1000);
@@ -6375,7 +6650,7 @@ async function filmfacts(page) {
 
 const SCENARIOS = { buffering, livebuffering, filmbuffering, emptyfile, tsasmp4, refusedfile, badgateway, livebadgateway, channelrefused, noanswer, longfilm, catalogUi, setupClarity, welcome, fullscreenControl, clickpause, pickers, touchcaret, screenbutton, topmenu, scrollbars, channelorder, lengthfilter, nowlogo, channels, home, resumemkv, restore, programmes, catchup, seek, death, cancel, timeout, search, paste, keys, switching, resume, connections, livezap, livequiet, reconnect, accounts, listerror, a11y, subtitles, audio, wasmaudio, settings,
   lastchannel, nextepisode, continuewatching, reminders, update, seeklag, cuesretry, quota, catchupfreeze, catchupfull, twotabs, switchstop, resettabs,
-  refresh, restorenav, guidekeep, m3u, sync, holes, picks, flakyserver, accountform, stalker, record, guidefavs, guidenames, categories, homecountry, noleak, perf, pseudo, startup, soak, phone, episodenames, gotochannel, filmdetails, favorder, countryfilter, tilekeys, routes, programmekeys, searchlimit, filterfolds, guideclick, filmaddress, filmfacts, playlistfile, perflive, perfplaylist, remoteimages, phoneguide };
+  refresh, restorenav, guidekeep, removeaccount, m3u, sync, holes, picks, flakyserver, accountform, stalker, record, guidefavs, guidenames, categories, homecountry, noleak, perf, pseudo, startup, soak, phone, episodenames, gotochannel, filmdetails, favorder, countryfilter, tilekeys, routes, programmekeys, searchlimit, filterfolds, focusrings, xtreamoffer, guideclick, filmaddress, filmfacts, playlistfile, perflive, perfplaylist, remoteimages, phoneguide };
 // The mock's whole-list answers stall for these, longer than the request limit.
 const SLOW_LIST_MS = { cancel: 60000, timeout: 60000 };
 // The media is sent slowly for these: the seek targets must lie outside the
@@ -6389,6 +6664,7 @@ const wanted = process.argv.slice(2).filter((a) => SCENARIOS[a]);
 // Firefox's run says SKIP for them instead of failing.
 const CHROME_ONLY = {
   a11y: 'reads the accessibility tree through Chrome\'s DevTools protocol, which Marionette has no counterpart of',
+  focusrings: 'takes a screenshot of a part of the page through Chrome\'s DevTools protocol for every element it focuses',
 };
 const unknown = process.argv.slice(2).filter((a) => !SCENARIOS[a]);
 if (unknown.length) { console.error(`unknown scenario ${unknown.join(' ')}; the choices are ${Object.keys(SCENARIOS).join(' and ')}`); process.exit(1); }

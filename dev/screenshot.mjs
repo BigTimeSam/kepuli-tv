@@ -20,6 +20,7 @@ import { existsSync, readFileSync, unlinkSync, writeFileSync } from 'node:fs';
 import { homedir } from 'node:os';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { inflateSync } from 'node:zlib';
 
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 export const PORT = Number(process.env.KEPULI_DEV_PORT || 9222);
@@ -214,6 +215,42 @@ export async function openPlayer() {
 }
 
 /* ----------------------------------------------------------------- capture */
+
+/**
+ * An 8-bit RGB or RGBA, non-interlaced PNG as { width, height, rgb } (alpha
+ * dropped): the visual check's pictures and the focus rings' screenshots.
+ * @param {Buffer} buf
+ * @param {string} [file] named in the error
+ */
+export function decodePng(buf, file = 'the PNG') {
+  let at = 8, width, height, type, idat = [];
+  while (at < buf.length) {
+    const len = buf.readUInt32BE(at), kind = buf.toString('latin1', at + 4, at + 8), data = buf.subarray(at + 8, at + 8 + len);
+    if (kind === 'IHDR') {
+      width = data.readUInt32BE(0); height = data.readUInt32BE(4); type = data[9];
+      if (data[8] !== 8 || ![2, 6].includes(type) || data[12] !== 0) throw new Error(`${file}: only 8-bit RGB/RGBA non-interlaced PNG is read here`);
+    } else if (kind === 'IDAT') idat.push(data);
+    else if (kind === 'IEND') break;
+    at += 12 + len;
+  }
+  const bpp = type === 6 ? 4 : 3, stride = width * bpp, raw = inflateSync(Buffer.concat(idat));
+  const px = Buffer.alloc(stride * height), rgb = Buffer.alloc(width * height * 3);
+  for (let y = 0; y < height; y++) {
+    const filter = raw[y * (stride + 1)], line = raw.subarray(y * (stride + 1) + 1, (y + 1) * (stride + 1));
+    for (let x = 0; x < stride; x++) {
+      const a = x >= bpp ? px[y * stride + x - bpp] : 0, b = y ? px[(y - 1) * stride + x] : 0, c = x >= bpp && y ? px[(y - 1) * stride + x - bpp] : 0;
+      let v = line[x];
+      if (filter === 1) v += a;
+      else if (filter === 2) v += b;
+      else if (filter === 3) v += (a + b) >> 1;
+      else if (filter === 4) { const p = a + b - c, pa = Math.abs(p - a), pb = Math.abs(p - b), pc = Math.abs(p - c); v += pa <= pb && pa <= pc ? a : pb <= pc ? b : c; }
+      px[y * stride + x] = v & 0xff;
+    }
+    for (let x = 0; x < width; x++) px.copy(rgb, (y * width + x) * 3, y * stride + x * bpp, y * stride + x * bpp + 3);
+  }
+  return { width, height, rgb };
+}
+
 
 export const setViewport = (page) => page.call('Emulation.setDeviceMetricsOverride', { width: WIDTH, height: HEIGHT, deviceScaleFactor: SCALE, mobile: false });
 export const clearViewport = (page) => page.call('Emulation.clearDeviceMetricsOverride');

@@ -709,6 +709,8 @@ export default {
  "sync.status.error": "Sinchronizuoti nepavyko ({message}). Bus bandoma dar kartą, kai grotuvas bus atidarytas kitą kartą.",
  "sync.password.needed": "{name} atkeliavo iš kito kompiuterio be slaptažodžio. Įvesk jį, kad prisijungtum.",
  "m3u.guide.access": "Grojaraščio programų gidas yra serveryje {host}, prie kurio grotuvas dar neturi prieigos.",
+ "m3u.xtream.offer": "Šis grojaraštis yra iš Xtream Codes serverio {host}. Prisijungus prie serverio, filmai ir serialai turi savo kategorijas, viršelius ir programų gidą.",
+ "m3u.xtream.use": "Prisijungti kaip Xtream Codes",
  "remux.gap": "Tiekėjo šio failo kopijoje yra tuščių vietų, todėl vaizdas jas peršoka. Pirmoji buvo ties {time}.",
  "remux.gap.again": "Praleista {seconds} s, kurios tiekėjo faile tuščios.",
  "player.idle.picks": "Dabar ir netrukus tavo kanaluose",

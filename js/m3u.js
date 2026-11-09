@@ -250,6 +250,69 @@ export function isDivider(name) {
   return /^\s*([=#*~_-])\1{2,}.*?([=#*~_-])\2{2,}\s*$/.test(String(name || '')) || /^\s*[=#*~_-]{3,}\s*$/.test(String(name || ''));
 }
 
+/**
+ * The words of a heading row, its marks taken off: "===== Sweden ======" is
+ * "Sweden"; a row of marks alone is ''.
+ * @param {string} name
+ */
+export function dividerTitle(name) {
+  return String(name || '').replace(/^[\s=#*~_-]+|[\s=#*~_-]+$/g, '');
+}
+
+// The language or country a provider writes into a title when the list has
+// no groups: "FI:Luokkakokous - 2015", "SE - Varuhuset S01 E05", "NC - The
+// Simpsons", "4K-NC:Once Upon a Time…" before the name, "Matlock (FR) S02
+// E10", "My King  (FR)" after it. Two or three capitals and a colon, bar or
+// dash; two letters in brackets at the end or before the episode. A year
+// in brackets has digits and is not one.
+const CODE_BEFORE = /^(?:4K-)?([A-Z]{2,3})\s*[:|-]\s*\S/;
+const CODE_AFTER = /\(([A-Za-z]{2})\)\s*(?:S\d{1,4}\s*E\d{1,4}\b.*)?$/;
+
+/**
+ * The code a title carries, upper case, or ''.
+ * @param {string} name
+ */
+export function nameCode(name) {
+  const text = String(name || '').trim();
+  const m = CODE_BEFORE.exec(text) || CODE_AFTER.exec(text);
+  return m ? m[1].toUpperCase() : '';
+}
+
+/**
+ * The Xtream Codes server a playlist comes from, when it is a panel's list:
+ * every address is the server's own, with the account's user name and
+ * password in the path — /live/u/p/1.ts, /movie/u/p/2.mkv, /series/u/p/3.mkv
+ * or /u/p/4 — the same three for nine in ten addresses or more. Its fields
+ * are those of an Xtream account (js/config.js), or null.
+ * @param {string[]} urls
+ * @returns {{ scheme: string, host: string, port: string, username: string, password: string } | null}
+ */
+export function xtreamPanel(urls) {
+  const votes = new Map();
+  let total = 0;
+  for (const url of urls) {
+    total++;
+    let u;
+    try { u = new URL(url); } catch { continue; }
+    const parts = u.pathname.split('/').filter(Boolean);
+    let user = '', pass = '';
+    if (parts.length === 4 && ['live', 'movie', 'series'].includes(parts[0])) [, user, pass] = parts;
+    else if (parts.length === 3 && /^\d+(\.\w{2,4})?$/.test(parts[2])) [user, pass] = parts;
+    else continue;
+    const key = `${u.protocol}//${u.host}/${user}/${pass}`;
+    votes.set(key, (votes.get(key) || 0) + 1);
+  }
+  let best = '', most = 0;
+  for (const [key, n] of votes) if (n > most) { best = key; most = n; }
+  if (!most || most < total * 0.9) return null;
+  const u = new URL(best);
+  const [user, pass] = u.pathname.split('/').filter(Boolean);
+  const scheme = u.protocol.replace(':', '');
+  let username = user, password = pass;
+  try { username = decodeURIComponent(user); password = decodeURIComponent(pass); } catch { /* as written */ }
+  return { scheme, host: u.hostname, port: u.port || (scheme === 'https' ? '443' : '80'), username, password };
+}
+
 /** A short, stable identifier for a piece of text: FNV-1a, 32 bits, base 36. */
 export function shortHash(text) {
   let h = 0x811c9dc5;

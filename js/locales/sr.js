@@ -701,6 +701,8 @@ export default {
  "countries.toggle": "Izaberi sve",
  "countries.toggle.shown": "Izaberi sve prikazane",
  "m3u.guide.access": "Vodič kroz program plejliste nalazi se na {host}, kome plejer još nema pristup.",
+ "m3u.xtream.offer": "Ova plejlista dolazi sa Xtream Codes servera {host}. Uz vezu sa serverom filmovi i serije imaju svoje kategorije, omote i vodič kroz program.",
+ "m3u.xtream.use": "Poveži kao Xtream Codes",
  "remux.gap": "Kopija ove datoteke kod provajdera ima prazne delove pa ih slika preskače. Prvi je bio na {time}.",
  "remux.gap.again": "Preskočeno {seconds} s koje su prazne u datoteci provajdera.",
  "player.idle.picks": "Sada i uskoro na tvojim kanalima",

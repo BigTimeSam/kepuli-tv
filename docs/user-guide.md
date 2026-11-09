@@ -53,7 +53,11 @@ account's form starts on **Playlist address (M3U)**,
 as the first run does. Once there are two, **Switch** in another account's
 row switches to it. Each account keeps its own favourites, history, resume points,
 reminders and channel lists, and its own catalogue in the cache, so switching
-back is quick. **Remove** takes an account and its lists away, after asking twice.
+back is quick. **Remove** takes an account away with its lists and its
+catalogue in the cache, after asking twice. The account in use can be removed
+too: with another in the list, the player switches to that one first; the
+last one leaves the player as it was before the first run, at the welcome,
+with the language, theme and other settings kept.
 
 ## Stalker portals
 
@@ -415,7 +419,17 @@ interrupted channel-list load restores the previous list.
 - **Thirty languages**, switched in the settings without a page reload
 - **M3U playlists and XMLTV guides** as well as Xtream servers, a playlist
   by its address or as a file: its channels, films and series, its
-  programme guide and catch-up — see
+  programme guide and catch-up. A playlist without groups that marks its
+  sections with heading rows ("===== Sweden =====", as an Xtream panel's
+  plain `type=m3u` list does) has its channels grouped under those
+  headings, and its films and series by the language or country code in
+  their titles ("FI:", "SE - ", "(FR)") where a score of titles share one.
+  Such a list has no categories, covers or guide ids of its own; when its
+  addresses show that it comes from an Xtream Codes server, the player says
+  so once, after it connects, with **Connect as Xtream Codes**: the server
+  becomes an account of its own beside the playlist, with the server's
+  categories, covers and guide. The `m3u_plus` list carries the groups,
+  logos and guide ids itself — see
   [Connection mode](internals.md#connection-mode)
 - **Stalker portals** by portal address and MAC address, as a MAG box sees
   them — see [Stalker portals](#stalker-portals)

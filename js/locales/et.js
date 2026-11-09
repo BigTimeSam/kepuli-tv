@@ -693,6 +693,8 @@ export default {
  "sync.status.error": "Sünkroonimine ebaõnnestus ({message}). Seda proovitakse uuesti, kui pleier järgmine kord avatakse.",
  "sync.password.needed": "{name} tuli teisest arvutist ilma paroolita. Sisesta see ühendamiseks.",
  "m3u.guide.access": "Esitusloendi saatekava asub serveris {host}, millele mängijal pole veel ligipääsu.",
+ "m3u.xtream.offer": "See esitusloend pärineb Xtream Codes serverist {host}. Serveriga ühendatuna on filmidel ja sarjadel oma kategooriad, kaanepildid ja saatekava.",
+ "m3u.xtream.use": "Ühenda Xtream Codesina",
  "remux.gap": "Teenusepakkuja failikoopias on tühje kohti, seega pilt hüppab neist üle. Esimene tuli kohal {time}.",
  "remux.gap.again": "Jäeti vahele {seconds} s, mis on teenusepakkuja failis tühjad.",
  "player.idle.picks": "Nüüd ja varsti sinu kanalitel",

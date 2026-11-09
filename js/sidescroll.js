@@ -45,6 +45,26 @@ export function sideScroll(list, { compact = false, className = '' } = {}) {
     next.hidden = list.scrollLeft >= max - 1;
   };
   list.addEventListener('scroll', sync, { passive: true });
+  // The browser scrolls a focused item into the row's view, but the arrows
+  // lie over its ends, and an item under one, the guide's last day say, kept
+  // its ring and half its name hidden. Measured after the browser's own
+  // scroll, with room for a ring outside the item.
+  list.addEventListener('focusin', (event) => {
+    const item = event.target;
+    if (!(item instanceof HTMLElement) || item === list) return;
+    requestAnimationFrame(() => {
+      const r = item.getBoundingClientRect();
+      const room = 6;
+      if (!next.hidden) {
+        const over = r.right + room - next.getBoundingClientRect().left;
+        if (over > 0) { list.scrollBy({ left: over }); return; }
+      }
+      if (!prev.hidden) {
+        const over = prev.getBoundingClientRect().right - (r.left - room);
+        if (over > 0) list.scrollBy({ left: -over });
+      }
+    });
+  });
   new ResizeObserver(sync).observe(list);
   new MutationObserver(sync).observe(list, { childList: true });
   requestAnimationFrame(sync);

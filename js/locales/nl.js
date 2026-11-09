@@ -693,6 +693,8 @@ export default {
  "countries.toggle": "Alles selecteren",
  "countries.toggle.shown": "Alle getoonde selecteren",
  "m3u.guide.access": "De programmagids van de afspeellijst staat op {host}, waar de speler nog geen toegang toe heeft.",
+ "m3u.xtream.offer": "Deze afspeellijst komt van de Xtream Codes-server {host}. Verbonden met de server krijgen films en series hun categorieën, hoezen en programmagids.",
+ "m3u.xtream.use": "Verbinden als Xtream Codes",
  "remux.gap": "De kopie van dit bestand bij de aanbieder heeft lege stukken, dus het beeld springt eroverheen. Het eerste kwam bij {time}.",
  "remux.gap.again": "{seconds} s overgeslagen die leeg zijn in het bestand van de aanbieder.",
  "player.idle.picks": "Nu en straks op je zenders",

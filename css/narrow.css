@@ -67,7 +67,6 @@
   .compact-nav button { flex: 1; padding: 8px 12px; border: 0; border-radius: 6px; background: transparent; color: var(--muted); cursor: pointer; }
   .compact-nav button[aria-pressed="true"] { background: var(--panel-2); color: var(--text); }
   main.has-playback:not(.guide) > .listcol, main.has-playback:not(.guide) > .stage { grid-area: 2 / 1; }
-  .stage .nowbar { flex: none; }
   .stage .infostrip { max-height: 25vh; flex-shrink: 1; }
   main.guide { grid-template-rows: auto minmax(0, 1fr) minmax(0, 30%); }
   main.guide > .compact-nav { display: none; }

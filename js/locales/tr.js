@@ -693,6 +693,8 @@ export default {
  "sync.status.error": "Eşitleme başarısız oldu ({message}). Oynatıcı bir sonraki açılışında yeniden denenecek.",
  "sync.password.needed": "{name} başka bir bilgisayardan parolası olmadan geldi. Bağlanmak için parolayı girin.",
  "m3u.guide.access": "Oynatma listesinin program rehberi {host} üzerinde; oynatıcının oraya henüz erişimi yok.",
+ "m3u.xtream.offer": "Bu oynatma listesi {host} Xtream Codes sunucusundan geliyor. Sunucuya bağlanınca filmler ve diziler kategorilerine, kapaklarına ve program rehberine kavuşur.",
+ "m3u.xtream.use": "Xtream Codes olarak bağlan",
  "remux.gap": "Sağlayıcının bu dosya kopyasında boş kısımlar var, bu yüzden görüntü onları atlıyor. İlki {time} noktasındaydı.",
  "remux.gap.again": "Sağlayıcının dosyasında boş olan {seconds} sn atlandı.",
  "player.idle.picks": "Kanallarınızda şimdi ve yakında",

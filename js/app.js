@@ -40,7 +40,7 @@ import { wirePickers } from './picker.js';
 import { nf } from './format.js';
 import { t, applyStatic, setLanguage, loadLanguage } from './i18n.js';
 import { askRecordingConsent, closeRecordingConsent, loadRecordingList, openRecordings, retryPlayback, toggleRecordNow } from './recordingsui.js';
-import { renderAccountList } from './accountsui.js';
+import { offerXtream, renderAccountList } from './accountsui.js';
 import { loadReminders, reminders, showReminders } from './remindersui.js';
 import { renderInfoStrip } from './infostrip.js';
 import { applyListLayout, gridColumns, isWatched, nameCleanerFor, onEpgUpdated, renderRow, restoreListView, listName, shownName, toggleFavorite, toggleWatched, usesGrid, watchGridWidth } from './coversui.js';
@@ -158,6 +158,7 @@ async function connect({ silent = false } = {}) {
     if (!state.playing && !el.overlay.hidden) renderIdleOverlay();
     askCountriesOnce();
     if (playlist) warmGuide(source);
+    if (playlist && !problem) offerXtream(source.catalogue?.xtream).catch(() => {});
     return true;
   } catch (err) {
     if (stale()) return false;
@@ -1237,8 +1238,9 @@ function renderCategories() {
   }
   el.groups.replaceChildren(frag);
   // A filter that leaves nothing says so, rather than an empty column.
-  $('groups-empty').hidden = !(filter && !groups.length);
-  $('groups-empty').textContent = filter && !groups.length ? t('empty.nohits.text', { query: state.categoryFilter.trim() }) : '';
+  const none = Boolean(filter) && !groups.length;
+  $('groups-empty').hidden = !none;
+  $('groups-empty').replaceChildren(...(none ? [emptyState(t('empty.nohits'), t('empty.nohits.text', { query: state.categoryFilter.trim() }), null, 'search')] : []));
   fillGroupPicker(visibleGroups(type).map((g) => [g.name, g.name]), state.group ?? '');
 }
 

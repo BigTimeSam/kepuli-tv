@@ -701,6 +701,8 @@ export default {
  "countries.toggle": "Selectează tot",
  "countries.toggle.shown": "Selectează tot ce se vede",
  "m3u.guide.access": "Ghidul de programe al playlistului este pe {host}, la care playerul nu are încă acces.",
+ "m3u.xtream.offer": "Acest playlist vine de pe serverul Xtream Codes {host}. Conectat la server, filmele și serialele au categoriile, copertele și ghidul de programe.",
+ "m3u.xtream.use": "Conectează ca Xtream Codes",
  "remux.gap": "Copia acestui fișier de la furnizor are părți goale, așa că imaginea sare peste ele. Prima a apărut la {time}.",
  "remux.gap.again": "Au fost sărite {seconds} s goale în fișierul furnizorului.",
  "player.idle.picks": "Acum și în curând pe canalele tale",

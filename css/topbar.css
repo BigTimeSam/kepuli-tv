@@ -20,7 +20,10 @@
   color: var(--text); background: none; border: 0; padding: 5px 11px; margin: -5px -11px; border-radius: 6px; cursor: pointer;
 }
 .brand:hover { background: var(--row-hover); }
-.brand:focus-visible { outline: 2px solid var(--accent-ink); outline-offset: 0; }
+/* Inside the logo's own box: its negative margin takes it past the bar's
+   padding in a narrow window, and a ring outside lost its left side to the
+   window's edge. */
+.brand:focus-visible { outline: 2px solid var(--accent-ink); outline-offset: -2px; }
 /* The same television as in the extension icon. A 48px source, so the mark
    stays sharp on a high-density display too. */
 .brand-mark { width: 18px; height: 18px; background: url("../icons/icon48.png") center / contain no-repeat; }

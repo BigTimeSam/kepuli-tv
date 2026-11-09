@@ -299,7 +299,9 @@ body[data-substyle="contrast"] { --cue-back: #000; }
   font-variant-numeric: tabular-nums; pointer-events: none;
 }
 
-.infostrip { border-top: 1px solid var(--border); background: var(--panel); padding: 9px 12px; max-height: 132px; overflow-y: auto; }
+/* scroll-padding: a cover or a button focused at the strip's edge is
+   scrolled in with room for its ring, which the scroller would cut. */
+.infostrip { border-top: 1px solid var(--border); background: var(--panel); padding: 9px 12px; max-height: 132px; overflow-y: auto; scroll-padding-block: 9px; }
 .infostrip[hidden] { display: none; }
 .epgnow { display: flex; align-items: baseline; gap: 8px; }
 .epgnow-time { color: var(--accent-2); font-variant-numeric: tabular-nums; flex: none; font-size: var(--fs-s); }
@@ -356,8 +358,11 @@ main:not(.guide) .stage:has(> .videowrap.sized:not(:fullscreen)) .info-cover { w
    narrow player column — 1280 px of window leaves it about 675 — and a
    button pushed off the edge is a button the viewer cannot reach. The row
    therefore wraps: the title keeps its line and the actions drop below it,
-   and if even they do not fit on one line they wrap among themselves. */
-.nowbar { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; min-height: var(--foot-h); padding: 9px 12px; background: var(--panel); border-top: 1px solid var(--border); }
+   and if even they do not fit on one line they wrap among themselves.
+   It keeps the height its rows need (flex: none): its min-height let the
+   column squeeze it, and at 760 px its second row of buttons hung 15 px
+   below the window, where focusing one scrolled the whole page. */
+.nowbar { flex: none; display: flex; flex-wrap: wrap; align-items: center; gap: 12px; min-height: var(--foot-h); padding: 9px 12px; background: var(--panel); border-top: 1px solid var(--border); }
 .now { min-width: 0; flex: 1; }
 /* The title over the picture, on the theme's panel; with nothing playing
    the empty player's page says it all, and the head is left out. */

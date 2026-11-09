@@ -38,7 +38,7 @@ import { neighbourTile } from '../js/listnavigation.js';
 import { LIST_ORDERS, ORDER_MARKS, ORDER_SETTINGS, listOrder, orderTitles, pressedOrder } from '../js/listorder.js';
 import { titleWithoutYear, nameHasYear, nameTags, versionLabels, franchiseKey, relatedTitles, isNew, oneCopyEach } from '../js/titlemeta.js';
 import { boxHeader, parseMoov } from '../js/mp4file.js';
-import { parseM3u, parseExtinf, classify, episodeOf, isDivider, shortHash, fillCatchup, catchupAddress, playlistAddress } from '../js/m3u.js';
+import { parseM3u, parseExtinf, classify, dividerTitle, episodeOf, isDivider, nameCode, shortHash, xtreamPanel, fillCatchup, catchupAddress, playlistAddress } from '../js/m3u.js';
 import { parseXmltv, parseXmltvTime, decodeXml, settle, channelMatchKey } from '../js/xmltv.js';
 import { readFileSync } from 'node:fs';
 
@@ -1490,6 +1490,37 @@ check('m3u: a playlist address is any http(s) address', [playlistAddress(' http:
   const series = c.items.series[0];
   const eps = c.episodes.get(series.id);
   check('catalogue: a series of its episodes, in order, its cover the first there is', [series.n, eps.map((e) => `${e.season}x${e.episode}`), series.logo], ['Fjord', ['1x1', '1x2'], 'http://i/s.jpg']);
+  // An Xtream panel's plain list (type=m3u): no group-title, a heading row
+  // before each category. The headings are the groups, and the ids are
+  // those the same list had before, so that favourites stay.
+  const plain = parseM3u('#EXTM3U\n#EXTINF:-1,===== Sweden ======\nhttp://p/u/p/1\n#EXTINF:-1,SE: SVT 1 FHD\nhttp://p/u/p/2\n'
+    + '#EXTINF:-1,SE: TV4\nhttp://p/u/p/3\n#EXTINF:-1,##### Finland #####\nhttp://p/u/p/4\n#EXTINF:-1,FI: Yle TV1\nhttp://p/u/p/5\n'
+    + '#EXTINF:-1,-----\nhttp://p/u/p/6\n#EXTINF:-1,Lone\nhttp://p/u/p/7\n'
+    + '#EXTINF:-1,===== Africa =====\nhttp://p/u/p/8\n#EXTINF:-1,AF: One\nhttp://p/u/p/9\n#EXTINF:-1,Heat (1995)\nhttp://p/movie/u/p/10.mkv\n').entries;
+  const sections = buildCatalogue(plain, {}, 'Other');
+  const catName = (item) => sections.categories.live.find((x) => x.id === item.cats[0]).name;
+  check('catalogue: a list without groups grouped by its headings', sections.items.live.map((x) => `${x.n}: ${catName(x)}`),
+    ['SE: SVT 1 FHD: Sweden', 'SE: TV4: Sweden', 'FI: Yle TV1: Finland', 'Lone: Other', 'AF: One: Africa']);
+  check('catalogue: a film after the channels is not in their last heading', sections.categories.movie.map((x) => x.name), ['Other']);
+  check('catalogue: the headings leave the ids as they were', sections.items.live[0].id,
+    buildCatalogue(parseM3u('#EXTINF:-1,SE: SVT 1 FHD\nhttp://p/u/p/2\n').entries).items.live[0].id);
+  check('m3u: the code a title carries', ['FI:Luokkakokous - 2015', 'SE - Varuhuset S01 E05', '4K-NC:Once Upon a Time - 2019', 'DK -Sommerdahl S05 E04',
+    'Matlock (FR) S02 E10', 'My King  (FR)', 'Furies (sp) S01 E08', 'The Asset (2025) S01 E06', 'MR BIG (FR) S02 E04', 'BLUE LOCK S01 E06', 'X-Men', 'Heat'].map(nameCode),
+    ['FI', 'SE', 'NC', 'DK', 'FR', 'FR', 'SP', '', 'FR', '', '', '']);
+  check('m3u: an Xtream panel\'s list knows its server', xtreamPanel(['http://tv.example:8080/u1/p%40ss/1', 'http://tv.example:8080/live/u1/p%40ss/2.ts',
+    'http://tv.example:8080/movie/u1/p%40ss/3.mkv', 'http://tv.example:8080/series/u1/p%40ss/4.mp4']),
+    { scheme: 'http', host: 'tv.example', port: '8080', username: 'u1', password: 'p@ss' });
+  check('m3u: a list of other addresses is no panel\'s', [xtreamPanel(['http://cdn.example/a/b.m3u8', 'https://x.example/live/stream.m3u8']),
+    xtreamPanel(['http://a.example/u/p/1', 'http://b.example/u/p/2'])], [null, null]);
+  {
+    const films = Array.from({ length: 25 }, (_, i) => `#EXTINF:-1,FI:Elokuva ${i}\nhttp://p/movie/u/p/${i}.mkv\n`).join('')
+      + Array.from({ length: 3 }, (_, i) => `#EXTINF:-1,TR:Film ${i}\nhttp://p/movie/u/p/t${i}.mkv\n`).join('')
+      + Array.from({ length: 30 }, (_, i) => `#EXTINF:-1,Fjord (SE) S01 E${i + 1}\nhttp://p/series/u/p/s${i}.mkv\n`).join('');
+    const coded = buildCatalogue(parseM3u('#EXTM3U\n' + films).entries, {}, 'Other');
+    check('catalogue: films grouped by a code a score of them share, the rest Other', coded.categories.movie.map((x) => x.name), ['FI', 'Other']);
+    check('catalogue: a series counts once for its code, whatever its episodes', coded.categories.series.map((x) => x.name), ['Other']);
+  }
+  check('m3u: a heading row\'s words', ['===== Sweden ======', '##### SPORTS #####', '-----', '== UK | News =='].map(dividerTitle), ['Sweden', 'SPORTS', '', 'UK | News']);
   check('catalogue: the ids do not depend on the address', buildCatalogue(parseM3u('#EXTINF:-1,Yle TV1\nhttp://p/a?token=1\n').entries).items.live[0].id,
     buildCatalogue(parseM3u('#EXTINF:-1,Yle TV1\nhttp://p/a?token=2\n').entries).items.live[0].id);
 }

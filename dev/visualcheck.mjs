@@ -56,7 +56,8 @@ import { copyFileSync, existsSync, mkdirSync, mkdtempSync, readFileSync, renameS
 import { tmpdir } from 'node:os';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { deflateSync, inflateSync } from 'node:zlib';
+import { deflateSync } from 'node:zlib';
+import { decodePng } from './screenshot.mjs';
 
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const REFS = join(ROOT, 'dev', 'visual');
@@ -84,36 +85,8 @@ mkdirSync(shots, { recursive: true });
 const CRC = new Int32Array(256).map((_, n) => { let c = n; for (let k = 0; k < 8; k++) c = c & 1 ? 0xedb88320 ^ (c >>> 1) : c >>> 1; return c; });
 const crc32 = (buf) => { let c = -1; for (const b of buf) c = CRC[(c ^ b) & 0xff] ^ (c >>> 8); return (c ^ -1) >>> 0; };
 
-/** An 8-bit RGB or RGBA, non-interlaced PNG as { width, height, rgb } (alpha dropped). */
-function readPng(file) {
-  const buf = readFileSync(file);
-  let at = 8, width, height, type, idat = [];
-  while (at < buf.length) {
-    const len = buf.readUInt32BE(at), kind = buf.toString('latin1', at + 4, at + 8), data = buf.subarray(at + 8, at + 8 + len);
-    if (kind === 'IHDR') {
-      width = data.readUInt32BE(0); height = data.readUInt32BE(4); type = data[9];
-      if (data[8] !== 8 || ![2, 6].includes(type) || data[12] !== 0) throw new Error(`${file}: only 8-bit RGB/RGBA non-interlaced PNG is read here`);
-    } else if (kind === 'IDAT') idat.push(data);
-    else if (kind === 'IEND') break;
-    at += 12 + len;
-  }
-  const bpp = type === 6 ? 4 : 3, stride = width * bpp, raw = inflateSync(Buffer.concat(idat));
-  const px = Buffer.alloc(stride * height), rgb = Buffer.alloc(width * height * 3);
-  for (let y = 0; y < height; y++) {
-    const filter = raw[y * (stride + 1)], line = raw.subarray(y * (stride + 1) + 1, (y + 1) * (stride + 1));
-    for (let x = 0; x < stride; x++) {
-      const a = x >= bpp ? px[y * stride + x - bpp] : 0, b = y ? px[(y - 1) * stride + x] : 0, c = x >= bpp && y ? px[(y - 1) * stride + x - bpp] : 0;
-      let v = line[x];
-      if (filter === 1) v += a;
-      else if (filter === 2) v += b;
-      else if (filter === 3) v += (a + b) >> 1;
-      else if (filter === 4) { const p = a + b - c, pa = Math.abs(p - a), pb = Math.abs(p - b), pc = Math.abs(p - c); v += pa <= pb && pa <= pc ? a : pb <= pc ? b : c; }
-      px[y * stride + x] = v & 0xff;
-    }
-    for (let x = 0; x < width; x++) px.copy(rgb, (y * width + x) * 3, y * stride + x * bpp, y * stride + x * bpp + 3);
-  }
-  return { width, height, rgb };
-}
+/** A PNG on disk as { width, height, rgb } (decodePng in screenshot.mjs). */
+const readPng = (file) => decodePng(readFileSync(file), file);
 
 function writePng(file, { width, height, rgb }) {
   const chunk = (kind, data) => {

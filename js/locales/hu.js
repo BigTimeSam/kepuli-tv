@@ -693,6 +693,8 @@ export default {
  "sync.status.error": "A szinkronizálás nem sikerült ({message}). A lejátszó következő megnyitásakor újra megpróbálja.",
  "sync.password.needed": "A(z) {name} fiók jelszó nélkül érkezett egy másik számítógépről. Add meg a csatlakozáshoz.",
  "m3u.guide.access": "A lejátszási lista műsorfüzete itt van: {host}, ehhez a lejátszónak még nincs hozzáférése.",
+ "m3u.xtream.offer": "Ez a lejátszási lista a(z) {host} Xtream Codes szerverről származik. A szerverhez csatlakozva a filmek és sorozatok kategóriákat, borítókat és műsorfüzetet kapnak.",
+ "m3u.xtream.use": "Csatlakozás Xtream Codesként",
  "remux.gap": "A szolgáltatónál lévő fájlban üres részek vannak, ezért a kép átugorja őket. Az első itt volt: {time}.",
  "remux.gap.again": "Átugorva {seconds} mp, amely üres a szolgáltató fájljában.",
  "player.idle.picks": "Most és hamarosan a csatornáidon",

@@ -44,7 +44,11 @@ export class ListNavigation {
     if (!this.rows.length) return;
     this.select(this.index < 0 ? 0 : Math.max(0, Math.min(this.rows.length - 1, this.index + delta)));
     list.scrollToIndex(this.index);
-    list.refresh();
+    // The rows in sight are kept and only those a scroll brought in are
+    // built: the cursor is a class select() has already moved (sync). A
+    // full refresh built every cover again as a new image, hidden until it
+    // loaded, and the covers blinked at every arrow.
+    list.paint({ reuse: true });
   }
 
   capture(list) {

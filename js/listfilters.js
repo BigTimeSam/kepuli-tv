@@ -18,7 +18,7 @@ import { t } from './i18n.js';
 import { filterChip, foldOpen, foldSummary, resetButton } from './mediafilters.js';
 import * as store from './config.js';
 import { isCollection, refreshRows, state, visibleRows, withoutInternational } from './state.js';
-import { selectSub } from './topicbar.js';
+import { applySubcatsHeight, selectSub } from './topicbar.js';
 import { isFavorite, topicLabel } from './collections.js';
 
 // "Show only favourites" in "Filter channels", kept across reloads as the
@@ -132,6 +132,11 @@ export function placeListFilters(rows) {
     // its whole height inside the fold.
     moveInto(el.subcats, body);
     moveInto(el.subcatsGrip, body);
+    // The ceiling the bar was given in its own place stays on it as an
+    // inline style and beats the fold's stylesheet: after a reload the
+    // chips of a long country ran past the bar's box and under "Show only
+    // favourites" until a zoom made the column's observer look again.
+    applySubcatsHeight();
     // A topic narrows the country's channels as a film filter narrows
     // the films: how many of the country's are left, and the dot.
     const active = state.sub != null || channelFavsOnly;
@@ -143,6 +148,7 @@ export function placeListFilters(rows) {
   $('active-channel-filters').hidden = true;
   sendHome(el.subcats);
   sendHome(el.subcatsGrip);
+  applySubcatsHeight();
 }
 
 /**

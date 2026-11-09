@@ -701,6 +701,8 @@ export default {
  "sync.status.error": "Sinkronizacija nije uspjela ({message}). Ponovno će se pokušati pri sljedećem otvaranju playera.",
  "sync.password.needed": "Račun {name} stigao je s drugog računala bez lozinke. Unesi je za povezivanje.",
  "m3u.guide.access": "TV vodič popisa za reprodukciju nalazi se na {host}, kojem reproduktor još nema pristup.",
+ "m3u.xtream.offer": "Ovaj popis za reprodukciju dolazi s Xtream Codes poslužitelja {host}. Uz vezu s poslužiteljem filmovi i serije imaju svoje kategorije, omote i TV vodič.",
+ "m3u.xtream.use": "Poveži kao Xtream Codes",
  "remux.gap": "Kopija ove datoteke kod pružatelja ima prazne dijelove pa ih slika preskače. Prvi je bio na {time}.",
  "remux.gap.again": "Preskočeno {seconds} s koje su prazne u datoteci pružatelja.",
  "player.idle.picks": "Sada i uskoro na tvojim kanalima",

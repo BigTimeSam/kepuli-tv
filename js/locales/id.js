@@ -685,6 +685,8 @@ export default {
  "sync.status.error": "Sinkronisasi gagal ({message}). Akan dicoba lagi saat pemutar dibuka berikutnya.",
  "sync.password.needed": "{name} datang dari komputer lain tanpa kata sandinya. Masukkan untuk terhubung.",
  "m3u.guide.access": "Panduan acara daftar putar ada di {host}, yang belum bisa diakses pemutar.",
+ "m3u.xtream.offer": "Daftar putar ini berasal dari server Xtream Codes {host}. Saat terhubung ke server, film dan serialnya punya kategori, sampul, dan panduan acara.",
+ "m3u.xtream.use": "Hubungkan sebagai Xtream Codes",
  "remux.gap": "Salinan file ini di penyedia memiliki bagian kosong, jadi gambar melompatinya. Yang pertama di {time}.",
  "remux.gap.again": "Melewati {seconds} dtk yang kosong di file penyedia.",
  "player.idle.picks": "Sekarang dan segera di saluranmu",

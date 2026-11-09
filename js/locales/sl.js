@@ -709,6 +709,8 @@ export default {
  "sync.status.error": "Sinhronizacija ni uspela ({message}). Znova se bo poskusila ob naslednjem odprtju predvajalnika.",
  "sync.password.needed": "Račun {name} je prišel z drugega računalnika brez gesla. Vnesi ga za povezavo.",
  "m3u.guide.access": "Programski vodič seznama predvajanja je na {host}, do katerega predvajalnik še nima dostopa.",
+ "m3u.xtream.offer": "Ta seznam predvajanja prihaja s strežnika Xtream Codes {host}. S povezavo na strežnik imajo filmi in serije svoje kategorije, ovitke in programski vodič.",
+ "m3u.xtream.use": "Poveži kot Xtream Codes",
  "remux.gap": "Kopija te datoteke pri ponudniku ima prazne dele, zato jih slika preskoči. Prvi je bil pri {time}.",
  "remux.gap.again": "Preskočenih {seconds} s, ki so v ponudnikovi datoteki prazne.",
  "player.idle.picks": "Zdaj in kmalu na tvojih kanalih",

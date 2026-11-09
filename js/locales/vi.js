@@ -685,6 +685,8 @@ export default {
  "sync.status.error": "Đồng bộ thất bại ({message}). Sẽ thử lại vào lần tới trình phát được mở.",
  "sync.password.needed": "{name} đến từ máy tính khác mà không có mật khẩu. Hãy nhập mật khẩu để kết nối.",
  "m3u.guide.access": "Lịch phát sóng của danh sách phát nằm trên {host}, nơi trình phát chưa có quyền truy cập.",
+ "m3u.xtream.offer": "Danh sách phát này đến từ máy chủ Xtream Codes {host}. Khi kết nối với máy chủ, phim và loạt phim có danh mục, ảnh bìa và lịch phát sóng.",
+ "m3u.xtream.use": "Kết nối dạng Xtream Codes",
  "remux.gap": "Bản sao tệp này của nhà cung cấp có những đoạn trống, nên hình ảnh nhảy qua chúng. Đoạn đầu tiên ở {time}.",
  "remux.gap.again": "Đã bỏ qua {seconds} giây trống trong tệp của nhà cung cấp.",
  "player.idle.picks": "Đang và sắp phát trên kênh của bạn",

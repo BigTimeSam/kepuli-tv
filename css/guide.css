@@ -71,14 +71,16 @@
 .choice-mode { display: flex; align-items: center; gap: 7px; cursor: pointer; }
 .choice-mode > input { margin: 0; accent-color: var(--accent); }
 #countries:not(.choosing) #countries-all-row, #countries:not(.choosing) .choice-list { opacity: .55; }
-#countries:not(.choosing) .choice-list:hover, #countries:not(.choosing) #countries-all-row:hover { opacity: .8; }
+#countries:not(.choosing) .choice-list:is(:hover, :focus-within), #countries:not(.choosing) #countries-all-row:is(:hover, :focus-within) { opacity: .8; }
 .choice-filter { position: relative; }
 .choice-filter svg { position: absolute; left: 10px; top: 50%; translate: 0 -50%; width: 14px; height: 14px; fill: none; stroke: var(--muted); stroke-width: 1.8; stroke-linecap: round; pointer-events: none; }
 .choice-filter input { width: 100%; padding: 7px 9px 7px 30px; color: var(--text); background: var(--panel-2); border: 1px solid var(--border); border-radius: 8px; }
 .choice-filter input:focus { border-color: var(--accent); }
 .choice-all { border: 1px solid var(--border); border-radius: 8px; font-weight: 600; }
 .choice-all input:disabled + .choice-name { color: var(--dim); }
-.choice-list { min-height: 0; max-height: min(56vh, 560px); overflow-y: auto; border: 1px solid var(--border); border-radius: 8px; }
+/* scroll-padding: a row the focus reaches is scrolled in with room for
+   its box's ring, which the list's edge cut. */
+.choice-list { min-height: 0; max-height: min(56vh, 560px); overflow-y: auto; scroll-padding-block: 6px; border: 1px solid var(--border); border-radius: 8px; }
 .choice-list:empty, .choice-list.none { display: none; }
 .choice-row { display: flex; align-items: center; gap: 10px; min-height: 42px; padding: 5px 12px; border-bottom: 1px solid var(--row-line); cursor: pointer; }
 .choice-row:last-child { border-bottom: 0; }
@@ -91,7 +93,14 @@ label.choice-row:hover { background: var(--row-hover); }
 .choice-tag { color: var(--accent-ink); font-size: var(--fs-xs); font-weight: 600; border: 1px solid currentColor; border-radius: 5px; padding: 0 5px; flex: none; }
 .choice-logo { width: 30px; height: 22px; flex: none; }
 .choice-row .ghost { padding: 4px 10px; flex: none; }
-.choice-actions span { flex: 1; color: var(--muted); font-size: var(--fs-m); }
+.choice-actions > span { flex: 1; color: var(--muted); font-size: var(--fs-m); }
+/* "Filter countries"' status over its unseen longest texts in one grid
+   cell (CountryPicker.reserveStatus): one mode's text took one line and
+   another's two, and the centred dialog jumped at each choice. */
+.choice-status { display: grid; }
+.choice-status > * { grid-area: 1 / 1; }
+#countries-status-room { display: grid; visibility: hidden; }
+#countries-status-room > * { grid-area: 1 / 1; }
 
 .programme-form { padding: 8px 10px; border-bottom: 1px solid var(--border); background: var(--panel); }
 .programme-form input { min-width: 180px; }
@@ -108,8 +117,11 @@ label.choice-row:hover { background: var(--row-hover); }
 .programme-empty { flex: 1; display: grid; place-items: center; overflow-y: auto; }
 .programme-empty[hidden] { display: none; }
 .programme-empty .empty { max-width: 440px; }
-.programme-empty .empty-icon, .recordings-empty .empty-icon { width: 22px; height: 22px; padding: 11px; margin-bottom: 12px; background: var(--accent-soft); }
-.programme-empty .empty strong, .recordings-empty .empty strong { font-size: 1.0625rem; font-weight: 650; letter-spacing: -0.005em; margin-bottom: 8px; }
+/* "Filter countries" with a filter that leaves nothing, where the list was. */
+.choice-empty[hidden] { display: none; }
+.choice-empty .empty { padding: 20px 16px 8px; max-width: 400px; }
+.programme-empty .empty-icon, .recordings-empty .empty-icon, .choice-empty .empty-icon, .groups-empty .empty-icon { width: 22px; height: 22px; padding: 11px; margin-bottom: 12px; background: var(--accent-soft); }
+.programme-empty .empty strong, .recordings-empty .empty strong, .choice-empty .empty strong, .groups-empty .empty strong { font-size: 1.0625rem; font-weight: 650; letter-spacing: -0.005em; margin-bottom: 8px; }
 /* The results by channel: a heading with the logo and the name as the
    guide writes it, then its programmes, each a row of when, what and, for
    one on now, how far it has got. HEAD_H and ROW_H in
@@ -150,7 +162,7 @@ button.psr-head:focus-visible, .psr-more:focus-visible { outline-offset: -2px; }
   .choice-content { padding: 16px; gap: 10px; }
   .editor-help { font-size: var(--fs-m); line-height: 1.4; }
   .choice-actions { padding-top: 10px; }
-  .choice-actions span { flex-basis: 100%; }
+  .choice-actions > span { flex-basis: 100%; }
 }
 
 .epg-bar {
@@ -169,6 +181,9 @@ button.psr-head:focus-visible, .psr-more:focus-visible { outline-offset: -2px; }
 }
 .epg-day:hover { color: var(--text); background: var(--panel-2); }
 .epg-day.active { background: var(--panel-2); border-color: var(--border); color: var(--text); }
+/* Inside the day, as the strip scrolls sideways and cuts whatever passes
+   its edges: a ring outside lost its top and bottom. */
+.epg-day:focus-visible { outline-offset: -2px; }
 /* The archive's older days, in one menu before yesterday. */
 .epg-days { align-items: center; }
 select.epg-earlier { font: inherit; padding-right: 26px; background-position: right 8px center; }
@@ -224,9 +239,10 @@ select.epg-earlier { font: inherit; padding-right: 26px; background-position: ri
 /* The keyboard's whereabouts: the container that takes the arrows shows it. */
 .epg-scroll:focus-visible { outline: 2px solid var(--accent-ink); outline-offset: -2px; }
 /* Inside the ring, a row's own mark at the left edge steps in beside it
-   rather than under it. */
-#list:focus-visible .row.selected { box-shadow: inset 5px 0 0 var(--accent-2); }
-#list:focus-visible .row.playing { box-shadow: inset 4px 0 0 var(--accent); }
+   rather than under it. Rows only: on a cover it drew a bar down the
+   left of the cover's name and facts. */
+#list:focus-visible .row.selected:not(.card) { box-shadow: inset 5px 0 0 var(--accent-2); }
+#list:focus-visible .row.playing:not(.card) { box-shadow: inset 4px 0 0 var(--accent); }
 /* The sidebar's own focus ring, and inside it the row the arrows are on.
    Two different things: .active is the group being shown, .cursor is where
    the keyboard stands, and either can be on a row the other is not. */

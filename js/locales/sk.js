@@ -709,6 +709,8 @@ export default {
  "sync.status.error": "Synchronizácia zlyhala ({message}). Skúsi sa znova pri ďalšom otvorení prehrávača.",
  "sync.password.needed": "Účet {name} prišiel z iného počítača bez hesla. Zadaj ho, aby sa pripojil.",
  "m3u.guide.access": "Programový sprievodca playlistu je na {host}, kam prehrávač zatiaľ nemá prístup.",
+ "m3u.xtream.offer": "Tento playlist pochádza zo servera Xtream Codes {host}. Po pripojení k serveru majú filmy a seriály svoje kategórie, obaly a programového sprievodcu.",
+ "m3u.xtream.use": "Pripojiť ako Xtream Codes",
  "remux.gap": "Kópia tohto súboru u poskytovateľa má prázdne miesta, takže ich obraz preskakuje. Prvé prišlo v {time}.",
  "remux.gap.again": "Preskočených {seconds} s, ktoré sú v súbore poskytovateľa prázdne.",
  "player.idle.picks": "Teraz a čoskoro na tvojich kanáloch",

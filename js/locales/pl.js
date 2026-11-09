@@ -709,6 +709,8 @@ export default {
  "sync.status.error": "Synchronizacja nie powiodła się ({message}). Zostanie ponowiona przy następnym otwarciu odtwarzacza.",
  "sync.password.needed": "{name} pochodzi z innego komputera bez hasła. Wpisz je, aby się połączyć.",
  "m3u.guide.access": "Przewodnik po programach tej playlisty jest na {host}, do którego odtwarzacz nie ma jeszcze dostępu.",
+ "m3u.xtream.offer": "Ta playlista pochodzi z serwera Xtream Codes {host}. Po połączeniu z serwerem filmy i seriale mają swoje kategorie, okładki i przewodnik po programach.",
+ "m3u.xtream.use": "Połącz jako Xtream Codes",
  "remux.gap": "Kopia tego pliku u dostawcy ma puste fragmenty, więc obraz je przeskakuje. Pierwszy pojawił się w {time}.",
  "remux.gap.again": "Pominięto {seconds} s, które są puste w pliku dostawcy.",
  "player.idle.picks": "Teraz i wkrótce na twoich kanałach",

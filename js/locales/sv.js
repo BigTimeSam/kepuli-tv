@@ -693,6 +693,8 @@ export default {
  "countries.toggle": "Välj alla",
  "countries.toggle.shown": "Välj alla som visas",
  "m3u.guide.access": "Spellistans programguide finns på {host}, som spelaren inte har åtkomst till än.",
+ "m3u.xtream.offer": "Den här spellistan kommer från Xtream Codes-servern {host}. Ansluten till servern får filmerna och serierna sina kategorier, omslag och programguide.",
+ "m3u.xtream.use": "Anslut som Xtream Codes",
  "remux.gap": "Leverantörens kopia av filen har tomma delar, så bilden hoppar över dem. Den första kom vid {time}.",
  "remux.gap.again": "Hoppade över {seconds} s som är tomma i leverantörens fil.",
  "player.idle.picks": "Nu och snart på dina kanaler",

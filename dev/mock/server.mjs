@@ -763,6 +763,10 @@ function api(req, res, url) {
 // as guide.xml.gz files are; the archive channels say catchup="xc".
 //
 //   /playlist.m3u     the playlist
+//   /playlist-plain.m3u  the same as a panel's plain list (type=m3u): no
+//                     attributes at all, a "===== Category =====" row
+//                     before each category's channels, films and series
+//                     after them with no heading
 //   /guide.xml        the guide
 //   /guide.xml.gz     the guide, gzipped
 
@@ -792,6 +796,21 @@ function playlistM3u(origin) {
       }
     }
   }
+  return lines.join('\r\n') + '\r\n';
+}
+
+function playlistPlain(origin) {
+  const lines = ['#EXTM3U'];
+  const names = new Map(live.categories.map((c) => [c.category_id, c.category_name]));
+  let heading = null;
+  for (const c of [...liveChannels()].sort((a, b) => String(a.category_id).localeCompare(String(b.category_id)))) {
+    if (c.category_id !== heading) {
+      heading = c.category_id;
+      lines.push(`#EXTINF:-1,===== ${names.get(c.category_id) || 'Other'} =====`, `${origin}/${USER}/${PASS}/0`);
+    }
+    lines.push(`#EXTINF:-1,${c.name}`, `${origin}/${USER}/${PASS}/${c.stream_id}`);
+  }
+  for (const m of vod.movies) lines.push(`#EXTINF:-1,${m.name}`, `${origin}/movie/${USER}/${PASS}/${m.stream_id}.${m.container_extension}`);
   return lines.join('\r\n') + '\r\n';
 }
 
@@ -924,6 +943,7 @@ function handle(req, res) {
     return admit(req, res).then((ok) => ok && sendTimeshift(req, res));
   }
   if (path === '/playlist.m3u') return send(res, 200, playlistM3u(originOf(req)), 'audio/x-mpegurl; charset=utf-8');
+  if (path === '/playlist-plain.m3u') return send(res, 200, playlistPlain(originOf(req)), 'audio/x-mpegurl; charset=utf-8');
   if (path === '/guide.xml') return send(res, 200, guideXml(), 'application/xml; charset=utf-8');
   if (path === '/guide.xml.gz') return send(res, 200, gzipSync(guideXml()), 'application/octet-stream');
 

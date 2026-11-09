@@ -34,13 +34,15 @@ import { t } from './i18n.js';
 import { cacheEntry, cacheGet, cachePutMany } from './db.js';
 import { safeUrl, ApiError } from './api.js';
 import { streamText } from './fetchtext.js';
-import { M3uParser, classify, episodeOf, extensionOf, isDivider, shortHash, catchupAddress } from './m3u.js';
+import { M3uParser, classify, dividerTitle, episodeOf, extensionOf, isDivider, nameCode, shortHash, catchupAddress, xtreamPanel } from './m3u.js';
 import { XmltvGuide } from './guide.js';
 import { releaseYear } from './mediafilters.js';
 import { providerRating } from './rating.js';
 
 export const PLAYLIST_TTL = 12 * 3600e3;
 const TYPES = ['live', 'movie', 'series'];
+// The titles a code in their names must have to make a group of its own.
+const MIN_CODE_GROUP = 20;
 
 /**
  * The catalogue a playlist's entries make: categories and items per type,
@@ -66,10 +68,47 @@ export function buildCatalogue(entries, header = {}, noGroup = 'Other') {
     return cat.id;
   };
   let num = 0;
+  // A playlist with no groups at all may still have its sections: an Xtream
+  // panel's plain list (get.php?type=m3u) writes "===== Sweden =====" rows
+  // before each category's channels and no group-title, and every channel
+  // of it fell into one "Other" while the same account through its API had
+  // its countries. The rows under a heading are its group then. A list that
+  // names its groups keeps them, headings or not. The ids are made of the
+  // entry's own group, as before, so that favourites and history stay.
+  // A heading is of the kind of the first row under it: the panel writes
+  // the films and series after the channels with no heading of their own,
+  // and every film took the last country of the channels.
+  const sections = !entries.some((entry) => entry.group);
+  // Films and series with neither a group nor a heading are grouped by the
+  // code in their titles (nameCode), as the same panel's own categories
+  // are by language and country: a code that a score of titles share is
+  // a group, a stray one ("CSI: Vegas") is not. A series counts once,
+  // however many episodes it has.
+  /** @type {Map<string, Set<string>>} */
+  const codes = new Map();
+  if (sections) {
+    for (const entry of entries) {
+      if (isDivider(entry.name)) continue;
+      const code = nameCode(entry.name);
+      if (!code) continue;
+      const type = classify(entry);
+      const key = `${type}|${code}`;
+      if (!codes.has(key)) codes.set(key, new Set());
+      /** @type {Set<string>} */ (codes.get(key)).add(type === 'series' ? (episodeOf(entry.name)?.series || entry.name) : entry.name);
+    }
+  }
+  const codeGroup = (type, name) => {
+    const code = nameCode(name);
+    return code && (codes.get(`${type}|${code}`)?.size || 0) >= MIN_CODE_GROUP ? code : '';
+  };
+  let section = '';
+  let sectionType = null;
   for (const entry of entries) {
-    if (isDivider(entry.name)) continue;
+    if (isDivider(entry.name)) { section = dividerTitle(entry.name); sectionType = null; continue; }
     const a = entry.attrs || {};
     const type = classify(entry);
+    sectionType ??= type;
+    const group = entry.group || (sections ? (type === sectionType && section) || (type !== 'live' && codeGroup(type, entry.name)) || '' : '');
     const logo = safeUrl(a['tvg-logo'] || a.logo || '');
     if (type === 'live') {
       num++;
@@ -78,7 +117,7 @@ export function buildCatalogue(entries, header = {}, noGroup = 'Other') {
         k: 0,
         n: entry.name,
         logo,
-        cats: [category('live', entry.group)],
+        cats: [category('live', group)],
         // Every channel is worth asking the guide about: one with no tvg-id
         // may still be found there by its name.
         epgId: a['tvg-id'] || a['tvg-name'] || entry.name,
@@ -100,7 +139,7 @@ export function buildCatalogue(entries, header = {}, noGroup = 'Other') {
         k: 1,
         n: entry.name,
         logo,
-        cats: [category('movie', entry.group)],
+        cats: [category('movie', group)],
         ext: extensionOf(entry.url) || 'mp4',
         durationSec: entry.duration > 0 ? Math.round(entry.duration) : 0,
         year: releaseYear('', entry.name),
@@ -120,7 +159,7 @@ export function buildCatalogue(entries, header = {}, noGroup = 'Other') {
           k: 2,
           n: ep.series,
           logo,
-          cats: [category('series', entry.group)],
+          cats: [category('series', group)],
           plot: '',
           genre: '',
           rating: providerRating({}),
@@ -191,6 +230,10 @@ async function readPlaylist(source, scope, read) {
     categories: built.categories,
     items: built.items,
     guides: header.guides,
+    // The Xtream server behind a panel's list, offered as an account of
+    // its own (js/accountsui.js): its categories, covers and guide are the
+    // server's, and a list without groups has none of them.
+    xtream: xtreamPanel(entries.map((entry) => entry.url)),
   };
   const rows = [...built.episodes].map(([id, list]) => [`${scope}m3u:eps:${id}`, list]);
   rows.push([`${scope}m3u:catalogue`, value]);

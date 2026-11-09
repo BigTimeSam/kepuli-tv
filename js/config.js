@@ -331,6 +331,16 @@ export async function saveConfig(patch) {
 /* ------------------------------------------------------------ accounts */
 
 /**
+ * No account in use: the last one was removed, and the player starts at
+ * the welcome again. The settings are the browser's and stay.
+ * @returns {Promise<void>}
+ */
+export async function forgetConfig() {
+  writtenAccount = null;
+  await api.storage.local.remove('config');
+}
+
+/**
  * A configuration with nothing in it: the form for a new account.
  * @returns {Config}
  */
@@ -391,7 +401,8 @@ export function recordAccount(config) {
 /**
  * An account taken off the list, and its favourites, history and the rest
  * with it — unless another account in the list is the same account under
- * another name. The one in use cannot be removed: the caller switches first.
+ * another name. The one in use is removed after the switch to another, or,
+ * the last, with forgetConfig (js/accountsui.js).
  * @param {string} id
  * @returns {Promise<Config[]>} the accounts left
  */

@@ -133,6 +133,9 @@ button.group-star, button.group-star:hover, .group.active .group-star:hover { wi
 .listinfo .view-toggle { display: inline-flex; gap: 2px; padding: 2px; border-radius: 7px; background: var(--panel-2); }
 .listinfo .view-toggle button { display: grid; place-items: center; width: 24px; height: 22px; border-radius: 5px; text-decoration: none; }
 .listinfo .view-toggle button[aria-pressed="true"] { background: var(--row-hover); color: var(--text); }
+/* Inside the button: the two sit 2 px apart in a 2 px frame, and a ring
+   outside them ran under the neighbour and past the frame. */
+.listinfo .view-toggle button:focus-visible { outline-offset: -2px; }
 .listinfo .view-toggle svg { width: 14px; height: 14px; fill: none; stroke: currentColor; stroke-width: 1.6; stroke-linecap: round; stroke-linejoin: round; }
 
 /* ------------------------------------------------------------ covers */
@@ -152,7 +155,9 @@ button.group-star, button.group-star:hover, .group.active .group-star:hover { wi
 .card-poster { width: 100%; aspect-ratio: 2 / 3; border-radius: 7px; transition: box-shadow .12s, transform .12s; }
 .row.card:hover .card-poster { box-shadow: inset 0 0 0 1px var(--border), 0 6px 18px rgba(0, 0, 0, .45); transform: translateY(-2px); }
 .row.card.selected { box-shadow: none; background: none; }
-.row.card.selected .card-poster { box-shadow: 0 0 0 2px var(--accent-2); }
+/* The cover alone is marked, not its name and facts: a ring a little away
+   from it, as every focus ring on the page is drawn. */
+.row.card.selected .card-poster { box-shadow: 0 0 0 2px var(--panel), 0 0 0 4px var(--accent-ink); }
 .row.card.playing { background: none; box-shadow: none; }
 .row.card.playing .card-poster { box-shadow: 0 0 0 2px var(--accent); }
 .card-poster .row-progress { position: absolute; left: 6px; right: 6px; bottom: 6px; width: auto; margin: 0; background: rgba(10, 12, 17, .7); }

@@ -14,6 +14,7 @@ import { wireModal } from './modal.js';
 import { searchKey, searchTerms, matchesTerms } from './name.js';
 import { poster } from './poster.js';
 import { caretWelcome } from './caret.js';
+import { emptyState } from './rows.js';
 
 const $ = (id) => document.getElementById(id);
 
@@ -34,8 +35,10 @@ export class CountryPicker {
       radio.addEventListener('change', () => { if (radio.checked) this.setMode(radio.value); });
     }
     $('countries-toggle').addEventListener('change', () => {
-      if (this.mode !== 'chosen') this.setMode('chosen');
+      // Read before the mode changes: choosing the mode sets the box from
+      // the rows, none of them ticked yet, and the first click was undone.
       const tick = $('countries-toggle').checked;
+      if (this.mode !== 'chosen') this.setMode('chosen');
       for (const row of $('countries-list').children) {
         if (row.hidden) continue;
         const box = row.querySelector('input');
@@ -88,6 +91,7 @@ export class CountryPicker {
     $('countries-filter').value = '';
     $('countries-status').textContent = '';
     this.render();
+    this.reserveStatus();
     this.setMode(mode);
     this.dialog.showModal();
     if (caretWelcome()) $('countries-filter').focus();
@@ -156,23 +160,45 @@ export class CountryPicker {
     const none = terms.length > 0 && !shown;
     $('countries-list').classList.toggle('none', none);
     $('countries-empty').hidden = !none;
-    $('countries-empty').textContent = none ? t('empty.nohits.text', { query: $('countries-filter').value.trim() }) : '';
+    // "Select all shown" over no rows at all offered a box that did nothing.
+    $('countries-all-row').hidden = none;
+    $('countries-empty').replaceChildren(...(none ? [emptyState(t('empty.nohits'), t('empty.nohits.text', { query: $('countries-filter').value.trim() }), null, 'search')] : []));
     $('countries-toggle-label').textContent = t(terms.length ? 'countries.toggle.shown' : 'countries.toggle');
     this.status();
   }
 
+  /** "3 of 40 chosen" for a count of them. */
+  chosenText(count) {
+    return t('countries.chosen', { count, n: nf.format(count), total: nf.format(this.groups.length) });
+  }
+
+  /**
+   * The favourite ones, or what to do when there are none yet: the status
+   * of the second mode, which stays the same while the dialog is open.
+   */
+  favoritesText() {
+    return this.favorites.length ? this.chosenText(this.favorites.length) : t(`${this.texts.words}.mode.nofavs`);
+  }
+
+  /**
+   * Every text the status can take while the dialog is open, laid unseen
+   * in its cell: the row takes the height of the longest at whatever width
+   * and in whatever language, and keeps it whichever mode is chosen. The
+   * chosen count at its widest is the whole list's.
+   */
+  reserveStatus() {
+    $('countries-status-room').replaceChildren(...[t(this.texts.all), this.favoritesText(),
+      this.chosenText(this.groups.length), t('organize.savefailed')].map((text) => {
+      const line = document.createElement('span');
+      line.textContent = text;
+      return line;
+    }));
+  }
+
   status() {
     if (this.mode === 'all') { $('countries-status').textContent = t(this.texts.all); return; }
-    if (this.mode === 'favorites') {
-      // The favourite ones, or what to do when there are none yet.
-      $('countries-status').textContent = this.favorites.length
-        ? t('countries.chosen', { count: this.favorites.length, n: nf.format(this.favorites.length), total: nf.format(this.groups.length) })
-        : t(`${this.texts.words}.mode.nofavs`);
-      return;
-    }
-    $('countries-status').textContent = this.chosen.size
-      ? t('countries.chosen', { count: this.chosen.size, n: nf.format(this.chosen.size), total: nf.format(this.groups.length) })
-      : t(this.texts.all);
+    if (this.mode === 'favorites') { $('countries-status').textContent = this.favoritesText(); return; }
+    $('countries-status').textContent = this.chosen.size ? this.chosenText(this.chosen.size) : t(this.texts.all);
     // The box over the list says what the rows it reaches hold: all of
     // them ticked, none, or some (the dash).
     const shown = [...$('countries-list').children].filter((row) => !row.hidden);
