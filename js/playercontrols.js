@@ -53,6 +53,15 @@ export function toggleMoreMenu(open, { focusButton = false } = {}) {
 export function enterFullscreen() {
   if (document.fullscreenElement === el.videowrap) return;
   if (state.playing) playerLayout.showPlayer();
+  // The iPhone has no full screen for an element, only for a video, in its
+  // own player (with AirPlay and picture in picture): Orion's full screen
+  // button and double tap did nothing at all, as requestFullscreen is not
+  // there. The page's own subtitles are not drawn over that player.
+  if (typeof el.videowrap.requestFullscreen !== 'function') {
+    const video = /** @type {HTMLVideoElement & { webkitEnterFullscreen?: () => void }} */ (el.video);
+    try { video.webkitEnterFullscreen?.(); } catch { /* nothing loaded yet */ }
+    return;
+  }
   // With the whole player already full screen (the header's button), the
   // picture goes on top of it, and leaving returns to the player still
   // full screen: exitFullscreen() steps back one element, not all the way.

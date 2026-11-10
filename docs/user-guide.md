@@ -405,7 +405,9 @@ interrupted channel-list load restores the previous list.
   Chromecast); without VLC, the Play Store opens at its page
 - **Chromecast** (the same menu or `c`): a natively played file goes to the
   device through the Remote Playback API, and for the rest the menu explains how
-  Chrome's own tab casting does it — see below
+  Chrome's own tab casting does it — see below. On the iPhone the item is not
+  there: no browser on it reaches a Chromecast, and AirPlay is in the iPhone's
+  own player controls in full screen
 - **Resume positions remembered** for movies and episodes, with a progress bar
   on the row; what was left halfway heads the history under **Continue
   watching**

@@ -25,8 +25,15 @@
 // leave out MPEG-TS and Matroska altogether, and HLS unless the server sends
 // CORS headers.
 
-/** Whether the browser has the API at all. Firefox does not. */
-export const supported = typeof HTMLMediaElement !== 'undefined' && 'remote' in HTMLMediaElement.prototype;
+/**
+ * Whether the browser can cast at all. Firefox has no API. The iPhone's
+ * WebKit (Orion) has one, but for AirPlay alone: no Chromecast is reachable
+ * from it, and its prompt() did nothing visible when pressed (2026-11-10).
+ * AirPlay is in the iPhone's own player controls, in full screen. That
+ * WebKit is the one with ManagedMediaSource and no MediaSource.
+ */
+const iosWebKit = typeof globalThis.MediaSource === 'undefined' && 'ManagedMediaSource' in globalThis;
+export const supported = typeof HTMLMediaElement !== 'undefined' && 'remote' in HTMLMediaElement.prototype && !iosWebKit;
 
 export class Cast {
   /**
