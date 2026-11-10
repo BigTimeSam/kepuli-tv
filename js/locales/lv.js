@@ -448,7 +448,7 @@ export default {
  "setup.saved": "Iestatījumi saglabāti",
  "setup.pending": "Nesaglabātas izmaiņas",
  "setup.unchanged": "Izmaiņas stāsies spēkā pēc saglabāšanas.",
- "setup.account.immediate": "Sinhronizācija un šīs lapas pogas darbojas uzreiz. Viss pārējais gaida Saglabāt.",
+ "setup.account.immediate": "Izmaiņas stājas spēkā pēc saglabāšanas, izņemot sinhronizāciju.",
  "setup.reconnect": "Saglabājot savienojuma izmaiņas, saraksti tiks ielādēti no jauna.",
  "setup.failed": "Neizdevās saglabāt. Izmaiņas joprojām ir pieejamas. Mēģini vēlreiz.",
  "setup.incomplete": "Xtream Codes serverim vajag serveri, lietotājvārdu un paroli. Atskaņošanas sarakstu bez pieteikšanās pievieno sadaļā Atskaņošanas saraksta adrese (M3U).",

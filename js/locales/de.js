@@ -440,7 +440,7 @@ export default {
  "setup.saved": "Einstellungen gespeichert",
  "setup.pending": "Nicht gespeicherte Änderungen",
  "setup.unchanged": "Änderungen werden beim Speichern übernommen.",
- "setup.account.immediate": "Die Synchronisierung und die Schaltflächen auf dieser Seite wirken sofort. Alles andere wartet auf Speichern.",
+ "setup.account.immediate": "Änderungen gelten beim Speichern, außer der Synchronisierung.",
  "setup.reconnect": "Das Speichern von Verbindungsänderungen lädt die Listen neu.",
  "setup.failed": "Speichern fehlgeschlagen. Die Änderungen sind noch vorhanden. Erneut versuchen.",
  "setup.incomplete": "Ein Server für Xtream Codes braucht Server, Benutzername und Passwort. Eine Playlist ohne Anmeldung kommt unter Playlist-Adresse (M3U).",

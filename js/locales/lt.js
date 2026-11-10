@@ -456,7 +456,7 @@ export default {
  "setup.saved": "Nustatymai išsaugoti",
  "setup.pending": "Neišsaugoti pakeitimai",
  "setup.unchanged": "Pakeitimai bus pritaikyti, kai išsaugosi.",
- "setup.account.immediate": "Sinchronizavimas ir šiame puslapyje esantys mygtukai veikia iškart. Visa kita laukia Išsaugoti.",
+ "setup.account.immediate": "Pakeitimai įsigalioja išsaugojus, išskyrus sinchronizavimą.",
  "setup.reconnect": "Išsaugojus ryšio pakeitimus, sąrašai bus įkelti iš naujo.",
  "setup.failed": "Nepavyko išsaugoti. Pakeitimai vis dar išlikę. Bandyk dar kartą.",
  "setup.incomplete": "Xtream Codes serveriui reikia serverio, naudotojo vardo ir slaptažodžio. Grojaraštis be prisijungimo pridedamas skiltyje Grojaraščio adresas (M3U).",

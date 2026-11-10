@@ -432,7 +432,7 @@ export default {
  "setup.saved": "Pengaturan disimpan",
  "setup.pending": "Perubahan belum disimpan",
  "setup.unchanged": "Perubahan berlaku setelah disimpan.",
- "setup.account.immediate": "Sinkronisasi dan tombol di halaman ini bekerja langsung. Yang lain menunggu Simpan.",
+ "setup.account.immediate": "Perubahan berlaku saat disimpan, kecuali sinkronisasi.",
  "setup.reconnect": "Menyimpan perubahan koneksi akan memuat ulang daftar.",
  "setup.failed": "Gagal menyimpan. Perubahanmu masih ada. Coba lagi.",
  "setup.incomplete": "Server Xtream Codes memerlukan server, nama pengguna, dan kata sandi. Daftar putar tanpa login ditambahkan di Alamat daftar putar (M3U).",

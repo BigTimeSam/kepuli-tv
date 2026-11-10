@@ -106,6 +106,8 @@
 //                                     the format's words go when room runs out
 //   node dev/playcheck.mjs onerow  Settings' sections and the player's bar are one
 //                                     row at every width, in the longest languages
+//   node dev/playcheck.mjs accountnow  Settings' account says the connections
+//                                     in use now, the stream playing counted
 //   node dev/playcheck.mjs phonestar  390 px: the country chosen in the menu is
 //                                     starred by the star beside it, and the
 //                                     menu lists the favourites first
@@ -2325,6 +2327,36 @@ async function onerow(page) {
 }
 
 /**
+ * Settings' account box says the simultaneous connections as the server
+ * counts them now. It said what the server had answered at the connection,
+ * before anything played: "0 / 1" under a channel playing on a
+ * one-connection account. With a channel playing over MPEG-TS, counted by
+ * the mock as a provider counts it, the box says 1 / 1.
+ */
+async function accountnow(page) {
+  const assert = (ok, detail) => { if (!ok) throw new Error(detail); };
+  process.env.KEPULI_MOCK_LIVE_TS = '1';
+  process.env.KEPULI_MOCK_LIMIT = '1';
+  try {
+    await openLiveList(page, 3);
+    await evaluate(page, `document.querySelectorAll('#list .row')[0].click()`, { gesture: true });
+    await waitFor(page, PLAYING, 'the channel', 40000);
+    await sleep(1500);
+    await evaluate(page, `document.getElementById('btn-settings').click()`);
+    await waitFor(page, `document.getElementById('setup').open`, 'settings');
+    await evaluate(page, `document.getElementById('tab-account').click()`);
+    await waitFor(page, `document.getElementById('account-box').textContent.includes('1 / 1')`, 'the box to say 1 / 1', 15000)
+      .catch(async () => { throw new Error(`the box says: ${await evaluate(page, `document.getElementById('account-box').textContent`)}`); });
+    await evaluate(page, `document.getElementById('f-done').click()`);
+    return { ok: true, detail: 'a channel playing on a one-connection account: Simultaneous connections 1 / 1' };
+  } finally {
+    process.env.KEPULI_MOCK_LIVE_TS = '';
+    process.env.KEPULI_MOCK_LIMIT = '';
+    await evaluate(page, `document.getElementById('setup').open && document.getElementById('f-done').click()`).catch(() => {});
+  }
+}
+
+/**
  * A country starred on a phone. Below 760 px the sidebar is a menu, whose
  * options cannot carry a star, and there was no way to make a country a
  * favourite at all (found in Orion on an iPhone): the star beside the menu
@@ -3344,7 +3376,7 @@ async function settings(page, { requests, target }) {
   assert(await evaluate(page, `document.documentElement.lang === 'en' && document.body.dataset.substyle === 'shadow' && document.querySelector('#panel-subs .sublook').dataset.substyle === 'yellow'`), 'draft changed runtime or failed to preview');
   await press('f-done');
   await open();
-  assert(await evaluate(page, `document.getElementById('f-epg').checked && document.getElementById('f-lang').value === 'en' && document.getElementById('f-subsize').value === '100'`), 'Cancel retained a draft');
+  assert(await evaluate(page, `document.getElementById('f-epg').checked && document.getElementById('f-lang').value === 'en' && document.getElementById('f-subsize').value === '85'`), 'Cancel retained a draft');
   await tab('general');
   await change('f-epg', false, true);
   await tab('subs');
@@ -7293,7 +7325,7 @@ async function handoff(page) {
 
 const SCENARIOS = { buffering, livebuffering, filmbuffering, emptyfile, tsasmp4, refusedfile, badgateway, livebadgateway, channelrefused, noanswer, longfilm, catalogUi, setupClarity, welcome, fullscreenControl, clickpause, pickers, touchcaret, screenbutton, topmenu, scrollbars, channelorder, lengthfilter, nowlogo, channels, home, resumemkv, restore, programmes, catchup, seek, death, cancel, timeout, search, paste, keys, switching, resume, connections, livezap, livequiet, reconnect, accounts, listerror, a11y, subtitles, audio, wasmaudio, settings,
   lastchannel, nextepisode, continuewatching, reminders, update, seeklag, cuesretry, quota, catchupfreeze, catchupfull, twotabs, switchstop, resettabs,
-  refresh, restorenav, guidekeep, removeaccount, m3u, sync, holes, picks, flakyserver, accountform, stalker, record, guidefavs, guidenames, categories, homecountry, noleak, perf, pseudo, startup, soak, phone, onerow, nowbarfit, subsize, arrowmiddle, idlelight, iossubs, starquiet, phonestar, pickerkeyboard, phonescroll, menutap, wakelock, livecut, episodenames, gotochannel, filmdetails, favorder, countryfilter, tilekeys, routes, programmekeys, searchlimit, filterfolds, focusrings, xtreamoffer, guideclick, filmaddress, filmfacts, playlistfile, perflive, perfplaylist, remoteimages, phoneguide, handoff };
+  refresh, restorenav, guidekeep, removeaccount, m3u, sync, holes, picks, flakyserver, accountform, stalker, record, guidefavs, guidenames, categories, homecountry, noleak, perf, pseudo, startup, soak, phone, accountnow, onerow, nowbarfit, subsize, arrowmiddle, idlelight, iossubs, starquiet, phonestar, pickerkeyboard, phonescroll, menutap, wakelock, livecut, episodenames, gotochannel, filmdetails, favorder, countryfilter, tilekeys, routes, programmekeys, searchlimit, filterfolds, focusrings, xtreamoffer, guideclick, filmaddress, filmfacts, playlistfile, perflive, perfplaylist, remoteimages, phoneguide, handoff };
 // The mock's whole-list answers stall for these, longer than the request limit.
 const SLOW_LIST_MS = { cancel: 60000, timeout: 60000 };
 // The media is sent slowly for these: the seek targets must lie outside the

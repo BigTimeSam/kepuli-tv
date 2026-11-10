@@ -440,7 +440,7 @@ export default {
  "setup.saved": "Instellingen opgeslagen",
  "setup.pending": "Niet-opgeslagen wijzigingen",
  "setup.unchanged": "Wijzigingen worden toegepast als je opslaat.",
- "setup.account.immediate": "Synchronisatie en de knoppen op deze pagina werken direct. Al het andere wacht op Opslaan.",
+ "setup.account.immediate": "Wijzigingen gelden na opslaan, behalve synchronisatie.",
  "setup.reconnect": "Als je verbindingswijzigingen opslaat, worden de lijsten opnieuw geladen.",
  "setup.failed": "Opslaan mislukt. Je wijzigingen staan er nog. Probeer het opnieuw.",
  "setup.incomplete": "Een Xtream Codes-server heeft server, gebruikersnaam en wachtwoord nodig. Een afspeellijst zonder aanmelding voeg je toe onder Adres van de afspeellijst (M3U).",

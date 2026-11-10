@@ -448,7 +448,7 @@ export default {
  "setup.saved": "Postavke su spremljene",
  "setup.pending": "Nespremljene promjene",
  "setup.unchanged": "Promjene će se primijeniti kad ih spremiš.",
- "setup.account.immediate": "Sinkronizacija i gumbi na ovoj stranici djeluju odmah. Sve ostalo čeka na Spremi.",
+ "setup.account.immediate": "Promjene vrijede nakon spremanja, osim sinkronizacije.",
  "setup.reconnect": "Spremanje promjena veze ponovno će učitati popise.",
  "setup.failed": "Spremanje nije uspjelo. Promjene su i dalje tu. Pokušaj ponovno.",
  "setup.incomplete": "Xtream Codes poslužitelj traži poslužitelj, korisničko ime i lozinku. Popis za reprodukciju bez prijave dodaje se pod Adresa popisa za reprodukciju (M3U).",

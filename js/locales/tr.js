@@ -440,7 +440,7 @@ export default {
  "setup.saved": "Ayarlar kaydedildi",
  "setup.pending": "Kaydedilmemiş değişiklikler",
  "setup.unchanged": "Değişiklikler kaydettiğinizde uygulanır.",
- "setup.account.immediate": "Eşitleme ve bu sayfadaki düğmeler hemen çalışır. Geri kalan her şey Kaydet’i bekler.",
+ "setup.account.immediate": "Değişiklikler kaydedince geçerli olur, eşitleme hariç.",
  "setup.reconnect": "Bağlantı değişikliklerini kaydetmek listeleri yeniden yükler.",
  "setup.failed": "Kaydedilemedi. Değişiklikleriniz duruyor. Tekrar deneyin.",
  "setup.incomplete": "Xtream Codes sunucusu sunucu, kullanıcı adı ve parola ister. Giriş gerektirmeyen bir oynatma listesi “Oynatma listesi adresi (M3U)” altına eklenir.",

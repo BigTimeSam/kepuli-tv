@@ -456,7 +456,7 @@ export default {
  "setup.saved": "Nastavitve shranjene",
  "setup.pending": "Neshranjene spremembe",
  "setup.unchanged": "Spremembe bodo uveljavljene po shranjevanju.",
- "setup.account.immediate": "Sinhronizacija in gumbi na tej strani delujejo takoj. Vse ostalo čaka na Shrani.",
+ "setup.account.immediate": "Spremembe veljajo ob shranjevanju, razen sinhronizacije.",
  "setup.reconnect": "Shranjevanje sprememb povezave ponovno naloži sezname.",
  "setup.failed": "Shranjevanje ni uspelo. Spremembe so še vedno na voljo. Poskusi znova.",
  "setup.incomplete": "Strežnik Xtream Codes potrebuje strežnik, uporabniško ime in geslo. Seznam predvajanja brez prijave se doda pod Naslov seznama predvajanja (M3U).",

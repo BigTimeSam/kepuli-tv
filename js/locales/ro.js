@@ -448,7 +448,7 @@ export default {
  "setup.saved": "Setări salvate",
  "setup.pending": "Modificări nesalvate",
  "setup.unchanged": "Modificările se aplică la salvare.",
- "setup.account.immediate": "Sincronizarea și butoanele de pe această pagină acționează imediat. Restul așteaptă Salvează.",
+ "setup.account.immediate": "Modificările se aplică la salvare, cu excepția sincronizării.",
  "setup.reconnect": "Salvarea modificărilor de conexiune reîncarcă listele.",
  "setup.failed": "Nu s-a putut salva. Modificările sunt încă aici. Încearcă din nou.",
  "setup.incomplete": "Un server Xtream Codes are nevoie de server, nume de utilizator și parolă. Un playlist fără autentificare se adaugă la Adresa playlistului (M3U).",

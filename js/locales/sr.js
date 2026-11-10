@@ -448,7 +448,7 @@ export default {
  "setup.saved": "Podešavanja su sačuvana",
  "setup.pending": "Nesačuvane izmene",
  "setup.unchanged": "Izmene će se primeniti nakon čuvanja.",
- "setup.account.immediate": "Sinhronizacija i dugmad na ovoj stranici rade odmah. Sve ostalo čeka na Sačuvaj.",
+ "setup.account.immediate": "Promene važe nakon čuvanja, osim sinhronizacije.",
  "setup.reconnect": "Čuvanje izmena veze ponovo će učitati liste.",
  "setup.failed": "Čuvanje nije uspelo. Izmene su i dalje tu. Pokušaj ponovo.",
  "setup.incomplete": "Xtream Codes server traži server, korisničko ime i lozinku. Plejlista bez prijave dodaje se pod Adresa plejliste (M3U).",

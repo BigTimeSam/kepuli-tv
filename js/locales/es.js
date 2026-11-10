@@ -440,7 +440,7 @@ export default {
  "setup.saved": "Ajustes guardados",
  "setup.pending": "Cambios sin guardar",
  "setup.unchanged": "Los cambios se aplican al guardar.",
- "setup.account.immediate": "La sincronización y los botones de esta página actúan al instante. Todo lo demás espera a Guardar.",
+ "setup.account.immediate": "Los cambios se aplican al guardar, salvo la sincronización.",
  "setup.reconnect": "Al guardar cambios de conexión se recargan las listas.",
  "setup.failed": "No se pudo guardar. Tus cambios siguen aquí. Inténtalo de nuevo.",
  "setup.incomplete": "Un servidor Xtream Codes necesita servidor, usuario y contraseña. Una lista que no pide iniciar sesión se añade en Dirección de la lista (M3U).",

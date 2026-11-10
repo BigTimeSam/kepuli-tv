@@ -440,7 +440,7 @@ export default {
  "setup.saved": "Cilësimet u ruajtën",
  "setup.pending": "Ndryshime të paruajtura",
  "setup.unchanged": "Ndryshimet zbatohen pasi të ruhen.",
- "setup.account.immediate": "Sinkronizimi dhe butonat në këtë faqe veprojnë menjëherë. Gjithçka tjetër pret Ruaj.",
+ "setup.account.immediate": "Ndryshimet hyjnë në fuqi kur ruani, përveç sinkronizimit.",
  "setup.reconnect": "Ruajtja e ndryshimeve të lidhjes i ngarkon listat përsëri.",
  "setup.failed": "Nuk u ruajt. Ndryshimet janë ende aty. Provo përsëri.",
  "setup.incomplete": "Një server Xtream Codes kërkon serverin, emrin e përdoruesit dhe fjalëkalimin. Një listë që nuk kërkon hyrje shtohet te Adresa e listës (M3U).",

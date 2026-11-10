@@ -440,7 +440,7 @@ export default {
  "setup.saved": "Innstillingene er lagret",
  "setup.pending": "Ulagrede endringer",
  "setup.unchanged": "Endringer tas i bruk når du lagrer.",
- "setup.account.immediate": "Synkronisering og knappene på denne siden virker med én gang. Alt annet venter på Lagre.",
+ "setup.account.immediate": "Endringer gjelder når du lagrer, unntatt synkronisering.",
  "setup.reconnect": "Når du lagrer endringer i tilkoblingen, lastes listene på nytt.",
  "setup.failed": "Kunne ikke lagre. Endringene dine er fortsatt her. Prøv igjen.",
  "setup.incomplete": "En Xtream Codes-server trenger server, brukernavn og passord. En spilleliste som ikke krever innlogging, legges inn under Spillelisteadresse (M3U).",

@@ -440,7 +440,7 @@ export default {
  "setup.saved": "Impostazioni salvate",
  "setup.pending": "Modifiche non salvate",
  "setup.unchanged": "Le modifiche vengono applicate quando salvi.",
- "setup.account.immediate": "La sincronizzazione e i pulsanti di questa pagina agiscono subito. Tutto il resto attende Salva.",
+ "setup.account.immediate": "Le modifiche si applicano al salvataggio, tranne la sincronizzazione.",
  "setup.reconnect": "Salvare le modifiche alla connessione ricarica gli elenchi.",
  "setup.failed": "Impossibile salvare. Le tue modifiche sono ancora qui. Riprova.",
  "setup.incomplete": "Un server Xtream Codes richiede server, nome utente e password. Una playlist che non chiede l'accesso va in Indirizzo della playlist (M3U).",

@@ -456,7 +456,7 @@ export default {
  "setup.saved": "Nastavenia boli uložené",
  "setup.pending": "Neuložené zmeny",
  "setup.unchanged": "Zmeny sa použijú po uložení.",
- "setup.account.immediate": "Synchronizácia a tlačidlá na tejto stránke platia hneď. Všetko ostatné čaká na Uložiť.",
+ "setup.account.immediate": "Zmeny sa prejavia po uložení, okrem synchronizácie.",
  "setup.reconnect": "Uloženie zmien pripojenia znova načíta zoznamy.",
  "setup.failed": "Uloženie zlyhalo. Zmeny sú stále k dispozícii. Skús to znova.",
  "setup.incomplete": "Server Xtream Codes potrebuje server, používateľské meno a heslo. Playlist bez prihlásenia sa pridáva v časti Adresa playlistu (M3U).",

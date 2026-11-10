@@ -87,7 +87,65 @@ export function openSetup({ section, adding = false } = {}) {
   showPassword(false);
   showSetupSection(first ? 'connection' : (section || 'connection'));
   if (!el.setup.open) el.setup.showModal();
+  fitSetupHeight();
   focusSetupSection();
+}
+
+/**
+ * The account as the server sees it now, asked when its section is
+ * opened: what it said at the connection was read before anything played,
+ * and the simultaneous connections stood at "0 / 1" under a stream playing
+ * on the account. The box is drawn again with the answer; until it comes it
+ * shows what was known. Only then: opening Settings, or saving it, asks the
+ * server nothing.
+ */
+let accountAsked = 0;
+async function refreshAccount() {
+  const a = state.account;
+  if (!a || a.kind === 'm3u' || a.kind === 'stalker' || !state.source?.account) return;
+  const asked = ++accountAsked;
+  const source = state.source;
+  try {
+    const signal = AbortSignal.timeout ? AbortSignal.timeout(8000) : undefined;
+    const account = await source.account({ signal });
+    if (asked !== accountAsked || source !== state.source || !account) return;
+    state.account = account;
+    if (el.setup.open) renderAccountBox();
+  } catch { /* the box keeps what it showed */ }
+}
+
+/**
+ * The sections' one height: the tallest section's own, within the window.
+ * It was the window's share whatever the sections held, up to 620 px, and
+ * on a tall screen every section, the subtitles' preview included, had a
+ * band of nothing under it. Measured each time the dialog opens, its texts
+ * and accounts being what they are then; the subtitles' section by its
+ * controls and a 16:9 preview of the full width, as fitSubtitlePreview
+ * draws it.
+ */
+function fitSetupHeight() {
+  const panels = /** @type {HTMLElement[]} */ ([...el.setup.querySelectorAll('.setup-panel')]);
+  const ceiling = Math.max(320, Math.min(innerHeight - 290, 620)) + 4;
+  let tallest = 0;
+  for (const panel of panels) {
+    const hidden = panel.hidden;
+    panel.hidden = false;
+    panel.style.height = 'auto';
+    const room = /** @type {HTMLElement|null} */ (panel.querySelector('.sublook'));
+    const frame = room?.querySelector('.sublook-preview');
+    let height = panel.scrollHeight;
+    if (room && frame instanceof HTMLElement) {
+      const gap = parseFloat(getComputedStyle(room).rowGap) || 0;
+      const above = [...room.children].filter((node) => node !== frame)
+        .reduce((sum, node) => sum + /** @type {HTMLElement} */ (node).offsetHeight + gap, 0);
+      height = panel.offsetHeight - room.offsetHeight + above + Math.floor(room.clientWidth * 9 / 16);
+    }
+    panel.style.height = '';
+    panel.hidden = hidden;
+    tallest = Math.max(tallest, height);
+  }
+  if (tallest > 0) el.setup.style.setProperty('--setup-panel-h', `${Math.min(ceiling, Math.ceil(tallest))}px`);
+  fitSubtitlePreview();
 }
 
 // Every open starts with the connection; edits survive tab changes only.
@@ -359,6 +417,7 @@ export function showSetupSection(name) {
     panel.hidden = panel.id !== `panel-${name}`;
   }
   updateSetupActions();
+  if (name === 'account' && el.setup.open) refreshAccount();
 }
 
 /**

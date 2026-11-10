@@ -493,7 +493,7 @@ const STRINGS = {
     'setup.unchanged': 'Changes are applied when you save.',
     // The account section is the one place where a button acts at once, so
     // the line that promises otherwise must not stand there unqualified.
-    'setup.account.immediate': 'Sync and the buttons on this page act at once. Everything else waits for Save.',
+    'setup.account.immediate': 'Changes apply when you save, except sync.',
     'setup.reconnect': 'Saving connection changes reloads the lists.',
     'setup.failed': 'Could not save. Your changes are still here. Try again.',
     'setup.incomplete': 'An Xtream Codes server needs the server, username and password. A playlist that needs no sign-in goes under Playlist address (M3U).',
@@ -1255,7 +1255,7 @@ const STRINGS = {
     'setup.saved': 'Asetukset tallennettu',
     'setup.pending': 'Tallentamattomia muutoksia',
     'setup.unchanged': 'Muutokset tulevat voimaan tallennettaessa.',
-    'setup.account.immediate': 'Synkronointi ja tämän sivun painikkeet vaikuttavat heti. Muut asetukset odottavat Tallenna-painiketta.',
+    'setup.account.immediate': 'Muutokset tulevat voimaan tallennettaessa, pl. synkronointi.',
     'setup.reconnect': 'Yhteysmuutosten tallentaminen lataa listat uudelleen.',
     'setup.failed': 'Tallennus epäonnistui. Muutoksesi ovat tallella tässä lomakkeessa. Yritä uudelleen.',
     'setup.incomplete': 'Xtream Codes -palvelin tarvitsee palvelimen, käyttäjätunnuksen ja salasanan. Soittolista, joka ei vaadi kirjautumista, lisätään kohdassa Soittolistan osoite (M3U).',

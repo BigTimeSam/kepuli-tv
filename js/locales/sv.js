@@ -440,7 +440,7 @@ export default {
  "setup.saved": "Inställningarna sparades",
  "setup.pending": "Osparade ändringar",
  "setup.unchanged": "Ändringar tillämpas när du sparar.",
- "setup.account.immediate": "Synkroniseringen och knapparna på den här sidan verkar direkt. Allt annat väntar på Spara.",
+ "setup.account.immediate": "Ändringar gäller när du sparar, utom synkronisering.",
  "setup.reconnect": "Om du sparar ändringar i anslutningen läses listorna in på nytt.",
  "setup.failed": "Det gick inte att spara. Dina ändringar finns kvar. Försök igen.",
  "setup.incomplete": "En Xtream Codes-server behöver server, användarnamn och lösenord. En spellista som inte kräver inloggning läggs till under Spellistans adress (M3U).",

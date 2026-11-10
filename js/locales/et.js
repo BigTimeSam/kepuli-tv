@@ -440,7 +440,7 @@ export default {
  "setup.saved": "Seaded salvestatud",
  "setup.pending": "Salvestamata muudatused",
  "setup.unchanged": "Muudatused rakendatakse pärast salvestamist.",
- "setup.account.immediate": "Sünkroonimine ja selle lehe nupud toimivad kohe. Kõik muu ootab nuppu Salvesta.",
+ "setup.account.immediate": "Muudatused rakenduvad salvestamisel, välja arvatud sünkroonimine.",
  "setup.reconnect": "Ühenduse muudatuste salvestamine laadib loendid uuesti.",
  "setup.failed": "Salvestamine ei õnnestunud. Muudatused on alles. Proovi uuesti.",
  "setup.incomplete": "Xtream Codesi server vajab serverit, kasutajanime ja parooli. Sisselogimiseta esitusloend lisatakse kohas Esitusloendi aadress (M3U).",

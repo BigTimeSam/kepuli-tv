@@ -440,7 +440,7 @@ export default {
  "setup.saved": "Réglages enregistrés",
  "setup.pending": "Modifications non enregistrées",
  "setup.unchanged": "Les modifications sont appliquées à l’enregistrement.",
- "setup.account.immediate": "La synchronisation et les boutons de cette page agissent immédiatement. Tout le reste attend Enregistrer.",
+ "setup.account.immediate": "Les modifications s’appliquent à l’enregistrement, sauf la synchronisation.",
  "setup.reconnect": "Enregistrer des changements de connexion recharge les listes.",
  "setup.failed": "Échec de l’enregistrement. Vos changements sont conservés. Réessayez.",
  "setup.incomplete": "Un serveur Xtream Codes demande le serveur, le nom d’utilisateur et le mot de passe. Une playlist sans connexion s’ajoute sous Adresse de la playlist (M3U).",

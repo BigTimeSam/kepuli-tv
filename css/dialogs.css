@@ -180,7 +180,7 @@ dialog::backdrop { background: var(--backdrop); backdrop-filter: blur(2px); }
    padding is 4 px, the margin takes 2 px back so that nothing moves, and
    the height grows by the 4 px the margins took. A field the focus reaches
    is scrolled in with room for its ring (scroll-padding). */
-.setup-panel { min-height: 0; height: calc(clamp(320px, calc(100dvh - 290px), 620px) + 4px); overflow-y: auto; padding: 4px; margin: -2px; scroll-padding-block: 8px; }
+.setup-panel { min-height: 0; height: var(--setup-panel-h, calc(clamp(320px, calc(100dvh - 290px), 620px) + 4px)); overflow-y: auto; padding: 4px; margin: -2px; scroll-padding-block: 8px; }
 #panel-subs { overflow: hidden; }
 .setup-intro { margin: 0 0 2px; color: var(--muted); font-size: 0.8125rem; line-height: 1.5; }
 /* A hint belongs to the field above it, not to the space between fields. */

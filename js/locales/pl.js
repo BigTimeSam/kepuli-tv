@@ -456,7 +456,7 @@ export default {
  "setup.saved": "Ustawienia zapisane",
  "setup.pending": "Niezapisane zmiany",
  "setup.unchanged": "Zmiany zostaną zastosowane po zapisaniu.",
- "setup.account.immediate": "Synchronizacja i przyciski na tej stronie działają od razu. Wszystko inne czeka na Zapisz.",
+ "setup.account.immediate": "Zmiany obowiązują po zapisaniu, z wyjątkiem synchronizacji.",
  "setup.reconnect": "Zapisanie zmian połączenia wczyta listy ponownie.",
  "setup.failed": "Nie udało się zapisać. Zmiany nadal są dostępne. Spróbuj ponownie.",
  "setup.incomplete": "Połączenie Xtream Codes wymaga adresu serwera, nazwy użytkownika i hasła. Playlistę bez logowania dodaje się w opcji „Adres playlisty (M3U)”.",

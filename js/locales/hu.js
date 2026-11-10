@@ -440,7 +440,7 @@ export default {
  "setup.saved": "Beállítások elmentve",
  "setup.pending": "Nem mentett módosítások",
  "setup.unchanged": "A módosítások mentés után lépnek életbe.",
- "setup.account.immediate": "A szinkronizálás és az ezen az oldalon lévő gombok azonnal hatnak. Minden más a Mentésre vár.",
+ "setup.account.immediate": "A módosítások mentéskor lépnek életbe, kivéve a szinkronizálást.",
  "setup.reconnect": "A kapcsolat módosításainak mentése újratölti a listákat.",
  "setup.failed": "A mentés nem sikerült. A módosítások megvannak. Próbáld újra.",
  "setup.incomplete": "Az Xtream Codes szerverhez szerver, felhasználónév és jelszó kell. A bejelentkezés nélküli lejátszási listát itt add meg: Lejátszási lista címe (M3U).",

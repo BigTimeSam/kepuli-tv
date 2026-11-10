@@ -440,7 +440,7 @@ export default {
  "setup.saved": "Indstillingerne er gemt",
  "setup.pending": "Ugemte ændringer",
  "setup.unchanged": "Ændringer anvendes, når du gemmer.",
- "setup.account.immediate": "Synkronisering og knapperne på denne side virker med det samme. Alt andet venter på Gem.",
+ "setup.account.immediate": "Ændringer træder i kraft, når du gemmer, undtagen synkronisering.",
  "setup.reconnect": "Når du gemmer ændringer i forbindelsen, indlæses listerne igen.",
  "setup.failed": "Kunne ikke gemme. Dine ændringer er der stadig. Prøv igen.",
  "setup.incomplete": "En Xtream Codes-server kræver server, brugernavn og adgangskode. En afspilningsliste uden login tilføjes under Afspilningslistens adresse (M3U).",

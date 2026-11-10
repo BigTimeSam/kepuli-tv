@@ -432,7 +432,7 @@ export default {
  "setup.saved": "Đã lưu cài đặt",
  "setup.pending": "Thay đổi chưa lưu",
  "setup.unchanged": "Thay đổi sẽ được áp dụng sau khi lưu.",
- "setup.account.immediate": "Đồng bộ và các nút trên trang này có tác dụng ngay. Mọi thứ khác đợi bạn nhấn Lưu.",
+ "setup.account.immediate": "Thay đổi có hiệu lực khi lưu, trừ đồng bộ.",
  "setup.reconnect": "Lưu thay đổi kết nối sẽ tải lại các danh sách.",
  "setup.failed": "Không lưu được. Các thay đổi vẫn còn đó. Hãy thử lại.",
  "setup.incomplete": "Máy chủ Xtream Codes cần máy chủ, tên người dùng và mật khẩu. Danh sách phát không cần đăng nhập được thêm ở mục Địa chỉ danh sách phát (M3U).",
