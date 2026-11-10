@@ -548,21 +548,22 @@ ass('drops a drawing', '0,0,Default,,0,0,0,,{\\p1}m 0 0 l 100 0', '');
 /* ---------------------------------------------- subdisplay.js: the look */
 
 check('subtitleLook defaults', subtitleLook({}), { style: 'shadow', scale: DEFAULT_SCALE, lift: DEFAULT_LIFT });
-check('the defaults are 85 % and 6 %', [DEFAULT_SCALE, DEFAULT_LIFT], [85, 6]);
-check('the old defaults, as a saved form wrote them, become the new ones', subtitleLook({ subtitleScale: 100, subtitleLift: 12 }), { style: 'shadow', scale: 85, lift: 6 });
-check('a size or a height of the viewer\'s own is kept', [subtitleLook({ subtitleScale: 100, subtitleLift: 10 }), subtitleLook({ subtitleScale: 120, subtitleLift: 12 })].map((l) => [l.scale, l.lift]), [[100, 10], [120, 12]]);
+check('the defaults are 100 % (of 4.25 %) and 6 %', [DEFAULT_SCALE, DEFAULT_LIFT, SIZE_SHARE], [100, 6, 0.0425]);
+check('the old defaults, as a saved form wrote them, become the new ones', subtitleLook({ subtitleScale: 100, subtitleLift: 12 }), { style: 'shadow', scale: 100, lift: 6 });
+check('a size of the viewer\'s own on the old scale keeps its size on screen', [subtitleLook({ subtitleScale: 100, subtitleLift: 10 }), subtitleLook({ subtitleScale: 120, subtitleLift: 12 })].map((l) => [l.scale, l.lift]), [[120, 10], [140, 12]]);
+check('a size saved on the present scale is read as it is', subtitleLook({ subtitleScale: 120, subtitleLift: 12, subtitleScaleBase: 2 }).scale, 120);
 check('subtitleLook defaults on nothing', subtitleLook(null), { style: 'shadow', scale: DEFAULT_SCALE, lift: DEFAULT_LIFT });
-check('subtitleLook keeps a known choice', subtitleLook({ subtitleStyle: 'yellow', subtitleScale: 135, subtitleLift: 12 }), { style: 'yellow', scale: 135, lift: 12 });
+check('subtitleLook keeps a known choice', subtitleLook({ subtitleStyle: 'yellow', subtitleScale: 135, subtitleLift: 12, subtitleScaleBase: 2 }), { style: 'yellow', scale: 135, lift: 12 });
 check('the height keeps 0, rounds, and holds to the bounds', [0, 7.6, -4, 99, 'x'].map((lift) => subtitleLook({ subtitleLift: lift }).lift), [0, 8, MIN_LIFT, MAX_LIFT, DEFAULT_LIFT]);
-check('subtitleLook takes a size written as text', subtitleLook({ subtitleScale: '140' }).scale, 140);
-check('subtitleLook rounds a size to the slider\'s step', subtitleLook({ subtitleScale: 121 }).scale, 120);
+check('subtitleLook takes a size written as text', subtitleLook({ subtitleScale: '140', subtitleScaleBase: 2 }).scale, 140);
+check('subtitleLook rounds a size to the slider\'s step', subtitleLook({ subtitleScale: 121, subtitleScaleBase: 2 }).scale, 120);
 check('subtitleLook holds a size to the bounds', [subtitleLook({ subtitleScale: 1 }).scale, subtitleLook({ subtitleScale: 900 }).scale], [MIN_SCALE, MAX_SCALE]);
 check('subtitleLook replaces an unknown choice', subtitleLook({ subtitleStyle: 'neon', subtitleScale: 'huge' }), { style: 'shadow', scale: DEFAULT_SCALE, lift: DEFAULT_LIFT });
 // The pixels of the older versions become the same share of their default:
 // whoever had made the text larger still has it larger.
-check('subtitleLook reads the older pixels', [24, 36, 18, 72].map((px) => subtitleLook({ subtitleSize: px }).scale), [100, 150, 75, 250]);
-check('subtitleLook reads the oldest names', ['small', 'medium', 'large'].map((s) => subtitleLook({ subtitleSize: s }).scale), [75, 100, 140]);
-check('a size of its own outranks the older pixels', subtitleLook({ subtitleScale: 90, subtitleSize: 40 }).scale, 90);
+check('subtitleLook reads the older pixels as the same size on the present scale', [24, 36, 18, 72].map((px) => subtitleLook({ subtitleSize: px }).scale), [120, 175, 90, 250]);
+check('subtitleLook reads the oldest names as the same size on the present scale', ['small', 'medium', 'large'].map((s) => subtitleLook({ subtitleSize: s }).scale), [90, 120, 165]);
+check('a size of its own outranks the older pixels', subtitleLook({ subtitleScale: 90, subtitleSize: 40, subtitleScaleBase: 2 }).scale, 90);
 check('+ and − step by ten, within the bounds', [stepScale(100, 1), stepScale(100, -1), stepScale(MAX_SCALE, 1), stepScale(MIN_SCALE, -1)], [110, 90, MAX_SCALE, MIN_SCALE]);
 check('the picture without its bars: a film on a 16:10 screen', Math.round(pictureHeight(1512, 982, 1920, 1080)), 851);
 check('the picture fills a box of its own shape', pictureHeight(1280, 720, 1280, 720), 720);

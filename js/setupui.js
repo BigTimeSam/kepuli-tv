@@ -10,7 +10,7 @@
 
 import { $, el } from './dom.js';
 import { caretWelcome } from './caret.js';
-import { DEFAULT_LIFT, DEFAULT_SCALE, pictureHeight, subtitleLook } from './subdisplay.js';
+import { DEFAULT_LIFT, DEFAULT_SCALE, SCALE_BASE, pictureHeight, subtitleLook } from './subdisplay.js';
 import { LANGUAGES, localeTag, t } from './i18n.js';
 import { Sync, loadSyncInfo, syncAvailable } from './sync.js';
 import { api } from './browser.js';
@@ -71,7 +71,7 @@ export function openSetup({ section, adding = false } = {}) {
   $('f-home-recent').checked = state.settings.homeRecent !== false;
   $('f-record').disabled = !canRecord;
   $('f-international').checked = state.settings.showInternational;
-  setupInitial = { ...state.settings, subtitleStyle: subtitleLook(state.settings).style, subtitleScale: subtitleLook(state.settings).scale, subtitleLift: subtitleLook(state.settings).lift };
+  setupInitial = { ...state.settings, subtitleStyle: subtitleLook(state.settings).style, subtitleScale: subtitleLook(state.settings).scale, subtitleScaleBase: SCALE_BASE, subtitleLift: subtitleLook(state.settings).lift };
   applySubtitleLook(state.settings);
   previewSetupLook();
   $('setup-error').hidden = true;
@@ -238,6 +238,8 @@ function readSetupSettings() {
     showInternational: $('f-international').checked,
     subtitleStyle: $('f-substyle').value,
     subtitleScale: Number($('f-subsize').value),
+    // The slider's value is on the present scale (js/subdisplay.js).
+    subtitleScaleBase: SCALE_BASE,
     subtitleLift: Number($('f-sublift').value),
   };
 }
@@ -729,7 +731,7 @@ export function wireSetup() {
     slider.focus();
   });
   $('p-subsize').addEventListener('input', () => applySubtitleLook({
-    subtitleStyle: $('p-substyle').value, subtitleScale: Number($('p-subsize').value), subtitleLift: Number($('p-sublift').value),
+    subtitleStyle: $('p-substyle').value, subtitleScale: Number($('p-subsize').value), subtitleScaleBase: SCALE_BASE, subtitleLift: Number($('p-sublift').value),
   }));
   $('p-subsize').addEventListener('change', () => chooseSubtitleLook('p'));
   // Back to the size the picture asks for: in the player at once, in the

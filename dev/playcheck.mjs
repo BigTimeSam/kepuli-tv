@@ -2219,8 +2219,8 @@ async function arrowmiddle(page) {
 }
 
 /**
- * The subtitles' default look, the same in every browser: 85 % of the base
- * size (5 % of the picture's height) and the lowest line 6 % of the
+ * The subtitles' default look, the same in every browser: 100 %, which is
+ * 4.25 % of the picture's height and the lowest line 6 % of the
  * picture's height above its bottom edge, the owner's measured choice. The
  * page draws them in Chrome and Firefox alike, so both are measured here
  * against the picture rather than the window.
@@ -2243,9 +2243,9 @@ async function subsize(page) {
     return { pic, size: parseFloat(getComputedStyle(cue).fontSize), above: wrap.getBoundingClientRect().bottom - bar - layer.getBoundingClientRect().bottom }; })()`);
   const again = m.above;
   const sizeShare = m.size / m.pic, liftShare = again / m.pic;
-  assert(Math.abs(sizeShare - 0.85 * 0.05) < 0.002 || m.size === 14, `the size is ${(sizeShare * 100).toFixed(2)} % of the picture (${m.size} px of ${m.pic})`);
+  assert(Math.abs(sizeShare - 0.0425) < 0.002 || m.size === 14, `the size is ${(sizeShare * 100).toFixed(2)} % of the picture (${m.size} px of ${m.pic})`);
   assert(Math.abs(liftShare - 0.06) < 0.01, `the lowest line stands ${(liftShare * 100).toFixed(1)} % of the picture above its bottom`);
-  return { ok: true, detail: `the text ${(sizeShare * 100).toFixed(2)} % of the picture's height (85 % of 5 %), the lowest line ${(liftShare * 100).toFixed(1)} % above its bottom` };
+  return { ok: true, detail: `the text ${(sizeShare * 100).toFixed(2)} % of the picture's height (100 %, the size agreed), the lowest line ${(liftShare * 100).toFixed(1)} % above its bottom` };
 }
 
 /**
@@ -3403,7 +3403,7 @@ async function settings(page, { requests, target }) {
   assert(await evaluate(page, `document.documentElement.lang === 'en' && document.body.dataset.substyle === 'shadow' && document.querySelector('#panel-subs .sublook').dataset.substyle === 'yellow'`), 'draft changed runtime or failed to preview');
   await press('f-done');
   await open();
-  assert(await evaluate(page, `document.getElementById('f-epg').checked && document.getElementById('f-lang').value === 'en' && document.getElementById('f-subsize').value === '85'`), 'Cancel retained a draft');
+  assert(await evaluate(page, `document.getElementById('f-epg').checked && document.getElementById('f-lang').value === 'en' && document.getElementById('f-subsize').value === '100'`), 'Cancel retained a draft');
   await tab('general');
   await change('f-epg', false, true);
   await tab('subs');
@@ -4165,7 +4165,7 @@ async function setupClarity(page) {
           controlsAbove:controls.bottom<=frame.top,visible:controls.top>=panel.top && frame.bottom<=panel.bottom+1,
           footer:save.bottom<=innerHeight, size:document.getElementById('f-subsize').value,
           runtime:document.body.style.getPropertyValue('--sub-scale')};})()`);
-      assert(fit.inside && fit.controlsAbove && fit.visible && fit.footer && fit.size==='250' && fit.runtime==='0.85', `${width}x${height} ${style}: ${JSON.stringify(fit)}`);
+      assert(fit.inside && fit.controlsAbove && fit.visible && fit.footer && fit.size==='250' && fit.runtime==='1', `${width}x${height} ${style}: ${JSON.stringify(fit)}`);
       if(style==='box') await capture(`subtitles-250-${width}`);
     }
   }

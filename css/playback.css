@@ -30,7 +30,7 @@ video { width: 100%; height: 100%; display: block; background: #000; }
   font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
   /* A share of the picture's height (js/subdisplay.js): --pic-h is the
      picture without its bars, --sub-scale the viewer's size, 1 at 100 %. */
-  font-size: max(14px, calc(var(--pic-h, 450px) * var(--sub-scale, 1) * 0.05)); font-weight: 500; line-height: 1.3;
+  font-size: max(14px, calc(var(--pic-h, 450px) * var(--sub-scale, 1) * 0.0425)); font-weight: 500; line-height: 1.3;
   transition: bottom .2s ease;
 }
 /* Above the browser's controls while they are likely on show, see wake()
@@ -104,7 +104,7 @@ video::cue {
   /* A share of the picture's height, as the layer's is: the screen's
      height alone made them larger than in the window wherever the screen
      is less wide than 16:9 (a 16:10 laptop). */
-  font-size: calc(var(--sub-scale, 1) * min(100vh, 56.25vw) * 0.05);
+  font-size: calc(var(--sub-scale, 1) * min(100vh, 56.25vw) * 0.0425);
   font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
 }
 body[data-substyle="shadow"] {

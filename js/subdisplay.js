@@ -45,21 +45,27 @@ export const DEFAULT_STYLE = 'shadow';
 // default came to 2.2 % of the picture in full screen — half of what the
 // browsers' own default (5 %) and the BBC's guidance (a line of some 8 %)
 // give, and a footnote rather than a subtitle. 5 % of the picture's height
-// is the size at 100 %, the browsers' own; 5.5 % for a while, and that read
-// a size too large. The slider runs from half of it to two and a half
-// times it. Below 14 px a line stops being readable, whatever the window:
-// that is the floor.
-export const SIZE_SHARE = 0.05;
+// was the size at 100 %, the browsers' own; 5.5 % for a while, and that read
+// a size too large. Since 2026-11-10 100 % is 4.25 %, the owner's measured
+// choice (85 % of the 5 %), and the slider still starts at 100 %. It runs
+// from half of it to two and a half times it. Below 14 px a line stops
+// being readable, whatever the window: that is the floor.
+export const SIZE_SHARE = 0.0425;
+// The share 100 % stood for until then: a size saved on that scale is
+// turned into the same size on this one (subtitleLook).
+const OLD_SIZE_SHARE = 0.05;
+// Set beside a size saved on the present scale (see store.saveSettings).
+export const SCALE_BASE = 2;
 export const MIN_PX = 14;
 export const MIN_SCALE = 50;
 export const MAX_SCALE = 250;
 export const SCALE_STEP = 5;
-// The size at first, 85 %, and the height below, 6 %: the owner's choice
-// (2026-11-10), measured as the look that read best in Chrome. Until then
-// 100 % and 12 %, which a saved Settings form may hold without anyone
-// having chosen them; that pair alone is read as the defaults (see
-// subtitleLook).
-export const DEFAULT_SCALE = 85;
+// The size at first, 100 % of the base above, and the height below, 6 %:
+// the owner's choice (2026-11-10), measured as the look that read best in
+// Chrome. Until then 100 % of 5 % and 12 %, which a saved Settings form may
+// hold without anyone having chosen them; that pair alone is read as the
+// defaults (see subtitleLook).
+export const DEFAULT_SCALE = 100;
 const OLD_DEFAULT_SCALE = 100;
 const OLD_DEFAULT_LIFT = 12;
 // What the older settings held: pixels (24 the default), and before them three names.
@@ -89,15 +95,20 @@ const clampLift = (n) => Math.min(MAX_LIFT, Math.max(MIN_LIFT, Math.round(n)));
  */
 export function subtitleLook(settings) {
   const s = settings || {};
+  const oldScale = s.subtitleScaleBase !== SCALE_BASE;
   let scale = Number(s.subtitleScale);
   if (!Number.isFinite(scale) || scale <= 0) {
     const px = NAMED_SIZE[s.subtitleSize] ?? Number(s.subtitleSize);
-    scale = Number.isFinite(px) && px > 0 ? px / OLD_DEFAULT_PX * 100 : DEFAULT_SCALE;
+    scale = Number.isFinite(px) && px > 0 ? px / OLD_DEFAULT_PX * 100 * OLD_SIZE_SHARE / SIZE_SHARE : DEFAULT_SCALE;
+  } else if (oldScale) {
+    // A size chosen on the old scale keeps its size on screen: 120 % of
+    // 5 % is 141 % of 4.25 %.
+    scale = scale * OLD_SIZE_SHARE / SIZE_SHARE;
   }
   const lift = Number(s.subtitleLift);
   // The old defaults together, as a saved Settings form wrote them for
   // everyone, are no choice of the viewer's: they become the new ones.
-  const untouched = Number(s.subtitleScale) === OLD_DEFAULT_SCALE && lift === OLD_DEFAULT_LIFT;
+  const untouched = oldScale && Number(s.subtitleScale) === OLD_DEFAULT_SCALE && lift === OLD_DEFAULT_LIFT;
   return {
     style: STYLES.includes(s.subtitleStyle) ? s.subtitleStyle : DEFAULT_STYLE,
     scale: untouched ? DEFAULT_SCALE : clampScale(scale),

@@ -8,7 +8,7 @@
 
 import { resetChannelFilters } from './listfilters.js';
 import { $, el } from './dom.js';
-import { DEFAULT_LIFT, DEFAULT_SCALE, stepScale, subtitleLook } from './subdisplay.js';
+import { DEFAULT_LIFT, DEFAULT_SCALE, SCALE_BASE, stepScale, subtitleLook } from './subdisplay.js';
 import { label as audioLabel } from './audio.js';
 import { closeGuide, grid, guideOpen } from './guideui.js';
 import { duration, wholePercent } from './format.js';
@@ -158,7 +158,7 @@ export function showSubtitleSize(form, look) {
 }
 
 /** The look as one form's controls hold it. */
-export const lookOf = (form) => ({ subtitleStyle: $(`${form}-substyle`).value, subtitleScale: Number($(`${form}-subsize`).value), subtitleLift: Number($(`${form}-sublift`).value) });
+export const lookOf = (form) => ({ subtitleStyle: $(`${form}-substyle`).value, subtitleScale: Number($(`${form}-subsize`).value), subtitleScaleBase: SCALE_BASE, subtitleLift: Number($(`${form}-sublift`).value) });
 
 export function applySubtitleLook(settings) {
   const look = subtitleLook(settings);
@@ -282,7 +282,7 @@ export async function stepSubtitleSize(direction) {
   const look = subtitleLook(state.settings);
   const scale = stepScale(look.scale, direction);
   if (scale === look.scale) return;
-  applySubtitleLook({ subtitleStyle: look.style, subtitleScale: scale, subtitleLift: look.lift });
+  applySubtitleLook({ subtitleStyle: look.style, subtitleScale: scale, subtitleScaleBase: SCALE_BASE, subtitleLift: look.lift });
   toast(t('subs.size.now', { size: sizeText(scale) }));
   state.settings = await store.saveSettings({ subtitleScale: scale });
 }

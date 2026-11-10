@@ -693,6 +693,8 @@ export async function loadSettings() {
  */
 export async function saveSettings(patch) {
   const next = { ...(await loadSettings()), ...patch };
+  // A subtitle size saved now is on the present scale (js/subdisplay.js).
+  if ('subtitleScale' in patch) next.subtitleScaleBase = 2;
   await api.storage.local.set({ settings: next });
   return next;
 }
@@ -709,6 +711,8 @@ export async function saveSettings(patch) {
  */
 export async function saveSetup(configPatch, settingsPatch, { replace = false } = {}) {
   const settings = { ...(await loadSettings()), ...settingsPatch };
+  // A subtitle size saved now is on the present scale (js/subdisplay.js).
+  if ('subtitleScale' in settingsPatch) settings.subtitleScaleBase = 2;
   if (!configPatch) {
     await api.storage.local.set({ settings });
     return { config: null, settings };
