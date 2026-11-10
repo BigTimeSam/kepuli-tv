@@ -2169,6 +2169,9 @@ check('another word does not hold the term', holds('Textens utseende', { forms: 
   check('a plan whose programme has ended opens nothing',
     (await due({ stored: { recordings: [{ ...plan, stop: now - 500 }] } })).tabs, []);
   check('nor does one with a player open', (await due({ stored: { recordings: [plan] }, open: true })).tabs, []);
+  check('a player opened with a query in its address is the open player too',
+    await click({ getContexts: async () => [{ documentUrl: 'ext://id/player.html?testnow=1#/live', tabId: 1, windowId: 1 }], onUpdateAvailable: { addListener() {} }, onStartup: { addListener() {} } },
+      { update: async () => {} }), ['focused']);
 }
 
 /* ------------------------------------- firefox/manifest.json: Orion finds it */

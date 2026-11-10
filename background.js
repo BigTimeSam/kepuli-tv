@@ -17,7 +17,9 @@ const PLAYER_URL = api.runtime.getURL('player.html');
 // player writes the place it is in into its address (js/route.js), so the
 // document's URL is player.html#/live/Finland rather than the bare one, and
 // a filter that asks for the bare URL finds nothing and opens a second
-// player beside the first.
+// player beside the first. A query is cut off as well: a player opened as
+// player.html?testnow=… or ?pseudo=1 was not found either, and a planned
+// recording falling due opened a second player beside it.
 // A browser that lacks getContexts, as Orion on the iPhone does, finds
 // none: there the click went dead, as the call threw before the tab was
 // opened, so a new player is the answer whenever the open one cannot be
@@ -25,7 +27,7 @@ const PLAYER_URL = api.runtime.getURL('player.html');
 async function playerTab() {
   try {
     const contexts = await api.runtime.getContexts({ contextTypes: ['TAB'] });
-    return contexts.find((context) => String(context.documentUrl).split('#')[0] === PLAYER_URL) || null;
+    return contexts.find((context) => String(context.documentUrl).split(/[?#]/)[0] === PLAYER_URL) || null;
   } catch {
     return null;
   }
