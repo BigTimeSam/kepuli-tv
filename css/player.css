@@ -15,9 +15,9 @@
      them (a dialog, a menu, a picker) is drawn on --panel-solid instead, as
      the pane under it would show through otherwise. */
   --panel-solid: #11141c;
-  --panel: color-mix(in srgb, #11141c 65%, transparent);
-  --glow-1: color-mix(in srgb, #6d4ff0 45%, transparent);
-  --glow-2: color-mix(in srgb, #22d3ee 26%, transparent);
+  --panel: rgba(17, 20, 28, .65);
+  --glow-1: rgba(109, 79, 240, .45);
+  --glow-2: rgba(34, 211, 238, .26);
   --panel-2: #161a24;
   --row-hover: #1c2130;
   --border: #232838;
@@ -57,7 +57,7 @@
      (on the dark disc every cover mark has, in either theme). */
   --seen: #7ee2a8;
   --seen-on-cover: #7ee2a8;
-  --list-bg: color-mix(in srgb, #0d1016 55%, transparent);
+  --list-bg: rgba(13, 16, 22, .55);
   --selected: #202538;
   --row-line: rgba(35, 40, 56, .45);
   --danger-soft: #2b2230;
@@ -91,9 +91,9 @@
 :root[data-theme="light"] .overlay.idle {
   --bg: #f3f4f8;
   --panel-solid: #ffffff;
-  --panel: color-mix(in srgb, #ffffff 65%, transparent);
-  --glow-1: color-mix(in srgb, #6d4ff0 22%, transparent);
-  --glow-2: color-mix(in srgb, #22d3ee 18%, transparent);
+  --panel: rgba(255, 255, 255, .65);
+  --glow-1: rgba(109, 79, 240, .22);
+  --glow-2: rgba(34, 211, 238, .18);
   --panel-2: #eef0f5;
   --row-hover: #e5e8f0;
   --border: #d6dae4;
@@ -113,7 +113,7 @@
   --gold: #805600;
   --gold-line: #e2cf9f;
   --seen: #146c43;          /* 6.4:1 on white, 5.1:1 on the selected row */
-  --list-bg: color-mix(in srgb, #ffffff 55%, transparent);
+  --list-bg: rgba(255, 255, 255, .55);
   --selected: #e2e6f3;
   --row-line: rgba(22, 25, 37, .08);
   --danger-soft: #fbe5ea;
