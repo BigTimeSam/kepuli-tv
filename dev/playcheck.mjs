@@ -94,6 +94,8 @@
 //                                     country list's filter leaves the list open
 //   node dev/playcheck.mjs starquiet  a star given in the channels and the films
 //                                     repaints its row and nothing else
+//   node dev/playcheck.mjs iossubs  the iPhone's own full screen player gets the
+//                                     subtitles drawn by the browser
 //   node dev/playcheck.mjs phonestar  390 px: the country chosen in the menu is
 //                                     starred by the star beside it, and the
 //                                     menu lists the favourites first
@@ -2124,6 +2126,26 @@ async function starquiet(page) {
     seen.push(`${tab}: no row redrawn, sidebar and topics untouched`);
   }
   return { ok: true, detail: seen.join('; ') };
+}
+
+/**
+ * The iPhone's own full screen player (the full screen button there) takes
+ * the bare video and leaves the page's subtitle layer behind; the page
+ * hid the browser's own drawing, and the subtitles were gone in full
+ * screen. It says so on the video alone (webkitbeginfullscreen and
+ * webkitendfullscreen), and the browser draws them for its duration.
+ */
+async function iossubs(page) {
+  const assert = (ok, detail) => { if (!ok) throw new Error(detail); };
+  await waitFor(page, `document.body.dataset.subrender`, 'the subtitle display');
+  const mode = () => evaluate(page, `document.body.dataset.subrender`);
+  const before = await mode();
+  await evaluate(page, `document.getElementById('video').dispatchEvent(new Event('webkitbeginfullscreen'))`);
+  const inside = await mode();
+  await evaluate(page, `document.getElementById('video').dispatchEvent(new Event('webkitendfullscreen'))`);
+  const after = await mode();
+  assert(before === 'overlay' && inside === 'native' && after === 'overlay', `subtitles drawn by: before ${before}, in the iPhone's full screen ${inside}, after ${after}`);
+  return { ok: true, detail: 'the page draws them, the browser in the iPhone\'s full screen player, the page again after it' };
 }
 
 /**
@@ -7095,7 +7117,7 @@ async function handoff(page) {
 
 const SCENARIOS = { buffering, livebuffering, filmbuffering, emptyfile, tsasmp4, refusedfile, badgateway, livebadgateway, channelrefused, noanswer, longfilm, catalogUi, setupClarity, welcome, fullscreenControl, clickpause, pickers, touchcaret, screenbutton, topmenu, scrollbars, channelorder, lengthfilter, nowlogo, channels, home, resumemkv, restore, programmes, catchup, seek, death, cancel, timeout, search, paste, keys, switching, resume, connections, livezap, livequiet, reconnect, accounts, listerror, a11y, subtitles, audio, wasmaudio, settings,
   lastchannel, nextepisode, continuewatching, reminders, update, seeklag, cuesretry, quota, catchupfreeze, catchupfull, twotabs, switchstop, resettabs,
-  refresh, restorenav, guidekeep, removeaccount, m3u, sync, holes, picks, flakyserver, accountform, stalker, record, guidefavs, guidenames, categories, homecountry, noleak, perf, pseudo, startup, soak, phone, starquiet, phonestar, pickerkeyboard, phonescroll, menutap, wakelock, livecut, episodenames, gotochannel, filmdetails, favorder, countryfilter, tilekeys, routes, programmekeys, searchlimit, filterfolds, focusrings, xtreamoffer, guideclick, filmaddress, filmfacts, playlistfile, perflive, perfplaylist, remoteimages, phoneguide, handoff };
+  refresh, restorenav, guidekeep, removeaccount, m3u, sync, holes, picks, flakyserver, accountform, stalker, record, guidefavs, guidenames, categories, homecountry, noleak, perf, pseudo, startup, soak, phone, iossubs, starquiet, phonestar, pickerkeyboard, phonescroll, menutap, wakelock, livecut, episodenames, gotochannel, filmdetails, favorder, countryfilter, tilekeys, routes, programmekeys, searchlimit, filterfolds, focusrings, xtreamoffer, guideclick, filmaddress, filmfacts, playlistfile, perflive, perfplaylist, remoteimages, phoneguide, handoff };
 // The mock's whole-list answers stall for these, longer than the request limit.
 const SLOW_LIST_MS = { cancel: 60000, timeout: 60000 };
 // The media is sent slowly for these: the seek targets must lie outside the

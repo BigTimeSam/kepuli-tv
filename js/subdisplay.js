@@ -120,6 +120,8 @@ export class SubtitleDisplay {
    * @param {HTMLElement} wrap the video's wrapper: the layer's parent and what goes to full screen
    */
   constructor(video, layer, wrap) {
+    /** The iPhone's own full screen player has the video. */
+    this.ownFullscreen = false;
     this.video = video;
     this.layer = layer;
     this.wrap = wrap;
@@ -136,6 +138,11 @@ export class SubtitleDisplay {
     // A new source: the old tracks' cues are gone with the old one.
     video.addEventListener('emptied', () => this.paint());
     document.addEventListener('fullscreenchange', () => this.mode());
+    // The iPhone's own full screen player (js/playercontrols.js) is not the
+    // page's full screen and says so on the video alone. The layer stays
+    // behind in the page there, and the subtitles were gone from it.
+    video.addEventListener('webkitbeginfullscreen', () => { this.ownFullscreen = true; this.mode(); });
+    video.addEventListener('webkitendfullscreen', () => { this.ownFullscreen = false; this.mode(); });
     // The boxes are fitted to their lines in pixels (see fit), so a new
     // size (the --sub-scale property in the body's style, or a picture of
     // another height) or a new look — padding and all — means fitting them
@@ -173,7 +180,7 @@ export class SubtitleDisplay {
 
   /** Whether the layer or the browser draws, see the head of the file. */
   mode() {
-    const native = document.fullscreenElement === this.video;
+    const native = document.fullscreenElement === this.video || this.ownFullscreen;
     document.body.dataset.subrender = native ? 'native' : 'overlay';
     this.wake();
     this.repaint();
