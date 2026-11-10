@@ -223,6 +223,12 @@ dialog, .picker-pop, .row-menu, .pop, .side-scroll-arrow { --panel: var(--panel-
 .skip-link:focus { transform: none; }
 
 html, body { height: 100%; margin: 0; overflow: hidden; }
+/* The page is an app, not a document: a phone's double tap zoomed it
+   rather than acting, and the viewport tag in player.html keeps it at its
+   scale for a pinch and for a field's focus too, which on the iPhone zoomed
+   in on every field under 16 px and scrolled the page away under it. The
+   text follows the browser's own size setting (rem) instead. */
+html { touch-action: manipulation; }
 
 /* The type is on the body alone. On html it would set the root size that rem
    is measured from, and 0.8125rem of itself compounds: the root fell from the

@@ -38,8 +38,17 @@ export function wirePickers(root = document) {
   root.addEventListener('mousedown', onPress, true);
   root.addEventListener('keydown', onKey, true);
   root.addEventListener('pointerdown', onOutside, true);
-  addEventListener('resize', () => close(), { passive: true });
-  root.addEventListener('scroll', (e) => { if (open && !open.pop.contains(e.target)) close(); }, { capture: true, passive: true });
+  // A window that changes its width moves the select from under the list.
+  // Its height alone is a phone's keyboard opening for the filter, and the
+  // page scrolled to keep the field in sight is the same keyboard: closed
+  // on either, the list flashed and took the keyboard with it (Orion,
+  // iPhone), and nothing could be typed into it.
+  let width = innerWidth;
+  addEventListener('resize', () => { if (innerWidth !== width) { width = innerWidth; close(); } }, { passive: true });
+  root.addEventListener('scroll', (e) => {
+    if (!open || open.pop.contains(/** @type {Node} */ (e.target)) || open.pop.contains(document.activeElement)) return;
+    close();
+  }, { capture: true, passive: true });
 }
 
 const pickable = (node) => node instanceof HTMLSelectElement && !node.multiple && !node.disabled && node.size <= 1;

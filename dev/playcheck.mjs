@@ -90,6 +90,8 @@
 //                                     nowhere (the iPhone)
 //   node dev/playcheck.mjs wakelock  the screen is held on while a channel
 //                                     plays, let go on pause, held again on play
+//   node dev/playcheck.mjs pickerkeyboard  a phone's keyboard opening for the
+//                                     country list's filter leaves the list open
 //   node dev/playcheck.mjs phonestar  390 px: the country chosen in the menu is
 //                                     starred by the star beside it, and the
 //                                     menu lists the favourites first
@@ -2043,6 +2045,52 @@ async function wakelock(page) {
   const again = await held();
   assert(playing === 1 && paused === 0 && again === 1, `locks held: playing ${playing}, paused ${paused}, playing again ${again}`);
   return { ok: true, detail: 'held while the channel played, let go on pause, held again on play' };
+}
+
+/**
+ * The country menu's filter on a phone. The list closed whenever the window
+ * resized or the page scrolled, and a phone's keyboard opening for the
+ * filter does both: in Orion the list flashed and took the keyboard with
+ * it, and nothing could be typed. Here the keyboard is the window's height
+ * halved and the page scrolled with the field focused: the list stays open
+ * and filters; a change of width (a turn of the phone) still closes it.
+ * The page also keeps its scale: no zoom by pinch, double tap or a field.
+ */
+async function pickerkeyboard(page) {
+  const assert = (ok, detail) => { if (!ok) throw new Error(detail); };
+  await evaluate(page, `document.getElementById('tab-live').click()`);
+  await waitFor(page, `document.querySelectorAll('#group-select option').length >= 7`, 'the countries');
+  await page.call('Emulation.setDeviceMetricsOverride', { width: 390, height: 844, deviceScaleFactor: 1, mobile: true });
+  const open = () => evaluate(page, `Boolean(document.querySelector('.picker-pop:popover-open'))`);
+  try {
+    await sleep(400);
+    await evaluate(page, `document.getElementById('group-select').dispatchEvent(new MouseEvent('mousedown', { bubbles: true, cancelable: true, button: 0 }))`);
+    await waitFor(page, `document.querySelector('.picker-pop:popover-open .picker-filter')`, 'the country list with its filter');
+    await evaluate(page, `document.querySelector('.picker-pop .picker-filter').focus()`);
+    // The keyboard: the window loses half its height, and the page scrolls.
+    await page.call('Emulation.setDeviceMetricsOverride', { width: 390, height: 420, deviceScaleFactor: 1, mobile: true });
+    await sleep(300);
+    await evaluate(page, `document.scrollingElement.dispatchEvent(new Event('scroll', { bubbles: true }))`);
+    await sleep(200);
+    const kept = await open();
+    await evaluate(page, `(() => { const f = document.querySelector('.picker-pop .picker-filter'); f.value = 'fin'; f.dispatchEvent(new Event('input', { bubbles: true })); })()`);
+    await sleep(200);
+    const shown = await evaluate(page, `[...document.querySelectorAll('.picker-pop .picker-option')].filter((o) => !o.hidden).map((o) => o.textContent.trim())`);
+    const focused = await evaluate(page, `document.activeElement?.classList.contains('picker-filter')`);
+    // A turn of the phone: the width changes, and the list closes.
+    await page.call('Emulation.setDeviceMetricsOverride', { width: 844, height: 390, deviceScaleFactor: 1, mobile: true });
+    await sleep(300);
+    const turned = await open();
+    const viewport = await evaluate(page, `document.querySelector('meta[name="viewport"]').content`);
+    const touch = await evaluate(page, `getComputedStyle(document.documentElement).touchAction`);
+    assert(kept && focused && shown.length === 1 && /Finland/.test(shown[0]), `with the keyboard open: list ${kept ? 'open' : 'closed'}, focus ${focused ? 'in the filter' : 'gone'}, shown ${JSON.stringify(shown)}`);
+    assert(!turned, 'the list stayed open over a change of width');
+    assert(/maximum-scale=1/.test(viewport) && /user-scalable=no/.test(viewport) && touch === 'manipulation', `zoom: viewport "${viewport}", touch-action ${touch}`);
+    return { ok: true, detail: `the keyboard's resize and scroll left the list open, "fin" filtered it to ${shown[0]}; a change of width closed it; no zoom (${viewport}, touch-action ${touch})` };
+  } finally {
+    await evaluate(page, `document.querySelector('.picker-pop:popover-open')?.hidePopover()`).catch(() => {});
+    await page.call('Emulation.setDeviceMetricsOverride', { width: 1280, height: 800, deviceScaleFactor: 1, mobile: false }).catch(() => {});
+  }
 }
 
 /**
@@ -7014,7 +7062,7 @@ async function handoff(page) {
 
 const SCENARIOS = { buffering, livebuffering, filmbuffering, emptyfile, tsasmp4, refusedfile, badgateway, livebadgateway, channelrefused, noanswer, longfilm, catalogUi, setupClarity, welcome, fullscreenControl, clickpause, pickers, touchcaret, screenbutton, topmenu, scrollbars, channelorder, lengthfilter, nowlogo, channels, home, resumemkv, restore, programmes, catchup, seek, death, cancel, timeout, search, paste, keys, switching, resume, connections, livezap, livequiet, reconnect, accounts, listerror, a11y, subtitles, audio, wasmaudio, settings,
   lastchannel, nextepisode, continuewatching, reminders, update, seeklag, cuesretry, quota, catchupfreeze, catchupfull, twotabs, switchstop, resettabs,
-  refresh, restorenav, guidekeep, removeaccount, m3u, sync, holes, picks, flakyserver, accountform, stalker, record, guidefavs, guidenames, categories, homecountry, noleak, perf, pseudo, startup, soak, phone, phonestar, phonescroll, menutap, wakelock, livecut, episodenames, gotochannel, filmdetails, favorder, countryfilter, tilekeys, routes, programmekeys, searchlimit, filterfolds, focusrings, xtreamoffer, guideclick, filmaddress, filmfacts, playlistfile, perflive, perfplaylist, remoteimages, phoneguide, handoff };
+  refresh, restorenav, guidekeep, removeaccount, m3u, sync, holes, picks, flakyserver, accountform, stalker, record, guidefavs, guidenames, categories, homecountry, noleak, perf, pseudo, startup, soak, phone, phonestar, pickerkeyboard, phonescroll, menutap, wakelock, livecut, episodenames, gotochannel, filmdetails, favorder, countryfilter, tilekeys, routes, programmekeys, searchlimit, filterfolds, focusrings, xtreamoffer, guideclick, filmaddress, filmfacts, playlistfile, perflive, perfplaylist, remoteimages, phoneguide, handoff };
 // The mock's whole-list answers stall for these, longer than the request limit.
 const SLOW_LIST_MS = { cancel: 60000, timeout: 60000 };
 // The media is sent slowly for these: the seek targets must lie outside the
