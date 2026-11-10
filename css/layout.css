@@ -79,18 +79,13 @@ main.guide #btn-pip,
 main.guide #btn-copy { display: none; }
 
 .groups { background: var(--panel); border-right: 1px solid var(--border); display: flex; flex-direction: column; }
-/* The third of the strips across the top of the columns, as tall as the
-   guide's and the picture's header (--head-h), so that one line runs under
-   all three. */
-.groups-filter { position: relative; box-sizing: border-box; min-height: var(--head-h); display: flex; flex-direction: column; justify-content: center; padding: 8px; border-bottom: 1px solid var(--border); }
+.groups-filter { position: relative; padding: 8px; border-bottom: 1px solid var(--border); }
 /* The same magnifier as the search in the top bar: this field searches too,
    among the countries and their topics. */
-.groups-filter svg { position: absolute; left: 18px; top: 50%; translate: 0 -50%; width: 14px; height: 14px; fill: none; stroke: var(--muted); stroke-width: 1.8; stroke-linecap: round; pointer-events: none; }
+.groups-filter svg { position: absolute; left: 17px; top: 50%; translate: 0 -50%; width: 14px; height: 14px; fill: none; stroke: var(--muted); stroke-width: 1.8; stroke-linecap: round; pointer-events: none; }
 .groups-filter input {
-  /* The top bar's search field, size for size: two searches side by side
-     read as one kind of control. */
-  width: 100%; box-sizing: border-box; padding: 7px 8px 7px 30px; background: var(--panel-2);
-  border: 1px solid var(--border); border-radius: 8px;
+  width: 100%; padding: 5px 8px 5px 27px; background: var(--panel-2);
+  border: 1px solid var(--border); border-radius: 7px; font-size: var(--fs-m);
 }
 .groups-filter input:focus { border-color: var(--accent); }
 .groups-list { flex: 1; overflow-y: auto; padding: 6px; }
