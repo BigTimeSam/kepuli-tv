@@ -179,7 +179,9 @@ body[data-substyle="contrast"] { --cue-back: #000; }
 .side-scroll-arrow[hidden] { display: none; }
 .side-scroll-arrow.prev { left: -14px; }
 .side-scroll-arrow.next { right: -14px; }
-.side-scroll-arrow:hover { background: var(--row-hover); }
+/* Solid under the pointer as well: the hover's veil (see player.css) let
+   the row under the arrow show through it. */
+.side-scroll-arrow:hover { background: var(--panel-2); color: var(--text); border-color: var(--accent); }
 .side-scroll-arrow svg { width: 16px; height: 16px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
 .side-scroll.compact .side-scroll-arrow { width: 24px; height: 24px; box-shadow: 0 1px 6px rgba(0, 0, 0, .35); }
 .side-scroll.compact .side-scroll-arrow.prev { left: 0; }
@@ -420,6 +422,9 @@ main:not(.has-playback) .stagehead { display: none; }
 .nowbar.tight #mode-pick > select { width: 100%; min-width: 0; }
 .nowbar.tight .now-actions .trackpick, .nowbar.tight .now-actions > .trackpick-mark { min-width: 64px; }
 .now-actions select { text-overflow: ellipsis; }
+/* fitNowbar's measure: each control at its own width for a moment. */
+.nowbar.measuring .now-actions > * { flex-shrink: 0 !important; }
+.nowbar.measuring .now-actions { overflow: hidden; }
 main.guide .select-mark .select-label { display: none; }
 /* The subtitles' label takes the selector's place on the row: it is what
    gives way when the row runs short, down to a readable stub. */

@@ -1117,6 +1117,8 @@ function renderCountriesButton() {
   $('btn-countries-text').textContent = chosen && groupFilterMode(type) === 'favorites' ? t(`${words}.button.favorites`)
     : live ? (chosen ? t('countries.button.chosen', { count: chosen.size, n: nf.format(chosen.size), total }) : t('countries.button'))
     : (chosen ? t('categories.button.chosen', { n: nf.format(chosen.size), total }) : t('categories.button'));
+  // The words may be cut short where the sidebar is narrow (css/layout.css).
+  button.title = $('btn-countries-text').textContent;
 }
 
 /**
@@ -1201,10 +1203,14 @@ function fitNowbar() {
   const bar = /** @type {HTMLElement} */ (document.querySelector('.nowbar'));
   const row = bar?.querySelector('.now-actions');
   if (!bar || !row) return;
+  // Whether the row holds its controls at their own widths, nothing
+  // shrunk: the selectors may give way to a stub (css/playback.css), and a
+  // row that fits only so had its values cut short while the words stayed.
   const oneLine = () => {
-    const shown = [...row.children].filter((c) => c.getClientRects().length);
-    return shown.every((c) => Math.abs(/** @type {HTMLElement} */ (c).offsetTop - /** @type {HTMLElement} */ (shown[0]).offsetTop) < 4)
-      && row.scrollWidth <= row.clientWidth + 1;
+    bar.classList.add('measuring');
+    const fits = row.scrollWidth <= row.clientWidth + 1;
+    bar.classList.remove('measuring');
+    return fits;
   };
   let pending = 0;
   const fit = () => {

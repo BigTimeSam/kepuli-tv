@@ -322,7 +322,18 @@ export function renderListInfo() {
   // The tab's own mark before the count, so the line reads as the list's
   // summary: the same drawing as the tab above, nothing new to learn.
   const mark = document.querySelector(`#tabs [data-tab="${state.tab}"] .tab-icon`)?.cloneNode(true);
-  el.listinfo.replaceChildren(...(mark ? [mark] : []), document.createTextNode(parts.join(', ')));
+  // One line, whatever the width: the count stays and what follows it (the
+  // country, its topics) is cut short first, then left out where the
+  // column is narrow (css/list.css); the whole of it is the tooltip. Over
+  // two or three lines it pushed the bar's buttons about.
+  const head = document.createElement('span');
+  head.className = 'listinfo-count';
+  head.textContent = parts[0];
+  const rest = document.createElement('span');
+  rest.className = 'listinfo-rest';
+  rest.textContent = parts.length > 1 ? `, ${parts.slice(1).join(', ')}` : '';
+  el.listinfo.replaceChildren(...(mark ? [mark] : []), head, rest);
+  el.listinfo.title = parts.join(', ');
   const hidden = state.channelPrefs.hiddenChannels.length + state.channelPrefs.hiddenCategories.length;
   if (state.tab === 'live' && state.lib && hidden) {
     const spacer = document.createElement('span');

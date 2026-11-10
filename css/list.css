@@ -125,6 +125,12 @@ button.group-star, button.group-star:hover, .group.active .group-star:hover { wi
 
 
 .listinfo { min-height: var(--foot-h); padding: 4px 10px; border-top: 1px solid var(--border); color: var(--muted); font-size: var(--fs-s); background: var(--panel); font-variant-numeric: tabular-nums; display: flex; align-items: center; gap: 8px; }
+.listinfo { container-type: inline-size; white-space: nowrap; }
+.listinfo-count { flex: 0 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; }
+.listinfo-rest { flex: 0 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; margin-left: -8px; }
+/* Where the column is narrow the count alone: "6 films" rather than a
+   country broken over three lines beside the buttons. */
+@container (max-width: 360px) { .listinfo-rest { display: none; } }
 .listinfo .spacer { flex: 1; }
 .listinfo > .tab-icon { display: block; flex: none; width: 14px; height: 14px; margin-right: -2px; }
 .listinfo button { background: none; border: 0; padding: 0; font: inherit; color: var(--muted); cursor: pointer; text-decoration: underline; text-underline-offset: 2px; }

@@ -73,7 +73,11 @@ button.series-favorite.on { color: var(--gold); }
 main:not(.guide) .stage:has(> .infostrip:not([hidden])) > .videowrap.sized:not(:fullscreen) {
   flex: 0 1 auto; width: 100%; aspect-ratio: var(--pic-ratio); min-height: min(240px, 50%);
 }
-main:not(.guide) .stage:has(> .videowrap.sized:not(:fullscreen)) > .infostrip { flex: 1 1 auto; max-height: none; min-height: 0; }
+/* The details keep a floor of their own, the programme on now and the
+   next one: in a wide window the picture's height took the column and left
+   them a line, with the next programme to be scrolled to. Within a third of
+   the column, so that a low window still has its picture. */
+main:not(.guide) .stage:has(> .videowrap.sized:not(:fullscreen)) > .infostrip { flex: 1 1 auto; max-height: none; min-height: min(8.5rem, 33%); }
 .vodinfo .title-facts { grid-template-columns: repeat(auto-fit, minmax(5.625rem, 1fr)); }
 .vodinfo .meta { padding-top: 8px; border-top: 1px solid var(--border); }
 .vodinfo .meta:empty { display: none; }

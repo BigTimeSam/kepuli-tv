@@ -105,6 +105,9 @@ main.guide #btn-copy { display: none; }
 .groups-foot[data-kind="categories"] .foot-countries, .groups-foot:not([data-kind="categories"]) .foot-categories { display: none; }
 .groups-foot:hover { color: var(--text); background: var(--row-hover); }
 .groups-foot:focus-visible { outline: 2px solid var(--accent-ink); outline-offset: -2px; }
+/* One line, shortened with an ellipsis where the sidebar is narrow
+   ("Suodata kategorioita" broke in two); the whole words are its tooltip. */
+.groups-foot > span { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .groups-foot svg { width: 15px; height: 15px; flex: none; fill: none; stroke: currentColor; stroke-width: 1.5; stroke-linecap: round; stroke-linejoin: round; }
 
 .group { display: flex; align-items: center; gap: 8px; padding: 6px 9px; border-radius: 7px; cursor: pointer; color: var(--muted); }
