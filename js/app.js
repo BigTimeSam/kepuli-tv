@@ -1190,6 +1190,35 @@ function renderKinds() {
   paintGroupPickerStar(null);
 }
 
+/**
+ * The bar under the picture on one line. With an audio track's selector
+ * beside the format's and the subtitles', the row ran out of room and broke
+ * onto a second line; the format's words ("Playback mode:") go first, and
+ * its mark and value stay. Tried with the words each time anything changes,
+ * so that they come back when there is room again.
+ */
+function fitNowbar() {
+  const bar = /** @type {HTMLElement} */ (document.querySelector('.nowbar'));
+  const row = bar?.querySelector('.now-actions');
+  if (!bar || !row) return;
+  const oneLine = () => {
+    const shown = [...row.children].filter((c) => c.getClientRects().length);
+    return shown.every((c) => Math.abs(/** @type {HTMLElement} */ (c).offsetTop - /** @type {HTMLElement} */ (shown[0]).offsetTop) < 4)
+      && row.scrollWidth <= row.clientWidth + 1;
+  };
+  let pending = 0;
+  const fit = () => {
+    pending = 0;
+    bar.classList.remove('tight');
+    if (!oneLine()) bar.classList.add('tight');
+  };
+  // In the next frame: the class changes the sizes being observed, and
+  // changed inside the observer's callback that is a loop the browser warns of.
+  const later = () => { if (!pending) pending = requestAnimationFrame(fit); };
+  new ResizeObserver(later).observe(bar);
+  new MutationObserver(later).observe(row, { subtree: true, attributes: true, attributeFilter: ['hidden'], childList: true });
+}
+
 async function selectKind(kind) {
   catalogueSearch.reset();
   state.kind = kind;
@@ -1997,6 +2026,7 @@ function wireUi() {
   new ResizeObserver(() => {
     el.mode.style.paddingLeft = modeLabel.offsetWidth ? `${modeLabel.offsetLeft + modeLabel.offsetWidth + 6}px` : '';
   }).observe(modeLabel);
+  fitNowbar();
   el.mode.addEventListener('change', () => {
     store.saveConfig({ streamMode: el.mode.value });
     if (state.playing) playItem(state.playing);

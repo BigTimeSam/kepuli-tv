@@ -100,6 +100,10 @@
 //                                     is solid, its words readable
 //   node dev/playcheck.mjs arrowmiddle  the ‹ › of a sideways row stand at the
 //                                     middle of what the row shows
+//   node dev/playcheck.mjs subsize  the subtitles at the default size and height,
+//                                     as shares of the picture, in either browser
+//   node dev/playcheck.mjs nowbarfit  the bar under the picture stays one line:
+//                                     the format's words go when room runs out
 //   node dev/playcheck.mjs phonestar  390 px: the country chosen in the menu is
 //                                     starred by the star beside it, and the
 //                                     menu lists the favourites first
@@ -2206,6 +2210,70 @@ async function arrowmiddle(page) {
   seen = seen.concat(await off());
   assert(seen.length >= 2 && seen.every(([, d]) => d <= 1), `arrows off their row's middle: ${JSON.stringify(seen)}`);
   return { ok: true, detail: seen.map(([what, d]) => `${what} ${d} px`).join(', ') };
+}
+
+/**
+ * The subtitles' default look, the same in every browser: 85 % of the base
+ * size (5 % of the picture's height) and the lowest line 6 % of the
+ * picture's height above its bottom edge, the owner's measured choice. The
+ * page draws them in Chrome and Firefox alike, so both are measured here
+ * against the picture rather than the window.
+ */
+async function subsize(page) {
+  const assert = (ok, detail) => { if (!ok) throw new Error(detail); };
+  await evaluate(page, `chrome.storage.local.get('settings').then(({ settings }) => { const s = { ...settings }; delete s.subtitleScale; delete s.subtitleLift; delete s.subtitleSize; return chrome.storage.local.set({ settings: s }); })`);
+  await page.call('Page.reload');
+  await sleep(1000);
+  await waitFor(page, CONNECTED, 'the player again');
+  await playEpisode(page);
+  await waitFor(page, `document.querySelectorAll('#subdisplay .cue').length > 0`, 'a cue in the layer', 30000);
+  // Playing, with the pointer away: the controls hide after three seconds
+  // and the subtitles come down to their own height.
+  await page.call('Input.dispatchMouseEvent', { type: 'mouseMoved', x: 5, y: 5 });
+  await waitFor(page, `!document.getElementById('videowrap').classList.contains('controls') && document.querySelectorAll('#subdisplay .cue').length > 0`, 'the controls hidden', 15000);
+  await sleep(400);
+  const m = await evaluate(page, `(() => { const wrap = document.getElementById('videowrap'); const pic = parseFloat(getComputedStyle(wrap).getPropertyValue('--pic-h')); const bar = parseFloat(getComputedStyle(wrap).getPropertyValue('--pic-bar')) || 0;
+    const layer = document.getElementById('subdisplay'); const cue = layer.querySelector('.cue');
+    return { pic, size: parseFloat(getComputedStyle(cue).fontSize), above: wrap.getBoundingClientRect().bottom - bar - layer.getBoundingClientRect().bottom }; })()`);
+  const again = m.above;
+  const sizeShare = m.size / m.pic, liftShare = again / m.pic;
+  assert(Math.abs(sizeShare - 0.85 * 0.05) < 0.002 || m.size === 14, `the size is ${(sizeShare * 100).toFixed(2)} % of the picture (${m.size} px of ${m.pic})`);
+  assert(Math.abs(liftShare - 0.06) < 0.01, `the lowest line stands ${(liftShare * 100).toFixed(1)} % of the picture above its bottom`);
+  return { ok: true, detail: `the text ${(sizeShare * 100).toFixed(2)} % of the picture's height (85 % of 5 %), the lowest line ${(liftShare * 100).toFixed(1)} % above its bottom` };
+}
+
+/**
+ * The bar under the picture stays one line. With an audio track's selector
+ * beside the format's and the subtitles', it broke onto a second; the
+ * format's words ("Playback mode:") give way first, its mark and value
+ * stay, and the words come back once the row has room again.
+ */
+async function nowbarfit(page) {
+  const assert = (ok, detail) => { if (!ok) throw new Error(detail); };
+  await page.call('Emulation.setDeviceMetricsOverride', { width: 1440, height: 900, deviceScaleFactor: 1, mobile: false });
+  try {
+    await playEpisode(page);
+    const look = () => evaluate(page, `(() => { const row = document.querySelector('.now-actions'); const shown = [...row.children].filter((c) => c.getClientRects().length);
+      const tops = new Set(shown.map((c) => Math.round(c.getBoundingClientRect().top / 4)));
+      return { lines: tops.size, label: document.getElementById('mode-label').getClientRects().length > 0, bar: Math.round(document.querySelector('.nowbar').getBoundingClientRect().height), cls: document.querySelector('.nowbar').className, kids: shown.map((c) => (c.id || c.className).slice(0, 20) + '@' + c.offsetTop + '/' + Math.round(c.getBoundingClientRect().top)), sw: row.scrollWidth, cw: row.clientWidth }; })()`);
+    const before = await look();
+    // An audio track's selector, as a film with two tracks shows it, with
+    // a long name.
+    await evaluate(page, `(() => { const a = document.getElementById('audio'); a.replaceChildren(new Option('Finnish (AC-3 5.1, with the commentary)', '0'), new Option('English', '1')); a.hidden = false; a.closest('.select-mark, .trackpick-mark')?.removeAttribute('hidden'); })()`);
+    await page.call('Emulation.setDeviceMetricsOverride', { width: 1180, height: 900, deviceScaleFactor: 1, mobile: false });
+    await sleep(1200);
+    const crowded = await look();
+    await evaluate(page, `document.getElementById('audio').hidden = true`);
+    await page.call('Emulation.setDeviceMetricsOverride', { width: 1440, height: 900, deviceScaleFactor: 1, mobile: false });
+    await sleep(1200);
+    const after = await look();
+    assert(before.lines === 1 && before.label, `before: ${JSON.stringify(before)}`);
+    assert(crowded.lines === 1 && !crowded.label, `with an audio track's selector: ${JSON.stringify(crowded)}`);
+    assert(after.lines === 1 && after.label, `with room again: ${JSON.stringify(after)}`);
+    return { ok: true, detail: `one line throughout (${crowded.bar} px); "Playback mode:" left out beside an audio track's selector and back with room` };
+  } finally {
+    await page.call('Emulation.setDeviceMetricsOverride', { width: 1280, height: 800, deviceScaleFactor: 1, mobile: false }).catch(() => {});
+  }
 }
 
 /**
@@ -7177,7 +7245,7 @@ async function handoff(page) {
 
 const SCENARIOS = { buffering, livebuffering, filmbuffering, emptyfile, tsasmp4, refusedfile, badgateway, livebadgateway, channelrefused, noanswer, longfilm, catalogUi, setupClarity, welcome, fullscreenControl, clickpause, pickers, touchcaret, screenbutton, topmenu, scrollbars, channelorder, lengthfilter, nowlogo, channels, home, resumemkv, restore, programmes, catchup, seek, death, cancel, timeout, search, paste, keys, switching, resume, connections, livezap, livequiet, reconnect, accounts, listerror, a11y, subtitles, audio, wasmaudio, settings,
   lastchannel, nextepisode, continuewatching, reminders, update, seeklag, cuesretry, quota, catchupfreeze, catchupfull, twotabs, switchstop, resettabs,
-  refresh, restorenav, guidekeep, removeaccount, m3u, sync, holes, picks, flakyserver, accountform, stalker, record, guidefavs, guidenames, categories, homecountry, noleak, perf, pseudo, startup, soak, phone, arrowmiddle, idlelight, iossubs, starquiet, phonestar, pickerkeyboard, phonescroll, menutap, wakelock, livecut, episodenames, gotochannel, filmdetails, favorder, countryfilter, tilekeys, routes, programmekeys, searchlimit, filterfolds, focusrings, xtreamoffer, guideclick, filmaddress, filmfacts, playlistfile, perflive, perfplaylist, remoteimages, phoneguide, handoff };
+  refresh, restorenav, guidekeep, removeaccount, m3u, sync, holes, picks, flakyserver, accountform, stalker, record, guidefavs, guidenames, categories, homecountry, noleak, perf, pseudo, startup, soak, phone, nowbarfit, subsize, arrowmiddle, idlelight, iossubs, starquiet, phonestar, pickerkeyboard, phonescroll, menutap, wakelock, livecut, episodenames, gotochannel, filmdetails, favorder, countryfilter, tilekeys, routes, programmekeys, searchlimit, filterfolds, focusrings, xtreamoffer, guideclick, filmaddress, filmfacts, playlistfile, perflive, perfplaylist, remoteimages, phoneguide, handoff };
 // The mock's whole-list answers stall for these, longer than the request limit.
 const SLOW_LIST_MS = { cancel: 60000, timeout: 60000 };
 // The media is sent slowly for these: the seek targets must lie outside the

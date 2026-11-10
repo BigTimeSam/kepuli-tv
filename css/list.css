@@ -124,7 +124,7 @@ button.group-star, button.group-star:hover, .group.active .group-star:hover { wi
 .daysep-icon { width: 14px; height: 14px; flex: none; fill: none; stroke: currentColor; stroke-width: 1.6; stroke-linecap: round; stroke-linejoin: round; }
 
 
-.listinfo { min-height: var(--foot-h); padding: 7px 10px; border-top: 1px solid var(--border); color: var(--muted); font-size: var(--fs-s); background: var(--panel); font-variant-numeric: tabular-nums; display: flex; align-items: center; gap: 8px; }
+.listinfo { min-height: var(--foot-h); padding: 4px 10px; border-top: 1px solid var(--border); color: var(--muted); font-size: var(--fs-s); background: var(--panel); font-variant-numeric: tabular-nums; display: flex; align-items: center; gap: 8px; }
 .listinfo .spacer { flex: 1; }
 .listinfo > .tab-icon { display: block; flex: none; width: 14px; height: 14px; margin-right: -2px; }
 .listinfo button { background: none; border: 0; padding: 0; font: inherit; color: var(--muted); cursor: pointer; text-decoration: underline; text-underline-offset: 2px; }
