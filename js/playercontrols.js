@@ -148,10 +148,21 @@ const CONTROL_BAR_PX = 80;
 // double click. A little later than the controls' own pause, and only then.
 const SECOND_CLICK_MS = 280;
 let clickTimer = null;
+// What made the last press: a mouse, a finger or a pen.
+let lastPointer = 'mouse';
+window.addEventListener('pointerdown', (e) => { lastPointer = e.pointerType || 'mouse'; }, true);
 
 export function clickPicture(e) {
   const video = el.video;
   if (e.target !== video || e.button !== 0) return;
+  // A tap is the touch screen's own controls': it shows them, and their
+  // play button plays. Taken over here as a click, the tap on the iPhone's
+  // play button also reached this, and its pause came 280 ms after the
+  // picture had started — a film paused in Orion could not be played on.
+  // The click's own pointerType where the browser gives one, the press
+  // before it where it does not (a click is not a PointerEvent everywhere).
+  const kind = /** @type {PointerEvent} */ (e).pointerType || lastPointer;
+  if (kind === 'touch' || kind === 'pen') return;
   if (e.offsetY > video.clientHeight - CONTROL_BAR_PX) return;
   const item = state.playing;
   if (!item) return;

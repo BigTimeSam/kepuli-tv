@@ -2755,6 +2755,16 @@ async function clickpause(page) {
   await press(bar); await sleep(700);
   const barLeftAlone = !(await paused());
   seen.push(`control bar ${barLeftAlone ? 'left alone' : 'paused'}`);
+  // A tap is the touch controls' own: on the iPhone the tap on their play
+  // button also reached the page as a click, whose pause came 280 ms after
+  // the film had started, and a paused film could not be played on (Orion).
+  // A finger's press and the click it ends in leave the film playing.
+  await evaluate(page, `(() => { const v = document.getElementById('video'); const r = v.getBoundingClientRect(); const at = { clientX: r.left + r.width / 2, clientY: r.top + r.height * 0.4, bubbles: true, cancelable: true, button: 0 };
+    v.dispatchEvent(new PointerEvent('pointerdown', { ...at, pointerType: 'touch' })); v.dispatchEvent(new MouseEvent('click', { ...at, detail: 1 })); })()`);
+  await sleep(700);
+  const tapLeftAlone = !(await paused());
+  seen.push(`a tap ${tapLeftAlone ? 'left to the touch controls' : 'paused'}`);
+  await evaluate(page, `document.getElementById('video').dispatchEvent(new PointerEvent('pointerdown', { bubbles: true, pointerType: 'mouse' }))`);
 
   await playFirstChannel(page);
   const live = await spot();
@@ -2766,7 +2776,7 @@ async function clickpause(page) {
   // included, and the page never sees them: there the click on a live
   // channel and on the bar are the browser's, and are only reported.
   const firefox = process.env.KEPULI_BROWSER === 'firefox';
-  const ok = pausedByClick && resumedByClick && doubleKeptPlaying && (firefox || (barLeftAlone && liveKeptPlaying));
+  const ok = pausedByClick && resumedByClick && doubleKeptPlaying && tapLeftAlone && (firefox || (barLeftAlone && liveKeptPlaying));
   return { ok, detail: seen.join(', ') };
 }
 
