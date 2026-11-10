@@ -44,6 +44,7 @@ lists, series info, stream URL) for its kind:
 | Module | Role |
 | --- | --- |
 | `playback.js` | engine choice (native, hls.js, mpegts.js, MSE), life cycle, reconnection, error wording |
+| `liveloader.js` | mpegts.js's loader for live channels: asks again at once when the server closes the connection, and leaves out the burst the new one repeats |
 | `probe.js`, `ebml.js` | reading file headers: what the container really holds; the ranged downloads `remux.js` and `mp4play.js` share (`fetchRange`, `within`) |
 | `remux.js`, `mkv.js`, `mp4.js` | MKV unpacked into fMP4 for MediaSource, seeking included |
 | `mp4file.js`, `mp4play.js` | MP4 through MediaSource for Firefox (http media upgrade problem) |

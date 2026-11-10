@@ -20,6 +20,7 @@ import { probe, verdict, serverFault, providerError, answerOf } from './probe.js
 import { Remuxer } from './remux.js';
 import { Mp4Player } from './mp4play.js';
 import { isGecko, nativeHls } from './browser.js';
+import { ReconnectingLiveLoader } from './liveloader.js';
 
 /**
  * What is to be played, as app.js asks for it. The fields after `relink`
@@ -88,13 +89,27 @@ const MPEGTS_CONFIG = {
   autoCleanupMaxBackwardDuration: 60,
   autoCleanupMinBackwardDuration: 30,
 
-  // Latency chasing jumps forward as soon as buffer accumulates — and that
-  // very buffer is what would carry the stream over a drop-out. Be more
-  // generous.
-  liveBufferLatencyChasing: true,
-  liveBufferLatencyMaxLatency: 15,
-  liveBufferLatencyMinRemain: 3,
   lazyLoad: false,
+};
+
+// A live channel keeps what the server sends ahead of the picture: that
+// buffer is what carries the picture over the server's hiccups. Latency
+// chasing used to jump to 3 seconds from the end whenever more than 15 had
+// gathered — after every burst — and left the next drop-out nothing to
+// play. Now the picture runs a tenth faster while more than 30 seconds are
+// waiting, until 20 are, which nobody sees; and a jump is kept for a
+// minute or more behind, which only a long pause leaves (the jump is to
+// 20 seconds from the end, a buffer still). The connection itself is
+// asked for again whenever the server closes it (js/liveloader.js).
+const MPEGTS_LIVE_CONFIG = {
+  liveBufferLatencyChasing: true,
+  liveBufferLatencyMaxLatency: 60,
+  liveBufferLatencyMinRemain: 20,
+  liveSync: true,
+  liveSyncMaxLatency: 30,
+  liveSyncTargetLatency: 20,
+  liveSyncPlaybackRate: 1.1,
+  customLoader: ReconnectingLiveLoader,
 };
 
 // A film or an episode as MPEG-TS is read a minute ahead, as the MKV
@@ -222,6 +237,8 @@ export class Playback {
     /** @type {PlaySpec|null} */
     this.spec = null;
     this.reconnects = 0;
+    this.liveReconnects = 0;     // connections the live loader opened again unseen
+    this.liveSkipped = 0;        // bytes of their bursts it left out as already had
     /** @type {ReturnType<typeof setInterval>|null} */
     this.watchdog = null;
     this.lastProgressAt = 0;
@@ -786,7 +803,9 @@ export class Playback {
   startMpegts(url, isLive, finish, { vod = false, started = () => true, onData = () => {} } = {}) {
     if (typeof mpegts === 'undefined' || !mpegts.isSupported()) return finish(false, 'mpegts.js not supported');
     const player = mpegts.createPlayer({ type: 'mpegts', isLive, url }, {
-      ...MPEGTS_CONFIG, liveBufferLatencyChasing: isLive, ...(vod ? MPEGTS_VOD_CONFIG : {}),
+      ...MPEGTS_CONFIG, ...(isLive ? MPEGTS_LIVE_CONFIG : {}), ...(vod ? MPEGTS_VOD_CONFIG : {}),
+      onLiveReconnect: (count) => { this.liveReconnects = count; },
+      onLiveSkip: (bytes) => { this.liveSkipped = bytes; },
     });
     this.engine = player;
     // An HTTP status other than "not found" is the server refusing, not the
@@ -1056,7 +1075,11 @@ export class Playback {
     const video = this.video;
     const onEnded = () => { if (token === this.token) this.recover(t('playback.reason.ended')); };
     const onPause = () => { if (token === this.token && !video.ended) this.wantPlaying = false; };
-    const onPlay = () => { if (token === this.token) this.wantPlaying = true; };
+    const onPlay = () => {
+      if (token !== this.token) return;
+      this.wantPlaying = true;
+      this.toLiveEdge();
+    };
     video.addEventListener('ended', onEnded);
     video.addEventListener('pause', onPause);
     video.addEventListener('play', onPlay);
@@ -1065,6 +1088,32 @@ export class Playback {
       video.removeEventListener('pause', onPause);
       video.removeEventListener('play', onPlay);
     };
+  }
+
+  /**
+   * A live channel resumed where nothing is buffered any more goes to the
+   * present. The browser's own HLS player (the iPhone's) waited at the
+   * moment of the pause, which the playlist had long since left behind,
+   * until the watchdog restarted the channel: "Buffering…" for 19 seconds
+   * after every pause of a minute or two, measured in Orion. The engines
+   * that buffer in the page (mpegts.js) keep reading while paused and jump
+   * by themselves when far behind (MPEGTS_LIVE_CONFIG).
+   */
+  toLiveEdge() {
+    const video = this.video;
+    if (!this.spec?.live || this.engineKey !== 'native' || !video.seekable.length) return;
+    const at = video.currentTime;
+    for (let i = 0; i < video.buffered.length; i++) {
+      if (video.buffered.start(i) <= at && at < video.buffered.end(i) - 0.5) return;
+    }
+    const start = video.seekable.start(0);
+    const end = video.seekable.end(video.seekable.length - 1);
+    if (!(end > start)) return;
+    // Ten seconds short of the end, as the player itself starts a live
+    // playlist: a segment or two to stand on.
+    video.currentTime = Math.max(start, end - 10);
+    this.lastTime = video.currentTime;
+    this.lastProgressAt = Date.now();
   }
 
   detachGuards() {

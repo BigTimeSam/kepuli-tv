@@ -14,6 +14,7 @@ globalThis.MediaSource = { isTypeSupported: (type) => /mp4a\.40/.test(type) };
 import { parseServer, parsePlaylistUrl, pastedKind, directSource, serverStamp, timeshiftUrl, streamUrl } from '../js/xtream.js';
 import { safeUrl, decodeField, XtreamApi, ApiError } from '../js/api.js';
 import { playlist, vlcIntent } from '../js/external.js';
+import { syncOffset, afterTail, ReconnectingLiveLoader } from '../js/liveloader.js';
 import { nameCleaner, labelCodes, countryCodes, searchKey, searchTerms, matchesTerms, homeCountryCodes, homeGroup, viewerTags, episodeTitle } from '../js/name.js';
 import { Library, buildGroups, cacheTtl } from '../js/library.js';
 import { channelKey, internationalChannels, isNationalTopic } from '../js/international.js';
@@ -2077,6 +2078,46 @@ check('another word does not hold the term', holds('Textens utseende', { forms: 
   const gecko = JSON.parse((await import('node:fs')).readFileSync(new URL('../firefox/manifest.json', import.meta.url), 'utf8'))
     .browser_specific_settings.gecko;
   check('the Firefox minimum is no higher than the version Orion asks AMO as', parseFloat(gecko.strict_min_version) <= 130, true);
+}
+
+/* ------------------------------ liveloader.js: a live channel over cuts */
+
+{
+  // Packets: a sync byte, a PID and a counter, then the payload, so that
+  // each one is told apart.
+  const packet = (n, pid = 0x100) => { const p = new Uint8Array(188).fill(n & 0xff); p[0] = 0x47; p[1] = pid >> 8; p[2] = pid & 0xff; p[3] = 0x10 | (n & 15); p[8] = n & 0xff; return p; };
+  const join = (...parts) => { const out = new Uint8Array(parts.reduce((s, p) => s + p.length, 0)); let at = 0; for (const p of parts) { out.set(p, at); at += p.length; } return out; };
+  const run = (from, to) => join(...Array.from({ length: to - from }, (_, i) => packet(from + i)));
+  check('a stream is read from its first packet boundary', syncOffset(join(new Uint8Array([1, 2, 0x47, 9, 9]), run(0, 3))), 5);
+  check('no boundary in a stray answer', syncOffset(new Uint8Array(600).fill(7)), -1);
+  check('the burst of a new connection is read from after what was had', afterTail(run(0, 40), run(22, 30)), 30 * 188);
+  check('a new connection that starts at the present is not cut', afterTail(run(50, 60), run(22, 30)), -1);
+
+  // The loader itself, against a server that cuts after each answer and
+  // starts the next with a burst of what it sent last.
+  const chunks = [run(0, 30), join(run(20, 30), run(30, 45)), join(run(40, 45), run(45, 60))];
+  let calls = 0;
+  const realFetch = globalThis.fetch;
+  globalThis.fetch = async () => {
+    const body = chunks[calls++];
+    if (!body) return new Response(null, { status: 503 });
+    return new Response(new ReadableStream({ start(c) { c.enqueue(body.slice(0, 1000)); c.enqueue(body.slice(1000)); c.close(); } }), { status: 200 });
+  };
+  const got = [];
+  const loader = new ReconnectingLiveLoader({ getConfig: (url) => ({ url, headers: {} }) }, {});
+  loader.onDataArrival = (chunk) => got.push(new Uint8Array(chunk));
+  let failed = null;
+  loader.onError = (type) => { failed = type; };
+  loader.open({ url: 'http://tv.example/live/u/p/1.ts' }, { from: 0, to: -1 });
+  for (let i = 0; i < 200 && calls < 4; i++) await new Promise((r) => setTimeout(r, 20));
+  await new Promise((r) => setTimeout(r, 50));
+  loader.abort();
+  globalThis.fetch = realFetch;
+  const all = join(...got);
+  const counters = Array.from({ length: all.length / 188 }, (_, i) => all[i * 188 + 8]);
+  check('three cut connections make one unbroken stream, the bursts left out', counters.join(), Array.from({ length: 60 }, (_, i) => i).join());
+  check('the loader asked again after each cut', loader.reconnects >= 2, true);
+  check('nothing was reported as a failure while the stream came back', failed, null);
 }
 
 /* ------------------------------------------------------------------ done */

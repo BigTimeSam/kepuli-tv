@@ -453,7 +453,12 @@ interrupted channel-list load restores the previous list.
 - **Automatic reconnection** when a live stream drops — the death of a source
   is recognised in three ways: the server cuts the connection, the buffer is
   played out, or the picture freezes while the connection stays open. The
-  viewer's own pause is told apart from these and is never overridden
+  viewer's own pause is told apart from these and is never overridden. A
+  channel the server closes mid-broadcast is asked for again at once, while
+  the buffer still plays, and the picture goes on without a break; the
+  seconds the new connection repeats are left out. A live channel keeps up to
+  half a minute of picture in hand rather than jumping to the newest second,
+  and resumed after a pause on the iPhone it goes to the present
 - **Technical details** over the picture — resolution, bit rate, engine — for
   working out why a stream stutters. Off unless the settings ask for them: they
   answer no question about what to watch

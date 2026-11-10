@@ -633,6 +633,45 @@ async function sendTimeshift(req, res, { archive = false } = {}) {
   res.end();
 }
 
+/**
+ * KEPULI_MOCK_LIVE_CUT, seconds: a live channel as MPEG-TS the way a real
+ * provider sends one — from where the broadcast is now, after a burst of
+ * the last two segments, at the pace it plays — and the connection closed
+ * by the server after that many seconds, though the channel goes on. A
+ * real provider was measured doing so after 55 seconds. The counts of the
+ * connections and their ends are counted for dev/playcheck.mjs.
+ */
+export const liveCuts = { connections: 0, cut: 0, epoch: null };
+async function sendLiveCut(req, res, seconds) {
+  const n = SEGMENTS.length;
+  res.writeHead(200, { ...CORS, 'Content-Type': 'video/mp2t', 'Cache-Control': 'no-store' });
+  if (req.method === 'HEAD') return res.end();
+  liveCuts.connections++;
+  // The broadcast began 20 seconds before the first connection, so that
+  // it has its burst too, and the loop's wrap (where the timestamps start
+  // over) is 100 seconds on; a scenario sets epoch to null to begin anew.
+  liveCuts.epoch ??= Date.now() - 20000;
+  const elapsed = (Date.now() - liveCuts.epoch) / 1000;
+  let index = Math.floor(elapsed / SEGMENTS[0].dur);
+  // The burst: what the server holds of the last two segments.
+  const from = Math.max(0, index - 2);
+  const t0 = Date.now();
+  let playedOut = 0;            // seconds of picture sent beyond the burst
+  for (let k = from; ; k++) {
+    if (res.destroyed) return;
+    if ((Date.now() - t0) / 1000 >= seconds) { liveCuts.cut++; res.destroy(); return; }
+    // Wrapping round the loop starts the timestamps over; the cut test
+    // stays within one loop by starting the channel near its beginning.
+    const segment = SEGMENTS[k % n];
+    res.write(readFileSync(segment.file));
+    if (k >= index) {
+      playedOut += segment.dur;
+      const wait = t0 + playedOut * 1000 - Date.now();
+      if (wait > 0) await new Promise((r) => setTimeout(r, wait));
+    }
+  }
+}
+
 function account(req) {
   const proto = req.headers['x-forwarded-proto'] || 'http';
   const [host, port] = String(req.headers.host).split(':');
@@ -987,6 +1026,7 @@ function handle(req, res) {
   if (/^\/live\/.*\.m3u8$/.test(path)) return send(res, 200, livePlaylist(), 'application/vnd.apple.mpegurl');
   // KEPULI_MOCK_LIVE_TS serves the channel as a provider does: one endless
   // MPEG-TS connection, counted against the account like a film.
+  if (/^\/live\/.*\.ts$/.test(path) && Number(process.env.KEPULI_MOCK_LIVE_CUT) > 0) return admit(req, res).then((ok) => ok && sendLiveCut(req, res, Number(process.env.KEPULI_MOCK_LIVE_CUT)));
   if (/^\/live\/.*\.ts$/.test(path) && process.env.KEPULI_MOCK_LIVE_TS) return admit(req, res).then((ok) => ok && sendTimeshift(req, res));
   if (/^\/live\/.*\.ts$/.test(path)) return send(res, 404, 'the demo channel is HLS; the player falls back to it', 'text/plain');
   if (path.startsWith('/timeshift/')) return admit(req, res).then((ok) => ok && sendTimeshift(req, res, { archive: true }));

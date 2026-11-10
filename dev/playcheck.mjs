@@ -79,6 +79,9 @@
 //                                     sections above Save, the guide's days
 //                                     the bar's whole width, its programme
 //                                     search one row until used
+//   node dev/playcheck.mjs livecut  the server closes a live MPEG-TS channel
+//                                     every 12 s: the picture goes on without
+//                                     a restart, over connection after connection
 //   node dev/playcheck.mjs xtreamoffer  an Xtream panel's plain list as a
 //                                     playlist: its headings the channels'
 //                                     groups, the server offered once and,
@@ -323,7 +326,7 @@
 // passes, 1 otherwise.
 
 import { decodePng } from './screenshot.mjs';
-import { startMockServer, connectionStats, MULTI_EPISODES, PORT as MOCK_PORT, STALKER_MAC, stalkerSeen, USER, PASS, T0 as MOCK_T0 } from './mock/server.mjs';
+import { startMockServer, connectionStats, liveCuts, MULTI_EPISODES, PORT as MOCK_PORT, STALKER_MAC, stalkerSeen, USER, PASS, T0 as MOCK_T0 } from './mock/server.mjs';
 // Run the same scenarios in Firefox with KEPULI_BROWSER=firefox.
 const { ensureChrome, openPlayer, session, sleep, evaluate, waitFor, PORT: CHROME_PORT } = await import(
   process.env.KEPULI_BROWSER === 'firefox' ? '../firefox/playcheck-driver.mjs' : './screenshot.mjs');
@@ -1336,6 +1339,64 @@ async function livezap(page) {
     return { ok: true, detail: `6 channels, ${refused} refused while the server still counted the last, waited for and played over MPEG-TS; no HLS, no overlap, 1 open` };
   } finally {
     process.env.KEPULI_MOCK_LIVE_TS = '';
+    process.env.KEPULI_MOCK_LIMIT = '';
+    process.env.KEPULI_MOCK_RELEASE_MS = '';
+  }
+}
+
+/**
+ * A provider that closes the connection of a live channel mid-broadcast,
+ * as a real one was measured doing after 55 seconds: the picture used to
+ * play out its buffer, stand still for the watchdog's 14 seconds and start
+ * over. The loader asks again at once (js/liveloader.js), and the picture
+ * goes on: over 45 seconds and three cuts, no restart, no "Connection
+ * lost", and the picture never stands still for long. The account allows
+ * one connection and goes on counting a closed one for a moment, as real
+ * ones do, so the loader's next attempts are what bring it back.
+ */
+async function livecut(page) {
+  const assert = (ok, detail) => { if (!ok) throw new Error(detail); };
+  const OVERLAY_TITLE = `(document.getElementById('overlay').hidden ? '' : document.getElementById('overlay-title').textContent)`;
+  process.env.KEPULI_MOCK_LIVE_CUT = '12';
+  process.env.KEPULI_MOCK_LIMIT = '1';
+  process.env.KEPULI_MOCK_RELEASE_MS = '700';
+  liveCuts.epoch = null;
+  const before = { ...liveCuts };
+  try {
+    await evaluate(page, `document.querySelector('#tabs [data-tab="live"]').click()`);
+    await click(page, '#groups', 'Finland');
+    await waitFor(page, `document.querySelectorAll('#list .row').length > 3`, 'the channels');
+    await evaluate(page, `document.querySelectorAll('#list .row')[0].click()`, { gesture: true });
+    await waitFor(page, PLAYING, 'the channel', 40000);
+    const engine = await evaluate(page, `import('./js/playing.js').then(({ playback }) => playback.engineKey)`);
+    await evaluate(page, `import('./js/playing.js').then(({ playback }) => { window.__titles = []; window.__still = 0; window.__events = []; const v = document.getElementById('video');
+      let last = v.currentTime, since = performance.now(), again = playback.liveReconnects; const T = performance.now();
+      const ahead = () => v.buffered.length ? +(v.buffered.end(v.buffered.length - 1) - v.currentTime).toFixed(1) : 0;
+      window.__watch = setInterval(() => { const now = performance.now();
+        if (playback.liveReconnects !== again) { again = playback.liveReconnects; window.__events.push(['again', Math.round((now - T) / 100) / 10, ahead()]); }
+        if (v.currentTime > last + 0.01) { if (now - since > 500) window.__events.push(['still', Math.round((since - T) / 100) / 10, Math.round(now - since)]); last = v.currentTime; since = now; }
+        else window.__still = Math.max(window.__still, now - since);
+        if (!window.__n || now - window.__n > 2000) { window.__n = now; window.__events.push(['t', Math.round((now - T) / 100) / 10, ahead(), v.playbackRate, v.buffered.length, +v.currentTime.toFixed(1)]); } }, 100);
+      new MutationObserver(() => window.__titles.push(${OVERLAY_TITLE})).observe(document.getElementById('overlay'), { attributes: true, childList: true, subtree: true });
+      return true; })`);
+    const t0 = await evaluate(page, `document.getElementById('video').currentTime`);
+    await sleep(45000);
+    const after = await evaluate(page, `(async () => { clearInterval(window.__watch); const { playback } = await import('./js/playing.js'); const v = document.getElementById('video');
+      return { events: window.__events, t: v.currentTime, still: Math.round(window.__still), titles: [...new Set(window.__titles)].filter(Boolean),
+        restarts: playback.reconnects, again: playback.liveReconnects, skipped: playback.liveSkipped,
+        ahead: v.buffered.length ? +(v.buffered.end(v.buffered.length - 1) - v.currentTime).toFixed(1) : 0 }; })()`);
+    const cuts = liveCuts.cut - before.cut;
+    const played = after.t - t0;
+    assert(engine === 'mpegts', `played by ${engine}, not mpegts.js: the test is of its loader`);
+    assert(cuts >= 3, `the server cut the channel ${cuts} times in 45 s`);
+    assert(after.again >= cuts, `the loader asked again ${after.again} times for ${cuts} cuts`);
+    assert(!after.titles.length && !after.restarts, `the picture was restarted: overlay ${JSON.stringify(after.titles)}, ${after.restarts} restarts; ${JSON.stringify(after)}, ${cuts} cuts`);
+    assert(played >= 40, `${played.toFixed(1)} s played in 45 s`);
+    assert(after.still < 2500, `the picture stood still for ${after.still} ms at once`);
+    assert(after.skipped > 0, `the bursts of the new connections were played again: nothing left out`);
+    return { ok: true, detail: `${cuts} cuts in 45 s, ${after.again} connections asked again, ${(after.skipped / 1e6).toFixed(1)} MB of repeated bursts left out, ${played.toFixed(1)} s played, longest stop ${after.still} ms, ${after.ahead} s buffered at the end, no restart` };
+  } finally {
+    process.env.KEPULI_MOCK_LIVE_CUT = '';
     process.env.KEPULI_MOCK_LIMIT = '';
     process.env.KEPULI_MOCK_RELEASE_MS = '';
   }
@@ -6711,7 +6772,7 @@ async function handoff(page) {
 
 const SCENARIOS = { buffering, livebuffering, filmbuffering, emptyfile, tsasmp4, refusedfile, badgateway, livebadgateway, channelrefused, noanswer, longfilm, catalogUi, setupClarity, welcome, fullscreenControl, clickpause, pickers, touchcaret, screenbutton, topmenu, scrollbars, channelorder, lengthfilter, nowlogo, channels, home, resumemkv, restore, programmes, catchup, seek, death, cancel, timeout, search, paste, keys, switching, resume, connections, livezap, livequiet, reconnect, accounts, listerror, a11y, subtitles, audio, wasmaudio, settings,
   lastchannel, nextepisode, continuewatching, reminders, update, seeklag, cuesretry, quota, catchupfreeze, catchupfull, twotabs, switchstop, resettabs,
-  refresh, restorenav, guidekeep, removeaccount, m3u, sync, holes, picks, flakyserver, accountform, stalker, record, guidefavs, guidenames, categories, homecountry, noleak, perf, pseudo, startup, soak, phone, episodenames, gotochannel, filmdetails, favorder, countryfilter, tilekeys, routes, programmekeys, searchlimit, filterfolds, focusrings, xtreamoffer, guideclick, filmaddress, filmfacts, playlistfile, perflive, perfplaylist, remoteimages, phoneguide, handoff };
+  refresh, restorenav, guidekeep, removeaccount, m3u, sync, holes, picks, flakyserver, accountform, stalker, record, guidefavs, guidenames, categories, homecountry, noleak, perf, pseudo, startup, soak, phone, livecut, episodenames, gotochannel, filmdetails, favorder, countryfilter, tilekeys, routes, programmekeys, searchlimit, filterfolds, focusrings, xtreamoffer, guideclick, filmaddress, filmfacts, playlistfile, perflive, perfplaylist, remoteimages, phoneguide, handoff };
 // The mock's whole-list answers stall for these, longer than the request limit.
 const SLOW_LIST_MS = { cancel: 60000, timeout: 60000 };
 // The media is sent slowly for these: the seek targets must lie outside the

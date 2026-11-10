@@ -32,7 +32,9 @@ as the hosted demo for store reviewers.
   `LIVE_BAD_GATEWAY`, `CHANNEL_REFUSED`, `REFUSED_FILE`, `NO_ANSWER`,
   `FAIL_LISTS`, `SLOW_LIST`, `HANG_AT`, `CUT_AT`, `HOLE`, `THROTTLE`,
   `RELEASE_MS`, `LIMIT` (connections per account), `LIVE_TS` (live as one
-  MPEG-TS connection, as a provider's; recording needs it), `TS_PACE`,
+  MPEG-TS connection, as a provider's; recording needs it), `LIVE_CUT`
+  (seconds: live MPEG-TS from where the broadcast is now, after a burst, and
+  each connection closed by the server after that long), `TS_PACE`,
   `TS_AS_MP`, `LONG`, `FULL`, `EMPTY`, `EPISODE_EXT`, `EXTRA_CHANNEL`,
   `STALKER_LOOSE`, `VERSIONS` (the first film in three copies and two later parts, an original title and a sound language), `EPISODE_NAMES` (episodes named "Series – S01E01" as providers do), `COUNTRY_PREFIX` (channel names begin with their country's code, "FI: Aurora One"), `BULK` (N invented films more in Movies: Nordic, for the
   perf scenario), `BULK_LIVE` (N invented channels more, dealt to every country and topic, with no programmes, for perflive and perfplaylist). Read the code for each one's exact meaning, and document a
