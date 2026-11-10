@@ -821,7 +821,10 @@ permission is an optional one, so that the update that brought it disabled
 nothing. Without it a reminder waits as before: one that falls due in a
 hidden tab until the tab is looked at again, one from a closed player until
 the next is opened, for as long as the programme is still on. The browser
-has to be running either way.
+has to be running either way. Whether a notification is shown is the
+system's to decide: a Focus or Do Not Disturb mode (macOS's Sleep focus at
+night, say) holds it in the notification centre without a banner or a sound,
+and the system's own settings can turn the browser's notifications off.
 
 **Start from the beginning** is offered for an ongoing programme on an archive
 channel. Whether the provider makes that programme available before it ends
