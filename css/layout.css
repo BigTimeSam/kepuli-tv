@@ -143,7 +143,10 @@ button.group-star:hover { color: var(--text); background: var(--track); }
 .group.active .group-star.on { color: #ffd884; }
 
 .listcol { display: flex; flex-direction: column; border-right: 1px solid var(--border); min-width: 0; background: var(--list-bg); }
-.channel-tools { flex: none; padding: 8px 10px; border-bottom: 1px solid var(--border); background: var(--panel); }
+/* As tall as the header over the picture beside it, at every text size:
+   one measure for both, borders included. The button's own height made it
+   0.4 px taller at 16 px and 8 px shorter at 20. */
+.channel-tools { flex: none; box-sizing: border-box; min-height: var(--head-h); display: flex; flex-direction: column; justify-content: center; padding: 8px 10px; border-bottom: 1px solid var(--border); background: var(--panel); }
 .channel-guide { display: flex; align-items: center; gap: 9px; width: 100%; padding: 8px 10px; border: 1px solid var(--border); border-radius: 7px; background: var(--panel-2); color: var(--text); font-weight: 550; text-align: left; cursor: pointer; }
 .channel-guide > svg { width: 18px; height: 18px; flex: none; fill: none; stroke: var(--accent-2); stroke-width: 1.5; stroke-linecap: round; stroke-linejoin: round; }
 .channel-guide-arrow { margin-left: auto; color: var(--muted); font-size: 1.125rem; line-height: 1; }

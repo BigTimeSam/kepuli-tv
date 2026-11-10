@@ -108,6 +108,8 @@
 //                                     row at every width, in the longest languages
 //   node dev/playcheck.mjs accountnow  Settings' account says the connections
 //                                     in use now, the stream playing counted
+//   node dev/playcheck.mjs headline  the programme guide's strip and the header
+//                                     over the picture end on one line
 //   node dev/playcheck.mjs phonestar  390 px: the country chosen in the menu is
 //                                     starred by the star beside it, and the
 //                                     menu lists the favourites first
@@ -2354,6 +2356,31 @@ async function accountnow(page) {
     process.env.KEPULI_MOCK_LIMIT = '';
     await evaluate(page, `document.getElementById('setup').open && document.getElementById('f-done').click()`).catch(() => {});
   }
+}
+
+/**
+ * The programme guide's strip over the list and the header over the
+ * picture beside it end on one line, at any text size: the button's height
+ * made the one 0.4 px taller at 16 px and 8 px shorter at 20.
+ */
+async function headline(page) {
+  const assert = (ok, detail) => { if (!ok) throw new Error(detail); };
+  await openLiveList(page, 3);
+  await evaluate(page, `document.querySelectorAll('#list .row')[0].click()`, { gesture: true });
+  await waitFor(page, PLAYING, 'the channel', 40000);
+  const seen = [];
+  try {
+    for (const size of [16, 17.6, 20]) {
+      await evaluate(page, `document.documentElement.style.fontSize = '${size}px'`);
+      await sleep(400);
+      const [tools, head] = await evaluate(page, `['.channel-tools', '.stagehead'].map((s) => +document.querySelector(s).getBoundingClientRect().bottom.toFixed(2))`);
+      assert(Math.abs(tools - head) < 0.05, `at ${size} px the guide's strip ends at ${tools} and the header at ${head}`);
+      seen.push(`${size} px: ${tools}`);
+    }
+  } finally {
+    await evaluate(page, `document.documentElement.style.fontSize = ''`);
+  }
+  return { ok: true, detail: `both end on one line (${seen.join(', ')})` };
 }
 
 /**
@@ -7325,7 +7352,7 @@ async function handoff(page) {
 
 const SCENARIOS = { buffering, livebuffering, filmbuffering, emptyfile, tsasmp4, refusedfile, badgateway, livebadgateway, channelrefused, noanswer, longfilm, catalogUi, setupClarity, welcome, fullscreenControl, clickpause, pickers, touchcaret, screenbutton, topmenu, scrollbars, channelorder, lengthfilter, nowlogo, channels, home, resumemkv, restore, programmes, catchup, seek, death, cancel, timeout, search, paste, keys, switching, resume, connections, livezap, livequiet, reconnect, accounts, listerror, a11y, subtitles, audio, wasmaudio, settings,
   lastchannel, nextepisode, continuewatching, reminders, update, seeklag, cuesretry, quota, catchupfreeze, catchupfull, twotabs, switchstop, resettabs,
-  refresh, restorenav, guidekeep, removeaccount, m3u, sync, holes, picks, flakyserver, accountform, stalker, record, guidefavs, guidenames, categories, homecountry, noleak, perf, pseudo, startup, soak, phone, accountnow, onerow, nowbarfit, subsize, arrowmiddle, idlelight, iossubs, starquiet, phonestar, pickerkeyboard, phonescroll, menutap, wakelock, livecut, episodenames, gotochannel, filmdetails, favorder, countryfilter, tilekeys, routes, programmekeys, searchlimit, filterfolds, focusrings, xtreamoffer, guideclick, filmaddress, filmfacts, playlistfile, perflive, perfplaylist, remoteimages, phoneguide, handoff };
+  refresh, restorenav, guidekeep, removeaccount, m3u, sync, holes, picks, flakyserver, accountform, stalker, record, guidefavs, guidenames, categories, homecountry, noleak, perf, pseudo, startup, soak, phone, headline, accountnow, onerow, nowbarfit, subsize, arrowmiddle, idlelight, iossubs, starquiet, phonestar, pickerkeyboard, phonescroll, menutap, wakelock, livecut, episodenames, gotochannel, filmdetails, favorder, countryfilter, tilekeys, routes, programmekeys, searchlimit, filterfolds, focusrings, xtreamoffer, guideclick, filmaddress, filmfacts, playlistfile, perflive, perfplaylist, remoteimages, phoneguide, handoff };
 // The mock's whole-list answers stall for these, longer than the request limit.
 const SLOW_LIST_MS = { cancel: 60000, timeout: 60000 };
 // The media is sent slowly for these: the seek targets must lie outside the

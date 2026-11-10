@@ -12,7 +12,7 @@
      a slim one (53 px until 2026-11-10, which the owner found heavy). The
      header over the picture keeps the old height for its two lines. */
   --foot-h: 2.75rem;
-  --head-h: 3.3125rem;
+  --head-h: 3.375rem;
   --bg: #0a0c11;
   /* The panes let the page's glow (body, below) through; what floats over
      them (a dialog, a menu, a picker) is drawn on --panel-solid instead, as
