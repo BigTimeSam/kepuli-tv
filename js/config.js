@@ -122,12 +122,21 @@ export function browserLanguage() {
  * region: en-US, en-CA, en-AU. The app's English is en-GB by default (21:30,
  * day before month); a reader in the United States gets month before day
  * from this, and the 12-hour clock from hourCycle().
+ *
+ * Not in a European time zone: many Finns keep their browser in en-US,
+ * and the guide said "Tue, 11/10" to a reader in Helsinki, month before
+ * day, where the clock beside it was already the 24-hour one (hourCycle).
+ * @param {string} [zone] the time zone, the system's by default
  * @returns {string|null}
  */
-export function browserEnglish() {
+export function browserEnglish(zone = Intl.DateTimeFormat().resolvedOptions().timeZone) {
+  if (europeanZone(zone)) return null;
   const tag = (navigator.languages?.length ? navigator.languages[0] : navigator.language) || '';
   return /^en-[a-z]{2}$/i.test(tag) ? tag : null;
 }
+
+/** Where day comes before month and the clock runs to 24. */
+const europeanZone = (zone) => /^(Europe|Arctic)\//.test(zone || '');
 
 /**
  * The clock a setting stands for, as Intl's hourCycle: '24' and '12' as
@@ -147,7 +156,7 @@ export function browserEnglish() {
 export function hourCycle(settings, zone = Intl.DateTimeFormat().resolvedOptions().timeZone) {
   if (settings?.clock === '12') return 'h12';
   if (settings?.clock === '24') return 'h23';
-  const tag = interfaceLanguage(settings) === 'en' && !/^(Europe|Arctic)\//.test(zone || '') && browserEnglish();
+  const tag = interfaceLanguage(settings) === 'en' && browserEnglish(zone);
   if (!tag) return 'h23';
   try {
     const cycle = new Intl.DateTimeFormat(tag, { hour: 'numeric' }).resolvedOptions().hourCycle;

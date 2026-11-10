@@ -25,7 +25,7 @@ import { cueText } from '../js/subs.js';
 import { subtitleLook, stepScale, pictureHeight, STYLES, MIN_SCALE, MAX_SCALE, DEFAULT_SCALE, SCALE_STEP, SIZE_SHARE, MIN_PX, MIN_LIFT, MAX_LIFT, DEFAULT_LIFT } from '../js/subdisplay.js';
 import { describe, describeAll, label, preferred, route } from '../js/audio.js';
 import { languageSummary, orderedLanguageNames, trackLanguage } from '../js/lang.js';
-import { LANGUAGES, LOCALES, keysOf, setLanguage, setEnglishRegion, loadLanguage, supportedLanguage, t, pseudoText } from '../js/i18n.js';
+import { LANGUAGES, LOCALES, keysOf, setLanguage, setEnglishRegion, localeTag, loadLanguage, supportedLanguage, t, pseudoText } from '../js/i18n.js';
 import { setLocale, calendarDate, episodeCode, megabytes, amount, wholePercent, fileSize } from '../js/format.js';
 import { pictureSize } from '../js/titleinfo.js';
 import { ratingText } from '../js/rating.js';
@@ -1660,7 +1660,7 @@ check('xmltv: a playlist name and a guide name meet', ['FI: Yle TV1 HD', 'Yle TV
 {
   const { mbits, percent, progressOf, shortDay, dayLabel } = await import('../js/format.js');
   const { shortLanguage } = await import('../js/lang.js');
-  const { hourCycle } = await import('../js/config.js');
+  const { hourCycle, browserEnglish } = await import('../js/config.js');
   setLanguage('en'); setLocale('en-GB');
   check('format: a rate below a megabit keeps two decimals, above it one', [mbits(450000), mbits(5_250_000)], ['0.45', '5.3']);
   check('format: a share as a percentage with one decimal', percent(0.123), '12.3%');
@@ -1679,6 +1679,14 @@ check('xmltv: a playlist name and a guide name meet', ['FI: Yle TV1 HD', 'Yle TV
       hourCycle({ clock: 'auto', lang: 'de' }, 'America/New_York'), hourCycle({ clock: 'auto' }, 'Australia/Sydney')], ['h12', 'h23', 'h23', 'h12']);
   // A Finn with the browser in American English is still in Helsinki.
   check('config: the automatic clock in Europe is 24-hour, English or not', [hourCycle({ clock: 'auto', lang: 'en' }, 'Europe/Helsinki'), hourCycle({ clock: 'auto' }, 'Europe/London')], ['h23', 'h23']);
+  // And the date too: "Tue, 11/10" was month before day for a reader in
+  // Helsinki whose browser speaks American English.
+  check('config: a browser\'s American English sets the date\'s order outside Europe only',
+    [browserEnglish('America/New_York'), browserEnglish('Europe/Helsinki'), browserEnglish('Arctic/Longyearbyen')], ['en-US', null, null]);
+  setEnglishRegion(browserEnglish('Europe/Helsinki'));
+  const sample = new Intl.DateTimeFormat(localeTag(), { weekday: 'short', day: 'numeric', month: 'numeric' }).format(new Date(Date.UTC(2026, 10, 10, 12)));
+  setEnglishRegion(null);
+  check('format: in Helsinki the English date is day before month', sample, 'Tue 10/11');
   Object.defineProperty(globalThis, 'navigator', realNavigator);
 }
 
