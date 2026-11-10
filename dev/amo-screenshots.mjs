@@ -98,7 +98,8 @@ if (process.argv.includes('--dry')) process.exit(0);
 // from the top it would have put up those four a second time.
 const at = process.argv.indexOf('--old');
 const old = at > 0 ? new Set((process.argv[at + 1] || '').split(',').filter(Boolean).map(Number)) : null;
-if (old && !before.some((p) => old.has(p.id))) fail(`none of ${[...old].join(' ')} is among AMO's previews`);
+// An old one already gone (deleted by hand on the Developer Hub, where
+// AMO's API throttle does not reach) is simply not deleted again.
 const stale = old ? before.filter((p) => old.has(p.id)) : before;
 const made = old ? before.filter((p) => !old.has(p.id)).map((p) => p.id) : [];
 if (made.length > files.length) fail(`AMO holds ${made.length} new previews for ${files.length} pictures`);
