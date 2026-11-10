@@ -26,7 +26,14 @@ export function setLocale(tag = localeTag(), { hourCycle = 'h23' } = {}) {
   // language's own default: Greek and Albanian would otherwise read 03:00
   // μ.μ. and 03:00 e pasdites to a viewer who asked for neither.
   const h12 = hourCycle === 'h12';
-  timeFmt = new Intl.DateTimeFormat(tag, { hour: h12 ? 'numeric' : '2-digit', minute: '2-digit', hourCycle });
+  // The hour has its leading zero where the language's own short time has
+  // one: Finnish writes 0.20 and 9.05, as do Czech, Slovak, Spanish,
+  // Hungarian and Bulgarian with their colon, and "00.20–00.45" in a
+  // Finnish guide read as a machine's time. German, Swedish and British
+  // English keep 00:20. The 12-hour clock never has one.
+  const hour = h12 || !/^0/.test(new Intl.DateTimeFormat(tag, { timeStyle: 'short', hourCycle: 'h23' }).format(new Date(2000, 0, 1, 9, 5)))
+    ? 'numeric' : '2-digit';
+  timeFmt = new Intl.DateTimeFormat(tag, { hour, minute: '2-digit', hourCycle });
   dateFmt = new Intl.DateTimeFormat(tag, { dateStyle: 'medium' });
   // English names the month: its figures read one way in Britain and the
   // other in the United States, and "04/12/2015" was the 4th of December
@@ -37,14 +44,14 @@ export function setLocale(tag = localeTag(), { hourCycle = 'h23' } = {}) {
   // A recording's or a sync's moment: the short date and the time, the
   // month by its name in English as above.
   dateTimeFmt = new Intl.DateTimeFormat(tag, month === 'short'
-    ? { day: 'numeric', month, year: 'numeric', hour: h12 ? 'numeric' : '2-digit', minute: '2-digit', hourCycle }
+    ? { day: 'numeric', month, year: 'numeric', hour, minute: '2-digit', hourCycle }
     : { dateStyle: 'short', timeStyle: 'short', hourCycle });
   // A calendar date read as UTC, so that no time zone moves it a day.
   calendarFmt = new Intl.DateTimeFormat(tag, { day: 'numeric', month, year: 'numeric', timeZone: 'UTC' });
   dayFmt = new Intl.DateTimeFormat(tag, { weekday: 'short', day: 'numeric', month });
   weekdayFmt = new Intl.DateTimeFormat(tag, { weekday: 'long' });
   stampFmt = new Intl.DateTimeFormat(tag, {
-    weekday: 'short', day: 'numeric', month, hour: h12 ? 'numeric' : '2-digit', minute: '2-digit', hourCycle,
+    weekday: 'short', day: 'numeric', month, hour, minute: '2-digit', hourCycle,
   });
 }
 

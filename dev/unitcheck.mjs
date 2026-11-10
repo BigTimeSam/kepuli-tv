@@ -2168,6 +2168,20 @@ check('another word does not hold the term', holds('Textens utseende', { forms: 
   check('the Firefox minimum is no higher than the version Orion asks AMO as', parseFloat(gecko.strict_min_version) <= 130, true);
 }
 
+/* ------------------------------ format.js: the hour's leading zero */
+
+{
+  // "00.20–00.45" in a Finnish guide: the hour was two digits in every
+  // language, where Finnish itself writes 0.20.
+  const { setLocale, clock } = await import('../js/format.js');
+  const at = new Date(2026, 0, 5, 0, 20).getTime();
+  const shown = (tag, options) => { setLocale(tag, options); return clock(at); };
+  check('the hour has no leading zero where the language writes none, and keeps it where it does',
+    [shown('fi'), shown('cs'), shown('de'), shown('en-GB'), shown('sv')], ['0.20', '0:20', '00:20', '00:20', '00:20']);
+  check('the 12-hour clock is as it was', shown('en-US', { hourCycle: 'h12' }).replace(/\s/g, ' '), '12:20 AM');
+  setLocale();
+}
+
 /* ------------------------------ format.js: same() */
 
 {
