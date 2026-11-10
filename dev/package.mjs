@@ -58,7 +58,7 @@ export const TARGETS = {
 // has of its own. A key that is neither stops the build, so a new key
 // cannot land in one manifest and silently miss the other.
 const SHARED_KEYS = ['manifest_version', 'name', 'default_locale', 'version', 'description', 'content_security_policy',
-                     'permissions', 'optional_host_permissions', 'action', 'icons'];
+                     'permissions', 'optional_permissions', 'optional_host_permissions', 'action', 'icons'];
 const OWN_KEYS = {
   chrome: ['background', 'minimum_chrome_version'],
   firefox: ['background', 'browser_specific_settings'],
@@ -77,6 +77,10 @@ export const APPROVED = {
     storage: 'settings, accounts and lists in storage.local; storage.sync only when the user turns sync on',
     unlimitedStorage: "the catalogue cache in IndexedDB (js/db.js) and recordings in OPFS outgrow the default quota with a provider's tens of thousands of entries",
     declarativeNetRequestWithHostAccess: "a Stalker portal needs a MAC cookie, a MAG User-Agent and a Referer that fetch cannot set; a session rule sets them on the portal's host alone, and only where host access was granted (js/stalker.js)",
+    alarms: 'a reminder or a planned recording falls due with no player open: background.js keeps one alarm per stored list and opens the player for the recording, or says the reminder',
+  },
+  optional_permissions: {
+    notifications: 'a reminder said while the player is closed or out of sight; optional, so that the update bringing it does not disable the extension, and asked for when the first reminder is set or in Settings (js/remindersui.js)',
   },
   optional_host_permissions: {
     'http://*/*': "the provider is the user's own server, unknown at install; one origin is asked for when its address is saved, all of them only on Allow all addresses for a redirecting stream (js/permissions.js); many providers serve plain HTTP",
@@ -103,8 +107,9 @@ export function permissionProblems(target, manifest) {
     if (new Set(have).size !== have.length) problems.push(`${target}: ${what} names an entry twice`);
   };
   compare('permissions', manifest.permissions, APPROVED.permissions);
+  compare('optional_permissions', manifest.optional_permissions, APPROVED.optional_permissions);
   compare('optional_host_permissions', manifest.optional_host_permissions, APPROVED.optional_host_permissions);
-  for (const key of ['host_permissions', 'optional_permissions', 'content_scripts', 'externally_connectable', 'web_accessible_resources']) {
+  for (const key of ['host_permissions', 'content_scripts', 'externally_connectable', 'web_accessible_resources']) {
     if (key in manifest) problems.push(`${target}: ${key} is not approved: write why it is needed in APPROVED in dev/package.mjs`);
   }
   const csp = manifest.content_security_policy || {};

@@ -146,7 +146,7 @@ The other APIs in use are older than 128: `runtime.getContexts` 127,
 
 `build.mjs` compares the two manifests on every run: `manifest_version`,
 `name`, `version`, `description`, `content_security_policy`, `permissions`,
-`optional_host_permissions`, `action` and `icons` must agree, the Firefox one
+`optional_permissions`, `optional_host_permissions`, `action` and `icons` must agree, the Firefox one
 must have `background.scripts` and a gecko id, and a key that appears in the
 Chrome manifest without being on either list stops the build until this
 script knows about it. That is what keeps the two from drifting apart.

@@ -229,6 +229,9 @@
 //                                     that does not hold the series
 //   node dev/playcheck.mjs continuewatching a film left halfway heads the
 //                                     history under its own heading
+//   node dev/playcheck.mjs closedplan a recording planned and the player closed:
+//                                      the background opens a player behind
+//                                      the tab in view, which records it
 //   node dev/playcheck.mjs reminders  a reminder set in the guide marks the
 //                                     programme, is kept, and when due says
 //                                     so with Watch, which plays the channel
@@ -4529,7 +4532,14 @@ async function reminders(page) {
   await waitFor(page, PLAYING, 'the channel from Watch');
   const left = await evaluate(page, `chrome.storage.local.get(${JSON.stringify(key)}).then((got) => got[${JSON.stringify(key)}].length)`);
   const playing = await evaluate(page, NOW_TITLE);
-  return { ok: left === 0 && playing === list[0].channel.n, detail: `"${said}"; Watch played ${playing}; reminders left ${left}` };
+  // A reminder's notification clicked: background.js leaves the channel
+  // under "watchAsked", and the player of that account plays it.
+  await evaluate(page, `document.getElementById('btn-home').click()`, { gesture: true });
+  await waitFor(page, `!(${PLAYING})`, 'the player stopped', 5000);
+  await evaluate(page, `chrome.storage.local.set({ watchAsked: { channel: ${JSON.stringify(list[0].channel)}, account: ${JSON.stringify(key.slice('reminders:'.length))}, at: Date.now() } })`);
+  await waitFor(page, PLAYING, 'the channel asked for by a notification');
+  const asked = await evaluate(page, `chrome.storage.local.get('watchAsked').then((d) => 'watchAsked' in d)`);
+  return { ok: left === 0 && playing === list[0].channel.n && !asked, detail: `"${said}"; Watch played ${playing}; reminders left ${left}; a notification's click played it again` };
 }
 
 async function update(page) {
@@ -4858,6 +4868,65 @@ async function switchstop(page) {
   } finally {
     other.closeAllConnections();
     await new Promise((resolve) => other.close(resolve));
+  }
+}
+
+/**
+ * A recording planned with the player then closed: background.js keeps an
+ * alarm for the plan, and when it goes off with no player open it opens
+ * one behind the tab in view, which makes the recording. Before the alarm
+ * the plan waited for the next player and was marked missed. Chrome only —
+ * the Firefox driver holds one tab.
+ */
+async function closedplan(page, { target }) {
+  if (!DEVTOOLS_PORT) return { ok: true, detail: 'skipped in Firefox: needs to find the tab the background opens, which the Marionette driver does not' };
+  const assert = (ok, message) => { if (!ok) throw new Error(message); };
+  const tabs = () => fetch(`http://127.0.0.1:${DEVTOOLS_PORT}/json/list`).then((r) => r.json());
+  process.env.KEPULI_MOCK_LIVE_TS = '1';
+  let opened = null;
+  // The background runs on the real clock: a page left on a test clock by
+  // an earlier scenario (?testnow=) would plan in another time.
+  const plain = bare(target.url).split('?')[0];
+  try {
+    await page.call('Page.navigate', { url: plain });
+    await waitFor(page, CONNECTED, 'the player on the real clock');
+    await openLiveList(page, 2);
+    await evaluate(page, `document.querySelectorAll('#list .row')[0].click()`, { gesture: true });
+    await waitFor(page, PLAYING, 'the channel', 40000);
+    await evaluate(page, `(async () => {
+      const { state } = await import('./js/state.js');
+      const { channelKey } = await import('./js/playing.js');
+      const { accountKey } = await import('./js/config.js');
+      const { stripItem } = await import('./js/coversui.js');
+      const now = Date.now();
+      await chrome.storage.local.set({ recordings: [{ id: 'rclosed', key: channelKey(state.config, state.playing), account: accountKey(state.config),
+        channel: stripItem(state.playing), title: 'Planned', start: now + 4000, stop: now + 20000, programme: { start: now + 4000, stop: now + 20000 },
+        state: 'planned', bytes: 0, createdAt: now }] });
+    })()`);
+    // The player goes away before the plan's time.
+    await page.call('Page.navigate', { url: 'about:blank' });
+    const mine = (tab) => tab.type === 'page' && tab.id !== target.id && bare(tab.url) === plain;
+    for (let i = 0; i < 100 && !opened; i++) { await sleep(200); opened = (await tabs()).find(mine) || null; }
+    assert(opened, 'no player was opened for the plan in 20 s');
+    const second = session(opened.webSocketDebuggerUrl);
+    const planState = `chrome.storage.local.get('recordings').then((d) => JSON.stringify(d.recordings))`;
+    await waitFor(second, `chrome.storage.local.get('recordings').then((d) => d.recordings[0].state === 'done')`, 'the plan recorded by the opened player', 45000)
+      .catch(async (err) => { throw new Error(`${err.message}: ${await evaluate(second, planState)}`); });
+    const done = await evaluate(second, `chrome.storage.local.get('recordings').then((d) => d.recordings[0])`);
+    const hidden = await evaluate(second, 'document.hidden');
+    assert(done.bytes > 50000, `the plan recorded ${done.bytes} bytes`);
+    assert(hidden, 'the opened player took the place of the tab in view');
+    return { ok: true, detail: `with the player closed the plan opened one behind the tab in view and recorded ${Math.round(done.bytes / 1024)} kB` };
+  } finally {
+    process.env.KEPULI_MOCK_LIVE_TS = '';
+    if (opened) await fetch(`http://127.0.0.1:${DEVTOOLS_PORT}/json/close/${opened.id}`).catch(() => {});
+    await page.call('Page.navigate', { url: plain });
+    await waitFor(page, CONNECTED, 'the player again');
+    await evaluate(page, `(async () => {
+      const root = await navigator.storage.getDirectory();
+      await root.removeEntry('recordings', { recursive: true }).catch(() => {});
+      await chrome.storage.local.remove('recordings');
+    })()`).catch(() => {});
   }
 }
 
@@ -7402,7 +7471,7 @@ async function handoff(page) {
 
 const SCENARIOS = { buffering, livebuffering, filmbuffering, emptyfile, tsasmp4, refusedfile, badgateway, livebadgateway, channelrefused, noanswer, longfilm, catalogUi, setupClarity, welcome, fullscreenControl, clickpause, pickers, touchcaret, screenbutton, topmenu, scrollbars, channelorder, lengthfilter, nowlogo, channels, home, resumemkv, restore, programmes, catchup, seek, death, cancel, timeout, search, paste, keys, switching, resume, connections, livezap, livequiet, reconnect, accounts, listerror, a11y, subtitles, audio, wasmaudio, settings,
   lastchannel, nextepisode, continuewatching, reminders, update, seeklag, cuesretry, quota, catchupfreeze, catchupfull, twotabs, switchstop, resettabs,
-  refresh, restorenav, guidekeep, removeaccount, m3u, sync, holes, picks, flakyserver, accountform, stalker, record, guidefavs, guidenames, categories, homecountry, noleak, perf, pseudo, startup, soak, phone, headline, accountnow, onerow, nowbarfit, subsize, arrowmiddle, idlelight, iossubs, starquiet, phonestar, pickertouch, pickerkeyboard, phonescroll, menutap, wakelock, livecut, episodenames, gotochannel, filmdetails, favorder, countryfilter, tilekeys, routes, programmekeys, searchlimit, filterfolds, focusrings, xtreamoffer, guideclick, filmaddress, filmfacts, playlistfile, perflive, perfplaylist, remoteimages, phoneguide, handoff };
+  refresh, restorenav, guidekeep, removeaccount, m3u, sync, holes, picks, flakyserver, accountform, stalker, record, guidefavs, guidenames, categories, homecountry, noleak, perf, pseudo, startup, soak, phone, headline, accountnow, onerow, nowbarfit, subsize, arrowmiddle, idlelight, iossubs, starquiet, phonestar, pickertouch, pickerkeyboard, phonescroll, menutap, wakelock, livecut, episodenames, gotochannel, filmdetails, favorder, countryfilter, tilekeys, routes, programmekeys, searchlimit, filterfolds, focusrings, xtreamoffer, guideclick, filmaddress, filmfacts, playlistfile, perflive, perfplaylist, remoteimages, phoneguide, handoff, closedplan };
 // The mock's whole-list answers stall for these, longer than the request limit.
 const SLOW_LIST_MS = { cancel: 60000, timeout: 60000 };
 // The media is sent slowly for these: the seek targets must lie outside the

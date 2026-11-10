@@ -19,6 +19,7 @@ import { applySubtitleLook, chooseSubtitleLook, lookOf, showSubtitleSize, toggle
 import { autoNext, renderStatBadge } from './nextepisode.js';
 import { cacheClear, storageEstimate, wipeStorage } from './db.js';
 import { canRecord, renderRecordingState } from './recordingsui.js';
+import { notifying } from './remindersui.js';
 import { clock, dateFmt, dateTimeFmt, megabytes, nf } from './format.js';
 import { normalizeMac, normalizePortal } from './stalker.js';
 import { parsePlaylistUrl, parseServer, pastedKind } from './xtream.js';
@@ -70,6 +71,7 @@ export function openSetup({ section, adding = false } = {}) {
   $('f-home-continue').checked = state.settings.homeContinue !== false;
   $('f-home-recent').checked = state.settings.homeRecent !== false;
   $('f-record').disabled = !canRecord;
+  $('f-notify').checked = notifying;
   $('f-international').checked = state.settings.showInternational;
   setupInitial = { ...state.settings, subtitleStyle: subtitleLook(state.settings).style, subtitleScale: subtitleLook(state.settings).scale, subtitleScaleBase: SCALE_BASE, subtitleLift: subtitleLook(state.settings).lift };
   applySubtitleLook(state.settings);

@@ -21,7 +21,8 @@
 //
 // The list of recordings, and the ones planned, is in storage.local under
 // "recordings", one entry each. It is the computer's own and never synced:
-// the files are here, and a plan is carried out by an open player here.
+// the files are here, and a plan is carried out by an open player here
+// (background.js opens one when a plan falls due with none open).
 // Every change goes through a lock, since several tabs may hold the list.
 // A recording is made by one tab only: it holds a lock of its own for the
 // recording while it runs, and a tab that finds the lock taken leaves it

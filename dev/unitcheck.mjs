@@ -2049,7 +2049,8 @@ check('another word does not hold the term', holds('Textens utseende', { forms: 
     let onClick;
     const event = () => ({ addListener() {} });
     const chrome = {
-      runtime: { getURL: (path) => `ext://id/${path}`, getManifest: () => ({ version: '0' }), onInstalled: event(), ...runtime },
+      runtime: { getURL: (path) => `ext://id/${path}`, getManifest: () => ({ version: '0' }), onInstalled: event(), onMessage: event(), ...runtime },
+      permissions: {},
       action: { onClicked: { addListener(f) { onClick = f; } } },
       tabs: { create: async (tab) => created.push(tab.url), update: async () => created.push('focused') },
       storage: { local: { get: async () => ({}) }, onChanged: event() },
@@ -2075,7 +2076,9 @@ check('another word does not hold the term', holds('Textens utseende', { forms: 
         getURL: (path) => `${base}${path}`, getManifest: () => ({ version: '1' }),
         onInstalled: { addListener(f) { installed.push(f); } },
         setUninstallURL: async (url) => { address = url; },
+        onMessage: event(),
       },
+      permissions: {},
       action: { onClicked: event() },
       tabs: { create: async () => {} },
       storage: { local: { get: async () => ({}), remove: async () => {} }, onChanged: event() },
@@ -2089,6 +2092,69 @@ check('another word does not hold the term', holds('Textens utseende', { forms: 
   check('the uninstall form names Firefox', await formEngine('moz-extension://id/'), 'firefox');
   check('the uninstall form names the iPhone\'s WebKit (Orion)',
     await formEngine('chrome-extension://id/', { ManagedMediaSource: class {} }), 'webkit');
+
+  // A reminder and a planned recording fall due with no player open: both
+  // used to wait for the next player, which said nothing of a programme
+  // that had ended and marked the recording missed.
+  const due = async ({ stored, open = false, notifications = true }) => {
+    const done = { tabs: [], notices: [], alarms: {} };
+    let onAlarm; let onClicked;
+    const event = () => ({ addListener() {} });
+    const chrome = {
+      runtime: {
+        getURL: (path) => `ext://id/${path}`, getManifest: () => ({ version: '0' }), onInstalled: event(), onMessage: event(),
+        getContexts: async () => (open ? [{ documentUrl: 'ext://id/player.html#/live', tabId: 1, windowId: 1 }] : []),
+      },
+      permissions: {},
+      action: { onClicked: event() },
+      tabs: { create: async (tab) => done.tabs.push(tab), update: async () => done.tabs.push('focused') },
+      alarms: {
+        onAlarm: { addListener(f) { onAlarm = f; } },
+        create: async (name, { when }) => { done.alarms[name] = when; },
+        clear: async (name) => { delete done.alarms[name]; },
+      },
+      ...(notifications ? { notifications: {
+        create: async (id, options) => done.notices.push([options.title, options.message]),
+        clear() {},
+        onClicked: { addListener(f) { onClicked = f; } },
+      } } : {}),
+      storage: {
+        local: {
+          get: async (keys) => (keys === null ? stored : Object.fromEntries([keys].flat().filter((k) => k in stored).map((k) => [k, stored[k]]))),
+          set: async (values) => { Object.assign(stored, values); },
+        },
+        onChanged: event(),
+      },
+    };
+    runInNewContext(source, { chrome, navigator: { language: 'en', locks: { request: (name, task) => task() } }, URL, console });
+    for (const key of Object.keys(stored)) await onAlarm({ name: key });
+    if (onClicked && Object.keys(stored.reminderNotices || {}).length) {
+      await onClicked(Object.keys(stored.reminderNotices)[0]);
+      await new Promise((resolve) => setTimeout(resolve, 0));
+    }
+    return { ...done, stored };
+  };
+  const now = Date.now();
+  const channel = { id: '7', n: 'Kanava 7' };
+  const soon = { channel, title: 'Uutiset', start: now + 30e3, stop: now + 1800e3 };
+  const later = { channel, title: 'Sää', start: now + 3600e3, stop: now + 5400e3 };
+  const said = await due({ stored: { 'reminders:acc': [soon, later] } });
+  check('a due reminder is said as a notification with no player open, and the next one armed',
+    [said.notices, said.stored['reminders:acc'].map((r) => r.title), said.alarms['reminders:acc']],
+    [[['Uutiset', 'Kanava 7']], ['Sää'], later.start - 60e3]);
+  check('its click opens the player and leaves the channel to play',
+    [said.tabs.map((tab) => tab.url), said.stored.watchAsked.channel.id, said.stored.watchAsked.account], [['ext://id/player.html'], '7', 'acc']);
+  const kept = await due({ stored: { 'reminders:acc': [soon] }, notifications: false });
+  check('without the permission the reminder stays for the next player', [kept.notices, kept.stored['reminders:acc'].length, kept.tabs], [[], 1, []]);
+  const shown = await due({ stored: { 'reminders:acc': [soon] }, open: true });
+  check('an open player says its own reminders', [shown.notices, shown.stored['reminders:acc'].length], [[], 1]);
+  const plan = { id: 'r1', state: 'planned', start: now - 1000, stop: now + 1800e3 };
+  const recorded = await due({ stored: { recordings: [plan, { ...plan, id: 'r2', start: now + 7200e3, stop: now + 9000e3 }] } });
+  check('a planned recording that falls due opens the player behind the tab in view, and the next plan is armed',
+    [recorded.tabs, recorded.alarms.recordings], [[{ url: 'ext://id/player.html', active: false }], now + 7200e3]);
+  check('a plan whose programme has ended opens nothing',
+    (await due({ stored: { recordings: [{ ...plan, stop: now - 500 }] } })).tabs, []);
+  check('nor does one with a player open', (await due({ stored: { recordings: [plan] }, open: true })).tabs, []);
 }
 
 /* ------------------------------------- firefox/manifest.json: Orion finds it */

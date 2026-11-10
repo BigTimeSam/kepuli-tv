@@ -41,7 +41,7 @@ import { nf } from './format.js';
 import { t, applyStatic, setLanguage, loadLanguage } from './i18n.js';
 import { askRecordingConsent, closeRecordingConsent, loadRecordingList, openRecordings, retryPlayback, toggleRecordNow } from './recordingsui.js';
 import { offerXtream, renderAccountList } from './accountsui.js';
-import { loadReminders, reminders, showReminders } from './remindersui.js';
+import { loadNotifying, loadReminders, reminders, setNotifying, showReminders, watchAsked } from './remindersui.js';
 import { renderInfoStrip } from './infostrip.js';
 import { applyListLayout, gridColumns, isWatched, nameCleanerFor, onEpgUpdated, renderRow, restoreListView, listName, shownName, toggleFavorite, toggleWatched, usesGrid, watchGridWidth } from './coversui.js';
 import { closeDetail, crumbLabel, episodesOfSeason, openItem, openSeries, renderDetail } from './seriesui.js';
@@ -2064,6 +2064,9 @@ function wireUi() {
   $('btn-recordings-menu').addEventListener('click', openRecordings);
   $('recordings-close').addEventListener('click', () => $('recordings').close());
   $('f-record').addEventListener('change', askRecordingConsent);
+  // The switch is the permission itself, asked of the browser in the click
+  // and not kept with the settings: it shows what the browser answered.
+  $('f-notify').addEventListener('change', async (event) => { event.target.checked = await setNotifying(event.target.checked); });
   $('rec-consent-ok').addEventListener('click', () => closeRecordingConsent(true));
   $('rec-consent-cancel').addEventListener('click', () => closeRecordingConsent(false));
   wireModal($('rec-consent'), () => closeRecordingConsent(false));
@@ -2273,6 +2276,7 @@ async function init() {
   new SubtitleDisplay(el.video, el.subdisplay, el.videowrap);
   renderCastState();
 
+  await loadNotifying();
   const ui = await store.loadUiState();
   groupsFavOnly = ui.groupsFavOnly === true;
   restoreGuideFavorites(ui.guideFavorites);
@@ -2320,6 +2324,8 @@ async function init() {
     return;
   }
   await connect();
+  // A reminder's notification may be what opened this player.
+  watchAsked();
 }
 
 const CACHE_PURGE_DELAY_MS = 20000;

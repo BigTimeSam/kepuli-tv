@@ -111,10 +111,15 @@ megabytes, so a closed tab keeps all but the last seconds. Nothing is
 re-encoded. A recording of the channel being watched shares the player's
 connection (`js/streamhub.js`): an account that allows one connection can
 record what it shows, though not another channel at the same time — the player
-says so. A dropped connection is opened again until the recording's end. As
-with reminders, recordings are made while Kepuli-TV is open in a tab: a plan
-whose time comes with no player open is marked missed, and closing the tab
-mid-recording asks first.
+says so. A dropped connection is opened again until the recording's end.
+
+A recording is made by a player open in a tab. When a plan's time comes with
+none open, Kepuli-TV opens one itself, in a tab behind the one in view, and it
+records there (`background.js`, an alarm for the plan); the tab stays when the
+recording is done. That takes the browser running: a plan whose programme
+came and went while the browser was closed is marked missed, and one still on
+when the browser starts is recorded from there. Closing the tab mid-recording
+asks first. On the iPhone (Orion) a plan still waits for an open player.
 
 ## Sync between computers
 
@@ -420,7 +425,8 @@ interrupted channel-list load restores the previous list.
   now** and **Cancel** over the picture; a switch under **Playback** turns it off
 - **The previous channel** with `l`, as a television's own button has it
 - **Programme reminders** from the guide: a minute before the programme starts,
-  a message names it with **Watch** — while the player is open
+  a message names it with **Watch**, or a notification does when the player
+  is closed or out of sight and notifications are allowed
 - **Media keys** and the system's media controls: the programme and channel,
   or the title and series, are named there, next and previous step as `n` and
   `p` do, and the seek keys move a film or a recording
@@ -450,7 +456,8 @@ interrupted channel-list load restores the previous list.
 - **Stalker portals** by portal address and MAC address, as a MAG box sees
   them — see [Stalker portals](#stalker-portals)
 - **Recording** a live channel now or a programme from the guide, to the
-  browser's own storage, played back or saved as a file — see
+  browser's own storage, played back or saved as a file; a planned one opens
+  the player by itself when its time comes — see
   [Recording](#recording)
 - **Several accounts**, switched in Settings › Connection, each with its own lists
 - **Sync between computers** through the browser's own sync, off until asked for
@@ -671,7 +678,7 @@ Settings always opens on **Connection**, with five focused tabs:
 | Section | Holds |
 | --- | --- |
 | **Connection** | the provider address and credentials, entered as Xtream Codes fields, an M3U address, or a Stalker portal and its MAC address |
-| **Viewing** | in four groups: *Language and appearance* (interface language, dark, light or the system's, the clock), *Channels* (the countries, the international channels), *Start page* (its sections) and *Programme guide* (automatic programme data) |
+| **Viewing** | in four groups: *Language and appearance* (interface language, dark, light or the system's, the clock), *Channels* (the countries, the international channels), *Start page* (its sections) and *Programme guide* (automatic programme data, reminders as notifications) |
 | **Playback** | remembered playback positions, the next episode, the stream statistics over the picture and recording |
 | **Subtitles** | style and size, with a local preview |
 | **Account & data** | in three groups: *Subscription* (its details and the cache), *Sync between computers* and *Manage stored data* (cache clearing and reset) |
@@ -804,11 +811,17 @@ An upcoming programme offers **Remind me**, and pressing `Enter` on one offers
 it in the message that says when it starts. A bell marks the programme in the
 grid. A minute before it starts, a message names the programme and its
 channel, with **Go to channel**. Reminders belong to the account and are kept with
-it, but they are said only while a player is open: one from a closed player
-would need a background timer and the notifications permission, and Chrome
-disables an extension on update until a new permission like that has been
-accepted. A reminder that falls due in a hidden tab waits until the tab is
-looked at again, for as long as the programme is still on.
+it. With the player closed, or its tab out of sight, a reminder is said as a
+notification of the system's instead, naming the programme and its channel;
+clicking it brings the player forward, opening one if need be, on that
+channel. Notifications are asked for when the first reminder is set, and
+turned on or off afterwards under **Settings › Viewing › Programme guide**
+(**Show reminders as notifications when the player is not in view**); the
+permission is an optional one, so that the update that brought it disabled
+nothing. Without it a reminder waits as before: one that falls due in a
+hidden tab until the tab is looked at again, one from a closed player until
+the next is opened, for as long as the programme is still on. The browser
+has to be running either way.
 
 **Start from the beginning** is offered for an ongoing programme on an archive
 channel. Whether the provider makes that programme available before it ends

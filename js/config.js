@@ -816,6 +816,9 @@ export function clearRecents() {
 /** @returns {Promise<Reminder[]>} */
 export async function loadReminders() { return readPersonal('reminders', []); }
 
+/** Where the account's reminders are stored, for background.js to say them from. */
+export const remindersStorageKey = () => personalKey('reminders');
+
 /** @param {Reminder} r */
 export const reminderKey = (r) => `${r.channel.id}:${r.start}`;
 

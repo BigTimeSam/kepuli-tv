@@ -357,6 +357,8 @@
 <ul>
   <li><strong><code>storage</code></strong> — to keep settings, credentials, favourites, history and resume positions on the device, and, if you turn sync on, in the browser's sync storage.</li>
   <li><strong><code>declarativeNetRequestWithHostAccess</code></strong> — for a Stalker portal account only: a rule for the duration of the browser session puts the MAC address cookie and a MAG box's User-Agent on the requests to <strong>that portal's address alone</strong>, which a page cannot do itself. It acts only on addresses you have granted access to, changes no other request and is gone when the browser closes.</li>
+  <li><strong><code>alarms</code></strong> — to keep the time of a reminder or a planned recording while the player is closed, so that the recording starts and the reminder is said. Nothing leaves the device.</li>
+  <li><strong><code>notifications</code></strong> (optional) — <em>not</em> requested at install time. The browser asks when you set your first reminder, or when you turn the notifications on in the settings; a reminder is then shown as a notification while the player is closed or out of view. It names the programme and its channel and is shown on your device only.</li>
   <li><strong><code>unlimitedStorage</code></strong> — for the catalogue cache and recordings. A typical IPTV catalogue is tens of megabytes and exceeds the browser's default quota.</li>
   <li>
     <strong>Optional host access</strong> (<code>http://*/*</code>, <code>https://*/*</code>) —

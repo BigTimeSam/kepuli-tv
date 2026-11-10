@@ -354,6 +354,20 @@ The catalogue returned by the user's own IPTV server is cached in IndexedDB so i
 No personal data is stored under this permission - only a copy of the listing the user's own server returned. The cache can be cleared from the extension's settings at any time.
 
 
+ALARMS JUSTIFICATION
+--------------------
+Asked for since 1.11.0. No install warning.
+
+The user can set a reminder for a programme in the programme guide and plan a recording of one. The extension is a page in a tab, and a closed tab has no timers: without an alarm, a reminder was never shown and a planned recording never started unless the player happened to be open at that minute. The service worker keeps one alarm per stored list (the reminders, the planned recordings), set to the moment the first entry falls due. When it goes off and no player tab is open, it opens the extension's own player tab for the recording, or shows the reminder as a notification. Nothing is fetched or sent by the alarm itself.
+
+
+NOTIFICATIONS JUSTIFICATION
+---------------------------
+An optional permission (optional_permissions) since 1.11.0: not asked for at install, and not needed by anyone who sets no reminders.
+
+Chrome asks for it when the user sets their first programme reminder in the guide, or ticks "Show reminders as notifications when the player is not in view" in the settings; unticking it removes the permission. With it, a reminder that falls due while the player tab is closed or hidden is shown as one notification naming the programme and its channel; clicking it opens the player on that channel. No other notification is ever shown, and nothing is sent anywhere.
+
+
 DECLARATIVENETREQUESTWITHHOSTACCESS JUSTIFICATION
 -------------------------------------------------
 Asked for since 1.6.0, for Stalker portal accounts only; a release that

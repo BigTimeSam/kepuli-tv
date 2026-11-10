@@ -35,7 +35,7 @@ const SHARED = ['player.html', 'background.js', 'js', 'css', 'vendor', 'icons', 
 // Keys the two manifests must agree on. The rest is browser-specific:
 // background, minimum_chrome_version, browser_specific_settings.
 const SHARED_KEYS = ['manifest_version', 'name', 'default_locale', 'version', 'description', 'content_security_policy',
-                     'permissions', 'optional_host_permissions', 'action', 'icons'];
+                     'permissions', 'optional_permissions', 'optional_host_permissions', 'action', 'icons'];
 
 const readJson = (path) => JSON.parse(readFileSync(path, 'utf8'));
 const same = (a, b) => JSON.stringify(a) === JSON.stringify(b);

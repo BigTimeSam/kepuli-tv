@@ -99,3 +99,141 @@ api.runtime.onStartup?.addListener(() => { setUninstallForm().catch(() => {}); }
 api.storage.onChanged.addListener((changes, area) => {
   if (area === 'local' && changes.settings) setUninstallForm().catch(() => {});
 });
+
+/* ------------------------------------- reminders and planned recordings */
+
+// A reminder set in the guide and a recording planned there used to depend
+// on a player being open when their time came: a closed one said nothing
+// and recorded nothing. The times are kept here as alarms instead, one for
+// each stored list, named by the list's key in storage.local, at the
+// moment its first entry falls due. When one goes off with no player open,
+// a planned recording opens the player in a tab behind the one in view,
+// and the player makes the recording as it would have (js/recordingsui.js);
+// a reminder is said as a notification where the viewer has allowed them
+// (the optional "notifications" permission, asked for by the player), and
+// waits for the next player otherwise. With a player open the alarm does
+// nothing: the player has timers of its own for both.
+//
+// "alarms" shows no warning in either browser, so the update that brought
+// it did not disable the extension; "notifications" would have, as a
+// required permission, which is why it is an optional one.
+//
+// A browser that cannot tell whether a player is open (Orion, see
+// playerTab above) is left as it was: it would open a second player.
+const REMIND_AHEAD = 60 * 1000;
+const RECORDINGS = 'recordings';
+const NOTICES = 'reminderNotices';
+// The same lock as every change to a stored list in js/config.js.
+const LIST_LOCK = 'kepuli-tv-lists';
+const timedList = (key) => key === RECORDINGS || key.startsWith('reminders:');
+const scheduling = () => Boolean(api.alarms && api.runtime.getContexts);
+
+/** When each entry of a stored list falls due, for those still worth acting on. */
+function dueTimes(key, list, now) {
+  if (!Array.isArray(list)) return [];
+  return key === RECORDINGS
+    ? list.filter((r) => r.state === 'planned' && (!r.stop || r.stop > now)).map((r) => r.start)
+    : list.filter((r) => r.stop > now).map((r) => r.start - REMIND_AHEAD);
+}
+
+/** The list's alarm set for its first entry due after `after`, or cleared when there is none. */
+async function armList(key, list, after = 0) {
+  const times = dueTimes(key, list, Date.now()).filter((time) => time > after);
+  if (times.length) await api.alarms.create(key, { when: Math.min(...times) });
+  else await api.alarms.clear(key);
+}
+
+/** Every list's alarm from what is stored: Firefox forgets alarms when it closes. */
+async function armAll() {
+  if (!scheduling()) return;
+  const stored = await api.storage.local.get(null);
+  await Promise.all(Object.keys(stored).filter(timedList).map((key) => armList(key, stored[key])));
+}
+
+/**
+ * The reminders of one account that are due, taken out of its list and
+ * said. Each notification's reminder is kept under the notification's id
+ * until it is clicked, since this script may have been stopped by then.
+ */
+async function sayReminders(key, now) {
+  const due = await navigator.locks.request(LIST_LOCK, async () => {
+    const list = (await api.storage.local.get(key))[key] || [];
+    const taken = list.filter((r) => r.start - REMIND_AHEAD <= now);
+    if (taken.length) await api.storage.local.set({ [key]: list.filter((r) => !taken.includes(r)) });
+    return taken.filter((r) => r.stop > now);
+  });
+  if (!due.length) return;
+  const { [NOTICES]: notices = {} } = await api.storage.local.get(NOTICES);
+  // Notices nobody clicked go after a day.
+  const kept = Object.fromEntries(Object.entries(notices).filter(([, n]) => n.at > now - 24 * 3600e3));
+  for (const r of due) {
+    const id = `reminder:${r.channel.id}:${r.start}`;
+    kept[id] = { channel: r.channel, account: key.slice('reminders:'.length), at: now };
+    await api.notifications.create(id, {
+      type: 'basic',
+      iconUrl: api.runtime.getURL('icons/icon128.png'),
+      title: r.title,
+      // The programme and its channel: said a minute before the start, it
+      // needs no time, and this script has none of the player's words.
+      message: r.channel.displayName || r.channel.n || '',
+    });
+  }
+  await api.storage.local.set({ [NOTICES]: kept });
+}
+
+api.alarms?.onAlarm.addListener(async ({ name: key }) => {
+  if (!scheduling() || !timedList(key)) return;
+  const now = Date.now();
+  const list = (await api.storage.local.get(key))[key];
+  if (!(await playerTab()) && dueTimes(key, list, now).some((time) => time <= now)) {
+    if (key === RECORDINGS) await api.tabs.create({ url: PLAYER_URL, active: false });
+    else if (api.notifications) await sayReminders(key, now).catch((err) => console.warn('[iptv] reminder not said', err));
+  }
+  await armList(key, list, now);
+});
+
+// An open player out of sight has its due reminders said from here too.
+api.runtime.onMessage.addListener((message) => {
+  const key = message?.sayReminders;
+  if (typeof key === 'string' && key.startsWith('reminders:') && api.notifications) sayReminders(key, Date.now()).catch(() => {});
+});
+
+api.storage.onChanged.addListener((changes, area) => {
+  if (area !== 'local' || !scheduling()) return;
+  for (const key of Object.keys(changes).filter(timedList)) armList(key, changes[key].newValue).catch(() => {});
+});
+api.runtime.onInstalled.addListener(() => { armAll().catch(() => {}); });
+api.runtime.onStartup?.addListener(() => { armAll().catch(() => {}); });
+
+/**
+ * A notification clicked: the player comes to the front, opened if there
+ * is none, and is left word of the channel to play ("watchAsked", read by
+ * js/remindersui.js at its start and when it changes).
+ */
+async function watchNotice(id) {
+  const { [NOTICES]: notices = {} } = await api.storage.local.get(NOTICES);
+  const notice = notices[id];
+  api.notifications.clear(id);
+  if (!notice) return;
+  delete notices[id];
+  await api.storage.local.set({ [NOTICES]: notices, watchAsked: { channel: notice.channel, account: notice.account, at: Date.now() } });
+  const open = await playerTab();
+  if (open) {
+    await api.tabs.update(open.tabId, { active: true });
+    await api.windows?.update(open.windowId, { focused: true }).catch(() => {});
+  } else {
+    await api.tabs.create({ url: PLAYER_URL });
+  }
+}
+
+// The permission is optional, so the API may arrive after this script has
+// started: the listener is added now when it is there, and when it is
+// granted otherwise.
+let noticeClicks = false;
+function listenForNoticeClicks() {
+  if (noticeClicks || !api.notifications) return;
+  noticeClicks = true;
+  api.notifications.onClicked.addListener((id) => { watchNotice(id).catch(() => {}); });
+}
+listenForNoticeClicks();
+api.permissions.onAdded?.addListener(listenForNoticeClicks);

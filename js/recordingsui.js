@@ -27,8 +27,8 @@ import { renderInfoStrip } from './infostrip.js';
 
 // A live channel recorded to the browser's own storage (js/recorder.js):
 // from the player, from now to the end of the programme on now, or from
-// the guide, a programme planned ahead. Like the reminders, a plan is
-// carried out by an open player: one that is closed records nothing.
+// the guide, a programme planned ahead. A plan is carried out by an open
+// player; when its time comes with none open, background.js opens one.
 const recorder = new Recorder({ onChange: () => renderRecordingState() });
 let recordings = [];
 let recordingTimer = null;
