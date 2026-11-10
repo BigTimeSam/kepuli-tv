@@ -23,7 +23,12 @@ button.poster:disabled { cursor: default; }
 .detail-body { min-width: 0; flex: 1; }
 .detail-heading { display: flex; align-items: flex-start; gap: 8px; margin-bottom: 3px; }
 .detail-title { flex: 1; min-width: 0; font-weight: 650; font-size: 1rem; letter-spacing: -0.005em; overflow-wrap: anywhere; }
-button.series-favorite { flex: none; width: 32px; height: 32px; padding: 0; display: grid; place-items: center; font-size: 1.1875rem; line-height: 1; }
+/* The list's star, a size up for the heading beside it: a framed 32 px
+   button with a 19 px glyph stood out from every other star in the app. */
+button.series-favorite { flex: none; width: 26px; height: 26px; padding: 0; display: grid; place-items: center;
+  border: 0; border-radius: 5px; background: transparent; color: var(--star); font-size: 0.9375rem; line-height: 1; }
+button.series-favorite:hover { color: var(--text); background: var(--track); }
+button.series-favorite.on { color: var(--gold); }
 .series-favorite:focus-visible { outline: 2px solid var(--accent-ink); outline-offset: 2px; }
 /* Labelled facts separate catalogue metadata from playback diagnostics. */
 .title-facts { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px 16px; margin: 2px 0 12px; }
