@@ -48,7 +48,7 @@ import { closeDetail, crumbLabel, episodesOfSeason, openItem, openSeries, render
 import { closeGuide, favoritesChanged, focusGrid, grid, guideFavorites, guideOpen, openGuide, programmeSearch, renderGuideGroups, restoreGuideFavorites, setGuideFavorites, toggleGuide, wirePhoneGuide } from './guideui.js';
 
 import { ensureFull, orderList, renderEmptyState, renderListInfo, wireSubcatsKeys, wireSubcatsResize } from './topicbar.js';
-import { askExternal, playExternal } from './externalui.js';
+import { askExternal, nameExternalItem, playExternal } from './externalui.js';
 import { $, el } from './dom.js';
 import { state, TYPE_KIND, unit, kindLabel, KIND_ORDER, KIND_INDEX, kindGroup, ROW_H, setRowHeight, listNavigation, isCollection, tabType, isAbort, same, resetting, startReset, connecting, setConnecting, provide } from './state.js';
 import { categoryCountsFor, collectionItems, favCategoryEntry, isFavorite, isUnfinished, kindIndex, loadGroupItems, openFavCategory, refreshCatalogue, refreshWhenStale, removeFromHistory, renderSubcats, sectionsFor, toggleFavCategory } from './collections.js';
@@ -2199,6 +2199,7 @@ async function init() {
   const lang = store.interfaceLanguage(state.settings);
   await loadLanguage(lang);
   setLanguage(lang);
+  nameExternalItem();
   applyLocale();
   applyStatic();
   catalogueSearch.render();

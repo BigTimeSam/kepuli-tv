@@ -13,7 +13,7 @@ globalThis.MediaSource = { isTypeSupported: (type) => /mp4a\.40/.test(type) };
 
 import { parseServer, parsePlaylistUrl, pastedKind, directSource, serverStamp, timeshiftUrl, streamUrl } from '../js/xtream.js';
 import { safeUrl, decodeField, XtreamApi, ApiError } from '../js/api.js';
-import { playlist, vlcIntent } from '../js/external.js';
+import { playlist, vlcIntent, vlcIosLink } from '../js/external.js';
 import { syncOffset, afterTail, ReconnectingLiveLoader } from '../js/liveloader.js';
 import { nameCleaner, labelCodes, countryCodes, searchKey, searchTerms, matchesTerms, homeCountryCodes, homeGroup, viewerTags, episodeTitle } from '../js/name.js';
 import { Library, buildGroups, cacheTtl } from '../js/library.js';
@@ -2079,6 +2079,12 @@ check('another word does not hold the term', holds('Textens utseende', { forms: 
     .browser_specific_settings.gecko;
   check('the Firefox minimum is no higher than the version Orion asks AMO as', parseFloat(gecko.strict_min_version) <= 130, true);
 }
+
+/* ------------------------------ external.js: VLC on the iPhone */
+
+check('VLC for iOS is handed the stream address, encoded whole',
+  vlcIosLink({ url: 'http://tv.example:8080/live/u/p/1.ts?token=a&b=c' }),
+  'vlc-x-callback://x-callback-url/stream?url=http%3A%2F%2Ftv.example%3A8080%2Flive%2Fu%2Fp%2F1.ts%3Ftoken%3Da%26b%3Dc');
 
 /* ------------------------------ liveloader.js: a live channel over cuts */
 

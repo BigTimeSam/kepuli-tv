@@ -6899,7 +6899,7 @@ async function filmfacts(page) {
 async function handoff(page) {
   const assert = (ok, message) => { if (!ok) throw new Error(message); };
   await openLiveList(page, 3);
-  const handOver = (android) => evaluate(page, `(async () => {
+  const handOver = (android, iphone = false) => evaluate(page, `(async () => {
     const { state } = await import('./js/state.js');
     const { playItem } = await import('./js/playing.js');
     const { askExternal, playExternal } = await import('./js/externalui.js');
@@ -6914,12 +6914,24 @@ async function handoff(page) {
       const film = (await state.lib.ensureFull('movie')).find((f) => String(f.id) === '5000');
       playItem(film, { startAt: 42 });
       for (let i = 0; i < 100 && !state.playingSpec; i++) await new Promise((r) => setTimeout(r, 100));
-      askExternal();
-      const asked = document.getElementById('overlay-text').textContent;
-      playExternal();
-      const told = document.getElementById('overlay-text').textContent;
-      return { clicks, asked, told,
-        texts: { confirm: t('ext.confirm.text'), confirmVlc: t('ext.confirm.vlc'), handed: t('ext.handed.text'), handedVlc: t('ext.handed.vlc') } };
+      // The iPhone's WebKit as external.js tells it: ManagedMediaSource and
+      // no MediaSource, once the film plays (its engines need the latter).
+      const mediaSource = globalThis.MediaSource;
+      if (${iphone}) { delete globalThis.MediaSource; globalThis.ManagedMediaSource ??= class {}; }
+      try {
+        askExternal();
+        const asked = document.getElementById('overlay-text').textContent;
+        const button = [...document.querySelectorAll('#overlay-actions button')].map((b) => b.textContent)[0];
+        playExternal();
+        const told = document.getElementById('overlay-text').textContent;
+        const title = document.getElementById('overlay-title').textContent;
+        // Nothing on the page goes away here: VLC is taken for absent, and the App Store follows.
+        if (${iphone}) await new Promise((r) => setTimeout(r, 2800));
+        return { clicks, asked, told, title, button,
+          texts: { confirm: t('ext.confirm.text'), confirmVlc: t('ext.confirm.vlc'), confirmIos: t('ext.confirm.vlc.ios'), handed: t('ext.handed.text'), handedVlc: t('ext.handed.vlc'), openVlc: t('ext.title.vlc'), handedTitleVlc: t('ext.handed.title.vlc') } };
+      } finally {
+        if (${iphone}) { globalThis.MediaSource = mediaSource; delete globalThis.ManagedMediaSource; }
+      }
     } finally {
       HTMLAnchorElement.prototype.click = click;
       Object.defineProperty(Navigator.prototype, 'userAgent', agent);
@@ -6935,8 +6947,17 @@ async function handoff(page) {
     && /^intent:\/\/[^#]+\/movie\/demo\/demo\/5000\.mp4#Intent;scheme=http;type=video\/\*;package=org\.videolan\.vlc;S\.title=[^;]+;l\.position=\d+000;S\.browser_fallback_url=[^;]+;end$/.test(intent.href),
     `on Android: ${JSON.stringify(android.clicks)}`);
   assert(android.asked === android.texts.confirmVlc && android.told === android.texts.handedVlc, `on Android the overlay said "${android.asked}", then "${android.told}"`);
+  assert(android.button === android.texts.openVlc && android.title === android.texts.handedTitleVlc, `on Android the button said "${android.button}" and the title "${android.title}"`);
   const position = Number(/l\.position=(\d+)/.exec(intent.href)[1]) / 1000;
-  return { ok: true, detail: `a computer downloads ${desktop.clicks[0].download}; Android hands VLC the film at ${position} s with no file, and the overlay names VLC` };
+  // The iPhone: VLC's x-callback-url, no file, and VLC's App Store page
+  // when nothing took the link (Orion offered "player.html, 127 bytes").
+  const iphone = await handOver(false, true);
+  const [vlc, store] = iphone.clicks;
+  assert(iphone.clicks.length === 2 && !vlc.download && /^vlc-x-callback:\/\/x-callback-url\/stream\?url=http%3A%2F%2F[^&]+%2Fmovie%2Fdemo%2Fdemo%2F5000\.mp4$/.test(vlc.href)
+    && /^https:\/\/apps\.apple\.com\/app\/vlc-media-player\/id650377962$/.test(store.href), `on the iPhone: ${JSON.stringify(iphone.clicks)}`);
+  assert(iphone.asked === iphone.texts.confirmIos && iphone.told === iphone.texts.handedVlc && iphone.button === iphone.texts.openVlc,
+    `on the iPhone the overlay said "${iphone.asked}", then "${iphone.told}", its button "${iphone.button}"`);
+  return { ok: true, detail: `a computer downloads ${desktop.clicks[0].download}; Android hands VLC the film at ${position} s with no file, and the overlay names VLC; the iPhone hands VLC the address and, with no VLC, opens its App Store page` };
 }
 
 const SCENARIOS = { buffering, livebuffering, filmbuffering, emptyfile, tsasmp4, refusedfile, badgateway, livebadgateway, channelrefused, noanswer, longfilm, catalogUi, setupClarity, welcome, fullscreenControl, clickpause, pickers, touchcaret, screenbutton, topmenu, scrollbars, channelorder, lengthfilter, nowlogo, channels, home, resumemkv, restore, programmes, catchup, seek, death, cancel, timeout, search, paste, keys, switching, resume, connections, livezap, livequiet, reconnect, accounts, listerror, a11y, subtitles, audio, wasmaudio, settings,

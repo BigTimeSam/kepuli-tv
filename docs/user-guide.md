@@ -400,9 +400,12 @@ interrupted channel-list load restores the previous list.
   browser cannot do: a one-item `.m3u` file is saved, and the system opens it
   in the player registered for playlists, VLC for one. The file holds the
   stream address with your user name and password, so keep it as you keep
-  the password. On Android no file is saved: Firefox asks to open the stream
-  in VLC, which starts it where the browser was (VLC can send it on to a
-  Chromecast); without VLC, the Play Store opens at its page
+  the password. On a phone the menu item reads **Open in VLC** and no file is
+  saved. On Android Firefox asks to open the stream in VLC, which starts it
+  where the browser was (VLC can send it on to a Chromecast); without VLC, the
+  Play Store opens at its page. On the iPhone (Orion) VLC is handed the
+  address and plays it from the start; without VLC, the App Store opens at
+  its page
 - **Chromecast** (the same menu or `c`): a natively played file goes to the
   device through the Remote Playback API, and for the rest the menu explains how
   Chrome's own tab casting does it — see below. On the iPhone the item is not

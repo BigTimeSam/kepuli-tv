@@ -27,16 +27,37 @@
 // film started at the position, under its name). Without VLC, Android
 // follows browser_fallback_url to VLC's page on Google Play.
 //
+// On the iPhone (Orion) the file route offered "player.html, 127 bytes"
+// to download, which nothing on the phone opens. VLC for iOS takes a stream
+// through its x-callback-url instead; it has no start position, so a film
+// starts from its beginning there. Without VLC the link opens nothing and
+// the page stays in sight: after a moment VLC's page in the App Store opens.
+//
 // The URL carries the Xtream credentials, so a downloaded playlist is as
-// sensitive as the account itself. The intent leaves no file behind.
+// sensitive as the account itself. The intent and the iOS link leave no
+// file behind.
 
 const VLC_PACKAGE = 'org.videolan.vlc';
 const VLC_STORE = `https://play.google.com/store/apps/details?id=${VLC_PACKAGE}`;
+const VLC_APP_STORE = 'https://apps.apple.com/app/vlc-media-player/id650377962';
+// How long the page waits, still in sight, before it takes VLC for absent.
+const VLC_ABSENT_MS = 2500;
 
 /** Whether the player runs on Android, where VLC is handed the stream directly. */
 export function onAndroid() {
   return typeof navigator !== 'undefined' && /\bAndroid\b/.test(navigator.userAgent);
 }
+
+/**
+ * Whether it runs in the iPhone's WebKit (Orion), whose user agent claims a
+ * Mac: told by ManagedMediaSource without MediaSource, as cast.js does.
+ */
+export function onIPhone() {
+  return typeof globalThis.MediaSource === 'undefined' && 'ManagedMediaSource' in globalThis;
+}
+
+/** Whether the external player is VLC, handed the stream directly: on a phone. */
+export const toVlc = () => onAndroid() || onIPhone();
 
 /**
  * Hands the stream over to an external player.
@@ -50,7 +71,36 @@ export function onAndroid() {
  */
 export function handOff(spec, name) {
   if (onAndroid()) click(vlcIntent(spec, name));
+  else if (onIPhone()) openVlcIos(spec);
   else downloadPlaylist(spec, name);
+}
+
+/**
+ * The stream as VLC for iOS's x-callback-url.
+ * @param {{url: string}} spec
+ */
+export function vlcIosLink(spec) {
+  return `vlc-x-callback://x-callback-url/stream?url=${encodeURIComponent(String(spec.url).replace(/[\r\n]+/g, ''))}`;
+}
+
+/**
+ * VLC opened on the iPhone; the App Store at VLC's page when the page is
+ * still in sight a moment later, which is to say nothing took the link.
+ * @param {{url: string}} spec
+ */
+function openVlcIos(spec) {
+  let left = false;
+  const gone = () => { left = true; };
+  window.addEventListener('blur', gone, { once: true });
+  window.addEventListener('pagehide', gone, { once: true });
+  document.addEventListener('visibilitychange', gone, { once: true });
+  click(vlcIosLink(spec));
+  setTimeout(() => {
+    window.removeEventListener('blur', gone);
+    window.removeEventListener('pagehide', gone);
+    document.removeEventListener('visibilitychange', gone);
+    if (!left && document.visibilityState === 'visible') click(VLC_APP_STORE, '', '_blank');
+  }, VLC_ABSENT_MS);
 }
 
 /**
@@ -109,10 +159,11 @@ function downloadPlaylist(spec, name) {
 }
 
 /** An anchor click: a download needs the download attribute, an intent none. */
-function click(href, download = '') {
+function click(href, download = '', target = '') {
   const a = document.createElement('a');
   a.href = href;
   if (download) a.download = download;
+  if (target) { a.target = target; a.rel = 'noopener'; }
   a.style.display = 'none';
   document.body.appendChild(a);
   a.click();

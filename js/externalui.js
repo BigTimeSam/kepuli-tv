@@ -5,7 +5,7 @@
 // Moved out of app.js. It takes the player's state, and the parts app.js
 // builds, from js/state.js.
 
-import { handOff, onAndroid } from './external.js';
+import { handOff, onIPhone, toVlc } from './external.js';
 import { renderInfoStrip } from './infostrip.js';
 import { retryPlayback } from './recordingsui.js';
 import { t } from './i18n.js';
@@ -53,8 +53,8 @@ export function playExternal() {
 
   el.overlay.hidden = false;
   el.overlay.classList.remove('loading');
-  el.overlayTitle.textContent = t('ext.handed');
-  el.overlayText.textContent = t(onAndroid() ? 'ext.handed.vlc' : 'ext.handed.text');
+  el.overlayTitle.textContent = t(toVlc() ? 'ext.handed.title.vlc' : 'ext.handed');
+  el.overlayText.textContent = t(toVlc() ? 'ext.handed.vlc' : 'ext.handed.text');
   showOverlayActions([
     { label: t('ext.continue'), onClick: () => state.catchup ? retryPlayback() : state.playing && playItem(state.playing, { startAt }) },
     { label: t('player.copyurl'), onClick: copyUrl },
@@ -62,10 +62,26 @@ export function playExternal() {
 }
 
 /**
+ * The words of the hand-off's button and menu item: on a phone the player
+ * is VLC and is named, elsewhere it is whatever the system opens a playlist
+ * with.
+ */
+export const externalLabel = () => (toVlc() ? 'ext.title.vlc' : 'ext.title');
+
+/**
+ * The menu item's words, set before the page's texts are put in: the
+ * markup carries the general ones.
+ */
+export function nameExternalItem() {
+  const label = document.querySelector('#btn-ext [data-i18n]');
+  if (label instanceof HTMLElement) label.dataset.i18n = externalLabel();
+}
+
+/**
  * The x key asks before handing over; the menu item does not.
  *
  * The hand-off is not a small thing done twice: it stops playback, and
- * (except on Android, where VLC is handed the stream) it writes a playlist file into the downloads folder carrying the server
+ * (except on a phone, where VLC is handed the stream) it writes a playlist file into the downloads folder carrying the server
  * address, the user name and the password in clear text, where it stays
  * until someone deletes it. A single stray keystroke should not do that —
  * and stray keystrokes do reach here, because the focus is deliberately
@@ -80,10 +96,10 @@ export function askExternal() {
   el.overlay.hidden = false;
   el.overlay.classList.remove('loading');
   el.overlayTitle.textContent = t('ext.confirm');
-  el.overlayText.textContent = t(onAndroid() ? 'ext.confirm.vlc' : 'ext.confirm.text');
+  el.overlayText.textContent = t(onIPhone() ? 'ext.confirm.vlc.ios' : toVlc() ? 'ext.confirm.vlc' : 'ext.confirm.text');
   const close = () => { el.overlay.hidden = true; showOverlayActions(null); };
   showOverlayActions([
-    { label: t('ext.title'), onClick: () => { close(); playExternal(); } },
+    { label: t(externalLabel()), onClick: () => { close(); playExternal(); } },
     { label: t('progress.cancel'), onClick: close },
   ]);
 }

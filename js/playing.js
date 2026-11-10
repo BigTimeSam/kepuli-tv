@@ -20,7 +20,7 @@ import { amount, clock, dateFmt, episodeCode, mbits, percent, seconds as seconds
 import { toast } from './toast.js';
 import { grid, guideOpen } from './guideui.js';
 import { hasDetails, loadVodDetails, renderInfoStrip } from './infostrip.js';
-import { playExternal } from './externalui.js';
+import { externalLabel, playExternal } from './externalui.js';
 import { rememberSubtitleLanguage } from './playercontrols.js';
 import { renderRecordingState, retryPlayback, warnRecordingConnection } from './recordingsui.js';
 import { shareAs } from './streamhub.js';
@@ -141,7 +141,7 @@ function onPlaybackState(s) {
     // the browser cannot play (s.canSilent) fails the same way again.
     const actions = s.content ? [] : [
       ...(s.canSilent ? [] : [{ label: t('player.retry'), onClick: retryPlayback }]),
-      { label: t('ext.title'), onClick: playExternal },
+      { label: t(externalLabel()), onClick: playExternal },
     ];
     // The picture will do but the audio track will not: silent playback is
     // on offer, not the default.

@@ -461,12 +461,15 @@ const STRINGS = {
 
     /* ------------------------------------------------- external player */
     'ext.title': 'Open in an external player',
+    'ext.title.vlc': 'Open in VLC',
     'ext.nothing': 'There is no playback to hand over',
     'ext.handed': 'Handed to an external player',
+    'ext.handed.title.vlc': 'Handed to VLC',
     'ext.confirm': 'Open in an external player?',
     'ext.confirm.text': 'Playback stops here and a playlist file is saved to your downloads. It carries the server address, your username and your password in clear text, and stays there until you delete it.',
     'ext.handed.text': 'The playlist was downloaded — open it from the browser downloads. It carries your credentials, so delete it once you are done with it.',
     'ext.confirm.vlc': 'Playback stops here and continues in VLC. Without VLC, Google Play opens at its page.',
+    'ext.confirm.vlc.ios': 'Playback stops here and continues in VLC. Without VLC, the App Store opens at its page.',
     'ext.handed.vlc': 'Playback moved to VLC. Come back here to watch in the browser again.',
     'ext.continue': 'Continue in the browser',
 
@@ -1222,12 +1225,15 @@ const STRINGS = {
 
     /* ------------------------------------------------- external player */
     'ext.title': 'Avaa ulkoisessa soittimessa',
+    'ext.title.vlc': 'Avaa VLC:ssä',
     'ext.nothing': 'Ei toistoa, jonka voisi luovuttaa',
     'ext.handed': 'Luovutettu ulkoiselle soittimelle',
+    'ext.handed.title.vlc': 'Siirretty VLC:hen',
     'ext.confirm': 'Avataanko ulkoisessa soittimessa?',
     'ext.confirm.text': 'Toisto pysähtyy tähän ja latauskansioon tallentuu soittolistatiedosto. Siinä ovat palvelimen osoite, käyttäjätunnuksesi ja salasanasi selkokielisenä, ja se jää sinne kunnes poistat sen.',
     'ext.handed.text': 'Soittolista ladattiin – avaa se selaimen latauksista. Siinä ovat tunnuksesi, joten poista se kun et enää tarvitse sitä.',
     'ext.confirm.vlc': 'Toisto pysähtyy tähän ja jatkuu VLC:ssä. Jos VLC:tä ei ole, Google Play avautuu sen sivulle.',
+    'ext.confirm.vlc.ios': 'Toisto pysähtyy tähän ja jatkuu VLC:ssä. Jos VLC:tä ei ole, App Store avautuu sen sivulle.',
     'ext.handed.vlc': 'Toisto siirtyi VLC:hen. Palaa tänne katsoaksesi taas selaimessa.',
     'ext.continue': 'Jatka selaimessa',
 
