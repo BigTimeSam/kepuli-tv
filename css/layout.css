@@ -108,7 +108,7 @@ main.guide #btn-copy { display: none; }
 .groups-foot svg { width: 15px; height: 15px; flex: none; fill: none; stroke: currentColor; stroke-width: 1.5; stroke-linecap: round; stroke-linejoin: round; }
 
 .group { display: flex; align-items: center; gap: 8px; padding: 6px 9px; border-radius: 7px; cursor: pointer; color: var(--muted); }
-.group:hover { background: var(--panel-2); color: var(--text); }
+.group:hover { background: var(--row-hover); color: var(--text); }
 .group-name { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 /* The kinds in the favourites and the history carry the tabs' marks. */
 .group-icon { width: 16px; height: 16px; flex: none; fill: none; stroke: currentColor; stroke-width: 1.6; stroke-linecap: round; stroke-linejoin: round; }

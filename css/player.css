@@ -19,7 +19,10 @@
   --glow-1: rgba(109, 79, 240, .45);
   --glow-2: rgba(34, 211, 238, .26);
   --panel-2: #161a24;
-  --row-hover: #1c2130;
+  /* A veil rather than a colour: it lifts whatever is under it by the same
+     step, the glow's violet included, on which a grey of its own all but
+     vanished (1.07:1 against the next row, measured). */
+  --row-hover: rgba(255, 255, 255, .09);
   --border: #232838;
   --text: #e7eaf2;
   --muted: #8d95aa;
@@ -95,7 +98,7 @@
   --glow-1: rgba(109, 79, 240, .22);
   --glow-2: rgba(34, 211, 238, .18);
   --panel-2: #eef0f5;
-  --row-hover: #e5e8f0;
+  --row-hover: rgba(22, 25, 37, .09);
   --border: #d6dae4;
   --text: #161925;
   --muted: #555d70;
@@ -147,7 +150,7 @@
   --panel-solid: #11141c;
   --panel: #11141c;
   --panel-2: #161a24;
-  --row-hover: #1c2130;
+  --row-hover: rgba(255, 255, 255, .09);
   --border: #232838;
   --text: #e7eaf2;
   --muted: #8d95aa;
@@ -183,7 +186,7 @@
     --muted: #b6bdcd;
     --dim: #b0b8c8;
     --panel-2: #1b2130;
-    --row-hover: #232a3c;
+    --row-hover: rgba(255, 255, 255, .14);
   }
   :root:not([data-theme="light"]) :is(.row-star, .row-x, .group-star, .chip-star) { color: #97a1ba; }
   :root[data-theme="light"] {
