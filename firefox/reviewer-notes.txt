@@ -1,8 +1,8 @@
-Kepuli-TV plays the user's own Xtream Codes account, M3U playlist or Stalker portal. It contains no media, provider addresses or bundled credentials, runs in its own extension tab, and has no content scripts, analytics or developer backend. Channel logos may load as <img> from raw.githubusercontent.com/tv-logo/tv-logos, a public collection whose file list ships in js/logoindex.js.
+Kepuli-TV plays the user's own Xtream Codes account, M3U playlist or Stalker portal. It has no media, provider addresses or bundled credentials, runs in its own tab, and has no content scripts, analytics or developer backend. Channel logos may load as <img> from raw.githubusercontent.com/tv-logo/tv-logos, a public collection whose file list ships in js/logoindex.js.
 
-1.10.1: no new permission since 1.6.0. declarativeNetRequestWithHostAccess is used only for a Stalker (MAG box) portal (js/stalker.js, portalRule): a session rule sets the MAC address cookie, a MAG User-Agent and Referer on requests to that portal's host alone, on hosts the user granted. Recording (js/recorder.js, js/streamhub.js) writes a live stream to the extension's OPFS; Save is an <a download> of a Blob. Also: optional storage.sync (off by default; passwords only if ticked), runtime.setUninstallURL carrying only version, browser and language, and an "Allow all addresses" click that may call permissions.request for the declared optional http://*/* and https://*/*.
+1.11.0 adds alarms (background.js): the time of a reminder or planned recording; with no player tab open it opens our own tab to record, or shows the reminder. Optional notifications, asked on the first reminder, show only that. declarativeNetRequestWithHostAccess serves only a Stalker (MAG box) portal (js/stalker.js, portalRule): a session rule sets the MAC cookie, MAG User-Agent and Referer on that portal's host alone, where the user granted it. Recording (js/recorder.js) writes a live stream to OPFS; Save is an <a download> of a Blob. Also: optional storage.sync (off by default; passwords only if ticked), runtime.setUninstallURL with only version, browser and language, and an "Allow all addresses" click that may request the declared optional http://*/* and https://*/*.
 
-The source archive includes a local mock server: with FFmpeg installed, run sh dev/mock/media.sh and node dev/mock/server.mjs. No paid account is needed.
+The source archive has a local mock server: with FFmpeg installed, run sh dev/mock/media.sh and node dev/mock/server.mjs. No account is needed.
 
 Local test connection:
 Server: 127.0.0.1
@@ -11,14 +11,14 @@ Port: 8790
 Username: demo
 Password: demo
 
-Click the toolbar icon, choose Xtream Codes, enter the above, Connect, grant host access. Pick Finland and a channel; press G for the guide, Record to record. A Stalker portal: http://127.0.0.1:8790/c/ with MAC 00:1A:79:00:00:01. Series, Nordic Noir, Silent Fjord: episode 1 is MKV with subtitles, episode 2 AC-3 audio; seek to 60 s.
+Click the toolbar icon, choose Xtream Codes, enter the above, Connect, grant access. Pick Finland and a channel; press G for the guide, Record to record. A Stalker portal: http://127.0.0.1:8790/c/ with MAC 00:1A:79:00:00:01. Series, Nordic Noir, Silent Fjord: episode 1 is MKV with subtitles, episode 2 AC-3 audio; seek to 60 s.
 
-The manifest declares authenticationInfo because the user's credentials are sent to their configured service. The developer receives no data. Minimum Firefox 130: Orion on the iPhone searches AMO as Firefox 130. Before 140, nothing is sent until the user enters their service and grants its host. HTTP stays for user-supplied services; Settings warns it is unencrypted and recommends HTTPS. We request a determination under the user-supplied-service cases in Mozilla's policy Q&A: https://discourse.mozilla.org/t/add-ons-policy-changes-2021-q-a/89654
+The manifest declares authenticationInfo because the user's credentials are sent to their configured service. We receive no data. Minimum Firefox 130: Orion on the iPhone searches AMO as Firefox 130. Before 140, nothing is sent until the user enters their service and grants its host. HTTP stays for user-supplied services; Settings warns it is unencrypted and recommends HTTPS. We request a determination under the user-supplied-service cases in Mozilla's policy Q&A: https://discourse.mozilla.org/t/add-ons-policy-changes-2021-q-a/89654
 
-All executable code ships inside the ZIP. vendor/hls.js is the unmodified dist/hls.min.js of hls.js 1.6.5; vendor/mpegts.js the unmodified dist/mpegts.js of mpegts.js 1.8.0, both compared byte for byte with npm:
+All executable code ships inside the ZIP. vendor/hls.js is unmodified dist/hls.min.js of hls.js 1.6.5; vendor/mpegts.js unmodified dist/mpegts.js of mpegts.js 1.8.0, both byte for byte as on npm:
 https://www.npmjs.com/package/hls.js/v/1.6.5
 https://www.npmjs.com/package/mpegts.js/v/1.8.0
 
-vendor/ffaudio is our Emscripten 6.0.9 build of FFmpeg n7.1.1. The source ZIP contains the full FFmpeg source, our C wrapper and the exact build commands in its README.md. LGPL-2.1-or-later; no GPL or nonfree flags.
+vendor/ffaudio is our Emscripten 6.0.9 build of FFmpeg n7.1.1. The source ZIP has the full FFmpeg source, our C wrapper and the build commands in its README.md. LGPL-2.1-or-later; no GPL or nonfree flags.
 
-No innerHTML: icons are fixed SVG literals parsed in js/svg.js, never provider data (dev/htmlcheck.mjs checks). Function-constructor warnings come from the unchanged upstream mpegts.js; the CSP forbids string evaluation. No remote code is loaded.
+No innerHTML: icons are fixed SVG literals parsed in js/svg.js, never provider data (dev/htmlcheck.mjs). Function-constructor warnings come from the unchanged upstream mpegts.js; the CSP forbids string evaluation.
