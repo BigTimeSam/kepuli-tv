@@ -409,8 +409,17 @@ main:not(.has-playback) .stagehead { display: none; }
 .select-mark .select-label { position: absolute; left: 29px; pointer-events: none; color: var(--muted); white-space: nowrap; }
 .select-mark .select-label::after { content: ":"; }
 @media (max-width: 1099px) { .select-mark .select-label { display: none; } }
-/* And wherever the row would break onto a second line (fitNowbar). */
+/* And wherever the row would break onto a second line (fitNowbar). The
+   row never breaks: it used to below 1180 px, a second line of selectors
+   under the picture. Short of room the selectors — the format's too —
+   give way down to their mark and the start of their value, and the
+   buttons keep their place. */
 .nowbar.tight .select-mark .select-label { display: none; }
+.now-actions { flex-wrap: nowrap; }
+.nowbar.tight .now-actions > #mode-pick { flex: 0 1 auto; min-width: 64px; }
+.nowbar.tight #mode-pick > select { width: 100%; min-width: 0; }
+.nowbar.tight .now-actions .trackpick, .nowbar.tight .now-actions > .trackpick-mark { min-width: 64px; }
+.now-actions select { text-overflow: ellipsis; }
 main.guide .select-mark .select-label { display: none; }
 /* The subtitles' label takes the selector's place on the row: it is what
    gives way when the row runs short, down to a readable stub. */

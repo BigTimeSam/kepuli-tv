@@ -28,15 +28,15 @@ dialog::backdrop { background: var(--backdrop); backdrop-filter: blur(2px); }
    because the sections should fill the dialog rather than huddle left. */
 /* scroll-padding: room for a focused tab's ring when the rail scrolls
    (js/setupui.js scrolls the tab in). */
-.setup-tabs { align-self: stretch; scroll-padding-inline: 4px; }
+.setup-tabs { align-self: stretch; scroll-padding-inline: 4px; overflow-x: auto; flex-wrap: nowrap; }
 /* .tabs sets display: flex, and an explicit display beats [hidden] — the
    first run has no sections to offer and the rail has to go. */
 .setup-tabs[hidden] { display: none; }
-/* Five sections leave each about a hundred pixels in a window of 600: a
-   name of two words (Russian "Аккаунт и данные") then goes onto a second
-   line rather than pushing the rail into a sideways scroll. A one-word name
-   keeps its own width, and the others share what is left. */
-.setup-tabs button { flex: 1; justify-content: center; text-align: center; white-space: normal; }
+/* The sections are one row on every screen: they share the width while it
+   holds them, and the row scrolls sideways once it does not. A name broken
+   over two lines (Russian "Аккаунт и данные" in a window of 600) made one
+   tab twice as tall as the rest. */
+.setup-tabs button { flex: 1 0 auto; justify-content: center; text-align: center; white-space: nowrap; }
 /* One section at a time; only its contents scroll in a short window. */
 .setup-panel { display: flex; flex-direction: column; gap: 14px; }
 .setup-panel[hidden] { display: none; }
@@ -230,11 +230,7 @@ dialog::backdrop { background: var(--backdrop); backdrop-filter: blur(2px); }
 .setup-tabs button:focus-visible { outline: 2px solid var(--accent-ink); outline-offset: 1px; }
 @media (max-width: 520px) {
   .setup { padding: 18px 14px; gap: 16px; }
-  /* On a phone the sections are one row that scrolls sideways, as the top
-     bar's tabs do, rather than names broken over two lines in a column of
-     their own each. */
-  .setup-tabs { overflow-x: auto; flex-wrap: nowrap; }
-  .setup-tabs button { flex: none; padding: 8px 10px; font-size: var(--fs-m); white-space: nowrap; }
+  .setup-tabs button { padding: 8px 10px; font-size: var(--fs-m); }
   .setup > .setup-actions .setup-note { flex-basis: 100%; }
   .setup > .setup-actions #f-done { margin-left: auto; }
   .setup .danger-row { align-items: flex-start; flex-direction: column; }

@@ -104,6 +104,8 @@
 //                                     as shares of the picture, in either browser
 //   node dev/playcheck.mjs nowbarfit  the bar under the picture stays one line:
 //                                     the format's words go when room runs out
+//   node dev/playcheck.mjs onerow  Settings' sections and the player's bar are one
+//                                     row at every width, in the longest languages
 //   node dev/playcheck.mjs phonestar  390 px: the country chosen in the menu is
 //                                     starred by the star beside it, and the
 //                                     menu lists the favourites first
@@ -2274,6 +2276,52 @@ async function nowbarfit(page) {
   } finally {
     await page.call('Emulation.setDeviceMetricsOverride', { width: 1280, height: 800, deviceScaleFactor: 1, mobile: false }).catch(() => {});
   }
+}
+
+/**
+ * One row, whatever the width. Settings' sections broke a long name onto a
+ * second line (Russian at 600 px), and the bar under the picture broke
+ * onto a second line below 1180 px. In Russian and German, from a phone's
+ * width to a desktop's, the sections stay one row (scrolling sideways when
+ * they must) and the bar's controls stay one line; on a phone the chosen
+ * one of Browse and Player stands out from its row.
+ */
+async function onerow(page) {
+  const assert = (ok, detail) => { if (!ok) throw new Error(detail); };
+  const lines = (selector) => `(() => { const row = document.querySelector(${JSON.stringify(selector)}); const shown = [...row.children].filter((c) => c.getClientRects().length && getComputedStyle(c).position !== 'absolute');
+    return new Set(shown.map((c) => Math.round(c.getBoundingClientRect().top / 6))).size; })()`;
+  const seen = [];
+  await playEpisode(page);
+  try {
+    for (const lang of ['ru', 'de']) {
+      await evaluate(page, `import('./js/i18n.js').then(async (m) => { await m.loadLanguage('${lang}'); m.setLanguage('${lang}'); m.applyStatic(); })`);
+      for (const width of [390, 600, 900, 1100, 1280]) {
+        await page.call('Emulation.setDeviceMetricsOverride', { width, height: 800, deviceScaleFactor: 1, mobile: false });
+        await sleep(700);
+        await evaluate(page, `document.getElementById('btn-settings').click()`);
+        await waitFor(page, `document.getElementById('setup').open`, 'settings');
+        await sleep(300);
+        const tabs = await evaluate(page, lines('#setup-tabs'));
+        const tall = await evaluate(page, `Math.max(...[...document.querySelectorAll('#setup-tabs button')].map((b) => Math.round(b.getBoundingClientRect().height)))`);
+        await evaluate(page, `document.getElementById('f-done').click()`);
+        await waitFor(page, `!document.getElementById('setup').open`, 'settings closed');
+        const bar = width > 600 ? await evaluate(page, lines('.now-actions')) : null;
+        assert(tabs === 1 && tall <= 44, `${lang} ${width} px: Settings' sections on ${tabs} rows, the tallest ${tall} px`);
+        assert(bar === null || bar === 1, `${lang} ${width} px: the player's bar on ${bar} lines`);
+        seen.push(`${lang} ${width}`);
+      }
+    }
+  } finally {
+    await evaluate(page, `import('./js/i18n.js').then((m) => { m.setLanguage('en'); m.applyStatic(); })`).catch(() => {});
+    await page.call('Emulation.setDeviceMetricsOverride', { width: 390, height: 800, deviceScaleFactor: 1, mobile: false });
+  }
+  await sleep(600);
+  const nav = await evaluate(page, `(() => { ${CONTRAST_JS}
+    const on = document.querySelector('.compact-nav button[aria-pressed="true"]'), off = document.querySelector('.compact-nav button[aria-pressed="false"]');
+    return on && off ? ratio(ground(on), ground(off)) : null; })()`);
+  await page.call('Emulation.setDeviceMetricsOverride', { width: 1280, height: 800, deviceScaleFactor: 1, mobile: false });
+  assert(nav !== null && nav >= 3, `Browse and Player: the chosen one at ${nav}:1 against the other`);
+  return { ok: true, detail: `one row at ${seen.join(', ')} px; the chosen view ${nav}:1 against the other on a phone` };
 }
 
 /**
@@ -7245,7 +7293,7 @@ async function handoff(page) {
 
 const SCENARIOS = { buffering, livebuffering, filmbuffering, emptyfile, tsasmp4, refusedfile, badgateway, livebadgateway, channelrefused, noanswer, longfilm, catalogUi, setupClarity, welcome, fullscreenControl, clickpause, pickers, touchcaret, screenbutton, topmenu, scrollbars, channelorder, lengthfilter, nowlogo, channels, home, resumemkv, restore, programmes, catchup, seek, death, cancel, timeout, search, paste, keys, switching, resume, connections, livezap, livequiet, reconnect, accounts, listerror, a11y, subtitles, audio, wasmaudio, settings,
   lastchannel, nextepisode, continuewatching, reminders, update, seeklag, cuesretry, quota, catchupfreeze, catchupfull, twotabs, switchstop, resettabs,
-  refresh, restorenav, guidekeep, removeaccount, m3u, sync, holes, picks, flakyserver, accountform, stalker, record, guidefavs, guidenames, categories, homecountry, noleak, perf, pseudo, startup, soak, phone, nowbarfit, subsize, arrowmiddle, idlelight, iossubs, starquiet, phonestar, pickerkeyboard, phonescroll, menutap, wakelock, livecut, episodenames, gotochannel, filmdetails, favorder, countryfilter, tilekeys, routes, programmekeys, searchlimit, filterfolds, focusrings, xtreamoffer, guideclick, filmaddress, filmfacts, playlistfile, perflive, perfplaylist, remoteimages, phoneguide, handoff };
+  refresh, restorenav, guidekeep, removeaccount, m3u, sync, holes, picks, flakyserver, accountform, stalker, record, guidefavs, guidenames, categories, homecountry, noleak, perf, pseudo, startup, soak, phone, onerow, nowbarfit, subsize, arrowmiddle, idlelight, iossubs, starquiet, phonestar, pickerkeyboard, phonescroll, menutap, wakelock, livecut, episodenames, gotochannel, filmdetails, favorder, countryfilter, tilekeys, routes, programmekeys, searchlimit, filterfolds, focusrings, xtreamoffer, guideclick, filmaddress, filmfacts, playlistfile, perflive, perfplaylist, remoteimages, phoneguide, handoff };
 // The mock's whole-list answers stall for these, longer than the request limit.
 const SLOW_LIST_MS = { cancel: 60000, timeout: 60000 };
 // The media is sent slowly for these: the seek targets must lie outside the

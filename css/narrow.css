@@ -5,11 +5,6 @@
   main { grid-template-columns: 11.875rem minmax(16.25rem, 20rem) 1fr; }
   main.guide { grid-template-columns: minmax(0, 1fr) minmax(16.25rem, 30vw); }
   :root { --epg-chan-w: 10.625rem; }
-  /* Below this the player column is too narrow for the whole row even with
-     the selectors at their stub width — measured, 1024 px leaves it about
-     500 and the row needs 590. The buttons wrap to a second line rather
-     than falling off the edge; above the breakpoint they stay on one. */
-  .now-actions { flex-wrap: wrap; justify-content: flex-end; }
 }
 
 /* Below this the three columns cannot all keep their width — 224 + 300 of
@@ -65,7 +60,10 @@
   main.has-playback:not(.guide) { grid-template-rows: auto minmax(0, 1fr); }
   main.has-playback > .compact-nav { display: flex; grid-area: 1 / 1; gap: 4px; padding: 6px 10px; background: var(--panel); border-bottom: 1px solid var(--border); }
   .compact-nav button { flex: 1; padding: 8px 12px; border: 0; border-radius: 6px; background: transparent; color: var(--muted); cursor: pointer; }
-  .compact-nav button[aria-pressed="true"] { background: var(--panel-2); color: var(--text); }
+  /* The chosen one as the top bar's chosen tab: the second panel's colour
+     on the glow hardly told Browse from Player. */
+  .compact-nav button[aria-pressed="true"] { background: var(--accent); color: #fff; }
+  .compact-nav button:not([aria-pressed="true"]):hover { background: var(--row-hover); color: var(--text); }
   main.has-playback:not(.guide) > .listcol, main.has-playback:not(.guide) > .stage { grid-area: 2 / 1; }
   .stage .infostrip { max-height: 25vh; flex-shrink: 1; }
   main.guide { grid-template-rows: auto minmax(0, 1fr) minmax(0, 30%); }
