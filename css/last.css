@@ -61,6 +61,7 @@ input[type="search"], input[type="text"], input[type="url"], input:not([type]) {
   .epg-chan-rec { display: none; }
   main.guide > .epgview {
     position: fixed; left: 0; right: 0; bottom: 0; z-index: 20; max-height: 60vh; overflow-y: auto;
+    --panel: var(--panel-solid);  /* a sheet over the guide, which would show through */
     border: 1px solid var(--border); border-bottom: 0; border-radius: 14px 14px 0 0;
     padding-bottom: calc(14px + env(safe-area-inset-bottom, 0px));
     box-shadow: 0 -8px 24px rgba(0, 0, 0, .35);

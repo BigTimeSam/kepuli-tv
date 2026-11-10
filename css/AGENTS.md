@@ -37,6 +37,12 @@ the page links them.
   `:root[data-theme="light"]`; the picture and the bar under it stay dark in
   both themes. `prefers-contrast: more` raises borders and muted text; check a
   new colour there too.
+- **The panes are see-through.** `--panel` and `--list-bg` are partly
+  transparent so that the page's glow (`--glow-1`, `--glow-2` on `body`)
+  shows through them. Anything that floats over a pane (a dialog, a menu, a
+  popover, a sheet) sets `--panel: var(--panel-solid)`, or the pane under it
+  shows through; add a new one to that rule in `player.css`. More contrast or
+  reduced transparency makes the panes solid again.
 - **Shared measures as variables**: `--foot-h` (3.3125rem, every column's footer
   is the same height), `--idle-gap`, `--pic-ratio`. Reuse them rather than
   repeating a number.

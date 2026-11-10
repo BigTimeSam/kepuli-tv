@@ -2,7 +2,7 @@
 
 /* ----------------------------------------------------------- player */
 
-.stage { display: flex; flex-direction: column; min-width: 0; background: #06070a; }
+.stage { display: flex; flex-direction: column; min-width: 0; }
 .videowrap { flex: 1; position: relative; background: #000; min-height: 0; }
 video { width: 100%; height: 100%; display: block; background: #000; }
 
@@ -117,8 +117,7 @@ body[data-substyle="yellow"] { --cue-color: #ffe14d; }
 body[data-substyle="contrast"] { --cue-back: #000; }
 
 .overlay { position: absolute; inset: 0; display: grid; place-items: center; background: radial-gradient(circle at 50% 45%, #12151f, #06070a 70%); text-align: center; padding: 24px; }
-:root[data-theme="light"] .overlay.idle { background: var(--bg); color: var(--text); }
-:root[data-theme="light"] .stage { background: var(--bg); }
+:root[data-theme="light"] .overlay.idle { background: transparent; color: var(--text); }
 .overlay[hidden] { display: none; }
 .overlay-inner { max-width: 480px; }
 .overlay-head { margin-bottom: 6px; }

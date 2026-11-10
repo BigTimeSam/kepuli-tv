@@ -11,7 +11,13 @@
   /* The bars under the sidebar, the list and the player: one height. */
   --foot-h: 3.3125rem;
   --bg: #0a0c11;
-  --panel: #11141c;
+  /* The panes let the page's glow (body, below) through; what floats over
+     them (a dialog, a menu, a picker) is drawn on --panel-solid instead, as
+     the pane under it would show through otherwise. */
+  --panel-solid: #11141c;
+  --panel: color-mix(in srgb, #11141c 65%, transparent);
+  --glow-1: color-mix(in srgb, #6d4ff0 45%, transparent);
+  --glow-2: color-mix(in srgb, #22d3ee 26%, transparent);
   --panel-2: #161a24;
   --row-hover: #1c2130;
   --border: #232838;
@@ -51,7 +57,7 @@
      (on the dark disc every cover mark has, in either theme). */
   --seen: #7ee2a8;
   --seen-on-cover: #7ee2a8;
-  --list-bg: #0d1016;
+  --list-bg: color-mix(in srgb, #0d1016 55%, transparent);
   --selected: #202538;
   --row-line: rgba(35, 40, 56, .45);
   --danger-soft: #2b2230;
@@ -84,7 +90,10 @@
 :root[data-theme="light"],
 :root[data-theme="light"] .overlay.idle {
   --bg: #f3f4f8;
-  --panel: #ffffff;
+  --panel-solid: #ffffff;
+  --panel: color-mix(in srgb, #ffffff 65%, transparent);
+  --glow-1: color-mix(in srgb, #6d4ff0 22%, transparent);
+  --glow-2: color-mix(in srgb, #22d3ee 18%, transparent);
   --panel-2: #eef0f5;
   --row-hover: #e5e8f0;
   --border: #d6dae4;
@@ -104,7 +113,7 @@
   --gold: #805600;
   --gold-line: #e2cf9f;
   --seen: #146c43;          /* 6.4:1 on white, 5.1:1 on the selected row */
-  --list-bg: #fafbfd;
+  --list-bg: color-mix(in srgb, #ffffff 55%, transparent);
   --selected: #e2e6f3;
   --row-line: rgba(22, 25, 37, .08);
   --danger-soft: #fbe5ea;
@@ -135,6 +144,7 @@
    a page of the app rather than a picture. */
 :root[data-theme="light"] .videowrap {
   --bg: #0a0c11;
+  --panel-solid: #11141c;
   --panel: #11141c;
   --panel-2: #161a24;
   --row-hover: #1c2130;
@@ -185,6 +195,16 @@
   .row { border-bottom-color: var(--border); }
 }
 
+/* Asked for more contrast or less transparency, the panes are solid again
+   and the glow stays only where no pane covers it. */
+@media (prefers-contrast: more), (prefers-reduced-transparency: reduce) {
+  :root { --panel: var(--panel-solid); --list-bg: #0d1016; }
+  :root[data-theme="light"] { --panel: var(--panel-solid); --list-bg: #fafbfd; }
+}
+
+/* What floats over the panes is solid, whatever the pane under it. */
+dialog, .picker-pop, .row-menu, .pop, .side-scroll-arrow { --panel: var(--panel-solid); }
+
 /* Said to a screen reader and to nothing else: a badge shows "7 d" where the
    column has room for two characters, and the whole sentence goes here. */
 .sr-only {
@@ -210,9 +230,18 @@ html, body { height: 100%; margin: 0; overflow: hidden; }
    root is the reader's setting and stays untouched; everything the app draws
    is a fraction of it. */
 body {
-  background: var(--bg);
   color: var(--text);
   font: 0.8125rem/1.45 -apple-system, BlinkMacSystemFont, "Segoe UI", Inter, system-ui, sans-serif;
+}
+
+/* The page glows in the theme's two colours, the accent from the top left
+   and the second accent from the bottom right; the panes over it are
+   partly see-through (--panel, --list-bg) so that it shows. */
+body {
+  background:
+    radial-gradient(ellipse 75% 70% at 0% 0%, var(--glow-1), transparent 72%),
+    radial-gradient(ellipse 65% 60% at 100% 100%, var(--glow-2), transparent 72%),
+    var(--bg);
 }
 
 /* The page is a column of two: the bar and everything under it. The bar was
