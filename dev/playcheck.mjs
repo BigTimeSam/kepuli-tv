@@ -96,6 +96,8 @@
 //                                     repaints its row and nothing else
 //   node dev/playcheck.mjs iossubs  the iPhone's own full screen player gets the
 //                                     subtitles drawn by the browser
+//   node dev/playcheck.mjs idlelight  the empty player's page in the light theme
+//                                     is solid, its words readable
 //   node dev/playcheck.mjs phonestar  390 px: the country chosen in the menu is
 //                                     starred by the star beside it, and the
 //                                     menu lists the favourites first
@@ -2146,6 +2148,27 @@ async function iossubs(page) {
   const after = await mode();
   assert(before === 'overlay' && inside === 'native' && after === 'overlay', `subtitles drawn by: before ${before}, in the iPhone's full screen ${inside}, after ${after}`);
   return { ok: true, detail: 'the page draws them, the browser in the iPhone\'s full screen player, the page again after it' };
+}
+
+/**
+ * The empty player's page in the light theme. Made see-through for the
+ * page's glow, it showed the picture's black box and the video's own
+ * controls under it, with its dark words on the black. It is solid, and its
+ * title reads at 4.5:1 or better on it.
+ */
+async function idlelight(page) {
+  const assert = (ok, detail) => { if (!ok) throw new Error(detail); };
+  const look = await evaluate(page, `(() => { ${CONTRAST_JS}
+    const root = document.documentElement; const theme = root.dataset.theme; root.dataset.theme = 'light';
+    const overlay = document.getElementById('overlay'); const had = overlay.classList.contains('idle'); const hidden = overlay.hidden;
+    overlay.classList.add('idle'); overlay.hidden = false;
+    const back = rgba(getComputedStyle(overlay).backgroundColor);
+    const title = document.getElementById('overlay-title'); const before = title.textContent; title.textContent = 'Nothing playing';
+    const contrast = textContrast(title);
+    title.textContent = before; overlay.classList.toggle('idle', had); overlay.hidden = hidden; root.dataset.theme = theme;
+    return { alpha: back[3], contrast }; })()`);
+  assert(look.alpha === 1 && look.contrast >= 4.5, `the light theme's empty player: background alpha ${look.alpha}, title at ${look.contrast}:1`);
+  return { ok: true, detail: `solid, the title at ${look.contrast}:1` };
 }
 
 /**
@@ -7117,7 +7140,7 @@ async function handoff(page) {
 
 const SCENARIOS = { buffering, livebuffering, filmbuffering, emptyfile, tsasmp4, refusedfile, badgateway, livebadgateway, channelrefused, noanswer, longfilm, catalogUi, setupClarity, welcome, fullscreenControl, clickpause, pickers, touchcaret, screenbutton, topmenu, scrollbars, channelorder, lengthfilter, nowlogo, channels, home, resumemkv, restore, programmes, catchup, seek, death, cancel, timeout, search, paste, keys, switching, resume, connections, livezap, livequiet, reconnect, accounts, listerror, a11y, subtitles, audio, wasmaudio, settings,
   lastchannel, nextepisode, continuewatching, reminders, update, seeklag, cuesretry, quota, catchupfreeze, catchupfull, twotabs, switchstop, resettabs,
-  refresh, restorenav, guidekeep, removeaccount, m3u, sync, holes, picks, flakyserver, accountform, stalker, record, guidefavs, guidenames, categories, homecountry, noleak, perf, pseudo, startup, soak, phone, iossubs, starquiet, phonestar, pickerkeyboard, phonescroll, menutap, wakelock, livecut, episodenames, gotochannel, filmdetails, favorder, countryfilter, tilekeys, routes, programmekeys, searchlimit, filterfolds, focusrings, xtreamoffer, guideclick, filmaddress, filmfacts, playlistfile, perflive, perfplaylist, remoteimages, phoneguide, handoff };
+  refresh, restorenav, guidekeep, removeaccount, m3u, sync, holes, picks, flakyserver, accountform, stalker, record, guidefavs, guidenames, categories, homecountry, noleak, perf, pseudo, startup, soak, phone, idlelight, iossubs, starquiet, phonestar, pickerkeyboard, phonescroll, menutap, wakelock, livecut, episodenames, gotochannel, filmdetails, favorder, countryfilter, tilekeys, routes, programmekeys, searchlimit, filterfolds, focusrings, xtreamoffer, guideclick, filmaddress, filmfacts, playlistfile, perflive, perfplaylist, remoteimages, phoneguide, handoff };
 // The mock's whole-list answers stall for these, longer than the request limit.
 const SLOW_LIST_MS = { cancel: 60000, timeout: 60000 };
 // The media is sent slowly for these: the seek targets must lie outside the
