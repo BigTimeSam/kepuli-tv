@@ -15,10 +15,12 @@ import { svg } from './svg.js';
  * The row put in a box with its two arrows. The arrows follow the row's
  * scroll, its size and its items, which may be drawn again under it.
  * @param {HTMLElement} list
- * @param {{ compact?: boolean, className?: string }} [options] compact:
- *        smaller arrows inside the row's ends, for a row in a toolbar
+ * @param {{ compact?: boolean, className?: string, centreOn?: string }} [options] compact:
+ *        smaller arrows inside the row's ends, for a row in a toolbar;
+ *        centreOn: the part of an item the arrows stand at the middle of,
+ *        where an item is a picture with words under it
  */
-export function sideScroll(list, { compact = false, className = '' } = {}) {
+export function sideScroll(list, { compact = false, className = '', centreOn = '' } = {}) {
   const box = document.createElement('div');
   box.className = ['side-scroll', compact ? 'compact' : '', className].filter(Boolean).join(' ');
   list.replaceWith(box);
@@ -40,6 +42,16 @@ export function sideScroll(list, { compact = false, className = '' } = {}) {
   const prev = arrow(-1), next = arrow(1);
   box.append(prev, list, next);
   const sync = () => {
+    // The arrows stand at the middle of what the row shows, its scrollbar
+    // left out: centred on the whole box they stood 4 px low wherever the
+    // row has a scrollbar of its own (the tabs, the guide's days).
+    // A row of covers with their names under them: at the covers' middle,
+    // not the names' (21 px below it, the film page's similar titles).
+    const part = centreOn ? list.querySelector(centreOn) : null;
+    const mid = part instanceof HTMLElement
+      ? part.getBoundingClientRect().top - box.getBoundingClientRect().top + part.offsetHeight / 2
+      : list.offsetTop + list.clientHeight / 2;
+    box.style.setProperty('--side-mid', `${mid}px`);
     const max = list.scrollWidth - list.clientWidth;
     prev.hidden = list.scrollLeft <= 1;
     next.hidden = list.scrollLeft >= max - 1;

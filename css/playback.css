@@ -168,7 +168,7 @@ body[data-substyle="contrast"] { --cue-back: #000; }
    the row's ends, or inside them in a toolbar (compact). */
 .side-scroll { position: relative; min-width: 0; }
 .side-scroll-arrow {
-  position: absolute; top: 50%; z-index: 1; width: 34px; height: 34px; padding: 0; transform: translateY(-50%);
+  position: absolute; top: var(--side-mid, 50%); z-index: 1; width: 34px; height: 34px; padding: 0; transform: translateY(-50%);
   display: grid; place-items: center; border-radius: 999px; cursor: pointer;
   border: 1px solid var(--border-strong); background: var(--panel); color: var(--text);
   box-shadow: 0 2px 10px rgba(0, 0, 0, .45);

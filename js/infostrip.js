@@ -220,7 +220,7 @@ function relatedPart(item) {
       row.appendChild(tile);
     }
     box.append(head, row);
-    sideScroll(row);
+    sideScroll(row, { centreOn: '.related-cover' });
   };
   section('info.related.versions', choices);
   section('info.related.parts', parts);

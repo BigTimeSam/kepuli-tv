@@ -98,6 +98,8 @@
 //                                     subtitles drawn by the browser
 //   node dev/playcheck.mjs idlelight  the empty player's page in the light theme
 //                                     is solid, its words readable
+//   node dev/playcheck.mjs arrowmiddle  the ‹ › of a sideways row stand at the
+//                                     middle of what the row shows
 //   node dev/playcheck.mjs phonestar  390 px: the country chosen in the menu is
 //                                     starred by the star beside it, and the
 //                                     menu lists the favourites first
@@ -2169,6 +2171,41 @@ async function idlelight(page) {
     return { alpha: back[3], contrast }; })()`);
   assert(look.alpha === 1 && look.contrast >= 4.5, `the light theme's empty player: background alpha ${look.alpha}, title at ${look.contrast}:1`);
   return { ok: true, detail: `solid, the title at ${look.contrast}:1` };
+}
+
+/**
+ * The ‹ and › of a sideways row stand at the middle of what it shows. They
+ * stood at the middle of its box, which takes in the row's own scrollbar
+ * (4 px low on the tabs and the guide's days) and, under a row of covers,
+ * their names (21 px low on a film's similar titles).
+ */
+async function arrowmiddle(page) {
+  const assert = (ok, detail) => { if (!ok) throw new Error(detail); };
+  const off = () => evaluate(page, `[...document.querySelectorAll('.side-scroll')].filter((b) => b.getClientRects().length).map((b) => {
+    const list = [...b.children].find((c) => !c.classList.contains('side-scroll-arrow'));
+    const arrow = [...b.querySelectorAll('.side-scroll-arrow')].find((a) => !a.hidden);
+    if (!arrow) return null;
+    const part = list.querySelector('.related-cover')?.getBoundingClientRect();
+    const r = list.getBoundingClientRect();
+    const mid = part ? part.top + part.height / 2 : r.top + list.clientHeight / 2;
+    const a = arrow.getBoundingClientRect();
+    return [list.id || list.className, Math.round(Math.abs(a.top + a.height / 2 - mid) * 10) / 10]; }).filter(Boolean)`);
+  await page.call('Emulation.setDeviceMetricsOverride', { width: 390, height: 800, deviceScaleFactor: 1, mobile: false });
+  let seen = [];
+  try {
+    await sleep(600);
+    seen = seen.concat(await off());
+  } finally {
+    await page.call('Emulation.setDeviceMetricsOverride', { width: 1280, height: 800, deviceScaleFactor: 1, mobile: false });
+  }
+  await evaluate(page, `document.querySelector('#tabs [data-tab="movie"]').click()`);
+  await waitFor(page, `document.querySelector('#list .card, #list .row')`, 'the films');
+  await evaluate(page, `document.querySelector('#list .card, #list .row').click()`);
+  await waitFor(page, `[...document.querySelectorAll('.related-row')].some((r) => r.getClientRects().length)`, 'the similar titles', 20000);
+  await sleep(800);
+  seen = seen.concat(await off());
+  assert(seen.length >= 2 && seen.every(([, d]) => d <= 1), `arrows off their row's middle: ${JSON.stringify(seen)}`);
+  return { ok: true, detail: seen.map(([what, d]) => `${what} ${d} px`).join(', ') };
 }
 
 /**
@@ -7140,7 +7177,7 @@ async function handoff(page) {
 
 const SCENARIOS = { buffering, livebuffering, filmbuffering, emptyfile, tsasmp4, refusedfile, badgateway, livebadgateway, channelrefused, noanswer, longfilm, catalogUi, setupClarity, welcome, fullscreenControl, clickpause, pickers, touchcaret, screenbutton, topmenu, scrollbars, channelorder, lengthfilter, nowlogo, channels, home, resumemkv, restore, programmes, catchup, seek, death, cancel, timeout, search, paste, keys, switching, resume, connections, livezap, livequiet, reconnect, accounts, listerror, a11y, subtitles, audio, wasmaudio, settings,
   lastchannel, nextepisode, continuewatching, reminders, update, seeklag, cuesretry, quota, catchupfreeze, catchupfull, twotabs, switchstop, resettabs,
-  refresh, restorenav, guidekeep, removeaccount, m3u, sync, holes, picks, flakyserver, accountform, stalker, record, guidefavs, guidenames, categories, homecountry, noleak, perf, pseudo, startup, soak, phone, idlelight, iossubs, starquiet, phonestar, pickerkeyboard, phonescroll, menutap, wakelock, livecut, episodenames, gotochannel, filmdetails, favorder, countryfilter, tilekeys, routes, programmekeys, searchlimit, filterfolds, focusrings, xtreamoffer, guideclick, filmaddress, filmfacts, playlistfile, perflive, perfplaylist, remoteimages, phoneguide, handoff };
+  refresh, restorenav, guidekeep, removeaccount, m3u, sync, holes, picks, flakyserver, accountform, stalker, record, guidefavs, guidenames, categories, homecountry, noleak, perf, pseudo, startup, soak, phone, arrowmiddle, idlelight, iossubs, starquiet, phonestar, pickerkeyboard, phonescroll, menutap, wakelock, livecut, episodenames, gotochannel, filmdetails, favorder, countryfilter, tilekeys, routes, programmekeys, searchlimit, filterfolds, focusrings, xtreamoffer, guideclick, filmaddress, filmfacts, playlistfile, perflive, perfplaylist, remoteimages, phoneguide, handoff };
 // The mock's whole-list answers stall for these, longer than the request limit.
 const SLOW_LIST_MS = { cancel: 60000, timeout: 60000 };
 // The media is sent slowly for these: the seek targets must lie outside the
