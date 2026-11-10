@@ -255,7 +255,10 @@ export class Library {
     return this.share(key, async () => {
       const at = Date.now();
       const items = await this.fetchCategories(type, group.cats.map((c) => c.id), onProgress, signal);
-      this.keepList(key, items, at);
+      // An empty answer is not kept: a group whose list came back empty
+      // once — measured in Orion on a first open, with a playlist of 31,000
+      // channels — stayed empty until the whole list was loaded.
+      if (items.length) this.keepList(key, items, at);
       return items;
     });
   }

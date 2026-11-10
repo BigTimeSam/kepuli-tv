@@ -949,8 +949,17 @@ async function refreshRows({ keepScroll = false, returnPosition = null, restoreF
       // country's list, see js/international.js.
       if (type === 'live' && !state.settings.showInternational
         && (!(await ensureFull(type, t('progress.reason.international'), current)) || !current())) return notLoaded();
-      const items = await loadGroupItems(type, state.group, current);
+      let items = await loadGroupItems(type, state.group, current);
       if (!current()) return null;
+      // A group is said to be empty only once the whole list agrees: its
+      // categories asked one by one came back empty for a country that was
+      // full of channels (Finland, in Orion, on a first open), and the list
+      // said "Category is empty" until All had been opened.
+      if (!items.length && state.lib.group(type, state.group)?.cats.length && !state.lib.isFull(type)) {
+        if (!(await ensureFull(type, t('progress.reason.all'), current)) || !current()) return notLoaded();
+        items = await loadGroupItems(type, state.group, current);
+        if (!current()) return null;
+      }
       state.groupItems = items;
       rows = state.sub
         ? state.groupItems.filter((it) => it.cats.includes(state.sub))
