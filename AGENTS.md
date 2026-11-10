@@ -205,7 +205,7 @@ visual check); run it before asking for the go. The order that has worked:
    `kepuli-tv-firefox-X.Y.Z-amo-source.zip`), and only those: older zips
    are moved into `dist/releases/`.
 7. **GitHub release**: `git tag vX.Y.Z && git push origin vX.Y.Z`, then
-   `gh release create vX.Y.Z <the three zips> --title "Kepuli-TV X.Y.Z" --notes-file dist/release-notes.md`.
+   `gh release create vX.Y.Z <the three zips> --title "Kepuli-TV – IPTV Player X.Y.Z" --notes-file dist/release-notes.md`.
 8. **AMO**: `node dev/amo-publish.mjs` in the background (it waits out the
    throttling, then sends the listing and captions); confirm with
    `amo-publish.mjs status`. Usually public within minutes of the version.

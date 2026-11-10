@@ -1,4 +1,4 @@
-# Kepuli-TV
+# Kepuli-TV – IPTV Player
 
 A free, open-source IPTV player for Chrome and Firefox. Bring your own Xtream
 Codes account, M3U playlist or Stalker portal, and watch live TV, films and
