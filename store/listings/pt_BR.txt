@@ -27,8 +27,8 @@ O QUE VOCÊ TEM
   os menus.
 • O que você deixou pela metade espera lá no topo, e o próximo episódio
   começa sozinho.
-• Nada trava a tela enquanto os dados carregam, e o que está tocando
-  continua tocando.
+• Nada trava a tela enquanto os dados carregam, e o que está tocando continua
+  tocando, mesmo quando a conexão cai.
 • Feito para contas com uma só conexão: ao trocar de canal, ele espera a
   conexão ficar livre em vez de falhar.
 • Filmes e séries com capas, com sinopses, avaliações e temporadas.

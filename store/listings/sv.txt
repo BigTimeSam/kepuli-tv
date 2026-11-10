@@ -27,7 +27,8 @@ VAD DU FÅR
 • Sökning som struntar i accenter och ordföljd, och ett filter i varje meny.
 • Det du lämnade halvvägs väntar högst upp, och nästa avsnitt startar av sig
   självt.
-• Inget blockerar skärmen medan data laddas, och det som spelas fortsätter.
+• Inget blockerar skärmen medan data laddas, och det som spelas fortsätter,
+  även när anslutningen bryts.
 • Byggd för konton med en anslutning: vid kanalbyte väntar den på att
   leverantören släpper den i stället för att misslyckas.
 • Filmer och serier som omslag, med handling, betyg och säsonger.

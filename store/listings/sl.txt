@@ -29,7 +29,7 @@ KAJ DOBIŠ
 • Kar si pustil na pol poti, čaka na vrhu, naslednja epizoda pa se zažene
   sama.
 • Nič ne zaklene zaslona med nalaganjem podatkov, kar se predvaja, teče
-  naprej.
+  naprej, tudi ko povezava pade.
 • Narejen za račune z eno povezavo: pri menjavi kanala počaka, da jo ponudnik
   sprosti, namesto da bi javil napako.
 • Filmi in serije kot naslovnice, z opisi, ocenami in sezonami.

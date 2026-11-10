@@ -27,7 +27,8 @@ HVA DU FÅR
 • Søk som ignorerer aksenter og ordrekkefølge, og et filter i hver meny.
 • Det du lot ligge halvveis, venter øverst, og neste episode starter av seg
   selv.
-• Ingenting blokkerer skjermen mens data lastes, og det som spilles, fortsetter.
+• Ingenting blokkerer skjermen mens data lastes, og det som spilles,
+  fortsetter, også når forbindelsen brytes.
 • Laget for kontoer med én tilkobling: ved kanalbytte venter den til
   leverandøren frigjør den, i stedet for å feile.
 • Filmer og serier som omslag, med handling, vurderinger og sesonger.

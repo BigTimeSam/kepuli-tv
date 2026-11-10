@@ -26,7 +26,8 @@ CO ZÍSKÁŠ
   chceš, synchronizuješ je mezi svými zařízeními.
 • Hledání, které ignoruje diakritiku a pořadí slov, a filtr v každé nabídce.
 • Co jsi nechal v půlce, čeká nahoře, a další epizoda se pustí sama.
-• Při načítání dat nic nezablokuje obrazovku a co hraje, hraje dál.
+• Při načítání dat nic nezablokuje obrazovku a co hraje, hraje dál, i když
+  spojení vypadne.
 • Stavěno pro účty s jedním připojením: při přepnutí kanálu se počká, až se
   uvolní, místo aby to skončilo chybou.
 • Filmy a seriály jako plakáty, s popisy, hodnocením a řadami.

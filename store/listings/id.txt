@@ -27,7 +27,7 @@ YANG KAMU DAPATKAN
 • Tontonan yang belum selesai menunggu di bagian atas, lalu episode berikutnya
   diputar otomatis.
 • Tak ada yang menghalangi layar saat data dimuat, dan yang sedang diputar
-  terus berjalan.
+  terus berjalan, bahkan saat koneksi terputus.
 • Dirancang untuk akun satu koneksi: saat kamu pindah saluran, aplikasi
   menunggu penyedia melepas koneksi lama, bukan langsung gagal.
 • Film dan serial tampil sebagai sampul, lengkap dengan sinopsis, rating, dan

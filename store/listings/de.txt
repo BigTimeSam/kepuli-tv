@@ -30,7 +30,7 @@ WAS DU BEKOMMST
 • Was du halb gesehen hast, wartet ganz oben, und die nächste Folge startet
   von selbst.
 • Nichts blockiert den Bildschirm, während Daten laden, und was läuft, läuft
-  weiter.
+  weiter, auch wenn die Verbindung abreißt.
 • Gemacht für Konten mit einer Verbindung: Beim Kanalwechsel wartet die
   Erweiterung, bis der Anbieter sie freigibt, statt zu scheitern.
 • Filme und Serien als Cover, mit Handlung, Bewertungen und Staffeln.

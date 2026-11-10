@@ -26,7 +26,8 @@ postavený na jednom nápade: obrovský katalóg má pôsobiť malý.
 • Vyhľadávanie, ktoré ignoruje diakritiku a poradie slov, a filter v každej
   ponuke.
 • Čo si nedopozeral, čaká hore a ďalšia epizóda sa spustí sama.
-• Pri načítavaní údajov nič neblokuje obrazovku a to, čo hrá, hrá ďalej.
+• Pri načítavaní údajov nič neblokuje obrazovku a to, čo hrá, hrá ďalej, aj
+  keď spojenie vypadne.
 • Vytvorené pre účty s jedným pripojením: pri prepnutí kanála sa počká, kým
   poskytovateľ pripojenie uvoľní, namiesto chyby.
 • Filmy a seriály ako obálky, s dejom, hodnoteniami a sériami.

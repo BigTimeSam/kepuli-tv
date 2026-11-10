@@ -27,7 +27,7 @@ jednoj ideji: džinovski katalog treba da deluje mali.
   meniju.
 • Ono što si ostavio na pola čeka na vrhu, a sledeća epizoda kreće sama.
 • Ništa ne blokira ekran dok se podaci učitavaju, a ono što se vrti nastavlja
-  da se vrti.
+  da se vrti, čak i kad veza pukne.
 • Pravljen za naloge sa jednom vezom: pri promeni kanala sačeka da provajder
   oslobodi vezu, umesto da prijavi grešku.
 • Filmovi i serije kao omoti, sa radnjom, ocenama i sezonama.

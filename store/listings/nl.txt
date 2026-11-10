@@ -27,7 +27,7 @@ WAT JE KRIJGT
 • Wat je halverwege hebt gelaten staat bovenaan klaar, en de volgende
   aflevering start vanzelf.
 • Niets blokkeert het scherm terwijl gegevens laden, en wat speelt, blijft
-  spelen.
+  spelen, ook als de verbinding wegvalt.
 • Gemaakt voor accounts met één verbinding: bij het wisselen van zender wacht
   het tot de provider die vrijgeeft, in plaats van te mislukken.
 • Films en series als covers, met verhaal, beoordelingen en seizoenen.

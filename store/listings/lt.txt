@@ -27,7 +27,8 @@ KĄ GAUSI
   kiekviename meniu.
 • Tai, ką pradėjai, bet nebaigei, laukia viršuje, o kita serija
   įsijungia pati.
-• Kraunant duomenis ekranas neužstojamas, o tai, ką žiūri, rodoma toliau.
+• Kraunant duomenis ekranas neužstojamas, o tai, ką žiūri, rodoma toliau, net
+  kai ryšys nutrūksta.
 • Sukurta paskyroms su vienu ryšiu: perjungiant kanalą laukiama, kol
   tiekėjas jį atlaisvins, o ne rodoma klaida.
 • Filmai ir serialai viršeliais, su aprašymais, įvertinimais ir sezonais.

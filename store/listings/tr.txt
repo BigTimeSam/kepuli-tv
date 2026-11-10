@@ -29,8 +29,8 @@ NELER SUNUYOR
   filtre.
 • Yarıda bıraktığın her şey en üstte bekler, sonraki bölüm kendiliğinden
   başlar.
-• Veri yüklenirken hiçbir şey ekranı kilitlemez, oynayan yayın oynamaya devam
-  eder.
+• Veri yüklenirken hiçbir şey ekranı kilitlemez, oynayan yayın bağlantı kopsa
+  bile oynamaya devam eder.
 • Tek bağlantılı hesaplar için yapıldı: kanal değiştirirken hata vermek yerine
   sağlayıcının bağlantıyı serbest bırakmasını bekler.
 • Filmler ve diziler kapak olarak, konuları, puanları ve sezonlarıyla.

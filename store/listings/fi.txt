@@ -28,7 +28,7 @@ MITÄ SAAT
   jokaisessa valikossa.
 • Puolivälissä jäänyt odottaa ylhäällä, ja seuraava jakso alkaa itsestään.
 • Mikään ei tuki ruutua tietojen latautuessa, ja se mitä katsot, jatkuu
-  katkeamatta.
+  katkeamatta silloinkin, kun yhteys katkeaa.
 • Tehty tileille, joilla on yksi yhteys: kanavaa vaihdettaessa odotetaan, että
   palveluntarjoaja vapauttaa sen, eikä vaihto epäonnistu.
 • Elokuvat ja sarjat kansina, juonikuvauksineen, arvosteluineen ja kausineen.

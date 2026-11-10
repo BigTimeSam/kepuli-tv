@@ -34,7 +34,8 @@ mbrëmje.
 • Kërkim që nuk ia vë veshin theksave e renditjes së fjalëve, plus filtër në
   çdo meny.
 • Ç'ke lënë përgjysmë të pret në krye, ndërsa episodi pasues niset vetë.
-• Asgjë nuk e bllokon ekranin gjatë ngarkimit, dhe ajo që po luhet vazhdon.
+• Asgjë nuk e bllokon ekranin gjatë ngarkimit, dhe ajo që po luhet vazhdon,
+  edhe kur lidhja ndërpritet.
 • Ndërtuar për llogari me një lidhje të vetme: kur ndërron kanal, pret që
   ofruesi ta lirojë, në vend që të dështojë.
 • Filma e seriale si kopertina, me përmbledhje, vlerësime dhe sezone.

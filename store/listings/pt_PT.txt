@@ -28,8 +28,8 @@ O QUE TENS
   todos os menus.
 • O que deixaste a meio fica à espera no topo, e o episódio seguinte arranca
   sozinho.
-• Nada bloqueia o ecrã enquanto os dados carregam, e o que está a ser reproduzido
-  continua a sê-lo.
+• Nada bloqueia o ecrã enquanto os dados carregam, e o que está a ser
+  reproduzido continua a sê-lo, mesmo quando a ligação cai.
 • Pensado para contas com uma só ligação: ao mudar de canal, espera que o
   fornecedor a liberte em vez de falhar.
 • Filmes e séries com capas, com sinopses, classificações e temporadas.

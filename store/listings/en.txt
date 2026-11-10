@@ -26,7 +26,7 @@ WHAT YOU GET
 • Whatever you left halfway waits at the top, and the next episode starts by
   itself.
 • Nothing blocks the screen while data loads, and what is playing keeps
-  playing.
+  playing, even when the connection drops.
 • Made for accounts with one connection: switching channels waits for the
   provider to free it instead of failing.
 • Movies and series as covers, with plots, ratings and seasons.

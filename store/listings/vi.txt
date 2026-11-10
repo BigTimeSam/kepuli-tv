@@ -25,8 +25,8 @@ BẠN SẼ NHẬN ĐƯỢC
   giữa các thiết bị của bạn nếu muốn.
 • Tìm kiếm bỏ qua dấu và thứ tự từ, kèm bộ lọc trong mọi menu.
 • Xem dở đến đâu, mục đó nằm ngay đầu danh sách; tập tiếp theo tự chạy.
-• Chẳng có hộp thoại nào chặn màn hình khi tải dữ liệu; nội dung đang phát
-  cứ thế phát tiếp.
+• Chẳng có hộp thoại nào chặn màn hình khi tải dữ liệu; nội dung đang phát cứ
+  thế phát tiếp, kể cả khi mất kết nối.
 • Hợp với tài khoản chỉ có một kết nối: khi đổi kênh, ứng dụng chờ nhà cung
   cấp giải phóng kết nối thay vì báo lỗi.
 • Phim và phim bộ hiện dạng ảnh bìa, kèm cốt truyện, điểm đánh giá và các

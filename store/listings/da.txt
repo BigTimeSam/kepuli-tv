@@ -25,7 +25,8 @@ HVAD DU FÅR
 • Søgning, der ignorerer accenter og ordrækkefølge, og et filter i hver menu.
 • Det, du lod ligge halvvejs, venter øverst, og næste afsnit starter af sig
   selv.
-• Intet blokerer skærmen, mens data indlæses, og det, der afspilles, fortsætter.
+• Intet blokerer skærmen, mens data indlæses, og det, der afspilles,
+  fortsætter, også når forbindelsen falder ud.
 • Lavet til konti med én forbindelse: ved kanalskift venter den på, at
   udbyderen frigiver den, i stedet for at fejle.
 • Film og serier som covers med handling, vurderinger og sæsoner.

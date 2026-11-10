@@ -30,7 +30,7 @@ CE QUE TU OBTIENS
 • Ce que tu as laissé à moitié t'attend en haut, et l'épisode suivant démarre
   tout seul.
 • Rien ne bloque l'écran pendant le chargement, et ce qui est en cours de
-  lecture continue.
+  lecture continue, même quand la connexion tombe.
 • Pensé pour les comptes à une seule connexion : en changeant de chaîne, il
   attend que le fournisseur la libère au lieu d'échouer.
 • Films et séries présentés avec leurs jaquettes, avec résumés, notes et saisons.

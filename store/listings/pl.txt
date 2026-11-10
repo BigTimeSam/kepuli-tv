@@ -28,7 +28,8 @@ CO DOSTAJESZ
   menu.
 • To, co przerwałeś w połowie, czeka na górze, a następny odcinek włącza się
   sam.
-• Nic nie blokuje ekranu podczas ładowania danych, a to, co leci, leci dalej.
+• Nic nie blokuje ekranu podczas ładowania danych, a to, co leci, leci dalej,
+  nawet gdy połączenie się zerwie.
 • Stworzony dla kont z jednym połączeniem: przy zmianie kanału czeka, aż
   dostawca je zwolni, zamiast zgłaszać błąd.
 • Filmy i seriale jako okładki, z opisami, ocenami i sezonami.

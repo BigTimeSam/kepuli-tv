@@ -27,8 +27,8 @@ QUÉ OBTIENES
   en cada menú.
 • Lo que dejaste a medias te espera arriba, y el siguiente episodio empieza
   solo.
-• Nada bloquea la pantalla mientras se cargan los datos, y lo que estás
-  viendo sigue reproduciéndose.
+• Nada bloquea la pantalla mientras se cargan los datos, y lo que estás viendo
+  sigue reproduciéndose, aunque se corte la conexión.
 • Pensado para cuentas con una sola conexión: al cambiar de canal espera a que
   la conexión quede libre en lugar de fallar.
 • Películas y series con carátulas, con sinopsis, valoraciones y temporadas.

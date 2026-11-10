@@ -26,8 +26,8 @@ CE PRIMEȘTI
   fiecare meniu.
 • Ce ai lăsat la jumătate te așteaptă sus, iar episodul următor pornește
   singur.
-• Nimic nu blochează ecranul cât se încarcă datele, iar ce rulează continuă
-  să ruleze.
+• Nimic nu blochează ecranul cât se încarcă datele, iar ce rulează continuă să
+  ruleze, chiar și când conexiunea cade.
 • Gândit pentru conturi cu o singură conexiune: la schimbarea canalului,
   așteaptă ca furnizorul s-o elibereze, în loc să dea eroare.
 • Filme și seriale ca coperți, cu descrieri, note și sezoane.

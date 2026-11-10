@@ -29,7 +29,7 @@ malen.
   u svakom izborniku.
 • Što si ostavio na pola, čeka na vrhu, a sljedeća epizoda kreće sama.
 • Ništa ne blokira zaslon dok se podaci učitavaju, a što se reproducira,
-  nastavlja se.
+  nastavlja se, čak i kad veza pukne.
 • Napravljen za račune s jednom vezom: pri promjeni kanala čeka da je
   davatelj oslobodi umjesto da javi grešku.
 • Filmovi i serije kao naslovnice, s opisima, ocjenama i sezonama.

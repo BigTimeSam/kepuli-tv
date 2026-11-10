@@ -28,7 +28,7 @@ MIT KAPSZ
   szűrő minden menüben.
 • Ami félbemaradt, az legfelül vár, a következő epizód pedig magától indul.
 • Adatbetöltés közben a képernyő használható marad, és ami megy, az megy
-  tovább.
+  tovább, akkor is, ha megszakad a kapcsolat.
 • Egyetlen egyidejű kapcsolatot engedélyező fiókokra szabva: csatornaváltáskor
   megvárja, míg a szolgáltató felszabadítja a helyet, ahelyett hogy hibát
   dobna.

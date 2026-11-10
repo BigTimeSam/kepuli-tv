@@ -26,7 +26,8 @@ KO TU SAŅEM
 • Meklēšana, kurai nav svarīgi diakritiskie burti un vārdu secība, un filtrs
   katrā izvēlnē.
 • Kas palicis pusē, gaida augšā, un nākamā sērija sākas pati.
-• Datu ielādes laikā nekas nebloķē ekrānu, un atskaņošana turpinās.
+• Datu ielādes laikā nekas nebloķē ekrānu, un atskaņošana turpinās arī tad,
+  kad savienojums pārtrūkst.
 • Domāts kontiem ar vienu savienojumu: pārslēdzot kanālu, programma
   nogaida, līdz sniedzējs to atbrīvo, nevis met kļūdu.
 • Filmas un seriāli ar vākiem, aprakstiem, vērtējumiem un sezonām.

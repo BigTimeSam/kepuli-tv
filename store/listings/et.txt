@@ -24,7 +24,8 @@ MIDA SA SAAD
   sünkroonimine sinu seadmete vahel.
 • Otsing, mis ei vaata täpitähti ega sõnajärge, ning filter igas menüüs.
 • Pooleli jäänu ootab üleval ja järgmine episood algab ise.
-• Andmete laadimine ei blokeeri ekraani ning mängiv pilt jätkab mängimist.
+• Andmete laadimine ei blokeeri ekraani ning mängiv pilt jätkab mängimist ka
+  siis, kui ühendus katkeb.
 • Mõeldud ühe ühendusega kontodele: kanali vahetus ootab, kuni pakkuja
   ühenduse vabastab, selle asemel et nurjuda.
 • Filmid ja sarjad kaantena, koos sisukirjelduste, hinnangute ja hooaegadega.

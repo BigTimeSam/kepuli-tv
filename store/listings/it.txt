@@ -28,7 +28,7 @@ COSA OTTIENI
 • Quello che hai lasciato a metà ti aspetta in alto, e l'episodio successivo
   parte da solo.
 • Niente blocca lo schermo mentre i dati si caricano, e ciò che è in
-  riproduzione continua.
+  riproduzione continua, anche quando la connessione cade.
 • Pensato per gli account con una sola connessione: cambiando canale aspetta
   che il provider la liberi invece di fallire.
 • Film e serie come copertine, con trame, voti e stagioni.
