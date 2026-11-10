@@ -49,6 +49,7 @@ import { closeGuide, favoritesChanged, focusGrid, grid, guideFavorites, guideOpe
 
 import { ensureFull, orderList, renderEmptyState, renderListInfo, wireSubcatsKeys, wireSubcatsResize } from './topicbar.js';
 import { askExternal, nameExternalItem, playExternal } from './externalui.js';
+import { keepScreenOnWhilePlaying } from './wakelock.js';
 import { $, el } from './dom.js';
 import { state, TYPE_KIND, unit, kindLabel, KIND_ORDER, KIND_INDEX, kindGroup, ROW_H, setRowHeight, listNavigation, isCollection, tabType, isAbort, same, resetting, startReset, connecting, setConnecting, provide } from './state.js';
 import { categoryCountsFor, collectionItems, favCategoryEntry, isFavorite, isUnfinished, kindIndex, loadGroupItems, openFavCategory, refreshCatalogue, refreshWhenStale, removeFromHistory, renderSubcats, sectionsFor, toggleFavCategory } from './collections.js';
@@ -2209,6 +2210,7 @@ async function init() {
   wireSetup();
   wireUi();
   wireMediaSession();
+  keepScreenOnWhilePlaying(el.video);
   wireSubcatsResize();
   wireSubcatsKeys();
   watchInterest();

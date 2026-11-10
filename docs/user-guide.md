@@ -406,6 +406,8 @@ interrupted channel-list load restores the previous list.
   Play Store opens at its page. On the iPhone (Orion) VLC is handed the
   address and plays it from the start; without VLC, the App Store opens at
   its page
+- **The screen stays on** while a picture plays, and may dim again once it is
+  paused; on the iPhone the first tap after the start may be what keeps it on
 - **Chromecast** (the same menu or `c`): a natively played file goes to the
   device through the Remote Playback API, and for the rest the menu explains how
   Chrome's own tab casting does it — see below. On the iPhone the item is not

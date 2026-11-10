@@ -88,6 +88,8 @@
 //   node dev/playcheck.mjs menutap  the two menu buttons close what they
 //                                     opened, also where a tap leaves the focus
 //                                     nowhere (the iPhone)
+//   node dev/playcheck.mjs wakelock  the screen is held on while a channel
+//                                     plays, let go on pause, held again on play
 //   node dev/playcheck.mjs phonestar  390 px: the country chosen in the menu is
 //                                     starred by the star beside it, and the
 //                                     menu lists the favourites first
@@ -2002,6 +2004,34 @@ async function menutap(page) {
   }
   await page.call('Emulation.setDeviceMetricsOverride', { width: 1280, height: 800, deviceScaleFactor: 1, mobile: false }).catch(() => {});
   return { ok: true, detail: seen.join('; ') };
+}
+
+/**
+ * The screen kept on while a picture plays (js/wakelock.js): a phone went
+ * dark mid-programme. The lock is asked for when a channel starts, let go
+ * when it is paused and asked for again when it plays on.
+ */
+async function wakelock(page) {
+  const assert = (ok, detail) => { if (!ok) throw new Error(detail); };
+  if (!DEVTOOLS_PORT) return { ok: true, detail: 'skipped in Firefox: the lock is watched through Chrome\'s DevTools protocol' };
+  await openLiveList(page, 3);
+  await evaluate(page, `(() => { window.__locks = []; const real = navigator.wakeLock.request.bind(navigator.wakeLock);
+    navigator.wakeLock.request = (type) => real(type).then((lock) => { const entry = { type, released: false }; window.__locks.push(entry);
+      lock.addEventListener('release', () => { entry.released = true; }); return lock; });
+    return true; })()`);
+  await evaluate(page, `document.querySelectorAll('#list .row')[0].click()`, { gesture: true });
+  await waitFor(page, PLAYING, 'the channel', 40000);
+  await sleep(500);
+  const held = () => evaluate(page, `window.__locks.filter((l) => !l.released).length`);
+  const playing = await held();
+  await evaluate(page, `document.getElementById('video').pause()`, { gesture: true });
+  await sleep(500);
+  const paused = await held();
+  await evaluate(page, `document.getElementById('video').play()`, { gesture: true });
+  await sleep(800);
+  const again = await held();
+  assert(playing === 1 && paused === 0 && again === 1, `locks held: playing ${playing}, paused ${paused}, playing again ${again}`);
+  return { ok: true, detail: 'held while the channel played, let go on pause, held again on play' };
 }
 
 /**
@@ -6962,7 +6992,7 @@ async function handoff(page) {
 
 const SCENARIOS = { buffering, livebuffering, filmbuffering, emptyfile, tsasmp4, refusedfile, badgateway, livebadgateway, channelrefused, noanswer, longfilm, catalogUi, setupClarity, welcome, fullscreenControl, clickpause, pickers, touchcaret, screenbutton, topmenu, scrollbars, channelorder, lengthfilter, nowlogo, channels, home, resumemkv, restore, programmes, catchup, seek, death, cancel, timeout, search, paste, keys, switching, resume, connections, livezap, livequiet, reconnect, accounts, listerror, a11y, subtitles, audio, wasmaudio, settings,
   lastchannel, nextepisode, continuewatching, reminders, update, seeklag, cuesretry, quota, catchupfreeze, catchupfull, twotabs, switchstop, resettabs,
-  refresh, restorenav, guidekeep, removeaccount, m3u, sync, holes, picks, flakyserver, accountform, stalker, record, guidefavs, guidenames, categories, homecountry, noleak, perf, pseudo, startup, soak, phone, phonestar, phonescroll, menutap, livecut, episodenames, gotochannel, filmdetails, favorder, countryfilter, tilekeys, routes, programmekeys, searchlimit, filterfolds, focusrings, xtreamoffer, guideclick, filmaddress, filmfacts, playlistfile, perflive, perfplaylist, remoteimages, phoneguide, handoff };
+  refresh, restorenav, guidekeep, removeaccount, m3u, sync, holes, picks, flakyserver, accountform, stalker, record, guidefavs, guidenames, categories, homecountry, noleak, perf, pseudo, startup, soak, phone, phonestar, phonescroll, menutap, wakelock, livecut, episodenames, gotochannel, filmdetails, favorder, countryfilter, tilekeys, routes, programmekeys, searchlimit, filterfolds, focusrings, xtreamoffer, guideclick, filmaddress, filmfacts, playlistfile, perflive, perfplaylist, remoteimages, phoneguide, handoff };
 // The mock's whole-list answers stall for these, longer than the request limit.
 const SLOW_LIST_MS = { cancel: 60000, timeout: 60000 };
 // The media is sent slowly for these: the seek targets must lie outside the
