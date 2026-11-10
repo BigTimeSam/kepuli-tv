@@ -2758,9 +2758,10 @@ async function clickpause(page) {
   // A tap is the touch controls' own: on the iPhone the tap on their play
   // button also reached the page as a click, whose pause came 280 ms after
   // the film had started, and a paused film could not be played on (Orion).
-  // A finger's press and the click it ends in leave the film playing.
+  // A finger's press and the click it ends in leave the film playing; the
+  // click is called a mouse's, as the iPhone's WebKit calls it.
   await evaluate(page, `(() => { const v = document.getElementById('video'); const r = v.getBoundingClientRect(); const at = { clientX: r.left + r.width / 2, clientY: r.top + r.height * 0.4, bubbles: true, cancelable: true, button: 0 };
-    v.dispatchEvent(new PointerEvent('pointerdown', { ...at, pointerType: 'touch' })); v.dispatchEvent(new MouseEvent('click', { ...at, detail: 1 })); })()`);
+    v.dispatchEvent(new PointerEvent('pointerdown', { ...at, pointerType: 'touch' })); v.dispatchEvent(new PointerEvent('click', { ...at, detail: 1, pointerType: 'mouse' })); })()`);
   await sleep(700);
   const tapLeftAlone = !(await paused());
   seen.push(`a tap ${tapLeftAlone ? 'left to the touch controls' : 'paused'}`);

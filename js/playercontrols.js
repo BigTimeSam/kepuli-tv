@@ -159,10 +159,10 @@ export function clickPicture(e) {
   // play button plays. Taken over here as a click, the tap on the iPhone's
   // play button also reached this, and its pause came 280 ms after the
   // picture had started — a film paused in Orion could not be played on.
-  // The click's own pointerType where the browser gives one, the press
-  // before it where it does not (a click is not a PointerEvent everywhere).
-  const kind = /** @type {PointerEvent} */ (e).pointerType || lastPointer;
-  if (kind === 'touch' || kind === 'pen') return;
+  // What the press before the click was made with. Not the click's own
+  // pointerType: the iPhone's WebKit calls the click that a tap ends in a
+  // mouse's, while the pointerdown before it says touch (logged in Orion).
+  if (lastPointer === 'touch' || lastPointer === 'pen') return;
   if (e.offsetY > video.clientHeight - CONTROL_BAR_PX) return;
   const item = state.playing;
   if (!item) return;
