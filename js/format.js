@@ -27,14 +27,24 @@ export function setLocale(tag = localeTag(), { hourCycle = 'h23' } = {}) {
   // μ.μ. and 03:00 e pasdites to a viewer who asked for neither.
   const h12 = hourCycle === 'h12';
   timeFmt = new Intl.DateTimeFormat(tag, { hour: h12 ? 'numeric' : '2-digit', minute: '2-digit', hourCycle });
-  dateTimeFmt = new Intl.DateTimeFormat(tag, { dateStyle: 'short', timeStyle: 'short', hourCycle });
   dateFmt = new Intl.DateTimeFormat(tag, { dateStyle: 'medium' });
+  // English names the month: its figures read one way in Britain and the
+  // other in the United States, and "04/12/2015" was the 4th of December
+  // or the 12th of April depending on the reader (a viewer in Helsinki took
+  // it for the latter). "4 Dec 2015" is the same to both. The other
+  // languages each have one order, which their readers take for granted.
+  const month = /^en\b/.test(tag) ? 'short' : 'numeric';
+  // A recording's or a sync's moment: the short date and the time, the
+  // month by its name in English as above.
+  dateTimeFmt = new Intl.DateTimeFormat(tag, month === 'short'
+    ? { day: 'numeric', month, year: 'numeric', hour: h12 ? 'numeric' : '2-digit', minute: '2-digit', hourCycle }
+    : { dateStyle: 'short', timeStyle: 'short', hourCycle });
   // A calendar date read as UTC, so that no time zone moves it a day.
-  calendarFmt = new Intl.DateTimeFormat(tag, { day: 'numeric', month: 'numeric', year: 'numeric', timeZone: 'UTC' });
-  dayFmt = new Intl.DateTimeFormat(tag, { weekday: 'short', day: 'numeric', month: 'numeric' });
+  calendarFmt = new Intl.DateTimeFormat(tag, { day: 'numeric', month, year: 'numeric', timeZone: 'UTC' });
+  dayFmt = new Intl.DateTimeFormat(tag, { weekday: 'short', day: 'numeric', month });
   weekdayFmt = new Intl.DateTimeFormat(tag, { weekday: 'long' });
   stampFmt = new Intl.DateTimeFormat(tag, {
-    weekday: 'short', day: 'numeric', month: 'numeric', hour: h12 ? 'numeric' : '2-digit', minute: '2-digit', hourCycle,
+    weekday: 'short', day: 'numeric', month, hour: h12 ? 'numeric' : '2-digit', minute: '2-digit', hourCycle,
   });
 }
 
@@ -44,8 +54,8 @@ export function clock(ms) { return ms ? timeFmt.format(new Date(ms)) : ''; }
 
 /**
  * An ISO calendar date in the language's own short form ("3.11.2026",
- * "03/11/2026", "11/3/2026"), without letting the viewer's time zone shift
- * the day.
+ * "3 Nov 2026" in English, "Nov 3, 2026" in its American form), without
+ * letting the viewer's time zone shift the day.
  */
 export function calendarDate(value) {
   const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(String(value || '').trim());

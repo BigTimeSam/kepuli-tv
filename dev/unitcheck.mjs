@@ -792,7 +792,7 @@ check('orderedLanguageNames: an unknown language is named, and last',
     inLanguage('en', 'en-GB', () => calendarDate('2026-11-03')),
     inLanguage('de', null, () => calendarDate('2026-11-03')),
     calendarDate('2026-02-30'), calendarDate('soon'),
-  ], ['3.11.2026', '11/3/2026', '03/11/2026', '3.11.2026', '', '']);
+  ], ['3.11.2026', 'Nov 3, 2026', '3 Nov 2026', '3.11.2026', '', '']);
   check('a rating in the language\'s decimals', [
     inLanguage('fi', null, () => ratingText({ rating: 7.46 })),
     inLanguage('en', 'en-GB', () => ratingText({ rating: 7.46 })),
