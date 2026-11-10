@@ -151,7 +151,6 @@ dialog::backdrop { background: var(--backdrop); backdrop-filter: blur(2px); }
 
 .toggles { display: flex; flex-direction: column; gap: 7px; }
 .toggle { display: flex; align-items: center; gap: 8px; color: var(--muted); cursor: pointer; }
-.toggle input { accent-color: var(--accent); width: 15px; height: 15px; }
 
 .account-box { font-size: var(--fs-m); color: var(--muted); }
 .account-box[hidden] { display: none; }

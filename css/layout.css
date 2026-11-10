@@ -191,7 +191,10 @@ button.group-star:hover { color: var(--text); background: var(--track); }
 .length-filter.active .range-label output { color: var(--accent-ink); }
 .range-pair { position: relative; height: 26px; }
 .range-pair::before, .range-pair::after { content: ""; position: absolute; top: 11px; height: 4px; border-radius: 99px; }
-.range-pair::before { left: 0; right: 0; background: var(--panel-2); border: 1px solid var(--border); top: 10px; height: 6px; }
+/* The track and its lit part are one band, the same height at the same
+   place: the track drawn 2 px taller with a border showed under the lit
+   part as a line of its own. */
+.range-pair::before { left: 0; right: 0; background: var(--track); }
 .range-pair::after { left: var(--from, 0%); right: calc(100% - var(--to, 100%)); background: var(--accent); }
 .range-pair input { position: absolute; inset: 0; width: 100%; height: 26px; margin: 0; padding: 0; background: none; border: 0; pointer-events: none; -webkit-appearance: none; appearance: none; z-index: 1; }
 .range-pair input::-webkit-slider-runnable-track { background: none; border: 0; }

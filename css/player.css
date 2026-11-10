@@ -260,6 +260,34 @@ body { display: flex; flex-direction: column; }
 
 button, input, select { font: inherit; color: inherit; }
 
+/* One check box everywhere, drawn here rather than by the browser. The
+   browser's own came in three sizes with and without the accent, and
+   standing on a fraction of a pixel — as rem-sized rows put it — its top
+   edge was drawn fainter than its bottom (Filter titles in a narrow
+   window). A box of the page's own is laid on whole pixels. Under forced
+   colours the system's own box stays, as it is the one that follows them. */
+input[type="checkbox"] {
+  -webkit-appearance: none; appearance: none; flex: none; box-sizing: border-box;
+  width: 16px; height: 16px; margin: 0; vertical-align: middle;
+  border: 1.5px solid var(--border-strong); border-radius: 4px;
+  background: var(--panel-2) center / 12px 12px no-repeat; cursor: pointer;
+}
+input[type="checkbox"]:checked {
+  border-color: var(--accent); background-color: var(--accent);
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 12'%3E%3Cpath d='M2.5 6.2 5 8.6l4.5-5' fill='none' stroke='%23fff' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+}
+/* Some but not all ("Select all" in Filter countries): a bar. */
+input[type="checkbox"]:indeterminate {
+  border-color: var(--accent); background-color: var(--accent);
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 12'%3E%3Cpath d='M3 6h6' fill='none' stroke='%23fff' stroke-width='1.8' stroke-linecap='round'/%3E%3C/svg%3E");
+}
+input[type="checkbox"]:hover:not(:disabled) { border-color: var(--accent); }
+input[type="checkbox"]:focus-visible { outline: 2px solid var(--accent-ink); outline-offset: 2px; }
+input[type="checkbox"]:disabled { opacity: .5; cursor: default; }
+@media (forced-colors: active) {
+  input[type="checkbox"] { -webkit-appearance: auto; appearance: auto; }
+}
+
 /* One focus ring for every control: the accent's text colour, 2px, a
    little off the edge. Half the controls had a ring of their own and the
    other half the browser's, a hairline in Chrome and something else in

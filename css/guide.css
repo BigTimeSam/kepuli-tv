@@ -87,7 +87,7 @@
 .choice-row[hidden] { display: none; }
 div.choice-row { cursor: default; }
 label.choice-row:hover { background: var(--row-hover); }
-.choice-row input { accent-color: var(--accent); flex: none; width: 16px; height: 16px; }
+.choice-row input:not([type="checkbox"]) { accent-color: var(--accent); flex: none; width: 16px; height: 16px; }
 .choice-name { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .choice-count { color: var(--muted); font-size: var(--fs-m); font-variant-numeric: tabular-nums; flex: none; }
 .choice-tag { color: var(--accent-ink); font-size: var(--fs-xs); font-weight: 600; border: 1px solid currentColor; border-radius: 5px; padding: 0 5px; flex: none; }
