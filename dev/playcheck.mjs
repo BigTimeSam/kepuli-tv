@@ -2308,7 +2308,7 @@ async function nowbarfit(page) {
     await playEpisode(page);
     const look = () => evaluate(page, `(() => { const row = document.querySelector('.now-actions'); const shown = [...row.children].filter((c) => c.getClientRects().length);
       const tops = new Set(shown.map((c) => Math.round(c.getBoundingClientRect().top / 4)));
-      return { lines: tops.size, label: document.getElementById('mode-label').getClientRects().length > 0, bar: Math.round(document.querySelector('.nowbar').getBoundingClientRect().height), cls: document.querySelector('.nowbar').className, kids: shown.map((c) => (c.id || c.className).slice(0, 20) + '@' + c.offsetTop + '/' + Math.round(c.getBoundingClientRect().top)), sw: row.scrollWidth, cw: row.clientWidth }; })()`);
+      return { lines: tops.size, label: document.getElementById('mode-label').getClientRects().length > 0, bar: Math.round(document.querySelector('.nowbar').getBoundingClientRect().height), cls: document.querySelector('.nowbar').className, kids: shown.map((c) => (c.id || c.className).slice(0, 20) + '@' + c.offsetTop + '/' + Math.round(c.getBoundingClientRect().top)), sw: row.scrollWidth, cw: row.clientWidth, roomy: (() => { const bar = document.querySelector('.nowbar'); const was = bar.classList.contains('tight'); bar.classList.remove('tight'); bar.classList.add('measuring'); const fits = row.scrollWidth <= row.clientWidth + 1; bar.classList.remove('measuring'); bar.classList.toggle('tight', was); return fits; })() }; })()`);
     const before = await look();
     // An audio track's selector, as a film with two tracks shows it, with
     // a long name.
@@ -2321,9 +2321,12 @@ async function nowbarfit(page) {
     await sleep(1200);
     const after = await look();
     assert(before.lines === 1 && before.label, `before: ${JSON.stringify(before)}`);
-    assert(crowded.lines === 1 && !crowded.label, `with an audio track's selector: ${JSON.stringify(crowded)}`);
+    // Whether the label must go depends on the fonts: Linux's (CI) are
+    // narrower, and there the whole row still fitted with it. What is
+    // asserted is that it shows only where the row holds it at full width.
+    assert(crowded.lines === 1 && (!crowded.label || crowded.roomy), `with an audio track's selector: ${JSON.stringify(crowded)}`);
     assert(after.lines === 1 && after.label, `with room again: ${JSON.stringify(after)}`);
-    return { ok: true, detail: `one line throughout (${crowded.bar} px); "Playback mode:" left out beside an audio track's selector and back with room` };
+    return { ok: true, detail: `one line throughout (${crowded.bar} px); "Playback mode:" ${crowded.label ? 'kept, as the row held it,' : 'left out'} beside an audio track's selector and back with room` };
   } finally {
     await page.call('Emulation.setDeviceMetricsOverride', { width: 1280, height: 800, deviceScaleFactor: 1, mobile: false }).catch(() => {});
   }

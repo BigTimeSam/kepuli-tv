@@ -1203,11 +1203,24 @@ function fitNowbar() {
   const bar = /** @type {HTMLElement} */ (document.querySelector('.nowbar'));
   const row = bar?.querySelector('.now-actions');
   if (!bar || !row) return;
+  // "Playback mode:" before the value, in the select's box: its left
+  // padding follows the label's width, whatever the language; none where
+  // the stylesheet leaves the label out.
+  const modeLabel = $('mode-label');
+  const pad = () => {
+    el.mode.style.paddingLeft = modeLabel.offsetWidth ? `${modeLabel.offsetLeft + modeLabel.offsetWidth + 6}px` : '';
+  };
+  new ResizeObserver(pad).observe(modeLabel);
   // Whether the row holds its controls at their own widths, nothing
   // shrunk: the selectors may give way to a stub (css/playback.css), and a
   // row that fits only so had its values cut short while the words stayed.
+  // The padding is set before the measure: left to the label's observer,
+  // it came a moment after, the row was measured with the label shown but
+  // without the room it takes, and "Playback mode:" stayed on a row too
+  // short for it (CI, 1.10.1).
   const oneLine = () => {
     bar.classList.add('measuring');
+    pad();
     const fits = row.scrollWidth <= row.clientWidth + 1;
     bar.classList.remove('measuring');
     return fits;
@@ -1216,7 +1229,7 @@ function fitNowbar() {
   const fit = () => {
     pending = 0;
     bar.classList.remove('tight');
-    if (!oneLine()) bar.classList.add('tight');
+    if (!oneLine()) { bar.classList.add('tight'); pad(); }
   };
   // In the next frame: the class changes the sizes being observed, and
   // changed inside the observer's callback that is a loop the browser warns of.
@@ -2025,13 +2038,6 @@ function wireUi() {
   // that vanished on Esc would look as if the loading had finished.
   $('lp-cancel').addEventListener('click', cancelProgress);
 
-  // "Playback mode:" before the value, in the select's box: its left
-  // padding follows the label's width, whatever the language; none where
-  // the stylesheet leaves the label out.
-  const modeLabel = $('mode-label');
-  new ResizeObserver(() => {
-    el.mode.style.paddingLeft = modeLabel.offsetWidth ? `${modeLabel.offsetLeft + modeLabel.offsetWidth + 6}px` : '';
-  }).observe(modeLabel);
   fitNowbar();
   el.mode.addEventListener('change', () => {
     store.saveConfig({ streamMode: el.mode.value });
