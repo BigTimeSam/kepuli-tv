@@ -28,7 +28,7 @@
    stays sharp on a high-density display too. */
 .brand-mark { width: 18px; height: 18px; background: url("../icons/icon48.png") center / contain no-repeat; }
 
-.tabs { display: flex; gap: 2px; background: var(--panel-2); padding: 3px; border-radius: 9px; }
+.tabs { display: flex; flex-wrap: nowrap; gap: 2px; background: var(--panel-2); padding: 3px; border-radius: 9px; }
 .tabs button { border: 0; background: transparent; color: var(--muted); padding: 5px 11px; border-radius: 6px; cursor: pointer; white-space: nowrap;
   display: inline-flex; align-items: center; gap: 6px; }
 .tab-icon { width: 15px; height: 15px; flex: none; fill: none; stroke: currentColor; stroke-width: 1.6; stroke-linecap: round; stroke-linejoin: round; }

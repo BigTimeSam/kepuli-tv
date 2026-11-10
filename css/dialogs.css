@@ -231,7 +231,11 @@ dialog::backdrop { background: var(--backdrop); backdrop-filter: blur(2px); }
 .setup-tabs button:focus-visible { outline: 2px solid var(--accent-ink); outline-offset: 1px; }
 @media (max-width: 520px) {
   .setup { padding: 18px 14px; gap: 16px; }
-  .setup-tabs button { padding: 8px 5px; font-size: var(--fs-m); white-space: normal; }
+  /* On a phone the sections are one row that scrolls sideways, as the top
+     bar's tabs do, rather than names broken over two lines in a column of
+     their own each. */
+  .setup-tabs { overflow-x: auto; flex-wrap: nowrap; }
+  .setup-tabs button { flex: none; padding: 8px 10px; font-size: var(--fs-m); white-space: nowrap; }
   .setup > .setup-actions .setup-note { flex-basis: 100%; }
   .setup > .setup-actions #f-done { margin-left: auto; }
   .setup .danger-row { align-items: flex-start; flex-direction: column; }
