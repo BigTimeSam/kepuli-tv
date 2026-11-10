@@ -196,8 +196,19 @@ button.group-star, button.group-star:hover, .group.active .group-star:hover { wi
 /* Shown only where the sidebar is not, see the narrow-window rules below. */
 .group-picker[hidden] { display: none; }
 .group-picker { display: none; padding: 8px 10px; background: var(--panel); border-bottom: 1px solid var(--border); }
+.group-picker { gap: 8px; align-items: stretch; }
+.group-picker-choice { flex: 1; min-width: 0; display: flex; }
 .group-picker select { width: 100%; color: var(--text); background: var(--panel-2); border: 1px solid var(--border); border-radius: 7px; padding: 7px 9px; }
 .group-picker select:focus-visible { outline: 2px solid var(--accent-ink); outline-offset: 2px; }
+/* The chosen group's star, the size of the menu's height: a finger's
+   target, where the sidebar's is a pointer's. */
+.group-picker-star { flex: none; min-width: 36px; padding: 0 8px; border: 1px solid var(--border); border-radius: 7px;
+  background: var(--panel-2); color: var(--star); font-size: 1rem; line-height: 1; font-variant-emoji: text; cursor: pointer; }
+.group-picker-star.on { color: var(--gold); }
+.group-picker-star:hover { color: var(--text); }
+.group-picker-star.on:hover { color: var(--gold); }
+.group-picker-star:focus-visible { outline: 2px solid var(--accent-ink); outline-offset: 2px; }
+.group-picker-star[hidden] { display: none; }
 
 .list-progress {
   display: flex; flex-direction: column; gap: 7px; flex: none;

@@ -115,9 +115,12 @@ export function wireTopMenu() {
     e.stopPropagation();
   });
   // Tabbing out closes it, and so does a press anywhere else; the button
-  // is left out, or its own press would reopen what it closed.
+  // is left out, or its own press would reopen what it closed. A focus
+  // that went to nothing is not a tab out: a tap on the button leaves it
+  // unfocused on the iPhone, and the menu closed on that and reopened on
+  // the tap's click (js/app.js, the player's menu, has the same).
   pop.addEventListener('focusout', (e) => {
-    if (!pop.contains(/** @type {Node} */ (e.relatedTarget)) && e.relatedTarget !== button) toggle(false);
+    if (e.relatedTarget && !pop.contains(/** @type {Node} */ (e.relatedTarget)) && e.relatedTarget !== button) toggle(false);
   });
   document.addEventListener('pointerdown', (e) => {
     const target = /** @type {Node} */ (e.target);

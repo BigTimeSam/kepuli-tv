@@ -31,7 +31,7 @@
      gone would leave column 1 empty and the picture in an implicit track. */
   main > .listcol { grid-column: 1; }
   main > .stage { grid-column: 2; }
-  .group-picker { display: block; }
+  .group-picker { display: flex; }
   main.guide { grid-template-columns: minmax(0, 1fr) minmax(0, 40vw); }
 }
 

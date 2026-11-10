@@ -82,6 +82,15 @@
 //   node dev/playcheck.mjs livecut  the server closes a live MPEG-TS channel
 //                                     every 12 s: the picture goes on without
 //                                     a restart, over connection after connection
+//   node dev/playcheck.mjs phonescroll  a short phone screen, by touch: the
+//                                     topics in Filter channels and the
+//                                     settings scroll under a finger
+//   node dev/playcheck.mjs menutap  the two menu buttons close what they
+//                                     opened, also where a tap leaves the focus
+//                                     nowhere (the iPhone)
+//   node dev/playcheck.mjs phonestar  390 px: the country chosen in the menu is
+//                                     starred by the star beside it, and the
+//                                     menu lists the favourites first
 //   node dev/playcheck.mjs xtreamoffer  an Xtream panel's plain list as a
 //                                     playlist: its headings the channels'
 //                                     groups, the server offered once and,
@@ -1906,6 +1915,166 @@ async function phone(page) {
     seen.push(`${width} px: sections above Save, days ${guide.days}/${guide.bar} px, search ${guide.form} px`);
   }
   return { ok: true, detail: seen.join('; ') };
+}
+
+/**
+ * Everything that can outgrow a phone's screen scrolls under a finger. In
+ * Orion on an iPhone the topics of Filter channels did not: the fold grew
+ * past the screen and nothing scrolled it. On a short screen (390 x 470)
+ * with touch, the topics scroll inside the fold with "Show only
+ * favourites" still on screen and the list not moved, and Settings'
+ * section scrolls too.
+ */
+async function phonescroll(page) {
+  if (!DEVTOOLS_PORT) return { ok: true, detail: 'skipped in Firefox: needs touch emulation, which the Marionette driver does not offer' };
+  const assert = (ok, detail) => { if (!ok) throw new Error(detail); };
+  await evaluate(page, `document.getElementById('tab-live').click()`);
+  await waitFor(page, `document.querySelector('#group-select option[value="Finland"]')`, 'the channels');
+  await page.call('Emulation.setDeviceMetricsOverride', { width: 390, height: 470, deviceScaleFactor: 1, mobile: true });
+  await page.call('Emulation.setTouchEmulationEnabled', { enabled: true, maxTouchPoints: 5 });
+  const swipe = async (selector) => {
+    const box = await evaluate(page, `(() => { const r = document.querySelector(${JSON.stringify(selector)}).getBoundingClientRect(); return { x: Math.round(r.left + r.width / 2), y: Math.round(r.top + r.height * 0.8) }; })()`);
+    await page.call('Input.synthesizeScrollGesture', { x: box.x, y: box.y, yDistance: -120, gestureSourceType: 'touch', speed: 600 });
+    await sleep(400);
+  };
+  try {
+    await evaluate(page, `(() => { const s = document.getElementById('group-select'); s.value = 'Finland'; s.dispatchEvent(new Event('change', { bubbles: true })); })()`);
+    await waitFor(page, `document.querySelectorAll('#list .row').length > 0 && document.querySelectorAll('#subcats .chip').length > 3`, 'Finland\'s topics');
+    await evaluate(page, `document.getElementById('channel-filters').open = true`);
+    await sleep(400);
+    const fold = () => evaluate(page, `(() => { const bar = document.getElementById('subcats'); const foot = document.querySelector('#channel-filters .media-filter-footer').getBoundingClientRect();
+      return { overflow: getComputedStyle(bar).overflowY, more: bar.scrollHeight - bar.clientHeight, top: bar.scrollTop, foot: Math.round(foot.bottom), screen: innerHeight,
+        list: document.getElementById('list').scrollTop }; })()`);
+    const before = await fold();
+    assert(before.overflow === 'auto' && before.more > 0 && before.foot <= before.screen, `the topics in the fold on a short screen: ${JSON.stringify(before)}`);
+    await swipe('#subcats');
+    const after = await fold();
+    assert(after.top > 0 && after.list === before.list, `a swipe over the topics: ${JSON.stringify({ before, after })}`);
+    await evaluate(page, `document.getElementById('channel-filters').open = false`);
+
+    await evaluate(page, `document.getElementById('btn-settings').click()`);
+    await waitFor(page, `document.getElementById('setup').open`, 'settings');
+    await sleep(400);
+    const panel = `[...document.querySelectorAll('#setup .setup-panel')].find((p) => p.getClientRects().length)`;
+    const settings = await evaluate(page, `(() => { const p = ${panel}; p.id ||= 'shown-panel'; return { id: p.id, more: p.scrollHeight - p.clientHeight }; })()`);
+    await swipe(`#${settings.id}`);
+    const moved = await evaluate(page, `document.getElementById(${JSON.stringify(settings.id)}).scrollTop`);
+    await evaluate(page, `document.getElementById('f-done').click()`);
+    await waitFor(page, `!document.getElementById('setup').open`, 'settings closed');
+    assert(settings.more <= 0 || moved > 0, `Settings' section does not scroll by touch: ${JSON.stringify({ settings, moved })}`);
+    return { ok: true, detail: `topics scrolled ${after.top} px inside the fold, "Show only favourites" on screen, the list unmoved; Settings' section ${settings.more > 0 ? `scrolled ${moved} px` : 'fits'}` };
+  } finally {
+    await page.call('Emulation.setTouchEmulationEnabled', { enabled: false });
+    await page.call('Emulation.setDeviceMetricsOverride', { width: 1280, height: 800, deviceScaleFactor: 1, mobile: false }).catch(() => {});
+  }
+}
+
+/**
+ * A menu's button closes the menu it opened. On the iPhone a tap leaves the
+ * button unfocused: the focus left the menu for nothing, the menu closed on
+ * that, and the tap's click opened it again, so the button never closed it
+ * (Orion). Here the tap is the focus going to nothing and then the click:
+ * the player's menu and the top bar's (at a tablet's 905 px) both close,
+ * and a Tab out of each still does.
+ */
+async function menutap(page) {
+  const assert = (ok, detail) => { if (!ok) throw new Error(detail); };
+  const seen = [];
+  for (const [button, pop, width] of [['btn-more', 'more-pop', 1280], ['btn-topmenu', 'topmenu-pop', 905]]) {
+    await page.call('Emulation.setDeviceMetricsOverride', { width, height: 800, deviceScaleFactor: 1, mobile: false });
+    await sleep(400);
+    const open = () => evaluate(page, `!document.getElementById(${JSON.stringify(pop)}).hidden`);
+    await evaluate(page, `document.getElementById(${JSON.stringify(button)}).click()`);
+    await sleep(200);
+    assert(await open(), `${button} did not open its menu`);
+    // The tap: the focus leaves the menu for nothing, then the click.
+    await evaluate(page, `(() => { document.querySelector('#${pop} [role="menuitem"]:not([hidden])')?.focus(); document.activeElement?.blur(); document.getElementById(${JSON.stringify(button)}).click(); })()`);
+    await sleep(200);
+    const afterTap = await open();
+    // A Tab out still closes it.
+    await evaluate(page, `document.getElementById(${JSON.stringify(button)}).click()`);
+    await sleep(200);
+    await evaluate(page, `(() => { document.querySelector('#${pop} [role="menuitem"]:not([hidden])')?.focus(); document.getElementById('search').focus(); })()`);
+    await sleep(200);
+    const afterTab = await open();
+    assert(!afterTap && !afterTab, `${button}: open after the tap ${afterTap}, after a Tab out ${afterTab}`);
+    seen.push(`${button} closed by a tap and by Tab`);
+  }
+  await page.call('Emulation.setDeviceMetricsOverride', { width: 1280, height: 800, deviceScaleFactor: 1, mobile: false }).catch(() => {});
+  return { ok: true, detail: seen.join('; ') };
+}
+
+/**
+ * A country starred on a phone. Below 760 px the sidebar is a menu, whose
+ * options cannot carry a star, and there was no way to make a country a
+ * favourite at all (found in Orion on an iPhone): the star beside the menu
+ * is the chosen country's, it says which, the sidebar agrees with it, and
+ * the menu lists the favourites first under their own heading.
+ */
+async function phonestar(page) {
+  const assert = (ok, detail) => { if (!ok) throw new Error(detail); };
+  await evaluate(page, `chrome.storage.local.get('settings').then(({ settings }) => chrome.storage.local.set({ settings: { ...settings, lang: 'en' }, ui: { tab: 'live' } }))`);
+  await page.call('Page.reload');
+  await sleep(1000);
+  await waitFor(page, CONNECTED, 'the player');
+  // The address may bring back another tab than the one stored.
+  await evaluate(page, `document.getElementById('tab-live').click()`);
+  await waitFor(page, `document.getElementById('tab-live').getAttribute('aria-selected') === 'true' && document.querySelector('#group-select option[value="Finland"]')`, 'the channels');
+  await page.call('Emulation.setDeviceMetricsOverride', { width: 390, height: 844, deviceScaleFactor: 1, mobile: false });
+  try {
+    await sleep(300);
+    await evaluate(page, `(() => { const s = document.getElementById('group-select'); s.value = 'Finland'; s.dispatchEvent(new Event('change', { bubbles: true })); })()`);
+    await waitFor(page, `document.querySelectorAll('#list .row').length > 0 && document.getElementById('list-progress').hidden`, 'Finland\'s channels');
+    const look = () => evaluate(page, `(() => { const b = document.getElementById('group-picker-star'), s = document.getElementById('group-select');
+      const first = s.querySelector('optgroup');
+      const row = [...document.querySelectorAll('#groups .group')].find((g) => g.querySelector('.group-name')?.textContent.trim() === 'Finland');
+      return { shown: b.getClientRects().length > 0, on: b.classList.contains('on'), label: b.getAttribute('aria-label'), height: Math.round(b.getBoundingClientRect().height),
+        tabbable: b.tabIndex >= 0, value: s.value, heading: first?.label ?? null, favourites: first ? [...first.children].map((o) => o.value) : [],
+        sidebar: row?.querySelector('.group-star')?.classList.contains('on') ?? null }; })()`);
+    const before = await look();
+    assert(before.shown && !before.on && before.tabbable && before.label === 'Add to favourites: Finland' && before.height >= 32 && before.value === 'Finland' && before.heading === null,
+      `before: ${JSON.stringify(before)}`);
+    await evaluate(page, `window.__toastSeen = []; new MutationObserver(() => { for (const n of document.querySelectorAll('.toast')) window.__toastSeen.push(n.textContent); }).observe(document.body, { childList: true, subtree: true, characterData: true }); document.getElementById('group-picker-star').click()`);
+    await sleep(400);
+    const starred = await look();
+    const toasts = await evaluate(page, `window.__toastSeen.join(' | ')`);
+    assert(starred.on && starred.label === 'Remove from favourites: Finland' && starred.sidebar === true && starred.heading === 'Favourites'
+      && starred.favourites.join() === 'Finland' && starred.value === 'Finland', `starred: ${JSON.stringify(starred)}`);
+    assert(/Finland added to favourites/.test(toasts), `no toast said so: ${toasts}`);
+    await evaluate(page, `document.getElementById('group-picker-star').click()`);
+    await sleep(400);
+    const unstarred = await look();
+    assert(!unstarred.on && unstarred.sidebar === false && unstarred.heading === null && unstarred.value === 'Finland', `unstarred: ${JSON.stringify(unstarred)}`);
+    await evaluate(page, `(() => { const s = document.getElementById('group-select'); s.value = ''; s.dispatchEvent(new Event('change', { bubbles: true })); })()`);
+    await sleep(300);
+    const all = await look();
+    assert(!all.shown, `with All chosen the star is still there: ${JSON.stringify(all)}`);
+    // Favourites with none in them: the menu goes, rather than offering the
+    // countries of the tab before (Orion); with one, it offers the types.
+    const menu = () => evaluate(page, `(() => { const s = document.getElementById('group-select');
+      return { tab: document.querySelector('#tabs [aria-selected="true"]')?.dataset.tab, rows: document.querySelectorAll('#list .row').length, shown: document.getElementById('group-picker').getClientRects().length > 0, options: [...s.options].map((o) => o.text), star: document.getElementById('group-picker-star').getClientRects().length > 0 }; })()`);
+    await evaluate(page, `chrome.storage.local.get(null).then((all) => chrome.storage.local.remove(Object.keys(all).filter((k) => k.startsWith('favorites'))))`);
+    await page.call('Page.reload');
+    await waitFor(page, CONNECTED, 'the player again');
+    await sleep(1500);   // the restore of the view has had its turn
+    await evaluate(page, `document.querySelector('#tabs [data-tab="fav"]').click()`);
+    await waitFor(page, `document.getElementById('tab-fav').getAttribute('aria-selected') === 'true'`, 'Favourites');
+    await sleep(800);
+    const empty = await menu();
+    assert(!empty.shown && !empty.star, `empty favourites on a phone: ${JSON.stringify(empty)}`);
+    await evaluate(page, `document.getElementById('tab-live').click()`);
+    await sleep(800);
+    await evaluate(page, `document.querySelector('#list .row .row-star')?.click()`);
+    await evaluate(page, `document.querySelector('#tabs [data-tab="fav"]').click()`);
+    await waitFor(page, `document.getElementById('tab-fav').getAttribute('aria-selected') === 'true'`, 'Favourites');
+    await sleep(800);
+    const one = await menu();
+    assert(one.shown && !one.options.includes('Finland') && one.options.length <= 5, `favourites with a channel on a phone: ${JSON.stringify(one)}`);
+    await evaluate(page, `document.querySelector('#list .row .row-star')?.click()`);
+    return { ok: true, detail: `star beside the menu (${before.height} px, in the tab order), Finland starred and unstarred with the sidebar in step, favourites first under "${starred.heading}", hidden under All; empty favourites without the menu, with a channel the menu of types ${JSON.stringify(one.options)}` };
+  } finally {
+    await page.call('Emulation.setDeviceMetricsOverride', { width: 1280, height: 800, deviceScaleFactor: 1, mobile: false }).catch(() => {});
+  }
 }
 
 /**
@@ -6772,7 +6941,7 @@ async function handoff(page) {
 
 const SCENARIOS = { buffering, livebuffering, filmbuffering, emptyfile, tsasmp4, refusedfile, badgateway, livebadgateway, channelrefused, noanswer, longfilm, catalogUi, setupClarity, welcome, fullscreenControl, clickpause, pickers, touchcaret, screenbutton, topmenu, scrollbars, channelorder, lengthfilter, nowlogo, channels, home, resumemkv, restore, programmes, catchup, seek, death, cancel, timeout, search, paste, keys, switching, resume, connections, livezap, livequiet, reconnect, accounts, listerror, a11y, subtitles, audio, wasmaudio, settings,
   lastchannel, nextepisode, continuewatching, reminders, update, seeklag, cuesretry, quota, catchupfreeze, catchupfull, twotabs, switchstop, resettabs,
-  refresh, restorenav, guidekeep, removeaccount, m3u, sync, holes, picks, flakyserver, accountform, stalker, record, guidefavs, guidenames, categories, homecountry, noleak, perf, pseudo, startup, soak, phone, livecut, episodenames, gotochannel, filmdetails, favorder, countryfilter, tilekeys, routes, programmekeys, searchlimit, filterfolds, focusrings, xtreamoffer, guideclick, filmaddress, filmfacts, playlistfile, perflive, perfplaylist, remoteimages, phoneguide, handoff };
+  refresh, restorenav, guidekeep, removeaccount, m3u, sync, holes, picks, flakyserver, accountform, stalker, record, guidefavs, guidenames, categories, homecountry, noleak, perf, pseudo, startup, soak, phone, phonestar, phonescroll, menutap, livecut, episodenames, gotochannel, filmdetails, favorder, countryfilter, tilekeys, routes, programmekeys, searchlimit, filterfolds, focusrings, xtreamoffer, guideclick, filmaddress, filmfacts, playlistfile, perflive, perfplaylist, remoteimages, phoneguide, handoff };
 // The mock's whole-list answers stall for these, longer than the request limit.
 const SLOW_LIST_MS = { cancel: 60000, timeout: 60000 };
 // The media is sent slowly for these: the seek targets must lie outside the

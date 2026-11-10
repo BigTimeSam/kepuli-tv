@@ -60,7 +60,9 @@ export function applySubcatsHeight() {
   // hidden state, as a ceiling left over from the bar's own place wins over
   // the stylesheet and let a long country's chips run under "Show only
   // favourites".
-  if (el.subcats.closest('.channel-filters')) { el.subcats.style.maxHeight = ''; return; }
+  const fold = el.subcats.closest('.channel-filters');
+  if (fold) { fitSubcatsInFold(fold); return; }
+  el.subcats.classList.remove('capped');
   if (el.subcats.hidden) return;
   const bounds = subcatsBounds();
   const cap = state.subcatsHeight == null
@@ -70,6 +72,35 @@ export function applySubcatsHeight() {
   el.subcatsGrip.setAttribute('aria-valuemin', String(bounds.min));
   el.subcatsGrip.setAttribute('aria-valuemax', String(bounds.max));
   el.subcatsGrip.setAttribute('aria-valuenow', String(Math.round(el.subcats.getBoundingClientRect().height)));
+}
+
+// What the list keeps under an open fold, at the least: a row and a half.
+const FOLD_LIST_KEEP = 80;
+
+/**
+ * Inside the channels' fold the bar is as tall as its chips while they fit,
+ * and scrolls in what the column has left once they do not: the fold ends
+ * with "Show only favourites" on screen and the list keeps a row or two.
+ * The stylesheet's ceiling (a share of the window) was not enough on a
+ * phone, where the bars above the list take half of it: in Orion on an
+ * iPhone the fold ran past the screen with forty topics, and nothing
+ * scrolled it. Measured from the column, so it holds at any height.
+ * @param {HTMLElement} fold
+ */
+function fitSubcatsInFold(fold) {
+  el.subcats.style.maxHeight = '';
+  el.subcats.classList.remove('capped');
+  if (el.subcats.hidden || !(/** @type {HTMLDetailsElement} */ (fold)).open) return;
+  const column = el.subcats.closest('.listcol');
+  if (!column) return;
+  const bottom = column.getBoundingClientRect().bottom;
+  const top = el.subcats.getBoundingClientRect().top;
+  // What follows the bar inside the fold, "Show only favourites" with it.
+  const after = fold.getBoundingClientRect().bottom - el.subcats.getBoundingClientRect().bottom;
+  const room = Math.floor(bottom - top - after - FOLD_LIST_KEEP);
+  if (el.subcats.scrollHeight <= room) return;
+  el.subcats.classList.add('capped');
+  el.subcats.style.maxHeight = `${Math.max(SUBCATS_MIN, room)}px`;
 }
 
 /** A dragged height is the user's, so it is remembered between sessions. */
@@ -137,7 +168,11 @@ export function wireSubcatsResize() {
   // Both ceilings are measured from the column, so a window that changes
   // size changes them. The observer looks at the column and the callback
   // touches only the bar inside it, so nothing here can feed itself.
-  new ResizeObserver(() => applySubcatsHeight()).observe(el.subcats.parentElement);
+  const observer = new ResizeObserver(() => applySubcatsHeight());
+  observer.observe(el.subcats.parentElement);
+  // In the fold the bar's room is what the column leaves it.
+  const column = el.subcats.closest('.listcol');
+  if (column) observer.observe(column);
 }
 
 /**

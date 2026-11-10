@@ -10,7 +10,7 @@ import { Epg } from './epg.js';
 import { VirtualList, watchLength } from './vlist.js';
 import { CatalogueSearch } from './cataloguesearch.js';
 import { PlayerLayout } from './playerlayout.js';
-import { categoryRow, emptyState, KIND_ICONS } from './rows.js';
+import { categoryRow, emptyState, KIND_ICONS, setStar } from './rows.js';
 import { searchNameCleaner, searchKey, searchTerms, matchesTerms, labelCodes, homeCountryCodes, homeGroup, viewerTags } from './name.js';
 import { poster } from './poster.js';
 import { wireModal } from './modal.js';
@@ -1157,8 +1157,15 @@ function renderKinds() {
   $('groups-empty').hidden = true;
   const items = collectionItems();
   // An empty collection needs no filter: the empty-state text says more
-  // than a row reading "All 0".
-  if (!items.length) { el.groups.replaceChildren(); return; }
+  // than a row reading "All 0". The phone's menu goes with it: left as it
+  // was, it went on offering the countries of the tab before (Orion).
+  if (!items.length) {
+    el.groups.replaceChildren();
+    fillGroupPicker([], '');
+    $('group-picker').hidden = true;
+    paintGroupPickerStar(null);
+    return;
+  }
 
   const counts = new Map();
   for (const item of items) { const k = kindGroup(item.k); counts.set(k, (counts.get(k) || 0) + 1); }
@@ -1179,6 +1186,7 @@ function renderKinds() {
   el.groups.replaceChildren(frag);
   fillGroupPicker(KIND_ORDER.filter((k) => counts.get(k)).map((k) => [kindLabel(k), String(k)]),
     state.kind == null ? '' : String(state.kind));
+  paintGroupPickerStar(null);
 }
 
 async function selectKind(kind) {
@@ -1195,6 +1203,10 @@ async function selectKind(kind) {
 }
 
 function renderCategories() {
+  // The favourites and the history list types, not groups: a favourite
+  // changed while one of them is open (another tab, a sync) redrew the
+  // countries here, and the phone's menu offered them under Favourites.
+  if (isCollection()) { renderKinds(); return; }
   const type = tabType();
   el.groupsFilter.hidden = false;
   // Countries on the channel tab, genres on the other two. The field above
@@ -1250,7 +1262,9 @@ function renderCategories() {
   const none = Boolean(filter) && !groups.length;
   $('groups-empty').hidden = !none;
   $('groups-empty').replaceChildren(...(none ? [emptyState(t('empty.nohits'), t('empty.nohits.text', { query: state.categoryFilter.trim() }), null, 'search')] : []));
-  fillGroupPicker(visibleGroups(type).map((g) => [g.name, g.name]), state.group ?? '');
+  const starred = new Set(visibleGroups(type).filter((g) => isFavorite(favCategoryEntry(type, g.name, null))).map((g) => g.name));
+  fillGroupPicker(visibleGroups(type).map((g) => [g.name, g.name]), state.group ?? '', starred, t(genres ? 'groups.genres.aria' : 'groups.aria'));
+  paintGroupPickerStar(type);
 }
 
 /**
@@ -1258,11 +1272,40 @@ function renderCategories() {
  * Built from whatever the sidebar has just been built from, so the two can
  * never disagree about what is on offer or what is chosen.
  */
-function fillGroupPicker(options, chosen) {
+function fillGroupPicker(options, chosen, starred = new Set(), restLabel = '') {
   const picker = $('group-select');
-  picker.replaceChildren(new Option(t('groups.all'), ''), ...options.map(([label, value]) => new Option(label, value)));
+  const option = ([label, value]) => new Option(label, value);
+  // The favourites first, under a heading of their own, as the sidebar's
+  // stars are seen at a glance: on a phone the menu is the only list of the
+  // countries, and a favourite was otherwise found by scrolling past dozens.
+  const favourites = options.filter(([, value]) => starred.has(value));
+  const section = (label, items) => {
+    const group = document.createElement('optgroup');
+    group.label = label;
+    group.append(...items.map(option));
+    return group;
+  };
+  picker.replaceChildren(option([t('groups.all'), '']), ...(favourites.length
+    ? [section(t('favs.title'), favourites), section(restLabel, options.filter(([, value]) => !starred.has(value)))]
+    : options.map(option)));
   picker.value = String(chosen);
   $('group-picker').hidden = !state.lib && !isCollection();
+}
+
+/**
+ * The star beside the menu: the chosen group's, as on its sidebar row. A
+ * menu's options cannot hold a button, so in a window too narrow for the
+ * sidebar there was no way to star a country at all (measured on a phone,
+ * Orion). Unlike the rows' stars it is in the tab order: there is one.
+ * @param {string|null} type 'live', 'movie' or 'series'; null where the sidebar lists types, not groups
+ */
+function paintGroupPickerStar(type) {
+  const button = /** @type {HTMLButtonElement} */ ($('group-picker-star'));
+  const name = type && state.group != null && state.lib && !isCollection() ? state.group : null;
+  button.hidden = name == null;
+  if (name == null) return;
+  button.dataset.name = name;
+  setStar(button, isFavorite(favCategoryEntry(type, name, null)));
 }
 
 async function selectGroup(name) {
@@ -1898,6 +1941,13 @@ function wireUi() {
 
 
   let filterTimer = null;
+  $('group-picker-star').addEventListener('click', () => {
+    const type = tabType();
+    if (!type || state.group == null) return;
+    const entry = favCategoryEntry(type, state.group, null);
+    toggleFavCategory(entry);
+    toast(t(isFavorite(entry) ? 'fav.added' : 'fav.removed', { name: state.group }));
+  });
   $('group-select').addEventListener('change', (e) => {
     const value = e.target.value;
     if (!isCollection()) return selectGroup(value || null);
@@ -1999,9 +2049,13 @@ function wireUi() {
     else if (e.key === 'End') { e.preventDefault(); items.at(-1)?.focus(); }
   });
   // Tab out of the menu closes it: a menu left open behind the focus would
-  // hang over the picture with no way back into it.
+  // hang over the picture with no way back into it. Only a focus that has
+  // gone somewhere: a tap on the menu's own button gives the button no
+  // focus on the iPhone, the focus went to nothing, the menu closed — and
+  // the same tap's click opened it again, so the button never closed it
+  // (Orion). A press outside closes it below.
   el.morePop.addEventListener('focusout', (e) => {
-    if (!el.morePop.contains(e.relatedTarget) && e.relatedTarget !== el.more) toggleMoreMenu(false);
+    if (e.relatedTarget && !el.morePop.contains(e.relatedTarget) && e.relatedTarget !== el.more) toggleMoreMenu(false);
   });
   // Outside either panel closes it, as it does the dialog. The button that
   // opened it is excluded, or its own click would reopen what it closed.

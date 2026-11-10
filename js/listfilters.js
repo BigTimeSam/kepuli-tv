@@ -112,7 +112,7 @@ export function wireListFilters(ui, mediaFilters) {
   // sight, and a viewer who has not folded them away should find them
   // where they were.
   panel.open = foldOpen(ui.channelFiltersOpen, narrow);
-  panel.addEventListener('toggle', () => store.saveUiState({ channelFiltersOpen: panel.open }));
+  panel.addEventListener('toggle', () => { store.saveUiState({ channelFiltersOpen: panel.open }); applySubcatsHeight(); });
   channelFavsOnly = ui.channelFavsOnly === true;
   $('channel-favs').checked = channelFavsOnly;
   $('channel-favs').addEventListener('change', (event) => showChannelFavs(/** @type {HTMLInputElement} */ (event.target).checked));

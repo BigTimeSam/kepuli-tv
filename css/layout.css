@@ -171,6 +171,13 @@ button.group-star:hover { color: var(--text); background: var(--track); }
    channels' one, "Show only favourites" at the foot of either. */
 .channel-filters-body { display: flex; flex-direction: column; }
 .channel-filters-body > .subcats { padding: 0 0 2px; background: none; max-height: none; overflow: visible; }
+/* The topics scroll inside the fold when they do not fit the room the
+   column leaves (js/topicbar.js fitSubcatsInFold). Without that a country
+   of forty topics made the fold taller than a phone's screen, and nothing
+   scrolled it (Orion, iPhone). The scroll is kept to the topics, so that
+   the list does not move under a finger that reaches their end, and the
+   box is padded out by a ring's width, which its edge would cut. */
+.channel-filters-body > .subcats.capped { overflow-y: auto; overscroll-behavior: contain; padding: 4px; margin: -4px -4px -2px; }
 .channel-filters-body > .subcats-grip { display: none; }
 .media-filter-controls { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
 .media-filter-controls label { display: grid; gap: 4px; min-width: 0; color: var(--muted); font-size: var(--fs-xs); }

@@ -126,10 +126,15 @@
          760px three columns leave the list about 210px, which is a column of
          truncated names; the countries move in here and the list gets the
          width back. Filled by renderCategories, shown by CSS alone. -->
-    <label class="group-picker" id="group-picker">
-      <span class="sr-only" data-i18n="groups.aria">Countries and topics</span>
-      <select id="group-select"></select>
-    </label>
+    <div class="group-picker" id="group-picker">
+      <label class="group-picker-choice">
+        <span class="sr-only" data-i18n="groups.aria">Countries and topics</span>
+        <select id="group-select"></select>
+      </label>
+      <!-- The sidebar's star for the group chosen above: a menu's options
+           cannot carry a button of their own. -->
+      <button type="button" class="group-picker-star" id="group-picker-star" hidden></button>
+    </div>
     <div class="crumbs" id="crumbs" hidden></div>
     <!-- The channels' "Filter channels": the country's topics, moved in by
          js/listfilters.js, and "Show only favourites" at its foot. -->
