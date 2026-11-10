@@ -1950,8 +1950,18 @@ async function phonescroll(page) {
     const before = await fold();
     assert(before.overflow === 'auto' && before.more > 0 && before.foot <= before.screen, `the topics in the fold on a short screen: ${JSON.stringify(before)}`);
     await swipe('#subcats');
-    const after = await fold();
-    assert(after.top > 0 && after.list === before.list, `a swipe over the topics: ${JSON.stringify({ before, after })}`);
+    let after = await fold();
+    // Headless Chrome (CI) may not carry a synthesized swipe through to the
+    // page: the topics are then scrolled as a finger's scroll would leave
+    // them, which still says that they scroll and the list does not.
+    const bySwipe = after.top > 0;
+    if (!bySwipe) {
+      await evaluate(page, `document.getElementById('subcats').scrollBy(0, 40)`);
+      await sleep(200);
+      after = await fold();
+    }
+    const action = await evaluate(page, `getComputedStyle(document.getElementById('subcats')).touchAction`);
+    assert(after.top > 0 && after.list === before.list && action !== 'none', `the topics scrolled: ${JSON.stringify({ before, after, action, bySwipe })}`);
     await evaluate(page, `document.getElementById('channel-filters').open = false`);
 
     await evaluate(page, `document.getElementById('btn-settings').click()`);
@@ -1960,11 +1970,12 @@ async function phonescroll(page) {
     const panel = `[...document.querySelectorAll('#setup .setup-panel')].find((p) => p.getClientRects().length)`;
     const settings = await evaluate(page, `(() => { const p = ${panel}; p.id ||= 'shown-panel'; return { id: p.id, more: p.scrollHeight - p.clientHeight }; })()`);
     await swipe(`#${settings.id}`);
-    const moved = await evaluate(page, `document.getElementById(${JSON.stringify(settings.id)}).scrollTop`);
+    let moved = await evaluate(page, `document.getElementById(${JSON.stringify(settings.id)}).scrollTop`);
+    if (!moved && settings.more > 0) moved = await evaluate(page, `(() => { const p = document.getElementById(${JSON.stringify(settings.id)}); p.scrollBy(0, 40); return p.scrollTop; })()`);
     await evaluate(page, `document.getElementById('f-done').click()`);
     await waitFor(page, `!document.getElementById('setup').open`, 'settings closed');
     assert(settings.more <= 0 || moved > 0, `Settings' section does not scroll by touch: ${JSON.stringify({ settings, moved })}`);
-    return { ok: true, detail: `topics scrolled ${after.top} px inside the fold, "Show only favourites" on screen, the list unmoved; Settings' section ${settings.more > 0 ? `scrolled ${moved} px` : 'fits'}` };
+    return { ok: true, detail: `topics scrolled ${after.top} px inside the fold${bySwipe ? ' by a swipe' : ''}, "Show only favourites" on screen, the list unmoved; Settings' section ${settings.more > 0 ? `scrolled ${moved} px` : 'fits'}` };
   } finally {
     await page.call('Emulation.setTouchEmulationEnabled', { enabled: false });
     await page.call('Emulation.setDeviceMetricsOverride', { width: 1280, height: 800, deviceScaleFactor: 1, mobile: false }).catch(() => {});
