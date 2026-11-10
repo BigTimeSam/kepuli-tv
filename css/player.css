@@ -22,7 +22,7 @@
   /* A veil rather than a colour: it lifts whatever is under it by the same
      step, the glow's violet included, on which a grey of its own all but
      vanished (1.07:1 against the next row, measured). */
-  --row-hover: rgba(255, 255, 255, .09);
+  --row-hover: rgba(255, 255, 255, .08);
   --border: #232838;
   --text: #e7eaf2;
   --muted: #8d95aa;
@@ -150,7 +150,7 @@
   --panel-solid: #11141c;
   --panel: #11141c;
   --panel-2: #161a24;
-  --row-hover: rgba(255, 255, 255, .09);
+  --row-hover: rgba(255, 255, 255, .08);
   --border: #232838;
   --text: #e7eaf2;
   --muted: #8d95aa;

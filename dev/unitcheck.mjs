@@ -936,14 +936,24 @@ check('every element the scripts look up by id is in player.html',
 // The text colours against every ground they sit on, by WCAG's formula:
 // 4.5:1 for the small text, and the selected row is a ground too.
 const css = stylesheets();
-const cssVar = (name) => (css.match(new RegExp(`--${name}:\\s*(#[0-9a-f]{6})`, 'i')) || [])[1];
+// The first value of a colour given as #rrggbb or rgba(): the dark theme's,
+// which comes first. A see-through one (the hover's veil) is laid over the
+// solid panel it is drawn on, as the browser lays it.
+const cssVar = (name) => {
+  const value = (css.match(new RegExp(`--${name}:\\s*(#[0-9a-f]{6}|rgba\\([^)]*\\))`, 'i')) || [])[1];
+  if (!value || value.startsWith('#')) return value;
+  const [r, g, b, a] = value.match(/[\d.]+/g).map(Number);
+  const under = cssVar('panel-solid');
+  const mix = (c, i) => Math.round(c * a + parseInt(under.slice(i, i + 2), 16) * (1 - a));
+  return `#${[mix(r, 1), mix(g, 3), mix(b, 5)].map((v) => v.toString(16).padStart(2, '0')).join('')}`;
+};
 const luminance = (hex) => {
   const [r, g, b] = [1, 3, 5].map((i) => parseInt(hex.slice(i, i + 2), 16) / 255)
     .map((c) => (c <= 0.03928 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4));
   return 0.2126 * r + 0.7152 * g + 0.0722 * b;
 };
 const contrast = (a, b) => { const [hi, lo] = [luminance(a), luminance(b)].sort((x, y) => y - x); return (hi + 0.05) / (lo + 0.05); };
-const grounds = { bg: cssVar('bg'), panel: cssVar('panel'), 'panel-2': cssVar('panel-2'), 'row-hover': cssVar('row-hover'), selected: '#202538' };
+const grounds = { bg: cssVar('bg'), panel: cssVar('panel-solid'), 'panel-2': cssVar('panel-2'), 'row-hover': cssVar('row-hover'), selected: '#202538' };
 for (const [text, least] of [['dim', 4.5], ['muted', 4.5], ['text', 7]]) {
   for (const [ground, hex] of Object.entries(grounds)) {
     const ratio = contrast(cssVar(text), hex);
