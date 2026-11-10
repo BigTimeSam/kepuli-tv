@@ -92,6 +92,8 @@
 //                                     plays, let go on pause, held again on play
 //   node dev/playcheck.mjs pickerkeyboard  a phone's keyboard opening for the
 //                                     country list's filter leaves the list open
+//   node dev/playcheck.mjs starquiet  a star given in the channels and the films
+//                                     repaints its row and nothing else
 //   node dev/playcheck.mjs phonestar  390 px: the country chosen in the menu is
 //                                     starred by the star beside it, and the
 //                                     menu lists the favourites first
@@ -2091,6 +2093,37 @@ async function pickerkeyboard(page) {
     await evaluate(page, `document.querySelector('.picker-pop:popover-open')?.hidePopover()`).catch(() => {});
     await page.call('Emulation.setDeviceMetricsOverride', { width: 1280, height: 800, deviceScaleFactor: 1, mobile: false }).catch(() => {});
   }
+}
+
+/**
+ * A star repaints its own row and nothing else. Storage hands a list back
+ * with its objects' keys sorted, and this tab's own star was taken for
+ * another tab's change: the whole list, the countries and the topics were
+ * drawn again, and on a phone the view flashed at every star (channels,
+ * films and series alike). Counted here as the list's replaced rows and
+ * any change to the sidebar or the topics.
+ */
+async function starquiet(page) {
+  const assert = (ok, detail) => { if (!ok) throw new Error(detail); };
+  const seen = [];
+  for (const tab of ['live', 'movie']) {
+    await evaluate(page, `document.querySelector('#tabs [data-tab="${tab}"]').click()`);
+    await waitFor(page, `document.querySelector('#list .row .row-star, #list .card .card-star')`, `the ${tab} list`, 30000);
+    await sleep(1200);
+    await evaluate(page, `(() => { window.__redrawn = { rows: 0, side: 0 };
+      new MutationObserver((ms) => { for (const m of ms) for (const n of [...m.addedNodes, ...m.removedNodes]) if (n.nodeType === 1 && (n.classList.contains('row') || n.classList.contains('card'))) window.__redrawn.rows++; })
+        .observe(document.getElementById('list'), { childList: true, subtree: true });
+      for (const id of ['groups', 'subcats']) new MutationObserver((ms) => { window.__redrawn.side += ms.length; }).observe(document.getElementById(id), { childList: true, subtree: true });
+      return true; })()`);
+    await evaluate(page, `document.querySelector('#list .row .row-star, #list .card .card-star').click()`);
+    await sleep(1500);
+    const redrawn = await evaluate(page, 'window.__redrawn');
+    await evaluate(page, `document.querySelector('#list .row .row-star, #list .card .card-star').click()`);
+    await sleep(600);
+    assert(redrawn.rows === 0 && redrawn.side === 0, `${tab}: a star redrew ${redrawn.rows} rows and changed the sidebar or topics ${redrawn.side} times`);
+    seen.push(`${tab}: no row redrawn, sidebar and topics untouched`);
+  }
+  return { ok: true, detail: seen.join('; ') };
 }
 
 /**
@@ -7062,7 +7095,7 @@ async function handoff(page) {
 
 const SCENARIOS = { buffering, livebuffering, filmbuffering, emptyfile, tsasmp4, refusedfile, badgateway, livebadgateway, channelrefused, noanswer, longfilm, catalogUi, setupClarity, welcome, fullscreenControl, clickpause, pickers, touchcaret, screenbutton, topmenu, scrollbars, channelorder, lengthfilter, nowlogo, channels, home, resumemkv, restore, programmes, catchup, seek, death, cancel, timeout, search, paste, keys, switching, resume, connections, livezap, livequiet, reconnect, accounts, listerror, a11y, subtitles, audio, wasmaudio, settings,
   lastchannel, nextepisode, continuewatching, reminders, update, seeklag, cuesretry, quota, catchupfreeze, catchupfull, twotabs, switchstop, resettabs,
-  refresh, restorenav, guidekeep, removeaccount, m3u, sync, holes, picks, flakyserver, accountform, stalker, record, guidefavs, guidenames, categories, homecountry, noleak, perf, pseudo, startup, soak, phone, phonestar, pickerkeyboard, phonescroll, menutap, wakelock, livecut, episodenames, gotochannel, filmdetails, favorder, countryfilter, tilekeys, routes, programmekeys, searchlimit, filterfolds, focusrings, xtreamoffer, guideclick, filmaddress, filmfacts, playlistfile, perflive, perfplaylist, remoteimages, phoneguide, handoff };
+  refresh, restorenav, guidekeep, removeaccount, m3u, sync, holes, picks, flakyserver, accountform, stalker, record, guidefavs, guidenames, categories, homecountry, noleak, perf, pseudo, startup, soak, phone, starquiet, phonestar, pickerkeyboard, phonescroll, menutap, wakelock, livecut, episodenames, gotochannel, filmdetails, favorder, countryfilter, tilekeys, routes, programmekeys, searchlimit, filterfolds, focusrings, xtreamoffer, guideclick, filmaddress, filmfacts, playlistfile, perflive, perfplaylist, remoteimages, phoneguide, handoff };
 // The mock's whole-list answers stall for these, longer than the request limit.
 const SLOW_LIST_MS = { cancel: 60000, timeout: 60000 };
 // The media is sent slowly for these: the seek targets must lie outside the

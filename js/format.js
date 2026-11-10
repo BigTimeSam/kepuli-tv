@@ -168,3 +168,20 @@ function dayOffset(ms) {
   const b = new Date(); b.setHours(0, 0, 0, 0);
   return Math.round((a.getTime() - b.getTime()) / 86400e3);
 }
+
+/**
+ * Whether two values hold the same, whatever the order of their objects'
+ * keys. Storage hands lists back with every object's keys in alphabetical
+ * order, and the page's own copy keeps them as made ({...item, addedAt}):
+ * compared as plain JSON, this tab's own star read as another tab's change,
+ * and the whole list, the countries and the topics were drawn again — the
+ * view flashed at every star on a phone.
+ * @param {any} a
+ * @param {any} b
+ */
+export const same = (a, b) => JSON.stringify(a, sortedKeys) === JSON.stringify(b, sortedKeys);
+/** JSON.stringify's replacer: an object's keys in a fixed order. */
+function sortedKeys(_key, value) {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) return value;
+  return Object.fromEntries(Object.keys(value).sort().map((k) => [k, value[k]]));
+}

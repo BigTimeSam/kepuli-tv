@@ -2080,6 +2080,16 @@ check('another word does not hold the term', holds('Textens utseende', { forms: 
   check('the Firefox minimum is no higher than the version Orion asks AMO as', parseFloat(gecko.strict_min_version) <= 130, true);
 }
 
+/* ------------------------------ format.js: same() */
+
+{
+  const { same } = await import('../js/format.js');
+  check('a list with its objects\' keys in another order is the same', same([{ n: 'A', id: '1', addedAt: 5 }], [{ addedAt: 5, id: '1', n: 'A' }]), true);
+  check('nested objects too', same({ a: { y: 1, x: [{ q: 1, p: 2 }] } }, { a: { x: [{ p: 2, q: 1 }], y: 1 } }), true);
+  check('another value is not the same', same([{ id: '1' }], [{ id: '2' }]), false);
+  check('another order of a list is not the same', same([1, 2], [2, 1]), false);
+}
+
 /* ------------------------------ external.js: VLC on the iPhone */
 
 check('VLC for iOS is handed the stream address, encoded whole',

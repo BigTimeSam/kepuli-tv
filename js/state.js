@@ -99,7 +99,7 @@ export const isCollection = () => COLLECTIONS.has(state.tab);
 
 export function tabType() { return TYPE_OF_TAB[state.tab] || null; }
 export const isAbort = (err) => Boolean(err && err.name === 'AbortError');
-export const same = (a, b) => JSON.stringify(a) === JSON.stringify(b);
+export { same } from './format.js';
 // Set while this tab wipes everything, or reloads because another tab did.
 export let resetting = false;
 /** This tab is about to wipe everything: nothing it holds may be written back meanwhile. */
