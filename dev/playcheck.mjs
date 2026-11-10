@@ -4165,7 +4165,7 @@ async function setupClarity(page) {
           controlsAbove:controls.bottom<=frame.top,visible:controls.top>=panel.top && frame.bottom<=panel.bottom+1,
           footer:save.bottom<=innerHeight, size:document.getElementById('f-subsize').value,
           runtime:document.body.style.getPropertyValue('--sub-scale')};})()`);
-      assert(fit.inside && fit.controlsAbove && fit.visible && fit.footer && fit.size==='250' && fit.runtime==='1', `${width}x${height} ${style}: ${JSON.stringify(fit)}`);
+      assert(fit.inside && fit.controlsAbove && fit.visible && fit.footer && fit.size==='250' && fit.runtime==='0.85', `${width}x${height} ${style}: ${JSON.stringify(fit)}`);
       if(style==='box') await capture(`subtitles-250-${width}`);
     }
   }
