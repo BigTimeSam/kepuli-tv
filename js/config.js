@@ -17,7 +17,7 @@
 // the first time it is asked for.
 
 import { api } from './browser.js';
-import { LANGUAGES, DEFAULT_LANGUAGE, supportedLanguage } from './i18n.js';
+import { LANGUAGES, DEFAULT_LANGUAGE, regionalTag, supportedLanguage } from './i18n.js';
 import { channelPreferences } from './channelprefs.js';
 import { noteWatched } from './picks.js';
 
@@ -117,49 +117,80 @@ export function browserLanguage() {
   return DEFAULT_LANGUAGE;
 }
 
+const systemZone = () => Intl.DateTimeFormat().resolvedOptions().timeZone;
+/** @type {Map<string, string|null>} */
+const zoneRegions = new Map();
+
 /**
- * The browser's own English, when its first language is English of some
- * region: en-US, en-CA, en-AU. The app's English is en-GB by default (21:30,
- * day before month); a reader in the United States gets month before day
- * from this, and the 12-hour clock from hourCycle().
- *
- * Not in a European time zone: many Finns keep their browser in en-US,
- * and the guide said "Tue, 11/10" to a reader in Helsinki, month before
- * day, where the clock beside it was already the 24-hour one (hourCycle).
+ * The country a time zone is in: FI for Europe/Helsinki. Intl knows each
+ * country's zones and not the reverse, so the countries are gone through
+ * until one has the zone — some hundred milliseconds at the worst, which
+ * is why the answer is kept in localStorage for the next start. Null for a
+ * zone of no country (UTC) and in a browser that cannot say.
  * @param {string} [zone] the time zone, the system's by default
  * @returns {string|null}
  */
-export function browserEnglish(zone = Intl.DateTimeFormat().resolvedOptions().timeZone) {
-  if (europeanZone(zone)) return null;
-  const tag = (navigator.languages?.length ? navigator.languages[0] : navigator.language) || '';
-  return /^en-[a-z]{2}$/i.test(tag) ? tag : null;
+export function zoneRegion(zone = systemZone()) {
+  if (!zone) return null;
+  if (zoneRegions.has(zone)) return zoneRegions.get(zone) ?? null;
+  const key = `zoneRegion:${zone}`;
+  /** @type {string|null} */
+  let region = null;
+  try { region = globalThis.localStorage?.getItem(key) || null; } catch { /* no storage here */ }
+  // getTimeZones() is the standard's; timeZones was its first form.
+  const zonesOf = (/** @type {any} */ locale) => locale.getTimeZones?.() ?? locale.timeZones;
+  if (!region && zonesOf(new Intl.Locale('und-GB'))) {
+    scan: for (let a = 65; a < 91; a++) {
+      for (let b = 65; b < 91; b++) {
+        try {
+          const locale = new Intl.Locale(`und-${String.fromCharCode(a, b)}`);
+          // locale.region is the code in use: VN for the retired VD.
+          if (zonesOf(locale)?.includes(zone)) { region = locale.region ?? null; break scan; }
+        } catch { /* not a country */ }
+      }
+    }
+    try { if (region) globalThis.localStorage?.setItem(key, region); } catch { /* no storage here */ }
+  }
+  zoneRegions.set(zone, region);
+  return region;
 }
 
-/** Where day comes before month and the clock runs to 24. */
-const europeanZone = (zone) => /^(Europe|Arctic)\//.test(zone || '');
+/**
+ * The country whose conventions the viewer reads by: where the computer's
+ * clock says it is, and only when that says nothing, the region of the
+ * browser's first language. The browser's language is the weaker sign: many
+ * Finns keep theirs in en-US, and the guide said "Tue, 11/10", month before
+ * day, to a reader in Helsinki.
+ * @param {string} [zone] the time zone, the system's by default
+ * @returns {string|null}
+ */
+export function viewerRegion(zone = systemZone()) {
+  const region = zoneRegion(zone);
+  if (region) return region;
+  const tag = (navigator.languages?.length ? navigator.languages[0] : navigator.language) || '';
+  try { return new Intl.Locale(tag).region ?? null; } catch { return null; }
+}
 
 /**
  * The clock a setting stands for, as Intl's hourCycle: '24' and '12' as
- * they say, and 'auto' — the default — the browser's own convention, but
+ * they say, and 'auto' — the default — the country's own convention, but
  * only while the interface is in English. A television guide is read on
  * the 24-hour clock in most of the languages the app speaks even where the
  * language's own default is 12-hour (Greek, Albanian), while English
  * readers in the United States, Canada, Australia or India expect
  * 10:30 PM. A browser in American English with the interface in Finnish
- * once got 10:30 PM. Nor is a browser's English where the viewer lives:
- * many Finns keep it in en-US, so a time zone in Europe, where the
- * 24-hour clock is the rule, gets the 24-hour clock in English too.
+ * once got 10:30 PM, and one in Helsinki with the interface in English
+ * too: the country is the viewer's (viewerRegion), not the browser's.
  * @param {{ clock?: string, lang?: string }|null} [settings]
  * @param {string} [zone] the time zone, the system's by default
  * @returns {'h12'|'h23'}
  */
-export function hourCycle(settings, zone = Intl.DateTimeFormat().resolvedOptions().timeZone) {
+export function hourCycle(settings, zone = systemZone()) {
   if (settings?.clock === '12') return 'h12';
   if (settings?.clock === '24') return 'h23';
-  const tag = interfaceLanguage(settings) === 'en' && browserEnglish(zone);
-  if (!tag) return 'h23';
+  if (interfaceLanguage(settings) !== 'en') return 'h23';
   try {
-    const cycle = new Intl.DateTimeFormat(tag, { hour: 'numeric' }).resolvedOptions().hourCycle;
+    const cycle = new Intl.DateTimeFormat(regionalTag('en', viewerRegion(zone)), { hour: 'numeric' }).resolvedOptions().hourCycle;
     return cycle === 'h12' || cycle === 'h11' ? 'h12' : 'h23';
   } catch { return 'h23'; }
 }

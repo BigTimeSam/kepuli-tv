@@ -25,7 +25,7 @@ import { cueText } from '../js/subs.js';
 import { subtitleLook, stepScale, pictureHeight, STYLES, MIN_SCALE, MAX_SCALE, DEFAULT_SCALE, SCALE_STEP, SIZE_SHARE, MIN_PX, MIN_LIFT, MAX_LIFT, DEFAULT_LIFT } from '../js/subdisplay.js';
 import { describe, describeAll, label, preferred, route } from '../js/audio.js';
 import { languageSummary, orderedLanguageNames, trackLanguage } from '../js/lang.js';
-import { LANGUAGES, LOCALES, keysOf, setLanguage, setEnglishRegion, localeTag, loadLanguage, supportedLanguage, t, pseudoText } from '../js/i18n.js';
+import { LANGUAGES, LOCALES, keysOf, setLanguage, setRegion, regionalTag, localeTag, loadLanguage, supportedLanguage, t, pseudoText } from '../js/i18n.js';
 import { setLocale, calendarDate, episodeCode, megabytes, amount, wholePercent, fileSize } from '../js/format.js';
 import { pictureSize } from '../js/titleinfo.js';
 import { ratingText } from '../js/rating.js';
@@ -783,20 +783,20 @@ check('orderedLanguageNames: an unknown language is named, and last',
 {
   const inLanguage = (lang, region, fn) => {
     setLanguage(lang);
-    setEnglishRegion(region);
+    setRegion(region);
     setLocale();
-    try { return fn(); } finally { setLanguage('en'); setEnglishRegion(null); setLocale(); }
+    try { return fn(); } finally { setLanguage('en'); setRegion(null); setLocale(); }
   };
   check('an episode\'s air date in each language\'s form', [
     inLanguage('fi', null, () => calendarDate('2026-11-03')),
-    inLanguage('en', 'en-US', () => calendarDate('2026-11-03')),
-    inLanguage('en', 'en-GB', () => calendarDate('2026-11-03')),
+    inLanguage('en', 'US', () => calendarDate('2026-11-03')),
+    inLanguage('en', 'GB', () => calendarDate('2026-11-03')),
     inLanguage('de', null, () => calendarDate('2026-11-03')),
     calendarDate('2026-02-30'), calendarDate('soon'),
   ], ['3.11.2026', 'Nov 3, 2026', '3 Nov 2026', '3.11.2026', '', '']);
   check('a rating in the language\'s decimals', [
     inLanguage('fi', null, () => ratingText({ rating: 7.46 })),
-    inLanguage('en', 'en-GB', () => ratingText({ rating: 7.46 })),
+    inLanguage('en', 'GB', () => ratingText({ rating: 7.46 })),
   ], ['★ 7,5', '★ 7.5']);
   check('an episode code as each language\'s television writes it', [
     inLanguage('en', null, () => episodeCode(1, 2)),
@@ -1664,7 +1664,8 @@ check('xmltv: a playlist name and a guide name meet', ['FI: Yle TV1 HD', 'Yle TV
 {
   const { mbits, percent, progressOf, shortDay, dayLabel } = await import('../js/format.js');
   const { shortLanguage } = await import('../js/lang.js');
-  const { hourCycle, browserEnglish } = await import('../js/config.js');
+  const { hourCycle, viewerRegion, zoneRegion } = await import('../js/config.js');
+  const { clock } = await import('../js/format.js');
   setLanguage('en'); setLocale('en-GB');
   check('format: a rate below a megabit keeps two decimals, above it one', [mbits(450000), mbits(5_250_000)], ['0.45', '5.3']);
   check('format: a share as a percentage with one decimal', percent(0.123), '12.3%');
@@ -1684,13 +1685,26 @@ check('xmltv: a playlist name and a guide name meet', ['FI: Yle TV1 HD', 'Yle TV
   // A Finn with the browser in American English is still in Helsinki.
   check('config: the automatic clock in Europe is 24-hour, English or not', [hourCycle({ clock: 'auto', lang: 'en' }, 'Europe/Helsinki'), hourCycle({ clock: 'auto' }, 'Europe/London')], ['h23', 'h23']);
   // And the date too: "Tue, 11/10" was month before day for a reader in
-  // Helsinki whose browser speaks American English.
-  check('config: a browser\'s American English sets the date\'s order outside Europe only',
-    [browserEnglish('America/New_York'), browserEnglish('Europe/Helsinki'), browserEnglish('Arctic/Longyearbyen')], ['en-US', null, null]);
-  setEnglishRegion(browserEnglish('Europe/Helsinki'));
+  // Helsinki whose browser speaks American English. The country is where
+  // the clock says the viewer is; the browser's language only when the
+  // zone is of no country.
+  check('config: the viewer\'s country is the time zone\'s, and the browser\'s language\'s only without one',
+    [zoneRegion('Europe/Helsinki'), viewerRegion('Europe/Helsinki'), viewerRegion('America/New_York'), viewerRegion('Australia/Sydney'), zoneRegion('UTC'), viewerRegion('UTC')],
+    ['FI', 'FI', 'US', 'AU', null, 'US']);
+  check('i18n: a language in a country has that pair\'s tag where Intl has one, and its own otherwise',
+    [regionalTag('en', 'FI'), regionalTag('sv', 'FI'), regionalTag('en', 'US'), regionalTag('fi', 'SE'), regionalTag('en', 'BR'), regionalTag('en', null), regionalTag('sr', 'RS'), regionalTag('pt', 'PT')],
+    ['en-FI', 'sv-FI', 'en-US', 'fi-FI', 'en-GB', 'en-GB', 'sr-Latn-RS', 'pt-PT']);
+  setRegion(viewerRegion('Europe/Helsinki'));
   const sample = new Intl.DateTimeFormat(localeTag(), { weekday: 'short', day: 'numeric', month: 'numeric' }).format(new Date(Date.UTC(2026, 10, 10, 12)));
-  setEnglishRegion(null);
-  check('format: in Helsinki the English date is day before month', sample, 'Tue 10/11');
+  // Swedish in Helsinki read as in Stockholm: 00:20 and 2026-11-05.
+  const at = new Date(2026, 10, 5, 0, 20);
+  setLanguage('sv'); setLocale(localeTag());
+  const swedish = [clock(at.getTime()), new Intl.DateTimeFormat(localeTag(), { dateStyle: 'short' }).format(at)];
+  setLanguage('en'); setLocale(localeTag());
+  const english = clock(at.getTime());
+  setRegion(null); setLocale('en-GB');
+  check('format: in Helsinki the English date is day before month', sample, 'Tue, 10/11');
+  check('format: in Finland Swedish and English tell the time and the date as Finland does', [swedish, english], [['0.20', '5.11.2026'], '0.20']);
   Object.defineProperty(globalThis, 'navigator', realNavigator);
 }
 

@@ -1624,14 +1624,39 @@ export function language() { return current; }
 /** The keys one dictionary holds. dev/unitcheck.mjs proves with it that
  *  the languages stay in step; the app itself has no use for it. */
 export const keysOf = (lang) => Object.keys(STRINGS[lang] || {});
-// The browser's English of a region (en-US), when it has one: see
-// browserEnglish() in js/config.js. Dates then come in that region's order.
-let englishTag = null;
-export function setEnglishRegion(tag) { englishTag = tag || null; }
-export function localeTag() {
-  if (current === DEFAULT_LANGUAGE && englishTag) return englishTag;
-  return LOCALE_TAG[current] || LOCALE_TAG[DEFAULT_LANGUAGE];
+// Times, dates and numbers are written the way the viewer's country writes
+// them in the interface's language, where that pair has conventions of its
+// own: English in Finland (en-FI) says 0.20 and 12 345,6, Swedish there
+// (sv-FI) 0.20 and 5.11.2026, English in the United States 11/5/26. The
+// language alone used to decide, so Swedish in Helsinki read as in
+// Stockholm. A pair Intl has nothing for (Finnish in Sweden, English in
+// Brazil) is the language's own tag above. The country is the viewer's,
+// from viewerRegion() in js/config.js.
+let region = null;
+const regionalTags = new Map();
+export function setRegion(code) { region = code || null; }
+
+/**
+ * The Intl tag of a language in a country, or the language's own.
+ * @param {string} lang
+ * @param {string|null} [country] ISO 3166 code
+ */
+export function regionalTag(lang, country = region) {
+  const base = LOCALE_TAG[lang] || LOCALE_TAG[DEFAULT_LANGUAGE];
+  if (!country) return base;
+  const key = `${base}|${country}`;
+  if (!regionalTags.has(key)) {
+    let tag = base;
+    try {
+      const own = new Intl.Locale(base, { region: country }).toString();
+      if (new Intl.DateTimeFormat(own).resolvedOptions().locale === own) tag = own;
+    } catch { /* not a region Intl knows */ }
+    regionalTags.set(key, tag);
+  }
+  return regionalTags.get(key);
 }
+
+export function localeTag() { return regionalTag(current); }
 
 /**
  * The translation for a key.

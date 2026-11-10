@@ -134,7 +134,12 @@ export async function ensureChrome(extraArgs = []) {
     // openPlayer then loads it over DevTools).
     ...(process.env.KEPULI_LOAD_EXTENSION ? [`--load-extension=${ROOT}`, `--disable-extensions-except=${ROOT}`] : []),
     ...extraArgs, 'about:blank'],
-    { detached: true, stdio: 'ignore' }).unref();
+    // The player writes times, dates and numbers as the viewer's country
+    // does, and takes the country from the time zone: a test browser is in
+    // London wherever the machine is, so that the English it is read in is
+    // en-GB on a laptop in Helsinki and on CI alike. KEPULI_TZ names
+    // another zone, and an empty one leaves the machine's.
+    { detached: true, stdio: 'ignore', env: { ...process.env, ...((process.env.KEPULI_TZ ?? 'Europe/London') ? { TZ: process.env.KEPULI_TZ ?? 'Europe/London' } : {}) } }).unref();
   for (let i = 0; i < 60; i++) { if (await isRunning()) return true; await sleep(250); }
   throw new Error('Chrome did not answer within 15 seconds.');
 }

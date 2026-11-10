@@ -6,6 +6,11 @@ import { join } from 'node:path';
 import { build, DIST } from './build.mjs';
 import { downscale, WIDTH, HEIGHT } from '../dev/screenshot.mjs';
 import { ensureFirefox, session as firefoxSession, sleep } from './marionette.mjs';
+
+// A test browser is in London wherever the machine is, as the Chrome one
+// is (dev/screenshot.mjs): the player writes times, dates and numbers as
+// the viewer's country does, and the scenarios read en-GB.
+process.env.KEPULI_TZ ??= 'Europe/London';
 export { sleep };
 export { evaluate, waitFor } from '../dev/screenshot.mjs';
 let client, url;

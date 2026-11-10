@@ -242,10 +242,24 @@ Settings > Clock is **Automatic**, **24-hour** or **12-hour**, each shown with
 an evening time written its way. Automatic is 24-hour in every language —
 Greek and Albanian included, whose own default is 12-hour, as a television
 guide is read on the 24-hour clock there — except an English interface in a
-browser whose English is of a 12-hour region (en-US, en-CA, en-AU, en-IN…),
-which gets 10:30 PM unless the system's time zone is in Europe: many Finns
-keep the browser in en-US and still read 22:30. English dates follow the browser's region too: month before day in
-the United States, day before month in the en-GB the app otherwise writes. Settings > Language starts on **Browser
+12-hour country (the United States, Canada, Australia, India…), which gets
+10:30 PM.
+
+Times, dates and numbers are written as the viewer's country writes them in
+the interface's language, where Intl has conventions for that pair
+(`regionalTag()` in `js/i18n.js`): English in Finland is `en-FI`, 0.20 and
+12 345,6; Swedish there `sv-FI`, 0.20 and 5.11.2026 where Stockholm writes
+00:20 and 2026-11-05; English in the United States month before day. A pair
+Intl has nothing for (Finnish in Sweden, English in Brazil) is written as the
+language's home country does, English as `en-GB`. The hour has its leading
+zero only where that convention has one. The country is the one the system's
+time zone is in (`viewerRegion()` in `js/config.js`), and the region of the
+browser's first language only when the zone is of no country: many Finns keep
+the browser in en-US and still read 22.30 and day before month. The test
+browsers are started in London (`TZ`, see `dev/screenshot.mjs`), so the
+scenarios read `en-GB` on any machine; `KEPULI_TZ` names another zone.
+
+Settings > Language starts on **Browser
 language**, which names the language it comes to: the first one in
 `navigator.languages` the app speaks (`no` and `nn` count as Bokmål), English
 when there is none. It stays a following setting, not a copy — the stored

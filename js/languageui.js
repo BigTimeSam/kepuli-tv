@@ -7,7 +7,7 @@
 // builds, from js/state.js.
 
 import { $, el } from './dom.js';
-import { applyStatic, loadLanguage, localeTag, setEnglishRegion, setLanguage, t } from './i18n.js';
+import { applyStatic, loadLanguage, localeTag, setLanguage, setRegion, t } from './i18n.js';
 import { grid, guideOpen, programmeSearch, renderGuideGroups } from './guideui.js';
 import { renderDetail } from './seriesui.js';
 import { renderInfoStrip } from './infostrip.js';
@@ -29,9 +29,9 @@ import { renderEmptyState } from './topicbar.js';
  * by the same calls that produce the views anyway, so the language needs no
  * painting route of its own — only the call.
  */
-/** Intl's formatters for the language, the browser's region and the clock setting. */
+/** Intl's formatters for the language, the viewer's country and the clock setting. */
 export function applyLocale() {
-  setEnglishRegion(store.browserEnglish());
+  setRegion(store.viewerRegion());
   setLocale(localeTag(), { hourCycle: store.hourCycle(state.settings) });
 }
 

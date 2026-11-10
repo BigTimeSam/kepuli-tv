@@ -243,7 +243,10 @@ export async function ensureFirefox() {
   // system access is allowed on the command line — measured on 154. 159
   // wants the environment variable as well, and refuses without it.
   spawn(binary, ['-marionette', '-remote-allow-system-access', '-no-remote', '-profile', PROFILE, 'about:blank'],
-        { detached: true, stdio: 'ignore', env: { ...process.env, MOZ_REMOTE_ALLOW_SYSTEM_ACCESS: '1' } }).unref();
+        // KEPULI_TZ: the zone the browser is in, which the player takes the
+        // viewer's country from; the test driver sets it, the owner's loop
+        // leaves the machine's.
+        { detached: true, stdio: 'ignore', env: { ...process.env, MOZ_REMOTE_ALLOW_SYSTEM_ACCESS: '1', ...(process.env.KEPULI_TZ ? { TZ: process.env.KEPULI_TZ } : {}) } }).unref();
   for (let i = 0; i < 120; i++) { if (await isRunning()) return true; await sleep(250); }
   throw new Error('Firefox did not answer within 30 seconds.');
 }
