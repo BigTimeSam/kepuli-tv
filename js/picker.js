@@ -33,10 +33,18 @@ const MARGIN = 8;
 
 let open = null;   // { select, pop, input, list, items, active }
 let uid = 0;
+// Whether the last press was a finger or a pen. The iPhone's WebKit opens
+// its own menu over ours whenever a select takes the focus during a tap
+// (Orion, 2026-11-10: a second tap on the select, or a choice made, gave
+// the focus back to it and the native wheel rose), so after a touch the
+// select is never focused; a mouse and the keyboard keep the focus where
+// they left it.
+let touched = false;
 
 export function wirePickers(root = document) {
   root.addEventListener('mousedown', onPress, true);
   root.addEventListener('keydown', onKey, true);
+  root.addEventListener('pointerdown', (e) => { touched = e.pointerType === 'touch' || e.pointerType === 'pen'; }, true);
   root.addEventListener('pointerdown', onOutside, true);
   // A window that changes its width moves the select from under the list.
   // Its height alone is a phone's keyboard opening for the filter, and the
@@ -58,7 +66,7 @@ function onPress(e) {
   e.preventDefault();
   const select = e.target;
   if (open?.select === select) { close({ focus: true }); return; }
-  select.focus();
+  if (!touched) select.focus();
   show(select);
 }
 
@@ -68,6 +76,7 @@ function onOutside(e) {
 }
 
 function onKey(e) {
+  touched = false;
   if (open && open.pop.contains(e.target)) { onListKey(e); return; }
   if (!pickable(e.target) || e.ctrlKey || e.metaKey) return;
   const opener = e.key === 'Enter' || e.key === ' ' || e.key === 'F4'
@@ -313,5 +322,7 @@ function close({ focus = false } = {}) {
   select.removeAttribute('aria-controls');
   if (pop.matches(':popover-open')) pop.hidePopover();
   pop.remove();
-  if (focus && select.isConnected) select.focus();
+  if (!focus || !select.isConnected) return;
+  if (!touched) select.focus();
+  else if (document.activeElement === select) select.blur();
 }

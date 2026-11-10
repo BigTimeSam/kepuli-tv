@@ -90,6 +90,9 @@
 //                                     nowhere (the iPhone)
 //   node dev/playcheck.mjs wakelock  the screen is held on while a channel
 //                                     plays, let go on pause, held again on play
+//   node dev/playcheck.mjs pickertouch  a tap that closes a drop-down or makes
+//                                     a choice leaves the focus off the select,
+//                                     where the iPhone would open its own menu
 //   node dev/playcheck.mjs pickerkeyboard  a phone's keyboard opening for the
 //                                     country list's filter leaves the list open
 //   node dev/playcheck.mjs starquiet  a star given in the channels and the films
@@ -2074,6 +2077,50 @@ async function wakelock(page) {
  * and filters; a change of width (a turn of the phone) still closes it.
  * The page also keeps its scale: no zoom by pinch, double tap or a field.
  */
+/**
+ * A drop-down opened and closed by taps never hands the focus to its
+ * select. The iPhone's WebKit opens its own menu whenever a select takes
+ * the focus during a tap: in Orion the second tap on a select, meant to
+ * close the app's list, rose the native wheel over it, and so did a choice
+ * made in the list. Taps here are the browser's own (touch emulation), so
+ * the pointerdown says "touch" as a finger's does.
+ */
+async function pickertouch(page) {
+  if (!DEVTOOLS_PORT) return { ok: true, detail: 'skipped in Firefox: needs touch emulation, which the Marionette driver does not offer' };
+  const assert = (ok, detail) => { if (!ok) throw new Error(detail); };
+  await evaluate(page, `document.getElementById('tab-live').click()`);
+  await waitFor(page, `document.querySelectorAll('#group-select option').length >= 7`, 'the countries');
+  await page.call('Emulation.setDeviceMetricsOverride', { width: 390, height: 844, deviceScaleFactor: 1, mobile: true });
+  await page.call('Emulation.setTouchEmulationEnabled', { enabled: true, maxTouchPoints: 5 });
+  const tap = async (selector) => {
+    const at = await evaluate(page, `(() => { const r = document.querySelector(${JSON.stringify(selector)}).getBoundingClientRect(); return { x: Math.round(r.left + r.width / 2), y: Math.round(r.top + r.height / 2) }; })()`);
+    await page.call('Input.dispatchTouchEvent', { type: 'touchStart', touchPoints: [at] });
+    await page.call('Input.dispatchTouchEvent', { type: 'touchEnd', touchPoints: [] });
+    await sleep(400);
+  };
+  const state = () => evaluate(page, `({ open: Boolean(document.querySelector('.picker-pop:popover-open')), onSelect: document.activeElement?.id === 'group-select' })`);
+  try {
+    await sleep(400);
+    await tap('#group-select');
+    const opened = await state();
+    await tap('#group-select');
+    const closed = await state();
+    await tap('#group-select');
+    const before = await evaluate(page, `document.getElementById('group-select').value`);
+    await tap('.picker-pop:popover-open .picker-option:not([aria-selected="true"])');
+    const chosen = await state();
+    const after = await evaluate(page, `document.getElementById('group-select').value`);
+    assert(opened.open && !opened.onSelect, `the first tap: list ${opened.open ? 'open' : 'closed'}, focus ${opened.onSelect ? 'on the select' : 'elsewhere'}`);
+    assert(!closed.open && !closed.onSelect, `the second tap: list ${closed.open ? 'open' : 'closed'}, focus ${closed.onSelect ? 'on the select, where the iPhone opens its own menu' : 'elsewhere'}`);
+    assert(!chosen.open && !chosen.onSelect && after !== before, `a choice tapped: list ${chosen.open ? 'open' : 'closed'}, focus ${chosen.onSelect ? 'on the select, where the iPhone opens its own menu' : 'elsewhere'}, value ${before} → ${after}`);
+    return { ok: true, detail: `a tap opened the list, the next closed it and a tapped choice (${JSON.stringify(before)} → ${JSON.stringify(after)}) was made, the focus never on the select` };
+  } finally {
+    await evaluate(page, `document.querySelector('.picker-pop:popover-open')?.hidePopover()`).catch(() => {});
+    await page.call('Emulation.setTouchEmulationEnabled', { enabled: false }).catch(() => {});
+    await page.call('Emulation.setDeviceMetricsOverride', { width: 1280, height: 800, deviceScaleFactor: 1, mobile: false }).catch(() => {});
+  }
+}
+
 async function pickerkeyboard(page) {
   const assert = (ok, detail) => { if (!ok) throw new Error(detail); };
   await evaluate(page, `document.getElementById('tab-live').click()`);
@@ -7352,7 +7399,7 @@ async function handoff(page) {
 
 const SCENARIOS = { buffering, livebuffering, filmbuffering, emptyfile, tsasmp4, refusedfile, badgateway, livebadgateway, channelrefused, noanswer, longfilm, catalogUi, setupClarity, welcome, fullscreenControl, clickpause, pickers, touchcaret, screenbutton, topmenu, scrollbars, channelorder, lengthfilter, nowlogo, channels, home, resumemkv, restore, programmes, catchup, seek, death, cancel, timeout, search, paste, keys, switching, resume, connections, livezap, livequiet, reconnect, accounts, listerror, a11y, subtitles, audio, wasmaudio, settings,
   lastchannel, nextepisode, continuewatching, reminders, update, seeklag, cuesretry, quota, catchupfreeze, catchupfull, twotabs, switchstop, resettabs,
-  refresh, restorenav, guidekeep, removeaccount, m3u, sync, holes, picks, flakyserver, accountform, stalker, record, guidefavs, guidenames, categories, homecountry, noleak, perf, pseudo, startup, soak, phone, headline, accountnow, onerow, nowbarfit, subsize, arrowmiddle, idlelight, iossubs, starquiet, phonestar, pickerkeyboard, phonescroll, menutap, wakelock, livecut, episodenames, gotochannel, filmdetails, favorder, countryfilter, tilekeys, routes, programmekeys, searchlimit, filterfolds, focusrings, xtreamoffer, guideclick, filmaddress, filmfacts, playlistfile, perflive, perfplaylist, remoteimages, phoneguide, handoff };
+  refresh, restorenav, guidekeep, removeaccount, m3u, sync, holes, picks, flakyserver, accountform, stalker, record, guidefavs, guidenames, categories, homecountry, noleak, perf, pseudo, startup, soak, phone, headline, accountnow, onerow, nowbarfit, subsize, arrowmiddle, idlelight, iossubs, starquiet, phonestar, pickertouch, pickerkeyboard, phonescroll, menutap, wakelock, livecut, episodenames, gotochannel, filmdetails, favorder, countryfilter, tilekeys, routes, programmekeys, searchlimit, filterfolds, focusrings, xtreamoffer, guideclick, filmaddress, filmfacts, playlistfile, perflive, perfplaylist, remoteimages, phoneguide, handoff };
 // The mock's whole-list answers stall for these, longer than the request limit.
 const SLOW_LIST_MS = { cancel: 60000, timeout: 60000 };
 // The media is sent slowly for these: the seek targets must lie outside the
