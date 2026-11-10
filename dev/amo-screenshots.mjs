@@ -3,6 +3,10 @@
 //
 //   node dev/amo-screenshots.mjs           the numbered PNGs uploaded in order,
 //                                          then the old previews deleted
+//   node dev/amo-screenshots.mjs --old <id,id…>  a run cut short taken up: the
+//                                          previews named are the old ones, the
+//                                          others went up already, in order; the
+//                                          rest are uploaded, then the old deleted
 //   node dev/amo-screenshots.mjs --dry     the previews AMO holds, nothing changed
 //   node dev/amo-screenshots.mjs --check   whether AMO has the pictures in
 //                                          brand/ (by the record below; offline)
@@ -89,15 +93,25 @@ const before = await previews();
 console.log(`AMO holds ${before.length} preview(s): ${before.map((p) => p.id).join(' ')}`);
 if (process.argv.includes('--dry')) process.exit(0);
 
-const made = [];
+// A run cut short (1.10.0: a three-hour limit ran out while AMO asked for
+// six more) left four new previews after the five old ones. Started again
+// from the top it would have put up those four a second time.
+const at = process.argv.indexOf('--old');
+const old = at > 0 ? new Set((process.argv[at + 1] || '').split(',').filter(Boolean).map(Number)) : null;
+if (old && !before.some((p) => old.has(p.id))) fail(`none of ${[...old].join(' ')} is among AMO's previews`);
+const stale = old ? before.filter((p) => old.has(p.id)) : before;
+const made = old ? before.filter((p) => !old.has(p.id)).map((p) => p.id) : [];
+if (made.length > files.length) fail(`AMO holds ${made.length} new previews for ${files.length} pictures`);
+if (made.length) console.log(`already up: ${files.slice(0, made.length).join(' ')}`);
 for (const [i, name] of files.entries()) {
+  if (i < made.length) continue;
   const form = new FormData();
   form.append('image', new Blob([readFileSync(join(DIR, name))], { type: 'image/png' }), name);
   form.append('position', String(i));
   made.push((await call('POST', `${ADDON}/previews/`, { form })).id);
   console.log(`uploaded ${name}`);
 }
-for (const p of before) { await call('DELETE', `${ADDON}/previews/${p.id}/`); console.log(`deleted the old ${p.id}`); }
+for (const p of stale) { await call('DELETE', `${ADDON}/previews/${p.id}/`); console.log(`deleted the old ${p.id}`); }
 const after = await previews();
 const inOrder = JSON.stringify(after.map((p) => p.id)) === JSON.stringify(made);
 if (inOrder) record();
