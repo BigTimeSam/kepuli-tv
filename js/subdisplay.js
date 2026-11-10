@@ -54,7 +54,14 @@ export const MIN_PX = 14;
 export const MIN_SCALE = 50;
 export const MAX_SCALE = 250;
 export const SCALE_STEP = 5;
-export const DEFAULT_SCALE = 100;
+// The size at first, 85 %, and the height below, 6 %: the owner's choice
+// (2026-11-10), measured as the look that read best in Chrome. Until then
+// 100 % and 12 %, which a saved Settings form may hold without anyone
+// having chosen them; that pair alone is read as the defaults (see
+// subtitleLook).
+export const DEFAULT_SCALE = 85;
+const OLD_DEFAULT_SCALE = 100;
+const OLD_DEFAULT_LIFT = 12;
 // What the older settings held: pixels (24 the default), and before them three names.
 const OLD_DEFAULT_PX = 24;
 const NAMED_SIZE = { small: 18, medium: 24, large: 34 };
@@ -67,10 +74,11 @@ const clampScale = (n) => Math.min(MAX_SCALE, Math.max(MIN_SCALE, Math.round(n /
 // the box is 59 px, and the subtitles sat in the bar. SMPTE's title-safe
 // area, which Netflix points to, keeps text 5 % in from the picture's
 // edges; 8 % was inside it with room to spare. The default has been 12 %
-// since 2026-11-05, as the owner chose it. The viewer may set 0–30 %.
+// since 2026-11-05, as the owner chose it, and 6 % since 2026-11-10 (see
+// DEFAULT_SCALE). The viewer may set 0–30 %.
 export const MIN_LIFT = 0;
 export const MAX_LIFT = 30;
-export const DEFAULT_LIFT = 12;
+export const DEFAULT_LIFT = 6;
 const clampLift = (n) => Math.min(MAX_LIFT, Math.max(MIN_LIFT, Math.round(n)));
 
 /**
@@ -87,10 +95,14 @@ export function subtitleLook(settings) {
     scale = Number.isFinite(px) && px > 0 ? px / OLD_DEFAULT_PX * 100 : DEFAULT_SCALE;
   }
   const lift = Number(s.subtitleLift);
+  // The old defaults together, as a saved Settings form wrote them for
+  // everyone, are no choice of the viewer's: they become the new ones.
+  const untouched = Number(s.subtitleScale) === OLD_DEFAULT_SCALE && lift === OLD_DEFAULT_LIFT;
   return {
     style: STYLES.includes(s.subtitleStyle) ? s.subtitleStyle : DEFAULT_STYLE,
-    scale: clampScale(scale),
-    lift: Number.isFinite(lift) && s.subtitleLift !== '' && s.subtitleLift != null ? clampLift(lift) : DEFAULT_LIFT,
+    scale: untouched ? DEFAULT_SCALE : clampScale(scale),
+    lift: untouched ? DEFAULT_LIFT
+      : Number.isFinite(lift) && s.subtitleLift !== '' && s.subtitleLift != null ? clampLift(lift) : DEFAULT_LIFT,
   };
 }
 

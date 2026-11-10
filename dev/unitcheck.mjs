@@ -548,6 +548,9 @@ ass('drops a drawing', '0,0,Default,,0,0,0,,{\\p1}m 0 0 l 100 0', '');
 /* ---------------------------------------------- subdisplay.js: the look */
 
 check('subtitleLook defaults', subtitleLook({}), { style: 'shadow', scale: DEFAULT_SCALE, lift: DEFAULT_LIFT });
+check('the defaults are 85 % and 6 %', [DEFAULT_SCALE, DEFAULT_LIFT], [85, 6]);
+check('the old defaults, as a saved form wrote them, become the new ones', subtitleLook({ subtitleScale: 100, subtitleLift: 12 }), { style: 'shadow', scale: 85, lift: 6 });
+check('a size or a height of the viewer\'s own is kept', [subtitleLook({ subtitleScale: 100, subtitleLift: 10 }), subtitleLook({ subtitleScale: 120, subtitleLift: 12 })].map((l) => [l.scale, l.lift]), [[100, 10], [120, 12]]);
 check('subtitleLook defaults on nothing', subtitleLook(null), { style: 'shadow', scale: DEFAULT_SCALE, lift: DEFAULT_LIFT });
 check('subtitleLook keeps a known choice', subtitleLook({ subtitleStyle: 'yellow', subtitleScale: 135, subtitleLift: 12 }), { style: 'yellow', scale: 135, lift: 12 });
 check('the height keeps 0, rounds, and holds to the bounds', [0, 7.6, -4, 99, 'x'].map((lift) => subtitleLook({ subtitleLift: lift }).lift), [0, 8, MIN_LIFT, MAX_LIFT, DEFAULT_LIFT]);

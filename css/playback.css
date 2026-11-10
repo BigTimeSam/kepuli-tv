@@ -23,7 +23,7 @@ video { width: 100%; height: 100%; display: block; background: #000; }
 .subdisplay {
   /* From the picture's bottom edge, the bar under a letterboxed film not
      counted: --sub-lift is the viewer's height, a share of the picture. */
-  --sub-rest: calc(var(--pic-bar, 0px) + var(--pic-h, 450px) * var(--sub-lift, 0.08));
+  --sub-rest: calc(var(--pic-bar, 0px) + var(--pic-h, 450px) * var(--sub-lift, 0.06));
   position: absolute; left: 5%; right: 5%; bottom: var(--sub-rest);
   display: flex; flex-direction: column; align-items: center; justify-content: flex-end; gap: .3em;
   pointer-events: none; text-align: center;
@@ -101,7 +101,10 @@ video::cue {
   text-shadow: var(--cue-shadow, none);
   /* The browser draws only for a bare <video> taken full screen, which is
      then the whole screen: the same share, of the screen's height. */
-  font-size: calc(var(--sub-scale, 1) * 5vh);
+  /* A share of the picture's height, as the layer's is: the screen's
+     height alone made them larger than in the window wherever the screen
+     is less wide than 16:9 (a 16:10 laptop). */
+  font-size: calc(var(--sub-scale, 1) * min(100vh, 56.25vw) * 0.05);
   font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
 }
 body[data-substyle="shadow"] {
