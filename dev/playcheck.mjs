@@ -2036,7 +2036,11 @@ async function menutap(page) {
     await evaluate(page, `(() => { document.querySelector('#${pop} [role="menuitem"]:not([hidden])')?.focus(); document.getElementById('search').focus(); })()`);
     await sleep(200);
     const afterTab = await open();
-    assert(!afterTap && !afterTab, `${button}: open after the tap ${afterTap}, after a Tab out ${afterTab}`);
+    // What stood in the Tab's way, for a failure seen only in CI's Chrome.
+    const where = afterTab ? await evaluate(page, `({ focus: document.activeElement?.id || document.activeElement?.tagName, hasFocus: document.hasFocus(), hidden: document.hidden,
+      search: (() => { const s = document.getElementById('search'); return s ? { shown: s.getClientRects().length > 0, inert: Boolean(s.closest('[inert]')), disabled: s.disabled } : null; })(),
+      dialogs: [...document.querySelectorAll('dialog[open]')].map((d) => d.id), tabs: null })`) : null;
+    assert(!afterTap && !afterTab, `${button}: open after the tap ${afterTap}, after a Tab out ${afterTab}${where ? ` ${JSON.stringify(where)}` : ''}`);
     seen.push(`${button} closed by a tap and by Tab`);
   }
   await page.call('Emulation.setDeviceMetricsOverride', { width: 1280, height: 800, deviceScaleFactor: 1, mobile: false }).catch(() => {});
