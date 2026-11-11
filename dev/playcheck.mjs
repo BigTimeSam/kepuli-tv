@@ -172,6 +172,10 @@
 //                                     wrapper to full screen with the
 //                                     layer; a file without subtitles says
 //                                     so in the details
+//   node dev/playcheck.mjs blockedplay a start the browser refuses without a
+//                                     tap (the iPhone's rule) waits for the
+//                                     overlay's Play past the start timeout,
+//                                     and the Play starts the channel
 //   node dev/playcheck.mjs clickpause a click on the picture pauses an episode
 //                                     and plays it on; a double click goes to
 //                                     full screen without pausing; the control
@@ -3108,6 +3112,40 @@ async function resumemkv(page) {
   await sleep(2000);
   const t1 = await evaluate(page, `document.getElementById('video').currentTime`);
   return { ok: t1 > t0 + 1, detail: `started again at ${t0.toFixed(1)} s and went on to ${t1.toFixed(1)} s` };
+}
+
+/**
+ * The iPhone refuses play() with sound outside a tap. A channel restarted
+ * out of one (a reconnect, a return from another app in Orion) got the
+ * overlay "press play" over the picture's own play button, with no button
+ * of its own, and the start timed out behind it: the channel could not be
+ * started again. Here play() is refused until the scenario's tap, which
+ * stands for the viewer's (Firefox's driver has no trusted gesture to give).
+ */
+async function blockedplay(page) {
+  await openLiveList(page, 2);
+  await evaluate(page, `(() => { const own = HTMLMediaElement.prototype.play;
+    HTMLMediaElement.prototype.play = function () {
+      if (!window.__tapped) return Promise.reject(new DOMException('refused without a tap', 'NotAllowedError'));
+      return own.call(this);
+    }; return true; })()`);
+  await evaluate(page, `(() => { window.__log = []; for (const k of ['warn', 'error', 'info']) { const o = console[k].bind(console);
+    console[k] = (...a) => { window.__log.push(((Date.now() % 100000) / 1000).toFixed(1) + ' ' + a.map((x) => (x && x.message) || String(x)).join(' ').slice(0, 140)); o(...a); }; } return true; })()`);
+  // The row clicked without a gesture, as a restart starts without one.
+  await evaluate(page, `document.querySelectorAll('#list .row')[0].click()`);
+  const offered = `[...document.querySelectorAll('#overlay button')].some((b) => b.textContent.trim() === 'Play' && b.offsetParent)`;
+  await waitFor(page, offered, 'the overlay\'s Play', 15000);
+  // Past the live start's 20-second timeout: the start waits for the tap.
+  await sleep(22000);
+  const waited = await videoState(page);
+  const stillOffered = await evaluate(page, offered);
+  await evaluate(page, `(() => { window.__tapped = true;
+    [...document.querySelectorAll('#overlay button')].find((b) => b.textContent.trim() === 'Play')?.click(); })()`, { gesture: true });
+  let played = true;
+  try { await waitFor(page, PLAYING, 'the channel after Play', 15000); } catch { played = false; }
+  const after = await videoState(page);
+  const log = stillOffered && played ? [] : await evaluate(page, 'window.__log.slice(-8)');
+  return { ok: stillOffered && played, detail: `${log.length ? JSON.stringify(log) + ' ' : ''}after 22 s: "${waited.overlay}" [${waited.actions.join(' / ')}]; after Play: ${played ? 'playing' : `not playing, "${after.overlay}"`}` };
 }
 
 async function clickpause(page) {
@@ -7510,7 +7548,7 @@ async function handoff(page) {
   return { ok: true, detail: `a computer downloads ${desktop.clicks[0].download}; Android hands VLC the film at ${position} s with no file, and the overlay names VLC; the iPhone hands VLC the address and, with no VLC, opens its App Store page` };
 }
 
-const SCENARIOS = { buffering, livebuffering, filmbuffering, emptyfile, tsasmp4, refusedfile, badgateway, livebadgateway, channelrefused, noanswer, longfilm, catalogUi, setupClarity, welcome, fullscreenControl, clickpause, pickers, touchcaret, screenbutton, topmenu, scrollbars, channelorder, lengthfilter, nowlogo, channels, home, resumemkv, restore, programmes, catchup, seek, death, cancel, timeout, search, paste, keys, switching, resume, connections, livezap, livequiet, reconnect, accounts, listerror, a11y, subtitles, audio, wasmaudio, settings,
+const SCENARIOS = { buffering, livebuffering, filmbuffering, emptyfile, tsasmp4, refusedfile, badgateway, livebadgateway, channelrefused, noanswer, longfilm, catalogUi, setupClarity, welcome, fullscreenControl, blockedplay, clickpause, pickers, touchcaret, screenbutton, topmenu, scrollbars, channelorder, lengthfilter, nowlogo, channels, home, resumemkv, restore, programmes, catchup, seek, death, cancel, timeout, search, paste, keys, switching, resume, connections, livezap, livequiet, reconnect, accounts, listerror, a11y, subtitles, audio, wasmaudio, settings,
   lastchannel, nextepisode, continuewatching, reminders, update, seeklag, cuesretry, quota, catchupfreeze, catchupfull, twotabs, switchstop, resettabs,
   refresh, restorenav, guidekeep, removeaccount, m3u, sync, holes, picks, flakyserver, accountform, stalker, record, guidefavs, guidenames, categories, homecountry, noleak, perf, pseudo, startup, soak, phone, headline, accountnow, onerow, nowbarfit, subsize, arrowmiddle, idlelight, iossubs, starquiet, phonestar, pickertouch, pickerkeyboard, phonescroll, menutap, wakelock, livecut, episodenames, gotochannel, filmdetails, favorder, countryfilter, tilekeys, routes, programmekeys, searchlimit, filterfolds, focusrings, xtreamoffer, guideclick, filmaddress, filmfacts, playlistfile, perflive, perfplaylist, remoteimages, phoneguide, handoff, closedplan };
 // The mock's whole-list answers stall for these, longer than the request limit.

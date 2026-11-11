@@ -479,7 +479,12 @@ interrupted channel-list load restores the previous list.
   the buffer still plays, and the picture goes on without a break; the
   seconds the new connection repeats are left out. A live channel keeps up to
   half a minute of picture in hand rather than jumping to the newest second,
-  and resumed after a pause on the iPhone it goes to the present
+  and resumed after a pause on the iPhone it goes to the present. On the
+  iPhone the player's own HLS player is left to wait for a slow connection
+  while the picture still arrives, rather than being restarted, and a start
+  the browser holds back until a tap (the iPhone allows sound only after
+  one, after a return from another app say) shows a **Play** button over
+  the picture
 - **Technical details** over the picture — resolution, bit rate, engine — for
   working out why a stream stutters. Off unless the settings ask for them: they
   answer no question about what to watch

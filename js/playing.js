@@ -58,6 +58,9 @@ function onPlaybackState(s) {
     loadView.figures = null;
     showWait('start', t('progress.connecting'), playingName());
   } else if (s.status === 'buffering') {
+    // The account of the download would cover the Play that the refused
+    // start is waiting for.
+    if (playback.blocked) return;
     renderBuffering(s);
   } else if (s.status === 'flowing') {
     // The stalled picture moves again.
@@ -105,7 +108,11 @@ function onPlaybackState(s) {
     loadView.figures = null;
     showWait('start', t('player.probing'), t('player.probing.text'));
   } else if (s.status === 'blocked') {
-    showOverlayActions(null);
+    // The overlay covers the picture and its controls: the play it asks
+    // for is its own button. Before, it said "press play" over the very
+    // button, and a channel restarted while Orion was in the background
+    // could not be started again at all.
+    showOverlayActions([{ label: t('rec.play'), primary: true, onClick: () => playback.playBlocked() }]);
     el.overlay.hidden = false;
     el.overlay.classList.remove('loading');
     el.overlayTitle.textContent = t('player.waiting');

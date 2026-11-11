@@ -174,6 +174,13 @@ const engineLabel = (name) => ({ mpegts: 'mpegts.js', hls: 'hls.js' })[name] || 
 
 const STALL_CHECK_MS = 4000;
 const STALL_LIMIT_MS = 14000;
+// The browser's own HLS player (the iPhone's) that stands still while its
+// buffer still grows is waiting for a slow connection, not frozen: it goes
+// on by itself once it has enough, while a restart threw away what had
+// arrived and began again from the playlist, which in Orion had a channel
+// play a minute, wait and start over every time. It is restarted only when
+// the picture has not moved for this long all the same.
+const NATIVE_WAIT_LIMIT_MS = 60000;
 // A film, an episode or an archive programme has no reconnecting of its
 // own here, and a picture that stops is reported instead, with Retry —
 // after longer than a live stream's limit, because a file's engines have
@@ -243,6 +250,11 @@ export class Playback {
     this.watchdog = null;
     this.lastProgressAt = 0;
     this.lastTime = -1;
+    this.lastBuffered = 0;
+    this.lastPictureAt = 0;
+    // play() refused without the viewer's tap (the iPhone's rule for sound):
+    // the start waits for the tap rather than timing out, see playBlocked().
+    this.blocked = false;
     this.wantPlaying = false;   // the viewer's intent, not the element's state
     /** @type {(() => void)|null} */
     this.guards = null;
@@ -313,6 +325,7 @@ export class Playback {
     clearTimeout(this.recoverTimer);
     this.wantPlaying = false;
     this.recovering = false;
+    this.blocked = false;
     if (this.cleanup) { this.cleanup(); this.cleanup = null; }
     this.cutProbe();
     const engine = this.engine;
@@ -360,6 +373,7 @@ export class Playback {
     this.video.removeAttribute('src');
     this.video.load();
     this.token++;
+    this.blocked = false;
     this.spec = spec;
     // A source whose addresses are good for one connection (a Stalker
     // portal's) gives a new one for every start: the old one would be
@@ -649,6 +663,9 @@ export class Playback {
     this.noteOpen();
     this.sourceDone = false;
     this.libLoad = null;
+    // Each attempt paints its own wait over the overlay: a refusal of the
+    // attempt before is said again, with its Play, when this one meets it.
+    this.blocked = false;
 
     /** @type {Finish} */
     const finish = (ok, why, { refused = false, empty = false, unavailable = 0, channel = 0 } = {}) => {
@@ -721,7 +738,16 @@ export class Playback {
     // A live MPEG-TS stream that stays silent is a full account far more
     // often than a format the engine cannot read; see finish().
     const liveTs = name === 'mpegts' && spec.live;
-    const timer = setTimeout(() => finish(false, t('playback.reason.timeout'), { refused: liveTs }), TIMEOUT_MS[name]);
+    // A start held for the viewer's tap has not failed: on the iPhone a
+    // restart outside a tap (a reconnect, a channel resumed from another
+    // app) is refused sound, and nothing loads until the tap. The waits
+    // are measured again until it comes.
+    /** @type {ReturnType<typeof setTimeout>[]} */
+    const waits = [];
+    const after = (/** @type {number} */ ms, /** @type {() => void} */ fail) => {
+      waits.push(setTimeout(() => (this.blocked ? after(ms, fail) : fail()), ms));
+    };
+    after(TIMEOUT_MS[name], () => finish(false, t('playback.reason.timeout'), { refused: liveTs }));
     let flowing = false;
     // The server has answered: from here on the wait is for the picture's
     // bytes, and the viewer is told how they are coming.
@@ -729,9 +755,9 @@ export class Playback {
       flowing = true;
       if (!settled && token === this.token) this.startMeter(token, 'start');
     };
-    const silence = setTimeout(() => {
+    after(ANSWER_MS, () => {
       if (!flowing) finish(false, t('playback.reason.timeout'), { refused: liveTs });
-    }, ANSWER_MS);
+    });
     // The browser's own player says nothing of the request: metadata or
     // bytes arriving are its answer.
     const nativeAnswers = ['loadedmetadata', 'progress', 'loadeddata'];
@@ -741,8 +767,7 @@ export class Playback {
     video.addEventListener('error', onError);
     const drop = () => {
       this.stopMeter();
-      clearTimeout(timer);
-      clearTimeout(silence);
+      for (const wait of waits) clearTimeout(wait);
       for (const event of nativeAnswers) video.removeEventListener(event, answered);
       clearInterval(nudge);
       video.removeEventListener('playing', onPlaying);
@@ -1026,11 +1051,26 @@ export class Playback {
 
   tryPlay() {
     const started = this.video.play();
-    if (started && started.catch) started.catch((err) => {
-      if (err.name === 'NotAllowedError') {
+    if (started && started.then) started.then(() => { this.blocked = false; }, (err) => {
+      // Said once: the start's nudge asks again every half second, and an
+      // overlay built anew each time would take the tap from its button.
+      if (err.name === 'NotAllowedError' && !this.blocked) {
+        this.blocked = true;
         this.onState({ status: 'blocked', message: t('playback.autoplay') });
       }
     });
+  }
+
+  /**
+   * The overlay's Play, after the browser refused to start without a tap:
+   * play() called within the tap, before anything is awaited, is allowed.
+   */
+  playBlocked() {
+    if (!this.spec) return;
+    this.wantPlaying = true;
+    this.lastProgressAt = this.lastPictureAt = Date.now();
+    const started = this.video.play();
+    if (started && started.then) started.then(() => { this.blocked = false; }, () => {});
   }
 
   /**
@@ -1179,7 +1219,8 @@ export class Playback {
     if (!this.spec) return;
     if (!this.spec.live) { this.startProgressWatch(token); return; }
     this.lastTime = this.video.currentTime;
-    this.lastProgressAt = Date.now();
+    this.lastProgressAt = this.lastPictureAt = Date.now();
+    this.lastBuffered = bufferedEnd(this.video);
     this.watchdog = setInterval(() => {
       if (token !== this.token) return this.stopWatchdog();
       const video = this.video;
@@ -1188,16 +1229,24 @@ export class Playback {
 
       if (video.paused) {
         // The viewer's own pause is the one pause that is not repaired.
-        if (!this.wantPlaying) { this.lastProgressAt = Date.now(); return; }
+        if (!this.wantPlaying || this.blocked) { this.lastProgressAt = this.lastPictureAt = Date.now(); return; }
         this.tryPlay();
         return;
       }
 
       if (video.currentTime > this.lastTime + 0.05) {
         this.lastTime = video.currentTime;
+        this.lastProgressAt = this.lastPictureAt = Date.now();
+        return;
+      }
+      const buffered = bufferedEnd(video);
+      if (this.engineKey === 'native' && buffered > this.lastBuffered + 0.5
+        && Date.now() - this.lastPictureAt < NATIVE_WAIT_LIMIT_MS) {
+        this.lastBuffered = buffered;
         this.lastProgressAt = Date.now();
         return;
       }
+      this.lastBuffered = Math.max(this.lastBuffered, buffered);
       if (Date.now() - this.lastProgressAt < STALL_LIMIT_MS) return;
       this.recover(t('playback.reason.frozen'));
     }, STALL_CHECK_MS);
@@ -1473,6 +1522,15 @@ export function engineReason(err) {
 function noSource() {
   const cause = t('playback.nosource');
   return { message: `${cause} ${t('playback.nosource.next')}`, cause };
+}
+
+/**
+ * Where the element's buffer ends, 0 with nothing in it.
+ * @param {HTMLMediaElement} video
+ */
+function bufferedEnd(video) {
+  const ranges = video.buffered;
+  return ranges.length ? ranges.end(ranges.length - 1) : 0;
 }
 
 /**
