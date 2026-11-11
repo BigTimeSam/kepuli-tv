@@ -4309,10 +4309,14 @@ async function welcome(page, { target }) {
     const f = document.getElementById('f-paste'); f.focus(); f.value = ${JSON.stringify(value)};
     f.dispatchEvent(new InputEvent('input', { bubbles: true, inputType: 'insertFromPaste' })); })()`);
   const mode = () => evaluate(page, `document.querySelector('input[name="source"]:checked').value`);
-  await evaluate(page, `chrome.storage.local.remove('config').then(() => chrome.storage.local.set({ ui: { tab: 'live' } }))`);
-  // The player open now answers the account's removal itself; given its
-  // moment first, it no longer reloaded under the next step (CI, twice:
-  // "Inspected target navigated or closed").
+  // The player open answers the account's removal by loading itself again,
+  // and on CI that came before the call returned: "Inspected target
+  // navigated or closed" from this very step (1.11.0, 1.11.1). The removal
+  // goes last, and the page going away under it is what was asked for.
+  await evaluate(page, `chrome.storage.local.set({ ui: { tab: 'live' } }).then(() => chrome.storage.local.remove('config'))`)
+    .catch((err) => { if (!/navigated or closed/.test(err.message)) throw err; });
+  // Given its moment first, the player's own reload no longer comes under
+  // the next step.
   await sleep(800);
   await page.call('Page.navigate', { url: bare(target.url) });
   await sleep(1000);
