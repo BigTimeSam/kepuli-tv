@@ -3200,6 +3200,11 @@ async function clickpause(page) {
   await press(bar); await sleep(700);
   const barLeftAlone = !(await paused());
   seen.push(`control bar ${barLeftAlone ? 'left alone' : 'paused'}`);
+  // In Firefox the bar's press is its own controls' and pauses, which is
+  // allowed above; the tap is then measured from a playing film again, or
+  // it would read the bar's pause as its own.
+  if (await paused()) await evaluate(page, `document.getElementById('video').play()`, { gesture: true });
+  await sleep(500);
   // A tap is the touch controls' own: on the iPhone the tap on their play
   // button also reached the page as a click, whose pause came 280 ms after
   // the film had started, and a paused film could not be played on (Orion).
