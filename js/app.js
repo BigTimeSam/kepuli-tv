@@ -542,7 +542,12 @@ async function offerLists(previous, config) {
 let remembered = '';
 function rememberView() {
   if (state.query) return;
-  const view = { tab: state.tab, group: state.group, sub: state.sub, kind: state.kind };
+  // Each tab's group as well: only the open tab's used to be kept, and
+  // Movies came back at its first country after a restart although Finland
+  // had been chosen there. A group gone by then is dropped in activateTab.
+  const groups = Object.fromEntries(Object.entries({ ...state.lastGroup, [state.tab]: state.group })
+    .filter(([, group]) => group === null || typeof group === 'string'));
+  const view = { tab: state.tab, group: state.group, sub: state.sub, kind: state.kind, groups };
   const key = JSON.stringify(view);
   if (key === remembered) return;
   remembered = key;
@@ -2297,6 +2302,11 @@ async function init() {
   // activateTab({ restore }), which takes the group and the type filter
   // from these two maps and the topic from storedSub, and drops any of
   // them the account no longer offers.
+  // The other tabs' groups as they were left (rememberView); the address
+  // or the stored view decides the open tab's.
+  if (ui.groups && typeof ui.groups === 'object') {
+    for (const [tab, group] of Object.entries(ui.groups)) if (group === null || typeof group === 'string') state.lastGroup[tab] = group;
+  }
   if (start.group !== undefined) state.lastGroup[state.tab] = start.group;
   if (start.kind !== undefined) state.lastKind[state.tab] = start.kind;
   storedSub = start.sub ?? null;

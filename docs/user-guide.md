@@ -152,7 +152,10 @@ title) has its own address in its own list, so it can be linked and
 reloaded too: until you choose another place in the sidebar, the address
 names it rather than the list beside it. The programme guide is `#/guide`, followed by the group
 and topic it shows (`#/guide/Finland`); a reload opens the guide again. It is written as each list settles, so reloading the page
-comes back exactly there, episode list and all. The address is written over
+comes back exactly there, episode list and all. Each tab keeps its own
+group as well: with Finland chosen under **Movies**, the player opened
+again later shows Finland when you go to **Movies**, unless the account no
+longer has that group, when the usual first one is chosen. The address is written over
 the current history entry rather than added to it: stepping back is what the
 breadcrumb above the list is for, and the browser's own back button stays a
 way out of the player rather than a walk back through every topic you have

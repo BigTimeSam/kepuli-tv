@@ -3880,6 +3880,21 @@ async function restore(page, { target }) {
   assert(await tab() === 'movie', `the tab was not restored: "${await tab()}"`);
   assert(await active() === movies, `the movie group was not restored: "${movies}" → "${await active()}"`);
 
+  // A tab left for another keeps its group over a restart as well: Movies ›
+  // Finland chosen, the channels opened, the player closed and opened
+  // again, and Movies came back at its first country.
+  await evaluate(page, `document.querySelectorAll('#groups .group')[2].click()`);
+  await waitFor(page, `${ACTIVE_GROUP} !== ${JSON.stringify(movies)} && document.querySelectorAll('#list .row').length > 0`, 'another movie group');
+  const otherMovies = await active();
+  await evaluate(page, `document.querySelector('#tabs [data-tab="live"]').click()`);
+  await waitFor(page, `document.querySelectorAll('#list .row').length > 0`, 'the channels');
+  await sleep(500);
+  await reopen('a tab left for another');
+  assert(await tab() === 'live', `the channels were not the tab restored: "${await tab()}"`);
+  await evaluate(page, `document.querySelector('#tabs [data-tab="movie"]').click()`);
+  await waitFor(page, `document.querySelectorAll('#list .row').length > 0`, 'the movie list after the restart');
+  assert(await active() === otherMovies, `the movies' group was forgotten over a restart: "${otherMovies}" → "${await active()}"`);
+
   // A series is a place of its own, and the deepest one the list has: the
   // address carries it, and a refresh comes back into the episodes rather
   // than to the list they were opened from.
