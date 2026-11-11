@@ -25,3 +25,33 @@ firefox/dist-test/
 
 # dev/package.mjs assembles the release packages here, one directory per browser.
 dist/
+
+# Claude Code's local state. The project's skills (.claude/skills/) are
+# shared and tracked; the rest is this machine's: worktrees, locks, the
+# personal settings, session memory.
+.claude/*
+!.claude/skills/
+.claude/settings.local.json
+CLAUDE.local.md
+
+# Secrets and credentials never belong here: the provider account and the
+# store keys live in ~/.config/kepuli-tv/ (AGENTS.md rule 1). These catch a
+# copy made into the checkout by mistake; dev/secretcheck.mjs still runs.
+.env
+.env.*
+*.pem
+*.key
+*.p12
+amo.json
+cws.json
+**/live-url.txt
+
+# Logs, scratch output and editor and system files.
+*.log
+*.tmp
+.scratch/
+.vscode/
+.idea/
+*.swp
+*~
+Thumbs.db
