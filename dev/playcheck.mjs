@@ -2039,7 +2039,8 @@ async function menutap(page) {
     // What stood in the Tab's way, for a failure seen only in CI's Chrome.
     const where = afterTab ? await evaluate(page, `({ focus: document.activeElement?.id || document.activeElement?.tagName, hasFocus: document.hasFocus(), hidden: document.hidden,
       search: (() => { const s = document.getElementById('search'); return s ? { shown: s.getClientRects().length > 0, inert: Boolean(s.closest('[inert]')), disabled: s.disabled } : null; })(),
-      dialogs: [...document.querySelectorAll('dialog[open]')].map((d) => d.id), tabs: null })`) : null;
+      dialogs: [...document.querySelectorAll('dialog[open]')].map((d) => d.id) })`) : null;
+    if (where) where.targets = await page.call('Target.getTargets').then((r) => r.targetInfos.map((t) => `${t.type} ${t.url.replace(/^chrome-extension:\/\/[a-z]+/, 'ext:').slice(0, 80)}${t.attached ? ' (attached)' : ''}`)).catch((err) => String(err));
     assert(!afterTap && !afterTab, `${button}: open after the tap ${afterTap}, after a Tab out ${afterTab}${where ? ` ${JSON.stringify(where)}` : ''}`);
     seen.push(`${button} closed by a tap and by Tab`);
   }
@@ -7530,6 +7531,27 @@ const CHROME_ONLY = {
 const unknown = process.argv.slice(2).filter((a) => !SCENARIOS[a]);
 if (unknown.length) { console.error(`unknown scenario ${unknown.join(' ')}; the choices are ${Object.keys(SCENARIOS).join(' and ')}`); process.exit(1); }
 
+/**
+ * One player tab before each scenario, in front. A planned recording that
+ * falls due while the test tab is away from the player (a scenario that
+ * loads player.css, a reload under way) has background.js open a second
+ * player behind it, as it should for a viewer with none open. openPlayer
+ * then took the newer tab, out of sight: CI's full run failed menutap with
+ * the page not focused, welcome on a tab that went away and record on a
+ * plan the other tab had marked missed (1.11.0). The extra tabs are closed
+ * and named, so that a scenario that leaves one behind is seen.
+ */
+async function oneChromePlayer(name) {
+  const list = await (await fetch(`http://127.0.0.1:${DEVTOOLS_PORT}/json/list`)).json();
+  const players = list.filter((t) => t.type === 'page' && /^chrome-extension:\/\/[a-p]{32}\/player\.html/.test(t.url));
+  if (players.length < 2) return;
+  // The oldest is the one the suite has worked in: /json/list puts the newest first.
+  const [keep, ...extra] = players.reverse();
+  for (const t of extra) await fetch(`http://127.0.0.1:${DEVTOOLS_PORT}/json/close/${t.id}`);
+  await fetch(`http://127.0.0.1:${DEVTOOLS_PORT}/json/activate/${keep.id}`);
+  console.log(`NOTE  before ${name}: ${extra.length} more player tab(s) closed (${extra.map((t) => t.url.replace(/^chrome-extension:\/\/[a-p]+\//, '')).join(', ')})`);
+}
+
 await ensureChrome(['--autoplay-policy=no-user-gesture-required', ...(process.env.KEPULI_HEADLESS ? ['--headless=new', '--window-size=1280,800'] : [])]);
 let failed = 0;
 try {
@@ -7544,6 +7566,7 @@ try {
     const server = await startMockServer(MOCK_PORT);
     const requests = [];
     server.on('request', (req) => requests.push(req.url));
+    if (DEVTOOLS_PORT) await oneChromePlayer(name);
     const target = await openPlayer();
     const page = session(target.webSocketDebuggerUrl);
     try {
