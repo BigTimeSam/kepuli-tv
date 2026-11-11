@@ -10,6 +10,7 @@
 // in.
 
 import { titleWithoutYear } from './titlemeta.js';
+import { episodeLabel } from './seriesui.js';
 import { $, el } from './dom.js';
 import { poster } from './poster.js';
 import { ApiError } from './api.js';
@@ -655,7 +656,7 @@ export async function playItem(item, { startAt, allowSilent } = {}) {
   renderSubtitles([], null);
   renderAudio([], null);
   state.subtitleInfo = null;
-  el.nowTitle.textContent = displayName;
+  el.nowTitle.textContent = nowTitle(item);
   el.nowTitle.title = item.n;
   renderNowLogo(item);
   renderNowSub();
@@ -678,6 +679,25 @@ export async function playItem(item, { startAt, allowSilent } = {}) {
 // category, the episode, whether it comes from the archive. Which engine
 // carries it does not belong here: "mpegts.js" names a library, and no
 // choice the viewer has to make depends on knowing it.
+/**
+ * The title over the picture. An episode is named with its series
+ * ("Supporting Actor – Episode 2", "1670 – Episode 1: Sarmatian Exam"):
+ * its row in the series' page says only its own part, the page saying the
+ * rest, but over the picture it stood alone. The episode's word follows
+ * the interface language.
+ * @param {any} item
+ */
+function nowTitle(item) {
+  if (item.k !== 3) return item.displayName || item.n;
+  const { label } = episodeLabel(item.n, item.episode, [item.seriesName || '']);
+  return item.seriesName ? `${item.seriesName} – ${label}` : label;
+}
+
+/** The title again in a new interface language; only an episode's changes. */
+export function renderNowTitle() {
+  if (state.playing?.k === 3 && !state.catchup) el.nowTitle.textContent = nowTitle(state.playing);
+}
+
 export function renderNowSub() {
   renderRecordingState();
   const item = state.playing;

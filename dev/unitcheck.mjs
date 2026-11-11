@@ -15,7 +15,7 @@ import { parseServer, parsePlaylistUrl, pastedKind, directSource, serverStamp, t
 import { safeUrl, decodeField, XtreamApi, ApiError } from '../js/api.js';
 import { playlist, vlcIntent, vlcIosLink } from '../js/external.js';
 import { syncOffset, afterTail, ReconnectingLiveLoader } from '../js/liveloader.js';
-import { nameCleaner, labelCodes, countryCodes, searchKey, searchTerms, matchesTerms, homeCountryCodes, homeGroup, viewerTags, episodeTitle } from '../js/name.js';
+import { nameCleaner, labelCodes, countryCodes, searchKey, searchTerms, matchesTerms, homeCountryCodes, homeGroup, viewerTags, episodeTitle, genericEpisode } from '../js/name.js';
 import { Library, buildGroups, cacheTtl } from '../js/library.js';
 import { channelKey, internationalChannels, isNationalTopic } from '../js/international.js';
 import { unwrap, repeats, check as checkListings } from './listings.mjs';
@@ -308,6 +308,16 @@ check('a code further along a label is a word', labelCodes('Movies in English'),
   check('episode title: series name and code before the title', episodeTitle('Tämä on pitkä sarjan nimi S01E02 - Paluu', { series: long }), 'Paluu');
   check('episode title: folded case and a spaced code', episodeTitle('tämä on PITKÄ sarjan nimi - s1 e3', { series: long }), null);
   check('episode title: country prefix, year and code', episodeTitle('FI: Silent Fjord (2015) S01E03 Crossing', { series: ['FI: Silent Fjord (2015)', 'Silent Fjord'] }), 'Crossing');
+  // A name that is only "Episode 2" in some language is said again in the
+  // interface language over the picture; a title of its own is kept.
+  check('episode title: the code further in, behind a series name spelt otherwise', episodeTitle('1670 (GE) - S03E01 - Sarmatian Exam', { series: ['1670'] }), 'Sarmatian Exam');
+  check('episode title: the code further in and nothing after it', episodeTitle('Some Show DE - S02E05', { series: ['Other'] }), null);
+  check('generic episode: English', genericEpisode('Episode 2', 2), true);
+  check('generic episode: Finnish', genericEpisode('Jakso 2', 2), true);
+  check('generic episode: number first (Turkish, Latvian)', [genericEpisode('2. bölüm', 2), genericEpisode('2. sērija', 2), genericEpisode('2 serija', 2)], [true, true, true]);
+  check('generic episode: Greek and Russian', [genericEpisode('Επεισόδιο 12', 12), genericEpisode('Серия 3', 3)], [true, true]);
+  check('generic episode: another number is a title', genericEpisode('Part 2', 5), false);
+  check('generic episode: a title of words', [genericEpisode('Paluu', 2), genericEpisode('The Return 2', 2)], [false, false]);
   check('episode title: 1x04 and dashes', episodeTitle('Silent Fjord - 1x04 - Static', { series: ['Silent Fjord'] }), 'Static');
   check('episode title: a colon after the series', episodeTitle('Silent Fjord: Low Tide', { series: ['Silent Fjord'] }), 'Low Tide');
   check('episode title: a title that only begins like the series stays whole', episodeTitle('Lost Souls', { series: ['Lost'] }), 'Lost Souls');

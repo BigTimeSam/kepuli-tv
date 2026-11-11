@@ -285,6 +285,20 @@ function afterWords(text, words) {
   return year ? end + year[0].length : end;
 }
 
+/**
+ * Whether an episode's name is only the word for "episode" and its number,
+ * in whichever language it was written ("Episode 2", "Jakso 2", "2. bölüm",
+ * "2. sērija"): a provider without titles leaves that name, made in the
+ * interface language of the day, and it is kept in the cache and the
+ * history. Such a name is said again in the language of now.
+ * @param {string} name the episode's own part of its name (episodeTitle)
+ * @param {number} number the episode's number
+ */
+export function genericEpisode(name, number) {
+  const m = /^(?:\p{L}+\s+(\d+)|(\d+)\.?\s+\p{L}+)$/u.exec(String(name ?? '').trim());
+  return Boolean(m && Number(m[1] ?? m[2]) === Number(number));
+}
+
 export function episodeTitle(name, { series = [] } = {}) {
   let text = String(name ?? '').trim();
   const names = seriesNames(series).sort((a, b) => b.length - a.length);
@@ -304,6 +318,12 @@ export function episodeTitle(name, { series = [] } = {}) {
     text = text.replace(EDGES, '');
     if (text === before) break;
   }
+  // The series' name as the provider spelt it may not be the one the list
+  // shows ("1670 (GE) - S03E01 - Sarmatian Exam" under "1670"): a code
+  // standing between separators further in still marks where the
+  // episode's own title begins, and what comes before it is the series.
+  const inner = /(?:^|[\s\-–—:|.,_/])(?:S\d{1,3}\s*[._-]?\s*E\d{1,4}|\d{1,2}x\d{1,4})(?![\p{L}\p{N}])/iu.exec(text);
+  if (inner && inner.index > 0) text = text.slice(inner.index + inner[0].length).replace(EDGES, '');
   return text || null;
 }
 

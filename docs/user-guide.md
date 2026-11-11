@@ -221,13 +221,17 @@ the player actually arrives.
 - Click a channel or movie to start playback. For a series, choose a season
   and then an episode. **Back** restores the parent list's scroll position,
   selected item and search, including when the series is inside a favourite category.
-- On a series' page each episode shows its own title and its code
-  (S01E03) beside it. A provider that names every episode "Series name –
-  S01E03" does not get the series' name repeated on every row: where an
-  episode has no title of its own, the row says **Episode 3**.
+- On a series' page each episode shows its number and its own title,
+  **Episode 1: Sarmatian Exam**, with its code (S03E01) beside it. A
+  provider that names every episode "Series name – S03E01 – Title" does not
+  get the series' name repeated on every row, however it spells the name:
+  what stands before the code is taken for the series. Where an episode has
+  no title of its own, the row says **Episode 3**. Over the picture the
+  series is named too, **Supporting Actor – Episode 2**, and the word
+  follows the interface language.
 - Above the picture a channel's logo stands before its name, the one its row
   shows (a television mark where the provider has none); a film, an episode
-  or a recording has its name alone. A channel's logo is looked for first in
+  or a recording has its name alone (an episode with its series). A channel's logo is looked for first in
   tv-logos, a public collection on GitHub, because many providers' logo
   addresses lead nowhere; GitHub then sees which logo files are loaded (see
   the privacy policy).

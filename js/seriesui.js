@@ -7,7 +7,7 @@
 import { externalLinks, titleFacts } from './titleinfo.js';
 import { poster } from './poster.js';
 import { t } from './i18n.js';
-import { episodeTitle } from './name.js';
+import { episodeTitle, genericEpisode } from './name.js';
 import { listName, toggleFavorite } from './coversui.js';
 import { beginListLoad, catalogueSearch, listNavigation, mediaFilters, refreshRows, showListError, state, updateAddress, vlist } from './state.js';
 import { playItem } from './playing.js';
@@ -39,11 +39,12 @@ export async function openSeries(item) {
   // own group's rules rather than by the list's beside it.
   const sourceItem = item;
   const seriesTitle = listName(sourceItem);
-  // An episode's row says only what the page does not: its own title, the
-  // series' name and the code being there already (episodeTitle in
-  // js/name.js); with no title of its own, "Episode 3".
+  // An episode's row says only what the page does not: its number and its
+  // own title, the series' name and the code being there already
+  // (episodeTitle in js/name.js): "Episode 1: Sarmatian Exam", or with no
+  // title of its own "Episode 3".
   const seriesNames = [item.n, item.displayName, seriesTitle];
-  const episodeName = (episode) => episodeTitle(episode.n, { series: seriesNames }) || t('api.episode', { number: episode.episode || '' });
+  const episodeName = (episode) => episodeLabel(episode.n, episode.episode, seriesNames).label;
   const cleanName = (name, row) => (row && row.k === 3 ? episodeName(row) : name === sourceItem.n ? seriesTitle : name);
   item = { ...item, displayName: seriesTitle };
   state.detail = { view: 'series', item, info: null, season: null, back, cleanName, returnPosition, returnSearch, loading: true };
@@ -78,6 +79,22 @@ export async function openSeries(item) {
     state.detail.loading = false;
     showListError(err, () => openSeries(item));
   }
+}
+
+/**
+ * An episode's name as the app says it, whatever the provider wrote:
+ * `titled` its own title, if it has one beyond "Episode 2" in some
+ * language (genericEpisode), and `label` the number with it, "Episode 1:
+ * Sarmatian Exam", in the interface language of now.
+ * @param {string} name the provider's name for the episode
+ * @param {number} number the episode's number
+ * @param {string[]} series the series' names, to be taken off the front
+ */
+export function episodeLabel(name, number, series) {
+  const own = episodeTitle(name, { series });
+  const titled = own && !genericEpisode(own, number) ? own : null;
+  const word = t('api.episode', { number: number || '' });
+  return { titled, label: !titled ? word : number ? `${word}: ${titled}` : titled };
 }
 
 function seasonNumbers(episodes) {

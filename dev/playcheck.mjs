@@ -6840,8 +6840,11 @@ async function soak(page) {
 /**
  * A series whose provider names every episode "Silent Fjord – S01E01" or
  * "Silent Fjord S01E02 - Winter's End": its page shows the episodes by their
- * own titles, "Episode 1" where there is none, and never the series' name
+ * numbers and own titles ("Episode 2: Winter's End"), "Episode 1" where
+ * there is none, and never the series' name
  * again — the page's heading and the code beside each row say it already.
+ * Over the picture the series' name is there ("Silent Fjord – Episode 1"),
+ * and "Episode 1" turns into "Jakso 1" with the interface language.
  */
 async function episodenames(page) {
   const assert = (ok, message) => { if (!ok) throw new Error(message); };
@@ -6854,10 +6857,28 @@ async function episodenames(page) {
     const rows = await evaluate(page, `[...document.querySelectorAll('#list .row')].slice(0, 3).map((r) => ({ name: r.querySelector('.row-name')?.textContent, code: r.querySelector('.row-ep')?.textContent }))`);
     assert(rows.every((r) => !/Silent Fjord/.test(r.name)), `the series' name is still on the rows: ${JSON.stringify(rows)}`);
     assert(rows[0].name === 'Episode 1' && rows[0].code === 'S01E01', `an episode with no title of its own: ${JSON.stringify(rows[0])}`);
-    assert(rows[1].name === "Winter's End" && !/S01E02/.test(rows[1].name), `an episode with a title: ${JSON.stringify(rows[1])}`);
-    return { ok: true, detail: rows.map((r) => `${r.code} "${r.name}"`).join(', ') };
+    assert(rows[1].name === "Episode 2: Winter's End" && !/S01E02/.test(rows[1].name), `an episode with a title: ${JSON.stringify(rows[1])}`);
+    // Over the picture an episode is named with its series, and "Episode 1"
+    // follows the interface language: it stayed English after a change to
+    // Finnish, and the series' name was not there at all.
+    const title = () => evaluate(page, `document.getElementById('now-title').textContent`);
+    await evaluate(page, `document.querySelectorAll('#list .row')[0].click()`, { gesture: true });
+    await waitFor(page, `document.getElementById('now-title').textContent.includes('Episode')`, 'the episode over the picture');
+    const untitled = await title();
+    await evaluate(page, `import('./js/languageui.js').then((m) => m.applyLanguage('fi'))`);
+    await sleep(500);
+    const finnish = await title();
+    await evaluate(page, `import('./js/languageui.js').then((m) => m.applyLanguage('en'))`);
+    await sleep(300);
+    await evaluate(page, `document.querySelectorAll('#list .row')[1].click()`, { gesture: true });
+    await waitFor(page, `document.getElementById('now-title').textContent.includes('Winter')`, 'the titled episode over the picture');
+    const titled = await title();
+    assert(untitled === 'Silent Fjord – Episode 1' && finnish === 'Silent Fjord – Jakso 1', `the untitled episode over the picture: "${untitled}", in Finnish "${finnish}"`);
+    assert(titled === "Silent Fjord – Episode 2: Winter's End", `the titled episode over the picture: "${titled}"`);
+    return { ok: true, detail: `${rows.map((r) => `${r.code} "${r.name}"`).join(', ')}; over the picture "${untitled}", "${finnish}" in Finnish, "${titled}"` };
   } finally {
     process.env.KEPULI_MOCK_EPISODE_NAMES = '';
+    await evaluate(page, `import('./js/languageui.js').then((m) => m.applyLanguage('en'))`).catch(() => {});
   }
 }
 

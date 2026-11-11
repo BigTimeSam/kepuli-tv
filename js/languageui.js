@@ -17,7 +17,7 @@ import { catalogueSearch, refreshRows, renderSidebar, state, updateAddress } fro
 import { configured, openSetup, renderAccountBox, setupSection, showSetupSection } from './setupui.js';
 import { renderAudio, renderSubtitles } from './tracksui.js';
 import { renderRecordingState } from './recordingsui.js';
-import { renderNowSub, showOverlayActions } from './playing.js';
+import { renderNowSub, renderNowTitle, showOverlayActions } from './playing.js';
 import { renderIdleHome } from './idlehome.js';
 import { renderEmptyState } from './topicbar.js';
 
@@ -42,6 +42,7 @@ export async function applyLanguage(lang) {
   applyStatic();
   catalogueSearch.render();
   renderSidebar();
+  renderNowTitle();
   renderNowSub();
   renderDetail();
   renderInfoStrip();
