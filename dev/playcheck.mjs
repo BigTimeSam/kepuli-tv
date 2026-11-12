@@ -1798,8 +1798,11 @@ async function secondpicture(page, { target, requests }) {
     assert(JSON.stringify(await sides()) === JSON.stringify({ first: false, head: false, details: false }), `the sides after the swap: ${JSON.stringify(await sides())}`);
     await evaluate(page, `document.getElementById('second-swap').click()`);
     assert(JSON.stringify(await sides()) === JSON.stringify({ first: true, head: true, details: true }) && requests.filter((r) => /^\/live\//.test(r)).length === streamsBefore, `the sides swapped back: ${JSON.stringify(await sides())}`);
-    // Its full screen button takes the box of both, and brings it back.
-    await evaluate(page, `document.getElementById('second-full').click()`, { gesture: true });
+    // Its full screen button takes the box of both, and brings it back. A
+    // real press, as the header's button gets in screenbutton: CI's Chrome
+    // gave a scripted click no leave to go full screen, and the first full
+    // run of 1.12.0 timed out here.
+    await mouseClick(page, '#second-full');
     await waitFor(page, `document.fullscreenElement === document.getElementById('videowrap') && document.getElementById('second-full').title === 'Leave full screen'`, 'both pictures full screen, and the button saying so');
     const full = await evaluate(page, `(() => { const a = document.getElementById('video').getBoundingClientRect(), b = document.getElementById('second').getBoundingClientRect(); return { halves: Math.abs(a.width - innerWidth / 2) < 2 && Math.abs(b.width - innerWidth / 2) < 2 && b.right >= innerWidth - 1, title: document.getElementById('second-full').title }; })()`);
     assert(full.halves, `full screen: ${JSON.stringify(full)}`);
@@ -1810,7 +1813,7 @@ async function secondpicture(page, { target, requests }) {
     assert(JSON.parse(await bar()).name === 'hidden', `the second picture in full screen: ${await bar()}`);
     await page.call('Input.dispatchMouseEvent', { type: 'mouseMoved', x: 900, y: 300 });
     await waitFor(page, `getComputedStyle(document.querySelector('.second-bar')).opacity === '1'`, 'the buttons back when the pointer moves');
-    await evaluate(page, `document.getElementById('second-full').click()`, { gesture: true });
+    await mouseClick(page, '#second-full');
     await waitFor(page, `!document.fullscreenElement`, 'full screen left');
     // The same channel in the first picture: one picture again, with its sound.
     await evaluate(page, `document.querySelectorAll('#list .row')[1].click()`, { gesture: true });
