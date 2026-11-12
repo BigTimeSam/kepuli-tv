@@ -1,0 +1,14 @@
+pluginManagement {
+    repositories { google(); mavenCentral(); gradlePluginPortal() }
+}
+dependencyResolutionManagement {
+    repositoriesMode = RepositoriesMode.FAIL_ON_PROJECT_REPOS
+    repositories {
+        google()
+        mavenCentral()
+        // GeckoView, the engine of Firefox for Android, as Mozilla publishes it.
+        maven { url = uri('https://maven.mozilla.org/maven2/') }
+    }
+}
+rootProject.name = 'kepuli-tv-android'
+include ':app'

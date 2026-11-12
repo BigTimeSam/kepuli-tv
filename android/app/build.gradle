@@ -1,0 +1,123 @@
+// Kepuli-TV for Android TV: the browser extension as it is, run by
+// GeckoView (the engine of Firefox for Android) as a built-in extension.
+// Nothing of the player is copied into this directory: the Firefox package
+// is assembled by firefox/build.mjs and taken into the APK's assets, and
+// the version is the manifest's.
+
+import groovy.json.JsonSlurper
+
+plugins {
+    id 'com.android.application'
+}
+
+def root = rootProject.projectDir.parentFile
+def manifest = new JsonSlurper().parse(new File(root, 'manifest.json'))
+def (major, minor, patch) = manifest.version.tokenize('.')*.toInteger()
+def generated = new File(projectDir, 'build/generated/kepuli')
+
+android {
+    namespace = 'io.github.bigtimesam.kepulitv'
+    // GeckoView 160 is compiled against 37.2 and asks the same of the app.
+    compileSdk {
+        version = release(37) { minorApiLevel = 2 }
+    }
+
+    defaultConfig {
+        applicationId = 'io.github.bigtimesam.kepulitv'
+        minSdk = 26
+        targetSdk = 36
+        versionName = manifest.version
+        versionCode = major * 10000 + minor * 100 + patch
+    }
+
+    // Televisions and boxes are ARM, many of them still 32-bit; the engine's
+    // x86 builds would double the bundle for emulators on Intel alone.
+    packaging { jniLibs { excludes += ['lib/x86/**', 'lib/x86_64/**'] } }
+
+    // The upload key is not in the repository (AGENTS.md rule 1): its place
+    // and passwords are in ~/.config/kepuli-tv/android/keystore.properties,
+    // or the file KEPULI_ANDROID_KEYSTORE names. Without it only the debug
+    // build can be made.
+    def keyFile = new File(System.getenv('KEPULI_ANDROID_KEYSTORE') ?: "${System.getProperty('user.home')}/.config/kepuli-tv/android/keystore.properties")
+    def key = new Properties()
+    if (keyFile.exists()) keyFile.withInputStream { key.load(it) }
+    signingConfigs {
+        if (keyFile.exists()) {
+            upload {
+                storeFile = new File(key.storeFile)
+                storePassword = key.storePassword
+                keyAlias = key.keyAlias
+                keyPassword = key.keyPassword
+            }
+        }
+    }
+    // An APK for each kind of processor, for putting on a television by
+    // hand (adb install): half the size of one that carries both. The
+    // bundle for Play is not split here; Play does that itself.
+    splits {
+        abi {
+            enable = true
+            reset()
+            include 'arm64-v8a', 'armeabi-v7a'
+            universalApk = false
+        }
+    }
+    buildTypes {
+        // The debug build is an app of its own beside the released one, so
+        // that a television or an emulator can hold both.
+        debug { applicationIdSuffix = '.debug' }
+        release {
+            // The app's own code is one activity; the engine comes ready-made.
+            minifyEnabled = false
+            if (keyFile.exists()) signingConfig = signingConfigs.upload
+        }
+    }
+
+    buildFeatures { buildConfig = true }
+
+    compileOptions {
+        sourceCompatibility = JavaVersion.VERSION_17
+        targetCompatibility = JavaVersion.VERSION_17
+    }
+
+    sourceSets {
+        main {
+            assets.srcDir(new File(generated, 'assets'))
+            res.srcDir(new File(generated, 'res'))
+        }
+    }
+
+    // GeckoView reads the extension's files from the APK as they are.
+    // Android's packager leaves out what begins with an underscore unless
+    // told otherwise, and the extension's languages are in _locales/: the
+    // engine then refused the whole extension as invalid.
+    androidResources {
+        noCompress += ['js', 'css', 'html', 'json', 'wasm']
+        ignoreAssetsPattern = '!.svn:!.git:!.ds_store:!*.scc:.*:!CVS:!thumbs.db:!picasa.ini:!*~'
+    }
+}
+
+// The extension, from the shared source: node firefox/build.mjs assembles
+// firefox/dist/ (and stops if the two manifests disagree).
+def buildExtension = tasks.register('buildExtension', Exec) {
+    workingDir = root
+    commandLine 'node', 'firefox/build.mjs'
+    inputs.files(fileTree(root) { include 'player.html', 'background.js', 'manifest.json', 'firefox/manifest.json', 'js/**', 'css/**', 'vendor/**', 'icons/**', '_locales/**' })
+    outputs.dir(new File(root, 'firefox/dist'))
+}
+def syncExtension = tasks.register('syncExtension', Sync) {
+    dependsOn buildExtension
+    from(new File(root, 'firefox/dist'))
+    into(new File(generated, 'assets/extension'))
+}
+def syncBrand = tasks.register('syncBrand', Sync) {
+    from(new File(root, 'icons/icon128.png')) { rename { 'kepuli_icon.png' } }
+    // The launcher's tile on a television: the logo and the name, 16:9.
+    from(new File(root, 'brand/android-tv-banner-1280x720.png')) { rename { 'banner.png' } }
+    into(new File(generated, 'res/drawable-nodpi'))
+}
+tasks.named('preBuild') { dependsOn syncExtension, syncBrand }
+
+dependencies {
+    implementation 'org.mozilla.geckoview:geckoview:160.0.20261104181552'
+}
