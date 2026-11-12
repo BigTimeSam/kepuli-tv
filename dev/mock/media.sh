@@ -32,15 +32,21 @@ AUDIO="-c:a aac -b:a 96k"
 # gradient compresses to almost nothing, and mpegts.js — which plays the
 # catch-up stream made of these same segments — stashes 256 kB before it
 # demuxes anything. A real channel runs at megabits per second.
-echo "hls/ (the live channel)"
-mkdir -p "$DIR/hls"; rm -f "$DIR/hls"/*
-# shellcheck disable=SC2046
-ffmpeg -y -hide_banner -loglevel error $(src 'Aurora One' 'c0=0x1b1040:c1=0x0b3b57:c2=0x7c5cff' "$LIVE_SECS") \
-  -vf "$(text 'Aurora One')" \
-  -c:v libx264 -preset veryfast -b:v 1500k -minrate 1500k -maxrate 1500k -bufsize 3000k \
-  -x264-params nal-hrd=cbr -pix_fmt yuv420p -g 50 -keyint_min 50 -sc_threshold 0 $AUDIO \
-  -f hls -hls_time 4 -hls_playlist_type vod -hls_flags independent_segments \
-  -hls_segment_filename "$DIR/hls/%03d.ts" "$DIR/hls/index.m3u8"
+live() {   # $1 directory   $2 title   $3 gradient colours
+  echo "$1/ (a live channel)"
+  mkdir -p "$DIR/$1"; rm -f "$DIR/$1"/*
+  # shellcheck disable=SC2046
+  ffmpeg -y -hide_banner -loglevel error $(src "$2" "$3" "$LIVE_SECS") \
+    -vf "$(text "$2")" \
+    -c:v libx264 -preset veryfast -b:v 1500k -minrate 1500k -maxrate 1500k -bufsize 3000k \
+    -x264-params nal-hrd=cbr -pix_fmt yuv420p -g 50 -keyint_min 50 -sc_threshold 0 $AUDIO \
+    -f hls -hls_time 4 -hls_playlist_type vod -hls_flags independent_segments \
+    -hls_segment_filename "$DIR/$1/%03d.ts" "$DIR/$1/index.m3u8"
+}
+live hls 'Aurora One' 'c0=0x1b1040:c1=0x0b3b57:c2=0x7c5cff'
+# The channels with an odd id show this one, so that two channels side by
+# side (the second picture) are two pictures; same length, same encoding.
+live hls2 'Harbour Two' 'c0=0x3a1410:c1=0x8a4b12:c2=0xffc857'
 
 echo "movie.mp4"
 # shellcheck disable=SC2046

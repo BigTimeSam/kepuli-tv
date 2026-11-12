@@ -796,6 +796,65 @@ export function setFavorite(key, item) {
   });
 }
 
+/* -------------------------------------------------- the second picture */
+
+/**
+ * The accounts a second picture may play from beside the first: this
+ * account when its subscription allows two streams at once, and every
+ * other account the viewer has entered, which has a connection of its
+ * own. An account that says nothing of its connections (a playlist, a
+ * portal) is taken to allow one, as most do.
+ * @param {Partial<Config>} config the account in use
+ * @param {number|null|undefined} maxConnections what its subscription allows
+ * @param {Config[]} accounts every account entered
+ * @returns {Partial<Config>[]}
+ */
+export function secondAccounts(config, maxConnections, accounts) {
+  const seen = new Set([accountKey(config)]);
+  const out = Number(maxConnections) >= 2 ? [config] : [];
+  for (const other of accounts) {
+    const key = accountKey(other);
+    if (!isConfigured(other) || seen.has(key)) continue;
+    seen.add(key);
+    out.push(other);
+  }
+  return out;
+}
+
+/**
+ * Whether two accounts are on one Xtream server: its channels then have
+ * the same ids for both, and one account can play what the other lists.
+ * @param {Partial<Config>} a
+ * @param {Partial<Config>} b
+ * @returns {boolean}
+ */
+export function sameServer(a, b) {
+  const xtream = (/** @type {Partial<Config>} */ c) => (c.type || 'xtream') === 'xtream';
+  return xtream(a) && xtream(b) && accountKey({ ...a, username: '' }) === accountKey({ ...b, username: '' });
+}
+
+/**
+ * An account's favourite channels and the ones watched lately, favourites
+ * first and each once: what the second picture is chosen from, also for
+ * an account this tab is not connected to, whose catalogue is not here.
+ * @param {Partial<Config>} config
+ * @returns {Promise<ListItem[]>}
+ */
+export async function loadChannelsOf(config) {
+  const key = accountKey(config);
+  const names = [personalKey('favorites', key), personalKey('recents', key)];
+  const data = await api.storage.local.get(names);
+  const seen = new Set();
+  /** @type {ListItem[]} */
+  const out = [];
+  for (const item of names.flatMap((name) => data[name] || [])) {
+    if (item.k !== 0 || seen.has(String(item.id))) continue;
+    seen.add(String(item.id));
+    out.push(item);
+  }
+  return out;
+}
+
 /* ------------------------------------------------------------- history */
 
 /** @returns {Promise<ListItem[]>} */

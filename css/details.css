@@ -73,6 +73,9 @@ button.series-favorite.on { color: var(--gold); }
 main:not(.guide) .stage:has(> .infostrip:not([hidden])) > .videowrap.sized:not(:fullscreen) {
   flex: 0 1 auto; width: 100%; aspect-ratio: var(--pic-ratio); min-height: min(240px, 50%);
 }
+/* Two pictures side by side (js/secondui.js) are half as tall for their
+   width: the floor of one picture would put black bands around them. */
+main:not(.guide) .stage:has(> .infostrip:not([hidden])) > .videowrap.split.sized:not(:fullscreen) { min-height: min(150px, 40%); }
 /* The details keep a floor of their own, the programme on now and the
    next one: in a wide window the picture's height took the column and left
    them a line, with the next programme to be scrolled to. Within a third of

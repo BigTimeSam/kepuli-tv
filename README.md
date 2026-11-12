@@ -28,6 +28,8 @@ and your details stay in your browser.
   you choose and every audio track, AC-3, E-AC-3 and DTS too
 - **Recording** of the channel you watch, or a programme planned from the guide,
   kept in the browser and saved as a file when you like
+- **Two channels side by side**, when your subscription allows two streams or
+  you have a second account
 - **Favourites** everywhere, personal channel lists, and only the countries and
   categories you choose
 - **Several accounts** side by side, and sync between computers through the

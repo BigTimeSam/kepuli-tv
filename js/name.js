@@ -134,6 +134,23 @@ export const searchKey = (text) => String(text ?? '')
   .normalize('NFD')
   .replace(/\p{M}/gu, '');
 
+/**
+ * The channel in another account's list that is this one: the one of the
+ * same name, letter for letter once folded, or failing that the only one
+ * with the same guide id (several share one where a provider lists a
+ * channel in HD and SD, and then none of them is known to be it).
+ * @param {{ n?: string, epgId?: string|null }} item
+ * @param {{ n?: string, epgId?: string|null }[]} channels
+ * @returns {any} the channel, or null
+ */
+export function matchChannel(item, channels) {
+  const key = searchKey(item.n).trim();
+  const named = key ? channels.find((c) => searchKey(c.n).trim() === key) : null;
+  if (named) return named;
+  const guided = item.epgId ? channels.filter((c) => c.epgId === item.epgId) : [];
+  return guided.length === 1 ? guided[0] : null;
+}
+
 /** The words of a query, folded. An empty query has none. */
 export const searchTerms = (query) => searchKey(query).split(/\s+/).filter(Boolean);
 

@@ -31,6 +31,7 @@ import { THEMES, renderTheme, resolveTheme } from './theme.js';
 import { renderAccountList } from './accountsui.js';
 import { hasAccess, requestAccess, requestAccessFor } from './permissions.js';
 import { toast } from './toast.js';
+import { secondAvailable } from './secondui.js';
 import { wireModal } from './modal.js';
 import * as store from './config.js';
 import { accountAddress, adoptAccount, connect, offerLists, refreshRows, renderSidebar, resetting, same, startReset, state } from './state.js';
@@ -592,6 +593,9 @@ export async function renderAccountBox() {
     [t('account.valid.label'), a.expiresAt ? dateFmt.format(new Date(a.expiresAt)) : '–'],
     [t('account.cache'), estimate ? megabytes(estimate.usage || 0) : '–'],
   ];
+  // What the connections come to for the second picture, for every kind
+  // of account: beside the figure it follows from, where there is one.
+  rows.push([t('second.info'), t(secondAvailable() ? 'second.info.yes' : 'second.info.no')]);
   for (const [label, value] of rows) {
     const cell = document.createElement('div');
     cell.append(label, document.createElement('br'));

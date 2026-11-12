@@ -203,7 +203,7 @@ export function renderRow(index) {
     onOpen: () => { state.cursor = index; openItem(item); },
     onFavorite: () => toggleFavorite(item),
     onRemove: state.tab === 'recent' ? () => removeFromHistory(item) : null,
-    onMenu: item.k === 0 || item.k === 1 || (isCollection() && !state.detail) ? (at) => { state.cursor = index; openItemMenu(item, at); } : null,
+    onMenu: item.k === 0 || item.k === 1 || (state.tab === 'recent' && !state.detail) ? (at) => { state.cursor = index; openItemMenu(item, at); } : null,
     removeTitle: t('row.remove.history'),
   });
 

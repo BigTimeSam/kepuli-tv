@@ -23,6 +23,7 @@ import { toast } from './toast.js';
 import * as store from './config.js';
 import { activateTab, browserTags, chosenCountries, mediaFilters, playerLayout, renderSidebar, selectGroup, state, updateAddress, updatePlayerLayout, visibleGroups, vlist } from './state.js';
 import { cancelAutoNext, renderStatBadge } from './nextepisode.js';
+import { closeSecond } from './secondui.js';
 
 /**
  * The subtitle selector. The list comes from the demuxer as soon as the file
@@ -194,11 +195,13 @@ export async function chooseSubtitleLook(form) {
  */
 export function sizePicture() {
   const { videoWidth: w, videoHeight: h } = el.video;
+  // Two pictures side by side are twice as wide as one (js/secondui.js).
+  const across = el.videowrap.classList.contains('split') ? 2 : 1;
   el.videowrap.classList.toggle('sized', Boolean(state.playing));
   // Until the picture says its shape — while connecting, between two
   // channels — the box keeps the last shape, or television's, so that it
   // does not fill the column for a moment and then jump.
-  if (state.playing && w > 0 && h > 0) el.videowrap.style.setProperty('--pic-ratio', `${w} / ${h}`);
+  if (state.playing && w > 0 && h > 0) el.videowrap.style.setProperty('--pic-ratio', `${w * across} / ${h}`);
   else if (!el.videowrap.style.getPropertyValue('--pic-ratio')) el.videowrap.style.setProperty('--pic-ratio', '16 / 9');
 }
 el.video.addEventListener('loadedmetadata', sizePicture);
@@ -218,6 +221,7 @@ export function leavePlayback() {
   cancelAutoNext();
   newPlayRun();
   playback.stop();
+  closeSecond();
   state.playing = null;
   sizePicture();
   state.playingSpec = null;

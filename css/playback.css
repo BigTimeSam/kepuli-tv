@@ -306,6 +306,81 @@ body[data-substyle="contrast"] { --cue-back: #000; }
   font-variant-numeric: tabular-nums; pointer-events: none;
 }
 
+/* --------------------------------------------------- the second picture */
+
+/* Another channel in the right half of the box (js/secondui.js): the
+   first picture, what is said over it and its subtitles keep to the left
+   half, and the box is twice as wide for its height (sizePicture), so
+   that neither picture stands between black bands. In the guide the
+   picture is a corner of the page, too small to halve: the second one
+   waits out of sight there, still playing. */
+.videowrap.split > video, .videowrap.split > .overlay { width: 50%; }
+.videowrap.split > .overlay { right: auto; }
+.videowrap.split > .subdisplay { left: 2.5%; right: 52.5%; }
+.second { position: absolute; top: 0; right: 0; bottom: 0; width: 50%; background: #000; border-left: 2px solid #000; }
+.second[hidden] { display: none; }
+/* Its name is in the title bar over it and not on the picture: in full
+   screen there are the two pictures and nothing else. Hidden, it still
+   keeps the buttons to the right. */
+.second-name { visibility: hidden; }
+/* In full screen the buttons come and go with the browser's own controls:
+   there while the pointer moves over the pictures (.controls, see wake()
+   in js/subdisplay.js) or the keyboard is on one of them, gone when it
+   rests, so that a match is watched without three buttons on it. */
+.videowrap:fullscreen .second-bar { opacity: 0; pointer-events: none; transition: opacity .25s ease; }
+.videowrap:fullscreen.controls .second-bar, .videowrap:fullscreen .second-bar:focus-within { opacity: 1; pointer-events: auto; }
+@media (prefers-reduced-motion: reduce) { .videowrap:fullscreen .second-bar { transition: none; } }
+/* The pictures on each other's sides (the swap button, js/secondui.js):
+   the second on the left with its bar, the first and all that is drawn
+   over it on the right, and the halves of the title bar and the details
+   following their pictures. */
+.videowrap.split.swapped > video { margin-left: 50%; }
+.videowrap.split.swapped > .overlay { left: 50%; }
+.videowrap.split.swapped > .subdisplay { left: 52.5%; right: 2.5%; }
+.videowrap.split.swapped > .statbadge { left: calc(50% + 12px); }
+.videowrap.swapped > .second { right: auto; left: 0; border-left: 0; border-right: 2px solid #000; }
+main.guide .videowrap.split.swapped:not(:fullscreen) > video { margin-left: 0; }
+main.guide .videowrap.split.swapped:not(:fullscreen) > .overlay { left: 0; }
+.stagehead.swapped .stagehead-second { order: -1; padding-left: 0; margin-right: 14px; }
+.infostrip.split.swapped .info-half:first-child { order: 2; }
+.infostrip.split.swapped .info-half + .info-half { border-left: 0; border-right: 1px solid var(--border); }
+/* The details in two halves, each under its own picture. */
+.infostrip.split:not([hidden]) { display: grid; grid-template-columns: 1fr 1fr; padding-inline: 0; }
+.info-half { min-width: 0; padding: 0 12px; }
+.info-half + .info-half { border-left: 1px solid var(--border); }
+.info-none { color: var(--muted); font-size: var(--fs-m); }
+main.guide .videowrap.split:not(:fullscreen) > video, main.guide .videowrap.split:not(:fullscreen) > .overlay { width: 100%; }
+main.guide .videowrap:not(:fullscreen) > .second { display: none; }
+/* The name and the two buttons stay in sight: a touch screen has no hover
+   to bring them out with, and the picture has no other controls. */
+.second-bar {
+  position: absolute; top: 0; left: 0; right: 0; display: flex; align-items: center; gap: 6px;
+  padding: 8px 8px 18px 12px; color: #fff;
+  background: linear-gradient(rgba(0, 0, 0, .7), transparent);
+}
+.second-name { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: var(--fs-m); font-weight: 600; text-shadow: 0 1px 2px rgba(0, 0, 0, .8); }
+.second-btn {
+  flex: none; display: grid; place-items: center; width: 32px; height: 32px; padding: 0;
+  border: 1px solid transparent; border-radius: 8px; background: rgba(10, 12, 17, .55); color: #fff; cursor: pointer;
+}
+.second-btn:hover { background: rgba(10, 12, 17, .85); border-color: var(--border-strong); }
+.second-btn:focus-visible { outline: 2px solid var(--accent-ink); outline-offset: 1px; }
+.second-btn svg { width: 18px; height: 18px; fill: none; stroke: currentColor; stroke-width: 1.7; stroke-linecap: round; stroke-linejoin: round; }
+/* The speaker says where the sound is: crossed out here, gold with its
+   waves when this picture has it. */
+.second-btn .waves { display: none; }
+.second-btn .screen-leave, .videowrap:fullscreen .second-btn .screen-enter { display: none; }
+.videowrap:fullscreen .second-btn .screen-leave { display: inline; }
+#second-sound[aria-pressed="true"] { color: var(--gold); }
+.second-btn[aria-pressed="true"] .waves { display: inline; }
+.second-btn[aria-pressed="true"] .off { display: none; }
+.second-note {
+  position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 12px;
+  padding: 48px 16px 16px; text-align: center; color: var(--muted); font-size: var(--fs-m);
+  background: radial-gradient(circle at 50% 45%, #12151f, #06070a 70%);
+}
+.second-note[hidden] { display: none; }
+
 /* scroll-padding: a cover or a button focused at the strip's edge is
    scrolled in with room for its ring, which the scroller would cut. */
 .infostrip { border-top: 1px solid var(--border); background: var(--panel); padding: 9px 12px; max-height: 132px; overflow-y: auto; scroll-padding-block: 9px; }
@@ -377,6 +452,10 @@ main:not(.guide) .stage:has(> .videowrap.sized:not(:fullscreen)) .info-cover { w
 .now-logo[hidden] { display: none; }
 .stagehead { flex: none; box-sizing: border-box; display: flex; align-items: center; min-height: var(--head-h); padding: 7px 14px; background: var(--panel); border-bottom: 1px solid var(--border); color: var(--text); }
 main:not(.has-playback) .stagehead { display: none; }
+/* The second picture's channel: half the bar's own width, which ends
+   where the picture does, so it starts where the second picture starts. */
+.stagehead-second { flex: 0 0 50%; min-width: 0; display: flex; align-items: center; padding-left: 14px; }
+.stagehead-second[hidden], main.guide .stagehead-second { display: none; }
 /* The bar under the picture holds the controls alone now: to the right. */
 .nowbar { justify-content: flex-end; }
 /* What is playing is the largest words on the page after the brand: at

@@ -18,6 +18,7 @@ import { t } from './i18n.js';
 import { groupOfType, state, vlist } from './state.js';
 import { renderMediaSession } from './playercontrols.js';
 import { el } from './dom.js';
+import { splitDetails } from './secondui.js';
 import { addressChanges, freshItem, listName, probeFor, shownName, updateStoredItem } from './coversui.js';
 import { openItem } from './seriesui.js';
 import { bindTile } from './tilekeys.js';
@@ -42,7 +43,75 @@ function playbackWay(item, header) {
   return word ? { text: t(`info.playback.${word}`), title: found.reason } : null;
 }
 
+/**
+ * A channel's programme on now and the next one, as the details show
+ * them: for the picture, and for the second picture beside it.
+ * @param {{ now: any, next: any }} entry
+ */
+export function programmePart(entry) {
+  const frag = document.createDocumentFragment();
+  if (entry.now) {
+    const head = document.createElement('div');
+    head.className = 'epgnow';
+    const time = document.createElement('span');
+    time.className = 'epgnow-time';
+    time.textContent = `${clock(entry.now.start)}–${clock(entry.now.stop)}`;
+    const title = document.createElement('span');
+    title.className = 'epgnow-title';
+    title.textContent = entry.now.title;
+    // Starting the programme over is the guide's to offer, with the
+    // archive and the rest of the day around it; beside the title here
+    // it was a button wanted once in a long while and in the way always.
+    head.append(time, title);
+    frag.appendChild(head);
+
+    const share = progressOf(entry.now);
+    if (share != null) {
+      const bar = document.createElement('div');
+      bar.className = 'epgbar';
+      const fill = document.createElement('i');
+      fill.style.width = `${Math.round(share * 100)}%`;
+      bar.appendChild(fill);
+      frag.appendChild(bar);
+    }
+    if (entry.now.description) {
+      const desc = document.createElement('div');
+      desc.className = 'epgdesc';
+      desc.textContent = entry.now.description;
+      frag.appendChild(desc);
+    }
+  }
+  if (entry.next) {
+    // Three parts rather than one sentence: the label says which
+    // programme this is, and the time and the title then sit in the same
+    // two columns as the one on now, so the eye reads them the same way.
+    const next = document.createElement('div');
+    next.className = 'epgnext';
+    const label = document.createElement('span');
+    label.className = 'epgnext-label';
+    label.textContent = t('info.next');
+    const when = document.createElement('span');
+    when.className = 'epgnext-time';
+    when.textContent = `${clock(entry.next.start)}–${clock(entry.next.stop)}`;
+    const what = document.createElement('span');
+    what.className = 'epgnext-title';
+    what.textContent = entry.next.title;
+    next.append(label, when, what);
+    frag.appendChild(next);
+  }
+  return frag;
+}
+
+/**
+ * The details under the picture; with a second picture on, in two halves,
+ * each under its own picture (splitDetails in js/secondui.js).
+ */
 export function renderInfoStrip() {
+  renderFirstDetails();
+  splitDetails(el.infostrip, programmePart);
+}
+
+function renderFirstDetails() {
   renderMediaSession();
   const item = state.playing;
   renderMenuLinks(null);
@@ -53,57 +122,7 @@ export function renderInfoStrip() {
     const entry = state.catchup ? { now: state.catchup, next: null } : state.epg ? state.epg.nowNext(item.id) : null;
     if (!entry || (!entry.now && !entry.next)) { el.infostrip.hidden = true; return; }
     el.infostrip.hidden = false;
-    const frag = document.createDocumentFragment();
-    if (entry.now) {
-      const head = document.createElement('div');
-      head.className = 'epgnow';
-      const time = document.createElement('span');
-      time.className = 'epgnow-time';
-      time.textContent = `${clock(entry.now.start)}–${clock(entry.now.stop)}`;
-      const title = document.createElement('span');
-      title.className = 'epgnow-title';
-      title.textContent = entry.now.title;
-      // Starting the programme over is the guide's to offer, with the
-      // archive and the rest of the day around it; beside the title here
-      // it was a button wanted once in a long while and in the way always.
-      head.append(time, title);
-      frag.appendChild(head);
-
-      const share = progressOf(entry.now);
-      if (share != null) {
-        const bar = document.createElement('div');
-        bar.className = 'epgbar';
-        const fill = document.createElement('i');
-        fill.style.width = `${Math.round(share * 100)}%`;
-        bar.appendChild(fill);
-        frag.appendChild(bar);
-      }
-      if (entry.now.description) {
-        const desc = document.createElement('div');
-        desc.className = 'epgdesc';
-        desc.textContent = entry.now.description;
-        frag.appendChild(desc);
-      }
-    }
-    if (entry.next) {
-      // Three parts rather than one sentence: the label says which
-      // programme this is, and the time and the title then sit in the same
-      // two columns as the one on now, so the eye reads them the same way.
-      const next = document.createElement('div');
-      next.className = 'epgnext';
-      const label = document.createElement('span');
-      label.className = 'epgnext-label';
-      label.textContent = t('info.next');
-      const when = document.createElement('span');
-      when.className = 'epgnext-time';
-      when.textContent = `${clock(entry.next.start)}–${clock(entry.next.stop)}`;
-      const what = document.createElement('span');
-      what.className = 'epgnext-title';
-      what.textContent = entry.next.title;
-      next.append(label, when, what);
-      frag.appendChild(next);
-    }
-    el.infostrip.replaceChildren(frag);
+    el.infostrip.replaceChildren(programmePart(entry));
     return;
   }
 

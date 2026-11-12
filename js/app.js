@@ -53,6 +53,7 @@ import { keepScreenOnWhilePlaying } from './wakelock.js';
 import { $, el } from './dom.js';
 import { state, TYPE_KIND, unit, kindLabel, KIND_ORDER, KIND_INDEX, kindGroup, ROW_H, setRowHeight, listNavigation, isCollection, tabType, isAbort, same, resetting, startReset, connecting, setConnecting, provide } from './state.js';
 import { categoryCountsFor, collectionItems, favCategoryEntry, isFavorite, isUnfinished, kindIndex, loadGroupItems, openFavCategory, refreshCatalogue, refreshWhenStale, removeFromHistory, renderSubcats, sectionsFor, toggleFavCategory } from './collections.js';
+import { renderSecondItem, secondFor, secondOffered } from './secondui.js';
 import { clickPicture, enterFullscreen, moreItems, renderScreenButton, renderSeriesFavorite, toggleFullscreen, toggleMoreMenu, togglePause, toggleScreen, wireMediaSession } from './playercontrols.js';
 import { wireTopMenu } from './topmenu.js';
 import { wireScrollHints } from './scrollhint.js';
@@ -1650,26 +1651,32 @@ async function openHiddenList() {
     (id) => state.lib.categoryName('live', id));
 }
 
+/** Whether a row has a menu: a channel, a film, an entry of the history. */
+const hasItemMenu = (item) => item.k === 0 || item.k === 1 || (state.tab === 'recent' && !state.detail && item.k !== 'c');
+
 /**
- * The actions on a row: a favourite or not, out of the history when it is
- * in it, and a channel hidden.
+ * The actions on a row: a film marked seen, out of the history when it is
+ * in it, a channel into the second picture, and a channel hidden. Which
+ * rows have a menu at all is hasItemMenu's to say.
  */
 function openItemMenu(item, at) {
   const prefs = state.channelPrefs;
   const id = String(item.id);
   const name = listName(item);
-  const favorite = state.favorites.has(`${item.k}:${item.id}`);
-  const items = [{ label: t(favorite ? 'row.fav.remove' : 'row.fav.add'), onClick: () => toggleFavorite(item) }];
+  // No favourite here: every row carries its star, and the same thing
+  // twice made the menu longer without adding a way to do it.
+  const items = [];
   // A film's ✓ by hand: one seen elsewhere, or one stopped near the end.
   if (item.k === 1) items.push({ label: t(isWatched(`1:${id}`) ? 'row.seen.unmark' : 'row.seen.mark'), onClick: () => toggleWatched(item) });
   if (state.tab === 'recent' && !state.detail) items.push({ label: t('row.remove.history'), onClick: () => removeFromHistory(item) });
+  if (secondOffered(item)) items.push({ label: t('row.second'), onClick: () => secondFor(item, at) });
   if (item.k === 0) {
     items.push({
       label: t('row.hide'), danger: true,
       onClick: () => changeChannelChoices({ ...prefs, hiddenChannels: [...prefs.hiddenChannels, id] }, t('row.hidden', { name })),
     });
   }
-  openRowMenu(at, items, { label: name, returnFocus: el.list });
+  if (items.length) openRowMenu(at, items, { label: name, returnFocus: el.list });
 }
 
 /**
@@ -2084,7 +2091,7 @@ function wireUi() {
     } catch { toast(t('player.pip.unavailable'), { kind: 'error' }); }
   });
 
-  el.more.addEventListener('click', () => toggleMoreMenu());
+  el.more.addEventListener('click', () => { renderSecondItem(); toggleMoreMenu(); });
   // The item's own handler has run by the time the click reaches the menu,
   // and none of them awaits before it spends the gesture — the clipboard,
   // the cast picker and the hand-off all need it.
@@ -2178,7 +2185,7 @@ function wireUi() {
     // Shift+F10 where a keyboard has none.
     if (e.key === 'ContextMenu' || (e.key === 'F10' && e.shiftKey)) {
       const item = state.rows[state.cursor];
-      if (item && (item.k === 0 || item.k === 1 || (isCollection() && !state.detail && item.k !== 'c'))) {
+      if (item && hasItemMenu(item)) {
         e.preventDefault();
         const node = vlist.nodes.get(state.cursor);
         openItemMenu(item, node?.querySelector('.row-more') || node || el.list);
@@ -2234,7 +2241,7 @@ provide({
   visibleRows, visibleGroups, withoutInternational, groupOfType, liveGroupOf, chosenCountries, selectGroup,
   searchLimit, searchesEveryGroup, beginListLoad, showListError, showListCancelled, openItemMenu, openHiddenList,
   connect, adoptAccount, accountAddress, offerLists, offerAccess, browserTags,
-  goToChannel, playRelative, noteChannel, updatePlayerLayout,
+  goToChannel, playRelative, noteChannel, updatePlayerLayout, sourceFor,
 });
 
 applyTheme(earlyTheme());

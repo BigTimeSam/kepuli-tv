@@ -478,7 +478,9 @@ function sendFile(req, res, name, type) {
 // The playlists and segments of the live channel are not counted by
 // request: the provider counts an HLS viewer by session (see admitHls,
 // with KEPULI_MOCK_LIVE_TS).
-const MAX_CONNECTIONS = 1;
+// KEPULI_MOCK_CONNECTIONS, a number: the account allows that many, in what
+// it reports and in the limit alike — two, for the second picture.
+const maxConnections = () => Number(process.env.KEPULI_MOCK_CONNECTIONS) || 1;
 // The browser's abort reaches the server a moment after the next request
 // may have: within this a full count is waited on, not refused.
 const ABORT_GRACE_MS = 300;
@@ -486,7 +488,7 @@ let connections;
 const hlsSessions = new Map();     // HLS viewers: channel id → the time of its last request
 
 function resetConnections() {
-  connections = { open: new Set(), lingering: 0, peak: 0, refused: [], overlaps: [], hls: 0 };
+  connections = { open: new Set(), ports: new Map(), lingering: 0, peak: 0, refused: [], overlaps: [], hls: 0 };
   hlsSessions.clear();
 }
 resetConnections();
@@ -511,7 +513,7 @@ const counted = () => connections.open.size + connections.lingering + hlsCounted
 /** A playlist request of an HLS viewer: its session kept, or a new one admitted. */
 function admitHls(req, res, id) {
   if (!process.env.KEPULI_MOCK_LIVE_TS) return true;
-  const max = process.env.KEPULI_MOCK_LIMIT ? MAX_CONNECTIONS : Infinity;
+  const max = process.env.KEPULI_MOCK_LIMIT ? maxConnections() : Infinity;
   if (!hlsSessions.has(id) && counted() >= max) {
     connections.refused.push(`${req.url} hls at ${counted()}/${max}`);
     send(res, 400, 'every connection is in use', 'text/plain');
@@ -522,12 +524,17 @@ function admitHls(req, res, id) {
 }
 
 async function admit(req, res) {
-  const max = process.env.KEPULI_MOCK_LIMIT ? MAX_CONNECTIONS : Infinity;
+  const max = process.env.KEPULI_MOCK_LIMIT ? maxConnections() : Infinity;
   const at = Date.now();
   while (connections.open.size && Date.now() - at < ABORT_GRACE_MS) await new Promise((r) => setTimeout(r, 25));
   const range = req.headers.range || 'whole';
   if (connections.open.size) connections.overlaps.push(`${req.url} ${range} over ${[...connections.open].join(', ')}`);
-  if (counted() >= max) {
+  // The limit is an account's, and a second server started beside this one
+  // (the accounts scenarios, port + 1) is another account: its streams are
+  // told apart by the port they arrived at and do not fill this one.
+  const port = req.socket.localPort;
+  const elsewhere = [...connections.ports.values()].filter((p) => p !== port).length;
+  if (counted() - elsewhere >= max) {
     const full = process.env.KEPULI_MOCK_FULL;
     connections.refused.push(`${req.url} ${range} at ${counted()}/${max}${full ? ` ${full}` : ''}`);
     if (full === 'silent' || full === 'close') {
@@ -540,9 +547,11 @@ async function admit(req, res) {
   }
   const name = `${req.url} ${range}`;
   connections.open.add(name);
+  connections.ports.set(name, port);
   connections.peak = Math.max(connections.peak, connections.open.size);
   res.on('close', () => {
     connections.open.delete(name);
+    connections.ports.delete(name);
     const lag = Number(process.env.KEPULI_MOCK_RELEASE_MS || 0);
     if (lag > 0) { connections.lingering++; setTimeout(() => { connections.lingering--; }, lag); }
   });
@@ -553,18 +562,25 @@ async function admit(req, res) {
 
 // The segments from dev/mock/media.sh, with their durations from the VOD
 // playlist ffmpeg wrote next to them.
-const HLS = join(MEDIA, 'hls');
-const SEGMENTS = (() => {
+const segmentsOf = (dir) => {
   let text = '';
-  try { text = readFileSync(join(HLS, 'index.m3u8'), 'utf8'); } catch { return []; }
+  try { text = readFileSync(join(dir, 'index.m3u8'), 'utf8'); } catch { return []; }
   const out = [];
   let dur = 0;
   for (const line of text.split('\n')) {
     if (line.startsWith('#EXTINF:')) dur = Number(line.slice(8).split(',')[0]);
-    else if (line && !line.startsWith('#')) out.push({ file: join(HLS, line.trim()), dur });
+    else if (line && !line.startsWith('#')) out.push({ file: join(dir, line.trim()), dur });
   }
   return out;
-})();
+};
+const SEGMENTS = segmentsOf(join(MEDIA, 'hls'));
+// A second picture of the same length and encoding, for the channels with
+// an odd id: two channels side by side are then two pictures to tell
+// apart. Where media.sh has not made it, every channel shows the first.
+const SEGMENTS_2 = segmentsOf(join(MEDIA, 'hls2'));
+/** The segments of a channel, and the directory its playlist names them in. */
+const pictureOf = (id) => (SEGMENTS_2.length === SEGMENTS.length && Number(id) % 2 === 1
+  ? { segments: SEGMENTS_2, dir: 'seg2' } : { segments: SEGMENTS, dir: 'seg' });
 const LOOP_SECONDS = SEGMENTS.reduce((sum, s) => sum + s.dur, 0);
 
 /**
@@ -572,7 +588,8 @@ const LOOP_SECONDS = SEGMENTS.reduce((sum, s) => sum + s.dur, 0);
  * sequence that wraps around the loop, with a discontinuity marked at each
  * wrap so that the player accepts the timestamps starting over.
  */
-function livePlaylist() {
+function livePlaylist(id) {
+  const { dir } = pictureOf(id);
   const n = SEGMENTS.length;
   const elapsed = (Date.now() - T0) / 1000;
   const loops = Math.floor(elapsed / LOOP_SECONDS);
@@ -589,7 +606,7 @@ function livePlaylist() {
   ];
   for (let k = first; k <= current; k++) {
     if (k > 0 && k % n === 0) lines.push('#EXT-X-DISCONTINUITY');
-    lines.push(`#EXTINF:${SEGMENTS[k % n].dur.toFixed(3)},`, `seg/${k}.ts`);
+    lines.push(`#EXTINF:${SEGMENTS[k % n].dur.toFixed(3)},`, `${dir}/${k}.ts`);
   }
   return lines.join('\n') + '\n';
 }
@@ -600,8 +617,55 @@ function livePlaylist() {
  * after a burst — served whole, the download would finish in a second and
  * the player would take the end of it for a dropped source.
  */
-async function sendTimeshift(req, res, { archive = false } = {}) {
-  const total = SEGMENTS.reduce((sum, s) => sum + statSync(s.file).size, 0);
+/**
+ * A segment's packets with every clock in them moved on by `ticks` (90 kHz):
+ * the PCR of the adaptation fields and the PTS and DTS of the PES headers.
+ * The loop sent a second time is then the next two minutes of one
+ * broadcast, not the same two minutes again.
+ */
+function shiftClocks(data, ticks) {
+  const out = Buffer.from(data);
+  const add = (at, marker) => {      // a 33-bit stamp in five bytes, PTS and DTS alike
+    const b = out;
+    const stamp = BigInt(((b[at] >> 1) & 7)) << 30n | BigInt(b[at + 1]) << 22n | BigInt(b[at + 2] >> 1) << 15n | BigInt(b[at + 3]) << 7n | BigInt(b[at + 4] >> 1);
+    const moved = (stamp + BigInt(ticks)) & 0x1ffffffffn;
+    b[at] = (marker << 4) | (Number(moved >> 30n) << 1) | 1;
+    b[at + 1] = Number((moved >> 22n) & 0xffn);
+    b[at + 2] = (Number((moved >> 15n) & 0x7fn) << 1) | 1;
+    b[at + 3] = Number((moved >> 7n) & 0xffn);
+    b[at + 4] = (Number(moved & 0x7fn) << 1) | 1;
+  };
+  for (let p = 0; p + 188 <= out.length; p += 188) {
+    if (out[p] !== 0x47) continue;
+    const start = out[p + 1] & 0x40, field = (out[p + 3] >> 4) & 3;
+    let payload = p + 4;
+    if (field & 2) {
+      const length = out[p + 4];
+      if (length > 6 && out[p + 5] & 0x10) {
+        const base = (BigInt(out.readUInt32BE(p + 6)) << 1n | BigInt(out[p + 10] >> 7)) + BigInt(ticks) & 0x1ffffffffn;
+        out.writeUInt32BE(Number(base >> 1n), p + 6);
+        out[p + 10] = (Number(base & 1n) << 7) | (out[p + 10] & 0x7f);
+      }
+      payload += 1 + length;
+    }
+    if (!(field & 1) || !start || payload + 19 > p + 188) continue;
+    if (out[payload] !== 0 || out[payload + 1] !== 0 || out[payload + 2] !== 1) continue;
+    const stamps = out[payload + 7] >> 6;
+    if (stamps & 2) add(payload + 9, stamps);
+    if (stamps === 3) add(payload + 14, 1);
+  }
+  return out;
+}
+
+/**
+ * endless: a live channel, which has no end — the loop is sent again and
+ * again with its clocks moved on, at the pace it plays once the first
+ * round's head start is in. Sent once, as the archive is, the channel
+ * ended after two minutes and began again from 0:00, and the player sat
+ * buffering at the seam until its watchdog restarted the stream.
+ */
+async function sendTimeshift(req, res, { archive = false, segments = SEGMENTS, endless = false } = {}) {
+  const total = segments.reduce((sum, s) => sum + statSync(s.file).size, 0);
   // KEPULI_MOCK_TS_PACE, a multiple of real time: below 1 the stream comes
   // slower than it plays, without the opening burst — a connection that
   // cannot keep up with the channel, for dev/playcheck.mjs.
@@ -618,17 +682,23 @@ async function sendTimeshift(req, res, { archive = false } = {}) {
   if (hangAt > 0) process.env.KEPULI_MOCK_HANG_AT = '';
   const t0 = Date.now();
   let sent = 0;
-  for (const segment of SEGMENTS) {
-    const data = readFileSync(segment.file);
-    for (let offset = 0; offset < data.length && !res.destroyed; offset += 32 * 1024) {
-      if (hangAt > 0 && sent >= hangAt) return;
-      const chunk = data.subarray(offset, offset + 32 * 1024);
-      sent += chunk.length;
-      res.write(chunk);
-      const wait = t0 + Math.max(0, sent - BURST) / bytesPerSecond * 1000 - Date.now();
-      if (wait > 0) await new Promise((r) => setTimeout(r, wait));
+  let due = 0;                 // milliseconds after t0 at which what is sent so far is due
+  for (let round = 0; round === 0 || endless; round++) {
+    const rate = round === 0 ? bytesPerSecond : total / LOOP_SECONDS * (pace > 0 ? pace : 1);
+    for (const segment of segments) {
+      const file = readFileSync(segment.file);
+      const data = round === 0 ? file : shiftClocks(file, Math.round(round * LOOP_SECONDS * 90000));
+      for (let offset = 0; offset < data.length && !res.destroyed; offset += 32 * 1024) {
+        if (hangAt > 0 && sent >= hangAt) return;
+        const chunk = data.subarray(offset, offset + 32 * 1024);
+        due += Math.max(0, Math.min(chunk.length, sent + chunk.length - BURST)) / rate * 1000;
+        sent += chunk.length;
+        res.write(chunk);
+        const wait = t0 + due - Date.now();
+        if (wait > 0) await new Promise((r) => setTimeout(r, wait));
+      }
+      if (res.destroyed) return;
     }
-    if (res.destroyed) return;
   }
   res.end();
 }
@@ -679,7 +749,7 @@ function account(req) {
     user_info: {
       username: USER, password: PASS, message: 'Demo server — nothing here is real', auth: 1, status: 'Active',
       exp_date: secs(T0 + 200 * 86400e3), is_trial: '0', active_cons: String(counted()), created_at: secs(T0 - 120 * 86400e3),
-      max_connections: String(MAX_CONNECTIONS), allowed_output_formats: ['ts', 'm3u8'],
+      max_connections: String(maxConnections()), allowed_output_formats: ['ts', 'm3u8'],
     },
     server_info: {
       url: host, port: port || (proto === 'https' ? '443' : '80'), https_port: proto === 'https' ? (port || '443') : '',
@@ -1006,13 +1076,13 @@ function handle(req, res) {
   if (!SEGMENTS.length && (path.startsWith('/live/') || path.startsWith('/timeshift/'))) {
     return send(res, 404, 'the live channel is missing: run sh dev/mock/media.sh', 'text/plain');
   }
-  if ((m = /^\/live\/[^/]+\/[^/]+\/seg\/(\d+)\.ts$/.exec(path))) {
-    return sendFile(req, res, SEGMENTS[Number(m[1]) % SEGMENTS.length].file, 'video/mp2t');
+  if ((m = /^\/live\/[^/]+\/[^/]+\/(seg2?)\/(\d+)\.ts$/.exec(path))) {
+    return sendFile(req, res, (m[1] === 'seg2' ? SEGMENTS_2 : SEGMENTS)[Number(m[2]) % SEGMENTS.length].file, 'video/mp2t');
   }
   if ((m = /^\/live\/[^/]+\/[^/]+\/(\d+)\.m3u8$/.exec(path))) {
     if (!admitHls(req, res, m[1])) return;
     connections.hls++;
-    return send(res, 200, livePlaylist(), 'application/vnd.apple.mpegurl');
+    return send(res, 200, livePlaylist(m[1]), 'application/vnd.apple.mpegurl');
   }
   // KEPULI_MOCK_CHANNEL_REFUSED: every live channel is refused with 407 at
   // once, before any redirect — what a real provider answers for a channel
@@ -1023,11 +1093,11 @@ function handle(req, res) {
   // KEPULI_MOCK_NO_ANSWER: a stream or a file is accepted and never
   // answered — no status, no byte — until the player gives up on it.
   if (process.env.KEPULI_MOCK_NO_ANSWER && /^\/(live|movie|series)\//.test(path)) return;
-  if (/^\/live\/.*\.m3u8$/.test(path)) return send(res, 200, livePlaylist(), 'application/vnd.apple.mpegurl');
+  if (/^\/live\/.*\.m3u8$/.test(path)) return send(res, 200, livePlaylist(0), 'application/vnd.apple.mpegurl');
   // KEPULI_MOCK_LIVE_TS serves the channel as a provider does: one endless
   // MPEG-TS connection, counted against the account like a film.
   if (/^\/live\/.*\.ts$/.test(path) && Number(process.env.KEPULI_MOCK_LIVE_CUT) > 0) return admit(req, res).then((ok) => ok && sendLiveCut(req, res, Number(process.env.KEPULI_MOCK_LIVE_CUT)));
-  if (/^\/live\/.*\.ts$/.test(path) && process.env.KEPULI_MOCK_LIVE_TS) return admit(req, res).then((ok) => ok && sendTimeshift(req, res));
+  if (/^\/live\/.*\.ts$/.test(path) && process.env.KEPULI_MOCK_LIVE_TS) return admit(req, res).then((ok) => ok && sendTimeshift(req, res, { endless: true, segments: pictureOf(/(\d+)\.ts$/.exec(path)?.[1]).segments }));
   if (/^\/live\/.*\.ts$/.test(path)) return send(res, 404, 'the demo channel is HLS; the player falls back to it', 'text/plain');
   if (path.startsWith('/timeshift/')) return admit(req, res).then((ok) => ok && sendTimeshift(req, res, { archive: true }));
   if (path.startsWith('/files/refused/')) return send(res, 400, '', 'video/mp4');

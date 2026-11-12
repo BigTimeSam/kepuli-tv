@@ -1411,6 +1411,34 @@ const { accountKey, accountLabel, isConfigured } = await import('../js/config.js
 const { outgoingAccounts, incomingAccounts, joinRecents, joinResume, joinFavorites, strippedItems, keepAddresses, syncName } = await import('../js/sync.js');
 
 {
+  // The second picture needs a connection of its own: this account's
+  // second one, or another account's.
+  const { secondAccounts } = await import('../js/config.js');
+  const here = { type: 'xtream', scheme: 'http', host: 'a.example', port: '80', username: 'ann', password: 'x', id: '1' };
+  const sameUnderAnotherName = { ...here, port: '', name: 'Again', id: '2' };
+  const other = { ...here, host: 'b.example', id: '3' };
+  const unfinished = { type: 'xtream', host: 'c.example', id: '4' };
+  const all = [here, sameUnderAnotherName, other, unfinished];
+  const ids = (list) => list.map((c) => c.id);
+  check('secondAccounts: one connection and one account leave no second picture', ids(secondAccounts(here, 1, [here])), []);
+  check('secondAccounts: two connections give this account', ids(secondAccounts(here, 2, [here])), ['1']);
+  check('secondAccounts: another account gives one, the same account twice and an unfinished one do not', ids(secondAccounts(here, 1, all)), ['3']);
+  check('secondAccounts: a playlist that names no limit is taken to allow one', ids(secondAccounts(here, null, all)), ['3']);
+  check('secondAccounts: this account first, then the others', ids(secondAccounts(here, 3, all)), ['1', '3']);
+  const { sameServer } = await import('../js/config.js');
+  check('sameServer: another user of the same Xtream server, not another host or a playlist', [
+    sameServer(here, { ...here, username: 'bob' }), sameServer(here, { ...here, username: 'bob', port: '' }),
+    sameServer(here, other), sameServer({ type: 'm3u', url: 'http://a.example/x.m3u' }, { type: 'm3u', url: 'http://a.example/x.m3u' }),
+  ], [true, true, false, false]);
+  const { matchChannel } = await import('../js/name.js');
+  const theirs = [{ id: '7', n: 'Yle TV1 HD', epgId: 'yle1' }, { id: '8', n: 'Yle TV1', epgId: 'yle1' }, { id: '9', n: 'MTV3', epgId: 'mtv3' }, { id: '10', n: 'Eläinkanava', epgId: null }];
+  check('matchChannel: the same name folded, else the only one of the same guide id, else none', [
+    matchChannel({ n: 'yle tv1', epgId: 'x' }, theirs)?.id, matchChannel({ n: 'ELAINKANAVA' }, theirs)?.id,
+    matchChannel({ n: 'MTV Kolme', epgId: 'mtv3' }, theirs)?.id, matchChannel({ n: 'Yle Yksi', epgId: 'yle1' }, theirs), matchChannel({ n: '', epgId: null }, theirs),
+  ], ['8', '10', '9', null, null]);
+}
+
+{
   // The forms providers and players write, each of them once.
   const text = '﻿#EXTM3U url-tvg="http://g.example/a.xml.gz, http://g.example/b.xml" catchup="shift" catchup-days="2"\r\n'
     + '#EXTINF:-1 tvg-ID="yle1.fi" tvg-name="FI: Yle TV1" tvg-logo="http://l.example/yle.png" group-title="Finland, News",FI: Yle TV1, HD\r\n'

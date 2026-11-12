@@ -431,6 +431,45 @@ interrupted channel-list load restores the previous list.
 - **The next episode** after a ten-second countdown when one ends, with **Play
   now** and **Cancel** over the picture; a switch under **Playback** turns it off
 - **The previous channel** with `l`, as a television's own button has it
+- **Side by side**: a second picture, another live channel beside the one playing, the two
+  side by side in the picture's box and in full screen (`js/secondui.js`).
+  It is opened from a channel's row menu (⋯, or a right click): **Play
+  alongside**. It takes a connection of its own, so the item is
+  there only when one is to be had. When the subscription's details say the
+  account allows two or more streams at once (**Settings › Account & data**
+  shows the figure), the channel plays at once. When it allows one and you
+  have entered another account, the channel plays through that account;
+  with several, the menu asks **Play through which account?**, by the names
+  you gave them. On the same server under another user name the channel is
+  the same one; on another server it is the channel of the same name in
+  that account's list, and when it has none the player says so.
+  **Side by side** in the player's `☰` menu reaches what the list on
+  screen does not hold: another account's own favourite and recently
+  watched channels, the account asked first when there are several. The
+  second picture is silent until the speaker in its corner is pressed,
+  which moves the sound to it and mutes the first; unmuting the first moves
+  it back, and the second picture's own controls (volume, pause, picture in
+  picture) work as the first one's do; a click on the picture itself does
+  not pause it, as it does not pause a live channel in the first. The two arrows beside the speaker swap the
+  pictures' sides, with their halves of the title bar and the details;
+  both go on playing as they were. The four corners beside them
+  take both pictures full screen, side by side, as `f` and a double click
+  on the first picture do; there the pictures are all there is, and the
+  buttons show only while the pointer moves, as the browser's own controls
+  do. The ✕ beside them, or **Close side by side**
+  in the `☰` menu, closes it, as does starting the same channel
+  in the first picture or stopping the first. Changing the first picture's
+  channel leaves it playing. In the programme guide it plays on out of
+  sight. The title bar and the details are in two halves while it is on:
+  each channel's logo and name over its own picture, and its programme
+  now and next under it. It is for live channels: no films, no archive,
+  no recording. The player says that it is there in three places, and
+  nowhere else: once, in the message strip, the first time a channel
+  plays where a second picture can be had; in the `☰` menu, whose **Side
+  by side** is there whenever something plays and, where no connection is
+  to be had, says that another account is needed, with **Add account**
+  beside it; and in **Settings › Account & data**, where **Two channels
+  side by side** reads **Available** or **Takes another account**
 - **Programme reminders** from the guide: a minute before the programme starts,
   a message names it with **Watch**, or a notification does when the player
   is closed or out of sight and notifications are allowed
@@ -504,7 +543,7 @@ interrupted channel-list load restores the previous list.
 | `a` | the next audio track, when the file has more than one |
 | `s` | star what the cursor is on — a list row, or the sidebar row, topic chip or tile the keyboard stands on |
 | `+` `−` | subtitles larger or smaller, by ten per cent of the size the picture asks for |
-| `Shift`+`F10` | the menu of the channel the list stands on: a favourite or not, or hide it; the context-menu key does the same |
+| `Shift`+`F10` | the menu of the channel the list stands on: hide it, or play it alongside; the context-menu key does the same |
 | `Delete` | drop the history row the cursor is on; on a **Continue watching** card, forget that card |
 | `n` `p` | next / previous; from a list that does not hold the episode, `n` plays the series' next one |
 | `l` | the previous channel; from a film or a recording, the last channel |

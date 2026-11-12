@@ -165,7 +165,7 @@ js/epggrid.js       the guide grid, virtualised in both directions
 js/programmesearch.js  cancellable programme search and virtualised results
 js/channelprefs.js  per-account channel visibility and ordering helpers
 js/channelchoices.js  the countries the viewer watches, and what is hidden
-js/rowmenu.js       a row's menu: a favourite or not, hide
+js/rowmenu.js       a row's menu: hide, seen, the second picture
 js/modal.js         shared close buttons, Escape and backdrop dismissal
 js/db.js            IndexedDB: a TTL cache
 js/config.js        settings, favourites, history, resume points, the remembered view

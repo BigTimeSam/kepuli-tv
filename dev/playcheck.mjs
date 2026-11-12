@@ -233,6 +233,17 @@
 //                                     that does not hold the series
 //   node dev/playcheck.mjs continuewatching a film left halfway heads the
 //                                     history under its own heading
+//   node dev/playcheck.mjs secondpicture another channel beside the one
+//                                     playing: on one connection and one
+//                                     account the ☰ menu says what it takes;
+//                                     a hint once; from the row's menu on
+//                                     two connections, both streams open,
+//                                     sound from one at a time and both full
+//                                     screen from its button; on one
+//                                     connection the same menu asks which
+//                                     other account and plays the channel
+//                                     through it; another account's own
+//                                     favourites through the ☰ menu
 //   node dev/playcheck.mjs closedplan a recording planned and the player closed:
 //                                      the background opens a player behind
 //                                      the tab in view, which records it
@@ -1593,6 +1604,182 @@ async function accounts(page, { target }) {
     const back = await favCount();
     return { ok: first === 1 && elsewhere === 0 && back === 1, detail: `favourites: ${first} on port ${MOCK_PORT}, ${elsewhere} on port ${OTHER_PORT}, ${back} back on ${MOCK_PORT}` };
   } finally {
+    other.closeAllConnections();
+    await new Promise((resolve) => other.close(resolve));
+  }
+}
+
+/**
+ * The second picture (js/secondui.js). An account of one connection, alone,
+ * offers none: the ☰ menu's item says another account is needed and leads
+ * to adding one. Where one can be had, the first channel played says so
+ * once. With two connections a channel's row menu plays it beside
+ * the first, as a second stream of the provider's, muted until its speaker
+ * is pressed, and the same channel started in the first picture closes it.
+ * With one connection and two more accounts entered, the same row menu
+ * asks which account and plays the channel of the same name from that
+ * one's server; the ☰ menu asks which account and offers that one's own
+ * favourite channels.
+ */
+async function secondpicture(page, { target, requests }) {
+  const assert = (ok, message) => { if (!ok) throw new Error(message); };
+  const OTHER_PORT = MOCK_PORT + 1;
+  const other = await startMockServer(OTHER_PORT);
+  const otherRequests = [];
+  other.on('request', (req) => otherRequests.push(req.url));
+  process.env.KEPULI_MOCK_LIVE_TS = '1';
+  process.env.KEPULI_MOCK_LIMIT = '1';
+  const SECOND = `(() => { const v = document.getElementById('video2'); return v.readyState >= 2 && v.currentTime > 0.3 && !v.paused; })()`;
+  const muted = () => evaluate(page, `[document.getElementById('video').muted, document.getElementById('video2').muted].join()`);
+  const rowMenu = async (index) => {
+    await evaluate(page, `document.querySelectorAll('#list .row')[${index}].querySelector('.row-more').click()`);
+    await sleep(300);
+    return evaluate(page, `[...document.querySelectorAll('.row-menu button')].map((b) => b.textContent)`);
+  };
+  const choose = (label) => evaluate(page, `(() => { const b = [...document.querySelectorAll('.row-menu button')].find((x) => x.textContent.startsWith(${JSON.stringify(label)})); if (!b) return false; b.click(); return true; })()`, { gesture: true });
+  const moreItem = async () => {
+    await evaluate(page, `document.getElementById('btn-more').click()`);
+    await sleep(200);
+    const shown = await evaluate(page, `(() => { const b = document.getElementById('btn-second'); return b.hidden ? null : b.textContent.trim(); })()`);
+    return shown;
+  };
+  const reload = async (what) => {
+    await page.call('Page.navigate', { url: bare(target.url) });
+    await sleep(1000);
+    await waitFor(page, CONNECTED, what);
+    await evaluate(page, `document.querySelector('#tabs [data-tab="live"]').click()`);
+    await click(page, '#groups', 'Finland');
+    await waitFor(page, `document.querySelectorAll('#list .row').length > 5`, 'the channels');
+    await evaluate(page, `document.querySelectorAll('#list .row')[0].click()`, { gesture: true });
+    await waitFor(page, PLAYING, 'the first picture', 40000);
+  };
+  try {
+    // One connection, one account: nothing to offer.
+    await reload('the account of one connection');
+    // The row's menu has no item, and nothing hints at one. The ☰ menu's
+    // item is there all the same, and says what it would take, with the
+    // way to it: Add account opens the form for a new one.
+    const alone = { row: await rowMenu(1), hint: await evaluate(page, `document.getElementById('toast').hidden ? null : document.getElementById('toast-text').textContent`), more: await moreItem() };
+    assert(!alone.row.includes('Play alongside') && alone.more === 'Side by side' && !/side by side/.test(alone.hint || ''), `on one connection: ${JSON.stringify(alone)}`);
+    await evaluate(page, `document.getElementById('btn-second').click()`);
+    await waitFor(page, `!document.getElementById('toast').hidden && document.querySelector('#toast .toast-action')`, 'what a second picture would take');
+    const need = await evaluate(page, `[document.getElementById('toast-text').textContent, document.querySelector('#toast .toast-action').textContent]`);
+    assert(/^This account allows one stream at a time\. Add another account/.test(need[0]) && need[1] === 'Add account', `said on one connection: ${JSON.stringify(need)}`);
+    await evaluate(page, `document.querySelector('#toast .toast-action').click()`, { gesture: true });
+    await waitFor(page, `document.getElementById('setup').open && document.getElementById('tab-connection').getAttribute('aria-selected') === 'true'`, 'Settings open on Connection for the new account');
+    await evaluate(page, `document.getElementById('setup').close()`);
+
+    // Two connections: the row's menu, a second stream, sound from one.
+    // The first channel played there says so once, and not again.
+    process.env.KEPULI_MOCK_CONNECTIONS = '2';
+    await evaluate(page, `chrome.storage.local.get('ui').then(({ ui }) => chrome.storage.local.set({ ui: { ...ui, secondHint: false } }))`);
+    await reload('the account of two connections');
+    const hint = await evaluate(page, `document.getElementById('toast').hidden ? null : document.getElementById('toast-text').textContent`);
+    assert(/^You can watch two channels side by side: .* choose Play alongside\.$/.test(hint || ''), `the hint on two connections: ${JSON.stringify(hint)}`);
+    await reload('the account of two connections again');
+    const again = await evaluate(page, `document.getElementById('toast').hidden ? null : document.getElementById('toast-text').textContent`);
+    assert(!/side by side/.test(again || ''), `the hint a second time: ${JSON.stringify(again)}`);
+    const before = connectionStats();
+    const items = await rowMenu(1);
+    assert(items.includes('Play alongside'), `the row's menu on two connections: ${items.join(', ')}`);
+    await choose('Play alongside');
+    await waitFor(page, SECOND, 'the second picture', 40000);
+    await waitFor(page, PLAYING, 'the first picture beside it');
+    const two = connectionStats();
+    assert(two.open === 2 && two.refused.length === before.refused.length, `the streams with two pictures: ${JSON.stringify(two)}`);
+    const split = await evaluate(page, `(() => { const a = document.getElementById('video').getBoundingClientRect(), b = document.getElementById('video2').getBoundingClientRect(); return { beside: Math.abs(a.right - b.left) < 4 && Math.abs(a.width - b.width) < 4, name: document.getElementById('second-name').textContent }; })()`);
+    assert(split.beside && split.name, `the two pictures: ${JSON.stringify(split)}`);
+    assert(await muted() === 'false,true', `sound at first: ${await muted()}`);
+    await evaluate(page, `document.getElementById('second-sound').click()`);
+    assert(await muted() === 'true,false', `sound after the speaker: ${await muted()}`);
+    // The browser's own controls on either picture move the sound as well.
+    await evaluate(page, `document.getElementById('video').muted = false`);
+    await waitFor(page, `document.getElementById('video2').muted && document.getElementById('second-sound').getAttribute('aria-pressed') === 'false'`, 'the sound back with the first picture');
+    await evaluate(page, `document.getElementById('video2').muted = false`);
+    await waitFor(page, `document.getElementById('video').muted && document.getElementById('second-sound').getAttribute('aria-pressed') === 'true' && document.getElementById('video2').controls`, 'the sound with the second picture from its own controls');
+    // A click on the second picture leaves it playing, as a live channel
+    // in the first is left: a real press, in the middle of the picture.
+    const middle = await evaluate(page, `(() => { const r = document.getElementById('video2').getBoundingClientRect(); return [r.x + r.width / 2, r.y + r.height / 3]; })()`);
+    for (const type of ['mousePressed', 'mouseReleased']) await page.call('Input.dispatchMouseEvent', { type, x: middle[0], y: middle[1], button: 'left', clickCount: 1 });
+    await sleep(800);
+    assert(!(await evaluate(page, `document.getElementById('video2').paused`)), 'a click on the second picture paused it');
+    // The swap button changes the pictures' sides, the title bar's halves
+    // with them, and neither stream is asked for again.
+    const sides = () => evaluate(page, `(() => { const x = (id) => Math.round(document.getElementById(id).getBoundingClientRect().left); return { first: x('video') < x('video2'), head: x('now-title') < x('now2-title'), details: document.querySelectorAll('.info-half').length !== 2 || Math.round(document.querySelectorAll('.info-half')[0].getBoundingClientRect().left) < Math.round(document.querySelectorAll('.info-half')[1].getBoundingClientRect().left) }; })()`);
+    const streamsBefore = requests.filter((r) => /^\/live\//.test(r)).length;
+    assert(JSON.stringify(await sides()) === JSON.stringify({ first: true, head: true, details: true }), `the sides at first: ${JSON.stringify(await sides())}`);
+    await evaluate(page, `document.getElementById('second-swap').click()`);
+    assert(JSON.stringify(await sides()) === JSON.stringify({ first: false, head: false, details: false }), `the sides after the swap: ${JSON.stringify(await sides())}`);
+    await evaluate(page, `document.getElementById('second-swap').click()`);
+    assert(JSON.stringify(await sides()) === JSON.stringify({ first: true, head: true, details: true }) && requests.filter((r) => /^\/live\//.test(r)).length === streamsBefore, `the sides swapped back: ${JSON.stringify(await sides())}`);
+    // Its full screen button takes the box of both, and brings it back.
+    await evaluate(page, `document.getElementById('second-full').click()`, { gesture: true });
+    await waitFor(page, `document.fullscreenElement === document.getElementById('videowrap') && document.getElementById('second-full').title === 'Leave full screen'`, 'both pictures full screen, and the button saying so');
+    const full = await evaluate(page, `(() => { const a = document.getElementById('video').getBoundingClientRect(), b = document.getElementById('second').getBoundingClientRect(); return { halves: Math.abs(a.width - innerWidth / 2) < 2 && Math.abs(b.width - innerWidth / 2) < 2 && b.right >= innerWidth - 1, title: document.getElementById('second-full').title }; })()`);
+    assert(full.halves, `full screen: ${JSON.stringify(full)}`);
+    // Full screen is the two pictures alone: no name on the second, and
+    // its buttons only while the pointer moves, as the browser's controls.
+    const bar = () => evaluate(page, `JSON.stringify({ name: getComputedStyle(document.getElementById('second-name')).visibility, bar: getComputedStyle(document.querySelector('.second-bar')).opacity, controls: document.getElementById('videowrap').classList.contains('controls') })`);
+    await waitFor(page, `!document.getElementById('videowrap').classList.contains('controls') && getComputedStyle(document.querySelector('.second-bar')).opacity === '0'`, 'the second picture\'s buttons gone with the pointer at rest', 12000);
+    assert(JSON.parse(await bar()).name === 'hidden', `the second picture in full screen: ${await bar()}`);
+    await page.call('Input.dispatchMouseEvent', { type: 'mouseMoved', x: 900, y: 300 });
+    await waitFor(page, `getComputedStyle(document.querySelector('.second-bar')).opacity === '1'`, 'the buttons back when the pointer moves');
+    await evaluate(page, `document.getElementById('second-full').click()`, { gesture: true });
+    await waitFor(page, `!document.fullscreenElement`, 'full screen left');
+    // The same channel in the first picture: one picture again, with its sound.
+    await evaluate(page, `document.querySelectorAll('#list .row')[1].click()`, { gesture: true });
+    await waitFor(page, `document.getElementById('second').hidden && !document.getElementById('videowrap').classList.contains('split')`, 'the second picture closed');
+    await waitFor(page, PLAYING, 'the channel in the first picture', 40000);
+    assert(await muted() === 'false,true', `sound after closing: ${await muted()}`);
+    await sleep(800);
+    assert(connectionStats().open === 1, `streams open after closing: ${connectionStats().open}`);
+
+    // One connection, another account: its favourites through the ☰ menu.
+    process.env.KEPULI_MOCK_CONNECTIONS = '';
+    await evaluate(page, `chrome.storage.local.get('config').then(({ config }) => chrome.storage.local.set({
+      accounts: [{ ...config, id: 'first', name: 'First' }, { ...config, id: 'second', name: 'Second', port: '${OTHER_PORT}' }, { ...config, id: 'third', name: 'Third', port: '${OTHER_PORT + 1}' }],
+      config: { ...config, id: 'first', name: 'First' },
+      'favorites:http://127.0.0.1:${OTHER_PORT + 1}/demo': [{ k: 0, id: '1005', n: 'Third One' }],
+      'favorites:http://127.0.0.1:${OTHER_PORT}/demo': [{ k: 0, id: '1003', n: 'Elsewhere One' }, { k: 1, id: '5000', n: 'A film, not a channel' }] }))`);
+    await reload('the first of two accounts');
+    // The row's menu is the way in here too: it asks which account, and
+    // the channel of the same name plays from that account's server.
+    const elsewhere = { row: await rowMenu(1), more: null };
+    assert(elsewhere.row.includes('Play alongside'), `the row's menu with other accounts: ${JSON.stringify(elsewhere)}`);
+    await choose('Play alongside');
+    await waitFor(page, `document.querySelector('.row-menu-head')`, 'the question of the account');
+    const asked = await evaluate(page, `[document.querySelector('.row-menu-head').textContent, ...[...document.querySelectorAll('.row-menu button')].map((b) => b.textContent)]`);
+    assert(JSON.stringify(asked) === JSON.stringify(['Play through which account?', 'Second', 'Third']), `the accounts asked: ${JSON.stringify(asked)}`);
+    await choose('Second');
+    await waitFor(page, SECOND, 'the same channel through the other account', 40000);
+    const through = await evaluate(page, `document.getElementById('second-name').textContent`);
+    const fromOther = otherRequests.filter((r) => /^\/live\//.test(r)).length;
+    assert(through === split.name && fromOther > 0 && connectionStats().refused.length === before.refused.length, `through the other account: ${through}, ${fromOther} stream request(s) there, refused ${connectionStats().refused.slice(-2).join(' | ')}`);
+    await evaluate(page, `document.getElementById('second-close').click()`);
+    await waitFor(page, `document.getElementById('second').hidden`, 'the second picture closed');
+    elsewhere.more = await moreItem();
+    assert(elsewhere.more === 'Side by side', `the ☰ menu with other accounts: ${JSON.stringify(elsewhere)}`);
+    await evaluate(page, `document.getElementById('btn-second').click()`, { gesture: true });
+    // Two accounts to take the connection from: the account first, by name.
+    await waitFor(page, `document.querySelector('.row-menu button')`, 'the accounts to choose from');
+    const named = await evaluate(page, `[document.querySelector('.row-menu-head')?.textContent, ...[...document.querySelectorAll('.row-menu button')].map((b) => b.textContent)]`);
+    assert(JSON.stringify(named) === JSON.stringify(['Side by side', 'Second', 'Third']), `the accounts offered: ${JSON.stringify(named)}`);
+    await evaluate(page, `[...document.querySelectorAll('.row-menu button')].find((b) => b.textContent === 'Second').click()`);
+    await waitFor(page, `document.querySelector('.row-menu-head')?.textContent === 'Second'`, 'the chosen account\'s channels');
+    const offered = await evaluate(page, `[...document.querySelectorAll('.row-menu button')].map((b) => b.textContent)`);
+    assert(offered.length === 1 && offered[0] === 'Elsewhere One', `the other account's channels: ${JSON.stringify(offered)}`);
+    await choose('Elsewhere One');
+    await waitFor(page, SECOND, 'the other account\'s channel', 40000).catch(async (err) => { throw new Error(`${err.message}: ${await evaluate(page, `document.getElementById('second-note').textContent`)}; ${JSON.stringify(connectionStats())}; ${otherRequests.filter((r) => !/player_api|img/.test(r)).slice(-4).join(' ')}`); });
+    assert(otherRequests.some((r) => r.includes('/1003.')), `the other server's requests: ${otherRequests.slice(-3).join(' ')}`);
+    assert(await moreItem() === 'Close side by side', 'the ☰ menu while the second picture is on');
+    await evaluate(page, `document.getElementById('btn-second').click()`);
+    await waitFor(page, `document.getElementById('second').hidden`, 'the second picture closed from the menu');
+    return { ok: true, detail: `on one connection the ☰ menu says another account is needed and opens the form for one; on two a hint once; on two, ${split.name} beside the first as a second stream, sound moved and back, sides swapped and back without a new stream, both full screen from its button, closed by the same channel; on one connection and three accounts the row's menu asks which (${asked.slice(1).join(', ')}) and plays ${through} through the one chosen, and the ☰ menu plays its own ${offered[0]}` };
+  } finally {
+    process.env.KEPULI_MOCK_LIVE_TS = '';
+    process.env.KEPULI_MOCK_LIMIT = '';
+    process.env.KEPULI_MOCK_CONNECTIONS = '';
+    await evaluate(page, `chrome.storage.local.remove(['accounts', 'favorites:http://127.0.0.1:${OTHER_PORT}/demo', 'favorites:http://127.0.0.1:${OTHER_PORT + 1}/demo'])`).catch(() => {});
     other.closeAllConnections();
     await new Promise((resolve) => other.close(resolve));
   }
@@ -3694,8 +3881,8 @@ async function channels(page) {
   await setSort('az');
   assert(JSON.stringify(await ends()) === JSON.stringify(az), 'the alphabetical order did not come back');
 
-  // A channel's own menu, from a right click: a favourite or not, and
-  // hide with Undo in the message.
+  // A channel's own menu, from a right click: hide, with Undo in the
+  // message. A favourite is the row's star and not in the menu as well.
   const menu = async (index) => {
     await evaluate(page, `document.getElementById('list').scrollTop = 0`);
     await sleep(200);
@@ -3711,10 +3898,16 @@ async function channels(page) {
   const before = await names();
   const home = await evaluate(page, `document.querySelector('#groups .group[aria-selected="true"] .group-name')?.textContent`);
   const items = await menu(2);
-  assert(JSON.stringify(items) === JSON.stringify(['Add to favourites', 'Hide channel']), `the menu of a channel: ${JSON.stringify(items)}`);
-  await choose('Add to favourites');
-  await menu(4);
-  await choose('Add to favourites');
+  assert(JSON.stringify(items) === JSON.stringify(['Hide channel']), `the menu of a channel: ${JSON.stringify(items)}`);
+  await pressKey(page, 'Escape', 'Escape', 27);
+  const star = async (index) => {
+    await evaluate(page, `document.querySelectorAll('#list .row')[${index}].querySelector('button').click()`);
+    await waitFor(page, `document.getElementById('list').getAttribute('aria-busy') === 'false'`, 'the list after the star');
+    await sleep(200);
+  };
+  const isStarred = (index) => evaluate(page, `Boolean(document.querySelectorAll('#list .row')[${index}].querySelector('.row-star.on, [aria-pressed="true"]'))`);
+  await star(2);
+  await star(4);
   // The favourites stay in their places in the list. The channels gather
   // none above it: "Filter channels" has no favourites strip, as the
   // Favourites tab holds them.
@@ -3722,11 +3915,10 @@ async function channels(page) {
   const after = await names();
   assert(after.length > 4 && JSON.stringify(after) === JSON.stringify(before.slice(0, after.length)), `a favourite moved in the list: ${JSON.stringify({ before, after })}`);
   const starred = await evaluate(page, `[...document.querySelectorAll('#list .row')].filter((r) => r.querySelector('.row-star.on, [aria-pressed="true"]')).length`);
-  assert(JSON.stringify(await menu(2)) === JSON.stringify(['Remove from favourites', 'Hide channel']), 'the menu of a favourite');
-  await evaluate(page, `document.querySelector('.row-menu .popitem').click()`);
-  await sleep(300);
-  assert(JSON.stringify(await menu(2)) === JSON.stringify(['Add to favourites', 'Hide channel']), `a favourite taken off (${starred} starred before)`);
+  assert(starred === 2 && JSON.stringify(await menu(2)) === JSON.stringify(['Hide channel']), `the menu of a favourite (${starred} starred)`);
   await pressKey(page, 'Escape', 'Escape', 27);
+  await star(2);
+  assert(!(await isStarred(2)) && await isStarred(4), `a favourite taken off (${starred} starred before)`);
   await sleep(200);
 
   // The keyboard: Shift+F10 on the row the list stands on, Escape back.
@@ -3797,10 +3989,10 @@ async function channels(page) {
   await openLiveList(page, 3);
   await evaluate(page, `[...document.querySelectorAll('#groups .group')].find((g) => g.querySelector('.group-name')?.textContent === ${JSON.stringify(home)})?.click()`);
   await sleep(500);
-  const kept = await menu(4);
-  await pressKey(page, 'Escape', 'Escape', 27);
-  assert(JSON.stringify(kept) === JSON.stringify(['Remove from favourites', 'Hide channel']), `the favourite after a reload: ${JSON.stringify(kept)}`);
-  return { ok: true, detail: 'channel order from Settings (A-Z, Z-A, number); favourites from the menu, in their places in the list and no strip above it; the menu from a right click and Shift+F10; hide with Undo, Hidden and Show again; countries chosen and all again; the open favourites kept over a reload' };
+  await evaluate(page, `document.getElementById('list').scrollTop = 0`);
+  await sleep(200);
+  assert(await isStarred(4) && !(await isStarred(2)), 'the favourite after a reload');
+  return { ok: true, detail: 'channel order from Settings (A-Z, Z-A, number); favourites from the star and not in the menu, in their places in the list and no strip above it; the menu from a right click and Shift+F10; hide with Undo, Hidden and Show again; countries chosen and all again; the open favourites kept over a reload' };
 }
 
 /**
@@ -7559,7 +7751,7 @@ async function handoff(page) {
 
 const SCENARIOS = { buffering, livebuffering, filmbuffering, emptyfile, tsasmp4, refusedfile, badgateway, livebadgateway, channelrefused, noanswer, longfilm, catalogUi, setupClarity, welcome, fullscreenControl, blockedplay, clickpause, pickers, touchcaret, screenbutton, topmenu, scrollbars, channelorder, lengthfilter, nowlogo, channels, home, resumemkv, restore, programmes, catchup, seek, death, cancel, timeout, search, paste, keys, switching, resume, connections, livezap, livequiet, reconnect, accounts, listerror, a11y, subtitles, audio, wasmaudio, settings,
   lastchannel, nextepisode, continuewatching, reminders, update, seeklag, cuesretry, quota, catchupfreeze, catchupfull, twotabs, switchstop, resettabs,
-  refresh, restorenav, guidekeep, removeaccount, m3u, sync, holes, picks, flakyserver, accountform, stalker, record, guidefavs, guidenames, categories, homecountry, noleak, perf, pseudo, startup, soak, phone, headline, accountnow, onerow, nowbarfit, subsize, arrowmiddle, idlelight, iossubs, starquiet, phonestar, pickertouch, pickerkeyboard, phonescroll, menutap, wakelock, livecut, episodenames, gotochannel, filmdetails, favorder, countryfilter, tilekeys, routes, programmekeys, searchlimit, filterfolds, focusrings, xtreamoffer, guideclick, filmaddress, filmfacts, playlistfile, perflive, perfplaylist, remoteimages, phoneguide, handoff, closedplan };
+  refresh, restorenav, guidekeep, removeaccount, m3u, sync, holes, picks, flakyserver, accountform, stalker, record, guidefavs, guidenames, categories, homecountry, noleak, perf, pseudo, startup, soak, phone, headline, accountnow, onerow, nowbarfit, subsize, arrowmiddle, idlelight, iossubs, starquiet, phonestar, pickertouch, pickerkeyboard, phonescroll, menutap, wakelock, livecut, episodenames, gotochannel, filmdetails, favorder, countryfilter, tilekeys, routes, programmekeys, searchlimit, filterfolds, focusrings, xtreamoffer, guideclick, filmaddress, filmfacts, playlistfile, perflive, perfplaylist, remoteimages, phoneguide, handoff, closedplan, secondpicture };
 // The mock's whole-list answers stall for these, longer than the request limit.
 const SLOW_LIST_MS = { cancel: 60000, timeout: 60000 };
 // The media is sent slowly for these: the seek targets must lie outside the

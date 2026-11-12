@@ -110,6 +110,9 @@ button.group-star, button.group-star:hover, .group.active .group-star:hover { wi
   border-radius: 10px; box-shadow: 0 14px 34px rgba(0, 0, 0, .45);
 }
 .popitem.danger { color: var(--danger); }
+/* What the menu chooses, where its items are names alone (the second
+   picture's accounts, an account's channels). */
+.row-menu-head { padding: 6px 10px 4px; color: var(--muted); font-size: var(--fs-xs); font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .row-menu .popitem:focus { background: var(--row-hover); outline: none; }
 .row-menu .popitem:focus-visible { outline: 2px solid var(--accent-ink); outline-offset: -2px; }
 

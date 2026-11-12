@@ -13,15 +13,23 @@ let open = null;   // { pop, opener, onClose }
 /**
  * @param {{ x: number, y: number } | Element} at a point, or the element to sit beside
  * @param {{ label: string, onClick: () => void, danger?: boolean }[]} items
- * @param {{ label?: string, returnFocus?: Element }} [options]
+ * @param {{ label?: string, heading?: string, returnFocus?: Element }} [options]
+ *        heading: a line over the items that says what is being chosen,
+ *        where the items alone (account names, channel names) do not
  */
-export function openRowMenu(at, items, { label = '', returnFocus = null } = {}) {
+export function openRowMenu(at, items, { label = '', heading = '', returnFocus = null } = {}) {
   closeRowMenu();
   const pop = document.createElement('div');
   pop.className = 'row-menu';
   pop.setAttribute('popover', 'manual');
   pop.setAttribute('role', 'menu');
-  if (label) pop.setAttribute('aria-label', label);
+  if (label || heading) pop.setAttribute('aria-label', label || heading);
+  if (heading) {
+    const head = document.createElement('div');
+    head.className = 'row-menu-head';
+    head.textContent = heading;
+    pop.append(head);
+  }
   for (const item of items) {
     const button = document.createElement('button');
     button.type = 'button';

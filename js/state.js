@@ -116,7 +116,7 @@ export let refreshRows, showRows, renderSidebar, renderCategories, favouriteChan
 export let visibleRows, visibleGroups, withoutInternational, groupOfType, liveGroupOf, chosenCountries, selectGroup;
 export let searchLimit, searchesEveryGroup, beginListLoad, showListError, showListCancelled, openItemMenu, openHiddenList;
 export let connect, adoptAccount, accountAddress, offerLists, offerAccess, browserTags;
-export let goToChannel, playRelative, noteChannel, updatePlayerLayout;
+export let goToChannel, playRelative, noteChannel, updatePlayerLayout, sourceFor;
 
 /** app.js hands over what it built, once, before the player starts. */
 export function provide(parts) {
@@ -126,6 +126,6 @@ export function provide(parts) {
     visibleRows, visibleGroups, withoutInternational, groupOfType, liveGroupOf, chosenCountries, selectGroup,
     searchLimit, searchesEveryGroup, beginListLoad, showListError, showListCancelled, openItemMenu, openHiddenList,
     connect, adoptAccount, accountAddress, offerLists, offerAccess, browserTags,
-    goToChannel, playRelative, noteChannel, updatePlayerLayout,
+    goToChannel, playRelative, noteChannel, updatePlayerLayout, sourceFor,
   } = parts);
 }

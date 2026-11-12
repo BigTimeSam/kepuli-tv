@@ -31,8 +31,8 @@ as the hosted demo for store reviewers.
   scenario sets it, runs and clears it. The current set: `BAD_GATEWAY`,
   `LIVE_BAD_GATEWAY`, `CHANNEL_REFUSED`, `REFUSED_FILE`, `NO_ANSWER`,
   `FAIL_LISTS`, `SLOW_LIST`, `HANG_AT`, `CUT_AT`, `HOLE`, `THROTTLE`,
-  `RELEASE_MS`, `LIMIT` (connections per account), `LIVE_TS` (live as one
-  MPEG-TS connection, as a provider's; recording needs it), `LIVE_CUT`
+  `RELEASE_MS`, `LIMIT` (connections per account), `CONNECTIONS` (how many the account allows and reports, one unless set; two for the second picture), `LIVE_TS` (live as one
+  endless MPEG-TS connection, as a provider's, the loop sent again with its clocks moved on; recording needs it), `LIVE_CUT`
   (seconds: live MPEG-TS from where the broadcast is now, after a burst, and
   each connection closed by the server after that long), `TS_PACE`,
   `TS_AS_MP`, `LONG`, `FULL`, `EMPTY`, `EPISODE_EXT`, `EXTRA_CHANNEL`,
@@ -46,5 +46,5 @@ as the hosted demo for store reviewers.
 - Catalogue facts that tests and the demo rely on: film names carry their year
   ("Planet Arctic (2019)"); the last title of each film genre is an AVI (shown
   as unplayable), the first two are MP4; Silent Fjord's episodes are MKV with
-  English and Finnish subtitles; every film's picture is the same demo clip.
+  English and Finnish subtitles; every film's picture is the same demo clip; a live channel shows "Aurora One", or "Harbour Two" when its id is odd.
   Changing these breaks scenarios and the store screenshots: run them.

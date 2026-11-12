@@ -30,6 +30,7 @@ import { t } from './i18n.js';
 import * as store from './config.js';
 import { cast, groupOfType, noteChannel, offerAccess, playerLayout, refreshRows, renderSidebar, state, tabType, updateAddress, updatePlayerLayout, vlist } from './state.js';
 import { cancelAutoNext } from './nextepisode.js';
+import { closeSecond, firstPlays } from './secondui.js';
 import { leavePlayback, renderAudio, renderSubtitles, sizePicture } from './tracksui.js';
 
 export const playback = new Playback(el.video, onPlaybackState);
@@ -348,6 +349,7 @@ if (tabs) {
     else if (data.type === 'yield') {
       releaseWait = null;
       playback.stop();
+      closeSecond();
       showMovedAway();
       tabs.postMessage({ type: 'yielded', id: data.id });
     }
@@ -648,6 +650,7 @@ export async function playItem(item, { startAt, allowSilent } = {}) {
   if (live) noteChannel(item);
   else if (item.k === 1) state.routeMovie = String(item.id);
   warnRecordingConnection(item);
+  firstPlays(item);
   state.playing = item;
   sizePicture();
   updatePlayerLayout();
