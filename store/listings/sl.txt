@@ -16,6 +16,8 @@ majhen.
   prostorskim zvokom
 → Posnemi kanal zdaj ali oddajo iz vodiča in jo shrani kot datoteko
   (snemanje se vklopi v Nastavitvah)
+→ Dva kanala vzporedno, če naročnina dovoljuje dva tokova ali imate drug
+  račun
 
 
 KAJ DOBIŠ

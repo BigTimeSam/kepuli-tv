@@ -16,6 +16,8 @@ paraître petit.
 → Enregistre une chaîne maintenant ou une émission du guide, et garde-la dans un
   fichier
   (l'enregistrement s'active dans les Réglages)
+→ Une seconde chaîne à côté de la première, si votre abonnement autorise
+  deux flux ou si vous avez un autre compte
 
 
 CE QUE TU OBTIENS

@@ -16,6 +16,8 @@ malen.
   prostorni zvuk
 → Snimi kanal odmah ili emisiju iz vodiča i zadrži je kao datoteku
   (snimanje se uključuje u Postavkama)
+→ Dva kanala jedno uz drugo, ako pretplata dopušta dva streama ili imate
+  drugi račun
 
 
 ŠTO DOBIVAŠ

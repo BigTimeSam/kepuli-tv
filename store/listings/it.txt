@@ -14,6 +14,8 @@ Kepuli-TV riproduce account Xtream Codes, playlist M3U e portali Stalker, ed
   audio surround
 → Registra subito un canale o un programma dalla guida, e tienilo come file
   (la registrazione si attiva nelle Impostazioni)
+→ Un secondo canale accanto al primo, se il tuo abbonamento consente due
+  flussi o se ne hai un altro
 
 
 COSA OTTIENI

@@ -14,6 +14,8 @@ built around one idea: a huge catalogue should feel small.
   sound included
 → Record a channel now or a programme from the guide, and keep it as a file
   (recording is turned on in Settings)
+→ Watch a second channel beside the first, when your subscription allows two
+  streams or you have another account
 
 
 WHAT YOU GET

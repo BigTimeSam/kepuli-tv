@@ -15,6 +15,8 @@ khi dùng.
 → Ghi lại một kênh ngay lúc này hoặc một mục trong lịch phát sóng, lưu thành
   tệp
   (bật tính năng ghi trong Cài đặt)
+→ Hai kênh song song, khi gói của bạn cho phép hai luồng hoặc bạn có thêm
+  một gói thứ hai
 
 
 BẠN SẼ NHẬN ĐƯỢC

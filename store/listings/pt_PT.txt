@@ -15,6 +15,8 @@ pensado em torno de uma ideia: um catálogo enorme deve parecer pequeno.
   e som surround
 → Grava um canal agora ou um programa do guia e guarda-o num ficheiro
   (a gravação ativa-se nas Definições)
+→ Um segundo canal ao lado do primeiro, se a sua subscrição permitir duas
+  transmissões ou se tiver outra conta
 
 
 O QUE TENS

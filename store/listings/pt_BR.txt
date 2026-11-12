@@ -14,6 +14,8 @@ criado em torno de uma ideia: um catálogo enorme deve parecer pequeno.
 → Filmes e episódios em MKV tocam direto aqui, com legendas e som surround
 → Grave um canal agora ou um programa do guia e guarde como arquivo
   (a gravação é ativada nas Configurações)
+→ Um segundo canal ao lado do primeiro, se a sua assinatura permitir duas
+  transmissões ou se você tiver outra conta
 
 
 O QUE VOCÊ TEM

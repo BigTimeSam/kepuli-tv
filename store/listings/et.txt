@@ -14,6 +14,8 @@ portaale ning on ehitatud ühe mõtte ümber: tohutu valik peab tunduma väike.
   heliga
 → Salvesta kanal kohe või saade kavast ja hoia see failina
   (salvestamine lülitatakse sisse Seadetes)
+→ Kaks kanalit kõrvuti, kui tellimus lubab kahte voogu või sul on teine
+  konto
 
 
 MIDA SA SAAD

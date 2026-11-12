@@ -15,6 +15,8 @@ listákat és Stalker portálokat játszik le, egyetlen gondolatra épülve: egy
   felirattal és térhatású hanggal együtt
 → Rögzíts egy csatornát most, vagy egy műsort a műsorfüzetből, fájlként
   (a rögzítést a Beállításokban kell bekapcsolni)
+→ Két csatorna egymás mellett, ha az előfizetésed két adatfolyamot enged,
+  vagy van egy második fiókod
 
 
 MIT KAPSZ

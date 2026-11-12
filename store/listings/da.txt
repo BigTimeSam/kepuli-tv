@@ -14,6 +14,8 @@ Stalker-portaler og bygger på én idé: et kæmpe udvalg skal føles lille.
   surroundlyd
 → Optag en kanal nu eller et program fra guiden, og gem det som en fil
   (optagelse slås til under Indstillinger)
+→ To kanaler side om side: med to streams i abonnementet, ellers med en
+  konto mere
 
 
 HVAD DU FÅR

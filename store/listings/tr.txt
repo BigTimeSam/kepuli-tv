@@ -16,6 +16,8 @@ hissettirmeli.
   dahil
 → Bir kanalı hemen ya da rehberden bir programı kayda al, dosya olarak sakla
   (kayıt özelliği Ayarlar'dan açılır)
+→ Aboneliğiniz iki yayına izin veriyorsa veya ikinci bir hesabınız varsa iki
+  kanal yan yana
 
 
 NELER SUNUYOR
