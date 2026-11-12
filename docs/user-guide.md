@@ -440,6 +440,9 @@ interrupted channel-list load restores the previous list.
   with an archive has the rest in the programme guide
 - **Side by side**: a second picture, another live channel beside the one playing, the two
   side by side in the picture's box and in full screen (`js/secondui.js`).
+  Not on a phone, where two pictures would each be a stamp: in a window
+  600 px wide or less, or on a touch screen that low, it is neither offered
+  nor mentioned. A tablet has it.
   It is opened from a channel's row menu (⋯, or a right click): **Play
   alongside**. It takes a connection of its own, so the item is
   there only when one is to be had. When the subscription's details say the
@@ -457,7 +460,8 @@ interrupted channel-list load restores the previous list.
   which moves the sound to it and mutes the first; unmuting the first moves
   it back, and the second picture's own controls (volume, pause, picture in
   picture) work as the first one's do; a click on the picture itself does
-  not pause it, as it does not pause a live channel in the first. The two arrows beside the speaker swap the
+  not pause it in Chrome, as it does not pause a live channel in the first
+  (Firefox's own controls take the click on either). The two arrows beside the speaker swap the
   pictures' sides, with their halves of the title bar and the details;
   both go on playing as they were. The four corners beside them
   take both pictures full screen, side by side, as `f` and a double click

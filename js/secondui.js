@@ -68,8 +68,18 @@ export const secondShowing = () => Boolean(showing);
 const isShown = (item) => Boolean(showing && item && item.k === 0 && String(item.id) === String(showing.item.id)
   && (store.accountKey(showing.config) === store.accountKey(state.config) || store.sameServer(showing.config, state.config)));
 
+// A phone has no room for two pictures: side by side each would be a
+// stamp, and its one pane is the player or the list, not both. So there
+// the second picture is not offered at all, nor spoken of: not in the
+// row's menu, the ☰ menu, the hint or Settings. A window 600 px wide or
+// less, as the narrow layout has it (js/playerlayout.js), or a touch
+// screen that low, which is a phone held sideways. A tablet has it.
+const PHONE = '(max-width: 600px), (pointer: coarse) and (max-height: 600px)';
+/** Whether the screen has room for a second picture. */
+export const roomForSecond = () => !matchMedia(PHONE).matches;
+
 /** The accounts a second picture can come from now. */
-const sources = () => store.secondAccounts(state.config, state.account?.maxConnections, state.accounts || []);
+const sources = () => (roomForSecond() ? store.secondAccounts(state.config, state.account?.maxConnections, state.accounts || []) : []);
 
 /** Whether a channel of the list may be played beside the one playing. */
 export function secondOffered(item) {
@@ -303,7 +313,9 @@ $('second-close').addEventListener('click', closeSecond);
 // its connection and filling its buffer unseen. Stopped before the
 // browser's controls see it; the strip at the bottom, where their own
 // buttons are, is left to them, pause included. In a real run a second
-// picture paused this way sat still for eleven minutes of thirty.
+// picture paused this way sat still for eleven minutes of thirty. In
+// Chrome: Firefox's controls keep the click to themselves, as they do on
+// the first picture, and a click there pauses either.
 const CONTROL_BAR_PX = 80;
 pane.addEventListener('click', (e) => {
   if (e.target !== video || e.button !== 0 || e.offsetY > video.clientHeight - CONTROL_BAR_PX) return;
@@ -344,7 +356,7 @@ retry.addEventListener('click', () => {
  * which a hidden item never told anyone.
  */
 export function renderSecondItem() {
-  menuItem.hidden = !showing && !state.playing;
+  menuItem.hidden = !showing && !(state.playing && roomForSecond());
   const key = showing ? 'second.close' : 'second.open';
   const label = menuItem.querySelector('span');
   label.dataset.i18n = key;

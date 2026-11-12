@@ -179,7 +179,10 @@ try {
   // A second channel beside it, from its row's menu, where the account
   // allows two streams (the mock does here; the hosted demo's one does not,
   // and its picture is of the one channel).
-  const sideBySide = await evaluate(page, `(() => { const row = [...document.querySelectorAll('#list .row')].find((r) => [...r.querySelectorAll('*')].some((n) => n.children.length === 0 && n.textContent.trim() === 'Aurora Cinema'));
+  // Not in the narrow layout, where the player offers none: the row's menu
+  // is left unopened there, and the list's cursor where it was.
+  const sideBySide = await evaluate(page, `(() => { if (matchMedia('(max-width: 600px)').matches) return false;
+    const row = [...document.querySelectorAll('#list .row')].find((r) => [...r.querySelectorAll('*')].some((n) => n.children.length === 0 && n.textContent.trim() === 'Aurora Cinema'));
     row?.querySelector('.row-more')?.click();
     const item = [...document.querySelectorAll('.row-menu button')].find((b) => b.textContent === 'Play alongside');
     if (!item) { document.querySelector('.row-menu')?.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true })); return false; }

@@ -1697,6 +1697,12 @@ async function secondpicture(page, { target, requests }) {
     return shown;
   };
   const reload = async (what) => {
+    // The streams let go of first: Firefox keeps the page it navigates
+    // away from, and its stream, alive for a while, and on the account of
+    // one connection the new page's channel was then refused (the third
+    // part timed out there, in Firefox only).
+    await evaluate(page, `Promise.all([import('./js/playing.js'), import('./js/secondui.js')]).then(([p, u]) => { u.closeSecond(); p.playback.stop(); })`).catch(() => {});
+    await sleep(500);
     await page.call('Page.navigate', { url: bare(target.url) });
     await sleep(1000);
     await waitFor(page, CONNECTED, what);
@@ -1722,6 +1728,29 @@ async function secondpicture(page, { target, requests }) {
     await waitFor(page, `document.getElementById('setup').open && document.getElementById('tab-connection').getAttribute('aria-selected') === 'true'`, 'Settings open on Connection for the new account');
     await evaluate(page, `document.getElementById('setup').close()`);
 
+    // A phone has no room for it: not in the row's menu nor in the ☰ menu
+    // there, though the account allows two streams. Chrome's emulation
+    // sets the width; Marionette has none, and Firefox skips this step.
+    if (DEVTOOLS_PORT) {
+      process.env.KEPULI_MOCK_CONNECTIONS = '2';
+      await evaluate(page, `chrome.storage.local.get('ui').then(({ ui }) => chrome.storage.local.set({ ui: { ...ui, secondHint: false } }))`);
+      await page.call('Emulation.setDeviceMetricsOverride', { width: 390, height: 844, deviceScaleFactor: 1, mobile: false });
+      try {
+        await page.call('Page.navigate', { url: bare(target.url) });
+        await sleep(1000);
+        await waitFor(page, CONNECTED, 'the account of two connections on a phone');
+        const onPhone = await evaluate(page, `Promise.all([import('./js/state.js'), import('./js/playing.js'), import('./js/secondui.js')]).then(async ([s, p, u]) => {
+          const lib = s.state.lib; const channels = await lib.ensureFull('live');
+          await p.playItem(channels[0]);
+          u.renderSecondItem();
+          return { max: s.state.account.maxConnections, offered: u.secondOffered(channels[1]), item: !document.getElementById('btn-second').hidden, room: u.roomForSecond() }; })`, { gesture: true });
+        await sleep(1500);
+        const hintOnPhone = await evaluate(page, `document.getElementById('toast').hidden ? '' : document.getElementById('toast-text').textContent`);
+        assert(onPhone.max === 2 && !onPhone.room && !onPhone.offered && !onPhone.item && !/side by side/.test(hintOnPhone), `on a phone: ${JSON.stringify(onPhone)}, said "${hintOnPhone}"`);
+      } finally {
+        await page.call('Emulation.clearDeviceMetricsOverride');
+      }
+    }
     // Two connections: the row's menu, a second stream, sound from one.
     // The first channel played there says so once, and not again.
     process.env.KEPULI_MOCK_CONNECTIONS = '2';
@@ -1751,11 +1780,15 @@ async function secondpicture(page, { target, requests }) {
     await evaluate(page, `document.getElementById('video2').muted = false`);
     await waitFor(page, `document.getElementById('video').muted && document.getElementById('second-sound').getAttribute('aria-pressed') === 'true' && document.getElementById('video2').controls`, 'the sound with the second picture from its own controls');
     // A click on the second picture leaves it playing, as a live channel
-    // in the first is left: a real press, in the middle of the picture.
-    const middle = await evaluate(page, `(() => { const r = document.getElementById('video2').getBoundingClientRect(); return [r.x + r.width / 2, r.y + r.height / 3]; })()`);
-    for (const type of ['mousePressed', 'mouseReleased']) await page.call('Input.dispatchMouseEvent', { type, x: middle[0], y: middle[1], button: 'left', clickCount: 1 });
-    await sleep(800);
-    assert(!(await evaluate(page, `document.getElementById('video2').paused`)), 'a click on the second picture paused it');
+    // in the first is left: a real press, in the middle of the picture. In
+    // Chrome; Firefox's controls keep the click to themselves, on either
+    // picture (see clickPicture in js/playercontrols.js).
+    if (DEVTOOLS_PORT) {
+      const middle = await evaluate(page, `(() => { const r = document.getElementById('video2').getBoundingClientRect(); return [r.x + r.width / 2, r.y + r.height / 3]; })()`);
+      for (const type of ['mousePressed', 'mouseReleased']) await page.call('Input.dispatchMouseEvent', { type, x: middle[0], y: middle[1], button: 'left', clickCount: 1 });
+      await sleep(800);
+      assert(!(await evaluate(page, `document.getElementById('video2').paused`)), 'a click on the second picture paused it');
+    }
     // The swap button changes the pictures' sides, the title bar's halves
     // with them, and neither stream is asked for again.
     const sides = () => evaluate(page, `(() => { const x = (id) => Math.round(document.getElementById(id).getBoundingClientRect().left); return { first: x('video') < x('video2'), head: x('now-title') < x('now2-title'), details: document.querySelectorAll('.info-half').length !== 2 || Math.round(document.querySelectorAll('.info-half')[0].getBoundingClientRect().left) < Math.round(document.querySelectorAll('.info-half')[1].getBoundingClientRect().left) }; })()`);
