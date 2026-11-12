@@ -1,0 +1,86 @@
+The guides' illustrations (docs/img/guides/<name>.webp), one per page in
+docs/pages/. Each was made by giving Codex the prompt below with its NAME and
+SUBJECT filled in, in an empty directory:
+
+  codex exec --skip-git-repo-check -s workspace-write -C <dir> "<prompt>" </dev/null
+
+(stdin closed: left open, codex exec waits on it for ever), then scaled for
+the cards:
+
+  cwebp -q 82 -resize 720 480 <name>.png -o docs/img/guides/<name>.webp
+
+The 1536x1024 masters are not in the repository. A new guide gets a subject
+of its own here and a picture made the same way, so that the set stays one
+style.
+
+==================================================================== PROMPT
+
+Use your image generation tool to create ONE image and save it as the PNG file
+"__NAME__.png" in your current working directory. Do not write any code to draw
+it; use the image generation tool directly. When the file is saved, stop.
+
+This is one of a set of ten small illustrations for a website about a browser
+extension that plays television. All ten share one style and one recurring
+character, so follow the style exactly.
+
+RECURRING CHARACTER
+A retro 1960s cathode-ray-tube television set seen straight from the front:
+a violet cabinet, a rounded-corner bright cyan screen on the left two thirds,
+a narrow control panel on the right with exactly two round amber knobs, two
+thin "rabbit ear" antennas in a V with amber tips, two short splayed legs.
+
+STYLE
+Flat vector illustration. Clean geometric shapes, thick confident forms, bold
+dark outlines of even weight, minimal detail, no texture, no photorealism, no
+3D, no drop shadows. Friendly and simple, like a set of matching spot
+illustrations. Absolutely no text, no letters, no numbers, no words, no brand
+logos or trademarks of any company (no browser logos, no phone maker logos).
+
+COLOURS - use only these
+- violet #7c5cff (lit faces) and #4a3aa8 (shaded faces) for the main objects
+- bright cyan #22d3ee for screens and highlights
+- warm amber #ffc857 for small accents
+- near black #0a0c11 for outlines
+- soft off-white #e7eaf2 sparingly for paper or panels
+Background: fully transparent (alpha). If you cannot make it transparent, use
+a flat solid #11141c background and nothing else behind the objects.
+
+COMPOSITION
+Landscape canvas, 3:2 (1536x1024). The subject is centred, fills about 70% of
+the canvas, with clear empty margin on every side so it can be cropped a
+little. Two or three objects at most.
+
+SUBJECT
+__SUBJECT__
+
+================================================================== SUBJECTS
+
+faq
+  The television character with a large rounded speech bubble rising from it, and inside the bubble one big question mark shape drawn as a thick geometric curve with a dot (this single symbol is allowed).
+
+iptv-epg-guide
+  A timetable grid: three rows of rounded blocks of different lengths, with one vertical amber line crossing all rows to mark the present moment, and a small round clock face without numbers at its top corner. The television character stands in front of the grid at the right.
+
+iptv-player-android
+  A generic smartphone held upright in the foreground and a generic tablet lying landscape behind it, both with plain rounded bodies. The television character is shown on the phone screen, and a simple play triangle on the tablet screen.
+
+iptv-player-chrome
+  A desktop computer monitor on a stand. On its screen is a simple web browser window (a title bar with three dots and one tab), and inside the window sits the television character, small. A single puzzle piece in amber sits at the right end of the browser toolbar.
+
+iptv-player-firefox
+  An open laptop. On its screen is a simple web browser window with two tabs, and inside the window sits the television character. A large amber puzzle piece is about to click into the top right corner of the window, hovering just beside it.
+
+iptv-player-iphone
+  A single generic smartphone with strongly rounded corners, upright, showing the television character on its screen. Above the phone, three amber four-pointed stars in a slanted row, like the belt of a constellation.
+
+m3u-playlist-player
+  A sheet of paper with a folded corner on the left, carrying five short horizontal lines, each line starting with a small play triangle. A thick curved arrow leads from the sheet to the television character on the right.
+
+mkv-player-browser
+  The television character, large. On its cyan screen: a film strip frame, and near the bottom of the screen two short off-white horizontal bars like subtitle lines. To the right of the television, three curved sound waves in amber.
+
+stalker-portal-player
+  A flat set-top box with a small antenna and one indicator light on the left, with a luggage-style tag hanging from it showing a tiny microchip symbol. A cable connects the set-top box to the television character on the right.
+
+xtream-codes-player
+  A small server box with three indicator dots on the left and a large amber key above it. A cable runs from the server box to the television character on the right.

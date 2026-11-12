@@ -14,6 +14,10 @@ and your details stay in your browser.
 
 **[Watch the four-minute tour on YouTube](https://youtu.be/Wr4FcXlTbOM)**
 
+The [Kepuli-TV website](https://bigtimesam.github.io/kepuli-tv/) has
+step-by-step guides for each browser, phone and kind of subscription, in
+thirty languages.
+
 ## Key features
 
 - **Live TV** by country and topic, with what is on now, an interactive
@@ -45,7 +49,8 @@ and your details stay in your browser.
    with the MAC address registered to your subscription.
 3. Pick a country and a channel. Press `?` for the keyboard shortcuts.
 
-Kepuli-TV contains no channels or content: you need your own subscription.
+> [!IMPORTANT]
+> Kepuli-TV contains no channels or content: you need your own subscription.
 
 ## On a phone or a tablet
 
@@ -94,15 +99,22 @@ programme guide, the keys, the settings and what to do when something goes
 wrong.
 
 Found a bug? Open a [GitHub issue](https://github.com/BigTimeSam/kepuli-tv/issues)
-with your browser and the steps that lead to it. Leave out your credentials and
-any stream address that contains them.
+with your browser and the steps that lead to it.
+
+> [!WARNING]
+> Leave your credentials, and any stream address that contains them, out of
+> an issue: it is public.
 
 ## Intended use
 
 Kepuli-TV is only a player. It comes with no channels, playlists or media,
 does not host or link to any, and plays nothing until you add an account or a
-playlist from your own provider. Use it only for content you have the right to
-watch, such as your own subscription, and keep recordings for your own use.
+playlist from your own provider.
+
+> [!IMPORTANT]
+> Use it only for content you have the right to watch, such as your own
+> subscription, and keep recordings for your own use.
+
 The author does not sell, provide or recommend IPTV subscriptions or
 providers, and GitHub issues asking for them are closed.
 

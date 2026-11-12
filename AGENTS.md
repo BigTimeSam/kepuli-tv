@@ -58,7 +58,7 @@ Firefox manifest and its tooling.
 | `dev/` | every tool: tests, mock server, packaging, store publishing, screenshots, video |
 | `store/listings/*.txt` | store texts in 31 languages; `_locales/` is generated from them |
 | `brand/` | icon sources, store screenshots (`screenshots/` Chrome, `firefox-screenshots/` AMO) |
-| `docs/` | GitHub Pages (`index.html` generated from README, privacy, terms) and the long docs |
+| `docs/` | GitHub Pages (`index.html` generated from README, the guides from `docs/pages/`, privacy, terms) and the long docs |
 | `store/chrome-dashboard.txt` | the Chrome Web Store dashboard fields and the store procedures |
 
 Long-form documentation: [user guide](docs/user-guide.md),
@@ -82,7 +82,7 @@ Long-form documentation: [user guide](docs/user-guide.md),
 | Translations behind? / mark done | `node dev/translations.mjs [--check]` / `--mark <lang…|all>` |
 | Each language's term for the core concepts | `node dev/glossarycheck.mjs [--survey]` |
 | Store listings checked, `_locales/` written | `node dev/listings.mjs [--check]` |
-| README rendered into the Pages front page | `node dev/site.mjs [--check]` |
+| README and `docs/pages/` rendered into the Pages site | `node dev/site.mjs [--check]` |
 | Secrets in the staged changes | `node dev/secretcheck.mjs [--all]` |
 | Ready to release? | `node dev/release.mjs [--quick]` |
 | Release packages | `node dev/package.mjs --zip`, `node firefox/amo-source.mjs` |
