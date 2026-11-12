@@ -14,6 +14,7 @@ documentation read on GitHub.
 | `pages/translations.json` | which English text each translation was made from (`node dev/site.mjs --mark <lang…>` writes it, `--stale` reads it) | `dev/site.mjs` only |
 | `<lang>/…`, `site.css`, `site.js` | the same pages in each language, and the one stylesheet and script all pages share | `dev/site.mjs` only |
 | `<name>/index.html` for each of them, `sitemap.xml` | the guides rendered, and every page's address for the search engines | `dev/site.mjs` only |
+| `google185b2341cb1c0ab0.html` | Google Search Console's proof that the site is the owner's; it must stay at this address for as long as the site is registered there | the owner |
 | `privacy/index.html` | the privacy policy, linked from both stores | hand; the bar at the top and its style, between the `site:nav` markers, by `dev/site.mjs` |
 | `terms/index.html` | the terms of use (version and effective date at the top) | hand; the bar likewise |
 | `user-guide.md` | everything a user can do, in detail; the player's Help links here | hand / agent |
