@@ -511,7 +511,7 @@ export default {
  "subs.style.box": "Boks",
  "subs.style.contrast": "Høj kontrast",
  "setup.epg": "Hent programdata automatisk",
- "setup.notify": "Vis påmindelser som notifikationer, når afspilleren ikke er synlig",
+ "setup.notify": "Vis påmindelser som notifikationer",
  "setup.resume": "Husk, hvor film og afsnit blev afbrudt",
  "setup.autonext": "Afspil næste afsnit, når et slutter",
  "setup.home.picks": "Vis »Nu og snart på dine kanaler«",

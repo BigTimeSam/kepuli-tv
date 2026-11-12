@@ -590,7 +590,7 @@ export default {
  "subs.style.box": "Vak",
  "subs.style.contrast": "Hoog contrast",
  "setup.epg": "Programmagegevens automatisch ophalen",
- "setup.notify": "Herinneringen als meldingen tonen wanneer de speler niet in beeld is",
+ "setup.notify": "Herinneringen als meldingen tonen",
  "setup.resume": "Onthouden waar films en afleveringen zijn gebleven",
  "setup.autonext": "De volgende aflevering afspelen als er een eindigt",
  "setup.home.picks": "Toon ‘Nu en straks op je zenders’",

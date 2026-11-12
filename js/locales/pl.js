@@ -527,7 +527,7 @@ export default {
  "subs.style.box": "Ramka",
  "subs.style.contrast": "Wysoki kontrast",
  "setup.epg": "Pobieraj dane programu automatycznie",
- "setup.notify": "Pokazuj przypomnienia jako powiadomienia, gdy odtwarzacz nie jest widoczny",
+ "setup.notify": "Pokazuj przypomnienia jako powiadomienia",
  "setup.resume": "Zapamiętuj miejsce przerwania filmów i odcinków",
  "setup.autonext": "Odtwarzaj następny odcinek po zakończeniu poprzedniego",
  "setup.home.picks": "Pokazuj „Teraz i wkrótce na twoich kanałach”",

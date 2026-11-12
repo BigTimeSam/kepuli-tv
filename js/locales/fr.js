@@ -590,7 +590,7 @@ export default {
  "subs.style.box": "Cadre",
  "subs.style.contrast": "Contraste élevé",
  "setup.epg": "Récupérer automatiquement les données de programmes",
- "setup.notify": "Afficher les rappels sous forme de notifications quand le lecteur n’est pas visible",
+ "setup.notify": "Afficher les rappels sous forme de notifications",
  "setup.resume": "Mémoriser où l’on s’est arrêté dans les films et épisodes",
  "setup.autonext": "Lire l’épisode suivant à la fin d’un épisode",
  "setup.home.picks": "Afficher « Maintenant et bientôt sur vos chaînes »",

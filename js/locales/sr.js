@@ -519,7 +519,7 @@ export default {
  "subs.style.box": "Okvir",
  "subs.style.contrast": "Visok kontrast",
  "setup.epg": "Automatski preuzimaj podatke o programu",
- "setup.notify": "Prikaži podsetnike kao obaveštenja kada plejer nije vidljiv",
+ "setup.notify": "Prikaži podsetnike kao obaveštenja",
  "setup.resume": "Pamti mesto prekida filmova i epizoda",
  "setup.autonext": "Pusti sledeću epizodu kad se prethodna završi",
  "setup.home.picks": "Prikaži „Sada i uskoro na tvojim kanalima”",

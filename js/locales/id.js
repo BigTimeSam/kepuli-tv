@@ -503,7 +503,7 @@ export default {
  "subs.style.box": "Kotak",
  "subs.style.contrast": "Kontras tinggi",
  "setup.epg": "Ambil data acara secara otomatis",
- "setup.notify": "Tampilkan pengingat sebagai notifikasi saat pemutar tidak terlihat",
+ "setup.notify": "Tampilkan pengingat sebagai notifikasi",
  "setup.resume": "Ingat posisi terakhir film dan episode",
  "setup.autonext": "Putar episode berikutnya setelah yang sekarang selesai",
  "setup.home.picks": "Tampilkan “Sekarang dan segera di saluranmu”",

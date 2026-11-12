@@ -511,7 +511,7 @@ export default {
  "subs.style.box": "Kutu",
  "subs.style.contrast": "Yüksek kontrast",
  "setup.epg": "Program verisini otomatik al",
- "setup.notify": "Oynatıcı görünür değilken hatırlatmaları bildirim olarak göster",
+ "setup.notify": "Hatırlatmaları bildirim olarak göster",
  "setup.resume": "Filmlerde ve bölümlerde kalınan yeri hatırla",
  "setup.autonext": "Bir bölüm bitince sonrakini oynat",
  "setup.home.picks": "“Kanallarınızda şimdi ve yakında” bölümünü göster",

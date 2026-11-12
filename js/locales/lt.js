@@ -527,7 +527,7 @@ export default {
  "subs.style.box": "Rėmelis",
  "subs.style.contrast": "Didelis kontrastas",
  "setup.epg": "Automatiškai gauti laidų duomenis",
- "setup.notify": "Rodyti priminimus kaip pranešimus, kai grotuvas nematomas",
+ "setup.notify": "Rodyti priminimus kaip pranešimus",
  "setup.resume": "Įsiminti, kur nutraukei filmus ir serijas",
  "setup.autonext": "Pasibaigus serijai, automatiškai groti kitą",
  "setup.home.picks": "Rodyti „Dabar ir netrukus tavo kanaluose“",

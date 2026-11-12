@@ -511,7 +511,7 @@ export default {
  "subs.style.box": "Kornizë",
  "subs.style.contrast": "Kontrast i lartë",
  "setup.epg": "Merri automatikisht të dhënat e programit",
- "setup.notify": "Shfaq kujtesat si njoftime kur luajtësi nuk është i dukshëm",
+ "setup.notify": "Shfaq kujtesat si njoftime",
  "setup.resume": "Mbaj mend ku i ndale filmat dhe episodet",
  "setup.autonext": "Luaj episodin pasues kur mbaron ai paraprak",
  "setup.home.picks": "Shfaq «Tani dhe së shpejti në kanalet e tua»",

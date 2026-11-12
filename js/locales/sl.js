@@ -527,7 +527,7 @@ export default {
  "subs.style.box": "Okvir",
  "subs.style.contrast": "Visok kontrast",
  "setup.epg": "Samodejno prenesi podatke o oddajah",
- "setup.notify": "Prikaži opomnike kot obvestila, ko predvajalnik ni viden",
+ "setup.notify": "Prikaži opomnike kot obvestila",
  "setup.resume": "Zapomni si, kje sem prekinil filme in epizode",
  "setup.autonext": "Predvajaj naslednjo epizodo, ko se prejšnja konča",
  "setup.home.picks": "Prikaži »Zdaj in kmalu na tvojih kanalih«",

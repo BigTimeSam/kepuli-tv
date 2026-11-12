@@ -519,7 +519,7 @@ export default {
  "subs.style.box": "Okvir",
  "subs.style.contrast": "Visok kontrast",
  "setup.epg": "Automatski preuzimaj podatke o emisijama",
- "setup.notify": "Prikaži podsjetnike kao obavijesti kada reproduktor nije vidljiv",
+ "setup.notify": "Prikaži podsjetnike kao obavijesti",
  "setup.resume": "Pamti gdje si stao u filmovima i epizodama",
  "setup.autonext": "Pokreni sljedeću epizodu kad završi prethodna",
  "setup.home.picks": "Prikaži „Sada i uskoro na tvojim kanalima”",

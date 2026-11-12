@@ -527,7 +527,7 @@ export default {
  "subs.style.box": "Rámček",
  "subs.style.contrast": "Vysoký kontrast",
  "setup.epg": "Sťahovať údaje o programe automaticky",
- "setup.notify": "Zobrazovať pripomienky ako oznámenia, keď prehrávač nie je viditeľný",
+ "setup.notify": "Zobrazovať pripomienky ako oznámenia",
  "setup.resume": "Pamätať si miesto prerušenia filmov a epizód",
  "setup.autonext": "Po skončení epizódy prehrať ďalšiu",
  "setup.home.picks": "Zobraziť „Teraz a čoskoro na tvojich kanáloch“",

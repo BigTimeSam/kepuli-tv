@@ -519,7 +519,7 @@ export default {
  "subs.style.box": "Casetă",
  "subs.style.contrast": "Contrast ridicat",
  "setup.epg": "Descarcă automat datele de program",
- "setup.notify": "Afișează mementourile ca notificări când playerul nu este vizibil",
+ "setup.notify": "Afișează mementourile ca notificări",
  "setup.resume": "Ține minte unde ai rămas la filme și episoade",
  "setup.autonext": "Redă episodul următor când se termină unul",
  "setup.home.picks": "Afișează „Acum și în curând pe canalele tale”",

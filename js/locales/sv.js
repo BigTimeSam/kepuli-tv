@@ -590,7 +590,7 @@ export default {
  "subs.style.box": "Ruta",
  "subs.style.contrast": "Hög kontrast",
  "setup.epg": "Hämta programdata automatiskt",
- "setup.notify": "Visa påminnelser som aviseringar när spelaren inte syns",
+ "setup.notify": "Visa påminnelser som aviseringar",
  "setup.resume": "Kom ihåg var filmer och avsnitt avbröts",
  "setup.autonext": "Spela nästa avsnitt när ett tar slut",
  "setup.home.picks": "Visa ”Nu och snart på dina kanaler”",

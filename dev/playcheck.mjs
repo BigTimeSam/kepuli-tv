@@ -2938,6 +2938,12 @@ async function scrollbars(page) {
     await sleep(300);
     const moved = (await evaluate(page, BARS)).filter((b) => b.over === 'infostrip');
     assert(moved.length === 1 && moved[0].top > strip[0].top + 5, `the details' bar did not follow the scroll: ${strip[0].top} → ${JSON.stringify(moved)}`);
+    // Firefox's own overlay bar showed over ours while the box scrolled:
+    // with ours drawn, the box has none of the browser's.
+    if (!(await evaluate(page, `CSS.supports('selector(::-webkit-scrollbar)')`))) {
+      const own = await evaluate(page, `getComputedStyle(document.getElementById('infostrip')).scrollbarWidth`);
+      assert(own === 'none', `the browser's bar under ours in Firefox: scrollbar-width ${own}`);
+    }
     // Nor does a dialog get one: the help, longer than its box in a window
     // of 700 px.
     await evaluate(page, `document.getElementById('btn-help').click()`);
@@ -4900,6 +4906,15 @@ async function reminders(page) {
   list[0].start = Date.now() + 30000;
   list[0].stop = Date.now() + 600000;
   await evaluate(page, `chrome.storage.local.set({ ${JSON.stringify(key)}: ${JSON.stringify(list)} })`);
+  // Notifications allowed, where the test browser grants them to a script:
+  // the reminder is then said as one of the system's as well, with the
+  // player in sight, which background.js records under the notice's id.
+  const notices = () => evaluate(page, `chrome.storage.local.get('reminderNotices').then((d) => Object.keys(d.reminderNotices || {}))`);
+  await evaluate(page, `chrome.storage.local.remove('reminderNotices')`);
+  const allowed = await Promise.race([
+    evaluate(page, `chrome.permissions.request({ permissions: ['notifications'] }).then((on) => import('./js/remindersui.js').then((m) => m.loadNotifying()).then(() => on))`, { gesture: true }).catch(() => false),
+    sleep(4000).then(() => false),
+  ]);
   const sayingIt = `!document.getElementById('toast').hidden && document.getElementById('toast-text').textContent.includes(${JSON.stringify(list[0].title)})`;
   await sleep(1000);
   if (!await evaluate(page, sayingIt)) {
@@ -4908,6 +4923,12 @@ async function reminders(page) {
   }
   await waitFor(page, `!document.getElementById('toast').hidden && document.getElementById('toast-text').textContent.includes(${JSON.stringify(list[0].title)})`, 'the reminder');
   const said = await evaluate(page, `document.getElementById('toast-text').textContent`);
+  let noticed = 'notifications not allowed to a script here: the system\'s notice unchecked';
+  if (allowed) {
+    await waitFor(page, `chrome.storage.local.get('reminderNotices').then((d) => Object.keys(d.reminderNotices || {}).some((id) => id.startsWith('reminder:${list[0].channel.id}:')))`, 'the system\'s notification of the reminder said in the player', 8000);
+    noticed = `also as the system's notification (${(await notices()).length})`;
+    await evaluate(page, `chrome.permissions.remove({ permissions: ['notifications'] })`).catch(() => {});
+  }
   await evaluate(page, `document.querySelector('#toast .toast-action').click()`, { gesture: true });
   await waitFor(page, PLAYING, 'the channel from Watch');
   const left = await evaluate(page, `chrome.storage.local.get(${JSON.stringify(key)}).then((got) => got[${JSON.stringify(key)}].length)`);
@@ -4919,7 +4940,7 @@ async function reminders(page) {
   await evaluate(page, `chrome.storage.local.set({ watchAsked: { channel: ${JSON.stringify(list[0].channel)}, account: ${JSON.stringify(key.slice('reminders:'.length))}, at: Date.now() } })`);
   await waitFor(page, PLAYING, 'the channel asked for by a notification');
   const asked = await evaluate(page, `chrome.storage.local.get('watchAsked').then((d) => 'watchAsked' in d)`);
-  return { ok: left === 0 && playing === list[0].channel.n && !asked, detail: `"${said}"; Watch played ${playing}; reminders left ${left}; a notification's click played it again` };
+  return { ok: left === 0 && playing === list[0].channel.n && !asked, detail: `"${said}"; ${noticed}; Watch played ${playing}; reminders left ${left}; a notification's click played it again` };
 }
 
 async function update(page) {

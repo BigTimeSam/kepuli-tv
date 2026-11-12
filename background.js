@@ -154,8 +154,7 @@ async function armAll() {
 
 /**
  * The reminders of one account that are due, taken out of its list and
- * said. Each notification's reminder is kept under the notification's id
- * until it is clicked, since this script may have been stopped by then.
+ * said (notify below).
  */
 async function sayReminders(key, now) {
   const due = await navigator.locks.request(LIST_LOCK, async () => {
@@ -164,6 +163,14 @@ async function sayReminders(key, now) {
     if (taken.length) await api.storage.local.set({ [key]: list.filter((r) => !taken.includes(r)) });
     return taken.filter((r) => r.stop > now);
   });
+  await notify(key, due, now);
+}
+
+/**
+ * The reminders said as the system's notifications. Each notification's
+ * reminder is kept under its id until it is clicked.
+ */
+async function notify(key, due, now) {
   if (!due.length) return;
   const { [NOTICES]: notices = {} } = await api.storage.local.get(NOTICES);
   // Notices nobody clicked go after a day.
@@ -194,10 +201,22 @@ api.alarms?.onAlarm.addListener(async ({ name: key }) => {
   await armList(key, list, now);
 });
 
-// An open player out of sight has its due reminders said from here too.
+// An open player out of sight has its due reminders said from here too
+// (sayReminders: this script takes them out of the list). One in sight
+// says them itself, in its message strip, and has taken them out already:
+// it hands them over to be said as notifications as well (notifyReminders).
+// A player in sight is not a viewer looking at it — the window may lie
+// under another, or the viewer be across the room — and a reminder that
+// was only a strip in the player reminded nobody then.
 api.runtime.onMessage.addListener((message) => {
+  if (!api.notifications) return;
   const key = message?.sayReminders;
-  if (typeof key === 'string' && key.startsWith('reminders:') && api.notifications) sayReminders(key, Date.now()).catch(() => {});
+  if (typeof key === 'string' && key.startsWith('reminders:')) sayReminders(key, Date.now()).catch(() => {});
+  const said = message?.notifyReminders;
+  if (said && typeof said.key === 'string' && said.key.startsWith('reminders:') && Array.isArray(said.due)) {
+    const now = Date.now();
+    notify(said.key, said.due.filter((r) => r && r.channel && r.stop > now), now).catch(() => {});
+  }
 });
 
 api.storage.onChanged.addListener((changes, area) => {

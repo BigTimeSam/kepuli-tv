@@ -590,7 +590,7 @@ export default {
  "subs.style.box": "Riquadro",
  "subs.style.contrast": "Alto contrasto",
  "setup.epg": "Recupera automaticamente i dati di programmazione",
- "setup.notify": "Mostra i promemoria come notifiche quando il player non è visibile",
+ "setup.notify": "Mostra i promemoria come notifiche",
  "setup.resume": "Ricorda dove sono stati lasciati film ed episodi",
  "setup.autonext": "Riproduci l'episodio successivo quando uno finisce",
  "setup.home.picks": "Mostra «Ora e a breve sui tuoi canali»",

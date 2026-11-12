@@ -590,7 +590,7 @@ export default {
  "subs.style.box": "Caixa",
  "subs.style.contrast": "Alto contraste",
  "setup.epg": "Buscar dados de programação automaticamente",
- "setup.notify": "Mostrar os lembretes como notificações quando o player não estiver visível",
+ "setup.notify": "Mostrar os lembretes como notificações",
  "setup.resume": "Lembrar onde filmes e episódios foram deixados",
  "setup.autonext": "Reproduzir o próximo episódio quando um terminar",
  "setup.home.picks": "Mostrar “Agora e em breve nos seus canais”",

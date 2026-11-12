@@ -503,7 +503,7 @@ export default {
  "subs.style.box": "Khung nền",
  "subs.style.contrast": "Tương phản cao",
  "setup.epg": "Tự động tải dữ liệu chương trình",
- "setup.notify": "Hiện lời nhắc dưới dạng thông báo khi trình phát không hiển thị",
+ "setup.notify": "Hiện lời nhắc dưới dạng thông báo",
  "setup.resume": "Nhớ chỗ đang xem dở của phim và tập",
  "setup.autonext": "Tự phát tập kế tiếp khi tập trước kết thúc",
  "setup.home.picks": "Hiện “Đang và sắp phát trên kênh của bạn”",

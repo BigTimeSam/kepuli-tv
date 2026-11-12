@@ -482,8 +482,8 @@ interrupted channel-list load restores the previous list.
   beside it; and in **Settings › Account & data**, where **Two channels
   side by side** reads **Available** or **Takes another account**
 - **Programme reminders** from the guide: a minute before the programme starts,
-  a message names it with **Watch**, or a notification does when the player
-  is closed or out of sight and notifications are allowed
+  a notification of the system's names it where notifications are allowed,
+  the player open or not, and an open player says it too, with **Watch**
 - **Media keys** and the system's media controls: the programme and channel,
   or the title and series, are named there, next and previous step as `n` and
   `p` do, and the seek keys move a film or a recording
@@ -731,7 +731,9 @@ language at all, and there the count stands instead, beside the warning.
 Wherever a box holds more than it shows — a list, a long description, a
 Settings panel, the help — a thin bar at its right edge says so and stays in
 sight, also in Firefox on a tablet or a Mac, where the browser's own bar fades
-away after a scroll and a box would otherwise look finished.
+away after a scroll and a box would otherwise look finished. Where that thin
+bar is the player's own (the details beside the picture), Firefox's own bar
+no longer comes up over it while the box is scrolled.
 
 ## Settings
 
@@ -873,12 +875,14 @@ An upcoming programme offers **Remind me**, and pressing `Enter` on one offers
 it in the message that says when it starts. A bell marks the programme in the
 grid. A minute before it starts, a message names the programme and its
 channel, with **Go to channel**. Reminders belong to the account and are kept with
-it. With the player closed, or its tab out of sight, a reminder is said as a
-notification of the system's instead, naming the programme and its channel;
-clicking it brings the player forward, opening one if need be, on that
+it. A reminder is also said as a notification of the system's, naming the
+programme and its channel, whether the player is closed, out of sight or
+in front of you: a player in sight may lie under another window, and a
+message in it alone reminded nobody then. Clicking the notification brings
+the player forward, opening one if need be, on that
 channel. Notifications are asked for when the first reminder is set, and
 turned on or off afterwards under **Settings › Viewing › Programme guide**
-(**Show reminders as notifications when the player is not in view**); the
+(**Show reminders as notifications**); the
 permission is an optional one, so that the update that brought it disabled
 nothing. Without it a reminder waits as before: one that falls due in a
 hidden tab until the tab is looked at again, one from a closed player until

@@ -519,7 +519,7 @@ export default {
  "subs.style.box": "Rāmis",
  "subs.style.contrast": "Augsts kontrasts",
  "setup.epg": "Automātiski ielādēt raidījumu datus",
- "setup.notify": "Rādīt atgādinājumus kā paziņojumus, kad atskaņotājs nav redzams",
+ "setup.notify": "Rādīt atgādinājumus kā paziņojumus",
  "setup.resume": "Atcerēties, kur apstājies filmās un sērijās",
  "setup.autonext": "Atskaņot nākamo sēriju, kad iepriekšējā beidzas",
  "setup.home.picks": "Rādīt “Tagad un drīzumā tavos kanālos”",

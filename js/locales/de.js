@@ -590,7 +590,7 @@ export default {
  "subs.style.box": "Box",
  "subs.style.contrast": "Hoher Kontrast",
  "setup.epg": "Programmdaten automatisch abrufen",
- "setup.notify": "Erinnerungen als Benachrichtigungen anzeigen, wenn der Player nicht sichtbar ist",
+ "setup.notify": "Erinnerungen als Benachrichtigungen anzeigen",
  "setup.resume": "Merken, wo Filme und Folgen unterbrochen wurden",
  "setup.autonext": "Nächste Folge abspielen, wenn eine endet",
  "setup.home.picks": "„Jetzt und bald auf deinen Kanälen“ anzeigen",

@@ -590,7 +590,7 @@ export default {
  "subs.style.box": "Recuadro",
  "subs.style.contrast": "Alto contraste",
  "setup.epg": "Obtener datos de programación automáticamente",
- "setup.notify": "Mostrar los recordatorios como notificaciones cuando el reproductor no esté a la vista",
+ "setup.notify": "Mostrar los recordatorios como notificaciones",
  "setup.resume": "Recordar dónde se dejaron películas y episodios",
  "setup.autonext": "Reproducir el siguiente episodio al terminar uno",
  "setup.home.picks": "Mostrar «Ahora y pronto en tus canales»",

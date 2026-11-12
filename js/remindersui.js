@@ -1,7 +1,8 @@
 // Programme reminders: set from the guide, kept per account (js/config.js),
-// and said a minute before the programme starts with Watch. An open player
-// in view says them itself; one out of sight, or closed, has them said as
-// the system's notifications by background.js, where the viewer allows it.
+// and said a minute before the programme starts: as the system's
+// notifications by background.js wherever the viewer allows them, the
+// player open or not, and by an open player in view in its own message
+// strip as well, with Watch.
 //
 // Moved out of app.js. It takes the player's state, and the parts app.js
 // builds, from js/state.js.
@@ -96,7 +97,9 @@ function armReminders() {
  * where they are allowed; otherwise it waits until the tab is looked at
  * again, for as long as the programme is still on: a message nobody saw
  * has reminded nobody. The wait is kept either way, and finds the
- * reminders gone when the notification said them.
+ * reminders gone when the notification said them. One due while the tab
+ * is in sight is said in the message strip and, where notifications are
+ * allowed, as one of those too.
  *
  * Every open player holds the same reminders and arms the same timer. The
  * stored list decides which one says it: the reminders are taken out of it
@@ -116,6 +119,9 @@ async function fireReminders() {
   if (!local.length) return;
   const due = await store.takeDueReminders(now + REMIND_AHEAD);
   if (guideOpen) grid.invalidate();
+  // As the system's notifications too, where they are allowed: the player
+  // in sight is not the viewer looking at it (see background.js).
+  if (notifying && due.length) api.runtime.sendMessage({ notifyReminders: { key: store.remindersStorageKey(), due } }).catch(() => {});
   const showing = due.filter((r) => r.stop > now).sort((a, b) => b.start - a.start)[0];
   if (!showing) return;
   const channel = showing.channel;

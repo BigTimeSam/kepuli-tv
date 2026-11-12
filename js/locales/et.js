@@ -511,7 +511,7 @@ export default {
  "subs.style.box": "Raam",
  "subs.style.contrast": "Kõrge kontrast",
  "setup.epg": "Laadi saateandmed automaatselt",
- "setup.notify": "Näita meeldetuletusi teavitustena, kui mängija pole nähtaval",
+ "setup.notify": "Näita meeldetuletusi teavitustena",
  "setup.resume": "Jäta meelde, kuhu filmid ja episoodid pooleli jäid",
  "setup.autonext": "Esita järgmine episood, kui eelmine lõpeb",
  "setup.home.picks": "Näita „Nüüd ja varsti sinu kanalitel“",

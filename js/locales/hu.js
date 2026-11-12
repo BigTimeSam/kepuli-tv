@@ -511,7 +511,7 @@ export default {
  "subs.style.box": "Keret",
  "subs.style.contrast": "Nagy kontraszt",
  "setup.epg": "Műsoradatok automatikus letöltése",
- "setup.notify": "Emlékeztetők megjelenítése értesítésként, ha a lejátszó nem látható",
+ "setup.notify": "Emlékeztetők megjelenítése értesítésként",
  "setup.resume": "Megjegyzi, hol hagytad abba a filmeket és epizódokat",
  "setup.autonext": "A következő epizód lejátszása az előző végén",
  "setup.home.picks": "„Most és hamarosan a csatornáidon” megjelenítése",
