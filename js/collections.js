@@ -12,6 +12,7 @@ import { el } from './dom.js';
 import { renderDetail } from './seriesui.js';
 import { t } from './i18n.js';
 import * as store from './config.js';
+import { reminders, toggleReminder } from './remindersui.js';
 import { KIND_INDEX, KIND_ORDER, TYPE_KIND, beginListLoad, catalogueSearch, connecting, isAbort, isCollection, kindGroup, kindLabel, listNavigation, refreshRows, renderCategories, renderSidebar, showListError, state, tabType, updateAddress, visibleRows, vlist, withoutInternational } from './state.js';
 import { renderIdleOverlay } from './languageui.js';
 import { toast } from './toast.js';
@@ -20,7 +21,35 @@ import { fillBar, hideProgress, progressSignal, showProgress, updateProgress } f
 
 /** The whole set of favourites or history, before any filters. */
 export function collectionItems() {
-  return visibleRows(state.tab === 'fav' ? favoritesInOrder() : historyInOrder());
+  const rows = visibleRows(state.tab === 'fav' ? favoritesInOrder() : historyInOrder());
+  return state.tab === 'recent' ? [...upcomingRows(), ...rows] : rows;
+}
+
+/**
+ * The reminders set, the soonest first, as rows at the head of the
+ * history under "Upcoming": a reminder was a bell in the guide and nowhere
+ * else, and what had been asked for could only be found by finding the
+ * programme again. They are a kind of their own in the sidebar too
+ * ("Upcoming", state.kind 'r'), which shows them alone. Not under another
+ * kind's filter or a search, which are of what was watched. `k` is 'r';
+ * the row is drawn by reminderRow.
+ */
+function upcomingRows() {
+  if ((state.kind != null && state.kind !== 'r') || state.query || state.detail) return [];
+  const now = Date.now();
+  return [...reminders.values()].filter((r) => r.stop > now).sort((a, b) => a.start - b.start)
+    .map((r) => ({ k: 'r', id: store.reminderKey(r), n: r.title, channel: r.channel, start: r.start, stop: r.stop }));
+}
+
+/** How many reminders there are to come: the sidebar's count, whatever kind is chosen. */
+export function upcomingCount() {
+  const now = Date.now();
+  return state.tab === 'recent' ? [...reminders.values()].filter((r) => r.stop > now).length : 0;
+}
+
+/** A reminder taken back from its row. */
+export function removeUpcoming(row) {
+  toggleReminder(row.channel, { title: row.n, start: row.start, stop: row.stop });
 }
 
 /** The favourites in the order chosen at the foot of their list: by name either way, or the latest added first. */
@@ -204,10 +233,11 @@ export function sectionsFor(rows) {
 
   let previous = null;
   for (let i = 0; i < rows.length; i++) {
-    const unfinished = byDay && isUnfinished(rows[i]);
-    const label = !byDay ? kindLabel(kindGroup(rows[i].k))
+    const upcoming = rows[i].k === 'r';
+    const unfinished = byDay && !upcoming && isUnfinished(rows[i]);
+    const label = upcoming ? kindLabel('r') : !byDay ? kindLabel(kindGroup(rows[i].k))
       : unfinished ? t('history.continue') : dayLabel(rows[i].watchedAt);
-    const icon = !byDay ? KIND_ICONS[kindGroup(rows[i].k)]
+    const icon = upcoming ? HISTORY_ICONS.upcoming : !byDay ? KIND_ICONS[kindGroup(rows[i].k)]
       : unfinished ? HISTORY_ICONS.continue : HISTORY_ICONS.day;
     if (label && label !== previous) sections.set(i, { label, icon });
     previous = label;
@@ -215,7 +245,7 @@ export function sectionsFor(rows) {
   // A single type heading atop the whole list organises nothing, and the
   // sidebar says the same. A day heading, on the other hand, also says
   // when — that one stays.
-  if (!byDay && sections.size < 2) return new Map();
+  if (!byDay && sections.size < 2 && !rows.some((row) => row.k === 'r')) return new Map();
   return sections;
 }
 

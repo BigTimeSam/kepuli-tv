@@ -16,6 +16,7 @@ import { playItem } from './playing.js';
 import { toast } from './toast.js';
 import { grid, guideOpen, renderGuidePreview } from './guideui.js';
 import { shownName, stripItem } from './coversui.js';
+import { refreshRows, renderSidebar, state } from './state.js';
 
 // A programme to be reminded of, a minute before it starts.
 const REMIND_AHEAD = 60 * 1000;
@@ -60,6 +61,16 @@ export function showReminders(list) {
     .filter((r) => r.stop > now)
     .map((r) => [store.reminderKey(r), r]));
   armReminders();
+  showUpcoming();
+}
+
+/** The history's "Upcoming" rows follow the reminders (js/collections.js). */
+function showUpcoming() {
+  if (state.tab !== 'recent' || state.detail || !state.lib) return;
+  // The last reminder gone while "Upcoming" is the kind chosen: back to All.
+  if (state.kind === 'r' && !reminders.size) { state.kind = null; state.lastKind.recent = null; }
+  renderSidebar();
+  refreshRows({ keepScroll: true });
 }
 
 export function toggleReminder(channel, programme) {
@@ -74,6 +85,7 @@ export function toggleReminder(channel, programme) {
   store.setReminder(key, reminders.get(key) || null);
   armReminders();
   if (guideOpen) { grid.invalidate(); renderGuidePreview(channel, programme); }
+  showUpcoming();
 }
 
 /**
@@ -119,6 +131,7 @@ async function fireReminders() {
   if (!local.length) return;
   const due = await store.takeDueReminders(now + REMIND_AHEAD);
   if (guideOpen) grid.invalidate();
+  showUpcoming();
   // As the system's notifications too, where they are allowed: the player
   // in sight is not the viewer looking at it (see background.js).
   if (notifying && due.length) api.runtime.sendMessage({ notifyReminders: { key: store.remindersStorageKey(), due } }).catch(() => {});

@@ -143,6 +143,7 @@ export default {
  "kind.0": "Kanalai",
  "kind.1": "Filmai",
  "kind.2": "Serialai",
+ "kind.r": "Netrukus",
  "subcats.all": "Visi",
  "subcats.general": "Bendra",
  "subcats.resize.title": "Tempk, kad pakeistum temų juostos aukštį; dukart spustelėjus grąžinamas numatytasis",

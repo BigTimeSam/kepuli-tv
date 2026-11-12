@@ -254,6 +254,7 @@ export function sectionHeader(label, paths = null) {
 
 /** The headings' marks in the history: what was left halfway, and a day. */
 export const HISTORY_ICONS = {
+  upcoming: '<path d="M5.5 14.5V9.2a4.5 4.5 0 0 1 9 0v5.3l1.4 1.4H4.1zM8.4 17.6a1.7 1.7 0 0 0 3.2 0"/>',
   continue: '<circle cx="10" cy="10" r="7.2"/><path d="m8.4 7.2 4.4 2.8-4.4 2.8z"/>',
   day: '<rect x="3" y="4.5" width="14" height="12.5" rx="1.8"/><path d="M3 8.5h14M7 2.8v3.4M13 2.8v3.4"/>',
 };
@@ -490,6 +491,37 @@ export function favCategoryRow(entry, ctx) {
   row.appendChild(el('div', 'row-chevron', '›'));
   nameOption(row, [entry.n, t('favs.title'), ctx.subtitle, ctx.count != null ? String(ctx.count) : null]);
 
+  row.addEventListener('click', ctx.onOpen);
+  return row;
+}
+
+/**
+ * A reminder set in the guide, as a row at the head of the history: the
+ * programme, when it is on and where, the channel's logo, and the row's
+ * menu, which takes the reminder back. A press goes to the channel.
+ */
+export function reminderRow(entry, ctx) {
+  const row = listOption('row row-remind', ctx);
+  // The bell stands where the other rows have their star, so that the
+  // logos and the names keep their columns.
+  const bell = el('span', 'row-bell');
+  bell.setAttribute('aria-hidden', 'true');
+  bell.append(icon(HISTORY_ICONS.upcoming));
+  row.appendChild(bell);
+  row.appendChild(poster('row-thumb', entry.channel.logo, 'channel'));
+  const body = el('div', 'row-body');
+  const name = el('div', 'row-name', entry.n);
+  name.title = entry.n;
+  body.appendChild(name);
+  const sub = el('div', 'row-sub');
+  sub.appendChild(el('span', 'txt', ctx.subtitle));
+  body.appendChild(sub);
+  row.appendChild(body);
+  // Its actions behind the ⋯, as the history's other rows have theirs: it
+  // comes into sight with the pointer or the cursor, and Delete does the
+  // same as its "Cancel reminder".
+  row.appendChild(quiet(more(ctx.onMenu)));
+  nameOption(row, [entry.n, ctx.subtitle]);
   row.addEventListener('click', ctx.onOpen);
   return row;
 }

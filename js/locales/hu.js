@@ -139,6 +139,7 @@ export default {
  "kind.0": "Csatornák",
  "kind.1": "Filmek",
  "kind.2": "Sorozatok",
+ "kind.r": "Hamarosan",
  "subcats.all": "Mind",
  "subcats.general": "Általános",
  "subcats.resize.title": "Húzd a témasáv magasságának beállításához; dupla kattintásra visszaáll az alapértelmezett",

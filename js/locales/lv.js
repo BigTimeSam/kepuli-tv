@@ -141,6 +141,7 @@ export default {
  "kind.0": "Kanāli",
  "kind.1": "Filmas",
  "kind.2": "Seriāli",
+ "kind.r": "Gaidāmie",
  "subcats.all": "Visi",
  "subcats.general": "Vispārīgi",
  "subcats.resize.title": "Velc, lai iestatītu tēmu joslas augstumu; dubultklikšķis atjauno noklusējumu",

@@ -139,6 +139,7 @@ export default {
  "kind.0": "Kanallar",
  "kind.1": "Filmler",
  "kind.2": "Diziler",
+ "kind.r": "Yakında",
  "subcats.all": "Tümü",
  "subcats.general": "Genel",
  "subcats.resize.title": "Konu çubuğunun yüksekliğini ayarlamak için sürükleyin, varsayılan için çift tıklayın",

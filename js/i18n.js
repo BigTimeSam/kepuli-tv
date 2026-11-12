@@ -148,6 +148,7 @@ const STRINGS = {
     'kind.0': 'Channels',
     'kind.1': 'Movies',
     'kind.2': 'Series',
+    'kind.r': 'Upcoming',
 
     /* ------------------------------------------------------------- list */
     'subcats.all': 'All',
@@ -933,6 +934,7 @@ const STRINGS = {
     'kind.0': 'Kanavat',
     'kind.1': 'Elokuvat',
     'kind.2': 'Sarjat',
+    'kind.r': 'Tulossa',
 
     /* ------------------------------------------------------------- list */
     'subcats.all': 'Kaikki',

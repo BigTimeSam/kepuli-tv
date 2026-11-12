@@ -139,6 +139,7 @@ export default {
  "kind.0": "Kanalid",
  "kind.1": "Filmid",
  "kind.2": "Sarjad",
+ "kind.r": "Tulekul",
  "subcats.all": "Kõik",
  "subcats.general": "Üldine",
  "subcats.resize.title": "Lohista teemariba kõrguse muutmiseks; topeltklõps taastab vaikimisi kõrguse",

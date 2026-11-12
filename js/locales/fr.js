@@ -139,6 +139,7 @@ export default {
  "kind.0": "Chaînes",
  "kind.1": "Films",
  "kind.2": "Séries",
+ "kind.r": "À venir",
  "subcats.all": "Tout",
  "subcats.general": "Général",
  "subcats.resize.title": "Faites glisser pour régler la hauteur de la barre de thèmes, double-clic pour la valeur par défaut",

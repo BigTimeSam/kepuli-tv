@@ -141,6 +141,7 @@ export default {
  "kind.0": "Canale",
  "kind.1": "Filme",
  "kind.2": "Seriale",
+ "kind.r": "În curând",
  "subcats.all": "Toate",
  "subcats.general": "General",
  "subcats.resize.title": "Trage pentru a seta înălțimea barei de teme; dublu clic pentru valoarea implicită",

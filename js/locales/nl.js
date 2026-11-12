@@ -139,6 +139,7 @@ export default {
  "kind.0": "Zenders",
  "kind.1": "Films",
  "kind.2": "Series",
+ "kind.r": "Binnenkort",
  "subcats.all": "Alle",
  "subcats.general": "Algemeen",
  "subcats.resize.title": "Sleep om de hoogte van de onderwerpbalk in te stellen, dubbelklik voor de standaardhoogte",

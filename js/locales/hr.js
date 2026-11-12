@@ -141,6 +141,7 @@ export default {
  "kind.0": "Kanali",
  "kind.1": "Filmovi",
  "kind.2": "Serije",
+ "kind.r": "Nadolazeće",
  "subcats.all": "Sve",
  "subcats.general": "Općenito",
  "subcats.resize.title": "Povuci za visinu trake tema; dvostruki klik vraća zadanu",

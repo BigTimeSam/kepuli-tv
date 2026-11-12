@@ -233,6 +233,10 @@
 //                                     that does not hold the series
 //   node dev/playcheck.mjs continuewatching a film left halfway heads the
 //                                     history under its own heading
+//   node dev/playcheck.mjs upcoming   the reminders set head the history under
+//                                     Upcoming and are a kind in its sidebar;
+//                                     the row's menu cancels one, a press
+//                                     goes to its channel
 //   node dev/playcheck.mjs liverewind a live channel's seek bar dragged to
 //                                     before what is kept goes on from the
 //                                     earliest point and says so; no restart
@@ -1609,6 +1613,63 @@ async function accounts(page, { target }) {
   } finally {
     other.closeAllConnections();
     await new Promise((resolve) => other.close(resolve));
+  }
+}
+
+/**
+ * The reminders set are listed at the head of History under "Upcoming",
+ * the soonest first, and are a kind of their own in its sidebar. A
+ * reminder used to be a bell in the guide and nowhere else. The row's
+ * menu takes one back, a press goes to its channel, and the last one gone
+ * takes the kind with it.
+ */
+async function upcoming(page) {
+  const assert = (ok, message) => { if (!ok) throw new Error(message); };
+  await openLiveList(page, 5);
+  // Something watched, so that the history has rows of its own below.
+  await evaluate(page, `document.querySelectorAll('#list .row')[0].click()`, { gesture: true });
+  await waitFor(page, PLAYING, 'a channel for the history', 40000);
+  const key = await evaluate(page, `import('./js/config.js').then((c) => c.remindersStorageKey())`);
+  try {
+    const set = await evaluate(page, `Promise.all([import('./js/state.js'), import('./js/coversui.js')]).then(async ([s, u]) => { const now = Date.now(), H = 3600e3; const ch = (i) => u.stripItem(s.state.rows[i]);
+      const list = [{ channel: ch(1), title: 'Later Tonight', start: now + 2 * H, stop: now + 3 * H }, { channel: ch(4), title: 'Tomorrow Morning', start: now + 26 * H, stop: now + 27 * H }, { channel: ch(3), title: 'In A Moment', start: now + 0.4 * H, stop: now + H }];
+      await chrome.storage.local.set({ ${JSON.stringify(key)}: list });
+      return { channels: [ch(3).n, ch(1).n, ch(4).n], watched: s.state.recents.length }; })`);
+    await evaluate(page, `document.querySelector('#tabs [data-tab="recent"]').click()`);
+    await waitFor(page, `document.querySelectorAll('#list .row-remind').length === 3`, 'the three reminders in the history');
+    const sidebar = () => evaluate(page, `[...document.querySelectorAll('#groups .group')].map((g) => g.textContent.split(/\\s+/).join(''))`);
+    const view = () => evaluate(page, `({ headings: [...document.querySelectorAll('#list .daysep-label')].map((n) => n.textContent), rows: [...document.querySelectorAll('#list .row')].map((r) => (r.classList.contains('row-remind') ? 'R ' : '') + r.querySelector('.row-name').textContent), first: document.querySelector('#list .row-remind .row-sub')?.textContent, hash: location.hash })`);
+    const all = await view();
+    assert(all.headings[0] === 'Upcoming' && JSON.stringify(all.rows.slice(0, 3)) === JSON.stringify(['R In A Moment', 'R Later Tonight', 'R Tomorrow Morning']) && all.rows.length > 3 && !all.rows[3].startsWith('R '),
+      `the head of the history: ${JSON.stringify(all)}`);
+    assert(all.first.endsWith(`, ${set.channels[0]}`) && /\d[.:]\d\d–\d/.test(all.first), `a reminder's line: "${all.first}"`);
+    const kinds = await sidebar();
+    assert(kinds[0] === `All${set.watched}` && kinds[1] === 'Upcoming3', `the sidebar: ${JSON.stringify(kinds)}`);
+    // The kind alone, and in the address.
+    await evaluate(page, `[...document.querySelectorAll('#groups .group')].find((g) => g.textContent.includes('Upcoming')).click()`);
+    await waitFor(page, `location.hash.includes('kind=upcoming')`, 'Upcoming in the address');
+    const alone = await view();
+    assert(alone.rows.length === 3 && alone.rows.every((r) => r.startsWith('R ')), `Upcoming alone: ${JSON.stringify(alone)}`);
+    // The row's menu takes a reminder back, from the list and the store.
+    await evaluate(page, `document.querySelector('#list .row-remind .row-more').click()`);
+    await waitFor(page, `document.querySelector('.row-menu button')`, 'the reminder\'s menu');
+    const menu = await evaluate(page, `[...document.querySelectorAll('.row-menu button')].map((b) => b.textContent)`);
+    assert(JSON.stringify(menu) === JSON.stringify(['Go to channel', 'Cancel reminder']), `the reminder's menu: ${JSON.stringify(menu)}`);
+    await evaluate(page, `document.querySelectorAll('.row-menu button')[1].click()`);
+    await waitFor(page, `document.querySelectorAll('#list .row-remind').length === 2`, 'the reminder off the list');
+    const stored = await evaluate(page, `chrome.storage.local.get(${JSON.stringify(key)}).then((d) => (d[${JSON.stringify(key)}] || []).map((r) => r.title))`);
+    assert(JSON.stringify(stored.sort()) === JSON.stringify(['Later Tonight', 'Tomorrow Morning']) && (await sidebar())[1] === 'Upcoming2', `after Cancel reminder: stored ${JSON.stringify(stored)}, sidebar ${JSON.stringify(await sidebar())}`);
+    // A press goes to the channel.
+    await evaluate(page, `document.querySelector('#list .row-remind').click()`, { gesture: true });
+    await waitFor(page, `document.getElementById('now-title').textContent === ${JSON.stringify(set.channels[1])}`, `the channel of the reminder pressed (${set.channels[1]})`, 20000);
+    // The last ones gone, as when they are said: the kind goes, and All is chosen.
+    await evaluate(page, `chrome.storage.local.set({ ${JSON.stringify(key)}: [] })`);
+    await waitFor(page, `!document.querySelector('#list .row-remind') && !location.hash.includes('kind=')`, 'back to All without reminders');
+    const after = await sidebar();
+    assert(!after.some((k) => k.startsWith('Upcoming')) && after[0].startsWith('All'), `the sidebar without reminders: ${JSON.stringify(after)}`);
+    return { ok: true, detail: `three reminders at the head of the history, the soonest first ("${all.first}"); Upcoming 3 in the sidebar beside All ${set.watched}, alone under ${alone.hash}; the row's menu cancelled one; a press played ${set.channels[1]}; none left took the kind away` };
+  } finally {
+    await evaluate(page, `chrome.storage.local.remove(${JSON.stringify(key)})`).catch(() => {});
   }
 }
 
@@ -7906,7 +7967,7 @@ async function handoff(page) {
 
 const SCENARIOS = { buffering, livebuffering, filmbuffering, emptyfile, tsasmp4, refusedfile, badgateway, livebadgateway, channelrefused, noanswer, longfilm, catalogUi, setupClarity, welcome, fullscreenControl, blockedplay, clickpause, pickers, touchcaret, screenbutton, topmenu, scrollbars, channelorder, lengthfilter, nowlogo, channels, home, resumemkv, restore, programmes, catchup, seek, death, cancel, timeout, search, paste, keys, switching, resume, connections, livezap, livequiet, reconnect, accounts, listerror, a11y, subtitles, audio, wasmaudio, settings,
   lastchannel, nextepisode, continuewatching, reminders, update, seeklag, cuesretry, quota, catchupfreeze, catchupfull, twotabs, switchstop, resettabs,
-  refresh, restorenav, guidekeep, removeaccount, m3u, sync, holes, picks, flakyserver, accountform, stalker, record, guidefavs, guidenames, categories, homecountry, noleak, perf, pseudo, startup, soak, phone, headline, accountnow, onerow, nowbarfit, subsize, arrowmiddle, idlelight, iossubs, starquiet, phonestar, pickertouch, pickerkeyboard, phonescroll, menutap, wakelock, livecut, episodenames, gotochannel, filmdetails, favorder, countryfilter, tilekeys, routes, programmekeys, searchlimit, filterfolds, focusrings, xtreamoffer, guideclick, filmaddress, filmfacts, playlistfile, perflive, perfplaylist, remoteimages, phoneguide, handoff, closedplan, secondpicture, liverewind };
+  refresh, restorenav, guidekeep, removeaccount, m3u, sync, holes, picks, flakyserver, accountform, stalker, record, guidefavs, guidenames, categories, homecountry, noleak, perf, pseudo, startup, soak, phone, headline, accountnow, onerow, nowbarfit, subsize, arrowmiddle, idlelight, iossubs, starquiet, phonestar, pickertouch, pickerkeyboard, phonescroll, menutap, wakelock, livecut, episodenames, gotochannel, filmdetails, favorder, countryfilter, tilekeys, routes, programmekeys, searchlimit, filterfolds, focusrings, xtreamoffer, guideclick, filmaddress, filmfacts, playlistfile, perflive, perfplaylist, remoteimages, phoneguide, handoff, closedplan, secondpicture, liverewind, upcoming };
 // The mock's whole-list answers stall for these, longer than the request limit.
 const SLOW_LIST_MS = { cancel: 60000, timeout: 60000 };
 // The media is sent slowly for these: the seek targets must lie outside the

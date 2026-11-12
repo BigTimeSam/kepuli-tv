@@ -26,6 +26,10 @@
 /* 3.2:1 even on the selected row, where the ground is lightest. At the old
    #394052 it was 1.84:1 against the list and 1.47:1 on that row — a control
    that could not be seen, and the only way into the Favourites tab. */
+/* A reminder's row at the head of the history: its bell in the star's
+   place, so the pictures and the names keep their columns. */
+.row-bell { width: 22px; height: 22px; flex: none; display: grid; place-items: center; color: var(--gold); }
+.row-bell svg { width: 15px; height: 15px; fill: none; stroke: currentColor; stroke-width: 1.6; stroke-linecap: round; stroke-linejoin: round; }
 .row-star { width: 22px; height: 22px; flex: none; display: grid; place-items: center; border: 0; padding: 0; background: transparent; color: var(--star); cursor: pointer; border-radius: 5px; font-size: 0.8125rem; }
 .row-star:hover { color: var(--text); background: var(--track); }
 .row-star.on { color: var(--gold); }

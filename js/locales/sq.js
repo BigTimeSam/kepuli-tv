@@ -139,6 +139,7 @@ export default {
  "kind.0": "Kanale",
  "kind.1": "Filma",
  "kind.2": "Seriale",
+ "kind.r": "Së shpejti",
  "subcats.all": "Të gjitha",
  "subcats.general": "Të përgjithshme",
  "subcats.resize.title": "Tërhiqe për të caktuar lartësinë e shiritit të temave; dyklikimi rikthen parazgjedhjen",

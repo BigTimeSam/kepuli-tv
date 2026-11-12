@@ -5,8 +5,8 @@
 // builds, from js/state.js.
 
 import { isNew } from './titlemeta.js';
-import { clock, nf, stampFmt } from './format.js';
-import { favCategoryRow, itemRow, markFavorite, posterCard, sectionHeader } from './rows.js';
+import { clock, dayLabel, nf, stampFmt } from './format.js';
+import { favCategoryRow, itemRow, markFavorite, posterCard, reminderRow, sectionHeader } from './rows.js';
 import { nameCleaner, searchNameCleaner } from './name.js';
 import { peek } from './probe.js';
 import { renderInfoStrip } from './infostrip.js';
@@ -177,7 +177,15 @@ export function renderRow(index) {
       onMenu: item.k === 1 ? (at) => { state.cursor = index; openItemMenu(item, at); } : null,
     });
   }
-  const row = item.k === 'c' ? favCategoryRow(item, {
+  const row = item.k === 'r' ? reminderRow(item, {
+    // "Today, 20.00–21.00, Aurora One": the day, as the history's own
+    // headings say theirs, the programme's times and its channel.
+    subtitle: [dayLabel(item.start), `${clock(item.start)}–${clock(item.stop)}`, shownName(item.channel)].join(', '),
+    selected: index === state.cursor,
+    domId: rowDomId(index),
+    onOpen: () => { state.cursor = index; openItem(item); },
+    onMenu: (at) => { state.cursor = index; openItemMenu(item, at); },
+  }) : item.k === 'c' ? favCategoryRow(item, {
     subtitle: favCategorySubtitle(item),
     count: state.catCounts && state.catCounts.has(key) ? nf.format(state.catCounts.get(key)) : null,
     selected: index === state.cursor,

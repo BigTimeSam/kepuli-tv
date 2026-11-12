@@ -143,6 +143,7 @@ export default {
  "kind.0": "Kanali",
  "kind.1": "Filmi",
  "kind.2": "Serije",
+ "kind.r": "Prihajajoče",
  "subcats.all": "Vse",
  "subcats.general": "Splošno",
  "subcats.resize.title": "Povleci za nastavitev višine vrstice s temami; dvojni klik povrne privzeto",

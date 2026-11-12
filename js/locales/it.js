@@ -139,6 +139,7 @@ export default {
  "kind.0": "Canali",
  "kind.1": "Film",
  "kind.2": "Serie",
+ "kind.r": "In arrivo",
  "subcats.all": "Tutti",
  "subcats.general": "Generale",
  "subcats.resize.title": "Trascina per regolare l'altezza della barra degli argomenti, doppio clic per il valore predefinito",

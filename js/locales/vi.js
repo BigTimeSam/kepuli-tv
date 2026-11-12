@@ -137,6 +137,7 @@ export default {
  "kind.0": "Kênh",
  "kind.1": "Phim",
  "kind.2": "Phim bộ",
+ "kind.r": "Sắp tới",
  "subcats.all": "Tất cả",
  "subcats.general": "Chung",
  "subcats.resize.title": "Kéo để chỉnh độ cao thanh chủ đề; nhấp đúp để về mặc định",

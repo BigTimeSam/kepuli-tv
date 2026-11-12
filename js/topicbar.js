@@ -299,7 +299,8 @@ export function renderListInfo() {
   if (!state.lib && !isCollection()) { el.listinfo.replaceChildren(); return; }
   const type = tabType();
   const parts = [];
-  const count = state.rows.length;
+  // The history's reminders to come are not among what was watched.
+  const count = state.kind === 'r' ? state.rows.length : state.rows.filter((row) => row.k !== 'r').length;
   if (state.detail && state.detail.view === 'category') {
     const entry = state.detail.entry;
     parts.push(unit(entry.t, count));

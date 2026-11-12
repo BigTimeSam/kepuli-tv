@@ -875,7 +875,12 @@ An upcoming programme offers **Remind me**, and pressing `Enter` on one offers
 it in the message that says when it starts. A bell marks the programme in the
 grid. A minute before it starts, a message names the programme and its
 channel, with **Go to channel**. Reminders belong to the account and are kept with
-it. A reminder is also said as a notification of the system's, naming the
+it. The ones set are listed at the head of **History**, under **Upcoming**,
+the soonest first, each with its day, its times and its channel: a press
+goes to the channel, and the row's ⋯ menu (or `Delete`) has **Cancel
+reminder**. **Upcoming** is also a kind of its own in History's sidebar,
+with their number, which shows them alone; neither is there when no
+reminder is set. A reminder is also said as a notification of the system's, naming the
 programme and its channel, whether the player is closed, out of sight or
 in front of you: a player in sight may lie under another window, and a
 message in it alone reminded nobody then. Clicking the notification brings

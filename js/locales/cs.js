@@ -143,6 +143,7 @@ export default {
  "kind.0": "Kanály",
  "kind.1": "Filmy",
  "kind.2": "Seriály",
+ "kind.r": "Nadcházející",
  "subcats.all": "Vše",
  "subcats.general": "Obecné",
  "subcats.resize.title": "Přetažením nastavíš výšku panelu témat; dvojité klepnutí obnoví výchozí",

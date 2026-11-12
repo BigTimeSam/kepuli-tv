@@ -139,6 +139,7 @@ export default {
  "kind.0": "Canales",
  "kind.1": "Películas",
  "kind.2": "Series",
+ "kind.r": "Próximamente",
  "subcats.all": "Todos",
  "subcats.general": "General",
  "subcats.resize.title": "Arrastra para ajustar la altura de la barra de temas, doble clic para el valor por defecto",

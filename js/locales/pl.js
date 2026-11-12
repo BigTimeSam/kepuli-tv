@@ -143,6 +143,7 @@ export default {
  "kind.0": "Kanały",
  "kind.1": "Filmy",
  "kind.2": "Seriale",
+ "kind.r": "Nadchodzące",
  "subcats.all": "Wszystkie",
  "subcats.general": "Ogólne",
  "subcats.resize.title": "Przeciągnij, aby ustawić wysokość paska tematów; dwukrotne kliknięcie przywraca domyślną",

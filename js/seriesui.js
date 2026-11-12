@@ -18,6 +18,8 @@ import { el } from './dom.js';
 export async function openItem(item) {
   if (!item) return;
   if (item.k === 'c') return openFavCategory(item);
+  // A reminder's row at the head of the history: to its channel.
+  if (item.k === 'r') return openItem(item.channel);
   if (item.k === 2) return openSeries(item);
   await playItem(item);
 }

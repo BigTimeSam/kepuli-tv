@@ -10,7 +10,7 @@ import { Epg } from './epg.js';
 import { VirtualList, watchLength } from './vlist.js';
 import { CatalogueSearch } from './cataloguesearch.js';
 import { PlayerLayout } from './playerlayout.js';
-import { categoryRow, emptyState, KIND_ICONS, setStar } from './rows.js';
+import { categoryRow, emptyState, HISTORY_ICONS, KIND_ICONS, setStar } from './rows.js';
 import { searchNameCleaner, searchKey, searchTerms, matchesTerms, labelCodes, homeCountryCodes, homeGroup, viewerTags } from './name.js';
 import { poster } from './poster.js';
 import { wireModal } from './modal.js';
@@ -52,7 +52,7 @@ import { askExternal, nameExternalItem, playExternal } from './externalui.js';
 import { keepScreenOnWhilePlaying } from './wakelock.js';
 import { $, el } from './dom.js';
 import { state, TYPE_KIND, unit, kindLabel, KIND_ORDER, KIND_INDEX, kindGroup, ROW_H, setRowHeight, listNavigation, isCollection, tabType, isAbort, same, resetting, startReset, connecting, setConnecting, provide } from './state.js';
-import { categoryCountsFor, collectionItems, favCategoryEntry, isFavorite, isUnfinished, kindIndex, loadGroupItems, openFavCategory, refreshCatalogue, refreshWhenStale, removeFromHistory, renderSubcats, sectionsFor, toggleFavCategory } from './collections.js';
+import { categoryCountsFor, collectionItems, favCategoryEntry, isFavorite, isUnfinished, kindIndex, loadGroupItems, openFavCategory, refreshCatalogue, refreshWhenStale, removeFromHistory, removeUpcoming, renderSubcats, upcomingCount, sectionsFor, toggleFavCategory } from './collections.js';
 import { renderSecondItem, secondFor, secondOffered } from './secondui.js';
 import { clickPicture, enterFullscreen, moreItems, renderScreenButton, renderSeriesFavorite, toggleFullscreen, toggleMoreMenu, togglePause, toggleScreen, wireMediaSession } from './playercontrols.js';
 import { wireTopMenu } from './topmenu.js';
@@ -943,8 +943,12 @@ async function refreshRows({ keepScroll = false, returnPosition = null, restoreF
       // heading three screens down is not where it is looked for. In the
       // history's name order the names decide alone, grouped by type as
       // the favourites are.
+      // The reminders to come stay at the head through either order.
+      const upcoming = rows.filter((it) => it.k === 'r');
+      rows = rows.filter((it) => it.k !== 'r');
       if (state.tab === 'recent' && listOrder(state.settings, 'recent') === 'watched') rows = [...rows.filter(isUnfinished), ...rows.filter((it) => !isUnfinished(it))];
       else if (state.tab === 'recent' && state.kind == null) rows = [...rows].sort((a, b) => kindIndex(a) - kindIndex(b));
+      rows = [...upcoming, ...rows];
     } else if (state.query) {
       if (!(await ensureFull(type, t('progress.reason.search'), current)) || !current()) return notLoaded();
       rows = state.lib.search(type, state.query, null);
@@ -1164,11 +1168,13 @@ function moveGroupCursor(to) {
 function renderKinds() {
   el.groupsFilter.hidden = true;
   $('groups-empty').hidden = true;
-  const items = collectionItems();
+  // What was watched or starred; the reminders to come are counted apart.
+  const upcoming = upcomingCount();
+  const items = collectionItems().filter((it) => it.k !== 'r');
   // An empty collection needs no filter: the empty-state text says more
   // than a row reading "All 0". The phone's menu goes with it: left as it
   // was, it went on offering the countries of the tab before (Orion).
-  if (!items.length) {
+  if (!items.length && !upcoming) {
     el.groups.replaceChildren();
     fillGroupPicker([], '');
     $('group-picker').hidden = true;
@@ -1184,6 +1190,14 @@ function renderKinds() {
     { id: null, name: t('groups.all'), count: items.length, active: state.kind == null, all: true, icon: KIND_ICONS.all },
     selectKind,
   ));
+  // The reminders set in the guide, a kind of the history's own: first
+  // under All, as they are first in the list.
+  if (upcoming) {
+    frag.appendChild(categoryRow(
+      { id: 'r', name: kindLabel('r'), count: upcoming, active: state.kind === 'r', icon: HISTORY_ICONS.upcoming },
+      selectKind,
+    ));
+  }
   for (const kind of KIND_ORDER) {
     const count = counts.get(kind) || 0;
     if (count === 0) continue;
@@ -1193,7 +1207,7 @@ function renderKinds() {
     ));
   }
   el.groups.replaceChildren(frag);
-  fillGroupPicker(KIND_ORDER.filter((k) => counts.get(k)).map((k) => [kindLabel(k), String(k)]),
+  fillGroupPicker([...(upcoming ? ['r'] : []), ...KIND_ORDER.filter((k) => counts.get(k))].map((k) => [kindLabel(k), String(k)]),
     state.kind == null ? '' : String(state.kind));
   paintGroupPickerStar(null);
 }
@@ -1660,6 +1674,15 @@ const hasItemMenu = (item) => item.k === 0 || item.k === 1 || (state.tab === 're
  * rows have a menu at all is hasItemMenu's to say.
  */
 function openItemMenu(item, at) {
+  // A reminder's row at the head of the history: to its channel, or the
+  // reminder taken back.
+  if (item.k === 'r') {
+    openRowMenu(at, [
+      { label: t('guide.watch'), onClick: () => openItem(item) },
+      { label: t('guide.remind.cancel'), danger: true, onClick: () => removeUpcoming(item) },
+    ], { label: item.n, returnFocus: el.list });
+    return;
+  }
   const prefs = state.channelPrefs;
   const id = String(item.id);
   const name = listName(item);
@@ -1835,6 +1858,7 @@ function toggleFavoriteAtCursor() {
 
   const item = state.cursor >= 0 ? state.rows[state.cursor] : state.playing;
   if (!item) return;
+  if (item.k === 'r') return;                     // a reminder's row has no star
   if (item.k === 'c') toggleFavCategory(item); else toggleFavorite(item);
   const on = state.favorites.has(`${item.k}:${item.id}`);
   toast(t(on ? 'fav.added' : 'fav.removed', { name: shownName(item) }));
@@ -1876,6 +1900,8 @@ function removeAtCursor() {
   if (state.tab !== 'recent' || state.detail || state.cursor < 0) return;
   const item = state.rows[state.cursor];
   if (!item) return;
+  // Delete on a reminder's row takes the reminder back, as its cross does.
+  if (item.k === 'r') { removeUpcoming(item); return; }
   removeFromHistory(item);
   toast(t('row.removed.history', { name: shownName(item) }));
 }
@@ -2014,7 +2040,7 @@ function wireUi() {
     if (!isCollection()) return selectGroup(value || null);
     // The collections filter by type, and a type is 'c', 0, 1 or 2 — the
     // menu carries them as text and they go back as they came.
-    return selectKind(value === '' ? null : KIND_ORDER.find((k) => String(k) === value) ?? null);
+    return selectKind(value === '' ? null : ['r', ...KIND_ORDER].find((k) => String(k) === value) ?? null);
   });
 
   el.categoryFilter.addEventListener('input', () => {

@@ -139,6 +139,7 @@ export default {
  "kind.0": "Kanäle",
  "kind.1": "Filme",
  "kind.2": "Serien",
+ "kind.r": "Demnächst",
  "subcats.all": "Alle",
  "subcats.general": "Allgemein",
  "subcats.resize.title": "Ziehen, um die Höhe der Themenleiste einzustellen; Doppelklick für den Standardwert",

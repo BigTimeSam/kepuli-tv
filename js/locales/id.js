@@ -137,6 +137,7 @@ export default {
  "kind.0": "Saluran",
  "kind.1": "Film",
  "kind.2": "Serial",
+ "kind.r": "Mendatang",
  "subcats.all": "Semua",
  "subcats.general": "Umum",
  "subcats.resize.title": "Seret untuk mengatur tinggi bilah topik; klik dua kali untuk mengembalikan ke bawaan",

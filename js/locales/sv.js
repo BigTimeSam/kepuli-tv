@@ -139,6 +139,7 @@ export default {
  "kind.0": "Kanaler",
  "kind.1": "Filmer",
  "kind.2": "Serier",
+ "kind.r": "Kommande",
  "subcats.all": "Alla",
  "subcats.general": "Allmänt",
  "subcats.resize.title": "Dra för att ställa in ämnesradens höjd, dubbelklicka för standard",

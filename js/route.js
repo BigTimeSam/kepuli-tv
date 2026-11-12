@@ -56,9 +56,10 @@ const MOVIE_TABS = ['movie'];
 
 // A collection's type filter: the same values as KIND_ORDER in app.js, and
 // the word each has in the address.
-const KINDS = ['c', 0, 1, 2];
+// 'r' is the history's reminders ("Upcoming"), see upcomingRows in js/collections.js.
+const KINDS = ['c', 0, 1, 2, 'r'];
 /** @type {Map<string|number, string>} */
-const KIND_WORDS = new Map(/** @type {[string|number, string][]} */ ([['c', 'category'], [0, 'channel'], [1, 'movie'], [2, 'series']]));
+const KIND_WORDS = new Map(/** @type {[string|number, string][]} */ ([['c', 'category'], [0, 'channel'], [1, 'movie'], [2, 'series'], ['r', 'upcoming']]));
 // A tab's word in the address, where it is not the tab's own id.
 const TAB_WORDS = new Map([['fav', 'favorites'], ['recent', 'history']]);
 // The guide is the channel list's, so its word stands for the channels' tab.

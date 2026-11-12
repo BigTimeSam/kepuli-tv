@@ -139,6 +139,7 @@ export default {
  "kind.0": "Kanaler",
  "kind.1": "Filmer",
  "kind.2": "Serier",
+ "kind.r": "Kommende",
  "subcats.all": "Alle",
  "subcats.general": "Generelt",
  "subcats.resize.title": "Dra for å angi høyden på emnelinjen, dobbeltklikk for standard",
