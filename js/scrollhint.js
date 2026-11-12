@@ -41,11 +41,23 @@ function classicBar(box) {
   return box.offsetWidth - box.clientWidth - borders > 1;
 }
 
+// Where the browser's bar is an overlay, it still shows while the box is
+// scrolled: Firefox's thicker bar came up over ours for those seconds, two
+// bars on one edge. With ours drawn the browser's is taken away from that
+// box. In Firefox alone: Chrome's bars are styled (::-webkit-scrollbar)
+// and take room, which is what classicBar() reads to draw nothing beside
+// them, and a box told to have no bar could no longer be read that way.
+const OVERLAY_BARS = typeof CSS !== 'undefined' && !CSS.supports('selector(::-webkit-scrollbar)');
+function hideOverlayBar(box, ours) {
+  if (OVERLAY_BARS) /** @type {HTMLElement} */ (box).style.scrollbarWidth = ours ? 'none' : '';
+}
+
 function draw(box) {
   const overflow = box.scrollHeight - box.clientHeight;
   const shown = box.isConnected && box.clientHeight > 0 && overflow > 1
     && /(auto|scroll)/.test(getComputedStyle(box).overflowY) && !classicBar(box);
   let bar = bars.get(box);
+  hideOverlayBar(box, shown);
   if (!shown) { if (bar) { bar.remove(); bars.delete(box); } return; }
   if (!layer?.isConnected) {
     layer = document.createElement('div');
