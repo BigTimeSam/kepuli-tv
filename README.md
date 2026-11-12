@@ -8,7 +8,9 @@ and your details stay in your browser.
 | Browser | Install |
 | --- | --- |
 | Google Chrome 116 or newer | [Chrome Web Store](https://chromewebstore.google.com/detail/kepuli-tv/okkgclcakhjhldkdcblgagoaibghpfmi) |
-| Mozilla Firefox 130 or newer, and Orion on the iPhone | [Firefox Add-ons](https://addons.mozilla.org/firefox/addon/kepuli-tv/) |
+| Mozilla Firefox 130 or newer | [Firefox Add-ons](https://addons.mozilla.org/firefox/addon/kepuli-tv/) |
+| Android: Firefox for Android 142 or newer | [Firefox Add-ons](https://addons.mozilla.org/firefox/addon/kepuli-tv/), see [On a phone or a tablet](#on-a-phone-or-a-tablet) |
+| iPhone (iOS): Orion | Orion's own extension list, see [On a phone or a tablet](#on-a-phone-or-a-tablet) |
 
 **[Watch the four-minute tour on YouTube](https://youtu.be/Wr4FcXlTbOM)**
 
@@ -42,6 +44,45 @@ and your details stay in your browser.
 3. Pick a country and a channel. Press `?` for the keyboard shortcuts.
 
 Kepuli-TV contains no channels or content: you need your own subscription.
+
+## On a phone or a tablet
+
+Kepuli-TV also runs on Android and on the iPhone, in a browser that takes
+Firefox add-ons. Chrome for Android and Safari do not install extensions, so
+it is one of these two:
+
+**Android: Firefox**
+
+1. Install [Firefox](https://play.google.com/store/apps/details?id=org.mozilla.firefox)
+   (142 or newer) from the Play Store.
+2. Open [Kepuli-TV on Firefox Add-ons](https://addons.mozilla.org/firefox/addon/kepuli-tv/)
+   in it and tap **Add to Firefox**, or choose **Extensions** in Firefox's
+   menu and search for Kepuli-TV there.
+3. Open Firefox's menu, choose **Extensions** and then **Kepuli-TV**: the
+   player opens in a tab.
+
+**iPhone (iOS): Orion**
+
+1. Install [Orion Browser by Kagi](https://apps.apple.com/app/orion-browser-by-kagi/id1484498200)
+   from the App Store. It installs Firefox add-ons, which Safari and the
+   other browsers on iOS do not.
+2. In Orion's menu choose **Extensions**, then **+** and **Install Firefox
+   extension**, search for Kepuli-TV and install it.
+3. Choose **Kepuli-TV** in Orion's menu to open the player.
+
+From there it is as on a computer: add your account as in
+[Getting started](#getting-started), and the lists, the programme guide and
+the player fit themselves to the screen. What differs on a phone:
+
+- **Full screen** is the button in the header on Android, and the iPhone's
+  own video player on the iPhone.
+- **Open in VLC** in the player's menu hands the stream to the VLC app; if
+  VLC is not installed, its store page opens.
+- **Chromecast** is not offered on the iPhone, where no browser reaches one;
+  AirPlay is in the iPhone's own player controls in full screen. On Android,
+  VLC can send the stream on to a Chromecast.
+- **On the iPhone** a live channel may wait for a tap on **Play** before it
+  starts, as iOS allows sound only after a touch.
 
 ## User guide
 
