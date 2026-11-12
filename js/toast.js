@@ -8,12 +8,30 @@ import { duration } from './format.js';
 import { el } from './dom.js';
 import { t } from './i18n.js';
 import { state } from './state.js';
+import { remote } from './caret.js';
 
 let toastTimer = null;
 // A message that came while the viewer was on the strip's button (Undo,
 // say): shown once they have left it or pressed it, not in its place. A
 // later message had taken Undo away from under the keyboard's focus.
 let waiting = null;
+// With a remote control (js/remote.js) the strip's button takes the focus
+// as it appears: there is no pointer to reach it with, and the arrows may
+// be a list's own. This is where the focus came from, to go back to.
+let returnTo = null;
+function leave() {
+  if (returnTo?.isConnected && el.toast.contains(document.activeElement)) returnTo.focus({ preventScroll: true });
+  returnTo = null;
+}
+
+/** The strip put away unpressed, as Back does on a remote control. */
+export function dismissToast() {
+  clearTimeout(toastTimer);
+  leave();
+  el.toast.hidden = true;
+  next();
+}
+
 function next() {
   if (!waiting) return;
   const [text, options] = waiting;
@@ -41,7 +59,7 @@ export function toast(text, { long = false, kind = 'info', action = null, durati
     button.type = 'button';
     button.className = 'toast-action';
     button.textContent = action.label;
-    button.addEventListener('click', () => { clearTimeout(toastTimer); el.toast.hidden = true; action.onClick(); next(); });
+    button.addEventListener('click', () => { clearTimeout(toastTimer); leave(); el.toast.hidden = true; action.onClick(); next(); });
     el.toast.appendChild(button);
   }
   el.toast.classList.remove('info', 'warn', 'error');
@@ -53,6 +71,10 @@ export function toast(text, { long = false, kind = 'info', action = null, durati
   el.toastLive.textContent = '';
   setTimeout(() => { el.toastLive.textContent = text; }, 50);
   el.toast.hidden = false;
+  if (action && remote) {
+    returnTo = /** @type {HTMLElement} */ (document.activeElement);
+    /** @type {HTMLElement} */ (el.toast.querySelector('.toast-action')).focus();
+  }
   clearTimeout(toastTimer);
   // An error deserves the time it takes to read it, and so does a message
   // with something in it to press. A strip that holds the pointer or the

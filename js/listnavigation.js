@@ -98,3 +98,31 @@ export function neighbourTile(rects, at, key) {
   row.sort((a, b) => Math.abs(centre(a.r) - centre(here)) - Math.abs(centre(b.r) - centre(here)));
   return row[0].i;
 }
+
+/**
+ * The box an arrow leads to from another, among boxes anywhere on the
+ * page (js/remote.js): the nearest one that way among those in line with
+ * the first, however far, and only with none in line the nearest one off
+ * to the side. A column a pixel to the left would otherwise take the
+ * arrow from the field straight below. -1 where there is none that way.
+ *
+ * @typedef {{left: number, top: number, right: number, bottom: number}} Box
+ * @param {Box} from
+ * @param {Box[]} boxes
+ * @param {number[]} way [1, 0] right, [-1, 0] left, [0, 1] down, [0, -1] up
+ */
+export function towards(from, boxes, [dx, dy]) {
+  let best = -1;
+  let bestScore = Infinity;
+  boxes.forEach((box, i) => {
+    const centre = dx ? (box.left + box.right - from.left - from.right) * dx : (box.top + box.bottom - from.top - from.bottom) * dy;
+    const ahead = dx ? (dx > 0 ? box.left - from.right : from.left - box.right) : (dy > 0 ? box.top - from.bottom : from.top - box.bottom);
+    // A box beside this one, however tall, is not above or below it.
+    if (centre <= 0 || ahead < -4) return;
+    // How far off the line: nothing while the two overlap across it.
+    const aside = dx ? Math.max(0, box.top - from.bottom, from.top - box.bottom) : Math.max(0, box.left - from.right, from.left - box.right);
+    const score = Math.max(0, ahead) + (aside ? 100000 + aside * 3 : 0);
+    if (score < bestScore) { bestScore = score; best = i; }
+  });
+  return best;
+}

@@ -37,6 +37,7 @@ import { pickEncoder } from './transcode.js';
 import * as store from './config.js';
 import { applyTheme, earlyTheme, onSystemTheme, renderTheme } from './theme.js';
 import { wirePickers } from './picker.js';
+import { remote, wireRemote } from './remote.js';
 import { nf } from './format.js';
 import { t, applyStatic, setLanguage, loadLanguage } from './i18n.js';
 import { askRecordingConsent, closeRecordingConsent, loadRecordingList, openRecordings, retryPlayback, toggleRecordNow } from './recordingsui.js';
@@ -1699,6 +1700,9 @@ function openItemMenu(item, at) {
       onClick: () => changeChannelChoices({ ...prefs, hiddenChannels: [...prefs.hiddenChannels, id] }, t('row.hidden', { name })),
     });
   }
+  // A remote control has no key for the star: the menu OK opens when held
+  // down begins with it (js/remote.js).
+  if (remote) items.unshift({ label: t(state.favorites.has(`${item.k}:${item.id}`) ? 'row.fav.remove' : 'row.fav.add'), onClick: toggleFavoriteAtCursor });
   if (items.length) openRowMenu(at, items, { label: name, returnFocus: el.list });
 }
 
@@ -2272,6 +2276,24 @@ provide({
 
 applyTheme(earlyTheme());
 wirePickers();
+wireRemote({
+  open: () => { if (state.rows[state.cursor]) openItem(state.rows[state.cursor]); },
+  first: () => moveCursor(1),
+  group: moveGroupCursor,
+  menu: () => {
+    const item = state.rows[state.cursor];
+    const node = vlist.nodes.get(state.cursor);
+    if (item) openItemMenu(item, node?.querySelector('.row-more') || node || el.list);
+  },
+  star: toggleFavoriteAtCursor,
+  zap: playRelative,
+  back: () => {
+    if (guideOpen) { closeGuide(); return true; }
+    if (state.detail) { closeDetail(); return true; }
+    return false;
+  },
+  guideRow: () => (guideOpen ? grid.cursorRow : -1),
+});
 
 async function init() {
   state.accounts = await store.loadAccounts();

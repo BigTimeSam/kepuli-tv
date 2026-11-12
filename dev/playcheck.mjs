@@ -346,6 +346,12 @@
 //                                     picks one), a feature-length file plays
 //                                     on with its own duration for
 //                                     KEPULI_LONG_SECS; skipped without it
+//   node dev/playcheck.mjs remote     the player driven by a television's
+//                                     remote control (player.html?tv=1): the
+//                                     arrows carry the focus from the list
+//                                     to the tabs and a field, OK plays and
+//                                     then fills the screen, held down it
+//                                     opens the row's menu, Back steps out
 //   node dev/playcheck.mjs pseudo     the main views with pseudo-localised
 //                                     text (player.html?pseudo=1, 40 %
 //                                     longer): no button, tab, row, label or
@@ -7965,9 +7971,137 @@ async function handoff(page) {
   return { ok: true, detail: `a computer downloads ${desktop.clicks[0].download}; Android hands VLC the film at ${position} s with no file, and the overlay names VLC; the iPhone hands VLC the address and, with no VLC, opens its App Store page` };
 }
 
+/**
+ * A television's remote control (js/remote.js): the page opened as
+ * player.html?tv=1, as the Android TV app opens it, and driven with the
+ * four arrows, OK (Enter) and Back (Escape) alone. The arrows walk the
+ * list up to its first row and then leave it for the control above; among
+ * the tabs they move the focus without changing the tab, which OK does; a
+ * text field takes the focus with the on-screen keyboard held down
+ * (inputmode none) until OK; OK plays the row and, on the row playing,
+ * fills the screen, where Down changes the channel and the channel is named
+ * over the picture; OK held down opens the
+ * row's menu, which begins with the star; Back goes to the list from
+ * anywhere else, and from the list asks for the window to be closed.
+ */
+async function remote(page, { target }) {
+  const plain = bare(target.url).split('?')[0];
+  const focus = () => evaluate(page, `(document.activeElement.id || document.activeElement.tagName)`);
+  const arrow = async (name, times = 1) => {
+    const code = { ArrowLeft: 37, ArrowUp: 38, ArrowRight: 39, ArrowDown: 40 }[name];
+    for (let i = 0; i < times; i++) { await pressKey(page, name, name, code); await sleep(120); }
+  };
+  // Enter with its character, without which Chrome does not press a button.
+  const enter = (type) => page.call('Input.dispatchKeyEvent', { type, key: 'Enter', code: 'Enter', windowsVirtualKeyCode: 13, ...(type === 'keyDown' ? { text: '\r' } : {}) });
+  const ok = async () => { await enter('keyDown'); await enter('keyUp'); };
+  const back = () => pressKey(page, 'Escape', 'Escape', 27);
+  const selected = () => evaluate(page, `(document.querySelector('#list .row.selected')?.id || '')`);
+  const playing = `!document.getElementById('video').paused && document.getElementById('video').readyState > 2`;
+  const title = () => evaluate(page, `document.querySelector('#list .row.playing .row-name, #list .row.playing')?.textContent.trim().slice(0, 40) || ''`);
+  try {
+    await page.call('Page.navigate', { url: `${plain}?tv=1#/live` });
+    await sleep(1000);
+    await waitFor(page, `location.search === '?tv=1' && ${CONNECTED}`, 'the connection');
+    await evaluate(page, `document.querySelector('dialog[open]')?.close()`);
+    await evaluate(page, `document.querySelector('#tabs [data-tab="live"]').click()`);
+    await waitFor(page, `document.querySelectorAll('#list .row').length > 2`, 'the channel rows');
+    await evaluate(page, `(window.__closed = 0, window.close = () => { window.__closed++; }, document.getElementById('list').focus())`);
+    const marked = await evaluate(page, `document.documentElement.classList.contains('tv')`);
+
+    // The list keeps its arrows down to its first row, and Up from there leaves it.
+    await arrow('ArrowDown', 2);
+    const second = await selected();
+    await arrow('ArrowUp');
+    const first = await selected();
+    await arrow('ArrowUp');
+    const above = await focus();
+
+    // The tabs: the arrows move the focus only, OK changes the tab.
+    await evaluate(page, `document.getElementById('tab-live').focus()`);
+    await arrow('ArrowRight');
+    const onTab = await focus();
+    const tabKept = await evaluate(page, `document.getElementById('tab-live').classList.contains('active')`);
+    await ok();
+    await waitFor(page, `document.getElementById('tab-movie').classList.contains('active')`, 'the Movies tab on OK', 8000);
+
+    // A text field: the focus without the keyboard, OK for the keyboard.
+    await evaluate(page, `document.getElementById('tab-recent').focus()`);
+    await arrow('ArrowRight');
+    const field = await focus();
+    const held = await evaluate(page, `document.getElementById('search').inputMode`);
+    await ok();
+    const typing = await evaluate(page, `document.getElementById('search').inputMode`);
+    // Back from a control that is not the list returns to the list.
+    await evaluate(page, `document.getElementById('tab-live').focus()`);
+    await ok();
+    await waitFor(page, `document.getElementById('tab-live').classList.contains('active') && document.querySelectorAll('#list .row').length > 2`, 'the channels again', 8000);
+    await back();
+    await sleep(200);
+    const home = await focus();
+    const closedEarly = await evaluate(page, `window.__closed`);
+
+    // OK plays the row; OK on the row playing fills the screen; Down there is the next channel.
+    await arrow('ArrowDown');
+    await ok();
+    await waitFor(page, playing, 'the channel playing on OK', 20000);
+    const one = await title();
+    await ok();
+    await waitFor(page, `document.fullscreenElement?.id === 'videowrap'`, 'the picture full screen on a second OK', 5000);
+    await arrow('ArrowDown');
+    await waitFor(page, `(document.querySelector('#list .row.playing')?.textContent.trim().slice(0, 40) || '') !== ${JSON.stringify(one)} && ${playing}`, 'the next channel on Down', 20000).catch(() => {});
+    const two = await title();
+    // What is on is named over the picture, which covers the head that says it.
+    const banner = await evaluate(page, `document.getElementById('zap').hidden ? '' : document.getElementById('zap').textContent`);
+    const named = await evaluate(page, `document.getElementById('now-title').textContent`);
+    await evaluate(page, `document.exitFullscreen()`);
+    await waitFor(page, `!document.fullscreenElement`, 'the window again', 5000);
+    await sleep(200);
+    const after = await focus();
+
+    // OK held down: the row's menu, beginning with the star.
+    await enter('keyDown');
+    await sleep(900);
+    await enter('keyUp');
+    await sleep(200);
+    const menu = await evaluate(page, `[...document.querySelectorAll('.row-menu button')].map((b) => b.textContent)`);
+    const star = await evaluate(page, `import('./js/i18n.js').then((i) => [i.t('row.fav.add'), i.t('row.fav.remove')])`);
+    const stillPlaying = (await title()) === two;
+    await back();
+    await sleep(200);
+    const menuShut = !(await evaluate(page, `Boolean(document.querySelector('.row-menu'))`));
+
+    // Back from the list, with nothing open, asks for the window to be closed.
+    await back();
+    await sleep(200);
+    const closed = await evaluate(page, `window.__closed`);
+
+    const problems = [];
+    if (!marked) problems.push('the page is not marked .tv');
+    if (second !== 'row-1' || first !== 'row-0') problems.push(`the arrows moved the list to ${second} then ${first}, not row-1 then row-0`);
+    if (above === 'list' || above === 'BODY') problems.push('Up from the first row stayed in the list');
+    if (onTab !== 'tab-movie' || !tabKept) problems.push(`Right on the tabs gave the focus to ${onTab}, Channels still chosen: ${tabKept}`);
+    if (field !== 'search' || held !== 'none') problems.push(`the field took the focus as ${field} with inputmode "${held}", not none`);
+    if (typing === 'none') problems.push('OK on the field left the keyboard held down');
+    if (home !== 'list' || closedEarly) problems.push(`Back from a tab left the focus on ${home} and asked to close ${closedEarly} time(s)`);
+    if (!one || one === two) problems.push(`Down in full screen stayed on "${one}"`);
+    if (!named || !banner.includes(named)) problems.push(`the banner over the full-screen picture says "${banner}", not "${named}"`);
+    if (after !== 'list') problems.push(`out of full screen the focus is on ${after}`);
+    if (!star.includes(menu[0])) problems.push(`OK held down opened ${menu.length ? `a menu beginning with "${menu[0]}"` : 'no menu'}`);
+    if (!stillPlaying) problems.push('OK held down also pressed the row');
+    if (!menuShut) problems.push('Back left the menu open');
+    if (closed !== 1) problems.push(`Back from the list asked to close ${closed} time(s), not once`);
+    if (problems.length) return { ok: false, detail: problems.join('; ') };
+    return { ok: true, detail: `the arrows left the list for #${above}, moved among the tabs without changing one, held the keyboard down on the search field until OK; OK played "${one}" and filled the screen, Down went on to "${two}"; OK held down opened the menu (${menu.join(', ')}); Back returned to the list and then asked to close` };
+  } finally {
+    await evaluate(page, `document.fullscreenElement && document.exitFullscreen()`).catch(() => {});
+    await page.call('Page.navigate', { url: plain }).catch(() => {});
+    await sleep(500);
+  }
+}
+
 const SCENARIOS = { buffering, livebuffering, filmbuffering, emptyfile, tsasmp4, refusedfile, badgateway, livebadgateway, channelrefused, noanswer, longfilm, catalogUi, setupClarity, welcome, fullscreenControl, blockedplay, clickpause, pickers, touchcaret, screenbutton, topmenu, scrollbars, channelorder, lengthfilter, nowlogo, channels, home, resumemkv, restore, programmes, catchup, seek, death, cancel, timeout, search, paste, keys, switching, resume, connections, livezap, livequiet, reconnect, accounts, listerror, a11y, subtitles, audio, wasmaudio, settings,
   lastchannel, nextepisode, continuewatching, reminders, update, seeklag, cuesretry, quota, catchupfreeze, catchupfull, twotabs, switchstop, resettabs,
-  refresh, restorenav, guidekeep, removeaccount, m3u, sync, holes, picks, flakyserver, accountform, stalker, record, guidefavs, guidenames, categories, homecountry, noleak, perf, pseudo, startup, soak, phone, headline, accountnow, onerow, nowbarfit, subsize, arrowmiddle, idlelight, iossubs, starquiet, phonestar, pickertouch, pickerkeyboard, phonescroll, menutap, wakelock, livecut, episodenames, gotochannel, filmdetails, favorder, countryfilter, tilekeys, routes, programmekeys, searchlimit, filterfolds, focusrings, xtreamoffer, guideclick, filmaddress, filmfacts, playlistfile, perflive, perfplaylist, remoteimages, phoneguide, handoff, closedplan, secondpicture, liverewind, upcoming };
+  refresh, restorenav, guidekeep, removeaccount, m3u, sync, holes, picks, flakyserver, accountform, stalker, record, guidefavs, guidenames, categories, homecountry, noleak, perf, pseudo, remote, startup, soak, phone, headline, accountnow, onerow, nowbarfit, subsize, arrowmiddle, idlelight, iossubs, starquiet, phonestar, pickertouch, pickerkeyboard, phonescroll, menutap, wakelock, livecut, episodenames, gotochannel, filmdetails, favorder, countryfilter, tilekeys, routes, programmekeys, searchlimit, filterfolds, focusrings, xtreamoffer, guideclick, filmaddress, filmfacts, playlistfile, perflive, perfplaylist, remoteimages, phoneguide, handoff, closedplan, secondpicture, liverewind, upcoming };
 // The mock's whole-list answers stall for these, longer than the request limit.
 const SLOW_LIST_MS = { cancel: 60000, timeout: 60000 };
 // The media is sent slowly for these: the seek targets must lie outside the

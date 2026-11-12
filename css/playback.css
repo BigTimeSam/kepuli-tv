@@ -26,6 +26,24 @@ video { width: 100%; height: 100%; display: block; background: #000; color-schem
    --pic-h on the wrapper the picture's height. */
 .videowrap:fullscreen { background: #000; }
 
+/* The channel over the full-screen picture, for a few seconds after a
+   remote control has changed it (js/remote.js): the logo, the name and the
+   programme on now, copied from the head and the strip the full screen
+   covers. At the top, out of the subtitles' way, and in colours of its own:
+   it lies on the picture, whatever the theme. */
+.zap {
+  position: absolute; left: 4%; top: 6%; z-index: 3; max-width: 70%; box-sizing: border-box;
+  display: flex; align-items: center; gap: 16px; padding: 14px 22px; border-radius: 14px;
+  background: rgba(10, 12, 17, .84); color: #e7eaf2; pointer-events: none;
+}
+.zap[hidden] { display: none; }
+.zap-text { min-width: 0; }
+.zap .now-logo { width: 66px; height: 45px; margin: 0; }
+.zap .now-title { font-size: 1.375rem; }
+.zap .now-sub { font-size: 0.9375rem; color: #a9b0c2; }
+.zap .epgnow { margin-top: 6px; font-size: 1rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.zap .epgnow-time { color: #67d9ee; }
+
 .subdisplay {
   /* From the picture's bottom edge, the bar under a letterboxed film not
      counted: --sub-lift is the viewer's height, a share of the picture. */

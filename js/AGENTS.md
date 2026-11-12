@@ -16,6 +16,7 @@ written here.
 | `rows.js`, `vlist.js`, `listnavigation.js` | list rows (built on every scroll frame: keep them light), the virtualised list, cursor and return positions by item, and which tile an arrow leads to in a strip |
 | `listorder.js` | each list's order (channels, favourites, films, series, history): the choices, the setting each is kept in, the marks at the list's foot and the films' orders by year, rating and date added |
 | `tilekeys.js` | the keys on a strip of tiles (related titles, the empty player's cards): arrows between the tiles, `s` and Delete on the tile with the focus, not the list's row |
+| `remote.js` | a television's remote control, on when the page is opened as `player.html?tv=1` (the Android TV app, `android/`): the arrows carry the focus to the nearest control that way (`towards` in `listnavigation.js`), the list, the sidebar, the guide and a field keep their own arrows up to their edge, OK held down opens the row's menu, Back is Escape and steps out, and in full screen the arrows change the channel and seek. A new control needs nothing; a new part with arrows of its own gets a zone there |
 | `picker.js`, `modal.js`, `rowmenu.js`, `poster.js` | shared UI parts: every drop-down, dialog closing, the row menu, covers with fallback. Reuse them |
 | `playerlayout.js`, `theme.js`, `route.js` | narrow-window panes, colour theme and its button (`renderTheme`), the address (`#/live/...`) and tab title |
 | `channelchoices.js` | the Filter countries / Filter categories dialog (`CountryPicker.show({ mode, onSave, texts })`: all, the favourite ones, or those chosen) and hidden channels |
@@ -79,7 +80,7 @@ lists, series info, stream URL) for its kind:
 | `db.js` | IndexedDB cache of provider data, with TTLs |
 | `sync.js` | sync between computers through `storage.sync` |
 | `browser.js` | the extension API namespace (`chrome`/`browser`) and the engine |
-| `caret.js` | whether a field may take the caret unasked: not on a touch screen, where it opens the on-screen keyboard |
+| `caret.js` | whether a field may take the caret unasked: not on a touch screen, where it opens the on-screen keyboard, nor with a remote control (`remote`, the `?tv=1` switch itself) |
 | `testclock.js` | the visual check's clock: `player.html?testnow=<ms>` starts `Date` at that moment; nothing without the parameter. Keep it the first import of `app.js` |
 | `i18n.js`, `locales/` | the interface language, see `locales/AGENTS.md`; `player.html?pseudo=1` pseudo-localises every string (inert without it) |
 

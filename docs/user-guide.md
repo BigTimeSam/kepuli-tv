@@ -566,6 +566,20 @@ These are the bare keys: a key held down with Ctrl, Cmd or Alt is left to the
 browser, so `Cmd+F` and `Ctrl+F` open its search box rather than taking the
 picture to full screen.
 
+### With a television's remote control
+
+In the Android TV app the player is driven with the remote's arrows, **OK**
+and **Back** alone:
+
+| Key | Action |
+| --- | --- |
+| arrows | move the focus to the nearest control that way; in the list, the sidebar and the programme guide they move its cursor, and leave it from its edge |
+| **OK** | press what has the focus; on a row, play it; on the row already playing, fill the screen; on a text field, bring up the television's keyboard |
+| **OK** held down | the row's menu, which begins with **Add to favourites**; on a country or a topic, its star |
+| **Back** | close what is open (the keyboard, a menu, a dialog, the full screen, the guide, a series' page), then return to the list, and from the list leave the app |
+| in full screen | up and down change the channel, left and right move ten seconds in a film or an episode, **OK** pauses |
+| play/pause, rewind, fast forward, channel up and down | the same, where the remote has them |
+
 `?` opens the same list inside the player, along with the guide's own keys and
 a note on why the browser's back button leaves the player rather than stepping
 back inside it. **Help** in the top bar opens it too.

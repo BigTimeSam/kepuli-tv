@@ -117,3 +117,16 @@ input[type="search"], input[type="text"], input[type="url"], input:not([type]) {
   /* The order marks and the list or covers marks, wherever they stand. */
   .view-toggle button[aria-pressed="true"] { outline: 2px solid Highlight; outline-offset: -2px; }
 }
+
+/* A television's remote control (js/remote.js; the page opened with ?tv=1).
+   The focus is the only pointer there is, and it is read from the sofa: the
+   ring is wider, and the row under the cursor wears one too, where a
+   keyboard's viewer has the bar at the row's left edge. The page is the
+   whole screen already, so the button that makes it so is left out. */
+.tv :where(button, select, summary, a[href], input, textarea, [tabindex]):focus-visible { outline-width: 3px; }
+.tv #list:focus-visible .row.selected:not(.card), .tv .groups-list:focus-visible .group.cursor { outline: 3px solid var(--accent-ink); outline-offset: -3px; }
+.tv #btn-screen { display: none; }
+/* What the Android TV app cannot answer is not offered there: it has no
+   browser to open a link in and no file picker, and it grants a provider's
+   host itself, so the note about the browser's question would be untrue. */
+.tv a[target="_blank"], .tv #f-file-pick, .tv #setup-grant-note { display: none; }
