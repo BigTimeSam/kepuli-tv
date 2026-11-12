@@ -4,7 +4,13 @@
 
 .stage { display: flex; flex-direction: column; min-width: 0; }
 .videowrap { flex: 1; position: relative; background: #000; min-height: 0; }
-video { width: 100%; height: 100%; display: block; background: #000; }
+/* color-scheme: Chrome's own controls draw their ⋮ menu by the element's
+   scheme, and in the dark one the line under "Captions" ("Off", the
+   language) is black at 54 % on the menu's dark grey: Chrome's sheet has
+   that one colour fixed, inside a shadow tree no page rule reaches. In the
+   light scheme the menu is white with dark words and the line reads. The
+   bar over the picture is the same in either. */
+video { width: 100%; height: 100%; display: block; background: #000; color-scheme: light; }
 
 /* Full screen: the browser's own button takes the bare <video>, where the
    browser draws the subtitles itself for the duration (js/subdisplay.js,
