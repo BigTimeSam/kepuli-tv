@@ -305,6 +305,7 @@ export default {
  "playback.channelrefused": "Le serveur du fournisseur a répondu à la demande de flux de la chaîne par l’erreur {status}. Réessayez plus tard.",
  "playback.channelunreached": "Le serveur du fournisseur n’a pas répondu à la demande pour cette chaîne. La chaîne n’émet peut-être pas ou le serveur est occupé : réessayez plus tard, ou choisissez une autre chaîne.",
  "playback.autoplay": "Le navigateur a bloqué la lecture automatique — appuyez sur lecture.",
+ "playback.live.rewind": "Une chaîne en direct ne garde que les {seconds} dernières secondes : la lecture reprend au point le plus ancien.",
  "playback.gaveup": "Le flux s’est arrêté ({reason}) et n’a pas repris après {max} tentatives. ",
  "playback.gaveup.hint": "Réessayez, ou passez le mode de lecture à TS ou HLS sous l’image.",
  "playback.reason.ended": "la source s’est terminée",

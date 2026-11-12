@@ -233,6 +233,9 @@
 //                                     that does not hold the series
 //   node dev/playcheck.mjs continuewatching a film left halfway heads the
 //                                     history under its own heading
+//   node dev/playcheck.mjs liverewind a live channel's seek bar dragged to
+//                                     before what is kept goes on from the
+//                                     earliest point and says so; no restart
 //   node dev/playcheck.mjs secondpicture another channel beside the one
 //                                     playing: on one connection and one
 //                                     account the ☰ menu says what it takes;
@@ -1606,6 +1609,56 @@ async function accounts(page, { target }) {
   } finally {
     other.closeAllConnections();
     await new Promise((resolve) => other.close(resolve));
+  }
+}
+
+/**
+ * A live channel's own seek bar. The browser's controls let the viewer
+ * drag it anywhere on a timeline that began when the channel was started,
+ * while the player keeps about a minute behind the picture. A seek to
+ * before what is kept used to leave the picture at "Buffering…" until the
+ * watchdog restarted the stream, some twenty seconds on. Now the picture
+ * goes on at once from the earliest point there is, and says how much is
+ * kept; a seek past the newest goes to the newest, without a word.
+ */
+async function liverewind(page) {
+  const assert = (ok, message) => { if (!ok) throw new Error(message); };
+  process.env.KEPULI_MOCK_LIVE_TS = '1';
+  try {
+    await evaluate(page, `document.querySelector('#tabs [data-tab="live"]').click()`);
+    await click(page, '#groups', 'Finland');
+    await waitFor(page, `document.querySelectorAll('#list .row').length > 5`, 'the channels');
+    await evaluate(page, `document.querySelectorAll('#list .row')[0].click()`, { gesture: true });
+    await waitFor(page, PLAYING, 'the channel', 40000);
+    // The player lets go of what lies more than a minute behind the
+    // picture: only then is there a "before" to seek to (about 70 s).
+    await waitFor(page, `(() => { const b = document.getElementById('video').buffered; return b.length && b.start(0) > 5; })()`, 'the oldest picture let go of', 150000, 1000);
+    const held = `(() => { const v = document.getElementById('video'); const b = v.buffered; return { at: v.currentTime, start: b.start(0), end: b.end(b.length - 1), paused: v.paused, ready: v.readyState }; })()`;
+    const before = await evaluate(page, held);
+    assert(before.start > 1, `the buffer begins at ${before.start}: nothing lies before it to seek to`);
+    const restarts = () => evaluate(page, `import('./js/playing.js').then((m) => m.playback.reconnects)`);
+    const restartsBefore = await restarts();
+    // Back to before anything that is kept.
+    await evaluate(page, `document.getElementById('video').currentTime = 0`);
+    await sleep(2500);
+    const back = await evaluate(page, held);
+    const said = await evaluate(page, `document.getElementById('toast').hidden ? '' : document.getElementById('toast-text').textContent`);
+    assert(back.at >= back.start && back.at < before.at && back.ready >= 3 && !back.paused, `after a seek to 0: ${JSON.stringify(back)} (was at ${before.at})`);
+    assert(/^A live channel keeps only the last \d+ s/.test(said), `said after the seek: "${said}"`);
+    await sleep(2500);
+    const on = await evaluate(page, held);
+    assert(on.at > back.at + 1.5, `the picture after the seek: ${back.at} → ${on.at}`);
+    // Forward past the newest: to the newest, and nothing to say.
+    await evaluate(page, `document.getElementById('toast').hidden = true`);
+    await evaluate(page, `document.getElementById('video').currentTime = document.getElementById('video').currentTime + 600`);
+    await sleep(2500);
+    const ahead = await evaluate(page, held);
+    const saidAhead = await evaluate(page, `document.getElementById('toast').hidden ? '' : document.getElementById('toast-text').textContent`);
+    assert(ahead.at > on.at && ahead.at <= ahead.end && ahead.ready >= 3 && !saidAhead, `after a seek far ahead: ${JSON.stringify(ahead)}, said "${saidAhead}"`);
+    assert(await restarts() === restartsBefore, `the stream was restarted ${await restarts() - restartsBefore} time(s)`);
+    return { ok: true, detail: `a seek to 0:00 went on from ${back.start.toFixed(1)} s, the earliest kept, and said "${said}"; a seek ten minutes ahead went to ${ahead.at.toFixed(1)} s of ${ahead.end.toFixed(1)}; no restart` };
+  } finally {
+    process.env.KEPULI_MOCK_LIVE_TS = '';
   }
 }
 
@@ -7751,7 +7804,7 @@ async function handoff(page) {
 
 const SCENARIOS = { buffering, livebuffering, filmbuffering, emptyfile, tsasmp4, refusedfile, badgateway, livebadgateway, channelrefused, noanswer, longfilm, catalogUi, setupClarity, welcome, fullscreenControl, blockedplay, clickpause, pickers, touchcaret, screenbutton, topmenu, scrollbars, channelorder, lengthfilter, nowlogo, channels, home, resumemkv, restore, programmes, catchup, seek, death, cancel, timeout, search, paste, keys, switching, resume, connections, livezap, livequiet, reconnect, accounts, listerror, a11y, subtitles, audio, wasmaudio, settings,
   lastchannel, nextepisode, continuewatching, reminders, update, seeklag, cuesretry, quota, catchupfreeze, catchupfull, twotabs, switchstop, resettabs,
-  refresh, restorenav, guidekeep, removeaccount, m3u, sync, holes, picks, flakyserver, accountform, stalker, record, guidefavs, guidenames, categories, homecountry, noleak, perf, pseudo, startup, soak, phone, headline, accountnow, onerow, nowbarfit, subsize, arrowmiddle, idlelight, iossubs, starquiet, phonestar, pickertouch, pickerkeyboard, phonescroll, menutap, wakelock, livecut, episodenames, gotochannel, filmdetails, favorder, countryfilter, tilekeys, routes, programmekeys, searchlimit, filterfolds, focusrings, xtreamoffer, guideclick, filmaddress, filmfacts, playlistfile, perflive, perfplaylist, remoteimages, phoneguide, handoff, closedplan, secondpicture };
+  refresh, restorenav, guidekeep, removeaccount, m3u, sync, holes, picks, flakyserver, accountform, stalker, record, guidefavs, guidenames, categories, homecountry, noleak, perf, pseudo, startup, soak, phone, headline, accountnow, onerow, nowbarfit, subsize, arrowmiddle, idlelight, iossubs, starquiet, phonestar, pickertouch, pickerkeyboard, phonescroll, menutap, wakelock, livecut, episodenames, gotochannel, filmdetails, favorder, countryfilter, tilekeys, routes, programmekeys, searchlimit, filterfolds, focusrings, xtreamoffer, guideclick, filmaddress, filmfacts, playlistfile, perflive, perfplaylist, remoteimages, phoneguide, handoff, closedplan, secondpicture, liverewind };
 // The mock's whole-list answers stall for these, longer than the request limit.
 const SLOW_LIST_MS = { cancel: 60000, timeout: 60000 };
 // The media is sent slowly for these: the seek targets must lie outside the

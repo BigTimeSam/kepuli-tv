@@ -305,6 +305,7 @@ export default {
  "playback.channelrefused": "Teenusepakkuja server vastas kanali voo päringule veaga {status}. Proovi hiljem uuesti.",
  "playback.channelunreached": "Pakkuja server ei vastanud selle kanali päringule. Kanal ei pruugi praegu eetris olla või server on hõivatud: proovi hiljem uuesti või vali teine kanal.",
  "playback.autoplay": "Brauser blokeeris automaatesituse — vajuta esita.",
+ "playback.live.rewind": "Otsekanalist on alles ainult viimased {seconds} s: esitus jätkub varaseimast kohast.",
  "playback.gaveup": "Voog peatus ({reason}) ega taastunud {max} katsega. ",
  "playback.gaveup.hint": "Proovi uuesti või muuda pildi all esitusrežiimiks TS või HLS.",
  "playback.reason.ended": "allikas lõppes",

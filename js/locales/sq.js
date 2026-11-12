@@ -305,6 +305,7 @@ export default {
  "playback.channelrefused": "Serveri i ofruesit iu përgjigj kërkesës për transmetimin e kanalit me gabimin {status}. Provo më vonë.",
  "playback.channelunreached": "Serveri i ofruesit nuk iu përgjigj kërkesës për këtë kanal. Kanali mund të mos jetë në transmetim ose serveri i zënë: provo më vonë ose zgjidh një kanal tjetër.",
  "playback.autoplay": "Shfletuesi e bllokoi luajtjen automatike — shtyp luaj.",
+ "playback.live.rewind": "Nga një kanal i drejtpërdrejtë ruhen vetëm {seconds} s e fundit: luajtja vazhdon nga pika më e hershme.",
  "playback.gaveup": "Transmetimi ndaloi ({reason}) dhe nuk u rikthye pas {max} provash. ",
  "playback.gaveup.hint": "Provo sërish ose ndrysho mënyrën e luajtjes në TS ose HLS poshtë figurës.",
  "playback.reason.ended": "burimi mbaroi",

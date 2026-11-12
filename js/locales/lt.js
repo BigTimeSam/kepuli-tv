@@ -321,6 +321,7 @@ export default {
  "playback.channelrefused": "Tiekėjo serveris į kanalo srauto užklausą atsakė klaida {status}. Bandyk vėliau.",
  "playback.channelunreached": "Tiekėjo serveris neatsakė į šio kanalo užklausą. Kanalas gal netransliuoja arba serveris užimtas: bandyk vėliau arba pasirink kitą kanalą.",
  "playback.autoplay": "Naršyklė užblokavo automatinį atkūrimą — paspausk groti.",
+ "playback.live.rewind": "Tiesioginio kanalo išsaugoma tik paskutinės {seconds} s: atkūrimas tęsiamas nuo anksčiausios vietos.",
  "playback.gaveup": "Srautas sustojo ({reason}) ir neatsigavo per {max} bandymų. ",
  "playback.gaveup.hint": "Bandyk dar kartą arba po vaizdu pakeisk atkūrimo režimą į TS arba HLS.",
  "playback.reason.ended": "šaltinis baigėsi",

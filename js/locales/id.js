@@ -297,6 +297,7 @@ export default {
  "playback.channelrefused": "Server penyedia menjawab permintaan siaran saluran dengan galat {status}. Coba lagi nanti.",
  "playback.channelunreached": "Server penyedia tidak menjawab permintaan untuk saluran ini. Saluran mungkin sedang tidak mengudara atau server sibuk: coba lagi nanti, atau pilih saluran lain.",
  "playback.autoplay": "Peramban memblokir putar otomatis — tekan putar.",
+ "playback.live.rewind": "Saluran langsung hanya menyimpan {seconds} detik terakhir: pemutaran berlanjut dari titik paling awal.",
  "playback.gaveup": "Siaran terhenti ({reason}) dan tidak pulih setelah {max} percobaan. ",
  "playback.gaveup.hint": "Coba lagi, atau ganti mode pemutaran menjadi TS atau HLS di bawah gambar.",
  "playback.reason.ended": "sumber berakhir",

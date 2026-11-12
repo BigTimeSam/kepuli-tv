@@ -321,6 +321,7 @@ export default {
  "playback.channelrefused": "Serwer dostawcy odpowiedział na żądanie strumienia kanału błędem {status}. Spróbuj później.",
  "playback.channelunreached": "Serwer dostawcy nie odpowiedział na żądanie tego kanału. Kanał może nie nadawać albo serwer jest zajęty: spróbuj później albo wybierz inny kanał.",
  "playback.autoplay": "Przeglądarka zablokowała autoodtwarzanie — naciśnij odtwarzanie.",
+ "playback.live.rewind": "Z kanału na żywo przechowywane jest tylko ostatnie {seconds} s: odtwarzanie trwa dalej od najwcześniejszego miejsca.",
  "playback.gaveup": "Strumień zatrzymał się ({reason}) i nie wznowił działania po {max} próbach. ",
  "playback.gaveup.hint": "Spróbuj ponownie albo zmień tryb odtwarzania na TS lub HLS pod obrazem.",
  "playback.reason.ended": "źródło się zakończyło",

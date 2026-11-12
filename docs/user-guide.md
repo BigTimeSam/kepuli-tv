@@ -431,6 +431,13 @@ interrupted channel-list load restores the previous list.
 - **The next episode** after a ten-second countdown when one ends, with **Play
   now** and **Cancel** over the picture; a switch under **Playback** turns it off
 - **The previous channel** with `l`, as a television's own button has it
+- **A live channel rewinds as far as it is kept**, a little under a minute:
+  the seek bar under the picture is the browser's and runs from the moment
+  the channel was started, but only the last minute is in memory and a live
+  stream cannot be asked for its past. Dragged further back, the picture
+  goes on at once from the earliest point there is and a message says how
+  many seconds that is; dragged ahead, it goes to the present. A channel
+  with an archive has the rest in the programme guide
 - **Side by side**: a second picture, another live channel beside the one playing, the two
   side by side in the picture's box and in full screen (`js/secondui.js`).
   It is opened from a channel's row menu (⋯, or a right click): **Play

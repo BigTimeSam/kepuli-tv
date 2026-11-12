@@ -305,6 +305,7 @@ export default {
  "playback.channelrefused": "Sağlayıcının sunucusu kanalın yayın isteğine {status} hatasıyla yanıt verdi. Daha sonra tekrar deneyin.",
  "playback.channelunreached": "Sağlayıcının sunucusu bu kanalın isteğine yanıt vermedi. Kanal yayında olmayabilir ya da sunucu meşgul olabilir: daha sonra yeniden deneyin ya da başka bir kanal seçin.",
  "playback.autoplay": "Tarayıcı otomatik oynatmayı engelledi — oynat’a basın.",
+ "playback.live.rewind": "Canlı kanalın yalnızca son {seconds} sn’si saklanır: oynatma eldeki en eski noktadan devam eder.",
  "playback.gaveup": "Yayın durdu ({reason}) ve {max} denemede düzelmedi. ",
  "playback.gaveup.hint": "Yeniden deneyin ya da görüntünün altında oynatma modunu TS veya HLS yapın.",
  "playback.reason.ended": "kaynak sona erdi",

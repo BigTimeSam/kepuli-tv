@@ -305,6 +305,7 @@ export default {
  "playback.channelrefused": "Leverandørens server svarte på kanalens strømforespørsel med feil {status}. Prøv igjen senere.",
  "playback.channelunreached": "Leverandørens server svarte ikke på forespørselen for denne kanalen. Kanalen sender kanskje ikke, eller serveren er opptatt: prøv igjen senere, eller velg en annen kanal.",
  "playback.autoplay": "Nettleseren blokkerte automatisk avspilling — trykk på play.",
+ "playback.live.rewind": "En direktekanal beholder bare de siste {seconds} s: avspillingen fortsetter fra det tidligste punktet.",
  "playback.gaveup": "Strømmen stoppet ({reason}) og kom seg ikke etter {max} forsøk. ",
  "playback.gaveup.hint": "Prøv igjen, eller bytt avspillingsmodus til TS eller HLS under bildet.",
  "playback.reason.ended": "kilden tok slutt",

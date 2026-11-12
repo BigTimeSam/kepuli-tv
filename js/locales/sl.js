@@ -321,6 +321,7 @@ export default {
  "playback.channelrefused": "Strežnik ponudnika je na zahtevo za pretok kanala odgovoril z napako {status}. Poskusi pozneje.",
  "playback.channelunreached": "Strežnik ponudnika se ni odzval na zahtevo za ta kanal. Kanal morda ne oddaja ali je strežnik zaseden: poskusi pozneje ali izberi drug kanal.",
  "playback.autoplay": "Brskalnik je blokiral samodejno predvajanje — pritisni predvajaj.",
+ "playback.live.rewind": "Od kanala v živo se hrani samo zadnjih {seconds} s: predvajanje se nadaljuje od najzgodnejše točke.",
  "playback.gaveup": "Pretok se je ustavil ({reason}) in se v {max} poskusih ni obnovil. ",
  "playback.gaveup.hint": "Poskusi znova ali pod sliko nastavi način predvajanja na TS ali HLS.",
  "playback.reason.ended": "vir se je končal",

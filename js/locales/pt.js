@@ -305,6 +305,7 @@ export default {
  "playback.channelrefused": "O servidor do provedor respondeu à solicitação de transmissão do canal com o erro {status}. Tente novamente mais tarde.",
  "playback.channelunreached": "O servidor do provedor não respondeu ao pedido deste canal. O canal pode estar fora do ar ou o servidor ocupado: tente mais tarde ou escolha outro canal.",
  "playback.autoplay": "O navegador bloqueou a reprodução automática — aperte play.",
+ "playback.live.rewind": "De um canal ao vivo só ficam guardados os últimos {seconds} s: a reprodução continua a partir do ponto mais antigo.",
  "playback.gaveup": "A transmissão parou ({reason}) e não se recuperou em {max} tentativas. ",
  "playback.gaveup.hint": "Tente de novo ou mude o modo de reprodução para TS ou HLS abaixo da imagem.",
  "playback.reason.ended": "a fonte terminou",

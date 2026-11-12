@@ -297,6 +297,7 @@ export default {
  "playback.channelrefused": "Máy chủ của nhà cung cấp đã trả lời yêu cầu phát luồng của kênh bằng lỗi {status}. Hãy thử lại sau.",
  "playback.channelunreached": "Máy chủ của nhà cung cấp không trả lời yêu cầu cho kênh này. Kênh có thể đang không phát sóng hoặc máy chủ đang bận: hãy thử lại sau, hoặc chọn kênh khác.",
  "playback.autoplay": "Trình duyệt đã chặn tự động phát — hãy nhấn nút phát.",
+ "playback.live.rewind": "Kênh trực tiếp chỉ giữ lại {seconds} giây gần nhất: tiếp tục phát từ điểm sớm nhất còn lưu.",
  "playback.gaveup": "Luồng đã dừng ({reason}) và không khôi phục sau {max} lần thử. ",
  "playback.gaveup.hint": "Hãy thử lại, hoặc đổi chế độ phát thành TS hoặc HLS dưới hình.",
  "playback.reason.ended": "nguồn đã kết thúc",

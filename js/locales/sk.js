@@ -321,6 +321,7 @@ export default {
  "playback.channelrefused": "Server poskytovateľa odpovedal na požiadavku na stream kanála chybou {status}. Skús to neskôr.",
  "playback.channelunreached": "Server poskytovateľa neodpovedal na požiadavku tohto kanála. Kanál možno nevysiela alebo je server vyťažený: skús to neskôr alebo vyber iný kanál.",
  "playback.autoplay": "Prehliadač zablokoval automatické prehrávanie — stlač prehrávanie.",
+ "playback.live.rewind": "Zo živého kanála sa uchováva len posledných {seconds} s: prehrávanie pokračuje od najstaršieho miesta.",
  "playback.gaveup": "Stream sa zastavil ({reason}) a ani po {max} pokusoch sa neobnovil. ",
  "playback.gaveup.hint": "Skús to znova alebo zmeň pod obrazom režim prehrávania na TS alebo HLS.",
  "playback.reason.ended": "zdroj skončil",

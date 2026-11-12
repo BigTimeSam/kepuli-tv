@@ -305,6 +305,7 @@ export default {
  "playback.channelrefused": "A szolgáltató szervere {status} hibával válaszolt a csatorna adáskérésére. Próbáld újra később.",
  "playback.channelunreached": "A szolgáltató szervere nem válaszolt a csatorna kérésére. Lehet, hogy a csatorna nem sugároz, vagy a szerver foglalt: próbáld újra később, vagy válassz másik csatornát.",
  "playback.autoplay": "A böngésző letiltotta az automatikus lejátszást — nyomd meg a lejátszás gombot.",
+ "playback.live.rewind": "Az élő csatornából csak az utolsó {seconds} mp marad meg: a lejátszás a legkorábbi ponttól folytatódik.",
  "playback.gaveup": "Az adás megakadt ({reason}), és {max} próbálkozásra sem állt helyre. ",
  "playback.gaveup.hint": "Próbáld újra, vagy a kép alatt állítsd a lejátszási módot TS-re vagy HLS-re.",
  "playback.reason.ended": "a forrás véget ért",

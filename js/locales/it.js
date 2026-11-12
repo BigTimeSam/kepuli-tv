@@ -305,6 +305,7 @@ export default {
  "playback.channelrefused": "Il server del fornitore ha risposto alla richiesta di flusso del canale con l’errore {status}. Riprova più tardi.",
  "playback.channelunreached": "Il server del provider non ha risposto alla richiesta per questo canale. Il canale potrebbe non trasmettere o il server essere occupato: riprova più tardi o scegli un altro canale.",
  "playback.autoplay": "Il browser ha bloccato la riproduzione automatica: premi play.",
+ "playback.live.rewind": "Di un canale in diretta restano solo gli ultimi {seconds} s: la riproduzione prosegue dal punto più vecchio.",
  "playback.gaveup": "Lo stream si è interrotto ({reason}) e non si è ripreso in {max} tentativi. ",
  "playback.gaveup.hint": "Riprova, o imposta la modalità di riproduzione su TS o HLS sotto l’immagine.",
  "playback.reason.ended": "la sorgente è terminata",

@@ -305,6 +305,7 @@ export default {
  "playback.channelrefused": "De server van de aanbieder beantwoordde het streamverzoek van de zender met fout {status}. Probeer het later opnieuw.",
  "playback.channelunreached": "De server van de aanbieder antwoordde niet op het verzoek voor deze zender. De zender zendt misschien niet uit of de server is druk: probeer het later opnieuw of kies een andere zender.",
  "playback.autoplay": "De browser blokkeerde automatisch afspelen — druk op afspelen.",
+ "playback.live.rewind": "Van een live zender worden alleen de laatste {seconds} s bewaard: het afspelen gaat verder vanaf het vroegste punt.",
  "playback.gaveup": "De stream stopte ({reason}) en herstelde niet binnen {max} pogingen. ",
  "playback.gaveup.hint": "Probeer het opnieuw, of zet de afspeelmodus onder het beeld op TS of HLS.",
  "playback.reason.ended": "de bron eindigde",

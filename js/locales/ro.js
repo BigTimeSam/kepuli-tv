@@ -313,6 +313,7 @@ export default {
  "playback.channelrefused": "Serverul furnizorului a răspuns la cererea de flux a canalului cu eroarea {status}. Încearcă mai târziu.",
  "playback.channelunreached": "Serverul furnizorului nu a răspuns la cererea pentru acest canal. Canalul poate fi oprit sau serverul ocupat: încearcă mai târziu sau alege alt canal.",
  "playback.autoplay": "Browserul a blocat redarea automată — apasă play.",
+ "playback.live.rewind": "Dintr-un canal în direct se păstrează doar ultimele {seconds} s: redarea continuă din cel mai vechi punct.",
  "playback.gaveup": "Fluxul s-a oprit ({reason}) și nu și-a revenit în {max} încercări. ",
  "playback.gaveup.hint": "Încearcă din nou sau schimbă modul de redare în TS sau HLS sub imagine.",
  "playback.reason.ended": "sursa s-a încheiat",

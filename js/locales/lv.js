@@ -313,6 +313,7 @@ export default {
  "playback.channelrefused": "Pakalpojuma sniedzēja serveris uz kanāla straumes pieprasījumu atbildēja ar kļūdu {status}. Mēģini vēlāk.",
  "playback.channelunreached": "Sniedzēja serveris neatbildēja uz pieprasījumu pēc šī kanāla. Kanāls varbūt nav ēterā vai serveris ir aizņemts: mēģini vēlāk vai izvēlies citu kanālu.",
  "playback.autoplay": "Pārlūks bloķēja automātisko atskaņošanu — nospied atskaņot.",
+ "playback.live.rewind": "No tiešraides kanāla tiek glabātas tikai pēdējās {seconds} s: atskaņošana turpinās no agrākās vietas.",
  "playback.gaveup": "Straume apstājās ({reason}) un neatjaunojās {max} mēģinājumos. ",
  "playback.gaveup.hint": "Mēģini vēlreiz vai zem attēla nomaini atskaņošanas režīmu uz TS vai HLS.",
  "playback.reason.ended": "avots beidzās",

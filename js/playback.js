@@ -212,6 +212,11 @@ const STALL_SHOW_MS = 700;
 const STALL_MEMORY_MS = 120000;
 const SLOW_STALLS = 2;
 
+// How far behind the newest picture a live channel's seek bar may take the
+// viewer: just short of liveBufferLatencyMaxLatency (MPEGTS_LIVE_CONFIG),
+// past which mpegts.js jumps forward by itself. See keepToBuffer().
+const LIVE_REWIND_S = 55;
+
 // How long playback has to run before the attempt counter is reset.
 // Without this, a stream that dies every 48 seconds would retry forever and
 // the viewer would never learn that the fault is in the source.
@@ -1120,14 +1125,58 @@ export class Playback {
       this.wantPlaying = true;
       this.toLiveEdge();
     };
+    const onSeeking = () => { if (token === this.token) this.keepToBuffer(); };
     video.addEventListener('ended', onEnded);
     video.addEventListener('pause', onPause);
     video.addEventListener('play', onPlay);
+    video.addEventListener('seeking', onSeeking);
     this.guards = () => {
       video.removeEventListener('ended', onEnded);
       video.removeEventListener('pause', onPause);
       video.removeEventListener('play', onPlay);
+      video.removeEventListener('seeking', onSeeking);
     };
+  }
+
+  /**
+   * A live channel's seek bar is the browser's, over a timeline that began
+   * when the channel was started ("31:04"), and the viewer can drag it
+   * anywhere on it. Only the last minute or so is kept (the clean-up in
+   * MPEGTS_CONFIG, backBufferLength in HLS_CONFIG) and a live stream has no
+   * way to be asked for the past, so a seek to before that found nothing:
+   * mpegts.js emptied its buffer for the new place, nothing arrived for
+   * it, and the picture stood at "Buffering…" until the watchdog restarted
+   * the stream some twenty seconds later.
+   *
+   * A seek outside what is kept is taken back into it at once, in the
+   * same event, before mpegts.js acts on it (it waits a tenth of a second
+   * to see where the seek ends): to the earliest point for a seek back,
+   * with a word on how much there is, and to the newest for a seek ahead,
+   * which needs none. Not for the browser's own HLS player, whose buffer
+   * and playlist are its own (toLiveEdge).
+   */
+  keepToBuffer() {
+    const video = this.video;
+    const held = video.buffered;
+    if (this.engineKey === 'native' || !held.length) return;
+    const at = video.currentTime;
+    // The very end is not inside: the browser takes a seek past the newest
+    // picture to exactly its end, where there is nothing to play and
+    // mpegts.js, finding nothing buffered at that point, empties the lot.
+    for (let i = 0; i < held.length; i++) {
+      if (held.start(i) - 0.1 <= at && at < held.end(i) - 0.5) return;
+    }
+    const start = held.start(0);
+    const end = held.end(held.length - 1);
+    const back = at < start;
+    // A step inside the edge: the very first frame kept may not be a
+    // keyframe. And no further back than LIVE_REWIND_S: beyond a minute
+    // behind, the latency chasing would jump straight forward again.
+    const to = back ? Math.min(Math.max(start + 0.5, end - LIVE_REWIND_S), end) : Math.max(start, end - 3);
+    video.currentTime = to;
+    this.lastTime = to;
+    this.lastProgressAt = Date.now();
+    if (back) this.onState({ status: 'notice', message: t('playback.live.rewind', { seconds: Math.round(end - to) }) });
   }
 
   /**

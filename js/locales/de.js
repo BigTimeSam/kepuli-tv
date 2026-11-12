@@ -305,6 +305,7 @@ export default {
  "playback.channelrefused": "Der Server des Anbieters hat die Stream-Anfrage des Kanals mit Fehler {status} beantwortet. Später erneut versuchen.",
  "playback.channelunreached": "Der Server des Anbieters hat auf die Anfrage für diesen Kanal nicht geantwortet. Der Kanal sendet vielleicht gerade nicht oder der Server ist ausgelastet: später erneut versuchen oder einen anderen Kanal wählen.",
  "playback.autoplay": "Der Browser hat die automatische Wiedergabe blockiert — Play drücken.",
+ "playback.live.rewind": "Von einem Live-Kanal werden nur die letzten {seconds} s behalten: Die Wiedergabe läuft ab der frühesten Stelle weiter.",
  "playback.gaveup": "Der Stream wurde unterbrochen ({reason}) und hat sich nach {max} Versuchen nicht erholt. ",
  "playback.gaveup.hint": "Erneut versuchen oder unter dem Bild den Wiedergabemodus auf TS oder HLS umstellen.",
  "playback.reason.ended": "die Quelle wurde beendet",

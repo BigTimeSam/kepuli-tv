@@ -305,6 +305,7 @@ export default {
  "playback.channelrefused": "Leverantörens server svarade på kanalens strömbegäran med fel {status}. Försök igen senare.",
  "playback.channelunreached": "Leverantörens server svarade inte på begäran för den här kanalen. Kanalen kanske inte sänder eller servern är upptagen: försök igen senare eller välj en annan kanal.",
  "playback.autoplay": "Webbläsaren blockerade automatisk uppspelning — tryck på play.",
+ "playback.live.rewind": "Av en direktsänd kanal sparas bara de senaste {seconds} s: uppspelningen fortsätter från den tidigaste punkten.",
  "playback.gaveup": "Strömmen stannade ({reason}) och kom inte tillbaka efter {max} försök. ",
  "playback.gaveup.hint": "Försök igen, eller byt uppspelningsläge till TS eller HLS under bilden.",
  "playback.reason.ended": "källan tog slut",

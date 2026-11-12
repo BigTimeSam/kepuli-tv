@@ -313,6 +313,7 @@ export default {
  "playback.channelrefused": "Poslužitelj pružatelja odgovorio je na zahtjev za stream kanala pogreškom {status}. Pokušaj ponovno kasnije.",
  "playback.channelunreached": "Pružateljev poslužitelj nije odgovorio na zahtjev za ovaj kanal. Kanal možda ne emitira ili je poslužitelj zauzet: pokušaj kasnije ili odaberi drugi kanal.",
  "playback.autoplay": "Preglednik je blokirao automatsku reprodukciju — pritisni reproduciraj.",
+ "playback.live.rewind": "Od kanala uživo čuva se samo zadnjih {seconds} s: reprodukcija se nastavlja od najranije točke.",
  "playback.gaveup": "Tok je stao ({reason}) i nije se oporavio u {max} pokušaja. ",
  "playback.gaveup.hint": "Pokušaj ponovno ili ispod slike promijeni način reprodukcije u TS ili HLS.",
  "playback.reason.ended": "izvor je završio",
