@@ -79,6 +79,9 @@ const ROWS = `document.querySelectorAll('#list .row').length > 0 && document.get
 /* -------------------------------------------------------------------- main */
 
 mkdirSync(OUT, { recursive: true });
+// The mock's account allows two streams for these pictures: the first view
+// shows two channels side by side.
+if (!DEMO) process.env.KEPULI_MOCK_CONNECTIONS = '2';
 const server = DEMO ? null : await startMockServer(MOCK_PORT);
 console.log(DEMO ? `against ${DEMO.origin}` : `mock server on http://127.0.0.1:${MOCK_PORT}`);
 const connection = DEMO
@@ -101,7 +104,7 @@ const playerUrl = (url) => url.split('#')[0].split('?')[0] + (FROZEN === null ? 
 // the visual check to leave out. The guide's live programmes carry their
 // share played as a fill (.epg-prog > i) rounded to a per cent, which the
 // clock running on during the walk moved by a pixel on some runs.
-const MASKED = ['#video', '#subdisplay', '#epg-preview video', '.row-progress', '.bar-fill', '.epgbar', '.nowbar',
+const MASKED = ['#video', '#video2', '#subdisplay', '#epg-preview video', '.row-progress', '.bar-fill', '.epgbar', '.nowbar',
   '.epg-bar', '.overlay-bar', '.overlay-elapsed', '.epg-nowline', '.epg-nowhead', '.list-progress', '.epg-prog > i'];
 // Thrown by shoot once every view KEPULI_SHOTS_VIEWS asks for is taken: the
 // rest of the walk only sets up views nobody wants.
@@ -143,7 +146,8 @@ try {
   await evaluate(page, `chrome.storage.local.set({
     config: { ...${JSON.stringify(connection)}, username: ${JSON.stringify(USER)}, password: ${JSON.stringify(PASS)}, sourceMode: 'xtream', streamMode: 'auto' },
     settings: { lang: 'en', theme: ${JSON.stringify(THEME)}, epgEnabled: true, resumeEnabled: true, subtitleLang: 'eng' },
-    ui: { tab: 'live' }, favorites: [], recents: [], resume: {},
+    // secondHint: the once-only word on the second picture is not for the pictures.
+    ui: { tab: 'live', secondHint: true }, favorites: [], recents: [], resume: {},
   })`);
   // URL.origin is null for an extension scheme, and Firefox's is moz-extension
   // with a uuid rather than Chrome's [a-p]{32}.
@@ -172,6 +176,17 @@ try {
   await sleep(1500);                                   // programme data lands on the rows
   await click(page, '#list', 'Aurora One', { gesture: true });
   await waitFor(page, PLAYING, 'the live stream');
+  // A second channel beside it, from its row's menu, where the account
+  // allows two streams (the mock does here; the hosted demo's one does not,
+  // and its picture is of the one channel).
+  const sideBySide = await evaluate(page, `(() => { const row = [...document.querySelectorAll('#list .row')].find((r) => [...r.querySelectorAll('*')].some((n) => n.children.length === 0 && n.textContent.trim() === 'Aurora Cinema'));
+    row?.querySelector('.row-more')?.click();
+    const item = [...document.querySelectorAll('.row-menu button')].find((b) => b.textContent === 'Play alongside');
+    if (!item) { document.querySelector('.row-menu')?.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true })); return false; }
+    item.click(); return true; })()`, { gesture: true });
+  if (sideBySide) await waitFor(page, `(() => { const v = document.getElementById('video2'); return v.readyState >= 2 && v.currentTime > 0.3 && !v.paused; })()`, 'the second picture');
+  // The menu handed the focus back to the list: no ring around it in the picture.
+  await evaluate(page, `document.activeElement?.blur()`);
   await sleep(2500);                                   // now/next below the player
   await shoot('01-channels.png');
   if (ONLY?.has('01-channels-browse')) {
@@ -183,6 +198,9 @@ try {
     await shoot('01-channels-browse.png');
     await evaluate(page, `document.getElementById('compact-player').click()`);
   }
+
+  // The rest of the views are of one picture.
+  await evaluate(page, `document.getElementById('second').hidden || document.getElementById('second-close').click()`);
 
   // 2. The programme guide over the same channels.
   await evaluate(page, `document.getElementById('btn-guide').click()`);
