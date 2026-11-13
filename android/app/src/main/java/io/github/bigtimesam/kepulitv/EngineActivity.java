@@ -9,6 +9,10 @@ import android.view.View;
 import android.view.WindowManager;
 import android.window.OnBackInvokedDispatcher;
 
+import java.io.File;
+import java.io.FileWriter;
+import java.io.IOException;
+
 import org.mozilla.geckoview.AllowOrDeny;
 import org.mozilla.geckoview.GeckoResult;
 import org.mozilla.geckoview.GeckoRuntime;
@@ -70,6 +74,7 @@ abstract class EngineActivity extends Activity {
                     .remoteDebuggingEnabled(BuildConfig.DEBUG)
                     .consoleOutput(BuildConfig.DEBUG)
                     .aboutConfigEnabled(false);
+            settings.configFilePath(quiet());
             configure(settings);
             runtime = GeckoRuntime.create(getApplicationContext(), settings.build());
         }
@@ -119,6 +124,71 @@ abstract class EngineActivity extends Activity {
                     session.loadUri(extension.metaData.baseUrl + page());
                 },
                 error -> Log.e(TAG, "the extension did not install", error));
+    }
+
+    /**
+     * The engine is Firefox's, and like Firefox it asks a few things of the
+     * network on its own account when it starts: whether a sign-in page
+     * stands in the way (a request to Mozilla), whether names resolve, and
+     * the addresses of links before they are pressed. A browser has use for
+     * those; a player that goes to the viewer's own provider and nowhere
+     * else has none, and its privacy policy says where it goes. They are
+     * turned off by the engine's own preferences, given as its
+     * configuration file so that they hold from the first moment. Measured
+     * with tcpdump on an emulator: with these, a start with no account
+     * looked up no name at all.
+     */
+    private static final String QUIET = "prefs:\n"
+            + "  network.captive-portal-service.enabled: false\n"
+            + "  network.connectivity-service.enabled: false\n"
+            + "  network.trr.mode: 5\n"
+            + "  doh-rollout.enabled: false\n"
+            + "  network.dns.disablePrefetch: true\n"
+            + "  network.dns.disablePrefetchFromHTTPS: true\n"
+            + "  network.prefetch-next: false\n"
+            + "  network.predictor.enabled: false\n"
+            + "  network.http.speculative-parallel-limit: 0\n"
+            // Which country the device is in, asked of Mozilla by its address.
+            + "  browser.region.update.enabled: false\n"
+            + "  browser.region.network.url: \"\"\n"
+            // Lists of harmful sites, fetched from Google and Mozilla: the
+            // player opens no site, only the viewer's provider.
+            + "  browser.safebrowsing.malware.enabled: false\n"
+            + "  browser.safebrowsing.phishing.enabled: false\n"
+            + "  browser.safebrowsing.blockedURIs.enabled: false\n"
+            + "  browser.safebrowsing.downloads.remote.enabled: false\n"
+            + "  browser.safebrowsing.provider.google.updateURL: \"\"\n"
+            + "  browser.safebrowsing.provider.google.gethashURL: \"\"\n"
+            + "  browser.safebrowsing.provider.google4.updateURL: \"\"\n"
+            + "  browser.safebrowsing.provider.google4.gethashURL: \"\"\n"
+            + "  browser.safebrowsing.provider.google5.updateURL: \"\"\n"
+            + "  browser.safebrowsing.provider.google5.gethashURL: \"\"\n"
+            + "  browser.safebrowsing.provider.mozilla.updateURL: \"\"\n"
+            + "  browser.safebrowsing.provider.mozilla.gethashURL: \"\"\n"
+            + "  privacy.trackingprotection.enabled: false\n"
+            + "  privacy.trackingprotection.pbmode.enabled: false\n"
+            // Mozilla's settings service (lists a browser keeps up to date)
+            // and its add-on catalogue: the one extension here is built in.
+            + "  services.settings.server: \"data:,#remote-settings-dummy/v1\"\n"
+            + "  extensions.blocklist.enabled: false\n"
+            + "  extensions.update.enabled: false\n"
+            + "  extensions.getAddons.cache.enabled: false\n"
+            + "  app.normandy.enabled: false\n"
+            + "  dom.push.enabled: false\n"
+            // A released engine takes another address for the settings
+            // service only with this beside it.
+            + "env:\n"
+            + "  MOZ_REMOTE_SETTINGS_DEVTOOLS: 1\n";
+
+    /** The configuration file's path, written anew on every start. */
+    private String quiet() {
+        File file = new File(getFilesDir(), "geckoview-config.yaml");
+        try (FileWriter out = new FileWriter(file)) {
+            out.write(QUIET);
+        } catch (IOException e) {
+            Log.w(TAG, "the engine's configuration was not written", e);
+        }
+        return file.getPath();
     }
 
     /**

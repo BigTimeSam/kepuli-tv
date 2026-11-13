@@ -13,7 +13,7 @@ two packages, so that neither kind of device is held to the other's shape:
 `tv` for a television and `mobile` for a phone or a tablet. Play shows a
 device one of them: the television's requires leanback, which no phone
 has, and a television that fits both takes the one with the higher version
-code, which is why the television's are a million above the phone's. (The
+code, which is why the television's are far above the phone's. (The
 phone's does not require a touch screen: the engine's own manifest says it
 is not needed, and a Chromebook without one may have the app.)
 
@@ -124,6 +124,12 @@ Only on the owner's go, as every release (root `AGENTS.md` rule 2).
   the same way under `mobile`, copied as `kepuli-tv-android-mobile-<version>…`.
   In Play the television's bundle goes to the Android TV form factor's own
   track and the phone's to the ordinary one.
+- **A change to the app alone** (nothing of the player's) is a new build of
+  the same version: raise `androidBuild` in `app/build.gradle`, which gives
+  the version name a fourth part (1.13.0.1) and Play the higher version
+  code it wants, and set it back to 0 when the player's version moves on.
+  The codes are the player's version times a hundred plus the build, and
+  the television's a hundred million above.
 - The debug build is `io.github.bigtimesam.kepulitv.debug`, an app of its
   own beside the released one.
 - `node dev/play-publish.mjs login|status|upload [mobile|tv]` takes a bundle to a new
@@ -138,6 +144,18 @@ Only on the owner's go, as every release (root `AGENTS.md` rule 2).
   repository.
 
 ## Traps
+
+- The engine is a browser's, and left alone it asks Mozilla and Google a
+  few things when it starts (a sign-in page on the network, the device's
+  country, lists of harmful sites, its own settings service).
+  `EngineActivity` turns them off through the engine's configuration file,
+  and the privacy policy says the app looks up nothing on its own account.
+  After a change to the engine or its version, measure again on a newly
+  installed release build: `adb root`, `tcpdump -i any -n port 53` on the
+  emulator, three minutes with no account (Android's own
+  `connectivitycheck.gstatic.com` and `www.google.com` are not the app's).
+  A released engine takes another address for the settings service only
+  with `MOZ_REMOTE_SETTINGS_DEVTOOLS` in the file's `env`.
 
 - Android's packager leaves out what begins with an underscore, and the
   extension's languages are in `_locales/`: without `ignoreAssetsPattern`

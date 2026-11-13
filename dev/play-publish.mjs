@@ -33,7 +33,7 @@
 // says what the page shows.
 
 import { spawn } from 'node:child_process';
-import { existsSync, mkdirSync, readFileSync, statSync } from 'node:fs';
+import { existsSync, mkdirSync, readFileSync, readdirSync, statSync } from 'node:fs';
 import { homedir } from 'node:os';
 import { join } from 'node:path';
 
@@ -48,7 +48,13 @@ const CONSOLE = 'https://play.google.com/console/developers';
 const SIGN_IN = `https://accounts.google.com/ServiceLogin?continue=${encodeURIComponent(CONSOLE)}`;
 const VERSION = JSON.parse(readFileSync(join(ROOT, 'manifest.json'), 'utf8')).version;
 const FORM = process.argv[3] || 'mobile';
-const BUNDLE = process.env.KEPULI_PLAY_BUNDLE || join(ROOT, 'dist', 'android', `kepuli-tv-android-${FORM}-${VERSION}.aab`);
+// The newest bundle of the form: a rebuild of the app alone has its build
+// number after the version (1.13.0.1).
+const BUNDLE = process.env.KEPULI_PLAY_BUNDLE || newest(join(ROOT, 'dist', 'android'), `kepuli-tv-android-${FORM}-${VERSION}`);
+function newest(dir, stem) {
+  const found = existsSync(dir) ? readdirSync(dir).filter((name) => name.startsWith(stem) && name.endsWith('.aab')).sort((a, b) => a.length - b.length || a.localeCompare(b, 'en', { numeric: true })) : [];
+  return join(dir, found.at(-1) || `${stem}.aab`);
+}
 
 const command = process.argv[2];
 const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
@@ -136,8 +142,11 @@ async function apps(developer) {
     const seen = new Map();
     for (const a of document.querySelectorAll('a[href*="/app/"]')) {
       const id = (a.getAttribute('href').match(/\/app\/(\d+)\//) || [])[1];
-      const row = a.closest('[role=row], tr, li') || a;
-      if (id && !seen.has(id)) seen.set(id, row.innerText.replace(/\s+/g, ' ').trim().slice(0, 120));
+      // The console's side menu links to the app too, by an icon's name:
+      // the app's own row in the list is the one that names it.
+      const row = a.closest('[role=row], tr, li');
+      const text = (row || a).innerText.replace(/\s+/g, ' ').trim().slice(0, 120);
+      if (id && (row || !seen.has(id))) seen.set(id, text);
     }
     return [...seen].map(([id, text]) => ({ id, text }));
   });
@@ -207,7 +216,10 @@ await page.call('DOM.setFileInputFiles', { files: [BUNDLE], objectId: field });
 
 // The page lists the bundle by its version once Play has taken it in and
 // looked through it, which for 160 MB is a matter of minutes.
-const code = VERSION.split('.').reduce((n, part) => n * 100 + Number(part), 0) + (FORM === 'tv' ? 1000000 : 0);
+// As android/app/build.gradle makes it: the player's version, the app's own
+// build number after it, and the television's a hundred million above.
+const build = Number((readFileSync(join(ROOT, 'android', 'app', 'build.gradle'), 'utf8').match(/^def androidBuild = (\d+)/m) || [])[1] || 0);
+const code = VERSION.split('.').reduce((n, part) => n * 100 + Number(part), 0) * 100 + build + (FORM === 'tv' ? 100000000 : 0);
 let shown = '';
 for (let i = 0; i < 360; i++) {
   await sleep(5000);

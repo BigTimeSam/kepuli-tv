@@ -16,6 +16,12 @@ def root = rootProject.projectDir.parentFile
 def manifest = new JsonSlurper().parse(new File(root, 'manifest.json'))
 def (major, minor, patch) = manifest.version.tokenize('.')*.toInteger()
 def generated = new File(projectDir, 'build/generated/kepuli')
+// A change to the app alone (this directory) is a new build of the same
+// version of the player: Play wants a higher version code for it. Raise
+// this by one for each such package, and set it back to 0 when the
+// player's version moves on. dev/play-publish.mjs reads it from here.
+def androidBuild = 1
+def baseCode = (major * 10000 + minor * 100 + patch) * 100 + androidBuild
 
 android {
     namespace = 'io.github.bigtimesam.kepulitv'
@@ -28,21 +34,24 @@ android {
         applicationId = 'io.github.bigtimesam.kepulitv'
         minSdk = 26
         targetSdk = 36
-        versionName = manifest.version
-        versionCode = major * 10000 + minor * 100 + patch
+        versionName = androidBuild ? "${manifest.version}.${androidBuild}" : manifest.version
+        versionCode = baseCode
     }
 
     // One application in Play, a package for each kind of device: the
     // television's is its own (src/tv/, a remote control, the launcher's
     // banner), the phone's and the tablet's is another (src/mobile/, touch,
-    // either way up). Play wants a different version code of each, and
-    // shows a device the one its manifest fits.
+    // either way up). Play wants a different version code of each. A phone
+    // fits the phone's alone; a television fits both and takes the one
+    // with the higher code.
     flavorDimensions = ['form']
     productFlavors {
         mobile { dimension = 'form' }
         tv {
             dimension = 'form'
-            versionCode = 1000000 + major * 10000 + minor * 100 + patch
+            // Above every code of the phone's: a television that fits both
+            // packages takes the higher.
+            versionCode = 100000000 + baseCode
         }
     }
 

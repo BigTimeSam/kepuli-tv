@@ -1,0 +1,64 @@
+=== NAME ===
+Kepuli-TV – IPTV Player
+=== SHORT DESCRIPTION ===
+Play your own IPTV: Xtream Codes, M3U or Stalker. Fast channels, guide, MKV.
+=== DETAILED DESCRIPTION ===
+Watch your own IPTV subscription on your phone, tablet or television without
+fighting the app. Kepuli-TV plays Xtream Codes accounts, M3U playlists and
+Stalker portals, built around one idea: a huge catalogue should feel small.
+
+→ Channels open in a second or two, even from an enormous catalogue
+→ Hundreds of messy categories become a tidy list of countries
+→ A full-screen programme guide (EPG) with catch-up where offered
+→ MKV movies and episodes play, subtitles and surround sound included
+→ On a television everything works with the remote control
+→ On a phone the picture stays in a small window when you go elsewhere, and
+  the sound goes on with the screen off
+
+
+WHAT YOU GET
+
+• Paste the M3U link your provider sent you and the settings fill themselves.
+• Several accounts: Xtream Codes, an M3U playlist with its XMLTV guide, or a
+  Stalker portal with your box's MAC address. Switch in one tap.
+• Search that ignores accents and word order, and a filter in every menu.
+• Whatever you left halfway waits at the top, and the next episode starts by
+  itself.
+• Nothing blocks the screen while data loads, and what is playing keeps
+  playing, even when the connection drops.
+• Made for accounts with one connection: switching channels waits for the
+  provider to free it instead of failing.
+• Movies and series as covers, with plots, ratings and seasons.
+• Favourites, viewing history and resume positions.
+• Hide the global brands from a country's list, and its own stations are
+  easy to find.
+• Keep only the countries you watch, and only the film and series
+  categories you want.
+• A reminder before a programme starts, as a notification, even when the
+  app is closed.
+• The guide can show just your favourite channels.
+• Search the programmes of every channel at once.
+• Filter movies by year, rating and length, or show only your favourites.
+• Each film once in the list, its language versions on its own page.
+• A dark or a light look, upright or lying down.
+• In 30 languages.
+
+
+PRIVATE BY DESIGN
+
+No tracking, no ads, no sign-up. Kepuli-TV talks only to your own provider's
+server. The one exception: channel logos may load from a public logo
+collection on GitHub.
+
+
+PLEASE NOTE
+
+The app contains no content and comes with no provider. Bring your own
+account, use it only for content you have the right to watch, and make sure
+the service is lawful where you live.
+
+
+GET STARTED
+
+Open the app and enter your server and credentials, a playlist link, or a
+portal with its MAC address, and your list appears.
