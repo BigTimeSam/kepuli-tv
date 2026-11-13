@@ -334,7 +334,7 @@
 
 <main>
 <h1>Privacy Policy</h1>
-<p class="meta">Applies to the Kepuli-TV browser extension. Effective 12 November 2026, version 1.6</p>
+<p class="meta">Applies to the Kepuli-TV browser extension for Chrome and Firefox and to the Kepuli-TV app for Android phones, tablets and televisions. Effective 13 November 2026, version 1.7</p>
 
 <section class="summary">
   <h2>In short</h2>
@@ -344,6 +344,7 @@
     <li><strong>The developer never receives, sees or stores any of your data.</strong> The extension has no backend.</li>
     <li><strong>Network requests go to the addresses you point it at</strong> — your own IPTV server or playlist, and the programme guide it names — and, for channel logos, to GitHub's file server, which hosts a public collection of logos (see section 3).</li>
     <li><strong>The extension cannot see the pages you browse.</strong> It has no content scripts and requests access to no website at install time.</li>
+    <li><strong>The Android app is the same player.</strong> It is the extension, run by a browser engine of its own inside the app, so everything here holds for it too. What differs on Android (what Android is asked to allow, what the engine itself looks up, and what Google Play tells the developer) is in section 6.</li>
   </ul>
 </section>
 
@@ -540,23 +541,85 @@
   web page. It operates solely within its own tab.
 </p>
 
-<h2><span class="num">6.</span>Remote code</h2>
+<h2><span class="num">6.</span>The Android app</h2>
+<p>
+  The app for Android phones, tablets and televisions (Google Play, <code>io.github.bigtimesam.kepulitv</code>)
+  is the same player: the extension's own files, run inside the app by GeckoView, the engine of
+  Firefox for Android, which is part of the app. Sections 1 to 5 describe it as they describe
+  the extension, with these differences.
+</p>
+<ul>
+  <li>
+    <strong>Where the data lives.</strong> Everything in section 2 is kept in the app's own
+    private storage on the device, which other apps cannot read. There is no browser account
+    behind the app, so nothing is synced to another device, whatever the sync setting says.
+  </li>
+  <li>
+    <strong>No uninstall question.</strong> Removing the app opens no form and sends nothing.
+  </li>
+  <li>
+    <strong>Your server's address.</strong> There is no browser to ask on the app's behalf, so
+    the app allows itself the addresses the player asks for (your server, and where your
+    provider sends its streams) without a prompt. It still talks only to the addresses in
+    section 3.
+  </li>
+  <li>
+    <strong>The engine keeps to itself.</strong> GeckoView is a browser's engine, and a
+    browser's engine left alone asks a few things of Mozilla and Google when it starts (whether
+    a sign-in page stands in the way of the network, which country the device is in, lists of
+    harmful sites, the engine's own settings). The app turns all of those off: measured on a
+    newly installed app (version 1.13.0.1, three minutes with no account added), it looked up
+    no address at all. Android itself checks the network in its own way, as it does for every
+    app.
+  </li>
+  <li>
+    <strong>What Google Play tells the developer.</strong> Google Play installs and updates the
+    app and shows the developer totals: how many devices have it, of what kind, in which
+    countries, and, if you have agreed to share diagnostics with Google, crash reports without
+    your account or viewing data. That is collected by Google under Google's privacy policy,
+    not by the app, and nothing in it names you, your provider or what you watch.
+  </li>
+  <li>
+    <strong>What Android is asked to allow.</strong> Network access, for your server. On a
+    phone or a tablet also: notifications, asked when you turn reminders on; running in the
+    foreground while something plays, with its notification, so that the sound goes on with
+    the screen off or another app in front; keeping the device awake for the stream meanwhile;
+    and starting after a restart of the device, only to set the reminders' alarms again. For a
+    reminder to come while the app is closed, the programme's name, its channel and its time
+    are kept in the app's storage until the programme is over. None of this leaves the device.
+  </li>
+  <li>
+    <strong>Files.</strong> A file you save from the player (a playlist for another player,
+    your settings, a recording) goes to the device's Downloads, where other apps you allow can
+    read it; a playlist file contains your credentials. A file you pick for the player is
+    copied into the app's own storage for reading and replaced by the next one.
+  </li>
+  <li>
+    <strong>Links and other players.</strong> A link opens in the device's browser, and a
+    handoff to an external player in that player's app (section 3), not inside Kepuli-TV.
+  </li>
+</ul>
+
+<h2><span class="num">7.</span>Remote code</h2>
 <p>
   The extension neither loads nor executes any code from outside its package. All executable
   code — including the media libraries and the WebAssembly audio decoder — ships inside the
   extension package. Only media and catalogue data are fetched from the network; never code.
 </p>
 
-<h2><span class="num">7.</span>Deleting your data</h2>
+<h2><span class="num">8.</span>Deleting your data</h2>
 <ul>
   <li><strong>Cache:</strong> can be cleared from the extension's settings at any time
     (<em>Settings → Clear cache</em>).</li>
   <li><strong>Everything the extension stored:</strong> <em>Settings → Reset everything</em> (&ldquo;reset&rdquo;) removes the credentials,
     preferences, favourites, watch history, resume positions and the whole cache database, and what the extension put in the browser's sync storage.</li>
+  <li><strong>On Android:</strong> the same settings are in the app, and Android's own
+    <strong>Settings → Apps → Kepuli-TV → Storage → Clear storage</strong>, or removing the app, deletes
+    everything the app stored. Files you saved to Downloads are yours and stay until you delete them.</li>
   <li><strong>Everything:</strong> uninstalling the extension removes all data it stored on the device. There is nothing for the developer to delete, because nothing was ever sent to the developer — apart from an uninstall answer you may have chosen to give, which carries nothing that identifies you.</li>
 </ul>
 
-<h2><span class="num">8.</span>Sale and transfer of data</h2>
+<h2><span class="num">9.</span>Sale and transfer of data</h2>
 <p>
   User data is not sold or transferred to third parties. It is not used or transferred for
   purposes unrelated to the extension's single purpose, nor to determine creditworthiness or
@@ -564,13 +627,13 @@
   apart from the anonymous answer to the uninstall question, if you choose to give one.
 </p>
 
-<h2><span class="num">9.</span>Children</h2>
+<h2><span class="num">10.</span>Children</h2>
 <p>
   The extension is not directed at children under 13 and collects no data from them — as it
   collects none from anyone.
 </p>
 
-<h2><span class="num">10.</span>Data controller and GDPR</h2>
+<h2><span class="num">11.</span>Data controller and GDPR</h2>
 <p>
   Because the developer neither receives, processes nor stores personal data, using the
   extension creates no personal data register held by the developer. The data on your device
@@ -579,13 +642,13 @@
   its own controller.
 </p>
 
-<h2><span class="num">11.</span>Changes</h2>
+<h2><span class="num">12.</span>Changes</h2>
 <p>
   If this policy changes, the updated version is published at this address and the date at the
   top of the page changes. Material changes are noted in the extension's release notes.
 </p>
 
-<h2><span class="num">12.</span>Contact</h2>
+<h2><span class="num">13.</span>Contact</h2>
 <p>
   BigTimeSam / Samuli Vainio<br>
   <a href="mailto:samuli.vainio@gmail.com">samuli.vainio@gmail.com</a>
