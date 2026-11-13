@@ -702,6 +702,8 @@ export default {
  "rec.total": "Posnetki skupaj zasedejo {size}.",
  "rec.now": "Snema se zdaj",
  "rec.play": "Predvajaj",
+ "app.reminders": "Opomniki",
+ "app.pause": "Premor",
  "rec.save": "Shrani v računalnik",
  "rec.delete": "Izbriši",
  "rec.delete.confirm": "Izbrisati za vedno?",

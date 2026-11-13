@@ -702,6 +702,8 @@ export default {
  "rec.total": "Įrašai iš viso užima {size}.",
  "rec.now": "Įrašoma dabar",
  "rec.play": "Groti",
+ "app.reminders": "Priminimai",
+ "app.pause": "Pristabdyti",
  "rec.save": "Išsaugoti kompiuteryje",
  "rec.delete": "Ištrinti",
  "rec.delete.confirm": "Ištrinti visam laikui?",

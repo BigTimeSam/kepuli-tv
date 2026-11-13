@@ -24,7 +24,12 @@
 // All of it is off unless the page is opened as player.html?tv=1, which is
 // how the Android TV app opens it (android/), and how a test opens it in a
 // desktop browser. Nothing here runs for a viewer with a keyboard.
+//
+// The Android app on a phone or a tablet opens player.html?app=1 instead:
+// touch drives the player there as it does in Firefox for Android, and the
+// one thing taken from here is Back, which that app sends as Escape too.
 
+import { api } from './browser.js';
 import { $, el } from './dom.js';
 import { state, vlist } from './state.js';
 import { towards } from './listnavigation.js';
@@ -59,8 +64,16 @@ let held = null;
  *   did, guideRow() is the guide's row while the guide is open, else -1.
  */
 export function wireRemote(app) {
-  if (!remote) return;
   hooks = app;
+  // On the window, ahead of every handler of the page's own: a menu that
+  // closed itself first left nothing open to be seen here, and the same
+  // Back went on to leave the app.
+  if (inApp) {
+    document.documentElement.classList.add('app');
+    window.addEventListener('keydown', onAppBack, true);
+    talkWithApp();
+  }
+  if (!remote) return;
   document.documentElement.classList.add('tv');
   document.addEventListener('keydown', onKeyDown, true);
   document.addEventListener('keyup', onKeyUp, true);
@@ -76,6 +89,77 @@ export function wireRemote(app) {
   });
   // Out of full screen the keys go back to the list the channel came from.
   document.addEventListener('fullscreenchange', () => { showBanner(); if (!document.fullscreenElement) focusList(); });
+}
+
+/** Whether the page is the Android app's on a phone or a tablet. */
+const inApp = typeof location !== 'undefined' && new URLSearchParams(location.search).has('app');
+
+/**
+ * The page's line to the Android app around it ("kepuli", answered by
+ * the app's PlayerActivity; only the app's copy of the manifest lets the
+ * page open it). The app says when it has become a small window over
+ * other apps (picture in picture), where the page is to be the picture
+ * and nothing else, and which channel a reminder's notification asked
+ * for when the app had not been running to hear of it, and what was
+ * pressed on its playback notification, a headset or the lock screen.
+ * The page says the picture's shape, which the small window takes, and
+ * what is on and whether it plays: the app keeps the sound going out of
+ * sight on that word. (The engine has a media session of its own for
+ * this, but it never came to life for the app, GeckoView 160.)
+ */
+function talkWithApp() {
+  let port;
+  try { port = api.runtime.connectNative('kepuli'); } catch { return; }
+  port.onMessage.addListener((message) => {
+    if (typeof message?.pip === 'boolean') document.documentElement.classList.toggle('pip', message.pip);
+    const press = message?.press;
+    if (press === 'next' || press === 'previous') hooks.zap(press === 'next' ? 1 : -1);
+    else if ((press === 'play' && el.video.paused) || (press === 'pause' && !el.video.paused)) togglePause();
+    // The same word background.js leaves of a clicked notification
+    // (js/remindersui.js plays it). The app may have been started by the
+    // press: the word waits for the lists, as it is thrown away unplayed
+    // when it comes before the account is known.
+    if (message?.watch) connected().then(() => api.storage.local.set({ watchAsked: { ...message.watch, at: Date.now() } }));
+  });
+  let told = '';
+  const tell = () => {
+    const metadata = navigator.mediaSession?.metadata;
+    const now = {
+      on: Boolean(state.playing), playing: Boolean(state.playing) && !el.video.paused && !el.video.ended,
+      title: metadata?.title || '', artist: metadata?.artist || '', live: state.playing?.k === 0,
+    };
+    const text = JSON.stringify(now);
+    if (text !== told) port.postMessage({ now });
+    told = text;
+  };
+  // The time's ticks carry a change of programme, which is no event of
+  // the picture's.
+  for (const event of ['play', 'playing', 'pause', 'ended', 'emptied', 'timeupdate']) el.video.addEventListener(event, tell);
+  const shape = () => { if (el.video.videoWidth) port.postMessage({ shape: [el.video.videoWidth, el.video.videoHeight] }); };
+  el.video.addEventListener('loadedmetadata', shape);
+  el.video.addEventListener('resize', shape);
+}
+
+/** Resolves when an account's lists are in, or after two minutes without. */
+async function connected() {
+  for (let waited = 0; !state.lib && waited < 120e3; waited += 300) await new Promise((done) => setTimeout(done, 300));
+}
+
+/**
+ * A phone's Back in the Android app. Whatever is open closes itself on
+ * Escape, and a field with text in it gives the text up; with nothing
+ * open Back leaves the player's pane for the list, or a series' page, and
+ * from the list the app (window.close(), which the app answers by
+ * stepping back).
+ */
+function onAppBack(e) {
+  if (e.key !== 'Escape' || document.fullscreenElement || layer() !== document.body || !el.listProgress.hidden) return;
+  // The guide has an Escape of its own: its sheet, its search, then itself.
+  if (el.main.classList.contains('guide-sheet') || hooks.guideRow() >= 0) return;
+  const active = document.activeElement;
+  if (active instanceof HTMLInputElement && active.value && isText(active)) return;
+  swallow(e);
+  if (!hooks.back()) window.close();
 }
 
 // A field being handed to the television's keyboard, in onKeyDown.

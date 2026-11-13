@@ -728,6 +728,10 @@ const STRINGS = {
     'rec.total': 'Recordings take {size} in all.',
     'rec.now': 'Recording now',
     'rec.play': 'Play',
+    // The Android app's words outside the page (android/strings.mjs): a
+    // notification channel's name and the playback notification's button.
+    'app.reminders': 'Reminders',
+    'app.pause': 'Pause',
     'rec.save': 'Save to computer',
     'rec.delete': 'Delete',
     'rec.delete.confirm': 'Delete for good?',
@@ -1504,6 +1508,8 @@ const STRINGS = {
     'rec.total': 'Tallenteet vievät yhteensä {size}.',
     'rec.now': 'Tallennus käynnissä',
     'rec.play': 'Toista',
+    'app.reminders': 'Muistutukset',
+    'app.pause': 'Tauko',
     'rec.save': 'Tallenna koneelle',
     'rec.delete': 'Poista',
     'rec.delete.confirm': 'Poistetaanko lopullisesti?',

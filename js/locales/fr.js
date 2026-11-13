@@ -538,6 +538,8 @@ export default {
  "rec.total": "Les enregistrements occupent {size} au total.",
  "rec.now": "Enregistrement en cours",
  "rec.play": "Lire",
+ "app.reminders": "Rappels",
+ "app.pause": "Pause",
  "rec.save": "Télécharger sur l’ordinateur",
  "rec.delete": "Supprimer",
  "rec.delete.confirm": "Supprimer définitivement ?",

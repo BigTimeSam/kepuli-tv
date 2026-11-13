@@ -686,6 +686,8 @@ export default {
  "rec.total": "A felvételek összesen {size} helyet foglalnak.",
  "rec.now": "Felvétel folyamatban",
  "rec.play": "Lejátszás",
+ "app.reminders": "Emlékeztetők",
+ "app.pause": "Szünet",
  "rec.save": "Mentés a számítógépre",
  "rec.delete": "Törlés",
  "rec.delete.confirm": "Végleg törlöd?",

@@ -633,6 +633,8 @@ export default {
  "rec.total": "Snimci ukupno zauzimaju {size}.",
  "rec.now": "Snima se sada",
  "rec.play": "Pusti",
+ "app.reminders": "Podsetnici",
+ "app.pause": "Pauziraj",
  "rec.save": "Sačuvaj na računar",
  "rec.delete": "Obriši",
  "rec.delete.confirm": "Obrisati zauvek?",

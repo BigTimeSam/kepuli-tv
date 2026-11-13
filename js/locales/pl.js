@@ -702,6 +702,8 @@ export default {
  "rec.total": "Nagrania zajmują łącznie {size}.",
  "rec.now": "Nagrywa teraz",
  "rec.play": "Odtwórz",
+ "app.reminders": "Przypomnienia",
+ "app.pause": "Wstrzymaj",
  "rec.save": "Zapisz na komputerze",
  "rec.delete": "Usuń",
  "rec.delete.confirm": "Usunąć na stałe?",

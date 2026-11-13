@@ -641,6 +641,8 @@ export default {
  "rec.total": "Записи занимают всего {size}.",
  "rec.now": "Идёт запись",
  "rec.play": "Воспроизвести",
+ "app.reminders": "Напоминания",
+ "app.pause": "Пауза",
  "rec.save": "Сохранить на компьютер",
  "rec.delete": "Удалить",
  "rec.delete.confirm": "Удалить навсегда?",

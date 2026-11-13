@@ -1,9 +1,11 @@
-// Kepuli-TV for Android TV: the browser extension as it is, run by
-// GeckoView (the engine of Firefox for Android) as a built-in extension.
+// Kepuli-TV for Android (a television, a phone or a tablet): the browser
+// extension as it is, run by GeckoView (the engine of Firefox for Android)
+// as a built-in extension.
 // Nothing of the player is copied into this directory: the Firefox package
 // is assembled by firefox/build.mjs and taken into the APK's assets, and
 // the version is the manifest's.
 
+import groovy.json.JsonOutput
 import groovy.json.JsonSlurper
 
 plugins {
@@ -28,6 +30,20 @@ android {
         targetSdk = 36
         versionName = manifest.version
         versionCode = major * 10000 + minor * 100 + patch
+    }
+
+    // One application in Play, a package for each kind of device: the
+    // television's is its own (src/tv/, a remote control, the launcher's
+    // banner), the phone's and the tablet's is another (src/mobile/, touch,
+    // either way up). Play wants a different version code of each, and
+    // shows a device the one its manifest fits.
+    flavorDimensions = ['form']
+    productFlavors {
+        mobile { dimension = 'form' }
+        tv {
+            dimension = 'form'
+            versionCode = 1000000 + major * 10000 + minor * 100 + patch
+        }
     }
 
     // Televisions and boxes are ARM, many of them still 32-bit; the engine's
@@ -85,6 +101,14 @@ android {
             assets.srcDir(new File(generated, 'assets'))
             res.srcDir(new File(generated, 'res'))
         }
+        tv {
+            assets.srcDir(new File(generated, 'assets-tv'))
+            res.srcDir(new File(generated, 'res-tv'))
+        }
+        mobile {
+            assets.srcDir(new File(generated, 'assets-mobile'))
+            res.srcDir(new File(generated, 'res-mobile'))
+        }
     }
 
     // GeckoView reads the extension's files from the APK as they are.
@@ -107,16 +131,50 @@ def buildExtension = tasks.register('buildExtension', Exec) {
 }
 def syncExtension = tasks.register('syncExtension', Sync) {
     dependsOn buildExtension
-    from(new File(root, 'firefox/dist'))
+    from(new File(root, 'firefox/dist')) { exclude 'manifest.json' }
     into(new File(generated, 'assets/extension'))
+}
+// The extension's manifest, one for each package. The phone's app talks
+// with the extension (a reminder's time, picture in picture: "kepuli" in
+// background.js and js/remote.js), which takes two permissions that only
+// an extension built into an app may have; the packages for the browsers
+// and the television's stay without them.
+def syncManifests = tasks.register('syncManifests') {
+    dependsOn buildExtension
+    def source = new File(root, 'firefox/dist/manifest.json')
+    def tv = new File(generated, 'assets-tv/extension/manifest.json')
+    def mobile = new File(generated, 'assets-mobile/extension/manifest.json')
+    inputs.file(source)
+    outputs.files(tv, mobile)
+    doLast {
+        def json = new JsonSlurper().parse(source)
+        tv.parentFile.mkdirs()
+        tv.text = source.text
+        json.permissions += ['nativeMessaging', 'geckoViewAddons']
+        mobile.parentFile.mkdirs()
+        mobile.text = JsonOutput.prettyPrint(JsonOutput.toJson(json))
+    }
+}
+// The few words Android itself shows of the phone's app (a notification
+// channel's name, a button's), in the player's languages and from its own
+// translations.
+def syncStrings = tasks.register('syncStrings', Exec) {
+    workingDir = root
+    def out = new File(generated, 'res-mobile')
+    commandLine 'node', 'android/strings.mjs', out.path
+    inputs.files(fileTree(root) { include 'android/strings.mjs', 'js/i18n.js', 'js/locales/*.js' })
+    outputs.dir(out)
 }
 def syncBrand = tasks.register('syncBrand', Sync) {
     from(new File(root, 'icons/icon128.png')) { rename { 'kepuli_icon.png' } }
-    // The launcher's tile on a television: the logo and the name, 16:9.
-    from(new File(root, 'brand/android-tv-banner-1280x720.png')) { rename { 'banner.png' } }
     into(new File(generated, 'res/drawable-nodpi'))
 }
-tasks.named('preBuild') { dependsOn syncExtension, syncBrand }
+// The launcher's tile on a television: the logo and the name, 16:9.
+def syncBanner = tasks.register('syncBanner', Sync) {
+    from(new File(root, 'brand/android-tv-banner-1280x720.png')) { rename { 'banner.png' } }
+    into(new File(generated, 'res-tv/drawable-nodpi'))
+}
+tasks.named('preBuild') { dependsOn syncExtension, syncManifests, syncStrings, syncBrand, syncBanner }
 
 dependencies {
     implementation 'org.mozilla.geckoview:geckoview:160.0.20261104181552'

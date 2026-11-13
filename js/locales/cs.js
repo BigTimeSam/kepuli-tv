@@ -702,6 +702,8 @@ export default {
  "rec.total": "Nahrávky zabírají celkem {size}.",
  "rec.now": "Právě se nahrává",
  "rec.play": "Přehrát",
+ "app.reminders": "Připomenutí",
+ "app.pause": "Pozastavit",
  "rec.save": "Uložit do počítače",
  "rec.delete": "Smazat",
  "rec.delete.confirm": "Smazat navždy?",

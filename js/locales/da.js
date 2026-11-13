@@ -686,6 +686,8 @@ export default {
  "rec.total": "Optagelserne fylder i alt {size}.",
  "rec.now": "Optager nu",
  "rec.play": "Afspil",
+ "app.reminders": "Påmindelser",
+ "app.pause": "Pause",
  "rec.save": "Gem på computeren",
  "rec.delete": "Slet",
  "rec.delete.confirm": "Slet for altid?",

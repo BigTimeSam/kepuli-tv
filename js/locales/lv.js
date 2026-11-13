@@ -694,6 +694,8 @@ export default {
  "rec.total": "Ieraksti kopā aizņem {size}.",
  "rec.now": "Ieraksta tagad",
  "rec.play": "Atskaņot",
+ "app.reminders": "Atgādinājumi",
+ "app.pause": "Pauzēt",
  "rec.save": "Saglabāt datorā",
  "rec.delete": "Dzēst",
  "rec.delete.confirm": "Dzēst uz visiem laikiem?",

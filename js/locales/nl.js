@@ -538,6 +538,8 @@ export default {
  "rec.total": "De opnames nemen samen {size} in beslag.",
  "rec.now": "Neemt nu op",
  "rec.play": "Afspelen",
+ "app.reminders": "Herinneringen",
+ "app.pause": "Pauzeren",
  "rec.save": "Opslaan op computer",
  "rec.delete": "Verwijderen",
  "rec.delete.confirm": "Definitief verwijderen?",

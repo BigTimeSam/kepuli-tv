@@ -686,6 +686,8 @@ export default {
  "rec.total": "Opptakene tar til sammen {size}.",
  "rec.now": "Tar opp nå",
  "rec.play": "Spill av",
+ "app.reminders": "Påminnelser",
+ "app.pause": "Pause",
  "rec.save": "Lagre på datamaskinen",
  "rec.delete": "Slett",
  "rec.delete.confirm": "Slette for godt?",

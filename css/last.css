@@ -130,3 +130,15 @@ input[type="search"], input[type="text"], input[type="url"], input:not([type]) {
    browser to open a link in and no file picker, and it grants a provider's
    host itself, so the note about the browser's question would be untrue. */
 .tv a[target="_blank"], .tv #f-file-pick, .tv #setup-grant-note { display: none; }
+/* The Android app on a phone or a tablet (the page opened with ?app=1)
+   grants a provider's host itself as well. */
+.app #setup-grant-note { display: none; }
+/* The app as a small window over other apps (picture in picture, .pip set
+   by js/remote.js when the app says so): the picture and its subtitles
+   fill the window. Nothing in it can be pressed, so what is drawn over the
+   picture for pressing is left out, and a dialog that was open waits out
+   of sight. The phone's layout keeps the player's pane hidden while the
+   list is shown; here it is brought out as it is for full screen. */
+.pip main > .stage { display: flex; }
+.pip #videowrap { position: fixed; inset: 0; z-index: 1000; background: #000; }
+.pip :is(.second-bar, .statbadge, .zap, dialog, #toast) { display: none; }

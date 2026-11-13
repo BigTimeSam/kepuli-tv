@@ -678,6 +678,8 @@ export default {
  "rec.total": "Total ukuran rekaman {size}.",
  "rec.now": "Sedang merekam",
  "rec.play": "Putar",
+ "app.reminders": "Pengingat",
+ "app.pause": "Jeda",
  "rec.save": "Simpan ke komputer",
  "rec.delete": "Hapus",
  "rec.delete.confirm": "Hapus permanen?",

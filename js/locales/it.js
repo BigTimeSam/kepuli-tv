@@ -538,6 +538,8 @@ export default {
  "rec.total": "Le registrazioni occupano in tutto {size}.",
  "rec.now": "In registrazione",
  "rec.play": "Riproduci",
+ "app.reminders": "Promemoria",
+ "app.pause": "Pausa",
  "rec.save": "Salva sul computer",
  "rec.delete": "Elimina",
  "rec.delete.confirm": "Eliminare definitivamente?",

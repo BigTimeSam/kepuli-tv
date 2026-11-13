@@ -538,6 +538,8 @@ export default {
  "rec.total": "Las grabaciones ocupan {size} en total.",
  "rec.now": "Grabando ahora",
  "rec.play": "Reproducir",
+ "app.reminders": "Recordatorios",
+ "app.pause": "Pausar",
  "rec.save": "Guardar en el ordenador",
  "rec.delete": "Borrar",
  "rec.delete.confirm": "¿Borrar para siempre?",

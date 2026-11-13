@@ -1,20 +1,16 @@
 <?xml version="1.0" encoding="utf-8"?>
+<!-- What the television's package and the phone's share. Each adds its own
+     launcher entry and what its kind of device needs (src/tv/, src/mobile/). -->
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
 
     <uses-permission android:name="android.permission.INTERNET" />
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
     <uses-permission android:name="android.permission.WAKE_LOCK" />
 
-    <!-- A television has a remote control, not a touch screen; a phone or a
-         tablet may install it as well. -->
-    <uses-feature android:name="android.software.leanback" android:required="false" />
-    <uses-feature android:name="android.hardware.touchscreen" android:required="false" />
-
     <!-- Providers serve their lists and streams over plain http as a rule. -->
     <application
         android:label="@string/app_name"
         android:icon="@drawable/kepuli_icon"
-        android:banner="@drawable/banner"
         android:theme="@style/Player"
         android:usesCleartextTraffic="true"
         android:allowBackup="false">
@@ -22,16 +18,6 @@
             android:name=".PlayerActivity"
             android:exported="true"
             android:launchMode="singleTask"
-            android:screenOrientation="sensorLandscape"
-            android:configChanges="keyboard|keyboardHidden|navigation|orientation|screenSize|screenLayout|smallestScreenSize|uiMode">
-            <intent-filter>
-                <action android:name="android.intent.action.MAIN" />
-                <category android:name="android.intent.category.LEANBACK_LAUNCHER" />
-            </intent-filter>
-            <intent-filter>
-                <action android:name="android.intent.action.MAIN" />
-                <category android:name="android.intent.category.LAUNCHER" />
-            </intent-filter>
-        </activity>
+            android:configChanges="keyboard|keyboardHidden|navigation|orientation|screenSize|screenLayout|smallestScreenSize|uiMode|density" />
     </application>
 </manifest>

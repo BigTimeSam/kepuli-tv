@@ -580,6 +580,32 @@ and **Back** alone:
 | in full screen | up and down change the channel, left and right move ten seconds in a film or an episode, **OK** pauses |
 | play/pause, rewind, fast forward, channel up and down | the same, where the remote has them |
 
+### In the Android app on a phone or a tablet
+
+The app is the same player as in Firefox for Android, with the whole screen
+to itself. It follows the way the device is held, upright or lying down, in
+full screen too. Android's **Back** closes what is open (the keyboard, a
+menu, a dialog, the full screen, the guide), then shows the list again when
+the player's pane is in front, and from the list leaves the app with the
+player as it was. A file the player saves (a recording, a playlist for
+another player) goes to the device's **Downloads**; a link opens in the
+browser, and **Open in VLC** in VLC.
+
+Leave the app with Home while something plays and the picture stays on top
+of whatever you open next, in a small window: tap it for pause, the next
+and the previous channel, and the way back to the whole app; its cross
+stops the playback. With the screen turned off the sound goes on, and
+Android's notifications show what is on with a pause button; a headset's
+buttons work too. If you have turned picture in picture
+off for the app in Android's settings, Home leaves the sound on in the same
+way. Back from the list leaves the app and pauses.
+
+Reminders set in the guide come as Android's notifications even when the
+app is not running, once **Show reminders as notifications** is on in
+Settings. Android decides the exact moment: the notification is asked for
+two minutes before the programme and may come a little later than that. A
+tap on it opens the app on that channel.
+
 `?` opens the same list inside the player, along with the guide's own keys and
 a note on why the browser's back button leaves the player rather than stepping
 back inside it. **Help** in the top bar opens it too.

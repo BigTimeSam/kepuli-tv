@@ -686,6 +686,8 @@ export default {
  "rec.total": "Salvestised võtavad kokku {size}.",
  "rec.now": "Salvestamine käib",
  "rec.play": "Esita",
+ "app.reminders": "Meeldetuletused",
+ "app.pause": "Peata",
  "rec.save": "Laadi arvutisse alla",
  "rec.delete": "Kustuta",
  "rec.delete.confirm": "Kustutada jäädavalt?",

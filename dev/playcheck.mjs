@@ -346,6 +346,11 @@
 //                                     picks one), a feature-length file plays
 //                                     on with its own duration for
 //                                     KEPULI_LONG_SECS; skipped without it
+//   node dev/playcheck.mjs appback    Back in the Android app on a phone
+//                                     (player.html?app=1, sent as Escape):
+//                                     it closes the drop-down that is open,
+//                                     leaves the player's pane for the list,
+//                                     and only then leaves the app
 //   node dev/playcheck.mjs remote     the player driven by a television's
 //                                     remote control (player.html?tv=1): the
 //                                     arrows carry the focus from the list
@@ -7972,6 +7977,64 @@ async function handoff(page) {
 }
 
 /**
+ * Back in the Android app on a phone or a tablet (js/remote.js): the page
+ * opened as player.html?app=1, as that app opens it, and Back sent as
+ * Escape. With a drop-down open Back closes it and nothing else; from the
+ * player's pane of the narrow layout it shows the list again; with nothing
+ * open it asks for the window to be closed, which the app answers by
+ * stepping back. On the phone emulator one Back did both: the drop-down
+ * heard the key first and closed, and the same key then found nothing open.
+ */
+async function appback(page, { target }) {
+  const plain = bare(target.url).split('?')[0];
+  const back = async () => { await pressKey(page, 'Escape', 'Escape', 27); await sleep(300); };
+  const open = () => evaluate(page, `Boolean(document.querySelector('.picker-pop:popover-open'))`);
+  const closed = () => evaluate(page, `window.__closed`);
+  try {
+    await page.call('Emulation.setDeviceMetricsOverride', { width: 390, height: 844, deviceScaleFactor: 1, mobile: false });
+    await page.call('Page.navigate', { url: `${plain}?app=1#/live` });
+    await sleep(1000);
+    await waitFor(page, `location.search === '?app=1' && ${CONNECTED}`, 'the connection');
+    await evaluate(page, `document.querySelector('dialog[open]')?.close()`);
+    await evaluate(page, `document.getElementById('tab-live').click()`);
+    await waitFor(page, `document.querySelectorAll('#group-select option').length >= 7`, 'the countries');
+    await evaluate(page, `(window.__closed = 0, window.close = () => { window.__closed++; })`);
+    const at = await evaluate(page, `(() => { const r = document.getElementById('group-select').getBoundingClientRect(); return { x: Math.round(r.left + r.width / 2), y: Math.round(r.top + r.height / 2) }; })()`);
+    for (const type of ['mousePressed', 'mouseReleased']) await page.call('Input.dispatchMouseEvent', { type, ...at, button: 'left', clickCount: 1 });
+    await waitFor(page, `Boolean(document.querySelector('.picker-pop:popover-open'))`, 'the drop-down');
+
+    await back();
+    const shut = !(await open());
+    const early = await closed();
+
+    // A channel played fills the narrow page with the player's pane: Back
+    // shows the list again and the picture plays on.
+    await evaluate(page, `document.querySelector('#list .row').click()`);
+    await waitFor(page, `document.getElementById('main').classList.contains('compact-watch')`, "the player's pane");
+    await back();
+    const browsing = !(await evaluate(page, `document.getElementById('main').classList.contains('compact-watch')`));
+    const kept = await evaluate(page, `document.getElementById('main').classList.contains('has-playback')`);
+    const paneEarly = await closed();
+
+    await back();
+    const asked = await closed();
+
+    const problems = [];
+    if (!shut) problems.push('Back left the drop-down open');
+    if (early) problems.push(`Back with the drop-down open also asked to close the window ${early} time(s)`);
+    if (!browsing || !kept) problems.push(`Back from the player's pane left ${browsing ? 'the list in sight' : 'the pane up'}, the channel ${kept ? 'still on' : 'stopped'}`);
+    if (paneEarly) problems.push(`Back from the player's pane also asked to close the window ${paneEarly} time(s)`);
+    if (asked !== 1) problems.push(`Back with nothing open asked to close ${asked} time(s), not once`);
+    if (problems.length) return { ok: false, detail: problems.join('; ') };
+    return { ok: true, detail: "Back closed the drop-down and nothing else, then left the player's pane for the list with the channel still on; the next one, with nothing open, asked for the window to be closed" };
+  } finally {
+    await page.call('Emulation.clearDeviceMetricsOverride').catch(() => {});
+    await page.call('Page.navigate', { url: plain }).catch(() => {});
+    await sleep(500);
+  }
+}
+
+/**
  * A television's remote control (js/remote.js): the page opened as
  * player.html?tv=1, as the Android TV app opens it, and driven with the
  * four arrows, OK (Enter) and Back (Escape) alone. The arrows walk the
@@ -8101,7 +8164,7 @@ async function remote(page, { target }) {
 
 const SCENARIOS = { buffering, livebuffering, filmbuffering, emptyfile, tsasmp4, refusedfile, badgateway, livebadgateway, channelrefused, noanswer, longfilm, catalogUi, setupClarity, welcome, fullscreenControl, blockedplay, clickpause, pickers, touchcaret, screenbutton, topmenu, scrollbars, channelorder, lengthfilter, nowlogo, channels, home, resumemkv, restore, programmes, catchup, seek, death, cancel, timeout, search, paste, keys, switching, resume, connections, livezap, livequiet, reconnect, accounts, listerror, a11y, subtitles, audio, wasmaudio, settings,
   lastchannel, nextepisode, continuewatching, reminders, update, seeklag, cuesretry, quota, catchupfreeze, catchupfull, twotabs, switchstop, resettabs,
-  refresh, restorenav, guidekeep, removeaccount, m3u, sync, holes, picks, flakyserver, accountform, stalker, record, guidefavs, guidenames, categories, homecountry, noleak, perf, pseudo, remote, startup, soak, phone, headline, accountnow, onerow, nowbarfit, subsize, arrowmiddle, idlelight, iossubs, starquiet, phonestar, pickertouch, pickerkeyboard, phonescroll, menutap, wakelock, livecut, episodenames, gotochannel, filmdetails, favorder, countryfilter, tilekeys, routes, programmekeys, searchlimit, filterfolds, focusrings, xtreamoffer, guideclick, filmaddress, filmfacts, playlistfile, perflive, perfplaylist, remoteimages, phoneguide, handoff, closedplan, secondpicture, liverewind, upcoming };
+  refresh, restorenav, guidekeep, removeaccount, m3u, sync, holes, picks, flakyserver, accountform, stalker, record, guidefavs, guidenames, categories, homecountry, noleak, perf, pseudo, remote, appback, startup, soak, phone, headline, accountnow, onerow, nowbarfit, subsize, arrowmiddle, idlelight, iossubs, starquiet, phonestar, pickertouch, pickerkeyboard, phonescroll, menutap, wakelock, livecut, episodenames, gotochannel, filmdetails, favorder, countryfilter, tilekeys, routes, programmekeys, searchlimit, filterfolds, focusrings, xtreamoffer, guideclick, filmaddress, filmfacts, playlistfile, perflive, perfplaylist, remoteimages, phoneguide, handoff, closedplan, secondpicture, liverewind, upcoming };
 // The mock's whole-list answers stall for these, longer than the request limit.
 const SLOW_LIST_MS = { cancel: 60000, timeout: 60000 };
 // The media is sent slowly for these: the seek targets must lie outside the

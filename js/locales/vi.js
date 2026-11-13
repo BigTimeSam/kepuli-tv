@@ -678,6 +678,8 @@ export default {
  "rec.total": "Các bản ghi chiếm tổng cộng {size}.",
  "rec.now": "Đang ghi",
  "rec.play": "Phát",
+ "app.reminders": "Lời nhắc",
+ "app.pause": "Tạm dừng",
  "rec.save": "Lưu về máy tính",
  "rec.delete": "Xóa",
  "rec.delete.confirm": "Xóa vĩnh viễn?",

@@ -625,6 +625,8 @@ export default {
  "rec.total": "Οι εγγραφές καταλαμβάνουν συνολικά {size}.",
  "rec.now": "Γίνεται εγγραφή τώρα",
  "rec.play": "Αναπαραγωγή",
+ "app.reminders": "Υπενθυμίσεις",
+ "app.pause": "Παύση",
  "rec.save": "Αποθήκευση στον υπολογιστή",
  "rec.delete": "Διαγραφή",
  "rec.delete.confirm": "Οριστική διαγραφή;",

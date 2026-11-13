@@ -625,6 +625,8 @@ export default {
  "rec.total": "Записите заемат общо {size}.",
  "rec.now": "Записва се сега",
  "rec.play": "Пусни",
+ "app.reminders": "Напомняния",
+ "app.pause": "Пауза",
  "rec.save": "Запази на компютъра",
  "rec.delete": "Изтрий",
  "rec.delete.confirm": "Изтриване завинаги?",

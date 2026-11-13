@@ -625,6 +625,8 @@ export default {
  "rec.total": "Incizimet zënë gjithsej {size}.",
  "rec.now": "Po incizohet tani",
  "rec.play": "Luaje",
+ "app.reminders": "Kujtesat",
+ "app.pause": "Pauzë",
  "rec.save": "Ruaje në kompjuter",
  "rec.delete": "Fshije",
  "rec.delete.confirm": "Të fshihet përgjithmonë?",

@@ -686,6 +686,8 @@ export default {
  "rec.total": "Kayıtlar toplam {size} yer kaplıyor.",
  "rec.now": "Şu an kaydediliyor",
  "rec.play": "Oynat",
+ "app.reminders": "Hatırlatıcılar",
+ "app.pause": "Duraklat",
  "rec.save": "Bilgisayara kaydet",
  "rec.delete": "Sil",
  "rec.delete.confirm": "Kalıcı olarak silinsin mi?",

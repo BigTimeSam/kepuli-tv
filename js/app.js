@@ -2288,6 +2288,8 @@ wireRemote({
   star: toggleFavoriteAtCursor,
   zap: playRelative,
   back: () => {
+    // A phone's player pane: Back shows the list again, the picture plays on.
+    if (playerLayout.narrow.matches && state.lib && el.main.classList.contains('compact-watch')) { playerLayout.showBrowse(); return true; }
     if (guideOpen) { closeGuide(); return true; }
     if (state.detail) { closeDetail(); return true; }
     return false;

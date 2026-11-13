@@ -633,6 +633,8 @@ export default {
  "rec.total": "Înregistrările ocupă în total {size}.",
  "rec.now": "Se înregistrează acum",
  "rec.play": "Redă",
+ "app.reminders": "Mementouri",
+ "app.pause": "Pauză",
  "rec.save": "Salvează pe computer",
  "rec.delete": "Șterge",
  "rec.delete.confirm": "Ștergi definitiv?",

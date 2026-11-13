@@ -538,6 +538,8 @@ export default {
  "rec.total": "Die Aufnahmen belegen insgesamt {size}.",
  "rec.now": "Aufnahme läuft",
  "rec.play": "Abspielen",
+ "app.reminders": "Erinnerungen",
+ "app.pause": "Pause",
  "rec.save": "Auf dem Computer speichern",
  "rec.delete": "Löschen",
  "rec.delete.confirm": "Endgültig löschen?",

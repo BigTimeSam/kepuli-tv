@@ -641,6 +641,8 @@ export default {
  "rec.total": "Записи займають загалом {size}.",
  "rec.now": "Записується зараз",
  "rec.play": "Відтворити",
+ "app.reminders": "Нагадування",
+ "app.pause": "Пауза",
  "rec.save": "Зберегти на комп’ютер",
  "rec.delete": "Видалити",
  "rec.delete.confirm": "Видалити назавжди?",

@@ -3,7 +3,6 @@
     <!-- The player's own dark background while the engine starts. -->
     <style name="Player" parent="android:Theme.Material.NoActionBar">
         <item name="android:windowBackground">@color/background</item>
-        <item name="android:windowFullscreen">true</item>
     </style>
     <color name="background">#0f1320</color>
 </resources>

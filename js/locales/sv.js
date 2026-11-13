@@ -538,6 +538,8 @@ export default {
  "rec.total": "Inspelningarna tar totalt {size}.",
  "rec.now": "Spelar in nu",
  "rec.play": "Spela",
+ "app.reminders": "Påminnelser",
+ "app.pause": "Pausa",
  "rec.save": "Spara på datorn",
  "rec.delete": "Ta bort",
  "rec.delete.confirm": "Ta bort för gott?",
