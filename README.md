@@ -132,6 +132,9 @@ There is no build step: the files are what the browser runs. To try a change:
   every change
 - **Firefox:** `node firefox/build.mjs`, then `about:debugging` → **This
   Firefox** → **Load Temporary Add-on** → `firefox/dist/manifest.json`
+- **iPhone and iPad app:** `node ios/build.mjs --simulator`, then
+  `node ios/sim.mjs` drives it in a simulator (Xcode 26 and xcodegen; see
+  `ios/AGENTS.md`)
 - **Tests:** `node dev/unitcheck.mjs`, and `node dev/playcheck.mjs` against the
   mock server in `dev/mock/` (run `sh dev/mock/media.sh` once first); every
   check is listed in `dev/AGENTS.md`
@@ -149,6 +152,9 @@ The project's own code is MIT licensed, see [LICENSE](LICENSE). The `vendor/`
 directory holds third-party code on its own terms: `hls.js` and `mpegts.js`
 under Apache-2.0, and `vendor/ffaudio/` built from FFmpeg under LGPL-2.1+. The
 build commands are in `dev/wasm/build.sh`, so that the relinking required by
-LGPL 2.1 §6 is possible.
+LGPL 2.1 §6 is possible. The app for the iPhone and the iPad also contains
+Google's Cast SDK, which is fetched at build time and is not in this
+repository; every notice is on the
+[licences page](https://bigtimesam.github.io/kepuli-tv/licences/).
 
 Copyright (c) 2026 Samuli Vainio

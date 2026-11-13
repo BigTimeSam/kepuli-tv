@@ -167,10 +167,11 @@ store/chrome-dashboard.txt  the feature and the key
 manifest.json      nothing
 ```
 
-## Left out: the Default Media Receiver
+## Left out in the browsers: the Default Media Receiver
 
 The third route — the device fetches the stream itself, and the browser may
-close — was designed and not built. Its reach is the `.mp4` movies and, on a
+close — was designed and not built for the browsers; the app for the iPhone
+and the iPad is built on it (the section after this one). Its reach is the `.mp4` movies and, on a
 server that sends CORS headers, live HLS; MPEG-TS and Matroska never play on
 the device's own player. If demand appears, this is how:
 
@@ -192,6 +193,140 @@ the device's own player. If demand appears, this is how:
   the same exposure as the `.m3u` hand-off, and no more: the Default Media
   Receiver is a page the device loads from Google, but the media URL goes only
   to the device.
+
+## The iPhone and iPad app: Google's sender, natively
+
+On iOS `video.remote` is AirPlay and nothing mirrors a tab, so the app
+(`ios/`) takes the third route with the Google Cast iOS Sender SDK (4.8.6,
+the dynamic framework, fetched by `ios/vendor.mjs` and never committed) and
+the Default Media Receiver (`CC1AD845`, no registration). An app may link
+the SDK; the Manifest V3 objection of the first section is about the
+browsers' packages, which still carry none of it.
+
+### The page's part
+
+The page draws two buttons and an overlay; every dialog is Google's.
+
+| Piece | What |
+| --- | --- |
+| `js/host.js` | the port to the app; `ios` is true under `player.html?ios=1` |
+| `js/cast.js` | `createCast()` gives `NativeCast` in the app and `Cast` elsewhere, the same shape to `js/app.js`; `castMedia(spec)` and `hlsCastable(status, headers)` are the two pure rules |
+| `js/castui.js` | the session: `castNative` (the menu item, the Cast mark on the top bar, `c`), `castOrPlay` (every start of playback goes through it), `renderCasting` (acts on each change of state), `castingLeft` |
+
+Messages, page to app: `cast.prompt` (Google's dialog: the devices, or the
+session when connected), `cast.load` (`url`, `contentType`, `live`, `hls?`,
+`startAt`, `title`, `subtitle`, `image?`; answered `{ok}` or `{ok: false,
+error}`, waited for 20 s), `cast.stop` (the media, the session stays),
+`cast.end` (the session), `cast.controls` (Google's expanded controls).
+App to page: `cast.state` (`disconnected`, `connecting` or `connected`, the
+device's name, how many devices were found, and with `disconnected` the
+position the device had reached, or `stale` in its place when the session
+ended while the app could not hear the device) and `cast.media` (`idle`
+with its reason, `loading`, `buffering`, `playing`, `paused`, the position
+and duration; the reason `gone` when the app came back from a suspension
+and the device has nothing on any more).
+
+### The rules, and why
+
+- **What can be handed over** (`castMedia`): a live channel's HLS address
+  and any `.m3u8` as `application/x-mpegURL`; a file in MP4, M4V or MOV as
+  `video/mp4` and WebM as `video/webm`. Never a Stalker link (a one-use
+  token), a blob, MPEG-TS, Matroska, AVI or a catch-up address: the table
+  of the second fact above.
+- **HLS is asked about first.** The device's player fetches segments with
+  XHR and needs `Access-Control-Allow-Origin`; most panels send none. The
+  page fetches the playlist, cut off after its headers, and
+  `hlsCastable` says no only to a 2xx answer without the header (an error
+  or no answer within 4 s is not a verdict, and the cast is tried). The
+  answer is kept per origin while the page lives. Without the question,
+  every change of channel on such a provider would stop the picture, wait
+  for the device to fail, and warn.
+- **Stop here, then load there.** An account commonly has one connection,
+  so `playback.stop()` comes before `cast.load`. The page ignores
+  `cast.media` until `cast.load` is answered. What plays here during a
+  session always takes the connection back: the device is told to stop,
+  also when the stream is one it failed on earlier, and a stream left
+  while the device was still fetching it is stopped again once the device
+  has it (the app can stop nothing before that).
+- **The session's end ends only what was the session's.** What the device
+  played plays on here; a stream the viewer has started here since, or one
+  just chosen and still waiting for its playlist's server, is left alone.
+- **Seen on the device is seen.** The device's position is the film's
+  saved place, and a film or an episode past 96 % of its length, or
+  reported finished, gets the tick on its cover (`js/nextepisode.js`),
+  with resume points off as well.
+- **Everything that goes wrong plays on here.** Nothing castable: a toast
+  (`cast.cannot`) and the picture never leaves. A refused load, or `idle`
+  with reason `error`: `cast.failed`, the address remembered so it is not
+  tried twice, and playback here from the same position. An HLS origin is
+  marked as not castable only when the device has played no channel of it
+  in this session (a server whose playlist has the header and whose
+  segments do not fails on every channel; one dead or 4K channel among
+  those the device plays is its own failure), and the session's end
+  forgets both. A session that ends: playback here from where the device
+  had got to (a live channel from now).
+- **What ended unheard starts nothing.** The SDK suspends the session
+  while the phone sleeps, and a film may end, or the television be turned
+  off, meanwhile. The app then says `stale` with `disconnected`, or `gone`
+  when the session resumed and the device, asked, has no media: the page
+  empties the player and plays nothing here (the place it knows is from
+  before the sleep), and takes a film as seen when it was running when
+  last heard and has had the time to reach 96 % of its length. Not seen
+  with a device.
+- **What the device says of a stream the viewer has left is not acted on
+  here.** A channel just chosen waits for its playlist's server with the
+  earlier stream still the device's: its end or failure neither stops the
+  new channel nor starts the old stream here.
+- **Acting on changes only.** The app repeats a state whenever it has
+  reason to (a page reloaded, the phone unlocked), so a second `connected`
+  starts nothing. A page that loads during a session and finds the device
+  playing shows the overlay and has nothing to play on with; the empty
+  player's page, drawn several times while the player starts, does not
+  write over it (`sessionShown`), and a window of one pane shows the
+  player's pane for it, with the switch to the list (`sessionFound`,
+  `js/playerlayout.js`).
+- **The address carries the account's credentials** to the device over the
+  local network and through the app's native code: neither the address nor
+  the title is logged, in any build.
+- **`http:` artwork is not sent**: Google's controls fetch it in the app,
+  where App Transport Security refuses it.
+
+### The first cast
+
+Google's SDK is started at the first `cast.prompt` and not at launch:
+merely creating its context fetches a configuration from Google and
+writes an identifier and a database into the app's container, so a viewer
+who never casts makes no contact with Google. At that first press the SDK
+shows a note of its own instead of the devices; after its OK and the
+system's local-network question the app opens the device list itself as
+soon as a device is found, and the viewer presses Cast again only when
+none is found within half a minute. From then on the SDK starts with the
+app and searches by itself, and the Cast mark stands on the top bar once
+a device is found, in every layout. The press is passed on a second after the SDK's start,
+as Google's own assertion ended the app when it came at once, and a
+press that still meets the assertion is caught and made again
+(`ios/AGENTS.md`).
+
+### Tested without a device
+
+`node dev/unitcheck.mjs` covers `castMedia`, `hlsCastable` and the port.
+`node dev/playcheck.mjs iosapp` runs the whole course in desktop Chrome
+against a fake port: the hand-over of a film with its position, the
+overlay's two buttons, a repeated `connected`, a device error, an MKV,
+catch-up during a session, a live channel with and without the mock's CORS
+headers (`KEPULI_MOCK_NO_CORS=1`), and a session's end. That WebKit shows
+the page the header was measured in the simulators, on iOS 18.5 and 26.5
+(`node ios/simcheck.mjs live`), so the question stays in the page.
+`node ios/simcheck.mjs cast` goes as far as a script can in the real app:
+the SDK asleep until the first `cast.prompt`, `cast.load` answered
+`no-session`, Google's note on the screen, and nothing of a stream's
+address or title in the log.
+
+Only a real Chromecast proves Google's SDK: the cases of the next section apply,
+and the app adds the local-network question, the phone's
+volume buttons, and a phone locked for two minutes, after which the
+television must still be playing and the phone must not have started the
+stream.
 
 ## Testing with a device
 

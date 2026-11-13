@@ -1,8 +1,9 @@
 #!/usr/bin/env node
 // The GitHub Pages site: README.md rendered as docs/index.html, and each
 // guide in docs/pages/<name>.md as docs/<name>/index.html, in the same style
-// as the privacy policy and the terms of use, which are hand-written HTML in
-// docs/privacy/ and docs/terms/. docs/sitemap.xml lists them all.
+// as the privacy policy, the terms of use and the licences, which are
+// hand-written HTML in docs/privacy/, docs/terms/ and docs/licences/.
+// docs/sitemap.xml lists them all.
 //
 // A guide answers one search ("IPTV player for Firefox", "play an M3U
 // playlist in the browser") with what a visitor needs to get going. Its
@@ -10,7 +11,15 @@
 // heading), the screenshot with its alt text, the store buttons in order and
 // its place in the list of guides ("layout: questions" folds each heading's
 // answer under it, and "open: 3" leaves the first three unfolded). A link
-// that starts with "/" points within the site.
+// that starts with "/" points within the site. "stores: none" is a guide to
+// something neither store has (the app for the iPhone and the iPad): the
+// app's Help opens it inside the app and the App Store has it as the
+// app's support page, so it is about the app alone, without the menu and
+// the list of the other guides, which name other platforms, and without
+// the picture, which is a browser's window. And
+// "listed: no" keeps a page out of the lists of guides, the sitemap and the
+// search engines: the app's own help links lead to its guide before the
+// App Store has the app, and a visitor should not be led to it until then.
 //
 // Every language of the player has the site too: docs/pages/<lang>/ holds
 // index.md (the README's part for users, translated), a file for each guide
@@ -67,7 +76,9 @@ let langDir = '';
 
 /** A page of the site in the language being rendered. The policy pages are
  *  legal text and exist in English alone. */
-const local = (path) => (/^(privacy|terms)\//.test(path) ? base + path : base + langDir + path) || './';
+const POLICIES = ['privacy/', 'terms/', 'licences/'];
+const policy = (path) => POLICIES.some((p) => path.startsWith(p));
+const local = (path) => (policy(path) ? base + path : base + langDir + path) || './';
 
 /** A link starting with "/" stays within the site; any other relative one
  *  points into the repository on GitHub, as docs/ holds no copy of it. */
@@ -369,6 +380,7 @@ function copyShots() {
 // cookie on this site. With both stores on offer, a visitor on a phone is
 // told which browser installs it there: Chrome's button is of no use to them.
 function stores(campaign, which = ['chrome', 'firefox']) {
+  if (!which.length) return '';
   const link = (s) => `${STORES[s]}?utm_source=github-pages&amp;utm_medium=site&amp;utm_campaign=${campaign}`;
   const notes = which.length < 2 ? '' : `
 <p class="phone-note android">${esc(S.noteAndroid)} <a href="${local('iptv-player-android/')}">${esc(S.howTo)}</a>.</p>
@@ -384,10 +396,14 @@ ${which.map((s, n) => `  <a${n ? ' class="alt"' : ''} data-store="${s}" href="${
 const art = (g) => (existsSync(join(DOCS, 'img', 'guides', `${g.name}.webp`))
   ? `<img src="${base}img/guides/${g.name}.webp" width="720" height="480" loading="lazy" alt="">` : '');
 
+/** The guides a visitor is shown the way to. */
+const listed = (guides) => guides.filter((g) => g.listed !== 'no');
+
 /** The guides as a list of links, each with its picture: on the front page
  *  with what each is about, under a guide by their names alone, as the
  *  reader is on the way out. */
-function guideList(guides, current) {
+function guideList(all, current) {
+  const guides = listed(all);
   return `<nav class="guides" aria-labelledby="guides">
 <h2 id="guides">${esc(S.guides)}</h2>
 <ul>
@@ -608,27 +624,27 @@ const GLOBE = '<svg viewBox="0 0 20 20" aria-hidden="true"><circle cx="10" cy="1
  *  @param languages the languages the site is in. The menu at the bar's
  *         right end leads to the same page in each; from a policy page,
  *         which is in English alone, to that language's front page. */
-function siteNav(guides, current, languages) {
+function siteNav(guides, current, languages, { alone = false } = {}) {
   const here = (path) => (path === current ? ' aria-current="page"' : '');
-  const listed = guides.filter((g) => g.name !== 'faq');
-  const inGuides = listed.some((g) => `${g.name}/` === current);
-  const same = /^(privacy|terms)\//.test(current) ? '' : current;
+  const menu = listed(guides).filter((g) => g.name !== 'faq');
+  const inGuides = menu.some((g) => `${g.name}/` === current);
+  const same = policy(current) ? '' : current;
   const other = (code) => `${base}${code === 'en' ? '' : `${code}/`}${same}` || './';
   return `<header class="site">
 <div class="site-bar">
   <a class="brand" href="${local('')}"><img class="brand-mark" src="${base}img/icon48.png" width="18" height="18" alt="">Kepuli-TV</a>
   <button type="button" class="site-menu" aria-label="${attr(S.menu)}" aria-expanded="false"><svg class="lines" viewBox="0 0 20 20" aria-hidden="true"><path d="M3 5.5h14M3 10h14M3 14.5h14"/></svg><svg class="shut" viewBox="0 0 20 20" aria-hidden="true"><path d="M5 5l10 10M15 5 5 15"/></svg></button>
-  <nav class="tabs" aria-label="Kepuli-TV">
+${alone ? '' : `  <nav class="tabs" aria-label="Kepuli-TV">
     <a href="${local('')}"${here('')}>${MARK.home}${esc(S.home)}</a>
     <details${inGuides ? ' class="current"' : ''}>
       <summary>${MARK.guides}${esc(S.guides)}</summary>
       <ul>
-${listed.map((g) => `        <li><a href="${local(`${g.name}/`)}"${here(`${g.name}/`)}>${esc(g.heading)}</a></li>`).join('\n')}
+${menu.map((g) => `        <li><a href="${local(`${g.name}/`)}"${here(`${g.name}/`)}>${esc(g.heading)}</a></li>`).join('\n')}
       </ul>
     </details>
     <a href="${local('faq/')}"${here('faq/')}>${MARK.faq}${esc(S.questions)}</a>
   </nav>
-  <div class="site-end">
+`}  <div class="site-end">
     <details class="lang">
       <summary aria-label="${attr(S.language)}" title="${attr(S.language)}">${GLOBE}${esc(LANGUAGES[lang])}</summary>
       <div class="lang-pop">
@@ -916,7 +932,7 @@ ${NAV_STYLE}
   }
 `;
 
-function page({ path, title, description, image, source: from, heading, intro, main, jsonld, nav, alternates }) {
+function page({ path, title, description, image, source: from, heading, intro, main, jsonld, nav, alternates, robots = 'index,follow' }) {
   return `<!doctype html>
 <!-- Generated from ${from} by dev/site.mjs. Edit that file, not this one. -->
 <html lang="${tag(lang)}" data-root="${base}" data-path="${path}">
@@ -925,7 +941,7 @@ function page({ path, title, description, image, source: from, heading, intro, m
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>${esc(title)}</title>
 <meta name="description" content="${attr(description)}">
-<meta name="robots" content="index,follow">
+<meta name="robots" content="${robots}">
 <meta property="og:type" content="website">
 <meta property="og:site_name" content="Kepuli-TV">
 <meta property="og:title" content="${attr(title)}">
@@ -1093,7 +1109,7 @@ for (const code of languages) {
   enter(code, 1);
   for (const g of guides) {
     source = `${dir}/${g.name}.md`;
-    const which = g.stores.split(',').map((s) => s.trim());
+    const which = g.stores === 'none' ? [] : g.stores.split(',').map((s) => s.trim());
     const body = render(parse(g.md), { contents: false });
     if (code !== 'en' && shape(body) !== guideShape[g.name]) {
       warn(0, `not the shape of docs/pages/${g.name}.md (headings, lists, notices or links differ)`);
@@ -1108,13 +1124,14 @@ for (const code of languages) {
       // The questions come straight after the buttons: a picture between
       // them pushed the first question below the fold.
       intro: `${opening.replace('<p>', '<p class="lead">')}
-${stores(g.name, which)}${g.layout === 'questions' ? '' : `
+${stores(g.name, which)}${g.layout === 'questions' || !which.length ? '' : `
 <figure class="shot">
   <a href="${base}img/${g.shot}.png"><img src="${base}img/${g.shot}.png" width="1280" height="800" alt="${attr(g.alt)}"></a>
   <figcaption>${esc(S.demo)}</figcaption>
 </figure>`}`,
-      main: `${(g.layout === 'questions' ? folded(rest, Number(g.open) || 0) : rest).join('\n\n')}\n\n${closing(`${g.name}-end`, which)}\n\n${guideList(guides, g)}`,
-      nav: siteNav(guides, `${g.name}/`, languages),
+      main: [...(g.layout === 'questions' ? folded(rest, Number(g.open) || 0) : rest), ...(which.length ? [closing(`${g.name}-end`, which), guideList(guides, g)] : [])].join('\n\n'),
+      ...(g.listed === 'no' ? { robots: 'noindex,follow' } : {}),
+      nav: siteNav(guides, `${g.name}/`, languages, { alone: !which.length }),
       alternates: alternates(`${g.name}/`),
     });
     anchors(html);
@@ -1131,11 +1148,11 @@ function stamp(text, [open, close], content, file) {
 }
 S = EN;
 enter('en', 1);
-for (const policy of ['privacy/', 'terms/']) {
-  const file = `${policy}index.html`;
+for (const path of POLICIES) {
+  const file = `${path}index.html`;
   let text = readFileSync(join(DOCS, file), 'utf8');
   text = stamp(text, ['/* site:nav */', '/* /site:nav */'], NAV_STYLE, file);
-  text = stamp(text, ['<!-- site:nav -->', '<!-- /site:nav -->'], siteNav(english, policy, languages), file);
+  text = stamp(text, ['<!-- site:nav -->', '<!-- /site:nav -->'], siteNav(english, path, languages), file);
   outputs.set(file, text);
 }
 
@@ -1148,10 +1165,10 @@ outputs.set('site.js', `// Written by dev/site.mjs. Edit it there, not here.\n${
 // Pages serves the site under a path of github.io, where a robots.txt is not
 // read (only the host's root has one); the sitemap is given to the search
 // engines' own consoles instead.
-const paths = ['', ...english.map((g) => `${g.name}/`)];
+const paths = ['', ...listed(english).map((g) => `${g.name}/`)];
 outputs.set('sitemap.xml', `<?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
-${[...languages.flatMap((code) => paths.map((p) => `${code === 'en' ? '' : `${code}/`}${p}`)), 'privacy/', 'terms/'].map((p) => `  <url><loc>${SITE}${p}</loc></url>`).join('\n')}
+${[...languages.flatMap((code) => paths.map((p) => `${code === 'en' ? '' : `${code}/`}${p}`)), ...POLICIES].map((p) => `  <url><loc>${SITE}${p}</loc></url>`).join('\n')}
 </urlset>
 `);
 

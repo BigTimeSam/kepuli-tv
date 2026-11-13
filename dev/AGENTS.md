@@ -12,7 +12,7 @@ what it does and how to run it. Read that header before using one.
 | Tests | `unitcheck.mjs`, `playcheck.mjs`, `uicheck.mjs`, `visualcheck.mjs` (the five views in both themes and the narrow channels against `visual/`), and per-area `demuxcheck`, `audiocheck`, `audiofactscheck`, `mediafilterscheck`, `ratingcheck`, `searchnamescheck`, `titlelinkscheck`, `moviedurationcheck` |
 | Mock provider | `mock/` (see `mock/AGENTS.md`) |
 | Real accounts | `livesoak.mjs`: two live channels side by side for N minutes against the accounts in `~/.config/kepuli-tv/soak-accounts.json`, with every stall, reconnection and give-up timed; the owner's throwaway accounts only, and nothing of them in the repository |
-| Translations and texts | `translations.mjs`, `listings.mjs`, `glossarycheck.mjs` (each language's term for the core concepts, `store/i18n-glossary.json`), `translationreview.mjs` (Codex cross-check, see `js/locales/AGENTS.md`), `site.mjs` (README → `docs/index.html`, `docs/pages/*.md` → a guide page each, `docs/pages/<lang>/` → the same in every language, `docs/sitemap.xml`; `--try <lang>`, `--stale`, `--mark`) |
+| Translations and texts | `translations.mjs`, `listings.mjs`, `glossarycheck.mjs` (each language's term for the core concepts, `store/i18n-glossary.json`), `translationreview.mjs` (Codex cross-check, see `js/locales/AGENTS.md`), `site.mjs` (README → `docs/index.html`, `docs/pages/*.md` → a guide page each, `docs/pages/<lang>/` → the same in every language, `docs/sitemap.xml`, the bar of the hand-written `docs/privacy/`, `docs/terms/` and `docs/licences/`; `--try <lang>`, `--stale`, `--mark`; a guide with `stores: none` has no store buttons and one with `listed: no` is left out of the lists, the sitemap and the search engines) |
 | Packaging | `package.mjs` (allowlist packages from git HEAD; `--zip`, `--worktree`, `--check`: the manifests agree and ask only for the permissions in its `APPROVED`, each with its reason; `--zip` moves older zips from the root into `dist/releases/`), `release.mjs` (is this commit ready to release: every check in one run), `releasenotes.mjs` (a draft of the GitHub release notes from the commits since the last tag, printed for the owner to edit) |
 | Stores | `cws-publish.mjs`, `cws-listing-fill.mjs`, `cws-screenshots.mjs`, `cws-auth.mjs`, `amo-publish.mjs`, `amo-screenshots.mjs` (see `store/AGENTS.md`) |
 | Pictures and video | `store-screenshots.mjs`, `demo-video.mjs`, `demo-music.py`, `logos.mjs` (regenerates `js/logoindex.js`) |
@@ -20,6 +20,7 @@ what it does and how to run it. Read that header before using one.
 | Guides | `docscheck.mjs`: every file and command the guides name exists, every tool and module is described, every AGENTS.md has its CLAUDE.md, every relative link lands |
 | Safety | `secretcheck.mjs`: run on the staged changes before every commit; `namecheck.mjs`: every name and import in `js/` resolves (TypeScript's checker via npx, names and modules only); `typecheck.mjs`: the typed modules (`// @ts-check` and JSDoc, listed in it and in `js/AGENTS.md`) have no type error at all, with the script-tag globals declared in `types/globals.d.ts`; `htmlcheck.mjs`: markup is written only from icon constants, nothing evaluates a string; `vendorcheck.mjs`: every file in `vendor/` has the SHA-256 and upstream version listed in `vendor/CHECKSUMS` (`--update` after a deliberate upgrade) |
 | Audio decoder | `wasm/` (`build.sh` builds `vendor/ffaudio` from FFmpeg; see `vendor/AGENTS.md`) |
+| iPhone and iPad app | not here: `ios/build.mjs`, `ios/sim.mjs`, `ios/simcheck.mjs` (the app's scenarios in its simulators), `ios/screenshots.mjs` (the App Store's pictures), `ios/release.mjs` (packages, and `status`: what is missing before the App Store) and `ios/vendor.mjs` live with the app (see `ios/AGENTS.md`); its page side is tested here by `playcheck.mjs iosapp` and `unitcheck.mjs` |
 
 When you add a tool: one file, a header comment with its usage lines, no
 dependencies, credentials only from `~/.config/kepuli-tv/` (mode 600) or the
@@ -42,6 +43,7 @@ portal). Real accounts are for the owner's manual testing only.
 | 9370 | `dev/demo-video.mjs` (`KEPULI_VIDEO_PORT`) | temporary | yes |
 | 9444 | the Chrome Web Store dashboard Chrome | `~/.config/kepuli-tv/cws-chrome` (signed in) | only through the store tools |
 | 8790 / 8791 | mock server / second mock account | | one run at a time |
+| 8841 / 8842 | the mock server for the iOS simulators (`KEPULI_MOCK_PORT`; see `ios/AGENTS.md`) | | yes, if free; stop it when done |
 
 Every Chrome tool reads `KEPULI_DEV_PORT` and `KEPULI_DEV_PROFILE` (and
 `KEPULI_CHROME` for another browser binary: CI uses Chrome for Testing with
@@ -63,7 +65,7 @@ data, so never point it at a profile someone uses.
 - `node dev/unitcheck.mjs`: pure functions in Node, a few seconds. Run it
   after every change.
 - `node dev/typecheck.mjs`: every error TypeScript finds in the typed
-  modules (54 of them, listed in `TYPED` at its top: everything but most of
+  modules (57 of them, listed in `TYPED` at its top: everything but most of
   the modules that wire the page), all kinds counted. A few seconds; run it after changing one of them, or
   the JSDoc of something they import.
 - `node dev/namecheck.mjs`: undefined names, missing imports and exports,
@@ -73,7 +75,34 @@ data, so never point it at a profile someone uses.
   recovery, guide, accounts, recording, the start page…), each against a fresh
   mock server. Run the scenarios near your change while working, and the full
   suite before a release. The scenario list and what each asserts is at the top
-  of the file and in `SCENARIOS` at its end.
+  of the file and in `SCENARIOS` at its end. `iosapp` is the page as the
+  iPhone and iPad app shows it: it opens `player.html?ios=1`, attaches a
+  fake native port to `js/host.js`, and holds when what the app does not
+  offer is hidden, the help speaks of an app, `awake`, the reminders and
+  the notification switch go over the port, the whole cast course runs
+  against the fake (hand-over, a device that fails, what cannot be cast,
+  a session that ends, the film the device failed on taking its connection
+  back, a stream left during the hand-over stopped once the device has it,
+  a film marked seen by the device's "finished" alone and one by its
+  place, what ended while the phone slept starting nothing here, one
+  failing channel leaving its server's others castable, what the device
+  says of the stream before leaving a channel just chosen alone, the Cast
+  mark in sight with nothing playing, a page loaded during a session
+  keeping the session's words and showing them in a window of one pane, a
+  channel chosen as the session ends playing here), the subtitles' look
+  opens under a finger with no picker in the focus and the text stays
+  inside a small picture, the help says what a finger does and folds the keys
+  away where nothing hovers, the picture's button, `f`, Escape and a swipe down
+  ask the app for full screen with `screen.full` and never the browser,
+  the app's `screen` event lays the picture's box clear of the strips it
+  names, a lifted finger leaves the button its time, a refused first
+  reminder leaves its message standing, the message strip fits a window
+  390 px wide, and the layout holds in a phone's window on its
+  side (750 × 380, 870 × 400, and 750 × 170 with a keyboard up, where a
+  field that had the focus before the window shrank is brought back into
+  it; Settings' subtitle preview lying down, and Settings measured again
+  when the window is turned upright under it). It fails
+  when the `ios` branches are taken out.
 - `node dev/uicheck.mjs`: layout and navigation regressions, headless,
   temporary profile.
 - `node dev/visualcheck.mjs`: the five store views in the dark theme, the
@@ -113,7 +142,9 @@ data, so never point it at a profile someone uses.
 
 Mock behaviour is switched by environment variables read per request, e.g.
 `KEPULI_MOCK_LIVE_TS=1` (live as MPEG-TS, needed for recording),
-`KEPULI_MOCK_THROTTLE`, `KEPULI_MOCK_BAD_GATEWAY`, `KEPULI_MOCK_LIMIT`; grep
+`KEPULI_MOCK_THROTTLE`, `KEPULI_MOCK_BAD_GATEWAY`, `KEPULI_MOCK_LIMIT`,
+`KEPULI_MOCK_NO_CORS=1` (no `Access-Control-*` headers, as most providers'
+servers answer, for the question a cast of HLS asks first); grep
 `process.env.KEPULI_MOCK` in `dev/mock/server.mjs` for the full set, and add
 one there when a scenario needs a new kind of misbehaving server.
 

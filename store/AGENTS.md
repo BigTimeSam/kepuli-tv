@@ -1,4 +1,4 @@
-# store/: listings, translations records and the two stores
+# store/: listings, translations records and the stores
 
 Everything that leaves the machine is outward-facing: do it only when the
 owner has asked for it in the current conversation. Credentials are in
@@ -15,6 +15,7 @@ behind them in [development.md → Publishing to the stores](../docs/development
 | `translations.json` | per language, hashes of the English each key and listing was translated from | `dev/translations.mjs --mark` only |
 | `cws-listing.json` | per language, a hash of the description last put in the Chrome dashboard | `dev/cws-listing-fill.mjs` / `cws-publish.mjs listing --done` only |
 | `amo-screenshots.json` | a hash of each picture last uploaded to AMO, read by `amo-screenshots.mjs --check` in `dev/release.mjs` | `dev/amo-screenshots.mjs` / `--done` only |
+| `appstore.txt` | every App Store Connect field for the iPhone and iPad app: name, subtitle, keywords, promotional text and description in English and Finnish, URLs, categories, the privacy label, the age-rating answers, export compliance, the review notes, the screenshot plan | hand / agent |
 
 `_locales/` (the manifest's translated name and summary) and `dist/listings/`
 (texts unwrapped for pasting) are generated from `listings/` by
@@ -84,6 +85,51 @@ behind them in [development.md → Publishing to the stores](../docs/development
   at once. A throttled run is not an error.
 - New previews have no captions; run `captions` after `amo-screenshots.mjs`.
 
+## App Store
+
+The iPhone and iPad app (`ios/`) has not been submitted, and no tool
+uploads anything to Apple: `appstore.txt` is pasted into App Store Connect
+by the owner, after the go.
+
+- **Its texts are its own.** Nothing is copied from `listings/`: the App
+  Store wants no other platform named (guideline 2.3.10) and every sentence
+  true of this app (2.3.1), and the app has no recording, no sync and no
+  browser around it. A section is what stands between its `=== NAME ===`
+  line and its `=== END ===` line, and that is what gets pasted; keep it
+  free of the names of other platforms and of the word for saving
+  programmes, and put notes after the end line, never inside.
+- **Limits**, in characters: name 30, subtitle 30, keywords 100, promotional
+  text 170, description 4000, review notes 4000. The counts are at the
+  file's end; count again after an edit. `node ios/release.mjs status`
+  reads the pasted sections for the names of other platforms and the word
+  for saving programmes (in Finnish too, by the stem `tallen`, which also
+  turns away a harmless "tallennetaan": say `säilytetään`) and for the
+  limits, checks the privacy label's rows against the archive's privacy
+  manifests, and lists what else is missing before a submission: an
+  archive older than the source, a signed package that is not this
+  version's Release app or was exported before the source last changed, a
+  demo that serves the test catalogue, the screenshot sets, the three
+  pages on the Pages site.
+- **The age rating**: two of its rows have one publishable answer, None
+  (Apple rates any other as Unrated, which the store does not publish);
+  `appstore.txt` says which, and where Apple says so. Read that page
+  again before answering.
+- **English (U.K.) and Finnish first**, the other languages after approval.
+- **The privacy label is the Cast SDK's**, not the app's: the app's own
+  code collects nothing, and the label declares what Google's manifest and
+  documentation name. When `ios/vendor.mjs` pins another SDK version, read
+  its `PrivacyInfo.xcprivacy` again and bring `appstore.txt`, the privacy
+  policy's section on the app and `docs/licences/` in step.
+- **The demo's address and the review contact are never written here.**
+  They are in `~/.config/kepuli-tv/ios/`; the review notes carry a
+  placeholder.
+- **The pages the app and the listing link to** (the app's guide, the
+  privacy policy, the licences) are served from the main branch: they must
+  be on the Pages site before a build is submitted. The app's guide is
+  about the app alone (`stores: none` in its front matter: no menu of the
+  other guides, no list of them, no browser's picture), as it is shown
+  inside the app and is the listing's support page.
+
 ## Screenshots
 
 1. `node dev/store-screenshots.mjs` (Chrome set into `brand/screenshots/`) and
@@ -97,6 +143,11 @@ behind them in [development.md → Publishing to the stores](../docs/development
    throttling made it the last step of 1.7.0 by an hour. Both upload, so
    both wait for the owner's go.
 4. Commit the new PNGs.
+
+The App Store's two sets (`brand/ios-screenshots/`) are taken by
+`node ios/screenshots.mjs` in the app's own simulators, and uploaded by
+hand in App Store Connect on the owner's go: no tool reaches that store
+yet (`brand/AGENTS.md`, `ios/AGENTS.md`).
 
 Retake them whenever a release changes what the five views look like.
 

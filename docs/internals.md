@@ -250,10 +250,11 @@ group name and gathers its sub-categories only when opened, so it follows a
 changing offering too.
 
 The sidebar's filter names what the sidebar holds: countries on the channel
-tab, genres on the movie and series tabs. Below 760px there is no sidebar —
-three columns leave the list about 210px, which is a column of truncated
-names — and the same choice appears as a menu at the top of the list, which
-brings the list back to 360px at 720px wide.
+tab, genres on the movie and series tabs. Up to 900px there is no sidebar —
+three columns leave a channel's name about 105px beside its marks, which is
+a column of truncated names on an upright tablet — and the same choice
+appears as a menu at the top of the list, which brings the list back to
+360px at 720px wide and 410px on an upright iPad.
 
 The search in the header covers the whole list (the category filter is cleared
 visibly) and ranks matches by relevance: a match at the start of a word beats
@@ -378,10 +379,48 @@ full screen Chrome switches by itself from mirroring the screen to sending the
 compressed stream, MediaSource included. Subtitles are drawn by the player over
 the picture and travel only while the screen is mirrored, not after the switch.
 
-The Google Cast SDK is not used. Manifest V3 forbids loading it from Google's
-servers, and what it offers — the device fetching a URL by itself — would
-cover only MP4 files and HLS from servers that send CORS headers; neither
-MPEG-TS nor Matroska plays on the device's own player.
+The Google Cast SDK is not used in the browsers. Manifest V3 forbids loading
+it from Google's servers, and what it offers — the device fetching a URL by
+itself — would cover only MP4 files and HLS from servers that send CORS
+headers; neither MPEG-TS nor Matroska plays on the device's own player.
+
+The app for the iPhone and the iPad has no other route, so there that one is
+built: `NativeCast` in `js/cast.js` has the shape of `Cast` and speaks to
+Google's sender in the app over the page's native port (`js/host.js`), and
+`js/castui.js` is the session on the page. `castMedia(spec)` says what a
+device can be handed (a live channel's HLS address, an `.m3u8`, a file in
+MP4, M4V, MOV or WebM; never a Stalker link, a blob or anything else), and
+for HLS the playlist's own server is asked first, once per origin
+(`hlsCastable`: only a 2xx answer without `Access-Control-Allow-Origin` is
+a no). The order of a hand-over is fixed by the single connection: playback
+stops here, then `cast.load` goes to the app. A device that fails, a load
+that is refused and a session that ends all play on here from the device's
+last position. `CHROMECAST.md` has the messages and the reasons.
+
+### The app's port
+
+The page learns that it runs in the app from its address
+(`player.html?ios=1`), read once in `js/host.js`, which then opens one port
+with `runtime.connectNative` and puts `ios` on the `<html>` element. A
+message is `{ type, id?, …fields }` and a reply `{ re: id, ok, error?,
+…fields }`; `send` is fire and forget, `request` waits for the reply, and
+`on` replays the last event of a type to a late listener. What crosses it:
+`hello` (said by the page at once and answered by nothing: WebKit drops
+what the app sends before the page's listener is in, so the app greets a
+page only after it has spoken), `host` (the device idiom, version and
+build), `screen.full` and `screen` (full screen, which is the app's own
+there: the page asks, the app gives its web view the whole screen without
+the system's bars and names the strips that are not safe, and
+`js/playercontrols.js` lays the picture over the window inside them and
+sends `fullscreenchange`), `awake` (the screen kept on
+while a picture plays, from `js/wakelock.js`, as the Wake Lock API is
+refused there), `notify.get` and `notify.set` (the notification switch),
+`reminders.set`, `reminders.clear` and `reminder.open` (reminders as
+notifications, taken away with an account that is removed and at a reset,
+`js/remindersui.js`), `screen.shade` (the backdrop of an open dialog, for
+the strips around the web view), and the `cast.*` messages. Without `?ios=1` none of
+it runs, in the same files the browsers load. The native side is described
+in `ios/AGENTS.md`.
 
 ### Unpacking Matroska
 

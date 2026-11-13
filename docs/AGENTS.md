@@ -9,7 +9,7 @@ documentation read on GitHub.
 | `index.html` | the front page: a landing part (store buttons, the video, the five screenshots with the AMO captions) above README.md rendered | `node dev/site.mjs` only; never by hand |
 | `img/` | the five store screenshots, copied from `brand/screenshots/`, and the extension's icon from `icons/` (the bar's mark and the tab's), by `dev/site.mjs` | `dev/site.mjs` only |
 | `img/guides/<name>.webp` | a guide's illustration on its card in the list of guides, 720 × 480 with a transparent background; made as `brand/guide-art-prompt.txt` says, and a guide without one simply has no picture | hand / agent |
-| `pages/*.md` | the guides' sources, one per search a visitor arrives with (a browser, a phone, a provider kind, the guide, MKV, questions): front matter (`title`, `description`, `shot`, `alt`, `stores`, `order`, and `layout: questions` where each heading folds its answer, with `open: 3` for how many start unfolded), then Markdown that opens with a paragraph | hand / agent |
+| `pages/*.md` | the guides' sources, one per search a visitor arrives with (a browser, a phone, a provider kind, the guide, MKV, questions): front matter (`title`, `description`, `shot`, `alt`, `stores`, `order`, `stores: none` for a guide that shows no store buttons, `listed: no` for one kept out of the lists of guides, the sitemap and the search engines, as the app's guide is until the app is in the App Store, and `layout: questions` where each heading folds its answer, with `open: 3` for how many start unfolded), then Markdown that opens with a paragraph | hand / agent |
 | `pages/<lang>/` | the site in each of the player's other languages: `index.md` (the README up to Development, translated), a file per guide (front matter `title`, `description`, `alt` alone; the rest is the English guide's) and `site.json` (the words of the page around them: the keys of `EN` in `dev/site.mjs`) | hand / agent |
 | `pages/translations.json` | which English text each translation was made from (`node dev/site.mjs --mark <lang…>` writes it, `--stale` reads it) | `dev/site.mjs` only |
 | `<lang>/…`, `site.css`, `site.js` | the same pages in each language, and the one stylesheet and script all pages share | `dev/site.mjs` only |
@@ -18,6 +18,7 @@ documentation read on GitHub.
 | `BingSiteAuth.xml` | Bing Webmaster Tools' proof that the site is the owner's; it stays at this address likewise | the owner |
 | `privacy/index.html` | the privacy policy, linked from both stores | hand; the bar at the top and its style, between the `site:nav` markers, by `dev/site.mjs` |
 | `terms/index.html` | the terms of use (version and effective date at the top) | hand; the bar likewise |
+| `licences/index.html` | the licences of the code the player and the iPhone and iPad app are built on, linked from the app's Help; the Cast SDK's notices in it are the SDK's own and are replaced when `ios/vendor.mjs` pins another version (the comment at its top says how they were made) | hand; the bar likewise |
 | `user-guide.md` | everything a user can do, in detail; the player's Help links here | hand / agent |
 | `development.md` | running from the source, structure, languages, graphics, publishing | hand / agent |
 | `internals.md` | data, categories, playback routes, connection modes, security notes | hand / agent |
@@ -67,7 +68,7 @@ documentation read on GitHub.
   dialog over the page.
 - **One bar on every page.** `siteNav` in `dev/site.mjs` writes the same
   links, with the page being read marked, into the front page, the guides
-  and the two policy pages, so a visitor never lands on a page without the
+  and the policy pages (`privacy/`, `terms/`, `licences/`), so a visitor never lands on a page without the
   way back. It is the player's top bar (`css/topbar.css`): the same
   television, tab strip, accent and marks; when that changes, this follows. A box is set apart by its background and border alone: no
   coloured stripe down its side, which the player does not have either.
@@ -83,6 +84,8 @@ documentation read on GitHub.
 - **Policy pages are legal text.** Change `privacy/` or `terms/` only when the
   owner asks or a feature makes them wrong (a new permission, a new kind of
   data); bump the version and the effective date, and mention it in the
-  release notes. The stores link to these exact addresses.
+  release notes. The stores link to these exact addresses, and the iPhone
+  and iPad app's Help links to `iptv-app-iphone-ipad/`, `privacy/` and
+  `licences/`: those three must stay where they are.
 - Write in plain, direct English (British spelling), present tense, without
   marketing. Explain why something is so when it is not obvious.

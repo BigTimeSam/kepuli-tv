@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Privacy Policy — Kepuli-TV</title>
-<meta name="description" content="The privacy policy of the Kepuli-TV browser extension: what data the extension handles, where it is sent and how it is deleted.">
+<meta name="description" content="The privacy policy of the Kepuli-TV browser extension and of the Kepuli-TV app for the iPhone and the iPad: what data they handle, where it is sent and how it is deleted.">
 <meta name="robots" content="index,follow">
 <link rel="icon" type="image/png" sizes="32x32" href="../img/icon32.png">
 <link rel="icon" type="image/png" sizes="128x128" href="../img/icon128.png">
@@ -334,7 +334,7 @@
 
 <main>
 <h1>Privacy Policy</h1>
-<p class="meta">Applies to the Kepuli-TV browser extension. Effective 12 November 2026, version 1.6</p>
+<p class="meta">Applies to the Kepuli-TV browser extension and, with the differences of section 11, to the Kepuli-TV app for the iPhone and the iPad. Effective 13 November 2026, version 1.7</p>
 
 <section class="summary">
   <h2>In short</h2>
@@ -579,13 +579,62 @@
   its own controller.
 </p>
 
-<h2><span class="num">11.</span>Changes</h2>
+<h2><span class="num">11.</span>The app for the iPhone and the iPad</h2>
+<p>
+  The app is the same player, and everything above holds for it, read with &ldquo;the app&rdquo;
+  for &ldquo;the extension&rdquo;, except for what follows.
+</p>
+<ul>
+  <li>
+    <strong>Where the data lives.</strong> Accounts, settings, favourites, history, resume
+    positions and the catalogue cache are kept in the app's own storage on the device, and
+    nowhere else. Deleting the app deletes them. The app has no sync between devices, no
+    recording and no uninstall question, so what sections 2, 3 and 7 say of those does not
+    apply to it.
+  </li>
+  <li>
+    <strong>Permissions.</strong> The app asks for none of the browser permissions of
+    section 5. The system asks whether Kepuli-TV may reach your <strong>local network</strong>
+    the first time you cast, or earlier if your provider's address is on your own network, and
+    whether it may show <strong>notifications</strong> when you set your first reminder or turn
+    reminders into notifications in the settings. A reminder is a notification scheduled on the device itself: it names the
+    programme and its channel, and nothing about it is sent anywhere.
+  </li>
+  <li>
+    <strong>Chromecast, and what Google receives.</strong> The app contains Google's Cast SDK,
+    which is Google's software. It does nothing until you first choose
+    <em>Cast to a Chromecast</em>; from then on it looks for Chromecast devices on your local
+    network. When you cast, the stream's address, which carries your IPTV credentials, the
+    title and, where there is one, the address of the cover picture are handed to the
+    Chromecast over your local network, and the Chromecast fetches the stream from your
+    provider itself. According to Google's own declaration for the SDK, it may collect and
+    send to Google a <strong>device identifier</strong>, the device's <strong>coarse
+    location</strong>, <strong>how the Cast dialogs are used</strong>, and
+    <strong>performance and other diagnostic data</strong>, for analytics and for the SDK to
+    work; none of it is linked to your identity or used for tracking. Kepuli-TV turns the
+    SDK's analytics logging off. That data goes to Google under
+    <a href="https://policies.google.com/privacy">Google's privacy policy</a>; the developer
+    of Kepuli-TV does not receive it and cannot see it.
+  </li>
+  <li>
+    <strong>Links and other apps.</strong> A link (IMDb, a trailer, the guide, this policy)
+    opens in the system's own web view over the player, and that site sees the visit as it
+    sees any other. <em>Open in VLC</em> hands the stream's address, with your credentials,
+    to the VLC app on the same device.
+  </li>
+  <li>
+    <strong>The developer still receives nothing.</strong> The app has no analytics, ads,
+    account or server of its own.
+  </li>
+</ul>
+
+<h2><span class="num">12.</span>Changes</h2>
 <p>
   If this policy changes, the updated version is published at this address and the date at the
   top of the page changes. Material changes are noted in the extension's release notes.
 </p>
 
-<h2><span class="num">12.</span>Contact</h2>
+<h2><span class="num">13.</span>Contact</h2>
 <p>
   BigTimeSam / Samuli Vainio<br>
   <a href="mailto:samuli.vainio@gmail.com">samuli.vainio@gmail.com</a>

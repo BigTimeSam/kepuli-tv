@@ -9,6 +9,7 @@ Excluded from the release packages (`dev/package.mjs` packs an allowlist).
 | `guide-art-prompt.txt` | how the guides' illustrations in `docs/img/guides/` were made: the shared style prompt, each page's subject, the commands |
 | `screenshots/0N-*.png` | the Chrome Web Store set: five 1280×800 24-bit PNGs without alpha |
 | `firefox-screenshots/0N-*.png`, `firefox-screenshots/README.md` | the AMO set, and the captions in every AMO language (the README's tables are what `amo-publish.mjs captions` sends) |
+| `ios-screenshots/iphone-0N-*.png`, `ios-screenshots/ipad-0N-*.png`, `ios-screenshots/README.md` | the App Store's two sets: five 1320×2868 PNGs of the iPhone upright and five 2752×2064 of the iPad on its side, without alpha; the README says what each shows (the store has no caption field) |
 
 ## Rules
 
@@ -21,6 +22,14 @@ Excluded from the release packages (`dev/package.mjs` packs an allowlist).
   `dev/store-screenshots.mjs`, the captions README and `store/chrome-dashboard.txt`.
 - Retake both sets whenever a release changes how those views look, look at
   all ten, then upload with the store tools (`store/AGENTS.md`).
+- **The App Store's sets** are the same views in the order
+  `store/appstore.txt` plans (01 channels, 02 guide, 03 movie, 04 subtitles,
+  05 series), taken by `node ios/screenshots.mjs` in the two simulators of
+  the store's sizes (about four minutes; `KEPULI_SHOTS_DIR` first, as
+  above). It checks each picture's size and that it has no alpha channel,
+  and `node ios/release.mjs status` checks the directory again. Retake
+  them when those views change in the app, and look at all ten: they are
+  uploaded by hand in App Store Connect, on the owner's go.
 - Captions: change the English table and every language's section in
   `firefox-screenshots/README.md` together; each language keeps its listing's
   form of address.

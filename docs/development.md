@@ -95,6 +95,38 @@ playback and recovery assertions through Marionette. A scenario name, such as
 first (`sh dev/mock/media.sh`). Use a dedicated test profile: the suite resets
 its extension settings and personal lists to demo data.
 
+### The app for the iPhone and the iPad
+
+`ios/` holds a universal app that shows this same `player.html` (as
+`player.html?ios=1`) in a `WKWebView` on a `WKWebExtensionController`, with
+native code for what the page cannot do there: Google's Cast sender, the
+screen kept on, reminders as notifications, links and files. It needs
+Xcode 26 and xcodegen (`brew install xcodegen`); the Xcode project, the
+copy of the player and the Cast SDK are generated or fetched, never
+committed.
+
+```
+node ios/build.mjs --simulator     # prepare ios/dist/, generate the project, build Debug
+node ios/sim.mjs devices           # this tool's own simulators (kepuli-ios-*)
+node ios/sim.mjs boot && node ios/sim.mjs install && node ios/sim.mjs launch
+node ios/sim.mjs status            # the native state as JSON
+node ios/sim.mjs shutdown all
+node ios/simcheck.mjs [scenario …] # the app's scenarios on the iPhone, the iPad and iOS 18.5 (about eleven minutes)
+node ios/release.mjs status        # what is missing before the App Store; also: simulator, archive
+node ios/screenshots.mjs           # the App Store's two sets of screenshots, into brand/ios-screenshots/
+```
+
+`node ios/build.mjs --test` runs the XCTest target, and `node ios/vendor.mjs`
+fetches the Cast SDK by itself when a build needs it. The mock provider for
+a simulator listens on 8841 (`KEPULI_MOCK_PORT=8841 node dev/mock/server.mjs`)
+and the app reaches it as `127.0.0.1`; `ios/simcheck.mjs` starts its own
+there and refuses when the port is taken. The page's side of the app is tested
+in desktop Chrome without a simulator: `node dev/playcheck.mjs iosapp`
+opens `player.html?ios=1` against a fake port. The identifiers that must
+never change, the driver's verbs and what was measured are in
+[`ios/AGENTS.md`](../ios/AGENTS.md); the App Store's texts and answers are
+in `store/appstore.txt`.
+
 ### The checks
 
 Every check is a Node script in `dev/`, run from the project's root. The
@@ -130,8 +162,11 @@ that way (`KEPULI_LOAD_EXTENSION=1`, see `dev/screenshot.mjs`).
 
 `docs/` is the GitHub Pages site at
 [bigtimesam.github.io/kepuli-tv](https://bigtimesam.github.io/kepuli-tv/). The
-privacy policy and the terms of use are hand-written HTML in `docs/privacy/`
-and `docs/terms/`. The front page is the repository's README.md, rendered into
+privacy policy, the terms of use and the licences are hand-written HTML in
+`docs/privacy/`, `docs/terms/` and `docs/licences/` (the last holds the
+notices of `vendor/` and, for the iPhone and iPad app, those of Google's
+Cast SDK as its download ships them; they are replaced when `ios/vendor.mjs`
+pins another version). The front page is the repository's README.md, rendered into
 `docs/index.html` in the same style:
 
 ```
@@ -142,6 +177,12 @@ Run it after editing the README and commit the result; `--check` exits
 non-zero if the page is out of date. The converter knows only what the README
 uses — headings, lists, tables, fenced code, inline code, bold, italics and
 links — and warns about anything else. No dependencies.
+
+A guide in `docs/pages/` whose front matter says `stores: none` gets no
+store buttons, and `listed: no` keeps it out of the lists of guides, the
+sitemap and the search engines. `iptv-app-iphone-ipad` is both: the app's
+Help leads to it, and it is not shown to visitors until the App Store has
+the app, which is when `listed: no` is deleted.
 
 ## Structure
 
@@ -322,6 +363,7 @@ brand/promo-small-440x280.png   the store's small promo image
 brand/promo-marquee-1400x560.png  the store's marquee promo image
 brand/promo.py                  typesetting the promo images (Pillow + SF)
 brand/screenshots/              the five store screenshots, 1280x800
+brand/ios-screenshots/          the App Store's two sets: the iPhone's 1320x2868, the iPad's 2752x2064
 ```
 
 The aerial-free version is used at small sizes: at 16 pixels the aerials melt

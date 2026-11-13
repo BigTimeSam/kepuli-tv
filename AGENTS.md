@@ -8,7 +8,9 @@ next to the files you change.
 Kepuli-TV is a Manifest V3 browser extension for Chrome and Firefox that plays
 the user's own IPTV subscription (Xtream Codes, M3U/XMLTV, Stalker portals) in
 a tab. One shared source runs in both browsers; `firefox/` holds only the
-Firefox manifest and its tooling.
+Firefox manifest and its tooling. The same page is also the app for the
+iPhone and the iPad: `ios/` holds a native shell that shows it and does
+what a page cannot there (see `ios/AGENTS.md`).
 
 ## Ground rules
 
@@ -29,7 +31,10 @@ Firefox manifest and its tooling.
 4. **No build step, no dependencies.** The files in the repo are what the
    browser runs. Tooling is plain Node 22+ with no npm packages; the few Python
    helpers run with `uv run` and declare their own dependencies. Do not add a
-   bundler, a framework or `package.json` dependencies.
+   bundler, a framework or `package.json` dependencies. The one exception is
+   confined to `ios/`: the app is built with Xcode and xcodegen and links
+   Google's Cast SDK, all generated or fetched there and never committed,
+   and none of it touches what the browsers run.
 5. **Leave the owner's browsers alone.** The owner's development Chrome uses
    port 9222 and `~/.cache/kepuli-tv-dev`, Firefox 2828 and
    `~/.cache/kepuli-tv-firefox`. Never reload, navigate or reset them. Use your
@@ -55,11 +60,14 @@ Firefox manifest and its tooling.
 | `js/recorder.js`, `js/streamhub.js` | recording |
 | `js/i18n.js`, `js/locales/*.js` | English and Finnish; the other 28 languages |
 | `vendor/` | hls.js, mpegts.js, the FFmpeg audio build (`dev/wasm/`) |
+| `ios/` | the app for the iPhone and the iPad: the native shell around `player.html?ios=1`, its build, its simulator driver and scenarios, its packages and what is missing before the App Store |
+| `js/host.js`, `js/castui.js` | the page's side of the app: the port to the native code, and a cast session |
 | `dev/` | every tool: tests, mock server, packaging, store publishing, screenshots, video |
 | `store/listings/*.txt` | store texts in 31 languages; `_locales/` is generated from them |
 | `brand/` | icon sources, store screenshots (`screenshots/` Chrome, `firefox-screenshots/` AMO) |
 | `docs/` | GitHub Pages (`index.html` generated from README, the guides from `docs/pages/`, privacy, terms) and the long docs |
 | `store/chrome-dashboard.txt` | the Chrome Web Store dashboard fields and the store procedures |
+| `store/appstore.txt` | every App Store Connect field for the iPhone and iPad app: texts in English and Finnish, privacy and age answers, review notes |
 
 Long-form documentation: [user guide](docs/user-guide.md),
 [development](docs/development.md), [internals](docs/internals.md),
@@ -87,6 +95,12 @@ Long-form documentation: [user guide](docs/user-guide.md),
 | Ready to release? | `node dev/release.mjs [--quick]` |
 | Release packages | `node dev/package.mjs --zip`, `node firefox/amo-source.mjs` |
 | What Chrome serves | `node dev/cws-publish.mjs verify` |
+| The page as the iPhone and iPad app sees it, in desktop Chrome | `node dev/playcheck.mjs iosapp` |
+| The iPhone and iPad app built for the simulator, its XCTest target | `node ios/build.mjs --simulator`, `node ios/build.mjs --test` |
+| The app in a simulator: install, launch, state, run code in the page | `node ios/sim.mjs install`, `launch`, `status`, `eval '<code>'` (see `ios/AGENTS.md`) |
+| The app's scenarios in its simulators against a mock of their own on 8841 (about eleven minutes) | `node ios/simcheck.mjs [scenario …]` |
+| The app's simulator package, its unsigned archive, what is missing before the App Store | `node ios/release.mjs simulator`, `archive`, `status` |
+| The App Store's screenshots (into `brand/ios-screenshots/` or `KEPULI_SHOTS_DIR`) | `node ios/screenshots.mjs` |
 | Store screenshots (into `brand/` or `KEPULI_SHOTS_DIR`) | `node dev/store-screenshots.mjs`, `KEPULI_BROWSER=firefox …` |
 | Demo video with narration | `node dev/demo-video.mjs [--silent|--remix]` |
 
@@ -119,6 +133,12 @@ Long-form documentation: [user guide](docs/user-guide.md),
   contain one (`js/name.js`, `js/picks.js`) is another matter.
 - **Both browsers.** The code is shared; when you touch playback, storage,
   permissions or the manifest, run the relevant scenario in Firefox too.
+- **And the app.** The same files run in the iPhone and iPad app with
+  `?ios=1` (`js/host.js` exports `ios`). A string that names a browser, a
+  tab or a computer is untrue there: write it so that it holds in both, or
+  keep it out of the app's reach, and the guard in `dev/unitcheck.mjs` lists
+  the exceptions with their reasons. `node dev/playcheck.mjs iosapp` runs
+  the app's branches without a simulator.
 
 ## Commits
 
@@ -142,6 +162,11 @@ Long-form documentation: [user guide](docs/user-guide.md),
 - The Chrome Web Store locks the whole listing while a version is in review,
   and cancelling a review has a small daily quota. AMO throttles writes for
   hours. Plan store work accordingly: `store/AGENTS.md`.
+- The iOS simulators are shared with other sessions on this machine: only
+  the ones `ios/sim.mjs` created (`kepuli-ios-*`), always by UDID, and its
+  mock on 8841. WebKit drops a native message sent before the page's
+  listener is registered, and forgets host grants between launches; both
+  are handled in `ios/App/` and explained in `ios/AGENTS.md`.
 - Twice the Firefox zip went to the Chrome store. The zips are named per store
   and the publish tools check the manifest; still verify the published CRX
   after approval (see [Release](#release)).
@@ -164,7 +189,8 @@ the store screenshots.
 | [`dev/AGENTS.md`](dev/AGENTS.md) | every tool, the tests, ports and profiles, writing scenarios, looking at UI changes |
 | [`dev/mock/AGENTS.md`](dev/mock/AGENTS.md) | the invented provider: fiction, determinism, fault switches |
 | [`firefox/AGENTS.md`](firefox/AGENTS.md) | the Firefox manifest and tooling, reviewer notes, testing in Firefox |
-| [`store/AGENTS.md`](store/AGENTS.md) | listings, translation records, Chrome Web Store and AMO tools, limits and timing, screenshots, the demo video |
+| [`ios/AGENTS.md`](ios/AGENTS.md) | the iPhone and iPad app: the shell, the permanent identifiers, the build, the simulator driver and its scenarios, what was measured, the App Store procedure and the device checklist |
+| [`store/AGENTS.md`](store/AGENTS.md) | listings, translation records, Chrome Web Store and AMO tools, limits and timing, screenshots, the demo video, the App Store's texts |
 | [`brand/AGENTS.md`](brand/AGENTS.md) | icon art, promo tiles, the store screenshot sets and captions |
 | [`docs/AGENTS.md`](docs/AGENTS.md) | the Pages site, policy pages and the long docs; links installed versions rely on |
 | [`vendor/AGENTS.md`](vendor/AGENTS.md) | third-party code and the FFmpeg audio build, licences |

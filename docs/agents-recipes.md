@@ -93,6 +93,19 @@ the two differ. Every change ends the same way, so it is said once here:
 4. The texts reach the stores only with the owner's go, through the store
    tools (`store/AGENTS.md`, the procedures in `store/chrome-dashboard.txt`).
 
+## Change the App Store texts
+
+1. Edit the section in `store/appstore.txt`, English and Finnish. A pasted
+   section names no other platform and promises nothing the app does not
+   do (the three rules at the top of the file).
+2. Count the section against its limit (name and subtitle 30, keywords 100,
+   promotional text 170, description and review notes 4000) and correct the
+   counts at the file's end.
+3. If the change is about what the app collects or contains, the privacy
+   policy's section on the app (`docs/privacy/index.html`) and
+   `docs/licences/index.html` change with it, then `node dev/site.mjs`.
+4. It reaches App Store Connect only by the owner's hand, after the go.
+
 ## Retake the store screenshots
 
 1. With your own port, profile and a scratch directory:
@@ -110,3 +123,7 @@ the two differ. Every change ends the same way, so it is said once here:
 5. Uploading them (`node dev/cws-screenshots.mjs`,
    `node dev/amo-screenshots.mjs`) waits for the owner's go; see
    `brand/AGENTS.md` and `store/AGENTS.md`.
+6. The App Store's two sets, when the views changed in the app as well:
+   `KEPULI_SHOTS_DIR=<scratch> node ios/screenshots.mjs`, look at all ten,
+   then without the variable into `brand/ios-screenshots/`
+   (`ios/AGENTS.md`).

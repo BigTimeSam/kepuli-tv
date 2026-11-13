@@ -377,6 +377,9 @@ this folder, or <code>node dev/dev.mjs</code> for a profile of its own that relo
 every change</li>
   <li><strong>Firefox:</strong> <code>node firefox/build.mjs</code>, then <code>about:debugging</code> → <strong>This
 Firefox</strong> → <strong>Load Temporary Add-on</strong> → <code>firefox/dist/manifest.json</code></li>
+  <li><strong>iPhone and iPad app:</strong> <code>node ios/build.mjs --simulator</code>, then
+<code>node ios/sim.mjs</code> drives it in a simulator (Xcode 26 and xcodegen; see
+<code>ios/AGENTS.md</code>)</li>
   <li><strong>Tests:</strong> <code>node dev/unitcheck.mjs</code>, and <code>node dev/playcheck.mjs</code> against the
 mock server in <code>dev/mock/</code> (run <code>sh dev/mock/media.sh</code> once first); every
 check is listed in <code>dev/AGENTS.md</code></li>
@@ -395,7 +398,10 @@ directory has its own.</p>
 directory holds third-party code on its own terms: <code>hls.js</code> and <code>mpegts.js</code>
 under Apache-2.0, and <code>vendor/ffaudio/</code> built from FFmpeg under LGPL-2.1+. The
 build commands are in <code>dev/wasm/build.sh</code>, so that the relinking required by
-LGPL 2.1 §6 is possible.</p>
+LGPL 2.1 §6 is possible. The app for the iPhone and the iPad also contains
+Google's Cast SDK, which is fetched at build time and is not in this
+repository; every notice is on the
+<a href="https://bigtimesam.github.io/kepuli-tv/licences/">licences page</a>.</p>
 
 <p>Copyright (c) 2026 Samuli Vainio</p>
 

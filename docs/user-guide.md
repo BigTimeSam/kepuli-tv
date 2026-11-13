@@ -133,6 +133,100 @@ computer receives an Xtream account without its password and asks for it once.
 A computer turning sync on for the first time joins its accounts and favourites
 with the others' rather than replacing them.
 
+## The app for the iPhone and the iPad
+
+The app is the same player in a window of its own, and this guide holds for
+it except where it speaks of a browser. Its own short guide, which the
+app's **Help** opens, is
+[Kepuli-TV on the iPhone and the iPad](https://bigtimesam.github.io/kepuli-tv/iptv-app-iphone-ipad/).
+What differs:
+
+- **The app follows the way the device is held**, upright or on its side,
+  on the iPhone and the iPad, in full screen too; the device's own rotation
+  lock decides, and turning it does not interrupt what plays. On the iPad
+  it also runs beside another app, and takes the one-pane layout when its
+  share of the screen is narrow.
+- **A low window has a layout of its own.** In a window 440 px high or
+  less, which is a phone on its side, the list keeps several rows in sight
+  beside a whole picture with its bar under it, the guide's controls fit on
+  one row, and a dialog scrolls as one piece so that its fields stay
+  reachable above the keyboard. The rule is the window's height, so a low
+  browser window gets the same.
+- **Full screen** gives the picture the whole screen, without the
+  system's bars and with the subtitles and the controls in it: the button
+  in the picture's corner, which shows with the controls after a tap, a
+  double tap on the picture, or `f` on a keyboard. The same button, a
+  double tap, a swipe down over the picture or `Esc` leaves it. The
+  picture keeps clear of the camera island and the rounded corners, so
+  that its controls stay in reach. The full-screen mark among the
+  system's own video controls opens the system's player instead, which
+  shows the track's subtitles in the system's style and not the player's
+  messages. The header's full-screen button is not there: the app has no
+  browser frame to leave.
+- **Two channels side by side** are offered on the iPad, as on any
+  tablet, and not on the iPhone.
+- **On an upright iPhone** the start page (Continue watching, the picks)
+  shares the player's pane, which is in sight while something plays and
+  when the logo is pressed: **Browse** then leads back to the list. A
+  film's place is also offered by the bar on its row in the list.
+- **A live channel on the iPad** has a time line in the system's controls
+  and rewinds as far as it is kept, as in a browser; on the iPhone the
+  system's controls say that it is live.
+- **If the system has had to start the player again**, it returns to the
+  list and the channel you were on and plays nothing until you choose it.
+- **The screen stays on** while a picture plays and may sleep otherwise.
+- **Cast to a Chromecast** (the `☰` menu, `c`, or the Cast mark that stands
+  at the top of the screen once a Chromecast has been found) opens Google's
+  own device dialog. The Chromecast then fetches the stream by itself from
+  the address it is handed, and the picture stops here first, as an account
+  commonly allows one connection. Over the player stands **Playing on** and
+  the device's name, with **Remote control** (seeking, volume and tracks, in
+  Google's controls) and **Stop casting**, after which the picture plays on
+  here from where the device had got to. What ended on the television
+  while the phone slept (a film seen to its end, a television turned off)
+  starts nothing here. A film or an episode in MP4, M4V,
+  MOV or WebM is cast from its resume point, and its position on the device
+  is saved as it would be here. A live channel is cast as HLS, and only
+  when the provider's server lets another device read it: the app asks the
+  server once before it lets go of the picture, and when the answer is no
+  it says so and the channel stays here. MKV and AVI files, MPEG-TS
+  streams, catch-up and Stalker portals are not cast; choosing one while a
+  session is on stops the device and plays it here. Nothing looks for
+  devices before the first cast. The very first time, Google shows a note
+  of its own and the system asks about the local network; after both, the
+  devices are listed as soon as one is found. If none is found within
+  half a minute, choose **Cast to a Chromecast** once more.
+- **Reminders** arrive as notifications, with the system's sound, when
+  **Show reminders as notifications** is on in **Settings**, also while
+  the app is closed; tapping one starts the channel. While the app is in
+  front, its own message strip says the reminder instead, unless something
+  lies over the player (Google's remote control, a web page, Settings or
+  another dialog of the player's) or the reminder is another account's:
+  then the notification is shown. The system asks
+  for its leave at the first reminder; if notifications have been turned
+  off for Kepuli-TV in the device's settings, the player says so, at that
+  first reminder and under the switch. Once they are allowed there, the
+  reminders already set are scheduled when you come back to the app, and
+  the switch is on. Turning the switch off cancels the
+  notifications of every account; an account's reminders are scheduled
+  again when it is next opened with the switch on.
+- **Open in VLC** hands VLC the stream's address on the iPad as on the
+  iPhone; no playlist file is saved. Without VLC on the device, its page
+  in the App Store opens. A Chromecast that is playing the stream lets go
+  of it first, and **Continue in Kepuli-TV** goes on from where the
+  Chromecast had got to.
+- **Links** (IMDb, TMDb, trailers, the guide) open in a Safari view over
+  the player. **Help** also holds the **Privacy policy** and the
+  **Licences**.
+- **Not in the app:** recording and everything of it (the **Record**
+  button, **Recordings**, planned recordings, its row in **Settings**), and
+  **Sync between computers**. Everything is kept on the device and is
+  deleted with the app.
+- **On iOS 18** a film whose sound is AC-3, E-AC-3 or DTS plays without
+  sound, as the system there refuses the decoder the player brings; from
+  iOS 26 on it plays with sound. An MKV film is unpacked by the player
+  itself, so it does not play on while the app is in the background.
+
 ## Where the player opens
 
 The player returns to the view you left, by two routes that answer different
@@ -424,7 +518,9 @@ interrupted channel-list load restores the previous list.
   device through the Remote Playback API, and for the rest the menu explains how
   Chrome's own tab casting does it — see below. On the iPhone the item is not
   there: no browser on it reaches a Chromecast, and AirPlay is in the iPhone's
-  own player controls in full screen
+  own player controls in full screen. The app for the iPhone and the iPad
+  casts in a way of its own: see
+  [The app for the iPhone and the iPad](#the-app-for-the-iphone-and-the-ipad)
 - **Resume positions remembered** for movies and episodes, with a progress bar
   on the row; what was left halfway heads the history under **Continue
   watching**
@@ -664,7 +760,8 @@ remaining player controls are below the picture:
 
 The menu holds what is wanted now and then rather than during every programme:
 **Reload the stream** (from the point it stopped at, for a stream stuck without
-an error), **Picture in picture**, **Cast to a Chromecast**, **Copy the stream
+an error), **Picture in picture** (where the browser or the device can put the
+picture in one), **Cast to a Chromecast**, **Copy the stream
 address** and **Open in an external player**. Buttons that said what they did in
 two letters and an arrow are lines that say it in words, and the row keeps only
 what a viewer reaches for while watching. After a failed playback the message
@@ -690,9 +787,9 @@ trailer, where the provider names one, are in the player's ☰ menu. The directo
 the person; the original title shows when the provider gives one that differs,
 and the sound names its language when the file or the provider does
 (**AAC (5.1, Finnish)**). The audio and the subtitles are in sight;
-**Technical details** folds away how the file plays here (**Directly in
-the browser**, **Audio decoded by the player**, **Without sound**, **Not in
-this browser**), its format, the picture's size (**1920×800, 1080p**,
+**Technical details** folds away how the file plays here (**Directly,
+without conversion**, **Audio decoded by the player**, **Without sound**,
+**Cannot be played here**), its format, the picture's size (**1920×800, 1080p**,
 measured from the picture once it plays), the bit rate and the file's size
 where the header read gave it, and stays open or shut as you left it.
 TMDb is in the ☰ menu beside IMDb when the provider names the film's TMDb

@@ -1,0 +1,496 @@
+Kepuli-TV — App Store Connect copy for the iPhone and iPad app
+==============================================================
+Every field App Store Connect asks for, in the order of its pages. The
+App Store's counterpart of store/chrome-dashboard.txt. Nothing here is sent
+by a tool: the owner pastes it, and only after saying so (AGENTS.md rule 2).
+
+Three rules for every text below, each from a guideline:
+  • It is written for the app. No other platform, store or product is named
+    (2.3.10), so nothing is copied from store/listings/, which speak of
+    other platforms. A section is pasted as it is, from the line after
+    its "=== NAME ===" to the line before its "=== END ===", and nothing
+    else goes between the two: "node ios/release.mjs status" reads and
+    counts exactly that. It must not name another platform or another
+    product that Kepuli-TV runs in, nor speak of saving programmes as
+    files, which the app does not do. The Chromecast is named: the app
+    casts to one.
+  • It is true of this app (2.3.1). What the app does not do is not
+    promised: no saving of streams, no sync between devices, and nothing
+    that only a device can confirm (picture in picture, sound in the
+    background) until the device checklist in ios/AGENTS.md has ticked it.
+    A second picture beside the first is offered on the iPad alone, so no
+    text promises it of the app.
+  • No real provider, address, person, phone number or email. The demo's
+    address and the review contact are in ~/.config/kepuli-tv/ios/ and are
+    typed into App Store Connect from there.
+
+Limits, counted in characters: name 30, subtitle 30, keywords 100 (commas
+included, no spaces needed after them), promotional text 170, description
+4000, review notes 4000. The counts at the end of this file were taken on
+2026-11-13; count again after any edit.
+
+English (U.K.) is the primary language and Finnish the second for the first
+submission. The other twenty-eight languages follow once the app is approved.
+
+
+--- APP INFORMATION ---------------------------------------------------------
+
+=== NAME ===
+Kepuli-TV – IPTV Player
+=== END ===
+
+  The same in every language; it is the brand. 23 characters.
+
+=== SUBTITLE en-GB ===
+Your own IPTV, with a TV guide
+=== END ===
+
+=== SUBTITLE fi ===
+Oma IPTV ja ohjelmaopas
+=== END ===
+
+Bundle ID            io.github.bigtimesam.kepulitv
+SKU                  kepuli-tv-ios
+Primary language     English (U.K.)
+Primary category     Entertainment
+Secondary category   Utilities
+Content rights       "Does your app contain, show or access third-party
+                     content?" Yes. The app shows what the viewer's own
+                     subscription supplies and holds no streams, films or
+                     playlists of its own; the viewer is the one with the
+                     rights to it, and the description says to use it only
+                     for content they may watch. What the app does carry is
+                     an index of file names from a public collection of
+                     channel logos (js/logoindex.js). See "IF APPLE ASKS FOR
+                     EVIDENCE" below.
+Licence agreement    Apple's standard EULA.
+Copyright            2026 and the seller's name as it stands in LICENSE.
+
+
+--- PRICING AND AVAILABILITY ------------------------------------------------
+
+Price                Free, no in-app purchases.
+Availability         All countries and regions (the owner's decision; the
+                     EU needs the trader status declared first).
+Other platforms      Untick "Make this app available on Apple silicon Mac"
+                     and "Apple Vision Pro": neither has been tried, and the
+                     project sets SUPPORTS_MAC_DESIGNED_FOR_IPHONE_IPAD and
+                     SUPPORTS_XR_DESIGNED_FOR_IPHONE_IPAD to NO only for
+                     Xcode's destinations.
+
+
+--- URLS --------------------------------------------------------------------
+
+Marketing URL        (left empty: the field is optional)
+Support URL          https://bigtimesam.github.io/kepuli-tv/iptv-app-iphone-ipad/
+Privacy policy URL   https://bigtimesam.github.io/kepuli-tv/privacy/
+
+  No Marketing URL until the site's front page presents the app: today it
+  is about the player in other products and says nothing of this one,
+  which is what the field must not lead to (2.3.10).
+  The support page is the app's own guide (docs/pages/iptv-app-iphone-ipad.md),
+  which the app's Help also opens; it leads to the project's issues for
+  contact. It carries none of the site's other guides, in its bar or under
+  its text, as it is shown inside the app (dev/site.mjs, "stores: none").
+  The policy and the licences (…/kepuli-tv/licences/) are linked from the
+  app's Help as well (5.1.1(i)); the policy covers the player in other
+  products too and names them. The three pages must be on the Pages site
+  before the build is submitted: they are served from the main branch, and
+  "node ios/release.mjs status" fetches them.
+
+
+--- VERSION INFORMATION -----------------------------------------------------
+
+Version: the manifest's, as "node ios/release.mjs status" prints it at its
+top (1.13.0 for the first submission). A new app record starts with a
+version of its own making (1.0): change it on the version's page before
+the build is chosen. The build picker is expected to offer only builds of
+the version's own number, so the uploaded build would not show under 1.0;
+that has not been seen (there is no account yet).
+
+=== PROMOTIONAL TEXT en-GB ===
+Your own IPTV subscription on the iPhone and the iPad: channels that open in seconds, a programme guide, films and series, and casting to a Chromecast.
+=== END ===
+
+=== PROMOTIONAL TEXT fi ===
+Oma IPTV-tilauksesi iPhonessa ja iPadissa: sekunneissa avautuvat kanavat, ohjelmaopas, elokuvat ja sarjat sekä lähetys Chromecastiin.
+=== END ===
+
+=== KEYWORDS en-GB ===
+m3u,xtream,stalker,epg,tv guide,playlist,live tv,chromecast,mkv,xmltv,channels,series,films,stream
+=== END ===
+
+=== KEYWORDS fi ===
+m3u,xtream,stalker,epg,ohjelmaopas,soittolista,suora tv,chromecast,mkv,xmltv,kanavat,sarjat,elokuvat
+=== END ===
+
+  "IPTV" and "player" are in the name and are not repeated: the store
+  indexes the name and the subtitle already.
+
+=== DESCRIPTION en-GB ===
+Kepuli-TV plays the IPTV subscription you already have: an M3U playlist, an Xtream Codes account or a Stalker portal. It is built around one idea: a huge catalogue should feel small.
+
+• Channels open in a second or two, even from an enormous catalogue
+• Hundreds of messy categories become a tidy list of countries
+• A programme guide (EPG) that fills the screen, with catch-up where your provider offers it
+• MKV films and episodes play, with their subtitles
+• Cast films and channels to a Chromecast, with the iPhone or the iPad as its remote control
+• A reminder before a programme starts, as a notification
+
+
+WHAT YOU GET
+
+• Paste the link your provider sent you and the settings fill themselves.
+• Several accounts side by side: Xtream Codes, an M3U playlist with its XMLTV guide, or a Stalker portal with your box's MAC address. A playlist can also be a file from the Files app.
+• Search that ignores accents and word order, and a filter in every menu.
+• Whatever you left halfway waits at the top, and the next episode starts by itself.
+• Nothing blocks the screen while data loads, and what is playing keeps playing, even when the connection drops.
+• Made for accounts with one connection: switching channels waits for the provider to free it instead of failing.
+• Films and series as covers, with plots, ratings and seasons.
+• Favourites, viewing history and resume positions.
+• Hide the global brands from a country's list, and its own stations are easy to find.
+• Keep only the countries you watch, and only the film and series categories you want.
+• The guide can show just your favourite channels, and you can search the programmes of every channel at once.
+• Filter films by year, rating and length.
+• Each film once in the list, its language versions on its own page.
+• Upright or on its side, on the iPhone and the iPad, in a dark or a light look.
+• In 30 languages. It speaks your device's language until you choose another.
+
+
+CASTING
+
+Choose Cast to a Chromecast and pick the device. The Chromecast fetches the stream itself and the app becomes its remote control. Films in MP4 and channels sent as HLS can be cast when your provider's server allows it; anything else plays on your device, and the app tells you.
+
+
+PRIVATE BY DESIGN
+
+No sign-up, no ads, no tracking. Your accounts, favourites and history stay on your device. Kepuli-TV talks to your own provider's server, and channel logos may load from a public logo collection. Casting uses Google's Cast software, which sends Google the diagnostics its privacy label names.
+
+
+PLEASE NOTE
+
+Kepuli-TV contains no channels, films or playlists and comes with no provider. You need a subscription of your own. Use it only for content you have the right to watch, and make sure the service is lawful where you live.
+
+
+GET STARTED
+
+Open the app and paste the address your provider sent you, or enter your server, user name and password, or a portal with its MAC address. Your channels appear.
+=== END ===
+
+=== DESCRIPTION fi ===
+Kepuli-TV toistaa IPTV-tilauksen, joka sinulla jo on: M3U-soittolistan, Xtream Codes -tilin tai Stalker-portaalin. Se on rakennettu yhden ajatuksen ympärille: valtavan valikoiman pitää tuntua pieneltä.
+
+• Kanavat avautuvat sekunnissa tai kahdessa, valtavastakin valikoimasta
+• Sadoista sekavista kategorioista tulee siisti luettelo maita
+• Koko näytön täyttävä ohjelmaopas (EPG) ja jälkikatselu, kun palveluntarjoajasi tarjoaa sen
+• MKV-elokuvat ja -jaksot toistuvat tekstityksineen
+• Lähetä elokuvia ja kanavia Chromecastiin, jolloin iPhone tai iPad on sen kaukosäädin
+• Muistutus ilmoituksena ennen ohjelman alkua
+
+
+MITÄ SAAT
+
+• Liitä palveluntarjoajasi lähettämä linkki, niin asetukset täyttyvät itsestään.
+• Useita tilejä rinnakkain: Xtream Codes, M3U-soittolista XMLTV-oppaineen tai Stalker-portaali laitteesi MAC-osoitteella. Soittolista voi olla myös tiedosto Tiedostot-sovelluksesta.
+• Haku, joka ei välitä aksenteista eikä sanajärjestyksestä, ja suodatin jokaisessa valikossa.
+• Kesken jäänyt odottaa ylimpänä, ja seuraava jakso alkaa itsestään.
+• Mikään ei peitä näyttöä tietojen latautuessa, ja toisto jatkuu, vaikka yhteys katkeaisi.
+• Tehty tileille, joissa on yksi yhteys: kanavan vaihto odottaa, että palveluntarjoaja vapauttaa yhteyden, eikä epäonnistu.
+• Elokuvat ja sarjat kansikuvina, mukana juonet, arviot ja kaudet.
+• Suosikit, katseluhistoria ja jatkokohdat.
+• Piilota maailmanlaajuiset brändit maan luettelosta, niin sen omat kanavat löytyvät helposti.
+• Säilytä vain maat, joita katsot, ja vain haluamasi elokuva- ja sarjakategoriat.
+• Opas voi näyttää pelkät suosikkikanavasi, ja voit hakea kaikkien kanavien ohjelmista kerralla.
+• Suodata elokuvia vuoden, arvion ja pituuden mukaan.
+• Jokainen elokuva luettelossa kerran, kieliversiot sen omalla sivulla.
+• Pystyssä tai kyljellään, iPhonessa ja iPadissa, tummana tai vaaleana.
+• 30 kielellä. Sovellus puhuu laitteesi kieltä, kunnes valitset toisen.
+
+
+LÄHETTÄMINEN
+
+Valitse Lähetä Chromecastiin ja valitse laite. Chromecast hakee virran itse, ja sovelluksesta tulee sen kaukosäädin. MP4-elokuvat ja HLS-muodossa lähetetyt kanavat voi lähettää, kun palveluntarjoajasi palvelin sallii sen. Kaikki muu toistetaan laitteessasi, ja sovellus kertoo sen.
+
+
+YKSITYISYYS EDELLÄ
+
+Ei rekisteröitymistä, ei mainoksia, ei seurantaa. Tilisi, suosikkisi ja historiasi pysyvät laitteessasi. Kepuli-TV on yhteydessä oman palveluntarjoajasi palvelimeen, ja kanavien logot voivat latautua julkisesta logokokoelmasta. Lähettäminen käyttää Googlen Cast-ohjelmistoa, joka lähettää Googlelle tietosuojaselosteessa nimetyt diagnostiikkatiedot.
+
+
+HUOMAA
+
+Kepuli-TV ei sisällä kanavia, elokuvia eikä soittolistoja, eikä sen mukana tule palveluntarjoajaa. Tarvitset oman tilauksen. Käytä sitä vain sisältöön, jonka katsomiseen sinulla on oikeus, ja varmista, että palvelu on laillinen asuinmaassasi.
+
+
+ALOITA
+
+Avaa sovellus ja liitä palveluntarjoajasi lähettämä osoite, tai anna palvelin, käyttäjätunnus ja salasana tai portaali MAC-osoitteineen. Kanavasi tulevat näkyviin.
+=== END ===
+
+=== WHAT'S NEW en-GB ===
+The first version for the iPhone and the iPad.
+=== END ===
+
+=== WHAT'S NEW fi ===
+Ensimmäinen versio iPhonelle ja iPadille.
+=== END ===
+
+
+--- SCREENSHOTS -------------------------------------------------------------
+
+Required sets: iPhone 6.9" and iPad 13" (a universal app needs both; the
+store scales them for the smaller devices). One to ten each, PNG without an
+alpha channel, of the mock's demo account only.
+
+  iPhone   kepuli-ios-shots-iphone (iPhone 17 Pro Max)      1320 × 2868, upright
+  iPad     kepuli-ios-shots-ipad (iPad Pro 13-inch (M5))    2064 × 2752 upright
+                                                            or 2752 × 2064 on its side
+
+The iPhone's stay upright; the iPad's may be on their side, where the list
+and the picture stand next to each other.
+
+The five views, the same on both devices and in this order:
+  1. The channels of a country with a channel playing.
+  2. The programme guide.
+  3. A film's page with its cover, plot and details.
+  4. A film or an episode playing, subtitles in the picture.
+  5. A series with its seasons and episodes.
+Nothing of Recordings, no Record button, no second picture, no dialog that
+names another platform. Dark theme for all five; one light picture may
+follow as a sixth.
+
+The ten are in brand/ios-screenshots/ (iphone-0N-<view>.png and
+ipad-0N-<view>.png; its README says what each shows), the iPad's on its
+side. They are taken by one tool, which starts its own mock on 8841 (after
+lsof), sets the status bar to 9:41 with a full battery, walks the views
+and removes the app again (about four minutes):
+  KEPULI_SHOTS_DIR=<a scratch directory> node ios/screenshots.mjs
+  node ios/screenshots.mjs                                  (into brand/ios-screenshots/)
+A simulator's screenshot has an alpha channel, every pixel opaque; the
+tool writes each picture again without it, pixel for pixel
+(ios/flatten.swift), and fails on one of another size. Look at all ten.
+The store refuses a picture with an alpha channel or of another size
+("sips -g hasAlpha -g pixelWidth -g pixelHeight" shows both), and
+"node ios/release.mjs status" refuses the same. They are uploaded by hand:
+the iPhone set under iPhone 6.9" Display, the iPad set under iPad 13"
+Display, the same pictures for English (U.K.) and Finnish.
+
+App preview video: none for the first version.
+
+
+--- APP PRIVACY (the "nutrition label") -------------------------------------
+
+Kepuli-TV's own code collects nothing: ios/App/PrivacyInfo.xcprivacy
+declares no collected data and no tracking. The app contains Google's Cast
+SDK (4.8.6), whose own privacy manifest declares three data types and whose
+NutritionLabel.txt (Google's privacy details for that version, kept in
+ios/vendor/NutritionLabel/ and printed under the privacy report) names
+two more, Coarse Location and Performance Data. The label declares the
+wider of the two lists, and "node ios/release.mjs status" holds it to both;
+over-declaring costs nothing, and Xcode's privacy report lists what the
+manifest says in any case.
+
+"Do you or your third-party partners collect data from this app?"   Yes
+
+  Data type                              Purposes                         Linked to   Used for
+                                                                          the user    tracking
+  Location → Coarse Location             Analytics, App Functionality     No          No
+  Identifiers → Device ID                Analytics, App Functionality     No          No
+  Usage Data → Product Interaction       Analytics, App Functionality     No          No
+  Diagnostics → Performance Data         Analytics, App Functionality     No          No
+  Diagnostics → Other Diagnostic Data    Analytics, App Functionality     No          No
+
+Everything else: not collected. In particular not Contact Info, User
+Content, Browsing History, Search History, Purchases, Financial Info,
+Health, Sensitive Info or Contacts. The provider's address, the user name
+and the password are typed into the app and stay on the device: they are
+sent only to the provider the viewer names, which is not collection by the
+developer or a partner.
+
+Tracking: the app does not track; no App Tracking Transparency prompt.
+Privacy policy: the URL above; its section 11 is about the app and names
+Google as the recipient of what the Cast SDK collects.
+
+
+--- AGE RATING --------------------------------------------------------------
+
+The app holds and promotes no content. What it shows is the general
+television and film of the viewer's own subscription, unfiltered, and the
+answers describe that: not "the app has none". The high rating that follows
+is accepted.
+
+  Parental controls                                   No
+  Age assurance                                       No
+  Unrestricted web access                             No (a link opens one page
+                                                      over the player; there is
+                                                      no address field)
+  User-generated content                              No
+  Messaging and chat                                  No
+  Advertising                                         No
+  Profanity or crude humour                           Frequent
+  Horror or fear themes                               Frequent
+  Alcohol, tobacco or drug use or references          Frequent
+  Medical or treatment information                    None
+  Health or wellness topics                           No
+  Mature or suggestive themes                         Frequent
+  Sexual content or nudity                            Frequent
+  Graphic sexual content and nudity                   None
+  Cartoon or fantasy violence                         Frequent
+  Realistic violence                                  Frequent
+  Prolonged graphic or sadistic realistic violence    None
+  Guns or other weapons                               Frequent
+  Simulated gambling                                  None
+  Contests                                            None
+  Gambling                                            No
+  Loot boxes                                          No
+
+Expected result: 18+, which follows from the three Frequent answers on
+sexual content or nudity, realistic violence, and alcohol, tobacco or drug
+use or references. The two rows answered None are not a choice: Apple
+rates any other answer on "Graphic sexual content and nudity" or on
+"Prolonged graphic or sadistic realistic violence" as Unrated, and an
+Unrated app cannot be published on the App Store (Apple's "Age ratings
+values and definitions", read 2026-11-13). The questionnaire's wording
+changes between years: answer what it asks then, on the same basis, and
+read that page again first.
+
+
+--- EXPORT COMPLIANCE -------------------------------------------------------
+
+Info.plist carries ITSAppUsesNonExemptEncryption = false, so the question is
+not asked at each upload. The reasoning, should it be asked:
+
+  • Network encryption is the operating system's own TLS (URLSession and
+    WebKit). The app brings no TLS of its own.
+  • hls.js decrypts AES-128 HLS segments when a provider's playlist names a
+    key. That is decryption of media for playback with a standard algorithm
+    and a key the stream supplies; the app encrypts nothing with it.
+  • The provider code computes hashes (the checks a portal's sign-in asks
+    for, and names for the cache). A hash is not encryption.
+  • The Cast SDK talks to the device over the system's TLS.
+  • No user data is encrypted by the app, and nothing is offered for
+    encrypting files, messages or storage.
+
+All of it is exempt: authentication, standard encryption within the
+operating system, and media playback. No annual self-classification report
+is filed.
+
+
+--- APP REVIEW INFORMATION --------------------------------------------------
+
+Sign-in required     Yes: the app needs a subscription.
+User name            demo
+Password             demo
+Contact              first name, last name, phone and email: the owner's,
+                     typed from ~/.config/kepuli-tv/ios/, never written here.
+Attachment           the screen video of a cast session (see the notes).
+
+The demo is the project's own invented provider (dev/mock/, deployed from
+dev/mock/Dockerfile and dev/mock/fly.toml). Its address is "demoUrl" in
+~/.config/kepuli-tv/ios/appstore.json and replaces <DEMO HOST> below when
+the notes are pasted. It must be a host name, not an address literal (the
+review network is IPv6-only), must answer over https, and must stay up for
+this review and every later one.
+
+=== REVIEW NOTES ===
+WHAT THE APP IS
+Kepuli-TV is a video player for an IPTV subscription the viewer already has. It contains no streams, films, playlists, provider addresses, provider list or accounts, and it plays nothing until the viewer enters their own provider's details. The one list it carries is an index of file names from a public collection of channel logos, used only to show a logo beside a channel that the viewer's own provider already lists; nothing can be found or played with it. It does not save or download streams: there is no such function in the app.
+
+DEMO ACCOUNT (invented content only, made for this review)
+1. Open the app. "Connect to your provider" appears.
+2. Under Connection choose "Server and credentials (Xtream Codes)".
+3. Protocol: HTTPS. Server: <DEMO HOST>. Port: 443. Username: demo. Password: demo.
+4. Tap Connect. Choose a country, then a channel: it plays.
+5. Movies and Series hold demo films; Series > Nordic Noir > Silent Fjord is an MKV file with subtitles. The programme guide is the button above the channel list.
+Every title, channel and programme in the demo is fictional and belongs to the project.
+
+NATIVE FEATURES
+• Google Cast sender: Cast to a Chromecast in the player's menu opens Google's device dialog; the Chromecast then plays the stream and the app is its remote control. The very first time, Google's note on finding devices and the system's local-network question come first, and choosing Cast again opens the device list.
+• Local notifications: Remind me on a programme in the guide schedules a notification a minute before it starts (Settings > Show reminders as notifications).
+• Files: a playlist can be picked from the Files app.
+• The screen stays awake while a picture plays, links open in a Safari view over the player, and Open in VLC hands a stream to VLC.
+• Full screen: the button in the picture's corner or a double tap gives the picture the whole screen; the same, or a swipe down, leaves it.
+• Portrait and landscape on the iPhone and the iPad, Split View on the iPad, 30 languages.
+What sets it apart from other players: channels grouped by country out of a provider's hundreds of categories, a full programme guide with search across channels, MKV playback with subtitle tracks, and accounts of three kinds side by side.
+
+CHROMECAST CANNOT BE TRIED WITHOUT A DEVICE
+Without a Chromecast on the network, Google's dialog opens and finds nothing, and the app goes on playing on the device. The attached video shows a session with a real device: choosing it, a film playing on the television, the remote control, and stopping.
+
+PERMISSIONS AND KEYS
+• Local network: asked when the viewer first casts (to find Chromecast devices), or earlier when the viewer's own provider is at an address on their home network.
+• Notifications: asked when the viewer sets a first reminder, or turns Show reminders as notifications on in Settings.
+• NSAllowsArbitraryLoadsInWebContent: the viewer types the address of their own provider, and many providers serve plain http. Settings warns that an http connection is unencrypted and recommends https. No other transport exception is set.
+• Background mode "audio": so that sound continues, and picture in picture stays up, when the viewer leaves the app during playback.
+
+CONTENT AND RIGHTS
+The viewer supplies the subscription and is responsible for their right to watch it; the description says so, and the first screen says that the app comes with no channels of its own. The developer has no relationship with any provider.
+=== END ===
+
+
+--- IF APPLE ASKS FOR EVIDENCE (guideline 5.2.3) ----------------------------
+
+Prepared answer, to be adapted to the question asked:
+
+  Kepuli-TV is a player, comparable to a general-purpose media player. It
+  includes no content and no means of finding content: no streams or
+  playlists, no provider directory, no search of third-party sources, no
+  bundled or suggested addresses. It does carry an index of file names
+  from a public collection of channel logos, so that a channel the
+  viewer's own provider lists can be shown with its logo; the index names
+  no address a stream could be had from. The viewer must type the address
+  and credentials of a service they already subscribe to. The app does not save, convert or
+  download media: it has no such function. The demo account supplied for
+  review is the project's own fixture; its channels, films and programme
+  data are invented for testing and the project holds the rights to all of
+  it. The source code is public and can be inspected.
+
+
+--- OPEN BEFORE SUBMISSION --------------------------------------------------
+
+Decisions and checks this file depends on; each is the owner's or a
+device's, and none can be closed from here. "node ios/release.mjs status"
+prints what is still missing: the outputs, the owner's configuration, the
+demo, this file's pasted sections against the rules above, and the device
+checklist.
+
+  • The demo provider: deployed, on https, and its host in appstore.json.
+    store/chrome-dashboard.txt says no hosted demo is offered today.
+  • The "audio" background mode: the review notes justify it by sound in the
+    background and picture in picture. Neither has run on a device. If the
+    device checklist finds that neither works, the key is removed
+    (guideline 2.5.4) and its paragraph in the notes with it.
+  • The cast video: recorded from the TestFlight build with a real
+    Chromecast.
+  • iOS 18: films whose sound is AC-3, E-AC-3 or DTS play without sound
+    there and with sound from iOS 26 on (an AC-3 episode plays in the
+    iOS 26.5 simulator with its sound track; heard on no device yet, which
+    is a line of the device checklist). The app's minimum is iOS 18.5,
+    the oldest system it has been started on. Either the minimum version rises,
+    or the description stays as it is, which promises subtitles and not
+    that sound.
+  • The logo index (js/logoindex.js, 8,409 file names of the public
+    tv-logo/tv-logos collection, adult brands among them): the app ships
+    it as the browsers do, and the texts above say so. The owner decides
+    whether the app's copy drops the adult names, or the whole index (the
+    logos would then be the provider's own alone, and the description's
+    sentence on a public logo collection would go). Guideline 1.1.4; it
+    is no longer a question of the age rating.
+  • The seller name, the trader status for the EU, and the review contact.
+
+
+--- CHARACTER COUNTS (2026-11-13) -------------------------------------------
+
+  Each section as it is pasted, between its "===" line and its END line,
+  without the line breaks around it.
+  NAME                         23 of 30
+  SUBTITLE en-GB               30 of 30
+  SUBTITLE fi                  23 of 30
+  PROMOTIONAL TEXT en-GB      151 of 170
+  PROMOTIONAL TEXT fi         133 of 170
+  KEYWORDS en-GB               98 of 100
+  KEYWORDS fi                 100 of 100
+  DESCRIPTION en-GB          2957 of 4000
+  DESCRIPTION fi             3021 of 4000
+  WHAT'S NEW en-GB             46 of 4000
+  WHAT'S NEW fi                41 of 4000
+  REVIEW NOTES               3516 of 4000
