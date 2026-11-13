@@ -12,6 +12,7 @@ import { accountAddress, adoptAccount, connect, startReset, state } from './stat
 import { requestAccess } from './permissions.js';
 import { cacheClear } from './db.js';
 import { playback } from './playing.js';
+import { forgetNotifications } from './remindersui.js';
 import { configured, editAccount, pickAccount, setupAdding, setupDirty, setupEditing, setupError } from './setupui.js';
 import { toast } from './toast.js';
 import { $, el } from './dom.js';
@@ -115,15 +116,19 @@ export function renderAccountList() {
 
 
 /**
- * An account off the list with its favourites and history (js/config.js)
- * and its catalogue in the cache, which is kept under the account's key:
- * left there, a playlist file read in stayed in the browser's storage for
- * good. Both stay while another entry of the list is the same account.
+ * An account off the list with its favourites and history (js/config.js),
+ * its catalogue in the cache, which is kept under the account's key (left
+ * there, a playlist file read in stayed in the browser's storage for
+ * good), and in the app the notifications of its reminders. All stay
+ * while another entry of the list is the same account.
  */
 async function removeAccount(a) {
   state.accounts = await store.removeAccount(a.id);
   const key = store.accountKey(a);
-  if (!state.accounts.some((other) => store.accountKey(other) === key)) await cacheClear(`${key}|`);
+  if (!state.accounts.some((other) => store.accountKey(other) === key)) {
+    await cacheClear(`${key}|`);
+    await forgetNotifications(key);
+  }
   toast(t('accounts.removed', { name: store.accountLabel(a) }));
 }
 
@@ -152,6 +157,7 @@ async function removeAccountInUse(a) {
   state.accounts = await store.removeAccount(a.id);
   await cacheClear(`${store.accountKey(a)}|`);
   await store.forgetConfig();
+  await forgetNotifications();
   location.reload();
 }
 

@@ -6,6 +6,7 @@
 // Moved out of app.js. It takes the player's state, and the parts app.js
 // builds, from js/state.js.
 
+import { redrawCasting, sessionShown } from './castui.js';
 import { $, el } from './dom.js';
 import { applyStatic, loadLanguage, localeTag, setLanguage, setRegion, t } from './i18n.js';
 import { grid, guideOpen, programmeSearch, renderGuideGroups } from './guideui.js';
@@ -76,8 +77,10 @@ export async function applyLanguage(lang) {
   // set off to fetch it from a server that does not exist yet.
   if (state.lib) await refreshRows({ keepScroll: true });
   else renderEmptyState();
-  // An idle player shows the welcome text, which comes from no paint routine.
-  if (!state.playing && !el.overlay.hidden && !el.overlay.classList.contains('loading')) renderIdleOverlay();
+  // A cast session's words, over whatever the device plays, and an idle
+  // player's welcome text come from no paint routine: applyStatic has just
+  // written "Nothing playing" there.
+  if (!redrawCasting() && !state.playing && !el.overlay.hidden && !el.overlay.classList.contains('loading')) renderIdleOverlay();
   // The path in the tab's title is in the interface language as well.
   updateAddress();
 }
@@ -93,6 +96,8 @@ new MutationObserver(() => {
 }).observe(el.overlayTitle, { childList: true, characterData: true, subtree: true });
 
 export function renderIdleOverlay() {
+  // The app's cast session has the overlay (js/castui.js).
+  if (sessionShown()) return;
   const welcome = !configured();
   // The welcome is the way in, not only a word: with the dialog closed it
   // used to be a dead end, the Settings button its only, unnamed, way on.

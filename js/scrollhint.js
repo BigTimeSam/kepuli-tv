@@ -18,7 +18,9 @@
 // the boxes, whose contents are replaced wholesale.
 
 /** The boxes beside the player that keep a bar in sight. */
-export const SCROLLERS = '.infostrip, .epgv-desc, .epgv-next';
+// The guide's programme panel itself scrolls in a low window, beside the
+// corner picture (css/narrow.css): the bar is drawn only where a box does.
+export const SCROLLERS = '.infostrip, .epgv-desc, .epgv-next, .epgview';
 
 const MIN_THUMB = 24;
 const EDGE = 2;         // the bar's gap from the box's right edge, in px

@@ -85,6 +85,27 @@ input[type="search"], input[type="text"], input[type="url"], input:not([type]) {
   .programme-form:not(:focus-within, :has(#programme-query:not(:placeholder-shown), select[aria-expanded="true"])) select { display: none; }
 }
 
+/* The app for the iPhone and the iPad (js/host.js; the page opened with
+   ?ios=1). What the app cannot answer or does not offer is left out: the
+   page is the whole screen already, the app grants a provider's host
+   itself, there is no browser's Back to explain, and nothing is recorded
+   there. What only the app shows (the help's privacy policy and licences)
+   is left out everywhere else. A long press on a link or a picture opens
+   nothing of the system's, and one on a row, a button or a heading
+   selects none of its words (it brought up the system's Copy, Look Up
+   and Translate over the list): the page has its own menus. */
+.ios #btn-screen, .ios #setup-grant-note, .ios .help-note[data-i18n="help.back"], .ios .setup-group[aria-labelledby="group-record"] { display: none; }
+/* The help's keys are all behind its fold there (js/help.js). */
+.ios #help h3, .ios #help-keys { display: none; }
+html:not(.ios) .ios-only { display: none; }
+html.ios { -webkit-touch-callout: none; -webkit-user-select: none; user-select: none; }
+/* What is read and may be wanted elsewhere stays selectable: what a
+   field holds, and a film's, an episode's or a programme's description. */
+html.ios :is(input, textarea, .detail-plot, .plot, .epgdesc, .epgv-desc) { -webkit-user-select: text; user-select: text; }
+/* The Cast mark on the bar while a Chromecast plays: lit in the accent,
+   as Google's own button is, where the menu's item is gold. */
+#btn-cast-top.on { color: var(--accent-ink); border-color: var(--accent-ink); }
+
 /* Forced colours (Windows High Contrast): the system replaces every
    background and drops every box-shadow, and with them went each mark of
    where you are: the chosen tab, group, topic, season and day, the list's

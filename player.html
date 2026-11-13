@@ -55,6 +55,14 @@
   </div>
 
   <div class="topbar-end">
+    <!-- The Cast mark, in the app for the iPhone and the iPad once a
+         Chromecast is near or in use (renderCastState): the player's menu
+         has the item, and this is it in sight, whatever the window shows.
+         It stood on the player's bar, which an upright phone shows only
+         while something plays: before that there was no way to a device,
+         and a session found after a new start had no mark and no stop. It
+         stays out of the top bar's menu (js/topmenu.js) for the same reason. -->
+    <button type="button" id="btn-cast-top" class="ghost icon-button" data-i18n-title="cast.title" data-i18n-label="cast.title" hidden><svg viewBox="0 0 20 20" aria-hidden="true"><path d="M2.5 6.5V5a1.5 1.5 0 0 1 1.5-1.5h12A1.5 1.5 0 0 1 17.5 5v10a1.5 1.5 0 0 1-1.5 1.5h-4.5M2.5 13.5a3 3 0 0 1 3 3M2.5 10a6.5 6.5 0 0 1 6.5 6.5"/><circle cx="3" cy="16.4" r=".9" fill="currentColor" stroke="none"/></svg></button>
     <!-- Refresh and Help are wanted now and then, so they are marks with
          their names in the label and the tooltip; Settings keeps its word
          where there is room for it. -->
@@ -219,6 +227,13 @@
            leave the layer behind, so the wrapper goes to full screen
            instead, from the button over the picture. -->
       <video id="video" controls playsinline preload="none"></video>
+      <!-- In the app for the iPhone and the iPad only (css/last.css): the
+           picture to the whole screen and back, the app's own way
+           (js/playercontrols.js). It lies over the full-screen mark of
+           WebKit's controls and comes and goes with them. -->
+      <button type="button" id="btn-full" class="second-btn full-btn ios-only" data-i18n-label="screen.enter" data-i18n-title="screen.enter">
+        <svg class="screen-enter" viewBox="0 0 20 20" aria-hidden="true"><path d="M3 7.5V3h4.5M12.5 3H17v4.5M17 12.5V17h-4.5M7.5 17H3v-4.5"/></svg><svg class="screen-leave" viewBox="0 0 20 20" aria-hidden="true"><path d="M7.5 3v4.5H3M17 7.5h-4.5V3M12.5 17v-4.5H17M3 12.5h4.5V17"/></svg>
+      </button>
       <div class="subdisplay" id="subdisplay" aria-hidden="true"></div>
       <div class="overlay" id="overlay">
         <div class="overlay-inner">
@@ -669,8 +684,9 @@
         <h3 id="group-guide" data-i18n="btn.guide">Programme guide</h3>
         <div class="toggles">
           <label class="toggle"><input type="checkbox" id="f-epg" checked><span data-i18n="setup.epg">Fetch programme data automatically</span></label>
-          <label class="toggle"><input type="checkbox" id="f-notify"><span data-i18n="setup.notify">Show reminders as notifications when the player is not in view</span></label>
+          <label class="toggle"><input type="checkbox" id="f-notify" aria-describedby="notify-hint"><span data-i18n="setup.notify">Show reminders as notifications when the player is not in view</span></label>
         </div>
+        <p class="field-hint notify-refused" id="notify-hint" role="status" data-i18n="setup.notify.denied" hidden>Notifications are turned off for Kepuli-TV in the device’s settings.</p>
       </section>
     </section>
 
@@ -799,18 +815,22 @@ before the storm closes the road.</div></div>
         <input id="f-name" type="text" autocomplete="off" spellcheck="false" data-i18n-placeholder="setup.name.placeholder" placeholder="e.g. Provider name">
       </label>
 
+      <!-- What is typed into these fields is an address, a user name or a
+           code, as the provider wrote it: an iPhone's keyboard began each
+           with a capital and corrected it to a word ("demo" became "Demo",
+           and the sign-in failed), which spellcheck alone does not stop. -->
       <div class="grid" id="src-xtream">
         <label class="field w-scheme"><span data-i18n="setup.scheme">Protocol</span>
           <select id="f-scheme" aria-describedby="connection-security"><option value="http">http</option><option value="https">https</option></select>
         </label>
         <label class="field w-host req"><span data-i18n="setup.host">Server</span>
-          <input id="f-host" type="text" aria-required="true" placeholder="example.tv" autocomplete="off" spellcheck="false">
+          <input id="f-host" type="text" inputmode="url" aria-required="true" placeholder="example.tv" autocomplete="off" spellcheck="false" autocapitalize="none" autocorrect="off">
         </label>
         <label class="field w-port"><span data-i18n="setup.port">Port</span>
-          <input id="f-port" type="text" placeholder="8080" autocomplete="off">
+          <input id="f-port" type="text" placeholder="8080" autocomplete="off" inputmode="numeric">
         </label>
         <label class="field req"><span data-i18n="setup.username">Username</span>
-          <input id="f-username" type="text" aria-required="true" autocomplete="off" spellcheck="false">
+          <input id="f-username" type="text" aria-required="true" autocomplete="off" spellcheck="false" autocapitalize="none" autocorrect="off">
         </label>
         <!-- A provider's password is long and random and typed by hand once.
              Without a way to look at it, a typo is found only by the
@@ -835,7 +855,7 @@ before the storm closes the road.</div></div>
           <label for="f-paste"><span data-i18n="setup.m3u.label">Subscription or playlist address</span></label>
           <button type="button" class="hint-btn" aria-expanded="false" aria-controls="playlist-hint" data-i18n-label="btn.help">?</button>
         </div>
-        <input id="f-paste" type="text" aria-required="true" placeholder="http://example.tv:8080/…?username=…&amp;password=…" autocomplete="off" spellcheck="false" aria-describedby="playlist-hint playlist-status">
+        <input id="f-paste" type="text" aria-required="true" placeholder="http://example.tv:8080/…?username=…&amp;password=…" autocomplete="off" spellcheck="false" aria-describedby="playlist-hint playlist-status" inputmode="url" autocapitalize="none" autocorrect="off">
         <span id="playlist-hint" class="field-hint" data-i18n="setup.m3u.hint" hidden>Paste the address your provider gave you. If it has a username and password in it, they fill in the connection fields; any other M3U playlist address is used as it is.</span>
         <!-- Only ever the reason an address was not accepted: one that is
              accepted opens the fields it filled, which says the same thing
@@ -853,11 +873,11 @@ before the storm closes the road.</div></div>
            registered for them; there is no user name or password. -->
       <div class="grid" id="src-stalker" hidden>
         <label class="field w-wide req"><span data-i18n="setup.stalker.url">Portal address</span>
-          <input id="f-portal" type="text" aria-required="true" placeholder="http://example.tv:8080/c/" autocomplete="off" spellcheck="false" aria-describedby="portal-hint">
+          <input id="f-portal" type="text" aria-required="true" placeholder="http://example.tv:8080/c/" autocomplete="off" spellcheck="false" aria-describedby="portal-hint" inputmode="url" autocapitalize="none" autocorrect="off">
           <span id="portal-hint" class="field-hint" data-i18n="setup.stalker.url.hint">The address your provider gave for a MAG box, often ending in /c/.</span>
         </label>
         <label class="field w-wide req"><span data-i18n="setup.stalker.mac">MAC address</span>
-          <input id="f-mac" type="text" aria-required="true" placeholder="00:1A:79:00:00:00" autocomplete="off" spellcheck="false" aria-describedby="mac-hint">
+          <input id="f-mac" type="text" aria-required="true" placeholder="00:1A:79:00:00:00" autocomplete="off" spellcheck="false" aria-describedby="mac-hint" autocapitalize="characters" autocorrect="off">
           <span id="mac-hint" class="field-hint" data-i18n="setup.stalker.mac.hint">The MAC address registered to your own subscription. Someone else’s, or one from a shared list, may not be used.</span>
         </label>
       </div>
@@ -865,7 +885,7 @@ before the storm closes the road.</div></div>
       <!-- A playlist that is not an Xtream subscription may name its own
            programme guide (url-tvg); this is for one that does not. -->
       <label class="field" id="src-epg" hidden><span data-i18n="setup.epgurl">Programme guide address (XMLTV)</span>
-        <input id="f-epgurl" type="text" placeholder="http://example.tv/guide.xml.gz" autocomplete="off" spellcheck="false" aria-describedby="epgurl-hint">
+        <input id="f-epgurl" type="text" placeholder="http://example.tv/guide.xml.gz" autocomplete="off" spellcheck="false" aria-describedby="epgurl-hint" inputmode="url" autocapitalize="none" autocorrect="off">
         <span id="epgurl-hint" class="field-hint" data-i18n="setup.epgurl.hint">Leave it empty when the playlist names its own guide.</span>
       </label>
 
@@ -935,6 +955,14 @@ before the storm closes the road.</div></div>
       <h2 id="help-title" data-i18n="help.title">Help</h2>
       <button type="button" id="help-close" data-modal-close data-i18n-label="modal.close"></button>
     </div>
+    <!-- In the app for the iPhone and the iPad only (css/last.css): what a
+         finger does. The keys there are for a keyboard joined to an iPad
+         and wait, all of them, behind the fold below (js/help.js). -->
+    <ul class="help-touch ios-only">
+      <li data-i18n="help.touch.full"></li>
+      <li data-i18n="help.touch.menu"></li>
+      <li data-i18n="help.touch.guide"></li>
+    </ul>
     <h3 data-i18n="help.shortcuts">Keyboard shortcuts</h3>
     <dl class="help-keys" id="help-keys"></dl>
     <details class="help-more">
@@ -953,6 +981,18 @@ before the storm closes the road.</div></div>
     <div class="help-foot">
       <a class="setup-help" href="https://github.com/BigTimeSam/kepuli-tv/blob/main/docs/user-guide.md" target="_blank" rel="noopener noreferrer">
         <span data-i18n="help.full">The full user guide</span>
+        <svg viewBox="0 0 20 20" aria-hidden="true"><path d="M11 3h6v6M17 3l-8 8M8 4H4a1 1 0 0 0-1 1v11a1 1 0 0 0 1 1h11a1 1 0 0 0 1-1v-4"/></svg>
+      </a>
+      <!-- In the app for the iPhone and the iPad only (css/last.css): the
+           App Store wants the privacy policy inside the app, and the
+           licences of what the app carries must reach its user. A browser
+           has both on the extension's store page. -->
+      <a class="setup-help ios-only" href="https://bigtimesam.github.io/kepuli-tv/privacy/" target="_blank" rel="noopener noreferrer">
+        <span data-i18n="help.privacy">Privacy policy</span>
+        <svg viewBox="0 0 20 20" aria-hidden="true"><path d="M11 3h6v6M17 3l-8 8M8 4H4a1 1 0 0 0-1 1v11a1 1 0 0 0 1 1h11a1 1 0 0 0 1-1v-4"/></svg>
+      </a>
+      <a class="setup-help ios-only" href="https://bigtimesam.github.io/kepuli-tv/licences/" target="_blank" rel="noopener noreferrer">
+        <span data-i18n="help.licences">Licences</span>
         <svg viewBox="0 0 20 20" aria-hidden="true"><path d="M11 3h6v6M17 3l-8 8M8 4H4a1 1 0 0 0-1 1v11a1 1 0 0 0 1 1h11a1 1 0 0 0 1-1v-4"/></svg>
       </a>
       <p id="app-version" class="setup-note app-version"></p>

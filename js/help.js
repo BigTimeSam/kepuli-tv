@@ -6,6 +6,7 @@
 // builds, from js/state.js.
 
 import { $ } from './dom.js';
+import { ios } from './host.js';
 import { t } from './i18n.js';
 
 /**
@@ -52,8 +53,20 @@ export function openHelp() {
     dd.textContent = t(id);
     return [dt, dd];
   });
-  $('help-keys').replaceChildren(...rows(SHORTCUTS));
-  $('help-keys-more').replaceChildren(...rows(MORE_SHORTCUTS));
   const dialog = /** @type {HTMLDialogElement} */ ($('help'));
+  // In the app the help begins with what a finger does (player.html), and
+  // the keys are for a keyboard joined to an iPad: on an iPhone the help
+  // was a list of keys and nothing else. All of them wait behind the one
+  // fold, named for what it holds, and open where something hovers: a
+  // trackpad, which comes with most such keyboards.
+  $('help-keys').replaceChildren(...rows(ios ? [] : SHORTCUTS));
+  $('help-keys-more').replaceChildren(...rows(ios ? [...SHORTCUTS, ...MORE_SHORTCUTS] : MORE_SHORTCUTS));
+  if (ios) {
+    const fold = /** @type {HTMLDetailsElement} */ (dialog.querySelector('.help-more'));
+    const label = /** @type {HTMLElement} */ (fold.querySelector('.section-label'));
+    label.dataset.i18n = 'help.shortcuts';
+    label.textContent = t('help.shortcuts');
+    if (!dialog.open) fold.open = matchMedia('(any-hover: hover)').matches;
+  }
   if (!dialog.open) dialog.showModal();
 }

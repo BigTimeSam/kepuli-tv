@@ -125,7 +125,9 @@ function watchSources(onChange) {
     if (!file) return;
     const path = file.replaceAll('\\', '/');
     if (path.startsWith('.') || path.includes('/.')) return;
-    if (path.startsWith('dev/') || path.startsWith('icons/') || path.startsWith('firefox/')) return;
+    // ios/ too: nothing there is loaded by the browser, and every build of
+    // the app rewrites its own copy of the extension (ios/dist/).
+    if (path.startsWith('dev/') || path.startsWith('icons/') || path.startsWith('firefox/') || path.startsWith('ios/')) return;
     if (!WATCHED.test(path)) return;
     onChange(path);
   });

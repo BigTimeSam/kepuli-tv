@@ -37,8 +37,14 @@ as the hosted demo for store reviewers.
   each connection closed by the server after that long), `TS_PACE`,
   `TS_AS_MP`, `LONG`, `FULL`, `EMPTY`, `EPISODE_EXT`, `EXTRA_CHANNEL`,
   `STALKER_LOOSE`, `VERSIONS` (the first film in three copies and two later parts, an original title and a sound language), `EPISODE_NAMES` (episodes named "Series – S01E01" as providers do), `COUNTRY_PREFIX` (channel names begin with their country's code, "FI: Aurora One"), `BULK` (N invented films more in Movies: Nordic, for the
-  perf scenario), `BULK_LIVE` (N invented channels more, dealt to every country and topic, with no programmes, for perflive and perfplaylist). Read the code for each one's exact meaning, and document a
-  new one in the comment beside it.
+  perf scenario), `BULK_LIVE` (N invented channels more, dealt to every country and topic, with no programmes, for perflive and perfplaylist), `NO_CORS` (no `Access-Control-*` header on any answer, as most providers' servers send none: what the iOS app asks a playlist's server before it casts HLS to a Chromecast). Read the code for each one's exact meaning, and document a
+  new one in the comment beside it. `REVIEW` is not a fault but the hosted
+  demo's catalogue (the `Dockerfile` and `fly.toml` both set it, so the
+  image is the reviewer's catalogue however it is run; read at start-up):
+  the AVI film at the end of each genre is an MP4 and no episode has AC-3
+  sound, so that a store's reviewer meets nothing that is there to fail.
+  `dev/unitcheck.mjs` holds both catalogues, and `node ios/release.mjs
+  status` refuses a demo that still serves an AVI.
 - **Exports for tests**: `startMockServer`, `PORT`, `USER`, `PASS`,
   `STALKER_MAC`, `MULTI_EPISODES`, `connectionStats`, `stalkerSeen`. Tests
   assert on `connectionStats()` (open and refused connections) rather than

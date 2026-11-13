@@ -24,7 +24,33 @@ video { width: 100%; height: 100%; display: block; background: #000; color-schem
    same in a window and in full screen, where the wrapper goes and the
    layer with it: --sub-scale in the body's style is the viewer's choice,
    --pic-h on the wrapper the picture's height. */
-.videowrap:fullscreen { background: #000; }
+.videowrap:is(:fullscreen, .full) { background: #000; }
+/* The app's own full screen (.full, js/playercontrols.js): in the iPhone
+   and iPad app the shell gives the page the whole screen and the wrapper is
+   laid over the window, which the browser's full screen does elsewhere.
+   Over the top bar and under the toasts, which so stay in sight. The box
+   keeps clear of what the screen is not safe for (--full-*, said by the
+   app: the island and the rounded corners, where the picture's own
+   controls would be out of reach), and black is spread around it to the
+   screen's edges. The home indicator's strip is given up only when the
+   picture has no use for it: a phone lying down is as high as a 16:9
+   picture, which then reaches the top and the bottom of the screen. A
+   swipe down leaves it, so the page does not pan under the finger. */
+.videowrap.full {
+  position: fixed; z-index: 9; width: auto; height: auto; margin: 0; touch-action: none;
+  inset: var(--full-top, 0px) var(--full-right, 0px)
+    clamp(0px, calc(100dvh - var(--full-top, 0px) - (100vw - var(--full-left, 0px) - var(--full-right, 0px)) / (var(--pic-ratio, 16 / 9))), var(--full-bottom, 0px))
+    var(--full-left, 0px);
+  box-shadow: 0 0 0 100vmax #000;
+}
+/* Nothing under it scrolls meanwhile: an iPhone draws the scroll mark of
+   a box that can scroll over whatever lies on top of it, and the
+   details' one stood in the black beside the picture for as long as the
+   film ran. Measured in the app: neither scrollbar-width: none nor
+   visibility: hidden takes the mark away, only a box that does not
+   scroll. Each keeps its place, and scrolls again when the picture is
+   back in its own. */
+main:has(.videowrap.full) :not(.videowrap, .videowrap *) { overflow: hidden; }
 
 .subdisplay {
   /* From the picture's bottom edge, the bar under a letterboxed film not
@@ -40,12 +66,23 @@ video { width: 100%; height: 100%; display: block; background: #000; color-schem
   transition: bottom .2s ease;
 }
 /* Above the browser's controls while they are likely on show, see wake()
-   in js/subdisplay.js. */
-.videowrap.controls .subdisplay { bottom: max(var(--sub-rest), 132px); }
+   in js/subdisplay.js. Never out of the picture, though: both lifts are a
+   desktop's measures, and in a picture lower than them (a phone's, 125 to
+   240 px, the guide's corner picture) the text stood over the heading
+   above the picture. Two lines keep their room under its top edge. */
+.videowrap.controls .subdisplay { bottom: min(max(var(--sub-rest), 132px), calc(100% - var(--pic-bar, 0px) - 3.5em)); }
 /* And above the subtitle-look popover while that is open: it is opened to
    judge the subtitles by, so it is the one thing that must not cover
-   them. */
-.videowrap.looking .subdisplay { bottom: max(var(--sub-rest), 210px); }
+   them. By as much as the panel lies over the picture, measured while it
+   is open (--look-lift, js/tracksui.js): on an upright phone it lies
+   under the picture and not over it, and lifted by a desktop's 210 px the
+   text was pinned to the picture's top, where Height changed nothing to
+   be seen. */
+.videowrap.looking .subdisplay { bottom: min(max(var(--sub-rest), var(--look-lift, 210px)), calc(100% - var(--pic-bar, 0px) - 3.5em)); }
+/* In the app WebKit's controls are a row along the bottom and three marks
+   in the picture's middle: the text clears the row and stays under the
+   marks, where the desktop's lift put it on them. */
+html.ios .videowrap.controls:not(.looking) .subdisplay { bottom: min(max(var(--sub-rest), 44px), calc(100% - var(--pic-bar, 0px) - 3.5em)); }
 
 /* One box per cue, lines and all. The measures are in em, so that the
    padding and the corners follow the text. Line breaks come from the file;
@@ -136,6 +173,8 @@ body[data-substyle="contrast"] { --cue-back: #000; }
 .overlay-title { font-size: 1.0625rem; font-weight: 650; letter-spacing: -0.005em; }
 .overlay-text { color: var(--muted); }
 .overlay-actions { margin-top: 14px; display: flex; gap: 8px; justify-content: center; }
+/* Under a finger: a cast session's two are its only controls on the page. */
+@media (hover: none) { .overlay-actions button { min-height: 2.75rem; } }
 .now-title:empty { display: none; }
 
 /* The empty player's page: covers to carry on with, then channels. */
@@ -333,9 +372,9 @@ body[data-substyle="contrast"] { --cue-back: #000; }
    there while the pointer moves over the pictures (.controls, see wake()
    in js/subdisplay.js) or the keyboard is on one of them, gone when it
    rests, so that a match is watched without three buttons on it. */
-.videowrap:fullscreen .second-bar { opacity: 0; pointer-events: none; transition: opacity .25s ease; }
-.videowrap:fullscreen.controls .second-bar, .videowrap:fullscreen .second-bar:focus-within { opacity: 1; pointer-events: auto; }
-@media (prefers-reduced-motion: reduce) { .videowrap:fullscreen .second-bar { transition: none; } }
+.videowrap:is(:fullscreen, .full) .second-bar { opacity: 0; pointer-events: none; transition: opacity .25s ease; }
+.videowrap:is(:fullscreen, .full).controls .second-bar, .videowrap:is(:fullscreen, .full) .second-bar:focus-within { opacity: 1; pointer-events: auto; }
+@media (prefers-reduced-motion: reduce) { .videowrap:is(:fullscreen, .full) .second-bar { transition: none; } }
 /* The pictures on each other's sides (the swap button, js/secondui.js):
    the second on the left with its bar, the first and all that is drawn
    over it on the right, and the halves of the title bar and the details
@@ -344,9 +383,11 @@ body[data-substyle="contrast"] { --cue-back: #000; }
 .videowrap.split.swapped > .overlay { left: 50%; }
 .videowrap.split.swapped > .subdisplay { left: 52.5%; right: 2.5%; }
 .videowrap.split.swapped > .statbadge { left: calc(50% + 12px); }
+.videowrap.split.swapped > .full-btn { left: calc(50% + 2px); }
 .videowrap.swapped > .second { right: auto; left: 0; border-left: 0; border-right: 2px solid #000; }
-main.guide .videowrap.split.swapped:not(:fullscreen) > video { margin-left: 0; }
-main.guide .videowrap.split.swapped:not(:fullscreen) > .overlay { left: 0; }
+main.guide .videowrap.split.swapped:not(:fullscreen, .full) > video { margin-left: 0; }
+main.guide .videowrap.split.swapped:not(:fullscreen, .full) > .overlay { left: 0; }
+main.guide .videowrap.split.swapped:not(:fullscreen, .full) > .full-btn { left: 2px; }
 .stagehead.swapped .stagehead-second { order: -1; padding-left: 0; margin-right: 14px; }
 .infostrip.split.swapped .info-half:first-child { order: 2; }
 .infostrip.split.swapped .info-half + .info-half { border-left: 0; border-right: 1px solid var(--border); }
@@ -355,8 +396,8 @@ main.guide .videowrap.split.swapped:not(:fullscreen) > .overlay { left: 0; }
 .info-half { min-width: 0; padding: 0 12px; }
 .info-half + .info-half { border-left: 1px solid var(--border); }
 .info-none { color: var(--muted); font-size: var(--fs-m); }
-main.guide .videowrap.split:not(:fullscreen) > video, main.guide .videowrap.split:not(:fullscreen) > .overlay { width: 100%; }
-main.guide .videowrap:not(:fullscreen) > .second { display: none; }
+main.guide .videowrap.split:not(:fullscreen, .full) > video, main.guide .videowrap.split:not(:fullscreen, .full) > .overlay { width: 100%; }
+main.guide .videowrap:not(:fullscreen, .full) > .second { display: none; }
 /* The name and the two buttons stay in sight: a touch screen has no hover
    to bring them out with, and the picture has no other controls. */
 .second-bar {
@@ -374,9 +415,22 @@ main.guide .videowrap:not(:fullscreen) > .second { display: none; }
 .second-btn svg { width: 18px; height: 18px; fill: none; stroke: currentColor; stroke-width: 1.7; stroke-linecap: round; stroke-linejoin: round; }
 /* The speaker says where the sound is: crossed out here, gold with its
    waves when this picture has it. */
+/* The app's full-screen button, in the picture's corner over WebKit's own,
+   whose full screen is the system's player without the page's subtitles
+   and overlay. It comes and goes with the controls, as the second
+   picture's buttons do in full screen; nothing to press with nothing
+   playing. Opaque, or WebKit's mark shows through it. */
+.full-btn { position: absolute; top: 2px; left: 2px; width: 36px; height: 36px; background: #14171f; opacity: 0; pointer-events: none; transition: opacity .25s ease; }
+.videowrap.sized.controls .full-btn, .videowrap.sized .full-btn:focus-visible { opacity: 1; pointer-events: auto; }
+/* In full screen it is also the way out, so it stands over whatever has
+   taken the picture's place there (the start page once a film has ended,
+   an error, the note of a cast session), where no controls come and go. */
+.videowrap.full .full-btn { z-index: 1; }
+.videowrap.full:has(> .overlay:not([hidden])) .full-btn { opacity: 1; pointer-events: auto; }
+@media (prefers-reduced-motion: reduce) { .full-btn { transition: none; } }
 .second-btn .waves { display: none; }
-.second-btn .screen-leave, .videowrap:fullscreen .second-btn .screen-enter { display: none; }
-.videowrap:fullscreen .second-btn .screen-leave { display: inline; }
+.second-btn .screen-leave, .videowrap:is(:fullscreen, .full) .second-btn .screen-enter { display: none; }
+.videowrap:is(:fullscreen, .full) .second-btn .screen-leave { display: inline; }
 #second-sound[aria-pressed="true"] { color: var(--gold); }
 .second-btn[aria-pressed="true"] .waves { display: inline; }
 .second-btn[aria-pressed="true"] .off { display: none; }
@@ -413,8 +467,8 @@ main.guide .videowrap:not(:fullscreen) > .second { display: none; }
 /* With the picture at its own height the details have room (see
    .videowrap.sized), and the cover need not be a stamp: it grows with the
    window, a poster's 2:3, up to about the height of the facts beside it. */
-main:not(.guide) .stage:has(> .videowrap.sized:not(:fullscreen)) .vodinfo { gap: 16px; }
-main:not(.guide) .stage:has(> .videowrap.sized:not(:fullscreen)) .info-cover { width: clamp(72px, 8vw, 136px); height: auto; aspect-ratio: 2 / 3; border-radius: 7px; }
+main:not(.guide) .stage:has(> .videowrap.sized:not(:fullscreen, .full)) .vodinfo { gap: 16px; }
+main:not(.guide) .stage:has(> .videowrap.sized:not(:fullscreen, .full)) .info-cover { width: clamp(72px, 8vw, 136px); height: auto; aspect-ratio: 2 / 3; border-radius: 7px; }
 .playback-facts { display: flex; flex-wrap: wrap; gap: 10px 20px; margin: 0 0 8px; padding-top: 8px; border-top: 1px solid var(--border); }
 .playback-facts:empty { display: none; }
 .vodinfo-body > .playback-facts:first-child { padding-top: 0; border-top: 0; }
@@ -429,6 +483,8 @@ main:not(.guide) .stage:has(> .videowrap.sized:not(:fullscreen)) .info-cover { w
 .tech-facts { margin: -2px 0 8px; }
 .tech-toggle { display: inline-flex; align-items: center; gap: 4px; list-style: none; color: var(--muted); font-size: var(--fs-xs); cursor: pointer; border-radius: 4px; }
 .tech-toggle::-webkit-details-marker { display: none; }
+/* 15 px under a finger. */
+@media (hover: none) { .tech-toggle { min-height: 2rem; } }
 .tech-toggle:hover { color: var(--text); }
 .tech-toggle:focus-visible { outline: 2px solid var(--accent-ink); outline-offset: 2px; }
 .tech-facts[open] > .tech-toggle .section-chevron { rotate: 180deg; }
@@ -506,6 +562,30 @@ main:not(.has-playback) .stagehead { display: none; }
 .nowbar.tight .now-actions > #mode-pick { flex: 0 1 auto; min-width: 64px; }
 .nowbar.tight #mode-pick > select { width: 100%; min-width: 0; }
 .nowbar.tight .now-actions .trackpick, .nowbar.tight .now-actions > .trackpick-mark { min-width: 64px; }
+/* Beside a track's selector the playback mode is then its mark and its
+   chevron alone, and the width it gives up is the track's, whose value
+   says what is on: "Automatic" stood there as "Automa" or "Auton" beside
+   a subtitle language cut short as well, in every language. Its name is
+   its title, and its list reads in full.
+   The width is the mark's and the chevron's paddings (29 and 28 px) with
+   the border: narrower, the selector reached out of its box and under
+   the next one, and lost its focus ring's side there. */
+.nowbar.tight .now-actions:has(.trackpick:not([hidden])) > #mode-pick { flex: none; width: 3.75rem; min-width: 0; }
+.nowbar.tight .now-actions:has(.trackpick:not([hidden])) > #mode-pick > select { color: transparent; }
+/* With a sound track's selector on the row as well (a file with several
+   tracks), the subtitles' gives way in the same manner and the sound's has
+   the width: the two read "English (AA" and "Engli" on an upright phone.
+   What the subtitles are is read in the picture, and in the list. */
+/* 4rem, the least a track's selector goes in a tight bar: narrower, the
+   selector reached out of its box. */
+.nowbar.tight .now-actions:has(#audio:not([hidden])) > .trackpick-mark:has(#subs:not([hidden])) { flex: none; width: 4rem; }
+.nowbar.tight .now-actions:has(#audio:not([hidden])) > .trackpick-mark > #subs { color: transparent; }
+/* In the narrowest window (an iPad's Split View, 320 px) the sound's own
+   value had room for a letter, "E": it is its mark there too. */
+@media (max-width: 360px) {
+  .nowbar.tight .now-actions:has(#subs:not([hidden])) > .trackpick-mark:has(#audio:not([hidden])) { flex: none; width: 4rem; }
+  .nowbar.tight .now-actions:has(#subs:not([hidden])) > .trackpick-mark > #audio { color: transparent; }
+}
 .now-actions select { text-overflow: ellipsis; }
 /* fitNowbar's measure: each control at its own width for a moment. */
 .nowbar.measuring .now-actions > * { flex-shrink: 0 !important; }
@@ -538,6 +618,8 @@ main.guide .select-mark .select-label { display: none; }
   color: var(--text); font: inherit; text-align: left; cursor: pointer; text-decoration: none;
 }
 .popitem[hidden] { display: none; }
+/* A menu's rows under a finger. */
+@media (hover: none) { .popitem { min-height: 2.75rem; } }
 .popitem:hover { background: var(--row-hover); }
 .popitem:focus-visible { outline: 2px solid var(--accent-ink); outline-offset: -2px; }
 /* The same gold as the row's own Cast button had while a device plays. */

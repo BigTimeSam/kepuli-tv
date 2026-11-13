@@ -17,7 +17,7 @@ written here.
 | `listorder.js` | each list's order (channels, favourites, films, series, history): the choices, the setting each is kept in, the marks at the list's foot and the films' orders by year, rating and date added |
 | `tilekeys.js` | the keys on a strip of tiles (related titles, the empty player's cards): arrows between the tiles, `s` and Delete on the tile with the focus, not the list's row |
 | `picker.js`, `modal.js`, `rowmenu.js`, `poster.js` | shared UI parts: every drop-down, dialog closing, the row menu, covers with fallback. Reuse them |
-| `playerlayout.js`, `theme.js`, `route.js` | narrow-window panes, colour theme and its button (`renderTheme`), the address (`#/live/...`) and tab title |
+| `playerlayout.js`, `theme.js`, `route.js` | narrow-window panes (the list, the player, and in the player's pane the start page when the logo asks for it and a cast session the page found on the device), colour theme and its button (`renderTheme`), the address (`#/live/...`) and tab title |
 | `channelchoices.js` | the Filter countries / Filter categories dialog (`CountryPicker.show({ mode, onSave, texts })`: all, the favourite ones, or those chosen) and hidden channels |
 | `cataloguesearch.js`, `programmesearch.js`, `name.js` | catalogue search, guide search, name tidying and accent-folding search keys |
 | `titlemeta.js` | what a film's name and its list say beyond the name: the year a title repeats, which copy of a film is which, the other parts of a series of films, what the provider added lately, one card a title (`oneCopyEach`, the starred copy first) |
@@ -48,10 +48,11 @@ lists, series info, stream URL) for its kind:
 | `wakelock.js` | the screen kept on while a picture plays (Screen Wake Lock; on the iPhone asked from a tap) |
 | `probe.js`, `ebml.js` | reading file headers: what the container really holds; the ranged downloads `remux.js` and `mp4play.js` share (`fetchRange`, `within`) |
 | `remux.js`, `mkv.js`, `mp4.js` | MKV unpacked into fMP4 for MediaSource, seeking included |
-| `mp4file.js`, `mp4play.js` | MP4 through MediaSource for Firefox (http media upgrade problem) |
+| `mp4file.js`, `mp4play.js` | MP4 through MediaSource for Firefox (http media upgrade problem); `audioSpecificConfig` in `mp4file.js` unwraps the whole ES_Descriptor that WebKit's AAC encoder reports as its configuration (`transcode.js`) |
 | `audio.js`, `ffaudio.js`, `transcode.js` | audio track choice, AC-3/E-AC-3/DTS decoding (wasm), re-encoding for MSE |
 | `subs.js`, `subdisplay.js`, `lang.js` | subtitle tracks, the app-drawn subtitle layer, language names |
-| `cast.js`, `external.js` | Chromecast (Remote Playback API), hand-off to VLC and others |
+| `cast.js`, `external.js` | Chromecast (the Remote Playback API in a browser; `NativeCast`, the iOS app's own sender, with `castMedia` saying what a device can be handed), hand-off to VLC and others |
+| `castui.js` | the cast session in the iOS app: a stream handed to the device and taken back, the overlay with its two buttons (`sessionShown` keeps the empty player's page from writing over it, `sessionFound` tells the layout of a session found after a new start), what cannot be cast said and played here (`castOrPlay`, called by `startPlayback` in `playing.js`), the device's place and its end noted as the picture's own are (`notePlace`, `noteEnded` in `nextepisode.js`), a failing channel kept apart from its server, what the device says of a stream the viewer has left ignored (`shownHere`), or of one this page has just told it to stop (`stopAsked`: no session is found in those words), the stream taken back for another player at the device's place (`castTaken`, for VLC), the session's words written again after a change of language (`redrawCasting`), and what ended while the phone slept starting nothing (`lostAsleep`) |
 | `streamhub.js`, `recorder.js` | one shared live connection; recording to the origin private file system |
 | `playing.js`, `tracksui.js`, `nextepisode.js` | starting playback and what the overlay says while it waits or fails (the account's connections, the player's other tabs); the subtitle and audio selectors, the subtitles' look, the picture's size and leaving playback; the saved place, the next episode and the stream's figures (moved out of `app.js`) |
 | `setupui.js` | Settings and Account & data: the form and its account kinds, sync, the storage used, the update, resetting everything, and their wiring (moved out of `app.js`) |
@@ -59,9 +60,9 @@ lists, series info, stream URL) for its kind:
 | `accountsui.js`, `remindersui.js`, `infostrip.js` | the account list in Settings and switching to another account; programme reminders; the details strip under the picture (moved out of `app.js`) |
 | `coversui.js`, `seriesui.js`, `guideui.js`, `picksui.js`, `topicbar.js`, `externalui.js` | covers or rows; a series' page; the guide in the player (grid, column, search, favourites); the start page's picks; the topic chips and their bar; the external player hand-off (moved out of `app.js`) |
 | `secondui.js` | the second picture: another live channel beside the one playing, a `Playback` of its own on `#video2`, offered where `secondAccounts` (`config.js`) finds a connection for it; sound from one picture at a time |
-| `sidescroll.js` | a row that scrolls sideways with its ‹ and › (the start page's covers, a film's related rows, the guide's days, the narrow window's tabs) |
+| `sidescroll.js` | a row that scrolls sideways with its ‹ and › (the start page's covers, a film's related rows, the guide's days, the narrow window's tabs, Settings' sections); `reveal` brings an item into its row whole and clear of the arrows, for the one that takes the focus and the one chosen without it; a row given `follow` keeps its marked item so by itself (the guide's day in view) |
 | `idlehome.js` | the empty player's page (continue watching, the viewer's channels, the picks' carousel) and the note of programmes the viewer stays with (moved out of `app.js`); `paintIdleStars` after a favourite changes |
-| `collections.js`, `playercontrols.js`, `progressdialog.js`, `help.js`, `languageui.js` | Favourites and History and favourite categories; the ☰ menu, full screen and media keys; the list-loading strip; the help dialog; switching language and the empty player's title (moved out of `app.js`) |
+| `collections.js`, `playercontrols.js`, `progressdialog.js`, `help.js`, `languageui.js` | Favourites and History and favourite categories; the ☰ menu, full screen (the browser's, or in the iOS app the app's own: `screen.full` asked of it, its `screen` event setting `.full` on the wrapper and sending `fullscreenchange`; `pictureFull()` answers for both) and media keys; the list-loading strip; the help dialog; switching language and the empty player's title (moved out of `app.js`) |
 | `topmenu.js` | the top bar's hamburger: below the width at which the bar fits on one row (measured, as tab names differ by language), Refresh, Help, the theme, full screen and Settings go into its menu |
 | `listfilters.js` | the list's filter folds: "Filter channels" with the topics and "Show only favourites" (`filterChannels`), both folds' stored state wired in `wireListFilters`; the parts are moved, not rebuilt |
 | `scrollhint.js` | a thin bar of the page's own over the player's details (`SCROLLERS`) when they hold more than they show, where the browser's bar fades away (Firefox on Android and macOS); lists and dialogs keep the browser's own |
@@ -79,7 +80,8 @@ lists, series info, stream URL) for its kind:
 | `db.js` | IndexedDB cache of provider data, with TTLs |
 | `sync.js` | sync between computers through `storage.sync` |
 | `browser.js` | the extension API namespace (`chrome`/`browser`) and the engine |
-| `caret.js` | whether a field may take the caret unasked: not on a touch screen, where it opens the on-screen keyboard |
+| `host.js` | the app around the page, where there is one: `ios` (the page opened as `player.html?ios=1` by the app for the iPhone and the iPad) and the one port to its native side (`send`, `request`, `on`). The page says `hello` as soon as the port is attached, since the app can greet it only once it has spoken. What differs in the app is a branch on `ios` in the module concerned (`wakelock.js`, `sync.js`, `external.js`, `remindersui.js`, `recordingsui.js`, `cast.js`, `playercontrols.js`, `app.js`), and `.ios` rules in `css/last.css`; a test hands `attach()` a fake port. It also tells the app the backdrop of an open modal dialog (`screen.shade`, for the strips around the web view), keeps a focused field in sight when the window changes under it (the device turned with the keyboard up) and tells the stylesheets of a keyboard over a window that kept its height (`html.kb`, `--vvh`, `--vvt`: an upright iPad). `theme.js` says the theme setting to the app (`screen.theme`) |
+| `caret.js` | whether a field may take the caret unasked: not on a touch screen, where it opens the on-screen keyboard, or a picker's menu |
 | `testclock.js` | the visual check's clock: `player.html?testnow=<ms>` starts `Date` at that moment; nothing without the parameter. Keep it the first import of `app.js` |
 | `i18n.js`, `locales/` | the interface language, see `locales/AGENTS.md`; `player.html?pseudo=1` pseudo-localises every string (inert without it) |
 
@@ -113,10 +115,10 @@ with the console open and run the scenarios of that feature. A
 
 - **Typed modules stay clean.** Most modules without DOM wiring begin with
   `// @ts-check` and carry JSDoc types; the list is `TYPED` in
-  `dev/typecheck.mjs` (54 modules: settings and storage, the data layer and
+  `dev/typecheck.mjs` (57 modules: settings and storage, the data layer and
   all three providers, the parsers and formatters, MKV and MP4, the
   playback engine, starting playback, recording and the shared connection,
-  the guide's grid, the subtitles' layer, the address, `dom.js` and `state.js`). The shared shapes are typedefs: `Config`, `Settings`, `ListItem`
+  the guide's grid, the subtitles' layer, the address, the app's port, `dom.js` and `state.js`). The shared shapes are typedefs: `Config`, `Settings`, `ListItem`
   in `config.js`; `CatalogueItem`, `Category`, `Programme`, `RequestOptions`,
   `StreamOptions` in `api.js`; `Provider`, `Group` in `library.js`;
   `PlaySpec`, `LoadInfo` in `playback.js`. New code in them gets its JSDoc

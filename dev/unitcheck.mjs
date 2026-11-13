@@ -13,7 +13,6 @@ globalThis.MediaSource = { isTypeSupported: (type) => /mp4a\.40/.test(type) };
 
 import { parseServer, parsePlaylistUrl, pastedKind, directSource, serverStamp, timeshiftUrl, streamUrl } from '../js/xtream.js';
 import { safeUrl, decodeField, XtreamApi, ApiError } from '../js/api.js';
-import { playlist, vlcIntent, vlcIosLink } from '../js/external.js';
 import { syncOffset, afterTail, ReconnectingLiveLoader } from '../js/liveloader.js';
 import { nameCleaner, labelCodes, countryCodes, searchKey, searchTerms, matchesTerms, homeCountryCodes, homeGroup, viewerTags, episodeTitle, genericEpisode } from '../js/name.js';
 import { Library, buildGroups, cacheTtl } from '../js/library.js';
@@ -21,7 +20,7 @@ import { channelKey, internationalChannels, isNationalTopic } from '../js/intern
 import { unwrap, repeats, check as checkListings } from './listings.mjs';
 import { holds } from './glossarycheck.mjs';
 import { channelLogo, slugify } from '../js/logos.js';
-import { cueText } from '../js/subs.js';
+import { cueText, label as subtitleLabel } from '../js/subs.js';
 import { subtitleLook, stepScale, pictureHeight, STYLES, MIN_SCALE, MAX_SCALE, DEFAULT_SCALE, SCALE_STEP, SIZE_SHARE, MIN_PX, MIN_LIFT, MAX_LIFT, DEFAULT_LIFT } from '../js/subdisplay.js';
 import { describe, describeAll, label, preferred, route } from '../js/audio.js';
 import { languageSummary, orderedLanguageNames, trackLanguage } from '../js/lang.js';
@@ -38,9 +37,10 @@ import { formatRoute, parseRoute } from '../js/route.js';
 import { neighbourTile } from '../js/listnavigation.js';
 import { LIST_ORDERS, ORDER_MARKS, ORDER_SETTINGS, listOrder, orderTitles, pressedOrder } from '../js/listorder.js';
 import { titleWithoutYear, nameHasYear, nameTags, versionLabels, franchiseKey, relatedTitles, isNew, oneCopyEach } from '../js/titlemeta.js';
-import { boxHeader, parseMoov } from '../js/mp4file.js';
+import { audioSpecificConfig, boxHeader, parseMoov } from '../js/mp4file.js';
 import { parseM3u, parseExtinf, classify, dividerTitle, episodeOf, isDivider, nameCode, shortHash, xtreamPanel, fillCatchup, catchupAddress, playlistAddress } from '../js/m3u.js';
 import { parseXmltv, parseXmltvTime, decodeXml, settle, channelMatchKey } from '../js/xmltv.js';
+import { execFileSync } from 'node:child_process';
 import { readFileSync } from 'node:fs';
 
 let failed = 0;
@@ -413,6 +413,8 @@ globalThis.chrome = { storage: { local: {
   async clear() { for (const k of Object.keys(stored)) delete stored[k]; },
 } } };
 const store = await import('../js/config.js');
+// external.js reaches the extension API as well, through js/host.js.
+const { playlist, vlcIntent, vlcIosLink } = await import('../js/external.js');
 const accountA = { scheme: 'http', host: 'a.example', port: '8080', username: 'ann', password: 'x' };
 const accountB = { scheme: 'http', host: 'b.example', port: '8080', username: 'bob', password: 'y' };
 const item = (k, id, n) => ({ k, id, n });
@@ -804,6 +806,12 @@ check('orderedLanguageNames: an unknown language is named, and last',
     inLanguage('de', null, () => calendarDate('2026-11-03')),
     calendarDate('2026-02-30'), calendarDate('soon'),
   ], ['3.11.2026', 'Nov 3, 2026', '3 Nov 2026', '3.11.2026', '', '']);
+  check('a subtitle track named for its own language says the language once, in the interface\'s words', [
+    inLanguage('de', null, () => subtitleLabel({ name: 'English' }, 'eng')),
+    inLanguage('de', null, () => subtitleLabel({ name: 'SDH' }, 'eng')),
+    inLanguage('de', null, () => subtitleLabel({ name: 'Englisch', forced: true }, 'en')),
+    inLanguage('fi', null, () => subtitleLabel({ name: 'Suomi' }, 'fin')),
+  ], ['Englisch', 'Englisch (SDH)', `Englisch (${inLanguage('de', null, () => t('subs.forced'))})`, 'Suomi']);
   check('a rating in the language\'s decimals', [
     inLanguage('fi', null, () => ratingText({ rating: 7.46 })),
     inLanguage('en', 'GB', () => ratingText({ rating: 7.46 })),
@@ -1399,6 +1407,23 @@ check('the history may hold a series', parseRoute('#/recent?series=5'), { tab: '
   try { parseMoov(damaged); } catch (err) { refused = err.message; }
   check('mp4: a sample count larger than its table is refused', refused, 'the MP4 index is damaged (stsz)');
   check('mp4: a 64-bit box size is read whole', boxHeader(large, 0), { type: 'mdat', size: 4294967312, header: 16 });
+}
+
+{
+  // What WebKit's WebCodecs AAC encoder reports as its decoder configuration
+  // on iOS 26.5, read in the app: a whole ES_Descriptor, lengths in four
+  // bytes each, with the AudioSpecificConfig (11 90) inside it. Written
+  // into an esds as it came, MediaSource refused the first segment.
+  const hex = (text) => Uint8Array.from(text.trim().split(/\s+/).map((b) => parseInt(b, 16)));
+  const webkit = hex(`03 80 80 80 22 00 00 00 04 80 80 80 14 40 14 00 18 00 00 02 ee 00 00 02 ee 00
+    05 80 80 80 02 11 90 06 80 80 80 01 02`);
+  check('aac: the measured description is 39 bytes', webkit.length, 39);
+  check('aac: an ES_Descriptor is unwrapped to its AudioSpecificConfig', [...audioSpecificConfig(webkit)], [0x11, 0x90]);
+  check('aac: one-byte lengths and the optional fields are read too',
+    [...audioSpecificConfig(hex('03 23 00 01 e0 00 02 02 61 62 00 03 04 11 40 15 00 00 00 00 00 00 00 00 00 00 00 05 02 12 10 06 01 02'))], [0x12, 0x10]);
+  check('aac: a bare AudioSpecificConfig passes through', [...audioSpecificConfig(hex('11 90'))], [0x11, 0x90]);
+  check('aac: five bytes of one (HE-AAC) too', [...audioSpecificConfig(hex('2b 11 88 00 06'))], [0x2b, 0x11, 0x88, 0x00, 0x06]);
+  check('aac: what begins as a descriptor and is none is left alone', [...audioSpecificConfig(hex('03 02 00 00'))], [0x03, 0x02, 0x00, 0x00]);
 }
 
 
@@ -2291,6 +2316,214 @@ check('VLC for iOS is handed the stream address, encoded whole',
   check('three cut connections make one unbroken stream, the bursts left out', counters.join(), Array.from({ length: 60 }, (_, i) => i).join());
   check('the loader asked again after each cut', loader.reconnects >= 2, true);
   check('nothing was reported as a failure while the stream came back', failed, null);
+}
+
+/* ------------------------- the app for the iPhone and the iPad: js/host.js */
+{
+  const { attach, on, request, send, ios, reminderItems } = await import('../js/host.js');
+  check('outside the app the page is not told it is in one', ios, false);
+  // A port as runtime.connectNative gives one, with the app's side played here.
+  const fakePort = () => {
+    const port = { sent: [], listeners: [], closed: [],
+      postMessage: (m) => port.sent.push(m),
+      onMessage: { addListener: (l) => port.listeners.push(l) },
+      onDisconnect: { addListener: (l) => port.closed.push(l) },
+      say: (m) => port.listeners.forEach((l) => l(m)) };
+    return port;
+  };
+  send('awake', { on: true });
+  check('without a port a message goes nowhere and a request is refused',
+    await request('notify.get').then(() => 'answered', (err) => err.message), 'no port');
+  const port = fakePort();
+  attach(port);
+  send('awake', { on: true });
+  check('a message carries its type and its fields', port.sent, [{ type: 'awake', on: true }]);
+  const asked = request('notify.get');
+  const { id } = port.sent[1];
+  port.say({ re: id + 1, ok: true, on: false });
+  port.say({ re: id, ok: true, on: true, system: 'granted' });
+  check('a request is answered by the reply that names it, with the reply\'s fields',
+    [typeof id, await asked], ['number', { on: true, system: 'granted' }]);
+  const refused = request('cast.load', { url: 'http://tv.example/1.mp4' });
+  port.say({ re: port.sent[2].id, ok: false, error: 'no-session' });
+  check('a reply that says no rejects with its reason', await refused.then(() => 'answered', (err) => err.message), 'no-session');
+  check('a request nobody answers gives up', await request('cast.load', {}, 20).then(() => 'answered', (err) => err.message), 'timeout');
+  port.say({ type: 'cast.state', state: 'connected', device: 'Living room', devices: 1 });
+  const heard = [];
+  const stop = on('cast.state', (fields) => heard.push(fields.state));
+  port.say({ type: 'cast.state', state: 'disconnected', device: null, devices: 1 });
+  stop();
+  port.say({ type: 'cast.state', state: 'connecting', device: null, devices: 1 });
+  check('a listener that comes late hears the last event, then each one until it stops', heard, ['connected', 'disconnected']);
+  const waiting = request('notify.get');
+  const next = fakePort();
+  attach(next);
+  port.say({ type: 'cast.state', state: 'connected', device: 'Old', devices: 1 });
+  check('a new port takes the place of the old one: its requests are let go, its words unheard',
+    [await waiting.then(() => 'answered', (err) => err.message), heard.length], ['disconnected', 2]);
+  next.closed.forEach((l) => l());
+  send('awake', { on: false });
+  check('a port that closed carries nothing more', next.sent, []);
+
+  // The reminders handed to the app, as the system's notifications.
+  setLanguage('en');
+  const at = Date.UTC(2026, 10, 13, 20, 0);
+  const channel = { k: 0, id: '7', n: 'Aurora One' };
+  const say = (r) => t('guide.remind.soon', { title: r.title, time: '20.00', channel: r.channel.n });
+  const items = reminderItems([
+    ['7|' + at, { channel, title: 'Evening News', start: at, stop: at + 30 * 60000 }],
+    ['7|past', { channel, title: 'Morning News', start: at - 3600000, stop: at + 60000 }],
+    ['7|now', { channel, title: 'Weather', start: at - 30000, stop: at + 60000 }],
+  ], 60000, at - 61000, say);
+  check('a reminder goes to the app a minute before its start, under its key, with the strip\'s sentence',
+    items, [{ id: '7|' + at, at: at - 60000, text: say({ title: 'Evening News', channel }), channel }]);
+  check('the sentence names the programme, the time and the channel',
+    ['Evening News', '20.00', 'Aurora One'].every((word) => items[0].text.includes(word)), true);
+}
+
+/* ---------------------------------- js/cast.js: what a Chromecast can take */
+{
+  const { castMedia, hlsCastable, createCast, supported } = await import('../js/cast.js');
+  const HLS = 'application/x-mpegURL';
+  check('an Xtream channel is cast by its HLS address, as live MPEG-TS segments',
+    castMedia({ url: 'http://tv.example:8080/live/u/p/7.ts', hlsUrl: 'http://tv.example:8080/live/u/p/7.m3u8', live: true, ext: undefined }),
+    { url: 'http://tv.example:8080/live/u/p/7.m3u8', contentType: HLS, live: true, hls: 'ts' });
+  check('a playlist\'s channel with an .m3u8 address is cast as it is',
+    castMedia({ url: 'https://cdn.example/aurora/index.m3u8?token=a', hlsUrl: null, live: true }),
+    { url: 'https://cdn.example/aurora/index.m3u8?token=a', contentType: HLS, live: true });
+  check('the files a browser plays by itself are cast, each under its type',
+    ['mp4', 'm4v', 'mov', 'webm'].map((ext) => castMedia({ url: `http://tv.example/movie/u/p/5000.${ext}`, live: false, ext })),
+    [['mp4', 'video/mp4'], ['m4v', 'video/mp4'], ['mov', 'video/mp4'], ['webm', 'video/webm']]
+      .map(([ext, contentType]) => ({ url: `http://tv.example/movie/u/p/5000.${ext}`, contentType, live: false })));
+  check('the ending in the address does when the item names none',
+    castMedia({ url: 'http://tv.example/files/film.MP4?x=1', live: false })?.contentType, 'video/mp4');
+  check('Matroska, MPEG-TS and AVI are not cast: a film, a channel with no HLS address, the archive',
+    [castMedia({ url: 'http://tv.example/series/u/p/1.mkv', live: false, ext: 'mkv' }),
+      castMedia({ url: 'http://tv.example/live/u/p/7.ts', hlsUrl: null, live: true }),
+      castMedia({ url: 'http://tv.example/movie/u/p/9.avi', live: false, ext: 'avi' }),
+      castMedia({ url: 'http://tv.example/timeshift/u/p/60/2026-11-13:20-00/7.ts', live: false, catchup: true, ext: 'ts' })],
+    [null, null, null, null]);
+  check('a recording in this page and a Stalker portal\'s one-use link are not cast',
+    [castMedia({ url: 'blob:chrome-extension://abc/1f', live: false, ext: 'mp4' }),
+      castMedia({ url: 'http://portal.example/play/film.mp4?token=1', live: false, ext: 'mp4', relink: async () => '' })],
+    [null, null]);
+  const answer = (status, headers = {}) => hlsCastable(status, new Headers(headers));
+  check('a playlist answered without Access-Control-Allow-Origin is one a Chromecast will refuse; nothing else says no',
+    [answer(200, { 'Access-Control-Allow-Origin': '*' }), answer(200), answer(206), answer(403), answer(302)],
+    [true, false, false, true, true]);
+  check('in a browser the way to a Chromecast is the browser\'s, or none', [supported, createCast(/** @type {any} */ ({}), () => {}).native], [false, false]);
+}
+
+/* ------------------------- i18n.js: words that are untrue in the iOS app */
+{
+  // The page is also an App Store app (js/host.js), where "the browser",
+  // "this tab" or "Chrome" is wrong text. A sentence shown there is worded
+  // to be true in both places; one that still names a browser must be
+  // listed here with why the app never shows it. A new string of the kind
+  // fails until it is reworded or accounted for.
+  // Finnish is read as well: the App Store's second language, and the
+  // one whose engine name said "the browser's own" over an iPhone's picture.
+  const NAMES_A_BROWSER = {
+    en: /\b(browsers?|tabs?|Chrome|Firefox|computers?|extensions?|toolbar|address bar)\b/i,
+    fi: /selai|välileh|tietokone|laajenn|työkalurivi|osoiterivi|Chrome(?!cast)|Firefox/i,
+  };
+  const NEVER_IN_THE_APP = {
+    'help.back': 'hidden under .ios (css/last.css): the app has no browser Back',
+    'help.key.tab': 'the tabs are the player\'s own (Channels, Movies…)',
+    'setup.grant.note': 'hidden under .ios: the app grants the provider\'s host itself',
+    'setup.nogrant': 'access is never refused in the app',
+    'error.grant.': 'access is never refused in the app',
+    'setup.record.hint': 'the recording row is hidden under .ios',
+    'rec.': 'recording is off in the app (js/recordingsui.js)',
+    'sync.': 'the sync box is hidden: storage.sync syncs nowhere there (js/sync.js)',
+    'cast.tab': 'the app\'s own sender answers before the tab-casting hint (js/app.js castCurrent)',
+    'ext.handed.text': 'VLC is handed the address; no playlist is downloaded (js/external.js)',
+    'player.elsewhere': 'the app is one page: there is no other tab',
+    'account.othertab': 'the app is one page: there is no other tab',
+    'account.elsewhere': 'the app is one page: there is no other tab',
+  };
+  const excused = (key) => Object.keys(NEVER_IN_THE_APP).find((name) => key === name || (/\.$/.test(name) ? key.startsWith(name) : key.startsWith(`${name}.`)));
+  // An excuse is needed when either language's sentence names one.
+  const needed = new Set();
+  for (const [lang, names] of Object.entries(NAMES_A_BROWSER)) {
+    setLanguage(lang);
+    const naming = keysOf(lang).filter((key) => names.test(t(key)));
+    check(`no sentence the iOS app can show names a browser, a tab or a computer (${lang})`, naming.filter((key) => !excused(key)), []);
+    for (const key of naming) needed.add(excused(key));
+  }
+  setLanguage('en');
+  check('every excuse on that list is still needed', Object.keys(NEVER_IN_THE_APP).filter((name) => !needed.has(name)), []);
+  const css = stylesheets();
+  const html = readFileSync(new URL('../player.html', import.meta.url), 'utf8');
+  check('what the list calls hidden under .ios is hidden there, and is in the page',
+    ['.ios .help-note[data-i18n="help.back"]', '.ios #setup-grant-note', '.ios .setup-group[aria-labelledby="group-record"]'].filter((sel) => !css.includes(sel)).concat(
+      ['data-i18n="help.back"', 'id="setup-grant-note"', 'aria-labelledby="group-record"'].filter((mark) => !html.includes(mark))), []);
+}
+
+/* ----------------- the app's own full screen: css/*.css, player.html */
+{
+  // In the app the picture is full screen by a class, not by the browser
+  // (js/playercontrols.js): a rule that asks only the browser's
+  // :fullscreen would treat the app's full screen as a window, or the
+  // other way round.
+  const css = stylesheets();
+  const alone = [...css.matchAll(/[^\n]*:fullscreen[^\n]*/g)].map((m) => m[0])
+    .filter((line) => line.replace(/:(is|not|has)\(:fullscreen, \.full\)/g, '').includes(':fullscreen'));
+  check('every rule that asks the browser\'s :fullscreen asks the app\'s .full with it', alone, []);
+  check('the app\'s full screen has its box, and its button is in the page for the app alone',
+    [/\.videowrap\.full \{[^}]*position: fixed[^}]*--full-top[^}]*--full-bottom/.test(css),
+      /<button type="button" id="btn-full" class="[^"]*\bios-only\b[^"]*"/.test(readFileSync(new URL('../player.html', import.meta.url), 'utf8'))], [true, true]);
+}
+
+/* ---------------- player.html: what is typed into the connection's fields */
+{
+  // An iPhone's keyboard begins a text field with a capital and corrects
+  // it to a word unless the field says otherwise: "demo" typed as a user
+  // name became "Demo", and the sign-in failed. spellcheck does not stop it.
+  const html = readFileSync(new URL('../player.html', import.meta.url), 'utf8');
+  const field = (id) => new RegExp(`<input id="${id}" [^>]*>`).exec(html)?.[0] || '';
+  const typed = { 'f-host': 'none', 'f-username': 'none', 'f-paste': 'none', 'f-portal': 'none', 'f-epgurl': 'none', 'f-mac': 'characters' };
+  check('an address, a user name and a MAC address are typed as they are: no capital of the keyboard\'s own, no correction',
+    Object.entries(typed).filter(([id, capitals]) => !(field(id).includes(`autocapitalize="${capitals}"`) && field(id).includes('autocorrect="off"'))).map(([id]) => id), []);
+  check('the addresses get the address keyboard and the port the digits',
+    [['f-host', 'url'], ['f-paste', 'url'], ['f-portal', 'url'], ['f-epgurl', 'url'], ['f-port', 'numeric']].filter(([id, mode]) => !field(id).includes(`inputmode="${mode}"`)).map(([id]) => id), []);
+  check('a phone lying down does not enlarge some of the text by itself', /html \{[^}]*-webkit-text-size-adjust: 100%;[^}]*text-size-adjust: 100%/.test(stylesheets()), true);
+}
+
+/* ------------- dev/mock/server.mjs: the catalogue a store's reviewer meets */
+{
+  // KEPULI_MOCK_REVIEW=1 (the hosted demo): no film that is there to be
+  // unplayable and no episode with AC-3 sound, which is silent on iOS 18.
+  // The switch is read when the server is imported, so each is a process.
+  const catalogue = (review) => JSON.parse(execFileSync(process.execPath, ['--input-type=module', '-e', `
+    const mock = await import(${JSON.stringify(new URL('./mock/server.mjs', import.meta.url).href)});
+    const server = await mock.startMockServer(0);
+    const ask = async (action) => (await fetch('http://127.0.0.1:' + server.address().port + '/player_api.php?username=demo&password=demo&action=' + action)).json();
+    const films = await ask('get_vod_streams');
+    const first = (await ask('get_series')).find((series) => series.name.startsWith('Silent Fjord'));
+    const episodes = Object.values((await ask('get_series_info&series_id=' + first.series_id)).episodes).flat();
+    console.log(JSON.stringify({ films: films.length, avi: films.filter((f) => f.container_extension === 'avi').length,
+      ac3: mock.AC3_EPISODES.size + episodes.filter((e) => e.info.audio.codec_name === 'ac3').length,
+      first: episodes[0].container_extension }));
+    server.close(); server.closeAllConnections();
+  `], { encoding: 'utf8', env: { ...process.env, KEPULI_MOCK_REVIEW: review ? '1' : '' } }));
+  const tests = catalogue(false), review = catalogue(true);
+  check('the tests\' catalogue has its AVI films and its AC-3 episodes', [tests.avi > 0, tests.ac3 > 0], [true, true]);
+  check('the reviewer\'s catalogue has the same films, none of them an AVI, no AC-3 episode, and Silent Fjord\'s first episode still an MKV',
+    [review.films, review.avi, review.ac3, review.first], [tests.films, 0, 0, 'mkv']);
+  // ios/release.mjs status tells the two apart by the AVI films (a demo
+  // deployed without the switch passed its check), so the image that is
+  // deployed sets the switch itself, and the gate reads what is served.
+  const gate = readFileSync(new URL('../ios/release.mjs', import.meta.url), 'utf8');
+  check('the hosted demo\'s image is the reviewer\'s catalogue, and the App Store gate refuses a demo that serves an AVI',
+    [/^ENV .*\bKEPULI_MOCK_REVIEW=1\b/m.test(readFileSync(new URL('./mock/Dockerfile', import.meta.url), 'utf8')),
+      /container_extension === 'avi'\)\.length;\n\s*if \(unplayable\) throw/.test(gate)], [true, true]);
+  // The Finnish store texts are read for the player's own word for
+  // recording (Tallenna, Tallenteet), not one it never uses.
+  const finnish = new RegExp(/const UNTRUE_FI = \/(.+)\/i;/.exec(gate)?.[1] || '$^', 'i');
+  check('the App Store gate knows recording in the player\'s Finnish',
+    ['Tallenna suosikkiohjelmasi ja katso tallenteet myöhemmin.', 'Ajasta tallennus ohjelmaoppaasta.', 'Nauhoita ohjelma.', 'Katso kanavia ja elokuvia.'].map((line) => finnish.test(line)),
+    [true, true, true, false]);
 }
 
 /* ------------------------------------------------------------------ done */

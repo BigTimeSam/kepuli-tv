@@ -144,29 +144,35 @@ function noteSeen(item) {
     vlist.refresh();
   });
 }
-el.video.addEventListener('ended', () => {
-  const item = state.playing;
+/** A film or an episode came to its end, here or on the Chromecast (js/castui.js): seen, and its saved place gone. */
+export function noteEnded(item) {
   if (!item || item.k === 0) return;
   // Seen belongs to the history, which is kept with resume points off too.
   noteSeen(item);
   const key = `${item.k}:${item.id}`;
   if (state.settings.resumeEnabled && state.resume.delete(key)) store.setResume(key, null);
-});
+}
+/**
+ * Where a film or an episode has got to, here or on the Chromecast: seen
+ * past 96 % of it, and with `save` the place kept, from 20 s in up to there.
+ */
+export function notePlace(item, position, duration, save = true) {
+  if (!Number.isFinite(duration) || duration <= 0) return;
+  const key = `${item.k}:${item.id}`, end = position > duration * 0.96;
+  if (end) noteSeen(item);
+  if (!save || !state.settings.resumeEnabled || position < 20) return;
+  if (end) state.resume.delete(key);
+  else state.resume.set(key, { position, duration, at: Date.now() });
+  store.setResume(key, state.resume.get(key) || null);
+}
+el.video.addEventListener('ended', () => noteEnded(state.playing));
 el.video.addEventListener('timeupdate', () => {
   const item = state.playing;
   if (!item || item.k === 0) return;
-  const { currentTime: at, duration: length } = el.video;
-  if (Number.isFinite(length) && length > 0 && at > length * 0.96) noteSeen(item);
-  if (!state.settings.resumeEnabled) return;
-  const now = Date.now();
-  if (now - lastResumeSave < 5000) return;
-  lastResumeSave = now;
-  const { currentTime, duration: total } = el.video;
-  if (!Number.isFinite(total) || total <= 0 || currentTime < 20) return;
-  const key = `${item.k}:${item.id}`;
-  if (currentTime > total * 0.96) state.resume.delete(key);
-  else state.resume.set(key, { position: currentTime, duration: total, at: now });
-  store.setResume(key, state.resume.get(key) || null);
+  // Seen is noted at once; the place is written every five seconds.
+  const now = Date.now(), save = state.settings.resumeEnabled && now - lastResumeSave >= 5000;
+  if (save) lastResumeSave = now;
+  notePlace(item, el.video.currentTime, el.video.duration, save);
 });
 
 /**

@@ -32,7 +32,8 @@ function watchSources(onChange) {
     if (!file) return;
     const path = file.replaceAll('\\', '/');
     if (path.startsWith('.') || path.includes('/.')) return;
-    if (path.startsWith('dev/') || path.startsWith('icons/') || path.startsWith('docs/')) return;
+    // ios/ too: every build of the app rewrites its own copy of the extension there.
+    if (path.startsWith('dev/') || path.startsWith('icons/') || path.startsWith('docs/') || path.startsWith('ios/')) return;
     // The build's own copies, and the Chrome manifest, which Firefox does not read.
     if (path.startsWith('firefox/dist/') || path === 'manifest.json') return;
     if (path.startsWith('firefox/') && path !== 'firefox/manifest.json') return;

@@ -330,6 +330,8 @@ export function renderListInfo() {
   const head = document.createElement('span');
   head.className = 'listinfo-count';
   head.textContent = parts[0];
+  // The number alone, for a foot with no room for its word (css/list.css).
+  head.dataset.n = nf.format(count);
   const rest = document.createElement('span');
   rest.className = 'listinfo-rest';
   rest.textContent = parts.length > 1 ? `, ${parts.slice(1).join(', ')}` : '';

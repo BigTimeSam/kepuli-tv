@@ -10,6 +10,14 @@
 // on the next tap anywhere. The browser lets go of it when the page is
 // hidden; it is asked for again when the page comes back while the picture
 // still plays.
+//
+// The app for the iPhone and the iPad (js/host.js) refuses the Wake Lock in
+// its web view altogether, tap or no tap. There the page says when a
+// picture plays and the app holds the screen on itself. Nothing plays here
+// while a Chromecast does, so a phone that is then a remote control may
+// sleep; nor is the screen held on an app left on its list.
+
+import { ios, send } from './host.js';
 
 /** @type {any} */
 let lock = null;
@@ -42,13 +50,16 @@ function release() {
  * @param {HTMLVideoElement} video
  */
 export function keepScreenOnWhilePlaying(video) {
-  const on = () => { wanted = true; acquire(); };
-  const off = () => { wanted = false; release(); };
+  // The app is told of a change only: play and playing both say "on".
+  const tell = (on) => { if (on !== wanted) send('awake', { on }); wanted = on; };
+  const on = ios ? () => tell(true) : () => { wanted = true; acquire(); };
+  const off = ios ? () => tell(false) : () => { wanted = false; release(); };
   video.addEventListener('play', on);
   video.addEventListener('playing', on);
   video.addEventListener('pause', off);
   video.addEventListener('ended', off);
   video.addEventListener('emptied', off);
+  if (ios) return;
   // A refused request is asked again on the next tap, which carries the
   // activation the first one may have lacked (a stream that started
   // seconds after its tap).

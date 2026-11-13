@@ -45,6 +45,7 @@
 .help-keys dt { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: var(--fs-s); color: var(--text); background: var(--panel-2); border: 1px solid var(--border); border-radius: 6px; padding: 3px 7px; justify-self: start; white-space: nowrap; }
 .help-keys dd { margin: 0; color: var(--muted); }
 .help-note { margin: 0; color: var(--muted); line-height: 1.5; }
+.help-touch { display: grid; gap: 8px; margin: 0; padding-left: 1.25em; color: var(--muted); line-height: 1.5; }
 /* The rest of the keys, folded under the heading every fold in the app
    wears, its edge lined up with the list above. */
 .help-more { margin: 0 -12px; border-top: 1px solid var(--border); border-bottom: 1px solid var(--border); }
@@ -70,6 +71,8 @@
 .choice-modes-label { flex-basis: 100%; color: var(--muted); font-size: var(--fs-m); }
 .choice-mode { display: flex; align-items: center; gap: 7px; cursor: pointer; }
 .choice-mode > input { margin: 0; accent-color: var(--accent); }
+/* A line of text is 18 px under a finger. */
+@media (hover: none) { .choice-mode { min-height: 2.25rem; } }
 #countries:not(.choosing) #countries-all-row, #countries:not(.choosing) .choice-list { opacity: .55; }
 #countries:not(.choosing) .choice-list:is(:hover, :focus-within), #countries:not(.choosing) #countries-all-row:is(:hover, :focus-within) { opacity: .8; }
 .choice-filter { position: relative; }
@@ -172,6 +175,8 @@ button.psr-head:focus-visible, .psr-more:focus-visible { outline-offset: -2px; }
 }
 .epg-bar .spacer { flex: 1; }
 .epg-bar button.ghost { padding: 4px 9px; }
+/* The favourites' mark, the steps and the zoom under a finger: 25 to 28 px. */
+@media (hover: none) { .epg-bar button.ghost { min-width: 2rem; min-height: 2rem; } }
 .epg-select { background: var(--panel-2); border: 1px solid var(--border); border-radius: 8px; padding: 5px 8px; max-width: 220px; }
 .epg-nav { display: flex; gap: 3px; }
 .epg-days { display: flex; gap: 3px; overflow-x: auto; }
@@ -181,6 +186,8 @@ button.psr-head:focus-visible, .psr-more:focus-visible { outline-offset: -2px; }
 }
 .epg-day:hover { color: var(--text); background: var(--panel-2); }
 .epg-day.active { background: var(--panel-2); border-color: var(--border); color: var(--text); }
+/* 28 px under a finger. */
+@media (hover: none) { .epg-day { min-height: 2.25rem; } }
 /* Inside the day, as the strip scrolls sideways and cuts whatever passes
    its edges: a ring outside lost its top and bottom. */
 .epg-day:focus-visible { outline-offset: -2px; }

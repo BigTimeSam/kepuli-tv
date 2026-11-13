@@ -6,7 +6,9 @@
 // Shift+F10), so that every action has a way in for the mouse, the touch
 // screen and the keys alike. It is a popover in the top layer, placed
 // beside what opened it, and closes on a choice, Escape, Tab, a press
-// outside it or a scroll.
+// outside it or a scroll. The press that closes it does nothing else: on a
+// phone nearly everything outside the menu is a row, and closing a menu
+// opened by mistake started the channel under the finger.
 
 let open = null;   // { pop, opener, onClose }
 
@@ -80,7 +82,40 @@ function place(pop, at) {
   pop.style.top = `${Math.round(Math.min(Math.max(margin, y), innerHeight - box.height - margin))}px`;
 }
 
-function onOutside(e) { if (open && !open.pop.contains(e.target)) closeRowMenu(); }
+function onOutside(e) {
+  if (!open || open.pop.contains(e.target)) return;
+  closeRowMenu();
+  // The primary button only: a right click on another row opens that
+  // row's menu, by its contextmenu event.
+  if (e.button === 0) swallowClick();
+}
+
+/**
+ * The click that the press under way would end in is taken, once: for as
+ * long as the press lasts, however long it is held, and not past it. A
+ * press that becomes a scroll ends in pointercancel and no click. The
+ * click of one that is lifted comes with its pointerup under a mouse and
+ * some time after it under a finger (WebKit on an iPhone: a watch taken
+ * down a turn after the pointerup had gone before the click came, and the
+ * row played), so the watch stays for a moment after the lift, and goes
+ * at the latest when the next press begins.
+ */
+function swallowClick() {
+  let timer = 0;
+  const swallow = (e) => { e.preventDefault(); e.stopPropagation(); done(); };
+  const done = () => {
+    clearTimeout(timer);
+    removeEventListener('click', swallow, true);
+    removeEventListener('pointercancel', done, true);
+    removeEventListener('pointerdown', done, true);
+    removeEventListener('pointerup', lifted, true);
+  };
+  const lifted = () => { timer = setTimeout(done, 700); };
+  addEventListener('click', swallow, true);
+  addEventListener('pointercancel', done, true);
+  addEventListener('pointerdown', done, true);
+  addEventListener('pointerup', lifted, true);
+}
 function onScroll(e) { if (open && !open.pop.contains(e.target)) closeRowMenu(); }
 function onResize() { closeRowMenu(); }
 

@@ -12,7 +12,7 @@
 //   - every `path/with/a.ext` and `node dev/x.mjs` in backticks in an
 //     AGENTS.md, README.md or docs/*.md exists (paths with placeholders such
 //     as <locale>, *, … or ~ are skipped, as are the generated and ignored
-//     ones: dist/, firefox/dist/, dev/mock/media/);
+//     ones: dist/, firefox/dist/, ios/dist/, ios/vendor/, dev/mock/media/);
 //   - every script in dev/ is named in dev/AGENTS.md;
 //   - every module in js/ is named in js/AGENTS.md;
 //   - every directory with an AGENTS.md has a CLAUDE.md that imports it;
@@ -39,7 +39,7 @@ function walk(dir, found = []) {
 
 const all = walk(ROOT);
 const guides = all.filter((p) => /(^|\/)AGENTS\.md$/.test(rel(p)) || rel(p) === 'README.md' || /^docs\/[^/]+\.md$/.test(rel(p)));
-const SKIP = /[<>*…~{}$]|^(dist|firefox\/dist|dev\/mock\/media|dev\/wasm\/media)\/|^https?:|^\.\.\.|^\/tmp\/|^-/;
+const SKIP = /[<>*…~{}$]|^(dist|firefox\/dist|ios\/dist|ios\/vendor|dev\/mock\/media|dev\/wasm\/media)\/|^https?:|^\.\.\.|^\/tmp\/|^-/;
 // Named on purpose though not in the repository: the credentials kept in
 // ~/.config/kepuli-tv/, a file the project deliberately has none of, and a
 // path inside the tv-logo/tv-logos repository.

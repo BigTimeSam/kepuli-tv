@@ -189,6 +189,9 @@ export function renderDetail() {
         bar.appendChild(chip);
       }
       el.detail.appendChild(bar);
+      // On one line that scrolls sideways (a low window, css/narrow.css)
+      // the bar is drawn anew from its start at every choice.
+      if (bar.scrollWidth > bar.clientWidth) bar.querySelector('.active')?.scrollIntoView({ block: 'nearest', inline: 'center' });
     }
   }
 }

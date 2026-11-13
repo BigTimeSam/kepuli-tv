@@ -6,6 +6,7 @@
 // builds, from js/state.js.
 
 import { $, el } from './dom.js';
+import { ios, on, send } from './host.js';
 import { isFavorite } from './collections.js';
 import { isGecko } from './browser.js';
 import { shortLanguage } from './lang.js';
@@ -51,8 +52,9 @@ export function toggleMoreMenu(open, { focusButton = false } = {}) {
  * video as the dominant content: it fills the fullscreen element.
  */
 export function enterFullscreen() {
-  if (document.fullscreenElement === el.videowrap) return;
+  if (pictureFull()) return;
   if (state.playing) playerLayout.showPlayer();
+  if (ios) { send('screen.full', { on: true }); return; }
   // The iPhone has no full screen for an element, only for a video, in its
   // own player (with AirPlay and picture in picture): Orion's full screen
   // button and double tap did nothing at all, as requestFullscreen is not
@@ -69,9 +71,56 @@ export function enterFullscreen() {
 }
 
 export function toggleFullscreen() {
-  if (document.fullscreenElement === el.videowrap) document.exitFullscreen().catch(() => {});
-  else enterFullscreen();
+  if (!pictureFull()) enterFullscreen();
+  else if (ios) send('screen.full', { on: false });
+  else document.exitFullscreen().catch(() => {});
 }
+
+/** Whether the picture is full screen: the browser's, or in the app the app's own. */
+export const pictureFull = () => (ios ? el.videowrap.classList.contains('full') : document.fullscreenElement === el.videowrap);
+
+// The app for the iPhone and the iPad has full screen of its own. WebKit's,
+// for an element, shows a banner that names the page's internal address
+// each time and keeps the picture inside the screen's safe area. So the
+// page asks the app, which gives its web view the whole screen without the
+// system's bars and says so, with what of the screen is not safe on each
+// side; the wrapper is then laid over the window (.videowrap.full in
+// css/playback.css). What follows full screen elsewhere listens to
+// fullscreenchange, and is told the same way here.
+if (ios) {
+  on('screen', ({ full, top, right, bottom, left }) => {
+    for (const [side, px] of Object.entries({ top, right, bottom, left })) el.videowrap.style.setProperty(`--full-${side}`, `${Number(px) || 0}px`);
+    if (el.videowrap.classList.contains('full') === (full === true)) return;
+    el.videowrap.classList.toggle('full', full === true);
+    document.dispatchEvent(new Event('fullscreenchange'));
+  });
+  $('btn-full').addEventListener('click', toggleFullscreen);
+  // A swipe down over the picture leaves it, as it leaves the system's own
+  // player. The move is followed, not its end: a finger that goes on to
+  // the screen's edge ends in the system's hands.
+  let from = null;
+  el.videowrap.addEventListener('pointerdown', (e) => { from = e.pointerType === 'touch' && pictureFull() ? e : null; });
+  el.videowrap.addEventListener('pointermove', (e) => {
+    if (!from || e.pointerId !== from.pointerId) return;
+    const down = e.clientY - from.clientY;
+    if (down < SWIPE_PX || down < 2 * Math.abs(e.clientX - from.clientX)) return;
+    from = null;
+    toggleFullscreen();
+  });
+  for (const type of ['pointerup', 'pointercancel']) el.videowrap.addEventListener(type, () => { from = null; });
+}
+
+// The buttons over the picture that take it full screen say which way they
+// go, whoever changed it: the second picture's (js/secondui.js) and the
+// app's own.
+document.addEventListener('fullscreenchange', () => {
+  const key = pictureFull() ? 'screen.leave' : 'screen.enter';
+  for (const button of [$('second-full'), $('btn-full')]) {
+    button.dataset.i18nLabel = button.dataset.i18nTitle = key;
+    button.setAttribute('aria-label', t(key));
+    button.title = t(key);
+  }
+});
 
 /* The whole player full screen. */
 
@@ -139,6 +188,8 @@ window.addEventListener('dblclick', catchDoubleClick, true);// A click on the pi
 // Firefox, which the page cannot prevent while the element has the
 // browser's controls.
 const CONTROL_BAR_PX = 80;
+// How far down a finger goes before it has swiped the app's full screen away.
+const SWIPE_PX = 70;
 
 // Chrome's controls pause on the first click of a double click, and the
 // second press goes to full screen (catchDoubleClick), so a double click

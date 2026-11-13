@@ -59,6 +59,13 @@ const b64 = (s) => Buffer.from(s, 'utf8').toString('base64');
 // check (dev/visualcheck.mjs) sets it, with the page's clock moved to match.
 export const T0 = process.env.KEPULI_MOCK_NOW ? Date.parse(process.env.KEPULI_MOCK_NOW) : Date.now();
 if (Number.isNaN(T0)) throw new Error(`KEPULI_MOCK_NOW is not a time: ${process.env.KEPULI_MOCK_NOW}`);
+
+// KEPULI_MOCK_REVIEW=1, the hosted demo a store's reviewer signs in to
+// (fly.toml): the catalogue holds nothing that is there to fail. The AVI
+// film at the end of each genre is an MP4 and no episode has AC-3 sound;
+// both are fixtures for the tests, of a file the player says it cannot
+// play and of sound it decodes itself, which is silent on iOS 18.
+const REVIEW = process.env.KEPULI_MOCK_REVIEW === '1';
 const localTime = new Intl.DateTimeFormat('sv-SE', {
   timeZone: TZ, year: 'numeric', month: '2-digit', day: '2-digit',
   hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false,
@@ -263,7 +270,7 @@ const vod = { categories: [], movies: [] };
       const stars = rating(r);
       // The last title of each genre is an AVI (marked unplayable in the list); the
       // first two are MP4, so that the screenshots' picks always play natively.
-      const ext = i === titles.length - 1 ? 'avi' : i < 2 ? 'mp4' : r() < 0.4 ? 'mkv' : 'mp4';
+      const ext = i === titles.length - 1 ? (REVIEW ? 'mp4' : 'avi') : i < 2 ? 'mp4' : r() < 0.4 ? 'mkv' : 'mp4';
       vod.movies.push({
         num: id - 4999, name: `${title} (${year})`, title, stream_type: 'movie', stream_id: id, stream_icon: `/img/poster/movie/${id}.svg`,
         rating: (Number(stars) * 2).toFixed(1), rating_5based: Number(stars), added: secs(T0 - between(r, 1, 400) * 86400e3), category_id: cat.category_id,
@@ -317,7 +324,7 @@ export const MULTI_EPISODES = new Set();
         for (let e = 1; e <= count; e++) {
           const mins = Number(entry.episode_run_time);
           const mkv = e === 1 || r() < 0.7;   // the first episode is always the MKV with subtitles
-          const ac3 = s === 1 && e === 2;     // the second is the MKV with AC-3 sound
+          const ac3 = s === 1 && e === 2 && !REVIEW;     // the second is the MKV with AC-3 sound
           const multi = s === 1 && e === 3;   // the third has three audio tracks
           if (ac3) AC3_EPISODES.add(String(epId));
           if (multi) MULTI_EPISODES.add(String(epId));
@@ -1039,6 +1046,14 @@ function stalker(req, res, url) {
 function handle(req, res) {
   const url = new URL(req.url, `http://${req.headers.host}`);
   const path = url.pathname;
+  // KEPULI_MOCK_NO_CORS=1: no Access-Control-* header on any answer, as
+  // most providers' servers send none. An extension page that holds the
+  // host's grant reads the answers all the same; a Chromecast's player
+  // does not, which is what the player asks about before it casts HLS.
+  if (process.env.KEPULI_MOCK_NO_CORS) {
+    const writeHead = res.writeHead.bind(res);
+    res.writeHead = (status, headers = {}) => writeHead(status, Object.fromEntries(Object.entries(headers).filter(([name]) => !/^access-control-/i.test(name))));
+  }
   if (req.method === 'OPTIONS') { res.writeHead(204, CORS); return res.end(); }
   if (path === '/player_api.php') return api(req, res, url);
   if (path === '/c/' || path === '/c/index.html') return send(res, 200, '<!doctype html><title>Stalker</title>', 'text/html');

@@ -233,8 +233,11 @@ html, body { height: 100%; margin: 0; overflow: hidden; }
    rather than acting, and the viewport tag in player.html keeps it at its
    scale for a pinch and for a field's focus too, which on the iPhone zoomed
    in on every field under 16 px and scrolled the page away under it. The
-   text follows the browser's own size setting (rem) instead. */
-html { touch-action: manipulation; }
+   text follows the browser's own size setting (rem) instead. Nor does a
+   phone lying down enlarge the text of the wider blocks, as an iPhone's
+   WebKit does by itself: a heading, a note and one label of six stood at
+   18 to 20 px beside neighbours at 12 and 13 (measured in the app). */
+html { touch-action: manipulation; -webkit-text-size-adjust: 100%; text-size-adjust: 100%; }
 
 /* The type is on the body alone. On html it would set the root size that rem
    is measured from, and 0.8125rem of itself compounds: the root fell from the

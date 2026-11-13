@@ -42,8 +42,10 @@ main.guide > .stage { grid-area: 3 / 2; min-height: 0; border-left: 1px solid va
 /* In the guide the picture is a thumbnail beside the grid, so it is shaped
    by its own aspect ratio rather than by whatever height a row hands it.
    The floor is what a 16:9 picture comes to in the narrowest this column
-   goes (280px), below which it stops being watchable. */
-main.guide #videowrap:not(:fullscreen) { flex: none; aspect-ratio: 16 / 9; min-height: 153px; }
+   goes (16.25rem less its border, 259px), below which it stops being
+   watchable. It was 153px, a picture of 272px: the ratio made the box
+   that wide in the 260px column, and an upright iPad's window cut it. */
+main.guide #videowrap:not(:fullscreen, .full) { flex: none; aspect-ratio: 16 / 9; min-height: 145px; }
 /* With nothing playing the box holds the empty player's page rather than a
    picture: it grows upwards to the page's own height, so that it does not
    scroll while the column above stands empty, up to what the programme's
@@ -52,9 +54,9 @@ main.guide #videowrap:not(:fullscreen) { flex: none; aspect-ratio: 16 / 9; min-h
 main.guide:not(.has-playback) { grid-template-rows: auto minmax(auto, 1fr) minmax(0, max-content); }
 main.guide:not(.has-playback) > .epgview { min-height: auto; overflow: visible; padding-bottom: 20px; }
 main.guide:not(.has-playback) .epgv-desc { flex: none; }
-main.guide:not(.has-playback) #videowrap:not(:fullscreen) { aspect-ratio: auto; flex: 1 1 auto; }
-main.guide:not(.has-playback) #videowrap:not(:fullscreen) > video { position: absolute; inset: 0; }
-main.guide:not(.has-playback) #videowrap:not(:fullscreen) > .overlay { position: relative; inset: auto; height: 100%; min-height: 153px; }
+main.guide:not(.has-playback) #videowrap:not(:fullscreen, .full) { aspect-ratio: auto; flex: 1 1 auto; }
+main.guide:not(.has-playback) #videowrap:not(:fullscreen, .full) > video { position: absolute; inset: 0; }
+main.guide:not(.has-playback) #videowrap:not(:fullscreen, .full) > .overlay { position: relative; inset: auto; height: 100%; min-height: 153px; }
 
 /* The preview is a column now, not a band: the two actions go under the
    channel's name rather than beside it, and the description takes whatever
@@ -65,6 +67,9 @@ main.guide .epgv-head { flex-wrap: wrap; }
    read as four; stacked they read as two. */
 main.guide .epgv-actions { flex: 1 0 100%; flex-direction: column; }
 main.guide .epgv-actions button { width: 100%; }
+/* The programme's buttons under a finger, in the guide's panel and in the
+   sheet a phone shows: 32 px, where a dialog's are 44. */
+@media (hover: none) { .epgv-actions button { min-height: 2.75rem; } }
 main.guide .epgv-desc { flex: 1; }
 /* With the timetable under it, the description keeps to its own length
    and the timetable follows straight after; the empty space goes below. */
@@ -235,3 +240,5 @@ button.group-star:hover { color: var(--text); background: var(--track); }
 .crumbs[hidden] { display: none; }
 .crumbs button { background: var(--panel-2); border: 1px solid var(--border); border-radius: 6px; padding: 3px 8px; cursor: pointer; }
 .crumbs span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--text); }
+/* Back, the one way out of a series' page, was 26 px high under a finger. */
+@media (hover: none) { .crumbs button { min-height: 2.25rem; } }

@@ -320,8 +320,15 @@ export function describeEntry(entry, kind) {
   return { format, codec: null };
 }
 
-/** mp4a.40.<object type> from the esds descriptors; mp3 in MP4 is mp4a.6B. */
-function aacCodec(es) {
+/**
+ * An MPEG-4 ES_Descriptor read down to what it describes: the object type
+ * of its DecoderConfigDescriptor and the bytes of the DecoderSpecificInfo
+ * inside that (for AAC the AudioSpecificConfig), null without one; null
+ * when the bytes are no ES_Descriptor at all.
+ * @param {Uint8Array} es
+ * @returns {{ objectType: number, config: Uint8Array | null } | null}
+ */
+function esDescriptor(es) {
   let at = 0;
   const length = () => {
     let n = 0;
@@ -332,24 +339,49 @@ function aacCodec(es) {
     }
     return n;
   };
-  if (es[at++] !== 0x03) return 'mp4a.40.2';
+  if (es[at++] !== 0x03) return null;
   length();
   const flags = es[at + 2];
   at += 3;
   if (flags & 0x80) at += 2;
   if (flags & 0x40) at += 1 + es[at];
   if (flags & 0x20) at += 2;
-  if (es[at++] !== 0x04) return 'mp4a.40.2';
+  if (es[at++] !== 0x04) return null;
   length();
   const objectType = es[at];
   at += 13;
+  if (es[at++] !== 0x05) return { objectType, config: null };
+  const size = length();
+  return { objectType, config: es.subarray(at, at + size) };
+}
+
+/** mp4a.40.<object type> from the esds descriptors; mp3 in MP4 is mp4a.6B. */
+function aacCodec(es) {
+  const { objectType, config } = esDescriptor(es) || { objectType: 0x40, config: null };
   if (objectType === 0x6b || objectType === 0x69) return 'mp3';
   if (objectType !== 0x40) return `mp4a.${objectType.toString(16)}`;
-  if (es[at++] !== 0x05) return 'mp4a.40.2';
-  length();
-  let aot = es[at] >> 3;
-  if (aot === 31) aot = 32 + (((es[at] & 7) << 3) | (es[at + 1] >> 5));
+  if (!config) return 'mp4a.40.2';
+  let aot = config[0] >> 3;
+  if (aot === 31) aot = 32 + (((config[0] & 7) << 3) | (config[1] >> 5));
   return `mp4a.40.${aot || 2}`;
+}
+
+/**
+ * An AAC decoder configuration as an esds carries it and MediaSource wants
+ * it: the AudioSpecificConfig alone. WebCodecs says an AAC encoder reports
+ * exactly that as its `description`, and Chrome's does; WebKit's reports
+ * the whole ES_Descriptor around it (39 bytes on iOS 26.5, the two bytes
+ * of the configuration near their end), and written into an esds as it
+ * came the first segment was refused: a film with AC-3 sound did not play
+ * at all in the app for the iPhone and the iPad. What is no ES_Descriptor
+ * is returned as it is; an AudioSpecificConfig cannot begin with 0x03,
+ * which would be object type 0.
+ * @param {Uint8Array} description
+ * @returns {Uint8Array}
+ */
+export function audioSpecificConfig(description) {
+  const config = description[0] === 0x03 ? esDescriptor(description)?.config : null;
+  return config && config.byteLength >= 2 ? config.slice() : description;
 }
 
 /** The RFC 6381 codecs string of an HEVC track, from its hvcC. */

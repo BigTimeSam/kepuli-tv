@@ -4,10 +4,17 @@
 // player open or not, and by an open player in view in its own message
 // strip as well, with Watch.
 //
+// In the app for the iPhone and the iPad (js/host.js) there is no
+// background.js: the app is handed the reminders still ahead and schedules
+// each as a notification of the system's, which is said with the app
+// closed too; one tapped comes back as `reminder.open`.
+//
 // Moved out of app.js. It takes the player's state, and the parts app.js
 // builds, from js/state.js.
 
 import { api } from './browser.js';
+import { $ } from './dom.js';
+import { ios, on, reminderItems, request, send } from './host.js';
 import { clock } from './format.js';
 import { reminderDelay } from './epggrid.js';
 import { t } from './i18n.js';
@@ -23,6 +30,8 @@ const REMIND_AHEAD = 60 * 1000;
 export const reminderKey = (channel, programme) => store.reminderKey({ channel, start: programme.start });
 export let reminders = new Map();
 let reminderTimer = null;
+// The reminders whose notification was tapped in the app, by key.
+const tapped = new Set();
 
 export async function loadReminders() {
   showReminders(await store.loadReminders());
@@ -36,10 +45,47 @@ export async function loadReminders() {
 const NOTIFICATIONS = { permissions: ['notifications'] };
 export let notifying = false;
 let notifyAsked = true;
+// The app has just said that the system refuses, and where that is changed.
+let refused = false;
+
+/**
+ * The refusal said under the switch in Settings, while the dialog is open,
+ * and taken away when it no longer holds. As a message in the strip it was
+ * drawn behind the dialog (a modal dialog is in the top layer): the switch
+ * fell back with no word at all.
+ */
+export function showRefusal(shown = refused) {
+  $('notify-hint').hidden = !shown;
+}
+
+// In the app: its own switch on, and the system's leave given. The app
+// asks the system only when the switch is turned on, so `unasked` is a no
+// until then.
+const appAllows = (answer) => answer.on === true && answer.system === 'granted';
 
 export async function loadNotifying() {
-  notifying = Boolean(await api.permissions?.contains(NOTIFICATIONS).catch(() => false));
+  // The start of the player waits for this: a short wait for the app.
+  notifying = ios ? await request('notify.get', {}, 3000).then(appAllows, () => false)
+    : Boolean(await api.permissions?.contains(NOTIFICATIONS).catch(() => false));
   notifyAsked = (await api.storage.local.get('notifyAsked')).notifyAsked === true;
+}
+
+/**
+ * Calls back when the app says its notifications changed unasked: the
+ * viewer gave or took the system's leave in the device's settings and came
+ * back (ios/App/Services/Reminders.swift, `activated`). The leave was read
+ * once, at the start, so the switch in Settings went on saying off, and
+ * the next reminder's message that it shows only while the player is open.
+ * @param {(on: boolean) => void} changed
+ */
+export function onNotifying(changed) {
+  if (!ios) return;
+  on('notify', (answer) => {
+    notifying = appAllows(answer);
+    refused = false;
+    showRefusal();
+    changed(notifying);
+  });
 }
 
 /** Notifications allowed or taken back. Called in a click: the browser asks only then. */
@@ -47,12 +93,36 @@ export async function setNotifying(on) {
   notifyAsked = true;
   api.storage.local.set({ notifyAsked: true });
   try {
-    notifying = on ? await api.permissions.request(NOTIFICATIONS) : !(await api.permissions.remove(NOTIFICATIONS));
+    if (ios) {
+      // The system's question may stand on the screen for a while.
+      const answer = await request('notify.set', { on }, 120000);
+      // Refused once, the system does not ask again: the switch falls
+      // back, and the viewer is told where the leave is given.
+      refused = on && answer.system === 'denied';
+      // Under the switch where Settings is open, in the strip otherwise
+      // (the guide's Remind me): see showRefusal.
+      showRefusal();
+      if (refused && !$('setup').open) toast(t('setup.notify.denied'), { kind: 'warn', long: true });
+      notifying = appAllows(answer);
+    } else notifying = on ? await api.permissions.request(NOTIFICATIONS) : !(await api.permissions.remove(NOTIFICATIONS));
   } catch {
     notifying = false;
   }
   return notifying;
 }
+
+/**
+ * The app's notifications of an account that left the list, or of every
+ * account when none is named (the player reset, its last account
+ * removed): the app keeps them with the system, where they went on to
+ * fire for an account the viewer had deleted. Awaited before the page
+ * loads itself again, which a message only sent may not outlive. Nothing
+ * in a browser, where only the open account's timer is set.
+ * @param {string} [account] js/config.js accountKey
+ */
+export const forgetNotifications = (account) => (ios
+  ? request('reminders.clear', account ? { account } : {}, 3000).then(() => {}, () => {})
+  : Promise.resolve());
 
 /** The stored list in memory and the timer set for it: at start, and when another tab changes it. */
 export function showReminders(list) {
@@ -79,8 +149,15 @@ export function toggleReminder(channel, programme) {
   else {
     reminders.set(key, { channel: stripItem(channel), title: programme.title, start: programme.start, stop: programme.stop });
     // Asked before anything is awaited: the click is spent by the first await.
-    const allowed = notifying || notifyAsked || !api.permissions ? Promise.resolve(notifying) : setNotifying(true);
-    allowed.then((on) => toast(t(on ? 'guide.remind.set.notify' : 'guide.remind.set', { title: programme.title, time: clock(programme.start) }), { long: true }));
+    const asking = !(notifying || notifyAsked || !api.permissions);
+    const allowed = asking ? setNotifying(true) : Promise.resolve(notifying);
+    allowed.then((on) => {
+      // Refused at this first question in the app: what was said of it is
+      // left to be read. Replaced at once by "… while the player is open",
+      // nobody learnt where notifications are turned on.
+      if (asking && refused) return;
+      toast(t(on ? 'guide.remind.set.notify' : 'guide.remind.set', { title: programme.title, time: clock(programme.start) }), { long: true });
+    });
   }
   store.setReminder(key, reminders.get(key) || null);
   armReminders();
@@ -97,6 +174,15 @@ export function toggleReminder(channel, programme) {
  * then it is measured again.
  */
 function armReminders() {
+  // The app's notifications follow every change: the same sentence the
+  // message strip says, a minute before the start.
+  if (ios) {
+    send('reminders.set', {
+      account: store.currentAccount(),
+      items: reminderItems([...reminders], REMIND_AHEAD, Date.now(),
+        (r) => t('guide.remind.soon', { title: r.title, time: clock(r.start), channel: shownName(r.channel) })),
+    });
+  }
   clearTimeout(reminderTimer);
   const due = [...reminders.values()].map((r) => r.start - REMIND_AHEAD);
   if (!due.length) return;
@@ -121,7 +207,7 @@ function armReminders() {
 async function fireReminders() {
   if (document.hidden) {
     document.addEventListener('visibilitychange', fireReminders, { once: true });
-    if (notifying) api.runtime.sendMessage({ sayReminders: store.remindersStorageKey() }).catch(() => {});
+    if (notifying && !ios) api.runtime.sendMessage({ sayReminders: store.remindersStorageKey() }).catch(() => {});
     return;
   }
   const now = Date.now();
@@ -134,8 +220,13 @@ async function fireReminders() {
   showUpcoming();
   // As the system's notifications too, where they are allowed: the player
   // in sight is not the viewer looking at it (see background.js).
-  if (notifying && due.length) api.runtime.sendMessage({ notifyReminders: { key: store.remindersStorageKey(), due } }).catch(() => {});
-  const showing = due.filter((r) => r.stop > now).sort((a, b) => b.start - a.start)[0];
+  // The app scheduled its own, and shows none while it is in front.
+  if (notifying && due.length && !ios) api.runtime.sendMessage({ notifyReminders: { key: store.remindersStorageKey(), due } }).catch(() => {});
+  // Not one whose notification the viewer has just tapped in the app: its
+  // channel is starting, and the strip said it again for a minute with a
+  // Watch that started the same stream anew. In a browser background.js
+  // has taken a clicked one out of the stored list by now.
+  const showing = due.filter((r) => r.stop > now && !tapped.delete(store.reminderKey(r))).sort((a, b) => b.start - a.start)[0];
   if (!showing) return;
   const channel = showing.channel;
   const name = shownName(channel);
@@ -158,6 +249,21 @@ export async function watchAsked() {
   if (asked.account === store.currentAccount() && asked.at > Date.now() - 60e3) playItem(asked.channel);
 }
 
+// Not before the player is connected: the app's tap can arrive while it
+// starts or connects again, and every connection ends by looking for the
+// record itself (connect in js/app.js).
 api.storage.onChanged.addListener((changes, area) => {
-  if (area === 'local' && changes.watchAsked?.newValue) watchAsked();
+  if (area === 'local' && changes.watchAsked?.newValue && state.lib) watchAsked();
 });
+
+// A notification tapped in the app, as background.js leaves a click: with
+// the reminder's id, noted at once for fireReminders, and the tap's own
+// time. The app says a tap again to a page loaded after its process had
+// ended (Bridge.pageGone), which may be a minute later, and a channel
+// started then is one the viewer no longer waits for.
+if (ios) {
+  on('reminder.open', ({ channel, account, id, at }) => {
+    if (id) tapped.add(id);
+    api.storage.local.set({ watchAsked: { channel, account, at: typeof at === 'number' ? at : Date.now() } });
+  });
+}

@@ -7,6 +7,7 @@
 // js/dom.js; everything else waits until the player calls in.
 
 import { resetChannelFilters } from './listfilters.js';
+import { caretWelcome } from './caret.js';
 import { $, el } from './dom.js';
 import { DEFAULT_LIFT, DEFAULT_SCALE, SCALE_BASE, stepScale, subtitleLook } from './subdisplay.js';
 import { label as audioLabel } from './audio.js';
@@ -261,7 +262,7 @@ export function leavePlayback() {
  */
 export async function goHome() {
   if (guideOpen) closeGuide();
-  playerLayout.showBrowse();
+  playerLayout.showHome();
   if (state.playing) leavePlayback();
   mediaFilters.resetAll();
   // Already on the channels of the same country, the list is drawn again
@@ -277,6 +278,11 @@ export async function goHome() {
   if (!wasLive) await activateTab('live');
   if (state.group !== group || state.sub || state.detail || state.query || (narrowed && wasLive)) await selectGroup(group);
   else renderSidebar();
+  // Again: a tab chosen on the way asks for the list (activateTab), and
+  // from Films, Series or History the logo then showed the channels'
+  // list instead of the start page. Asked first as well, so that a window
+  // of one pane does not show the list in between.
+  playerLayout.showHome();
   state.cursor = -1;
   el.list.scrollTop = 0;
 }
@@ -292,6 +298,20 @@ export async function stepSubtitleSize(direction) {
 }
 
 /**
+ * How far the subtitles rise for the look's panel (css/playback.css,
+ * --look-lift): to the panel's top where it lies over the picture, and not
+ * at all where it stands beside or under it. Measured when the panel
+ * opens and when the window changes under it (a phone turned).
+ */
+function liftForLook() {
+  if (el.sublookPop.hidden) { el.videowrap.style.removeProperty('--look-lift'); return; }
+  const pop = el.sublookPop.getBoundingClientRect(), picture = el.videowrap.getBoundingClientRect();
+  const apart = pop.right <= picture.left || pop.left >= picture.right || pop.top >= picture.bottom || pop.bottom <= picture.top;
+  el.videowrap.style.setProperty('--look-lift', `${apart ? 0 : Math.round(picture.bottom - pop.top) + 6}px`);
+}
+addEventListener('resize', liftForLook);
+
+/**
  * The look over the picture. Opened from the player's row, closed by a
  * click outside it, by Esc, or by the button again — the same ways the
  * settings dialog closes.
@@ -305,5 +325,9 @@ export function toggleSubtitleLook(open) {
   // controls: a popover that covered the text it is there to size would be
   // no use at all.
   el.videowrap.classList.toggle('looking', show);
-  if (show) $('p-substyle').focus();
+  liftForLook();
+  // Not under a finger (js/caret.js): the picker's own menu sprang open
+  // over the panel at every tap on Aa. Esc and a press outside close the
+  // panel wherever the focus is.
+  if (show && caretWelcome()) $('p-substyle').focus();
 }

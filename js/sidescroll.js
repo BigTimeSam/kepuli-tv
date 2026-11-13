@@ -12,15 +12,48 @@ import { t } from './i18n.js';
 import { svg } from './svg.js';
 
 /**
+ * An item of such a row brought into the row's view, whole. The browser
+ * scrolls a focused item in by itself, but the arrows lie over the row's
+ * ends, and an item under one, the guide's last day say, kept its ring and
+ * half its name hidden: measured after the scroll, with room for a ring
+ * outside the item. Called for the item that takes the focus, and for one
+ * chosen with no focus on it: a tap focuses no button on an iPhone, and a
+ * tab chosen at the strip's end stayed under the arrow.
+ * @param {HTMLElement} list
+ * @param {HTMLElement} item
+ */
+export function reveal(list, item) {
+  item.scrollIntoView({ block: 'nearest', inline: 'nearest' });
+  requestAnimationFrame(() => {
+    const arrow = (/** @type {string} */ dir) => { const a = list.parentElement?.querySelector(`:scope > .side-scroll-arrow.${dir}`); return a instanceof HTMLElement && !a.hidden ? a : null; };
+    const r = item.getBoundingClientRect(), prev = arrow('prev'), next = arrow('next');
+    const room = 6;
+    if (next) {
+      const over = r.right + room - next.getBoundingClientRect().left;
+      if (over > 0) { list.scrollBy({ left: over }); return; }
+    }
+    if (prev) {
+      const over = prev.getBoundingClientRect().right - (r.left - room);
+      if (over > 0) list.scrollBy({ left: -over });
+    }
+  });
+}
+
+/**
  * The row put in a box with its two arrows. The arrows follow the row's
  * scroll, its size and its items, which may be drawn again under it.
  * @param {HTMLElement} list
- * @param {{ compact?: boolean, className?: string, centreOn?: string }} [options] compact:
+ * @param {{ compact?: boolean, className?: string, centreOn?: string, follow?: string }} [options] compact:
  *        smaller arrows inside the row's ends, for a row in a toolbar;
  *        centreOn: the part of an item the arrows stand at the middle of,
- *        where an item is a picture with words under it
+ *        where an item is a picture with words under it; follow: the
+ *        chosen item's selector, where the row marks one that nothing
+ *        focuses (the guide's day in view): it is kept in sight and clear
+ *        of the arrows when another is marked and when the row's width
+ *        changes. The guide's "today" read "toda" under the arrow on a
+ *        phone lying down.
  */
-export function sideScroll(list, { compact = false, className = '', centreOn = '' } = {}) {
+export function sideScroll(list, { compact = false, className = '', centreOn = '', follow = '' } = {}) {
   const box = document.createElement('div');
   box.className = ['side-scroll', compact ? 'compact' : '', className].filter(Boolean).join(' ');
   list.replaceWith(box);
@@ -53,32 +86,28 @@ export function sideScroll(list, { compact = false, className = '', centreOn = '
       : list.offsetTop + list.clientHeight / 2;
     box.style.setProperty('--side-mid', `${mid}px`);
     const max = list.scrollWidth - list.clientWidth;
-    prev.hidden = list.scrollLeft <= 1;
+    // An arrow inside the row's end (compact) lies over the row: for a
+    // scroll shorter than itself it would hide more than it leads back
+    // to. The guide's days, moved 7 px to clear today of the other arrow,
+    // had "Earlier" read "lier" under it.
+    prev.hidden = list.scrollLeft <= (compact ? prev.offsetWidth || 24 : 1);
     next.hidden = list.scrollLeft >= max - 1;
   };
   list.addEventListener('scroll', sync, { passive: true });
-  // The browser scrolls a focused item into the row's view, but the arrows
-  // lie over its ends, and an item under one, the guide's last day say, kept
-  // its ring and half its name hidden. Measured after the browser's own
-  // scroll, with room for a ring outside the item.
   list.addEventListener('focusin', (event) => {
-    const item = event.target;
-    if (!(item instanceof HTMLElement) || item === list) return;
-    requestAnimationFrame(() => {
-      const r = item.getBoundingClientRect();
-      const room = 6;
-      if (!next.hidden) {
-        const over = r.right + room - next.getBoundingClientRect().left;
-        if (over > 0) { list.scrollBy({ left: over }); return; }
-      }
-      if (!prev.hidden) {
-        const over = prev.getBoundingClientRect().right - (r.left - room);
-        if (over > 0) list.scrollBy({ left: -over });
-      }
-    });
+    if (event.target instanceof HTMLElement && event.target !== list) reveal(list, event.target);
   });
   new ResizeObserver(sync).observe(list);
   new MutationObserver(sync).observe(list, { childList: true });
+  if (follow) {
+    const show = () => {
+      const item = list.querySelector(follow);
+      if (item instanceof HTMLElement && list.getClientRects().length) reveal(list, item);
+    };
+    // After sync's own observers, so that the arrows are as the row now needs them.
+    new ResizeObserver(show).observe(list);
+    new MutationObserver(show).observe(list, { childList: true, subtree: true, attributes: true, attributeFilter: ['class'] });
+  }
   requestAnimationFrame(sync);
   return box;
 }

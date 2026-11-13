@@ -5,12 +5,13 @@
 // Moved out of app.js. It takes the player's state, and the parts app.js
 // builds, from js/state.js.
 
+import { castTaken } from './castui.js';
 import { handOff, onIPhone, toVlc } from './external.js';
 import { renderInfoStrip } from './infostrip.js';
 import { retryPlayback } from './recordingsui.js';
 import { t } from './i18n.js';
 import { state } from './state.js';
-import { playItem, playback, showOverlayActions } from './playing.js';
+import { placeReached, playItem, playback, showOverlayActions } from './playing.js';
 import { copyUrl, toast } from './toast.js';
 import { el } from './dom.js';
 import { shownName } from './coversui.js';
@@ -34,18 +35,17 @@ function handOffName(item) {
  * connection, so a stream the browser keeps open would leave the external
  * player silent. Everything here is deliberately synchronous — starting a
  * download requires a user gesture, which the first await would spend.
+ *
+ * A Chromecast that plays the stream for this page (the app for the
+ * iPhone and the iPad) lets go of it first, for the same connection, and
+ * the place is the device's: the picture here stands at nothing then.
  */
 export function playExternal() {
   if (!state.playingSpec) { toast(t('ext.nothing'), { kind: 'warn' }); return; }
 
   const name = state.playing ? handOffName(state.playing) : 'Stream';
   const spec = state.playingSpec;
-  // The resume position is where the browser got to, not where playback
-  // started. A film watched to its end starts over: handed the end itself,
-  // VLC finished at once and closed (measured on Android).
-  const at = spec.live ? 0 : Math.floor(el.video.currentTime || spec.startAt || 0);
-  const length = el.video.duration;
-  const startAt = Number.isFinite(length) && at > length - 10 ? 0 : at;
+  const startAt = castTaken() ?? placeReached(spec);
   playback.stop();
   state.playbackInfoLoading = false;
   renderInfoStrip();

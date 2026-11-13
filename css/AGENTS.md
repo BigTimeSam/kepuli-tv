@@ -16,10 +16,10 @@ classes: plain CSS with custom properties.
 | `playback.css` | the picture, subtitles, the empty player's page, the details strip, the controls under the picture |
 | `dialogs.css` | Settings and the other dialogs |
 | `guide.css` | the programme guide |
-| `narrow.css` | the breakpoints that reshape the page's columns (1180, 980, 760, 600 px) |
+| `narrow.css` | the breakpoints that reshape the page's columns (1180, 980, 900, 600 px; 760 px for the guide in a phone's width), and the low window (a height of 440 px or less: a phone lying down) |
 | `pickers.css` | the selectors' chevron, the drop-down lists, the search fields' magnifier |
 | `recordings.css` | accounts and recordings |
-| `last.css` | what must win over everything above: optical alignment, the phone guide, forced colours |
+| `last.css` | what must win over everything above: optical alignment, the phone guide, what the iOS app leaves out (`.ios`, set by `js/host.js`), forced colours |
 
 A rule goes into the file of what it styles. One that has to override a
 rule of a later file goes after it (`narrow.css`, `last.css`): the order of
@@ -52,10 +52,76 @@ the page links them.
   that must keep their own shape need `align-self` (a stretched cover lost
   its 2:3 once).
 - **Narrow windows**: 600px is the breakpoint where browsing and playback each
-  take the whole width (`js/playerlayout.js`); 1180px narrows the sidebar,
+  take the whole width (`js/playerlayout.js`); up to 900px (an upright
+  iPad among them) the countries are a menu over the list and two columns
+  share the width; 1180px narrows the sidebar,
   the list and the guide's channel column; 601–1099px drops the tabs' marks;
   760px and 980px adjust the top bar; 520px tightens Settings. Check a change
   at 600px.
+- **Low windows**: a height of 440px or less is a phone lying down (an
+  iPhone gives the page about 750×380, a large one 870×400, and 170px of
+  height with a keyboard up). The columns stay as the width has them; the
+  bars are lower, an open fold is one row, the picture comes before the
+  details under it, the guide has one row of controls, a menu scrolls
+  inside the window and a dialog scrolls as one (Settings' subtitles
+  section excepted where a pointer hovers, for its preview and Save in one
+  view; on a touch screen it scrolls too, and its preview has a height of
+  its own, set by `fitSubtitlePreview` in `js/setupui.js`). The rules are at the end
+  of `narrow.css`, keyed on the height and not on a device or on `.ios`, so
+  that every low screen gains. Check a change to a bar, a fold, a menu or a
+  dialog at 750×380 and 750×170 too; `node dev/playcheck.mjs iosapp` holds
+  the measures.
+- **Touch screens** (`@media (hover: none)`, never `.ios`: a phone's
+  browser gains too): a tab, a menu's row, a dialog's buttons and its
+  choices and the guide's two buttons for a programme are 2.75rem high, a
+  switch's row, a series' Back and seasons, the guide's days, Filter
+  countries' modes and the foot's Clear history 2.25rem, the list's order
+  and view marks 2.25rem apart, the row's star and menu, the sidebar's star
+  and the `?` 2rem. A note's buttons over the picture (a cast session's
+  two) are 2.75rem, the help's links 2.25rem, the guide bar's buttons (the
+  favourites' mark, the steps, the zoom) and a film's Technical details
+  2rem, and a name among a film's credits takes the press over 8px above
+  and below its line. Each rule stands beside the rule it widens, in its own
+  file. A small mark grows into transparent padding or border that
+  a negative margin takes back (never a `::after`, which counted as
+  overflowing text). In a low window the tabs, a programme's two buttons
+  and a note's buttons keep 2.25rem and Back, the seasons and the days
+  2rem. `node dev/playcheck.mjs touchsizes` measures every one of them,
+  in a tablet's window and a phone's lying down: a new rule gains its
+  line there. The list's foot keeps its count whole there:
+  the category, then the tab's mark and, in a column of 320px or less,
+  the count's word give way (`list.css`, container queries). The search
+  field, the selectors and the header's buttons stay at 32 to 36px.
+- **Subtitles lifted clear of controls** (`.videowrap.controls`,
+  `.looking` in `playback.css`) never leave the picture: the lift is capped
+  at the picture's height less two lines, as a phone's picture is lower
+  than a desktop's lift. For the look's panel the lift is measured
+  (`--look-lift`, `js/tracksui.js`): as far as the panel lies over the
+  picture, and nothing where it stands under it (an upright phone) or
+  beside it (a low window, where `narrow.css` puts the panel over the
+  list).
+- **A keyboard over a window that keeps its height** (an upright iPad in
+  the app): `js/host.js` sets `html.kb` with `--vvh` (what is in sight) and
+  `--vvt` (where it begins), and a dialog stands at the top of that and
+  scrolls as one (`dialogs.css`). Where the window shrinks instead (a
+  phone, an iPad lying down) the low-window rules apply and `kb` is not
+  set.
+- **The iOS app** shows the same page with `<html class="ios">`: what it
+  cannot answer or does not offer is hidden in one block of `last.css`
+  (`.ios …`), and what only it shows carries `ios-only`. Keep such rules in
+  that block, above the forced colours.
+- **Full screen is `:fullscreen` or `.full`, always both.** In the app the
+  picture's full screen is the app's own: the wrapper gets the class `full`
+  and is laid over the window (`.videowrap.full` in `playback.css`, fixed,
+  under the message strip, inside the `--full-top`, `--full-right`,
+  `--full-bottom` and `--full-left` the app names as not safe). A rule
+  that asks the browser's `:fullscreen` of the wrapper is written
+  `:is(:fullscreen, .full)`, `:not(:fullscreen, .full)` or
+  `:has(:fullscreen, .full)`; `node dev/unitcheck.mjs` fails on one that
+  asks `:fullscreen` alone.
+- **The message strip in a window of 600px or less** spans the width with
+  12px at each side and is as wide as its text (`narrow.css`), so a
+  message with a button stays inside it.
 - **Motion** respects `prefers-reduced-motion: reduce`; add the matching rule
   for any new animation or transition.
 - **Optical alignment** of icons beside labels is gathered in a block in

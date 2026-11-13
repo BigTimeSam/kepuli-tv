@@ -32,6 +32,7 @@ import { cast, groupOfType, noteChannel, offerAccess, playerLayout, refreshRows,
 import { cancelAutoNext } from './nextepisode.js';
 import { closeSecond, firstPlays } from './secondui.js';
 import { leavePlayback, renderAudio, renderSubtitles, sizePicture } from './tracksui.js';
+import { castOrPlay, castingLeft } from './castui.js';
 
 export const playback = new Playback(el.video, onPlaybackState);
 
@@ -599,6 +600,19 @@ export async function itemAddress(item, config = state.config, source = state.so
 export const channelKey = (config, item) => `${store.accountKey(config)}|${item.k}:${item.id}`;
 
 /**
+ * The stream started: here, or on the Chromecast while the app has a
+ * session with one (js/castui.js), which is asked first and takes a moment
+ * to answer. Without a session nothing is awaited: the start stays in the
+ * turn of the tap that asked for it.
+ * @param {object} item
+ * @param {import('./playback.js').PlaySpec} spec the one in state.playingSpec
+ */
+export function startPlayback(item, spec) {
+  if (!cast.native || !cast.connected) { playback.play(spec); return; }
+  castOrPlay(item, spec).then((taken) => { if (!taken && state.playingSpec === spec) playback.play(spec); });
+}
+
+/**
  * @param {object} item
  * @param {{startAt?: number, allowSilent?: boolean}} [options]
  */
@@ -673,7 +687,7 @@ export async function playItem(item, { startAt, allowSilent } = {}) {
   updateAddress();
   if (guideOpen) grid.setPlaying(live ? item.id : null);
 
-  playback.play(spec);
+  startPlayback(item, spec);
   vlist.refresh();
 
   if (live && state.epg) state.epg.want(item, { priority: true });
@@ -710,8 +724,28 @@ export function renderNowTitle() {
 
 export function renderNowSub() {
   renderRecordingState();
+  // Nothing plays: a Chromecast still showing what was left lets go of it.
+  if (!state.playing) { el.nowSub.textContent = t('player.idle'); castingLeft(); return; }
+  el.nowSub.textContent = [nowPlace(), cast.showing ? t('cast.playing') : ''].filter(Boolean).join(', ') || '—';
+}
+
+/**
+ * The second the picture here has got to, for handing the stream to
+ * another player (VLC in js/externalui.js, a Chromecast in js/castui.js):
+ * where it is, not where it started; a channel from now. A film watched to
+ * its end starts over: handed the end itself, VLC finished at once and
+ * closed (measured on Android).
+ * @param {{live?: boolean, startAt?: number}} spec
+ */
+export function placeReached(spec) {
+  const at = spec.live ? 0 : Math.floor(el.video.currentTime || spec.startAt || 0);
+  const length = el.video.duration;
+  return Number.isFinite(length) && at > length - 10 ? 0 : at;
+}
+
+/** Where the thing being played sits, as the line under the title says it; also what a Chromecast shows under the title. */
+export function nowPlace() {
   const item = state.playing;
-  if (!item) { el.nowSub.textContent = t('player.idle'); return; }
   const bits = [];
   // The item's own kind, not the tab's: from the favourites or the history
   // a channel still names its category.
@@ -725,8 +759,7 @@ export function renderNowSub() {
     bits.push(group || state.lib.categoryName(type, item.cats[0]));
   }
   if (item.k === 3) bits.push(episodeCode(item.season, item.episode));
-  if (cast.connected) bits.push(t('cast.playing'));
-  el.nowSub.textContent = bits.filter(Boolean).join(', ') || '—';
+  return bits.filter(Boolean).join(', ');
 }
 
 /**

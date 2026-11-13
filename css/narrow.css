@@ -12,13 +12,15 @@
    text give up what they can and the picture keeps the rest. */
 @media (max-width: 980px) {
   main { grid-template-columns: 9.875rem minmax(13.25rem, 16.25rem) 1fr; }
-  :root { --epg-chan-w: 8.75rem; }
 }
 
 /* Narrower than this, a sidebar costs the list more than it gives: three
-   columns leave about 210px for the names. The countries move into a menu at
-   the top of the list instead, and two columns share the width. */
-@media (max-width: 760px) {
+   columns leave a channel's name some 105 px beside its marks, and an
+   upright iPad (768 to 834 px) showed two channels as "Maple Cinema …"
+   both. The countries move into a menu at the top of the list instead, and
+   two columns share the width. (Up to 760 px until the app for the iPad:
+   a touch screen has no pointer to hover for the whole name.) */
+@media (max-width: 900px) {
   main { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); }
   main > .groups { display: none; }
   /* The two that are left move up a column each: the assignments above put
@@ -27,7 +29,12 @@
   main > .listcol { grid-column: 1; }
   main > .stage { grid-column: 2; }
   .group-picker { display: flex; }
+}
+/* The guide in a phone's width on its side: the programme's panel and the
+   corner picture get two fifths, and the channels' column gives way. */
+@media (max-width: 760px) {
   main.guide { grid-template-columns: minmax(0, 1fr) minmax(0, 40vw); }
+  :root { --epg-chan-w: 8.75rem; }
 }
 
 /* A single useful pane at narrow widths, including a zoomed desktop window.
@@ -57,14 +64,15 @@
   main > .stage { grid-area: 1 / 1; display: none; }
   main.compact-watch:not(.guide) > .listcol { display: none; }
   main.compact-watch:not(.guide) > .stage { display: flex; }
-  main.has-playback:not(.guide) { grid-template-rows: auto minmax(0, 1fr); }
-  main.has-playback > .compact-nav { display: flex; grid-area: 1 / 1; gap: 4px; padding: 6px 10px; background: var(--panel); border-bottom: 1px solid var(--border); }
+  /* The switch, while something plays or the start page was asked for (js/playerlayout.js). */
+  main.has-panes:not(.guide) { grid-template-rows: auto minmax(0, 1fr); }
+  main.has-panes > .compact-nav { display: flex; grid-area: 1 / 1; gap: 4px; padding: 6px 10px; background: var(--panel); border-bottom: 1px solid var(--border); }
   .compact-nav button { flex: 1; padding: 8px 12px; border: 0; border-radius: 6px; background: transparent; color: var(--muted); cursor: pointer; }
   /* The chosen one as the top bar's chosen tab: the second panel's colour
      on the glow hardly told Browse from Player. */
   .compact-nav button[aria-pressed="true"] { background: var(--accent); color: #fff; }
   .compact-nav button:not([aria-pressed="true"]):hover { background: var(--row-hover); color: var(--text); }
-  main.has-playback:not(.guide) > .listcol, main.has-playback:not(.guide) > .stage { grid-area: 2 / 1; }
+  main.has-panes:not(.guide) > .listcol, main.has-panes:not(.guide) > .stage { grid-area: 2 / 1; }
   .stage .infostrip { max-height: 25vh; flex-shrink: 1; }
   main.guide { grid-template-rows: auto minmax(0, 1fr) minmax(0, 30%); }
   main.guide > .compact-nav { display: none; }
@@ -72,5 +80,165 @@
   main.guide > .epg { grid-area: 2 / 1; }
   main.guide > .epgview { grid-area: 3 / 1; border-left: 0; border-top: 1px solid var(--border); }
   main.guide > .stage { display: none; }
-  main > .stage:has(:fullscreen) { display: flex; }
+  main > .stage:has(:fullscreen, .full) { display: flex; }
+  /* The message strip from edge to edge, as wide as its words: placed by
+     its middle (css/dialogs.css) it has half the window to shrink into,
+     which at 402 px wrapped a reminder to six lines and pushed its button
+     out of the strip's side. */
+  .toast { left: 12px; right: 12px; width: fit-content; max-width: none; margin-inline: auto; transform: none; }
+}
+
+/* A low window: a phone lying down. An iPhone 17 gives the page some
+   750 × 380 px there and a Pro Max 870 × 400, where the upright layouts
+   never had to count the height: stacked over the list stood the top bar,
+   the guide's button, the countries' menu and an open "Filter channels",
+   and one row of channels showed; beside it the picture, the programme's
+   details and the bar under them did not fit, and the bar with its menu
+   was pushed out of sight. Keyed on the height, not on a device or a
+   host, so that every low screen gains, a short desktop window too: 440 px
+   is the largest phone lying down, and under an upright phone with its
+   keyboard up, whose layouts are their own. The
+   columns stay as the width has them (two up to 900 px, three above);
+   what changes is how much height each bar takes, and that the picture
+   comes before the details under it. */
+@media (max-height: 440px) and (min-width: 601px) {
+  :root { --topbar-h: 2.75rem; --head-h: 2.5rem; --foot-h: 2.25rem; }
+  .topbar { padding-block: 4px; }
+  /* The list's column: lower bars, and an open fold one row of controls. */
+  .channel-tools { padding-block: 4px; }
+  .channel-guide { padding-block: 5px; }
+  .group-picker { padding-block: 4px; }
+  .section-toggle { min-height: 2rem; padding-block: 5px; }
+  .media-filters[open] { padding-bottom: 6px; }
+  .media-filters[open] > summary { margin-bottom: 2px; }
+  .media-filter-footer { margin-top: 4px; }
+  /* The topics are one row that scrolls sideways, not rows that wrap. */
+  .channel-filters-body > .subcats { flex-wrap: nowrap; overflow-x: auto; padding: 4px; margin: -4px -4px -2px; scrollbar-width: none; }
+  .channel-filters-body > .subcats > * { flex: none; }
+  /* The films' year, rating and length beside one another. */
+  .media-filter-controls { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  .media-filter-controls label.wide { grid-column: auto; }
+  /* A series' page over its episodes is one row there: a small cover, the
+     title on one line and its star, and under them the seasons on a line
+     that scrolls sideways. Its facts, plot and links are for a window
+     with the height. It used to scroll in the 94 px the episodes left it,
+     its labels cut through the middle and the seasons out of sight. */
+  .detail-main { align-items: center; gap: 10px; padding: 6px 12px; }
+  .detail-cover { width: 28px; height: 42px; border-radius: 4px; }
+  .detail-heading { align-items: center; margin: 0; }
+  .detail-title { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .detail .title-facts, .detail-plot, .detail .title-links { display: none; }
+  .seasons { flex-wrap: nowrap; overflow-x: auto; padding-bottom: 6px; scrollbar-width: none; }
+  .season { flex: none; }
+  /* What plays, on one line: the name, then where it sits. */
+  .stagehead { padding-block: 3px; }
+  .now { display: flex; align-items: baseline; gap: 8px; }
+  .now-title { flex: 0 1 auto; min-width: 0; }
+  .now-sub { flex: 1 1 0; min-width: 0; }
+  .now-logo { width: 38px; height: 26px; }
+  /* The picture first: as tall as its shape makes it in what the column
+     has, and the details under it keep a line (the programme on now and
+     its bar) and take what is left, scrolling. Upright, and on a larger
+     screen, the details keep a third of the column (css/details.css). */
+  main:not(.guide) .stage:has(> .infostrip:not([hidden])) > .videowrap.sized:not(:fullscreen, .full) { min-height: 0; }
+  main:not(.guide) .stage:has(> .videowrap.sized:not(:fullscreen, .full)) > .infostrip { flex: 1 1 2.75rem; min-height: 2.75rem; padding-block: 6px; }
+  .nowbar { padding-block: 2px; }
+  /* The subtitles' look stands beside the picture there, over the list:
+     the panel is nearly as high as the picture, and no lift could keep
+     the text it is opened to judge out from under it. */
+  #sublook-pop { right: calc(100% + 8px); }
+  /* The guide: one row of controls over the grid, as on an upright phone
+     (css/last.css): the clock, the steps and the zoom go, and the search
+     waits behind its mark. */
+  main.guide > .guide-header { padding-block: 3px; }
+  .guide-back { padding-block: 4px; }
+  .epg-bar { padding-block: 4px; }
+  .epg-bar .spacer, .epg-clock, #epg-prev, #epg-next, .epg-nav:has(#epg-in) { display: none; }
+  .epg-search-toggle { display: inline-flex; }
+  .programme-form { display: none; padding-block: 4px; }
+  .epg.searching .programme-form, .epg:has(#programme-panel:not([hidden])) .programme-form { display: flex; }
+  /* Beside the grid, the programme's two buttons come before the corner
+     picture's own bars: the name over it and the bar under it go, the
+     programme's panel scrolls in what the picture leaves, and with
+     nothing playing the empty player's page gives the panel the column. */
+  main.guide .stagehead, main.guide .nowbar, main.guide:not(.has-playback) > .stage { display: none; }
+  main.guide > .epgview { overflow-y: auto; }
+  /* Over a playing picture the panel is some 127 px high, and a press on
+     a programme is to show that programme: its time and title come right
+     under the two buttons. The channel's logo, name and line stood before
+     them and left the title cut in half, or out of sight under a button
+     of two lines; the channel is the grid's marked row. What is under the
+     title scrolls, and says so (js/scrollhint.js). */
+  main.guide.has-playback .epgv-logo, main.guide.has-playback .epgv-chan { display: none; }
+  /* The two side by side in one row, whatever their words: stacked, or
+     wrapped under each other when the words were long ("Start from the
+     beginning", "Go to channel"), the second was cut through its label by
+     the picture under the panel. A label too long for its half takes two
+     lines, and the other button is as high. */
+  main.guide .epgv-actions { flex-direction: row; align-items: stretch; }
+  main.guide .epgv-actions button { flex: 1 1 0; width: auto; min-width: 0; padding: 4px 6px; }
+  /* A note over the corner picture (a cast session's, with its two
+     buttons, the only controls of the session in this view) has some 300
+     by 170 px: its second line goes, its margins are small, and what is
+     still too high for the picture scrolls in it. In German the buttons
+     reached 14 px below the window. */
+  main.guide.has-playback #videowrap:not(:fullscreen, .full) > .overlay { padding: 8px; overflow-y: auto; align-items: safe center; }
+  main.guide.has-playback #videowrap:not(:fullscreen, .full) > .overlay .overlay-text { display: none; }
+  main.guide.has-playback #videowrap:not(:fullscreen, .full) > .overlay .overlay-actions { margin-top: 8px; }
+}
+/* With the countries in a menu over the list (two columns), the guide's
+   button stands in the menu's row as a mark, not on a row of its own. */
+@media (max-height: 440px) and (min-width: 601px) and (max-width: 900px) {
+  .listcol { position: relative; }
+  .channel-tools:not([hidden]) { position: absolute; top: 0; right: 0; z-index: 1; min-height: 0; padding: 4px 10px 4px 0; border: 0; background: none; }
+  .channel-guide { width: 36px; height: 34px; padding: 0; justify-content: center; }
+  .channel-guide > span:not(.channel-guide-arrow) {
+    position: absolute; width: 1px; height: 1px; margin: -1px; padding: 0;
+    overflow: hidden; clip-path: inset(50%); white-space: nowrap; border: 0;
+  }
+  .channel-guide-arrow { display: none; }
+  .channel-tools:not([hidden]) + .group-picker { padding-right: 54px; }
+}
+/* A touch screen's larger targets (css/topbar.css, css/list.css) in a low
+   window: the bars there were measured to leave the list three rows, so
+   the tabs keep 36 px and the foot's marks fit the lower foot. */
+@media (hover: none) and (max-height: 440px) {
+  .tabs button { min-height: 2.25rem; }
+  .listinfo .view-toggle button { width: 2rem; height: 1.75rem; }
+  .listinfo > button { min-height: 1.75rem; }
+  /* Back, the seasons and the guide's days and buttons keep 32 px there:
+     each stands on a row of its own that the list or the grid pays for. */
+  .season, .crumbs button, .epg-day { min-height: 2rem; }
+  .epgv-actions button, .overlay-actions button { min-height: 2.25rem; }
+}
+/* Menus and dialogs in a low window, at any width: a menu scrolls inside
+   the window, and a dialog scrolls as one, its heading and its buttons
+   with its fields. With a keyboard up the window is some 170 px, which
+   the heading, the sections and the buttons alone had filled: a field
+   that takes the focus is scrolled into view, and Save is at the end. */
+@media (max-height: 440px) {
+  .pop { max-height: calc(100dvh - 3.5rem); overflow-y: auto; }
+  #setup, #help, #countries, #hidden { max-height: calc(100dvh - 12px); }
+  .setup { max-height: calc(100dvh - 14px); padding: 14px 16px; gap: 12px; }
+  /* Not the subtitles' section, which has no field to type in: its
+     preview is drawn into the room the section has between the controls
+     and Save (js/setupui.js), and stays so where the window can be made
+     higher (the touch screens' rule follows). */
+  .setup:not(:has(#panel-subs:not([hidden]))) { overflow-y: auto; }
+  .setup-panel:not(#panel-subs) { height: auto; overflow: visible; flex: none; }
+  .help-content, .choice-content { max-height: calc(100dvh - 14px); padding: 14px 16px; }
+  /* Filter countries and the hidden channels: the list keeps its height
+     and scrolls in itself, and the dialog scrolls to the buttons under it;
+     shrunk to fit, the list was a sliver of one row. */
+  .choice-content { overflow-y: auto; }
+  .choice-list { flex-shrink: 0; }
+}
+/* On a touch screen the subtitles' section scrolls with the dialog as the
+   others do: a phone lying down cannot be made higher, and the room left
+   between the controls and Save was 36 px there, a preview of 64 px with
+   text of 2. The preview has a height of its own instead (js/setupui.js
+   fitSubtitlePreview), and the dialog scrolls to it and to Save. */
+@media (hover: none) and (max-height: 440px) {
+  .setup { overflow-y: auto; }
+  #panel-subs { height: auto; overflow: visible; flex: none; }
 }

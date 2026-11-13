@@ -17,7 +17,8 @@ import { playerLayout, state, updateAddress, updatePlayerLayout, vlist } from '.
 import { updateSetupActions } from './setupui.js';
 import { cancelAutoNext } from './nextepisode.js';
 import { renderAudio, renderSubtitles, sizePicture } from './tracksui.js';
-import { channelKey, itemAddress, newPlayRun, playItem, playback, renderNowLogo, renderNowSub } from './playing.js';
+import { channelKey, itemAddress, newPlayRun, playItem, renderNowLogo, renderNowSub, startPlayback } from './playing.js';
+import { ios } from './host.js';
 import { toast } from './toast.js';
 import { $, el } from './dom.js';
 import { emptyState, icon } from './rows.js';
@@ -38,7 +39,10 @@ export const recordingOn = () => canRecord && state.settings?.recordingEnabled =
 let recordingUrl = null;      // the Blob address of the recording being played
 
 export async function loadRecordingList() {
-  canRecord = await recordingSupported();
+  // Not in the app for the iPhone and the iPad: the App Store's rules
+  // forbid saving media from third-party sources without their leave, and
+  // the viewer's provider is one. Catch-up stays, being streaming.
+  canRecord = !ios && await recordingSupported();
   await settleOrphans().catch((err) => console.warn('[iptv] settling the recordings failed', err));
   showRecordings(await loadRecordings());
   watchRecordings(showRecordings);
@@ -394,7 +398,7 @@ async function playRecording(r) {
   renderInfoStrip();
   renderRecordingState();
   vlist.refresh();
-  playback.play(state.playingSpec);
+  startPlayback(state.playing, state.playingSpec);
 }
 
 /**
@@ -447,7 +451,7 @@ export function playCatchup(item, programme, { from = 0 } = {}) {
   renderInfoStrip();
   vlist.refresh();
   if (guideOpen) grid.setPlaying(item.id);
-  playback.play(state.playingSpec);
+  startPlayback(state.playing, state.playingSpec);
   if (programme.stop > Date.now()) toast(t('guide.startover.note'), { long: true, kind: 'warn' });
 }
 

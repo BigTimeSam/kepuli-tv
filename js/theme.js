@@ -12,6 +12,7 @@
 // Settings as Automatic with the theme it comes to now.
 
 import { $ } from './dom.js';
+import { send } from './host.js';
 import { t } from './i18n.js';
 
 export const THEMES = ['dark', 'light', 'system'];
@@ -31,6 +32,10 @@ export function applyTheme(theme) {
   const value = resolveTheme(chosen);
   document.documentElement.dataset.theme = value;
   try { localStorage.setItem(KEY, chosen); } catch { /* storage refused: the setting still applies */ }
+  // The app for the iPhone and the iPad has the system draw its keyboard
+  // and the Cast dialogs in the same theme (nothing in a browser). The
+  // setting, not what it comes to: see PlayerViewController.setTheme.
+  send('screen.theme', { theme: chosen });
   return value;
 }
 

@@ -17,7 +17,7 @@
 // Bitmap subtitles (PGS, VOBSUB) are left out: they are images, and cannot
 // be handed to a VTTCue.
 
-import { languageLabel, sameish, shortLanguage, shorten, trackLanguage } from './lang.js';
+import { isLanguageName, languageLabel, sameish, shortLanguage, shorten, trackLanguage } from './lang.js';
 import { t, localeTag } from './i18n.js';
 
 const SUBTITLE_TYPE = 17;
@@ -296,14 +296,16 @@ const clean = (text) => text.replace(/[ \t]+\n/g, '\n').replace(/\n{3,}/g, '\n\n
 /** The name shown in the selector: "Finnish", "Finnish (forced)",
  *  "Swedish (SDH)". The pieces are shared with the audio selector, see
  *  lang.js. */
-function label(track, language) {
+export function label(track, language) {
   const code = shortLanguage(language);
   let base = languageLabel(code);
   if (code === 'und' && !track.name) base = t('subs.unknown');
   const extras = [];
   // A track's own name often says what the language does not: "SDH",
-  // "Full", "Songs".
-  if (track.name && !sameish(track.name, base)) extras.push(shorten(track.name));
+  // "Full", "Songs". One that only repeats the language says nothing, as
+  // in the audio selector: in a German interface an English track named
+  // "English" read "Englisch (English)", cut short in a phone's bar.
+  if (track.name && !sameish(track.name, base) && !isLanguageName(track.name, code)) extras.push(shorten(track.name));
   if (track.forced) extras.push(t('subs.forced'));
   return extras.length ? `${base} (${extras.join(', ')})` : base;
 }

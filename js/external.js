@@ -37,6 +37,8 @@
 // sensitive as the account itself. The intent and the iOS link leave no
 // file behind.
 
+import { ios } from './host.js';
+
 const VLC_PACKAGE = 'org.videolan.vlc';
 const VLC_STORE = `https://play.google.com/store/apps/details?id=${VLC_PACKAGE}`;
 const VLC_APP_STORE = 'https://apps.apple.com/app/vlc-media-player/id650377962';
@@ -50,10 +52,13 @@ export function onAndroid() {
 
 /**
  * Whether it runs in the iPhone's WebKit (Orion), whose user agent claims a
- * Mac: told by ManagedMediaSource without MediaSource, as cast.js does.
+ * Mac: told by ManagedMediaSource without MediaSource, as cast.js does. Or
+ * in the app (js/host.js), on the iPad as well, which has MediaSource: a
+ * downloaded playlist means nothing in an app, and VLC takes the address
+ * there as on the iPhone.
  */
 export function onIPhone() {
-  return typeof globalThis.MediaSource === 'undefined' && 'ManagedMediaSource' in globalThis;
+  return ios || (typeof globalThis.MediaSource === 'undefined' && 'ManagedMediaSource' in globalThis);
 }
 
 /** Whether the external player is VLC, handed the stream directly: on a phone. */
@@ -99,7 +104,11 @@ function openVlcIos(spec) {
     window.removeEventListener('blur', gone);
     window.removeEventListener('pagehide', gone);
     document.removeEventListener('visibilitychange', gone);
-    if (!left && document.visibilityState === 'visible') click(VLC_APP_STORE, '', '_blank');
+    // In the app without a target: WebKit drops a click that would open a
+    // window when no tap stands behind it, as none does behind a timer
+    // (measured), and nothing happened at all. The app hands an address
+    // that is not the player's to the system anyway, and the page stays.
+    if (!left && document.visibilityState === 'visible') click(VLC_APP_STORE, '', ios ? '' : '_blank');
   }, VLC_ABSENT_MS);
 }
 

@@ -17,7 +17,9 @@ dev/wasm/media/
 .impeccable/
 
 # dev/mock/media.sh makes these with ffmpeg; dummy media for the mock server.
-dev/mock/media/
+# No slash at the end: a worktree may hold a link to another checkout's
+# media in its place, and a pattern for a directory does not match a link.
+/dev/mock/media
 
 # firefox/build.mjs assembles the Firefox package here from the shared source.
 firefox/dist/
@@ -44,6 +46,9 @@ CLAUDE.local.md
 *.p12
 amo.json
 cws.json
+appstore.json
+*.p8
+*.mobileprovision
 **/live-url.txt
 
 # Logs, scratch output and editor and system files.

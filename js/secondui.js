@@ -334,15 +334,8 @@ function setSwapped(on) {
 }
 
 // Both pictures full screen: their box goes there, as with f. The button
-// says which way it goes, whoever changed it.
-const fullButton = $('second-full');
-fullButton.addEventListener('click', toggleFullscreen);
-document.addEventListener('fullscreenchange', () => {
-  const key = document.fullscreenElement === el.videowrap ? 'screen.leave' : 'screen.enter';
-  fullButton.dataset.i18nLabel = fullButton.dataset.i18nTitle = key;
-  fullButton.setAttribute('aria-label', t(key));
-  fullButton.title = t(key);
-});
+// says which way it goes, whoever changed it (js/playercontrols.js).
+$('second-full').addEventListener('click', toggleFullscreen);
 retry.addEventListener('click', () => {
   if (!showing) return;
   if (second.blocked) second.playBlocked(); else second.play(showing.spec);

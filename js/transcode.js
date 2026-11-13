@@ -49,6 +49,7 @@
 
 import { AacEncoder, PcmDecoder, decodable } from './ffaudio.js';
 import { mse } from './mp4.js';
+import { audioSpecificConfig } from './mp4file.js';
 
 export const RATE = 48000;
 export const CHANNELS = 2;
@@ -213,11 +214,16 @@ async function measure(encoder) {
   if (!packets.length) throw new Error('the encoder produced nothing');
   if (encoder.name === 'aac' && !config) throw new Error('the encoder did not report its configuration');
 
+  // The AudioSpecificConfig, which is not always what the encoder reports
+  // (js/mp4file.js audioSpecificConfig). Unwrapped before the round trip,
+  // so that what is measured is what MediaSource will be handed.
   const description = encoder.name === 'aac' && config && config.description
-    ? new Uint8Array(ArrayBuffer.isView(config.description) ? config.description.buffer : config.description).slice()
+    ? audioSpecificConfig(new Uint8Array(ArrayBuffer.isView(config.description) ? config.description.buffer : config.description).slice())
     : null;
 
   const frames = [];
+  /** @type {Error | null} */
+  let refused = null;
   const decoder = new AudioDecoder({
     output: (frame) => {
       const data = new Float32Array(frame.numberOfFrames * frame.numberOfChannels);
@@ -225,7 +231,7 @@ async function measure(encoder) {
       frames.push({ data, channels: frame.numberOfChannels, length: frame.numberOfFrames });
       frame.close();
     },
-    error: (err) => console.warn('[iptv] measurement decode', err),
+    error: (err) => { refused = err; },
   });
   const decoderConfig = { codec: encoder.codec, sampleRate: RATE, numberOfChannels: CHANNELS };
   if (description) decoderConfig.description = description;
@@ -233,8 +239,13 @@ async function measure(encoder) {
   for (const packet of packets) {
     decoder.decode(new EncodedAudioChunk({ type: 'key', timestamp: packet.timestamp, data: packet.data }));
   }
-  await decoder.flush();
-  decoder.close();
+  await decoder.flush().catch((err) => { refused = refused || err; });
+  try { decoder.close(); } catch { /* closed itself on an error */ }
+  // An encoder whose own output does not decode with the configuration the
+  // track will carry is not usable: the next candidate is tried. It used
+  // to pass with a delay of zero, and the first segment was then refused.
+  const why = /** @type {Error | null} */ (refused);
+  if (why || !frames.length) throw new Error(`the encoder's output did not decode: ${why ? why.message : 'no frames'}`);
 
   let at = 0;
   let onset = -1;

@@ -141,8 +141,10 @@ export class SubtitleDisplay {
    * @param {HTMLVideoElement} video
    * @param {HTMLElement} layer the element the cues are drawn into, inside the wrapper
    * @param {HTMLElement} wrap the video's wrapper: the layer's parent and what goes to full screen
+   * @param {number} [linger] how long the browser's controls stay on show, where it is not Chrome's time
    */
-  constructor(video, layer, wrap) {
+  constructor(video, layer, wrap, linger = CONTROLS_LINGER_MS) {
+    this.linger = linger;
     /** The iPhone's own full screen player has the video. */
     this.ownFullscreen = false;
     this.video = video;
@@ -177,7 +179,12 @@ export class SubtitleDisplay {
 
     wrap.addEventListener('pointermove', (e) => { this.pointerY = e.clientY; this.wake(); });
     wrap.addEventListener('pointerdown', () => this.wake());
-    wrap.addEventListener('pointerleave', () => { this.pointerY = null; this.rest(); });
+    // A finger leaves when it is lifted, which is when the controls it
+    // woke have only just come: they stay their time. Rested at once, the
+    // class was gone 80 ms after a tap, and what comes and goes by it (the
+    // second picture's buttons in full screen, the app's full-screen
+    // button) could not be pressed on a touch screen at all.
+    wrap.addEventListener('pointerleave', (e) => { this.pointerY = null; if (e.pointerType !== 'touch') this.rest(); });
     video.addEventListener('pause', () => this.wake());
     video.addEventListener('play', () => this.wake());
     video.addEventListener('ended', () => this.wake());
@@ -264,7 +271,7 @@ export class SubtitleDisplay {
     clearTimeout(this.timer);
     this.timer = null;
     if (this.video.paused || this.video.ended) return;
-    this.timer = setTimeout(() => this.rest(), CONTROLS_LINGER_MS);
+    this.timer = setTimeout(() => this.rest(), this.linger);
   }
 
   /** The controls have gone — unless the pointer rests on them. */
@@ -273,7 +280,7 @@ export class SubtitleDisplay {
     this.timer = null;
     if (this.video.paused || this.video.ended) return;
     if (this.pointerY != null && this.wrap.getBoundingClientRect().bottom - this.pointerY <= CONTROLS_BAND_PX) {
-      this.timer = setTimeout(() => this.rest(), CONTROLS_LINGER_MS);
+      this.timer = setTimeout(() => this.rest(), this.linger);
       return;
     }
     this.wrap.classList.remove('controls');

@@ -29,7 +29,9 @@ import { formatRoute, parseRoute } from './route.js';
 
 import { requestAccess, hasAccess, hasAccessEverywhere, requestAccessEverywhere, redirects } from './permissions.js';
 
-import { Cast, supported as castSupported } from './cast.js';
+import { createCast, supported as castSupported } from './cast.js';
+import { renderCasting, sessionFound } from './castui.js';
+import { ios } from './host.js';
 import { warmCache, probeCacheTtl } from './probe.js';
 
 import { SubtitleDisplay } from './subdisplay.js';
@@ -41,7 +43,7 @@ import { nf } from './format.js';
 import { t, applyStatic, setLanguage, loadLanguage } from './i18n.js';
 import { askRecordingConsent, closeRecordingConsent, loadRecordingList, openRecordings, retryPlayback, toggleRecordNow } from './recordingsui.js';
 import { offerXtream, renderAccountList } from './accountsui.js';
-import { loadNotifying, loadReminders, reminders, setNotifying, showReminders, watchAsked } from './remindersui.js';
+import { loadNotifying, loadReminders, onNotifying, reminders, setNotifying, showReminders, watchAsked } from './remindersui.js';
 import { renderInfoStrip } from './infostrip.js';
 import { applyListLayout, gridColumns, isWatched, nameCleanerFor, onEpgUpdated, renderRow, restoreListView, listName, shownName, toggleFavorite, toggleWatched, usesGrid, watchGridWidth } from './coversui.js';
 import { closeDetail, crumbLabel, episodesOfSeason, openItem, openSeries, renderDetail } from './seriesui.js';
@@ -54,7 +56,8 @@ import { $, el } from './dom.js';
 import { state, TYPE_KIND, unit, kindLabel, KIND_ORDER, KIND_INDEX, kindGroup, ROW_H, setRowHeight, listNavigation, isCollection, tabType, isAbort, same, resetting, startReset, connecting, setConnecting, provide } from './state.js';
 import { categoryCountsFor, collectionItems, favCategoryEntry, isFavorite, isUnfinished, kindIndex, loadGroupItems, openFavCategory, refreshCatalogue, refreshWhenStale, removeFromHistory, removeUpcoming, renderSubcats, upcomingCount, sectionsFor, toggleFavCategory } from './collections.js';
 import { renderSecondItem, secondFor, secondOffered } from './secondui.js';
-import { clickPicture, enterFullscreen, moreItems, renderScreenButton, renderSeriesFavorite, toggleFullscreen, toggleMoreMenu, togglePause, toggleScreen, wireMediaSession } from './playercontrols.js';
+import { clickPicture, enterFullscreen, moreItems, pictureFull, renderScreenButton, renderSeriesFavorite, toggleFullscreen, toggleMoreMenu, togglePause, toggleScreen, wireMediaSession } from './playercontrols.js';
+import { reveal } from './sidescroll.js';
 import { wireTopMenu } from './topmenu.js';
 import { wireScrollHints } from './scrollhint.js';
 import { channelsByFavourite, filterChannels, placeListFilters, wireListFilters } from './listfilters.js';
@@ -83,7 +86,7 @@ const playerLayout = new PlayerLayout(el.main, {
   browse: $('compact-browse'), watch: $('compact-player'), list: el.list, video: el.video, closeGuide,
 });
 function updatePlayerLayout() {
-  playerLayout.update({ connected: Boolean(state.lib), playing: Boolean(state.playing) });
+  playerLayout.update({ connected: Boolean(state.lib), playing: Boolean(state.playing), session: sessionFound() });
 }
 
 // The topic the last session ended on, waiting for the library. It belongs
@@ -161,6 +164,13 @@ async function connect({ silent = false } = {}) {
     askCountriesOnce();
     if (playlist) warmGuide(source);
     if (playlist && !problem) offerXtream(source.catalogue?.xtream).catch(() => {});
+    // A reminder's notification may be what opened this player, or was
+    // clicked while this connection waited for the provider: the record
+    // is not played before the lists are there (js/remindersui.js), so
+    // every connection ends by looking for it. Looked for at the start
+    // alone, one clicked during a later connection (another account, Clear
+    // cache, Retry) played nothing and stayed in storage.
+    watchAsked();
     return true;
   } catch (err) {
     if (stale()) return false;
@@ -850,6 +860,8 @@ function markTabs(tab) {
     // it; five stops would put four of them between the strip and the list.
     button.tabIndex = on ? 0 : -1;
     if (on) $('listcol').setAttribute('aria-labelledby', button.id);
+    // In sight, wherever it was chosen from (js/sidescroll.js).
+    if (on) reveal(el.tabs, button);
   }
 }
 
@@ -1777,7 +1789,7 @@ function lengthsRead() {
 
 /* --------------------------------------------------------- Chromecast */
 
-const cast = new Cast(el.video, renderCastState);
+const cast = createCast(el.video, renderCastState);
 
 /**
  * The Cast button and the c key. A natively played file goes through the
@@ -1791,6 +1803,9 @@ const cast = new Cast(el.video, renderCastState);
  */
 function castCurrent() {
   if (!castSupported) return;
+  // The app's own sender (js/castui.js): Google's dialog, whatever plays
+  // or not, as a viewer may connect first.
+  if (cast.native) { cast.prompt(); return; }
   if (!state.playingSpec) { toast(t('cast.nothing'), { kind: 'warn' }); return; }
   // Already casting: the same dialog is where Chrome lets the viewer stop.
   if (cast.busy) { cast.prompt().catch(() => {}); return; }
@@ -1822,12 +1837,18 @@ function showCastHint() {
 /**
  * The menu item: hidden without the API, lit while the device plays. The
  * hamburger is lit with it — the item's own colour is behind a press, and
- * casting is worth seeing without one.
+ * casting is worth seeing without one. In the app the Cast mark itself
+ * stands on the top bar once a device is near or in use, as Google's
+ * terms want it in sight, and is the one lit; the session is drawn by
+ * js/castui.js.
  */
 function renderCastState() {
   el.cast.hidden = !castSupported;
   el.cast.classList.toggle('on', cast.connected);
-  el.more.classList.toggle('on', cast.connected);
+  el.more.classList.toggle('on', cast.connected && !cast.native);
+  $('btn-cast-top').hidden = !(cast.native && (cast.available || cast.busy));
+  $('btn-cast-top').classList.toggle('on', cast.connected);
+  renderCasting();
   // The engine line carries the device; before anything plays it says "Not
   // connected", and that text is not this function's to change.
   if (state.playing) renderNowSub();
@@ -2105,19 +2126,37 @@ function wireUi() {
   // The switch is the permission itself, asked of the browser in the click
   // and not kept with the settings: it shows what the browser answered.
   $('f-notify').addEventListener('change', async (event) => { event.target.checked = await setNotifying(event.target.checked); });
+  // The system's leave changed in the device's settings while the app
+  // lived (js/remindersui.js): the switch of an open dialog follows.
+  onNotifying((on) => { $('f-notify').checked = on; });
   $('rec-consent-ok').addEventListener('click', () => closeRecordingConsent(true));
   $('rec-consent-cancel').addEventListener('click', () => closeRecordingConsent(false));
   wireModal($('rec-consent'), () => closeRecordingConsent(false));
   wireModal($('recordings'), () => $('recordings').close());
   el.cast.addEventListener('click', castCurrent);
+  $('btn-cast-top').addEventListener('click', castCurrent);
   $('btn-pip').addEventListener('click', async () => {
     try {
       if (document.pictureInPictureElement) await document.exitPictureInPicture();
       else await el.video.requestPictureInPicture();
-    } catch { toast(t('player.pip.unavailable'), { kind: 'error' }); }
+    } catch {
+      // WebKit's own way, where the standard one is missing or refused
+      // (the iPhone, and the app's web view).
+      const video = el.video;
+      if (video.webkitSupportsPresentationMode?.('picture-in-picture')) {
+        video.webkitSetPresentationMode(video.webkitPresentationMode === 'picture-in-picture' ? 'inline' : 'picture-in-picture');
+      } else toast(t('player.pip.unavailable'), { kind: 'error' });
+    }
   });
 
-  el.more.addEventListener('click', () => { renderSecondItem(); toggleMoreMenu(); });
+  el.more.addEventListener('click', () => {
+    renderSecondItem();
+    // Picture in picture only where the picture can be put in one: asked
+    // as the menu opens, since WebKit's answer is the playing source's.
+    // The item used to stand there and answer with an error.
+    $('btn-pip').hidden = !(document.pictureInPictureEnabled || el.video.webkitSupportsPresentationMode?.('picture-in-picture'));
+    toggleMoreMenu();
+  });
   // The item's own handler has run by the time the click reaches the menu,
   // and none of them awaits before it spends the gesture — the clipboard,
   // the cast picker and the hand-off all need it.
@@ -2198,6 +2237,9 @@ function wireUi() {
     // The list's own load answers Escape wherever the focus is, which the
     // dialog used to do for us by being modal.
     if (e.key === 'Escape' && !el.listProgress.hidden) { cancelProgress(); return; }
+    // The app's own full screen (js/playercontrols.js) has no browser
+    // behind it to leave it at Escape, on a keyboard joined to an iPad.
+    if (e.key === 'Escape' && ios && pictureFull()) { toggleFullscreen(); return; }
     // The video's own controls take the keys while the video has the
     // focus — after a click on the picture — except f, which used to be
     // the browser's full-screen key there and is now the app's.
@@ -2272,6 +2314,18 @@ provide({
 
 applyTheme(earlyTheme());
 wirePickers();
+if (ios) {
+  // In the app the help leads to the app's own guide: the README and the
+  // user guide the two links name otherwise are about browsers.
+  for (const link of document.querySelectorAll('a.setup-help:not(.ios-only)')) link.href = 'https://bigtimesam.github.io/kepuli-tv/iptv-app-iphone-ipad/';
+  // The Help button's name there is Help: its longer one speaks of keys,
+  // which an iPhone has none of.
+  $('btn-help').dataset.i18nTitle = 'btn.help';
+  // The page is the app's whole screen already. Hidden as an attribute,
+  // not by the stylesheet alone: the top bar's menu is made of the buttons
+  // that are not hidden (js/topmenu.js).
+  $('btn-screen').hidden = true;
+}
 
 async function init() {
   state.accounts = await store.loadAccounts();
@@ -2311,7 +2365,9 @@ async function init() {
   sync.start();
   el.mode.value = state.config.streamMode || 'auto';
   applySubtitleLook(state.settings);
-  new SubtitleDisplay(el.video, el.subdisplay, el.videowrap);
+  // WebKit's controls stay four seconds in the app (measured), and the
+  // app's full-screen button lies over one of them for as long.
+  new SubtitleDisplay(el.video, el.subdisplay, el.videowrap, ios ? 4000 : undefined);
   renderCastState();
 
   await loadNotifying();
@@ -2367,8 +2423,6 @@ async function init() {
     return;
   }
   await connect();
-  // A reminder's notification may be what opened this player.
-  watchAsked();
 }
 
 const CACHE_PURGE_DELAY_MS = 20000;

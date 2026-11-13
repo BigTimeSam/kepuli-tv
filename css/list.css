@@ -106,6 +106,9 @@ button.group-star, button.group-star:hover, .group.active .group-star:hover { wi
   .row-star, .row-star:hover, .row-more { width: 2rem; height: 2rem; }
   .chip { min-height: 2rem; }
   .chip-main { align-self: stretch; }
+  /* The sidebar's star and a series' own, 24 and 26 px. */
+  button.group-star, button.group-star:hover, .group.active .group-star:hover { width: 2rem; height: 2rem; padding: 7px; margin: -7px; }
+  button.series-favorite { width: 2rem; height: 2rem; }
 }
 .row-menu {
   position: fixed; inset: auto; margin: 0; padding: 6px; min-width: 200px;
@@ -150,6 +153,30 @@ button.group-star, button.group-star:hover, .group.active .group-star:hover { wi
    outside them ran under the neighbour and past the frame. */
 .listinfo .view-toggle button:focus-visible { outline-offset: -2px; }
 .listinfo .view-toggle svg { width: 14px; height: 14px; fill: none; stroke: currentColor; stroke-width: 1.6; stroke-linecap: round; stroke-linejoin: round; }
+/* On a touch screen the order's and the view's marks are apart and a
+   fingertip wide: 24 by 22 px side by side, a finger pressed the one
+   beside the one it meant. The foot is high enough for them. */
+@media (hover: none) {
+  .listinfo .view-toggle { gap: 4px; }
+  .listinfo .view-toggle button { width: 2.25rem; height: 2.25rem; }
+  /* Clear history and the hidden channels' count: a line of text, 16 px. */
+  .listinfo > button { min-height: 2.25rem; }
+  /* The count is what the foot is for, and with the wider marks it was
+     the part that gave way: "5 ser…" on a phone, "6…" in a tablet's
+     column. It keeps its width, and what stands beside it goes instead:
+     the category first, then the tab's mark, and in the narrowest column
+     (a tablet lying down) the count's word, the marks a little closer. */
+  .listinfo-count { flex-shrink: 0; }
+  @container (max-width: 480px) { .listinfo-rest { display: none; } }
+  @container (max-width: 400px) { .listinfo > .tab-icon { display: none; } }
+  @container (max-width: 320px) {
+    /* The number alone (js/topicbar.js); the words stay for a screen reader. */
+    .listinfo-count { font-size: 0; }
+    .listinfo-count::before { content: attr(data-n); content: attr(data-n) / ""; font-size: var(--fs-s); }
+    .listinfo .view-toggle { gap: 2px; }
+    .listinfo .view-toggle button { width: 2rem; }
+  }
+}
 
 /* ------------------------------------------------------------ covers */
 /* A line of the grid holds --grid-cols covers; its height is the virtual

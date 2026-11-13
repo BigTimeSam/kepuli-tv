@@ -19,7 +19,7 @@ import { applySubtitleLook, chooseSubtitleLook, lookOf, showSubtitleSize, toggle
 import { autoNext, renderStatBadge } from './nextepisode.js';
 import { cacheClear, storageEstimate, wipeStorage } from './db.js';
 import { canRecord, renderRecordingState } from './recordingsui.js';
-import { notifying } from './remindersui.js';
+import { forgetNotifications, notifying, showRefusal } from './remindersui.js';
 import { clock, dateFmt, dateTimeFmt, megabytes, nf } from './format.js';
 import { normalizeMac, normalizePortal } from './stalker.js';
 import { parsePlaylistUrl, parseServer, pastedKind } from './xtream.js';
@@ -32,6 +32,7 @@ import { renderAccountList } from './accountsui.js';
 import { hasAccess, requestAccess, requestAccessFor } from './permissions.js';
 import { toast } from './toast.js';
 import { roomForSecond, secondAvailable } from './secondui.js';
+import { reveal, sideScroll } from './sidescroll.js';
 import { wireModal } from './modal.js';
 import * as store from './config.js';
 import { accountAddress, adoptAccount, connect, offerLists, refreshRows, renderSidebar, resetting, same, startReset, state } from './state.js';
@@ -73,6 +74,8 @@ export function openSetup({ section, adding = false } = {}) {
   $('f-home-recent').checked = state.settings.homeRecent !== false;
   $('f-record').disabled = !canRecord;
   $('f-notify').checked = notifying;
+  // What an earlier press of the switch was answered is not said again.
+  showRefusal(false);
   $('f-international').checked = state.settings.showInternational;
   setupInitial = { ...state.settings, subtitleStyle: subtitleLook(state.settings).style, subtitleScale: subtitleLook(state.settings).scale, subtitleScaleBase: SCALE_BASE, subtitleLift: subtitleLook(state.settings).lift };
   applySubtitleLook(state.settings);
@@ -122,11 +125,13 @@ async function refreshAccount() {
  * It was the window's share whatever the sections held, up to 620 px, and
  * on a tall screen every section, the subtitles' preview included, had a
  * band of nothing under it. Measured each time the dialog opens, its texts
- * and accounts being what they are then; the subtitles' section by its
- * controls and a 16:9 preview of the full width, as fitSubtitlePreview
- * draws it.
+ * and accounts being what they are then, and when the window's size
+ * changes under it (wireSetup); the subtitles' section by its controls
+ * and a 16:9 preview of the full width, as fitSubtitlePreview draws it.
  */
+let fitted = '';
 function fitSetupHeight() {
+  fitted = `${innerWidth} ${innerHeight}`;
   const panels = /** @type {HTMLElement[]} */ ([...el.setup.querySelectorAll('.setup-panel')]);
   const ceiling = Math.max(320, Math.min(innerHeight - 290, 620)) + 4;
   let tallest = 0;
@@ -325,10 +330,11 @@ export function updateSetupActions() {
   const reconnect = setupAdding || connectionTargetChanged();
   $('f-save').disabled = setupSaving || (!first && !dirty);
   $('f-save').textContent = t(setupSaving ? 'setup.saving' : first || setupAdding ? 'setup.connect' : 'setup.save');
-  // Account & data holds the only two controls in the dialog that act at
-  // once, so the line under them must not promise that nothing does.
+  // Account & data holds sync, which acts at once where it is offered, so
+  // the line under it must not promise that nothing does; where it is not
+  // (the iPhone and iPad app) the line does not speak of it.
   el.setupNoteText.textContent = t(dirty ? (reconnect && !first ? 'setup.reconnect' : 'setup.pending')
-    : setupSection === 'account' ? 'setup.account.immediate' : 'setup.unchanged');
+    : setupSection === 'account' && syncAvailable() ? 'setup.account.immediate' : 'setup.unchanged');
   el.setupNote.classList.toggle('pending', dirty);
   if (!dirty) $('setup-discard').hidden = true;
   updateGrantNote();
@@ -370,6 +376,7 @@ function previewSetupLook() {
  * height as the subtitles will be of the film's. Only a sample too wide
  * for a narrow frame is scaled down to fit.
  */
+const PREVIEW_LOW = 136;
 /**
  * The preview is a 16:9 picture, as large as the room under the controls
  * allows: a frame stretched to the room's own shape was not a picture, and
@@ -382,7 +389,11 @@ function fitSubtitlePreview() {
   // The room less the controls and the heading above the frame, and their gaps.
   const above = [...room.children].filter((node) => node !== frame);
   const gap = parseFloat(getComputedStyle(room).rowGap) || 0;
-  const height = room.clientHeight - above.reduce((sum, node) => sum + /** @type {HTMLElement} */ (node).offsetHeight + gap, 0);
+  // On a phone lying down the section is as high as what it holds and
+  // the dialog scrolls (css/narrow.css): there is no room to measure, and
+  // the preview takes the least height its text can be judged at.
+  const bounded = getComputedStyle(/** @type {HTMLElement} */ (room.closest('.setup-panel'))).overflowY !== 'visible';
+  const height = bounded ? room.clientHeight - above.reduce((sum, node) => sum + /** @type {HTMLElement} */ (node).offsetHeight + gap, 0) : PREVIEW_LOW;
   const width = Math.floor(Math.min(room.clientWidth, Math.max(0, height) * 16 / 9));
   frame.style.width = `${width}px`;
   frame.style.height = `${Math.floor(width * 9 / 16)}px`;
@@ -417,6 +428,10 @@ export function showSetupSection(name) {
     button.classList.toggle('active', on);
     button.setAttribute('aria-selected', String(on));
     button.tabIndex = on ? 0 : -1;
+    // In a phone's width the rail scrolls sideways, and its last section
+    // read "Account" or "Kon" at the dialog's edge: the one chosen is
+    // brought in whole (js/sidescroll.js).
+    if (on && el.setup.open) reveal(el.setupTabs, button);
   }
   for (const panel of document.querySelectorAll('.setup-panel')) {
     panel.hidden = panel.id !== `panel-${name}`;
@@ -650,6 +665,7 @@ async function resetEverything() {
   // everything the player stored, here or carried elsewhere.
   await api.storage.sync?.clear().catch(() => {});
   await wipeStorage();
+  await forgetNotifications();
   location.reload();
 }
 
@@ -716,7 +732,29 @@ export function wireSetup() {
     button.setAttribute('aria-expanded', String(open));
     $(button.getAttribute('aria-controls')).hidden = !open;
   });
+  // The port comes filled in (8080), and a phone's Next puts the caret
+  // after it where a computer's Tab selects it: 8841 typed there became
+  // "80808841", of which the narrow field showed "8080…". Selected a turn
+  // after the focus: WebKit drops a selection made in the focus event
+  // itself, and a tap's own caret would undo it.
+  $('f-port').addEventListener('focus', (event) => {
+    const field = /** @type {HTMLInputElement} */ (event.target);
+    setTimeout(() => { if (document.activeElement === field) field.setSelectionRange(0, field.value.length); }, 0);
+  });
   new ResizeObserver(fitSubtitlePreview).observe(document.querySelector('#panel-subs .sublook'));
+  // A device turned with Settings open: the sections kept the height
+  // measured lying down, a short dialog upright with a thumbnail for the
+  // subtitles' preview. The window's own size is what the height is
+  // measured from; a keyboard coming up does not change it. The open
+  // section keeps its place: the measuring lets every section go to its
+  // own height for a moment.
+  addEventListener('resize', () => requestAnimationFrame(() => {
+    if (!el.setup.open || fitted === `${innerWidth} ${innerHeight}`) return;
+    const panel = el.setup.querySelector('.setup-panel:not([hidden])');
+    const top = panel?.scrollTop || 0;
+    fitSetupHeight();
+    if (panel) panel.scrollTop = top;
+  }), { passive: true });
   // Dialog controls edit a draft. Only the local subtitle sample previews it.
   for (const event of ['input', 'change']) {
     el.setup.querySelector('form').addEventListener(event, () => {
@@ -839,11 +877,10 @@ export function wireSetup() {
     tabs[next].focus();
   });
   // In a phone's width the rail scrolls sideways (a one-word name does not
-  // wrap), and the browser left a tab focused at its end half under the
-  // edge, ring and all. scroll-padding on the rail keeps the ring's room.
-  el.setupTabs.addEventListener('focusin', (event) => {
-    if (event.target instanceof HTMLElement && event.target !== el.setupTabs) event.target.scrollIntoView({ block: 'nearest', inline: 'nearest' });
-  });
+  // wrap), with the arrows that say so and bring a focused or a chosen
+  // section in whole (js/sidescroll.js). scroll-padding on the rail keeps
+  // a ring's room.
+  sideScroll(el.setupTabs, { compact: true, className: 'setup-tabs-scroll' });
   el.setupTabs.addEventListener('click', (e) => {
     const button = e.target.closest('button[data-panel]');
     if (!button) return;
