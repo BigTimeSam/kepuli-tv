@@ -6,7 +6,9 @@ import android.os.Bundle;
 import android.util.Log;
 import android.view.KeyEvent;
 import android.view.View;
+import android.view.ViewGroup;
 import android.view.WindowManager;
+import android.widget.FrameLayout;
 import android.window.OnBackInvokedDispatcher;
 
 import java.io.File;
@@ -44,6 +46,7 @@ abstract class EngineActivity extends Activity {
 
     protected GeckoSession session;
     protected GeckoView view;
+    private View splash;
 
     /** The page under the extension's address, with its query. */
     protected abstract String page();
@@ -67,7 +70,16 @@ abstract class EngineActivity extends Activity {
         super.onCreate(state);
         getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
         view = new GeckoView(this);
-        setContentView(content(view));
+        // The engine takes seconds to start and its view is white until
+        // the page has drawn: the logo stays over it until then, as the
+        // window showed it before the activity had anything (res/drawable/splash.xml).
+        FrameLayout root = new FrameLayout(this);
+        root.addView(content(view), new FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
+        splash = new View(this);
+        splash.setBackgroundResource(R.drawable.splash);
+        root.addView(splash, new FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
+        setContentView(root);
+        view.coverUntilFirstPaint(getColor(R.color.background));
 
         if (runtime == null) {
             GeckoRuntimeSettings.Builder settings = new GeckoRuntimeSettings.Builder()
@@ -108,6 +120,11 @@ abstract class EngineActivity extends Activity {
             public void onCloseRequest(GeckoSession s) {
                 moveTaskToBack(true);
             }
+
+            @Override
+            public void onFirstContentfulPaint(GeckoSession s) {
+                painted();
+            }
         });
         session.open(runtime);
         view.setSession(session);
@@ -124,6 +141,13 @@ abstract class EngineActivity extends Activity {
                     session.loadUri(extension.metaData.baseUrl + page());
                 },
                 error -> Log.e(TAG, "the extension did not install", error));
+    }
+
+    /** The page has drawn: the logo over it goes. A content delegate of a device's own calls this too. */
+    protected void painted() {
+        if (splash == null) return;
+        ((ViewGroup) splash.getParent()).removeView(splash);
+        splash = null;
     }
 
     /**

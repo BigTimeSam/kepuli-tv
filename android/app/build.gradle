@@ -20,7 +20,7 @@ def generated = new File(projectDir, 'build/generated/kepuli')
 // version of the player: Play wants a higher version code for it. Raise
 // this by one for each such package, and set it back to 0 when the
 // player's version moves on. dev/play-publish.mjs reads it from here.
-def androidBuild = 1
+def androidBuild = 2
 def baseCode = (major * 10000 + minor * 100 + patch) * 100 + androidBuild
 
 android {
@@ -176,6 +176,8 @@ def syncStrings = tasks.register('syncStrings', Exec) {
 }
 def syncBrand = tasks.register('syncBrand', Sync) {
     from(new File(root, 'icons/icon128.png')) { rename { 'kepuli_icon.png' } }
+    // The logo alone, for the screen shown while the engine starts.
+    from(new File(root, 'brand/tv-compact.png')) { rename { 'splash_logo.png' } }
     into(new File(generated, 'res/drawable-nodpi'))
 }
 // The launcher's tile on a television: the logo and the name, 16:9.

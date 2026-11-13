@@ -137,6 +137,15 @@ const STRINGS = {
     'help.guide.keys': 'In the programme guide the arrows move between channels and programmes, PgUp and PgDn a screen at a time, Home returns to the present, + and − change the timeline’s scale, Enter starts playback and Esc closes the guide.',
     'help.back': 'The browser’s back button leaves the player rather than stepping back inside it. The address bar always names where you are, so reloading returns to the same place, and Back stays the way out. Inside the app, the ← Back link above the list and the Backspace key step back one level.',
     'help.full': 'The full user guide',
+    'help.remote': 'Remote control',
+    'help.remote.move': 'Move on the page; in a list, from row to row',
+    'help.remote.ok': 'Choose. On a channel, a movie or an episode: play it. On the channel that is playing: full screen',
+    'help.remote.hold': 'OK held down',
+    'help.remote.star': 'On a channel: its menu, which begins with the favourite. On a country, a topic or a card: add it to the favourites or remove it',
+    'help.remote.backkey': 'Back',
+    'help.remote.back': 'Close what is open, then return to the list. From the list: leave the app',
+    'help.remote.full': 'In full screen',
+    'help.remote.fullkeys': '↑ ↓ change the channel, ← → move ten seconds in a movie or an episode, OK pauses',
 
     /* ---------------------------------------------------------- sidebar */
     'groups.filter.placeholder': 'Country or topic…',
@@ -927,6 +936,15 @@ const STRINGS = {
     'help.guide.keys': 'Oppaassa nuolet liikkuvat kanavien ja ohjelmien välillä, PgUp ja PgDn ruudullisen kerrallaan, Home palaa nykyhetkeen, + ja − muuttavat aikajanan mittakaavaa, Enter aloittaa toiston ja Esc sulkee oppaan.',
     'help.back': 'Selaimen paluupainike poistuu soittimesta sen sijaan että peruisi askeleen sen sisällä. Osoiterivi kertoo aina missä ollaan, joten sivun lataus palaa samaan paikkaan ja paluupainike on tie ulos. Sovelluksen sisällä listan yläpuolinen ← Takaisin ja Backspace peruvat yhden askeleen.',
     'help.full': 'Koko käyttöohje',
+    'help.remote': 'Kaukosäädin',
+    'help.remote.move': 'Liiku sivulla; listassa riviltä toiselle',
+    'help.remote.ok': 'Valitse. Kanavalla, elokuvalla tai jaksolla: toista. Toistuvalla kanavalla: koko näyttö',
+    'help.remote.hold': 'OK pohjassa',
+    'help.remote.star': 'Kanavalla: sen valikko, jonka ensimmäisenä on suosikki. Maalla, aiheella tai kortilla: lisää suosikkeihin tai poista niistä',
+    'help.remote.backkey': 'Takaisin',
+    'help.remote.back': 'Sulje avoin näkymä, palaa sitten listaan. Listasta: poistu sovelluksesta',
+    'help.remote.full': 'Koko näytössä',
+    'help.remote.fullkeys': '↑ ↓ vaihtavat kanavaa, ← → siirtävät elokuvaa tai jaksoa kymmenen sekuntia, OK pysäyttää',
 
     /* ---------------------------------------------------------- sidebar */
     'groups.filter.placeholder': 'Maa tai aihe…',

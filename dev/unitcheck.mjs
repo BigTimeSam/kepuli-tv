@@ -35,7 +35,7 @@ import { searchProgrammes, mergeSorted, searchableChannels, groupResults } from 
 import { Epg } from '../js/epg.js';
 import { probeCacheTtl } from '../js/probe.js';
 import { formatRoute, parseRoute } from '../js/route.js';
-import { neighbourTile, towards } from '../js/listnavigation.js';
+import { neighbourTile, scrubStep, towards } from '../js/listnavigation.js';
 import { LIST_ORDERS, ORDER_MARKS, ORDER_SETTINGS, listOrder, orderTitles, pressedOrder } from '../js/listorder.js';
 import { titleWithoutYear, nameHasYear, nameTags, versionLabels, franchiseKey, relatedTitles, isNew, oneCopyEach } from '../js/titlemeta.js';
 import { boxHeader, parseMoov } from '../js/mp4file.js';
@@ -1356,6 +1356,7 @@ check('the history may hold a series', parseRoute('#/recent?series=5'), { tab: '
   check('a carousel of one row has no row below', neighbourTile([box(0, 0), box(1, 0)], 0, 'ArrowDown'), -1);
   // The remote control's arrows, between boxes anywhere on the page.
   check('an arrow goes to the nearest box that way', [towards(grid[4], grid, [1, 0]), towards(grid[4], grid, [-1, 0]), towards(grid[4], grid, [0, -1]), towards(grid[4], grid, [0, 1])], [5, 3, 1, 6]);
+  check('a held arrow moves a film in longer and longer steps', [0, 999, 1000, 2499, 2500, 4999, 5000, 60000].map(scrubStep), [10, 10, 30, 30, 60, 60, 180, 180]);
   check('a box in line beats a nearer one off to the side', towards(box(0, 0), [box(1, 1), box(3, 0)], [1, 0]), 1);
   check('a tall box beside this one is not above it', towards(box(1, 2), [{ left: 0, right: 100, top: 0, bottom: 400 }, box(1, 0)], [0, -1]), 1);
   check('with none in line the arrow still finds the one off to the side', towards(box(0, 0), [box(1, 1)], [1, 0]), 0);

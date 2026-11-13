@@ -1,8 +1,8 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <!-- The player's own dark background while the engine starts. -->
+    <!-- The logo on the player's own dark background while the engine starts. -->
     <style name="Player" parent="android:Theme.Material.NoActionBar">
-        <item name="android:windowBackground">@color/background</item>
+        <item name="android:windowBackground">@drawable/splash</item>
     </style>
-    <color name="background">#0f1320</color>
+    <color name="background">#0a0c11</color>
 </resources>

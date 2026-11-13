@@ -32,7 +32,7 @@
 import { api } from './browser.js';
 import { $, el } from './dom.js';
 import { state, vlist } from './state.js';
-import { towards } from './listnavigation.js';
+import { scrubStep, towards } from './listnavigation.js';
 import { gridColumns } from './coversui.js';
 import { enterFullscreen, togglePause } from './playercontrols.js';
 import { remote } from './caret.js';
@@ -48,7 +48,6 @@ const CONTROLS = 'a[href], button, input, select, textarea, summary, [tabindex]'
 const OWN_ARROWS = '.picker-pop, .row-menu, #topmenu-pop, #more-pop';
 const HOLD_MS = 600;
 const BANNER_MS = 5000;
-const SEEK_S = 10;
 
 let hooks = null;
 // OK going down on a row, until it comes up or has been held long enough.
@@ -88,7 +87,7 @@ export function wireRemote(app) {
     else if (wasPlaying && el.video.paused) togglePause();
   });
   // Out of full screen the keys go back to the list the channel came from.
-  document.addEventListener('fullscreenchange', () => { showBanner(); if (!document.fullscreenElement) focusList(); });
+  document.addEventListener('fullscreenchange', () => { showBanner(); if (!document.fullscreenElement) { endScrub(false); focusList(); } });
 }
 
 /** Whether the page is the Android app's on a phone or a tablet. */
@@ -232,6 +231,9 @@ function controls(root, active) {
   return [...root.querySelectorAll(CONTROLS)].filter((node) => {
     if (node === active || node.disabled || node.closest('[inert], [hidden]')) return false;
     if (node.matches('.skip-link, video')) return false;
+    // A topic's star and a start page card's are not stops of their own:
+    // OK held down on the topic or the card is its star, as on a row.
+    if (node.matches('.chip-star, .idle-star')) return false;
     // A list is one stop, and its rows are its own.
     const within = node.closest('#list, #groups, #epg-scroll');
     if (within && within !== node) return false;
@@ -291,10 +293,56 @@ function showBanner() {
   bannerTimer = setTimeout(hide, BANNER_MS);
 }
 
-function seek(seconds) {
+// Left and right in a film aim before they jump. A jump for every press
+// made the picture stop to buffer at each, and a key held down got
+// nowhere: the place aimed at is shown on a bar, a held key moves it in
+// longer and longer steps (scrubStep), and the picture goes there once,
+// when the keys have rested or OK is pressed. Back lets the aim go.
+const SCRUB_REST_MS = 1000;
+const SCRUB_EVERY_MS = 120;
+/** @type {{ target: number, since: number, last: number, timer: number }|null} */
+let scrub = null;
+
+const stamp = (s) => {
+  const whole = Math.max(0, Math.round(s));
+  const two = (n) => String(n).padStart(2, '0');
+  return `${Math.floor(whole / 3600)}:${two(Math.floor(whole / 60) % 60)}:${two(whole % 60)}`;
+};
+
+function paintScrub() {
   const { video } = el;
-  if (!Number.isFinite(video.duration)) return;
-  video.currentTime = Math.max(0, Math.min(video.duration - 1, video.currentTime + seconds));
+  $('scrub-time').textContent = stamp(scrub.target);
+  $('scrub-length').textContent = stamp(video.duration);
+  $('scrub-fill').style.width = `${(scrub.target / video.duration) * 100}%`;
+  $('scrub-now').style.left = `${(video.currentTime / video.duration) * 100}%`;
+  $('scrub').hidden = false;
+}
+
+/** One step towards the end (1) or the start (-1); `steps` for the remote's own winding keys. */
+function seek(way, steps = 1) {
+  const { video } = el;
+  if (!Number.isFinite(video.duration) || !video.duration) return;
+  const now = performance.now();
+  // A key held down repeats faster than the eye follows the bar.
+  if (scrub && now - scrub.last < SCRUB_EVERY_MS) return;
+  // Presses that follow one another without a rest are one holding.
+  if (!scrub) scrub = { target: video.currentTime, since: now, last: now, timer: 0 };
+  else if (now - scrub.last > 400) scrub.since = now;
+  scrub.last = now;
+  scrub.target = Math.max(0, Math.min(video.duration - 1, scrub.target + way * steps * scrubStep(now - scrub.since)));
+  clearTimeout(scrub.timer);
+  scrub.timer = setTimeout(endScrub, SCRUB_REST_MS, true);
+  paintScrub();
+}
+
+/** The aim taken (jump) or let go. */
+function endScrub(jump) {
+  if (!scrub) return;
+  clearTimeout(scrub.timer);
+  const { target } = scrub;
+  scrub = null;
+  $('scrub').hidden = true;
+  if (jump && Number.isFinite(el.video.duration)) el.video.currentTime = target;
 }
 
 const swallow = (e) => { e.preventDefault(); e.stopPropagation(); };
@@ -305,8 +353,8 @@ function onKeyDown(e) {
 
   switch (e.key) {
     case 'MediaPlayPause': case 'MediaPlay': case 'MediaPause': swallow(e); togglePause(); return;
-    case 'MediaFastForward': swallow(e); seek(3 * SEEK_S); return;
-    case 'MediaRewind': swallow(e); seek(-3 * SEEK_S); return;
+    case 'MediaFastForward': swallow(e); seek(1, 3); return;
+    case 'MediaRewind': swallow(e); seek(-1, 3); return;
     case 'MediaTrackNext': case 'ChannelUp': swallow(e); hooks.zap(1); showBanner(); return;
     case 'MediaTrackPrevious': case 'ChannelDown': swallow(e); hooks.zap(-1); showBanner(); return;
     default: break;
@@ -316,9 +364,10 @@ function onKeyDown(e) {
   if (document.fullscreenElement === el.videowrap && !document.querySelector(':popover-open')) {
     if (e.key === 'ArrowDown') { swallow(e); hooks.zap(1); showBanner(); }
     else if (e.key === 'ArrowUp') { swallow(e); hooks.zap(-1); showBanner(); }
-    else if (e.key === 'ArrowRight') { swallow(e); seek(SEEK_S); }
-    else if (e.key === 'ArrowLeft') { swallow(e); seek(-SEEK_S); }
-    else if (e.key === 'Enter') { swallow(e); if (!e.repeat) { togglePause(); showBanner(); } }
+    else if (e.key === 'ArrowRight') { swallow(e); seek(1); }
+    else if (e.key === 'ArrowLeft') { swallow(e); seek(-1); }
+    else if (e.key === 'Enter') { swallow(e); if (scrub) endScrub(true); else if (!e.repeat) { togglePause(); showBanner(); } }
+    else if (e.key === 'Escape' && scrub) { swallow(e); endScrub(false); }
     return;
   }
 
@@ -327,7 +376,19 @@ function onKeyDown(e) {
   if (e.key === 'Escape') {
     // Whatever is open closes itself on Escape; a field gives its text up
     // first. Only a page with nothing open is ours to step back from.
-    if (document.fullscreenElement || layer() !== document.body || !el.listProgress.hidden) return;
+    // A dialog is closed here rather than by the engine: GeckoView 160
+    // fell over (a null pointer in libxul, on a Bravia and on the
+    // emulator alike) when Escape closed the help, which has no cancel
+    // handler of its own, and gave the focus back to the button that
+    // opened it. The dialog is asked first, as the engine would ask it:
+    // Settings holds on to unsaved changes that way.
+    const top = layer();
+    if (top instanceof HTMLDialogElement && !document.fullscreenElement) {
+      swallow(e);
+      if (top.dispatchEvent(new Event('cancel', { cancelable: true }))) top.close();
+      return;
+    }
+    if (document.fullscreenElement || top !== document.body || !el.listProgress.hidden) return;
     if (el.toast.contains(active)) { swallow(e); dismissToast(); return; }
     if (active.matches('input, textarea, select')) { setTimeout(() => { if (document.activeElement === active) focusList(); }, 0); return; }
     swallow(e);
@@ -338,7 +399,9 @@ function onKeyDown(e) {
   }
 
   if (e.key === 'Enter') {
-    const holdable = zone === 'list' || zone === 'groups' || active.matches('.chip-main');
+    // The star that stands beside what has the focus (a start page's card).
+    const beside = active.parentElement?.querySelector(':scope > .idle-star');
+    const holdable = zone === 'list' || zone === 'groups' || active.matches('.chip-main') || Boolean(beside);
     if (isText(active) && active.inputMode === 'none') {
       // The keyboard comes up for a field as it takes the focus, so the
       // field takes it again, this time as one to be typed into.
@@ -351,7 +414,7 @@ function onKeyDown(e) {
     } else if (holdable) {
       swallow(e);
       if (e.repeat || held) return;
-      held = { active, zone, timer: setTimeout(() => { held.timer = 0; if (zone === 'list') hooks.menu(); else hooks.star(); }, HOLD_MS) };
+      held = { active, zone, timer: setTimeout(() => { held.timer = 0; if (zone === 'list') hooks.menu(); else if (beside) beside.click(); else hooks.star(); }, HOLD_MS) };
     } else if (active.matches('input[type="checkbox"], input[type="radio"]')) {
       // A remote has no Space, which is the key these answer to.
       swallow(e);

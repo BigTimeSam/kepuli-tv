@@ -160,6 +160,11 @@ public class PlayerActivity extends EngineActivity {
                 fullScreen(on);
             }
 
+            @Override
+            public void onFirstContentfulPaint(GeckoSession s) {
+                painted();
+            }
+
             // A file the player saves (a recording, a playlist for another
             // player, the settings): a browser would download it.
             @Override
@@ -617,20 +622,21 @@ public class PlayerActivity extends EngineActivity {
     private void show(WebNotification notification) {
         shown.put(notification.tag, notification);
         if (Reminders.said(this, notification.tag)) return;
-        Reminders.show(this, notification.tag, notification.title, notification.text, null);
+        Reminders.show(this, notification.tag, notification.title, notification.text);
         Reminders.markSaid(this, notification.tag);
     }
 
     /**
      * The app opened from a notification. The extension hears of the press
-     * when the notification was its own; one the alarm showed says itself
-     * what to play, and the page is told (js/remote.js).
+     * when the notification was its own; for one the alarm showed, what to
+     * play was kept by the alarm, and the page is told (js/remote.js).
      */
     private void pressed(Intent intent) {
         String id = intent == null ? null : intent.getStringExtra(Reminders.EXTRA_ID);
         if (id == null) return;
         WebNotification notification = shown.remove(id);
-        String watch = intent.getStringExtra(Reminders.EXTRA_WATCH);
+        // From the app's own storage, never from the intent (see Reminders).
+        String watch = Reminders.watch(this, id);
         if (notification != null) {
             notification.click();
         } else if (watch != null) {

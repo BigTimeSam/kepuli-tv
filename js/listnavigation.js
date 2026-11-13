@@ -100,6 +100,20 @@ export function neighbourTile(rects, at, key) {
 }
 
 /**
+ * How far one step of the remote's left or right moves the place in a
+ * film, in seconds, by how long the key has been held (js/remote.js): ten
+ * seconds a press, and held down longer and longer steps, so that an hour
+ * away is some six seconds of holding and not three hundred presses.
+ * @param {number} heldMs
+ */
+export function scrubStep(heldMs) {
+  if (heldMs < 1000) return 10;
+  if (heldMs < 2500) return 30;
+  if (heldMs < 5000) return 60;
+  return 180;
+}
+
+/**
  * The box an arrow leads to from another, among boxes anywhere on the
  * page (js/remote.js): the nearest one that way among those in line with
  * the first, however far, and only with none in line the nearest one off

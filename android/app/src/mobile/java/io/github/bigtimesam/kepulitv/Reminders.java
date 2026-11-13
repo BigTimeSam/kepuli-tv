@@ -35,9 +35,10 @@ final class Reminders {
     private static final String STORE = "reminders";
     private static final String LIST = "list";
     private static final String SAID = "said";
-    /** The notification's name, and the channel to play, on the intent that opens the app. */
+    /** The notification's name, on the intent that opens the app. */
     static final String EXTRA_ID = "notification";
-    static final String EXTRA_WATCH = "watch";
+    /** What a notification the alarm showed is to play, kept here by the notification's name. */
+    private static final String WATCH = "watch:";
 
     // The extension says a reminder a minute before the programme. Android
     // may hold an alarm back for minutes while the device rests, unless the
@@ -75,7 +76,11 @@ final class Reminders {
                 return true;
             }
         });
-        store(context).edit().putString(LIST, list.toString()).putStringSet(SAID, said).apply();
+        SharedPreferences.Editor edit = store(context).edit().putString(LIST, list.toString()).putStringSet(SAID, said);
+        for (String key : store(context).getAll().keySet()) {
+            if (key.startsWith(WATCH) && !said.contains(key.substring(WATCH.length()))) edit.remove(key);
+        }
+        edit.apply();
         arm(context);
     }
 
@@ -133,7 +138,12 @@ final class Reminders {
             // With the time, in the device's own way of writing it: the alarm
             // may be minutes early or late, where the extension's is not.
             String time = android.text.format.DateFormat.getTimeFormat(context).format(new java.util.Date(r.optLong("start")));
-            show(context, id, r.optString("title"), time + ", " + r.optString("text"), watch.toString());
+            // What to play stays in the app's own storage. The activity can be
+            // started by any app, with any extras: a channel carried on the
+            // intent would let another app have the player open an address
+            // of its choosing. The intent names the notification and no more.
+            store(context).edit().putString(WATCH + id, watch.toString()).apply();
+            show(context, id, r.optString("title"), time + ", " + r.optString("text"));
             markSaid(context, id);
         }
         arm(context);
@@ -141,13 +151,12 @@ final class Reminders {
 
     /**
      * A reminder's notification. A press opens the app, which is told the
-     * notification's name and, when the alarm showed it, what to play.
+     * notification's name.
      */
-    static void show(Context context, String id, String title, String text, String watch) {
+    static void show(Context context, String id, String title, String text) {
         NotificationManager manager = context.getSystemService(NotificationManager.class);
         manager.createNotificationChannel(new NotificationChannel(CHANNEL, context.getString(R.string.channel_reminders), NotificationManager.IMPORTANCE_HIGH));
         Intent open = new Intent(context, PlayerActivity.class).setAction(EXTRA_ID + ":" + id).putExtra(EXTRA_ID, id);
-        if (watch != null) open.putExtra(EXTRA_WATCH, watch);
         manager.notify(id, 0, new Notification.Builder(context, CHANNEL)
                 .setSmallIcon(android.R.drawable.ic_popup_reminder)
                 .setContentTitle(title)
@@ -156,6 +165,16 @@ final class Reminders {
                 .setAutoCancel(true)
                 .setContentIntent(PendingIntent.getActivity(context, 0, open, PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE))
                 .build());
+    }
+
+    /**
+     * What the notification of this name is to play, once: only one the
+     * alarm showed has anything here, and a second press finds nothing.
+     */
+    static String watch(Context context, String id) {
+        String watch = store(context).getString(WATCH + id, null);
+        if (watch != null) store(context).edit().remove(WATCH + id).apply();
+        return watch;
     }
 
     static void cancel(Context context, String id) {

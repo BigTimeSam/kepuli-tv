@@ -7,6 +7,7 @@
 
 import { $ } from './dom.js';
 import { t } from './i18n.js';
+import { remote } from './caret.js';
 
 /**
  * The shortcuts, the few that nearly everyone needs first — the picture,
@@ -39,6 +40,19 @@ const MORE_SHORTCUTS = [
 ];
 
 /**
+ * A television's remote has none of those keys: the help there names what
+ * its few do (js/remote.js). A key that has a word for a name is given by
+ * its string, the others as they are.
+ */
+const REMOTE_KEYS = [
+  ['↑ ↓ ← →', 'help.remote.move'],
+  ['OK', 'help.remote.ok'],
+  ['help.remote.hold', 'help.remote.star'],
+  ['help.remote.backkey', 'help.remote.back'],
+  ['help.remote.full', 'help.remote.fullkeys'],
+];
+
+/**
  * The help, inside the app. It used to be a link to an 83 kB page written for
  * whoever builds the player, opened in another tab at the moment the viewer
  * was least sure of themselves — and the thirteen keys the player answers to
@@ -47,12 +61,13 @@ const MORE_SHORTCUTS = [
 export function openHelp() {
   const rows = (list) => list.flatMap(([key, id]) => {
     const dt = document.createElement('dt');
-    dt.textContent = key;
+    dt.textContent = key.startsWith('help.') ? t(key) : key;
     const dd = document.createElement('dd');
     dd.textContent = t(id);
     return [dt, dd];
   });
-  $('help-keys').replaceChildren(...rows(SHORTCUTS));
+  $('help-keys').replaceChildren(...rows(remote ? REMOTE_KEYS : SHORTCUTS));
+  if (remote) $('help-shortcuts').textContent = t('help.remote');
   $('help-keys-more').replaceChildren(...rows(MORE_SHORTCUTS));
   const dialog = /** @type {HTMLDialogElement} */ ($('help'));
   if (!dialog.open) dialog.showModal();

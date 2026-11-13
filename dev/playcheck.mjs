@@ -351,6 +351,10 @@
 //                                     it closes the drop-down that is open,
 //                                     leaves the player's pane for the list,
 //                                     and only then leaves the app
+//   node dev/playcheck.mjs remotescrub  left and right in a film on a
+//                                     television aim at a place on a bar
+//                                     and jump once when the keys rest;
+//                                     Back lets the aim go
 //   node dev/playcheck.mjs remote     the player driven by a television's
 //                                     remote control (player.html?tv=1): the
 //                                     arrows carry the focus from the list
@@ -8035,6 +8039,56 @@ async function appback(page, { target }) {
 }
 
 /**
+ * Left and right in a film on a television aim before they jump: a jump
+ * for every press made the picture stop to buffer each time, and a key
+ * held down got nowhere. The place aimed at shows on a bar, the picture
+ * stays where it is while the keys go, and it goes there once, when they
+ * rest; Back lets the aim go.
+ */
+async function remotescrub(page, { target }) {
+  const plain = bare(target.url).split('?')[0];
+  const arrow = (key) => pressKey(page, key, key, { ArrowLeft: 37, ArrowRight: 39 }[key]);
+  const video = (what) => evaluate(page, `document.getElementById('video').${what}`);
+  try {
+    await page.call('Page.navigate', { url: `${plain}?tv=1#/movie` });
+    await sleep(1000);
+    await waitFor(page, `location.search === '?tv=1' && ${CONNECTED}`, 'the connection');
+    await evaluate(page, `document.querySelector('dialog[open]')?.close()`);
+    await evaluate(page, `document.querySelector('#tabs [data-tab="movie"]').click()`);
+    await waitFor(page, `document.querySelectorAll('#list .row').length > 0`, 'the movie rows');
+    await evaluate(page, `document.querySelector('#list .row').click()`);
+    await waitFor(page, `!document.getElementById('video').paused && document.getElementById('video').readyState > 2 && document.getElementById('video').duration > 30`, 'the film playing', 30000);
+    await page.call('Runtime.evaluate', { expression: `document.getElementById('videowrap').requestFullscreen()`, userGesture: true, awaitPromise: true });
+    await waitFor(page, `document.fullscreenElement?.id === 'videowrap'`, 'the picture full screen', 5000);
+    const length = await video('duration');
+    const before = await video('currentTime');
+    for (let i = 0; i < 3; i++) { await arrow('ArrowRight'); await sleep(150); }
+    const aimed = await evaluate(page, `document.getElementById('scrub').hidden ? '' : document.getElementById('scrub-time').textContent`);
+    const during = await video('currentTime');
+    await sleep(1400);
+    const after = await video('currentTime');
+    const barGone = await evaluate(page, `document.getElementById('scrub').hidden`);
+    // Back lets an aim go.
+    await arrow('ArrowRight');
+    await pressKey(page, 'Escape', 'Escape', 27);
+    await sleep(1400);
+    const kept = await video('currentTime');
+    const stillFull = await evaluate(page, `document.fullscreenElement?.id === 'videowrap'`);
+    const problems = [];
+    if (!aimed) problems.push('no bar showed the place aimed at');
+    if (during - before > 5) problems.push(`the picture jumped while the keys went (${before.toFixed(1)} to ${during.toFixed(1)} s)`);
+    if (after - before < 20 || !barGone) problems.push(`three presses and a rest took ${before.toFixed(1)} s to ${after.toFixed(1)} s of ${length.toFixed(0)} s${barGone ? '' : ', the bar still showing'}`);
+    if (kept - after > 6 || !stillFull) problems.push(`Back on an aim ${stillFull ? '' : 'left the full screen and '}took the picture to ${kept.toFixed(1)} s`);
+    if (problems.length) return { ok: false, detail: problems.join('; ') };
+    return { ok: true, detail: `three presses aimed at ${aimed} with the picture at ${during.toFixed(0)} s, and the rest took it to ${after.toFixed(0)} s; Back let a fourth go` };
+  } finally {
+    await evaluate(page, `document.fullscreenElement && document.exitFullscreen()`).catch(() => {});
+    await page.call('Page.navigate', { url: plain }).catch(() => {});
+    await sleep(500);
+  }
+}
+
+/**
  * A television's remote control (js/remote.js): the page opened as
  * player.html?tv=1, as the Android TV app opens it, and driven with the
  * four arrows, OK (Enter) and Back (Escape) alone. The arrows walk the
@@ -8121,6 +8175,23 @@ async function remote(page, { target }) {
     await sleep(200);
     const after = await focus();
 
+    // A topic's star is no stop of its own: the arrows go from topic to topic.
+    const stops = [];
+    if (await evaluate(page, `(() => { const chip = document.querySelector('#subcats .chip-main'); chip?.focus(); return Boolean(chip && document.querySelector('#subcats .chip-star')); })()`)) {
+      for (let i = 0; i < 3; i++) { await arrow('ArrowRight'); stops.push(await evaluate(page, `document.activeElement.className`)); }
+    }
+    // The help names the remote's keys, not a keyboard's.
+    await evaluate(page, `document.getElementById('btn-help').click()`);
+    const helpKeys = await evaluate(page, `[...document.querySelectorAll('#help-keys dt')].map((d) => d.textContent)`);
+    const helpMore = await evaluate(page, `document.querySelector('#help .help-more').getClientRects().length`);
+    // Back closes it, by the player's own hand (the engine's fell over on
+    // a television), and the page is still there.
+    await back();
+    await sleep(200);
+    const helpOpen = await evaluate(page, `document.getElementById('help').open`);
+    await evaluate(page, `document.getElementById('help').close()`);
+    await evaluate(page, `document.getElementById('list').focus()`);
+
     // OK held down: the row's menu, beginning with the star.
     await enter('keyDown');
     await sleep(900);
@@ -8151,6 +8222,10 @@ async function remote(page, { target }) {
     if (after !== 'list') problems.push(`out of full screen the focus is on ${after}`);
     if (!star.includes(menu[0])) problems.push(`OK held down opened ${menu.length ? `a menu beginning with "${menu[0]}"` : 'no menu'}`);
     if (!stillPlaying) problems.push('OK held down also pressed the row');
+    if (!stops.length) problems.push('no topic with a star to walk past');
+    if (helpOpen) problems.push('Back left the help open');
+    if (!helpKeys.includes('OK') || helpKeys.includes('Space') || helpMore) problems.push(`the help listed ${helpKeys.join(', ')}${helpMore ? ' and the keyboard\'s further shortcuts' : ''}`);
+    if (stops.some((name) => /chip-star/.test(name))) problems.push(`the arrows stopped at a topic's star (${stops.join(', ')})`);
     if (!menuShut) problems.push('Back left the menu open');
     if (closed !== 1) problems.push(`Back from the list asked to close ${closed} time(s), not once`);
     if (problems.length) return { ok: false, detail: problems.join('; ') };
@@ -8164,7 +8239,7 @@ async function remote(page, { target }) {
 
 const SCENARIOS = { buffering, livebuffering, filmbuffering, emptyfile, tsasmp4, refusedfile, badgateway, livebadgateway, channelrefused, noanswer, longfilm, catalogUi, setupClarity, welcome, fullscreenControl, blockedplay, clickpause, pickers, touchcaret, screenbutton, topmenu, scrollbars, channelorder, lengthfilter, nowlogo, channels, home, resumemkv, restore, programmes, catchup, seek, death, cancel, timeout, search, paste, keys, switching, resume, connections, livezap, livequiet, reconnect, accounts, listerror, a11y, subtitles, audio, wasmaudio, settings,
   lastchannel, nextepisode, continuewatching, reminders, update, seeklag, cuesretry, quota, catchupfreeze, catchupfull, twotabs, switchstop, resettabs,
-  refresh, restorenav, guidekeep, removeaccount, m3u, sync, holes, picks, flakyserver, accountform, stalker, record, guidefavs, guidenames, categories, homecountry, noleak, perf, pseudo, remote, appback, startup, soak, phone, headline, accountnow, onerow, nowbarfit, subsize, arrowmiddle, idlelight, iossubs, starquiet, phonestar, pickertouch, pickerkeyboard, phonescroll, menutap, wakelock, livecut, episodenames, gotochannel, filmdetails, favorder, countryfilter, tilekeys, routes, programmekeys, searchlimit, filterfolds, focusrings, xtreamoffer, guideclick, filmaddress, filmfacts, playlistfile, perflive, perfplaylist, remoteimages, phoneguide, handoff, closedplan, secondpicture, liverewind, upcoming };
+  refresh, restorenav, guidekeep, removeaccount, m3u, sync, holes, picks, flakyserver, accountform, stalker, record, guidefavs, guidenames, categories, homecountry, noleak, perf, pseudo, remote, appback, remotescrub, startup, soak, phone, headline, accountnow, onerow, nowbarfit, subsize, arrowmiddle, idlelight, iossubs, starquiet, phonestar, pickertouch, pickerkeyboard, phonescroll, menutap, wakelock, livecut, episodenames, gotochannel, filmdetails, favorder, countryfilter, tilekeys, routes, programmekeys, searchlimit, filterfolds, focusrings, xtreamoffer, guideclick, filmaddress, filmfacts, playlistfile, perflive, perfplaylist, remoteimages, phoneguide, handoff, closedplan, secondpicture, liverewind, upcoming };
 // The mock's whole-list answers stall for these, longer than the request limit.
 const SLOW_LIST_MS = { cancel: 60000, timeout: 60000 };
 // The media is sent slowly for these: the seek targets must lie outside the

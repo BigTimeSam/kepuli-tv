@@ -2,7 +2,7 @@
 <resources>
     <!-- A television has no status bar to leave room for. -->
     <style name="Player" parent="android:Theme.Material.NoActionBar">
-        <item name="android:windowBackground">@color/background</item>
+        <item name="android:windowBackground">@drawable/splash</item>
         <item name="android:windowFullscreen">true</item>
     </style>
 </resources>

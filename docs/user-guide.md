@@ -575,7 +575,7 @@ and **Back** alone:
 | --- | --- |
 | arrows | move the focus to the nearest control that way; in the list, the sidebar and the programme guide they move its cursor, and leave it from its edge |
 | **OK** | press what has the focus; on a row, play it; on the row already playing, fill the screen; on a text field, bring up the television's keyboard |
-| **OK** held down | the row's menu, which begins with **Add to favourites**; on a country or a topic, its star |
+| **OK** held down | the row's menu, which begins with **Add to favourites**; on a country, a topic or a card of the start page, its star (the stars are not stops of their own) |
 | **Back** | close what is open (the keyboard, a menu, a dialog, the full screen, the guide, a series' page), then return to the list, and from the list leave the app |
 | in full screen | up and down change the channel, left and right move ten seconds in a film or an episode, **OK** pauses |
 | play/pause, rewind, fast forward, channel up and down | the same, where the remote has them |
@@ -675,7 +675,7 @@ leaving it returns to the player still full screen. Where the bar does not fit o
 — a tablet held upright, a window at half a screen — Refresh, Help, the theme,
 Full screen and Settings go behind a hamburger (☰) at its right end, the
 search takes the room that is left, and the bar stays on one row. Whether it fits is measured,
-so a language with longer tab names makes the switch at a wider window. The sun and moon is the quick switch; Settings > Viewing > Appearance starts on *Automatic*, named with the theme it comes to now (*Automatic (dark)*), which follows the operating system's light or dark mode while the player is open; a press of the switch picks the other of what is on screen and keeps it. The picture and the bar
+so a language with longer tab names makes the switch at a wider window. The sun and moon is the quick switch; Settings > Viewing > Appearance starts on *Automatic*, named with the theme it comes to now (*Automatic (dark)*), which follows the operating system's light or dark mode while the player is open (in the Android TV app *Automatic* is dark); a press of the switch picks the other of what is on screen and keeps it. The picture and the bar
 under it stay dark in either, and the choice is kept with the settings and
 copied to `localStorage`, so a light theme does not flash dark at start
 (`js/theme.js`);

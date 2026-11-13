@@ -22,7 +22,7 @@ is not needed, and a Chromebook without one may have the app.)
 | `app/build.gradle` | the two packages (`productFlavors`), the version from `../manifest.json`, `node firefox/build.mjs` run and `firefox/dist/` synced into the assets before every build, the extension's manifest written for each package (the phone's with the two permissions its line to the app takes), the icon from `../icons/`, GeckoView from Mozilla's Maven |
 | `strings.mjs` | the words Android shows of the phone's app outside the page (the two notification channels' names, the playback notification's button), written into Android's resources in the player's thirty languages from `../js/i18n.js` and `../js/locales/`; run by Gradle |
 | `app/src/main/…/EngineActivity.java` | what both share: the engine, the session and the extension; Back sent to the page as Escape (as a key, and as Android 16's callback); `onCloseRequest` (the page's `window.close()`) steps back to the launcher; optional host permissions granted without a prompt |
-| `app/src/main/AndroidManifest.xml`, `res/` | the permissions, cleartext traffic (providers serve http), the activity, the name and the theme |
+| `app/src/main/AndroidManifest.xml`, `res/` | the permissions, cleartext traffic (providers serve http), the activity, the name and the theme; the logo shown while the engine starts (`res/drawable/splash.xml`, from `../brand/tv-compact.png`), which `EngineActivity` keeps over the view until the page has drawn |
 | `app/src/tv/` | the television: the page opened as `player.html?tv=1` and made 1280 by 720, no bars, lying down, the leanback launcher entry and its banner (`../brand/android-tv-banner-1280x720.png`, taken at build time) |
 | `app/src/mobile/` | the phone and the tablet: the page opened as `player.html?app=1`, upright or lying down as the device is held, clear of the system's bars and the keyboard until something goes full screen; and what a browser does around a page: a file field's picker, a saved file into Downloads, a link or an `intent:` link to the app that opens it, a reminder as the system's notification, the page opened again when Android took its process; and what an app does that a tab does not: picture in picture, the sound out of sight (`PlaybackService`), a reminder when the app is not running (`Reminders`, `ReminderReceiver`) |
 
@@ -144,6 +144,15 @@ Only on the owner's go, as every release (root `AGENTS.md` rule 2).
   repository.
 
 ## Traps
+
+- The activity is exported (it is the launcher's), so any app can start
+  it with any extras. What a reminder's notification is to play is kept in
+  the app's own storage by the notification's name (`Reminders.watch`),
+  never carried on the intent: carried there, another app could have had
+  the player open an address of its choosing.
+- From Android 12 on the system shows a start screen of its own before
+  the window's (`res/values-v31/styles.xml`): without the logo named there
+  it showed the launcher's icon on a white disc, then the logo.
 
 - The engine is a browser's, and left alone it asks Mozilla and Google a
   few things when it starts (a sign-in page on the network, the device's
