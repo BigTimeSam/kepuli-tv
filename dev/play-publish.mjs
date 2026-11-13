@@ -1,5 +1,6 @@
 #!/usr/bin/env node
-// The Android TV app's bundle taken to Google Play's internal testing.
+// An Android app's bundle (the phone's or the television's) taken to Google
+// Play's internal testing.
 //
 // Play has an API for uploads, but it wants a service account with a key of
 // its own, and the first release of a new app is made in the Play Console
@@ -11,15 +12,21 @@
 //
 //   node dev/play-publish.mjs login     opens the Chrome at the Play Console, to sign in
 //   node dev/play-publish.mjs status    whether it is signed in, and the apps the account has
-//   node dev/play-publish.mjs upload    the bundle into a new internal testing release, left
-//                                       as a draft: nothing is rolled out to testers
+//   node dev/play-publish.mjs upload [mobile|tv]
+//                                       the phone's bundle (or the television's) into a new
+//                                       internal testing release, left as a draft: nothing
+//                                       is rolled out to testers
 //
 // The Chrome is kept apart from the Chrome Web Store's (another Google
 // account): port 9446 (KEPULI_PLAY_PORT), profile ~/.config/kepuli-tv/play-chrome
 // (KEPULI_PLAY_PROFILE). The app is found in the account by its name
 // (KEPULI_PLAY_APP, "Kepuli-TV" by default); it must have been created in
-// the console first. The bundle is dist/android/kepuli-tv-android-<version>.aab,
-// or the file KEPULI_PLAY_BUNDLE names.
+// the console first. The bundle is dist/android/kepuli-tv-android-<mobile|tv>-<version>.aab,
+// or the file KEPULI_PLAY_BUNDLE names. The two are one application in
+// Play: the television's goes to the Android TV form factor's own track
+// (added once under Advanced settings, Form factors), which is chosen on
+// the internal testing page, and its version codes are a million above
+// the phone's (android/app/build.gradle).
 //
 // Rolling a release out, the store listing and the forms about the app's
 // content are the owner's to do in the console: this tool uploads, and
@@ -40,12 +47,13 @@ const CONSOLE = 'https://play.google.com/console/developers';
 // which has no way in: the sign-in page is asked for by name.
 const SIGN_IN = `https://accounts.google.com/ServiceLogin?continue=${encodeURIComponent(CONSOLE)}`;
 const VERSION = JSON.parse(readFileSync(join(ROOT, 'manifest.json'), 'utf8')).version;
-const BUNDLE = process.env.KEPULI_PLAY_BUNDLE || join(ROOT, 'dist', 'android', `kepuli-tv-android-${VERSION}.aab`);
+const FORM = process.argv[3] || 'mobile';
+const BUNDLE = process.env.KEPULI_PLAY_BUNDLE || join(ROOT, 'dist', 'android', `kepuli-tv-android-${FORM}-${VERSION}.aab`);
 
 const command = process.argv[2];
 const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 const fail = (message) => { console.error(`play-publish: ${message}`); process.exit(1); };
-if (!['login', 'status', 'upload'].includes(command)) fail('usage: node dev/play-publish.mjs login|status|upload');
+if (!['login', 'status', 'upload'].includes(command) || !['mobile', 'tv'].includes(FORM)) fail('usage: node dev/play-publish.mjs login|status|upload [mobile|tv]');
 
 /* ------------------------------------------------------------- browser */
 
@@ -165,7 +173,7 @@ if (command === 'status') {
 
 /* -------------------------------------------------------------- upload */
 
-if (!existsSync(BUNDLE)) fail(`${BUNDLE} is not there: cd android && ./gradlew bundleRelease, then copy it into dist/android/`);
+if (!existsSync(BUNDLE)) fail(`${BUNDLE} is not there: see android/AGENTS.md for making it and copying it into dist/android/`);
 const app = list.find((a) => a.text.includes(APP));
 if (!app) fail(`no app named "${APP}" in developer account ${developer}: create it in the console first`);
 
@@ -178,6 +186,14 @@ const press = (label) => page.run((text) => {
 
 await go(`${CONSOLE}/${developer}/app/${app.id}/tracks/internal-testing`, 'the internal testing page', () => /Internal testing/.test(document.body.innerText) && document.querySelectorAll('button, material-button').length > 3);
 await sleep(1500);
+// The television's releases are on a track of their own, chosen from the
+// page's list of form factors. Not yet tried against the real page: when
+// the choice is not found, the owner makes it in the Chrome and runs this
+// again.
+if (FORM === 'tv' && !/Android TV/i.test(await page.run(() => document.querySelector('[aria-selected=true], [aria-pressed=true]')?.innerText || ''))) {
+  if (!(await press('Android TV'))) fail('no "Android TV" to choose on the internal testing page: add the form factor under Advanced settings, or choose its track in the Chrome and run this again');
+  await sleep(2500);
+}
 if (!(await press('^(Create new release|Edit release)$'))) fail('no "Create new release" on the internal testing page: is a release already being prepared, or has the console changed?');
 let field = null;
 for (let i = 0; i < 60 && !field; i++) {
@@ -191,7 +207,7 @@ await page.call('DOM.setFileInputFiles', { files: [BUNDLE], objectId: field });
 
 // The page lists the bundle by its version once Play has taken it in and
 // looked through it, which for 160 MB is a matter of minutes.
-const code = VERSION.split('.').reduce((n, part) => n * 100 + Number(part), 0);
+const code = VERSION.split('.').reduce((n, part) => n * 100 + Number(part), 0) + (FORM === 'tv' ? 1000000 : 0);
 let shown = '';
 for (let i = 0; i < 360; i++) {
   await sleep(5000);

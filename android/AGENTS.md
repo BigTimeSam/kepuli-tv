@@ -11,9 +11,11 @@ place with a build step (Gradle), and nothing outside it depends on it.
 One application in Google Play (`io.github.bigtimesam.kepulitv`), built as
 two packages, so that neither kind of device is held to the other's shape:
 `tv` for a television and `mobile` for a phone or a tablet. Play shows a
-device the one its manifest fits (the television's requires leanback, the
-phone's a touch screen), and each has version codes of its own (the
-television's are a million above the phone's).
+device one of them: the television's requires leanback, which no phone
+has, and a television that fits both takes the one with the higher version
+code, which is why the television's are a million above the phone's. (The
+phone's does not require a touch screen: the engine's own manifest says it
+is not needed, and a Chromebook without one may have the app.)
 
 | File | What |
 | --- | --- |
@@ -117,14 +119,14 @@ Only on the owner's go, as every release (root `AGENTS.md` rule 2).
   Play) and an APK for each kind under `apk/tv/release/` (for `adb install` on
   a television: `arm64-v8a` for most, `armeabi-v7a` for the 32-bit ones;
   `adb shell getprop ro.product.cpu.abi` says which). Copy them into
-  `dist/android/` as `kepuli-tv-android-<version>.aab` and `…-arm64.apk`,
+  `dist/android/` as `kepuli-tv-android-tv-<version>.aab` and `…-arm64.apk`,
   `…-arm32.apk`. The phone's are `bundleMobileRelease assembleMobileRelease`
-  the same way under `mobile`; in Play the television's bundle goes to the
-  Android TV form factor's own track and the phone's to the ordinary one,
-  which `dev/play-publish.mjs` does not yet tell apart.
+  the same way under `mobile`, copied as `kepuli-tv-android-mobile-<version>…`.
+  In Play the television's bundle goes to the Android TV form factor's own
+  track and the phone's to the ordinary one.
 - The debug build is `io.github.bigtimesam.kepulitv.debug`, an app of its
   own beside the released one.
-- `node dev/play-publish.mjs login|status|upload` takes the bundle to a new
+- `node dev/play-publish.mjs login|status|upload [mobile|tv]` takes a bundle to a new
   internal testing release in the Play Console and leaves it a draft. It
   drives a Chrome of its own (port 9446, `~/.config/kepuli-tv/play-chrome`)
   in which the owner signs in once; the app must have been created in the

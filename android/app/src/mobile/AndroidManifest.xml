@@ -11,8 +11,9 @@
          reminders are set again then (ReminderReceiver). -->
     <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
 
-    <!-- No uses-feature: a touch screen is then required, which is what
-         keeps this package from televisions in Play. -->
+    <!-- No uses-feature of its own. What keeps this package from
+         televisions in Play is the television's: it fits them too, and has
+         the higher version code (app/build.gradle). -->
     <application>
         <activity
             android:name=".PlayerActivity"
