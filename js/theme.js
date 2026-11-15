@@ -13,6 +13,7 @@
 
 import { $ } from './dom.js';
 import { t } from './i18n.js';
+import { remote } from './caret.js';
 
 export const THEMES = ['dark', 'light', 'system'];
 const KEY = 'kepuli-theme';
@@ -21,7 +22,10 @@ let chosen = 'system';
 
 /** The theme a setting comes to now: 'system' read from the system. */
 export function resolveTheme(theme) {
-  if (theme === 'system') return lightSystem.matches ? 'light' : 'dark';
+  // A television has no light mode of its own to follow, and the engine
+  // there answers light: in a dim room that is a lamp. Automatic is dark
+  // on a television; Light is still there to be chosen.
+  if (theme === 'system') return !remote && lightSystem.matches ? 'light' : 'dark';
   return theme === 'light' ? 'light' : 'dark';
 }
 
