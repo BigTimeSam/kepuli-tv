@@ -81,5 +81,36 @@ Only on the owner's go, as every release (root `AGENTS.md` rule 2).
 - The application id is permanent once a package has been uploaded to Play.
 - A text field with the focus brings up the television's keyboard, which
   takes the arrows; `js/remote.js` holds it down until OK.
-- Not done yet: the release build (signing, the 32-bit ABI, an app bundle),
-  sound and speed measured on a real television.
+- GeckoView 160 falls over (a null pointer in `libxul`) when Escape closes
+  a `<dialog>` that has no `cancel` handler and the focus goes back to the
+  button that opened it: `js/remote.js` closes dialogs itself on Back.
+- The engine's view is white until the page has drawn: `splash.xml` (the
+  logo on the player's dark background) is the window's background and a
+  view over the engine's until `onFirstContentfulPaint`.
+
+## The experiment: Android's own player for live channels
+
+Marked `SPIKE` in `js/playback.js`, `app/build.gradle` and
+`PlayerActivity.java`; not finished, and to be taken out or built properly.
+
+- Why: on a Bravia (Android 10, a 1080p app surface at 60 Hz only) the
+  engine sends decoded frames down the graphics path
+  (`mOutputPath = OUTPUT_GRAPHIC` in logcat), so the picture is scaled
+  twice and 25/50 fps channels judder. Media3's ExoPlayer on a `SurfaceView`
+  of its own gets another path (`mOutputPath = 256`).
+- How: the page sends `{ play, rect, stop, mode }` with
+  `browser.runtime.sendNativeMessage('browser', …)` (the Gradle sync adds
+  `nativeMessaging` and `geckoViewAddons` to the packaged manifest), for
+  live channels in television mode. The remote's 0 switches between the
+  two players. A channel's address is never logged.
+- The picture lies over the page: the engine's surface lets nothing
+  through from under it. The page reports an empty rect while something of
+  its own covers the picture (a dialog, a menu), and the app moves the
+  surface off screen. What the page draws inside the picture (the banner,
+  the controls in full screen) is therefore not seen, and pause, seeking,
+  subtitles, audio tracks and failures are not wired.
+- `-PkepuliVersionCode=<n>` builds with another version code, to install
+  over a build from the `android-phone` branch (1011300 for 1.13.0).
+- Seen once on that television: the whole set froze after an MKV episode
+  and a poster opened large; nothing was left in its log. Suspected, not
+  measured: memory (3 GB, swap full before the app starts).

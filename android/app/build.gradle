@@ -27,7 +27,8 @@ android {
         minSdk = 26
         targetSdk = 36
         versionName = manifest.version
-        versionCode = major * 10000 + minor * 100 + patch
+        // SPIKE: -PkepuliVersionCode lets this build go over the one from the android-phone branch.
+        versionCode = (project.findProperty('kepuliVersionCode') ?: major * 10000 + minor * 100 + patch) as int
     }
 
     // Televisions and boxes are ARM, many of them still 32-bit; the engine's
@@ -108,16 +109,24 @@ def buildExtension = tasks.register('buildExtension', Exec) {
 def syncExtension = tasks.register('syncExtension', Sync) {
     dependsOn buildExtension
     from(new File(root, 'firefox/dist'))
+    // SPIKE: the page speaks to the app (the television's own player),
+    // which the engine lets a built-in extension do with these two.
+    filesMatching('manifest.json') { filter { line -> line.replace('"alarms"]', '"alarms", "nativeMessaging", "geckoViewAddons"]') } }
     into(new File(generated, 'assets/extension'))
 }
 def syncBrand = tasks.register('syncBrand', Sync) {
     from(new File(root, 'icons/icon128.png')) { rename { 'kepuli_icon.png' } }
     // The launcher's tile on a television: the logo and the name, 16:9.
     from(new File(root, 'brand/android-tv-banner-1280x720.png')) { rename { 'banner.png' } }
+    // The logo alone, for the screen shown while the engine starts.
+    from(new File(root, 'brand/tv-compact.png')) { rename { 'splash_logo.png' } }
     into(new File(generated, 'res/drawable-nodpi'))
 }
 tasks.named('preBuild') { dependsOn syncExtension, syncBrand }
 
 dependencies {
     implementation 'org.mozilla.geckoview:geckoview:160.0.20261104181552'
+    // SPIKE: Android's own player, for the television's video plane.
+    implementation 'androidx.media3:media3-exoplayer:1.11.1'
+    implementation 'androidx.media3:media3-exoplayer-hls:1.11.1'
 }

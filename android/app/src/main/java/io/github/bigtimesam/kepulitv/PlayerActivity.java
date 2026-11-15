@@ -9,6 +9,22 @@ import android.view.KeyEvent;
 import android.view.View;
 import android.view.WindowManager;
 
+import android.graphics.Color;
+import android.net.Uri;
+import android.view.Gravity;
+import android.view.SurfaceView;
+import android.view.ViewGroup;
+import android.widget.FrameLayout;
+import android.widget.Toast;
+
+import androidx.media3.common.MediaItem;
+import androidx.media3.common.PlaybackException;
+import androidx.media3.common.Player;
+import androidx.media3.common.VideoSize;
+import androidx.media3.exoplayer.ExoPlayer;
+
+import org.json.JSONArray;
+import org.json.JSONObject;
 import org.mozilla.geckoview.AllowOrDeny;
 import org.mozilla.geckoview.GeckoResult;
 import org.mozilla.geckoview.GeckoRuntime;
@@ -36,13 +52,31 @@ public class PlayerActivity extends Activity {
 
     private GeckoSession session;
     private GeckoView view;
+    private View splash;
 
     @Override
     protected void onCreate(Bundle state) {
         super.onCreate(state);
         getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
         view = new GeckoView(this);
-        setContentView(view);
+        // SPIKE: the television's own player over the page, where the page
+        // has its picture. Under the page it was heard and not seen: the
+        // engine's surface does not let anything through (measured on a
+        // Bravia), whatever the page's background.
+        FrameLayout root = new FrameLayout(this);
+        root.setBackgroundColor(Color.BLACK);
+        root.addView(view, new FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
+        picture = new SurfaceView(this);
+        picture.setZOrderMediaOverlay(true);
+        picture.setVisibility(View.GONE);
+        root.addView(picture, new FrameLayout.LayoutParams(1, 1, Gravity.TOP | Gravity.START));
+        // The engine takes seconds to start and its view is white until
+        // the page has drawn: the logo stays over it until then.
+        splash = new View(this);
+        splash.setBackgroundResource(R.drawable.splash);
+        root.addView(splash, new FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
+        setContentView(root);
+        view.coverUntilFirstPaint(getColor(R.color.background));
         immersive();
 
         if (runtime == null) {
@@ -91,13 +125,72 @@ public class PlayerActivity extends Activity {
             public void onCloseRequest(GeckoSession s) {
                 moveTaskToBack(true);
             }
+
+            @Override
+            public void onFirstContentfulPaint(GeckoSession s) {
+                if (splash != null) { ((ViewGroup) splash.getParent()).removeView(splash); splash = null; }
+            }
         });
         session.open(runtime);
         view.setSession(session);
 
         extensions.ensureBuiltIn(EXTENSION_URL, EXTENSION_ID).accept(
-                extension -> session.loadUri(extension.metaData.baseUrl + "player.html?tv=1"),
+                extension -> {
+                    WebExtension.MessageDelegate messages = new WebExtension.MessageDelegate() {
+                        @Override
+                        public GeckoResult<Object> onMessage(String app, Object message, WebExtension.MessageSender sender) {
+                            if (message instanceof JSONObject) runOnUiThread(() -> fromPage((JSONObject) message));
+                            return GeckoResult.fromValue(null);
+                        }
+                    };
+                    extension.setMessageDelegate(messages, "browser");
+                    session.getWebExtensionController().setMessageDelegate(extension, messages, "browser");
+                    session.loadUri(extension.metaData.baseUrl + "player.html?tv=1");
+                },
                 error -> Log.e(TAG, "the extension did not install", error));
+    }
+
+    /* ------------------------------------------------------------ SPIKE */
+
+    private SurfaceView picture;
+    private ExoPlayer player;
+
+    /** What the page asks of the television's player: play, rect, stop, mode. */
+    private void fromPage(JSONObject message) {
+        // A channel's address carries the account: it is not written to the log.
+        Log.i(TAG, "page: " + (message.has("play") ? "play " + message.optJSONArray("rect") : message.toString()));
+        JSONArray rect = message.optJSONArray("rect");
+        if (rect != null) {
+            // Nothing to show (the page has something over the picture):
+            // a dot off the screen's corner. Hidden, the surface would be
+            // taken from the decoder, and the picture would start anew.
+            boolean shown = rect.optInt(2) > 0 && rect.optInt(3) > 0;
+            FrameLayout.LayoutParams at = new FrameLayout.LayoutParams(shown ? rect.optInt(2) : 1, shown ? rect.optInt(3) : 1, Gravity.TOP | Gravity.START);
+            at.leftMargin = shown ? rect.optInt(0) : -1;
+            at.topMargin = shown ? rect.optInt(1) : -1;
+            picture.setLayoutParams(at);
+        }
+        if (message.has("mode")) Toast.makeText(this, "native".equals(message.optString("mode")) ? "Television's player" : "Browser's player", Toast.LENGTH_SHORT).show();
+        if (message.has("stop")) stopPicture();
+        String url = message.optString("play", "");
+        if (url.isEmpty()) return;
+        stopPicture();
+        picture.setVisibility(View.VISIBLE);
+        player = new ExoPlayer.Builder(this).build();
+        player.addListener(new Player.Listener() {
+            @Override public void onPlayerError(PlaybackException error) { Log.e(TAG, "the television's player failed", error); }
+            @Override public void onVideoSizeChanged(VideoSize size) { Log.i(TAG, "picture " + size.width + "x" + size.height); }
+            @Override public void onPlaybackStateChanged(int state) { Log.i(TAG, "player state " + state); }
+        });
+        player.setVideoSurfaceView(picture);
+        player.setMediaItem(MediaItem.fromUri(Uri.parse(url)));
+        player.setPlayWhenReady(true);
+        player.prepare();
+    }
+
+    private void stopPicture() {
+        if (player != null) { player.release(); player = null; }
+        picture.setVisibility(View.GONE);
     }
 
     /**
@@ -126,16 +219,19 @@ public class PlayerActivity extends Activity {
     protected void onStart() {
         super.onStart();
         if (session != null) session.setActive(true);
+        if (player != null) player.setPlayWhenReady(true);
     }
 
     @Override
     protected void onStop() {
+        if (player != null) player.setPlayWhenReady(false);
         if (session != null) session.setActive(false);
         super.onStop();
     }
 
     @Override
     protected void onDestroy() {
+        stopPicture();
         if (session != null) session.close();
         super.onDestroy();
     }

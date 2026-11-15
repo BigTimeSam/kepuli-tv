@@ -227,6 +227,36 @@ const STABLE_MS = 30000;
 // bound within which a full account is suspected to be counting our own.
 const RELEASE_LAG_MS = 30000;
 
+// SPIKE (android-tv, not for main): on a television the picture goes better
+// through Android's own player on the video plane than through the engine's
+// 1080p, 60 Hz surface. The app (android/…/PlayerActivity.java) plays the
+// address it is sent under the page, and the page leaves a hole for it.
+// The remote's 0 switches between the two, to compare them.
+const ext = /** @type {any} */ (globalThis).browser;
+const tv = {
+  can: typeof location !== 'undefined' && new URLSearchParams(location.search).has('tv') && Boolean(ext?.runtime?.sendNativeMessage),
+  get on() { return this.can && localStorage.getItem('tvnative') !== '0'; },
+  /** @type {Playback|null} */
+  current: null,
+  /** @param {object} message */
+  send(message) {
+    return ext.runtime.sendNativeMessage('browser', message).catch((/** @type {any} */ err) => console.warn('[iptv] the app did not take the message', err));
+  },
+  /** @param {Element} video */
+  rect(video) {
+    const r = video.getBoundingClientRect(), d = devicePixelRatio;
+    return [r.left, r.top, r.width, r.height].map((n) => Math.round(n * d));
+  },
+};
+if (tv.can) {
+  addEventListener('keydown', (e) => {
+    if (e.key !== '0' || /^(INPUT|TEXTAREA)$/.test(/** @type {Element} */ (e.target).tagName)) return;
+    localStorage.setItem('tvnative', tv.on ? '0' : '1');
+    tv.send({ mode: tv.on ? 'native' : 'browser' });
+    tv.current?.restart();
+  }, true);
+}
+
 export class Playback {
   /**
    * @param {HTMLVideoElement} video
@@ -405,6 +435,8 @@ export class Playback {
    * @param {number} token
    */
   begin(spec, token) {
+    tv.current = this;
+    if (tv.on && spec.live && this.video.id === 'video') return this.startTelevision(spec);
     this.start(spec, token).catch((err) => {
       if (token !== this.token) return;
       console.error('[iptv] starting playback failed', err);
@@ -996,6 +1028,42 @@ export class Playback {
     });
     this.engine = player;
     player.start().catch((err) => { console.warn('[iptv] the MP4 reader did not start', err); finish(false, engineReason(err), { empty: Boolean(err && err.empty), unavailable: (err && err.unavailable) || 0 }); });
+  }
+
+  /**
+   * SPIKE: the app's own player takes the channel, under the page.
+   * @param {PlaySpec} spec
+   */
+  startTelevision(spec) {
+    const video = this.video, wrap = /** @type {HTMLElement} */ (video.parentElement);
+    // The app's picture lies over the page (the engine's surface lets
+    // nothing through from under it), so it steps aside whenever the page
+    // puts something over where the picture is: a dialog, a menu.
+    const covered = () => {
+      const r = wrap.getBoundingClientRect();
+      if (!r.width || !r.height) return true;
+      return [[0.5, 0.5], [0.08, 0.08], [0.92, 0.08], [0.08, 0.92], [0.92, 0.92]].some(([x, y]) => {
+        const hit = document.elementFromPoint(r.left + r.width * x, r.top + r.height * y);
+        return Boolean(hit) && !wrap.contains(hit);
+      });
+    };
+    let last = '';
+    const place = () => {
+      const rect = covered() ? [0, 0, 0, 0] : tv.rect(wrap);
+      if (String(rect) === last) return;
+      last = String(rect);
+      tv.send({ rect });
+    };
+    const watch = setInterval(place, 200);
+    this.engine = {
+      destroy: () => {
+        clearInterval(watch);
+        tv.send({ stop: true });
+      },
+    };
+    this.noteOpen();
+    tv.send({ play: spec.url, rect: covered() ? [0, 0, 0, 0] : tv.rect(wrap) });
+    this.onState({ status: 'playing' });
   }
 
   /** @param {PlaySpec} spec */
