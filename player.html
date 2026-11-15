@@ -223,6 +223,7 @@
       <!-- What is on, shown over the full-screen picture for a moment when a
            remote control changes the channel (js/remote.js). -->
       <div class="zap" id="zap" aria-hidden="true" hidden></div>
+      <div class="scrub" id="scrub" aria-hidden="true" hidden><span class="scrub-time" id="scrub-time"></span><span class="scrub-bar"><span class="scrub-fill" id="scrub-fill"></span><span class="scrub-now" id="scrub-now"></span></span><span class="scrub-length" id="scrub-length"></span></div>
       <div class="overlay" id="overlay">
         <div class="overlay-inner">
           <!-- The title, and beside it, past ten seconds, how long the wait
@@ -938,7 +939,7 @@ before the storm closes the road.</div></div>
       <h2 id="help-title" data-i18n="help.title">Help</h2>
       <button type="button" id="help-close" data-modal-close data-i18n-label="modal.close"></button>
     </div>
-    <h3 data-i18n="help.shortcuts">Keyboard shortcuts</h3>
+    <h3 id="help-shortcuts" data-i18n="help.shortcuts">Keyboard shortcuts</h3>
     <dl class="help-keys" id="help-keys"></dl>
     <details class="help-more">
       <summary class="section-toggle">

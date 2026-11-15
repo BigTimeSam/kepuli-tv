@@ -37,6 +37,20 @@ video { width: 100%; height: 100%; display: block; background: #000; color-schem
   background: rgba(10, 12, 17, .84); color: #e7eaf2; pointer-events: none;
 }
 .zap[hidden] { display: none; }
+/* Where the remote's left and right are taking a film (js/remote.js): the
+   place aimed at, the bar filled up to it with a mark where the picture
+   still is, and the length. The jump is made when the keys rest. */
+.scrub {
+  position: absolute; left: 6%; right: 6%; bottom: 9%; z-index: 3; box-sizing: border-box;
+  display: flex; align-items: center; gap: 18px; padding: 14px 22px; border-radius: 14px;
+  background: rgba(10, 12, 17, .84); color: #e7eaf2; pointer-events: none;
+  font-size: 1.375rem; font-variant-numeric: tabular-nums;
+}
+.scrub[hidden] { display: none; }
+.scrub-length { color: #a9b0c2; }
+.scrub-bar { position: relative; flex: 1; height: 8px; border-radius: 4px; background: rgba(255, 255, 255, .22); }
+.scrub-fill { position: absolute; left: 0; top: 0; bottom: 0; border-radius: 4px; background: #8f78ff; }
+.scrub-now { position: absolute; top: -5px; bottom: -5px; width: 3px; margin-left: -1px; border-radius: 2px; background: #fff; }
 .zap-text { min-width: 0; }
 .zap .now-logo { width: 66px; height: 45px; margin: 0; }
 .zap .now-title { font-size: 1.375rem; }
