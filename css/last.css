@@ -148,6 +148,12 @@ input[type="search"], input[type="text"], input[type="url"], input:not([type]) {
 /* The Android app on a phone or a tablet (the page opened with ?app=1)
    grants a provider's host itself as well. */
 .app #setup-grant-note { display: none; }
+/* Its help begins with what touch and the app do (js/help.js), under the
+   dialog's own heading; the keys are all behind the fold, and the note on
+   the browser's Back is not about the app, whose Back steps back. */
+.app #help-shortcuts, .app #help .help-more + .help-note { display: none; }
+.app #help #help-keys { grid-template-columns: max-content 1fr; }
+.app #help #help-keys dt { white-space: normal; max-width: 9rem; }
 /* The app as a small window over other apps (picture in picture, .pip set
    by js/remote.js when the app says so): the picture and its subtitles
    fill the window. Nothing in it can be pressed, so what is drawn over the

@@ -7,7 +7,7 @@
 
 import { $ } from './dom.js';
 import { t } from './i18n.js';
-import { remote } from './caret.js';
+import { inApp, remote } from './caret.js';
 
 /**
  * The shortcuts, the few that nearly everyone needs first — the picture,
@@ -53,6 +53,19 @@ const REMOTE_KEYS = [
 ];
 
 /**
+ * The Android app on a phone or a tablet is driven by touch, and a list of
+ * keys said nothing there about what a finger does that a mouse does not,
+ * or about what the app does when it is left. The keys stay behind the
+ * fold, for a tablet with a keyboard.
+ */
+const APP_HELP = [
+  ['help.app.hold', 'help.app.menu'],
+  ['help.remote.backkey', 'help.remote.back'],
+  ['help.app.home', 'help.app.pip'],
+  ['help.app.dark', 'help.app.sound'],
+];
+
+/**
  * The help, inside the app. It used to be a link to an 83 kB page written for
  * whoever builds the player, opened in another tab at the moment the viewer
  * was least sure of themselves — and the thirteen keys the player answers to
@@ -66,9 +79,10 @@ export function openHelp() {
     dd.textContent = t(id);
     return [dt, dd];
   });
-  $('help-keys').replaceChildren(...rows(remote ? REMOTE_KEYS : SHORTCUTS));
+  $('help-keys').replaceChildren(...rows(remote ? REMOTE_KEYS : inApp ? APP_HELP : SHORTCUTS));
   if (remote) $('help-shortcuts').textContent = t('help.remote');
-  $('help-keys-more').replaceChildren(...rows(MORE_SHORTCUTS));
+  if (inApp) $('help-more-label').textContent = t('help.shortcuts');
+  $('help-keys-more').replaceChildren(...rows(inApp ? [...SHORTCUTS, ...MORE_SHORTCUTS] : MORE_SHORTCUTS));
   const dialog = /** @type {HTMLDialogElement} */ ($('help'));
   if (!dialog.open) dialog.showModal();
 }

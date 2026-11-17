@@ -20,3 +20,10 @@ export const caretWelcome = () => !remote && !matchMedia('(pointer: coarse)').ma
  * arrows to itself, so no field is given the caret unasked there either.
  */
 export const remote = typeof location !== 'undefined' && new URLSearchParams(location.search).has('tv');
+
+/**
+ * Whether the page is the Android app's on a phone or a tablet
+ * (player.html?app=1): touch drives it, and the app keeps the picture in a
+ * small window and the sound going when it is left (js/remote.js).
+ */
+export const inApp = typeof location !== 'undefined' && new URLSearchParams(location.search).has('app');

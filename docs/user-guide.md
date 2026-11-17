@@ -606,6 +606,11 @@ Settings. Android decides the exact moment: the notification is asked for
 two minutes before the programme and may come a little later than that. A
 tap on it opens the app on that channel.
 
+**Help** in the app names these instead of the keys: a row's menu by
+touching and holding it, what **Back** does, the small window and the sound
+with the screen off. The keyboard shortcuts are folded under them, for a
+tablet with a keyboard.
+
 `?` opens the same list inside the player, along with the guide's own keys and
 a note on why the browser's back button leaves the player rather than stepping
 back inside it. **Help** in the top bar opens it too.
