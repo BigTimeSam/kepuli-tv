@@ -89,7 +89,15 @@ data, so never point it at a profile someone uses.
   says of the stream before leaving a channel just chosen alone, the Cast
   mark in sight with nothing playing, a page loaded during a session
   keeping the session's words and showing them in a window of one pane, a
-  channel chosen as the session ends playing here), the subtitles' look
+  channel chosen as the session ends playing here, an episode that ended
+  on the device followed by the next, a server the device failed on at
+  once keeping its next channel here, a stream left during a hand-over
+  that was then refused, or while its server was still asked about), a
+  reminder said in the strip going when its notification is tapped, the
+  reminders handed over again at a change of language, a touch on a
+  dialog's button with a field in the focus pressing it once, a cancelled
+  file picker leaving Settings alone, an account whose address changed
+  taking its notifications with it, the subtitles' look
   opens under a finger with no picker in the focus and the text stays
   inside a small picture, the help says what a finger does and folds the keys
   away where nothing hovers, the picture's button, `f`, Escape and a swipe down
@@ -103,6 +111,13 @@ data, so never point it at a profile someone uses.
   it; Settings' subtitle preview lying down, and Settings measured again
   when the window is turned upright under it). It fails
   when the `ios` branches are taken out.
+  `touchsizes` loads the page under a finger (touch emulation) in a
+  tablet's window, an upright phone's and a phone's lying down and
+  measures everything that takes a press, view by view: nothing under
+  44 × 44 px. `polish` holds the small things a hands-on round found
+  (where Settings opens, a port that cannot be one, an account added
+  twice, an empty guide, the older days' menu, the picture's box in a
+  narrow pane, the bar under the picture).
 - `node dev/uicheck.mjs`: layout and navigation regressions, headless,
   temporary profile.
 - `node dev/visualcheck.mjs`: the five store views in the dark theme, the

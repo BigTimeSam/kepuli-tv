@@ -50,7 +50,7 @@
 
   <div class="search">
     <svg viewBox="0 0 20 20" aria-hidden="true"><circle cx="9" cy="9" r="6"/><path d="M13.5 13.5 18 18"/></svg>
-    <input id="search" type="search" autocomplete="off" spellcheck="false" aria-controls="list">
+    <input id="search" type="search" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" enterkeyhint="search" aria-controls="list">
     <button type="button" id="search-clear" class="search-clear" hidden>×</button>
   </div>
 
@@ -443,7 +443,10 @@
       <!-- On a phone the programme search waits behind this, the bar
            keeping two rows (js/guideui.js); elsewhere it is not shown. -->
       <button type="button" id="epg-search" class="ghost icon epg-search-toggle" aria-expanded="false" aria-controls="programme-form" data-i18n-title="programmes.search" data-i18n-label="programmes.search"><svg viewBox="0 0 20 20" aria-hidden="true"><circle cx="9" cy="9" r="6"/><path d="M13.5 13.5 18 18"/></svg></button>
-      <div class="epg-days" id="epg-days"></div>
+      <!-- The archive's older days in one menu, and beside it the strip of
+           days, which scrolls sideways: inside the strip the menu shrank
+           to its chevron in a phone's width and scrolled away with it. -->
+      <div class="epg-daybar"><span id="epg-older"></span><div class="epg-days" id="epg-days"></div></div>
       <div class="spacer"></div>
       <div class="epg-nav">
         <button type="button" id="epg-prev" class="ghost" data-i18n-title="guide.prev.title">‹</button>
@@ -501,7 +504,7 @@
     <p id="epg-announce" class="sr-only" role="status" aria-live="polite"></p>
     <!-- In place of the grid when the guide shows the favourite channels
          and none is starred yet (js/guideui.js, setGridChannels). -->
-    <p id="epg-hint" class="epg-hint" role="status" hidden></p>
+    <div id="epg-hint" class="epg-hint" role="status" hidden></div>
     <div class="epg-body" id="epg-body">
       <div class="epg-corner" id="epg-corner"></div>
       <div class="epg-times"><div class="epg-times-inner" id="epg-times-inner"></div></div>

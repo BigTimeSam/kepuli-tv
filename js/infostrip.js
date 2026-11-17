@@ -262,7 +262,8 @@ function renderMenuLinks(item, info) {
     if (!link) continue;
     node.href = link.href;
     node.title = t('links.newtab');
-    node.querySelector('span').textContent = `${t(`links.${service}${link.search ? '.search' : ''}`)} ↗`;
+    // The item's own mark says that it leads out: a second one stood after the words.
+    node.querySelector('span').textContent = t(`links.${service}${link.search ? '.search' : ''}`);
   }
 }
 

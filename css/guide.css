@@ -71,8 +71,6 @@
 .choice-modes-label { flex-basis: 100%; color: var(--muted); font-size: var(--fs-m); }
 .choice-mode { display: flex; align-items: center; gap: 7px; cursor: pointer; }
 .choice-mode > input { margin: 0; accent-color: var(--accent); }
-/* A line of text is 18 px under a finger. */
-@media (hover: none) { .choice-mode { min-height: 2.25rem; } }
 #countries:not(.choosing) #countries-all-row, #countries:not(.choosing) .choice-list { opacity: .55; }
 #countries:not(.choosing) .choice-list:is(:hover, :focus-within), #countries:not(.choosing) #countries-all-row:is(:hover, :focus-within) { opacity: .8; }
 .choice-filter { position: relative; }
@@ -159,7 +157,7 @@ button.psr-head:focus-visible, .psr-more:focus-visible { outline-offset: -2px; }
 .psr-body span { color: var(--muted); font-size: var(--fs-m); }
 .psr-now { flex: none; position: relative; overflow: hidden; padding: 2px 8px 4px; border-radius: 5px; background: var(--accent); color: #fff; font-size: var(--fs-xs); font-weight: 600; }
 .psr-now i { position: absolute; left: 0; bottom: 0; height: 2px; background: rgba(255, 255, 255, .85); }
-.epg-days { min-width: 0; max-width: 34vw; overflow-x: auto; }
+.epg-days { min-width: 0; overflow-x: auto; }
 
 @media (max-width: 600px) {
   .choice-content { padding: 16px; gap: 10px; }
@@ -175,8 +173,6 @@ button.psr-head:focus-visible, .psr-more:focus-visible { outline-offset: -2px; }
 }
 .epg-bar .spacer { flex: 1; }
 .epg-bar button.ghost { padding: 4px 9px; }
-/* The favourites' mark, the steps and the zoom under a finger: 25 to 28 px. */
-@media (hover: none) { .epg-bar button.ghost { min-width: 2rem; min-height: 2rem; } }
 .epg-select { background: var(--panel-2); border: 1px solid var(--border); border-radius: 8px; padding: 5px 8px; max-width: 220px; }
 .epg-nav { display: flex; gap: 3px; }
 .epg-days { display: flex; gap: 3px; overflow-x: auto; }
@@ -186,20 +182,27 @@ button.psr-head:focus-visible, .psr-more:focus-visible { outline-offset: -2px; }
 }
 .epg-day:hover { color: var(--text); background: var(--panel-2); }
 .epg-day.active { background: var(--panel-2); border-color: var(--border); color: var(--text); }
-/* 28 px under a finger. */
-@media (hover: none) { .epg-day { min-height: 2.25rem; } }
 /* Inside the day, as the strip scrolls sideways and cuts whatever passes
    its edges: a ring outside lost its top and bottom. */
 .epg-day:focus-visible { outline-offset: -2px; }
 /* The archive's older days, in one menu before yesterday. */
 .epg-days { align-items: center; }
+/* The menu and the strip share the third of the window the strip had
+   with the menu inside it: the strip alone at that width sent the zoom's
+   buttons to a second line of the bar. */
+.epg-daybar { display: flex; align-items: center; gap: 3px; min-width: 0; max-width: 34vw; }
+.epg-daybar > .epg-days-scroll { flex: 0 1 auto; min-width: 0; }
+#epg-older { flex: none; }
+#epg-older:empty { display: none; }
 select.epg-earlier { font: inherit; padding-right: 26px; background-position: right 8px center; }
 .epg-clock { color: var(--muted); font-size: var(--fs-s); font-variant-numeric: tabular-nums; white-space: nowrap; }
 
 .epg-hint { margin: 0; padding: 48px 28px 0; color: var(--muted); text-align: center; line-height: 1.5; }
 .epg-hint[hidden], .epg:has(#programme-panel:not([hidden])) .epg-hint { display: none; }
+/* The list's own words for a search that left no channel bring their margins. */
+.epg-hint:has(.empty) { padding: 0; }
 .epg.no-channels .epg-body { display: none; }
-.epg.no-channels .epg-days-scroll, .epg.no-channels .epg-nav { visibility: hidden; }
+.epg.no-channels .epg-daybar, .epg.no-channels .epg-nav { visibility: hidden; }
 
 .epg-body {
   flex: 1; min-height: 0;
@@ -273,7 +276,8 @@ select.epg-earlier { font: inherit; padding-right: 26px; background-position: ri
   cursor: pointer; font-size: var(--fs-m);
 }
 .epg-prog:hover { background: var(--row-hover); border-color: var(--border-strong); }
-.epg-prog-label { padding: 0 8px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+/* Over the line of the present moment (z-index 2), which ran through the titles' letters. */
+.epg-prog-label { position: relative; z-index: 3; padding: 0 8px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .epg-prog.clipped::before { content: "‹"; position: absolute; left: calc(var(--clip, 0px) + 5px); color: var(--dim); }
 .epg-prog.past { background: var(--prog-past); color: var(--dim); }
 .epg-prog.past.rec { color: var(--muted); border-color: var(--archive-line); }
@@ -300,7 +304,8 @@ select.epg-earlier { font: inherit; padding-right: 26px; background-position: ri
 
 .epg-nowline { position: absolute; top: 0; width: 2px; background: var(--accent-2); pointer-events: none; z-index: 2; }
 .epg-nowline[hidden] { display: none; }
-.epg-nowhead { position: absolute; top: 0; bottom: 0; width: 2px; background: var(--accent-2); pointer-events: none; }
+/* Over the times only its mark: the line ran through the hour beside it. */
+.epg-nowhead { position: absolute; top: 0; bottom: 0; width: 2px; pointer-events: none; }
 .epg-nowhead::after {
   content: ""; position: absolute; bottom: 0; left: 50%; transform: translateX(-50%);
   border-left: 5px solid transparent; border-right: 5px solid transparent;

@@ -15,7 +15,7 @@
 // Simulator's own -[SimDevice(GSEventsPrivate) sendPurpleEvent:] in Xcode
 // 26.6 (the event record in its 32-bit packing, the size at 0x48, the
 // payload at 0x4c, the host flag 0x20000 on the type; without the flag the
-// event is ignored, measured) and works on the iOS 18.5 and 26.5 runtimes.
+// event is ignored, measured) and works on the iOS 26.5 runtime.
 // If a later Xcode changes it, the turn silently does not happen and
 // sim.mjs says so. A development tool only: nothing of it is in the app.
 

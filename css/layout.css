@@ -67,9 +67,6 @@ main.guide .epgv-head { flex-wrap: wrap; }
    read as four; stacked they read as two. */
 main.guide .epgv-actions { flex: 1 0 100%; flex-direction: column; }
 main.guide .epgv-actions button { width: 100%; }
-/* The programme's buttons under a finger, in the guide's panel and in the
-   sheet a phone shows: 32 px, where a dialog's are 44. */
-@media (hover: none) { .epgv-actions button { min-height: 2.75rem; } }
 main.guide .epgv-desc { flex: 1; }
 /* With the timetable under it, the description keeps to its own length
    and the timetable follows straight after; the empty space goes below. */
@@ -240,5 +237,3 @@ button.group-star:hover { color: var(--text); background: var(--track); }
 .crumbs[hidden] { display: none; }
 .crumbs button { background: var(--panel-2); border: 1px solid var(--border); border-radius: 6px; padding: 3px 8px; cursor: pointer; }
 .crumbs span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--text); }
-/* Back, the one way out of a series' page, was 26 px high under a finger. */
-@media (hover: none) { .crumbs button { min-height: 2.25rem; } }

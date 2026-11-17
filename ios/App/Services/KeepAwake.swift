@@ -17,4 +17,8 @@ final class KeepAwake: NativeService {
     func pageConnected() {
         UIApplication.shared.isIdleTimerDisabled = false
     }
+
+    /// Nor does a page that is gone: the screen kept on for the dead one's
+    /// picture stayed on until the next page greeted.
+    func pageGone() { pageConnected() }
 }

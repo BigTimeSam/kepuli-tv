@@ -315,7 +315,7 @@ against a fake port: the hand-over of a film with its position, the
 overlay's two buttons, a repeated `connected`, a device error, an MKV,
 catch-up during a session, a live channel with and without the mock's CORS
 headers (`KEPULI_MOCK_NO_CORS=1`), and a session's end. That WebKit shows
-the page the header was measured in the simulators, on iOS 18.5 and 26.5
+the page the header was measured in the simulators, on iOS 26.5
 (`node ios/simcheck.mjs live`), so the question stays in the page.
 `node ios/simcheck.mjs cast` goes as far as a script can in the real app:
 the SDK asleep until the first `cast.prompt`, `cast.load` answered

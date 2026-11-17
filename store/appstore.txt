@@ -18,6 +18,12 @@ Three rules for every text below, each from a guideline:
     promised: no saving of streams, no sync between devices, and nothing
     that only a device can confirm (picture in picture, sound in the
     background) until the device checklist in ios/AGENTS.md has ticked it.
+    The listing's texts promise neither. The review notes describe both,
+    as a declared background mode has to be explained to the reviewer, and
+    for them the rule is hard: if the checklist's lines on sound behind
+    another app or on picture in picture fail on the device,
+    UIBackgroundModes leaves ios/project.yml and its paragraph leaves the
+    notes before anything is submitted.
     A second picture beside the first is offered on the iPad alone, so no
     text promises it of the app.
   • No real provider, address, person, phone number or email. The demo's
@@ -61,8 +67,18 @@ Content rights       "Does your app contain, show or access third-party
                      rights to it, and the description says to use it only
                      for content they may watch. What the app does carry is
                      an index of file names from a public collection of
-                     channel logos (js/logoindex.js). See "IF APPLE ASKS FOR
-                     EVIDENCE" below.
+                     channel logos (js/logoindex.js); the logos themselves
+                     are loaded from that collection (the tv-logo/tv-logos
+                     repository, by way of raw.githubusercontent.com) when a
+                     channel the viewer's provider lists has one. "Yes"
+                     therefore also answers for showing those logos, which
+                     are their broadcasters' marks, beside the channels they
+                     name. The owner decided that the index ships whole. If
+                     Apple objects under 5.2.1 or 5.2.3, the fallback is a
+                     build without the index (js/logoindex.js emptied for
+                     the app in ios/build.mjs): a channel then shows the
+                     logo its own provider sends, or none. See "IF APPLE
+                     ASKS FOR EVIDENCE" below.
 Licence agreement    Apple's standard EULA.
 Copyright            2026 and the seller's name as it stands in LICENSE.
 
@@ -117,15 +133,16 @@ Oma IPTV-tilauksesi iPhonessa ja iPadissa: sekunneissa avautuvat kanavat, ohjelm
 === END ===
 
 === KEYWORDS en-GB ===
-m3u,xtream,stalker,epg,tv guide,playlist,live tv,chromecast,mkv,xmltv,channels,series,films,stream
+m3u,xtream,stalker,epg,subtitles,playlist,live tv,chromecast,mkv,xmltv,channels,series,films,stream
 === END ===
 
 === KEYWORDS fi ===
-m3u,xtream,stalker,epg,ohjelmaopas,soittolista,suora tv,chromecast,mkv,xmltv,kanavat,sarjat,elokuvat
+m3u,xtream,stalker,epg,tekstitys,soittolista,suora tv,chromecast,mkv,xmltv,kanavat,sarjat,elokuvat
 === END ===
 
-  "IPTV" and "player" are in the name and are not repeated: the store
-  indexes the name and the subtitle already.
+  "IPTV" and "player" are in the name, "TV guide" and "ohjelmaopas" in the
+  subtitles, and none is repeated: the store indexes the name and the
+  subtitle already.
 
 === DESCRIPTION en-GB ===
 Kepuli-TV plays the IPTV subscription you already have: an M3U playlist, an Xtream Codes account or a Stalker portal. It is built around one idea: a huge catalogue should feel small.
@@ -250,7 +267,9 @@ The iPhone's stay upright; the iPad's may be on their side, where the list
 and the picture stand next to each other.
 
 The five views, the same on both devices and in this order:
-  1. The channels of a country with a channel playing.
+  1. The channels of a country with what is on now, one of them playing:
+     its marked row in the list on the iPhone, whose upright window shows
+     the list or the picture; the list beside the picture on the iPad.
   2. The programme guide.
   3. A film's page with its cover, plot and details.
   4. A film or an episode playing, subtitles in the picture.
@@ -321,9 +340,17 @@ is accepted.
 
   Parental controls                                   No
   Age assurance                                       No
-  Unrestricted web access                             No (a link opens one page
-                                                      over the player; there is
-                                                      no address field)
+  Unrestricted web access                             Yes (a link to IMDb, TMDb
+                                                      or a trailer opens in a
+                                                      Safari view over the
+                                                      player, and the links on
+                                                      that page can be followed
+                                                      anywhere; there is no
+                                                      address field. The rating
+                                                      is 18+ without it)
+  Social media                                        No
+  Social media disabled for users under 13            No (there is none to
+                                                      disable)
   User-generated content                              No
   Messaging and chat                                  No
   Advertising                                         No
@@ -355,6 +382,31 @@ changes between years: answer what it asks then, on the same basis, and
 read that page again first.
 
 
+--- APP ACCESSIBILITY -------------------------------------------------------
+
+App Store Connect's accessibility questions ("Accessibility Nutrition
+Labels") are optional for now, and each is answered for the iPhone and the
+iPad apart. A feature is declared only when the app's common tasks were
+tried with it. The first was seen in the simulators on both devices
+(ios/simcheck.mjs, settings); none of the others has been tried.
+
+  Dark Interface                       Yes, both devices: Settings has
+                                       Dark, Light and Automatic, and the
+                                       keyboard and the system's dialogs
+                                       follow.
+  VoiceOver                            Not declared: untested.
+  Voice Control                        Not declared: untested.
+  Larger Text                          Not declared: the page's text does
+                                       not follow the system's text size.
+  Sufficient Contrast                  Not declared: not audited.
+  Differentiate Without Colour Alone   Not declared: not audited.
+  Reduced Motion                       Not declared: untested.
+  Captions                             Not declared: the app shows the
+                                       subtitles a stream carries and has
+                                       no content of its own to caption.
+  Audio Descriptions                   Not declared, for the same reason.
+
+
 --- EXPORT COMPLIANCE -------------------------------------------------------
 
 Info.plist carries ITSAppUsesNonExemptEncryption = false, so the question is
@@ -383,7 +435,11 @@ User name            demo
 Password             demo
 Contact              first name, last name, phone and email: the owner's,
                      typed from ~/.config/kepuli-tv/ios/, never written here.
-Attachment           the screen video of a cast session (see the notes).
+Attachments          two screen videos from the TestFlight build (see the
+                     notes): 1. a cast session with a real Chromecast;
+                     2. a channel whose sound goes on after the home
+                     gesture, the lock screen's Pause and Play, and picture
+                     in picture from the player's menu.
 
 The demo is the project's own invented provider (dev/mock/, deployed from
 dev/mock/Dockerfile and dev/mock/fly.toml). Its address is "demoUrl" in
@@ -414,13 +470,17 @@ NATIVE FEATURES
 What sets it apart from other players: channels grouped by country out of a provider's hundreds of categories, a full programme guide with search across channels, MKV playback with subtitle tracks, and accounts of three kinds side by side.
 
 CHROMECAST CANNOT BE TRIED WITHOUT A DEVICE
-Without a Chromecast on the network, Google's dialog opens and finds nothing, and the app goes on playing on the device. The attached video shows a session with a real device: choosing it, a film playing on the television, the remote control, and stopping.
+Without a Chromecast on the network, Google's dialog opens and finds nothing, and the app goes on playing on the device. The first attached video shows a session with a real device: choosing it, a film playing on the television, the remote control, and stopping.
 
 PERMISSIONS AND KEYS
 • Local network: asked when the viewer first casts (to find Chromecast devices), or earlier when the viewer's own provider is at an address on their home network.
 • Notifications: asked when the viewer sets a first reminder, or turns Show reminders as notifications on in Settings.
 • NSAllowsArbitraryLoadsInWebContent: the viewer types the address of their own provider, and many providers serve plain http. Settings warns that an http connection is unencrypted and recommends https. No other transport exception is set.
-• Background mode "audio": so that sound continues, and picture in picture stays up, when the viewer leaves the app during playback.
+• Background mode "audio": Kepuli-TV is a video player, and what plays goes on sounding when the app leaves the front. To see it:
+1. Play a channel.
+2. Swipe home, or lock the screen: the sound continues. The lock screen and Control Centre name the programme, and pause and resume it.
+3. Or choose Picture in picture in the player's ☰ menu: the picture plays on over other apps.
+What the viewer had paused stays paused. The second attached video shows all three.
 
 CONTENT AND RIGHTS
 The viewer supplies the subscription and is responsible for their right to watch it; the description says so, and the first screen says that the app comes with no channels of its own. The developer has no relationship with any provider.
@@ -447,35 +507,30 @@ Prepared answer, to be adapted to the question asked:
 
 --- OPEN BEFORE SUBMISSION --------------------------------------------------
 
-Decisions and checks this file depends on; each is the owner's or a
-device's, and none can be closed from here. "node ios/release.mjs status"
-prints what is still missing: the outputs, the owner's configuration, the
-demo, this file's pasted sections against the rules above, and the device
-checklist.
+Checks this file depends on; each is the owner's or a device's, and none
+can be closed from here. The app's minimum is iOS 26.0, and it ships the
+whole logo index (js/logoindex.js), as the texts above say.
+"node ios/release.mjs status" prints what is still missing: the outputs,
+the owner's configuration, the demo, this file's pasted sections against
+the rules above, and the device checklist.
 
   • The demo provider: deployed, on https, and its host in appstore.json.
     store/chrome-dashboard.txt says no hosted demo is offered today.
-  • The "audio" background mode: the review notes justify it by sound in the
-    background and picture in picture. Neither has run on a device. If the
-    device checklist finds that neither works, the key is removed
-    (guideline 2.5.4) and its paragraph in the notes with it.
-  • The cast video: recorded from the TestFlight build with a real
-    Chromecast.
-  • iOS 18: films whose sound is AC-3, E-AC-3 or DTS play without sound
-    there and with sound from iOS 26 on (an AC-3 episode plays in the
-    iOS 26.5 simulator with its sound track; heard on no device yet, which
-    is a line of the device checklist). The app's minimum is iOS 18.5,
-    the oldest system it has been started on. Either the minimum version rises,
-    or the description stays as it is, which promises subtitles and not
-    that sound.
-  • The logo index (js/logoindex.js, 8,409 file names of the public
-    tv-logo/tv-logos collection, adult brands among them): the app ships
-    it as the browsers do, and the texts above say so. The owner decides
-    whether the app's copy drops the adult names, or the whole index (the
-    logos would then be the provider's own alone, and the description's
-    sentence on a public logo collection would go). Guideline 1.1.4; it
-    is no longer a question of the age rating.
+  • The "audio" background mode: the review notes give the reviewer three
+    steps, sound that goes on behind another app, the lock screen's
+    controls and picture in picture. The first was measured in the
+    simulators (a channel's sound went on behind another app, and a pause
+    there held), picture in picture on the iPad's alone, and no simulator
+    has a lock screen with controls or suspends an app: the device
+    checklist has the lines that see all three on hardware, and the hard
+    rule at the top of this file says what follows if one fails.
+  • The two videos: recorded from the TestFlight build, the first with a
+    real Chromecast.
   • The seller name, the trader status for the EU, and the review contact.
+  • A contact address on the support page (guideline 1.5 asks for an easy
+    way to reach the developer; the page leads to the project's issues on
+    GitHub alone, which needs an account there). The address is the
+    owner's to choose and is not written anywhere yet.
 
 
 --- CHARACTER COUNTS (2026-11-13) -------------------------------------------
@@ -487,10 +542,10 @@ checklist.
   SUBTITLE fi                  23 of 30
   PROMOTIONAL TEXT en-GB      151 of 170
   PROMOTIONAL TEXT fi         133 of 170
-  KEYWORDS en-GB               98 of 100
-  KEYWORDS fi                 100 of 100
+  KEYWORDS en-GB               99 of 100
+  KEYWORDS fi                  98 of 100
   DESCRIPTION en-GB          2957 of 4000
   DESCRIPTION fi             3021 of 4000
   WHAT'S NEW en-GB             46 of 4000
   WHAT'S NEW fi                41 of 4000
-  REVIEW NOTES               3516 of 4000
+  REVIEW NOTES               3852 of 4000

@@ -10,9 +10,13 @@ import UserNotifications
 final class AppDelegate: UIResponder, UIApplicationDelegate {
     func application(_ application: UIApplication,
                      didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]? = nil) -> Bool {
-        // A television's sound does not depend on the ring switch. With the
-        // audio background mode this is also what lets picture in picture
-        // and sound go on when the app leaves the foreground.
+        // A video player's category, as Apple asks of one. It is not made
+        // active here: the sound is WebKit's, which activates a playback
+        // session of its own when a picture with sound starts, and an app
+        // that did so at launch would stop the viewer's music before
+        // anything plays. Now Playing, the lock screen's commands, a
+        // call's interruption and unplugged headphones are WebKit's too
+        // (the page's Media Session, js/playercontrols.js): no code here.
         try? AVAudioSession.sharedInstance().setCategory(.playback, mode: .moviePlayback)
         Services.start()
         // Set before launch ends, or a notification tapped while the app was

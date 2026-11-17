@@ -21,7 +21,8 @@ switching audio tracks, pausing playback and entering full screen.
    links to these steps; the eye at the end of the password field shows what
    was typed — a provider's password is long, random and entered by hand
    exactly once. **Name** comes before the fields that connect; the fields
-   that must be filled in have a * after their name.
+   that must be filled in have a * after their name. A port that is not a
+   number from 1 to 65535 is said before anything is tried.
 3. Press **Connect**. Unless the browser already allows that server, the
    dialog says beforehand that the browser will now ask to let Kepuli-TV
    reach it: choose **Allow**, which covers that server only. Refused, the dialog says so and that pressing **Connect**
@@ -57,7 +58,8 @@ the file again in **Settings**; the account stays the same, its favourites
 and history with it. Sync carries such an account to your other computers
 but not the file: there the player asks you to choose it again. A new
 account's form starts on **Playlist address (M3U)**,
-as the first run does. Once there are two, **Switch** in another account's
+as the first run does; an account that is in the list already is not added
+a second time. Once there are two, **Switch** in another account's
 row switches to it. Each account keeps its own favourites, history, resume points,
 reminders and channel lists, and its own catalogue in the cache, so switching
 back is quick. **Remove** takes an account away with its lists and its
@@ -146,6 +148,11 @@ What differs:
   lock decides, and turning it does not interrupt what plays. On the iPad
   it also runs beside another app, and takes the one-pane layout when its
   share of the screen is narrow.
+- **Everything that takes a press is at least 44 points high and wide**,
+  on any touch screen (a phone's or a tablet's browser as well): rows'
+  stars and menus, the bars' buttons, tabs, fields, selectors and menu
+  rows. A small mark keeps its look and takes the press around it. On the
+  iPad the text is an eighth larger than on the iPhone.
 - **A low window has a layout of its own.** In a window 440 px high or
   less, which is a phone on its side, the list keeps several rows in sight
   beside a whole picture with its bar under it, the guide's controls fit on
@@ -182,7 +189,9 @@ What differs:
   commonly allows one connection. Over the player stands **Playing on** and
   the device's name, with **Remote control** (seeking, volume and tracks, in
   Google's controls) and **Stop casting**, after which the picture plays on
-  here from where the device had got to. What ended on the television
+  here from where the device had got to. An episode seen to its end on
+  the television is followed by the next one's countdown, as here, when
+  **Play the next episode when one ends** is on. What ended on the television
   while the phone slept (a film seen to its end, a television turned off)
   starts nothing here. A film or an episode in MP4, M4V,
   MOV or WebM is cast from its resume point, and its position on the device
@@ -205,9 +214,11 @@ What differs:
   then the notification is shown. The system asks
   for its leave at the first reminder; if notifications have been turned
   off for Kepuli-TV in the device's settings, the player says so, at that
-  first reminder and under the switch. Once they are allowed there, the
+  first reminder (with **Open Settings**, which leads there, and the
+  reminder is not set) and under the switch. Once they are allowed there, the
   reminders already set are scheduled when you come back to the app, and
-  the switch is on. Turning the switch off cancels the
+  the switch is on. A change of language words the scheduled
+  notifications anew. Turning the switch off cancels the
   notifications of every account; an account's reminders are scheduled
   again when it is next opened with the switch on.
 - **Open in VLC** hands VLC the stream's address on the iPad as on the
@@ -222,10 +233,13 @@ What differs:
   button, **Recordings**, planned recordings, its row in **Settings**), and
   **Sync between computers**. Everything is kept on the device and is
   deleted with the app.
-- **On iOS 18** a film whose sound is AC-3, E-AC-3 or DTS plays without
-  sound, as the system there refuses the decoder the player brings; from
-  iOS 26 on it plays with sound. An MKV film is unpacked by the player
-  itself, so it does not play on while the app is in the background.
+- **Behind another app**, and with the screen locked, the sound of what
+  is playing goes on. The lock screen and Control Centre name the
+  programme and pause and resume it. What you had paused stays paused,
+  there and when you come back, and a muted picture pauses. **Picture in
+  picture**, in the player's menu and in the picture's own controls, keeps
+  the picture in sight over other apps.
+- **If the app cannot start** it says so, with a **Try again** button.
 
 ## Where the player opens
 
@@ -982,7 +996,8 @@ programme and its channel, whether the player is closed, out of sight or
 in front of you: a player in sight may lie under another window, and a
 message in it alone reminded nobody then. Clicking the notification brings
 the player forward, opening one if need be, on that
-channel. Notifications are asked for when the first reminder is set, and
+channel; one of another account in the list takes that account into use
+first. Notifications are asked for when the first reminder is set, and
 turned on or off afterwards under **Settings › Viewing › Programme guide**
 (**Show reminders as notifications**); the
 permission is an optional one, so that the update that brought it disabled

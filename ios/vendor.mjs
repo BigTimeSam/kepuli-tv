@@ -29,7 +29,7 @@ export const VENDOR = join(HERE, 'vendor');
 export const FRAMEWORK = join(VENDOR, 'GoogleCast.xcframework');
 export const NUTRITION = join(VENDOR, 'NutritionLabel', 'NutritionLabel.txt');
 
-const VERSION = '4.8.6';
+export const VERSION = '4.8.6';
 const NAME = `GoogleCastSDK-ios-${VERSION}_dynamic`;
 const URL = `https://dl.google.com/dl/chromecast/sdk/ios/${NAME}.zip`;
 const SHA256 = '55f6c21291a1315c68063f07e7d76225564bff70f2fd38caad135c71d66eb310';

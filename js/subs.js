@@ -73,6 +73,7 @@ export class SubtitleTracks {
     this.active = null;
     this.listener = () => this.report();
     video.textTracks.addEventListener('change', this.listener);
+    OWNER.set(video, this);
   }
 
   /**
@@ -87,10 +88,14 @@ export class SubtitleTracks {
       const language = trackLanguage(track);
       const text = label(track, language);
       // The key ties the track to a reusable TextTrack. The label and the
-      // language are read-only, so the same TextTrack fits only when both
-      // match — otherwise the browser's menu would show the wrong name.
-      let key = `${language}|${text}`;
-      for (let n = 2; claimed.has(key); n++) key = `${language}|${text}#${n}`;
+      // language are read-only, so the same TextTrack fits only a track of
+      // the same language, name and kind — otherwise the browser's menu
+      // would show the wrong name. Not the label itself, which is in the
+      // interface language: after a change of that, every track was made
+      // a second time, and the menu listed "English" beside "Englanti".
+      const base = `${shortLanguage(language)}|${track.name || ''}|${track.forced ? 'forced' : ''}`;
+      let key = base;
+      for (let n = 2; claimed.has(key); n++) key = `${base}#${n}`;
       claimed.add(key);
       const entry = {
         number: track.number,
@@ -105,6 +110,7 @@ export class SubtitleTracks {
         open: null,
       };
       entry.track.mode = 'disabled';
+      USED.add(entry.track);
       this.entries.push(entry);
       this.byNumber.set(entry.number, entry);
     }
@@ -184,7 +190,9 @@ export class SubtitleTracks {
   }
 
   /** A change made from the browser's menu, reported back to the app. */
-  report() {
+  report(stale = retire(this.video)) {
+    // A track of an earlier file, chosen there: nothing changes here.
+    if (stale) { this.select(this.active); return; }
     let active = null;
     for (const entry of this.entries) if (entry.track.mode === 'showing') active = entry.number;
     if (active === this.active) return;
@@ -194,7 +202,8 @@ export class SubtitleTracks {
 
   destroy() {
     this.video.textTracks.removeEventListener('change', this.listener);
-    for (const entry of this.entries) clearTrack(entry.track);
+    if (OWNER.get(this.video) === this) OWNER.delete(this.video);
+    for (const entry of this.entries) { clearTrack(entry.track); USED.delete(entry.track); }
     this.entries = [];
     this.byNumber.clear();
     this.active = null;
@@ -207,11 +216,36 @@ export class SubtitleTracks {
 // removing one, and changing src does not reliably take it away either.
 // Without reuse the browser's subtitle menu would grow episode by episode.
 // The label and the language are read-only, so the key holds both.
+//
+// The tracks of earlier files therefore stay in the browser's own subtitle
+// menu, empty. One chosen there is switched off again (retire): WebKit's
+// menu in the iPhone app listed the tracks of every episode played, and a
+// stale one chosen showed nothing and set the player's selector to "off".
 const POOL = new WeakMap();
+/** The pooled tracks that belong to what plays now, and whose they are. */
+const USED = new WeakSet();
+const OWNER = new WeakMap();
+
+/** Every pooled track nothing uses is off again: true when one was not. */
+function retire(video) {
+  let found = false;
+  for (const track of POOL.get(video)?.values() || []) {
+    if (USED.has(track) || track.mode === 'disabled') continue;
+    track.mode = 'disabled';
+    found = true;
+  }
+  return found;
+}
 
 function acquire(video, key, label, language) {
   let pool = POOL.get(video);
-  if (!pool) { pool = new Map(); POOL.set(video, pool); }
+  if (!pool) {
+    pool = new Map();
+    POOL.set(video, pool);
+    // Also while nothing with subtitles plays (a channel after an episode);
+    // what plays keeps its selection, whichever listener hears first.
+    video.textTracks.addEventListener('change', () => { if (retire(video)) OWNER.get(video)?.report(true); });
+  }
   const existing = pool.get(key);
   if (existing && attached(video, existing)) {
     clearTrack(existing);

@@ -46,11 +46,11 @@ button.series-favorite.on { color: var(--gold); }
 /* Credits: each name a quiet link to its search on IMDb. */
 .title-credits a.person { color: inherit; text-decoration: none; border-bottom: 1px dotted var(--border-strong); }
 .title-credits a.person:hover, .title-credits a.person:focus-visible { color: var(--accent-ink); border-bottom-color: currentColor; }
-/* 15 px under a finger: the name takes the press over its line's height.
-   The padding of a link in a line of text moves nothing, but a border
-   would hang under it, so the dots are the text's own line there. */
+/* Under a finger the name takes the press in 44 px of height. The padding
+   of a link in a line of text moves nothing, but a border would hang
+   under it, so the dots are the text's own line there. */
 @media (hover: none) {
-  .title-credits a.person { padding-block: 8px; border-bottom: 0; text-decoration: underline dotted var(--border-strong); text-underline-offset: 3px; }
+  .title-credits a.person { padding-block: 16px; border-bottom: 0; text-decoration: underline dotted var(--border-strong); text-underline-offset: 3px; }
   .title-credits a.person:hover, .title-credits a.person:focus-visible { text-decoration-color: currentColor; }
 }
 /* The other copies and the other parts of a series of films, as small covers in a row. */
@@ -76,9 +76,12 @@ button.series-favorite.on { color: var(--gold); }
    the column is too low for both, the picture gives way first, down to
    about half the column, and the details scroll after that. Not in the
    guide, whose thumbnail has a shape of its own, nor in full screen, nor
-   with no details to show, when the picture keeps the whole column. */
+   with no details to show, when the picture keeps the whole column. The
+   floor is no higher than a 16:9 picture as wide as the window: in a
+   window of one pane narrower than 427 px (a phone, an iPad's Split View)
+   it stood black bands over and under the picture. */
 main:not(.guide) .stage:has(> .infostrip:not([hidden])) > .videowrap.sized:not(:fullscreen, .full) {
-  flex: 0 1 auto; width: 100%; aspect-ratio: var(--pic-ratio); min-height: min(240px, 50%);
+  flex: 0 1 auto; width: 100%; aspect-ratio: var(--pic-ratio); min-height: min(240px, 50%, 56.25vw);
 }
 /* Two pictures side by side (js/secondui.js) are half as tall for their
    width: the floor of one picture would put black bands around them. */
@@ -97,5 +100,3 @@ main:not(.guide) .stage:has(> .videowrap.sized:not(:fullscreen, .full)) > .infos
 .season { background: var(--panel-2); border: 1px solid var(--border); border-radius: 7px; padding: 3px 10px; cursor: pointer; color: var(--muted); }
 .season:hover { color: var(--text); }
 .season.active { background: var(--accent); border-color: var(--accent); color: #fff; }
-/* A fingertip high on a touch screen: 26 px, and the only way between a series' seasons. */
-@media (hover: none) { .season { min-height: 2.25rem; } }

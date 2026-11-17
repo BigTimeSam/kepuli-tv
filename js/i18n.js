@@ -511,6 +511,7 @@ const STRINGS = {
     'cast.cannot': 'A Chromecast cannot play this stream, so it plays here. Films in MP4 and channels sent as HLS can be cast.',
     'cast.failed': 'The Chromecast could not play this stream, so it plays here.',
     'ios.localnetwork': 'Kepuli-TV reaches a provider on your own network and looks for Chromecast devices when you cast.',
+    'ios.failed': 'Kepuli-TV could not start. Try again, and restart the device if it happens again.',
 
     /* --------------------------------------------------------- settings */
     'setup.title': 'Settings',
@@ -524,6 +525,7 @@ const STRINGS = {
     'setup.account.immediate': 'Changes apply when you save, except sync.',
     'setup.reconnect': 'Saving connection changes reloads the lists.',
     'setup.failed': 'Could not save. Your changes are still here. Try again.',
+    'setup.port.bad': 'The port is a number from 1 to 65535.',
     'setup.incomplete': 'An Xtream Codes server needs the server, username and password. A playlist that needs no sign-in goes under Playlist address (M3U).',
     'setup.discard.question': 'Discard unsaved changes?',
     'setup.discard': 'Discard changes',
@@ -579,6 +581,7 @@ const STRINGS = {
     'setup.epg': 'Fetch programme data automatically',
     'setup.notify': 'Show reminders as notifications',
     'setup.notify.denied': 'Notifications are turned off for Kepuli-TV in the device’s settings.',
+    'setup.notify.open': 'Open Settings',
     'setup.resume': 'Remember where movies and episodes were left',
     'setup.autonext': 'Play the next episode when one ends',
     'setup.home.picks': 'Show “On your channels now and soon”',
@@ -705,6 +708,7 @@ const STRINGS = {
     'accounts.add': 'Add account',
     'accounts.new': 'New account',
     'accounts.new.hint': 'Fill in its details below',
+    'accounts.exists': 'This account is already in the list.',
     'accounts.saved': '{name} saved',
     'accounts.current': 'In use',
     'accounts.use': 'Switch',
@@ -1306,6 +1310,7 @@ const STRINGS = {
     'cast.cannot': 'Chromecast ei osaa toistaa tätä virtaa, joten se toistetaan tässä. MP4-elokuvat ja HLS-muodossa lähetetyt kanavat voi lähettää.',
     'cast.failed': 'Chromecast ei pystynyt toistamaan tätä virtaa, joten se toistetaan tässä.',
     'ios.localnetwork': 'Kepuli-TV tavoittaa omassa verkossasi olevan palveluntarjoajan ja etsii Chromecast-laitteita, kun lähetät kuvaa.',
+    'ios.failed': 'Kepuli-TV ei käynnistynyt. Yritä uudelleen, ja käynnistä laite uudelleen, jos sama toistuu.',
 
     /* --------------------------------------------------------- settings */
     'setup.title': 'Asetukset',
@@ -1317,6 +1322,7 @@ const STRINGS = {
     'setup.account.immediate': 'Muutokset tulevat voimaan tallennettaessa, pl. synkronointi.',
     'setup.reconnect': 'Yhteysmuutosten tallentaminen lataa listat uudelleen.',
     'setup.failed': 'Tallennus epäonnistui. Muutoksesi ovat tallella tässä lomakkeessa. Yritä uudelleen.',
+    'setup.port.bad': 'Portti on numero väliltä 1–65535.',
     'setup.incomplete': 'Xtream Codes -palvelin tarvitsee palvelimen, käyttäjätunnuksen ja salasanan. Soittolista, joka ei vaadi kirjautumista, lisätään kohdassa Soittolistan osoite (M3U).',
     'setup.discard.question': 'Hylätäänkö tallentamattomat muutokset?',
     'setup.discard': 'Hylkää muutokset',
@@ -1368,6 +1374,7 @@ const STRINGS = {
     'setup.epg': 'Hae ohjelmatiedot automaattisesti',
     'setup.notify': 'Näytä muistutukset ilmoituksina',
     'setup.notify.denied': 'Kepuli-TV:n ilmoitukset on poistettu käytöstä laitteen asetuksissa.',
+    'setup.notify.open': 'Avaa asetukset',
     'setup.resume': 'Muista elokuvien ja jaksojen katselukohta',
     'setup.autonext': 'Toista seuraava jakso, kun edellinen päättyy',
     'setup.home.picks': 'Näytä ”Nyt ja pian kanavillasi”',
@@ -1494,6 +1501,7 @@ const STRINGS = {
     'accounts.add': 'Lisää tili',
     'accounts.new': 'Uusi tili',
     'accounts.new.hint': 'Täytä sen tiedot alle',
+    'accounts.exists': 'Tämä tili on jo luettelossa.',
     'accounts.saved': '{name} tallennettiin',
     'accounts.current': 'Käytössä',
     'accounts.use': 'Vaihda',

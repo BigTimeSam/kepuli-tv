@@ -24,8 +24,9 @@ final class Reminders: NSObject, NativeService, UNUserNotificationCenterDelegate
 
     /// One notification to be scheduled.
     struct Planned: Equatable {
-        /// reminder|<account>|<id>: an account's own are found by their
-        /// beginning, among those of the accounts the page does not show.
+        /// reminder|<bytes of the account>|<account>|<id>: an account's
+        /// own are found by their beginning, among those of the accounts
+        /// the page does not show (`mark`).
         let identifier: String
         /// The page's own name for the reminder, handed back with a tap.
         let id: String
@@ -41,7 +42,28 @@ final class Reminders: NSObject, NativeService, UNUserNotificationCenterDelegate
     /// drops the rest without a word; this leaves a few for another account.
     static let most = 60
 
-    static func mark(_ account: String) -> String { "reminder|\(account)|" }
+    /// How an account's identifiers begin. With the key's length, as a key
+    /// is free text (js/config.js): `reminder|<account>|` alone also began
+    /// the identifiers of an account whose key went on with a `|`, and a
+    /// change to the one's list took the other's reminders away.
+    static func mark(_ account: String) -> String { "reminder|\(account.utf8.count)|\(account)|" }
+
+    /// How near its moment a pending notification is the system's and no
+    /// longer the plan's to take away (`schedule`).
+    static let settled: TimeInterval = 5
+
+    /// Which pending notifications of an account go when its list has
+    /// changed: its own that the new plan does not keep, but none within
+    /// `settled` of its moment. The page's timer and the notification are
+    /// set for the same instant, and the page, in front, takes the
+    /// reminder out of its list as it says it: the list sent then removed
+    /// the notification before the system had delivered it, so that
+    /// `willPresent` was never asked and the banner for a reminder the
+    /// page could not show (a dialog open, Google's remote control over
+    /// the player) never came.
+    static func stale(_ pending: [String], account: String, keep: Set<String>, due: [String: Date], now: Date) -> [String] {
+        pending.filter { $0.hasPrefix(mark(account)) && !keep.contains($0) && !(due[$0].map { $0.timeIntervalSince(now) < settled } ?? false) }
+    }
 
     /// Whether the system shows a notification that falls due with the app
     /// in front. Not when the page says the reminder in its own strip,
@@ -61,8 +83,7 @@ final class Reminders: NSObject, NativeService, UNUserNotificationCenterDelegate
     /// account not heard of shows nothing of itself. An account's key is
     /// its address: a playlist's whole one, user name and password in it.
     static func shown(_ identifier: String, accounts: [String]) -> String {
-        let own = accounts.sorted().enumerated().filter { identifier.hasPrefix(mark($0.element)) }.max { $0.element.count < $1.element.count }
-        guard let own else { return "reminder|?|" }
+        guard let own = accounts.sorted().enumerated().first(where: { identifier.hasPrefix(mark($0.element)) }) else { return "reminder|?|" }
         return "reminder|#\(own.offset)|" + identifier.dropFirst(mark(own.element).count)
     }
 
@@ -85,17 +106,22 @@ final class Reminders: NSObject, NativeService, UNUserNotificationCenterDelegate
     /// first reminder set asks the system and nothing else stands between.
     private static let enabledKey = "remindersEnabled"
     private var enabled: Bool {
-        get { UserDefaults.standard.object(forKey: Self.enabledKey) as? Bool ?? true }
-        set { UserDefaults.standard.set(newValue, forKey: Self.enabledKey) }
+        get { defaults.object(forKey: Self.enabledKey) as? Bool ?? true }
+        set { defaults.set(newValue, forKey: Self.enabledKey) }
     }
 
     private let notifier: Notifier
+    private let defaults: UserDefaults
+    /// What is said to the page: the bridge's `send`, or a test's ear.
+    private let say: (String, [String: Any], Bool) -> Void
+    /// When each notification added in this launch falls due (`stale`).
+    private var due: [String: Date] = [:]
     /// The reminders as the page last said them, by account, for this
     /// launch: what is scheduled again when the switch is turned back on
     /// or the system's leave is given. The first reminder is sent before
     /// the viewer has answered the system's question, and a notification
     /// added before the leave is given is dropped without an error
-    /// (measured on iOS 18.5 and 26.5: it never became pending).
+    /// (measured on iOS 26.5: it never became pending).
     private var said: [String: [[String: Any]]] = [:]
     /// Counts each account's changes, so that an answer from the system
     /// that was overtaken by a newer list schedules nothing.
@@ -107,14 +133,18 @@ final class Reminders: NSObject, NativeService, UNUserNotificationCenterDelegate
 
     override convenience init() {
         #if DEBUG
-        self.init(notifier: FakeNotifier(ProcessInfo.processInfo.environment["KEPULI_NOTIFY"]) ?? SystemNotifier())
+        let variable = ProcessInfo.processInfo.environment["KEPULI_NOTIFY"]
+        self.init(notifier: FakeNotifier(variable) ?? SystemNotifier(quiet: variable == "quiet"))
         #else
         self.init(notifier: SystemNotifier())
         #endif
     }
 
-    init(notifier: Notifier) {
+    init(notifier: Notifier, defaults: UserDefaults = .standard,
+         say: @escaping (String, [String: Any], Bool) -> Void = { Bridge.shared.send($0, $1, keep: $2) }) {
         self.notifier = notifier
+        self.defaults = defaults
+        self.say = say
         super.init()
         NotificationCenter.default.addObserver(self, selector: #selector(activated), name: UIApplication.didBecomeActiveNotification, object: nil)
     }
@@ -131,7 +161,7 @@ final class Reminders: NSObject, NativeService, UNUserNotificationCenterDelegate
             self.system = system
             guard let before, before != system else { return }
             self.scheduleAll()
-            Bridge.shared.send("notify", ["on": self.enabled, "system": system])
+            self.say("notify", ["on": self.enabled, "system": system], false)
         }
     }
 
@@ -186,16 +216,21 @@ final class Reminders: NSObject, NativeService, UNUserNotificationCenterDelegate
 
     /// The account's notifications made to be its list as last said: those
     /// planned are added (one of the same name is replaced) and its others
-    /// taken away. With the switch off, all of them are taken away.
+    /// taken away, but for one about to fire (`stale`). With the switch
+    /// off, all of them are taken away.
     private func schedule(_ account: String) {
         let turn = (turns[account] ?? 0) + 1
         turns[account] = turn
         notifier.pending { identifiers in
             guard turn == self.turns[account] else { return }
-            let planned = self.enabled ? Self.plan(account: account, items: self.said[account] ?? [], now: Date()) : []
-            let keep = Set(planned.map(\.identifier))
-            self.notifier.remove(identifiers.filter { $0.hasPrefix(Self.mark(account)) && !keep.contains($0) })
-            for one in planned { self.notifier.add(one, account: account) }
+            let now = Date()
+            let planned = self.enabled ? Self.plan(account: account, items: self.said[account] ?? [], now: now) : []
+            self.due = self.due.filter { now.timeIntervalSince($0.value) < 60 }
+            self.notifier.remove(Self.stale(identifiers, account: account, keep: Set(planned.map(\.identifier)), due: self.enabled ? self.due : [:], now: now))
+            for one in planned {
+                self.due[one.identifier] = one.at
+                self.notifier.add(one, account: account)
+            }
         }
     }
 
@@ -248,7 +283,7 @@ final class Reminders: NSObject, NativeService, UNUserNotificationCenterDelegate
     private func tapped(channel: String?, account: String?, id: String?) {
         guard let account, let channel,
               let value = try? JSONSerialization.jsonObject(with: Data(channel.utf8)) as? [String: Any] else { return }
-        Bridge.shared.send("reminder.open", ["channel": value, "account": account, "id": id ?? "", "at": (Date().timeIntervalSince1970 * 1000).rounded()], keep: true)
+        say("reminder.open", ["channel": value, "account": account, "id": id ?? "", "at": (Date().timeIntervalSince1970 * 1000).rounded()], true)
     }
 
     #if DEBUG
@@ -299,6 +334,12 @@ protocol Notifier: AnyObject {
 
 private final class SystemNotifier: Notifier {
     private let center = UNUserNotificationCenter.current()
+    /// KEPULI_NOTIFY=quiet, for a scenario: the leave is asked for as a
+    /// provisional one, which the system gives without a question nobody
+    /// is there to answer, and delivers by.
+    private let quiet: Bool
+
+    init(quiet: Bool = false) { self.quiet = quiet }
 
     func status(_ answer: @escaping (String) -> Void) {
         center.getNotificationSettings { settings in
@@ -313,7 +354,7 @@ private final class SystemNotifier: Notifier {
     }
 
     func ask(_ answer: @escaping (String) -> Void) {
-        center.requestAuthorization(options: [.alert, .sound]) { _, _ in self.status(answer) }
+        center.requestAuthorization(options: quiet ? [.alert, .sound, .provisional] : [.alert, .sound]) { _, _ in self.status(answer) }
     }
 
     func pending(_ answer: @escaping ([String]) -> Void) {

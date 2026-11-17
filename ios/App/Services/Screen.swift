@@ -32,4 +32,8 @@ final class Screen: NativeService {
         player?.setFull(false)
         player?.setShade(nil, open: false)
     }
+
+    /// The same at once when the page's process ended: the bars stayed
+    /// hidden over an empty ground until the next page greeted.
+    func pageGone() { pageConnected() }
 }

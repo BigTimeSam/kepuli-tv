@@ -78,12 +78,21 @@ final class DownloadSaver: NSObject, WKDownloadDelegate, UIDocumentPickerDelegat
 
     /// The viewer chooses the place. The file is moved there, not copied
     /// (`asCopy: false`): nothing of it is to stay behind in the app.
-    private func ask() {
+    ///
+    /// A presentation UIKit refuses is asked again: `frontmost` passes
+    /// over a controller on its way out, the one under it cannot present
+    /// until that has gone, and a refusal calls no delegate, so the file
+    /// and every one after it waited for the rest of the launch. After
+    /// ten tries the file is let go.
+    private func ask(tries: Int = 0) {
         guard let file = waiting.first else { return }
-        guard let presenter else { placed(); return }
+        guard let presenter, tries < 10 else { placed(); return }
         let picker = UIDocumentPickerViewController(forExporting: [file], asCopy: false)
         picker.delegate = self
         presenter.frontmost.present(picker, animated: true)
+        if picker.presentingViewController == nil {
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.6) { [weak self] in self?.ask(tries: tries + 1) }
+        }
     }
 
     /// The picker closed, with a place chosen or without: the file's folder

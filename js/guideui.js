@@ -16,7 +16,8 @@ import { reminderKey, reminders, toggleReminder } from './remindersui.js';
 import { renderInfoStrip } from './infostrip.js';
 import { t } from './i18n.js';
 import * as store from './config.js';
-import { activateTab, goToChannel, searchLimit, state, updateAddress, visibleGroups, visibleRows, vlist } from './state.js';
+import { activateTab, catalogueSearch, goToChannel, searchLimit, state, updateAddress, visibleGroups, visibleRows, vlist } from './state.js';
+import { emptyState } from './rows.js';
 import { openSetup } from './setupui.js';
 import { playItem } from './playing.js';
 import { toast } from './toast.js';
@@ -35,7 +36,7 @@ export function closeSheet() { el.main.classList.remove('guide-sheet'); }
 export const grid = new EpgGrid({
   scroll: $('epg-scroll'), canvas: $('epg-canvas'),
   timesInner: $('epg-times-inner'), chansInner: $('epg-chans-inner'),
-  corner: $('epg-corner'), days: $('epg-days'), clock: $('epg-clock'),
+  corner: $('epg-corner'), days: $('epg-days'), older: $('epg-older'), clock: $('epg-clock'),
 }, {
   // Each channel by its own group's rules: the guide's favourites and its
   // all-channels search hold other countries than the list beside them.
@@ -211,16 +212,26 @@ function renderGuideFavorites() {
 }
 
 /**
- * The grid's channels, and in place of an empty grid of favourites the
+ * What stands in place of a grid with no channel: for the favourites the
  * line that says why it is empty and what to do, in the words "Filter
- * countries" uses for its own favourites. A toast said it once, and the
- * switch went off by itself.
+ * countries" uses for its own favourites (a toast said it once, and the
+ * switch went off by itself); for a search that left no channel the
+ * list's own words with its way out, and for an empty list the list's.
+ * The grid was a blank sheet under its days.
  */
-function setGridChannels(channels) {
-  const none = guideFavorites && !channels.length;
+function gridHint() {
+  if (guideFavorites) return t('guide.favs.nofavs');
+  if (!state.query) return emptyState(t('empty.plain'), t('empty.plain.text'));
+  return emptyState(t('empty.nohits'), t('empty.nohits.text', { query: state.query }),
+    { label: t('search.clear'), onClick: () => { catalogueSearch.clear(); focusGrid(); } }, 'search');
+}
+
+/** The grid's channels, or what says why there are none. */
+export function setGridChannels(channels) {
+  const none = !channels.length;
   const wasNone = el.epg.classList.contains('no-channels');
   $('epg-hint').hidden = !none;
-  $('epg-hint').textContent = none ? t('guide.favs.nofavs') : '';
+  $('epg-hint').replaceChildren(...(none ? [gridHint()] : []));
   // The grid, its days and its arrows go while it has no row to show:
   // with nothing to measure, the days strip named a day long past.
   el.epg.classList.toggle('no-channels', none);
@@ -234,9 +245,7 @@ export async function setGuideFavorites(on) {
   renderGuideFavorites();
   store.saveUiState({ guideFavorites: on });
   if (!guideOpen) return;
-  const channels = guideChannels();
-  if (!channels.length && !on) return;
-  setGridChannels(channels);
+  setGridChannels(guideChannels());
   if (state.playing && state.playing.k === 0) grid.focusChannel(state.playing.id);
 }
 
@@ -263,7 +272,7 @@ export function renderGuideGroups() {
   select.value = state.group ?? '';
   // Called again on a change of language, which the line about no
   // favourites follows too.
-  if (!$('epg-hint').hidden) $('epg-hint').textContent = t('guide.favs.nofavs');
+  if (!$('epg-hint').hidden) $('epg-hint').replaceChildren(gridHint());
 }
 
 // The channel whose name was clicked in the guide: its panel lists what

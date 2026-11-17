@@ -60,6 +60,10 @@ account or the Stalker portal you already have.
 - **It follows the way you hold the device**, upright or on its side, in
   full screen as well.
 - **The screen stays on** while a picture plays.
+- **The sound goes on** when you leave the app or lock the screen while
+  something plays. The lock screen and Control Centre pause and resume
+  it. **Picture in picture** in the ☰ menu keeps the picture in sight over
+  other apps.
 - **Open in VLC** in the ☰ menu hands the stream to the VLC app. Without
   VLC, the App Store opens at its page.
 - **Links** to a film's IMDb page, a trailer or this guide open over the

@@ -6,7 +6,7 @@
 // builds, from js/state.js.
 
 import { $, el } from './dom.js';
-import { ios, on, send } from './host.js';
+import { ios, on, pausedByLeaving, send } from './host.js';
 import { isFavorite } from './collections.js';
 import { isGecko } from './browser.js';
 import { shortLanguage } from './lang.js';
@@ -108,6 +108,50 @@ if (ios) {
     toggleFullscreen();
   });
   for (const type of ['pointerup', 'pointercancel']) el.videowrap.addEventListener(type, () => { from = null; });
+  // A picture taken out into picture in picture leaves the app's full
+  // screen: what stayed behind was WebKit's note that it plays elsewhere,
+  // over the whole screen (measured on an iPad), and the viewer took the
+  // picture out to see the rest. WebKit's own event, as its controls' mark
+  // and the menu's item both end in it.
+  el.video.addEventListener('webkitpresentationmodechanged', () => {
+    if (el.video.webkitPresentationMode === 'picture-in-picture' && pictureFull()) toggleFullscreen();
+  });
+  // The sound goes on when the app leaves the front, as the `audio`
+  // background mode says it does (App Store guideline 2.5.4: a reviewer
+  // plays a channel, goes home and listens). WebKit pauses a picture that
+  // nobody sees, and play() behind another app starts it again and it goes
+  // on there (measured, ios/simcheck.mjs `background`): so a pause that was
+  // WebKit's for leaving is answered with play(). The viewer's own pause
+  // stays one: before leaving it makes no pause event to answer, and from
+  // the lock screen or Control Centre it comes long after the page was
+  // hidden. A muted picture stays paused, as there is nothing to hear;
+  // while casting nothing plays here at all.
+  //
+  // WebKit also starts the picture again by itself when the app comes
+  // back to the front, whatever happened meanwhile (measured: a channel
+  // paused behind another app played within 2 ms of the page being
+  // shown). After the viewer's own pause there (`held`) that start is
+  // undone; Play pressed there, a press here or another stream ends it.
+  let pausedAt = -Infinity, hiddenAt = -Infinity, shownAt = -Infinity, touchedAt = -Infinity;
+  let held = false;
+  const goOn = () => {
+    const video = el.video;
+    if (document.hidden && video.paused && !video.ended && !video.muted && pausedByLeaving(pausedAt, hiddenAt, touchedAt)) video.play().catch(() => {});
+  };
+  for (const type of ['pointerup', 'keyup']) document.addEventListener(type, () => { touchedAt = performance.now(); held = false; }, true);
+  el.video.addEventListener('pause', () => {
+    pausedAt = performance.now();
+    if (document.hidden) held = !pausedByLeaving(pausedAt, hiddenAt, touchedAt);
+    goOn();
+  });
+  el.video.addEventListener('play', () => {
+    if (held && !document.hidden && performance.now() - shownAt < 1000) el.video.pause();
+    held = false;
+  });
+  el.video.addEventListener('emptied', () => { held = false; });
+  document.addEventListener('visibilitychange', () => {
+    if (document.hidden) { hiddenAt = performance.now(); goOn(); } else shownAt = performance.now();
+  });
 }
 
 // The buttons over the picture that take it full screen say which way they

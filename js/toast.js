@@ -65,6 +65,13 @@ export function toast(text, { long = false, kind = 'info', action = null, durati
   toastTimer = setTimeout(hide, duration ?? (long || action ? 7000 : 2800));
 }
 
+/** The strip taken away before its time: what it offered was done another way. */
+export function hideToast() {
+  clearTimeout(toastTimer);
+  el.toast.hidden = true;
+  next();
+}
+
 /**
  * The address carries the account's user name and password in it, so the
  * message says so: it is about to be pasted somewhere. A write the browser

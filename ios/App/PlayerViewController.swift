@@ -30,8 +30,11 @@ final class PlayerViewController: UIViewController {
     /// and how long that reload waited (see `recover`).
     private var reloaded = Date.distantPast
     private var patience: TimeInterval = 0
+    /// What `fail` put on the screen, taken away at the next `start`.
+    private var failed: UIView?
     #if DEBUG
     private var narrowed: NSLayoutConstraint?
+    private var tried = false
     #endif
 
     override func viewDidLoad() {
@@ -40,11 +43,29 @@ final class PlayerViewController: UIViewController {
         navigation.player = self
         Bridge.shared.presenter = self
         DownloadSaver.shared.presenter = self
+        #if DEBUG
+        DebugBridge.shared.start(player: self)
+        #endif
+        start()
+    }
+
+    /// The extension loaded and its page shown, or the failure said. Run
+    /// again by the failure's own button.
+    @objc func start() {
+        failed?.removeFromSuperview()
+        failed = nil
+        failure = nil
         Task { @MainActor in
-            do { show(try await host.start()) } catch { fail(error) }
-            #if DEBUG
-            DebugBridge.shared.start(player: self)
-            #endif
+            do {
+                #if DEBUG
+                // KEPULI_FAIL=1: the first start fails, for a scenario to see what a viewer would.
+                if ProcessInfo.processInfo.environment["KEPULI_FAIL"] != nil && !tried {
+                    tried = true
+                    throw NSError(domain: "KepuliTV", code: 2, userInfo: [NSLocalizedDescriptionKey: "KEPULI_FAIL"])
+                }
+                #endif
+                show(try await host.start())
+            } catch { fail(error) }
         }
     }
 
@@ -195,25 +216,46 @@ final class PlayerViewController: UIViewController {
     override var prefersStatusBarHidden: Bool { full }
     override var prefersHomeIndicatorAutoHidden: Bool { full }
 
-    /// The extension did not load. Nothing a viewer can do about it, so the
-    /// release build only says whose screen this is.
+    /// The extension did not load. The viewer is told so in their language
+    /// and given a way to try again: the screen was the app's name on a dark
+    /// ground and nothing else, which on a system that refuses the page
+    /// (the minimum is iOS 26.0, and no build ran below 26.5 before this
+    /// was written) is all a viewer, or a reviewer, would ever have seen.
+    /// The Debug build adds the error itself.
     private func fail(_ error: any Error) {
         failure = "\(error.localizedDescription) (\(error))"
+        var text = NSLocalizedString("failed", comment: "")
+        #if DEBUG
+        text += "\n\n" + (failure ?? "")
+        #endif
+        let stack = Self.failureView(text, retry: NSLocalizedString("retry", comment: ""), target: self, action: #selector(start))
+        view.addSubview(stack)
+        NSLayoutConstraint.activate([
+            stack.centerYAnchor.constraint(equalTo: view.centerYAnchor),
+            stack.leadingAnchor.constraint(equalTo: view.layoutMarginsGuide.leadingAnchor),
+            stack.trailingAnchor.constraint(equalTo: view.layoutMarginsGuide.trailingAnchor),
+        ])
+        failed = stack
+    }
+
+    /// The sentence over its button, white on the dark ground.
+    static func failureView(_ text: String, retry: String, target: Any?, action: Selector) -> UIStackView {
         let label = UILabel()
         label.numberOfLines = 0
         label.textAlignment = .center
         label.textColor = .white
-        label.text = "Kepuli-TV"
-        #if DEBUG
-        label.text = failure
-        #endif
-        label.translatesAutoresizingMaskIntoConstraints = false
-        view.addSubview(label)
-        NSLayoutConstraint.activate([
-            label.centerYAnchor.constraint(equalTo: view.centerYAnchor),
-            label.leadingAnchor.constraint(equalTo: view.layoutMarginsGuide.leadingAnchor),
-            label.trailingAnchor.constraint(equalTo: view.layoutMarginsGuide.trailingAnchor),
-        ])
+        label.font = .preferredFont(forTextStyle: .body)
+        label.text = text
+        var look = UIButton.Configuration.filled()
+        look.title = retry
+        let button = UIButton(configuration: look)
+        button.addTarget(target, action: action, for: .touchUpInside)
+        let stack = UIStackView(arrangedSubviews: [label, button])
+        stack.axis = .vertical
+        stack.alignment = .center
+        stack.spacing = 20
+        stack.translatesAutoresizingMaskIntoConstraints = false
+        return stack
     }
 
     /// The web content process died (memory, a crash). The web view keeps

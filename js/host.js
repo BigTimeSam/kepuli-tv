@@ -148,6 +148,22 @@ export function reminderItems(entries, ahead, now, say) {
     .map(([id, r]) => ({ id, at: r.start - ahead, text: say(r), channel: r.channel }));
 }
 
+/**
+ * Whether a pause of the picture was WebKit's, for the app leaving the
+ * front, and not the viewer's. WebKit pauses every picture nobody sees
+ * and says nothing of why; measured on iOS 26.5 the pause came 0.4 s
+ * before the page was told it is hidden, so either order within a second
+ * and a half counts. A press or a key in the half second before the pause
+ * makes it the viewer's own: a finger on Pause, or on a link that took the
+ * viewer to another app (Open in VLC), after which nothing should sound.
+ * @param {number} pausedAt when the picture paused (ms, one clock for all three)
+ * @param {number} hiddenAt when the page was last hidden
+ * @param {number} touchedAt when a press or a key last ended
+ */
+export function pausedByLeaving(pausedAt, hiddenAt, touchedAt) {
+  return Math.abs(hiddenAt - pausedAt) < 1500 && !(touchedAt <= pausedAt && pausedAt - touchedAt < 500);
+}
+
 if (ios) {
   // The stylesheets hide under .ios what the app cannot answer or does not
   // offer (css/last.css).
@@ -183,17 +199,37 @@ if (ios) {
   // in sight (html.kb, --vvh and --vvt), and a dialog keeps to that
   // (css/dialogs.css). At once, before the settled look below. Not while
   // the page is enlarged by two fingers, which shrinks the same measure.
+  // An iPhone's window does either (measured: innerHeight 778 with 436
+  // in sight, and 456 once WebKit had scrolled the page to a field), so
+  // a keyboard is also what is in sight being less than it has been at
+  // this width.
   const viewport = window.visualViewport, root = document.documentElement;
+  /** @type {Map<number, number>} */
+  const whole = new Map();
   const keyboard = () => {
-    const up = Boolean(viewport) && viewport.scale < 1.01 && innerHeight - viewport.height > 120;
+    if (!viewport) return;
+    const width = Math.round(viewport.width), kept = innerHeight - viewport.height > 120;
+    whole.set(width, Math.max(whole.get(width) || 0, viewport.height));
+    const up = viewport.scale < 1.01 && (kept || (whole.get(width) || 0) - viewport.height > 120);
     root.classList.toggle('kb', up);
+    // With the height for it, a dialog's buttons stay in sight (css/dialogs.css).
+    root.classList.toggle('kb-tall', up && viewport.height >= 300);
     const say = (/** @type {string} */ name, /** @type {number} */ value) => {
       if (up) root.style.setProperty(name, `${Math.round(value)}px`); else root.style.removeProperty(name);
     };
-    say('--vvh', viewport?.height || 0);
-    say('--vvt', viewport?.offsetTop || 0);
+    say('--vvh', viewport.height);
+    say('--vvt', kept ? viewport.offsetTop : 0);
   };
+  keyboard();
   viewport?.addEventListener('scroll', keyboard);
+  // The page itself never scrolls (css/player.css); WebKit scrolls it to
+  // a field under the keyboard. Scrolled past a field at the window's top
+  // (the search, while the guide was open on a phone lying down), it left
+  // the field being typed into out of sight above it.
+  addEventListener('scroll', () => {
+    const field = document.activeElement;
+    if (scrollY > 0 && field instanceof HTMLElement && field.matches('input, textarea') && field.getBoundingClientRect().top < 0) scrollTo(0, 0);
+  }, { passive: true });
   let settled = 0;
   viewport?.addEventListener('resize', () => {
     keyboard();
@@ -206,6 +242,35 @@ if (ios) {
       if (hidden()) window.scrollBy(0, hidden());
     }, 300);
   });
+  // A press on a dialog's button while one of its fields has the keyboard
+  // up. WebKit moves the focus from the field to the dialog as the finger
+  // lifts, the keyboard goes, the window grows and the dialog moves with
+  // it, and the click that should follow is never made: Connect, the
+  // first button anyone presses, only closed the keyboard (seen with real
+  // touches: pointerup on the button, focusout 2 ms later, no click). So
+  // a finger lifted where it came down on something to press is that
+  // press, made here; the field keeps the focus and the keyboard stays,
+  // as under the password's eye it should.
+  /** @type {{ target: EventTarget | null, x: number, y: number } | null} */
+  let down = null;
+  document.addEventListener('touchstart', (event) => {
+    const touch = event.touches.length === 1 ? event.touches[0] : null;
+    down = touch && { target: event.target, x: touch.clientX, y: touch.clientY };
+  }, { capture: true, passive: true });
+  document.addEventListener('touchend', (event) => {
+    const began = down, touch = event.changedTouches[0], field = document.activeElement;
+    down = null;
+    if (!began || began.target !== event.target || !event.cancelable || Math.hypot(touch.clientX - began.x, touch.clientY - began.y) > 10) return;
+    if (!(field instanceof HTMLElement) || !field.matches('input:not([type="radio"], [type="checkbox"], [type="range"], [type="file"]), textarea')) return;
+    // Another field, or a picker, takes the focus as ever; a choice or a
+    // switch is pressed by its label or by itself.
+    const CHOICE = 'input[type="radio"], input[type="checkbox"]';
+    const hit = event.target instanceof Element ? event.target.closest('button, a[href], summary, label, input, select, textarea') : null;
+    const pressed = hit?.matches(`button, a[href], summary, ${CHOICE}`) || (hit?.matches('label') && hit.querySelector(CHOICE)) ? hit : null;
+    if (!(pressed instanceof HTMLElement) || !pressed.closest('dialog[open]')) return;
+    event.preventDefault();
+    pressed.click();
+  }, { capture: true, passive: false });
   // A modal dialog dims the page behind it, and the strips around the web
   // view (the status bar's, the home indicator's) are the app's to dim:
   // it is told the backdrop's colour while a dialog is open, and null with

@@ -17,7 +17,7 @@ final class ServicesTests: XCTestCase {
 
     func testAReminderIsNamedByItsAccountAndItsId() throws {
         let plan = Reminders.plan(account: account, items: [item("1170:1800003600000", in: 3540, text: "Evening News starts at 19.00 on North One.")], now: now)
-        XCTAssertEqual(plan.map(\.identifier), ["reminder|http://example.org:80/demo|1170:1800003600000"])
+        XCTAssertEqual(plan.map(\.identifier), ["reminder|26|http://example.org:80/demo|1170:1800003600000"])
         XCTAssertEqual(plan[0].at, now.addingTimeInterval(3540))
         XCTAssertEqual(plan[0].text, "Evening News starts at 19.00 on North One.")
         let channel = try XCTUnwrap(JSONSerialization.jsonObject(with: Data(plan[0].channel.utf8)) as? [String: Any])
@@ -63,10 +63,64 @@ final class ServicesTests: XCTestCase {
         XCTAssertEqual(channel["cats"] as? [Int], [1, 2])
     }
 
-    /// One account's reminders are told from another's by their beginning.
+    /// One account's reminders are told from another's by their beginning,
+    /// also when the other's key is the one's with a `|` and more after it
+    /// (a key is free text): a change to the one's list took the other's
+    /// notifications away.
     func testAccountsDoNotShareAMark() {
-        let other = Reminders.plan(account: "m3u:http://example.org/list.m3u", items: [item("a", in: 60)], now: now)
-        XCTAssertFalse(other[0].identifier.hasPrefix(Reminders.mark(account)))
+        for longer in ["m3u:http://example.org/list.m3u", account + "|second", account + "|"] {
+            let other = Reminders.plan(account: longer, items: [item("a", in: 60)], now: now)
+            XCTAssertFalse(other[0].identifier.hasPrefix(Reminders.mark(account)), longer)
+            XCTAssertEqual(Reminders.stale(other.map(\.identifier), account: account, keep: [], due: [:], now: now), [], longer)
+        }
+    }
+
+    /// The page takes a reminder out of its list at the instant the
+    /// notification is due, and the list it sends then must not take the
+    /// notification away before the system has delivered it: what is
+    /// within five seconds of its moment, or just past it, stays.
+    func testANotificationAboutToFireIsNotTakenAway() {
+        let mark = Reminders.mark(account)
+        let pending = ["far", "near", "past", "unknown"].map { mark + $0 } + [Reminders.mark("other") + "theirs"]
+        let due = [mark + "far": now.addingTimeInterval(600), mark + "near": now.addingTimeInterval(3), mark + "past": now.addingTimeInterval(-0.5)]
+        XCTAssertEqual(Reminders.stale(pending, account: account, keep: [], due: due, now: now), [mark + "far", mark + "unknown"])
+        XCTAssertEqual(Reminders.stale(pending, account: account, keep: [mark + "far"], due: due, now: now), [mark + "unknown"])
+        // The same through the service: the list without the reminder,
+        // said two seconds before its moment, leaves it with the system.
+        let notifier = FakeNotifier("fake-granted")!
+        let reminders = Reminders(notifier: notifier, defaults: UserDefaults(suiteName: #function)!) { _, _, _ in }
+        let soon = ["id": "soon", "at": (Date().timeIntervalSince1970 + 2) * 1000, "text": "", "channel": [:]] as [String: Any]
+        let later = ["id": "later", "at": (Date().timeIntervalSince1970 + 600) * 1000, "text": "", "channel": [:]] as [String: Any]
+        reminders.handle("reminders.set", ["account": account, "items": [soon, later]]) { _ in }
+        XCTAssertEqual(notifier.scheduled, [mark + "soon", mark + "later"])
+        reminders.handle("reminders.set", ["account": account, "items": []]) { _ in }
+        XCTAssertEqual(notifier.scheduled, [mark + "soon"])
+        // An account removed takes everything of its own with it.
+        reminders.handle("reminders.clear", ["account": account]) { _ in }
+        XCTAssertEqual(notifier.scheduled, [])
+    }
+
+    /// The end of the page's process is told to every service: the screen
+    /// kept on and the hidden bars of the dead page lasted until the next
+    /// one greeted, which a page that keeps dying puts off by a minute.
+    @MainActor
+    func testAPageThatIsGoneLetsGoOfTheScreen() {
+        final class Listener: NativeService {
+            let prefix = "listener"
+            var gone = 0
+            func handle(_ type: String, _ body: [String: Any], reply: @escaping ([String: Any]) -> Void) {}
+            func pageConnected() {}
+            func pageGone() { gone += 1 }
+        }
+        let bridge = Bridge(), listener = Listener()
+        bridge.register(listener)
+        bridge.pageGone()
+        XCTAssertEqual(listener.gone, 1)
+        let before = UIApplication.shared.isIdleTimerDisabled
+        UIApplication.shared.isIdleTimerDisabled = true
+        Services.keepAwake.pageGone()
+        XCTAssertFalse(UIApplication.shared.isIdleTimerDisabled)
+        UIApplication.shared.isIdleTimerDisabled = before
     }
 
     /// The page says a reminder in its strip only when it can be seen
@@ -137,7 +191,13 @@ final class ServicesTests: XCTestCase {
     /// is scheduled when the app comes back to the front.
     func testAReminderSetWhileRefusedIsScheduledOnceTheLeaveIsGiven() throws {
         let notifier = try XCTUnwrap(FakeNotifier("fake-denied"))
-        let reminders = Reminders(notifier: notifier)
+        // Its own defaults and its own ear: the running app's switch and
+        // its page are not this test's to touch.
+        let own = UserDefaults.standard.object(forKey: "remindersEnabled") as? Bool
+        let defaults = try XCTUnwrap(UserDefaults(suiteName: #function))
+        defaults.removePersistentDomain(forName: #function)
+        var said: [String] = []
+        let reminders = Reminders(notifier: notifier, defaults: defaults) { type, body, _ in said.append("\(type) \(body["system"] ?? "")") }
         var answer: [String: Any] = [:]
         reminders.handle("notify.set", ["on": true]) { answer = $0 }
         XCTAssertEqual(answer["system"] as? String, "denied")
@@ -145,14 +205,21 @@ final class ServicesTests: XCTestCase {
         XCTAssertEqual(notifier.scheduled, [])
         reminders.activated()
         XCTAssertEqual(notifier.scheduled, [])
+        XCTAssertEqual(said, [])
         notifier.system = "granted"
         reminders.activated()
         XCTAssertEqual(notifier.scheduled, [Reminders.mark(account) + "a"])
+        XCTAssertEqual(said, ["notify granted"])
         // Taken away again there: nothing more is added, and what the
         // system holds it keeps to itself.
         notifier.system = "denied"
         reminders.handle("reminders.set", ["account": account, "items": [item("a", in: 600), item("b", in: 900)]]) { _ in }
         XCTAssertEqual(notifier.scheduled, [Reminders.mark(account) + "a"])
+        // The switch turned off is written where the test said, and the
+        // running app's own is as it was.
+        reminders.handle("notify.set", ["on": false]) { _ in }
+        XCTAssertEqual(defaults.object(forKey: "remindersEnabled") as? Bool, false)
+        XCTAssertEqual(UserDefaults.standard.object(forKey: "remindersEnabled") as? Bool, own)
     }
 
     /// An account's key is its address, a playlist's with the user name

@@ -14,8 +14,7 @@ localised strings, `Info.plist`, DerivedData, the simulators' UDIDs),
 below, and the packages go to `dist/ios/` in the project root. Xcode 26 and
 xcodegen (`brew install xcodegen`) are needed; they and the Cast SDK are
 dependencies confined to this directory, as Gradle and GeckoView are to
-`android/`. Builds from Xcode 26.6 are accepted by the App Store until
-April 2027; after that an upload needs Xcode 27.
+`android/`.
 
 | File | What |
 | --- | --- |
@@ -31,19 +30,19 @@ April 2027; after that an upload needs Xcode 27.
 | `release.mjs` | the simulator package, whose Release app it starts once in `kepuli-ios-iphone`; the unsigned archive with its privacy report; and `status`: what is missing before the App Store |
 | `App/AppDelegate.swift`, `App/SceneDelegate.swift` | launch, the audio session, the orientation mask, the one window |
 | `App/ExtensionHost.swift`, `App/ExtensionTab.swift` | the extension, its context and controller, the grants, the one tab and window |
-| `App/PlayerViewController.swift` | the web view inside the safe area, and over the whole screen in the app's full screen (`setFull`); the ground colour of the strips around it, dimmed while a dialog of the page is open (`setShade`); recovery after the web process dies, slower each time it dies again soon after (`recover`) |
+| `App/PlayerViewController.swift` | the web view inside the safe area, and over the whole screen in the app's full screen (`setFull`); the ground colour of the strips around it, dimmed while a dialog of the page is open (`setShade`); recovery after the web process dies, slower each time it dies again soon after (`recover`); an extension that did not load said in the viewer's language, with a button that starts it again (`fail`, `start`) |
 | `App/Navigation.swift` | what may load in the web view; links and downloads leave it; the end of the web content process, told to the bridge and the player |
-| `App/Bridge.swift`, `App/Services.swift` | the page's port to the app (`PagePort`, which a test can stand in for), message routing, `NativeService`, the list of services; `pageGone`: the page whose process ended, and what was said to it with `keep` in its last seconds kept for the next |
-| `App/Services/KeepAwake.swift` | `awake`: the idle timer off while a picture plays |
-| `App/Services/Screen.swift` | `screen.full`: the app's own full screen asked for and left; `screen.shade`: the backdrop of the page's open dialog, for the strips, and whether one is open, for `Reminders`; `screen.theme`: the page's theme setting, for the keyboard and the dialogs the system draws; a page that has just connected finds the bars back and the strips undimmed |
+| `App/Bridge.swift`, `App/Services.swift` | the page's port to the app (`PagePort`, which a test can stand in for), message routing, `NativeService`, the list of services; `pageGone`: the page whose process ended, told to every service, and what was said to it with `keep` in its last seconds kept for the next |
+| `App/Services/KeepAwake.swift` | `awake`: the idle timer off while a picture plays, and on again when the page connects or is gone |
+| `App/Services/Screen.swift` | `screen.full`: the app's own full screen asked for and left; `screen.shade`: the backdrop of the page's open dialog, for the strips, and whether one is open, for `Reminders`; `screen.theme`: the page's theme setting, for the keyboard and the dialogs the system draws; a page that has just connected finds the bars back and the strips undimmed, and they come back at once when the page's process ends |
 | `App/Services/LinkOpener.swift` | a web page in a Safari view over the player, another app or the App Store through the system; `UIViewController.frontmost` |
-| `App/Services/DownloadSaver.swift` | a file the page saves, written to `tmp/saves/` and handed to the Files picker |
-| `App/Services/Reminders.swift` | `notify.*`, `reminders.set` and `reminders.clear`: local notifications, their plan, those of a removed account or a reset player taken away, a tap sent back as `reminder.open` with the reminder's id and the tap's time, which of them the system shows while the app is in front, and the system's leave read again each time the app comes to the front (`notify`, said when it changed) |
+| `App/Services/DownloadSaver.swift` | a file the page saves, written to `tmp/saves/` and handed to the Files picker, which is asked again when UIKit refused to present it |
+| `App/Services/Reminders.swift` | `notify.*`, `reminders.set` and `reminders.clear`: local notifications, their plan, those no longer in it taken away unless about to fire (`stale`), those of a removed account or a reset player taken away, a tap sent back as `reminder.open` with the reminder's id and the tap's time, which of them the system shows while the app is in front, and the system's leave read again each time the app comes to the front (`notify`, said when it changed) |
 | `App/Cast/CastService.swift` | the `cast.*` messages, Google's SDK and its listeners |
 | `App/Cast/Press.m`, `App/Bridging.h` | the one Objective-C function: a control pressed with an exception from its action caught (`KepuliPress`), which Swift cannot do |
 | `App/Cast/CastMedia.swift` | pure: `cast.load` to `GCKMediaInformation`, and what each session event says to the page |
 | `App/Debug/DebugBridge.swift` | Debug builds only: the file bridge `sim.mjs` drives, the console hook |
-| `Tests/ShellTests.swift`, `Tests/CastTests.swift`, `Tests/ServicesTests.swift` | the XCTest target `KepuliTVTests`, hosted by the app: the page's address and bundled manifest, the app's full screen, the strips' dimmed colour, the wait before a page that keeps dying is loaded again, the window's appearance under the page's theme, the Cast mapping and session rule (what a suspension leaves unheard, `stale` and `gone`), a press that raises caught, the reminder plan, when a reminder in front is the system's to show, a page whose process ended counted as gone and its tap kept, a reminder set while refused scheduled once the leave is given, the status naming no account and keeping no stream's address, and the sorting of links |
+| `Tests/ShellTests.swift`, `Tests/CastTests.swift`, `Tests/ServicesTests.swift` | the XCTest target `KepuliTVTests`, hosted by the app: the page's address and bundled manifest, the app's full screen, the strips' dimmed colour, the wait before a page that keeps dying is loaded again, the window's appearance under the page's theme, the Cast mapping and session rule (what a suspension leaves unheard, `stale` and `gone`), a press that raises caught, the failure's sentence and its button from the bundle's strings, the reminder plan, accounts whose keys begin alike kept apart, a notification about to fire left with the system, a page that is gone told to the services, when a reminder in front is the system's to show, a page whose process ended counted as gone and its tap kept, a reminder set while refused scheduled once the leave is given, the status naming no account and keeping no stream's address, and the sorting of links |
 
 The App Store's texts and answers are `store/appstore.txt`; the page's side
 is described in `js/AGENTS.md` (`js/host.js`, `js/castui.js`, and full screen in
@@ -82,24 +81,42 @@ second upload of the same version takes `--build 2`.
 | Turn the device | `node ios/sim.mjs native 'rotate landscape'`, `node ios/sim.mjs native 'rotate portrait'` |
 | What the page sees of Split View | `node ios/sim.mjs native 'width 320'`, `node ios/sim.mjs native 'width full'` |
 | End the web content process | `node ios/sim.mjs native killweb` |
+| Press the button of a failed start (`KEPULI_FAIL=1`) | `node ios/sim.mjs native retry` |
 | Tap a reminder's notification (fake notifier) | `node ios/sim.mjs native 'tap-reminder <channel id>:<start>'` |
 | The page's console and the app's notes | `node ios/sim.mjs log [n]` |
 | A screenshot (upright also in landscape, without an alpha channel) | `node ios/sim.mjs shot <file.png>` |
 | Uninstall the app with its data, shut down | `node ios/sim.mjs wipe`, `node ios/sim.mjs shutdown [all]` |
-| Every scenario on the iPhone and the iPad, then iOS 18.5 | `node ios/simcheck.mjs` (about eleven minutes) |
-| Some scenarios, one device | `KEPULI_IOS_DEVICE=kepuli-ios-ipad node ios/simcheck.mjs live rotate`, `node ios/simcheck.mjs min` |
+| Every scenario on the iPhone and the iPad | `node ios/simcheck.mjs` (about thirteen minutes) |
+| Every scenario on the app's minimum, iOS 26.0 | `KEPULI_IOS_DEVICE=kepuli-ios-iphone-26-0 node ios/simcheck.mjs`, and `kepuli-ios-ipad-26-0` |
+| Some scenarios, one device | `KEPULI_IOS_DEVICE=kepuli-ios-ipad node ios/simcheck.mjs live rotate` |
 | The App Store's screenshots (about four minutes) | `KEPULI_SHOTS_DIR=<scratch> node ios/screenshots.mjs`, then without it into `brand/ios-screenshots/` |
 | The Release app for simulators, zipped, and started once | `node ios/release.mjs simulator` (`--no-launch` leaves the start out) |
 | The unsigned device archive and the privacy report | `node ios/release.mjs archive` |
 | What is missing before the App Store | `node ios/release.mjs status` |
 
 `KEPULI_IOS_DEVICE` picks the device: `kepuli-ios-iphone` (the default,
-iPhone 17 on iOS 26.5), `kepuli-ios-ipad` (iPad (A16)), `kepuli-ios-min`
-(iPhone 16 on iOS 18.5, the app's minimum and the oldest runtime that can be
-run here), `kepuli-ios-shots-iphone` and `kepuli-ios-shots-ipad` (the
-App Store's screenshot sizes). Their UDIDs are in `ios/dist/devices.json`;
-if that file is lost, `devices` makes five new simulators and the old ones
-stay until removed by UDID by hand.
+iPhone 17 on iOS 26.5), `kepuli-ios-ipad` (iPad (A16)),
+`kepuli-ios-shots-iphone` and `kepuli-ios-shots-ipad` (the
+App Store's screenshot sizes), `kepuli-ios-iphone-26-0` and
+`kepuli-ios-ipad-26-0` (the same two devices on iOS 26.0, the app's
+minimum). Xcode 26.6 brings the 26.5 runtime alone; the 26.0 one is
+Apple's build 23A343, about 8 GB, fetched once with
+`xcodebuild -downloadPlatform iOS -buildVersion 23A343 -architectureVariant arm64`
+(`-buildVersion 26.0` is answered "not available"; the build number is
+what it takes), and `devices` leaves a simulator out, and says so, while
+its runtime is not installed. Their UDIDs are in `ios/dist/devices.json`;
+if that file is lost, `devices` makes new simulators and the old ones
+stay until removed by UDID by hand. The app's minimum is iOS 26.0
+(`project.yml`): on iOS 18 WebKit refused WebAssembly in the extension
+page (measured on 18.5, with `'unsafe-eval'` added as well), so a film
+with AC-3 sound was silent there. On iOS 26.0 itself (23A343) every
+scenario passed on 2026-11-13, nineteen on `kepuli-ios-iphone-26-0` and
+twenty on `kepuli-ios-ipad-26-0`: among them the load of the extension
+without a background, a channel, an MKV with its subtitles, the AC-3
+episode with a sound track encoded anew, storage kept over a launch, full
+screen, the turn, picture in picture on the iPad and the sound that goes
+on behind another app. Nothing between 26.0 and 26.5 was run, and no
+device on either.
 
 Launch variables the Debug build reads (`node ios/sim.mjs launch NAME=value`):
 
@@ -109,6 +126,8 @@ Launch variables the Debug build reads (`node ios/sim.mjs launch NAME=value`):
 | `KEPULI_LINKS=record` | no link opens; `status.links` holds each address handed to `LinkOpener`, whole. It is for the mock provider: without it `status.links` holds each link's scheme and host alone |
 | `KEPULI_SAVES=record` | no picker shows; `status.saves` holds `{name, size}` of each file written |
 | `KEPULI_NOTIFY=fake` | nothing is asked of the system: the leave is unasked and given when asked. `fake-granted` and `fake-denied` start that way. `status.reminders` holds `system`, `enabled`, `pending` and the `plan` (`identifier`, `at`, `text`); an identifier there is `reminder|#<n>|<id>`, the account a number and never its key |
+| `KEPULI_NOTIFY=quiet` | the system's own notifications, by a provisional leave, which the system gives without a question; `status.reminders` then also holds `delivered`, and both lists are those read at the status before. A leave once refused stays refused until the app is removed (`wipe`) |
+| `KEPULI_FAIL=1` | the first start fails as an extension that did not load would: `status.failure`, the sentence and its button on the screen |
 
 ## Rules
 
@@ -171,19 +190,19 @@ Launch variables the Debug build reads (`node ios/sim.mjs launch NAME=value`):
 
 `node ios/simcheck.mjs [scenario …]` starts its own mock, boots each device,
 installs the Debug app and runs every scenario on `kepuli-ios-iphone` and
-`kepuli-ios-ipad`, then `min` on `kepuli-ios-min`; a picture of each is kept
+`kepuli-ios-ipad`; a picture of each is kept
 in `KEPULI_SHOTS_DIR`, upright and lying down where it says so. Each
 scenario launches the app anew (links and saved files recorded, the fake
 notifier), so each can be run alone; one that turns the device turns it
 back; a simulator the tool booted is shut down at the end. Exit 1 on any
-failure, on anything not run (no `kepuli-ios-min`), and when nothing ran
+failure, on anything not run (a device that is not there), and when nothing ran
 at all (`split` asked of the iPhone alone). `sh dev/mock/media.sh` must
 have run once in the checkout, or the tool refuses: without its media the
 mock answers every stream with 404.
 
 | Scenario | Holds when |
 | --- | --- |
-| `boot` | a fresh install loads with no extension or context error at the pinned address, `location.search` is `?ios=1`, `html.ios`, the port is connected and `host` arrived with the device's idiom, `permissions.contains` is true for `http://example.org/*`, and neither the bundle's manifest nor the page's has a background |
+| `boot` | a fresh install loads with no extension or context error at the pinned address, `location.search` is `?ios=1`, `html.ios`, the port is connected and `host` arrived with the device's idiom, `permissions.contains` is true for `http://example.org/*`, and neither the bundle's manifest nor the page's has a background; a start made to fail shows its sentence, and its button starts the player |
 | `firstrun` | the setup dialog shows without the note on a permission question and fits the window upright and lying down (Save reachable); the port, which comes filled in, is selected when the focus reaches it; the strips around the web view are the page's ground under the dialog's backdrop, and the plain ground once it has closed, and the app knows the dialog open and closed; lying down the fields' labels are of one size and the note on HTTPS no larger than a field's text; the mock's address and `demo`/`demo` typed into its fields connect, and groups and channels load |
 | `channels` | a country opens with its rows; a row's name and a button cannot be selected by a long press, a field's text can; lying down at least three rows are in sight and nothing is wider than the window |
 | `live` | a channel advances three seconds with sound and no tap; the idle timer is off while it plays and on after a pause; a fetch of its playlist shows the page `Access-Control-Allow-Origin` |
@@ -199,9 +218,10 @@ mock answers every stream with 404.
 | `links` | the help's link to the app's guide, the privacy link and VLC's `vlc-x-callback:` address reach `LinkOpener` in that order and the page stays; then, VLC being absent (it always is in a simulator), the page's own timer asks for VLC's App Store page |
 | `save` | a Blob behind `<a download>` reaches `DownloadSaver` with its name and a size above zero, and the page stays |
 | `reminder` | a reminder set in the guide is in the app's plan a minute before its start with its sentence, the status naming no account; items an hour past and due now are dropped; `tap-reminder` plays the channel, and plays it again when the web process is ended and the tap made at once (the page loaded next hears it); removed, the plan is empty; set again, nothing is planned or pending once the page has said `reminders.clear` with the account (that an account removed in Settings says it is `node dev/playcheck.mjs iosapp`'s to hold) and once **Reset everything** in Settings has run |
+| `banner` | on an app installed anew, with the system's own notifications (`KEPULI_NOTIFY=quiet`): a reminder that falls due while Settings is open is delivered by the system, though the page's list without it came 0.3 s before its moment; one that falls due with the player in sight is not shown by the system |
 | `stalker` | the mock's portal connects with no request turned away for want of the cookie or the set-top box's User-Agent, and a channel plays from a one-time link |
 | `kill` | the web process is ended while a channel plays in full screen: the player is back by itself on the route it had, with its list, its port and the app's greeting; the list stands on that channel and nothing plays unasked, as after a reload in a browser; the idle timer is on again and the bars are back; chosen, the channel plays |
-| `min` | `boot`, `live`, `persist`, `fullscreen` and `cast` on iOS 18.5 |
+| `background` | with Settings in front of the app a playing channel's sound goes on, a quarter of a minute later too, and the Media Session names it; `pause()` there (what Pause on the lock screen does) holds, also when the app is in front again; a channel left paused stays paused; `play()` behind the other app starts it and it plays on in front; on the iPad the menu offers picture in picture, which leaves the app's full screen, plays on over the other app and comes back into the page playing |
 
 What the scenarios cannot do, and why:
 
@@ -211,19 +231,30 @@ What the scenarios cannot do, and why:
   tried once by hand on `kepuli-ios-iphone` with an XCUITest tapper kept
   outside the repository, and so were a long press on a row and on a
   button (nothing selected, no bubble of the system's), a tap outside a
-  row's open menu (the menu closes and nothing plays) and, on
-  `kepuli-ios-ipad` upright, a tap into a field of the first-run dialog
-  (the dialog stands over the keyboard, Connect in sight); nothing repeats
-  them, and iOS 18.5 was not tried that way.
+  row's open menu (the menu closes and nothing plays), on
+  `kepuli-ios-ipad` upright a tap into a field of the first-run dialog
+  (the dialog stands over the keyboard, Connect in sight), and on
+  `kepuli-ios-iphone` an address typed with real keys into the first-run
+  dialog and Connect tapped with the keyboard up (it connects), Settings
+  opened by a tap (no ring on its cross), the search typed into lying
+  down with the guide open (the field stays in sight) and the device
+  turned and turned back with the keyboard up (Cancel and Save whole);
+  nothing repeats them. `node dev/playcheck.mjs iosapp` makes the touch on
+  a dialog's button with Chrome's touch events.
 - **`save` saves a file of its own making.** The page has nothing that
   saves a file in the app: there is no settings export, the playlist for
-  VLC is replaced by VLC's own address, and recording is off.
+  VLC is replaced by VLC's own address, and the app has no recording.
 - **`cast` stops at Google's note.** A script cannot press its OK, and a
   session needs a Chromecast: connecting, a load accepted or refused,
   `cast.media`, stopping, suspension and what the device did during one
   (`stale`, `gone`) are the device checklist's.
-- **`persist` on iOS 18.5** leaves the file empty: that WebKit has no
-  `createWritable` in a page.
+- **`background` cannot tell what the `audio` mode gives.** A simulator
+  never suspends an app: an earlier form of the scenario passed the same
+  with the key taken out of `Info.plist`, so that the sound goes on for
+  longer than the moment the system gives an app that left is the
+  device checklist's. Nor has an iPhone simulator picture in picture, or
+  any simulator a lock screen with controls: Pause and Play there are the
+  element's `pause()` and `play()` in the scenario.
 - By hand in a simulator: choosing a `.m3u` in the file picker of the setup
   dialog; real Split View and Slide Over on the iPad (the scenario narrows
   the web view instead); the look of the app's full screen under a finger,
@@ -238,10 +269,10 @@ unasked); never assert a count of Cast devices.
 ## What was measured, and must not be undone
 
 - **The page's address takes a query string.** `location.search` is
-  `?ios=1` on iOS 18.5 and 26.5. The address is built with
+  `?ios=1`. The address is built with
   `URL(string:relativeTo:)`; `appendingPathComponent` would escape the `?`.
 - **No background page.** The iOS manifest has no `background` key and the
-  extension loads without an error on both systems (`build.mjs` has the
+  extension loads without an error (`build.mjs` has the
   fallback, should a later WebKit want one). A `service_worker` background
   never starts in WebKit and says nothing, so the build refuses one.
 - **The page is greeted at its first message.** WebKit drops what the app
@@ -289,8 +320,8 @@ unasked); never assert a count of Cast devices.
   what `prefers-color-scheme` answers in the web view (`settings` reads
   both). The keyboard under a dark page was not photographed after the
   change, nor Google's dialogs: the device checklist has the line.
-- **The page is shown a provider's `Access-Control-Allow-Origin`**, on
-  iOS 18.5 and 26.5, which is what `js/castui.js` asks before it hands a
+- **The page is shown a provider's `Access-Control-Allow-Origin`**,
+  which is what `js/castui.js` asks before it hands a
   channel to a Chromecast (`live` reads it).
 - **The Stalker header rule holds in WebKit**: the mock's portal turned no
   request away, and a channel played from its one-time link (`stalker`).
@@ -327,7 +358,7 @@ unasked); never assert a count of Cast devices.
   sides beside the island (62 px each) are never given, so that the
   picture's controls stay in reach, and a picture wider than 16:9 is 750
   px wide there. The iPad: 820 × 461 upright and 1180 × 664 lying down.
-  iOS 18.5: 699 × 393 lying down. It turns with the device, and
+  It turns with the device, and
   `Screen.pageConnected` leaves it, so a page that was loaded again or
   came back after its process died finds the bars back.
 - **A box that can scroll shows its scroll mark over the app's full
@@ -361,14 +392,9 @@ unasked); never assert a count of Cast devices.
   GraphicsServices details of Xcode 26.6; if a later Xcode changes them
   `sim.mjs` says the app did not turn). The turn outlasts the app: a
   scenario turns the device back to portrait.
-- **WebAssembly does not instantiate in the extension page on iOS 18.5**
-  (WebKit refuses it under the manifest's own policy, with `'unsafe-eval'`
-  added as well); on 26.5 it does. The FFmpeg audio path therefore has no
-  sound to give on iOS 18. `WebAssembly.compileStreaming` fails on both,
-  as the extension scheme serves `.wasm` as `application/octet-stream`, and
-  the loader's other path is taken.
-- **`createWritable` is missing from the origin private file system on iOS
-  18.5**; only the recorder uses it, and recording is off in the app.
+- **`WebAssembly.compileStreaming` fails in the extension page**, as the
+  extension scheme serves `.wasm` as `application/octet-stream`; the
+  loader's other path is taken, and the FFmpeg audio build runs.
 - **A `target="_blank"` click with no tap behind it never reaches the
   app**: WebKit's pop-up blocker drops it before `createWebViewWith`.
 - **The Cast SDK is started at the first cast, not at launch.** Creating
@@ -385,8 +411,8 @@ unasked); never assert a count of Cast devices.
   well: the assertion is an Objective-C exception raised before anything
   shows, `KepuliPress` (`App/Cast/Press.m`) catches it, and the press is
   made again half a second later, up to six times.
-- **A hidden `GCKUICastButton` presents Google's dialogs**, on both systems
-  and both devices. At the first cast that is Google's note, and after its
+- **A hidden `GCKUICastButton` presents Google's dialogs**, on both
+  devices. At the first cast that is Google's note, and after its
   OK the SDK shows nothing more. The app presses the button once more
   when the first devices are found within half a minute of the OK
   (`didUpdateDeviceList`): measured in the simulator with a real tap on
@@ -418,6 +444,26 @@ unasked); never assert a count of Cast devices.
   way back. Before any of them Continue watching is not in sight there.
   The Cast mark is on the top bar, in every layout: on the player's bar it
   was out of sight in that one pane and over the guide in a low window.
+- **A finger lifted on a dialog's button while a field has the keyboard
+  up made no click**: `pointerup` on the button, `focusout` of the field
+  2 ms later, the keyboard gone, the dialog moved, and nothing more
+  (seen with real touches on the first-run dialog: Connect only closed
+  the keyboard). The page makes the press itself at `touchend` and keeps
+  the field's focus (`js/host.js`); with it a real tap on Connect, the
+  keyboard up, connected the account.
+- **An iPhone's window does either with the keyboard up**: `innerHeight`
+  stayed 778 with 436 in sight, and was 456 once WebKit had scrolled the
+  page to a field. The page counts a keyboard by both (`html.kb`): a
+  dialog then stands in what is in sight, and where that is 300 px or
+  more its buttons stay at the foot of it (`html.kb-tall`), which is also
+  what keeps Cancel and Save whole after the device was turned and
+  turned back with the keyboard up (seen).
+- **A dialog opened by a real tap ringed its cross**: the dialog takes
+  the focus itself under a finger (`js/modal.js`, the dialog's own
+  `autofocus`, which WebKit reads; seen with a real tap).
+- **WebKit draws no ellipsis in a closed selector** and reads an option's
+  `label` there: in a tight bar the sound's selector names the language
+  alone ("English" for "English (AAC stereo)"; `js/app.js`, `fitNowbar`).
 - **A picker focused from a press opens its menu** (seen with a real tap
   and with a scripted press): the page puts the focus in no field or
   picker by itself where the pointer is a finger (`js/caret.js`).
@@ -448,7 +494,23 @@ unasked); never assert a count of Cast devices.
   page can**: connected, nothing presented over the player, no dialog of
   the page's own open (its strip lies under the dialog's backdrop; the
   page says `open` with `screen.shade`), and the reminder of the account
-  the page shows (`Reminders.shows`). Not seen with a real notification.
+  the page shows (`Reminders.shows`). Seen with the system's own
+  notifications in the simulators (`banner`): delivered with Settings
+  open, not shown with the player in sight.
+- **A notification within five seconds of its moment is not taken away
+  by a changed list** (`Reminders.stale`). The page's timer and the
+  notification are set for the same instant, and the page, in front,
+  sends its list without the reminder as it says it. Measured with the
+  system's notifier on iOS 26.5 (four of four, the list sent 1 to 3 ms
+  after the moment): the notification had been delivered by then, with
+  and without the rule, so the loss the rule guards against was not seen;
+  a list sent 0.3 s before the moment does take the notification away
+  without it, which is what `banner` holds. The margin on a device is
+  not known.
+- **An account's identifiers begin `reminder|<bytes of its key>|<key>|`**:
+  a key is free text, and without the length the identifiers of an
+  account whose key went on with a `|` began as another's did. No build
+  with the older form (`reminder|<key>|`) has been given to anyone.
 - **What a Chromecast did during a suspension is not heard.** The SDK
   suspends the session when the app leaves the front (the phone locked),
   and the television plays on. A film may end meanwhile, or the
@@ -461,6 +523,62 @@ unasked); never assert a count of Cast devices.
   the SDK's documentation and the page's side run against a fake port:
   which callbacks arrive, and that an ended film leaves no media status,
   is the device checklist's to see.
+- **The sound goes on behind another app, by the page's doing.**
+  `AppDelegate` sets the audio session's category to playback (movie
+  playback) and does not activate it: WebKit runs a playback session of
+  its own for a picture with sound, whatever the app's says (WebKit's
+  `MediaSessionManagerCocoa`), so the ring switch does not silence a film,
+  and an app that activated its own at launch would stop the viewer's
+  music before anything plays. WebKit also publishes Now Playing from
+  the page's Media Session (`js/playercontrols.js`: title, channel or
+  series, artwork, next and previous, seeking where there is something to
+  seek in), takes the lock screen's and Control Centre's commands, pauses
+  for a call and when headphones are unplugged. WebKit pauses a picture
+  that leaves the front, as it does every picture nobody sees unless it
+  is in picture in picture or on AirPlay, and gives the page no reason.
+  Measured in the simulators, an iPhone (native HLS) and an iPad
+  (hls.js): the `pause` event comes 0.25 to 0.4 s before
+  `visibilitychange`, while the page still counts as visible; `play()`
+  from the page then starts the stream and it goes on behind the other
+  app (still advancing after a quarter of a minute); and when the app
+  comes back WebKit starts the picture by itself within 2 ms of the page
+  being shown, also one that was paused meanwhile. So the page
+  (`js/playercontrols.js`, the pure rule `pausedByLeaving` in
+  `js/host.js`) answers a pause within a second and a half of the page
+  being hidden with `play()`, unless a press or a key ended in the half
+  second before it (the viewer's own pause, or a link that took them to
+  another app); a pause that comes later while hidden is the viewer's,
+  from the lock screen or Control Centre, and WebKit's start in front
+  after it is undone. A muted picture stays paused. This is what
+  App Store guideline 2.5.4 asks of the `audio` mode: a reviewer plays a
+  channel, goes home and listens. An app with no sound playing is
+  suspended on a device, and whether WebKit's session is still the
+  system's to keep alive in the moment between its pause and the page's
+  `play()` is not known: the device checklist's.
+- **Picture in picture is WebKit's, from the menu and from its own
+  controls' mark.** `allowsPictureInPictureMediaPlayback` is on; on the
+  iPad simulator `document.pictureInPictureEnabled` is true, the menu's
+  item (`#btn-pip`, shown when WebKit says the playing source can)
+  takes a channel played through hls.js out with
+  `requestPictureInPicture()`, the picture plays on over Settings with
+  the page counted as visible, and `exitPictureInPicture()` brings it
+  back playing. A picture taken out while the app is in full screen left
+  WebKit's note ("This video is playing in picture in picture") over the
+  whole screen: the page leaves the app's full screen on WebKit's
+  `webkitpresentationmodechanged` (`js/playercontrols.js`). An iPhone
+  simulator has no picture in picture (`pictureInPictureEnabled` false,
+  `webkitSupportsPresentationMode` false) and the menu leaves the item
+  out; on a device the item's handler falls back to
+  `webkitSetPresentationMode` if the standard call is refused. No
+  picture goes out by itself when the app leaves the front: that is
+  `AVPlayerViewController`'s, not an inline picture's in a web view.
+- **`UIBackgroundModes: audio` is declared for those two**: the sound
+  that goes on, and picture in picture, of which Apple's "Configuring
+  your app for media playback" asks it. A simulator does not show what
+  the key adds (see `background` above). The rule is hard: if the device
+  checklist's lines on sound behind another app fail, the key leaves
+  `project.yml` and its paragraph leaves the review notes
+  (`store/appstore.txt`) before anything is submitted.
 - **A web content process that ends again within a minute of its reload
   is reloaded after a wait**, 2 s and then twice as long each time up to a
   minute (`PlayerViewController.recover`): a page whose own start ends the
@@ -492,7 +610,9 @@ build, which outputs exist, whether `~/.config/kepuli-tv/ios/` is complete
 and sends a film's first bytes, whether the pasted sections of
 `store/appstore.txt` are free of other platforms and within the store's
 limits (each from its `=== NAME ===` line to its `=== END ===` line) and
-its privacy label's rows name every type the report lists and every one
+its privacy label says what the archive's manifests declare (each type
+with its row, linked and tracking no less than the manifest says, every
+purpose named, and no manifest declaring tracking) and names every type
 `ios/vendor/NutritionLabel/NutritionLabel.txt` names (Coarse Location and
 Performance Data are in no manifest; a file that names no type the tool
 knows fails, so that a rewording is read), whether the
@@ -508,7 +628,8 @@ catalogue: deployed without `KEPULI_MOCK_REVIEW=1`), whether
 `brand/ios-screenshots/` holds the two sets at the store's sizes without
 an alpha channel, whether the app's guide, the privacy policy and the
 licences answer on the Pages site (the guide naming no other platform,
-the policy with its section on the app), and the device checklist below
+the policy with its section on the app), whether the licences page
+names this version and the pinned Cast SDK, and the device checklist below
 with what is ticked. It exits 1 while anything is missing.
 
 ### The store's pictures
@@ -581,10 +702,11 @@ hand in App Store Connect (step 7 below).
 
 ### The procedure, never run
 
-**None of these commands has been run**: there is no signing identity, team
-or API key on this machine. They are written from Xcode 26.6's own help and
-the design; expect to correct them at the first run, and move each into
-`release.mjs` as a verb once it has succeeded once. `<teamId>`, `<keyId>`
+**These commands were written before there was a signing identity, team
+or API key on this machine**, from Xcode 26.6's own help and the design.
+What a first signed run showed is noted after step 5; correct the steps
+by it, and move each into `release.mjs` as a verb once it has succeeded
+there. `<teamId>`, `<keyId>`
 and `<issuerId>` are the values of `~/.config/kepuli-tv/ios/appstore.json`,
 `<key>` is the absolute path of `AuthKey_<keyId>.p8` there, `<version>` the
 manifest's, and every command runs in the project root.
@@ -653,6 +775,22 @@ manifest's, and every command runs in the project root.
    the bundle identifier in the options. The app has no entitlements, which
    is what makes that plausible.
 
+What a first signed run showed, to be worked into the steps when each is
+made a verb:
+
+- `xcodebuild -exportArchive -help` prints an error; the export's keys
+  are listed under `xcodebuild -help`.
+- The Debug device build of step 1 registers a second, permanent App ID,
+  `io.github.bigtimesam.kepulitv.debug`, in the team's account.
+- The signed archive of step 2, typed by hand, runs the project's
+  pre-build phase (`build.mjs --extension`) once more, as it is without
+  `KEPULI_PREPARED=YES`: harmless, and gone when the step goes through
+  `xcodebuild()` of `build.mjs`.
+- `dist/ios/export/` also receives `DistributionSummary.plist`,
+  `ExportOptions.plist` and `Packaging.log` beside the `.ipa`.
+- `altool --upload-package` takes `--wait`, which stays until App Store
+  Connect has processed the build.
+
 After an upload: `node ios/release.mjs status`, the TestFlight build on both
 devices, and the checklist again on it.
 
@@ -670,10 +808,27 @@ and it is a gate: nothing is submitted with a line open.
   reads the local-network sentence, and the lists load after Allow.
 - [ ] A live channel for an hour and a large list (tens of thousands of
   rows): no web process death, or the player returns on its route.
-- [ ] A film with AC-3 sound has sound on iOS 26 (none on iOS 18, as
-  measured).
-- [ ] Picture in picture works, or sound goes on in the background; if
-  neither, `UIBackgroundModes: audio` is removed before submission.
+- [ ] A film with AC-3 sound is heard.
+- [ ] With the ring switch on silent a channel and a film are heard.
+- [ ] Picture in picture, on the iPhone and the iPad: the player's menu
+  offers it and WebKit's controls have its mark; the picture plays on over
+  the home screen and another app, comes back into the player from its
+  own button, and taken out of full screen leaves the player out of full
+  screen.
+- [ ] The home gesture during a channel, and during a film, without
+  picture in picture: the sound goes on behind the home screen and
+  another app, and with the screen locked for five minutes; the lock
+  screen and Control Centre name the programme and the channel with its
+  logo.
+- [ ] Pause on the lock screen stops the sound and it stays stopped, also
+  when the app is opened again; Play there starts it. A channel paused
+  in the app before the home gesture stays silent.
+- [ ] If either of the two lines above fails: `UIBackgroundModes` and the
+  review notes' paragraph on it are removed before submission (tick this
+  line when both hold, or when the key is gone).
+- [ ] A call during a film pauses it, and it goes on, or one press starts
+  it, after the call; headphones unplugged pause it; music from another
+  app stops only when a picture starts here, not when the app is opened.
 - [ ] A `.m3u` in Files can be chosen in the setup dialog and loads.
 - [ ] The device turned both ways, with rotation lock on and off, in and
   out of full screen: the layout follows and the picture plays on.
@@ -721,18 +876,14 @@ and it is a gate: nothing is submitted with a line open.
 
 ## Open decisions
 
-The owner's, before a submission; `store/appstore.txt` lists them too.
+The owner's, before a submission. Closed: the minimum is iOS 26.0;
+recording is not in the app; the logo index ships whole, as in the
+browsers; the `audio` background mode stays and the sound goes on behind
+another app (see above, and the rule on what follows if a device says
+otherwise).
 
 - After the web process has died the player stands on the channel and
   plays nothing, as after a reload. If the app should start the channel
   again after a death (not after a reload), the shell can tell the next
   page that it recovered; it then needs a guard against a stream that ends
   the process each time. Not built.
-- iOS 18 has no sound for AC-3 and similar films. Raise the minimum from
-  18.5 to 26, or ship with the limit said in the guide. (The minimum is
-  18.5 and not 18.4, where WKWebExtension began: 18.4 cannot be run here,
-  and every device on it takes 18.5.)
-- Recording is off in the app (guideline 5.2.3); to be revisited after
-  approval.
-- The `audio` background mode stays only if the checklist's line on it is
-  ticked.

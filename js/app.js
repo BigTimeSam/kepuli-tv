@@ -32,6 +32,7 @@ import { requestAccess, hasAccess, hasAccessEverywhere, requestAccessEverywhere,
 import { createCast, supported as castSupported } from './cast.js';
 import { renderCasting, sessionFound } from './castui.js';
 import { ios } from './host.js';
+import { caretWelcome } from './caret.js';
 import { warmCache, probeCacheTtl } from './probe.js';
 
 import { SubtitleDisplay } from './subdisplay.js';
@@ -47,7 +48,7 @@ import { loadNotifying, loadReminders, onNotifying, reminders, setNotifying, sho
 import { renderInfoStrip } from './infostrip.js';
 import { applyListLayout, gridColumns, isWatched, nameCleanerFor, onEpgUpdated, renderRow, restoreListView, listName, shownName, toggleFavorite, toggleWatched, usesGrid, watchGridWidth } from './coversui.js';
 import { closeDetail, crumbLabel, episodesOfSeason, openItem, openSeries, renderDetail } from './seriesui.js';
-import { closeGuide, favoritesChanged, focusGrid, grid, guideFavorites, guideOpen, openGuide, programmeSearch, renderGuideGroups, restoreGuideFavorites, setGuideFavorites, toggleGuide, wirePhoneGuide } from './guideui.js';
+import { closeGuide, favoritesChanged, focusGrid, grid, guideFavorites, guideOpen, openGuide, programmeSearch, renderGuideGroups, restoreGuideFavorites, setGridChannels, setGuideFavorites, toggleGuide, wirePhoneGuide } from './guideui.js';
 
 import { ensureFull, orderList, renderEmptyState, renderListInfo, wireSubcatsKeys, wireSubcatsResize } from './topicbar.js';
 import { askExternal, nameExternalItem, playExternal } from './externalui.js';
@@ -1098,7 +1099,7 @@ function showRows(rows, { keepScroll = false, loading = false } = {}) {
   });
   // The guide shows the same set as the list, so search and group selection
   // narrow it without a filter of its own.
-  if (guideOpen && state.tab === 'live' && !guideFavorites) grid.setChannels(rows.filter((it) => it.k === 0));
+  if (guideOpen && state.tab === 'live' && !guideFavorites) setGridChannels(rows.filter((it) => it.k === 0));
   renderListInfo();
   renderEmptyState();
   catalogueSearch.render();
@@ -1258,10 +1259,22 @@ function fitNowbar() {
     return fits;
   };
   let pending = 0;
+  // In two steps: the format's words first (`nolabel`), then the selectors
+  // down to their stubs (`tight`). In one, an iPad lying down showed two
+  // selectors as their marks alone beside 250 px of empty bar. A sound
+  // track's selector, closed, then names the language alone: "English (AAC
+  // st" was cut mid-word where the browser draws no ellipsis in a selector
+  // (WebKit); the list it opens reads in full (js/picker.js).
   const fit = () => {
     pending = 0;
-    bar.classList.remove('tight');
-    if (!oneLine()) { bar.classList.add('tight'); pad(); }
+    bar.classList.remove('nolabel', 'tight');
+    for (const option of el.audio.options) option.removeAttribute('label');
+    if (oneLine()) return;
+    bar.classList.add('nolabel');
+    if (oneLine()) { pad(); return; }
+    bar.classList.add('tight');
+    for (const option of el.audio.options) option.label = option.textContent.replace(/ \(.*$/, '');
+    pad();
   };
   // In the next frame: the class changes the sizes being observed, and
   // changed inside the observer's callback that is a loop the browser warns of.
@@ -2141,11 +2154,13 @@ function wireUi() {
       else await el.video.requestPictureInPicture();
     } catch {
       // WebKit's own way, where the standard one is missing or refused
-      // (the iPhone, and the app's web view).
+      // (the iPhone, and the app's web view); it may refuse as well, and
+      // throws when it does.
       const video = el.video;
-      if (video.webkitSupportsPresentationMode?.('picture-in-picture')) {
+      try {
+        if (!video.webkitSupportsPresentationMode('picture-in-picture')) throw new Error('unsupported');
         video.webkitSetPresentationMode(video.webkitPresentationMode === 'picture-in-picture' ? 'inline' : 'picture-in-picture');
-      } else toast(t('player.pip.unavailable'), { kind: 'error' });
+      } catch { toast(t('player.pip.unavailable'), { kind: 'error' }); }
     }
   });
 
@@ -2222,6 +2237,9 @@ function wireUi() {
     // between its items rather than down the channel list.
     if (!el.morePop.hidden && el.morePop.contains(e.target)) return;
     if (e.key === '/' && !typing && plain) { e.preventDefault(); el.search.focus(); el.search.select(); return; }
+    // Under a finger Return is the keyboard's Search (enterkeyhint): the
+    // list has followed every letter, so it puts the keyboard away.
+    if (e.target === el.search && e.key === 'Enter' && !caretWelcome()) { el.search.blur(); return; }
     if (e.target === el.search && e.key === 'Escape') {
       e.preventDefault(); catalogueSearch.clear(); el.list.focus(); return;
     }

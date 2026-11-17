@@ -111,7 +111,7 @@ node ios/sim.mjs devices           # this tool's own simulators (kepuli-ios-*)
 node ios/sim.mjs boot && node ios/sim.mjs install && node ios/sim.mjs launch
 node ios/sim.mjs status            # the native state as JSON
 node ios/sim.mjs shutdown all
-node ios/simcheck.mjs [scenario …] # the app's scenarios on the iPhone, the iPad and iOS 18.5 (about eleven minutes)
+node ios/simcheck.mjs [scenario …] # the app's scenarios on the iPhone and the iPad (about eleven minutes)
 node ios/release.mjs status        # what is missing before the App Store; also: simulator, archive
 node ios/screenshots.mjs           # the App Store's two sets of screenshots, into brand/ios-screenshots/
 ```

@@ -72,17 +72,76 @@ input[type="search"], input[type="text"], input[type="url"], input:not([type]) {
   .epgv-close { display: inline-flex; order: 2; }
   .epgv-actions { order: 3; flex: 1 0 100%; flex-wrap: wrap; }
   .epgv-actions button { flex: 1 1 auto; }
+  /* A message while the sheet is up stands at the top of the window: at
+     the bottom it lay over the sheet's title and its two buttons. */
+  body:has(main.guide-sheet) .toast { top: 12px; bottom: auto; }
 }
 @media (max-width: 600px) and (prefers-reduced-motion: reduce) {
   main.guide > .epgview, main.guide.guide-sheet > .epgview { transition: none; }
 }
 @media (max-width: 600px) {
 
-  /* The days' box with its arrows (js/sidescroll.js) is the bar's item. */
-  .epg-days-scroll { flex: 1 0 100%; }
-  .epg-days { max-width: none; }
+  /* The days, the older ones' menu and the strip with its arrows
+     (js/sidescroll.js), are the bar's item, and the strip has what the
+     menu leaves. */
+  .epg-daybar { flex: 1 0 100%; max-width: none; }
+  .epg-daybar > .epg-days-scroll { flex: 1 1 0; }
   .programme-form .search-field { flex: 1 1 140px; min-width: 140px; }
   .programme-form:not(:focus-within, :has(#programme-query:not(:placeholder-shown), select[aria-expanded="true"])) select { display: none; }
+}
+
+/* A touch screen: everything that takes a press is 44 px high and wide
+   at the least (Apple asks 44 pt of an app; a press 5 px beside a row's
+   32 px star played the channel). Keyed on the pointer, never on .ios, so
+   that a phone's browser gains too and a mouse sees none of it. One block
+   for all of them; node dev/playcheck.mjs touchsizes measures every
+   control in sight in each view. */
+@media (hover: none) {
+  /* What has a box of its own grows to the size. */
+  button, select, summary, .section-toggle, .popitem, .picker-option, .toggle, .radio, .choice-mode, .group, .choice-row, .chip-main,
+  .modal-actions > button, .title-links a, input:not([type="checkbox"], [type="radio"], [type="file"]) { min-height: 2.75rem; }
+  .picker-option { display: flex; align-items: center; }
+  /* A slider takes the press in the same height and keeps a slider's
+     place: at 44 px each, the two of the subtitles' look pushed its panel
+     34 px up over the picture of an upright phone. */
+  input[type="range"] { margin-block: -0.75rem; }
+  /* A mark in a frame is a square of it. */
+  .icon-button, .modal-close, .group-picker-star, .epg-search-toggle, .epgv-close, .epg-bar button.ghost, .guide-back, #btn-full,
+  .chip-main, .season, .crumbs button, .epg-day, .now-actions > button { min-width: 2.75rem; flex-shrink: 0; }
+  .icon-button, .modal-close, .epg-search-toggle, .epgv-close { height: 2.75rem; }
+  .icon-button:not(.labelled), .modal-close, .epg-search-toggle, .epgv-close { width: 2.75rem; }
+  /* A mark without one keeps its place and its look, and takes the press
+     around it: the box grows into a margin of the same size taken back. */
+  .row-star, .row-star:hover, .row-more { width: 2.75rem; height: 2.75rem; margin: -6px; }
+  button.group-star, button.group-star:hover, .group.active .group-star:hover { width: 2.75rem; height: 2.75rem; padding: 13px; margin: -13px; }
+  button.series-favorite { width: 2.75rem; height: 2.75rem; margin: -6px; }
+  .hint-btn { width: 2.75rem; height: 2.75rem; min-height: 0; margin: -13px; border-width: 13px; }
+  .chip { min-height: 2rem; }
+  .chip-main, .chip-star { margin-block: -6px; }
+  .chip-star { min-width: 2.75rem; margin-inline: -4px; padding-inline: 0; }
+  .search-clear { width: 2.75rem; height: 2.75rem; right: 0; }
+  .field-reveal button { width: 2.75rem; right: 0; }
+  .field-reveal input { padding-right: 2.75rem; }
+  .listinfo .view-toggle { gap: 4px; }
+  .listinfo .view-toggle button { width: 2.75rem; height: 2.75rem; }
+  /* In the narrowest column (css/list.css) six marks of an iPad's 49.5 px
+     were 11 px wider than its 359 px: there they are 45 px, and never
+     under a finger's 44. */
+  @container (max-width: 28em) { .listinfo .view-toggle button { width: max(2.5rem, 44px); } }
+  .help-foot > .setup-help { padding-block: 13px; margin-block: -13px; }
+  /* A start page card's star and its cross, and the arrows of a row that
+     scrolls sideways: the disc as it was, in a transparent border that
+     takes the press. */
+  .idle-star, .idle-forget { width: 2.75rem; height: 2.75rem; top: 4px; border: 8px solid transparent; background-clip: padding-box; outline: 1px solid rgba(255, 255, 255, .25); outline-offset: -9px; }
+  .idle-star { left: 4px; }
+  .idle-forget { right: 4px; }
+  .side-scroll-arrow, .side-scroll.compact .side-scroll-arrow { width: 2.75rem; height: 2.75rem; min-height: 0; background-clip: padding-box; box-shadow: none; outline: 1px solid var(--border-strong); }
+  .side-scroll-arrow { border: 5px solid transparent; outline-offset: -6px; }
+  .side-scroll-arrow.prev { left: -19px; }
+  .side-scroll-arrow.next { right: -19px; }
+  .side-scroll.compact .side-scroll-arrow { border-width: 10px; outline-offset: -11px; }
+  .side-scroll.compact .side-scroll-arrow.prev { left: -10px; }
+  .side-scroll.compact .side-scroll-arrow.next { right: -10px; }
 }
 
 /* The app for the iPhone and the iPad (js/host.js; the page opened with
@@ -98,6 +157,12 @@ input[type="search"], input[type="text"], input[type="url"], input:not([type]) {
 /* The help's keys are all behind its fold there (js/help.js). */
 .ios #help h3, .ios #help-keys { display: none; }
 html:not(.ios) .ios-only { display: none; }
+/* An iPad is read from further off than a phone and has the room: its
+   text is an eighth larger (the body's 13 px read as a desktop page held
+   in the hands). By the screen, which no phone has 700 px of, and by the
+   window, so that Split View at a phone's width keeps a phone's sizes;
+   everything is in rem and follows. */
+@media (min-device-width: 700px) and (min-width: 700px) { html.ios { font-size: 112.5%; } }
 html.ios { -webkit-touch-callout: none; -webkit-user-select: none; user-select: none; }
 /* What is read and may be wanted elsewhere stays selectable: what a
    field holds, and a film's, an episode's or a programme's description. */

@@ -22,7 +22,7 @@ import { HLS_TYPE, castMedia, hlsCastable } from './cast.js';
 import { el } from './dom.js';
 import { t } from './i18n.js';
 import { renderInfoStrip } from './infostrip.js';
-import { noteEnded, notePlace } from './nextepisode.js';
+import { noteEnded, notePlace, startAutoNext } from './nextepisode.js';
 import { nowPlace, placeReached, playItem, playback, showOverlayActions } from './playing.js';
 import { retryPlayback } from './recordingsui.js';
 import { cast, state, updatePlayerLayout } from './state.js';
@@ -75,7 +75,7 @@ const HLS_ASK_MS = 4000;
  * answer's headers because it holds the grant for the provider's host;
  * the answer's body is not waited for. An error or silence is no verdict.
  *
- * The app's page is shown this header, on iOS 18.5 and 26.5 (measured;
+ * The app's page is shown this header, on iOS 26.5 (measured;
  * `live` in ios/simcheck.mjs holds it). A desktop browser's page without
  * the grant is not, which is why the iosapp scenario hands the page the
  * server's answer.
@@ -102,30 +102,20 @@ async function castable(spec) {
 }
 
 /**
- * Whether the overlay is the session's with nothing of this page's on the
- * device (a page loaded again during a session), and if so drawn again, in
- * the language of now. The empty player's page asks before it writes itself
- * there (js/languageui.js renderIdleOverlay): the app says the session while
- * the player still starts, and the start page is drawn again and again
- * after that, which left "Nothing playing" over the session's two buttons.
+ * The session's words written again, in the language of now: true when
+ * there is a session to say. A change of language asks for whoever's
+ * stream the device plays (js/languageui.js), as it writes the empty
+ * player's words back into the overlay: "Nothing playing" stood over
+ * Remote control and Stop casting, both still in the language before.
+ * The empty player's page asks with `foundOnly` before it writes itself
+ * there (renderIdleOverlay), for a session with nothing of this page's on
+ * the device (a page loaded again during one): the app says the session
+ * while the player still starts, and the start page is drawn again and
+ * again after that. It must be told no while this page's own stream is on
+ * the device.
  */
-export function sessionShown() {
-  if (!sessionFound()) return false;
-  showCasting();
-  return true;
-}
-
-/**
- * The session's words written again, in the language of now, whoever's
- * stream the device plays: true when there is a session to say. For a
- * change of language (js/languageui.js), which writes the empty player's
- * words back into the overlay: "Nothing playing" stood over Remote control
- * and Stop casting, both still in the language before, for the rest of the
- * session. Apart from sessionShown, which the empty player's page asks and
- * which must stay a no while this page's own stream is on the device.
- */
-export function redrawCasting() {
-  if (!casting) return false;
+export function redrawCasting(foundOnly = false) {
+  if (foundOnly ? !sessionFound() : !casting) return false;
   showCasting();
   return true;
 }
@@ -173,10 +163,10 @@ async function handOver(item, spec, startAt) {
       ...(/^https:/i.test(picture || '') ? { image: picture } : {}),
     });
     // Left meanwhile, by the logo or for something the device cannot play:
-    // the app had nothing to stop while the device was still fetching, so
-    // the device is stopped now that it has taken the stream.
+    // the app kept that stop until the device had taken the stream
+    // (CastService, stopWhenLoaded) and has made it now.
     if (casting === sent) sent.loading = false;
-    else if (!casting) { cast.stop(); stopAsked = Date.now(); }
+    else if (!casting) stopAsked = Date.now();
   } catch {
     if (casting === sent) deviceFailed();
     else if (!casting) stopAsked = Date.now();
@@ -351,5 +341,10 @@ export function renderCasting() {
   casting = null;
   if (media.reason === 'gone') { lostAsleep(left); return; }
   if (media.reason === 'finished') noteEnded(left.item);
-  if (shownHere(left)) leavePlayback();
+  if (!shownHere(left)) return;
+  // An episode seen to its end on the device is followed by the next as
+  // one that ended here is: the countdown, and playItem hands the episode
+  // to the device (castOrPlay). The picture's own `ended` never comes.
+  const next = media.reason === 'finished' && left.item?.k === 3 && state.settings.autoNext && !state.catchup;
+  Promise.resolve(next && startAutoNext(left.item, leavePlayback)).then((counting) => { if (!counting && shownHere(left)) leavePlayback(); });
 }

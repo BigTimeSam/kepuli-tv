@@ -15,10 +15,15 @@ protocol NativeService: AnyObject {
     func handle(_ type: String, _ body: [String: Any], reply: @escaping ([String: Any]) -> Void)
     /// A page connected or reloaded: send it the current state.
     func pageConnected()
+    /// The page's process ended (`Bridge.pageGone`): what the page held of
+    /// the app is let go now, as the next page may be a minute in coming
+    /// (`PlayerViewController.recover`). Nothing by default.
+    func pageGone()
 }
 
 extension NativeService {
     var prefixes: [String] { [prefix] }
+    func pageGone() {}
 }
 
 /// What the bridge needs of the page's port, so that a test can stand in
@@ -148,6 +153,7 @@ final class Bridge {
         kept += sent.filter { now.timeIntervalSince($0.at) < Self.unheard }.map(\.message)
         sent = []
         debugLog("bridge: the page is gone")
+        for service in services { service.pageGone() }
     }
 
     /// An event for the page. With `keep` it waits for a page when none is

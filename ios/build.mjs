@@ -16,7 +16,8 @@
 //                       manifests disagree) without background.js, with the manifest rewritten
 //   2. Version.xcconfig the version from the root manifest, the build number, the Node that ran this
 //   3. Icon.xcassets    the opaque app icon (ios/icon.swift)
-//   4. Localized/       <language>.lproj/InfoPlist.strings from the key ios.localnetwork
+//   4. Localized/       <language>.lproj/InfoPlist.strings from the key ios.localnetwork, and
+//                       Localizable.strings: what the shell says itself when the page cannot (APP_STRINGS)
 //   5. Info.plist and ../KepuliTV.xcodeproj, by xcodegen from ios/project.yml; derived/ is xcodebuild's
 //
 // The package is Firefox's, not Chrome's: in WebKit a manifest with
@@ -27,7 +28,7 @@
 // background.js is not shipped: its jobs (the toolbar click, the uninstall
 // address, the update notice, reminders while no player is open) belong to
 // a browser, and the app has native code for the last. Measured on iOS 26.5
-// and 18.5 (2026-11-13): without the key the extension loads with no
+// (2026-11-13): without the key the extension loads with no
 // extension or context error, the page runs, storage.local, permissions and
 // the native port work. Should a later WebKit refuse a manifest without it,
 // the fallback is to keep "background": {"scripts": ["background.js"]}, ship
@@ -58,6 +59,9 @@ const EXTENSION = join(DIST, 'extension');
 // is written in Latin script (js/i18n.js says the same to the page).
 const LPROJ = { pt: 'pt-BR', sr: 'sr-Latn' };
 const LOCAL_NETWORK = 'ios.localnetwork';
+// The shell's own two strings (PlayerViewController.fail), by their names
+// in Localizable.strings: the page that would say them did not load.
+const APP_STRINGS = { failed: 'ios.failed', retry: 'player.retry' };
 
 const readJson = (path) => JSON.parse(readFileSync(path, 'utf8'));
 /** Writes only when the content differs, so an unchanged input does not make Xcode rebuild. */
@@ -74,6 +78,8 @@ export function extension() {
   const manifest = readJson(join(EXTENSION, 'manifest.json'));
   delete manifest.browser_specific_settings;
   delete manifest.background;
+  // The toolbar button's: the app has no toolbar, and nothing reads it.
+  delete manifest.action;
   // "notifications" is the only one; reminders are local notifications from
   // native code here (App/Services/Reminders.swift).
   delete manifest.optional_permissions;
@@ -96,10 +102,17 @@ export function version(build = Number(process.env.KEPULI_IOS_BUILD || 1)) {
   return { marketing, build: `${major * 10000 + minor * 100 + patch}.${build}` };
 }
 
-/** The strings of step 4, by .lproj name; `missing` are the languages that took the English. */
+/**
+ * The strings of step 4, by .lproj name: `texts` the local-network
+ * sentence, `app` the shell's own by their names; `missing` are the
+ * languages that took the English sentence. A language without one of the
+ * shell's own takes the English too (t() falls back), which
+ * node dev/translations.mjs --check reports with every other string.
+ */
 async function localNetworkTexts() {
   const { LANGUAGES, loadLanguage, setLanguage, keysOf, t } = await import('../js/i18n.js');
   const texts = {};
+  const app = {};
   const missing = [];
   for (const lang of Object.keys(LANGUAGES)) {
     await loadLanguage(lang);
@@ -107,14 +120,19 @@ async function localNetworkTexts() {
     if (!has) missing.push(lang);
     setLanguage(has ? lang : 'en');
     texts[LPROJ[lang] || lang] = t(LOCAL_NETWORK);
+    setLanguage(lang);
+    app[LPROJ[lang] || lang] = Object.entries(APP_STRINGS).map(([name, key]) => [name, t(key)]);
   }
-  if (texts.en === LOCAL_NETWORK) throw new Error(`js/i18n.js has no ${LOCAL_NETWORK}`);
-  return { texts, missing };
+  for (const key of [LOCAL_NETWORK, ...Object.values(APP_STRINGS)]) {
+    setLanguage('en');
+    if (t(key) === key) throw new Error(`js/i18n.js has no ${key}`);
+  }
+  return { texts, app, missing };
 }
 
 /** Steps 2 and 4: the build settings and the localised Info.plist strings. */
 async function settingsAndStrings({ build, release }) {
-  const { texts, missing } = await localNetworkTexts();
+  const { texts, app, missing } = await localNetworkTexts();
   if (missing.length && release) throw new Error(`${LOCAL_NETWORK} is missing in: ${missing.join(', ')}`);
   if (missing.length) console.log(`ios: ${LOCAL_NETWORK} is English for now in ${missing.join(', ')}`);
 
@@ -139,6 +157,7 @@ async function settingsAndStrings({ build, release }) {
   const quoted = (text) => text.replace(/\\/g, '\\\\').replace(/"/g, '\\"');
   for (const [code, text] of Object.entries(texts)) {
     writeIfChanged(join(localized, `${code}.lproj`, 'InfoPlist.strings'), `"NSLocalNetworkUsageDescription" = "${quoted(text)}";\n`);
+    writeIfChanged(join(localized, `${code}.lproj`, 'Localizable.strings'), app[code].map(([name, value]) => `"${name}" = "${quoted(value)}";\n`).join(''));
   }
 
   // The Info.plist names the languages too (project.yml); the two lists

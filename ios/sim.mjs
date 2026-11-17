@@ -14,7 +14,7 @@
 //   node ios/sim.mjs eval '<body>'           the body of an async function, run in the page; `return` the answer
 //   node ios/sim.mjs evalfile <path> [ms]    the same from a file, with a time limit (60 s by default)
 //   node ios/sim.mjs native '<command>'      state | reload | rotate portrait|landscape | width <points>|full |
-//                                            killweb | tap-reminder <id>   (rotate turns the simulated device
+//                                            killweb | tap-reminder <id> | retry   (rotate turns the simulated device
 //                                            itself, as a hand would, and it stays turned: turn it back)
 //   node ios/sim.mjs log [n]                 the last n lines of the page's console, its errors and the app's notes
 //   node ios/sim.mjs shot [file.png]         a screenshot (into KEPULI_SHOTS_DIR or the temporary directory),
@@ -23,12 +23,13 @@
 //
 // KEPULI_IOS_DEVICE picks the device (kepuli-ios-iphone by default):
 //   kepuli-ios-iphone        iPhone 17, iOS 26.5         kepuli-ios-ipad        iPad (A16), iOS 26.5
-//   kepuli-ios-min           iPhone 16, iOS 18.5 (the app's minimum, and the oldest runtime that can be run)
 //   kepuli-ios-shots-iphone  iPhone 17 Pro Max           kepuli-ios-shots-ipad  iPad Pro 13-inch (M5): the store's sizes
+//   kepuli-ios-iphone-26-0   iPhone 17, iOS 26.0         kepuli-ios-ipad-26-0   iPad (A16), iOS 26.0: the app's minimum
 // Launch variables the Debug build reads: KEPULI_PAGE (player.html?ios=1),
 // KEPULI_NOTIFY=fake|fake-granted|fake-denied (the system's leave unasked,
-// given or refused, with nothing asked of the system), KEPULI_LINKS=record,
-// KEPULI_SAVES=record.
+// given or refused, with nothing asked of the system) or quiet (the system's
+// own notifications by a provisional leave, which asks nobody),
+// KEPULI_LINKS=record, KEPULI_SAVES=record, KEPULI_FAIL=1 (the first start fails).
 //
 // Only the simulators this tool created are ever touched, and always by
 // UDID: another session may have a device of the same name, and killing or
@@ -55,9 +56,12 @@ const DEVICES_FILE = join(DIST, 'devices.json');
 const SIMULATORS = {
   'kepuli-ios-iphone': { type: 'iPhone-17', runtime: 'iOS-26-5' },
   'kepuli-ios-ipad': { type: 'iPad-A16', runtime: 'iOS-26-5' },
-  'kepuli-ios-min': { type: 'iPhone-16', runtime: 'iOS-18-5' },
   'kepuli-ios-shots-iphone': { type: 'iPhone-17-Pro-Max', runtime: 'iOS-26-5' },
   'kepuli-ios-shots-ipad': { type: 'iPad-Pro-13-inch-M5-12GB', runtime: 'iOS-26-5' },
+  // The app's minimum (project.yml). The runtime is not Xcode 26.6's own:
+  // xcodebuild -downloadPlatform iOS -buildVersion 23A343 -architectureVariant arm64
+  'kepuli-ios-iphone-26-0': { type: 'iPhone-17', runtime: 'iOS-26-0' },
+  'kepuli-ios-ipad-26-0': { type: 'iPad-A16', runtime: 'iOS-26-0' },
 };
 const TYPE = 'com.apple.CoreSimulator.SimDeviceType.';
 const RUNTIME = 'com.apple.CoreSimulator.SimRuntime.';
@@ -209,7 +213,10 @@ export async function native(text, options) {
  */
 export async function rotate(orientation, name = chosen()) {
   if (!['portrait', 'landscape'].includes(orientation)) throw new Error('rotate portrait|landscape');
-  execFileSync(tool('rotate', 'rotate.m', ['clang', '-fobjc-arc', '-framework', 'Foundation']), [udid(name), orientation], { stdio: ['ignore', 'inherit', 'inherit'] });
+  // The Xcode that is selected, which need not be /Applications/Xcode.app.
+  const developer = process.env.DEVELOPER_DIR || execFileSync('xcode-select', ['-p'], { encoding: 'utf8' }).trim();
+  execFileSync(tool('rotate', 'rotate.m', ['clang', '-fobjc-arc', '-framework', 'Foundation']), [udid(name), orientation],
+    { stdio: ['ignore', 'inherit', 'inherit'], env: { ...process.env, DEVELOPER_DIR: developer } });
   const until = Date.now() + 8000;
   let state = {};
   while (Date.now() < until) {
@@ -243,8 +250,12 @@ export async function launch(variables = {}, name = chosen()) {
     state = await command('native', 'state', { name, timeout: 2000 });
     if (state.failure) return state;
     if (state.url) {
-      const ready = await command('js', 'return document.readyState', { name, timeout: 2000 });
-      if (ready.ok === 'complete') return state;
+      // The empty document a web view starts with is complete too, and the
+      // app already names the player's address while it stands there: on a
+      // simulator booted cold the first question was answered by it, and a
+      // relative import had no address to resolve against.
+      const ready = await command('js', 'return document.readyState + " " + location.href', { name, timeout: 2000 });
+      if (ready.ok === `complete ${state.url}`) return state;
     }
     await sleep(300);
   }

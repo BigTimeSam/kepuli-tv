@@ -64,7 +64,7 @@ if (Number.isNaN(T0)) throw new Error(`KEPULI_MOCK_NOW is not a time: ${process.
 // (fly.toml): the catalogue holds nothing that is there to fail. The AVI
 // film at the end of each genre is an MP4 and no episode has AC-3 sound;
 // both are fixtures for the tests, of a file the player says it cannot
-// play and of sound it decodes itself, which is silent on iOS 18.
+// play and of sound it decodes itself.
 const REVIEW = process.env.KEPULI_MOCK_REVIEW === '1';
 const localTime = new Intl.DateTimeFormat('sv-SE', {
   timeZone: TZ, year: 'numeric', month: '2-digit', day: '2-digit',

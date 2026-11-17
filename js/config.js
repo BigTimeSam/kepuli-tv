@@ -311,6 +311,18 @@ const DEFAULT_PORTS = { http: '80', https: '443' };
  * @param {Partial<Config>} c
  * @returns {string}
  */
+/**
+ * Whether a port typed into the form can be one: empty, for the scheme's
+ * own, or a whole number from 1 to 65535. Letters, or 99999, went into the
+ * address as they were and the connection failed with the server's name
+ * "not found".
+ * @param {unknown} port
+ */
+export const validPort = (port) => {
+  const text = String(port ?? '').trim();
+  return text === '' || (/^\d{1,5}$/.test(text) && Number(text) >= 1 && Number(text) <= 65535);
+};
+
 export function accountKey(c) {
   if (c.type === 'm3u') return c.fileId ? `m3u-file:${c.fileId}` : `m3u:${String(c.url || '').trim()}`;
   if (c.type === 'stalker') return `stalker:${String(c.url || '').trim()}|${String(c.mac || '').toUpperCase()}`;

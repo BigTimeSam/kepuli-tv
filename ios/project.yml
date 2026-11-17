@@ -6,10 +6,9 @@
 name: KepuliTV
 options:
   deploymentTarget:
-    # WKWebExtension came with 18.4, which cannot be run here: the minimum
-    # is the oldest system the app has been started on (simcheck's `min`),
-    # and every device that runs 18.4 takes 18.5.
-    iOS: "18.5"
+    # On iOS 18 WebKit refuses WebAssembly in an extension page, and a film
+    # with AC-3 sound is silent without the decoder the player brings.
+    iOS: "26.0"
   developmentLanguage: en
   createIntermediateGroups: true
 
@@ -81,6 +80,8 @@ targets:
         CFBundleShortVersionString: $(MARKETING_VERSION)
         CFBundleVersion: $(CURRENT_PROJECT_VERSION)
         CFBundleDevelopmentRegion: en
+        # An iOS app and nothing else, as every app in the store says.
+        LSRequiresIPhoneOS: true
         # The page's 30 languages (js/i18n.js; pt and sr spelled as iOS
         # wants them). Declaring them is also what makes the Cast SDK's
         # dialogs and the system's pickers follow the viewer's language.
@@ -147,7 +148,11 @@ targets:
         # The English sentence, from js/i18n.js by way of Version.xcconfig;
         # dist/Localized carries the other languages.
         NSLocalNetworkUsageDescription: $(KEPULI_LOCAL_NETWORK)
-        # Picture in picture and sound that goes on in the background.
+        # The sound of what plays goes on when the app leaves the front
+        # (js/playercontrols.js), and Apple's condition for picture in
+        # picture (ios/AGENTS.md, Sound and picture behind another app).
+        # If the device checklist's lines on it fail, the key goes before
+        # anything is submitted (store/appstore.txt).
         UIBackgroundModes:
           - audio
         ITSAppUsesNonExemptEncryption: false

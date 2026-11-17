@@ -33,7 +33,7 @@ import { join, relative } from 'node:path';
 import { ROOT } from '../firefox/build.mjs';
 import { BUNDLE, IOS, buildSimulator, changedSince, prepare, version, xcodebuild } from './build.mjs';
 import { boot, booted, shot, shutdown, simctl, udid } from './sim.mjs';
-import { NUTRITION } from './vendor.mjs';
+import { NUTRITION, VERSION as CAST } from './vendor.mjs';
 
 const OUT = join(ROOT, 'dist', 'ios');
 const CONFIG = join(homedir(), '.config', 'kepuli-tv', 'ios');
@@ -244,6 +244,30 @@ function nutritionTypes() {
 const spoken = (identifier, prefix) => identifier.slice(prefix.length).replace(/([a-z])([A-Z])/g, '$1 $2');
 const collected = (manifests) => [...new Set(manifests.flatMap((m) => (m.NSPrivacyCollectedDataTypes || []).map((type) => spoken(type.NSPrivacyCollectedDataType, 'NSPrivacyCollectedDataType'))))];
 
+/**
+ * Where the label of store/appstore.txt says less than the manifests: a
+ * type without its row, a row that says "No" to linked or tracking where
+ * a manifest says yes, or lacks a purpose a manifest gives; and a manifest
+ * that declares tracking at all, which the label and the app (no App
+ * Tracking Transparency prompt) both deny. The names alone were compared
+ * once, so a later SDK that linked a type to the user would have passed.
+ * A row is "Group → Type   purposes   linked   tracking", two spaces or
+ * more between its columns.
+ */
+function labelGaps(manifests, label) {
+  const rows = new Map(label.split('\n').map((line) => line.split('→')[1].trim().split(/\s{2,}/)).map(([type, purposes = '', linked = '', tracking = '']) => [type, { purposes, linked, tracking }]));
+  const gaps = manifests.filter((m) => m.NSPrivacyTracking || (m.NSPrivacyTrackingDomains || []).length).map((m) => `${relative(join(m.file, '..', '..'), m.file)} declares tracking`);
+  for (const type of manifests.flatMap((m) => m.NSPrivacyCollectedDataTypes || [])) {
+    const name = spoken(type.NSPrivacyCollectedDataType, 'NSPrivacyCollectedDataType'), row = rows.get(name);
+    if (!row) { gaps.push(`${name} has no row`); continue; }
+    if (type.NSPrivacyCollectedDataTypeLinked && row.linked !== 'Yes') gaps.push(`${name} is linked to the user`);
+    if (type.NSPrivacyCollectedDataTypeTracking && row.tracking !== 'Yes') gaps.push(`${name} is used for tracking`);
+    const purposes = (type.NSPrivacyCollectedDataTypePurposes || []).map((purpose) => spoken(purpose, 'NSPrivacyCollectedDataTypePurpose'));
+    gaps.push(...purposes.filter((purpose) => !row.purposes.split(', ').includes(purpose)).map((purpose) => `${name} is collected for ${purpose}`));
+  }
+  return [...new Set(gaps)];
+}
+
 function privacyReport(app, { marketing, build }) {
   const manifests = privacyManifests(app);
   const lines = [`Kepuli-TV ${marketing} (${build}): what the privacy manifests in ${short(app)} declare.`,
@@ -384,7 +408,7 @@ async function demoAnswers(address) {
   if (!film) throw new Error('it has no film');
   // The reviewer's catalogue has no film that is there to fail. The test
   // catalogue ends every genre with an AVI, and on the same switch carries
-  // an episode with AC-3 sound, silent on iOS 18 (dev/mock/server.mjs,
+  // an episode with AC-3 sound (dev/mock/server.mjs,
   // KEPULI_MOCK_REVIEW): a demo deployed without the switch answered, and
   // passed.
   const unplayable = films.filter((f) => f.container_extension === 'avi').length;
@@ -456,10 +480,9 @@ async function status(build) {
   const long = sections.map(({ name, body }) => [name, [...body].length, LIMITS[name.replace(/ (en-GB|fi)$/, '')]]).filter(([, length, limit]) => !limit || length > limit).map(([name, length, limit]) => `${name} is ${length} of ${limit}`);
   say(long.length === 0, 'within the store\'s limits', long.join('; ') || sections.filter(({ name }) => /^(SUBTITLE|KEYWORDS|REVIEW)/.test(name)).map(({ name, body }) => `${name} ${[...body].length}`).join(', '));
   if (existsSync(app)) {
-    const types = collected(privacyManifests(app));
-    const unnamed = types.filter((type) => !label.includes(type));
-    say(unnamed.length === 0, 'the privacy label\'s rows name every type the archive\'s manifests collect', unnamed.length ? `not named: ${unnamed.join(', ')}` : types.join(', '));
-  } else say(false, 'the privacy label\'s rows name every type the archive\'s manifests collect', 'no archive to read them from');
+    const manifests = privacyManifests(app), gaps = labelGaps(manifests, label);
+    say(gaps.length === 0, 'the privacy label says what the archive\'s manifests declare: each type, whether linked, tracking, and what for', gaps.join('; ') || `${collected(manifests).join(', ')}; no tracking`);
+  } else say(false, 'the privacy label says what the archive\'s manifests declare: each type, whether linked, tracking, and what for', 'no archive to read them from');
   // And every type Google's own privacy details for the pinned SDK name:
   // Coarse Location and Performance Data are in no manifest.
   const googles = nutritionTypes();
@@ -485,6 +508,11 @@ async function status(build) {
     say(Boolean(page.text) && !hit && !lacks, `${name} is on the Pages site`,
       page.why ? `${site || ''}${path} ${page.why}` : hit ? `it names "${hit[0]}"` : lacks ? 'it has no section on the app yet' : `${site}${path}`);
   }
+  // The licences page says which versions its notices are of, by hand.
+  const licences = join(ROOT, 'docs', 'licences', 'index.html');
+  const stated = existsSync(licences) && /For Kepuli-TV ([\d.]+?) and the Google Cast SDK ([\d.]+?)\.</.exec(readFileSync(licences, 'utf8'));
+  say(Boolean(stated) && stated[1] === numbers.marketing && stated[2] === CAST, 'the licences page names this version and the pinned Cast SDK',
+    stated ? `it says Kepuli-TV ${stated[1]} and Cast ${stated[2]}; they are ${numbers.marketing} and ${CAST}` : `${short(licences)} has no "For Kepuli-TV … and the Google Cast SDK …." line`);
   // The same page as this checkout renders it, before it is pushed.
   const local = join(ROOT, 'docs', 'iptv-app-iphone-ipad', 'index.html');
   const named = existsSync(local) ? PLATFORMS.exec(shownText(readFileSync(local, 'utf8'))) : null;

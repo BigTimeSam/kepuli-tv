@@ -53,7 +53,7 @@ export function archiveDays(channels) {
 
 export class EpgGrid {
   /**
-   * @param {object} refs { scroll, canvas, timesInner, chansInner, corner, days, clock }
+   * @param {object} refs { scroll, canvas, timesInner, chansInner, corner, days, older, clock }
    * @param {object} opts { label, onSelect, onActivate, onChannel, onPlay, onPick, onWindow, reminded }
    */
   constructor(refs, opts = {}) {
@@ -162,9 +162,10 @@ export class EpgGrid {
 
   /**
    * Yesterday, today and the days ahead as buttons; the archive's older
-   * days in one menu before them. With a button for every day the strip
-   * began a week back, and today and tomorrow — what the guide is opened
-   * for — sat behind a scroll at its far end.
+   * days in one menu before them, in a place of its own (`older`). With a
+   * button for every day the strip began a week back, and today and
+   * tomorrow — what the guide is opened for — sat behind a scroll at its
+   * far end.
    */
   renderDays() {
     const frag = document.createDocumentFragment();
@@ -179,8 +180,8 @@ export class EpgGrid {
       for (let at = startOfDay(yesterday, -1); at >= this.origin; at = startOfDay(at, -1)) select.append(new Option(shortDay(at), String(at)));
       select.addEventListener('change', () => { if (select.value) this.goDay(Number(select.value)); });
       this.earlier = { select, before: yesterday };
-      frag.appendChild(select);
     }
+    this.el.older.replaceChildren(...(this.earlier ? [this.earlier.select] : []));
     for (let at = Math.max(this.origin, yesterday); at < this.end; at = startOfDay(at, 1)) {
       const day = at;
       const button = document.createElement('button');

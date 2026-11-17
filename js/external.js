@@ -167,6 +167,9 @@ function downloadPlaylist(spec, name) {
   setTimeout(() => URL.revokeObjectURL(href), 60000);
 }
 
+/** The app's page in the device's settings (the iPhone and the iPad): where its notifications are allowed. */
+export const openAppSettings = () => click('app-settings:');
+
 /** An anchor click: a download needs the download attribute, an intent none. */
 function click(href, download = '', target = '') {
   const a = document.createElement('a');

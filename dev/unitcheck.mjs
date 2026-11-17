@@ -2379,6 +2379,70 @@ check('VLC for iOS is handed the stream address, encoded whole',
     items, [{ id: '7|' + at, at: at - 60000, text: say({ title: 'Evening News', channel }), channel }]);
   check('the sentence names the programme, the time and the channel',
     ['Evening News', '20.00', 'Aurora One'].every((word) => items[0].text.includes(word)), true);
+
+  // The app's sound goes on behind another app: which pause is WebKit's
+  // for leaving, to be answered with play(), and which the viewer's.
+  const { pausedByLeaving } = await import('../js/host.js');
+  check('a pause 0.4 s before the page was hidden is WebKit\'s for leaving (measured on iOS 26.5)', pausedByLeaving(10000, 10400, 2000), true);
+  check('and so is one just after the page was hidden', pausedByLeaving(10300, 10000, 2000), true);
+  check('a pause long after the page was hidden is the viewer\'s, from the lock screen', pausedByLeaving(40000, 10000, 2000), false);
+  check('a pause in front, with the page never hidden, is the viewer\'s', pausedByLeaving(10000, -Infinity, 9950), false);
+  check('a press just before the pause makes it the viewer\'s, though the app was left at once', pausedByLeaving(10000, 10400, 9900), false);
+  check('a press after the pause does not', pausedByLeaving(10000, 10400, 10200), true);
+  check('nothing paused, nothing to answer', pausedByLeaving(-Infinity, 10000, -Infinity), false);
+}
+
+/* ------------------------- js/config.js: a port typed into the form */
+{
+  const { validPort } = await import('../js/config.js');
+  check('an empty port is the scheme\'s own', validPort(''), true);
+  check('8080 is a port, with spaces round it too', [validPort('8080'), validPort(' 443 '), validPort(1)], [true, true, true]);
+  check('65535 is the last port and 65536 is none', [validPort('65535'), validPort('65536')], [true, false]);
+  check('0, letters, a sign and a fraction are no port', ['0', 'abc', '80a', '-80', '8.5', '999999'].map(validPort), [false, false, false, false, false, false]);
+}
+
+/* ------------- js/subs.js: the element's text tracks, kept and reused */
+{
+  const { SubtitleTracks } = await import('../js/subs.js');
+  const { setLanguage } = await import('../js/i18n.js');
+  // A video element as far as the tracks go: addTextTrack adds for good,
+  // and the list tells of a change of mode a moment later, as a browser does.
+  const listeners = new Set();
+  const video = { textTracks: Object.assign([], { addEventListener: (type, l) => listeners.add(l), removeEventListener: (type, l) => listeners.delete(l) }),
+    addTextTrack(kind, label, language) { const track = { kind, label, language, mode: 'disabled', cues: [], addCue() {}, removeCue() {} }; this.textTracks.push(track); return track; } };
+  const changed = () => { for (const l of [...listeners]) l(); };
+  const file = [{ number: 1, type: 17, codecId: 'S_TEXT/UTF8', lang: 'eng' }, { number: 2, type: 17, codecId: 'S_TEXT/UTF8', lang: 'fin' }];
+  const heard = [];
+  let tracks = new SubtitleTracks(video, (active) => heard.push(active));
+  tracks.setup(file);
+  tracks.select(2);
+  tracks.destroy();
+  // The interface language changed between two episodes: the same tracks serve.
+  setLanguage('fi');
+  tracks = new SubtitleTracks(video, (active) => heard.push(active));
+  const listed = tracks.setup(file);
+  setLanguage('en');
+  check('an episode after a change of language reuses the element\'s tracks (the browser\'s menu listed English beside Englanti)', video.textTracks.length, 2);
+  check('and the selector names them in the language of now', listed.map((t) => t.label).sort(), ['Englanti', 'Suomi']);
+  tracks.destroy();
+  // A film with another language: its track is new, the two before stay in the element, unused.
+  tracks = new SubtitleTracks(video, (active) => heard.push(active));
+  tracks.setup([{ number: 1, type: 17, codecId: 'S_TEXT/UTF8', lang: 'swe' }]);
+  tracks.select(1);
+  const [english, , swedish] = video.textTracks;
+  // The browser's own menu: a track of an earlier file chosen there, the one showing switched off for it.
+  heard.length = 0;
+  english.mode = 'showing'; swedish.mode = 'disabled';
+  changed();
+  check('a track of an earlier file chosen in the browser\'s menu is switched off again, and the selection stays',
+    { stale: english.mode, mine: swedish.mode, active: tracks.active, heard }, { stale: 'disabled', mine: 'showing', active: 1, heard: [] });
+  swedish.mode = 'disabled';
+  changed();
+  check('the file\'s own track switched off there is still reported', heard, [null]);
+  tracks.destroy();
+  english.mode = 'showing';
+  changed();
+  check('with nothing that has subtitles playing, a stale track chosen is switched off as well', english.mode, 'disabled');
 }
 
 /* ---------------------------------- js/cast.js: what a Chromecast can take */
@@ -2493,7 +2557,7 @@ check('VLC for iOS is handed the stream address, encoded whole',
 /* ------------- dev/mock/server.mjs: the catalogue a store's reviewer meets */
 {
   // KEPULI_MOCK_REVIEW=1 (the hosted demo): no film that is there to be
-  // unplayable and no episode with AC-3 sound, which is silent on iOS 18.
+  // unplayable and no episode with AC-3 sound.
   // The switch is read when the server is imported, so each is a process.
   const catalogue = (review) => JSON.parse(execFileSync(process.execPath, ['--input-type=module', '-e', `
     const mock = await import(${JSON.stringify(new URL('./mock/server.mjs', import.meta.url).href)});

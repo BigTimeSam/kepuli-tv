@@ -94,7 +94,14 @@ export function openSetup({ section, adding = false } = {}) {
   showSetupSection(first ? 'connection' : (section || 'connection'));
   if (!el.setup.open) el.setup.showModal();
   fitSetupHeight();
+  // The section on show is brought into the rail, which could not be
+  // measured while the dialog was closed: in a phone's width it stood out
+  // of sight under an arrow.
+  if (!first) reveal(el.setupTabs, el.setupTabs.querySelector('.active'));
   focusSetupSection();
+  // In a low window the dialog scrolls as one (css/narrow.css), and the
+  // field that took the caret drew it past its title and its sections.
+  el.setup.querySelector('.setup').scrollTop = 0;
 }
 
 /**
@@ -333,9 +340,12 @@ export function updateSetupActions() {
   // Account & data holds sync, which acts at once where it is offered, so
   // the line under it must not promise that nothing does; where it is not
   // (the iPhone and iPad app) the line does not speak of it.
-  el.setupNoteText.textContent = t(dirty ? (reconnect && !first ? 'setup.reconnect' : 'setup.pending')
+  // Nothing on the first run, where there is nothing saved to change:
+  // "Unsaved changes" came with the first choice of a connection type, and
+  // "Changes are applied when you save" stood over a button named Connect.
+  el.setupNoteText.textContent = first ? '' : t(dirty ? (reconnect ? 'setup.reconnect' : 'setup.pending')
     : setupSection === 'account' && syncAvailable() ? 'setup.account.immediate' : 'setup.unchanged');
-  el.setupNote.classList.toggle('pending', dirty);
+  el.setupNote.classList.toggle('pending', dirty && !first);
   if (!dirty) $('setup-discard').hidden = true;
   updateGrantNote();
 }
@@ -915,6 +925,10 @@ export function wireSetup() {
       else setupError('setup.incomplete', !patch.host ? 'f-host' : !patch.username ? 'f-username' : 'f-password');
       return;
     }
+    if (connectionEdited && patch.type === 'xtream' && !store.validPort(patch.port)) { setupError('setup.port.bad', 'f-port'); return; }
+    // The same account a second time made two rows of one name, alike in
+    // everything, that shared their favourites and history.
+    if (setupAdding && (state.accounts || []).some((a) => store.accountKey(a) === store.accountKey({ ...store.blankConfig(), ...patch }))) { setupError('accounts.exists'); return; }
     const settingsPatch = setupSettingsPatch();
     $('setup-error').hidden = true;
     setupSaving = true;
@@ -984,6 +998,12 @@ export function wireSetup() {
         await refreshRows({ keepScroll: true });
       }
       state.accounts = await store.loadAccounts();
+      // The address an account had before this change, when no entry of
+      // the list has it any more: the app's notifications scheduled under
+      // it go (js/remindersui.js). They stayed with the system, and a
+      // reminder was said twice or for an account that no longer was.
+      const left = connectionEdited && store.accountKey(other ? setupBase : previous);
+      if (left && store.isConfigured(other ? setupBase : previous) && !state.accounts.some((a) => store.accountKey(a) === left)) await forgetNotifications(left);
       if (changed && !other) {
         await connect();
         if (moved && !setupAdding) offerLists(previous, state.config);

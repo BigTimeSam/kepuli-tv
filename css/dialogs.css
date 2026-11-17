@@ -3,6 +3,8 @@
 /* ----------------------------------------------------------- dialogs */
 
 dialog { border: 1px solid var(--border); background: var(--panel); color: var(--text); border-radius: 14px; padding: 0; box-shadow: 0 24px 70px rgba(0, 0, 0, .6); }
+/* The dialog itself has the focus when a finger opened it (js/modal.js). */
+dialog:focus { outline: none; }
 dialog::backdrop { background: var(--backdrop); backdrop-filter: blur(2px); }
 .modal-head { display: flex; align-items: center; gap: 12px; flex-shrink: 0; }
 .modal-head h2 { flex: 1; min-width: 0; margin: 0; font-size: 1rem; font-weight: 600; line-height: 1.4; }
@@ -177,6 +179,11 @@ dialog::backdrop { background: var(--backdrop); backdrop-filter: blur(2px); }
    window, Connect and Cancel lay under the keys. */
 html.kb :is(#setup, #help, #countries, #hidden, #recordings):modal { margin-block: calc(8px + var(--vvt, 0px)) auto; max-height: calc(var(--vvh, 100dvh) - 16px); overflow-y: auto; }
 html.kb dialog:modal > :is(.setup, .help-content, .choice-content) { max-height: none; overflow: visible; }
+/* Its buttons stay at the foot of what is in sight meanwhile, where that
+   is 300 px or more (not a phone lying down, whose keyboard leaves 170):
+   Connect was a scroll away under the keys, behind a keyboard that a
+   press beside it closes. */
+html.kb-tall dialog:modal .modal-actions { position: sticky; bottom: 0; z-index: 1; margin-bottom: -12px; padding-bottom: 12px; background: var(--panel); }
 
 /* A stable frame keeps navigation and the shared save action in place. */
 #setup { width: min(760px, calc(100vw - 32px)); max-height: calc(100dvh - 32px); }
@@ -220,14 +227,6 @@ html.kb dialog:modal > :is(.setup, .help-content, .choice-content) { max-height:
   font-size: var(--fs-xs); font-weight: 700; line-height: 1; cursor: pointer;
 }
 .hint-btn:hover, .hint-btn[aria-expanded="true"] { color: var(--text); box-shadow: inset 0 0 0 1px var(--muted); }
-/* On a touch screen the ? takes a press in 32 px, the drawn ring as it
-   was; a dialog's buttons and its choices are a fingertip high, and a
-   switch's row takes the press over its whole height. */
-@media (hover: none) {
-  .hint-btn { width: 2rem; height: 2rem; margin: -7px; border-width: 7px; }
-  dialog :is(button.primary, button.ghost), .radio { min-height: 2.75rem; }
-  .toggle { min-height: 2.25rem; }
-}
 /* The ring in the transparent border, round the drawn circle: outside the
    button it reached 7 px past the circle, and a panel's edge cut it. */
 .hint-btn:focus-visible { outline-offset: -2px; }
@@ -241,10 +240,6 @@ html.kb dialog:modal > :is(.setup, .help-content, .choice-content) { max-height:
 .help-foot { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
 /* At the start of its own row, not after a sentence: no gap before it. */
 .help-foot > .setup-help { margin-left: 0; }
-/* The help's links are 18 px high, and in the app the only way to the
-   privacy policy and the licences: under a finger each takes the press in
-   36 px, by padding that a margin takes back. */
-@media (hover: none) { .help-foot > .setup-help { padding-block: 9px; margin-block: -9px; } }
 .app-version { margin-left: auto; text-align: right; }
 .setup-error { margin: 0; color: var(--danger); font-size: 0.8125rem; }
 .setup > .grant-note { margin: 0; flex-shrink: 0; }

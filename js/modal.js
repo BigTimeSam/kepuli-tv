@@ -1,12 +1,22 @@
 // Shared close control and dismissal gestures for the app's native dialogs.
 // Each caller owns what closing means: discard a draft, ask for confirmation,
 // abort a request, or simply close an image.
+import { caretWelcome } from './caret.js';
 import { t } from './i18n.js';
 import { svg } from './svg.js';
 
 const CLOSE_ICON = '<path d="m5 5 10 10M15 5 5 15"/>';
 
 export function wireModal(dialog, requestClose) {
+  // Under a finger the dialog itself takes the focus when it opens: its
+  // first button, the cross, took it and stood ringed after every tap.
+  // By the dialog's own autofocus where the browser reads it there, and
+  // when it says that it has opened where it does not.
+  if (!caretWelcome()) {
+    dialog.autofocus = true;
+    dialog.tabIndex = -1;
+    dialog.addEventListener('toggle', () => { if (dialog.open && dialog.querySelector('.modal-close') === document.activeElement) dialog.focus(); });
+  }
   for (const button of dialog.querySelectorAll('[data-modal-close]')) {
     button.type = 'button';
     button.classList.add('modal-close');
@@ -17,6 +27,10 @@ export function wireModal(dialog, requestClose) {
     button.addEventListener('click', requestClose);
   }
   dialog.addEventListener('cancel', event => {
+    // Not a file picker closed without a file: its field says `cancel`
+    // too, and the event rises to the dialog. Settings then asked whether
+    // to discard the changes, or closed.
+    if (event.target !== dialog) return;
     event.preventDefault();
     requestClose();
   });

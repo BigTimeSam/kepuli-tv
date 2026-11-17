@@ -13,15 +13,18 @@
 // builds, from js/state.js.
 
 import { api } from './browser.js';
-import { $ } from './dom.js';
+import { $, el } from './dom.js';
 import { ios, on, reminderItems, request, send } from './host.js';
 import { clock } from './format.js';
 import { reminderDelay } from './epggrid.js';
 import { t } from './i18n.js';
 import * as store from './config.js';
 import { playItem } from './playing.js';
-import { toast } from './toast.js';
+import { hideToast, toast } from './toast.js';
+import { switchAccount } from './accountsui.js';
+import { openAppSettings } from './external.js';
 import { grid, guideOpen, renderGuidePreview } from './guideui.js';
+import { setupDirty } from './setupui.js';
 import { shownName, stripItem } from './coversui.js';
 import { refreshRows, renderSidebar, state } from './state.js';
 
@@ -30,8 +33,10 @@ const REMIND_AHEAD = 60 * 1000;
 export const reminderKey = (channel, programme) => store.reminderKey({ channel, start: programme.start });
 export let reminders = new Map();
 let reminderTimer = null;
-// The reminders whose notification was tapped in the app, by key.
+// The reminders whose notification was tapped in the app before they fell
+// due here, by key, and the one the message strip is saying, with its words.
 const tapped = new Set();
+let said = null;
 
 export async function loadReminders() {
   showReminders(await store.loadReminders());
@@ -102,7 +107,7 @@ export async function setNotifying(on) {
       // Under the switch where Settings is open, in the strip otherwise
       // (the guide's Remind me): see showRefusal.
       showRefusal();
-      if (refused && !$('setup').open) toast(t('setup.notify.denied'), { kind: 'warn', long: true });
+      if (refused && !$('setup').open) toast(t('setup.notify.denied'), { kind: 'warn', action: { label: t('setup.notify.open'), onClick: openAppSettings } });
       notifying = appAllows(answer);
     } else notifying = on ? await api.permissions.request(NOTIFICATIONS) : !(await api.permissions.remove(NOTIFICATIONS));
   } catch {
@@ -145,6 +150,13 @@ function showUpcoming() {
 
 export function toggleReminder(channel, programme) {
   const key = reminderKey(channel, programme);
+  // The stored list, the timer and the bells follow what `reminders` holds.
+  const apply = () => {
+    store.setReminder(key, reminders.get(key) || null);
+    armReminders();
+    if (guideOpen) { grid.invalidate(); renderGuidePreview(channel, programme); }
+    showUpcoming();
+  };
   if (reminders.has(key)) reminders.delete(key);
   else {
     reminders.set(key, { channel: stripItem(channel), title: programme.title, start: programme.start, stop: programme.stop });
@@ -153,16 +165,15 @@ export function toggleReminder(channel, programme) {
     const allowed = asking ? setNotifying(true) : Promise.resolve(notifying);
     allowed.then((on) => {
       // Refused at this first question in the app: what was said of it is
-      // left to be read. Replaced at once by "… while the player is open",
-      // nobody learnt where notifications are turned on.
-      if (asking && refused) return;
+      // left to be read, with its way to the device's settings (replaced
+      // at once by "… while the player is open", nobody learnt where
+      // notifications are turned on), and the reminder is not set: its
+      // bell promised a notification that could not come.
+      if (asking && refused) { reminders.delete(key); apply(); return; }
       toast(t(on ? 'guide.remind.set.notify' : 'guide.remind.set', { title: programme.title, time: clock(programme.start) }), { long: true });
     });
   }
-  store.setReminder(key, reminders.get(key) || null);
-  armReminders();
-  if (guideOpen) { grid.invalidate(); renderGuidePreview(channel, programme); }
-  showUpcoming();
+  apply();
 }
 
 /**
@@ -173,7 +184,7 @@ export function toggleReminder(channel, programme) {
  * due and arm itself again without end. So the wait is a day at most, and
  * then it is measured again.
  */
-function armReminders() {
+export function armReminders() {
   // The app's notifications follow every change: the same sentence the
   // message strip says, a minute before the start.
   if (ios) {
@@ -234,19 +245,30 @@ async function fireReminders() {
     ? t('guide.remind.soon', { title: showing.title, time: clock(showing.start), channel: name })
     : t('guide.remind.started', { title: showing.title, channel: name });
   toast(text, { action: { label: t('guide.watch'), onClick: () => playItem(channel) }, duration: Math.max(REMIND_AHEAD, 15000) });
+  said = { key: store.reminderKey(showing), text };
 }
 
 /**
  * A reminder's notification was clicked: background.js leaves the channel
  * under "watchAsked" and brings the player forward, or opens one. Played
- * when it is this account's and fresh; taken away either way, so that a
- * player opened next week does not start a channel by itself.
+ * when it is fresh; taken away either way, so that a player opened next
+ * week does not start a channel by itself. One of another account in the
+ * list takes that account into use first, as Use in Settings does, and its
+ * connection ends by coming here again: reminders are notified for every
+ * account of the list, and a tap on another's did nothing at all. Not over
+ * Settings with changes unsaved, which the switch would throw away.
  */
+let switchedFor = 0;
 export async function watchAsked() {
   const { watchAsked: asked } = await api.storage.local.get('watchAsked');
   if (!asked) return;
+  const fresh = asked.at > Date.now() - 60e3, here = asked.account === store.currentAccount();
+  const other = fresh && !here && switchedFor !== asked.at && !(el.setup.open && setupDirty())
+    && (state.accounts || []).find((a) => store.accountKey(a) === asked.account);
+  // Once for a tap: an account that does not connect is not gone back to.
+  if (other) { switchedFor = asked.at; switchAccount(other.id); return; }
   await api.storage.local.remove('watchAsked');
-  if (asked.account === store.currentAccount() && asked.at > Date.now() - 60e3) playItem(asked.channel);
+  if (fresh && here) playItem(asked.channel);
 }
 
 // Not before the player is connected: the app's tap can arrive while it
@@ -257,13 +279,16 @@ api.storage.onChanged.addListener((changes, area) => {
 });
 
 // A notification tapped in the app, as background.js leaves a click: with
-// the reminder's id, noted at once for fireReminders, and the tap's own
-// time. The app says a tap again to a page loaded after its process had
-// ended (Bridge.pageGone), which may be a minute later, and a channel
-// started then is one the viewer no longer waits for.
+// the reminder's id and the tap's own time. One still to fall due here is
+// noted for fireReminders; one the strip is saying is taken out of it, as
+// its Watch went on standing over the channel the tap had started. The app
+// says a tap again to a page loaded after its process had ended
+// (Bridge.pageGone), which may be a minute later, and a channel started
+// then is one the viewer no longer waits for.
 if (ios) {
   on('reminder.open', ({ channel, account, id, at }) => {
-    if (id) tapped.add(id);
+    if (reminders.has(id)) tapped.add(id);
+    else if (said?.key === id && !el.toast.hidden && el.toastText.textContent === said.text) hideToast();
     api.storage.local.set({ watchAsked: { channel, account, at: typeof at === 'number' ? at : Date.now() } });
   });
 }

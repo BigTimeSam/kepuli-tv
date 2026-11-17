@@ -72,26 +72,32 @@ the page links them.
   dialog at 750×380 and 750×170 too; `node dev/playcheck.mjs iosapp` holds
   the measures.
 - **Touch screens** (`@media (hover: none)`, never `.ios`: a phone's
-  browser gains too): a tab, a menu's row, a dialog's buttons and its
-  choices and the guide's two buttons for a programme are 2.75rem high, a
-  switch's row, a series' Back and seasons, the guide's days, Filter
-  countries' modes and the foot's Clear history 2.25rem, the list's order
-  and view marks 2.25rem apart, the row's star and menu, the sidebar's star
-  and the `?` 2rem. A note's buttons over the picture (a cast session's
-  two) are 2.75rem, the help's links 2.25rem, the guide bar's buttons (the
-  favourites' mark, the steps, the zoom) and a film's Technical details
-  2rem, and a name among a film's credits takes the press over 8px above
-  and below its line. Each rule stands beside the rule it widens, in its own
-  file. A small mark grows into transparent padding or border that
-  a negative margin takes back (never a `::after`, which counted as
-  overflowing text). In a low window the tabs, a programme's two buttons
-  and a note's buttons keep 2.25rem and Back, the seasons and the days
-  2rem. `node dev/playcheck.mjs touchsizes` measures every one of them,
-  in a tablet's window and a phone's lying down: a new rule gains its
-  line there. The list's foot keeps its count whole there:
-  the category, then the tab's mark and, in a column of 320px or less,
-  the count's word give way (`list.css`, container queries). The search
-  field, the selectors and the header's buttons stay at 32 to 36px.
+  browser gains too, and a mouse sees none of it): everything that takes
+  a press is 44 px (2.75rem) high and wide at the least. One block near
+  the end of `last.css` has it all: what has a box of its own (a button,
+  a field, a selector, a fold, a menu's row, a choice) grows to the size;
+  a mark in a frame is a square of it; a mark without a frame (a row's
+  star and menu, the sidebar's star, the `?`, a chip's two halves, a
+  start page card's star and cross, a sideways row's arrows) keeps its
+  look and takes the press around it, by padding or a transparent border
+  that a negative margin takes back (never a `::after`, which counted as
+  overflowing text). A widened flex item gets `flex-shrink: 0`: a
+  `min-width` in place of `auto` let the guide's days shrink into one
+  another. A name among a film's credits takes the press over 16 px above
+  and below its line (`details.css`). In a low window (`narrow.css`,
+  `(hover: none) and (max-height: 440px)`) the bars give up their own
+  margins instead of the list's rows: the tabs, the folds and the foot's
+  marks take the press beyond their look, the guide's way back is the
+  first mark of its bar, and the logo stands without its name where the
+  bar's buttons are behind the hamburger. Under a finger in two columns
+  (an upright iPad) the guide's bar leaves out the clock, the steps and
+  the zoom, and its search waits behind a mark, as in a low window.
+  `node dev/playcheck.mjs touchsizes` measures every control in sight,
+  view by view, in a tablet's window, an upright phone's and a phone's
+  lying down: a new view gains its line there. The list's foot keeps its
+  count whole there: the category, then the tab's mark and, in a column
+  of 320px or less, the count's word give way (`list.css`, container
+  queries).
 - **Subtitles lifted clear of controls** (`.videowrap.controls`,
   `.looking` in `playback.css`) never leave the picture: the lift is capped
   at the picture's height less two lines, as a phone's picture is lower
@@ -103,13 +109,17 @@ the page links them.
 - **A keyboard over a window that keeps its height** (an upright iPad in
   the app): `js/host.js` sets `html.kb` with `--vvh` (what is in sight) and
   `--vvt` (where it begins), and a dialog stands at the top of that and
-  scrolls as one (`dialogs.css`). Where the window shrinks instead (a
-  phone, an iPad lying down) the low-window rules apply and `kb` is not
-  set.
+  scrolls as one (`dialogs.css`), its buttons kept at the foot of what is
+  in sight where that is 300 px or more (`html.kb-tall`). An iPhone's
+  window does either, so the page also counts what is in sight being
+  less than it has been at this width.
 - **The iOS app** shows the same page with `<html class="ios">`: what it
   cannot answer or does not offer is hidden in one block of `last.css`
   (`.ios …`), and what only it shows carries `ios-only`. Keep such rules in
-  that block, above the forced colours.
+  that block, above the forced colours. On an iPad (a screen and a
+  window of 700 px or more) the root's size is 112.5 %, so every rem is an
+  eighth larger there; a phone, and an iPad's Split View at a phone's
+  width, keep 100 %.
 - **Full screen is `:fullscreen` or `.full`, always both.** In the app the
   picture's full screen is the app's own: the wrapper gets the class `full`
   and is laid over the window (`.videowrap.full` in `playback.css`, fixed,

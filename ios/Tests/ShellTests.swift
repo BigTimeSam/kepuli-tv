@@ -1,3 +1,4 @@
+import AVFoundation
 import XCTest
 @testable import KepuliTV
 
@@ -19,6 +20,45 @@ final class ShellTests: XCTestCase {
         XCTAssertNil(manifest["background"])
         XCTAssertNil(manifest["browser_specific_settings"])
         XCTAssertEqual((manifest["permissions"] as? [String])?.contains("nativeMessaging"), true)
+    }
+
+    /// The screen of an extension that did not load says so in the
+    /// viewer's language and offers another try: both strings come from
+    /// the bundle (ios/build.mjs writes them from js/i18n.js), where a
+    /// missing file would show the bare names.
+    @MainActor
+    func testAFailedStartSaysSoAndOffersAnotherTry() throws {
+        final class Target: NSObject {
+            var pressed = 0
+            @objc func press() { pressed += 1 }
+        }
+        let text = NSLocalizedString("failed", comment: ""), retry = NSLocalizedString("retry", comment: "")
+        XCTAssertTrue(text.contains("Kepuli-TV") && text.count > 20, text)
+        XCTAssertNotEqual(retry, "retry")
+        let target = Target()
+        let stack = PlayerViewController.failureView(text, retry: retry, target: target, action: #selector(Target.press))
+        XCTAssertEqual((stack.arrangedSubviews.first as? UILabel)?.text, text)
+        let button = try XCTUnwrap(stack.arrangedSubviews.last as? UIButton)
+        XCTAssertEqual(button.configuration?.title, retry)
+        button.sendActions(for: .touchUpInside)
+        XCTAssertEqual(target.pressed, 1)
+    }
+
+    /// A video player by Apple's rules: the playback category, so that
+    /// the ring switch does not silence a film; the background mode
+    /// picture in picture needs; and a web view that allows it.
+    @MainActor
+    func testTheAppIsConfiguredAsAVideoPlayer() throws {
+        XCTAssertEqual(AVAudioSession.sharedInstance().category, .playback)
+        XCTAssertEqual(AVAudioSession.sharedInstance().mode, .moviePlayback)
+        XCTAssertEqual(Bundle.main.object(forInfoDictionaryKey: "UIBackgroundModes") as? [String], ["audio"])
+        let player = try XCTUnwrap(Bridge.shared.presenter as? PlayerViewController)
+        let until = Date().addingTimeInterval(20)
+        while player.host.webView == nil && Date() < until { RunLoop.main.run(until: Date().addingTimeInterval(0.1)) }
+        let configuration = try XCTUnwrap(player.host.webView).configuration
+        XCTAssertTrue(configuration.allowsPictureInPictureMediaPlayback)
+        XCTAssertTrue(configuration.allowsInlineMediaPlayback)
+        XCTAssertTrue(configuration.mediaTypesRequiringUserActionForPlayback.isEmpty)
     }
 
     /// Full screen is the app's: WebKit's own for an element, with its

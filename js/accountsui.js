@@ -166,7 +166,7 @@ async function removeAccountInUse(a) {
  * are the other account's, and the catalogue is its own — from the cache
  * when it was opened lately, since each account's is kept apart.
  */
-async function switchAccount(id) {
+export async function switchAccount(id) {
   const target = (state.accounts || []).find((a) => a.id === id);
   if (!target || target.id === state.config.id) return;
   if (el.setup.open) el.setup.close();

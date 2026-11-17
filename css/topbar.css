@@ -38,11 +38,6 @@
    in all thirteen languages: the longest fits on one row from 1080 px. */
 @media (min-width: 601px) and (max-width: 1099px) { .tab-icon { display: none; } }
 .tabs button:hover { color: var(--text); }
-/* On a touch screen a tab is as high as a fingertip (Apple asks 44 pt of
-   an app): at 28 px the row was a line of words to aim at. The Settings
-   sections are the same tabs. A phone lying down has no height for it and
-   keeps 36 px (css/narrow.css). */
-@media (hover: none) { .tabs button { min-height: 2.75rem; } }
 .tabs button.active { background: var(--accent); color: #fff; }
 /* The strip's own padding is 3px and it scrolls sideways in a narrow
    window, which cuts whatever lies outside it: the ring sits on the edge. */

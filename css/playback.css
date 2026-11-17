@@ -173,8 +173,6 @@ body[data-substyle="contrast"] { --cue-back: #000; }
 .overlay-title { font-size: 1.0625rem; font-weight: 650; letter-spacing: -0.005em; }
 .overlay-text { color: var(--muted); }
 .overlay-actions { margin-top: 14px; display: flex; gap: 8px; justify-content: center; }
-/* Under a finger: a cast session's two are its only controls on the page. */
-@media (hover: none) { .overlay-actions button { min-height: 2.75rem; } }
 .now-title:empty { display: none; }
 
 /* The empty player's page: covers to carry on with, then channels. */
@@ -483,8 +481,6 @@ main:not(.guide) .stage:has(> .videowrap.sized:not(:fullscreen, .full)) .info-co
 .tech-facts { margin: -2px 0 8px; }
 .tech-toggle { display: inline-flex; align-items: center; gap: 4px; list-style: none; color: var(--muted); font-size: var(--fs-xs); cursor: pointer; border-radius: 4px; }
 .tech-toggle::-webkit-details-marker { display: none; }
-/* 15 px under a finger. */
-@media (hover: none) { .tech-toggle { min-height: 2rem; } }
 .tech-toggle:hover { color: var(--text); }
 .tech-toggle:focus-visible { outline: 2px solid var(--accent-ink); outline-offset: 2px; }
 .tech-facts[open] > .tech-toggle .section-chevron { rotate: 180deg; }
@@ -557,7 +553,7 @@ main:not(.has-playback) .stagehead { display: none; }
    under the picture. Short of room the selectors — the format's too —
    give way down to their mark and the start of their value, and the
    buttons keep their place. */
-.nowbar.tight .select-mark .select-label { display: none; }
+.nowbar:is(.nolabel, .tight) .select-mark .select-label { display: none; }
 .now-actions { flex-wrap: nowrap; }
 .nowbar.tight .now-actions > #mode-pick { flex: 0 1 auto; min-width: 64px; }
 .nowbar.tight #mode-pick > select { width: 100%; min-width: 0; }
@@ -618,8 +614,6 @@ main.guide .select-mark .select-label { display: none; }
   color: var(--text); font: inherit; text-align: left; cursor: pointer; text-decoration: none;
 }
 .popitem[hidden] { display: none; }
-/* A menu's rows under a finger. */
-@media (hover: none) { .popitem { min-height: 2.75rem; } }
 .popitem:hover { background: var(--row-hover); }
 .popitem:focus-visible { outline: 2px solid var(--accent-ink); outline-offset: -2px; }
 /* The same gold as the row's own Cast button had while a device plays. */

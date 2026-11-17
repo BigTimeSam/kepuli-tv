@@ -16,7 +16,7 @@ func debugLog(_ text: @autoclosure () -> String) {
 /// files in Library/Caches/kepuli-debug/ of the app's data container.
 /// `cmd/<n>.js` is the body of an async function run in the page,
 /// `cmd/<n>.native` a command for this file (state, reload, width,
-/// killweb, tap-reminder); the answer is written to `out/<n>.json`. The page's console, its errors and debugLog's lines go
+/// killweb, tap-reminder, retry); the answer is written to `out/<n>.json`. The page's console, its errors and debugLog's lines go
 /// to `page.log`, begun anew at every launch.
 ///
 /// None of this is in a Release build: `strings` on its binary finds
@@ -136,10 +136,13 @@ final class DebugBridge: NSObject, WKScriptMessageHandler {
             return state()
         case "killweb":
             // There is no public way to end the web content process; this
-            // private selector is in the iOS 18.5 and 26.5 WebKit.
+            // private selector is in the iOS 26.5 WebKit.
             player?.host.webView?.perform(NSSelectorFromString("_killWebContentProcess"))
         case "tap-reminder":
             Services.reminders.debugTap(argument)
+        case "retry":
+            // The button of the failure's screen (KEPULI_FAIL).
+            player?.start()
         default:
             return ["error": "unknown command \(command)"]
         }

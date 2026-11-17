@@ -3,11 +3,8 @@
 // mock provider. The counterpart of dev/playcheck.mjs for what only the
 // real web view and the real shell can show.
 //
-//   node ios/simcheck.mjs                 every scenario on kepuli-ios-iphone and kepuli-ios-ipad,
-//                                         then `min` on kepuli-ios-min (NOT RUN, and exit 1, when
-//                                         that device does not exist)
+//   node ios/simcheck.mjs                 every scenario on kepuli-ios-iphone and kepuli-ios-ipad
 //   node ios/simcheck.mjs live rotate     those scenarios
-//   node ios/simcheck.mjs min             boot, live, persist, fullscreen and cast on iOS 18.5
 //   KEPULI_IOS_DEVICE=kepuli-ios-ipad     one device instead of both
 //   KEPULI_SHOTS_DIR=<directory>          where the pictures go (the temporary directory otherwise;
 //                                         never the repository: the cast pictures may show the names
@@ -24,8 +21,8 @@
 // media must have been rendered once (sh dev/mock/media.sh).
 //
 // What a simulator cannot show is not here: a Cast session, a notification
-// on the lock screen, VLC, the Files picker, picture in picture, a public
-// http host. Those are the device checklist of ios/AGENTS.md. Nor a
+// on the lock screen, VLC, the Files picker, picture in picture on an
+// iPhone, the lock screen's controls, a public http host. Those are the device checklist of ios/AGENTS.md. Nor a
 // finger: a press is the page's own click() and a swipe its pointer events.
 
 import { execFileSync } from 'node:child_process';
@@ -145,8 +142,8 @@ async function bootScenario(d) {
   const state = await fresh(d);
   assert(state.extensionErrors.length === 0 && state.contextErrors.length === 0, `the extension did not load cleanly: ${JSON.stringify([state.extensionErrors, state.contextErrors])}`);
   assert(state.url === PLAYER && state.baseURL === 'webkit-extension://kepuli-tv/', `the page's address is ${state.url} on ${state.baseURL}`);
-  const page = await d.page(`const h = await import('./js/host.js'); await until(() => h.host, 3000);
-    return { search: location.search, ios: document.documentElement.classList.contains('ios'), host: h.host,
+  const page = await d.page(`let host = null; (await import('./js/host.js')).on('host', (said) => { host = said; }); await until(() => host, 3000);
+    return { search: location.search, ios: document.documentElement.classList.contains('ios'), host,
       contains: await browser.permissions.contains({ origins: ['http://example.org/*'] }), manifest: browser.runtime.getManifest() };`);
   assert(page.search === '?ios=1' && page.ios, `the page does not know it is in the app: ${JSON.stringify(page)}`);
   assert((await d.state()).port && page.host && page.host.v === 1 && page.host.idiom === d.idiom, `the port or its greeting: ${JSON.stringify(page.host)}, expected ${d.idiom}`);
@@ -157,7 +154,22 @@ async function bootScenario(d) {
   }
   assert(page.host.version === bundled.version, `the app says version ${page.host.version}, its manifest ${bundled.version}`);
   await d.shot('boot');
-  return `no extension or context error; location.search ?ios=1; html.ios; host ${page.host.idiom} ${page.host.version} (${page.host.build}); access granted without a question; no background in the manifest`;
+  // A start that fails says so and offers another try, which starts the
+  // player: the screen was the app's name alone, with no way on.
+  const stuck = await d.launch({ KEPULI_FAIL: '1' });
+  assert(stuck.failure && !stuck.url, `a start made to fail: ${JSON.stringify({ failure: stuck.failure, url: stuck.url })}`);
+  await sleep(500);
+  await d.shot('boot-failed');
+  await d.native('retry');
+  let again = null;
+  for (const until = Date.now() + 20000; Date.now() < until && again !== PLAYER;) {
+    await sleep(500);
+    again = await d.page(`await until(() => document.readyState === 'complete', 5000); return location.href.split('#')[0];`).catch(() => null);
+  }
+  await sleep(800);
+  const after = await d.state();
+  assert(again === PLAYER && !after.failure && after.port, `after another try the page is ${again}, the failure ${after.failure}, the port ${after.port ? 'connected' : 'not connected'}`);
+  return `no extension or context error; location.search ?ios=1; html.ios; host ${page.host.idiom} ${page.host.version} (${page.host.build}); access granted without a question; no background in the manifest; a start that fails says so, and its button starts the player`;
 }
 
 async function firstrun(d) {
@@ -550,10 +562,8 @@ async function persist(d) {
   const wrote = await d.page(`await browser.storage.local.set({ simcheck: ${JSON.stringify(stamp)} });
     const root = await navigator.storage.getDirectory();
     const handle = await root.getFileHandle('simcheck.txt', { create: true });
-    // iOS 18 has no createWritable in the page; the file itself is then the proof.
-    if (!handle.createWritable) return { text: false };
     const out = await handle.createWritable(); await out.write(${JSON.stringify(stamp)}); await out.close();
-    return { text: true };`);
+    return true;`);
   const state = await d.launch();
   assert(!state.failure, `the app did not start again: ${state.failure}`);
   const kept = await d.page(`const ok = await until(connected, 40000);
@@ -566,8 +576,8 @@ async function persist(d) {
     return { ok: Boolean(ok), simcheck, account: config && config.host + ':' + config.port, file };`);
   assert(kept.ok && kept.account === `127.0.0.1:${MOCK_PORT}`, `after a launch the account is ${kept.account}, the lists ${kept.ok ? 'loaded' : 'did not load'}`);
   assert(kept.simcheck === stamp, `the stored value came back as ${JSON.stringify(kept.simcheck)}`);
-  assert(kept.file === (wrote.text ? stamp : ''), `the file in the origin's private file system came back as ${JSON.stringify(kept.file)}`);
-  return `after terminate and launch: the account connects, the storage.local value is there, the file in the origin's private file system ${wrote.text ? 'has its text' : 'is there (this WebKit has no createWritable, so it was left empty)'}`;
+  assert(wrote && kept.file === stamp, `the file in the origin's private file system came back as ${JSON.stringify(kept.file)}`);
+  return `after terminate and launch: the account connects, the storage.local value is there, the file in the origin's private file system has its text`;
 }
 
 /**
@@ -959,7 +969,7 @@ async function kill(d) {
     after = await d.page(`const ok = await until(connected, 20000); await pause(1500);
       const { state } = await import('./js/state.js'), on = state.rows[state.cursor];
       return { ok: Boolean(ok), same: window.__simcheck === 3, route: location.hash, rows: rows().length, playing: Boolean(state.playing) || playing(), address: location.href.split('#')[0],
-        stands: on ? on.n : null, full: $('videowrap').classList.contains('full'), host: Boolean((await import('./js/host.js')).host) };`).catch(() => null);
+        stands: on ? on.n : null, full: $('videowrap').classList.contains('full'), host: await new Promise((heard) => { import('./js/host.js').then((h) => { h.on('host', () => heard(true)); setTimeout(() => heard(false), 500); }); }) };`).catch(() => null);
     if (!after) await sleep(1000);
   }
   const state = await d.state();
@@ -979,15 +989,119 @@ async function kill(d) {
   return `the web process ended while ${before.title} played in full screen; the player came back by itself at ${after.route} with its list and its port, standing on ${after.stands} and playing nothing until it was chosen, as after a reload in a browser; the idle timer on again and the system's bars back`;
 }
 
+/**
+ * The app behind another, as after the home gesture: what the `audio`
+ * background mode is declared for. Settings stands in for the other app,
+ * as every simulator has it. An iPhone simulator has no picture in
+ * picture (WebKit says so to the page, and the menu leaves it out), so
+ * that half is the iPad's here and the device checklist's on an iPhone.
+ */
+async function background(d) {
+  await connected(d);
+  assert(await d.page(`return Boolean(await playChannel());`), 'no channel played');
+  const away = async () => { simctl('launch', udid(d.name), 'com.apple.Preferences'); await sleep(4000); };
+  const front = async () => { simctl('launch', udid(d.name), 'io.github.bigtimesam.kepulitv.debug'); await sleep(3000); };
+  const look = () => d.page(`const from = video.currentTime; await pause(3000);
+    return { advanced: video.currentTime - from, paused: video.paused, hidden: document.hidden, pip: video.webkitPresentationMode === 'picture-in-picture',
+      full: $('videowrap').classList.contains('full'), named: Boolean(navigator.mediaSession.metadata?.title) };`);
+  let told = '';
+  try {
+    // WebKit pauses a picture nobody sees; the page starts it again
+    // (js/playercontrols.js), and the sound goes on for as long as the
+    // viewer is away: looked at again after a quarter of a minute.
+    await away();
+    const left = await look();
+    assert(left.hidden && !left.paused && left.advanced >= 2 && left.named, `behind another app: ${JSON.stringify(left)}`);
+    await sleep(15000);
+    const later = await look();
+    assert(later.hidden && !later.paused && later.advanced >= 2, `a quarter of a minute behind another app: ${JSON.stringify(later)}`);
+    // Pause on the lock screen and in Control Centre ends in the element's
+    // pause(): it holds there, and in front again, where WebKit would
+    // start the picture by itself.
+    await d.page(`video.pause(); return true;`);
+    const paused = await look();
+    assert(paused.hidden && paused.paused && paused.advanced < 0.5, `paused behind another app: ${JSON.stringify(paused)}`);
+    await front();
+    const held = await look();
+    assert(!held.hidden && held.paused && held.advanced < 0.5, `in front again after a pause behind another app: ${JSON.stringify(held)}`);
+    // What the viewer had paused before leaving stays paused there; Play
+    // there (the element's play()) starts it, and it plays on in front.
+    await away();
+    const quiet = await look();
+    assert(quiet.hidden && quiet.paused, `left paused: ${JSON.stringify(quiet)}`);
+    await d.page(`await video.play(); return true;`);
+    const heard = await look();
+    assert(heard.hidden && !heard.paused && heard.advanced >= 2, `played again behind another app: ${JSON.stringify(heard)}`);
+    await front();
+    const returned = await look();
+    assert(!returned.paused && returned.advanced >= 2, `in front again: ${JSON.stringify(returned)}`);
+    told = 'the channel\'s sound goes on behind another app with its title in the Media Session, a quarter of a minute later too; a pause there holds, in front again as well; left paused it stays paused, and started there it goes on and plays on in front';
+    if (d.idiom === 'pad') {
+      await d.page(`$('btn-full').click(); await until(() => $('videowrap').classList.contains('full'), 5000); $('btn-more').click(); await pause(300);
+        if ($('btn-pip').hidden) return false; $('btn-pip').click(); return until(() => video.webkitPresentationMode === 'picture-in-picture', 8000);`);
+      await sleep(1500);
+      const out = await look();
+      assert(out.pip && !out.full && !out.paused && (await d.state()).fullscreen === 'no', `in picture in picture from full screen: ${JSON.stringify(out)}`);
+      await d.shot('background-pip');
+      await away();
+      const floating = await look();
+      assert(floating.pip && !floating.paused && floating.advanced >= 2, `picture in picture behind another app: ${JSON.stringify(floating)}`);
+      await d.shot('background-pip-away');
+      await front();
+      const home = await d.page(`await document.exitPictureInPicture(); await pause(1500); return { mode: video.webkitPresentationMode, paused: video.paused };`);
+      assert(home.mode === 'inline' && !home.paused, `back from picture in picture: ${JSON.stringify(home)}`);
+      told += '; the menu offers picture in picture, which leaves the app\'s full screen, plays on over the other app and comes back into the page playing';
+    }
+  } finally {
+    try { simctl('terminate', udid(d.name), 'com.apple.Preferences'); } catch { /* it was not running */ }
+  }
+  return told;
+}
+
+/**
+ * A reminder that falls due while the app is in front, with the system's
+ * own notifications (a provisional leave, which asks nobody; the app is
+ * installed anew for it, as a leave once refused stays refused). The
+ * system shows it when the page cannot, a dialog being open; the page's
+ * list without the reminder, sent before the notification's moment as the
+ * page's own timer may send it, does not take it away; and the system
+ * shows nothing when the page can say it itself.
+ */
+async function banner(d) {
+  await fresh(d);
+  await connected(d, { KEPULI_NOTIFY: 'quiet' });
+  const leave = await d.page(`return (await import('./js/host.js')).request('notify.set', { on: true });`);
+  assert(leave.system === 'granted', `the provisional leave: ${JSON.stringify(leave)}`);
+  const due = async (dialog) => {
+    const id = await d.page(`const h = await import('./js/host.js');
+      if (${dialog}) { $('btn-settings').click(); await until(() => $('setup').open, 5000); await pause(600); }
+      const account = 'banner', id = '${dialog ? 'dialog' : 'plain'}-' + Date.now(), at = Date.now() + 6000;
+      h.send('reminders.set', { account, items: [{ id, at, text: 'A reminder in front', channel: { id: 1 } }] });
+      await pause(at - Date.now() - 300);
+      h.send('reminders.set', { account, items: [] });
+      await pause(3300);
+      if (${dialog}) $('setup').close();
+      return id;`);
+    // The status shows the system's lists as they were read the time before.
+    await d.state();
+    await sleep(700);
+    const { reminders } = await d.state();
+    assert(reminders.notifier === 'system' && !reminders.pending.length, `after a reminder fell due: ${JSON.stringify(reminders)}`);
+    return reminders.delivered.some((identifier) => identifier.endsWith(`|${id}`));
+  };
+  const covered = await due(true), plain = await due(false);
+  assert(covered && !plain, `the system showed the reminder ${covered ? '' : 'not '}with a dialog open and ${plain ? '' : 'not '}with the player in sight`);
+  return 'with the system\'s own notifications a reminder due while Settings is open is shown by the system, though the page\'s list without it came 0.3 s before its moment; with the player in sight the system shows nothing';
+}
+
 const SCENARIOS = {
   boot: { run: bootScenario }, firstrun: { run: firstrun }, channels: { run: channels }, live: { run: live }, film: { run: film }, mkv: { run: mkv },
   guide: { run: guide }, settings: { run: settings }, persist: { run: persist }, fullscreen: { run: fullscreen },
   split: { run: split, only: 'pad' }, rotate: { run: rotateScenario }, cast: { run: cast }, links: { run: links }, save: { run: save },
-  reminder: { run: reminder }, stalker: { run: stalker }, kill: { run: kill },
+  reminder: { run: reminder }, banner: { run: banner }, stalker: { run: stalker }, kill: { run: kill }, background: { run: background },
 };
-// iOS 18.5, the oldest that can be run here: what was measured on 26.5 alone.
-const MIN = ['boot', 'live', 'persist', 'fullscreen', 'cast'];
-const DEVICES = { 'kepuli-ios-iphone': 'phone', 'kepuli-ios-ipad': 'pad', 'kepuli-ios-min': 'phone' };
+// The last two are the app's minimum, run when asked for by KEPULI_IOS_DEVICE.
+const DEVICES = { 'kepuli-ios-iphone': 'phone', 'kepuli-ios-ipad': 'pad', 'kepuli-ios-iphone-26-0': 'phone', 'kepuli-ios-ipad-26-0': 'pad' };
 
 /* ------------------------------------------------------------------- run */
 
@@ -1027,12 +1141,12 @@ async function onDevice(name, names, context, results) {
 
 async function main() {
   const asked = process.argv.slice(2);
-  const unknown = asked.filter((name) => name !== 'min' && !SCENARIOS[name]);
+  const unknown = asked.filter((name) => !SCENARIOS[name]);
   if (unknown.length) {
-    console.error(`no scenario ${unknown.join(', ')}; there are: ${Object.keys(SCENARIOS).join(', ')}, min`);
+    console.error(`no scenario ${unknown.join(', ')}; there are: ${Object.keys(SCENARIOS).join(', ')}`);
     process.exit(1);
   }
-  const names = asked.filter((name) => name !== 'min');
+  const names = asked;
   const everything = asked.length === 0;
   let taken = '';
   try { taken = execFileSync('lsof', ['-nP', `-iTCP:${MOCK_PORT}`, '-sTCP:LISTEN'], { encoding: 'utf8' }); } catch { /* lsof exits 1 when nothing listens */ }
@@ -1057,10 +1171,7 @@ async function main() {
     const chosen = process.env.KEPULI_IOS_DEVICE;
     const devices = chosen ? [chosen] : ['kepuli-ios-iphone', 'kepuli-ios-ipad'];
     if (chosen && !DEVICES[chosen]) throw new Error(`KEPULI_IOS_DEVICE is ${chosen}; the scenarios run on ${Object.keys(DEVICES).join(', ')}`);
-    if (everything || names.length) {
-      for (const name of devices) await onDevice(name, everything ? Object.keys(SCENARIOS) : names, { mock }, results);
-    }
-    if ((everything && !chosen) || asked.includes('min')) await onDevice('kepuli-ios-min', MIN, { mock }, results);
+    for (const name of devices) await onDevice(name, everything ? Object.keys(SCENARIOS) : names, { mock }, results);
   } finally {
     server.close();
     server.closeAllConnections?.();

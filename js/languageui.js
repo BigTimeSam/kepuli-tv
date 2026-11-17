@@ -6,7 +6,7 @@
 // Moved out of app.js. It takes the player's state, and the parts app.js
 // builds, from js/state.js.
 
-import { redrawCasting, sessionShown } from './castui.js';
+import { redrawCasting } from './castui.js';
 import { $, el } from './dom.js';
 import { applyStatic, loadLanguage, localeTag, setLanguage, setRegion, t } from './i18n.js';
 import { grid, guideOpen, programmeSearch, renderGuideGroups } from './guideui.js';
@@ -21,6 +21,7 @@ import { renderRecordingState } from './recordingsui.js';
 import { renderNowSub, renderNowTitle, showOverlayActions } from './playing.js';
 import { renderIdleHome } from './idlehome.js';
 import { renderEmptyState } from './topicbar.js';
+import { armReminders } from './remindersui.js';
 
 /**
  * The language changes mid-session without reloading the page.
@@ -83,6 +84,9 @@ export async function applyLanguage(lang) {
   if (!redrawCasting() && !state.playing && !el.overlay.hidden && !el.overlay.classList.contains('loading')) renderIdleOverlay();
   // The path in the tab's title is in the interface language as well.
   updateAddress();
+  // The app's notifications carry their sentence from the moment they
+  // were scheduled: they are handed over again in the language of now.
+  armReminders();
 }
 
 /** The player's idle state: either a welcome or a prompt to pick a channel. */
@@ -97,7 +101,7 @@ new MutationObserver(() => {
 
 export function renderIdleOverlay() {
   // The app's cast session has the overlay (js/castui.js).
-  if (sessionShown()) return;
+  if (redrawCasting(true)) return;
   const welcome = !configured();
   // The welcome is the way in, not only a word: with the dialog closed it
   // used to be a dead end, the Settings button its only, unnamed, way on.

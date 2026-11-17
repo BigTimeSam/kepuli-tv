@@ -5,6 +5,11 @@
   main { grid-template-columns: 11.875rem minmax(16.25rem, 20rem) 1fr; }
   main.guide { grid-template-columns: minmax(0, 1fr) minmax(16.25rem, 30vw); }
   :root { --epg-chan-w: 10.625rem; }
+  /* A channel's name on two lines in the narrower column: on one, beside
+     the archive's mark, "Maple Cinema" and "Maple Cinema HD" both read
+     "Maple…". */
+  .epg-chan-body { align-items: center; }
+  .epg-chan-name { display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; white-space: normal; line-height: 1.2; }
 }
 
 /* Below this the three columns cannot all keep their width — 224 + 300 of
@@ -153,10 +158,7 @@
   main.guide > .guide-header { padding-block: 3px; }
   .guide-back { padding-block: 4px; }
   .epg-bar { padding-block: 4px; }
-  .epg-bar .spacer, .epg-clock, #epg-prev, #epg-next, .epg-nav:has(#epg-in) { display: none; }
-  .epg-search-toggle { display: inline-flex; }
-  .programme-form { display: none; padding-block: 4px; }
-  .epg.searching .programme-form, .epg:has(#programme-panel:not([hidden])) .programme-form { display: flex; }
+  .programme-form { padding-block: 4px; }
   /* Beside the grid, the programme's two buttons come before the corner
      picture's own bars: the name over it and the bar under it go, the
      programme's panel scrolls in what the picture leaves, and with
@@ -186,6 +188,16 @@
   main.guide.has-playback #videowrap:not(:fullscreen, .full) > .overlay .overlay-text { display: none; }
   main.guide.has-playback #videowrap:not(:fullscreen, .full) > .overlay .overlay-actions { margin-top: 8px; }
 }
+/* The guide's bar there, and under a finger in two columns (an upright
+   iPad, where its five rows of controls left the grid half the column):
+   the clock, the steps and the zoom go, and the search waits behind its
+   mark. */
+@media (max-height: 440px) and (min-width: 601px), (hover: none) and (min-width: 601px) and (max-width: 900px) {
+  .epg-bar .spacer, .epg-clock, #epg-prev, #epg-next, .epg-nav:has(#epg-in) { display: none; }
+  .epg-search-toggle { display: inline-flex; }
+  .programme-form { display: none; }
+  .epg.searching .programme-form, .epg:has(#programme-panel:not([hidden])) .programme-form { display: flex; }
+}
 /* With the countries in a menu over the list (two columns), the guide's
    button stands in the menu's row as a mark, not on a row of its own. */
 @media (max-height: 440px) and (min-width: 601px) and (max-width: 900px) {
@@ -199,17 +211,36 @@
   .channel-guide-arrow { display: none; }
   .channel-tools:not([hidden]) + .group-picker { padding-right: 54px; }
 }
-/* A touch screen's larger targets (css/topbar.css, css/list.css) in a low
-   window: the bars there were measured to leave the list three rows, so
-   the tabs keep 36 px and the foot's marks fit the lower foot. */
-@media (hover: none) and (max-height: 440px) {
-  .tabs button { min-height: 2.25rem; }
-  .listinfo .view-toggle button { width: 2rem; height: 1.75rem; }
-  .listinfo > button { min-height: 1.75rem; }
-  /* Back, the seasons and the guide's days and buttons keep 32 px there:
-     each stands on a row of its own that the list or the grid pays for. */
-  .season, .crumbs button, .epg-day { min-height: 2rem; }
-  .epgv-actions button, .overlay-actions button { min-height: 2.25rem; }
+/* A touch screen's 44 px (css/last.css) in a low window, where every bar
+   is paid for in rows of the list: the bars give up their own margins,
+   what has no frame takes the press beyond its look (a transparent
+   border or a margin taken back, so that the tabs' strip and the folds
+   stay as low as they were), and the guide's way back is the first mark
+   of its bar, as on an upright phone (css/last.css), not a row. */
+@media (hover: none) and (max-height: 440px) and (min-width: 601px) {
+  :root { --foot-h: 3rem; }
+  .topbar, .group-picker, .channel-tools, .nowbar, .epg-bar { padding-block: 2px; }
+  .tabs button, .listinfo .view-toggle button { border-block: 4px solid transparent; margin-block: -4px; background-clip: padding-box; }
+  .section-toggle, .listcol .toggle { margin-block: -6px; }
+  .detail-cover { box-sizing: border-box; width: 2.75rem; height: 2.75rem; padding: 1px 8px; margin: -1px -8px; background-clip: content-box; box-shadow: none; }
+  .detail-cover > img { inset: 1px 8px; width: calc(100% - 16px); height: calc(100% - 2px); border-radius: 4px; }
+  .channel-guide { width: 2.75rem; height: 2.75rem; }
+  /* The logo alone where the bar's buttons are behind its menu: with the
+     Cast mark in the bar the search read "Search all mo…". */
+  .topbar.compact .brand { font-size: 0; gap: 0; min-width: 2.75rem; justify-content: center; }
+  .channel-tools:not([hidden]) + .group-picker { padding-right: 60px; }
+  main.guide { position: relative; }
+  main.guide > .guide-header { position: absolute; top: 0; left: 0; z-index: 3; padding: 2px 0 0 10px; background: none; border: 0; }
+  main.guide > .guide-header h2 { display: none; }
+  main.guide .guide-back > span, .epg-favs > span {
+    position: absolute; width: 1px; height: 1px; margin: -1px; padding: 0;
+    overflow: hidden; clip-path: inset(50%); white-space: nowrap; border: 0;
+  }
+  #epg-group { margin-left: 50px; }
+  /* The bar's own line here: the strip keeps its third of the window and
+     the menu stands outside it. */
+  .epg-daybar { flex: 1 1 14rem; max-width: none; }
+  .epg-days { max-width: 34vw; }
 }
 /* Menus and dialogs in a low window, at any width: a menu scrolls inside
    the window, and a dialog scrolls as one, its heading and its buttons

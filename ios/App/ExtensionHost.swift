@@ -15,8 +15,8 @@ final class ExtensionHost: NSObject, WKWebExtensionControllerDelegate {
     static let baseURL = URL(string: "webkit-extension://kepuli-tv/")!
     static let storeIdentifier = UUID(uuidString: "EA9BF6AD-7F8E-413E-A452-A75272922ABC")!
 
-    /// The page, with the flag js/host.js reads. Measured on iOS 26.5 and
-    /// 18.5: WebKit serves an extension page with a query string, and
+    /// The page, with the flag js/host.js reads. Measured on iOS 26.5:
+    /// WebKit serves an extension page with a query string, and
     /// location.search is "?ios=1".
     static let page = "player.html?ios=1"
 
