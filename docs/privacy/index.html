@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Privacy Policy — Kepuli-TV</title>
-<meta name="description" content="The privacy policy of the Kepuli-TV browser extension and of the Kepuli-TV app for the iPhone and the iPad: what data they handle, where it is sent and how it is deleted.">
+<meta name="description" content="The privacy policy of the Kepuli-TV browser extension and of the Kepuli-TV apps for Android, the iPhone and the iPad: what data they handle, where it is sent and how it is deleted.">
 <meta name="robots" content="index,follow">
 <link rel="icon" type="image/png" sizes="32x32" href="../img/icon32.png">
 <link rel="icon" type="image/png" sizes="128x128" href="../img/icon128.png">
@@ -334,7 +334,7 @@
 
 <main>
 <h1>Privacy Policy</h1>
-<p class="meta">Applies to the Kepuli-TV browser extension and, with the differences of section 11, to the Kepuli-TV app for the iPhone and the iPad. Effective 13 November 2026, version 1.7</p>
+<p class="meta">Applies to the Kepuli-TV browser extension for Chrome and Firefox and to the Kepuli-TV apps for Android phones, tablets and televisions and for the iPhone and the iPad. Effective 17 November 2026, version 1.8</p>
 
 <section class="summary">
   <h2>In short</h2>
@@ -344,6 +344,7 @@
     <li><strong>The developer never receives, sees or stores any of your data.</strong> The extension has no backend.</li>
     <li><strong>Network requests go to the addresses you point it at</strong> — your own IPTV server or playlist, and the programme guide it names — and, for channel logos, to GitHub's file server, which hosts a public collection of logos (see section 3).</li>
     <li><strong>The extension cannot see the pages you browse.</strong> It has no content scripts and requests access to no website at install time.</li>
+    <li><strong>The apps for Android, the iPhone and the iPad are the same player.</strong> An app is the extension, run by a browser engine inside the app, so everything here holds for it too. What differs in an app (what the system is asked to allow, what the engine itself looks up, what Google Play tells the developer, and what Google's Cast software sends to Google once you cast to a Chromecast) is in section 6.</li>
   </ul>
 </section>
 
@@ -540,81 +541,119 @@
   web page. It operates solely within its own tab.
 </p>
 
-<h2><span class="num">6.</span>Remote code</h2>
+<h2><span class="num">6.</span>The apps for Android, the iPhone and the iPad</h2>
 <p>
-  The extension neither loads nor executes any code from outside its package. All executable
-  code — including the media libraries and the WebAssembly audio decoder — ships inside the
-  extension package. Only media and catalogue data are fetched from the network; never code.
+  The app for Android phones, tablets and televisions (Google Play) and the app for the iPhone
+  and the iPad (App Store), both <code>io.github.bigtimesam.kepulitv</code>, are the same
+  player: the extension's own files, run inside the app by a browser engine. Sections 1 to 5
+  describe them as they describe the extension, read with &ldquo;the app&rdquo; for
+  &ldquo;the extension&rdquo;, with these differences.
 </p>
-
-<h2><span class="num">7.</span>Deleting your data</h2>
 <ul>
-  <li><strong>Cache:</strong> can be cleared from the extension's settings at any time
-    (<em>Settings → Clear cache</em>).</li>
-  <li><strong>Everything the extension stored:</strong> <em>Settings → Reset everything</em> (&ldquo;reset&rdquo;) removes the credentials,
-    preferences, favourites, watch history, resume positions and the whole cache database, and what the extension put in the browser's sync storage.</li>
-  <li><strong>Everything:</strong> uninstalling the extension removes all data it stored on the device. There is nothing for the developer to delete, because nothing was ever sent to the developer — apart from an uninstall answer you may have chosen to give, which carries nothing that identifies you.</li>
+  <li>
+    <strong>Where the data lives.</strong> Everything in section 2 is kept in the app's own
+    private storage on the device, which other apps cannot read, and nowhere else. There is
+    no browser account behind an app, so nothing is synced to another device.
+  </li>
+  <li>
+    <strong>No uninstall question.</strong> Removing the app opens no form and sends nothing.
+  </li>
+  <li>
+    <strong>Your server's address.</strong> There is no browser to ask on the app's behalf, so
+    an app asks for none of the browser permissions of section 5: it allows itself the
+    addresses the player asks for (your server, and where your provider sends its streams)
+    without a prompt. It still talks only to the addresses in section 3.
+  </li>
+  <li>
+    <strong>Reminders.</strong> The system asks whether Kepuli-TV may show
+    <strong>notifications</strong> when you set your first reminder or turn the notifications
+    on in the settings. A reminder is a notification scheduled on the device itself: it names
+    the programme and its channel, and nothing about it is sent anywhere.
+  </li>
+  <li>
+    <strong>Casting to a Chromecast.</strong> The apps for a phone, a tablet, the iPhone and
+    the iPad contain Google's Cast software; the television's app contains none. It is not
+    started until you first choose Cast: an app that never casts sends Google nothing and
+    does not search the network. From then on it looks for Cast devices on your local
+    network. When you cast, the stream's address, which carries your IPTV credentials, is
+    handed to the device you chose over your local network, and the device fetches the
+    stream from your provider by itself. Once started, Google's software sends Google data
+    of its own, described for each app below, under
+    <a href="https://policies.google.com/privacy" rel="noopener noreferrer">Google's privacy policy</a>;
+    the developer of Kepuli-TV never receives it and cannot see it.
+  </li>
+  <li>
+    <strong>The developer still receives nothing.</strong> The apps have no analytics, ads,
+    account or server of their own.
+  </li>
 </ul>
 
-<h2><span class="num">8.</span>Sale and transfer of data</h2>
-<p>
-  User data is not sold or transferred to third parties. It is not used or transferred for
-  purposes unrelated to the extension's single purpose, nor to determine creditworthiness or
-  for lending purposes. This is guaranteed technically: the developer receives no data at all,
-  apart from the anonymous answer to the uninstall question, if you choose to give one.
-</p>
-
-<h2><span class="num">9.</span>Children</h2>
-<p>
-  The extension is not directed at children under 13 and collects no data from them — as it
-  collects none from anyone.
-</p>
-
-<h2><span class="num">10.</span>Data controller and GDPR</h2>
-<p>
-  Because the developer neither receives, processes nor stores personal data, using the
-  extension creates no personal data register held by the developer. The data on your device
-  is under your control and can be deleted as described above. Data subject requests (access,
-  rectification, erasure, portability) are in practice directed at your IPTV provider, which is
-  its own controller.
-</p>
-
-<h2><span class="num">11.</span>The app for the iPhone and the iPad</h2>
-<p>
-  The app is the same player, and everything above holds for it, read with &ldquo;the app&rdquo;
-  for &ldquo;the extension&rdquo;, except for what follows.
-</p>
+<h3>On Android</h3>
 <ul>
   <li>
-    <strong>Where the data lives.</strong> Accounts, settings, favourites, history, resume
-    positions and the catalogue cache are kept in the app's own storage on the device, and
-    nowhere else. Deleting the app deletes them. The app has no sync between devices, no
-    recording and no uninstall question, so what sections 2, 3 and 7 say of those does not
-    apply to it.
+    <strong>The engine keeps to itself.</strong> The app's engine is GeckoView, the engine of
+    Firefox for Android, which is part of the app. A browser's engine left alone asks a few
+    things of Mozilla and Google when it starts (whether a sign-in page stands in the way of
+    the network, which country the device is in, lists of harmful sites, the engine's own
+    settings). The app turns all of those off: measured on a newly installed app (version
+    1.13.0.1, three minutes with no account added), it looked up no address at all. Android
+    itself checks the network in its own way, as it does for every app.
   </li>
   <li>
-    <strong>Permissions.</strong> The app asks for none of the browser permissions of
-    section 5. The system asks whether Kepuli-TV may reach your <strong>local network</strong>
-    the first time you cast, or earlier if your provider's address is on your own network, and
-    whether it may show <strong>notifications</strong> when you set your first reminder or turn
-    reminders into notifications in the settings. A reminder is a notification scheduled on the device itself: it names the
-    programme and its channel, and nothing about it is sent anywhere.
+    <strong>What Google Play tells the developer.</strong> Google Play installs and updates the
+    app and shows the developer totals: how many devices have it, of what kind, in which
+    countries, and, if you have agreed to share diagnostics with Google, crash reports without
+    your account or viewing data. That is collected by Google under Google's privacy policy,
+    not by the app, and nothing in it names you, your provider or what you watch.
   </li>
   <li>
-    <strong>Chromecast, and what Google receives.</strong> The app contains Google's Cast SDK,
-    which is Google's software. It does nothing until you first choose
-    <em>Cast to a Chromecast</em>; from then on it looks for Chromecast devices on your local
-    network. When you cast, the stream's address, which carries your IPTV credentials, the
-    title and, where there is one, the address of the cover picture are handed to the
-    Chromecast over your local network, and the Chromecast fetches the stream from your
-    provider itself. According to Google's own declaration for the SDK, it may collect and
-    send to Google a <strong>device identifier</strong>, the device's <strong>coarse
-    location</strong>, <strong>how the Cast dialogs are used</strong>, and
-    <strong>performance and other diagnostic data</strong>, for analytics and for the SDK to
-    work; none of it is linked to your identity or used for tracking. Kepuli-TV turns the
-    SDK's analytics logging off. That data goes to Google under
-    <a href="https://policies.google.com/privacy">Google's privacy policy</a>; the developer
-    of Kepuli-TV does not receive it and cannot see it.
+    <strong>What Android is asked to allow.</strong> Network access, for your server. On a
+    phone or a tablet also: notifications, for reminders; running in the foreground while
+    something plays, with its notification, so that the sound goes on with the screen off or
+    another app in front; keeping the device awake for the stream meanwhile; and starting
+    after a restart of the device, only to set the reminders' alarms again. For a reminder to
+    come while the app is closed, the programme's name, its channel and its time are kept in
+    the app's storage until the programme is over. None of this leaves the device.
+  </li>
+  <li>
+    <strong>What Google's Cast software sends.</strong> Once started, it starts with the app,
+    and it sends Google usage data of its own (that devices were looked for, that a session
+    began or ended, the kind of phone and the app's name and version), without an identifier
+    that can be traced to you, encrypted on the way, as Google describes in its
+    <a href="https://developers.google.com/cast/docs/android_sender/data_disclosure" rel="noopener noreferrer">data disclosure for the Cast software</a>.
+    Neither you nor the developer can turn that off other than by not casting.
+  </li>
+  <li>
+    <strong>Files.</strong> A file you save from the player (a playlist for another player,
+    your settings, a recording) goes to the device's Downloads, where other apps you allow can
+    read it; a playlist file contains your credentials. A file you pick for the player is
+    copied into the app's own storage for reading and replaced by the next one.
+  </li>
+  <li>
+    <strong>Links and other players.</strong> A link opens in the device's browser, and a
+    handoff to an external player in that player's app (section 3), not inside Kepuli-TV.
+  </li>
+</ul>
+
+<h3>On the iPhone and the iPad</h3>
+<ul>
+  <li>
+    <strong>No recording.</strong> The app has no recording, so what section 2 says of
+    recordings does not apply to it.
+  </li>
+  <li>
+    <strong>Your local network.</strong> The system asks whether Kepuli-TV may reach your
+    <strong>local network</strong> the first time you cast, or earlier if your provider's
+    address is on your own network.
+  </li>
+  <li>
+    <strong>What Google's Cast software sends.</strong> With the stream's address the
+    Chromecast is handed the title and, where there is one, the address of the cover picture.
+    According to Google's own declaration for its Cast SDK, it may collect and send to Google
+    a <strong>device identifier</strong>, the device's <strong>coarse location</strong>,
+    <strong>how the Cast dialogs are used</strong>, and <strong>performance and other
+    diagnostic data</strong>, for analytics and for the SDK to work; none of it is linked to
+    your identity or used for tracking. Kepuli-TV turns the SDK's analytics logging off.
   </li>
   <li>
     <strong>Links and other apps.</strong> A link (IMDb, a trailer, the guide, this policy)
@@ -622,11 +661,51 @@
     sees any other. <em>Open in VLC</em> hands the stream's address, with your credentials,
     to the VLC app on the same device.
   </li>
-  <li>
-    <strong>The developer still receives nothing.</strong> The app has no analytics, ads,
-    account or server of its own.
-  </li>
 </ul>
+
+<h2><span class="num">7.</span>Remote code</h2>
+<p>
+  The extension neither loads nor executes any code from outside its package. All executable
+  code — including the media libraries and the WebAssembly audio decoder — ships inside the
+  extension package. Only media and catalogue data are fetched from the network; never code.
+</p>
+
+<h2><span class="num">8.</span>Deleting your data</h2>
+<ul>
+  <li><strong>Cache:</strong> can be cleared from the extension's settings at any time
+    (<em>Settings → Clear cache</em>).</li>
+  <li><strong>Everything the extension stored:</strong> <em>Settings → Reset everything</em> (&ldquo;reset&rdquo;) removes the credentials,
+    preferences, favourites, watch history, resume positions and the whole cache database, and what the extension put in the browser's sync storage.</li>
+  <li><strong>On Android:</strong> the same settings are in the app, and Android's own
+    <strong>Settings → Apps → Kepuli-TV → Storage → Clear storage</strong>, or removing the app, deletes
+    everything the app stored. Files you saved to Downloads are yours and stay until you delete them.</li>
+  <li><strong>On the iPhone and the iPad:</strong> the same settings are in the app, and removing the app deletes
+    everything the app stored.</li>
+  <li><strong>Everything:</strong> uninstalling the extension removes all data it stored on the device. There is nothing for the developer to delete, because nothing was ever sent to the developer — apart from an uninstall answer you may have chosen to give, which carries nothing that identifies you.</li>
+</ul>
+
+<h2><span class="num">9.</span>Sale and transfer of data</h2>
+<p>
+  User data is not sold or transferred to third parties. It is not used or transferred for
+  purposes unrelated to the extension's single purpose, nor to determine creditworthiness or
+  for lending purposes. This is guaranteed technically: the developer receives no data at all,
+  apart from the anonymous answer to the uninstall question, if you choose to give one.
+</p>
+
+<h2><span class="num">10.</span>Children</h2>
+<p>
+  The extension is not directed at children under 13 and collects no data from them — as it
+  collects none from anyone.
+</p>
+
+<h2><span class="num">11.</span>Data controller and GDPR</h2>
+<p>
+  Because the developer neither receives, processes nor stores personal data, using the
+  extension creates no personal data register held by the developer. The data on your device
+  is under your control and can be deleted as described above. Data subject requests (access,
+  rectification, erasure, portability) are in practice directed at your IPTV provider, which is
+  its own controller.
+</p>
 
 <h2><span class="num">12.</span>Changes</h2>
 <p>

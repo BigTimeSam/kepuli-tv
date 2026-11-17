@@ -327,8 +327,9 @@ sent only to the provider the viewer names, which is not collection by the
 developer or a partner.
 
 Tracking: the app does not track; no App Tracking Transparency prompt.
-Privacy policy: the URL above; its section 11 is about the app and names
-Google as the recipient of what the Cast SDK collects.
+Privacy policy: the URL above; its section 6 is about the apps, with a part
+on the iPhone and the iPad, and names Google as the recipient of what the
+Cast SDK collects.
 
 
 --- AGE RATING --------------------------------------------------------------

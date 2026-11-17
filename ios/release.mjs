@@ -504,7 +504,7 @@ async function status(build) {
     // The guide is the app's: no other platform on it. The policy is the
     // app's too once it has the section on the app and Google's Cast.
     const hit = page.text && path.startsWith('iptv') ? PLATFORMS.exec(shownText(page.text)) : null;
-    const lacks = page.text && path === 'privacy/' && !page.text.includes('The app for the iPhone and the iPad</h2>');
+    const lacks = page.text && path === 'privacy/' && !page.text.includes('<h3>On the iPhone and the iPad</h3>');
     say(Boolean(page.text) && !hit && !lacks, `${name} is on the Pages site`,
       page.why ? `${site || ''}${path} ${page.why}` : hit ? `it names "${hit[0]}"` : lacks ? 'it has no section on the app yet' : `${site}${path}`);
   }
