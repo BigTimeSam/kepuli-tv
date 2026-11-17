@@ -606,6 +606,17 @@ Settings. Android decides the exact moment: the notification is asked for
 two minutes before the programme and may come a little later than that. A
 tap on it opens the app on that channel.
 
+**Cast to a Chromecast** in the app hands the device the stream's address,
+and the device fetches it by itself: choose the device from Google's list,
+and what plays moves to it from where it was; the app is then its remote
+control (**Remote control** over the picture's place, the notification,
+the volume buttons), and **Stop casting** brings the picture back to the
+app at the same place. A Cast button stands on the top bar once a device
+is found on the network. A Chromecast plays films and episodes in MP4 and
+channels the provider sends as HLS; anything else is said and plays in the
+app. The account's one connection goes with the stream, so nothing plays
+in the app meanwhile.
+
 **Help** in the app names these instead of the keys: a row's menu by
 touching and holding it, what **Back** does, the small window and the sound
 with the screen off. The keyboard shortcuts are folded under them, for a

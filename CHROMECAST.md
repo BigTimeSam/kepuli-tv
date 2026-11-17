@@ -207,3 +207,16 @@ profile, comes first. Then:
 | MKV episode with subtitles, Cast tab, `f` | subtitles on the device while mirrored; confirm whether they survive the switch |
 | Leave full screen while remoted | mirroring resumes |
 | Firefox | no button |
+
+## In the Android app
+
+The app for a phone and a tablet (`android/`) is not a browser: its engine
+has no Remote Playback API and nothing mirrors a tab. There the third route
+above is the only one, and the app carries Google's Cast sender for it
+(`android/AGENTS.md`, Chromecast). What the device can be handed is the
+table of fact 2: `castMedia` in `js/cast.js` decides, and what cannot be
+cast is said and plays in the app. One correction to that table from a real
+device: a Chromecast with Google TV played a provider's HLS channel whose
+playlist and segments carried no CORS header (2026-11-17), so the app does
+not ask the server first; it tries the device, and a device that refuses
+says so (`js/castui.js`).

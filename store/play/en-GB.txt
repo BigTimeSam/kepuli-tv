@@ -14,6 +14,7 @@ Stalker portals, built around one idea: a huge catalogue should feel small.
 → On a television everything works with the remote control
 → On a phone the picture stays in a small window when you go elsewhere, and
   the sound goes on with the screen off
+→ Cast films and HLS channels from a phone or a tablet to a Chromecast
 
 
 WHAT YOU GET
@@ -47,8 +48,9 @@ WHAT YOU GET
 PRIVATE BY DESIGN
 
 No tracking, no ads, no sign-up. Kepuli-TV talks only to your own provider's
-server. The one exception: channel logos may load from a public logo
-collection on GitHub.
+server. Two exceptions: channel logos may load from a public logo collection
+on GitHub, and once you cast to a Chromecast, Google's Cast software in the
+app talks to Google, as the privacy policy describes.
 
 
 PLEASE NOTE

@@ -189,4 +189,8 @@ tasks.named('preBuild') { dependsOn syncExtension, syncManifests, syncStrings, s
 
 dependencies {
     implementation 'org.mozilla.geckoview:geckoview:160.0.20261104181552'
+    // Google's Cast sender, in the phone's and the tablet's app alone
+    // (CastService): a television is what is cast to. It brings AndroidX's
+    // media router and AppCompat, whose dialogs it shows.
+    mobileImplementation 'com.google.android.gms:play-services-cast-framework:23.0.0'
 }

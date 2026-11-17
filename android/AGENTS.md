@@ -75,6 +75,41 @@ What the app does with them:
   viewer grants in the settings, `SCHEDULE_EXACT_ALARM`, which the manifest
   does not ask for): on the emulator it came 20 to 40 seconds late.
 
+## Chromecast
+
+The phone's and the tablet's app carries Google's Cast sender
+(`play-services-cast-framework`; the television's package does not). The
+engine has no Remote Playback, so a Chromecast is handed an address and
+fetches the stream by itself: `CHROMECAST.md` says what a device takes
+(HLS and the files a browser plays by itself; not raw MPEG-TS, not
+Matroska).
+
+- **The page's side** is `js/cast.js` (`NativeCast`) and `js/castui.js`,
+  over the typed messages of `js/host.js` on the same line as the words
+  above: `cast.prompt`, `cast.load`, `cast.stop`, `cast.end`,
+  `cast.controls` from the page; `cast.state` and `cast.media` from the
+  app. The same messages are spoken by the app for the iPhone and the iPad
+  (branch `ios`), so the page's side is one.
+- **`CastService`** answers them. Google's sender is not started before
+  the viewer first asks to cast, and starts with the app after that
+  (preference `cast`/`used`): an app whose viewer never casts says nothing
+  to Google and does not search the network. Devices are looked for only
+  while the activity is in sight. Nothing logs an address or a title.
+- **The dialogs are Google's**: the devices and the session (AndroidX's
+  media router dialogs, shown with AppCompat's theme over the plain
+  activity), and the remote control (`CastControlsActivity`, the sender's
+  expanded controller), which the sender's own notification also opens.
+- **One connection.** The page stops the picture before it hands the
+  address over and plays on here when the device cannot, fails or lets go;
+  while a device plays for the page, the page tells the app that nothing
+  is on (`castingNow` in `js/remote.js`), so neither the media
+  notification nor the small window stands for a picture that is on a
+  television.
+- **Testing.** The emulator finds the Cast devices of the host's network
+  and shows Google's list, but a device cannot fetch from the mock at
+  `10.0.2.2`: give the account the host's own address on the network.
+  Casting takes over somebody's television: ask first.
+
 ## Building and running
 
 JDK 21, the Android SDK with platform `android-37.2` (GeckoView 160 asks for

@@ -2301,6 +2301,83 @@ check('VLC for iOS is handed the stream address, encoded whole',
   check('nothing was reported as a failure while the stream came back', failed, null);
 }
 
+/* ------------------------------ the Android app around the page: js/host.js */
+{
+  const { attach, on, request, send, native } = await import('../js/host.js');
+  check('outside the app the page is not told it is in one', native, false);
+  // A port as runtime.connectNative gives one, with the app's side played here.
+  const fakePort = () => {
+    const port = { sent: [], listeners: [], closed: [],
+      postMessage: (m) => port.sent.push(m),
+      onMessage: { addListener: (l) => port.listeners.push(l) },
+      onDisconnect: { addListener: (l) => port.closed.push(l) },
+      say: (m) => port.listeners.forEach((l) => l(m)) };
+    return port;
+  };
+  send('awake', { on: true });
+  check('without a port a message goes nowhere and a request is refused',
+    await request('notify.get').then(() => 'answered', (err) => err.message), 'no port');
+  const port = fakePort();
+  attach(port);
+  send('awake', { on: true });
+  check('a message carries its type and its fields', port.sent, [{ type: 'awake', on: true }]);
+  const asked = request('notify.get');
+  const { id } = port.sent[1];
+  port.say({ re: id + 1, ok: true, on: false });
+  port.say({ re: id, ok: true, on: true, system: 'granted' });
+  check('a request is answered by the reply that names it, with the reply\'s fields',
+    [typeof id, await asked], ['number', { on: true, system: 'granted' }]);
+  const refused = request('cast.load', { url: 'http://tv.example/1.mp4' });
+  port.say({ re: port.sent[2].id, ok: false, error: 'no-session' });
+  check('a reply that says no rejects with its reason', await refused.then(() => 'answered', (err) => err.message), 'no-session');
+  check('a request nobody answers gives up', await request('cast.load', {}, 20).then(() => 'answered', (err) => err.message), 'timeout');
+  port.say({ type: 'cast.state', state: 'connected', device: 'Living room', devices: 1 });
+  const heard = [];
+  const stop = on('cast.state', (fields) => heard.push(fields.state));
+  port.say({ type: 'cast.state', state: 'disconnected', device: null, devices: 1 });
+  stop();
+  port.say({ type: 'cast.state', state: 'connecting', device: null, devices: 1 });
+  check('a listener that comes late hears the last event, then each one until it stops', heard, ['connected', 'disconnected']);
+  const waiting = request('notify.get');
+  const next = fakePort();
+  attach(next);
+  port.say({ type: 'cast.state', state: 'connected', device: 'Old', devices: 1 });
+  check('a new port takes the place of the old one: its requests are let go, its words unheard',
+    [await waiting.then(() => 'answered', (err) => err.message), heard.length], ['disconnected', 2]);
+  next.closed.forEach((l) => l());
+  send('awake', { on: false });
+  check('a port that closed carries nothing more', next.sent, []);
+}
+
+/* ---------------------------------- js/cast.js: what a Chromecast can take */
+{
+  const { castMedia, createCast, supported } = await import('../js/cast.js');
+  const HLS = 'application/x-mpegURL';
+  check('an Xtream channel is cast by its HLS address, as live MPEG-TS segments',
+    castMedia({ url: 'http://tv.example:8080/live/u/p/7.ts', hlsUrl: 'http://tv.example:8080/live/u/p/7.m3u8', live: true, ext: undefined }),
+    { url: 'http://tv.example:8080/live/u/p/7.m3u8', contentType: HLS, live: true, hls: 'ts' });
+  check('a playlist\'s channel with an .m3u8 address is cast as it is',
+    castMedia({ url: 'https://cdn.example/aurora/index.m3u8?token=a', hlsUrl: null, live: true }),
+    { url: 'https://cdn.example/aurora/index.m3u8?token=a', contentType: HLS, live: true });
+  check('the files a browser plays by itself are cast, each under its type',
+    ['mp4', 'm4v', 'mov', 'webm'].map((ext) => castMedia({ url: `http://tv.example/movie/u/p/5000.${ext}`, live: false, ext })),
+    [['mp4', 'video/mp4'], ['m4v', 'video/mp4'], ['mov', 'video/mp4'], ['webm', 'video/webm']]
+      .map(([ext, contentType]) => ({ url: `http://tv.example/movie/u/p/5000.${ext}`, contentType, live: false })));
+  check('the ending in the address does when the item names none',
+    castMedia({ url: 'http://tv.example/files/film.MP4?x=1', live: false })?.contentType, 'video/mp4');
+  check('Matroska, MPEG-TS and AVI are not cast: a film, a channel with no HLS address, the archive',
+    [castMedia({ url: 'http://tv.example/series/u/p/1.mkv', live: false, ext: 'mkv' }),
+      castMedia({ url: 'http://tv.example/live/u/p/7.ts', hlsUrl: null, live: true }),
+      castMedia({ url: 'http://tv.example/movie/u/p/9.avi', live: false, ext: 'avi' }),
+      castMedia({ url: 'http://tv.example/timeshift/u/p/60/2026-11-13:20-00/7.ts', live: false, catchup: true, ext: 'ts' })],
+    [null, null, null, null]);
+  check('a recording in this page and a Stalker portal\'s one-use link are not cast',
+    [castMedia({ url: 'blob:chrome-extension://abc/1f', live: false, ext: 'mp4' }),
+      castMedia({ url: 'http://portal.example/play/film.mp4?token=1', live: false, ext: 'mp4', relink: async () => '' })],
+    [null, null]);
+  check('in a browser the way to a Chromecast is the browser\'s, or none', [supported, createCast(/** @type {any} */ ({}), () => {}).native], [false, false]);
+}
+
 /* ------------------------------------------------------------------ done */
 
 console.log(failed ? `${failed} of ${count} cases failed` : `PASS: ${count} cases`);

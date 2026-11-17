@@ -24,6 +24,18 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
+        <!-- Google's Cast sender reads its options from here when it is
+             first asked for (CastService), and its remote control for what
+             a Chromecast plays is an AppCompat activity. -->
+        <meta-data
+            android:name="com.google.android.gms.cast.framework.OPTIONS_PROVIDER_CLASS_NAME"
+            android:value="io.github.bigtimesam.kepulitv.CastOptionsProvider" />
+        <activity
+            android:name=".CastControlsActivity"
+            android:exported="false"
+            android:launchMode="singleTask"
+            android:parentActivityName=".PlayerActivity"
+            android:theme="@style/Theme.AppCompat.NoActionBar" />
         <service
             android:name=".PlaybackService"
             android:exported="false"

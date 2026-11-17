@@ -35,7 +35,9 @@ import { state, vlist } from './state.js';
 import { scrubStep, towards } from './listnavigation.js';
 import { gridColumns } from './coversui.js';
 import { enterFullscreen, togglePause } from './playercontrols.js';
-import { remote } from './caret.js';
+import { inApp, remote } from './caret.js';
+import { castingNow } from './castui.js';
+import { appPort } from './host.js';
 import { dismissToast } from './toast.js';
 
 export { remote };
@@ -91,7 +93,6 @@ export function wireRemote(app) {
 }
 
 /** Whether the page is the Android app's on a phone or a tablet. */
-const inApp = typeof location !== 'undefined' && new URLSearchParams(location.search).has('app');
 
 /**
  * The page's line to the Android app around it ("kepuli", answered by
@@ -107,8 +108,10 @@ const inApp = typeof location !== 'undefined' && new URLSearchParams(location.se
  * this, but it never came to life for the app, GeckoView 160.)
  */
 function talkWithApp() {
-  let port;
-  try { port = api.runtime.connectNative('kepuli'); } catch { return; }
+  // The one line to the app (js/host.js), which the cast session's words
+  // share: these have no type, and those are told apart by theirs.
+  const port = appPort();
+  if (!port) return;
   port.onMessage.addListener((message) => {
     if (typeof message?.pip === 'boolean') document.documentElement.classList.toggle('pip', message.pip);
     const press = message?.press;
@@ -124,7 +127,7 @@ function talkWithApp() {
   const tell = () => {
     const metadata = navigator.mediaSession?.metadata;
     const now = {
-      on: Boolean(state.playing), playing: Boolean(state.playing) && !el.video.paused && !el.video.ended,
+      on: Boolean(state.playing) && !castingNow(), playing: Boolean(state.playing) && !el.video.paused && !el.video.ended,
       title: metadata?.title || '', artist: metadata?.artist || '', live: state.playing?.k === 0,
     };
     const text = JSON.stringify(now);

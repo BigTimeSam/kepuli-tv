@@ -92,6 +92,8 @@ public class PlayerActivity extends EngineActivity {
     /** The page's end of the line, and what waits for it to be there. */
     private WebExtension.Port page;
     private JSONObject waiting;
+    /** The Chromecast sender behind the page's cast.* messages. */
+    private CastService cast;
 
     @Override
     protected String page() { return "player.html?app=1"; }
@@ -129,6 +131,10 @@ public class PlayerActivity extends EngineActivity {
     @Override
     protected void onCreate(Bundle state) {
         super.onCreate(state);
+        // Before the engine has the extension: onStart comes first.
+        cast = new CastService(this, message -> {
+            if (page != null) page.postMessage(message);
+        });
         // A phone left on a list goes dark as phones do; the screen is
         // kept on while something plays (playing()).
         getWindow().clearFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
@@ -264,6 +270,12 @@ public class PlayerActivity extends EngineActivity {
                     @Override
                     public void onPortMessage(Object message, WebExtension.Port from) {
                         if (!(message instanceof JSONObject)) return;
+                        // The words with a type are the cast session's (js/host.js).
+                        String type = ((JSONObject) message).optString("type", "");
+                        if (type.startsWith("cast.")) {
+                            cast.handle(type, (JSONObject) message);
+                            return;
+                        }
                         JSONArray size = ((JSONObject) message).optJSONArray("shape");
                         if (size != null) shape(size.optInt(0), size.optInt(1));
                         JSONObject now = ((JSONObject) message).optJSONObject("now");
@@ -279,6 +291,7 @@ public class PlayerActivity extends EngineActivity {
                     }
                 });
                 if (pip) tell("pip", true);
+                cast.pageConnected();
                 if (waiting != null) port.postMessage(waiting);
                 waiting = null;
             }
@@ -721,6 +734,7 @@ public class PlayerActivity extends EngineActivity {
     protected void onStart() {
         super.onStart();
         started = true;
+        cast.inSight(true);
         PlaybackService.now.visible = true;
         PlaybackService.refresh();
     }
@@ -728,6 +742,7 @@ public class PlayerActivity extends EngineActivity {
     @Override
     protected void onStop() {
         started = false;
+        cast.inSight(false);
         PlaybackService.now.visible = false;
         PlaybackService.refresh();
         super.onStop();

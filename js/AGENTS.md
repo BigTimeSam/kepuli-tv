@@ -52,7 +52,9 @@ lists, series info, stream URL) for its kind:
 | `mp4file.js`, `mp4play.js` | MP4 through MediaSource for Firefox (http media upgrade problem) |
 | `audio.js`, `ffaudio.js`, `transcode.js` | audio track choice, AC-3/E-AC-3/DTS decoding (wasm), re-encoding for MSE |
 | `subs.js`, `subdisplay.js`, `lang.js` | subtitle tracks, the app-drawn subtitle layer, language names |
-| `cast.js`, `external.js` | Chromecast (Remote Playback API), hand-off to VLC and others |
+| `cast.js`, `external.js` | Chromecast (the Remote Playback API in a browser; `NativeCast`, the face of the Android app's own sender; `castMedia`, what a device can be handed), hand-off to VLC and others |
+| `castui.js` | the cast session in the Android app: a stream handed to the device and taken back (`castOrPlay`, called by `startPlayback` in `playing.js`), the overlay with its two buttons, what cannot be cast said and played here, the device's place kept as the film's own, the next episode after one that ended on the device |
+| `host.js` | the app around the page, where there is one: `native` (the page opened as `player.html?app=1`) and the one port to its native side (`send`, `request`, `on`; `appPort` for the untyped words of `remote.js`) |
 | `streamhub.js`, `recorder.js` | one shared live connection; recording to the origin private file system |
 | `playing.js`, `tracksui.js`, `nextepisode.js` | starting playback and what the overlay says while it waits or fails (the account's connections, the player's other tabs); the subtitle and audio selectors, the subtitles' look, the picture's size and leaving playback; the saved place, the next episode and the stream's figures (moved out of `app.js`) |
 | `setupui.js` | Settings and Account & data: the form and its account kinds, sync, the storage used, the update, resetting everything, and their wiring (moved out of `app.js`) |

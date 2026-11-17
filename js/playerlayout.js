@@ -24,9 +24,21 @@ export class PlayerLayout {
     });
   }
 
-  update({ connected, playing }) {
+  /**
+   * `session`: a cast session the page found on the device (the app, its
+   * page loaded again while a Chromecast plays; js/castui.js). It stands
+   * in the player's pane as something playing does: its words and Stop
+   * casting are there, so the pane is shown for it once and the switch
+   * stays while it lasts.
+   */
+  update({ connected, playing, session = false }) {
     this.connected = connected;
     this.playing = playing;
+    // Once, when a connected player first has the session: a tab or a
+    // search after that asks for the list as ever.
+    const found = Boolean(connected && session);
+    if (found && !this.session) this.watching = true;
+    this.session = found;
     this.render();
   }
 
@@ -45,12 +57,16 @@ export class PlayerLayout {
   }
 
   render() {
-    const watching = !this.connected || (this.playing && this.watching);
+    // What the player's pane has to show: something playing, or a found session.
+    const playing = this.playing || this.session;
+    const watching = !this.connected || (playing && this.watching);
     this.main.classList.toggle('has-library', Boolean(this.connected));
     this.main.classList.toggle('has-playback', Boolean(this.playing));
+    // The switch between the two panes, where there is one pane.
+    this.main.classList.toggle('has-panes', Boolean(playing));
     this.main.classList.toggle('compact-watch', Boolean(watching));
     this.browse.setAttribute('aria-pressed', String(!watching));
     this.watch.setAttribute('aria-pressed', String(Boolean(watching)));
-    this.watch.disabled = !this.playing;
+    this.watch.disabled = !playing;
   }
 }

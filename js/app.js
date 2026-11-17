@@ -29,7 +29,8 @@ import { formatRoute, parseRoute } from './route.js';
 
 import { requestAccess, hasAccess, hasAccessEverywhere, requestAccessEverywhere, redirects } from './permissions.js';
 
-import { Cast, supported as castSupported } from './cast.js';
+import { createCast, supported as castSupported } from './cast.js';
+import { renderCasting, sessionFound } from './castui.js';
 import { warmCache, probeCacheTtl } from './probe.js';
 
 import { SubtitleDisplay } from './subdisplay.js';
@@ -84,7 +85,7 @@ const playerLayout = new PlayerLayout(el.main, {
   browse: $('compact-browse'), watch: $('compact-player'), list: el.list, video: el.video, closeGuide,
 });
 function updatePlayerLayout() {
-  playerLayout.update({ connected: Boolean(state.lib), playing: Boolean(state.playing) });
+  playerLayout.update({ connected: Boolean(state.lib), playing: Boolean(state.playing), session: sessionFound() });
 }
 
 // The topic the last session ended on, waiting for the library. It belongs
@@ -1781,7 +1782,7 @@ function lengthsRead() {
 
 /* --------------------------------------------------------- Chromecast */
 
-const cast = new Cast(el.video, renderCastState);
+const cast = createCast(el.video, renderCastState);
 
 /**
  * The Cast button and the c key. A natively played file goes through the
@@ -1795,6 +1796,9 @@ const cast = new Cast(el.video, renderCastState);
  */
 function castCurrent() {
   if (!castSupported) return;
+  // The app's own sender (js/castui.js): Google's dialog, whatever plays
+  // or not, as a viewer may connect first.
+  if (cast.native) { cast.prompt(); return; }
   if (!state.playingSpec) { toast(t('cast.nothing'), { kind: 'warn' }); return; }
   // Already casting: the same dialog is where Chrome lets the viewer stop.
   if (cast.busy) { cast.prompt().catch(() => {}); return; }
@@ -1831,7 +1835,13 @@ function showCastHint() {
 function renderCastState() {
   el.cast.hidden = !castSupported;
   el.cast.classList.toggle('on', cast.connected);
-  el.more.classList.toggle('on', cast.connected);
+  el.more.classList.toggle('on', cast.connected && !cast.native);
+  // In the app the Cast mark itself stands on the top bar once a device
+  // is near or in use, as Google's terms want it in sight, and is the one
+  // lit; the session is drawn by js/castui.js.
+  $('btn-cast-top').hidden = !(cast.native && (cast.available || cast.busy));
+  $('btn-cast-top').classList.toggle('on', cast.connected);
+  renderCasting();
   // The engine line carries the device; before anything plays it says "Not
   // connected", and that text is not this function's to change.
   if (state.playing) renderNowSub();
@@ -2114,6 +2124,7 @@ function wireUi() {
   wireModal($('rec-consent'), () => closeRecordingConsent(false));
   wireModal($('recordings'), () => $('recordings').close());
   el.cast.addEventListener('click', castCurrent);
+  $('btn-cast-top').addEventListener('click', castCurrent);
   $('btn-pip').addEventListener('click', async () => {
     try {
       if (document.pictureInPictureElement) await document.exitPictureInPicture();

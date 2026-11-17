@@ -346,6 +346,12 @@
 //                                     picks one), a feature-length file plays
 //                                     on with its own duration for
 //                                     KEPULI_LONG_SECS; skipped without it
+//   node dev/playcheck.mjs appcast    the cast session in the Android app
+//                                     (player.html?app=1, the app's side
+//                                     of the line played here): the mark
+//                                     with a device near, a film handed
+//                                     over and taken back, a device's
+//                                     failure, what cannot be cast
 //   node dev/playcheck.mjs appback    Back in the Android app on a phone
 //                                     (player.html?app=1, sent as Escape):
 //                                     it closes the drop-down that is open,
@@ -7989,6 +7995,100 @@ async function handoff(page) {
  * stepping back. On the phone emulator one Back did both: the drop-down
  * heard the key first and closed, and the same key then found nothing open.
  */
+/**
+ * The cast session in the Android app (player.html?app=1; js/castui.js).
+ * The app's side of the line is played here: what the page sent is kept,
+ * cast.load is answered at once, and __say speaks as the app does unasked.
+ */
+async function appcast(page, { target }) {
+  const plain = bare(target.url).split('?')[0];
+  const assert = (ok, message) => { if (!ok) throw new Error(message); };
+  const sent = (type) => evaluate(page, `window.__sent.filter((m) => m.type === ${JSON.stringify(type)})`);
+  const say = (message) => evaluate(page, `(window.__say(${JSON.stringify(message)}), true)`);
+  const toasts = () => evaluate(page, `new Promise((r) => setTimeout(() => r(window.__toasts.splice(0)), 50))`);
+  const waitLoad = async (n, what) => { await waitFor(page, `window.__sent.filter((m) => m.type === 'cast.load').length === ${n}`, what, 15000); await sleep(150); };
+  const OVERLAY = `(() => { const o = document.getElementById('overlay'); return { shown: !o.hidden, title: document.getElementById('overlay-title').textContent,
+    buttons: [...document.querySelectorAll('#overlay-actions button')].map((b) => b.textContent) }; })()`;
+  const TV = { type: 'cast.state', state: 'connected', device: 'Living Room TV', devices: 1 };
+  try {
+    await page.call('Page.navigate', { url: `${plain}?app=1#/live` });
+    await sleep(1000);
+    await waitFor(page, `location.search === '?app=1' && ${CONNECTED}`, 'the connection in the app\'s page');
+    await evaluate(page, `document.querySelector('dialog[open]')?.close()`);
+    await evaluate(page, `(async () => {
+      const listeners = [];
+      window.__sent = [];
+      window.__say = (message) => listeners.forEach((l) => l(message));
+      (await import('./js/host.js')).attach({
+        postMessage(m) { window.__sent.push(m); if (m.id && m.type === 'cast.load') setTimeout(() => window.__say({ re: m.id, ok: true }), 20); },
+        onMessage: { addListener: (l) => listeners.push(l) }, onDisconnect: { addListener() {} } });
+      window.__toasts = [];
+      new MutationObserver(() => window.__toasts.push(document.getElementById('toast-text').textContent)).observe(document.getElementById('toast-text'), { childList: true });
+      window.__say({ type: 'cast.state', state: 'disconnected', device: null, devices: -1 });
+      return true; })()`);
+    const [castOn, castControls, castStop, castCannot, castFailed, castPlaying] = await evaluate(page,
+      `import('./js/i18n.js').then((m) => ['cast.on', 'cast.controls', 'cast.stop', 'cast.cannot', 'cast.failed', 'cast.playing'].map((key) => m.t(key)))`);
+    const MARK = `(() => { const b = document.getElementById('btn-cast-top'); return { shown: b.getClientRects().length > 0, on: b.classList.contains('on') }; })()`;
+    const before = await evaluate(page, MARK);
+
+    // A device near puts the mark on the bar; the dialog is the app's.
+    await say({ type: 'cast.state', state: 'disconnected', device: null, devices: 1 });
+    await evaluate(page, `document.getElementById('btn-cast-top').click()`, { gesture: true });
+    const mark = await evaluate(page, MARK);
+    assert(!before.shown && mark.shown && !mark.on && (await sent('cast.prompt')).length === 1,
+      `the Cast mark: before any device ${JSON.stringify(before)}, with one near ${JSON.stringify(mark)}, ${(await sent('cast.prompt')).length} prompt(s)`);
+
+    // A film playing here goes over when the device connects, from its position.
+    await evaluate(page, `(async () => { const { state } = await import('./js/state.js'); const { playItem } = await import('./js/playing.js');
+      const film = (await state.lib.ensureFull('movie')).find((f) => String(f.id) === '5000'); playItem(film, { startAt: 42 }); return true; })()`, { gesture: true });
+    await waitFor(page, PLAYING, 'the film here');
+    await say(TV);
+    await waitLoad(1, 'the film handed to the device');
+    const [load] = await sent('cast.load');
+    const over = await evaluate(page, `(async () => ({ overlay: ${OVERLAY}, engine: (await import('./js/playing.js')).playback.engineKey,
+      title: document.getElementById('now-title').textContent, on: document.getElementById('btn-cast-top').classList.contains('on') }))()`);
+    assert(/\/movie\/demo\/demo\/5000\.mp4$/.test(load.url) && load.contentType === 'video/mp4' && load.live === false && load.startAt >= 42 && load.startAt < 60
+      && load.title === over.title && typeof load.id === 'number', `the film handed over: ${JSON.stringify({ ...load, url: load.url.replace(/^.*\/movie/, '…/movie') })}`);
+    assert(over.engine === null && over.on && over.overlay.shown && over.overlay.title === castOn.replace('{device}', 'Living Room TV')
+      && over.overlay.buttons.join('|') === `${castControls}|${castStop}`, `the page while the device plays: ${JSON.stringify(over)}`);
+    await say({ type: 'cast.media', state: 'playing', reason: null, position: 50, duration: 120 });
+    assert((await evaluate(page, `document.getElementById('now-sub').textContent`)).includes(castPlaying), 'the line under the title does not say the device plays');
+    await evaluate(page, `document.querySelector('#overlay-actions button').click()`, { gesture: true });
+    assert((await sent('cast.controls')).length === 1, 'Remote control did not ask for the app\'s controls');
+
+    // Stop casting ends the session, and the film plays on here from where the device was.
+    await say({ type: 'cast.media', state: 'playing', reason: null, position: 80, duration: 120 });
+    await evaluate(page, `document.querySelectorAll('#overlay-actions button')[1].click()`, { gesture: true });
+    assert((await sent('cast.end')).length === 1, 'Stop casting did not end the session');
+    await say({ type: 'cast.state', state: 'disconnected', device: null, devices: 1, position: 80 });
+    await waitFor(page, PLAYING, 'the film here after the session ended');
+    const back = await evaluate(page, `({ at: document.getElementById('video').currentTime, on: document.getElementById('btn-cast-top').classList.contains('on') })`);
+    assert(back.at >= 80 && !back.on, `after Stop casting: ${JSON.stringify(back)}`);
+
+    // A session again, and the device fails: said, and the film plays on here.
+    await say(TV);
+    await waitLoad(2, 'the film handed over again');
+    await say({ type: 'cast.media', state: 'playing', reason: null, position: 90, duration: 120 });
+    await toasts();
+    await say({ type: 'cast.media', state: 'idle', reason: 'error', position: 90, duration: 120 });
+    await waitFor(page, PLAYING, 'the film here after the device failed');
+    const failed = { toast: (await toasts()).at(-1), at: await evaluate(page, `document.getElementById('video').currentTime`), stops: (await sent('cast.stop')).length };
+    assert(failed.toast === castFailed && failed.at >= 90 && failed.stops === 1, `after the device failed: ${JSON.stringify(failed)}`);
+
+    // An MKV episode cannot be cast: said, and it plays here, the session kept.
+    await playEpisode(page);
+    const mkv = await toasts();
+    const kept = await evaluate(page, MARK);
+    assert(mkv.includes(castCannot) && (await sent('cast.load')).length === 2 && kept.on, `an MKV episode during a session: "${mkv.join('", "')}", ${(await sent('cast.load')).length} load(s), the mark ${JSON.stringify(kept)}`);
+    return { ok: true, detail: 'a device near showed the Cast mark, whose press asked for the app\'s dialog; a film went to the device from its place when one connected and came back at the device\'s place on Stop casting; a failure on the device was said and the film played on here; an MKV episode was said to be uncastable and played here' };
+  } catch (err) {
+    return { ok: false, detail: err.message };
+  } finally {
+    await page.call('Page.navigate', { url: plain }).catch(() => {});
+    await sleep(500);
+  }
+}
+
 async function appback(page, { target }) {
   const plain = bare(target.url).split('?')[0];
   const back = async () => { await pressKey(page, 'Escape', 'Escape', 27); await sleep(300); };
@@ -8239,7 +8339,7 @@ async function remote(page, { target }) {
 
 const SCENARIOS = { buffering, livebuffering, filmbuffering, emptyfile, tsasmp4, refusedfile, badgateway, livebadgateway, channelrefused, noanswer, longfilm, catalogUi, setupClarity, welcome, fullscreenControl, blockedplay, clickpause, pickers, touchcaret, screenbutton, topmenu, scrollbars, channelorder, lengthfilter, nowlogo, channels, home, resumemkv, restore, programmes, catchup, seek, death, cancel, timeout, search, paste, keys, switching, resume, connections, livezap, livequiet, reconnect, accounts, listerror, a11y, subtitles, audio, wasmaudio, settings,
   lastchannel, nextepisode, continuewatching, reminders, update, seeklag, cuesretry, quota, catchupfreeze, catchupfull, twotabs, switchstop, resettabs,
-  refresh, restorenav, guidekeep, removeaccount, m3u, sync, holes, picks, flakyserver, accountform, stalker, record, guidefavs, guidenames, categories, homecountry, noleak, perf, pseudo, remote, appback, remotescrub, startup, soak, phone, headline, accountnow, onerow, nowbarfit, subsize, arrowmiddle, idlelight, iossubs, starquiet, phonestar, pickertouch, pickerkeyboard, phonescroll, menutap, wakelock, livecut, episodenames, gotochannel, filmdetails, favorder, countryfilter, tilekeys, routes, programmekeys, searchlimit, filterfolds, focusrings, xtreamoffer, guideclick, filmaddress, filmfacts, playlistfile, perflive, perfplaylist, remoteimages, phoneguide, handoff, closedplan, secondpicture, liverewind, upcoming };
+  refresh, restorenav, guidekeep, removeaccount, m3u, sync, holes, picks, flakyserver, accountform, stalker, record, guidefavs, guidenames, categories, homecountry, noleak, perf, pseudo, remote, appback, appcast, remotescrub, startup, soak, phone, headline, accountnow, onerow, nowbarfit, subsize, arrowmiddle, idlelight, iossubs, starquiet, phonestar, pickertouch, pickerkeyboard, phonescroll, menutap, wakelock, livecut, episodenames, gotochannel, filmdetails, favorder, countryfilter, tilekeys, routes, programmekeys, searchlimit, filterfolds, focusrings, xtreamoffer, guideclick, filmaddress, filmfacts, playlistfile, perflive, perfplaylist, remoteimages, phoneguide, handoff, closedplan, secondpicture, liverewind, upcoming };
 // The mock's whole-list answers stall for these, longer than the request limit.
 const SLOW_LIST_MS = { cancel: 60000, timeout: 60000 };
 // The media is sent slowly for these: the seek targets must lie outside the

@@ -514,6 +514,12 @@ const STRINGS = {
     'cast.tab.text': 'A Chromecast cannot take this stream directly. Cast the whole tab instead: choose Cast\u2026 from Chrome\u2019s own menu, then press f — with the picture full screen, Chrome sends it as it is, without re-encoding.',
     'cast.fullscreen': 'Full screen',
     'cast.close': 'Close',
+    'cast.on': 'Playing on {device}',
+    'cast.on.text': 'The Chromecast fetches the stream by itself. This device is its remote control.',
+    'cast.controls': 'Remote control',
+    'cast.stop': 'Stop casting',
+    'cast.cannot': 'A Chromecast cannot play this stream, so it plays here. Films in MP4 and channels sent as HLS can be cast.',
+    'cast.failed': 'The Chromecast could not play this stream, so it plays here.',
 
     /* --------------------------------------------------------- settings */
     'setup.title': 'Settings',
@@ -951,18 +957,18 @@ const STRINGS = {
     'help.remote.back': 'Sulje avoin näkymä, palaa sitten listaan. Listasta: poistu sovelluksesta',
     'help.remote.full': 'Koko näytössä',
     'help.remote.fullkeys': '↑ ↓ vaihtavat kanavaa, ← → siirtävät elokuvaa tai jaksoa kymmenen sekuntia, OK pysäyttää',
-
-    /* ---------------------------------------------------------- sidebar */
-    'groups.filter.placeholder': 'Maa tai aihe…',
-    'groups.filter.genres': 'Lajityyppi tai aihe…',
-    'groups.genres.aria': 'Lajityypit ja aiheet',
-    'groups.all': 'Kaikki',
     'help.app.hold': 'Pitkä painallus',
     'help.app.menu': 'Kanavalla, elokuvalla tai jaksolla: sen valikko, sama kuin ⋯-painikkeesta',
     'help.app.home': 'Aloitusnäyttö',
     'help.app.pip': 'Siirry sinne toiston aikana, niin kuva jää pieneen ikkunaan muiden päälle. Napauta sitä: tauko, seuraava ja edellinen kanava sekä paluu sovellukseen',
     'help.app.dark': 'Näyttö pois',
     'help.app.sound': 'Ääni jatkuu. Androidin ilmoitus kertoo, mitä on menossa, ja siinä on taukopainike',
+
+    /* ---------------------------------------------------------- sidebar */
+    'groups.filter.placeholder': 'Maa tai aihe…',
+    'groups.filter.genres': 'Lajityyppi tai aihe…',
+    'groups.genres.aria': 'Lajityypit ja aiheet',
+    'groups.all': 'Kaikki',
     'groups.all.title': 'Lataa koko listan palvelimelta',
     'kind.c': 'Kategoriat',
     'kind.0': 'Kanavat',
@@ -1315,6 +1321,12 @@ const STRINGS = {
     'cast.tab.text': 'Chromecast ei ota tätä virtaa vastaan suoraan. Lähetä koko välilehti sen sijaan: valitse Chromen omasta valikosta Suoratoista… ja paina sitten f – koko näytön tilassa Chrome lähettää kuvan sellaisenaan ilman uudelleenkoodausta.',
     'cast.fullscreen': 'Koko näyttö',
     'cast.close': 'Sulje',
+    'cast.on': 'Toistetaan laitteessa {device}',
+    'cast.on.text': 'Chromecast hakee virran itse. Tämä laite on sen kaukosäädin.',
+    'cast.controls': 'Kaukosäädin',
+    'cast.stop': 'Lopeta lähetys',
+    'cast.cannot': 'Chromecast ei osaa toistaa tätä virtaa, joten se toistetaan tässä. MP4-elokuvat ja HLS-muodossa lähetetyt kanavat voi lähettää.',
+    'cast.failed': 'Chromecast ei pystynyt toistamaan tätä virtaa, joten se toistetaan tässä.',
 
     /* --------------------------------------------------------- settings */
     'setup.title': 'Asetukset',

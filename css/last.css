@@ -163,3 +163,5 @@ input[type="search"], input[type="text"], input[type="url"], input:not([type]) {
 .pip main > .stage { display: flex; }
 .pip #videowrap { position: fixed; inset: 0; z-index: 1000; background: #000; }
 .pip :is(.second-bar, .statbadge, .zap, dialog, #toast) { display: none; }
+/* The app's Cast mark on the top bar, lit while a device is connected (app.js renderCastState). */
+#btn-cast-top.on { color: var(--accent-ink); border-color: var(--accent-ink); }
