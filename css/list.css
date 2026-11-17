@@ -96,7 +96,7 @@
    takes back, so nothing beside it moves, and the hover's ground is held
    to the old size by clipping it to the content. (A larger transparent
    layer over the button did the same, but counted as the button's text
-   overflowing it.) On a touch screen each takes the press in 44 px
+   overflowing it.) On a touch screen each takes the press in 40 px
    (css/last.css). */
 .row-star, .row-star:hover { width: 24px; height: 24px; padding: 1px; margin: -1px; background-clip: content-box; }
 button.group-star, button.group-star:hover, .group.active .group-star:hover { width: 24px; height: 24px; padding: 3px; margin: -3px; background-clip: content-box; }
@@ -152,15 +152,14 @@ button.group-star, button.group-star:hover, .group.active .group-star:hover { wi
      the part that gave way: "5 ser…" on a phone, "6…" in a tablet's
      column. It keeps its width, and what stands beside it goes instead:
      the category first, then the tab's mark, and in the narrowest column
-     (a tablet lying down) the count's word. The widths are in em, the
-     foot's own text size, as a rem in a container's query is 16 px
-     whatever the page's is (WebKit): with an iPad's larger text
-     (css/last.css) the marks and "6 movies" were wider than its 359 px
-     column, which 320 px let by. */
+     (a tablet lying down) the count's word: six marks and "6 movies"
+     were wider than an iPad's 359 px column. The widths are in em, the
+     foot's own text size (a rem in a container's query is 16 px in
+     WebKit whatever the page's is). */
   .listinfo-count { flex-shrink: 0; }
   @container (max-width: 42em) { .listinfo-rest { display: none; } }
   @container (max-width: 35em) { .listinfo > .tab-icon { display: none; } }
-  @container (max-width: 28em) {
+  @container (max-width: 30em) {
     /* The number alone (js/topicbar.js); the words stay for a screen reader. */
     .listinfo-count { font-size: 0; }
     .listinfo-count::before { content: attr(data-n); content: attr(data-n) / ""; font-size: var(--fs-s); }

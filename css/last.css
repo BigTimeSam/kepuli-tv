@@ -90,58 +90,61 @@ input[type="search"], input[type="text"], input[type="url"], input:not([type]) {
   .programme-form:not(:focus-within, :has(#programme-query:not(:placeholder-shown), select[aria-expanded="true"])) select { display: none; }
 }
 
-/* A touch screen: everything that takes a press is 44 px high and wide
-   at the least (Apple asks 44 pt of an app; a press 5 px beside a row's
-   32 px star played the channel). Keyed on the pointer, never on .ios, so
+/* A touch screen: everything that takes a press is 40 px high and wide
+   at the least (a press 5 px beside a row's 32 px star played the
+   channel; at Apple's 44 pt the owner found the bars heavy and the
+   list's foot too narrow for its marks). Keyed on the pointer, never on .ios, so
    that a phone's browser gains too and a mouse sees none of it. One block
    for all of them; node dev/playcheck.mjs touchsizes measures every
    control in sight in each view. */
 @media (hover: none) {
   /* What has a box of its own grows to the size. */
   button, select, summary, .section-toggle, .popitem, .picker-option, .toggle, .radio, .choice-mode, .group, .choice-row, .chip-main,
-  .modal-actions > button, .title-links a, input:not([type="checkbox"], [type="radio"], [type="file"]) { min-height: 2.75rem; }
+  .modal-actions > button, .title-links a, input:not([type="checkbox"], [type="radio"], [type="file"]) { min-height: 2.5rem; }
   .picker-option { display: flex; align-items: center; }
   /* A slider takes the press in the same height and keeps a slider's
-     place: at 44 px each, the two of the subtitles' look pushed its panel
-     34 px up over the picture of an upright phone. */
-  input[type="range"] { margin-block: -0.75rem; }
+     place: at their full height the two of the subtitles' look pushed its
+     panel up over the picture of an upright phone. */
+  input[type="range"] { margin-block: -0.625rem; }
   /* A mark in a frame is a square of it. */
   .icon-button, .modal-close, .group-picker-star, .epg-search-toggle, .epgv-close, .epg-bar button.ghost, .guide-back, #btn-full,
-  .chip-main, .season, .crumbs button, .epg-day, .now-actions > button { min-width: 2.75rem; flex-shrink: 0; }
-  .icon-button, .modal-close, .epg-search-toggle, .epgv-close { height: 2.75rem; }
-  .icon-button:not(.labelled), .modal-close, .epg-search-toggle, .epgv-close { width: 2.75rem; }
+  .chip-main, .season, .crumbs button, .epg-day, .now-actions > button { min-width: 2.5rem; flex-shrink: 0; }
+  .icon-button, .modal-close, .epg-search-toggle, .epgv-close { height: 2.5rem; }
+  .icon-button:not(.labelled), .modal-close, .epg-search-toggle, .epgv-close { width: 2.5rem; }
   /* A mark without one keeps its place and its look, and takes the press
      around it: the box grows into a margin of the same size taken back. */
-  .row-star, .row-star:hover, .row-more { width: 2.75rem; height: 2.75rem; margin: -6px; }
-  button.group-star, button.group-star:hover, .group.active .group-star:hover { width: 2.75rem; height: 2.75rem; padding: 13px; margin: -13px; }
-  button.series-favorite { width: 2.75rem; height: 2.75rem; margin: -6px; }
-  .hint-btn { width: 2.75rem; height: 2.75rem; min-height: 0; margin: -13px; border-width: 13px; }
+  .row-star, .row-star:hover, .row-more { width: 2.5rem; height: 2.5rem; margin: -4px; }
+  button.group-star, button.group-star:hover, .group.active .group-star:hover { width: 2.5rem; height: 2.5rem; padding: 11px; margin: -11px; }
+  button.series-favorite { width: 2.5rem; height: 2.5rem; margin: -4px; }
+  .hint-btn { width: 2.5rem; height: 2.5rem; min-height: 0; margin: -11px; border-width: 11px; }
   .chip { min-height: 2rem; }
-  .chip-main, .chip-star { margin-block: -6px; }
-  .chip-star { min-width: 2.75rem; margin-inline: -4px; padding-inline: 0; }
-  .search-clear { width: 2.75rem; height: 2.75rem; right: 0; }
-  .field-reveal button { width: 2.75rem; right: 0; }
-  .field-reveal input { padding-right: 2.75rem; }
+  .chip-main, .chip-star { margin-block: -4px; }
+  .chip-star { min-width: 2.5rem; margin-inline: -4px; padding-inline: 0; }
+  .search-clear { width: 2.5rem; height: 2.5rem; right: 0; }
+  .field-reveal button { width: 2.5rem; right: 0; }
+  .field-reveal input { padding-right: 2.5rem; }
+  /* The foot's marks stand six in a row in a column of 319 px (an iPad
+     lying down, the series): they are 36 px wide there, with the gap
+     between them a finger's margin, and the row's full height. Should a
+     column be narrower still, the order's marks scroll inside the foot
+     and none leaves it. */
   .listinfo .view-toggle { gap: 4px; }
-  .listinfo .view-toggle button { width: 2.75rem; height: 2.75rem; }
-  /* In the narrowest column (css/list.css) six marks of an iPad's 49.5 px
-     were 11 px wider than its 359 px: there they are 45 px, and never
-     under a finger's 44. */
-  @container (max-width: 28em) { .listinfo .view-toggle button { width: max(2.5rem, 44px); } }
-  .help-foot > .setup-help { padding-block: 13px; margin-block: -13px; }
+  .listinfo .view-toggle button { flex: none; width: 2.25rem; height: 2.5rem; }
+  .listinfo .order-toggle { flex: 0 1 auto; min-width: 0; overflow-x: auto; scrollbar-width: none; }
+  .help-foot > .setup-help { padding-block: 11px; margin-block: -11px; }
   /* A start page card's star and its cross, and the arrows of a row that
      scrolls sideways: the disc as it was, in a transparent border that
      takes the press. */
-  .idle-star, .idle-forget { width: 2.75rem; height: 2.75rem; top: 4px; border: 8px solid transparent; background-clip: padding-box; outline: 1px solid rgba(255, 255, 255, .25); outline-offset: -9px; }
+  .idle-star, .idle-forget { width: 2.5rem; height: 2.5rem; top: 4px; border: 6px solid transparent; background-clip: padding-box; outline: 1px solid rgba(255, 255, 255, .25); outline-offset: -7px; }
   .idle-star { left: 4px; }
   .idle-forget { right: 4px; }
-  .side-scroll-arrow, .side-scroll.compact .side-scroll-arrow { width: 2.75rem; height: 2.75rem; min-height: 0; background-clip: padding-box; box-shadow: none; outline: 1px solid var(--border-strong); }
-  .side-scroll-arrow { border: 5px solid transparent; outline-offset: -6px; }
-  .side-scroll-arrow.prev { left: -19px; }
-  .side-scroll-arrow.next { right: -19px; }
-  .side-scroll.compact .side-scroll-arrow { border-width: 10px; outline-offset: -11px; }
-  .side-scroll.compact .side-scroll-arrow.prev { left: -10px; }
-  .side-scroll.compact .side-scroll-arrow.next { right: -10px; }
+  .side-scroll-arrow, .side-scroll.compact .side-scroll-arrow { width: 2.5rem; height: 2.5rem; min-height: 0; background-clip: padding-box; box-shadow: none; outline: 1px solid var(--border-strong); }
+  .side-scroll-arrow { border: 3px solid transparent; outline-offset: -4px; }
+  .side-scroll-arrow.prev { left: -17px; }
+  .side-scroll-arrow.next { right: -17px; }
+  .side-scroll.compact .side-scroll-arrow { border-width: 8px; outline-offset: -9px; }
+  .side-scroll.compact .side-scroll-arrow.prev { left: -8px; }
+  .side-scroll.compact .side-scroll-arrow.next { right: -8px; }
 }
 
 /* The app for the iPhone and the iPad (js/host.js; the page opened with
@@ -157,12 +160,18 @@ input[type="search"], input[type="text"], input[type="url"], input:not([type]) {
 /* The help's keys are all behind its fold there (js/help.js). */
 .ios #help h3, .ios #help-keys { display: none; }
 html:not(.ios) .ios-only { display: none; }
-/* An iPad is read from further off than a phone and has the room: its
-   text is an eighth larger (the body's 13 px read as a desktop page held
-   in the hands). By the screen, which no phone has 700 px of, and by the
-   window, so that Split View at a phone's width keeps a phone's sizes;
-   everything is in rem and follows. */
-@media (min-device-width: 700px) and (min-width: 700px) { html.ios { font-size: 112.5%; } }
+/* The guide's days under a finger, in a window wider than a phone's:
+   the strip keeps its third of the window and the older days' menu stands
+   outside it. Sharing the third (css/guide.css), the strip of an iPad
+   lying down was so short that today stood under its arrow. */
+@media (hover: none) and (min-width: 601px) {
+  .epg-daybar { max-width: none; }
+  .epg-days { max-width: 34vw; }
+}
+/* An iPad keeps a phone's sizes. Its text was an eighth larger for a
+   while (the root at 112.5 %), and with a finger's 44 px of the time grown to 49.5
+   the owner found everything large and the three columns tight beside
+   the same page on an Android tablet. */
 html.ios { -webkit-touch-callout: none; -webkit-user-select: none; user-select: none; }
 /* What is read and may be wanted elsewhere stays selectable: what a
    field holds, and a film's, an episode's or a programme's description. */

@@ -114,7 +114,7 @@ data, so never point it at a profile someone uses.
   `touchsizes` loads the page under a finger (touch emulation) in a
   tablet's window, an upright phone's and a phone's lying down and
   measures everything that takes a press, view by view: nothing under
-  44 × 44 px. `polish` holds the small things a hands-on round found
+  40 × 40 px. `polish` holds the small things a hands-on round found
   (where Settings opens, a port that cannot be one, an account added
   twice, an empty guide, the older days' menu, the picture's box in a
   narrow pane, the bar under the picture).

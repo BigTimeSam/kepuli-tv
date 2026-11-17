@@ -148,11 +148,10 @@ What differs:
   lock decides, and turning it does not interrupt what plays. On the iPad
   it also runs beside another app, and takes the one-pane layout when its
   share of the screen is narrow.
-- **Everything that takes a press is at least 44 points high and wide**,
+- **Everything that takes a press is at least 40 points high and wide**,
   on any touch screen (a phone's or a tablet's browser as well): rows'
   stars and menus, the bars' buttons, tabs, fields, selectors and menu
-  rows. A small mark keeps its look and takes the press around it. On the
-  iPad the text is an eighth larger than on the iPhone.
+  rows. A small mark keeps its look and takes the press around it.
 - **A low window has a layout of its own.** In a window 440 px high or
   less, which is a phone on its side, the list keeps several rows in sight
   beside a whole picture with its bar under it, the guide's controls fit on

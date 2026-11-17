@@ -211,7 +211,7 @@
   .channel-guide-arrow { display: none; }
   .channel-tools:not([hidden]) + .group-picker { padding-right: 54px; }
 }
-/* A touch screen's 44 px (css/last.css) in a low window, where every bar
+/* A touch screen's 40 px (css/last.css) in a low window, where every bar
    is paid for in rows of the list: the bars give up their own margins,
    what has no frame takes the press beyond its look (a transparent
    border or a margin taken back, so that the tabs' strip and the folds
@@ -222,12 +222,12 @@
   .topbar, .group-picker, .channel-tools, .nowbar, .epg-bar { padding-block: 2px; }
   .tabs button, .listinfo .view-toggle button { border-block: 4px solid transparent; margin-block: -4px; background-clip: padding-box; }
   .section-toggle, .listcol .toggle { margin-block: -6px; }
-  .detail-cover { box-sizing: border-box; width: 2.75rem; height: 2.75rem; padding: 1px 8px; margin: -1px -8px; background-clip: content-box; box-shadow: none; }
+  .detail-cover { box-sizing: border-box; width: 2.5rem; height: 2.5rem; padding: 1px 8px; margin: -1px -8px; background-clip: content-box; box-shadow: none; }
   .detail-cover > img { inset: 1px 8px; width: calc(100% - 16px); height: calc(100% - 2px); border-radius: 4px; }
-  .channel-guide { width: 2.75rem; height: 2.75rem; }
+  .channel-guide { width: 2.5rem; height: 2.5rem; }
   /* The logo alone where the bar's buttons are behind its menu: with the
      Cast mark in the bar the search read "Search all mo…". */
-  .topbar.compact .brand { font-size: 0; gap: 0; min-width: 2.75rem; justify-content: center; }
+  .topbar.compact .brand { font-size: 0; gap: 0; min-width: 2.5rem; justify-content: center; }
   .channel-tools:not([hidden]) + .group-picker { padding-right: 60px; }
   main.guide { position: relative; }
   main.guide > .guide-header { position: absolute; top: 0; left: 0; z-index: 3; padding: 2px 0 0 10px; background: none; border: 0; }
@@ -237,10 +237,7 @@
     overflow: hidden; clip-path: inset(50%); white-space: nowrap; border: 0;
   }
   #epg-group { margin-left: 50px; }
-  /* The bar's own line here: the strip keeps its third of the window and
-     the menu stands outside it. */
-  .epg-daybar { flex: 1 1 14rem; max-width: none; }
-  .epg-days { max-width: 34vw; }
+  .epg-daybar { flex: 1 1 14rem; }
 }
 /* Menus and dialogs in a low window, at any width: a menu scrolls inside
    the window, and a dialog scrolls as one, its heading and its buttons

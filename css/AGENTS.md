@@ -73,7 +73,8 @@ the page links them.
   the measures.
 - **Touch screens** (`@media (hover: none)`, never `.ios`: a phone's
   browser gains too, and a mouse sees none of it): everything that takes
-  a press is 44 px (2.75rem) high and wide at the least. One block near
+  a press is 40 px (2.5rem) high and wide at the least (the marks of
+  the list's foot 36 px wide, with the gap between them). One block near
   the end of `last.css` has it all: what has a box of its own (a button,
   a field, a selector, a fold, a menu's row, a choice) grows to the size;
   a mark in a frame is a square of it; a mark without a frame (a row's
@@ -116,10 +117,8 @@ the page links them.
 - **The iOS app** shows the same page with `<html class="ios">`: what it
   cannot answer or does not offer is hidden in one block of `last.css`
   (`.ios …`), and what only it shows carries `ios-only`. Keep such rules in
-  that block, above the forced colours. On an iPad (a screen and a
-  window of 700 px or more) the root's size is 112.5 %, so every rem is an
-  eighth larger there; a phone, and an iPad's Split View at a phone's
-  width, keep 100 %.
+  that block, above the forced colours. An iPad has a phone's sizes: the
+  root stays at 100 % (at 112.5 % everything read as large and tight).
 - **Full screen is `:fullscreen` or `.full`, always both.** In the app the
   picture's full screen is the app's own: the wrapper gets the class `full`
   and is laid over the window (`.videowrap.full` in `playback.css`, fixed,

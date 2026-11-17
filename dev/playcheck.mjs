@@ -166,7 +166,7 @@
 //                                     long drop-down open without the caret
 //                                     in a field (no on-screen keyboard)
 //   node dev/playcheck.mjs touchsizes on a touch screen everything a finger
-//                                     presses is 44 px high and wide, view
+//                                     presses is 40 px high and wide, view
 //                                     by view in a tablet's window, an
 //                                     upright phone's and one lying down
 //   node dev/playcheck.mjs polish     Settings opens at its beginning in a
@@ -483,7 +483,7 @@ async function checkModal(page, selector, name) {
       radius: getComputedStyle(dialog).borderRadius,
       // A browser with no pointer that hovers has a finger's sizes
       // (css/last.css): the CI runner's Chrome is one, a laptop's is not.
-      side: matchMedia('(hover: none)').matches ? 44 : 32 };
+      side: matchMedia('(hover: none)').matches ? 40 : 32 };
   })()`);
   if (state.width !== state.side || state.height !== state.side || !state.label || !state.visible || !state.fits || state.radius !== '14px') {
     throw new Error(`${name} modal controls: ${JSON.stringify(state)}`);
@@ -3502,22 +3502,23 @@ async function touchsizes(page, { target }) {
     await sleep(600);
   };
   let measured = 0;
-  // Everything in sight that takes a press: 44 px high and wide at the
-  // least (css/last.css). A choice and a switch are pressed by their row.
+  // Everything in sight that takes a press: 40 px high and wide at the
+  // least (css/last.css), the marks of the list's foot 36 px wide with
+  // the gap between them. A choice and a switch are pressed by their row.
   const SMALL = `(() => { const small = new Map(); let count = 0;
     for (const node of document.querySelectorAll('button, a[href], select, input:not([type="hidden"]), summary, [role="tab"], [role="option"], [role="menuitem"], label.toggle, label.radio, label.choice-mode')) {
       const r = node.getBoundingClientRect(), style = getComputedStyle(node);
       if (r.width < 1 || r.height < 1 || style.visibility === 'hidden' || Number(style.opacity) === 0 || r.bottom <= 0 || r.top >= innerHeight || r.right <= 0 || r.left >= innerWidth) continue;
       if (node.matches('input[type="radio"], input[type="checkbox"]') && node.closest('label')) continue;
       count += 1;
-      if (r.width >= 43.5 && r.height >= 43.5) continue;
+      if (r.width >= (node.closest('.listinfo .view-toggle') ? 35.5 : 39.5) && r.height >= 39.5) continue;
       const kind = (node.id ? '#' + node.id : node.tagName.toLowerCase() + (typeof node.className === 'string' && node.className ? '.' + node.className.trim().split(/\\s+/).join('.') : '')).replace(/\\d+$/, '');
       if (!small.has(kind)) small.set(kind, kind + ' ' + Math.round(r.width) + ' × ' + Math.round(r.height));
     }
     return { count, small: [...small.values()] }; })()`;
   const hold = async (where) => {
     const found = await evaluate(page, SMALL);
-    assert(found.count > 0 && found.small.length === 0, `under a finger, ${where}: ${found.count ? `smaller than 44 × 44: ${found.small.join('; ')}` : 'nothing to press in sight'}`);
+    assert(found.count > 0 && found.small.length === 0, `under a finger, ${where}: ${found.count ? `smaller than 40 × 40: ${found.small.join('; ')}` : 'nothing to press in sight'}`);
     measured += found.count;
   };
   const run = (code) => evaluate(page, `(async () => { const $ = (id) => document.getElementById(id), pause = (ms) => new Promise((r) => setTimeout(r, ms)); ${code}; return true; })()`, { gesture: true });
@@ -3596,7 +3597,7 @@ async function touchsizes(page, { target }) {
       assert(await evaluate(page, `matchMedia('(hover: none)').matches`), 'the emulation left a pointer that hovers');
       await views(where, { panes });
     }
-    return { ok: true, detail: `${measured} controls measured where nothing hovers, in a tablet's window, an upright phone's and a phone's lying down, over the channels, a row's menu, the player and its menu, a note, the guide, a series, the history, every section of Settings, Filter countries, the help, the films, a film's details and the start page: none under 44 × 44 px; a dialog opened by a finger has the focus itself` };
+    return { ok: true, detail: `${measured} controls measured where nothing hovers, in a tablet's window, an upright phone's and a phone's lying down, over the channels, a row's menu, the player and its menu, a note, the guide, a series, the history, every section of Settings, Filter countries, the help, the films, a film's details and the start page: none under 40 × 40 px; a dialog opened by a finger has the focus itself` };
   } finally {
     await touch(1280, 800, false);
     await page.call('Page.navigate', { url: bare(target.url) }).catch(() => {});
@@ -9238,13 +9239,9 @@ async function iosappCourse(page, plain) {
   await page.call('Emulation.setDeviceMetricsOverride', { width: 402, height: 778, deviceScaleFactor: 1, mobile: true });
   await sleep(400);
   const homeAgain = await evaluate(page, WATCH);
-  // One pane is a phone's window: the app's larger text is an iPad's alone.
-  const rootNarrow = await evaluate(page, `getComputedStyle(document.documentElement).fontSize`);
   await page.call('Emulation.setDeviceMetricsOverride', { width: 1280, height: 800, deviceScaleFactor: 1, mobile: false });
   await sleep(400);
-  const rootWide = await evaluate(page, `getComputedStyle(document.documentElement).fontSize`);
   assert(homeNarrow && !homeAgain, `the start page by the logo, the window widened and narrowed again: ${JSON.stringify({ homeNarrow, homeAgain })}`);
-  assert(rootNarrow === '16px' && rootWide === '18px', `the app's text in a phone's window and an iPad's: ${rootNarrow}, ${rootWide}`);
 
   /* Reminders after the strip has said one: its notification tapped takes
      the strip away, the channel starting. And a change of language hands
@@ -9283,6 +9280,9 @@ async function iosappCourse(page, plain) {
   const eye = await evaluate(page, `(async () => { document.getElementById('btn-settings').click(); await new Promise((r) => setTimeout(r, 400));
     const field = document.getElementById('f-username'), button = document.getElementById('f-password-show'); field.focus();
     window.__clicks = 0; button.addEventListener('click', () => { window.__clicks += 1; });
+    // In the middle of the dialog: where the focused field left it, the
+    // button lay under the dialog's foot and the touch met the foot.
+    button.scrollIntoView({ block: 'center' });
     const r = button.getBoundingClientRect(); return { x: r.left + r.width / 2, y: r.top + r.height / 2 }; })()`);
   await page.call('Input.dispatchTouchEvent', { type: 'touchStart', touchPoints: [{ x: eye.x, y: eye.y }] });
   await page.call('Input.dispatchTouchEvent', { type: 'touchEnd', touchPoints: [] });
