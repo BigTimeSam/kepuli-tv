@@ -43,6 +43,7 @@ let touched = false;
 
 export function wirePickers(root = document) {
   root.addEventListener('mousedown', onPress, true);
+  root.addEventListener('click', onLabel, true);
   root.addEventListener('keydown', onKey, true);
   root.addEventListener('pointerdown', (e) => { touched = e.pointerType === 'touch' || e.pointerType === 'pen'; }, true);
   root.addEventListener('pointerdown', onOutside, true);
@@ -70,8 +71,29 @@ function onPress(e) {
   show(select);
 }
 
+/** The select whose label was pressed, the press not being on a control inside the label. */
+function labelled(node) {
+  const select = node instanceof Element && !node.closest('select, button, a, input') ? node.closest('label')?.control : null;
+  return pickable(select) ? /** @type {HTMLSelectElement} */ (select) : null;
+}
+
+/**
+ * A finger on a select's label. The browser hands the press on to the
+ * select as a click and the focus, which with a mouse opens nothing; under
+ * a finger the iPad's WebKit raised its own menu for it, without the
+ * filter ("Release year" in the films' filters, tapped on its words). The
+ * press opens this list instead, and closes it when it is open, as one on
+ * the select does.
+ */
+function onLabel(e) {
+  const select = touched ? labelled(e.target) : null;
+  if (!select) return;
+  e.preventDefault();
+  if (open?.select === select) close(); else show(select);
+}
+
 function onOutside(e) {
-  if (!open || open.pop.contains(e.target) || e.target === open.select) return;
+  if (!open || open.pop.contains(e.target) || e.target === open.select || (touched && labelled(e.target) === open.select)) return;
   close();
 }
 

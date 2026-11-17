@@ -3459,10 +3459,23 @@ async function touchcaret(page) {
     const picker = await evaluate(page, `(() => { const p = document.querySelector('.picker-pop'); return p ? { filter: !!p.querySelector('.picker-filter'), focus: ${typing} } : null; })()`);
     await pressKey(page, 'Escape', 'Escape', 27);
     await sleep(200);
+    // A finger on the selector's label, on its word and not on the
+    // selector: the app's list opens and the selector does not take the
+    // focus, for which the iPad's WebKit raised its own menu, without the
+    // filter. A second tap there closes it.
+    const word = await evaluate(page, `(() => { const r = document.querySelector('label:has(> #f-lang) > span').getBoundingClientRect(); return { x: Math.round(r.left + 6), y: Math.round(r.top + r.height / 2) }; })()`);
+    const tap = async () => {
+      await page.call('Input.dispatchTouchEvent', { type: 'touchStart', touchPoints: [word] });
+      await page.call('Input.dispatchTouchEvent', { type: 'touchEnd', touchPoints: [] });
+      await sleep(400);
+      return evaluate(page, `({ open: !!document.querySelector('.picker-pop')?.matches(':popover-open'), focus: document.activeElement.id })`);
+    };
+    const labelled = await tap(), again = await tap();
     await evaluate(page, `document.getElementById('f-done').click()`);
     await waitFor(page, `!document.getElementById('setup').open`, 'settings closed');
-    const ok = settings === null && picker && picker.filter && picker.focus === null;
-    return { ok, detail: `settings opened with the caret in ${settings ?? 'no field'}; the language list ${picker ? `with its filter ${picker.filter ? 'shown' : 'missing'}, the caret in ${picker.focus ?? 'no field'}` : 'did not open'}` };
+    const byLabel = labelled.open && labelled.focus !== 'f-lang' && !again.open && again.focus !== 'f-lang';
+    const ok = settings === null && picker && picker.filter && picker.focus === null && byLabel;
+    return { ok, detail: `settings opened with the caret in ${settings ?? 'no field'}; the language list ${picker ? `with its filter ${picker.filter ? 'shown' : 'missing'}, the caret in ${picker.focus ?? 'no field'}` : 'did not open'}; a tap on its label ${byLabel ? 'opened the list and another closed it, the selector never focused' : `left ${JSON.stringify({ labelled, again })}`}` };
   } finally {
     await page.call('Emulation.setEmulatedMedia', { features: [] });
     await page.call('Emulation.setTouchEmulationEnabled', { enabled: false });
