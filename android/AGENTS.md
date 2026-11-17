@@ -110,6 +110,16 @@ Matroska).
   `10.0.2.2`: give the account the host's own address on the network.
   Casting takes over somebody's television: ask first.
 
+## Checks
+
+`node android/permissions.mjs`, after a build of both debug packages, lists
+what each asks Android to allow against the approved lists in the file: a
+library's manifest is merged into the app's, and Play's forms and the
+privacy policy name the permissions one by one. The CI's `android` job
+(`.github/workflows/checks.yml`) builds both packages and runs it, on
+`main` and on the `android-*` branches; the page's side of the app is
+covered by the browser job's `remote`, `appback` and `appcast` scenarios.
+
 ## Building and running
 
 JDK 21, the Android SDK with platform `android-37.2` (GeckoView 160 asks for
