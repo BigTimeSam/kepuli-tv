@@ -480,9 +480,12 @@ async function checkModal(page, selector, name) {
     return { width: r.width, height: r.height, label: close.getAttribute('aria-label'),
       visible: r.top >= d.top && r.bottom <= d.bottom && r.right <= d.right && r.left > d.left + d.width / 2,
       fits: d.left >= 0 && d.top >= 0 && d.right <= innerWidth && d.bottom <= innerHeight,
-      radius: getComputedStyle(dialog).borderRadius };
+      radius: getComputedStyle(dialog).borderRadius,
+      // A browser with no pointer that hovers has a finger's sizes
+      // (css/last.css): the CI runner's Chrome is one, a laptop's is not.
+      side: matchMedia('(hover: none)').matches ? 44 : 32 };
   })()`);
-  if (state.width !== 32 || state.height !== 32 || !state.label || !state.visible || !state.fits || state.radius !== '14px') {
+  if (state.width !== state.side || state.height !== state.side || !state.label || !state.visible || !state.fits || state.radius !== '14px') {
     throw new Error(`${name} modal controls: ${JSON.stringify(state)}`);
   }
   if (process.env.KEPULI_MODAL_CAPTURE_DIR) {
