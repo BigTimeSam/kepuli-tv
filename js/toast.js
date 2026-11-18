@@ -24,6 +24,50 @@ function leave() {
   returnTo = null;
 }
 
+/**
+ * Whether a drag of the strip, in pixels from where it began, puts it
+ * away: sideways either way or downwards, far enough not to be a press
+ * that slipped. Upwards is into what the strip lies over, and does nothing.
+ */
+export const swipedAway = (dx, dy) => Math.abs(dx) >= 48 || dy >= 24;
+
+// The strip pushed away by a finger (or a mouse). A reminder's stays for
+// a minute, and on a phone it lay over the bar under the picture all that
+// time with no way of being rid of it but its own button, which starts
+// the channel (the owner, on an iPhone, 2026-11-19). The strip follows
+// the finger so that the gesture is seen to be taken; its button is left
+// its press, as a drag that goes nowhere is no swipe.
+let drag = null;
+function settle() {
+  drag = null;
+  el.toast.style.translate = '';
+  el.toast.style.opacity = '';
+}
+el.toast.addEventListener('pointerdown', (e) => {
+  if (e.button > 0) return;
+  drag = { id: e.pointerId, x: e.clientX, y: e.clientY };
+});
+el.toast.addEventListener('pointermove', (e) => {
+  if (!drag || e.pointerId !== drag.id) return;
+  const dx = e.clientX - drag.x;
+  const dy = Math.max(0, e.clientY - drag.y);
+  if (Math.abs(dx) < 6 && dy < 6) return;
+  // Held from here on, so that the drag goes on outside the strip.
+  if (!el.toast.hasPointerCapture(e.pointerId)) { try { el.toast.setPointerCapture(e.pointerId); } catch { /* the pointer is gone */ } }
+  const sideways = Math.abs(dx) >= dy;
+  el.toast.style.translate = sideways ? `${dx}px 0` : `0 ${dy}px`;
+  el.toast.style.opacity = String(Math.max(0.3, 1 - Math.max(Math.abs(dx) / 160, dy / 80)));
+});
+el.toast.addEventListener('pointerup', (e) => {
+  if (!drag || e.pointerId !== drag.id) return;
+  const away = swipedAway(e.clientX - drag.x, e.clientY - drag.y);
+  settle();
+  if (away) dismissToast();
+});
+el.toast.addEventListener('pointercancel', settle);
+// The press that ends a swipe begun on the strip's button is not the button's.
+el.toast.addEventListener('click', (e) => { if (el.toast.hidden) e.stopPropagation(); }, true);
+
 /** The strip put away unpressed, as Back does on a remote control. */
 export function dismissToast() {
   clearTimeout(toastTimer);

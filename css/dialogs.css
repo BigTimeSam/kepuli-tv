@@ -291,6 +291,9 @@ html.kb-tall dialog:modal .modal-actions { position: sticky; bottom: 0; z-index:
    of notifications turned off was never seen. */
 .toast { position: fixed; bottom: 18px; left: 50%; transform: translateX(-50%); display: flex; align-items: center; gap: 9px; background: var(--panel-2); border: 1px solid var(--border); padding: 9px 16px; border-radius: 10px; box-shadow: 0 10px 32px rgba(0, 0, 0, .5); z-index: 40; max-width: 70vw; }
 .toast[hidden] { display: none; }
+/* It can be swiped away (js/toast.js): the drag is the strip's, not the
+   page's scroll or a selection of its text. */
+.toast { touch-action: none; user-select: none; -webkit-user-select: none; }
 /* The switch the message is asking for, inside the message. */
 .toast-action {
   flex: none; margin-left: 4px; padding: 4px 10px; cursor: pointer;

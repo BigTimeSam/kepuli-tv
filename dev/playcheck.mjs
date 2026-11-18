@@ -3732,7 +3732,26 @@ async function polish(page) {
       return item ? item.querySelector('span').textContent : null;`);
     assert(link && !link.includes('↗'), `the menu's link out reads "${link}"`);
     await run(`$('btn-home').click(); return true;`);
-    return { ok: true, detail: `Settings opens at its beginning in a low window, and on its last section with that section's name in sight; "${port.expected}" for abc, 99999 and 0, "${port.exists}" for an account added twice; the older days' menu ${older.width} px wide beside the strip, today whole in it; a search with no channel says "${empty.title}" in the guide with ${empty.button}; a picture ${narrow.width} × ${narrow.height} in a pane 320 px wide; the bar under the picture drops the format's words alone at ${step.width} px, and a phone's reads "${phone.label}" for "${phone.text}"; the menu's link reads "${link}"` };
+    /* The message strip is swiped away, and its button keeps its press. A
+       reminder's lay over the bar under the picture for a minute, with its
+       button the only way of being rid of it. */
+    const strip = await run(`const { toast } = await import('./js/toast.js'); const bar = $('toast');
+      const fire = (type, x, y, target = bar) => target.dispatchEvent(new PointerEvent(type, { bubbles: true, pointerId: 7, pointerType: 'touch', clientX: x, clientY: y, button: 0 }));
+      const drag = (dx, dy, target) => { const r = bar.getBoundingClientRect(), x = r.left + r.width / 2, y = r.top + r.height / 2;
+        fire('pointerdown', x, y, target); fire('pointermove', x + dx / 2, y + dy / 2, target); const moved = bar.style.translate; fire('pointerup', x + dx, y + dy, target); return moved; };
+      let pressed = 0; const show = () => toast('A reminder', { action: { label: 'Watch', onClick: () => { pressed += 1; } }, duration: 60000 });
+      const seen = {};
+      show(); drag(8, 0); seen.slip = !bar.hidden;
+      seen.followed = drag(90, 0); seen.sideways = bar.hidden;
+      show(); drag(0, -80); seen.upwards = !bar.hidden; drag(0, 40); seen.downwards = bar.hidden;
+      show(); const button = bar.querySelector('.toast-action'); drag(-90, 0, button); button.click(); seen.swipedOnButton = bar.hidden && pressed === 0;
+      show(); bar.querySelector('.toast-action').click(); seen.press = bar.hidden && pressed === 1;
+      seen.left = bar.style.translate === '' && bar.style.opacity === '';
+      return seen;`);
+    assert(strip.slip && strip.sideways && strip.downwards && strip.upwards, `the strip under a swipe: ${JSON.stringify(strip)}`);
+    assert(strip.followed && strip.followed !== '0px' && strip.left, `the strip follows the finger and is left as it was: ${JSON.stringify(strip)}`);
+    assert(strip.swipedOnButton && strip.press, `the strip's button under a swipe and a press: ${JSON.stringify(strip)}`);
+    return { ok: true, detail: `Settings opens at its beginning in a low window, and on its last section with that section's name in sight; "${port.expected}" for abc, 99999 and 0, "${port.exists}" for an account added twice; the message strip is swiped away sideways and downwards and its button keeps its press; the older days' menu ${older.width} px wide beside the strip, today whole in it; a search with no channel says "${empty.title}" in the guide with ${empty.button}; a picture ${narrow.width} × ${narrow.height} in a pane 320 px wide; the bar under the picture drops the format's words alone at ${step.width} px, and a phone's reads "${phone.label}" for "${phone.text}"; the menu's link reads "${link}"` };
   } finally {
     await page.call('Emulation.setEmulatedMedia', { features: [] }).catch(() => {});
     await size(1280, 800);

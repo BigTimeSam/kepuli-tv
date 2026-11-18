@@ -2624,6 +2624,17 @@ check('VLC for iOS is handed the stream address, encoded whole',
     [true, true, true, false]);
 }
 
+/* ----------------------------------------------------- js/toast.js */
+
+{
+  // dom.js looks the page's elements up as it loads, so the module is
+  // read for its one pure function, not imported.
+  const source = readFileSync(new URL('../js/toast.js', import.meta.url), 'utf8');
+  const swipedAway = new Function(`return ${/export const swipedAway = ([^;]+);/.exec(source)[1]}`)();
+  check('the message strip leaves on a swipe sideways or downwards, not on a slip or upwards',
+    [[60, 0], [-60, 0], [0, 30], [10, 5], [0, -80], [47, 23]].map(([dx, dy]) => swipedAway(dx, dy)), [true, true, true, false, false, false]);
+}
+
 /* ------------------------------------------- dev/edge-publish.mjs */
 
 {
