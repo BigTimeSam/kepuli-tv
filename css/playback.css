@@ -261,6 +261,12 @@ body[data-substyle="contrast"] { --cue-back: #000; }
 .side-scroll.compact .side-scroll-arrow { width: 24px; height: 24px; box-shadow: 0 1px 6px rgba(0, 0, 0, .35); }
 .side-scroll.compact .side-scroll-arrow.prev { left: 0; }
 .side-scroll.compact .side-scroll-arrow.next { right: 0; }
+/* A compact strip's arrows lie over its two ends, and what is brought
+   into view (the day chosen, the one a key gives the focus) stops short
+   of them: brought to the strip's very edge, a day with the focus had its
+   ring under the arrow, wherever the days do not all fit (the CI's fonts
+   at 760 px, a longer language). */
+.side-scroll.compact > :not(.side-scroll-arrow) { scroll-padding-inline: 28px; }
 .side-scroll.compact .side-scroll-arrow svg { width: 13px; height: 13px; }
 /* A film's rows of tiles reach the strip's edge: the arrows stay inside it. */
 .related .side-scroll-arrow.prev { left: 2px; }
