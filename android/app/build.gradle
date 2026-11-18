@@ -188,7 +188,8 @@ def syncBanner = tasks.register('syncBanner', Sync) {
 tasks.named('preBuild') { dependsOn syncExtension, syncManifests, syncStrings, syncBrand, syncBanner }
 
 dependencies {
-    implementation 'org.mozilla.geckoview:geckoview:160.0.20261104181552'
+    // Pinned, and held to Mozilla's latest by android/enginecheck.mjs.
+    implementation 'org.mozilla.geckoview:geckoview:160.0.20261116130455'
     // Google's Cast sender, in the phone's and the tablet's app alone
     // (CastService): a television is what is cast to. It brings AndroidX's
     // media router and AppCompat, whose dialogs it shows.
