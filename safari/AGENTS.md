@@ -83,7 +83,9 @@ The owner allows this Mac's own Safari for testing (they do not use it).
 
 1. `node safari/build.mjs`, then open the app once
    (`open -g safari/dist/build/Build/Products/Debug/Kepuli-TV.app`, and quit
-   it): that is what makes Safari list the extension.
+   it): that is what makes Safari list the extension. After a change,
+   `node safari/drive.mjs reload` does all of it: the extension off, the
+   build, the app opened once, the extension on and the player open.
 2. `node safari/drive.mjs start` ticks **Allow JavaScript from Apple
    Events** in Safari's Developer settings (the Develop menu must be on:
    `defaults write com.apple.Safari IncludeDevelopMenu -bool true`), ticks
@@ -103,10 +105,13 @@ The owner allows this Mac's own Safari for testing (they do not use it).
   apps with this extension's identifier were registered with macOS (an
   earlier experiment's build in a scratch directory beside this
   directory's) and had been registered again by hand with `pluginkit` and
-  `lsregister`. With the one signed copy it has not crashed. Never build a
-  second copy elsewhere, and do not register by hand: the build and one
-  launch of the app are enough. To take it away: `pluginkit -r` on the
-  `.appex`, `lsregister -u` on the app, and delete `safari/dist/build`.
+  `lsregister`. With the one signed copy it has not crashed. The build
+  refuses to make a second: if a copy from another checkout or worktree is
+  registered it stops and says so, `node safari/build.mjs --take-over`
+  takes that copy away first (`node safari/drive.mjs reload take-over`
+  with Safari running), and `--unregister` takes every copy away and
+  builds nothing. Do not register by hand: the build and one launch of the
+  app are enough.
 - **Ask before a restart of Safari.** With an ad hoc signed build it
   forgets "Allow unsigned extensions" when it quits or crashes and asks
   for the user's password to turn it on again.

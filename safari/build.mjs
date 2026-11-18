@@ -1,8 +1,10 @@
 #!/usr/bin/env node
 // The Safari extension for the Mac, built from the shared source.
 //
-//   node safari/build.mjs            the extension's files, the Xcode project and the app, for this Mac
-//   node safari/build.mjs --project  … without building the app
+//   node safari/build.mjs              the extension's files, the Xcode project and the app, for this Mac
+//   node safari/build.mjs --project    … without building the app
+//   node safari/build.mjs --take-over  … after taking away a copy that another checkout registered
+//   node safari/build.mjs --unregister every registered copy taken away, and nothing built
 //
 // Safari takes a web extension only inside an app: Apple's converter
 // (xcrun safari-web-extension-converter) wraps the extension's directory in
@@ -30,12 +32,23 @@
 // user's password to turn on again. The Mac App Store's signing needs the
 // paid membership and is not done here.
 //
+// ONE COPY. macOS keeps a register of the extensions Safari may load, by
+// the path of each built app. Two apps with this extension's identifier in
+// it (another checkout's build, or a worktree's) are what Safari crashed
+// with, twice, as it turned the extension on (safari/AGENTS.md). So the
+// build looks first: a copy registered from anywhere but this checkout
+// stops it, and --take-over takes that copy away (out of the register, and
+// its generated safari/dist/build deleted, so that nothing finds it
+// again) before building here. A rebuild in place is the same copy; turn
+// the extension off in Safari first, which `node safari/drive.mjs reload`
+// does.
+//
 // No dependencies beyond Xcode.
 
 import { execFileSync, spawnSync } from 'node:child_process';
 import { cpSync, existsSync, mkdirSync, readFileSync, readdirSync, rmSync, writeFileSync } from 'node:fs';
 import { homedir } from 'node:os';
-import { dirname, join, resolve } from 'node:path';
+import { dirname, join, resolve, sep } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const HERE = dirname(fileURLToPath(import.meta.url));
@@ -57,6 +70,39 @@ const run = (command, args, options = {}) => {
   if (done.status !== 0) fail(`${command} ${args.slice(0, 3).join(' ')} … failed:\n${(done.stdout || '') + (done.stderr || '')}`.trimEnd());
   return (done.stdout || '') + (done.stderr || '');
 };
+
+/* 0. One copy only. */
+const LSREGISTER = '/System/Library/Frameworks/CoreServices.framework/Versions/Current/Frameworks/LaunchServices.framework/Versions/Current/Support/lsregister';
+/** The .appex paths macOS has registered for this extension's identifier. */
+function registered() {
+  const listed = spawnSync('pluginkit', ['-mAvvv', '-p', 'com.apple.Safari.web-extension'], { encoding: 'utf8' }).stdout || '';
+  return listed.split(/\n\s*\n/).filter((entry) => entry.includes(`${EXTENSION_ID}(`))
+    .map((entry) => (entry.match(/^\s*Path = (.+)$/m) || [])[1]).filter(Boolean);
+}
+/** A copy out of the register; its built app deleted when it is a safari/dist/build of some checkout. */
+function unregister(appex) {
+  const app = resolve(appex, '..', '..', '..');
+  spawnSync('pluginkit', ['-r', appex]);
+  spawnSync(LSREGISTER, ['-u', app]);
+  const generated = app.match(/^(.*\/safari\/dist\/build)\//);
+  if (generated) rmSync(generated[1], { recursive: true, force: true });
+  console.log(`taken away: ${app}${generated ? ', and its build deleted' : ''}`);
+}
+if (process.argv.includes('--unregister')) {
+  const copies = registered();
+  copies.forEach(unregister);
+  console.log(copies.length ? `${copies.length} copy(ies) of the extension unregistered; Safari no longer has it` : 'no copy of the extension is registered');
+  process.exit(0);
+}
+const elsewhere = registered().filter((appex) => !appex.startsWith(BUILD + sep));
+if (elsewhere.length) {
+  if (!process.argv.includes('--take-over')) {
+    fail(`a copy of the extension built elsewhere is registered with macOS:\n  ${elsewhere.join('\n  ')}\n`
+      + 'Two copies are what Safari crashed with. Turn the extension off in Safari (node safari/drive.mjs off), then run\n'
+      + '  node safari/build.mjs --take-over\nwhich takes that copy away and builds this one.');
+  }
+  elsewhere.forEach(unregister);
+}
 
 /* 1. The extension's files. */
 execFileSync(process.execPath, [join(ROOT, 'firefox', 'build.mjs')], { stdio: 'ignore' });

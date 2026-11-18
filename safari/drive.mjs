@@ -3,6 +3,8 @@
 //
 //   node safari/drive.mjs start [unsigned]      Safari started with the extension on and the player open
 //   node safari/drive.mjs off                   the extension turned off (before a rebuild: Safari reads its files when it is turned on)
+//   node safari/drive.mjs reload                off, the build (node safari/build.mjs), the app opened once, start:
+//                                               the way new files reach Safari without quitting it
 //   node safari/drive.mjs eval '<expression>'   JavaScript run in the player's page; its value printed
 //   node safari/drive.mjs press '<words>'       a real press on the page's element whose name holds the words
 //   node safari/drive.mjs dialog ['<button>']   Safari's permission dialog: its text, or the button clicked
@@ -20,7 +22,7 @@
 // question would hang for two minutes.
 
 import { spawnSync } from 'node:child_process';
-import { dirname, join } from 'node:path';
+import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const SCRIPTS = join(dirname(fileURLToPath(import.meta.url)), 'scripts');
@@ -37,15 +39,35 @@ export function script(name, args = [], timeout = 60000) {
 /** `unsigned`: tick Safari's switch for an ad hoc signed extension first (safari/build.mjs without a team). */
 export const start = (unsigned = false) => script('start', unsigned ? ['unsigned'] : [], 120000);
 export const off = () => script('off', [], 90000);
+
+/**
+ * New files into Safari without quitting it: the extension off, built
+ * again, its app opened once (which is what makes Safari see the new
+ * build), and on again with the player open. `takeOver` when the copy
+ * Safari has was built by another checkout.
+ */
+export function reload(takeOver = false) {
+  const here = dirname(fileURLToPath(import.meta.url));
+  const said = [off()];
+  const built = spawnSync(process.execPath, [join(here, 'build.mjs'), ...(takeOver ? ['--take-over'] : [])], { encoding: 'utf8' });
+  if (built.status !== 0) throw new Error((built.stdout + built.stderr).trim());
+  said.push(built.stdout.trim().split('\n').at(-1));
+  const app = resolve(here, 'dist', 'build', 'Build', 'Products', 'Debug', 'Kepuli-TV.app');
+  spawnSync('open', ['-g', app]);
+  spawnSync('sleep', ['5']);
+  spawnSync('pkill', ['-x', 'Kepuli-TV']);
+  said.push(start());
+  return said.join('\n');
+}
 export const evaluate = (expression) => script('eval', [expression], WAIT);
 export const press = (words) => script('press', [words]);
 export const dialog = (button) => script('dialog', button ? [button] : []);
 
 if (process.argv[1] === fileURLToPath(import.meta.url)) {
   const [command, arg] = process.argv.slice(2);
-  const run = { start: () => start(arg === 'unsigned'), off, eval: () => evaluate(arg), press: () => press(arg), dialog: () => dialog(arg) }[command];
+  const run = { start: () => start(arg === 'unsigned'), off, reload: () => reload(arg === 'take-over'), eval: () => evaluate(arg), press: () => press(arg), dialog: () => dialog(arg) }[command];
   if (!run || (['eval', 'press'].includes(command) && !arg)) {
-    console.error('usage: node safari/drive.mjs start [unsigned] | off | eval <expression> | press <words> | dialog [button]');
+    console.error('usage: node safari/drive.mjs start [unsigned] | off | reload [take-over] | eval <expression> | press <words> | dialog [button]');
     process.exit(2);
   }
   const said = run();
