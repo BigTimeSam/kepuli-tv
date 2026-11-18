@@ -230,11 +230,25 @@ counted.
 checks, listings, translations, the Pages page, the manifests, vendor/'s
 checksums, secrets) on
 every push and pull request, together with `uicheck` and a smoke set of
-`playcheck` scenarios in headless Chrome for Testing (a pinned build); the full
-`playcheck` runs every night and on demand (`gh workflow run Checks`), and
-`dev/release.mjs` wants that full run green on the release commit. Keep
-new checks runnable there: no secrets, no provider, the mock server only.
-Look at a red run with `gh run list` and `gh run view --log-failed`.
+`playcheck` scenarios in Chrome for Testing (a pinned build); the full
+`playcheck` runs every night and on demand (`gh workflow run Checks`, or
+`-f scenarios="phone focusrings"` for chosen ones, on any branch with
+`--ref`), and `dev/release.mjs` wants that full run green on the release
+commit. Keep new checks runnable there: no secrets, no provider, the mock
+server only. Look at a red run with `gh run list` and
+`gh run view --log-failed`.
+
+The scenarios run there in a window on a virtual screen (Xvfb with
+openbox), not headless. A headless Chrome on the runner has no pointing
+device and says `(hover: none)`, so the page gave it a finger's sizes
+(`css/last.css`) and ten scenarios that measure a desktop failed there and
+passed on a laptop; the virtual screen has a mouse. Neither a launch flag
+(`--blink-settings=primaryHoverType…`, which no emulation of touch can then
+undo) nor `Emulation.setEmulatedMedia` (which does not move `hover`) was a
+way round. `KEPULI_NO_POINTER=1` starts the test browser as such a
+pointerless machine, for finding on a laptop what fails only there; what
+fails with it is not always what failed on the runner, so a red scenario
+is settled by a run of it there.
 
 ### Known flakes, not bugs
 

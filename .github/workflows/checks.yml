@@ -17,6 +17,11 @@ on:
   schedule:
     - cron: '17 3 * * *'
   workflow_dispatch:
+    inputs:
+      scenarios:
+        description: 'Browser scenarios to run, separated by spaces (empty: all of them)'
+        required: false
+        default: ''
 
 permissions:
   contents: read
@@ -71,7 +76,7 @@ jobs:
         run: node dev/secretcheck.mjs --all
 
   browser:
-    name: Browser scenarios (mock server, headless Chrome)
+    name: Browser scenarios (mock server, Chrome for Testing)
     runs-on: ubuntu-latest
     timeout-minutes: 60
     env:
@@ -108,13 +113,28 @@ jobs:
         run: node dev/uicheck.mjs
       # Runs even when the UI check failed, so one red step does not hide
       # what the scenarios would have said.
-      - name: Playback scenarios (a smoke set on a push, all of them otherwise)
+      #
+      # In a window on a virtual screen (Xvfb), not headless: a headless
+      # Chrome on the runner has no pointing device, says (hover: none),
+      # and the page gave it a finger's sizes (css/last.css), so the
+      # scenarios that measure a desktop failed here and passed on a
+      # laptop. The virtual screen has a mouse, as a laptop has, and a
+      # scenario about touch emulates one over it. openbox is the window
+      # manager a full screen needs.
+      - name: A virtual screen with a mouse
         if: success() || failure()
+        run: sudo apt-get update && sudo apt-get install -y xvfb openbox
+      - name: Playback scenarios (a smoke set on a push, all of them or the chosen ones otherwise)
+        if: success() || failure()
+        env:
+          KEPULI_HEADLESS: ''
+          CHOSEN: ${{ inputs.scenarios }}
         run: |
           case "$GITHUB_EVENT_NAME" in
-            push|pull_request) node dev/playcheck.mjs welcome catalogUi channels home search keys settings death a11y routes remote appback appcast ;;
-            *) node dev/playcheck.mjs ;;
+            push|pull_request) set="welcome catalogUi channels home search keys settings death a11y routes remote appback appcast" ;;
+            *) set="$CHOSEN" ;;
           esac
+          xvfb-run -a -s "-screen 0 1600x1100x24" sh -c "openbox & sleep 1; node dev/playcheck.mjs $set"
 
   android:
     name: Android packages build, with only the approved permissions
