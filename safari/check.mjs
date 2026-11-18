@@ -80,6 +80,9 @@ const playFilm = (pick) => run(`${MUTE} const { state } = await import('./js/sta
 const SCENARIOS = {
   /** The player as Safari loads it: the manifest made for Safari, and what the engine offers. */
   async start() {
+    // Straight after `drive.mjs reload` the tab is there before its page:
+    // the first question got no answer, and every scenario after it failed.
+    for (const t0 = Date.now(); Date.now() - t0 < 30000 && ask(`document.readyState === 'complete' && location.pathname`) !== '/player.html';) await sleep(500);
     const facts = ask(`(() => { const api = globalThis.browser || chrome; const m = api.runtime.getManifest(); return { page: location.pathname, protocol: location.protocol, optional: m.optional_permissions || [], background: m.background, mse: typeof MediaSource, dnr: typeof api.declarativeNetRequest, native: typeof api.runtime.connectNative }; })()`);
     assert(facts.protocol === 'safari-web-extension:' && facts.page === '/player.html', `not the extension's player: ${JSON.stringify(facts)}`);
     assert(!facts.optional.includes('notifications') && Array.isArray(facts.background?.scripts) && !facts.background.service_worker, `the manifest is not Safari's: ${JSON.stringify(facts)}`);

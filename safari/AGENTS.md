@@ -122,6 +122,13 @@ The owner allows this Mac's own Safari for testing (they do not use it).
 - **While a dialog of Safari's is up, Safari answers no Apple Events**:
   `eval` hangs. `node safari/drive.mjs dialog` reads it through System
   Events, which still works, and `dialog '<button>'` clicks an answer.
+  A dialog left up by a run that failed took no press of Deny (twenty-five
+  were tried, by `click` and by AXPress); Escape closed it (`key code 53`
+  with Safari in front).
+- **Not with the screen locked.** System Events then sees no window of
+  Safari's: `reload` fails at "Can't get window Developer" and every press
+  fails, while `eval` still answers, so a run reports the old build's
+  results. `ioreg -n Root -d1 -a` has `CGSSessionScreenIsLocked` when it is.
 - **`press` needs Safari in front** and brings it there: behind another
   app's window the page's elements are not in the accessibility tree.
 - **A click made by script is not the viewer's.** `press` performs AXPress
