@@ -156,7 +156,7 @@ async function connect({ silent = false } = {}) {
     renderNowSub();
     renderSidebar();
     const arrival = landing(state.tab);
-    await activateTab(state.tab, { restore: true });
+    await activateTab(state.tab, { restore: true, keepPane: true });
     if (stale()) return false;
     await restoreDetail(arrival);
     if (stale()) return false;
@@ -869,9 +869,14 @@ function markTabs(tab) {
   }
 }
 
-async function activateTab(tab, { restore = false } = {}) {
+async function activateTab(tab, { restore = false, keepPane = false } = {}) {
   catalogueSearch.reset();
-  playerLayout.showBrowse();
+  // The connection's own first tab is nobody's request for the list: a
+  // cast session found on the device before it (the app's page loaded
+  // again while a television plays) had taken the one pane, and this gave
+  // it back to the list, with no sign of the session and nothing to stop
+  // it by. Which came first was a matter of milliseconds.
+  if (!keepPane) playerLayout.showBrowse();
   state.tab = tab;
   // The guide needs a connection: before one, its button would only say so.
   $('channel-tools').hidden = tab !== 'live' || !state.lib;
