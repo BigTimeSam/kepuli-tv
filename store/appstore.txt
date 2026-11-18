@@ -515,8 +515,13 @@ whole logo index (js/logoindex.js), as the texts above say.
 the owner's configuration, the demo, this file's pasted sections against
 the rules above, and the device checklist.
 
-  • The demo provider: deployed, on https, and its host in appstore.json.
-    store/chrome-dashboard.txt says no hosted demo is offered today.
+  • The demo provider: DONE 2026-11-18. It is deployed on Fly.io from
+    dev/mock/ (fly.toml names its host), on https, with the reviewer's
+    catalogue, and its address is in appstore.json; "node ios/release.mjs
+    status" signs in to it and reads a film's first bytes. The machine
+    stops when nobody is connected and starts on the first request: keep
+    the Fly app for as long as a review may come. (store/chrome-dashboard.txt
+    still says no hosted demo is offered: that is the browsers' listing.)
   • The "audio" background mode: the review notes give the reviewer three
     steps, sound that goes on behind another app, the lock screen's
     controls and picture in picture. The first was measured in the
