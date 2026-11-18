@@ -51,6 +51,9 @@ try {
     window.addEventListener('unhandledrejection', e => uiErrors.push(String(e.reason)));`);
   await viewport(1280);
   await click('#groups .group'); // All series, long enough to scroll.
+  // The covers are built a moment after the rows: looked at in the same
+  // instant, a cold browser on the CI runner had none yet, once.
+  await waitFor(`document.querySelectorAll('#list .card-poster img').length > 0`);
   // A slow scroll keeps the covers already in sight: building them again
   // made each one a new <img>, hidden until it loaded, and they blinked.
   const kept = await evaluate(`(async () => {

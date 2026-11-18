@@ -8546,6 +8546,16 @@ async function iosappCourse(page, plain) {
   };
   await evaluate(page, `document.querySelector('#list .row .row-more').click()`);
   await waitFor(page, `document.querySelector('.row-menu:popover-open')`, 'a row\'s menu');
+  // The press under test is one made with the menu open. The menu closes
+  // on any scroll or resize of the window (js/rowmenu.js), and on the CI's
+  // virtual screen a late resize closed it once before the press, which
+  // was then an ordinary press and played the row: once the window has
+  // settled the menu is opened again if it has gone.
+  await sleep(300);
+  if (!await evaluate(page, `Boolean(document.querySelector('.row-menu:popover-open'))`)) {
+    await evaluate(page, `document.querySelector('#list .row .row-more').click()`);
+    await waitFor(page, `document.querySelector('.row-menu:popover-open')`, 'a row\'s menu again');
+  }
   await pressRow(4);
   const outside = await evaluate(page, `import('./js/state.js').then(({ state }) => ({ menu: Boolean(document.querySelector('.row-menu')), playing: Boolean(state.playing) }))`);
   assert(!outside.menu && !outside.playing, `a press on another row with a row's menu open: ${JSON.stringify(outside)}`);
@@ -9024,6 +9034,10 @@ async function iosappCourse(page, plain) {
   const PANE = `(() => { const shown = (node) => Boolean(node) && node.getClientRects().length > 0, $ = (id) => document.getElementById(id);
     return { overlay: shown($('overlay-title')), stop: shown(document.querySelectorAll('#overlay-actions button')[1]), list: shown($('list')), nav: shown(document.querySelector('.compact-nav')),
       mark: shown($('btn-cast-top')) && $('btn-cast-top').classList.contains('on') }; })()`;
+  // The pane follows the window a moment after it narrows (the layout's
+  // own listener): on a busy runner half a second was once too short, and
+  // the list was still what showed.
+  await waitFor(page, `${PANE}.overlay`, 'the session in the one pane', 5000).catch(() => {});
   const pane = await evaluate(page, PANE);
   await evaluate(page, `document.getElementById('compact-browse').click()`);
   await sleep(300);
