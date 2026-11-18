@@ -105,7 +105,9 @@ jobs:
   chrome:
     name: Chrome (${{ matrix.shard }})
     runs-on: ubuntu-latest
-    timeout-minutes: 40
+    # A part takes a quarter of an hour; once the system's package mirror
+    # took another seventeen minutes to hand over the virtual screen.
+    timeout-minutes: 55
     strategy:
       fail-fast: false
       matrix:
@@ -156,7 +158,9 @@ jobs:
   firefox:
     name: Firefox (${{ matrix.shard }})
     runs-on: ubuntu-latest
-    timeout-minutes: 40
+    # A part takes a quarter of an hour; once the system's package mirror
+    # took another seventeen minutes to hand over the virtual screen.
+    timeout-minutes: 55
     strategy:
       fail-fast: false
       matrix:
