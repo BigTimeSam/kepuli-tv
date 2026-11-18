@@ -146,6 +146,15 @@ More in [Developing Kepuli-TV](https://github.com/BigTimeSam/kepuli-tv/blob/main
 `CHROMECAST.md` beside them. Coding agents start from `AGENTS.md`, and each
 directory has its own.
 
+## Security
+
+To report a vulnerability, see
+[SECURITY.md](https://github.com/BigTimeSam/kepuli-tv/blob/main/SECURITY.md):
+privately, through the repository's Security tab. It also says how the
+project guards itself: no build step and no npm dependencies in what is
+shipped, third-party code pinned by its hash and watched for new
+releases, and every push checked in CI.
+
 ## Licence
 
 The project's own code is MIT licensed, see [LICENSE](LICENSE). The `vendor/`
