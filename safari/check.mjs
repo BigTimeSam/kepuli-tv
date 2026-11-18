@@ -90,7 +90,14 @@ const SCENARIOS = {
   /** Connecting as a viewer does: the address typed, Connect pressed, Safari's question answered. */
   async connect() {
     const address = `http://127.0.0.1:${PORT}/get.php?username=demo&password=demo&type=m3u_plus`;
-    const before = ask(`({ rows: document.querySelectorAll('#list .row').length, host: document.querySelector('dialog[open]')?.id || null })`);
+    let before = ask(`({ rows: document.querySelectorAll('#list .row').length, host: document.querySelector('dialog[open]')?.id || null })`);
+    // The player was opened before this run's mock was up: its account is
+    // there and its first try failed. The overlay's own Try again, then.
+    if (!before.rows && !before.host && ask(`Boolean(document.querySelector('#overlay-actions button')) && !document.getElementById('overlay').hidden`)) {
+      ask(`(document.querySelector('#overlay-actions button').click(), true)`);
+      for (const t0 = Date.now(); Date.now() - t0 < 30000 && !(ask(`document.querySelectorAll('#list .row').length`) > 0);) await sleep(500);
+      before = ask(`({ rows: document.querySelectorAll('#list .row').length, host: document.querySelector('dialog[open]')?.id || null })`);
+    }
     if (before.rows > 0 && !before.host) {
       const granted = await run(`return (globalThis.browser || chrome).permissions.contains({ origins: ['http://127.0.0.1/*'] });`);
       assert(granted, 'connected, but the mock\'s host is not among the granted origins');
