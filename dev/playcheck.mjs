@@ -430,6 +430,7 @@
 // the rate in bytes per second (60 kB/s). Exit code 0 when every scenario
 // passes, 1 otherwise.
 
+import { createServer } from 'node:net';
 import { decodePng } from './screenshot.mjs';
 import { startMockServer, connectionStats, liveCuts, MULTI_EPISODES, PORT as MOCK_PORT, STALKER_MAC, stalkerSeen, USER, PASS, T0 as MOCK_T0 } from './mock/server.mjs';
 // Run the same scenarios in Firefox with KEPULI_BROWSER=firefox.
@@ -5140,7 +5141,10 @@ async function welcome(page, { target }) {
   await waitFor(page, `document.getElementById('setup').open && document.activeElement.id === 'f-paste'`, 'the dialog again from the welcome');
   // A server that does not answer, on a host the browser has not allowed:
   // the text says both, over the button that asks for it.
-  const dead = MOCK_PORT + 7;
+  // A port nothing listens on, found by asking the system for a free one
+  // and letting it go: a fixed one (the mock's plus 7) was another
+  // session's mock on this machine, which answered, and the error never came.
+  const dead = await new Promise((found) => { const probe = createServer(); probe.listen(0, '127.0.0.1', () => { const { port } = probe.address(); probe.close(() => found(port)); }); });
   await paste(`http://127.0.0.1:${dead}/get.php?username=demo&password=demo`);
   await evaluate(page, `window.realContains = chrome.permissions.contains; chrome.permissions.request = async () => true; chrome.permissions.contains = async () => false;`);
   try {
