@@ -752,12 +752,17 @@ async function filmbuffering(page) {
       }
       const steps = seen.map((v) => (/^Reading.*\d/.test(v.title) ? 'index' : /^Buffering \d/.test(v.title) ? 'start' : null)).filter(Boolean);
       if (steps.lastIndexOf('index') > steps.indexOf('start')) problems.push('the index was read after the start');
-    } else if (shares.length || index.length || seen.some((v) => v.bar != null)) {
+    } else if (shares.length || index.length || seen.some((v) => v.bar != null && !/^Examining the file/.test(v.title))) {
+      // The examination of the file is not the browser's own player, and
+      // its share is one the player knows (the header's bytes of 256 kB):
+      // a cold Chrome on the CI runner refused the first film of its
+      // life, the player read the header and the browser then played it.
       problems.push('the browser\'s own player showed a share it cannot know');
     }
     const after = await evaluate(page, WAIT_VIEW);
     if (after.overlay || after.load) problems.push('the account stayed after the picture started');
-    return { ok: !problems.length, detail: problems.length ? problems.join('; ') : `${seen.length} looks, ${index.length ? `index ${index[0]}…${index.at(-1)} %, ` : ''}${shares.length ? `start ${shares[0]}…${shares.at(-1)} %` : 'no share'}, last "${seen.at(-1)?.title} ${seen.at(-1)?.figures}"` };
+    const examined = seen.some((v) => /^Examining the file/.test(v.title)) ? 'the file examined first, ' : '';
+    return { ok: !problems.length, detail: problems.length ? problems.join('; ') : `${seen.length} looks, ${examined}${index.length ? `index ${index[0]}…${index.at(-1)} %, ` : ''}${shares.length ? `start ${shares[0]}…${shares.at(-1)} %` : 'no share'}, last "${seen.at(-1)?.title} ${seen.at(-1)?.figures}"` };
   } finally {
     process.env.KEPULI_MOCK_THROTTLE = '';
   }
@@ -5351,6 +5356,7 @@ async function reminders(page) {
     evaluate(page, `chrome.permissions.request({ permissions: ['notifications'] }).then((on) => import('./js/remindersui.js').then((m) => m.loadNotifying()).then(() => on))`, { gesture: true }).catch(() => false),
     sleep(4000).then(() => false),
   ]);
+  newWindowAfter = true;   // see the runner: no full screen in the CI's Chrome after this scenario
   const sayingIt = `!document.getElementById('toast').hidden && document.getElementById('toast-text').textContent.includes(${JSON.stringify(list[0].title)})`;
   await sleep(1000);
   if (!await evaluate(page, sayingIt)) {
@@ -9936,6 +9942,9 @@ const FRAME_BOUND = process.env.CI ? 100 : 50;
  * plan the other tab had marked missed (1.11.0). The extra tabs are closed
  * and named, so that a scenario that leaves one behind is seen.
  */
+// Set by a scenario after which the runner gives the player a new window.
+let newWindowAfter = false;
+
 async function oneChromePlayer(name) {
   const list = await (await fetch(`http://127.0.0.1:${DEVTOOLS_PORT}/json/list`)).json();
   const players = list.filter((t) => t.type === 'page' && /^chrome-extension:\/\/[a-p]{32}\/player\.html/.test(t.url));
@@ -9954,8 +9963,18 @@ async function oneChromePlayer(name) {
 await ensureChrome(['--autoplay-policy=no-user-gesture-required', ...(process.env.KEPULI_HEADLESS ? ['--headless=new', '--window-size=1280,800'] : [])]);
 let failed = 0;
 try {
-  for (const name of wanted.length ? wanted : Object.keys(SCENARIOS)) {
+  // KEPULI_SHARD=2/3 runs every third scenario, from the second: the CI
+  // runs the whole suite as parts side by side. Taken in turn and not as
+  // thirds of the list, so that the slow scenarios, which stand together
+  // in it, are shared out.
+  const [part, parts] = (process.env.KEPULI_SHARD || '1/1').split('/').map(Number);
+  if (!(part >= 1 && part <= parts)) throw new Error(`KEPULI_SHARD is "${process.env.KEPULI_SHARD}", not a part like 2/3`);
+  for (const name of (wanted.length ? wanted : Object.keys(SCENARIOS)).filter((_, i) => i % parts === part - 1)) {
     if (process.env.KEPULI_BROWSER === 'firefox' && CHROME_ONLY[name]) { console.log(`SKIP  ${name}: ${CHROME_ONLY[name]}`); continue; }
+    // KEPULI_SKIP names scenarios to leave out of this run (the CI's
+    // Firefox job has a short list of ones not yet green there): said,
+    // so that a run's log shows what it did not look at.
+    if ((process.env.KEPULI_SKIP || '').split(/\s+/).includes(name)) { console.log(`SKIP  ${name}: left out by KEPULI_SKIP`); continue; }
     // A mock server of its own for every scenario, one of them kills it —
     // sending slowly, so that the file is not on the browser's side whole
     // before the scenario begins (see KEPULI_MOCK_THROTTLE in the server).
@@ -9981,6 +10000,29 @@ try {
       if (process.env.KEPULI_DEBUG) console.log(JSON.stringify(connectionStats()), requests.filter((r) => !/player_api|\/img\//.test(r)).slice(-15));
       failed++;
     } finally {
+      // After the reminders scenario nothing went full screen again in
+      // the CI's Chrome: remote and remotescrub failed in every full run,
+      // a hundred scenarios later, and passed alone and on a laptop. A
+      // run on demand that repeated remote after each scenario found
+      // which one. What it leaves is the window's, and is not known: the
+      // browser's question about notifications is not it (answered for
+      // the page, with no, remote still failed), and closing the tab did
+      // not help. A new window for the player and the old one closed
+      // did, so that is what a scenario asks for with newWindowAfter.
+      if (newWindowAfter && DEVTOOLS_PORT) {
+        newWindowAfter = false;
+        const { windowId } = await page.call('Browser.getWindowForTarget').catch(() => ({}));
+        await page.call('Target.createTarget', { url: bare(target.url).split('?')[0], newWindow: true }).catch(() => {});
+        await sleep(500);
+        const all = await (await fetch(`http://127.0.0.1:${DEVTOOLS_PORT}/json/list`)).json().catch(() => []);
+        for (const other of all.filter((t) => t.type === 'page')) {
+          const tab = session(other.webSocketDebuggerUrl);
+          const where = await tab.call('Browser.getWindowForTarget').catch(() => ({}));
+          tab.close();
+          if (windowId !== undefined && where.windowId === windowId) await fetch(`http://127.0.0.1:${DEVTOOLS_PORT}/json/close/${other.id}`).catch(() => {});
+        }
+        await sleep(500);
+      }
       page.close();
       if (server.listening) { server.closeAllConnections(); await new Promise((resolve) => server.close(resolve)); }
     }
