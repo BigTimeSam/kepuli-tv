@@ -44,3 +44,11 @@ jobs:
       - uses: gradle/actions/dependency-submission@8da46b539cd8fe6ab27ca75128919a18d757604c # v6
         with:
           build-root-directory: android
+          # What goes into the packages, and nothing of the build's own
+          # tools. With everything told, the first run brought nine
+          # alerts, all of them libraries inside the Android Gradle
+          # Plugin (a parser, a crypto library it signs with), none in
+          # an app: nothing here can raise them but a newer plugin, which
+          # Dependabot proposes by itself, and its attempts to fix them
+          # one by one failed in the Actions list every hour.
+          dependency-graph-include-configurations: '.*ReleaseRuntimeClasspath'

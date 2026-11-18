@@ -238,7 +238,7 @@ the run's page), `report` (the issue of a red scheduled run).
 | --- | --- | --- |
 | `.github/workflows/ci.yml` (CI) | the tests, below | every push and pull request, nightly, on demand |
 | `.github/workflows/freshness.yml` (Freshness) | `dev/freshcheck.mjs` and `android/enginecheck.mjs`: what is pinned by hand against its maker's latest; an issue when it has fallen behind | nightly, on demand |
-| `.github/workflows/dependency-graph.yml` (Dependency graph) | the Android build's whole dependency graph told to GitHub, for Dependabot's alerts | a push to main that changes `android/` |
+| `.github/workflows/dependency-graph.yml` (Dependency graph) | what the Android packages carry (the release runtime classpath, with what each library brings along) told to GitHub, for Dependabot's alerts; the build's own tools are left out, as nothing here can raise a library inside the Android Gradle Plugin | a push to main that changes `android/` |
 | `.github/workflows/codeql.yml` (CodeQL) | static analysis, below | a push to main, pull requests, weekly |
 
 The jobs of CI:
