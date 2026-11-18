@@ -65,6 +65,23 @@ final class Rules {
         }
     }
 
+    /**
+     * What a media key asks of the page, by the names the page knows, or
+     * null for any other key. The one key that is both asks for the other
+     * of what is going on. The codes are Android's (KeyEvent), written out
+     * so that this needs nothing of Android.
+     */
+    static String mediaKey(int code, boolean playing) {
+        switch (code) {
+            case 126: return "play";                        // KEYCODE_MEDIA_PLAY
+            case 127: return "pause";                       // KEYCODE_MEDIA_PAUSE
+            case 85: return playing ? "pause" : "play";     // KEYCODE_MEDIA_PLAY_PAUSE
+            case 87: return "next";                         // KEYCODE_MEDIA_NEXT
+            case 88: return "previous";                     // KEYCODE_MEDIA_PREVIOUS
+            default: return null;
+        }
+    }
+
     /** The small window's shape for a picture: its own, within the 2.39 to 1 either way that Android takes. */
     static float ratio(int width, int height) {
         return Math.max(100f / 239, Math.min(239f / 100, (float) width / height));

@@ -44,6 +44,17 @@ public class RulesTest {
     }
 
     @Test
+    public void aMediaKeyAsksWhatTheSessionWouldAsk() {
+        assertEquals("pause", Rules.mediaKey(android.view.KeyEvent.KEYCODE_MEDIA_PAUSE, true));
+        assertEquals("play", Rules.mediaKey(android.view.KeyEvent.KEYCODE_MEDIA_PLAY, false));
+        assertEquals("pause", Rules.mediaKey(android.view.KeyEvent.KEYCODE_MEDIA_PLAY_PAUSE, true));
+        assertEquals("play", Rules.mediaKey(android.view.KeyEvent.KEYCODE_MEDIA_PLAY_PAUSE, false));
+        assertEquals("next", Rules.mediaKey(android.view.KeyEvent.KEYCODE_MEDIA_NEXT, true));
+        assertEquals("previous", Rules.mediaKey(android.view.KeyEvent.KEYCODE_MEDIA_PREVIOUS, true));
+        assertEquals(null, Rules.mediaKey(android.view.KeyEvent.KEYCODE_BACK, true));
+    }
+
+    @Test
     public void theSmallWindowKeepsWithinWhatAndroidTakes() {
         assertEquals(16f / 9, Rules.ratio(1920, 1080), 0.001f);
         assertEquals(2.39f, Rules.ratio(4000, 100), 0.001f);

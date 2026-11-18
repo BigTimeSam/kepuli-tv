@@ -295,8 +295,18 @@ Only on the owner's go, as every release (root `AGENTS.md` rule 2).
 - The extension can hold the "notifications" permission while Android's
   own is missing (taken back in the settings): the app asks again when
   reminders arrive without it.
+- Seen on a real device (Galaxy Tab S8+, Android 16, a debug build beside
+  the released app, the hosted demo, 2026-11-18): the page says a coarse
+  pointer that does not hover, every control in sight is 40 px and the
+  list's foot holds its marks; a tap on a selector's label opens the
+  app's own list with its filter, a second closes it, and no field takes
+  the caret; a channel plays, the notification has the programme, the
+  channel and its logo under the app's mark; Pause and Play come through
+  the media session and, with the app in front, as keys; Home makes the
+  small window; with the screen off the picture's time went on for a
+  minute (muted, the device dozing).
 - Not done yet: sound and speed measured on a real television; on a phone,
   a planned recording while the app is not running, how long a live stream
-  holds in the background on a real device's battery saving, a reminder's
-  lateness on a resting device, **Open in VLC** with VLC installed, and a
-  real device altogether.
+  holds in the background over hours and under battery saving, a
+  reminder's lateness on a resting device, **Open in VLC** with VLC
+  installed, a saved file, and a cast from the new build.

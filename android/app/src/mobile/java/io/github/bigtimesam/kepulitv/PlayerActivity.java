@@ -707,6 +707,22 @@ public class PlayerActivity extends EngineActivity {
         else if (!PlaybackService.now.playing && what.equals(PlaybackService.PLAY)) playing(true);
     }
 
+    /**
+     * A media key pressed while the app is in front (a keyboard joined to a
+     * tablet) comes to the window, not to the media session, and the
+     * engine took it and did nothing: on a Galaxy Tab Pause from a
+     * keyboard left the channel playing, while the same from a headset or
+     * the lock screen, which go by the session, paused it. The key is
+     * answered here as the session answers it.
+     */
+    @Override
+    public boolean dispatchKeyEvent(android.view.KeyEvent event) {
+        String what = Rules.mediaKey(event.getKeyCode(), PlaybackService.now.playing);
+        if (what == null || !PlaybackService.running()) return super.dispatchKeyEvent(event);
+        if (event.getAction() == android.view.KeyEvent.ACTION_UP) press(what);
+        return true;
+    }
+
     private void nothing() {
         PlaybackService.now.art = null;
         playing(false);
