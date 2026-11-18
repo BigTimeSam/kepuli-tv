@@ -2365,8 +2365,11 @@ async function phone(page) {
     await waitFor(page, `document.getElementById('main').classList.contains('guide') && document.querySelector('#epg-days .epg-day.active')`, 'the guide');
     await sleep(500);
     const guide = await evaluate(page, `(() => { const box = (n) => n.getBoundingClientRect();
-      const bar = box(document.querySelector('.epg-bar')), days = box(document.getElementById('epg-days')), today = box(document.querySelector('#epg-days .epg-day.active'));
-      return { bar: Math.round(bar.width), days: Math.round(days.width), today: today.left >= days.left - 0.5 && today.right <= days.right + 0.5,
+      // The days' line is the older days' menu and the strip beside it
+      // (css/last.css): together they take the bar, and today is whole
+      // in the strip.
+      const bar = box(document.querySelector('.epg-bar')), line = box(document.querySelector('.epg-daybar')), days = box(document.getElementById('epg-days')), today = box(document.querySelector('#epg-days .epg-day.active'));
+      return { bar: Math.round(bar.width), days: Math.round(line.width), today: today.left >= days.left - 0.5 && today.right <= days.right + 0.5,
         form: Math.round(document.getElementById('programme-form').getBoundingClientRect().height),
         page: document.documentElement.scrollWidth <= innerWidth }; })()`);
     await evaluate(page, `document.getElementById('epg-close').click()`);
@@ -7359,16 +7362,20 @@ async function phoneguide(page) {
     const sheet = await evaluate(page, `({ open: document.getElementById('main').classList.contains('guide-sheet'), shown: getComputedStyle(document.getElementById('epg-preview')).visibility, played: Boolean(document.getElementById('video').currentSrc), actions: document.querySelectorAll('#epgv-actions button').length })`);
     assert(sheet.open && sheet.shown === 'visible' && !sheet.played && sheet.actions > 0, `a tap on a programme: ${JSON.stringify(sheet)}`);
     // A message raised while the sheet is up, as Remind me's answer is,
-    // lies over the sheet: under it, "Notifications are turned off" was
-    // never seen, and the sheet said Cancel reminder as if all were well.
+    // is in sight over the page: under the sheet, "Notifications are
+    // turned off" was never seen, and the sheet said Cancel reminder as if
+    // all were well. It stands at the top of the window (css/last.css): at
+    // the bottom it lay over the sheet's title and its two buttons.
     const strip = await evaluate(page, `(async () => { const { toast } = await import('./js/toast.js');
       toast('Evening News starts at 20.00 on Maple Business', { kind: 'warn' });
       await new Promise((r) => setTimeout(r, 300));
-      const box = document.getElementById('toast').getBoundingClientRect(), under = document.getElementById('epg-preview').getBoundingClientRect();
+      const box = document.getElementById('toast').getBoundingClientRect();
       const at = document.elementFromPoint(box.left + box.width / 2, box.top + box.height / 2);
+      const apart = (node) => { const r = node.getBoundingClientRect(); return r.height === 0 || box.bottom <= r.top || box.top >= r.bottom; };
+      const clear = [...document.querySelectorAll('#epgv-actions button, #epg-preview .epgv-head, #epgv-close')].every(apart);
       document.getElementById('toast').hidden = true;
-      return { over: Boolean(at && at.closest('#toast')), onSheet: box.top >= under.top && box.bottom <= under.bottom, at: at ? at.id || at.className : null }; })()`);
-    assert(strip.over && strip.onSheet, `a message while the programme's sheet is up: ${JSON.stringify(strip)}`);
+      return { over: Boolean(at && at.closest('#toast')), clear, top: Math.round(box.top), at: at ? at.id || at.className : null }; })()`);
+    assert(strip.over && strip.clear, `a message while the programme's sheet is up: ${JSON.stringify(strip)}`);
     await page.call('Input.dispatchKeyEvent', { type: 'keyDown', key: 'Escape', code: 'Escape', windowsVirtualKeyCode: 27 });
     await page.call('Input.dispatchKeyEvent', { type: 'keyUp', key: 'Escape', code: 'Escape', windowsVirtualKeyCode: 27 });
     await sleep(300);
