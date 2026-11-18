@@ -60,3 +60,6 @@ appstore.json
 *.swp
 *~
 Thumbs.db
+
+# safari/build.mjs makes the Safari extension, its Xcode project and the app here.
+safari/dist/

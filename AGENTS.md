@@ -210,6 +210,7 @@ the store screenshots.
 | [`css/AGENTS.md`](css/AGENTS.md) | the stylesheet: rem sizing, theme variables, layouts, breakpoints, alignment |
 | [`dev/AGENTS.md`](dev/AGENTS.md) | every tool, the tests, ports and profiles, writing scenarios, looking at UI changes |
 | [`dev/mock/AGENTS.md`](dev/mock/AGENTS.md) | the invented provider: fiction, determinism, fault switches |
+| [`safari/AGENTS.md`](safari/AGENTS.md) | the Safari extension on the Mac: its build, what differs in Safari, driving it by AppleScript, traps |
 | [`firefox/AGENTS.md`](firefox/AGENTS.md) | the Firefox manifest and tooling, reviewer notes, testing in Firefox |
 | [`ios/AGENTS.md`](ios/AGENTS.md) | the iPhone and iPad app: the shell, the permanent identifiers, the build, the simulator driver and its scenarios. Beside it, read when needed: [`ios/MEASURED.md`](ios/MEASURED.md) (what was found by running the app, and must not be undone) and [`ios/RELEASE.md`](ios/RELEASE.md) (packages, the App Store procedure, the device checklist) |
 | [`android/AGENTS.md`](android/AGENTS.md) | the Android apps for a television and for a phone or a tablet: the Firefox package inside GeckoView, building, the emulators, driving them |
