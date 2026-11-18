@@ -94,7 +94,9 @@ second upload of the same version takes `--build 2`.
 | The unsigned device archive and the privacy report | `node ios/release.mjs archive` |
 | What is missing before the App Store | `node ios/release.mjs status` |
 
-`KEPULI_IOS_DEVICE` picks the device: `kepuli-ios-iphone` (the default,
+`KEPULI_IOS_RUNTIME` (say `iOS-26-4`) gives the four everyday devices
+another runtime than 26.5, for a machine whose Xcode brings its own (the
+CI's). `KEPULI_IOS_DEVICE` picks the device: `kepuli-ios-iphone` (the default,
 iPhone 17 on iOS 26.5), `kepuli-ios-ipad` (iPad (A16)),
 `kepuli-ios-shots-iphone` and `kepuli-ios-shots-ipad` (the
 App Store's screenshot sizes), `kepuli-ios-iphone-26-0` and

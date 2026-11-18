@@ -2326,6 +2326,19 @@ check('VLC for iOS is handed the stream address, encoded whole',
   check('nothing was reported as a failure while the stream came back', failed, null);
 }
 
+/* ------------------ dev/freshcheck.mjs: is a pin its maker's latest */
+{
+  const { compare, verdict } = await import('./freshcheck.mjs');
+  const day = 86400000, at = Date.UTC(2026, 9, 28);
+  check('versions are compared number by number: 1.10 is after 1.9, 7.1 before 7.1.5',
+    [compare('1.10.0', '1.9.9') > 0, compare('7.1', '7.1.5') < 0, compare('158.0.8127.36', '157.0.8103.38') > 0, compare('4.8.6', '4.8.6')], [true, true, true, 0]);
+  check('a newer release is said at once and must be taken after the grace', [verdict({ pinned: '1.6.5', latest: '1.7.4', released: at, must: true }, at + 20 * day), verdict({ pinned: '1.6.5', latest: '1.7.4', released: at, must: true }, at + 45 * day)],
+    [{ behind: true, late: false, days: 20 }, { behind: true, late: true, days: 45 }]);
+  check('what tests no worse when old is never late, nor a release without a date',
+    [verdict({ pinned: '157.0.1', latest: '158.0.1', released: at, must: false }, at + 400 * day).late, verdict({ pinned: '7.1.1', latest: '7.1.5', released: null, must: true }, at).late], [false, false]);
+  check('the latest pinned is not behind', verdict({ pinned: '4.8.6', latest: '4.8.6', released: at, must: true }, at + 900 * day), { behind: false, late: false, days: 900 });
+}
+
 /* --------------- android/enginecheck.mjs: is the engine Mozilla's latest */
 {
   const { parse, newest, verdict } = await import('../android/enginecheck.mjs');

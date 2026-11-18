@@ -18,7 +18,7 @@ what it does and how to run it. Read that header before using one.
 | Pictures and video | `store-screenshots.mjs`, `demo-video.mjs`, `demo-music.py`, `logos.mjs` (regenerates `js/logoindex.js`) |
 | Refactoring | `splitsection.py`: one section of `js/app.js` into a module of its own, imports and exports rewired (see `js/AGENTS.md`) |
 | Guides | `docscheck.mjs`: every file and command the guides name exists, every tool and module is described, every AGENTS.md has its CLAUDE.md, every relative link lands |
-| Safety | `secretcheck.mjs`: run on the staged changes before every commit; `namecheck.mjs`: every name and import in `js/` resolves (TypeScript's checker via npx, names and modules only); `typecheck.mjs`: the typed modules (`// @ts-check` and JSDoc, listed in it and in `js/AGENTS.md`) have no type error at all, with the script-tag globals declared in `types/globals.d.ts`; `htmlcheck.mjs`: markup is written only from icon constants, nothing evaluates a string; `vendorcheck.mjs`: every file in `vendor/` has the SHA-256 and upstream version listed in `vendor/CHECKSUMS` (`--update` after a deliberate upgrade) |
+| Safety | `secretcheck.mjs`: run on the staged changes before every commit; `namecheck.mjs`: every name and import in `js/` resolves (TypeScript's checker via npx, names and modules only); `typecheck.mjs`: the typed modules (`// @ts-check` and JSDoc, listed in it and in `js/AGENTS.md`) have no type error at all, with the script-tag globals declared in `types/globals.d.ts`; `htmlcheck.mjs`: markup is written only from icon constants, nothing evaluates a string; `vendorcheck.mjs`: every file in `vendor/` has the SHA-256 and upstream version listed in `vendor/CHECKSUMS` (`--update` after a deliberate upgrade); `freshcheck.mjs`: what is pinned by hand (the players in `vendor/`, FFmpeg, the Cast SDK for iOS, the CI's Chrome and its installer) against its maker's latest release, failing once a newer one that reads a provider's data has been out for 45 days; run nightly in CI |
 | Audio decoder | `wasm/` (`build.sh` builds `vendor/ffaudio` from FFmpeg; see `vendor/AGENTS.md`) |
 | iPhone and iPad app | not here: `ios/build.mjs`, `ios/sim.mjs`, `ios/simcheck.mjs` (the app's scenarios in its simulators), `ios/screenshots.mjs` (the App Store's pictures), `ios/release.mjs` (packages, and `status`: what is missing before the App Store) and `ios/vendor.mjs` live with the app (see `ios/AGENTS.md`); its page side is tested here by `playcheck.mjs iosapp` and `unitcheck.mjs` |
 
@@ -226,17 +226,35 @@ counted.
 
 ### CI
 
-`.github/workflows/checks.yml` runs the Node-only checks (unit, names, types, markup, area
-checks, listings, translations, the Pages page, the manifests, vendor/'s
-checksums, secrets) on
-every push and pull request, together with `uicheck` and a smoke set of
-`playcheck` scenarios in Chrome for Testing (a pinned build); the full
-`playcheck` runs every night and on demand (`gh workflow run Checks`, or
-`-f scenarios="phone focusrings"` for chosen ones, on any branch with
-`--ref`), and `dev/release.mjs` wants that full run green on the release
-commit. Keep new checks runnable there: no secrets, no provider, the mock
-server only. Look at a red run with `gh run list` and
-`gh run view --log-failed`.
+Two workflows, both without a secret and with a read-only token; every
+action is pinned to a commit (Dependabot raises them).
+
+`.github/workflows/checks.yml` has five jobs:
+
+| Job | Runs | When |
+| --- | --- | --- |
+| `quick` | the Node-only checks: unit, names, types, markup, area checks, listings, translations, the Pages page, the manifests, `vendor/`'s checksums, secrets; nightly also `freshcheck` | every push and pull request, nightly, on demand |
+| `browser` | `uicheck`, and `playcheck` in Chrome for Testing (a pinned build): a smoke set on a push (the general views and each app's page: `iosapp`, `appback`, `appcast`, `remote`, `touchsizes`, `phone`), every scenario nightly and on demand | the same |
+| `android` | both Android packages built, the phone's JUnit tests, the packages' permissions; nightly also `android/enginecheck.mjs` | the same |
+| `ios` | the iPhone and iPad app built for the simulator and its XCTest target, on a macOS runner (the app's scenarios, `ios/simcheck.mjs`, stay a laptop's) | the same |
+| `dependencies` | the Android build's whole dependency graph told to GitHub, for Dependabot's alerts | a push to main |
+| `report` | an issue opened, or added to, when the nightly run is red | nightly, on failure |
+
+A newer push cancels the run of the one before it. A run on demand is
+`gh workflow run Checks`, or `-f scenarios="phone focusrings"` for chosen
+scenarios, on any branch with `--ref`; `dev/release.mjs` wants the full
+run green on the release commit. Keep new checks runnable there: no
+secrets, no provider, the mock server only. Look at a red run with
+`gh run list` and `gh run view --log-failed`.
+
+`.github/workflows/codeql.yml` analyses the JavaScript, the Android apps'
+Java and the workflows themselves weekly and on what changes main
+(`.github/codeql.yml` leaves out `vendor/` and the generated tables); its
+findings are under Security > Code scanning. `.github/dependabot.yml`
+watches the GitHub Actions and `android/`'s Gradle build; a pull request
+of its for the engine or the Cast library is taken as `android/AGENTS.md`
+says, not by the merge button alone. `SECURITY.md` is the policy a
+reporter reads.
 
 The scenarios run there in a window on a virtual screen (Xvfb with
 openbox), not headless. A headless Chrome on the runner has no pointing

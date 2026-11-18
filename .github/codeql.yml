@@ -1,0 +1,8 @@
+# What CodeQL reads (see workflows/codeql.yml): the project's own code.
+paths-ignore:
+  - vendor/**
+  - js/logoindex.js
+  - js/locales/**
+  - docs/**
+  - brand/**
+  - dist/**

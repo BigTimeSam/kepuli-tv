@@ -26,19 +26,30 @@ on:
 permissions:
   contents: read
 
+# A newer push to a branch makes the run of the one before it pointless.
+# The nightly run and a run on demand are never cancelled.
+concurrency:
+  group: checks-${{ github.ref }}-${{ github.event_name }}
+  cancel-in-progress: ${{ github.event_name == 'push' || github.event_name == 'pull_request' }}
+
+# Every action is pinned to a commit, with its version beside it: a tag can
+# be moved, a commit cannot. Dependabot raises them (.github/dependabot.yml).
+
 jobs:
   quick:
     name: Unit, texts, packaging, secrets
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
-      - uses: actions/checkout@v7
-      - uses: actions/setup-node@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7
         with:
           node-version: 22
       - name: Dummy media for the mock server (cached by media.sh)
         id: media
-        uses: actions/cache@v6
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6
         with:
           path: dev/mock/media
           key: mock-media-${{ hashFiles('dev/mock/media.sh') }}
@@ -74,6 +85,13 @@ jobs:
         run: node dev/vendorcheck.mjs
       - name: No secrets in the repository
         run: node dev/secretcheck.mjs --all
+      # Not on a push: a commit about something else is not red for
+      # somebody's calendar. The nightly run says when a pin has fallen behind.
+      - name: What is pinned by hand is its maker's latest
+        if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        run: node dev/freshcheck.mjs
 
   browser:
     name: Browser scenarios (mock server, Chrome for Testing)
@@ -85,13 +103,15 @@ jobs:
       KEPULI_DEV_PROFILE: /tmp/kepuli-profile
       TZ: Europe/Helsinki
     steps:
-      - uses: actions/checkout@v7
-      - uses: actions/setup-node@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7
         with:
           node-version: 22
       - name: Dummy media for the mock server (cached by media.sh)
         id: media
-        uses: actions/cache@v6
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6
         with:
           path: dev/mock/media
           key: mock-media-${{ hashFiles('dev/mock/media.sh') }}
@@ -105,7 +125,7 @@ jobs:
       # Raise it now and then, in a commit of its own.
       - name: Chrome for Testing for the browser checks
         run: |
-          out=$(npx -y @puppeteer/browsers install chrome@157.0.8103.38 --path "$RUNNER_TEMP/browsers" | tail -1)
+          out=$(npx -y @puppeteer/browsers@3.2.7 install chrome@157.0.8103.38 --path "$RUNNER_TEMP/browsers" | tail -1)
           echo "KEPULI_CHROME=${out#* }" >> "$GITHUB_ENV"
           echo "KEPULI_LOAD_EXTENSION=1" >> "$GITHUB_ENV"
           echo "using ${out#* }"
@@ -131,7 +151,7 @@ jobs:
           CHOSEN: ${{ inputs.scenarios }}
         run: |
           case "$GITHUB_EVENT_NAME" in
-            push|pull_request) set="welcome catalogUi channels home search keys settings death a11y routes remote appback appcast" ;;
+            push|pull_request) set="welcome catalogUi channels home search keys settings death a11y routes remote appback appcast iosapp touchsizes phone" ;;
             *) set="$CHOSEN" ;;
           esac
           xvfb-run -a -s "-screen 0 1600x1100x24" sh -c "openbox & sleep 1; node dev/playcheck.mjs $set"
@@ -141,15 +161,20 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 30
     steps:
-      - uses: actions/checkout@v7
-      - uses: actions/setup-node@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7
         with:
           node-version: 22
-      - uses: actions/setup-java@v6
+      - uses: actions/setup-java@d1374f8ac74474200d16ef8ecee22c7ae7a51880 # v6
         with:
           distribution: temurin
           java-version: 21
           cache: gradle
+      # The wrapper's jar is a binary in the repository that runs on every
+      # build: it must be one of Gradle's own.
+      - uses: gradle/actions/wrapper-validation@8da46b539cd8fe6ab27ca75128919a18d757604c # v6
       # The runner has the Android SDK; the build fetches the platform it
       # compiles against by itself once the licences are accepted.
       - name: Accept the Android SDK's licences
@@ -169,3 +194,84 @@ jobs:
         if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
         run: node android/enginecheck.mjs
 
+  # The Android apps' dependencies, all of them with what they bring along,
+  # told to GitHub: Dependabot's alerts then cover a library three steps
+  # away, which no file in the repository names.
+  dependencies:
+    name: The Android build's dependencies are reported to GitHub
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7
+        with:
+          node-version: 22
+      - uses: actions/setup-java@d1374f8ac74474200d16ef8ecee22c7ae7a51880 # v6
+        with:
+          distribution: temurin
+          java-version: 21
+      - name: Accept the Android SDK's licences
+        run: yes | "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" --licenses > /dev/null || true
+      - uses: gradle/actions/dependency-submission@8da46b539cd8fe6ab27ca75128919a18d757604c # v6
+        with:
+          build-root-directory: android
+
+  # The iPhone and iPad app: the project generated, the app built for the
+  # simulator and its XCTest target run. The app's scenarios (ios/simcheck.mjs,
+  # a quarter of an hour on two simulators) stay a laptop's.
+  ios:
+    name: iPhone and iPad app builds, and its unit tests
+    runs-on: macos-26
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7
+        with:
+          node-version: 22
+      - name: xcodegen
+        run: brew install xcodegen
+      - name: Which Xcode, which simulators
+        run: |
+          xcodebuild -version
+          # The newest iOS 26 runtime the runner has: the tools name 26.5,
+          # which is this project's laptop's.
+          runtime=$(xcrun simctl list runtimes -j | node -e 'const r = JSON.parse(require("fs").readFileSync(0, "utf8")).runtimes.filter((x) => x.isAvailable && /iOS-26-/.test(x.identifier)).map((x) => x.identifier.split(".").pop()).sort((a, b) => a.localeCompare(b, undefined, { numeric: true })); console.log(r.at(-1) || "")')
+          echo "KEPULI_IOS_RUNTIME=$runtime" >> "$GITHUB_ENV"
+          echo "runtime: $runtime"
+      - name: Build for the simulator
+        run: node ios/build.mjs --simulator
+      - name: XCTest
+        run: |
+          node ios/sim.mjs devices
+          node ios/build.mjs --test
+
+  # A red nightly run is nobody's screen: it opens an issue, or adds to the
+  # one that is open, so that it is seen. The full run was red in ten
+  # scenarios for days before anybody looked.
+  report:
+    name: A red nightly run is reported
+    needs: [quick, browser, android, ios]
+    if: failure() && github.event_name == 'schedule'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      issues: write
+    steps:
+      - name: Open or update the issue
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RUN: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+          REPO: ${{ github.repository }}
+        run: |
+          title="The nightly checks are red"
+          body="The nightly run failed: $RUN (commit ${GITHUB_SHA})."
+          open=$(gh issue list --repo "$REPO" --state open --search "in:title \"$title\"" --json number --jq '.[0].number // empty')
+          if [ -n "$open" ]; then gh issue comment "$open" --repo "$REPO" --body "$body"
+          else gh issue create --repo "$REPO" --title "$title" --body "$body"; fi

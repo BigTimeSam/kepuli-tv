@@ -53,11 +53,14 @@ import { BUNDLE, DIST, IOS, buildSimulator, simulatorApp, stale } from './build.
 
 const BUNDLE_ID = BUNDLE.Debug;
 const DEVICES_FILE = join(DIST, 'devices.json');
+// KEPULI_IOS_RUNTIME names another runtime for the four everyday devices
+// (the CI runner's Xcode brings its own, and has no 26.5).
+const NOW = process.env.KEPULI_IOS_RUNTIME || 'iOS-26-5';
 const SIMULATORS = {
-  'kepuli-ios-iphone': { type: 'iPhone-17', runtime: 'iOS-26-5' },
-  'kepuli-ios-ipad': { type: 'iPad-A16', runtime: 'iOS-26-5' },
-  'kepuli-ios-shots-iphone': { type: 'iPhone-17-Pro-Max', runtime: 'iOS-26-5' },
-  'kepuli-ios-shots-ipad': { type: 'iPad-Pro-13-inch-M5-12GB', runtime: 'iOS-26-5' },
+  'kepuli-ios-iphone': { type: 'iPhone-17', runtime: NOW },
+  'kepuli-ios-ipad': { type: 'iPad-A16', runtime: NOW },
+  'kepuli-ios-shots-iphone': { type: 'iPhone-17-Pro-Max', runtime: NOW },
+  'kepuli-ios-shots-ipad': { type: 'iPad-Pro-13-inch-M5-12GB', runtime: NOW },
   // The app's minimum (project.yml). The runtime is not Xcode 26.6's own:
   // xcodebuild -downloadPlatform iOS -buildVersion 23A343 -architectureVariant arm64
   'kepuli-ios-iphone-26-0': { type: 'iPhone-17', runtime: 'iOS-26-0' },

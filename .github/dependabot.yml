@@ -1,0 +1,32 @@
+# What Dependabot keeps in step: the GitHub Actions the workflows run, and
+# the Android apps' Gradle build. The repository has no npm packages to
+# watch. What it pins by hand and no package manager knows (the players in
+# vendor/, FFmpeg, the Cast SDK for iOS, the CI's Chrome) is watched by
+# node dev/freshcheck.mjs, and the Android apps' engine also by
+# node android/enginecheck.mjs, both in the nightly run.
+#
+# A pull request from here is a proposal: the checks run on it, and an
+# engine or a Cast library is taken as android/AGENTS.md says ("The
+# engine's version"), not by the merge button alone.
+version: 2
+updates:
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+      day: monday
+    open-pull-requests-limit: 5
+    groups:
+      actions:
+        patterns: ['*']
+    commit-message:
+      prefix: 'CI'
+
+  - package-ecosystem: gradle
+    directory: /android
+    schedule:
+      interval: weekly
+      day: monday
+    open-pull-requests-limit: 5
+    commit-message:
+      prefix: 'Android'

@@ -79,6 +79,7 @@ does what a page cannot there. The page knows which by its address
 | `store/listings/*.txt` | store texts in 31 languages; `_locales/` is generated from them |
 | `brand/` | icon sources, store screenshots (`screenshots/` Chrome, `firefox-screenshots/` AMO) |
 | `docs/` | GitHub Pages (`index.html` generated from README, the guides from `docs/pages/`, privacy, terms) and the long docs |
+| `.github/`, `SECURITY.md` | the CI (`.github/workflows/checks.yml`), CodeQL, Dependabot, and the security policy; `dev/AGENTS.md` has the pipeline |
 | `store/chrome-dashboard.txt` | the Chrome Web Store dashboard fields and the store procedures |
 | `store/appstore.txt` | every App Store Connect field for the iPhone and iPad app: texts in English and Finnish, privacy and age answers, review notes |
 

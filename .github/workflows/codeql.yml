@@ -1,0 +1,57 @@
+# GitHub's static analysis of the code that reads what a provider sends:
+# the player's JavaScript, the Android apps' Java, and these workflows.
+# Weekly and on what changes main; findings appear under Security > Code
+# scanning, not as a red check, unless a pull request adds one.
+#
+# Not analysed: vendor/ (third-party builds, checked by their hashes) and
+# js/logoindex.js (a table), which .github/codeql.yml leaves out; the Swift
+# of ios/, whose analysis needs a full Xcode build on a macOS runner for
+# each run (the app's own build and unit tests run in checks.yml).
+
+name: CodeQL
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  schedule:
+    - cron: '41 4 * * 1'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: codeql-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  analyze:
+    name: Analyse (${{ matrix.language }})
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    permissions:
+      security-events: write
+      contents: read
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - language: javascript-typescript
+            build-mode: none
+          - language: java-kotlin
+            build-mode: none
+          - language: actions
+            build-mode: none
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          persist-credentials: false
+      - uses: github/codeql-action/init@33d7b85da1a04171e211befe2c739303b9a4c066 # v4
+        with:
+          languages: ${{ matrix.language }}
+          build-mode: ${{ matrix.build-mode }}
+          config-file: .github/codeql.yml
+      - uses: github/codeql-action/analyze@33d7b85da1a04171e211befe2c739303b9a4c066 # v4
+        with:
+          category: /language:${{ matrix.language }}
