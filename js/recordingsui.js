@@ -451,8 +451,12 @@ export function playCatchup(item, programme, { from = 0 } = {}) {
   renderInfoStrip();
   vlist.refresh();
   if (guideOpen) grid.setPlaying(item.id);
-  startPlayback(state.playing, state.playingSpec);
+  // The note first: what starting the stream has to say stands after it.
+  // During a cast session that is "A Chromecast cannot play this stream,
+  // so it plays here", which the note wrote over at once, and the viewer
+  // was not told why the television had stopped.
   if (programme.stop > Date.now()) toast(t('guide.startover.note'), { long: true, kind: 'warn' });
+  startPlayback(state.playing, state.playingSpec);
 }
 
 /**

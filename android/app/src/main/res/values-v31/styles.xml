@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- From Android 12 on the system shows a start screen of its own
+         first, with an icon in its middle: the same logo on the same dark,
+         so that it and the screen that follows (drawable/splash.xml) are
+         one. The launcher's icon came there on a white disc. -->
+    <style name="Player" parent="android:Theme.Material.NoActionBar">
+        <item name="android:windowBackground">@drawable/splash</item>
+        <item name="android:windowSplashScreenBackground">@color/background</item>
+        <item name="android:windowSplashScreenAnimatedIcon">@drawable/splash_logo</item>
+    </style>
+</resources>

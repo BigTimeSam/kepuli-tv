@@ -265,14 +265,7 @@ async function live(d) {
   await d.page(`video.pause(); await pause(1200); return true;`);
   const asleep = (await d.state()).idleTimerDisabled;
   assert(awake === true && asleep === false, `the idle timer was ${awake ? 'off' : 'on'} while the channel played and ${asleep ? 'off' : 'on'} after the pause`);
-  // What js/castui.js asks before it hands a channel to a Chromecast: the
-  // page must be shown the header, or no channel would ever be cast.
-  assert(first.hls, 'the channel has no HLS address');
-  const answer = await d.page(`const { state } = await import('./js/state.js');
-    const got = await fetch(state.playingSpec.hlsUrl); await got.body?.cancel();
-    return { status: got.status, origin: got.headers.get('access-control-allow-origin') };`);
-  assert(answer.status === 200 && answer.origin, `the playlist's answer as the page sees it: ${JSON.stringify(answer)}`);
-  return `${first.title} advanced ${first.advanced.toFixed(1)} s in 4 s with sound and no tap (${first.engine}); the idle timer off while it played, on after the pause; the playlist's Access-Control-Allow-Origin reads "${answer.origin}"`;
+  return `${first.title} advanced ${first.advanced.toFixed(1)} s in 4 s with sound and no tap (${first.engine}); the idle timer off while it played, on after the pause`;
 }
 
 async function film(d) {

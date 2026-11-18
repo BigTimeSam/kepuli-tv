@@ -1,0 +1,52 @@
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <!-- A reminder said as the system's notification (Android 13 asks). -->
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+    <!-- The sound goes on with the screen off or another app in front
+         (PlaybackService). -->
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_MEDIA_PLAYBACK" />
+    <!-- Android forgets an app's alarms when the device restarts: the
+         reminders are set again then (ReminderReceiver). -->
+    <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
+
+    <!-- No uses-feature of its own. What keeps this package from
+         televisions in Play is the television's: it fits them too, and has
+         the higher version code (app/build.gradle). -->
+    <application>
+        <activity
+            android:name=".PlayerActivity"
+            android:windowSoftInputMode="adjustResize"
+            android:supportsPictureInPicture="true">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity>
+        <!-- Google's Cast sender reads its options from here when it is
+             first asked for (CastService), and its remote control for what
+             a Chromecast plays is an AppCompat activity. -->
+        <meta-data
+            android:name="com.google.android.gms.cast.framework.OPTIONS_PROVIDER_CLASS_NAME"
+            android:value="io.github.bigtimesam.kepulitv.CastOptionsProvider" />
+        <activity
+            android:name=".CastControlsActivity"
+            android:exported="false"
+            android:launchMode="singleTask"
+            android:parentActivityName=".PlayerActivity"
+            android:theme="@style/Theme.AppCompat.NoActionBar" />
+        <service
+            android:name=".PlaybackService"
+            android:exported="false"
+            android:foregroundServiceType="mediaPlayback" />
+        <receiver
+            android:name=".ReminderReceiver"
+            android:exported="false">
+            <intent-filter>
+                <action android:name="android.intent.action.BOOT_COMPLETED" />
+                <action android:name="android.intent.action.MY_PACKAGE_REPLACED" />
+            </intent-filter>
+        </receiver>
+    </application>
+</manifest>

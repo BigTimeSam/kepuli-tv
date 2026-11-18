@@ -34,7 +34,7 @@ import { searchProgrammes, mergeSorted, searchableChannels, groupResults } from 
 import { Epg } from '../js/epg.js';
 import { probeCacheTtl } from '../js/probe.js';
 import { formatRoute, parseRoute } from '../js/route.js';
-import { neighbourTile } from '../js/listnavigation.js';
+import { neighbourTile, scrubStep, towards } from '../js/listnavigation.js';
 import { LIST_ORDERS, ORDER_MARKS, ORDER_SETTINGS, listOrder, orderTitles, pressedOrder } from '../js/listorder.js';
 import { titleWithoutYear, nameHasYear, nameTags, versionLabels, franchiseKey, relatedTitles, isNew, oneCopyEach } from '../js/titlemeta.js';
 import { audioSpecificConfig, boxHeader, parseMoov } from '../js/mp4file.js';
@@ -1362,6 +1362,14 @@ check('the history may hold a series', parseRoute('#/recent?series=5'), { tab: '
   check('no row that way is no tile', [neighbourTile(grid, 0, 'ArrowUp'), neighbourTile(grid, 6, 'ArrowDown')], [-1, -1]);
   check('Home and End go to the ends', [neighbourTile(grid, 4, 'Home'), neighbourTile(grid, 0, 'End')], [0, 6]);
   check('a carousel of one row has no row below', neighbourTile([box(0, 0), box(1, 0)], 0, 'ArrowDown'), -1);
+  // The remote control's arrows, between boxes anywhere on the page.
+  check('an arrow goes to the nearest box that way', [towards(grid[4], grid, [1, 0]), towards(grid[4], grid, [-1, 0]), towards(grid[4], grid, [0, -1]), towards(grid[4], grid, [0, 1])], [5, 3, 1, 6]);
+  check('a held arrow moves a film in longer and longer steps', [0, 999, 1000, 2499, 2500, 4999, 5000, 60000].map(scrubStep), [10, 10, 30, 30, 60, 60, 180, 180]);
+  check('a box in line beats a nearer one off to the side', towards(box(0, 0), [box(1, 1), box(3, 0)], [1, 0]), 1);
+  check('a tall box beside this one is not above it', towards(box(1, 2), [{ left: 0, right: 100, top: 0, bottom: 400 }, box(1, 0)], [0, -1]), 1);
+  check('with none in line the arrow still finds the one off to the side', towards(box(0, 0), [box(1, 1)], [1, 0]), 0);
+  check('nothing that way is no box', [towards(grid[0], grid, [-1, 0]), towards(grid[6], grid, [0, 1])], [-1, -1]);
+  check('a wide box under a narrow one is reached from it, and the box it holds too', towards(box(1, 0), [{ left: 0, right: 320, top: 60, bottom: 400 }], [0, 1]), 0);
   check('other keys lead nowhere', neighbourTile(grid, 0, 'Enter'), -1);
 }
 
@@ -2318,10 +2326,10 @@ check('VLC for iOS is handed the stream address, encoded whole',
   check('nothing was reported as a failure while the stream came back', failed, null);
 }
 
-/* ------------------------- the app for the iPhone and the iPad: js/host.js */
+/* ------------------- the app around the page (iOS, Android): js/host.js */
 {
-  const { attach, on, request, send, ios, reminderItems } = await import('../js/host.js');
-  check('outside the app the page is not told it is in one', ios, false);
+  const { attach, on, request, send, ios, native, reminderItems } = await import('../js/host.js');
+  check('outside the apps the page is not told it is in one', [ios, native], [false, false]);
   // A port as runtime.connectNative gives one, with the app's side played here.
   const fakePort = () => {
     const port = { sent: [], listeners: [], closed: [],
@@ -2447,7 +2455,7 @@ check('VLC for iOS is handed the stream address, encoded whole',
 
 /* ---------------------------------- js/cast.js: what a Chromecast can take */
 {
-  const { castMedia, hlsCastable, createCast, supported } = await import('../js/cast.js');
+  const { castMedia, createCast, supported } = await import('../js/cast.js');
   const HLS = 'application/x-mpegURL';
   check('an Xtream channel is cast by its HLS address, as live MPEG-TS segments',
     castMedia({ url: 'http://tv.example:8080/live/u/p/7.ts', hlsUrl: 'http://tv.example:8080/live/u/p/7.m3u8', live: true, ext: undefined }),
@@ -2471,10 +2479,6 @@ check('VLC for iOS is handed the stream address, encoded whole',
     [castMedia({ url: 'blob:chrome-extension://abc/1f', live: false, ext: 'mp4' }),
       castMedia({ url: 'http://portal.example/play/film.mp4?token=1', live: false, ext: 'mp4', relink: async () => '' })],
     [null, null]);
-  const answer = (status, headers = {}) => hlsCastable(status, new Headers(headers));
-  check('a playlist answered without Access-Control-Allow-Origin is one a Chromecast will refuse; nothing else says no',
-    [answer(200, { 'Access-Control-Allow-Origin': '*' }), answer(200), answer(206), answer(403), answer(302)],
-    [true, false, false, true, true]);
   check('in a browser the way to a Chromecast is the browser\'s, or none', [supported, createCast(/** @type {any} */ ({}), () => {}).native], [false, false]);
 }
 

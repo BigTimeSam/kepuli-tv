@@ -212,3 +212,51 @@ html.ios :is(input, textarea, .detail-plot, .plot, .epgdesc, .epgv-desc) { -webk
   /* The order marks and the list or covers marks, wherever they stand. */
   .view-toggle button[aria-pressed="true"] { outline: 2px solid Highlight; outline-offset: -2px; }
 }
+
+/* A television's remote control (js/remote.js; the page opened with ?tv=1).
+   The focus is the only pointer there is, and it is read from the sofa: the
+   ring is wider, and the row under the cursor wears one too, where a
+   keyboard's viewer has the bar at the row's left edge. The page is the
+   whole screen already, so the button that makes it so is left out. */
+.tv :where(button, select, summary, a[href], input, textarea, [tabindex]):focus-visible { outline-width: 3px; }
+/* The list and the sidebar show where the remote is by their row alone: a
+   ring round the whole list as well went out and came back with every
+   menu opened from a row, which read as the list flashing. The row keeps
+   its ring while its menu is open. */
+.tv .list-frame:has(> .list:focus-visible)::after { content: none; }
+.tv #list:focus-visible .row.selected:not(.card), .tv:has(.row-menu) #list .row.selected:not(.card), .tv .groups-list:focus-visible .group.cursor { outline: 3px solid var(--accent-ink); outline-offset: -3px; }
+/* A topic is one stop for the remote, its star with it (OK held down):
+   the ring goes round the whole of it, not round its name alone. */
+.tv .chip:has(> .chip-main:focus-visible) { outline: 3px solid var(--accent-ink); outline-offset: 2px; }
+.tv .chip.active:has(> .chip-main:focus-visible) { outline-color: var(--text); }
+.tv .chip-main:focus-visible { outline: none; }
+/* The help names the remote's keys (js/help.js): the keyboard's further
+   shortcuts and the note on the browser's Back are not a television's, and
+   a key named in words ("OK held down") needs the room of its language. */
+.tv #help .help-more, .tv #help .help-more + .help-note { display: none; }
+.tv #help .help-keys { grid-template-columns: max-content 1fr; }
+.tv #btn-screen { display: none; }
+/* What the Android TV app cannot answer is not offered there: it has no
+   browser to open a link in and no file picker, and it grants a provider's
+   host itself, so the note about the browser's question would be untrue. */
+.tv a[target="_blank"], .tv #f-file-pick, .tv #setup-grant-note { display: none; }
+/* The Android app on a phone or a tablet (the page opened with ?app=1)
+   grants a provider's host itself as well. */
+.app #setup-grant-note { display: none; }
+/* Its help begins with what touch and the app do (js/help.js), under the
+   dialog's own heading; the keys are all behind the fold, and the note on
+   the browser's Back is not about the app, whose Back steps back. */
+.app #help-shortcuts, .app #help .help-more + .help-note { display: none; }
+.app #help #help-keys { grid-template-columns: max-content 1fr; }
+.app #help #help-keys dt { white-space: normal; max-width: 9rem; }
+/* The app as a small window over other apps (picture in picture, .pip set
+   by js/remote.js when the app says so): the picture and its subtitles
+   fill the window. Nothing in it can be pressed, so what is drawn over the
+   picture for pressing is left out, and a dialog that was open waits out
+   of sight. The phone's layout keeps the player's pane hidden while the
+   list is shown; here it is brought out as it is for full screen. */
+.pip main > .stage { display: flex; }
+.pip #videowrap { position: fixed; inset: 0; z-index: 1000; background: #000; }
+.pip :is(.second-bar, .statbadge, .zap, dialog, #toast) { display: none; }
+/* The app's Cast mark on the top bar, lit while a device is connected (app.js renderCastState). */
+#btn-cast-top.on { color: var(--accent-ink); border-color: var(--accent-ink); }

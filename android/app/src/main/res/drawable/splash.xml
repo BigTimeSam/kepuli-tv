@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- What is shown while the engine starts, which takes some seconds: the
+     logo on the player's dark background, not a white page. -->
+<layer-list xmlns:android="http://schemas.android.com/apk/res/android">
+    <item android:drawable="@color/background" />
+    <item android:width="220dp" android:height="220dp" android:gravity="center" android:drawable="@drawable/splash_logo" />
+</layer-list>

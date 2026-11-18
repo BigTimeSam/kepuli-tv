@@ -70,6 +70,7 @@
     <!-- Help opens here rather than in a new tab. It used to send the viewer
          to an 83 kB page written for whoever builds the thing, at the moment
          they were least sure of themselves. -->
+    <button type="button" id="btn-cast-top" class="ghost icon-button" data-i18n-title="cast.title" data-i18n-label="cast.title" hidden><svg viewBox="0 0 20 20" aria-hidden="true"><path d="M2.5 6.5V5a1.5 1.5 0 0 1 1.5-1.5h12A1.5 1.5 0 0 1 17.5 5v10a1.5 1.5 0 0 1-1.5 1.5h-4.5M2.5 13.5a3 3 0 0 1 3 3M2.5 10a6.5 6.5 0 0 1 6.5 6.5"/><circle cx="3" cy="16.4" r=".9" fill="currentColor" stroke="none"/></svg></button>
     <button type="button" id="btn-help" class="ghost icon-button" data-i18n-label="btn.help" data-i18n-title="btn.help.title"><svg viewBox="0 0 20 20" aria-hidden="true"><circle cx="10" cy="10" r="7.2"/><path d="M7.9 7.8a2.2 2.2 0 1 1 3 2.1c-.6.3-.9.8-.9 1.4v.4"/><circle cx="10" cy="14.4" r=".9" fill="currentColor" stroke="none"/></svg></button>
     <!-- Dark or light. The mark is the theme a press leads to: the sun is
          shown in the dark theme, the moon in the light one. -->
@@ -235,6 +236,10 @@
         <svg class="screen-enter" viewBox="0 0 20 20" aria-hidden="true"><path d="M3 7.5V3h4.5M12.5 3H17v4.5M17 12.5V17h-4.5M7.5 17H3v-4.5"/></svg><svg class="screen-leave" viewBox="0 0 20 20" aria-hidden="true"><path d="M7.5 3v4.5H3M17 7.5h-4.5V3M12.5 17v-4.5H17M3 12.5h4.5V17"/></svg>
       </button>
       <div class="subdisplay" id="subdisplay" aria-hidden="true"></div>
+      <!-- What is on, shown over the full-screen picture for a moment when a
+           remote control changes the channel (js/remote.js). -->
+      <div class="zap" id="zap" aria-hidden="true" hidden></div>
+      <div class="scrub" id="scrub" aria-hidden="true" hidden><span class="scrub-time" id="scrub-time"></span><span class="scrub-bar"><span class="scrub-fill" id="scrub-fill"></span><span class="scrub-now" id="scrub-now"></span></span><span class="scrub-length" id="scrub-length"></span></div>
       <div class="overlay" id="overlay">
         <div class="overlay-inner">
           <!-- The title, and beside it, past ten seconds, how long the wait
@@ -966,11 +971,11 @@ before the storm closes the road.</div></div>
       <li data-i18n="help.touch.menu"></li>
       <li data-i18n="help.touch.guide"></li>
     </ul>
-    <h3 data-i18n="help.shortcuts">Keyboard shortcuts</h3>
+    <h3 id="help-shortcuts" data-i18n="help.shortcuts">Keyboard shortcuts</h3>
     <dl class="help-keys" id="help-keys"></dl>
     <details class="help-more">
       <summary class="section-toggle">
-        <span class="section-label" data-i18n="help.more">More shortcuts</span>
+        <span class="section-label" id="help-more-label" data-i18n="help.more">More shortcuts</span>
         <svg class="section-chevron" viewBox="0 0 20 20" aria-hidden="true"><path d="m6 8 4 4 4-4"/></svg>
       </summary>
       <dl class="help-keys" id="help-keys-more"></dl>

@@ -371,6 +371,27 @@
 //                                     picks one), a feature-length file plays
 //                                     on with its own duration for
 //                                     KEPULI_LONG_SECS; skipped without it
+//   node dev/playcheck.mjs appcast    the cast session in the Android app
+//                                     (player.html?app=1, the app's side
+//                                     of the line played here): the mark
+//                                     with a device near, a film handed
+//                                     over and taken back, a device's
+//                                     failure, what cannot be cast
+//   node dev/playcheck.mjs appback    Back in the Android app on a phone
+//                                     (player.html?app=1, sent as Escape):
+//                                     it closes the drop-down that is open,
+//                                     leaves the player's pane for the list,
+//                                     and only then leaves the app
+//   node dev/playcheck.mjs remotescrub  left and right in a film on a
+//                                     television aim at a place on a bar
+//                                     and jump once when the keys rest;
+//                                     Back lets the aim go
+//   node dev/playcheck.mjs remote     the player driven by a television's
+//                                     remote control (player.html?tv=1): the
+//                                     arrows carry the focus from the list
+//                                     to the tabs and a field, OK plays and
+//                                     then fills the screen, held down it
+//                                     opens the row's menu, Back steps out
 //   node dev/playcheck.mjs pseudo     the main views with pseudo-localised
 //                                     text (player.html?pseudo=1, 40 %
 //                                     longer): no button, tab, row, label or
@@ -8368,8 +8389,8 @@ async function handoff(page) {
  * the app and a tapped one plays, and the whole of a cast session
  * (js/castui.js): the dialog asked for, a film handed over from its
  * position, the two buttons, a session said again changing nothing, a
- * device that fails, what cannot be cast, HLS with and without the header
- * a Chromecast wants, and the end of the session. The parameter is taken
+ * device that fails, what cannot be cast, a channel handed over as HLS,
+ * and the end of the session. The parameter is taken
  * off again at the end, as pseudo does.
  */
 async function iosapp(page, { target }) {
@@ -8380,7 +8401,6 @@ async function iosapp(page, { target }) {
     await evaluate(page, `chrome.storage.local.remove('notifyAsked')`);
     return await iosappCourse(page, plain);
   } finally {
-    process.env.KEPULI_MOCK_NO_CORS = '';
     await evaluate(page, `chrome.storage.local.remove(['notifyAsked', 'watchAsked'])`).catch(() => {});
     await page.call('Emulation.setDeviceMetricsOverride', { width: 1280, height: 800, deviceScaleFactor: 1, mobile: false }).catch(() => {});
     await page.call('Page.navigate', { url: plain }).catch(() => {});
@@ -8440,24 +8460,6 @@ async function iosappCourse(page, plain) {
   // The nth hand-over, and the app's answer to it (the fake's comes in
   // 20 ms): what the device says before that is not yet listened to.
   const waitLoad = async (n, what) => { await waitFor(page, `window.__sent.filter((m) => m.type === 'cast.load').length === ${n}`, what, 15000); await sleep(150); };
-  // The page asks a playlist's server once whether a Chromecast may read
-  // it, by the answer's Access-Control header. This browser's page holds
-  // no grant for the mock's host, so it sees that header on no answer, and
-  // gets no answer at all without it, where the app's page sees both: the
-  // mock's own answer is read here and handed to the page's one question.
-  const answerPlaylist = async (address, noCors = false) => {
-    process.env.KEPULI_MOCK_NO_CORS = noCors ? '1' : '';
-    const answer = await fetch(address);
-    await answer.body?.cancel();
-    process.env.KEPULI_MOCK_NO_CORS = '';
-    const headers = Object.fromEntries(answer.headers);
-    assert(answer.status === 200 && Object.keys(headers).some((name) => name.startsWith('access-control-')) === !noCors, `the mock's answer${noCors ? ' with KEPULI_MOCK_NO_CORS' : ''}: ${answer.status}, ${Object.keys(headers).join(', ')}`);
-    await evaluate(page, `(() => { const real = window.fetch; window.__asked = [];
-      window.fetch = (url, init) => { if (!/\\.m3u8$/.test(String(url))) return real(url, init);
-        window.fetch = real; window.__asked.push(String(url));
-        return Promise.resolve(new Response('', { status: ${answer.status}, headers: ${JSON.stringify(headers)} })); };
-      return true; })()`);
-  };
   // A channel of the list with an archive, and its HLS address.
   const archived = () => evaluate(page, `(async () => { const { state } = await import('./js/state.js'); const { streamUrl } = await import('./js/xtream.js');
     const { XtreamApi } = await import('./js/api.js');
@@ -8763,7 +8765,6 @@ async function iosappCourse(page, plain) {
   // A channel whose server sends the header goes over as HLS.
   await openLiveList(page, 3);
   const channel = await archived();
-  await answerPlaylist(channel.address);
   await evaluate(page, `[...document.querySelectorAll('#list .row-name')].find((n) => n.title === ${JSON.stringify(channel.name)}).closest('.row').click()`, { gesture: true });
   await waitLoad(3, 'the channel handed to the device');
   const live = (await sent('cast.load'))[2];
@@ -8973,14 +8974,9 @@ async function iosappCourse(page, plain) {
   /* One channel the device fails on is that channel's failure, not its
      server's: the next of the same server still goes over, and one the
      device played a moment before did too. It was refused, with every
-     other channel of the list, until the page was loaded again. The
-     playlist's server gives no verdict here (an error), so each channel
-     is asked about, and the device tried. */
+     other channel of the list, until the page was loaded again. */
   await openApp();
   await openLiveList(page, 4);
-  await evaluate(page, `(() => { const real = window.fetch; window.__delay = 0;
-    window.fetch = (url, init) => (/\\.m3u8$/.test(String(url)) ? new Promise((resolve) => setTimeout(() => resolve(new Response('', { status: 503 })), window.__delay)) : real(url, init));
-    return true; })()`);
   const rowNames = await evaluate(page, `[...document.querySelectorAll('#list .row')].slice(0, 4).map((r) => r.querySelector('.row-name').title)`);
   const choose = (n) => evaluate(page, `document.querySelectorAll('#list .row')[${n}].click()`, { gesture: true });
   const device = (media) => say({ type: 'cast.media', reason: null, position: 0, duration: null, ...media });
@@ -9001,25 +8997,6 @@ async function iosappCourse(page, plain) {
   const again0 = { here: await evaluate(page, HERE), toasts: await toasts(), url: (await sent('cast.load')).map((m) => m.url) };
   assert(one.toast === castFailed && one.here.title === rowNames[1] && !again0.here.playing && again0.here.title === rowNames[0] && again0.url[2] === again0.url[0] && !again0.toasts.includes(castCannot),
     `a channel of the server after the device failed on another: ${JSON.stringify({ one, again0: { ...again0, url: again0.url.length } })}`);
-  /* What the device says of the stream it had, while a channel just chosen
-     still waits for its playlist's server: the old stream's failure or end
-     is not the new channel's. A failure started the old stream here in its
-     place, and an end left nothing playing anywhere. */
-  await evaluate(page, `(window.__delay = 1500, true)`);
-  await choose(2);
-  await sleep(300);
-  await device({ state: 'idle', reason: 'error' });
-  await waitLoad(4, 'the channel chosen as the device failed on the one before');
-  await device({ state: 'playing' });
-  const afterError = { here: await evaluate(page, HERE), url: (await sent('cast.load')).at(-1).url };
-  await choose(3);
-  await sleep(300);
-  await device({ state: 'idle', reason: 'finished' });
-  await waitLoad(5, 'the channel chosen as the device ended the one before');
-  const afterEnd = { here: await evaluate(page, HERE), url: (await sent('cast.load')).at(-1).url, overlay: await evaluate(page, OVERLAY) };
-  assert(afterError.here.title === rowNames[2] && !afterError.here.playing && afterError.url !== again0.url[0] && afterEnd.here.title === rowNames[3] && !afterEnd.here.playing
-    && afterEnd.url !== afterError.url && afterEnd.overlay.buttons.includes(castStop),
-  `a channel chosen while the device failed on, or ended, the one before: ${JSON.stringify({ afterError: afterError.here, afterEnd: afterEnd.here, names: rowNames })}`);
   await say({ type: 'cast.state', state: 'disconnected', device: null, devices: 1, stale: true });
   await sleep(300);
 
@@ -9058,37 +9035,15 @@ async function iosappCourse(page, plain) {
     return said; })()`);
   assert(german.title === german.expected && german.expected !== german.english.replace('{device}', 'Living Room TV') && (await evaluate(page, OVERLAY)).title === again.title,
     `the session's words in German: ${JSON.stringify(german)}`);
-  await openLiveList(page, 2);
-  const address = await evaluate(page, `(async () => { const { state } = await import('./js/state.js'); const { streamUrl } = await import('./js/xtream.js');
-    return streamUrl(state.config, state.rows.find((r) => r.k === 0), 'm3u8'); })()`);
-  await answerPlaylist(address, true);
-  await toasts();
-  await evaluate(page, `document.querySelectorAll('#list .row')[0].click()`, { gesture: true });
-  await waitFor(page, PLAYING, 'the channel here, its server sending no header');
-  const stayed = { toast: (await toasts()).at(-1), asked: await evaluate(page, `window.__asked`) };
-  assert(stayed.toast === castCannot && stayed.asked.length === 1 && stayed.asked[0] === address && await loads() === 0 && (await sent('cast.stop')).length === 1,
-    `HLS without the header: ${JSON.stringify({ toast: stayed.toast, asked: stayed.asked.length })}, ${await loads()} load(s), ${(await sent('cast.stop')).length} stop(s)`);
-  // The next channel of that server is not asked about again.
-  await evaluate(page, `document.querySelectorAll('#list .row')[1].click()`, { gesture: true });
-  await sleep(1500);
-  assert(await evaluate(page, PLAYING) && await loads() === 0, 'the next channel of a server without the header went to the device');
-
-  /* The session ends while a channel just chosen still waits for its
-     playlist's server (the page asks before it hands a channel over): the
-     channel is the viewer's choice and starts here. It was dropped with
-     the session's own words, and nothing played anywhere. */
+  /* The session ends, and a channel chosen then is the viewer's and plays
+     here: nothing is handed to a device that has let go. */
   await openApp(true);
   await openLiveList(page, 2);
-  await evaluate(page, `(() => { const real = window.fetch;
-    window.fetch = (url, init) => { if (!/\\.m3u8$/.test(String(url))) return real(url, init);
-      window.fetch = real;
-      return new Promise((resolve) => setTimeout(() => resolve(new Response('', { status: 200, headers: { 'access-control-allow-origin': '*' } })), 1200)); };
-    return true; })()`);
-  await evaluate(page, `document.querySelectorAll('#list .row')[0].click()`, { gesture: true });
-  await sleep(300);
   await say({ type: 'cast.state', state: 'disconnected', device: null, devices: 1 });
-  await waitFor(page, PLAYING, 'the channel chosen just before the session ended', 15000);
-  assert(await loads() === 0 && !(await evaluate(page, OVERLAY)).shown, `a channel chosen as the session ended: ${await loads()} load(s), the overlay ${JSON.stringify(await evaluate(page, OVERLAY))}`);
+  await sleep(300);
+  await evaluate(page, `document.querySelectorAll('#list .row')[0].click()`, { gesture: true });
+  await waitFor(page, PLAYING, 'the channel chosen after the session ended', 15000);
+  assert(await loads() === 0 && !(await evaluate(page, OVERLAY)).shown, `a channel chosen after the session ended: ${await loads()} load(s), the overlay ${JSON.stringify(await evaluate(page, OVERLAY))}`);
   const turned = await iosappTurned(page, assert);
   await evaluate(page, `document.getElementById('btn-home').click()`, { gesture: true });
 
@@ -9191,9 +9146,6 @@ async function iosappCourse(page, plain) {
      of it: the next channel of that server stays here and is not handed
      over to fail in its turn. */
   await openLiveList(page, 3);
-  await evaluate(page, `(() => { const real = window.fetch; window.__delay = 0;
-    window.fetch = (url, init) => (/\\.m3u8$/.test(String(url)) ? new Promise((resolve) => setTimeout(() => resolve(new Response('', { status: 503 })), window.__delay)) : real(url, init));
-    return true; })()`);
   await say({ type: 'cast.state', state: 'connected', device: 'Living Room TV', devices: 1 });
   const before7 = await loads();
   await evaluate(page, `document.querySelectorAll('#list .row')[0].click()`, { gesture: true });
@@ -9205,24 +9157,6 @@ async function iosappCourse(page, plain) {
   await sleep(1500);
   const refusedServer = { toast: (await toasts()).at(-1), loads: await loads() - before7, playing: await evaluate(page, PLAYING) };
   assert(refusedServer.toast === castCannot && refusedServer.loads === 1 && refusedServer.playing, `the next channel of a server the device failed on at once: ${JSON.stringify(refusedServer)}`);
-  /* A channel left while its playlist's server is still asked about: it
-     does not start here once the answer is in. */
-  await evaluate(page, `(() => { const real = window.fetch;
-    window.fetch = (url, init) => (/\\.m3u8$/.test(String(url)) ? new Promise((resolve) => setTimeout(() => resolve(new Response('', { status: 503 })), 1200)) : real(url, init));
-    return true; })()`);
-  await say({ type: 'cast.state', state: 'disconnected', device: null, devices: 1 });
-  await openApp();
-  await openLiveList(page, 3);
-  await evaluate(page, `(() => { const real = window.fetch;
-    window.fetch = (url, init) => (/\\.m3u8$/.test(String(url)) ? new Promise((resolve) => setTimeout(() => resolve(new Response('', { status: 503 })), 1200)) : real(url, init));
-    return true; })()`);
-  await say({ type: 'cast.state', state: 'connected', device: 'Living Room TV', devices: 1 });
-  await evaluate(page, `document.querySelectorAll('#list .row')[0].click()`, { gesture: true });
-  await sleep(300);
-  await evaluate(page, `document.getElementById('btn-home').click()`, { gesture: true });
-  await sleep(2200);
-  const leftAsking = { playing: await evaluate(page, PLAYING), engine: await evaluate(page, `import('./js/playing.js').then((m) => m.playback.engineKey)`), loads: await loads() };
-  assert(!leftAsking.playing && leftAsking.engine === null && leftAsking.loads === 0, `a channel left while its server was asked about: ${JSON.stringify(leftAsking)}`);
   await say({ type: 'cast.state', state: 'disconnected', device: null, devices: 1 });
 
   /* The start page asked for by the logo in one pane is not kept when the
@@ -9349,7 +9283,7 @@ async function iosappCourse(page, plain) {
   await evaluate(page, `chrome.storage.local.set(${JSON.stringify({ config: had })})`);
   assert(twin.length === 0 && second.length === 1 && second[0] === secondKey && last.length === 2 && last[1] === null,
     `reminders.clear as accounts were removed: none for one of two entries of an account ${JSON.stringify(twin)}, then ${JSON.stringify(second)} for ${secondKey}, then ${JSON.stringify(last)} with the last`);
-  return { ok: true, detail: 'html.ios; no screen button, grant note, sync, Back note or recording; no browser named in Settings or the help, which says what a finger does and keeps the keys folded where nothing hovers, and whose links lead to the app\'s guide, the privacy policy and the licences; awake on, off, on; ' + screen + '; VLC takes the address with MediaSource present; a reminder handed to the app a minute before its start, a tapped one played, a refused switch said; cast: the dialog asked for, a film handed over from its position with Remote control and Stop casting, a repeated session started nothing, a failing device and an MKV played here, catch-up took the connection back, a channel went over as HLS, and stayed here on a server without the header; the film the device failed on took its connection back, a film left during the hand-over was stopped once the device had it, one seen to its end on the device is marked seen; the end of the session played on here; what ended while the phone slept started nothing here, and was seen only when it had been running; a channel the device failed on left the others of its server castable, and what the device said of the stream before did not touch a channel just chosen; the Cast mark in sight with nothing playing, upright and over the guide lying down; the subtitles\' look opened by a finger with no picker sprung open, the text inside a small picture; a page loaded during a session kept the session\'s words and showed them in a window of one pane, and a channel chosen as the session ended played here; ' + turned
+  return { ok: true, detail: 'html.ios; no screen button, grant note, sync, Back note or recording; no browser named in Settings or the help, which says what a finger does and keeps the keys folded where nothing hovers, and whose links lead to the app\'s guide, the privacy policy and the licences; awake on, off, on; ' + screen + '; VLC takes the address with MediaSource present; a reminder handed to the app a minute before its start, a tapped one played, a refused switch said; cast: the dialog asked for, a film handed over from its position with Remote control and Stop casting, a repeated session started nothing, a failing device and an MKV played here, catch-up took the connection back, a channel went over as HLS; the film the device failed on took its connection back, a film left during the hand-over was stopped once the device had it, one seen to its end on the device is marked seen; the end of the session played on here; what ended while the phone slept started nothing here, and was seen only when it had been running; a channel the device failed on left the others of its server castable, and what the device said of the stream before did not touch a channel just chosen; the Cast mark in sight with nothing playing, upright and over the guide lying down; the subtitles\' look opened by a finger with no picker sprung open, the text inside a small picture; a page loaded during a session kept the session\'s words and showed them in a window of one pane, and a channel chosen as the session ended played here; ' + turned
     + '; a press outside a row\'s menu closed it and started nothing; a tap a minute old played nothing, a due reminder tapped was not said again in the strip; a refusal is said under the switch in Settings, and the switch follows the leave given meanwhile; the theme goes to the app; a film handed over at 70 s played on from there when the session ended as the device loaded it; VLC took the stream from the device at the device\'s place; the session\'s words followed the language; the device\'s late words after the logo showed no session, a lost stop did; an episode that ended on the device was followed by the next; a server the device failed on at once kept its next channel here; a reminder said in the strip went when its notification was tapped, and a change of language handed the reminders over again; a touch on a dialog\'s button with a field in the focus pressed it once; a cancelled file picker left Settings alone; an account moved or removed took its notifications with it' };
 }
 
@@ -9550,10 +9484,363 @@ async function iosappTurned(page, assert) {
   return `turned while ${playing} played, it went on without a new start; ${seen.join('; ')}; Settings scrolls to a field and to Save with a keyboard up, shows the subtitles' preview lying down and is measured again when turned`;
 }
 
+/**
+ * The cast session in the Android app (player.html?app=1; js/castui.js).
+ * The app's side of the line is played here: what the page sent is kept,
+ * cast.load is answered at once, and __say speaks as the app does unasked.
+ */
+async function appcast(page, { target }) {
+  const plain = bare(target.url).split('?')[0];
+  const assert = (ok, message) => { if (!ok) throw new Error(message); };
+  const sent = (type) => evaluate(page, `window.__sent.filter((m) => m.type === ${JSON.stringify(type)})`);
+  const say = (message) => evaluate(page, `(window.__say(${JSON.stringify(message)}), true)`);
+  const toasts = () => evaluate(page, `new Promise((r) => setTimeout(() => r(window.__toasts.splice(0)), 50))`);
+  const waitLoad = async (n, what) => { await waitFor(page, `window.__sent.filter((m) => m.type === 'cast.load').length === ${n}`, what, 15000); await sleep(150); };
+  const OVERLAY = `(() => { const o = document.getElementById('overlay'); return { shown: !o.hidden, title: document.getElementById('overlay-title').textContent,
+    buttons: [...document.querySelectorAll('#overlay-actions button')].map((b) => b.textContent) }; })()`;
+  const TV = { type: 'cast.state', state: 'connected', device: 'Living Room TV', devices: 1 };
+  try {
+    await page.call('Page.navigate', { url: `${plain}?app=1#/live` });
+    await sleep(1000);
+    await waitFor(page, `location.search === '?app=1' && ${CONNECTED}`, 'the connection in the app\'s page');
+    await evaluate(page, `document.querySelector('dialog[open]')?.close()`);
+    await evaluate(page, `(async () => {
+      const listeners = [];
+      window.__sent = [];
+      window.__say = (message) => listeners.forEach((l) => l(message));
+      (await import('./js/host.js')).attach({
+        postMessage(m) { window.__sent.push(m); if (m.id && m.type === 'cast.load') setTimeout(() => window.__say({ re: m.id, ok: true }), 20); },
+        onMessage: { addListener: (l) => listeners.push(l) }, onDisconnect: { addListener() {} } });
+      window.__toasts = [];
+      new MutationObserver(() => window.__toasts.push(document.getElementById('toast-text').textContent)).observe(document.getElementById('toast-text'), { childList: true });
+      window.__say({ type: 'cast.state', state: 'disconnected', device: null, devices: -1 });
+      return true; })()`);
+    const [castOn, castControls, castStop, castCannot, castFailed, castPlaying] = await evaluate(page,
+      `import('./js/i18n.js').then((m) => ['cast.on', 'cast.controls', 'cast.stop', 'cast.cannot', 'cast.failed', 'cast.playing'].map((key) => m.t(key)))`);
+    const MARK = `(() => { const b = document.getElementById('btn-cast-top'); return { shown: b.getClientRects().length > 0, on: b.classList.contains('on') }; })()`;
+    const before = await evaluate(page, MARK);
+
+    // A device near puts the mark on the bar; the dialog is the app's.
+    await say({ type: 'cast.state', state: 'disconnected', device: null, devices: 1 });
+    await evaluate(page, `document.getElementById('btn-cast-top').click()`, { gesture: true });
+    const mark = await evaluate(page, MARK);
+    assert(!before.shown && mark.shown && !mark.on && (await sent('cast.prompt')).length === 1,
+      `the Cast mark: before any device ${JSON.stringify(before)}, with one near ${JSON.stringify(mark)}, ${(await sent('cast.prompt')).length} prompt(s)`);
+
+    // A film playing here goes over when the device connects, from its position.
+    await evaluate(page, `(async () => { const { state } = await import('./js/state.js'); const { playItem } = await import('./js/playing.js');
+      const film = (await state.lib.ensureFull('movie')).find((f) => String(f.id) === '5000'); playItem(film, { startAt: 42 }); return true; })()`, { gesture: true });
+    await waitFor(page, PLAYING, 'the film here');
+    await say(TV);
+    await waitLoad(1, 'the film handed to the device');
+    const [load] = await sent('cast.load');
+    const over = await evaluate(page, `(async () => ({ overlay: ${OVERLAY}, engine: (await import('./js/playing.js')).playback.engineKey,
+      title: document.getElementById('now-title').textContent, on: document.getElementById('btn-cast-top').classList.contains('on') }))()`);
+    assert(/\/movie\/demo\/demo\/5000\.mp4$/.test(load.url) && load.contentType === 'video/mp4' && load.live === false && load.startAt >= 42 && load.startAt < 60
+      && load.title === over.title && typeof load.id === 'number', `the film handed over: ${JSON.stringify({ ...load, url: load.url.replace(/^.*\/movie/, '…/movie') })}`);
+    assert(over.engine === null && over.on && over.overlay.shown && over.overlay.title === castOn.replace('{device}', 'Living Room TV')
+      && over.overlay.buttons.join('|') === `${castControls}|${castStop}`, `the page while the device plays: ${JSON.stringify(over)}`);
+    await say({ type: 'cast.media', state: 'playing', reason: null, position: 50, duration: 120 });
+    assert((await evaluate(page, `document.getElementById('now-sub').textContent`)).includes(castPlaying), 'the line under the title does not say the device plays');
+    await evaluate(page, `document.querySelector('#overlay-actions button').click()`, { gesture: true });
+    assert((await sent('cast.controls')).length === 1, 'Remote control did not ask for the app\'s controls');
+
+    // Stop casting ends the session, and the film plays on here from where the device was.
+    await say({ type: 'cast.media', state: 'playing', reason: null, position: 80, duration: 120 });
+    await evaluate(page, `document.querySelectorAll('#overlay-actions button')[1].click()`, { gesture: true });
+    assert((await sent('cast.end')).length === 1, 'Stop casting did not end the session');
+    await say({ type: 'cast.state', state: 'disconnected', device: null, devices: 1, position: 80 });
+    await waitFor(page, PLAYING, 'the film here after the session ended');
+    const back = await evaluate(page, `({ at: document.getElementById('video').currentTime, on: document.getElementById('btn-cast-top').classList.contains('on') })`);
+    assert(back.at >= 80 && !back.on, `after Stop casting: ${JSON.stringify(back)}`);
+
+    // A session again, and the device fails: said, and the film plays on here.
+    await say(TV);
+    await waitLoad(2, 'the film handed over again');
+    await say({ type: 'cast.media', state: 'playing', reason: null, position: 90, duration: 120 });
+    await toasts();
+    await say({ type: 'cast.media', state: 'idle', reason: 'error', position: 90, duration: 120 });
+    await waitFor(page, PLAYING, 'the film here after the device failed');
+    const failed = { toast: (await toasts()).at(-1), at: await evaluate(page, `document.getElementById('video').currentTime`), stops: (await sent('cast.stop')).length };
+    assert(failed.toast === castFailed && failed.at >= 90 && failed.stops === 1, `after the device failed: ${JSON.stringify(failed)}`);
+
+    // An MKV episode cannot be cast: said, and it plays here, the session kept.
+    await playEpisode(page);
+    const mkv = await toasts();
+    const kept = await evaluate(page, MARK);
+    assert(mkv.includes(castCannot) && (await sent('cast.load')).length === 2 && kept.on, `an MKV episode during a session: "${mkv.join('", "')}", ${(await sent('cast.load')).length} load(s), the mark ${JSON.stringify(kept)}`);
+    return { ok: true, detail: 'a device near showed the Cast mark, whose press asked for the app\'s dialog; a film went to the device from its place when one connected and came back at the device\'s place on Stop casting; a failure on the device was said and the film played on here; an MKV episode was said to be uncastable and played here' };
+  } catch (err) {
+    return { ok: false, detail: err.message };
+  } finally {
+    await page.call('Page.navigate', { url: plain }).catch(() => {});
+    await sleep(500);
+  }
+}
+
+/**
+ * Back in the Android app on a phone or a tablet (js/remote.js): the page
+ * opened as player.html?app=1, as that app opens it, and Back sent as
+ * Escape. With a drop-down open Back closes it and nothing else; from the
+ * player's pane of the narrow layout it shows the list again; with nothing
+ * open it asks for the window to be closed, which the app answers by
+ * stepping back. On the phone emulator one Back did both: the drop-down
+ * heard the key first and closed, and the same key then found nothing open.
+ */
+async function appback(page, { target }) {
+  const plain = bare(target.url).split('?')[0];
+  const back = async () => { await pressKey(page, 'Escape', 'Escape', 27); await sleep(300); };
+  const open = () => evaluate(page, `Boolean(document.querySelector('.picker-pop:popover-open'))`);
+  const closed = () => evaluate(page, `window.__closed`);
+  try {
+    await page.call('Emulation.setDeviceMetricsOverride', { width: 390, height: 844, deviceScaleFactor: 1, mobile: false });
+    await page.call('Page.navigate', { url: `${plain}?app=1#/live` });
+    await sleep(1000);
+    await waitFor(page, `location.search === '?app=1' && ${CONNECTED}`, 'the connection');
+    await evaluate(page, `document.querySelector('dialog[open]')?.close()`);
+    await evaluate(page, `document.getElementById('tab-live').click()`);
+    await waitFor(page, `document.querySelectorAll('#group-select option').length >= 7`, 'the countries');
+    await evaluate(page, `(window.__closed = 0, window.close = () => { window.__closed++; })`);
+    const at = await evaluate(page, `(() => { const r = document.getElementById('group-select').getBoundingClientRect(); return { x: Math.round(r.left + r.width / 2), y: Math.round(r.top + r.height / 2) }; })()`);
+    for (const type of ['mousePressed', 'mouseReleased']) await page.call('Input.dispatchMouseEvent', { type, ...at, button: 'left', clickCount: 1 });
+    await waitFor(page, `Boolean(document.querySelector('.picker-pop:popover-open'))`, 'the drop-down');
+
+    await back();
+    const shut = !(await open());
+    const early = await closed();
+
+    // A channel played fills the narrow page with the player's pane: Back
+    // shows the list again and the picture plays on.
+    await evaluate(page, `document.querySelector('#list .row').click()`);
+    await waitFor(page, `document.getElementById('main').classList.contains('compact-watch')`, "the player's pane");
+    await back();
+    const browsing = !(await evaluate(page, `document.getElementById('main').classList.contains('compact-watch')`));
+    const kept = await evaluate(page, `document.getElementById('main').classList.contains('has-playback')`);
+    const paneEarly = await closed();
+
+    await back();
+    const asked = await closed();
+
+    const problems = [];
+    if (!shut) problems.push('Back left the drop-down open');
+    if (early) problems.push(`Back with the drop-down open also asked to close the window ${early} time(s)`);
+    if (!browsing || !kept) problems.push(`Back from the player's pane left ${browsing ? 'the list in sight' : 'the pane up'}, the channel ${kept ? 'still on' : 'stopped'}`);
+    if (paneEarly) problems.push(`Back from the player's pane also asked to close the window ${paneEarly} time(s)`);
+    if (asked !== 1) problems.push(`Back with nothing open asked to close ${asked} time(s), not once`);
+    if (problems.length) return { ok: false, detail: problems.join('; ') };
+    return { ok: true, detail: "Back closed the drop-down and nothing else, then left the player's pane for the list with the channel still on; the next one, with nothing open, asked for the window to be closed" };
+  } finally {
+    await page.call('Emulation.clearDeviceMetricsOverride').catch(() => {});
+    await page.call('Page.navigate', { url: plain }).catch(() => {});
+    await sleep(500);
+  }
+}
+
+/**
+ * Left and right in a film on a television aim before they jump: a jump
+ * for every press made the picture stop to buffer each time, and a key
+ * held down got nowhere. The place aimed at shows on a bar, the picture
+ * stays where it is while the keys go, and it goes there once, when they
+ * rest; Back lets the aim go.
+ */
+async function remotescrub(page, { target }) {
+  const plain = bare(target.url).split('?')[0];
+  const arrow = (key) => pressKey(page, key, key, { ArrowLeft: 37, ArrowRight: 39 }[key]);
+  const video = (what) => evaluate(page, `document.getElementById('video').${what}`);
+  try {
+    await page.call('Page.navigate', { url: `${plain}?tv=1#/movie` });
+    await sleep(1000);
+    await waitFor(page, `location.search === '?tv=1' && ${CONNECTED}`, 'the connection');
+    await evaluate(page, `document.querySelector('dialog[open]')?.close()`);
+    await evaluate(page, `document.querySelector('#tabs [data-tab="movie"]').click()`);
+    await waitFor(page, `document.querySelectorAll('#list .row').length > 0`, 'the movie rows');
+    await evaluate(page, `document.querySelector('#list .row').click()`);
+    await waitFor(page, `!document.getElementById('video').paused && document.getElementById('video').readyState > 2 && document.getElementById('video').duration > 30`, 'the film playing', 30000);
+    await page.call('Runtime.evaluate', { expression: `document.getElementById('videowrap').requestFullscreen()`, userGesture: true, awaitPromise: true });
+    await waitFor(page, `document.fullscreenElement?.id === 'videowrap'`, 'the picture full screen', 5000);
+    const length = await video('duration');
+    const before = await video('currentTime');
+    for (let i = 0; i < 3; i++) { await arrow('ArrowRight'); await sleep(150); }
+    const aimed = await evaluate(page, `document.getElementById('scrub').hidden ? '' : document.getElementById('scrub-time').textContent`);
+    const during = await video('currentTime');
+    await sleep(1400);
+    const after = await video('currentTime');
+    const barGone = await evaluate(page, `document.getElementById('scrub').hidden`);
+    // Back lets an aim go.
+    await arrow('ArrowRight');
+    await pressKey(page, 'Escape', 'Escape', 27);
+    await sleep(1400);
+    const kept = await video('currentTime');
+    const stillFull = await evaluate(page, `document.fullscreenElement?.id === 'videowrap'`);
+    const problems = [];
+    if (!aimed) problems.push('no bar showed the place aimed at');
+    if (during - before > 5) problems.push(`the picture jumped while the keys went (${before.toFixed(1)} to ${during.toFixed(1)} s)`);
+    if (after - before < 20 || !barGone) problems.push(`three presses and a rest took ${before.toFixed(1)} s to ${after.toFixed(1)} s of ${length.toFixed(0)} s${barGone ? '' : ', the bar still showing'}`);
+    if (kept - after > 6 || !stillFull) problems.push(`Back on an aim ${stillFull ? '' : 'left the full screen and '}took the picture to ${kept.toFixed(1)} s`);
+    if (problems.length) return { ok: false, detail: problems.join('; ') };
+    return { ok: true, detail: `three presses aimed at ${aimed} with the picture at ${during.toFixed(0)} s, and the rest took it to ${after.toFixed(0)} s; Back let a fourth go` };
+  } finally {
+    await evaluate(page, `document.fullscreenElement && document.exitFullscreen()`).catch(() => {});
+    await page.call('Page.navigate', { url: plain }).catch(() => {});
+    await sleep(500);
+  }
+}
+
+/**
+ * A television's remote control (js/remote.js): the page opened as
+ * player.html?tv=1, as the Android TV app opens it, and driven with the
+ * four arrows, OK (Enter) and Back (Escape) alone. The arrows walk the
+ * list up to its first row and then leave it for the control above; among
+ * the tabs they move the focus without changing the tab, which OK does; a
+ * text field takes the focus with the on-screen keyboard held down
+ * (inputmode none) until OK; OK plays the row and, on the row playing,
+ * fills the screen, where Down changes the channel and the channel is named
+ * over the picture; OK held down opens the
+ * row's menu, which begins with the star; Back goes to the list from
+ * anywhere else, and from the list asks for the window to be closed.
+ */
+async function remote(page, { target }) {
+  const plain = bare(target.url).split('?')[0];
+  const focus = () => evaluate(page, `(document.activeElement.id || document.activeElement.tagName)`);
+  const arrow = async (name, times = 1) => {
+    const code = { ArrowLeft: 37, ArrowUp: 38, ArrowRight: 39, ArrowDown: 40 }[name];
+    for (let i = 0; i < times; i++) { await pressKey(page, name, name, code); await sleep(120); }
+  };
+  // Enter with its character, without which Chrome does not press a button.
+  const enter = (type) => page.call('Input.dispatchKeyEvent', { type, key: 'Enter', code: 'Enter', windowsVirtualKeyCode: 13, ...(type === 'keyDown' ? { text: '\r' } : {}) });
+  const ok = async () => { await enter('keyDown'); await enter('keyUp'); };
+  const back = () => pressKey(page, 'Escape', 'Escape', 27);
+  const selected = () => evaluate(page, `(document.querySelector('#list .row.selected')?.id || '')`);
+  const playing = `!document.getElementById('video').paused && document.getElementById('video').readyState > 2`;
+  const title = () => evaluate(page, `document.querySelector('#list .row.playing .row-name, #list .row.playing')?.textContent.trim().slice(0, 40) || ''`);
+  try {
+    await page.call('Page.navigate', { url: `${plain}?tv=1#/live` });
+    await sleep(1000);
+    await waitFor(page, `location.search === '?tv=1' && ${CONNECTED}`, 'the connection');
+    await evaluate(page, `document.querySelector('dialog[open]')?.close()`);
+    await evaluate(page, `document.querySelector('#tabs [data-tab="live"]').click()`);
+    await waitFor(page, `document.querySelectorAll('#list .row').length > 2`, 'the channel rows');
+    await evaluate(page, `(window.__closed = 0, window.close = () => { window.__closed++; }, document.getElementById('list').focus())`);
+    const marked = await evaluate(page, `document.documentElement.classList.contains('tv')`);
+
+    // The list keeps its arrows down to its first row, and Up from there leaves it.
+    await arrow('ArrowDown', 2);
+    const second = await selected();
+    await arrow('ArrowUp');
+    const first = await selected();
+    await arrow('ArrowUp');
+    const above = await focus();
+
+    // The tabs: the arrows move the focus only, OK changes the tab.
+    await evaluate(page, `document.getElementById('tab-live').focus()`);
+    await arrow('ArrowRight');
+    const onTab = await focus();
+    const tabKept = await evaluate(page, `document.getElementById('tab-live').classList.contains('active')`);
+    await ok();
+    await waitFor(page, `document.getElementById('tab-movie').classList.contains('active')`, 'the Movies tab on OK', 8000);
+
+    // A text field: the focus without the keyboard, OK for the keyboard.
+    await evaluate(page, `document.getElementById('tab-recent').focus()`);
+    await arrow('ArrowRight');
+    const field = await focus();
+    const held = await evaluate(page, `document.getElementById('search').inputMode`);
+    await ok();
+    const typing = await evaluate(page, `document.getElementById('search').inputMode`);
+    // Back from a control that is not the list returns to the list.
+    await evaluate(page, `document.getElementById('tab-live').focus()`);
+    await ok();
+    await waitFor(page, `document.getElementById('tab-live').classList.contains('active') && document.querySelectorAll('#list .row').length > 2`, 'the channels again', 8000);
+    await back();
+    await sleep(200);
+    const home = await focus();
+    const closedEarly = await evaluate(page, `window.__closed`);
+
+    // OK plays the row; OK on the row playing fills the screen; Down there is the next channel.
+    await arrow('ArrowDown');
+    await ok();
+    await waitFor(page, playing, 'the channel playing on OK', 20000);
+    const one = await title();
+    await ok();
+    await waitFor(page, `document.fullscreenElement?.id === 'videowrap'`, 'the picture full screen on a second OK', 5000);
+    await arrow('ArrowDown');
+    await waitFor(page, `(document.querySelector('#list .row.playing')?.textContent.trim().slice(0, 40) || '') !== ${JSON.stringify(one)} && ${playing}`, 'the next channel on Down', 20000).catch(() => {});
+    const two = await title();
+    // What is on is named over the picture, which covers the head that says it.
+    const banner = await evaluate(page, `document.getElementById('zap').hidden ? '' : document.getElementById('zap').textContent`);
+    const named = await evaluate(page, `document.getElementById('now-title').textContent`);
+    await evaluate(page, `document.exitFullscreen()`);
+    await waitFor(page, `!document.fullscreenElement`, 'the window again', 5000);
+    await sleep(200);
+    const after = await focus();
+
+    // A topic's star is no stop of its own: the arrows go from topic to topic.
+    const stops = [];
+    if (await evaluate(page, `(() => { const chip = document.querySelector('#subcats .chip-main'); chip?.focus(); return Boolean(chip && document.querySelector('#subcats .chip-star')); })()`)) {
+      for (let i = 0; i < 3; i++) { await arrow('ArrowRight'); stops.push(await evaluate(page, `document.activeElement.className`)); }
+    }
+    // The help names the remote's keys, not a keyboard's.
+    await evaluate(page, `document.getElementById('btn-help').click()`);
+    const helpKeys = await evaluate(page, `[...document.querySelectorAll('#help-keys dt')].map((d) => d.textContent)`);
+    const helpMore = await evaluate(page, `document.querySelector('#help .help-more').getClientRects().length`);
+    // Back closes it, by the player's own hand (the engine's fell over on
+    // a television), and the page is still there.
+    await back();
+    await sleep(200);
+    const helpOpen = await evaluate(page, `document.getElementById('help').open`);
+    await evaluate(page, `document.getElementById('help').close()`);
+    await evaluate(page, `document.getElementById('list').focus()`);
+
+    // OK held down: the row's menu, beginning with the star.
+    await enter('keyDown');
+    await sleep(900);
+    await enter('keyUp');
+    await sleep(200);
+    const menu = await evaluate(page, `[...document.querySelectorAll('.row-menu button')].map((b) => b.textContent)`);
+    const star = await evaluate(page, `import('./js/i18n.js').then((i) => [i.t('row.fav.add'), i.t('row.fav.remove')])`);
+    const stillPlaying = (await title()) === two;
+    await back();
+    await sleep(200);
+    const menuShut = !(await evaluate(page, `Boolean(document.querySelector('.row-menu'))`));
+
+    // Back from the list, with nothing open, asks for the window to be closed.
+    await back();
+    await sleep(200);
+    const closed = await evaluate(page, `window.__closed`);
+
+    const problems = [];
+    if (!marked) problems.push('the page is not marked .tv');
+    if (second !== 'row-1' || first !== 'row-0') problems.push(`the arrows moved the list to ${second} then ${first}, not row-1 then row-0`);
+    if (above === 'list' || above === 'BODY') problems.push('Up from the first row stayed in the list');
+    if (onTab !== 'tab-movie' || !tabKept) problems.push(`Right on the tabs gave the focus to ${onTab}, Channels still chosen: ${tabKept}`);
+    if (field !== 'search' || held !== 'none') problems.push(`the field took the focus as ${field} with inputmode "${held}", not none`);
+    if (typing === 'none') problems.push('OK on the field left the keyboard held down');
+    if (home !== 'list' || closedEarly) problems.push(`Back from a tab left the focus on ${home} and asked to close ${closedEarly} time(s)`);
+    if (!one || one === two) problems.push(`Down in full screen stayed on "${one}"`);
+    if (!named || !banner.includes(named)) problems.push(`the banner over the full-screen picture says "${banner}", not "${named}"`);
+    if (after !== 'list') problems.push(`out of full screen the focus is on ${after}`);
+    if (!star.includes(menu[0])) problems.push(`OK held down opened ${menu.length ? `a menu beginning with "${menu[0]}"` : 'no menu'}`);
+    if (!stillPlaying) problems.push('OK held down also pressed the row');
+    if (!stops.length) problems.push('no topic with a star to walk past');
+    if (helpOpen) problems.push('Back left the help open');
+    if (!helpKeys.includes('OK') || helpKeys.includes('Space') || helpMore) problems.push(`the help listed ${helpKeys.join(', ')}${helpMore ? ' and the keyboard\'s further shortcuts' : ''}`);
+    if (stops.some((name) => /chip-star/.test(name))) problems.push(`the arrows stopped at a topic's star (${stops.join(', ')})`);
+    if (!menuShut) problems.push('Back left the menu open');
+    if (closed !== 1) problems.push(`Back from the list asked to close ${closed} time(s), not once`);
+    if (problems.length) return { ok: false, detail: problems.join('; ') };
+    return { ok: true, detail: `the arrows left the list for #${above}, moved among the tabs without changing one, held the keyboard down on the search field until OK; OK played "${one}" and filled the screen, Down went on to "${two}"; OK held down opened the menu (${menu.join(', ')}); Back returned to the list and then asked to close` };
+  } finally {
+    await evaluate(page, `document.fullscreenElement && document.exitFullscreen()`).catch(() => {});
+    await page.call('Page.navigate', { url: plain }).catch(() => {});
+    await sleep(500);
+  }
+}
+
 const SCENARIOS = { buffering, livebuffering, filmbuffering, emptyfile, tsasmp4, refusedfile, badgateway, livebadgateway, channelrefused, noanswer, longfilm, catalogUi, setupClarity, welcome, fullscreenControl, blockedplay, clickpause, pickers, touchcaret, touchsizes, screenbutton, topmenu, scrollbars, channelorder, lengthfilter, nowlogo, channels, home, resumemkv, restore, programmes, catchup, seek, death, cancel, timeout, search, paste, keys, switching, resume, connections, livezap, livequiet, reconnect, accounts, listerror, a11y, subtitles, audio, wasmaudio, settings,
   lastchannel, nextepisode, continuewatching, reminders, update, seeklag, cuesretry, quota, catchupfreeze, catchupfull, twotabs, switchstop, resettabs,
   refresh, restorenav, guidekeep, removeaccount, m3u, sync, holes, picks, flakyserver, accountform, stalker, record, guidefavs, guidenames, categories, homecountry, noleak, perf, pseudo, startup, soak, phone, headline, accountnow, onerow, nowbarfit, subsize, arrowmiddle, idlelight, iossubs, starquiet, phonestar, pickertouch, pickerkeyboard, phonescroll, menutap, wakelock, livecut, episodenames, gotochannel, filmdetails, favorder, countryfilter, tilekeys, routes, programmekeys, searchlimit, filterfolds, focusrings, xtreamoffer, guideclick, filmaddress, filmfacts, playlistfile, perflive, perfplaylist, remoteimages, phoneguide, handoff, closedplan, secondpicture, liverewind, upcoming,
-  polish, iosapp };
+  polish, iosapp,
+  remote, remotescrub, appback, appcast };
+
 // The mock's whole-list answers stall for these, longer than the request limit.
 const SLOW_LIST_MS = { cancel: 60000, timeout: 60000 };
 // The media is sent slowly for these: the seek targets must lie outside the

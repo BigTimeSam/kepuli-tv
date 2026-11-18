@@ -29,7 +29,7 @@ Google's list of what the Default Media Receiver plays:
 | Format | On the device |
 | --- | --- |
 | Progressive MP4, WebM | yes, and without CORS |
-| HLS, DASH, Smooth Streaming | yes, but the segments are fetched with XHR, so the server must send CORS headers |
+| HLS, DASH, Smooth Streaming | yes; Google's documentation says the segments are fetched with XHR and need CORS headers, but a Chromecast with Google TV played a channel without them (2026-11-17, see the apps' section) |
 | Raw MPEG-TS over HTTP — Xtream's `live/…/id.ts` | no |
 | Matroska | no |
 | AC-3, E-AC-3 | passthrough on some devices |
@@ -210,7 +210,7 @@ The page draws two buttons and an overlay; every dialog is Google's.
 | Piece | What |
 | --- | --- |
 | `js/host.js` | the port to the app; `ios` is true under `player.html?ios=1` |
-| `js/cast.js` | `createCast()` gives `NativeCast` in the app and `Cast` elsewhere, the same shape to `js/app.js`; `castMedia(spec)` and `hlsCastable(status, headers)` are the two pure rules |
+| `js/cast.js` | `createCast()` gives `NativeCast` in the app and `Cast` elsewhere, the same shape to `js/app.js`; `castMedia(spec)` is the pure rule of what a device can be handed |
 | `js/castui.js` | the session: `castNative` (the menu item, the Cast mark on the top bar, `c`), `castOrPlay` (every start of playback goes through it), `renderCasting` (acts on each change of state), `castingLeft` |
 
 Messages, page to app: `cast.prompt` (Google's dialog: the devices, or the
@@ -233,14 +233,15 @@ and the device has nothing on any more).
   `video/mp4` and WebM as `video/webm`. Never a Stalker link (a one-use
   token), a blob, MPEG-TS, Matroska, AVI or a catch-up address: the table
   of the second fact above.
-- **HLS is asked about first.** The device's player fetches segments with
-  XHR and needs `Access-Control-Allow-Origin`; most panels send none. The
-  page fetches the playlist, cut off after its headers, and
-  `hlsCastable` says no only to a 2xx answer without the header (an error
-  or no answer within 4 s is not a verdict, and the cast is tried). The
-  answer is kept per origin while the page lives. Without the question,
-  every change of channel on such a provider would stop the picture, wait
-  for the device to fail, and warn.
+- **HLS is not asked about first.** The page used to fetch the playlist's
+  headers and keep a channel here when `Access-Control-Allow-Origin` was
+  missing, as most panels answer, on Google's word that the device's
+  player needs it. A Chromecast with Google TV played such a channel all
+  the same (2026-11-17, neither the playlist nor its segments carried the
+  header), and the question had kept every channel of that provider off
+  the device. So the device is tried, and one that refuses says so: the
+  channel plays here, and that server's other channels do not go round by
+  the device again (`hlsRefused` in `js/castui.js`).
 - **Stop here, then load there.** An account commonly has one connection,
   so `playback.stop()` comes before `cast.load`. The page ignores
   `cast.media` until `cast.load` is answered. What plays here during a
@@ -309,14 +310,12 @@ press that still meets the assertion is caught and made again
 
 ### Tested without a device
 
-`node dev/unitcheck.mjs` covers `castMedia`, `hlsCastable` and the port.
+`node dev/unitcheck.mjs` covers `castMedia` and the port.
 `node dev/playcheck.mjs iosapp` runs the whole course in desktop Chrome
 against a fake port: the hand-over of a film with its position, the
 overlay's two buttons, a repeated `connected`, a device error, an MKV,
-catch-up during a session, a live channel with and without the mock's CORS
-headers (`KEPULI_MOCK_NO_CORS=1`), and a session's end. That WebKit shows
-the page the header was measured in the simulators, on iOS 26.5
-(`node ios/simcheck.mjs live`), so the question stays in the page.
+catch-up during a session, a live channel handed over as HLS, and a
+session's end; `appcast` does the same for the Android app's page.
 `node ios/simcheck.mjs cast` goes as far as a script can in the real app:
 the SDK asleep until the first `cast.prompt`, `cast.load` answered
 `no-session`, Google's note on the screen, and nothing of a stream's
@@ -342,3 +341,16 @@ profile, comes first. Then:
 | MKV episode with subtitles, Cast tab, `f` | subtitles on the device while mirrored; confirm whether they survive the switch |
 | Leave full screen while remoted | mirroring resumes |
 | Firefox | no button |
+
+## In the Android app
+
+The app for a phone and a tablet (`android/`) is not a browser: its engine
+has no Remote Playback API and nothing mirrors a tab. There the third route
+above is the only one, and the app carries Google's Cast sender for it
+(`android/AGENTS.md`, Chromecast). What the device can be handed is the
+table of fact 2: `castMedia` in `js/cast.js` decides, and what cannot be
+cast is said and plays in the app. One correction to that table from a real
+device: a Chromecast with Google TV played a provider's HLS channel whose
+playlist and segments carried no CORS header (2026-11-17), so the app does
+not ask the server first; it tries the device, and a device that refuses
+says so (`js/castui.js`).

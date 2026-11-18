@@ -36,8 +36,8 @@ function handOffName(item) {
  * player silent. Everything here is deliberately synchronous — starting a
  * download requires a user gesture, which the first await would spend.
  *
- * A Chromecast that plays the stream for this page (the app for the
- * iPhone and the iPad) lets go of it first, for the same connection, and
+ * A Chromecast that plays the stream for this page (in an app, the
+ * iPhone's and the iPad's or Android's) lets go of it first, for the same connection, and
  * the place is the device's: the picture here stands at nothing then.
  */
 export function playExternal() {

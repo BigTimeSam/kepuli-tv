@@ -166,6 +166,9 @@ async function sayReminders(key, now) {
   await notify(key, due, now);
 }
 
+/** A reminder's notification, named the same by the Android app's own alarm. */
+const noticeId = (r) => `reminder:${r.channel.id}:${r.start}`;
+
 /**
  * The reminders said as the system's notifications. Each notification's
  * reminder is kept under its id until it is clicked.
@@ -176,7 +179,7 @@ async function notify(key, due, now) {
   // Notices nobody clicked go after a day.
   const kept = Object.fromEntries(Object.entries(notices).filter(([, n]) => n.at > now - 24 * 3600e3));
   for (const r of due) {
-    const id = `reminder:${r.channel.id}:${r.start}`;
+    const id = noticeId(r);
     kept[id] = { channel: r.channel, account: key.slice('reminders:'.length), at: now };
     await api.notifications.create(id, {
       type: 'basic',
@@ -258,3 +261,34 @@ function listenForNoticeClicks() {
 }
 listenForNoticeClicks();
 api.permissions.onAdded?.addListener(listenForNoticeClicks);
+
+/* ---------------------------------------------------- the Android app */
+
+// The phone's and the tablet's Android app (android/) cannot count on this
+// script when a reminder falls due: Android stops an app that is out of
+// sight, its engine and these alarms with it. So the app is told the
+// reminders, and sets Android's own alarm for them. The app's copy of the
+// manifest alone has "nativeMessaging": in a browser sendNativeMessage is
+// not there, and nothing here happens. The reminders are told only where
+// notifications are allowed, as a notification is what the app would show.
+async function tellApp() {
+  if (!api.runtime.sendNativeMessage) return;
+  const stored = api.notifications ? await api.storage.local.get(null) : {};
+  const now = Date.now();
+  const reminders = Object.keys(stored).filter((key) => key.startsWith('reminders:')).flatMap((key) =>
+    (Array.isArray(stored[key]) ? stored[key] : []).filter((r) => r && r.channel && r.stop > now).map((r) => ({
+      id: noticeId(r), start: r.start, stop: r.stop, title: r.title,
+      text: r.channel.displayName || r.channel.n || '',
+      channel: r.channel, account: key.slice('reminders:'.length),
+    })));
+  await api.runtime.sendNativeMessage('kepuli', { reminders });
+}
+if (api.runtime.sendNativeMessage) {
+  const tell = () => { tellApp().catch((err) => console.warn('[iptv] the app was not told the reminders', err)); };
+  api.storage.onChanged.addListener((changes, area) => {
+    if (area === 'local' && Object.keys(changes).some((key) => key.startsWith('reminders:'))) tell();
+  });
+  api.permissions.onAdded?.addListener(tell);
+  api.permissions.onRemoved?.addListener(tell);
+  tell();
+}

@@ -1,5 +1,6 @@
 // Chromecast: through the Remote Playback API in a browser, and through
-// Google's own sender in the app for the iPhone and the iPad.
+// Google's own sender in the apps: the iPhone's and the iPad's, and Android's
+// on a phone or a tablet.
 //
 // Three ways of getting the picture onto a Chromecast were assessed
 // (CHROMECAST.md has the whole of it). In a browser this file is the first,
@@ -25,24 +26,25 @@
 //    stream by itself. Not used in a browser: Manifest V3 forbids loading
 //    the SDK from gstatic, and the device takes neither MPEG-TS nor
 //    Matroska, and HLS only when the server sends CORS headers. In the app
-//    (js/host.js) it is the only way there is: video.remote is AirPlay
-//    there and nothing mirrors a tab. The app carries Google's sender, and
+//    (js/host.js) it is the only way there is: on the iPhone and the iPad
+//    video.remote is AirPlay, Android's engine has no Remote Playback, and
+//    nothing mirrors a tab. The app carries Google's sender, and
 //    NativeCast below is its face on the page, in Cast's shape; castMedia
 //    says what the device can be handed, and the session on the page is
 //    js/castui.js.
 
-import { ios, on, request, send } from './host.js';
+import { native, on, request, send } from './host.js';
 
 /**
  * Whether the browser can cast at all. Firefox has no API. The iPhone's
  * WebKit (Orion) has one, but for AirPlay alone: no Chromecast is reachable
  * from it, and its prompt() did nothing visible when pressed (2026-11-10).
  * AirPlay is in the iPhone's own player controls, in full screen. That
- * WebKit is the one with ManagedMediaSource and no MediaSource. The app
- * casts on the iPhone and the iPad alike, through its own sender.
+ * WebKit is the one with ManagedMediaSource and no MediaSource. The apps
+ * cast through their own sender, on the iPhone and the iPad alike.
  */
 const iosWebKit = typeof globalThis.MediaSource === 'undefined' && 'ManagedMediaSource' in globalThis;
-export const supported = ios || (typeof HTMLMediaElement !== 'undefined' && 'remote' in HTMLMediaElement.prototype && !iosWebKit);
+export const supported = native || (typeof HTMLMediaElement !== 'undefined' && 'remote' in HTMLMediaElement.prototype && !iosWebKit);
 
 /**
  * The way to a Chromecast where the page runs: the app's sender in the
@@ -50,7 +52,7 @@ export const supported = ios || (typeof HTMLMediaElement !== 'undefined' && 'rem
  * @param {HTMLVideoElement} video
  * @param {() => void} onChange
  */
-export const createCast = (video, onChange) => (ios ? new NativeCast(onChange) : new Cast(video, onChange));
+export const createCast = (video, onChange) => (native ? new NativeCast(onChange) : new Cast(video, onChange));
 
 export const HLS_TYPE = 'application/x-mpegURL';
 const FILE_TYPES = { mp4: 'video/mp4', m4v: 'video/mp4', mov: 'video/mp4', webm: 'video/webm' };
@@ -79,19 +81,6 @@ export function castMedia(spec) {
   if (/\.m3u8$/i.test(path)) return { url: spec.url, contentType: HLS_TYPE, live: Boolean(spec.live) };
   const ext = String(spec.ext || /\.([a-z0-9]{2,4})$/i.exec(path)?.[1] || '').toLowerCase();
   return Object.hasOwn(FILE_TYPES, ext) ? { url: spec.url, contentType: FILE_TYPES[ext], live: false } : null;
-}
-
-/**
- * Whether an HLS playlist's answer lets a Chromecast read it. The device's
- * player is a web page and fetches the playlist under CORS, so an answer
- * that arrived without Access-Control-Allow-Origin is one it will refuse;
- * most Xtream panels send none. Only such an answer says no: an error or a
- * redirect is not the playlist's own word, and the cast is then tried.
- * @param {number} status
- * @param {{get: (name: string) => string | null}} headers
- */
-export function hlsCastable(status, headers) {
-  return !(status >= 200 && status < 300 && !headers.get('access-control-allow-origin'));
 }
 
 /**

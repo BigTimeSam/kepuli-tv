@@ -675,6 +675,62 @@ These are the bare keys: a key held down with Ctrl, Cmd or Alt is left to the
 browser, so `Cmd+F` and `Ctrl+F` open its search box rather than taking the
 picture to full screen.
 
+### With a television's remote control
+
+In the Android TV app the player is driven with the remote's arrows, **OK**
+and **Back** alone:
+
+| Key | Action |
+| --- | --- |
+| arrows | move the focus to the nearest control that way; in the list, the sidebar and the programme guide they move its cursor, and leave it from its edge |
+| **OK** | press what has the focus; on a row, play it; on the row already playing, fill the screen; on a text field, bring up the television's keyboard |
+| **OK** held down | the row's menu, which begins with **Add to favourites**; on a country, a topic or a card of the start page, its star (the stars are not stops of their own) |
+| **Back** | close what is open (the keyboard, a menu, a dialog, the full screen, the guide, a series' page), then return to the list, and from the list leave the app |
+| in full screen | up and down change the channel, left and right move ten seconds in a film or an episode, **OK** pauses |
+| play/pause, rewind, fast forward, channel up and down | the same, where the remote has them |
+
+### In the Android app on a phone or a tablet
+
+The app is the same player as in Firefox for Android, with the whole screen
+to itself. It follows the way the device is held, upright or lying down, in
+full screen too. Android's **Back** closes what is open (the keyboard, a
+menu, a dialog, the full screen, the guide), then shows the list again when
+the player's pane is in front, and from the list leaves the app with the
+player as it was. A file the player saves (a recording, a playlist for
+another player) goes to the device's **Downloads**; a link opens in the
+browser, and **Open in VLC** in VLC.
+
+Leave the app with Home while something plays and the picture stays on top
+of whatever you open next, in a small window: tap it for pause, the next
+and the previous channel, and the way back to the whole app; its cross
+stops the playback. With the screen turned off the sound goes on, and
+Android's notifications show what is on with a pause button; a headset's
+buttons work too. If you have turned picture in picture
+off for the app in Android's settings, Home leaves the sound on in the same
+way. Back from the list leaves the app and pauses.
+
+Reminders set in the guide come as Android's notifications even when the
+app is not running, once **Show reminders as notifications** is on in
+Settings. Android decides the exact moment: the notification is asked for
+two minutes before the programme and may come a little later than that. A
+tap on it opens the app on that channel.
+
+**Cast to a Chromecast** in the app hands the device the stream's address,
+and the device fetches it by itself: choose the device from Google's list,
+and what plays moves to it from where it was; the app is then its remote
+control (**Remote control** over the picture's place, the notification,
+the volume buttons), and **Stop casting** brings the picture back to the
+app at the same place. A Cast button stands on the top bar once a device
+is found on the network. A Chromecast plays films and episodes in MP4 and
+channels the provider sends as HLS; anything else is said and plays in the
+app. The account's one connection goes with the stream, so nothing plays
+in the app meanwhile.
+
+**Help** in the app names these instead of the keys: a row's menu by
+touching and holding it, what **Back** does, the small window and the sound
+with the screen off. The keyboard shortcuts are folded under them, for a
+tablet with a keyboard.
+
 `?` opens the same list inside the player, along with the guide's own keys and
 a note on why the browser's back button leaves the player rather than stepping
 back inside it. **Help** in the top bar opens it too.
@@ -744,7 +800,7 @@ leaving it returns to the player still full screen. Where the bar does not fit o
 — a tablet held upright, a window at half a screen — Refresh, Help, the theme,
 Full screen and Settings go behind a hamburger (☰) at its right end, the
 search takes the room that is left, and the bar stays on one row. Whether it fits is measured,
-so a language with longer tab names makes the switch at a wider window. The sun and moon is the quick switch; Settings > Viewing > Appearance starts on *Automatic*, named with the theme it comes to now (*Automatic (dark)*), which follows the operating system's light or dark mode while the player is open; a press of the switch picks the other of what is on screen and keeps it. The picture and the bar
+so a language with longer tab names makes the switch at a wider window. The sun and moon is the quick switch; Settings > Viewing > Appearance starts on *Automatic*, named with the theme it comes to now (*Automatic (dark)*), which follows the operating system's light or dark mode while the player is open (in the Android TV app *Automatic* is dark); a press of the switch picks the other of what is on screen and keeps it. The picture and the bar
 under it stay dark in either, and the choice is kept with the settings and
 copied to `localStorage`, so a light theme does not flash dark at start
 (`js/theme.js`);

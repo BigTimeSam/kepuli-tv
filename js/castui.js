@@ -1,4 +1,5 @@
-// The cast session on the page, in the app for the iPhone and the iPad
+// The cast session on the page, in the apps: the iPhone's and the iPad's, and
+// Android's on a phone or a tablet
 // (js/host.js): the app carries Google's Cast sender, and a Chromecast
 // fetches a stream by itself from the address it is handed (js/cast.js,
 // NativeCast). In a browser none of this runs: Chrome's Remote Playback
@@ -18,7 +19,7 @@
 // It takes the player's state, and the parts app.js builds, from
 // js/state.js.
 
-import { HLS_TYPE, castMedia, hlsCastable } from './cast.js';
+import { HLS_TYPE, castMedia } from './cast.js';
 import { el } from './dom.js';
 import { t } from './i18n.js';
 import { renderInfoStrip } from './infostrip.js';
@@ -37,9 +38,6 @@ import { leavePlayback } from './tracksui.js';
 // to play on with. `loading` until the device has answered the hand-over;
 // `origin` is an HLS playlist's server.
 let casting = null;
-// Whether a server's HLS can be cast, by origin, for as long as the page
-// lives: asked once, as the answer is the server's and not the channel's.
-const hlsHosts = new Map();
 // What the device itself has shown of a server's HLS, until the session
 // ends: the origins it has played a channel of, and those it failed on
 // before it had played any. A server whose playlist carries the header and
@@ -63,42 +61,24 @@ let heard = null;   // the last cast.media acted on
 let stopAsked = 0;
 const STOP_MS = 8000;
 
-// How long the playlist's own server is waited for before the device is
-// simply tried.
-const HLS_ASK_MS = 4000;
-
 /**
- * What the device can be handed of a stream, or null. For HLS the
- * playlist's server is asked first, once: without the header the device's
- * player wants (see hlsCastable) every change of channel would stop the
- * picture here, wait for the device to fail and warn. The page reads the
- * answer's headers because it holds the grant for the provider's host;
- * the answer's body is not waited for. An error or silence is no verdict.
+ * What the device can be handed of a stream, or null.
  *
- * The app's page is shown this header, on iOS 26.5 (measured;
- * `live` in ios/simcheck.mjs holds it). A desktop browser's page without
- * the grant is not, which is why the iosapp scenario hands the page the
- * server's answer.
+ * An HLS playlist's server is not asked first whether it sends
+ * Access-Control-Allow-Origin. It used to be, on the reasoning that the
+ * device's player is a web page and would refuse a playlist without the
+ * header, as most Xtream panels answer: but a Chromecast with Google TV,
+ * handed such a channel all the same, played it (measured 2026-11-17,
+ * neither the playlist nor its segments carried the header), and the
+ * question had kept every channel of that provider off the device. So the
+ * device is tried, and one that does refuse says so itself: the channel
+ * plays here, and the server's other channels do not go round by the
+ * device again (hlsRefused).
  */
-async function castable(spec) {
+function castable(spec) {
   const media = castMedia(spec);
   if (!media || media.contentType !== HLS_TYPE) return media;
-  const origin = new URL(media.url).origin;
-  if (hlsRefused.has(origin)) return null;
-  if (!hlsHosts.has(origin)) {
-    const ctrl = new AbortController();
-    const timer = setTimeout(() => ctrl.abort(), HLS_ASK_MS);
-    try {
-      const res = await fetch(media.url, { signal: ctrl.signal, cache: 'no-store', credentials: 'omit' });
-      if (res.ok) hlsHosts.set(origin, hlsCastable(res.status, res.headers));
-    } catch {
-      // Not reached, or not in time: the device is tried.
-    } finally {
-      clearTimeout(timer);
-      ctrl.abort();
-    }
-  }
-  return hlsHosts.get(origin) === false ? null : media;
+  return hlsRefused.has(new URL(media.url).origin) ? null : media;
 }
 
 /**
@@ -119,6 +99,13 @@ export function redrawCasting(foundOnly = false) {
   showCasting();
   return true;
 }
+
+/**
+ * Whether a Chromecast plays for this page, so that nothing plays here:
+ * the app is told that nothing is on (js/remote.js), or its notification
+ * and the small window would stand for a picture that is on a television.
+ */
+export const castingNow = () => Boolean(casting);
 
 /** Whether the device plays what this page did not hand it: the page was loaded again during a session. */
 export const sessionFound = () => Boolean(casting && !casting.item);
@@ -142,10 +129,7 @@ function showCasting() {
  * and stays here, untouched.
  */
 async function handOver(item, spec, startAt) {
-  const media = await castable(spec);
-  // Asking took a moment: the viewer may have started something else, or
-  // the session may have ended.
-  if (state.playingSpec !== spec || !cast.connected) return false;
+  const media = castable(spec);
   if (!media) { toast(t('cast.cannot'), { kind: 'warn', long: true }); return false; }
   playback.stop();
   state.playbackInfoLoading = false;
@@ -198,11 +182,9 @@ function playHere(left, position) {
 
 /**
  * Whether what the device had is still what this page shows. Not when the
- * viewer has chosen something else since: a channel just chosen waits for
- * its playlist's server (castable) with `casting` still the stream before,
- * and what the device then says of that stream is not the new one's to
- * suffer. It ended the channel before it had started anywhere, or put the
- * old film in its place.
+ * viewer has chosen something else since: what the device then says of
+ * the stream before is not the new one's to suffer. It ended a channel
+ * before it had started anywhere, or put the old film in its place.
  */
 const shownHere = (left) => (left.item ? state.playingSpec === left.spec : !state.playing);
 

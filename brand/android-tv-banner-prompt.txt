@@ -1,0 +1,62 @@
+The Android TV app's launcher banner (brand/android-tv-banner-1280x720.png),
+which the app carries as its banner (android/app/build.gradle) and Google Play
+asks for as the TV banner. Made by giving Codex the prompt below in an empty
+directory holding brand/tv-master-1024.png as logo.png:
+
+  codex exec --skip-git-repo-check -s workspace-write -C <dir> "<prompt>" </dev/null
+
+then cropped to 16:9 and scaled:
+
+  sips -c 940 1672 tv-banner.png && sips -z 720 1280 tv-banner.png --out brand/android-tv-banner-1280x720.png
+
+The name is drawn by the image model: read it letter by letter in what comes
+back before using it.
+
+==================================================================== PROMPT
+
+Use your image generation tool to create ONE image and save it as the PNG file
+"tv-banner.png" in your current working directory. Do not write any code to
+draw it; use the image generation tool directly. When the file is saved, print
+its absolute path and stop.
+
+The file "logo.png" in this directory is the product's logo. Look at it first
+and reproduce that television faithfully: it is the reference for the shape,
+the colours and the outline weight.
+
+PURPOSE
+The launcher banner of an Android TV app called Kepuli-TV: the wide tile a
+television's home screen shows for the app, read from across a room and shown
+quite small (320 by 180), so it must be bold and simple.
+
+SUBJECT
+- On the left third: the logo's retro 1960s cathode-ray-tube television, seen
+  straight from the front: a violet cabinet, a rounded-corner bright cyan
+  screen on the left two thirds of it with a soft lighter glow in the middle,
+  a narrow control panel on the right with exactly two round amber knobs, two
+  thin "rabbit ear" antennas in a V with amber tips, two short splayed legs.
+- To the right of it, vertically centred with the television: the name
+  "Kepuli-TV" on one line, spelled exactly K-e-p-u-l-i, a hyphen, T-V, in a
+  clean geometric sans-serif typeface, semibold, off-white #e7eaf2, large:
+  the capital letters about a third of the canvas height.
+- Nothing else: no other words, no tagline, no icons, no borders, no frame,
+  no rounded corners on the canvas.
+
+STYLE
+Flat vector illustration. Clean geometric shapes, thick confident forms, bold
+dark outlines of even weight on the television, minimal detail, no texture,
+no photorealism, no 3D, no drop shadows.
+
+COLOURS - use only these
+- violet #7c5cff (lit faces) and #4a3aa8 (shaded faces) for the cabinet
+- bright cyan #22d3ee for the screen
+- warm amber #ffc857 for the knobs and the antenna tips
+- near black #0a0c11 for the outlines
+- background: near black #0a0c11 filling the whole canvas edge to edge, with
+  one soft, wide violet glow (#7c5cff at low strength) behind the television
+  fading smoothly into the near black. No pattern, no stars, no grid.
+- the name in off-white #e7eaf2
+
+COMPOSITION
+Wide landscape canvas, 16:9. The television and the name together are
+centred as one group and fill about 80% of the canvas width, with clear empty
+margin on every side so the image can be cropped a little to exactly 16:9.

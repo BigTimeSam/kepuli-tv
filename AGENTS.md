@@ -29,7 +29,8 @@ what a page cannot there (see `ios/AGENTS.md`).
    before regenerating files and before committing. Do not revert or
    overwrite changes you did not make; ask.
 4. **No build step, no dependencies.** The files in the repo are what the
-   browser runs. Tooling is plain Node 22+ with no npm packages; the few Python
+   browser runs (the Android apps in `android/` wrap them with Gradle and
+   GeckoView, and are the one exception, kept to that directory). Tooling is plain Node 22+ with no npm packages; the few Python
    helpers run with `uv run` and declare their own dependencies. Do not add a
    bundler, a framework or `package.json` dependencies. The one exception is
    confined to `ios/`: the app is built with Xcode and xcodegen and links
@@ -50,6 +51,7 @@ what a page cannot there (see `ios/AGENTS.md`).
 | Path | What |
 | --- | --- |
 | `manifest.json`, `firefox/manifest.json` | the two manifests; version and shared keys must agree (`node dev/package.mjs --check`) |
+| `android/` | the Android apps (a television's, and a phone's and tablet's): the Firefox package inside GeckoView (a branch in progress) |
 | `background.js` | toolbar click opens the player; uninstall URL; update notice |
 | `player.html`, `css/*.css` | the whole interface on one page; thirteen stylesheets linked in cascade order (`css/AGENTS.md`) |
 | `js/app.js` | the player's UI and state (large; search before reading) |
@@ -190,6 +192,7 @@ the store screenshots.
 | [`dev/mock/AGENTS.md`](dev/mock/AGENTS.md) | the invented provider: fiction, determinism, fault switches |
 | [`firefox/AGENTS.md`](firefox/AGENTS.md) | the Firefox manifest and tooling, reviewer notes, testing in Firefox |
 | [`ios/AGENTS.md`](ios/AGENTS.md) | the iPhone and iPad app: the shell, the permanent identifiers, the build, the simulator driver and its scenarios, what was measured, the App Store procedure and the device checklist |
+| [`android/AGENTS.md`](android/AGENTS.md) | the Android apps for a television and for a phone or a tablet: the Firefox package inside GeckoView, building, the emulators, driving them |
 | [`store/AGENTS.md`](store/AGENTS.md) | listings, translation records, Chrome Web Store and AMO tools, limits and timing, screenshots, the demo video, the App Store's texts |
 | [`brand/AGENTS.md`](brand/AGENTS.md) | icon art, promo tiles, the store screenshot sets and captions |
 | [`docs/AGENTS.md`](docs/AGENTS.md) | the Pages site, policy pages and the long docs; links installed versions rely on |

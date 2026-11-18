@@ -205,7 +205,7 @@ mock answers every stream with 404.
 | `boot` | a fresh install loads with no extension or context error at the pinned address, `location.search` is `?ios=1`, `html.ios`, the port is connected and `host` arrived with the device's idiom, `permissions.contains` is true for `http://example.org/*`, and neither the bundle's manifest nor the page's has a background; a start made to fail shows its sentence, and its button starts the player |
 | `firstrun` | the setup dialog shows without the note on a permission question and fits the window upright and lying down (Save reachable); the port, which comes filled in, is selected when the focus reaches it; the strips around the web view are the page's ground under the dialog's backdrop, and the plain ground once it has closed, and the app knows the dialog open and closed; lying down the fields' labels are of one size and the note on HTTPS no larger than a field's text; the mock's address and `demo`/`demo` typed into its fields connect, and groups and channels load |
 | `channels` | a country opens with its rows; a row's name and a button cannot be selected by a long press, a field's text can; lying down at least three rows are in sight and nothing is wider than the window |
-| `live` | a channel advances three seconds with sound and no tap; the idle timer is off while it plays and on after a pause; a fetch of its playlist shows the page `Access-Control-Allow-Origin` |
+| `live` | a channel advances three seconds with sound and no tap; the idle timer is off while it plays and on after a pause |
 | `film` | an MP4 film plays; the list's foot shows its count whole beside its marks, upright and lying down; after a launch its place is kept and offered (the start page's Continue watching, or the film's row where the window has one pane) and it goes on from there |
 | `mkv` | Silent Fjord's first episode plays through the unpacking with its two subtitle tracks; the subtitles' look opens with no picker in the focus and nothing of the system's over the player, and the text keeps clear of its panel, at its own height where the panel does not lie over the picture (a phone, upright and lying down); the second episode, whose sound is AC-3, plays with a sound track encoded anew; the third goes on through a change to its AC-3 commentary, the sound's selector no narrower than the subtitles' |
 | `guide` | the guide has programmes; an upcoming one offers Remind me; nothing of recording is in sight anywhere; lying down it still fits, the day in view whole in its strip and clear of the strip's arrows; over a playing channel, upright and lying down, the corner picture is no wider than its column, the programme's time and title are in sight in its panel, and the strip's arrow back does not show for a scroll shorter than itself |
@@ -320,9 +320,6 @@ unasked); never assert a count of Cast devices.
   what `prefers-color-scheme` answers in the web view (`settings` reads
   both). The keyboard under a dark page was not photographed after the
   change, nor Google's dialogs: the device checklist has the line.
-- **The page is shown a provider's `Access-Control-Allow-Origin`**,
-  which is what `js/castui.js` asks before it hands a
-  channel to a Chromecast (`live` reads it).
 - **The Stalker header rule holds in WebKit**: the mock's portal turned no
   request away, and a channel played from its one-time link (`stalker`).
 - **An iPhone plays a channel's HLS natively and an iPad through hls.js**

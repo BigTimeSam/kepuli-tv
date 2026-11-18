@@ -42,6 +42,13 @@ export class PlayerLayout {
     });
   }
 
+  /**
+   * `session`: a cast session the page found on the device (the app, its
+   * page loaded again while a Chromecast plays; js/castui.js). It stands
+   * in the player's pane as something playing does: its words and Stop
+   * casting are there, so the pane is shown for it once and the switch
+   * stays while it lasts.
+   */
   update({ connected, playing, session = false }) {
     this.connected = connected;
     this.playing = playing;

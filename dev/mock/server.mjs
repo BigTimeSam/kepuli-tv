@@ -1046,14 +1046,6 @@ function stalker(req, res, url) {
 function handle(req, res) {
   const url = new URL(req.url, `http://${req.headers.host}`);
   const path = url.pathname;
-  // KEPULI_MOCK_NO_CORS=1: no Access-Control-* header on any answer, as
-  // most providers' servers send none. An extension page that holds the
-  // host's grant reads the answers all the same; a Chromecast's player
-  // does not, which is what the player asks about before it casts HLS.
-  if (process.env.KEPULI_MOCK_NO_CORS) {
-    const writeHead = res.writeHead.bind(res);
-    res.writeHead = (status, headers = {}) => writeHead(status, Object.fromEntries(Object.entries(headers).filter(([name]) => !/^access-control-/i.test(name))));
-  }
   if (req.method === 'OPTIONS') { res.writeHead(204, CORS); return res.end(); }
   if (path === '/player_api.php') return api(req, res, url);
   if (path === '/c/' || path === '/c/index.html') return send(res, 200, '<!doctype html><title>Stalker</title>', 'text/html');

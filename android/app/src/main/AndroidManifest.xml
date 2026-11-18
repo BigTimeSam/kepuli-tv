@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- What the television's package and the phone's share. Each adds its own
+     launcher entry and what its kind of device needs (src/tv/, src/mobile/). -->
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <uses-permission android:name="android.permission.INTERNET" />
+    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
+    <uses-permission android:name="android.permission.WAKE_LOCK" />
+
+    <!-- Providers serve their lists and streams over plain http as a rule. -->
+    <application
+        android:label="@string/app_name"
+        android:icon="@drawable/kepuli_icon"
+        android:theme="@style/Player"
+        android:usesCleartextTraffic="true"
+        android:allowBackup="false">
+        <activity
+            android:name=".PlayerActivity"
+            android:exported="true"
+            android:launchMode="singleTask"
+            android:configChanges="keyboard|keyboardHidden|navigation|orientation|screenSize|screenLayout|smallestScreenSize|uiMode|density" />
+    </application>
+</manifest>

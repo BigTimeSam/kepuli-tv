@@ -1,35 +1,48 @@
 // @ts-check
-// The app around the page, where there is one: Kepuli-TV for the iPhone and
-// the iPad shows this same page in a web view of its own and answers, in
-// native code, what a browser would have answered or what no page can do
-// there: the Chromecast sender, the screen kept on, reminders as the
-// system's notifications.
+// The app around the page, where there is one. Kepuli-TV for the iPhone and
+// the iPad (ios/) and the Android app on a phone or a tablet (android/)
+// show this same page in a view of their own and answer, in native code,
+// what a browser would have answered or what no page can do there: the
+// Chromecast sender (js/cast.js, js/castui.js) in both; on the iPhone and
+// the iPad the screen kept on and reminders as the system's
+// notifications; on Android what js/remote.js tells the app and hears of
+// it (the small window, the notification's buttons).
 //
-// The page is told by its address, player.html?ios=1, read once here, as
-// a test can then open the same page in a desktop browser. It is not told
-// by sniffing: another WebKit browser that runs extensions (Orion) would
-// pass any test of the engine or of the address's scheme, and is not the
-// app.
+// The page is told by its address, player.html?ios=1 or player.html?app=1
+// (js/caret.js), read once, as a test can then open the same page in a
+// desktop browser. It is not told by sniffing: another WebKit browser that
+// runs extensions (Orion) would pass any test of the engine or of the
+// address's scheme, and is not the app.
 //
-// One port carries everything, opened by the page. Both ways a message is
-// { type, id?, ...fields }; the answer to one sent with an id is
-// { re: id, ok, error?, ...fields }. What the app says unasked (the cast
+// One port carries everything, opened by the page. A message with a type
+// is { type, id?, ...fields } both ways; the answer to one sent with an id
+// is { re: id, ok, error?, ...fields }. What the app says unasked (the cast
 // session's state, a reminder's notification tapped) arrives by its type,
 // and the last of each type is kept, so that a module that starts
-// listening late still hears where things stand.
+// listening late still hears where things stand. The words without a type
+// are js/remote.js's own on Android, older than these, and it reads them
+// off the same port (appPort).
 
 import { api } from './browser.js';
+import { inApp } from './caret.js';
 
-/** The native application's name, as the app's bridge knows it. */
-const APPLICATION = 'io.github.bigtimesam.kepulitv';
-
-/** Whether the page runs in the iOS app. False in Node, where the tests import this. */
+/** Whether the page runs in the app for the iPhone and the iPad. False in Node, where the tests import this. */
 export const ios = typeof location !== 'undefined' && typeof document !== 'undefined'
   && new URLSearchParams(location.search).get('ios') === '1';
 
 /**
- * What the app said of itself when the page connected (`idiom`, `version`,
- * `build`, `debug`, `simulator`), or null before it has.
+ * Whether an app with a Chromecast sender of its own is around the page:
+ * the iPhone's and the iPad's, or Android's on a phone or a tablet.
+ */
+export const native = ios || inApp;
+
+/** The name each app's bridge answers to (ios/App/Bridge.swift; PlayerActivity's LINE). */
+const APPLICATION = ios ? 'io.github.bigtimesam.kepulitv' : 'kepuli';
+
+/**
+ * What the iPhone's and the iPad's app said of itself when the page
+ * connected (`idiom`, `version`, `build`, `debug`, `simulator`), or null
+ * before it has, and on Android.
  * @type {Record<string, any> | null}
  */
 export let host = null;
@@ -132,6 +145,13 @@ export function on(type, listener) {
 }
 
 /**
+ * The port itself, for the words that have no type (js/remote.js), or null
+ * in a browser.
+ * @returns {Port | null}
+ */
+export const appPort = () => port;
+
+/**
  * The reminders still ahead, as the app schedules them: each a
  * notification `ahead` of its programme's start, named by the reminder's
  * key. One whose moment has passed is left out: the page's list still
@@ -164,25 +184,29 @@ export function pausedByLeaving(pausedAt, hiddenAt, touchedAt) {
   return Math.abs(hiddenAt - pausedAt) < 1500 && !(touchedAt <= pausedAt && pausedAt - touchedAt < 500);
 }
 
-if (ios) {
-  // The stylesheets hide under .ios what the app cannot answer or does not
-  // offer (css/last.css).
-  document.documentElement.classList.add('ios');
-  // A browser asked to open player.html?ios=1 (the tests) has no native
-  // application to connect to, or no such function at all.
+if (native) {
+  // A browser asked to open player.html?ios=1 or ?app=1 (the tests) has no
+  // native application to connect to, or no such function at all.
   try {
     if (typeof api?.runtime?.connectNative === 'function') {
       attach(api.runtime.connectNative(APPLICATION));
-      // Said at once, and nothing answers it: the app can only tell that
-      // the page hears it from the page's first word (WebKit drops what is
-      // sent to a port before its listener is in), and says who it is and
-      // how the cast session stands when it has heard one. Left to the
-      // first module with something to say, that came half a second late.
-      send('hello');
+      // Said at once to the iPhone's and the iPad's app, and nothing
+      // answers it: the app can only tell that the page hears it from the
+      // page's first word (WebKit drops what is sent to a port before its
+      // listener is in), and says who it is and how the cast session
+      // stands when it has heard one. Left to the first module with
+      // something to say, that came half a second late.
+      if (ios) send('hello');
     }
   } catch (err) {
     console.warn('[iptv] the app did not answer the page:', err && /** @type {Error} */ (err).message);
   }
+}
+
+if (ios) {
+  // The stylesheets hide under .ios what the app cannot answer or does not
+  // offer (css/last.css).
+  document.documentElement.classList.add('ios');
   // A field being typed into stays in sight when the window changes under
   // it. WebKit brings a field above the keyboard when it takes the focus,
   // and not when the device is turned with the keyboard up: the field was

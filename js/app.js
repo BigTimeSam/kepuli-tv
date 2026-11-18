@@ -40,6 +40,7 @@ import { pickEncoder } from './transcode.js';
 import * as store from './config.js';
 import { applyTheme, earlyTheme, onSystemTheme, renderTheme } from './theme.js';
 import { wirePickers } from './picker.js';
+import { remote, wireRemote } from './remote.js';
 import { nf } from './format.js';
 import { t, applyStatic, setLanguage, loadLanguage } from './i18n.js';
 import { askRecordingConsent, closeRecordingConsent, loadRecordingList, openRecordings, retryPlayback, toggleRecordNow } from './recordingsui.js';
@@ -1724,6 +1725,9 @@ function openItemMenu(item, at) {
       onClick: () => changeChannelChoices({ ...prefs, hiddenChannels: [...prefs.hiddenChannels, id] }, t('row.hidden', { name })),
     });
   }
+  // A remote control has no key for the star: the menu OK opens when held
+  // down begins with it (js/remote.js).
+  if (remote) items.unshift({ label: t(state.favorites.has(`${item.k}:${item.id}`) ? 'row.fav.remove' : 'row.fav.add'), onClick: toggleFavoriteAtCursor });
   if (items.length) openRowMenu(at, items, { label: name, returnFocus: el.list });
 }
 
@@ -1859,6 +1863,9 @@ function renderCastState() {
   el.cast.hidden = !castSupported;
   el.cast.classList.toggle('on', cast.connected);
   el.more.classList.toggle('on', cast.connected && !cast.native);
+  // In the app the Cast mark itself stands on the top bar once a device
+  // is near or in use, as Google's terms want it in sight, and is the one
+  // lit; the session is drawn by js/castui.js.
   $('btn-cast-top').hidden = !(cast.native && (cast.available || cast.busy));
   $('btn-cast-top').classList.toggle('on', cast.connected);
   renderCasting();
@@ -2344,6 +2351,26 @@ if (ios) {
   // that are not hidden (js/topmenu.js).
   $('btn-screen').hidden = true;
 }
+wireRemote({
+  open: () => { if (state.rows[state.cursor]) openItem(state.rows[state.cursor]); },
+  first: () => moveCursor(1),
+  group: moveGroupCursor,
+  menu: () => {
+    const item = state.rows[state.cursor];
+    const node = vlist.nodes.get(state.cursor);
+    if (item) openItemMenu(item, node?.querySelector('.row-more') || node || el.list);
+  },
+  star: toggleFavoriteAtCursor,
+  zap: playRelative,
+  back: () => {
+    // A phone's player pane: Back shows the list again, the picture plays on.
+    if (playerLayout.narrow.matches && state.lib && el.main.classList.contains('compact-watch')) { playerLayout.showBrowse(); return true; }
+    if (guideOpen) { closeGuide(); return true; }
+    if (state.detail) { closeDetail(); return true; }
+    return false;
+  },
+  guideRow: () => (guideOpen ? grid.cursorRow : -1),
+});
 
 async function init() {
   state.accounts = await store.loadAccounts();
