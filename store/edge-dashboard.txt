@@ -6,8 +6,10 @@ This file holds what Partner Center asks, in the order it asks it. Where a
 text is the Chrome dashboard's, it is named and not repeated: it lives in
 store/chrome-dashboard.txt.
 
-Not submitted yet. Nothing is uploaded or sent for certification without
-the owner's go in the conversation at hand (AGENTS.md, rule 2).
+The product was made on 2026-11-18 with 1.14.0, filled in whole and sent
+for certification by the owner that evening: the overview says "In
+review". Nothing is uploaded or sent for certification
+without the owner's go in the conversation at hand (AGENTS.md, rule 2).
 
 What Microsoft says of the form was read on 2026-11-18, at
 learn.microsoft.com/microsoft-edge/extensions/publish/ (create-dev-account,
@@ -28,8 +30,14 @@ again before relying on a limit below.
      BigTimeSam.
   4. Contact details, the Microsoft Store App Developer Agreement, Finish.
      Microsoft confirms by email; the state is under Account settings.
-  No identifier or key of the account is written into the repository: the
-  publish API's are for ~/.config/kepuli-tv/edge.json (see the end).
+  Done on 2026-11-18: Individual, Finland, BigTimeSam. A work or school
+  account that is signed in to Partner Center already is what the link
+  opens with, and the answer is then "We don't recognise the program":
+  sign in with the personal account first. The Edge workspace opened some
+  minutes after the form was sent, with no email.
+  No key of the account is written into the repository: the publish API's
+  are for ~/.config/kepuli-tv/edge.json (see the end), with the product's
+  ID.
 
 
 --- THE PACKAGE (Packages) --------------------------------------------------
@@ -79,12 +87,24 @@ Privacy policy URL:          https://bigtimesam.github.io/kepuli-tv/privacy/
 Description (250 to 10,000 characters): the Chrome one, the second block
 of dist/listings/<locale>.txt ("DETAILED DESCRIPTION (Chrome: …"), which
 leaves the video section out, as this store has a field for the video
-too. node dev/listings.mjs writes those files; the shortest is about
-3,000 characters and the longest 3,600. English first; the other languages
-are offered by the store once the package carries them, and each needs
-its description before Publish is enabled. Add them in a second round if
-the first is to go out sooner: a language row left incomplete blocks the
-submission.
+too, and without its last sentence, the one that names Orion and
+Firefox: the form warns "Avoid referencing other browsers in your
+extension description". node dev/listings.mjs writes those files. The
+form lists every language the package carries (thirty: Albanian is not
+in the Chrome package), and each needs its description and the logo
+before Publish is enabled; all thirty were filled on 2026-11-18.
+
+How the form behaves (measured that day, driven in the owner's Chrome):
+  • A description set by script is not taken as a change: Save draft
+    stays grey until a key is pressed in the field (a space and a
+    backspace are enough).
+  • Screenshots uploaded together land in the order their uploads end.
+    Upload them one at a time and wait for each to show.
+  • "Duplicate … for all languages" under the logo, the tiles and the
+    screenshots copies the pictures to every language; the video and
+    the search terms stay the language's own.
+  • With the last language complete the editor's Close gives way to
+    Publish, which opens the notes for certification.
 
 Extension logo:          brand/store-icon-300.png (300x300, transparent)
 Small promotional tile:  brand/promo-small-440x280.png
@@ -106,6 +126,9 @@ shown to readers). In English:
 
 
 --- NOTES FOR CERTIFICATION -------------------------------------------------
+Asked on the last page, with every submission: "Yes, I need to provide
+credentials, accounts, or other info for testers", and at most 2,000
+characters.
 Microsoft's testers run the extension; they will not build a server. The
 project's hosted demo (the invented provider of dev/mock/, on Fly.io, made
 for the App Store's review) serves them too. Its address is "demoUrl" in
