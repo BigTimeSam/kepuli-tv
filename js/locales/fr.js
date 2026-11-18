@@ -569,6 +569,7 @@ export default {
  "rec.play": "Lire",
  "app.reminders": "Rappels",
  "app.pause": "Pause",
+ "app.save.failed": "Impossible d’enregistrer {name}",
  "rec.save": "Télécharger sur l’ordinateur",
  "rec.delete": "Supprimer",
  "rec.delete.confirm": "Supprimer définitivement ?",

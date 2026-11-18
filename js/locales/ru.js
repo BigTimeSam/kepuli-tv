@@ -674,6 +674,7 @@ export default {
  "rec.play": "Воспроизвести",
  "app.reminders": "Напоминания",
  "app.pause": "Пауза",
+ "app.save.failed": "Не удалось сохранить {name}",
  "rec.save": "Сохранить на компьютер",
  "rec.delete": "Удалить",
  "rec.delete.confirm": "Удалить навсегда?",

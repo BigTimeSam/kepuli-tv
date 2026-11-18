@@ -47,13 +47,10 @@ import java.io.File;
 import java.io.FileOutputStream;
 import java.io.InputStream;
 import java.io.OutputStream;
-import java.net.URLDecoder;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 
 /**
  * The phone's and the tablet's app: the player as it is in Firefox for
@@ -224,6 +221,10 @@ public class PlayerActivity extends EngineActivity {
                 Reminders.cancel(PlayerActivity.this, notification.tag);
             }
         });
+        // A playlist picked from a file is copied into the cache for the
+        // engine to read (copy), and has the account's credentials in it:
+        // what an earlier run left there goes when the app starts.
+        if (state == null) new Thread(() -> clear(new File(getCacheDir(), "picked"))).start();
         // Android hands the same intent over again when it brings the app
         // back from the recent apps: a press is a press only the first time.
         if (state == null && (getIntent().getFlags() & Intent.FLAG_ACTIVITY_LAUNCHED_FROM_HISTORY) == 0) pressed(getIntent());
@@ -266,16 +267,14 @@ public class PlayerActivity extends EngineActivity {
                     @Override
                     public void onPortMessage(Object message, WebExtension.Port from) {
                         if (!(message instanceof JSONObject)) return;
-                        // The words with a type are the cast session's (js/host.js).
-                        String type = ((JSONObject) message).optString("type", "");
-                        if (type.startsWith("cast.")) {
-                            cast.handle(type, (JSONObject) message);
-                            return;
-                        }
-                        JSONArray size = ((JSONObject) message).optJSONArray("shape");
-                        if (size != null) shape(size.optInt(0), size.optInt(1));
-                        JSONObject now = ((JSONObject) message).optJSONObject("now");
-                        if (now != null) now(now);
+                        // Every word has a type (js/host.js): the cast session's
+                        // are CastService's, the rest js/androidapp.js's.
+                        JSONObject word = (JSONObject) message;
+                        String type = word.optString("type", "");
+                        if (type.startsWith("cast.")) cast.handle(type, word);
+                        else if (type.equals("app.now")) now(word);
+                        else if (type.equals("app.shape")) shape(word.optInt("width"), word.optInt("height"));
+                        else if (type.equals("app.art")) art(word.optString("png", ""));
                     }
 
                     // The page went (reloaded, or its process taken): so did what played.
@@ -286,7 +285,7 @@ public class PlayerActivity extends EngineActivity {
                         nothing();
                     }
                 });
-                if (pip) tell("pip", true);
+                if (pip) tell("app.pip", "on", true);
                 cast.pageConnected();
                 if (waiting != null) port.postMessage(waiting);
                 waiting = null;
@@ -296,13 +295,13 @@ public class PlayerActivity extends EngineActivity {
         session.getWebExtensionController().setMessageDelegate(extension, line, LINE);
     }
 
-    /** A word to the page; one that comes before the page is there is not kept. */
-    private void tell(String name, Object value) {
+    /** A word to the page, of a type and one field; one that comes before the page is there is not kept. */
+    private void tell(String type, String field, Object value) {
         if (page == null) return;
         try {
-            page.postMessage(new JSONObject().put(name, value));
+            page.postMessage(new JSONObject().put("type", type).put(field, value));
         } catch (JSONException e) {
-            Log.w(TAG, "not said to the page: " + name, e);
+            Log.w(TAG, "not said to the page: " + type, e);
         }
     }
 
@@ -505,8 +504,13 @@ public class PlayerActivity extends EngineActivity {
                 intent.addCategory(Intent.CATEGORY_BROWSABLE);
                 intent.setComponent(null);
                 intent.setSelector(null);
-            } else {
+            } else if (Rules.opens(uri)) {
                 intent = new Intent(Intent.ACTION_VIEW, Uri.parse(uri));
+            } else {
+                // A file's, a content provider's or a script's address is no
+                // link of the player's: nothing is asked to open it.
+                Log.w(TAG, "not opened: " + Rules.scheme(uri));
+                return;
             }
         } catch (java.net.URISyntaxException e) {
             Log.w(TAG, "not a link: " + uri);
@@ -525,8 +529,6 @@ public class PlayerActivity extends EngineActivity {
 
     /* ------------------------------------------------------- saved files */
 
-    private static final Pattern FILE_NAME = Pattern.compile("filename\\*?=(?:UTF-8'')?\"?([^\";]+)\"?", Pattern.CASE_INSENSITIVE);
-
     private static String header(WebResponse response, String name) {
         for (Map.Entry<String, String> header : response.headers.entrySet()) {
             if (header.getKey().equalsIgnoreCase(name)) return header.getValue();
@@ -535,21 +537,7 @@ public class PlayerActivity extends EngineActivity {
     }
 
     private static String fileName(WebResponse response) {
-        String name = null;
-        String disposition = header(response, "Content-Disposition");
-        if (disposition != null) {
-            Matcher named = FILE_NAME.matcher(disposition);
-            if (named.find()) {
-                try {
-                    name = URLDecoder.decode(named.group(1).replace("+", "%2B"), "UTF-8");
-                } catch (Exception e) {
-                    name = named.group(1);
-                }
-            }
-        }
-        if (name == null && response.uri != null && !response.uri.startsWith("blob:")) name = Uri.parse(response.uri).getLastPathSegment();
-        if (name == null || name.isEmpty()) name = "kepuli-tv";
-        return name.replaceAll("[/\\\\:*?\"<>|\\p{Cntrl}]", "_");
+        return Rules.fileName(header(response, "Content-Disposition"), response.uri);
     }
 
     /** Into the device's Downloads, where the Files app and other players find it. */
@@ -584,10 +572,15 @@ public class PlayerActivity extends EngineActivity {
                 getContentResolver().update(row, done, null, null);
             }
             // The file's name alone: it reads the same in every language.
-            runOnUiThread(() -> Toast.makeText(this, name, Toast.LENGTH_LONG).show());
+            // Before Android 10 with the folder, which is the app's own and
+            // not the Downloads the viewer would look in.
+            String where = Build.VERSION.SDK_INT >= 29 ? name : "Android/data/" + getPackageName() + "/files/Download/" + name;
+            runOnUiThread(() -> Toast.makeText(this, where, Toast.LENGTH_LONG).show());
         } catch (Exception e) {
             Log.e(TAG, "the file was not saved: " + name, e);
             if (row != null) getContentResolver().delete(row, null, null);
+            // Said: the viewer pressed Save and saw nothing happen.
+            runOnUiThread(() -> Toast.makeText(this, getString(R.string.save_failed, name), Toast.LENGTH_LONG).show());
         }
     }
 
@@ -649,7 +642,7 @@ public class PlayerActivity extends EngineActivity {
             notification.click();
         } else if (watch != null) {
             try {
-                JSONObject word = new JSONObject().put("watch", new JSONObject(watch));
+                JSONObject word = new JSONObject(watch).put("type", "app.watch");
                 if (page != null) page.postMessage(word);
                 else waiting = word;
             } catch (JSONException e) {
@@ -683,18 +676,39 @@ public class PlayerActivity extends EngineActivity {
     }
 
     /**
+     * The channel's logo or the film's cover, as the page hands it over (a
+     * small PNG in base64, or nothing): for the notification and the lock
+     * screen. The page reads the picture; the app asks nothing of the
+     * network for it.
+     */
+    private void art(String png) {
+        android.graphics.Bitmap picture = null;
+        if (!png.isEmpty()) {
+            try {
+                byte[] bytes = android.util.Base64.decode(png, android.util.Base64.DEFAULT);
+                picture = android.graphics.BitmapFactory.decodeByteArray(bytes, 0, bytes.length);
+            } catch (IllegalArgumentException e) {
+                Log.w(TAG, "a picture that is not one");
+            }
+        }
+        PlaybackService.now.art = picture;
+        PlaybackService.refresh();
+    }
+
+    /**
      * Play, pause, the next or the previous channel, asked of the page.
      * A pause and a play show at once in the notification: the page's own
      * word of it took from seconds to a minute to come from a page out of
      * sight, and the button stood wrong meanwhile.
      */
     private void press(String what) {
-        tell("press", what);
+        tell("app.press", "what", what);
         if (PlaybackService.now.playing && what.equals(PlaybackService.PAUSE)) playing(false);
         else if (!PlaybackService.now.playing && what.equals(PlaybackService.PLAY)) playing(true);
     }
 
     private void nothing() {
+        PlaybackService.now.art = null;
         playing(false);
         PlaybackService.stop(this);
     }
@@ -771,9 +785,7 @@ public class PlayerActivity extends EngineActivity {
     /** The picture's size, as the page says it (js/androidapp.js). */
     private void shape(int width, int height) {
         if (width <= 0 || height <= 0) return;
-        // Android refuses a window narrower or wider than 2.39 to 1.
-        float ratio = Math.max(100f / 239, Math.min(239f / 100, (float) width / height));
-        shape = new Rational(Math.round(ratio * 1000), 1000);
+        shape = new Rational(Math.round(Rules.ratio(width, height) * 1000), 1000);
         if (small()) setPictureInPictureParams(window());
     }
 
@@ -802,7 +814,7 @@ public class PlayerActivity extends EngineActivity {
     public void onPictureInPictureModeChanged(boolean small, Configuration configuration) {
         super.onPictureInPictureModeChanged(small, configuration);
         pip = small;
-        tell("pip", small);
+        tell("app.pip", "on", small);
         frame.requestApplyInsets();
         if (!small && !started) press(PlaybackService.PAUSE);
     }

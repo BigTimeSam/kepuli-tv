@@ -19,6 +19,8 @@ const STRINGS = {
   channel_playback: 'setup.tab.playback',
   action_play: 'rec.play',
   action_pause: 'app.pause',
+  // With the file's name: Android's own place holder for the player's.
+  save_failed: 'app.save.failed',
 };
 
 // Android's directory for a language where it is not the plain code:
@@ -38,7 +40,7 @@ const escape = (text) => text.replace(/&/g, '&amp;').replace(/</g, '&lt;').repla
 for (const lang of Object.keys(LANGUAGES)) {
   await loadLanguage(lang);
   setLanguage(lang);
-  const rows = Object.entries(STRINGS).map(([name, key]) => `    <string name="${name}">${escape(t(key))}</string>`);
+  const rows = Object.entries(STRINGS).map(([name, key]) => `    <string name="${name}">${escape(t(key)).replace('{name}', '%1$s')}</string>`);
   const dir = join(out, lang === 'en' ? 'values' : `values-${QUALIFIER[lang] || lang}`);
   mkdirSync(dir, { recursive: true });
   writeFileSync(join(dir, 'strings_app.xml'), `<?xml version="1.0" encoding="utf-8"?>\n<resources>\n${rows.join('\n')}\n</resources>\n`);

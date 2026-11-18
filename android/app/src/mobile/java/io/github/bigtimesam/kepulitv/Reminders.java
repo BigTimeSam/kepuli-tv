@@ -158,7 +158,7 @@ final class Reminders {
         manager.createNotificationChannel(new NotificationChannel(CHANNEL, context.getString(R.string.channel_reminders), NotificationManager.IMPORTANCE_HIGH));
         Intent open = new Intent(context, PlayerActivity.class).setAction(EXTRA_ID + ":" + id).putExtra(EXTRA_ID, id);
         manager.notify(id, 0, new Notification.Builder(context, CHANNEL)
-                .setSmallIcon(android.R.drawable.ic_popup_reminder)
+                .setSmallIcon(R.drawable.ic_stat_kepuli)
                 .setContentTitle(title)
                 .setContentText(text)
                 .setStyle(new Notification.BigTextStyle().bigText(text))

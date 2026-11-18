@@ -711,6 +711,7 @@ export default {
  "rec.play": "Putar",
  "app.reminders": "Pengingat",
  "app.pause": "Jeda",
+ "app.save.failed": "Tidak dapat menyimpan {name}",
  "rec.save": "Simpan ke komputer",
  "rec.delete": "Hapus",
  "rec.delete.confirm": "Hapus permanen?",

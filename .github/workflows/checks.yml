@@ -137,9 +137,9 @@ jobs:
       # Debug packages: the release ones are signed with a key that is not
       # in the repository. The build runs firefox/build.mjs and
       # android/strings.mjs, so a break in either shows here too.
-      - name: Build the phone's and the television's packages
+      - name: Build the phone's and the television's packages, and test the phone's pure rules
         working-directory: android
-        run: ./gradlew --no-daemon assembleMobileDebug assembleTvDebug
+        run: ./gradlew --no-daemon assembleMobileDebug assembleTvDebug testMobileDebugUnitTest
       - name: What the packages ask Android to allow
         run: node android/permissions.mjs
       # Not on a push: a commit about something else is not red for

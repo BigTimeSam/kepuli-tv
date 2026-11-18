@@ -658,6 +658,7 @@ export default {
  "rec.play": "Αναπαραγωγή",
  "app.reminders": "Υπενθυμίσεις",
  "app.pause": "Παύση",
+ "app.save.failed": "Δεν ήταν δυνατή η αποθήκευση του {name}",
  "rec.save": "Αποθήκευση στον υπολογιστή",
  "rec.delete": "Διαγραφή",
  "rec.delete.confirm": "Οριστική διαγραφή;",

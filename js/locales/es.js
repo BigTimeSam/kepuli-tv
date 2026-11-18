@@ -569,6 +569,7 @@ export default {
  "rec.play": "Reproducir",
  "app.reminders": "Recordatorios",
  "app.pause": "Pausar",
+ "app.save.failed": "No se pudo guardar {name}",
  "rec.save": "Guardar en el ordenador",
  "rec.delete": "Borrar",
  "rec.delete.confirm": "¿Borrar para siempre?",

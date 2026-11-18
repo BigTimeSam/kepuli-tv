@@ -735,6 +735,7 @@ export default {
  "rec.play": "Prehrať",
  "app.reminders": "Pripomienky",
  "app.pause": "Pozastaviť",
+ "app.save.failed": "Súbor {name} sa nepodarilo uložiť",
  "rec.save": "Uložiť do počítača",
  "rec.delete": "Odstrániť",
  "rec.delete.confirm": "Odstrániť natrvalo?",

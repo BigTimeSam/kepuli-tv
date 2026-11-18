@@ -26,6 +26,7 @@ is not needed, and a Chromebook without one may have the app.)
 | `app/src/main/…/EngineActivity.java` | what both share: the engine, the session and the extension; Back sent to the page as Escape (as a key, and as Android 16's callback); `onCloseRequest` (the page's `window.close()`) steps back to the launcher; optional host permissions granted without a prompt |
 | `app/src/main/AndroidManifest.xml`, `res/` | the permissions, cleartext traffic (providers serve http), the activity, the name and the theme; the logo shown while the engine starts (`res/drawable/splash.xml`, from `../brand/tv-compact.png`), which `EngineActivity` keeps over the view until the page has drawn |
 | `app/src/tv/` | the television: the page opened as `player.html?tv=1` and made 1280 by 720, no bars, lying down, the leanback launcher entry and its banner (`../brand/android-tv-banner-1280x720.png`, taken at build time) |
+| `app/src/mobile/…/Rules.java`, `app/src/testMobile/` | the phone's rules that need nothing of Android, and their JUnit tests |
 | `app/src/mobile/` | the phone and the tablet: the page opened as `player.html?app=1`, upright or lying down as the device is held, clear of the system's bars and the keyboard until something goes full screen; and what a browser does around a page: a file field's picker, a saved file into Downloads, a link or an `intent:` link to the app that opens it, a reminder as the system's notification, the page opened again when Android took its process; and what an app does that a tab does not: picture in picture, the sound out of sight (`PlaybackService`), a reminder when the app is not running (`Reminders`, `ReminderReceiver`) |
 
 The remote control is the player's: `js/remote.js`, on with `?tv=1`, tested
@@ -41,13 +42,19 @@ The phone's copy of the extension's manifest has `nativeMessaging` and
 browsers' packages and the television's do not), and the app answers to
 the name `kepuli` from both of the extension's ends:
 
-- **The page** (`talkWithApp` in `js/androidapp.js`) opens a line when it is
-  opened with `?app=1`. It says what is on and whether it plays, and the
-  picture's shape; it hears `pip` (the app has become the small window: the
-  page shows the picture alone, `.pip` in `css/last.css`), `press` (play,
-  pause, next, previous, from the notification, a headset or the lock
-  screen) and `watch` (a reminder's notification was pressed while the app
-  was not running).
+- **The page** (`js/host.js` opens the line when the page is opened with
+  `?app=1`; `talkWithApp` in `js/androidapp.js` speaks on it). Every word
+  is `{ type, ...fields }`, as the cast session's are. The page says
+  `app.now` (what is on and whether it plays), `app.shape` (the picture's
+  width and height) and `app.art` (the channel's logo or the film's cover
+  as a small PNG in base64, read by the page so that the app asks nothing
+  of the network for it). It hears `app.pip` (the app has become the small
+  window: the page shows the picture alone, `.pip` in `css/last.css`),
+  `app.press` (play, pause, next, previous, from the notification, a
+  headset or the lock screen) and `app.watch` (a reminder's notification
+  was pressed while the app was not running). `PlayerActivity` sorts them
+  by type; a new word is a new type there and a listener in
+  `js/androidapp.js`.
 - **The background** (`tellApp` in `background.js`) sends the reminders
   whenever they change, where notifications are allowed.
 
@@ -117,10 +124,19 @@ Matroska).
 `node android/permissions.mjs`, after a build of both debug packages, lists
 what each asks Android to allow against the approved lists in the file: a
 library's manifest is merged into the app's, and Play's forms and the
-privacy policy name the permissions one by one. The CI's `android` job
-(`.github/workflows/checks.yml`) builds both packages and runs it, on
-`main` and on the `android-*` branches; the page's side of the app is
-covered by the browser job's `remote`, `appback` and `appcast` scenarios.
+privacy policy name the permissions one by one.
+
+`./gradlew testMobileDebugUnitTest` runs the JUnit tests of the phone's
+pure rules (`Rules.java`: a saved file's name, which links leave the app,
+the small window's shape; `src/testMobile/`). A rule that needs nothing of
+Android goes there with its test, not into the activity: Android's own
+classes are stubs on the build machine.
+
+The CI's `android` job (`.github/workflows/checks.yml`) builds both
+packages and runs both, and nightly `node android/enginecheck.mjs`; the
+page's side of the apps is covered by the browser job's `remote`,
+`appback` and `appcast` scenarios (`appcast` plays the app's end of every
+`app.*` and `cast.*` word).
 
 ## The engine's version
 

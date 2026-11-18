@@ -569,6 +569,7 @@ export default {
  "rec.play": "Spela",
  "app.reminders": "Påminnelser",
  "app.pause": "Pausa",
+ "app.save.failed": "Det gick inte att spara {name}",
  "rec.save": "Spara på datorn",
  "rec.delete": "Ta bort",
  "rec.delete.confirm": "Ta bort för gott?",

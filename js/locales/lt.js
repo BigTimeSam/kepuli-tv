@@ -735,6 +735,7 @@ export default {
  "rec.play": "Groti",
  "app.reminders": "Priminimai",
  "app.pause": "Pristabdyti",
+ "app.save.failed": "Nepavyko išsaugoti {name}",
  "rec.save": "Išsaugoti kompiuteryje",
  "rec.delete": "Ištrinti",
  "rec.delete.confirm": "Ištrinti visam laikui?",

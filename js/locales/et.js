@@ -719,6 +719,7 @@ export default {
  "rec.play": "Esita",
  "app.reminders": "Meeldetuletused",
  "app.pause": "Peata",
+ "app.save.failed": "Faili {name} salvestamine ei õnnestunud",
  "rec.save": "Laadi arvutisse alla",
  "rec.delete": "Kustuta",
  "rec.delete.confirm": "Kustutada jäädavalt?",

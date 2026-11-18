@@ -109,10 +109,17 @@ abstract class EngineActivity extends Activity {
                 .build());
         session.setPermissionDelegate(new GeckoSession.PermissionDelegate() {
             // Playback starts from a remote control's OK, which the engine
-            // may not count as the gesture a page needs for sound.
+            // may not count as the gesture a page needs for sound: the
+            // player's page is given what it asks, sound and storage among
+            // it. Not where the device is, a virtual reality headset or a
+            // protected stream's licence: the player asks for none of
+            // them, and what did would not be the player.
             @Override
             public GeckoResult<Integer> onContentPermissionRequest(GeckoSession s, ContentPermission permission) {
-                return GeckoResult.fromValue(ContentPermission.VALUE_ALLOW);
+                boolean never = permission.permission == GeckoSession.PermissionDelegate.PERMISSION_GEOLOCATION
+                        || permission.permission == GeckoSession.PermissionDelegate.PERMISSION_XR
+                        || permission.permission == GeckoSession.PermissionDelegate.PERMISSION_MEDIA_KEY_SYSTEM_ACCESS;
+                return GeckoResult.fromValue(never ? ContentPermission.VALUE_DENY : ContentPermission.VALUE_ALLOW);
             }
         });
         session.setContentDelegate(new GeckoSession.ContentDelegate() {

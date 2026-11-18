@@ -569,6 +569,7 @@ export default {
  "rec.play": "Abspielen",
  "app.reminders": "Erinnerungen",
  "app.pause": "Pause",
+ "app.save.failed": "{name} konnte nicht gespeichert werden",
  "rec.save": "Auf dem Computer speichern",
  "rec.delete": "Löschen",
  "rec.delete.confirm": "Endgültig löschen?",

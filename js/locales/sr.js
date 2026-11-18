@@ -666,6 +666,7 @@ export default {
  "rec.play": "Pusti",
  "app.reminders": "Podsetnici",
  "app.pause": "Pauziraj",
+ "app.save.failed": "Čuvanje fajla {name} nije uspelo",
  "rec.save": "Sačuvaj na računar",
  "rec.delete": "Obriši",
  "rec.delete.confirm": "Obrisati zauvek?",

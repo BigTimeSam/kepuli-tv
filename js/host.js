@@ -10,9 +10,7 @@
 // is { re: id, ok, error?, ...fields }. What the app says unasked (the cast
 // session's state, a reminder's notification tapped) arrives by its type,
 // and the last of each type is kept, so that a module that starts
-// listening late still hears where things stand. The words without a type
-// are js/androidapp.js's own, older than these, and it reads them off the
-// same port (appPort).
+// listening late still hears where things stand.
 //
 // What the page does with the line is elsewhere: the cast session in
 // js/cast.js and js/castui.js for both apps, the rest in js/iosapp.js and
@@ -119,13 +117,6 @@ export function on(type, listener) {
   if (kept) listener(kept);
   return () => { set.delete(listener); };
 }
-
-/**
- * The port itself, for the words that have no type (js/androidapp.js), or null
- * in a browser.
- * @returns {Port | null}
- */
-export const appPort = () => port;
 
 if (native) {
   // A browser asked to open player.html?ios=1 or ?app=1 (the tests) has no

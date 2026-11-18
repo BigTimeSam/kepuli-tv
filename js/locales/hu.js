@@ -719,6 +719,7 @@ export default {
  "rec.play": "Lejátszás",
  "app.reminders": "Emlékeztetők",
  "app.pause": "Szünet",
+ "app.save.failed": "Nem sikerült menteni: {name}",
  "rec.save": "Mentés a számítógépre",
  "rec.delete": "Törlés",
  "rec.delete.confirm": "Végleg törlöd?",

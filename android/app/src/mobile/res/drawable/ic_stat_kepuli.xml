@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- The app's mark in the status bar and on its notifications: a television
+     with its two aerials, the logo's outline, in one colour as Android
+     wants a small icon (it is tinted by the system). -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="24dp" android:height="24dp"
+    android:viewportWidth="24" android:viewportHeight="24">
+    <path android:fillColor="#FFFFFFFF"
+        android:pathData="M8.7,2.3 L12,5.6 L15.3,2.3 L16.7,3.7 L14.4,6 H19 C20.1,6 21,6.9 21,8 V18 C21,19.1 20.1,20 19,20 H5 C3.9,20 3,19.1 3,18 V8 C3,6.9 3.9,6 5,6 H9.6 L7.3,3.7 Z M5,8 V18 H19 V8 Z M10,10.2 V15.8 L15,13 Z" />
+</vector>

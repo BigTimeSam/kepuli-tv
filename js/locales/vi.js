@@ -711,6 +711,7 @@ export default {
  "rec.play": "Phát",
  "app.reminders": "Lời nhắc",
  "app.pause": "Tạm dừng",
+ "app.save.failed": "Không lưu được {name}",
  "rec.save": "Lưu về máy tính",
  "rec.delete": "Xóa",
  "rec.delete.confirm": "Xóa vĩnh viễn?",

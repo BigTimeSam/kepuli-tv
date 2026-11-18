@@ -764,6 +764,7 @@ const STRINGS = {
     // notification channel's name and the playback notification's button.
     'app.reminders': 'Reminders',
     'app.pause': 'Pause',
+    'app.save.failed': 'Could not save {name}',
     'rec.save': 'Save to computer',
     'rec.delete': 'Delete',
     'rec.delete.confirm': 'Delete for good?',
@@ -1574,6 +1575,7 @@ const STRINGS = {
     'rec.play': 'Toista',
     'app.reminders': 'Muistutukset',
     'app.pause': 'Tauko',
+    'app.save.failed': 'Tiedoston {name} tallennus epäonnistui',
     'rec.save': 'Tallenna koneelle',
     'rec.delete': 'Poista',
     'rec.delete.confirm': 'Poistetaanko lopullisesti?',

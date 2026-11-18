@@ -194,4 +194,7 @@ dependencies {
     // (CastService): a television is what is cast to. It brings AndroidX's
     // media router and AppCompat, whose dialogs it shows.
     mobileImplementation 'com.google.android.gms:play-services-cast-framework:23.0.0'
+    // The phone's pure rules are tested on the build machine
+    // (src/testMobile, ./gradlew testMobileDebugUnitTest).
+    testImplementation 'junit:junit:4.13.2'
 }

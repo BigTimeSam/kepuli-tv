@@ -674,6 +674,7 @@ export default {
  "rec.play": "Відтворити",
  "app.reminders": "Нагадування",
  "app.pause": "Пауза",
+ "app.save.failed": "Не вдалося зберегти {name}",
  "rec.save": "Зберегти на комп’ютер",
  "rec.delete": "Видалити",
  "rec.delete.confirm": "Видалити назавжди?",

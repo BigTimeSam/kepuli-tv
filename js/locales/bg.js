@@ -658,6 +658,7 @@ export default {
  "rec.play": "Пусни",
  "app.reminders": "Напомняния",
  "app.pause": "Пауза",
+ "app.save.failed": "Неуспешно записване на {name}",
  "rec.save": "Запази на компютъра",
  "rec.delete": "Изтрий",
  "rec.delete.confirm": "Изтриване завинаги?",

@@ -9489,7 +9489,8 @@ async function iosappTurned(page, assert) {
 }
 
 /**
- * The cast session in the Android app (player.html?app=1; js/castui.js).
+ * The cast session in the Android app (player.html?app=1; js/castui.js),
+ * and the page's other words with that app (js/androidapp.js).
  * The app's side of the line is played here: what the page sent is kept,
  * cast.load is answered at once, and __say speaks as the app does unasked.
  */
@@ -9535,6 +9536,15 @@ async function appcast(page, { target }) {
     await evaluate(page, `(async () => { const { state } = await import('./js/state.js'); const { playItem } = await import('./js/playing.js');
       const film = (await state.lib.ensureFull('movie')).find((f) => String(f.id) === '5000'); playItem(film, { startAt: 42 }); return true; })()`, { gesture: true });
     await waitFor(page, PLAYING, 'the film here');
+    // What is on is told to the app for its notification and the lock
+    // screen (js/androidapp.js): the name, that it plays, the picture's
+    // shape for the small window, and its cover as a small PNG.
+    await waitFor(page, `window.__sent.some((m) => m.type === 'app.now' && m.playing) && window.__sent.some((m) => m.type === 'app.shape')
+      && (!navigator.mediaSession.metadata?.artwork?.length || window.__sent.some((m) => m.type === 'app.art' && m.png))`, 'the film told to the app', 15000);
+    const told = { now: (await sent('app.now')).at(-1), shape: (await sent('app.shape')).at(-1), art: (await sent('app.art')).at(-1),
+      title: await evaluate(page, `navigator.mediaSession.metadata.title`), cover: await evaluate(page, `navigator.mediaSession.metadata.artwork.length`) };
+    assert(told.now.on === true && told.now.playing === true && told.now.live === false && told.now.title === told.title && told.shape.width > 0 && told.shape.height > 0
+      && (!told.cover || /^iVBOR/.test(told.art.png)), `the film told to the app: ${JSON.stringify({ ...told, art: told.art && told.art.png.slice(0, 12) })}`);
     await say(TV);
     await waitLoad(1, 'the film handed to the device');
     const [load] = await sent('cast.load');
@@ -9546,6 +9556,9 @@ async function appcast(page, { target }) {
       && over.overlay.buttons.join('|') === `${castControls}|${castStop}`, `the page while the device plays: ${JSON.stringify(over)}`);
     await say({ type: 'cast.media', state: 'playing', reason: null, position: 50, duration: 120 });
     assert((await evaluate(page, `document.getElementById('now-sub').textContent`)).includes(castPlaying), 'the line under the title does not say the device plays');
+    // While a television plays it the app is told that nothing is on here,
+    // or its notification would stand for a picture that is elsewhere.
+    assert((await sent('app.now')).at(-1).on === false, `what the app was told while the device played: ${JSON.stringify((await sent('app.now')).at(-1))}`);
     await evaluate(page, `document.querySelector('#overlay-actions button').click()`, { gesture: true });
     assert((await sent('cast.controls')).length === 1, 'Remote control did not ask for the app\'s controls');
 
@@ -9557,6 +9570,24 @@ async function appcast(page, { target }) {
     await waitFor(page, PLAYING, 'the film here after the session ended');
     const back = await evaluate(page, `({ at: document.getElementById('video').currentTime, on: document.getElementById('btn-cast-top').classList.contains('on') })`);
     assert(back.at >= 80 && !back.on, `after Stop casting: ${JSON.stringify(back)}`);
+
+    // What the app says: a press on its notification, a headset or the
+    // lock screen, and that it has become the small window, where the page
+    // is the picture alone.
+    const paused = () => evaluate(page, `document.getElementById('video').paused`);
+    await say({ type: 'app.press', what: 'pause' });
+    await sleep(300);
+    const afterPause = await paused();
+    await say({ type: 'app.press', what: 'pause' });
+    await sleep(200);
+    const stillPaused = await paused();
+    await say({ type: 'app.press', what: 'play' });
+    await waitFor(page, PLAYING, 'the film after Play on the notification');
+    await say({ type: 'app.pip', on: true });
+    const small = await evaluate(page, `document.documentElement.classList.contains('pip')`);
+    await say({ type: 'app.pip', on: false });
+    const whole = await evaluate(page, `document.documentElement.classList.contains('pip')`);
+    assert(afterPause && stillPaused && small && !whole, `the app's words: ${JSON.stringify({ afterPause, stillPaused, small, whole })}`);
 
     // A session again, and the device fails: said, and the film plays on here.
     await say(TV);
@@ -9573,10 +9604,17 @@ async function appcast(page, { target }) {
     const mkv = await toasts();
     const kept = await evaluate(page, MARK);
     assert(mkv.includes(castCannot) && (await sent('cast.load')).length === 2 && kept.on, `an MKV episode during a session: "${mkv.join('", "')}", ${(await sent('cast.load')).length} load(s), the mark ${JSON.stringify(kept)}`);
-    return { ok: true, detail: 'a device near showed the Cast mark, whose press asked for the app\'s dialog; a film went to the device from its place when one connected and came back at the device\'s place on Stop casting; a failure on the device was said and the film played on here; an MKV episode was said to be uncastable and played here' };
+    // A reminder's notification that started the app: its channel is left
+    // where a clicked notification's is, for js/remindersui.js to play.
+    // The player takes it from there at once, so the leaving is what is seen.
+    await evaluate(page, `(chrome.storage.onChanged.addListener((changes) => { if (changes.watchAsked?.newValue) window.__watch = changes.watchAsked.newValue; }), true)`);
+    await say({ type: 'app.watch', channel: { k: 0, id: '1', n: 'A channel' }, account: 'an account' });
+    await waitFor(page, `window.__watch?.channel?.id === '1' && window.__watch.account === 'an account' && window.__watch.at > 0`, 'the reminder\'s channel left for the player', 5000);
+    return { ok: true, detail: 'the film on here was told to the app with its shape and its cover, and nothing while a television played it; Pause and Play from the app and the small window were heard, and a reminder\'s channel left for the player; a device near showed the Cast mark, whose press asked for the app\'s dialog; a film went to the device from its place when one connected and came back at the device\'s place on Stop casting; a failure on the device was said and the film played on here; an MKV episode was said to be uncastable and played here' };
   } catch (err) {
     return { ok: false, detail: err.message };
   } finally {
+    await evaluate(page, `chrome.storage.local.remove('watchAsked')`).catch(() => {});
     await page.call('Page.navigate', { url: plain }).catch(() => {});
     await sleep(500);
   }

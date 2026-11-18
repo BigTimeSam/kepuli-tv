@@ -63,6 +63,8 @@ public class PlaybackService extends Service {
         boolean live;
         /** Whether the app itself is in sight. */
         boolean visible;
+        /** The channel's logo or the film's cover, as the page handed it over, or null. */
+        android.graphics.Bitmap art;
     }
 
     static final Now now = new Now();
@@ -178,15 +180,18 @@ public class PlaybackService extends Service {
                 .setActions(actions)
                 .setState(now.playing ? PlaybackState.STATE_PLAYING : PlaybackState.STATE_PAUSED, PlaybackState.PLAYBACK_POSITION_UNKNOWN, now.playing ? 1 : 0)
                 .build());
-        session.setMetadata(new MediaMetadata.Builder()
+        MediaMetadata.Builder metadata = new MediaMetadata.Builder()
                 .putString(MediaMetadata.METADATA_KEY_TITLE, now.title)
                 .putString(MediaMetadata.METADATA_KEY_ARTIST, now.artist)
-                .putLong(MediaMetadata.METADATA_KEY_DURATION, -1)
-                .build());
+                .putLong(MediaMetadata.METADATA_KEY_DURATION, -1);
+        // The lock screen and a watch show it beside the name.
+        if (now.art != null) metadata.putBitmap(MediaMetadata.METADATA_KEY_ART, now.art);
+        session.setMetadata(metadata.build());
 
         Intent open = new Intent(this, PlayerActivity.class);
         Notification.Builder notification = new Notification.Builder(this, CHANNEL)
-                .setSmallIcon(android.R.drawable.ic_media_play)
+                .setSmallIcon(R.drawable.ic_stat_kepuli)
+                .setLargeIcon(now.art)
                 .setContentTitle(now.title)
                 .setContentText(now.artist)
                 .setVisibility(Notification.VISIBILITY_PUBLIC)

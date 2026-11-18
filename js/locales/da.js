@@ -719,6 +719,7 @@ export default {
  "rec.play": "Afspil",
  "app.reminders": "Påmindelser",
  "app.pause": "Pause",
+ "app.save.failed": "Kunne ikke gemme {name}",
  "rec.save": "Gem på computeren",
  "rec.delete": "Slet",
  "rec.delete.confirm": "Slet for altid?",

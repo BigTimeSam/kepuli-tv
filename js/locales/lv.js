@@ -727,6 +727,7 @@ export default {
  "rec.play": "Atskaņot",
  "app.reminders": "Atgādinājumi",
  "app.pause": "Pauzēt",
+ "app.save.failed": "Neizdevās saglabāt {name}",
  "rec.save": "Saglabāt datorā",
  "rec.delete": "Dzēst",
  "rec.delete.confirm": "Dzēst uz visiem laikiem?",

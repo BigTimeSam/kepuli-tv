@@ -666,6 +666,7 @@ export default {
  "rec.play": "Redă",
  "app.reminders": "Mementouri",
  "app.pause": "Pauză",
+ "app.save.failed": "Nu s-a putut salva {name}",
  "rec.save": "Salvează pe computer",
  "rec.delete": "Șterge",
  "rec.delete.confirm": "Ștergi definitiv?",

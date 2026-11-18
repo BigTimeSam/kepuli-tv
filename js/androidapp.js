@@ -12,7 +12,7 @@ import { state } from './state.js';
 import { togglePause } from './playercontrols.js';
 import { inApp } from './platform.js';
 import { castingNow } from './castui.js';
-import { appPort } from './host.js';
+import { on, send } from './host.js';
 import { isText, layer, swallow } from './remote.js';
 
 let hooks = null;
@@ -36,35 +36,37 @@ export function wireAndroidApp(app) {
 }
 
 /**
- * The page's line to the Android app around it ("kepuli", answered by
- * the app's PlayerActivity; only the app's copy of the manifest lets the
- * page open it). The app says when it has become a small window over
- * other apps (picture in picture), where the page is to be the picture
- * and nothing else, and which channel a reminder's notification asked
- * for when the app had not been running to hear of it, and what was
- * pressed on its playback notification, a headset or the lock screen.
- * The page says the picture's shape, which the small window takes, and
- * what is on and whether it plays: the app keeps the sound going out of
- * sight on that word. (The engine has a media session of its own for
- * this, but it never came to life for the app, GeckoView 160.)
+ * The page's words with the Android app around it, over the one line of
+ * js/host.js (only the app's copy of the manifest lets the page open it).
+ *
+ * The app says when it has become a small window over other apps
+ * (`app.pip`), where the page is to be the picture and nothing else; what
+ * was pressed on its playback notification, a headset or the lock screen
+ * (`app.press`); and which channel a reminder's notification asked for
+ * when the app had not been running to hear of it (`app.watch`).
+ *
+ * The page says what is on and whether it plays (`app.now`): the app
+ * keeps the sound going out of sight on that word. (The engine has a media
+ * session of its own for this, but it never came to life for the app,
+ * GeckoView 160.) It says the picture's shape, which the small window
+ * takes (`app.shape`), and the channel's logo or the film's cover for the
+ * notification and the lock screen (`app.art`).
+ *
+ * These words had no type until the two apps came together, and were told
+ * from the cast session's by that; they are of one kind now.
  */
 function talkWithApp() {
-  // The one line to the app (js/host.js), which the cast session's words
-  // share: these have no type, and those are told apart by theirs.
-  const port = appPort();
-  if (!port) return;
-  port.onMessage.addListener((message) => {
-    if (typeof message?.pip === 'boolean') document.documentElement.classList.toggle('pip', message.pip);
-    const press = message?.press;
-    if (press === 'next' || press === 'previous') hooks.zap(press === 'next' ? 1 : -1);
-    else if ((press === 'play' && el.video.paused) || (press === 'pause' && !el.video.paused)) togglePause();
-    // The same word background.js leaves of a clicked notification
-    // (js/remindersui.js plays it). The app may have been started by the
-    // press: the word waits for the lists, as it is thrown away unplayed
-    // when it comes before the account is known.
-    if (message?.watch) connected().then(() => api.storage.local.set({ watchAsked: { ...message.watch, at: Date.now() } }));
+  on('app.pip', (said) => document.documentElement.classList.toggle('pip', Boolean(said.on)));
+  on('app.press', ({ what }) => {
+    if (what === 'next' || what === 'previous') hooks.zap(what === 'next' ? 1 : -1);
+    else if ((what === 'play' && el.video.paused) || (what === 'pause' && !el.video.paused)) togglePause();
   });
-  let told = '';
+  // The same word background.js leaves of a clicked notification
+  // (js/remindersui.js plays it). The app may have been started by the
+  // press: the word waits for the lists, as it is thrown away unplayed
+  // when it comes before the account is known.
+  on('app.watch', ({ channel, account }) => { connected().then(() => api.storage.local.set({ watchAsked: { channel, account, at: Date.now() } })); });
+  let told = '', drawn = '';
   const tell = () => {
     const metadata = navigator.mediaSession?.metadata;
     const now = {
@@ -72,15 +74,57 @@ function talkWithApp() {
       title: metadata?.title || '', artist: metadata?.artist || '', live: state.playing?.k === 0,
     };
     const text = JSON.stringify(now);
-    if (text !== told) port.postMessage({ now });
+    if (text !== told) send('app.now', now);
     told = text;
+    const art = (now.on && metadata?.artwork?.[0]?.src) || '';
+    if (art !== drawn) { drawn = art; picture(art).then((png) => { if (drawn === art) send('app.art', { png }); }); }
   };
   // The time's ticks carry a change of programme, which is no event of
   // the picture's.
   for (const event of ['play', 'playing', 'pause', 'ended', 'emptied', 'timeupdate']) el.video.addEventListener(event, tell);
-  const shape = () => { if (el.video.videoWidth) port.postMessage({ shape: [el.video.videoWidth, el.video.videoHeight] }); };
+  const shape = () => { if (el.video.videoWidth) send('app.shape', { width: el.video.videoWidth, height: el.video.videoHeight }); };
   el.video.addEventListener('loadedmetadata', shape);
   el.video.addEventListener('resize', shape);
+}
+
+const ART_PX = 192;
+
+/**
+ * A picture for the app's notification, as a PNG in base64, or '' when
+ * there is none. The page reads it and hands it over, small: the app then
+ * asks nothing of the network on its own account (the privacy policy says
+ * it does not), and a picture the page holds as a blob is no address the
+ * app could open. Read with fetch, under the page's grant for the
+ * provider's host: an image drawn from another origin would taint the
+ * canvas, and nothing could be read back.
+ * @param {string} address
+ */
+async function picture(address) {
+  if (!address) return '';
+  try {
+    const res = await fetch(address, { credentials: 'omit' });
+    if (!res.ok) return '';
+    // Through an image element and not createImageBitmap, which takes no
+    // SVG from a blob: a logo may be one. The blob's address is the
+    // page's own, so the canvas can be read back.
+    const own = URL.createObjectURL(await res.blob());
+    try {
+      const image = new Image();
+      image.src = own;
+      await image.decode();
+      const width = image.naturalWidth || ART_PX, height = image.naturalHeight || ART_PX;
+      const scale = Math.min(1, ART_PX / Math.max(width, height));
+      const canvas = document.createElement('canvas');
+      canvas.width = Math.max(1, Math.round(width * scale));
+      canvas.height = Math.max(1, Math.round(height * scale));
+      canvas.getContext('2d').drawImage(image, 0, 0, canvas.width, canvas.height);
+      return canvas.toDataURL('image/png').split(',')[1] || '';
+    } finally {
+      URL.revokeObjectURL(own);
+    }
+  } catch {
+    return '';
+  }
 }
 
 /** Resolves when an account's lists are in, or after two minutes without. */

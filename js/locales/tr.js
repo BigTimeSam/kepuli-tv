@@ -719,6 +719,7 @@ export default {
  "rec.play": "Oynat",
  "app.reminders": "Hatırlatıcılar",
  "app.pause": "Duraklat",
+ "app.save.failed": "{name} kaydedilemedi",
  "rec.save": "Bilgisayara kaydet",
  "rec.delete": "Sil",
  "rec.delete.confirm": "Kalıcı olarak silinsin mi?",

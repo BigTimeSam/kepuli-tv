@@ -735,6 +735,7 @@ export default {
  "rec.play": "Odtwórz",
  "app.reminders": "Przypomnienia",
  "app.pause": "Wstrzymaj",
+ "app.save.failed": "Nie udało się zapisać pliku {name}",
  "rec.save": "Zapisz na komputerze",
  "rec.delete": "Usuń",
  "rec.delete.confirm": "Usunąć na stałe?",

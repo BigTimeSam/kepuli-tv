@@ -658,6 +658,7 @@ export default {
  "rec.play": "Luaje",
  "app.reminders": "Kujtesat",
  "app.pause": "Pauzë",
+ "app.save.failed": "Nuk u ruajt dot {name}",
  "rec.save": "Ruaje në kompjuter",
  "rec.delete": "Fshije",
  "rec.delete.confirm": "Të fshihet përgjithmonë?",

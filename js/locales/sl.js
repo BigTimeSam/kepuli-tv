@@ -735,6 +735,7 @@ export default {
  "rec.play": "Predvajaj",
  "app.reminders": "Opomniki",
  "app.pause": "Premor",
+ "app.save.failed": "Datoteke {name} ni bilo mogoče shraniti",
  "rec.save": "Shrani v računalnik",
  "rec.delete": "Izbriši",
  "rec.delete.confirm": "Izbrisati za vedno?",

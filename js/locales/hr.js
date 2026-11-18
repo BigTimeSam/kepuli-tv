@@ -727,6 +727,7 @@ export default {
  "rec.play": "Reproduciraj",
  "app.reminders": "Podsjetnici",
  "app.pause": "Pauziraj",
+ "app.save.failed": "Spremanje datoteke {name} nije uspjelo",
  "rec.save": "Spremi na računalo",
  "rec.delete": "Izbriši",
  "rec.delete.confirm": "Izbrisati zauvijek?",
