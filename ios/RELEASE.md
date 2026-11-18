@@ -249,7 +249,13 @@ no line is ticked; what the iPhone showed:
   through two minutes of a locked phone, an MKV film answered with the
   sentence that it plays here; a reminder arriving with the app closed
   and its tap playing the channel, after the system's question at the
-  first reminder; Open in VLC.
+  first reminder; Open in VLC. On the second evening: a provider on
+  plain http at a public host name (the owner's own account) loads its
+  lists, a live channel and an MP4 film; a live channel of it goes over
+  to the Chromecast; the setup form's name field begins with a capital
+  and no other field does or corrects anything; with the app's theme
+  Dark on a phone in light mode the keyboard is dark; with the rotation
+  lock on, the layout stays as it is and the picture plays on.
 - Differed: an account at an address on the local network (plain http,
   the Mac's mock) connected and loaded its lists **without any question
   from the system**, before Cast had been used. The line below expects
@@ -257,14 +263,13 @@ no line is ticked; what the iPhone showed:
 - Found and changed: the reminder's message lay over the bar under the
   picture for its minute with only its own button to end it; the strip
   can now be swiped away (`js/toast.js`).
-- Not yet tried on it: plain http at a public host name, an hour of a
-  channel and a large list, a call and headphones, a `.m3u` from Files,
-  rotation lock, a live channel cast, artwork in Google's remote
-  control, a film ending on the television behind a locked phone, the
-  keyboard's behaviour in the setup fields, the dark theme's keyboard
-  and dialogs, notifications refused and then allowed, a link over full
-  screen, WebKit's own full-screen mark and a pinch, Bluetooth never
-  asked for.
+- Not yet tried on it: an hour of a channel and a large list, a call
+  and headphones, a `.m3u` from Files, artwork in Google's remote
+  control, a film ending on the television behind a locked phone,
+  Google's Cast dialogs under the dark theme, notifications refused and
+  then allowed, a link over full screen (the owner found no link to
+  press there: the line may ask for what a finger cannot reach),
+  WebKit's own full-screen mark and a pinch, Bluetooth never asked for.
 
 The app's debug bridge reaches a device too: its files are in the app's
 data container, which `xcrun devicectl device copy to` and `copy from`
