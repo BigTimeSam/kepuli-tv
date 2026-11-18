@@ -217,6 +217,17 @@ devices, and the checklist again on it.
 
 ## Device checklist
 
+The checklist does not have to wait for the paid membership. Since
+2026-11-18 this Mac has a free Apple Development certificate of the
+owner's Apple account (made for the Safari extension, `safari/AGENTS.md`;
+the team's identifier is in `~/.config/kepuli-tv/safari/team`). Such a
+personal team signs a Debug build for a device the owner connects and
+trusts; the build runs for seven days, and TestFlight and the App Store
+stay closed to it. Not tried for this app: the Cast SDK's local-network
+entitlement and the notification's are plain capabilities and should
+sign, but only a build says. The owner's iPhone is known to this Mac and
+was not connected when this was written.
+
 Nothing ran on hardware. Each line
 is seen on an iPhone and an iPad signed with the owner's team, first from
 the device build and then from the TestFlight build, and ticked here
