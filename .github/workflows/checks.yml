@@ -12,8 +12,7 @@ name: Checks
 
 on:
   push:
-    # The Android app's branches as well: they carry the shared player.
-    branches: [main, 'android-*']
+    branches: [main]
   pull_request:
   schedule:
     - cron: '17 3 * * *'
@@ -143,4 +142,10 @@ jobs:
         run: ./gradlew --no-daemon assembleMobileDebug assembleTvDebug
       - name: What the packages ask Android to allow
         run: node android/permissions.mjs
+      # Not on a push: a commit about something else is not red for
+      # Mozilla's calendar. The nightly run says when the engine has
+      # fallen behind.
+      - name: The engine is Mozilla's latest
+        if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
+        run: node android/enginecheck.mjs
 

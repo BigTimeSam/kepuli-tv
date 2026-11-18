@@ -20,6 +20,8 @@ is not needed, and a Chromebook without one may have the app.)
 | File | What |
 | --- | --- |
 | `app/build.gradle` | the two packages (`productFlavors`), the version from `../manifest.json`, `node firefox/build.mjs` run and `firefox/dist/` synced into the assets before every build, the extension's manifest written for each package (the phone's with the two permissions its line to the app takes), the icon from `../icons/`, GeckoView from Mozilla's Maven |
+| `enginecheck.mjs` | whether the pinned GeckoView is Mozilla's latest (see [The engine's version](#the-engines-version)) |
+| `permissions.mjs` | what each built package asks Android to allow, against the approved lists in the file |
 | `strings.mjs` | the words Android shows of the phone's app outside the page (the two notification channels' names, the playback notification's button), written into Android's resources in the player's thirty languages from `../js/i18n.js` and `../js/locales/`; run by Gradle |
 | `app/src/main/…/EngineActivity.java` | what both share: the engine, the session and the extension; Back sent to the page as Escape (as a key, and as Android 16's callback); `onCloseRequest` (the page's `window.close()`) steps back to the launcher; optional host permissions granted without a prompt |
 | `app/src/main/AndroidManifest.xml`, `res/` | the permissions, cleartext traffic (providers serve http), the activity, the name and the theme; the logo shown while the engine starts (`res/drawable/splash.xml`, from `../brand/tv-compact.png`), which `EngineActivity` keeps over the view until the page has drawn |
@@ -119,6 +121,28 @@ privacy policy name the permissions one by one. The CI's `android` job
 (`.github/workflows/checks.yml`) builds both packages and runs it, on
 `main` and on the `android-*` branches; the page's side of the app is
 covered by the browser job's `remote`, `appback` and `appcast` scenarios.
+
+## The engine's version
+
+GeckoView is pinned in `app/build.gradle`, so that a build does not change
+under a commit, and it is a browser's engine reading a provider's
+playlists, pictures and streams: Mozilla's fixes, most of them for
+security, must reach the viewer. `node android/enginecheck.mjs` compares
+the pin with Mozilla's Maven; the nightly CI run fails once a newer engine
+has been out for a week. Taking one is a commit of its own:
+
+1. `node android/enginecheck.mjs --latest` gives the version: put it in
+   `app/build.gradle`. A new major may want a newer `compileSdk`; the build
+   says so.
+2. Build both packages and run `node android/permissions.mjs`: a new
+   engine may ask Android for something new.
+3. Start each package on its emulator and see the player's page
+   (`firefox/android.mjs eval 'document.readyState'`), a channel playing
+   on the phone's, and a real touch on a selector (below, Traps).
+4. Measure the engine's silence again (Traps, "The engine is a browser's"):
+   the privacy policy says the app looks up nothing on its own account.
+5. Raise `androidBuild` when the packages go to Play (root `AGENTS.md`,
+   rule 2: only on the owner's go).
 
 ## Building and running
 

@@ -2326,6 +2326,20 @@ check('VLC for iOS is handed the stream address, encoded whole',
   check('nothing was reported as a failure while the stream came back', failed, null);
 }
 
+/* --------------- android/enginecheck.mjs: is the engine Mozilla's latest */
+{
+  const { parse, newest, verdict } = await import('../android/enginecheck.mjs');
+  const day = 86400000;
+  const pinned = parse('160.0.20261104181552'), fix = parse('160.0.20261116130455'), major = parse('161.0.20261201090000');
+  check('an engine\'s version names its major and the moment it was built', [pinned.major, pinned.stamp, new Date(pinned.at).toISOString()], [160, '20261104181552', '2026-11-04T18:15:52.000Z']);
+  check('the newest is by major, then by the build: 100 is after 99, and a later 160 after an earlier',
+    [newest(['99.0.20220411174855', '100.0.20220425210429']).major, newest(['160.0.20261116130455', '160.0.20261104181552', 'not-a-version']).version], [100, '160.0.20261116130455']);
+  check('the pinned engine being the latest is not behind', verdict(fix, fix, fix.at + 30 * day), { behind: false, late: false, days: 30 });
+  check('a fix two days old is said and does not fail; after a week it does',
+    [verdict(pinned, fix, fix.at + 2 * day), verdict(pinned, fix, fix.at + 7 * day)], [{ behind: true, late: false, days: 2 }, { behind: true, late: true, days: 7 }]);
+  check('a new major counts as a fix does', verdict(fix, major, major.at + 8 * day).late, true);
+}
+
 /* -- the app around the page: js/platform.js, js/host.js, js/iosapp.js */
 {
   const { attach, on, request, send } = await import('../js/host.js');
