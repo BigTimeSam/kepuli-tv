@@ -56,11 +56,16 @@ env:
 
 # Every action is pinned to a commit, with its version beside it: a tag can
 # be moved, a commit cannot. Dependabot raises them (.github/dependabot.yml).
+#
+# The runners are named by their version too (ubuntu-24.04, macos-26), in
+# every workflow: "latest" moves to a new system on GitHub's day, and the
+# browser jobs depend on that system's packages (Xvfb, openbox, Firefox).
+# Moving on is a change made here, tried on a branch first.
 
 jobs:
   static:
     name: Static checks
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 10
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
@@ -104,7 +109,7 @@ jobs:
   # A push's smoke set and chosen scenarios are one part.
   chrome:
     name: Chrome (${{ matrix.shard }})
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     # A part takes a quarter of an hour; once the system's package mirror
     # took another seventeen minutes to hand over the virtual screen.
     timeout-minutes: 55
@@ -157,7 +162,7 @@ jobs:
   # headless mode: the virtual screen is what lets it run here at all.
   firefox:
     name: Firefox (${{ matrix.shard }})
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     # A part takes a quarter of an hour; once the system's package mirror
     # took another seventeen minutes to hand over the virtual screen.
     timeout-minutes: 55
@@ -201,7 +206,7 @@ jobs:
 
   android:
     name: Android
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 30
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
@@ -269,7 +274,7 @@ jobs:
     name: CI passed
     needs: [static, chrome, firefox, android, ios]
     if: always()
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 5
     steps:
       - name: Every job succeeded
@@ -283,7 +288,7 @@ jobs:
     name: A red nightly run is reported
     needs: [passed]
     if: failure() && github.event_name == 'schedule'
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 5
     permissions:
       contents: read
