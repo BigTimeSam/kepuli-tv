@@ -189,8 +189,11 @@ button.psr-head:focus-visible, .psr-more:focus-visible { outline-offset: -2px; }
 .epg-days { align-items: center; }
 /* The menu and the strip share the third of the window the strip had
    with the menu inside it: the strip alone at that width sent the zoom's
-   buttons to a second line of the bar. */
-.epg-daybar { display: flex; align-items: center; gap: 3px; min-width: 0; max-width: 34vw; }
+   buttons to a second line of the bar. Never less than 22rem: in a
+   window of 760 px a third left the strip narrower than one day with
+   its arrows, and a day with the focus stood half under one (the
+   focusrings scenario, with the CI's wider letters). */
+.epg-daybar { display: flex; align-items: center; gap: 3px; min-width: 0; max-width: max(34vw, 22rem); }
 .epg-daybar > .epg-days-scroll { flex: 0 1 auto; min-width: 0; }
 #epg-older { flex: none; }
 #epg-older:empty { display: none; }
