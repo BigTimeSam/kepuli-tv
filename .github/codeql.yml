@@ -6,3 +6,13 @@ paths-ignore:
   - docs/**
   - brand/**
   - dist/**
+
+# Left out by name: "improper code sanitization" is about a string made
+# into code. The tools in dev/, ios/ and safari/ do exactly that, on
+# purpose and a hundred times: they drive a test browser of their own by
+# sending it expressions built with JSON.stringify. The code the browsers
+# and the apps run evaluates nothing at all, which node dev/htmlcheck.mjs
+# fails on at every push, so the rule has nothing to say there either.
+query-filters:
+  - exclude:
+      id: js/bad-code-sanitization

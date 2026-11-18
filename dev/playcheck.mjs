@@ -9996,7 +9996,8 @@ try {
       console.log(`${ok ? 'PASS' : 'FAIL'}  ${name}: ${detail}`);
       if (!ok) failed++;
     } catch (err) {
-      console.log(`FAIL  ${name}: ${err.message}`);
+      // As arguments: a message with a % in it is not a format.
+      console.log('FAIL  %s: %s', name, err.message);
       if (process.env.KEPULI_DEBUG) console.log(JSON.stringify(connectionStats()), requests.filter((r) => !/player_api|\/img\//.test(r)).slice(-15));
       failed++;
     } finally {
