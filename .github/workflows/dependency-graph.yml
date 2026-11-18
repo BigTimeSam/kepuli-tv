@@ -1,0 +1,46 @@
+# The Android apps' dependencies, all of them with what they bring along,
+# told to GitHub: Dependabot's alerts then cover a library three steps
+# away, which no file in the repository names.
+#
+# A workflow of its own because it is the only one whose token may write
+# to the repository (the dependency graph is written with `contents:
+# write`), and it runs only for main and only when the build changes.
+
+name: Dependency graph
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'android/**'
+      - '.github/workflows/dependency-graph.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: dependency-graph
+  cancel-in-progress: true
+
+jobs:
+  submit:
+    name: The Android build's dependencies
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          persist-credentials: false
+      - uses: ./.github/actions/setup
+      - uses: actions/setup-java@d1374f8ac74474200d16ef8ecee22c7ae7a51880 # v6
+        with:
+          distribution: temurin
+          java-version: 21
+      - name: Accept the Android SDK's licences
+        run: yes | "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" --licenses > /dev/null || true
+      - uses: gradle/actions/dependency-submission@8da46b539cd8fe6ab27ca75128919a18d757604c # v6
+        with:
+          build-root-directory: android

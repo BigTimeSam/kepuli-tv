@@ -10,7 +10,7 @@
 
 - **Keep them current.** These libraries read a provider's streams, and
   nothing updates a file dropped in by hand: `node dev/freshcheck.mjs`
-  (nightly in CI) fails once a newer release of hls.js, mpegts.js or of
+  (nightly, the Freshness workflow) fails once a newer release of hls.js, mpegts.js or of
   FFmpeg's release line has been out for 45 days. An upgrade is a commit of
   its own, with the playback scenarios in both browsers.
 - **Do not edit these files.** They are minified builds; a change is a new

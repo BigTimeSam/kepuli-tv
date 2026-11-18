@@ -3,18 +3,27 @@
 # watch. What it pins by hand and no package manager knows (the players in
 # vendor/, FFmpeg, the Cast SDK for iOS, the CI's Chrome) is watched by
 # node dev/freshcheck.mjs, and the Android apps' engine also by
-# node android/enginecheck.mjs, both in the nightly run.
+# node android/enginecheck.mjs, both every night (workflows/freshness.yml).
+#
+# A release is proposed once it has been out for a week (cooldown): a
+# version that was published by mistake or by a thief is usually withdrawn
+# within days. A fix for a known vulnerability is proposed at once.
 #
 # A pull request from here is a proposal: the checks run on it, and an
 # engine or a Cast library is taken as android/AGENTS.md says ("The
 # engine's version"), not by the merge button alone.
 version: 2
 updates:
+  # The workflows, and the composite actions they share.
   - package-ecosystem: github-actions
-    directory: /
+    directories:
+      - /
+      - /.github/actions/*
     schedule:
       interval: weekly
       day: monday
+    cooldown:
+      default-days: 7
     open-pull-requests-limit: 5
     groups:
       actions:
@@ -27,6 +36,8 @@ updates:
     schedule:
       interval: weekly
       day: monday
+    cooldown:
+      default-days: 7
     open-pull-requests-limit: 5
     commit-message:
       prefix: 'Android'

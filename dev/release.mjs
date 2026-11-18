@@ -53,7 +53,7 @@ check('the commit is pushed', () => {
 });
 check('CI is green on this commit', () => {
   const sha = sh('git', ['rev-parse', 'HEAD']);
-  const runs = JSON.parse(sh('gh', ['run', 'list', '--workflow', 'checks.yml', '--commit', sha, '--json', 'status,conclusion,event']));
+  const runs = JSON.parse(sh('gh', ['run', 'list', '--workflow', 'ci.yml', '--commit', sha, '--json', 'status,conclusion,event']));
   const run = runs.find((r) => r.event === 'push') || runs[0];
   if (!run) return [false, 'no run for this commit yet'];
   return [run.conclusion === 'success', run.status === 'completed' ? run.conclusion : run.status];
@@ -63,9 +63,9 @@ check('CI is green on this commit', () => {
 // because nothing here asked for it.
 check('the whole browser suite is green on this commit', () => {
   const sha = sh('git', ['rev-parse', 'HEAD']);
-  const runs = JSON.parse(sh('gh', ['run', 'list', '--workflow', 'checks.yml', '--commit', sha, '--json', 'status,conclusion,event']));
+  const runs = JSON.parse(sh('gh', ['run', 'list', '--workflow', 'ci.yml', '--commit', sha, '--json', 'status,conclusion,event']));
   const run = runs.find((r) => r.event === 'schedule' || r.event === 'workflow_dispatch');
-  if (!run) return [false, 'no full run for this commit: gh workflow run Checks'];
+  if (!run) return [false, 'no full run for this commit: gh workflow run CI'];
   return [run.conclusion === 'success', run.status === 'completed' ? run.conclusion : run.status];
 });
 check(`${version} is a new version`, () => {

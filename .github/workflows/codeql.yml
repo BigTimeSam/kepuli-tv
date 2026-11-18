@@ -6,7 +6,7 @@
 # Not analysed: vendor/ (third-party builds, checked by their hashes) and
 # js/logoindex.js (a table), which .github/codeql.yml leaves out; the Swift
 # of ios/, whose analysis needs a full Xcode build on a macOS runner for
-# each run (the app's own build and unit tests run in checks.yml).
+# each run (the app's own build and unit tests run in ci.yml).
 
 name: CodeQL
 

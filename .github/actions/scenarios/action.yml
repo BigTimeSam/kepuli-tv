@@ -1,0 +1,61 @@
+# The browser scenarios (dev/playcheck.mjs) in a window on a virtual
+# screen, for either browser; which one is the job's environment
+# (KEPULI_BROWSER, KEPULI_CHROME and the like).
+#
+# A virtual screen (Xvfb), not headless: a headless Chrome on the runner
+# has no pointing device, says (hover: none), and the page gave it a
+# finger's sizes (css/last.css), so the scenarios that measure a desktop
+# failed here and passed on a laptop; and Firefox's driver has no headless
+# mode at all. The virtual screen has a mouse, as a laptop has, and a
+# scenario about touch emulates one over it. openbox is the window manager
+# a full screen needs.
+name: Browser scenarios
+description: Runs dev/playcheck.mjs on a virtual screen and sums up the result
+inputs:
+  scenarios:
+    description: The scenarios to run, separated by spaces (empty, all of them)
+    default: ''
+  shard:
+    description: "Which part of them, as '2/3' (empty, all)"
+    default: ''
+  skip:
+    description: Scenarios to leave out, separated by spaces
+    default: ''
+  packages:
+    description: More packages for apt to install beside the virtual screen
+    default: ''
+runs:
+  using: composite
+  steps:
+    - name: A virtual screen with a mouse
+      shell: bash
+      env:
+        PACKAGES: ${{ inputs.packages }}
+      run: sudo apt-get update -q && sudo apt-get install -y -q xvfb openbox $PACKAGES
+    # The inputs come in through the environment, never into the script's
+    # text: a scenario's name typed for a run on demand is data.
+    - name: The scenarios
+      shell: bash
+      env:
+        SCENARIOS: ${{ inputs.scenarios }}
+        KEPULI_SHARD: ${{ inputs.shard }}
+        KEPULI_SKIP: ${{ inputs.skip }}
+        KEPULI_HEADLESS: ''
+        # A scenario that can say more about a failure says it here.
+        KEPULI_TRACE: '1'
+      run: |
+        set -o pipefail
+        # shellcheck disable=SC2086 # the names are separate words on purpose
+        xvfb-run -a -s "-screen 0 1600x1100x24" sh -c 'openbox & sleep 1; exec node dev/playcheck.mjs $SCENARIOS' 2>&1 | tee "$RUNNER_TEMP/scenarios.log"
+    # On the run's page without opening a log: how many, and what failed.
+    - name: Summary
+      if: always()
+      shell: bash
+      run: |
+        log="$RUNNER_TEMP/scenarios.log"
+        [ -f "$log" ] || exit 0
+        {
+          echo "### ${KEPULI_BROWSER:-chrome} ${KEPULI_SHARD}"
+          echo "$(grep -c '^PASS  ' "$log") passed, $(grep -c '^FAIL  ' "$log") failed, $(grep -c '^SKIP  ' "$log") left out"
+          if grep -q '^FAIL  ' "$log"; then echo; echo '```'; grep '^FAIL  ' "$log" | cut -c1-600; echo '```'; fi
+        } >> "$GITHUB_STEP_SUMMARY"

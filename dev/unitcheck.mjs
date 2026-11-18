@@ -2039,7 +2039,7 @@ check('another word does not hold the term', holds('Textens utseende', { forms: 
     sectionOf({ subject: 'A double click goes full screen', files: ['js/playback.js', 'js/playercontrols.js', 'js/app.js', 'dev/playcheck.mjs'] }),
     sectionOf({ subject: 'Choose categories like Choose countries', files: ['js/app.js', 'css/player.css', 'js/AGENTS.md'] }),
     sectionOf({ subject: 'The recording UI out of app.js into js/recordingsui.js', files: ['js/app.js', 'js/recordingsui.js'] }),
-    sectionOf({ subject: 'CI on every push', files: ['.github/workflows/checks.yml'] }),
+    sectionOf({ subject: 'CI on every push', files: ['.github/workflows/ci.yml'] }),
     sectionOf({ subject: 'Both stores\' screenshots retaken', files: ['brand/screenshots/1.png', 'store/listings/en.txt', 'dev/store-screenshots.mjs'] }),
     sectionOf({ subject: 'A compact README', files: ['README.md', 'docs/user-guide.md', 'docs/index.html', 'dev/site.mjs'] }),
     sectionOf({ subject: 'Ready to release? in one command', files: ['dev/release.mjs', 'AGENTS.md'] }),

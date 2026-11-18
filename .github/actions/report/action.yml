@@ -1,0 +1,24 @@
+# A red scheduled run is on nobody's screen: it opens an issue, or adds to
+# the one that is open under the same title, so that it is seen. The full
+# run was once red in ten scenarios for days before anybody looked.
+# The job that uses this needs `issues: write`.
+name: Report a red scheduled run
+description: Opens an issue with the given title, or comments on the open one
+inputs:
+  title:
+    description: The issue's title, the same every time
+    required: true
+runs:
+  using: composite
+  steps:
+    - shell: bash
+      env:
+        GH_TOKEN: ${{ github.token }}
+        TITLE: ${{ inputs.title }}
+        RUN: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        REPO: ${{ github.repository }}
+      run: |
+        body="The scheduled run failed: $RUN (commit ${GITHUB_SHA})."
+        open=$(gh issue list --repo "$REPO" --state open --search "in:title \"$TITLE\"" --json number --jq '.[0].number // empty')
+        if [ -n "$open" ]; then gh issue comment "$open" --repo "$REPO" --body "$body"
+        else gh issue create --repo "$REPO" --title "$TITLE" --body "$body"; fi

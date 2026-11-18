@@ -1,0 +1,26 @@
+# What every job of the CI begins with, after its checkout: Node, and for
+# the jobs that start the mock server its dummy media, rendered once and
+# kept in the cache until dev/mock/media.sh changes.
+name: Set up
+description: Node, and the mock server's dummy media when asked for
+inputs:
+  media:
+    description: "'true' to have dev/mock/media ready"
+    default: 'false'
+runs:
+  using: composite
+  steps:
+    - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7
+      with:
+        node-version: 22
+    - name: Dummy media for the mock server (cached by media.sh)
+      if: inputs.media == 'true'
+      id: media
+      uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6
+      with:
+        path: dev/mock/media
+        key: mock-media-${{ hashFiles('dev/mock/media.sh') }}
+    - name: Render the dummy media
+      if: inputs.media == 'true' && steps.media.outputs.cache-hit != 'true'
+      shell: bash
+      run: sudo apt-get update && sudo apt-get install -y ffmpeg && sh dev/mock/media.sh

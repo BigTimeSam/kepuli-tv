@@ -91,7 +91,7 @@ fixed and committed before going on.
 
 - `git status` once more, `node dev/secretcheck.mjs`, commit
   `Release X.Y.Z: <summary>`, `git push`.
-- `gh workflow run Checks --ref main` for the full run besides the push
+- `gh workflow run CI --ref main` for the full run besides the push
   run. If the full run goes red, read the failure
   (`gh run view <id> --log-failed`): a harness flake on CI timing is fixed
   in the harness and committed (a new commit means new CI runs), not

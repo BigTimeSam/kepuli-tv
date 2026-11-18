@@ -226,26 +226,42 @@ counted.
 
 ### CI
 
-Two workflows, both without a secret and with a read-only token; every
-action is pinned to a commit (Dependabot raises them).
+Four workflows in `.github/workflows/`, none with a secret; a token only
+reads, but for the two jobs that open an issue and the one that writes
+the dependency graph. Every action is pinned to a commit (Dependabot
+raises them), and what jobs share is a composite action in
+`.github/actions/`: `setup` (Node, the mock server's media from the
+cache), `scenarios` (`playcheck` on a virtual screen, with the result on
+the run's page), `report` (the issue of a red scheduled run).
 
-`.github/workflows/checks.yml` has five jobs:
-
-| Job | Runs | When |
+| Workflow | What | When |
 | --- | --- | --- |
-| `quick` | the Node-only checks: unit, names, types, markup, area checks, listings, translations, the Pages page, the manifests, `vendor/`'s checksums, secrets; nightly also `freshcheck` | every push and pull request, nightly, on demand |
-| `browser` | `uicheck`, and `playcheck` in Chrome for Testing (a pinned build): a smoke set on a push (the general views and each app's page: `iosapp`, `appback`, `appcast`, `remote`, `touchsizes`, `phone`), every scenario nightly and on demand | the same |
-| `android` | both Android packages built, the phone's JUnit tests, the packages' permissions; nightly also `android/enginecheck.mjs` | the same |
-| `ios` | the iPhone and iPad app built for the simulator and its XCTest target, on a macOS runner (the app's scenarios, `ios/simcheck.mjs`, stay a laptop's) | the same |
-| `dependencies` | the Android build's whole dependency graph told to GitHub, for Dependabot's alerts | a push to main |
-| `report` | an issue opened, or added to, when the nightly run is red | nightly, on failure |
+| `.github/workflows/ci.yml` (CI) | the tests, below | every push and pull request, nightly, on demand |
+| `.github/workflows/freshness.yml` (Freshness) | `dev/freshcheck.mjs` and `android/enginecheck.mjs`: what is pinned by hand against its maker's latest; an issue when it has fallen behind | nightly, on demand |
+| `.github/workflows/dependency-graph.yml` (Dependency graph) | the Android build's whole dependency graph told to GitHub, for Dependabot's alerts | a push to main that changes `android/` |
+| `.github/workflows/codeql.yml` (CodeQL) | static analysis, below | a push to main, pull requests, weekly |
+
+The jobs of CI:
+
+| Job | Runs |
+| --- | --- |
+| `static` | the Node-only checks: unit, names, types, markup, area checks, listings, translations, the Pages page, the manifests, `vendor/`'s checksums, secrets |
+| `chrome` | `uicheck`, and `playcheck` in Chrome for Testing (a pinned build, cached): a smoke set on a push (the general views and each app's page: `iosapp`, `appback`, `appcast`, `remote`, `touchsizes`, `phone`); nightly and on demand every scenario, as three parts side by side (`KEPULI_SHARD=2/3` is every third scenario from the second) |
+| `firefox` | `playcheck` in the runner's Firefox through `firefox/marionette.mjs`: a smoke set on a push; the whole suite in two parts, but the six scenarios named in the workflow, which are red in that Firefox and green in a laptop's (`KEPULI_SKIP` leaves scenarios out of a run, and says so) |
+| `android` | both Android packages built, the phone's JUnit tests, the packages' permissions |
+| `ios` | the iPhone and iPad app built for the simulator and its XCTest target, on a macOS runner (the app's scenarios, `ios/simcheck.mjs`, stay a laptop's) |
+| `passed` ("CI passed") | green only when every job above is: the one check main's branch rule requires, as the browser jobs' parts change name with the kind of run |
+| `report` | an issue opened, or added to, when the nightly run is red |
 
 A newer push cancels the run of the one before it. A run on demand is
-`gh workflow run Checks`, or `-f scenarios="phone focusrings"` for chosen
+`gh workflow run CI`, or `-f scenarios="phone focusrings"` for chosen
 scenarios, on any branch with `--ref`; `dev/release.mjs` wants the full
 run green on the release commit. Keep new checks runnable there: no
 secrets, no provider, the mock server only. Look at a red run with
-`gh run list` and `gh run view --log-failed`.
+`gh run list` and `gh run view --log-failed`; what failed in the
+scenarios is also on the run's page, under each browser job's summary.
+A value typed for a run on demand reaches a script through the
+environment, never inside its text.
 
 `.github/workflows/codeql.yml` analyses the JavaScript, the Android apps'
 Java and the workflows themselves weekly and on what changes main
@@ -270,6 +286,16 @@ is settled by a run of it there.
 
 ### Known flakes, not bugs
 
+- After `reminders` nothing went full screen again in the runner's
+  Chrome, so `remote` and `remotescrub` failed a hundred scenarios later
+  in every full run and passed alone and on a laptop. Found by a run on
+  demand that repeated `remote` after each chunk of the suite, then after
+  each scenario of the chunk. What the scenario leaves is the window's and
+  is not known (not the question about notifications: answered for the
+  page, the failure stayed; closing the tab did not help either); a new
+  window for the player does help, and a scenario asks the runner for one
+  with `newWindowAfter`. When a scenario fails only late in the full run,
+  look for what an earlier one left in the browser, this way.
 - `record`'s plan step timed out twice around midnight (2026-11-04 00:05) and
   passed at 00:15 on the same code; not explained yet. If it fails, run it
   again, and if it fails away from midnight, it is a real failure.

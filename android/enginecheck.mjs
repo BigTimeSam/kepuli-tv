@@ -16,8 +16,8 @@
 // It fails once a newer engine has been out for GRACE_DAYS: time enough to
 // take it in a commit of its own, as android/AGENTS.md says how (build,
 // permissions, a start on both emulators, and the engine's silence
-// measured again). Before that it only says so. The nightly CI run and a
-// run on demand ask; a push does not, so that a commit about something
+// measured again). Before that it only says so. The nightly Freshness
+// workflow asks, apart from the tests, so that a commit about something
 // else is not red for Mozilla's calendar.
 
 import { readFileSync } from 'node:fs';

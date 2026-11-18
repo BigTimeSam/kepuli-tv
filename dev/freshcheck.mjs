@@ -21,8 +21,8 @@
 // been out for GRACE_DAYS, where its date can be asked; taking it is a
 // commit of its own (vendor/AGENTS.md, ios/AGENTS.md). The test browser
 // and its installer are only said: an old one tests no worse. The nightly
-// CI run asks; a push does not, so that a commit about something else is
-// not red for somebody's calendar. A maker's server that does not answer
+// Freshness workflow asks, apart from the tests, so that a commit about
+// something else is not red for somebody's calendar. A maker's server that does not answer
 // is skipped, not failed.
 
 import { readFileSync } from 'node:fs';
@@ -87,13 +87,13 @@ const PINS = [
     ask: async () => { const pod = await json('https://trunk.cocoapods.org/api/v1/pods/google-cast-sdk'); const last = pod.versions.sort((a, b) => compare(a.name, b.name)).at(-1); return { latest: last.name, released: Date.parse(last.created_at) }; },
   },
   {
-    name: 'Chrome for Testing', where: '.github/workflows/checks.yml', must: false,
-    pinned: () => /install chrome@([\d.]+)/.exec(read('.github/workflows/checks.yml'))?.[1],
+    name: 'Chrome for Testing', where: '.github/workflows/ci.yml', must: false,
+    pinned: () => /CHROME_VERSION: '([\d.]+)'/.exec(read('.github/workflows/ci.yml'))?.[1],
     ask: async () => ({ latest: (await json('https://googlechromelabs.github.io/chrome-for-testing/last-known-good-versions.json')).channels.Stable.version, released: null }),
   },
   {
-    name: '@puppeteer/browsers', where: '.github/workflows/checks.yml', must: false,
-    pinned: () => /@puppeteer\/browsers@([\d.]+)/.exec(read('.github/workflows/checks.yml'))?.[1],
+    name: '@puppeteer/browsers', where: '.github/workflows/ci.yml', must: false,
+    pinned: () => /PUPPETEER_BROWSERS_VERSION: '([\d.]+)'/.exec(read('.github/workflows/ci.yml'))?.[1],
     ask: () => npm('@puppeteer/browsers'),
   },
 ];

@@ -1,0 +1,48 @@
+# Whether what the project pins by hand is its maker's latest: the players
+# in vendor/, FFmpeg, the Cast SDK for iOS, the CI's Chrome
+# (dev/freshcheck.mjs) and the Android apps' engine
+# (android/enginecheck.mjs). No package manager knows these, so Dependabot
+# cannot watch them. Each tool gives a new release some days of grace and
+# fails after them.
+#
+# Apart from ci.yml on purpose: a commit about something else is not red
+# for somebody's calendar, and a red CI always means the code.
+
+name: Freshness
+
+on:
+  schedule:
+    - cron: '47 4 * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+defaults:
+  run:
+    shell: bash
+
+jobs:
+  pins:
+    name: Pinned versions against their makers' latest
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: read
+      issues: write
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          persist-credentials: false
+      - uses: ./.github/actions/setup
+      - name: The players, FFmpeg, the Cast SDK, the CI's Chrome
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        run: node dev/freshcheck.mjs
+      - name: The Android apps' engine
+        if: success() || failure()
+        run: node android/enginecheck.mjs
+      - if: failure() && github.event_name == 'schedule'
+        uses: ./.github/actions/report
+        with:
+          title: Something pinned has fallen behind

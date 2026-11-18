@@ -132,9 +132,10 @@ the small window's shape; `src/testMobile/`). A rule that needs nothing of
 Android goes there with its test, not into the activity: Android's own
 classes are stubs on the build machine.
 
-The CI's `android` job (`.github/workflows/checks.yml`) builds both
-packages and runs both, and nightly `node android/enginecheck.mjs`; the
-page's side of the apps is covered by the browser job's `remote`,
+The CI's `android` job (`.github/workflows/ci.yml`) builds both
+packages and runs both, and the Freshness workflow runs
+`node android/enginecheck.mjs` every night; the
+page's side of the apps is covered by the `chrome` job's `remote`,
 `appback` and `appcast` scenarios (`appcast` plays the app's end of every
 `app.*` and `cast.*` word).
 
@@ -144,7 +145,7 @@ GeckoView is pinned in `app/build.gradle`, so that a build does not change
 under a commit, and it is a browser's engine reading a provider's
 playlists, pictures and streams: Mozilla's fixes, most of them for
 security, must reach the viewer. `node android/enginecheck.mjs` compares
-the pin with Mozilla's Maven; the nightly CI run fails once a newer engine
+the pin with Mozilla's Maven; the nightly Freshness run fails once a newer engine
 has been out for a week. Taking one is a commit of its own:
 
 1. `node android/enginecheck.mjs --latest` gives the version: put it in
