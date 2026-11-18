@@ -33,7 +33,7 @@ Completed:
 - The temporary remote test fixture was checked successfully, but will be
   retired. It is not offered or linked as a customer service or as the AMO
   review path. Review instructions use a local mock server instead.
-- hls.js 1.6.5 and mpegts.js 1.8.0 match their npm distribution files byte
+- hls.js 1.7.4 and mpegts.js 1.8.2 match their npm distribution files byte
   for byte.
 - The decoder build now pins Emscripten 6.0.9 and emsdk's source revision.
   Both a cached rebuild and a clean FFmpeg build from the source archive
@@ -41,7 +41,7 @@ Completed:
   reused the installed SDK; Linux cross-host reproducibility and a fresh SDK
   download have not been checked.
 - `node firefox/amo-source.mjs --worktree` creates the reviewer source ZIP,
-  including full FFmpeg n7.1.1 source, local mock-server tools and English
+  including full FFmpeg n7.1.5 source, local mock-server tools and English
   build instructions. Its Git-free extension assembly was verified.
 - The owner approved Firefox 140+. The manifest now declares
   `authenticationInfo` and uses Firefox's built-in consent.
@@ -102,7 +102,7 @@ Sources checked:
 | Firefox minimum 128 predates data-consent manifest support (1.0.6) | Resolved in 1.0.7 by the approved Firefox 140 minimum. |
 | Android minimum predates data-consent support | Initial submission targets desktop only; verify platform selection in AMO. |
 | `js/rows.js` innerHTML | Assigned a fixed local SVG string, `LIST_ICON`; no provider or user data enters the string. Explain to reviewers. |
-| Three Function-constructor warnings in `vendor/mpegts.js` | Upstream 1.8.0 distribution, verified identical. The package CSP allows no string evaluation. Include upstream source links; reviewer acceptance is not guaranteed by lint. |
+| Three Function-constructor warnings in `vendor/mpegts.js` | Upstream 1.8.2 distribution, verified identical. The package CSP allows no string evaluation. Include upstream source links; reviewer acceptance is not guaranteed by lint. |
 
 The validator also lists files it could not recognise as known libraries.
 This is why source provenance and the decoder build instructions are supplied.
@@ -210,13 +210,13 @@ Click the toolbar icon. In Settings, select Xtream Codes, enter the local test c
 
 The manifest requires Firefox 140 and declares authenticationInfo because the user's credentials are sent to their configured service. The developer receives no data. The extension retains HTTP compatibility for user-supplied services and prominently explains in Settings that HTTP sends credentials and viewing requests without encryption, recommending HTTPS where supported. We request a reviewer determination on this use under the user-supplied-service edge cases described in Mozilla's policy Q&A: https://discourse.mozilla.org/t/add-ons-policy-changes-2021-q-a/89654 . The extension supplies no remote endpoint or account of its own.
 
-All executable code ships inside the ZIP. vendor/hls.js is the unmodified dist/hls.min.js from hls.js 1.6.5; vendor/mpegts.js is the unmodified dist/mpegts.js from mpegts.js 1.8.0. Both were compared byte for byte with the npm releases. Source and distributions:
-https://www.npmjs.com/package/hls.js/v/1.6.5
-https://github.com/video-dev/hls.js/tree/v1.6.5
-https://www.npmjs.com/package/mpegts.js/v/1.8.0
-https://github.com/xqq/mpegts.js/tree/v1.8.0
+All executable code ships inside the ZIP. vendor/hls.js is the unmodified dist/hls.min.js from hls.js 1.7.4; vendor/mpegts.js is the unmodified dist/mpegts.js from mpegts.js 1.8.2. Both were compared byte for byte with the npm releases. Source and distributions:
+https://www.npmjs.com/package/hls.js/v/1.7.4
+https://github.com/video-dev/hls.js/tree/v1.7.4
+https://www.npmjs.com/package/mpegts.js/v/1.8.2
+https://github.com/xqq/mpegts.js/tree/v1.8.2
 
-vendor/ffaudio is our build of FFmpeg n7.1.1 using Emscripten 6.0.9. The attached reviewer source ZIP contains the full FFmpeg source, our C wrapper and the exact build commands in its root README.md. The FFmpeg components are LGPL-2.1-or-later; no GPL or nonfree configuration flags are used.
+vendor/ffaudio is our build of FFmpeg n7.1.5 using Emscripten 6.0.9. The attached reviewer source ZIP contains the full FFmpeg source, our C wrapper and the exact build commands in its root README.md. The FFmpeg components are LGPL-2.1-or-later; no GPL or nonfree configuration flags are used.
 
 The innerHTML warning in js/rows.js is a fixed SVG constant named LIST_ICON. It contains no user or provider input. Function-constructor warnings come from the unchanged upstream mpegts.js release; the extension's CSP does not allow string evaluation. No remote code is loaded.
 ```

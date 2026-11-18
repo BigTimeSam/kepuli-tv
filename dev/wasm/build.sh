@@ -16,7 +16,7 @@ set -e
 
 ROOT=$(cd "$(dirname "$0")/../.." && pwd)
 BUILD=${KEPULI_WASM_BUILD:-$HOME/.cache/kepuli-tv-build}
-FFMPEG_TAG=${KEPULI_FFMPEG_TAG:-n7.1.1}
+FFMPEG_TAG=${KEPULI_FFMPEG_TAG:-n7.1.5}
 EMSDK_VERSION=6.0.9
 EMSDK_COMMIT=5eb0bde7585670252e8ba05e9d361627bffd08b5
 OUT=${KEPULI_WASM_OUT:-$ROOT/vendor/ffaudio}

@@ -1,9 +1,9 @@
 # The SHA-256 of every third-party file in vendor/ and the upstream version it is.
 # Checked by node dev/vendorcheck.mjs (CI, dev/release.mjs); rewritten only for a
 # deliberate upgrade with node dev/vendorcheck.mjs --update. See vendor/AGENTS.md.
-b634ab5640e258563c536e658cad87080553df6f34f62269a21d554844e58bfe  ffaudio/COPYING.LGPLv2.1  FFmpeg n7.1.1, Emscripten 6.0.9 (dev/wasm/build.sh)
-650d2d91fa1a15fa035d06eb6e3a37802cdf548f6cdead1b4377b76762a927ad  ffaudio/LICENSE  FFmpeg n7.1.1, Emscripten 6.0.9 (dev/wasm/build.sh)
-b9a1961eb5d910648091cd43c1d030e8358db473ed95cad289074ee868d8a371  ffaudio/ffaudio.js  FFmpeg n7.1.1, Emscripten 6.0.9 (dev/wasm/build.sh)
-d5cf5b48d16e5df591bc5f1509d1571fb2c5d7f9652680c7881b8678aa9e6cb1  ffaudio/ffaudio.wasm  FFmpeg n7.1.1, Emscripten 6.0.9 (dev/wasm/build.sh)
-937e88130e87ad49eda6c7f108e93e42c227558c6d8b4d5b53ddb4e4307a32cc  hls.js  hls.js 1.6.5
-e998f7a6cec5fcab56ac14e8c22d61a42565c1ebf7174b3fda078343eda6cab0  mpegts.js  mpegts.js 1.8.0
+b634ab5640e258563c536e658cad87080553df6f34f62269a21d554844e58bfe  ffaudio/COPYING.LGPLv2.1  FFmpeg n7.1.5, Emscripten 6.0.9 (dev/wasm/build.sh)
+650d2d91fa1a15fa035d06eb6e3a37802cdf548f6cdead1b4377b76762a927ad  ffaudio/LICENSE  FFmpeg n7.1.5, Emscripten 6.0.9 (dev/wasm/build.sh)
+b9a1961eb5d910648091cd43c1d030e8358db473ed95cad289074ee868d8a371  ffaudio/ffaudio.js  FFmpeg n7.1.5, Emscripten 6.0.9 (dev/wasm/build.sh)
+132ea0a7399ecde55a79110190ebec4a1b1a6e6e600e836b3ff5f0c5664fd2b6  ffaudio/ffaudio.wasm  FFmpeg n7.1.5, Emscripten 6.0.9 (dev/wasm/build.sh)
+cfc70cc9e9fc63d071919e087670abc760c8fd1bc889b88588026e4d22193bbe  hls.js  hls.js 1.7.4
+bda31748736a69cb610c2edf4623e633f1f4f47b5bda83668c8d287e51b0c3a8  mpegts.js  mpegts.js 1.8.2

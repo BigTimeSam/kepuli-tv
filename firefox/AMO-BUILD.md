@@ -21,7 +21,7 @@ network access to GitHub and the Emscripten SDK download service, and about
 3 GB of free space. SDK installation documentation:
 https://emscripten.org/docs/getting_started/downloads.html
 
-FFmpeg's complete, unmodified n7.1.1 source is already under
+FFmpeg's complete, unmodified n7.1.5 source is already under
 `upstream/ffmpeg/`, from commit
 `db69d06eeeab4f46da15030a80d539efb4503ca8`. The only project-specific C source
 is `dev/wasm/ffaudio.c`. No GPL or nonfree FFmpeg components are enabled.
@@ -58,13 +58,13 @@ demo media or test script is copied into it.
 These files are the upstream npm release distributions. No changes or
 additional minification are applied by this project:
 
-- `vendor/hls.js`: hls.js 1.6.5, `dist/hls.min.js`.
-  Release: https://www.npmjs.com/package/hls.js/v/1.6.5
-  Readable source: https://github.com/video-dev/hls.js/tree/v1.6.5
-- `vendor/mpegts.js`: mpegts.js 1.8.0, `dist/mpegts.js`.
-  Release: https://www.npmjs.com/package/mpegts.js/v/1.8.0
-  Readable source: https://github.com/xqq/mpegts.js/tree/v1.8.0
-- FFmpeg source: https://github.com/FFmpeg/FFmpeg/tree/n7.1.1
+- `vendor/hls.js`: hls.js 1.7.4, `dist/hls.min.js`.
+  Release: https://www.npmjs.com/package/hls.js/v/1.7.4
+  Readable source: https://github.com/video-dev/hls.js/tree/v1.7.4
+- `vendor/mpegts.js`: mpegts.js 1.8.2, `dist/mpegts.js`.
+  Release: https://www.npmjs.com/package/mpegts.js/v/1.8.2
+  Readable source: https://github.com/xqq/mpegts.js/tree/v1.8.2
+- FFmpeg source: https://github.com/FFmpeg/FFmpeg/tree/n7.1.5
 
 The FFmpeg licence and notices are in `vendor/ffaudio/`. The project's own
 source is MIT licensed, as stated in `LICENSE`.

@@ -284,9 +284,9 @@ docs/               the GitHub Pages site: front page, privacy policy, terms of 
 FIREFOX.md          the Firefox version: what differs, how it is built and tested, what was measured
 CHROMECAST.md       the Chromecast assessment, and the design built from it
 store/chrome-dashboard.txt   the Chrome Web Store listing copy
-vendor/             mpegts.js 1.8.0, hls.js 1.6.5 (local: MV3's CSP does not
+vendor/             mpegts.js 1.8.2, hls.js 1.7.4 (local: MV3's CSP does not
                     allow remote scripts)
-vendor/ffaudio/     FFmpeg 7.1.1's ac3, eac3 and dca decoders as wasm
+vendor/ffaudio/     FFmpeg 7.1.5's ac3, eac3 and dca decoders as wasm
 ```
 
 ## Language

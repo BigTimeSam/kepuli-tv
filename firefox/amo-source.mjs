@@ -3,7 +3,7 @@
 // dev/package.mjs; this archive is for reviewers, never for installation.
 //
 // node firefox/amo-source.mjs [--ref HEAD] [--worktree]
-// KEPULI_FFMPEG_SOURCE may name a clean checkout of FFmpeg n7.1.1.
+// KEPULI_FFMPEG_SOURCE may name a clean checkout of FFmpeg n7.1.5.
 
 import { execFileSync } from 'node:child_process';
 import { cpSync, mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
@@ -11,7 +11,7 @@ import { homedir } from 'node:os';
 import { join, resolve } from 'node:path';
 import { ROOT, SHARED, gitSource, worktreeSource, check, shelveOlderZips } from '../dev/package.mjs';
 
-const FFMPEG_COMMIT = 'db69d06eeeab4f46da15030a80d539efb4503ca8';
+const FFMPEG_COMMIT = '3a0867c2bfda4a4d4309ca1a8cbdc6175e67f587';
 const args = process.argv.slice(2);
 let ref = 'HEAD';
 let worktree = false;
@@ -28,8 +28,8 @@ if (problems.length) throw new Error(problems.join('\n'));
 const { version } = JSON.parse(source.read('firefox/manifest.json'));
 if (!/^\d+(\.\d+){1,3}$/.test(version)) throw new Error('Unexpected extension version');
 const ffmpeg = resolve(process.env.KEPULI_FFMPEG_SOURCE || join(homedir(), '.cache/kepuli-tv-build/ffmpeg'));
-const ffSha = execFileSync('git', ['-C', ffmpeg, 'rev-parse', 'n7.1.1^{commit}'], { encoding: 'utf8' }).trim();
-if (ffSha !== FFMPEG_COMMIT) throw new Error('FFmpeg n7.1.1 does not match the reviewed source commit');
+const ffSha = execFileSync('git', ['-C', ffmpeg, 'rev-parse', 'n7.1.5^{commit}'], { encoding: 'utf8' }).trim();
+if (ffSha !== FFMPEG_COMMIT) throw new Error('FFmpeg n7.1.5 does not match the reviewed source commit');
 
 const dir = join(ROOT, 'dist', 'amo-source');
 rmSync(dir, { recursive: true, force: true });
@@ -48,7 +48,7 @@ execFileSync('git', ['-C', ffmpeg, 'archive', '--format=tar', '-o', tar, FFMPEG_
 execFileSync('tar', ['-xf', tar, '-C', upstream]);
 rmSync(tar);
 writeFileSync(join(dir, 'SOURCE.json'), JSON.stringify({
-  version, source: source.label, ffmpeg: { tag: 'n7.1.1', commit: FFMPEG_COMMIT },
+  version, source: source.label, ffmpeg: { tag: 'n7.1.5', commit: FFMPEG_COMMIT },
   emscripten: '6.0.9',
 }, null, 2) + '\n');
 const name = `kepuli-tv-firefox-${version}-amo-source.zip`;

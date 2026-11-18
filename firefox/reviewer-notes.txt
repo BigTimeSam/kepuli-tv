@@ -15,10 +15,10 @@ Click the toolbar icon, choose Xtream Codes, enter the above, Connect, grant acc
 
 The manifest declares authenticationInfo because the user's credentials are sent to their configured service. We receive no data. Minimum Firefox 130: Orion on the iPhone searches AMO as Firefox 130. Before 140, nothing is sent until the user enters their service and grants its host. HTTP stays for user-supplied services; Settings warns it is unencrypted and recommends HTTPS. We request a determination under the user-supplied-service cases in Mozilla's policy Q&A: https://discourse.mozilla.org/t/add-ons-policy-changes-2021-q-a/89654
 
-All executable code ships inside the ZIP. vendor/hls.js is unmodified dist/hls.min.js of hls.js 1.6.5; vendor/mpegts.js unmodified dist/mpegts.js of mpegts.js 1.8.0, both byte for byte as on npm:
-https://www.npmjs.com/package/hls.js/v/1.6.5
-https://www.npmjs.com/package/mpegts.js/v/1.8.0
+All executable code ships inside the ZIP. vendor/hls.js is unmodified dist/hls.min.js of hls.js 1.7.4; vendor/mpegts.js unmodified dist/mpegts.js of mpegts.js 1.8.2, both byte for byte as on npm:
+https://www.npmjs.com/package/hls.js/v/1.7.4
+https://www.npmjs.com/package/mpegts.js/v/1.8.2
 
-vendor/ffaudio is our Emscripten 6.0.9 build of FFmpeg n7.1.1. The source ZIP has the full FFmpeg source, our C wrapper and the build commands in its README.md. LGPL-2.1-or-later; no GPL or nonfree flags.
+vendor/ffaudio is our Emscripten 6.0.9 build of FFmpeg n7.1.5. The source ZIP has the full FFmpeg source, our C wrapper and the build commands in its README.md. LGPL-2.1-or-later; no GPL or nonfree flags.
 
 No innerHTML: icons are fixed SVG literals parsed in js/svg.js, never provider data (dev/htmlcheck.mjs). Function-constructor warnings come from the unchanged upstream mpegts.js; the CSP forbids string evaluation.
