@@ -74,7 +74,6 @@ public class PlayerActivity extends EngineActivity {
 
     private FrameLayout frame;
     private boolean fullScreen;
-    private String home;
 
     private FilePrompt filePrompt;
     private GeckoResult<PromptResponse> filePicked;
@@ -178,9 +177,7 @@ public class PlayerActivity extends EngineActivity {
                 new Thread(() -> save(response)).start();
             }
 
-            // Android takes the page's process when memory runs short while
-            // the app is in the background. The session is closed then, and
-            // the view would stay empty.
+            // The page's process taken or crashed: opened again (EngineActivity).
             @Override
             public void onKill(GeckoSession s) {
                 reopen();
@@ -234,7 +231,6 @@ public class PlayerActivity extends EngineActivity {
 
     @Override
     protected void ready(WebExtension extension) {
-        home = extension.metaData.baseUrl + page();
         // The background opens a tab for a page of the web (and for the
         // player, which is already here).
         extension.setTabDelegate(new WebExtension.TabDelegate() {
@@ -310,11 +306,10 @@ public class PlayerActivity extends EngineActivity {
         }
     }
 
-    private void reopen() {
-        if (home == null || session.isOpen()) return;
+    /** With the page went what played: the notification, the small window's controls. */
+    @Override
+    protected void lost() {
         nothing();
-        session.open(runtime);
-        session.loadUri(home);
     }
 
     /* ------------------------------------------------------- full screen */

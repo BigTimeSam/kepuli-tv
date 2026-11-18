@@ -215,6 +215,21 @@ Only on the owner's go, as every release (root `AGENTS.md` rule 2).
   A released engine takes another address for the settings service only
   with `MOZ_REMOTE_SETTINGS_DEVTOOLS` in the file's `env`.
 
+- The player's page lives in the app's main process, not in a content
+  process of its own (GeckoView 160; measured on the phone's emulator,
+  2026-11-18): with both `sandboxed_tab` processes killed the page went on
+  untouched, and a page made to eat memory grew the main process until
+  Android took the whole app. So a page that dies takes the app with it,
+  Android starts the app anew, and `onKill` and `onCrash` have not been
+  seen to come for the player; `EngineActivity.reopen()` answers them all
+  the same, for an engine that changes this. Do not build on the page
+  outliving a crash, or on pacing its reopening.
+- A real touch for a test: `adb shell input tap <x> <y>`, the place from
+  the page as `(mozInnerScreenX + left) * devicePixelRatio` (and the same
+  for y), asked again after anything that moves the page (the keyboard
+  going). The emulator's page says `(hover: hover)` and a fine pointer, so
+  the touch sizes of `css/last.css` and the caret's rule are a real
+  device's to show.
 - Android's packager leaves out what begins with an underscore, and the
   extension's languages are in `_locales/`: without `ignoreAssetsPattern`
   the engine refuses the extension as invalid.

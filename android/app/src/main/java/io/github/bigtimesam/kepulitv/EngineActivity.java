@@ -47,6 +47,8 @@ abstract class EngineActivity extends Activity {
     protected GeckoSession session;
     protected GeckoView view;
     private View splash;
+    /** The player's address, once the extension is in: what a session that closed is opened at again. */
+    private String home;
 
     /** The page under the extension's address, with its query. */
     protected abstract String page();
@@ -125,6 +127,16 @@ abstract class EngineActivity extends Activity {
             public void onFirstContentfulPaint(GeckoSession s) {
                 painted();
             }
+
+            @Override
+            public void onKill(GeckoSession s) {
+                reopen();
+            }
+
+            @Override
+            public void onCrash(GeckoSession s) {
+                reopen();
+            }
         });
         session.open(runtime);
         view.setSession(session);
@@ -138,7 +150,8 @@ abstract class EngineActivity extends Activity {
         extensions.ensureBuiltIn(EXTENSION_URL, EXTENSION_ID).accept(
                 extension -> {
                     ready(extension);
-                    session.loadUri(extension.metaData.baseUrl + page());
+                    home = extension.metaData.baseUrl + page();
+                    session.loadUri(home);
                 },
                 error -> Log.e(TAG, "the extension did not install", error));
     }
@@ -148,6 +161,31 @@ abstract class EngineActivity extends Activity {
         if (splash == null) return;
         ((ViewGroup) splash.getParent()).removeView(splash);
         splash = null;
+    }
+
+    /** The session has closed under the page: what a device kept of the page goes. */
+    protected void lost() { }
+
+    /**
+     * The session's process was taken or crashed, and the session is
+     * closed: the page is opened again at the player's address, or the
+     * view would stay empty. A content delegate of a device's own calls
+     * this from onKill and onCrash, as the one here does.
+     *
+     * Kept for an engine that gives an extension's page a process of its
+     * own. This one (GeckoView 160) does not: the player's page lives in
+     * the app's main process. Measured on the phone's emulator, with both
+     * of the app's content processes killed the page went on untouched,
+     * and a page made to eat memory grew the main process until Android
+     * took the whole app, which it then starts anew. So neither callback
+     * has been seen to come for the player, and there is nothing here to
+     * pace: a page that dies takes the app with it.
+     */
+    protected void reopen() {
+        if (home == null || session.isOpen()) return;
+        lost();
+        session.open(runtime);
+        session.loadUri(home);
     }
 
     /**
