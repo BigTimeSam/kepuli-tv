@@ -1,8 +1,9 @@
 # docs/: the Pages site and the long documentation
 
 `docs/` is served by GitHub Pages at https://bigtimesam.github.io/kepuli-tv/
-(`.nojekyll`: files are served as they are) and also holds the Markdown
-documentation read on GitHub.
+and also holds the Markdown documentation read on GitHub. A push to main
+that changes it is put up by `.github/workflows/pages.yml`, the files as
+they are (a file or directory whose name begins with a dot is left out).
 
 | File | What | Edited by |
 | --- | --- | --- |
