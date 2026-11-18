@@ -135,6 +135,7 @@ for the App Store's review) serves them too. Its address is "demoUrl" in
 ~/.config/kepuli-tv/ios/appstore.json and replaces <DEMO HOST> below when
 the notes are pasted; it is never written here.
 
+=== NOTES ===
 The extension plays the user's own IPTV subscription and contains no content. To test it, use this demo account (invented content only, made for review):
 
 1. Click the extension's toolbar button: the player opens in a tab.
@@ -143,26 +144,41 @@ The extension plays the user's own IPTV subscription and contains no content. To
 4. Movies and Series hold demo films; Series > Nordic Noir > Silent Fjord is an MKV file with subtitles.
 
 Every title, channel and programme in the demo is fictional and belongs to the project. The source is at github.com/BigTimeSam/kepuli-tv.
+=== END ===
+
+node dev/edge-publish.mjs sends the block between the two lines with each
+submission, the demo's host put in; keep anything else outside them.
 
 
---- AFTER THE FIRST PUBLICATION: THE PUBLISH API ----------------------------
+--- A NEW VERSION: THE PUBLISH API ------------------------------------------
 A new product is made in Partner Center, and so are its texts and
-pictures: the API has no endpoint for either. What it does is replace the
-package of a product that exists and send it for certification, which is
-what a release needs. No tool for it is written yet; when the product
-exists:
+pictures: the API has no call for either, nor one that reads what the
+store holds. What it does is replace the package of a product that exists
+and send it for certification, which is what a release needs:
+
+  node dev/edge-publish.mjs check     the zip, the notes, the credentials
+  node dev/edge-publish.mjs           uploads kepuli-tv-edge-<version>.zip
+                                      and sends it for certification
+  node dev/edge-publish.mjs verify    what the store serves to users, after
+                                      the certification
+  node dev/edge-publish.mjs listing   every language's description for the
+                                      form, into dist/edge/, when
+                                      store/listings/ changed
+
+It was written from Microsoft's reference before any update had gone
+through it (the first submission was the form's): the first run is its
+test. While a submission is in review the store refuses another
+(InProgressSubmission), and a package with nothing new as well
+(NoModulesUpdated).
+
+Set up once, when the product is in the store:
 
   Partner Center → Microsoft Edge → Publish API → Enable the new
   experience (v1.1) → Create API credentials: a Client ID and an API key
-  (it has an expiry date). With the product's ID (the GUID in the
-  dashboard's address, between microsoftedge/ and /packages) they go to
-  ~/.config/kepuli-tv/edge.json, mode 600, outside the project.
+  (it has an expiry date; a new one is made on the same page). They go to
+  ~/.config/kepuli-tv/edge.json, mode 600, outside the project, beside
+  the product's ID that is there already:
 
-  Base  https://api.addons.microsoftedge.microsoft.com
-  Headers  Authorization: ApiKey <key>, X-ClientID: <client id>
-  POST /v1/products/<id>/submissions/draft/package   (application/zip)
-  GET  /v1/products/<id>/submissions/draft/package/operations/<operation>
-  POST /v1/products/<id>/submissions                 ({"notes": "…"})
-  GET  /v1/products/<id>/submissions/operations/<operation>
+    { "productId": "…", "clientId": "…", "apiKey": "…" }
 
 Certification can take up to seven business days.

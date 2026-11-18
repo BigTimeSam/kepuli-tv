@@ -72,6 +72,25 @@ behind them in [development.md → Publishing to the stores](../docs/development
   items with more than 10,000 weekly users; until then a release reaches
   everyone at once, so `dev/release.mjs` and the full suites are the guard.
 
+## Edge Add-ons
+
+The Chrome package under the store's name (`kepuli-tv-edge-<v>.zip`, from
+`node dev/package.mjs --zip --edge`), in the owner's personal Partner
+Center account; 1.14.0 went in by the form on 2026-11-18. The fields and
+the form's traps are in `edge-dashboard.txt`.
+
+- `node dev/edge-publish.mjs` uploads the zip and sends it for
+  certification with the notes for the testers (`check`, `upload`,
+  `submit` do a part each); `verify` reads the package the store serves.
+  Its credentials are in `~/.config/kepuli-tv/edge.json`. The API cannot
+  read the store or touch the listing, and refuses a second submission
+  while one is in review.
+- The description is the Chrome one without the sentence that names
+  other browsers: `node dev/edge-publish.mjs listing` writes every
+  language's into `dist/edge/`. A change to `listings/` reaches this
+  store only by Partner Center's form.
+- Certification can take up to seven business days.
+
 ## AMO
 
 - `amo-publish.mjs status | check | validate | listing [--dry] | captions [--dry]`;

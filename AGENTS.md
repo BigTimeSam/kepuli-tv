@@ -278,6 +278,14 @@ visual check); run it before asking for the go. The order that has worked:
    `node dev/cws-listing-fill.mjs` and `node dev/cws-screenshots.mjs` if texts
    or screenshots changed, then `node dev/cws-publish.mjs submit`. See
    `store/AGENTS.md` for the review lock and the cancel quota.
+10. **Edge Add-ons**: `node dev/package.mjs --zip --edge` in step 6 makes
+   `kepuli-tv-edge-X.Y.Z.zip` beside the three (it is not a GitHub
+   release asset: the Chrome zip is the same bytes). Then
+   `node dev/edge-publish.mjs check` and `node dev/edge-publish.mjs`. A
+   description changed in `store/listings/` goes into Partner Center's
+   form by hand first (`node dev/edge-publish.mjs listing`,
+   `store/edge-dashboard.txt`). Certification can take a week; afterwards
+   `node dev/edge-publish.mjs verify`.
 
 ### After the stores
 

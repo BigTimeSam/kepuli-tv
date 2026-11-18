@@ -17,7 +17,8 @@ import { syncOffset, afterTail, ReconnectingLiveLoader } from '../js/liveloader.
 import { nameCleaner, labelCodes, countryCodes, searchKey, searchTerms, matchesTerms, homeCountryCodes, homeGroup, viewerTags, episodeTitle, genericEpisode } from '../js/name.js';
 import { Library, buildGroups, cacheTtl } from '../js/library.js';
 import { channelKey, internationalChannels, isNationalTopic } from '../js/international.js';
-import { unwrap, repeats, check as checkListings } from './listings.mjs';
+import { unwrap, repeats, check as checkListings, readListings, CHROME_UNSUPPORTED } from './listings.mjs';
+import { edgeDescription, otherBrowsers, certificationNotes, operationId, outcome, LANGUAGE_NAMES } from './edge-publish.mjs';
 import { holds } from './glossarycheck.mjs';
 import { channelLogo, slugify } from '../js/logos.js';
 import { cueText, label as subtitleLabel } from '../js/subs.js';
@@ -2621,6 +2622,37 @@ check('VLC for iOS is handed the stream address, encoded whole',
   check('the App Store gate knows recording in the player\'s Finnish',
     ['Tallenna suosikkiohjelmasi ja katso tallenteet myöhemmin.', 'Ajasta tallennus ohjelmaoppaasta.', 'Nauhoita ohjelma.', 'Katso kanavia ja elokuvia.'].map((line) => finnish.test(line)),
     [true, true, true, false]);
+}
+
+/* ------------------------------------------- dev/edge-publish.mjs */
+
+{
+  // Partner Center warns of a description that names another browser, so
+  // the sentence sending a phone's owner to Orion and Firefox is left out
+  // for that store; nothing else of the Chrome text is.
+  const sample = 'First line.\n\n\nGET STARTED\n\nClick the icon, and your list appears. On an iPhone, install it in Orion; on an Android phone, in Firefox.\n\n\nSEE IT IN ACTION\n\nA tour: https://youtu.be/x';
+  check('the Edge description drops the sentence about other browsers, and the video section',
+    edgeDescription(sample), 'First line.\n\nGET STARTED\n\nClick the icon, and your list appears.');
+  check('a description without that sentence is left whole', edgeDescription('One.\n\nTwo. Three.'), 'One.\n\nTwo. Three.');
+  const edge = readListings().filter((l) => !CHROME_UNSUPPORTED.includes(l.locale));
+  check('no language\'s Edge description names another browser, and each is within the store\'s limits',
+    edge.filter((l) => { const text = edgeDescription(l.detailed); return otherBrowsers(text).length || text.length < 250 || text.length > 10000; }).map((l) => l.locale), []);
+  check('every language of the Chrome package has its name in Partner Center', edge.filter((l) => !LANGUAGE_NAMES[l.locale]).map((l) => l.locale), []);
+
+  const record = 'before\n=== NOTES ===\nServer: <DEMO HOST>. Port: 443.\n=== END ===\nafter';
+  check('the notes for certification take the demo\'s host', certificationNotes(record, 'https://demo.example.test/'), 'Server: demo.example.test. Port: 443.');
+  check('notes that need the demo are refused without it', (() => { try { certificationNotes(record, ''); return 'sent'; } catch { return 'refused'; } })(), 'refused');
+  check('the record in the repository has its notes, and no host in them',
+    /<DEMO HOST>/.test(readFileSync(new URL('../store/edge-dashboard.txt', import.meta.url), 'utf8').match(/^=== NOTES ===\n([\s\S]*?)\n=== END ===$/m)?.[1] || ''), true);
+
+  check('an operation is read from a bare Location and from a path',
+    [operationId('11111111-2222-3333-4444-555555555555'), operationId('/v1/products/p/submissions/operations/66666666-2222-3333-4444-555555555555'), operationId(null), operationId('https://example.test/')],
+    ['11111111-2222-3333-4444-555555555555', '66666666-2222-3333-4444-555555555555', '', '']);
+  check('an operation in progress is waited for, a finished one is done', [outcome({ status: 'InProgress' }).state, outcome({ status: 'Succeeded', message: 'ok' })], ['wait', { state: 'done', message: 'ok' }]);
+  check('a failed operation says the store\'s code and words',
+    outcome({ status: 'Failed', errorCode: 'ModuleStateUnPublishable', message: 'Not valid.', errors: [{ message: 'Invalid module : Listing' }] }),
+    { state: 'failed', message: 'ModuleStateUnPublishable: Not valid.: Invalid module : Listing' });
+  check('an answer without a status is a failure too', outcome({ id: 'x', message: 'An error occurred while processing the request.' }).state, 'failed');
 }
 
 /* ------------------------------------------------------------------ done */
