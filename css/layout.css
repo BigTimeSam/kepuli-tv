@@ -197,8 +197,10 @@ button.group-star:hover { color: var(--text); background: var(--track); }
    track's lit part runs between them (--from, --to set by the script). */
 .length-filter .range-label output { color: var(--text); }
 .length-filter.active .range-label output { color: var(--accent-ink); }
-.range-pair { position: relative; height: 26px; }
-.range-pair::before, .range-pair::after { content: ""; position: absolute; top: 11px; height: 4px; border-radius: 99px; }
+/* A drag along the track is the slider's (js/mediafilters.js moves the
+   handle under a finger); up and down the list still scrolls. */
+.range-pair { position: relative; height: 26px; touch-action: pan-y; }
+.range-pair::before, .range-pair::after { content: ""; position: absolute; top: calc(50% - 2px); height: 4px; border-radius: 99px; }
 /* The track and its lit part are one band, the same height at the same
    place: the track drawn 2 px taller with a border showed under the lit
    part as a line of its own. */

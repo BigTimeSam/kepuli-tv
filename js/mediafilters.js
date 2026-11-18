@@ -264,6 +264,43 @@ export class MediaFilters {
         this.changed();
       });
     }
+    // The handles take a press through `pointer-events` on the thumb
+    // alone (css/layout.css), which is how two sliders share one track,
+    // and which WebKit does not give a finger: on an iPhone neither
+    // handle moved (seen 2026-11-19). So a finger on the track, or a
+    // mouse beside a handle, moves the nearer handle here; a mouse on a
+    // handle stays the browser's own drag. The list is cut when the
+    // finger lifts, as it is when a mouse lets go.
+    let held = null;
+    const valueAt = (/** @type {PointerEvent} */ e) => {
+      const box = pair.getBoundingClientRect(), min = Number(from.min), max = Number(from.max), step = Number(from.step) || 1;
+      // A handle's middle travels the track less half a handle at each end.
+      const share = Math.min(1, Math.max(0, (e.clientX - box.left - 11) / Math.max(1, box.width - 22)));
+      return Math.round((min + share * (max - min)) / step) * step;
+    };
+    const put = (value) => {
+      if (!held || Number(held.value) === value) return;
+      held.value = String(value);
+      held.dispatchEvent(new Event('input', { bubbles: true }));
+    };
+    pair.addEventListener('pointerdown', (e) => {
+      if (e.button > 0 || (e.pointerType === 'mouse' && e.target !== pair)) return;
+      const value = valueAt(e), a = Math.abs(value - Number(from.value)), b = Math.abs(value - Number(to.value));
+      // Both handles in one place: the press's side of them says which.
+      held = a < b || (a === b && value < Number(from.value)) ? from : to;
+      e.preventDefault();
+      try { pair.setPointerCapture(e.pointerId); } catch { /* the pointer is gone already */ }
+      put(value);
+    });
+    pair.addEventListener('pointermove', (e) => { if (held) put(valueAt(e)); });
+    const letGo = () => {
+      if (!held) return;
+      const input = held;
+      held = null;
+      input.dispatchEvent(new Event('change', { bubbles: true }));
+    };
+    pair.addEventListener('pointerup', letGo);
+    pair.addEventListener('pointercancel', letGo);
     label.append(head, pair);
     this.lengthField = label;
     return label;

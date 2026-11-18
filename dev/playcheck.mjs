@@ -3281,6 +3281,33 @@ async function lengthfilter(page) {
   }
   // The chip takes the choice away again.
   await evaluate(page, `[...document.querySelectorAll('.filter-chip')].find((c) => /Duration/.test(c.textContent)).click()`);
+  await waitFor(page, `![...document.querySelectorAll('.filter-chip')].some((c) => /Duration/.test(c.textContent))`, 'the length chip gone');
+  // Under a finger: WebKit gives a handle no press of its own, so a drag
+  // along the track moves the nearer handle (on an iPhone neither moved),
+  // and both handles lie on the line (they stood 3 px above it there).
+  await page.call('Emulation.setTouchEmulationEnabled', { enabled: true, maxTouchPoints: 5 });
+  try {
+    await sleep(300);
+    const finger = await evaluate(page, `(async () => { const pause = (ms) => new Promise((r) => setTimeout(r, ms));
+      const field = document.querySelector('.length-filter'), pair = field.querySelector('.range-pair'), [a, b] = pair.querySelectorAll('input');
+      if (field.hidden) return { hidden: true };
+      const box = pair.getBoundingClientRect(), y = box.top + box.height / 2, line = parseFloat(getComputedStyle(pair, '::before').top) + 2;
+      const fire = (type, x) => pair.dispatchEvent(new PointerEvent(type, { bubbles: true, cancelable: true, pointerId: 9, pointerType: 'touch', clientX: box.left + box.width * x, clientY: y, button: 0 }));
+      const seen = { coarse: matchMedia('(hover: none)').matches, was: [+a.value, +b.value], min: +a.min, max: +a.max,
+        centres: [a, b].map((input) => { const r = input.getBoundingClientRect(); return Math.round((r.top + r.height / 2 - box.top - line) * 10) / 10; }), height: Math.round(a.getBoundingClientRect().height) };
+      let changes = 0; for (const input of [a, b]) input.addEventListener('change', () => { changes += 1; });
+      fire('pointerdown', 0.1); fire('pointermove', 0.3); seen.during = [+a.value, +b.value, changes]; fire('pointerup', 0.3);
+      fire('pointerdown', 0.95); fire('pointermove', 0.7); fire('pointerup', 0.7);
+      await pause(300);
+      return { ...seen, now: [+a.value, +b.value], changes, text: field.querySelector('output').textContent }; })()`);
+    assert(!finger.hidden && finger.coarse, `the slider under a finger: ${JSON.stringify(finger)}`);
+    assert(finger.during[0] > finger.was[0] && finger.during[1] === finger.was[1] && finger.during[2] === 0, `a finger's drag from the track's start moves the lower handle, the list cut only when it lifts: ${JSON.stringify(finger)}`);
+    assert(finger.now[0] === finger.during[0] && finger.now[1] < finger.was[1] && finger.now[0] <= finger.now[1] && finger.changes === 2 && /–/.test(finger.text), `the upper handle under a finger: ${JSON.stringify(finger)}`);
+    assert(finger.centres.every((off) => Math.abs(off) <= 1) && finger.height >= 40, `the handles' boxes about the track's line under a finger: ${JSON.stringify(finger)}`);
+    await evaluate(page, `[...document.querySelectorAll('.filter-chip')].find((c) => /Duration/.test(c.textContent)).click()`);
+  } finally {
+    await page.call('Emulation.setTouchEmulationEnabled', { enabled: false }).catch(() => {});
+  }
   // At rest, or out of sight where no lengths are known (the category above).
   await waitFor(page, `![...document.querySelectorAll('.filter-chip')].some((c) => /Duration/.test(c.textContent))
     && (document.querySelector('.length-filter').hidden || document.querySelector('.length-filter output').textContent === 'Any length')`, 'the slider back at rest');

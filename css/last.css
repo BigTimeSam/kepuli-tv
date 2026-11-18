@@ -106,6 +106,10 @@ input[type="search"], input[type="text"], input[type="url"], input:not([type]) {
      place: at their full height the two of the subtitles' look pushed its
      panel up over the picture of an upright phone. */
   input[type="range"] { margin-block: -0.625rem; }
+  /* The two that share a track lie over it, placed by their box: the
+     margin above moved them 3 px up off the line, the handles with them
+     (seen on an iPhone). They take the size about the track's middle. */
+  .range-pair input[type="range"] { top: calc(50% - 1.25rem); bottom: auto; height: 2.5rem; margin: 0; }
   /* A mark in a frame is a square of it. */
   .icon-button, .modal-close, .group-picker-star, .epg-search-toggle, .epgv-close, .epg-bar button.ghost, .guide-back, #btn-full,
   .chip-main, .season, .crumbs button, .epg-day, .now-actions > button { min-width: 2.5rem; flex-shrink: 0; }
