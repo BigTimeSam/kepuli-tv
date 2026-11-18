@@ -62,6 +62,10 @@ Xtream-Codes-Konto oder das Stalker-Portal mit, das du schon hast.
 - **Sie folgt der Haltung des Geräts**, hochkant oder quer, auch im
   Vollbild.
 - **Der Bildschirm bleibt an**, solange ein Bild läuft.
+- **Der Ton läuft weiter**, wenn du die App verlässt oder den Bildschirm
+  sperrst, während etwas läuft. Sperrbildschirm und Kontrollzentrum halten
+  ihn an und setzen ihn fort. **Bild-in-Bild** im ☰-Menü hält das Bild über
+  anderen Apps im Blick.
 - **In VLC öffnen** im ☰-Menü übergibt den Stream an die VLC-App. Ohne VLC
   öffnet sich deren Seite im App Store.
 - **Links** zur IMDb-Seite eines Films, zu einem Trailer oder zu dieser

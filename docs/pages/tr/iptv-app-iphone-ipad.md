@@ -57,6 +57,10 @@ hesabını ya da Stalker portalını sen getirirsin.
 
 - **Cihazı tutuş şeklini izler**, dik ya da yan, tam ekranda da.
 - **Ekran açık kalır**, bir görüntü oynarken.
+- **Ses devam eder**, bir şey oynarken uygulamadan çıktığında ya da ekranı
+  kilitlediğinde. Kilitli ekran ve Denetim Merkezi sesi duraklatır ve
+  sürdürür. ☰ menüsündeki **Resim içinde resim**, görüntüyü diğer
+  uygulamaların üzerinde göz önünde tutar.
 - ☰ menüsündeki **VLC’de aç**, yayını VLC uygulamasına devreder. VLC yoksa
   App Store onun sayfasında açılır.
 - **Bağlantılar**, yani bir filmin IMDb sayfası, bir fragman ya da bu

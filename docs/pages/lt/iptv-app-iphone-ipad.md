@@ -56,6 +56,10 @@ arba Stalker portalą, kurį jau turi.
 - **Ji prisitaiko prie to, kaip laikai įrenginį**, stačią ar gulsčią, taip
   pat ir visame ekrane.
 - **Ekranas lieka įjungtas**, kol rodomas vaizdas.
+- **Garsas skamba toliau**, kai išeini iš programėlės arba užrakini ekraną,
+  kol kas nors grojama. Užrakintas ekranas ir Valdymo centras jį pristabdo
+  ir tęsia. **Vaizdas vaizde** ☰ meniu palieka vaizdą matomą virš kitų
+  programėlių.
 - **Atidaryti VLC** ☰ meniu perduoda srautą programėlei VLC. Jei VLC nėra,
   App Store atsidaro ties jos puslapiu.
 - **Nuorodos** į filmo IMDb puslapį, anonsą ar šį vadovą atsidaro virš

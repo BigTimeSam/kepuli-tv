@@ -63,6 +63,10 @@ le compte Xtream Codes ou le portail Stalker que vous avez déjà.
 - **Elle suit la façon dont vous tenez l’appareil**, à la verticale ou à
   l’horizontale, en plein écran aussi.
 - **L’écran reste allumé** tant qu’une image est lue.
+- **Le son continue** quand vous quittez l’app ou verrouillez l’écran
+  pendant une lecture. L’écran verrouillé et le Centre de contrôle le
+  mettent en pause et le reprennent. **Image dans l’image**, dans le menu ☰,
+  garde l’image visible par-dessus les autres apps.
 - **Ouvrir dans VLC**, dans le menu ☰, passe le flux à l’app VLC. Sans VLC,
   l’App Store s’ouvre sur sa page.
 - **Les liens** vers la page IMDb d’un film, une bande-annonce ou ce guide

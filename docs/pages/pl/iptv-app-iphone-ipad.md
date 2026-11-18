@@ -58,6 +58,10 @@ portal Stalker, które już masz.
 - **Dostosowuje się do sposobu trzymania urządzenia**, pionowo lub poziomo,
   również na pełnym ekranie.
 - **Ekran pozostaje włączony**, gdy odtwarzany jest obraz.
+- **Dźwięk gra dalej**, gdy wychodzisz z aplikacji lub blokujesz ekran w
+  trakcie odtwarzania. Ekran blokady i Centrum sterowania wstrzymują go i
+  wznawiają. **Obraz w obrazie** w menu ☰ utrzymuje obraz na widoku nad
+  innymi aplikacjami.
 - **Otwórz w VLC** w menu ☰ przekazuje strumień do aplikacji VLC. Bez VLC
   otwiera się jej strona w App Store.
 - **Linki** do strony filmu w IMDb, do zwiastuna lub do tego poradnika

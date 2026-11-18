@@ -58,6 +58,10 @@ Stalker pe care îl ai deja.
 - **Urmează felul în care ții dispozitivul**, vertical sau orizontal, și pe
   ecran complet.
 - **Ecranul rămâne aprins** cât timp se redă o imagine.
+- **Sunetul continuă** când ieși din aplicație sau blochezi ecranul în timp
+  ce se redă ceva. Ecranul de blocare și Centrul de control îl pun pe pauză
+  și îl reiau. **Imagine în imagine** din meniul ☰ ține imaginea la vedere
+  peste alte aplicații.
 - **Deschide în VLC** din meniul ☰ predă fluxul aplicației VLC. Fără VLC,
   App Store se deschide la pagina ei.
 - **Linkurile** către pagina IMDb a unui film, un trailer sau acest ghid se

@@ -59,6 +59,10 @@ Stalker che hai già.
 - **Segue il modo in cui tieni il dispositivo**, in verticale o in
   orizzontale, anche a schermo intero.
 - **Lo schermo resta acceso** mentre un'immagine è in riproduzione.
+- **L'audio continua** quando esci dall'app o blocchi lo schermo mentre
+  qualcosa è in riproduzione. La schermata di blocco e il Centro di
+  Controllo lo mettono in pausa e lo riprendono. **Picture in picture** nel
+  menu ☰ tiene l'immagine in vista sopra le altre app.
 - **Apri in VLC** nel menu ☰ passa il flusso all'app VLC. Senza VLC, l'App
   Store si apre alla sua pagina.
 - **I link** alla pagina IMDb di un film, a un trailer o a questa guida si

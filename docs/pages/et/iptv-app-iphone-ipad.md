@@ -54,6 +54,10 @@ Stalkeri portaali, mis sul juba on.
 - **See järgib seda, kuidas sa seadet hoiad**, püsti või külili, ka
   täisekraanil.
 - **Ekraan püsib sees**, kuni pilt mängib.
+- **Heli jätkub**, kui lahkud rakendusest või lukustad ekraani ajal, mil
+  midagi mängib. Lukustuskuva ja Juhtimiskeskus panevad selle pausile ja
+  jätkavad seda. ☰-menüü käsk **Pilt pildis** hoiab pildi teiste rakenduste
+  peal nähtaval.
 - ☰-menüü käsk **Ava VLC-s** annab voo üle VLC rakendusele. Kui VLC-d pole,
   avaneb selle leht App Store’is.
 - **Lingid** filmi IMDb-lehele, treilerile või sellele juhendile avanevad

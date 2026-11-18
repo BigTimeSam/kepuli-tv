@@ -55,6 +55,9 @@ Codes-konto eller den Stalker-portal du redan har.
 - **Den följer hur du håller enheten**, stående eller liggande, även i
   helskärm.
 - **Skärmen förblir tänd** medan en bild spelas.
+- **Ljudet fortsätter** när du lämnar appen eller låser skärmen medan något
+  spelas. Låsskärmen och Kontrollcenter pausar och återupptar det. **Bild i
+  bild** i ☰-menyn håller bilden synlig ovanpå andra appar.
 - **Öppna i VLC** i ☰-menyn lämnar över strömmen till VLC-appen. Utan VLC
   öppnas dess sida i App Store.
 - **Länkar** till en films IMDb-sida, en trailer eller den här guiden öppnas

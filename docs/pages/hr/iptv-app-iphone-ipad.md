@@ -55,6 +55,10 @@ Stalker portal koji već imaš.
 - **Prati način na koji držiš uređaj**, uspravno ili položeno, i na cijelom
   zaslonu.
 - **Zaslon ostaje uključen** dok se slika reproducira.
+- **Zvuk se nastavlja** kad napustiš aplikaciju ili zaključaš zaslon dok se
+  nešto reproducira. Zaključani zaslon i Kontrolni centar pauziraju ga i
+  nastavljaju. **Slika u slici** u izborniku ☰ drži sliku na vidiku preko
+  drugih aplikacija.
 - **Otvori u VLC-u** u izborniku ☰ predaje tok aplikaciji VLC. Bez VLC-a
   otvara se njegova stranica u App Storeu.
 - **Poveznice** na IMDb stranicu filma, na trailer ili na ovaj vodič

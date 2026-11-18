@@ -58,6 +58,10 @@ Stalker-portaalin, joka sinulla jo on.
 - **Se seuraa laitteen asentoa**, pystyssä tai kyljellään, myös koko näytön
   tilassa.
 - **Näyttö pysyy päällä**, kun kuvaa toistetaan.
+- **Ääni jatkuu**, kun poistut sovelluksesta tai lukitset näytön kesken
+  toiston. Lukitusnäyttö ja Ohjauskeskus keskeyttävät toiston ja jatkavat
+  sitä. ☰-valikon **Kuva kuvassa** pitää kuvan näkyvissä muiden sovellusten
+  päällä.
 - ☰-valikon **Avaa VLC:ssä** luovuttaa virran VLC-sovellukselle. Jos VLC:tä
   ei ole, sen sivu avautuu App Storessa.
 - **Linkit** elokuvan IMDb-sivulle, traileriin ja tähän oppaaseen avautuvat

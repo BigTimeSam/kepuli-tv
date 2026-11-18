@@ -59,6 +59,10 @@ el portal Stalker que ya tienes.
 - **Sigue la forma en que sujetas el dispositivo**, en vertical o en
   horizontal, también en pantalla completa.
 - **La pantalla sigue encendida** mientras se reproduce una imagen.
+- **El sonido continúa** cuando sales de la app o bloqueas la pantalla
+  mientras se reproduce algo. La pantalla de bloqueo y el Centro de control
+  lo pausan y lo reanudan. **Imagen en imagen**, en el menú ☰, mantiene la
+  imagen a la vista sobre otras apps.
 - **Abrir en VLC**, en el menú ☰, pasa la emisión a la app VLC. Sin VLC, se
   abre su página en el App Store.
 - **Los enlaces** a la página de IMDb de una película, a un tráiler o a esta

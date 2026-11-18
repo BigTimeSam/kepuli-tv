@@ -58,6 +58,10 @@ Xtream Codes, atau portal Stalker yang sudah kamu miliki.
 - **Aplikasi mengikuti cara kamu memegang perangkat**, tegak atau mendatar,
   juga dalam layar penuh.
 - **Layar tetap menyala** selama gambar diputar.
+- **Suara terus berjalan** saat kamu meninggalkan aplikasi atau mengunci
+  layar ketika sesuatu sedang diputar. Layar terkunci dan Pusat Kontrol
+  menjeda dan melanjutkannya. **Picture-in-picture** di menu ☰ menjaga
+  gambar tetap terlihat di atas aplikasi lain.
 - **Buka di VLC** di menu ☰ menyerahkan siaran ke aplikasi VLC. Tanpa VLC,
   App Store terbuka di halamannya.
 - **Tautan** ke halaman IMDb sebuah film, cuplikan, atau panduan ini terbuka

@@ -58,6 +58,10 @@ Stalker që e ke tashmë.
 - **Ndjek mënyrën si e mban pajisjen**, në këmbë ose shtrirë, edhe në ekran
   të plotë.
 - **Ekrani rri i ndezur** ndërsa luhet një pamje.
+- **Zëri vazhdon** kur del nga aplikacioni ose kyç ekranin ndërsa luhet
+  diçka. Ekrani i kyçjes dhe Qendra e Kontrollit e ndalin përkohësisht dhe e
+  rifillojnë. **Figurë në figurë** te menyja ☰ e mban pamjen në sy mbi
+  aplikacionet e tjera.
 - **Hape në VLC** te menyja ☰ ia kalon transmetimin aplikacionit VLC. Pa
   VLC, hapet faqja e tij në App Store.
 - **Lidhjet** për te faqja IMDb e një filmi, te një trailer ose te ky

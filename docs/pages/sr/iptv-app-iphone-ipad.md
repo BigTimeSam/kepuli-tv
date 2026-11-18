@@ -55,6 +55,10 @@ portal koji već imaš.
 - **Prati način na koji držiš uređaj**, uspravno ili položeno, i preko celog
   ekrana.
 - **Ekran ostaje uključen** dok se slika pušta.
+- **Zvuk se nastavlja** kad napustiš aplikaciju ili zaključaš ekran dok se
+  nešto pušta. Zaključani ekran i Kontrolni centar ga pauziraju i
+  nastavljaju. **Slika u slici** u meniju ☰ drži sliku na vidiku preko
+  drugih aplikacija.
 - **Otvori u VLC-u** u meniju ☰ prosleđuje strim aplikaciji VLC. Bez VLC-a
   otvara se njegova stranica u App Storeu.
 - **Linkovi** ka IMDb stranici filma, ka trejleru ili ka ovom uputstvu

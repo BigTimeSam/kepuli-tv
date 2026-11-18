@@ -62,6 +62,10 @@ Codes fiókot vagy a Stalker portált, amely már megvan.
 - **Követi, ahogyan az eszközt tartod**, állítva vagy fektetve, teljes
   képernyőn is.
 - **A képernyő bekapcsolva marad**, amíg kép megy.
+- **A hang szól tovább**, ha lejátszás közben elhagyod az alkalmazást vagy
+  zárolod a képernyőt. A zárolási képernyő és a Vezérlőközpont szünetelteti
+  és folytatja. A ☰ menüben a **Kép a képben** szem előtt tartja a képet más
+  alkalmazások fölött.
 - A ☰ menüben a **Megnyitás a VLC-ben** átadja az adatfolyamot a VLC
   alkalmazásnak. VLC nélkül az App Store nyílik meg az oldalán.
 - **A hivatkozások** egy film IMDb-oldalára, egy előzetesre vagy erre az

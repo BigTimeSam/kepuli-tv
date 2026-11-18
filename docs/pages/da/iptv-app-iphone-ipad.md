@@ -56,6 +56,10 @@ eller den Stalker-portal med, som du allerede har.
 - **Den følger den måde, du holder enheden på**, opret eller på siden, også
   i fuld skærm.
 - **Skærmen forbliver tændt**, mens et billede afspilles.
+- **Lyden fortsætter**, når du forlader appen eller låser skærmen, mens
+  noget afspilles. Låseskærmen og Kontrolcenter sætter den på pause og
+  genoptager den. **Billede i billede** i ☰-menuen holder billedet synligt
+  oven på andre apps.
 - **Åbn i VLC** i ☰-menuen giver streamen videre til VLC-appen. Uden VLC
   åbnes dens side i App Store.
 - **Links** til en films IMDb-side, en trailer eller denne vejledning åbnes

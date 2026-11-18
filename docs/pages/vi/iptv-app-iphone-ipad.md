@@ -57,6 +57,10 @@ Xtream Codes hoặc cổng Stalker mà bạn đã có.
 - **Ứng dụng theo cách bạn cầm thiết bị**, dọc hay ngang, cả khi toàn màn
   hình.
 - **Màn hình luôn sáng** trong khi hình đang phát.
+- **Âm thanh vẫn tiếp tục** khi bạn rời ứng dụng hoặc khóa màn hình trong
+  lúc đang phát. Màn hình khóa và Trung tâm điều khiển tạm dừng và tiếp tục
+  âm thanh. **Hình trong hình** trong menu ☰ giữ hình trong tầm mắt phía
+  trên các ứng dụng khác.
 - **Mở bằng VLC** trong menu ☰ chuyển luồng sang ứng dụng VLC. Nếu không có
   VLC, App Store mở ở trang của nó.
 - **Liên kết** tới trang IMDb của một phim, một đoạn giới thiệu hoặc hướng

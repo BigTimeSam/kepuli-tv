@@ -56,6 +56,10 @@ ali portal Stalker, ki ga že imaš.
 - **Sledi temu, kako držiš napravo**, pokonci ali ležeče, tudi v
   celozaslonskem načinu.
 - **Zaslon ostane vklopljen**, dokler se predvaja slika.
+- **Zvok teče naprej**, ko med predvajanjem zapustiš aplikacijo ali zakleneš
+  zaslon. Zaklenjeni zaslon in Nadzorno središče ga začasno ustavita in
+  nadaljujeta. **Slika v sliki** v meniju ☰ ohrani sliko na očeh nad drugimi
+  aplikacijami.
 - **Odpri v VLC** v meniju ☰ preda pretok aplikaciji VLC. Brez VLC se odpre
   njegova stran v App Storu.
 - **Povezave** do strani filma na IMDb, do napovednika ali do tega vodnika

@@ -55,6 +55,10 @@ nebo portál Stalker, který už máš.
 - **Řídí se tím, jak zařízení držíš**, na výšku nebo na šířku, i na celé
   obrazovce.
 - **Obrazovka zůstává zapnutá**, dokud se přehrává obraz.
+- **Zvuk hraje dál**, když během přehrávání opustíš aplikaci nebo zamkneš
+  obrazovku. Zamčená obrazovka a Ovládací centrum ho pozastaví a znovu
+  spustí. **Obraz v obraze** v nabídce ☰ drží obraz na očích nad ostatními
+  aplikacemi.
 - **Otevřít ve VLC** v nabídce ☰ předá stream aplikaci VLC. Bez VLC se
   otevře její stránka v App Storu.
 - **Odkazy** na stránku filmu na IMDb, na trailer nebo na tento návod se

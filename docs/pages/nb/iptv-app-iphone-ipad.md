@@ -55,6 +55,9 @@ Stalker-portalen du allerede har.
 - **Den følger måten du holder enheten på**, stående eller liggende, også i
   fullskjerm.
 - **Skjermen holder seg på** mens et bilde spilles.
+- **Lyden fortsetter** når du forlater appen eller låser skjermen mens noe
+  spilles. Låseskjermen og Kontrollsenter setter den på pause og starter den
+  igjen. **Bilde-i-bilde** i ☰-menyen holder bildet synlig over andre apper.
 - **Åpne i VLC** i ☰-menyen overlater strømmen til VLC-appen. Uten VLC åpnes
   siden dens i App Store.
 - **Lenker** til en films IMDb-side, en trailer eller denne veiledningen

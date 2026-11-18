@@ -57,6 +57,9 @@ vai Stalker portālu, kas tev jau ir.
 - **Tā pielāgojas tam, kā turi ierīci**, stāvus vai guļus, arī pilnekrāna
   režīmā.
 - **Ekrāns paliek ieslēgts**, kamēr tiek atskaņots attēls.
+- **Skaņa turpinās**, kad aizver lietotni vai bloķē ekrānu, kamēr kaut kas
+  tiek atskaņots. Bloķēšanas ekrāns un Vadības centrs to aptur un atsāk.
+  **Attēls attēlā** ☰ izvēlnē patur attēlu redzamu virs citām lietotnēm.
 - **Atvērt VLC** ☰ izvēlnē nodod straumi lietotnei VLC. Ja VLC nav, App
   Store atver tā lapu.
 - **Saites** uz filmas IMDb lapu, treileri vai šo ceļvedi atveras virs

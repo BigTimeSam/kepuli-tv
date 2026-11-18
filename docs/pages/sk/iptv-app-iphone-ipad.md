@@ -56,6 +56,10 @@ Codes alebo portál Stalker, ktorý už máš.
 - **Riadi sa tým, ako zariadenie držíš**, na výšku alebo na šírku, aj na
   celej obrazovke.
 - **Obrazovka zostáva zapnutá**, kým sa prehráva obraz.
+- **Zvuk hrá ďalej**, keď počas prehrávania opustíš aplikáciu alebo zamkneš
+  obrazovku. Zamknutá obrazovka a Ovládacie centrum ho pozastavia a znova
+  spustia. **Obraz v obraze** v ponuke ☰ drží obraz na očiach nad ostatnými
+  aplikáciami.
 - **Otvoriť vo VLC** v ponuke ☰ odovzdá stream aplikácii VLC. Bez VLC sa
   otvorí jej stránka v App Store.
 - **Odkazy** na stránku filmu na IMDb, na trailer alebo na tento návod sa

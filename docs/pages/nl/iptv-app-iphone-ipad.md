@@ -60,6 +60,10 @@ Codes-account of het Stalker-portal mee dat je al hebt.
 - **De app volgt hoe je het apparaat vasthoudt**, rechtop of op zijn kant,
   ook in volledig scherm.
 - **Het scherm blijft aan** zolang er beeld speelt.
+- **Het geluid gaat door** als je de app verlaat of het scherm vergrendelt
+  terwijl er iets speelt. Het toegangsscherm en het bedieningspaneel
+  pauzeren en hervatten het. **Beeld-in-beeld** in het ☰-menu houdt het
+  beeld in zicht boven andere apps.
 - **Openen in VLC** in het ☰-menu geeft de stream door aan de VLC-app.
   Zonder VLC opent de App Store op de pagina ervan.
 - **Links** naar de IMDb-pagina van een film, een trailer of deze

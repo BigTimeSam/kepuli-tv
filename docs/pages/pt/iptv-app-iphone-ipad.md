@@ -60,6 +60,10 @@ portal Stalker que já tem.
 - **Ele acompanha o jeito de segurar o dispositivo**, em pé ou deitado,
   também em tela cheia.
 - **A tela fica ligada** enquanto uma imagem é reproduzida.
+- **O som continua** quando você sai do aplicativo ou bloqueia a tela
+  enquanto algo é reproduzido. A tela bloqueada e a Central de Controle
+  pausam e retomam o som. **Imagem em imagem**, no menu ☰, mantém a imagem à
+  vista por cima de outros aplicativos.
 - **Abrir no VLC**, no menu ☰, passa a transmissão para o aplicativo VLC.
   Sem o VLC, a App Store abre na página dele.
 - **Links** para a página de um filme no IMDb, um trailer ou este guia abrem
