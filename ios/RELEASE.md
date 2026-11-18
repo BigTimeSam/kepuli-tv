@@ -223,12 +223,60 @@ owner's Apple account (made for the Safari extension, `safari/AGENTS.md`;
 the team's identifier is in `~/.config/kepuli-tv/safari/team`). Such a
 personal team signs a Debug build for a device the owner connects and
 trusts; the build runs for seven days, and TestFlight and the App Store
-stay closed to it. Not tried for this app: the Cast SDK's local-network
-entitlement and the notification's are plain capabilities and should
-sign, but only a build says. The owner's iPhone is known to this Mac and
-was not connected when this was written.
+stay closed to it. It signed this app as it is, Cast and notifications
+included.
 
-Nothing ran on hardware. Each line
+**The first run on hardware, 2026-11-18 and 19**: the owner's iPhone 17
+Pro Max on iOS 26.7.3, the Debug build of 1.14.0 signed by that personal
+team (Developer Mode turned on in the phone's settings, then the
+developer trusted under General, VPN & Device Management; the build
+command of step 1 above without the three `-authenticationKey…`
+arguments, as Xcode's own account signs). The owner held the phone and
+said what was seen and heard. No iPad yet, and no TestFlight build, so
+no line is ticked; what the iPhone showed:
+
+- Held: an account on https at a public host name connects, channels and
+  MKV episodes play; the AC-3 episode is heard (decoded by the player,
+  encoded again by the phone's own AAC encoder); the sound is heard with
+  the ring switch on silent; the home gesture and the lock leave the
+  sound on, the lock screen names the series and the episode with its
+  picture, and its Pause holds and its Play starts; turning the phone;
+  full screen by the corner button, a double tap and a swipe down;
+  picture in picture from the menu, over the home screen and back;
+  Chromecast's first use (Google's note, the local-network question, the
+  list), an MP4 film taken over from its place, the phone's volume
+  buttons, Stop casting playing on here, the television playing on
+  through two minutes of a locked phone, an MKV film answered with the
+  sentence that it plays here; a reminder arriving with the app closed
+  and its tap playing the channel, after the system's question at the
+  first reminder; Open in VLC.
+- Differed: an account at an address on the local network (plain http,
+  the Mac's mock) connected and loaded its lists **without any question
+  from the system**, before Cast had been used. The line below expects
+  the question; why none came is not known.
+- Found and changed: the reminder's message lay over the bar under the
+  picture for its minute with only its own button to end it; the strip
+  can now be swiped away (`js/toast.js`).
+- Not yet tried on it: plain http at a public host name, an hour of a
+  channel and a large list, a call and headphones, a `.m3u` from Files,
+  rotation lock, a live channel cast, artwork in Google's remote
+  control, a film ending on the television behind a locked phone, the
+  keyboard's behaviour in the setup fields, the dark theme's keyboard
+  and dialogs, notifications refused and then allowed, a link over full
+  screen, WebKit's own full-screen mark and a pinch, Bluetooth never
+  asked for.
+
+The app's debug bridge reaches a device too: its files are in the app's
+data container, which `xcrun devicectl device copy to` and `copy from`
+(`--domain-type appDataContainer --domain-identifier
+io.github.bigtimesam.kepulitv.debug`, under
+`Library/Caches/kepuli-debug/`) write and read, so code can be run in the
+page of a connected, unlocked phone with the app in front, as
+`ios/sim.mjs eval` does in a simulator. The hosted demo leaves the AC-3
+episode out (`KEPULI_MOCK_REVIEW`): for that line run the mock on the
+Mac (`KEPULI_MOCK_HOST=0.0.0.0`) and give the phone the Mac's address.
+
+Each line
 is seen on an iPhone and an iPad signed with the owner's team, first from
 the device build and then from the TestFlight build, and ticked here
 (`- [x]`) by whoever saw it. `node ios/release.mjs status` prints the list,
