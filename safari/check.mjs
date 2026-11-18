@@ -137,8 +137,12 @@ const SCENARIOS = {
   async live() {
     ask(`(${MUTE.replace(';', '')}, document.getElementById('btn-home').click(), document.getElementById('tab-live').click(), true)`);
     await sleep(1500);
-    const name = ask(`(document.querySelectorAll('#list .row')[2].querySelector('.row-name') || document.querySelectorAll('#list .row')[2]).textContent.trim().slice(0, 40)`);
-    assert(/^pressed/.test(press(name)), `the row "${name}" was not pressed`);
+    // The row by its own spoken name ("Maple Cinema Action, 13.00 Silent
+    // Fjord"): the channel's name alone is also on a card of the start page
+    // once the channel has been watched, and the press went there instead.
+    const row = ask(`(() => { const r = document.querySelectorAll('#list .row')[2]; return { name: (r.querySelector('.row-name') || r).textContent.trim(), spoken: r.getAttribute('aria-label') }; })()`);
+    const name = row.name;
+    assert(/^pressed/.test(press(row.spoken || name)), `the row "${row.spoken || name}" was not pressed`);
     const at = await playing(`the channel "${name}"`);
     const how = await engine();
     assert(how === 'hls' && at.width > 0, `the channel plays through ${how}, ${at.width} px wide`);
