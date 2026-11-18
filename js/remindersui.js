@@ -50,6 +50,18 @@ export async function loadReminders() {
 // a viewer who said no is not asked at every reminder — and Settings has
 // its switch from then on.
 const NOTIFICATIONS = { permissions: ['notifications'] };
+/**
+ * Whether a reminder can be the system's notification here at all. Safari
+ * has no `notifications` permission for an extension, and its manifest is
+ * made without it (safari/build.mjs). It is the manifest that is asked and
+ * not the browser: measured in Safari 26.5, permissions.request for
+ * `notifications` resolved true all the same, with no notifications API
+ * behind it, so the switch in Settings went on and nothing was ever shown;
+ * and the page's own Notification is refused there after its question was
+ * answered Allow. In Chrome and Firefox the API itself is not there until
+ * the permission is granted, so it cannot be the test either.
+ */
+export const canNotify = ios || Boolean(api?.runtime?.getManifest?.()?.optional_permissions?.includes('notifications'));
 export let notifying = false;
 let notifyAsked = true;
 // The app has just said that the system refuses, and where that is changed.
@@ -73,7 +85,7 @@ const appAllows = (answer) => answer.on === true && answer.system === 'granted';
 export async function loadNotifying() {
   // The start of the player waits for this: a short wait for the app.
   notifying = ios ? await request('notify.get', {}, 3000).then(appAllows, () => false)
-    : Boolean(await api.permissions?.contains(NOTIFICATIONS).catch(() => false));
+    : canNotify && Boolean(await api.permissions?.contains(NOTIFICATIONS).catch(() => false));
   notifyAsked = (await api.storage.local.get('notifyAsked')).notifyAsked === true;
 }
 
@@ -97,6 +109,7 @@ export function onNotifying(changed) {
 
 /** Notifications allowed or taken back. Called in a click: the browser asks only then. */
 export async function setNotifying(on) {
+  if (!canNotify) return false;
   notifyAsked = true;
   api.storage.local.set({ notifyAsked: true });
   try {
@@ -163,7 +176,7 @@ export function toggleReminder(channel, programme) {
   else {
     reminders.set(key, { channel: stripItem(channel), title: programme.title, start: programme.start, stop: programme.stop });
     // Asked before anything is awaited: the click is spent by the first await.
-    const asking = !(notifying || notifyAsked || !api.permissions);
+    const asking = canNotify && !(notifying || notifyAsked || !api.permissions);
     const allowed = asking ? setNotifying(true) : Promise.resolve(notifying);
     allowed.then((on) => {
       // Refused at this first question in the app: what was said of it is
