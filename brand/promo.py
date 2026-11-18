@@ -82,6 +82,9 @@ def store_icon(out, art=96, canvas=128):
     print(f'{out.split("/")[-1]}  {canvas}x{canvas}  artwork {tv.width}x{tv.height}')
 
 store_icon(f'{BRAND}/store-icon-128.png')
+# The Edge Add-ons store's logo: 300 px asked for, and no padding rule of
+# its own, so the same proportion of art to canvas as Chrome's.
+store_icon(f'{BRAND}/store-icon-300.png', art=225, canvas=300)
 tile(440, 280,  0.74, 46, 17, 22, 26,
      ['Xtream Codes IPTV', 'straight in the browser'],
      f'{BRAND}/promo-small-440x280.png')

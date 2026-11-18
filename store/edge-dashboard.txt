@@ -1,0 +1,145 @@
+Kepuli-TV — Microsoft Edge Add-ons: the Partner Center fields
+=============================================================
+Edge runs the Chrome package as it is (dev/AGENTS.md), so what goes to this
+store is that package under its own name and the Chrome listing's texts.
+This file holds what Partner Center asks, in the order it asks it. Where a
+text is the Chrome dashboard's, it is named and not repeated: it lives in
+store/chrome-dashboard.txt.
+
+Not submitted yet. Nothing is uploaded or sent for certification without
+the owner's go in the conversation at hand (AGENTS.md, rule 2).
+
+What Microsoft says of the form was read on 2026-11-18, at
+learn.microsoft.com/microsoft-edge/extensions/publish/ (create-dev-account,
+publish-extension) and …/extensions/update/api/using-addons-api. Read them
+again before relying on a limit below.
+
+
+--- THE ACCOUNT (the owner's, once) -----------------------------------------
+  1. https://partner.microsoft.com/dashboard/microsoftedge/public/login
+     with a personal Microsoft account (Outlook.com, Live.com, Hotmail.com;
+     one can be made from a GitHub account). A work or school account is
+     refused. There is no fee.
+  2. Account type: Individual. A company account is verified for days to
+     weeks, with documents and phone calls, and the type cannot be changed
+     afterwards. Country: as it is; it cannot be changed either.
+  3. Publisher display name (50 characters at most): the name the store
+     shows under the extension. The Chrome Web Store and AMO show
+     BigTimeSam.
+  4. Contact details, the Microsoft Store App Developer Agreement, Finish.
+     Microsoft confirms by email; the state is under Account settings.
+  No identifier or key of the account is written into the repository: the
+  publish API's are for ~/.config/kepuli-tv/edge.json (see the end).
+
+
+--- THE PACKAGE (Packages) --------------------------------------------------
+kepuli-tv-edge-<version>.zip, from
+
+  node dev/package.mjs --zip --edge
+
+It is the Chrome zip, byte for byte, under the store's name, so that the
+file picked in Partner Center cannot be the Firefox one. The name and the
+short description come from the manifest and _locales/, in every language
+the package carries; there is no field to type them into.
+
+
+--- AVAILABILITY ------------------------------------------------------------
+Visibility: Public. Markets: all, with future ones.
+
+
+--- PROPERTIES --------------------------------------------------------------
+Category:        Entertainment
+Website:         https://bigtimesam.github.io/kepuli-tv/
+Support contact: https://github.com/BigTimeSam/kepuli-tv/issues
+Mature content:  not ticked
+
+
+--- PRIVACY -----------------------------------------------------------------
+The texts are the Chrome dashboard's, under "THE PRIVACY PRACTICES TAB" in
+store/chrome-dashboard.txt. Where one of them says Chrome, write "the
+browser" here.
+
+Single purpose description:  SINGLE PURPOSE DESCRIPTION
+Permission justifications, one box per permission of the manifest:
+  storage                              STORAGE JUSTIFICATION
+  unlimitedStorage                     UNLIMITEDSTORAGE JUSTIFICATION
+  alarms                               ALARMS JUSTIFICATION (the text, not
+                                       the "Asked for since" line)
+  notifications                        NOTIFICATIONS JUSTIFICATION
+  declarativeNetRequestWithHostAccess  DECLARATIVENETREQUESTWITHHOSTACCESS
+                                       JUSTIFICATION (the last paragraph)
+  host permissions, if asked           HOST PERMISSION JUSTIFICATION
+Remote code:                 No.
+Data usage:                  as the Chrome checkboxes: authentication
+                             information alone, and every certification.
+Privacy policy URL:          https://bigtimesam.github.io/kepuli-tv/privacy/
+
+
+--- STORE LISTINGS (per language) -------------------------------------------
+Description (250 to 10,000 characters): the Chrome one, the second block
+of dist/listings/<locale>.txt ("DETAILED DESCRIPTION (Chrome: …"), which
+leaves the video section out, as this store has a field for the video
+too. node dev/listings.mjs writes those files; the shortest is about
+3,000 characters and the longest 3,600. English first; the other languages
+are offered by the store once the package carries them, and each needs
+its description before Publish is enabled. Add them in a second round if
+the first is to go out sooner: a language row left incomplete blocks the
+submission.
+
+Extension logo:          brand/store-icon-300.png (300x300, transparent)
+Small promotional tile:  brand/promo-small-440x280.png
+Large promotional tile:  brand/promo-marquee-1400x560.png
+Screenshots (six at most, 1280x800): brand/screenshots/01-channels.png …
+                         05-movie.png, in that order
+  "Duplicate" copies the pictures to every language.
+YouTube video URL:       https://youtu.be/Wr4FcXlTbOM
+
+Search terms (seven at most, 21 words in all, 30 characters each; not
+shown to readers). In English:
+  IPTV player
+  Xtream Codes
+  M3U playlist
+  Stalker portal
+  programme guide EPG
+  MKV player
+  live TV recorder
+
+
+--- NOTES FOR CERTIFICATION -------------------------------------------------
+Microsoft's testers run the extension; they will not build a server. The
+project's hosted demo (the invented provider of dev/mock/, on Fly.io, made
+for the App Store's review) serves them too. Its address is "demoUrl" in
+~/.config/kepuli-tv/ios/appstore.json and replaces <DEMO HOST> below when
+the notes are pasted; it is never written here.
+
+The extension plays the user's own IPTV subscription and contains no content. To test it, use this demo account (invented content only, made for review):
+
+1. Click the extension's toolbar button: the player opens in a tab.
+2. In the account form choose Xtream Codes. Protocol: HTTPS. Server: <DEMO HOST>. Port: 443. Username: demo. Password: demo. Press Connect and allow access to that one host when Edge asks.
+3. Choose a country and a channel: it plays. Press g for the programme guide.
+4. Movies and Series hold demo films; Series > Nordic Noir > Silent Fjord is an MKV file with subtitles.
+
+Every title, channel and programme in the demo is fictional and belongs to the project. The source is at github.com/BigTimeSam/kepuli-tv.
+
+
+--- AFTER THE FIRST PUBLICATION: THE PUBLISH API ----------------------------
+A new product is made in Partner Center, and so are its texts and
+pictures: the API has no endpoint for either. What it does is replace the
+package of a product that exists and send it for certification, which is
+what a release needs. No tool for it is written yet; when the product
+exists:
+
+  Partner Center → Microsoft Edge → Publish API → Enable the new
+  experience (v1.1) → Create API credentials: a Client ID and an API key
+  (it has an expiry date). With the product's ID (the GUID in the
+  dashboard's address, between microsoftedge/ and /packages) they go to
+  ~/.config/kepuli-tv/edge.json, mode 600, outside the project.
+
+  Base  https://api.addons.microsoftedge.microsoft.com
+  Headers  Authorization: ApiKey <key>, X-ClientID: <client id>
+  POST /v1/products/<id>/submissions/draft/package   (application/zip)
+  GET  /v1/products/<id>/submissions/draft/package/operations/<operation>
+  POST /v1/products/<id>/submissions                 ({"notes": "…"})
+  GET  /v1/products/<id>/submissions/operations/<operation>
+
+Certification can take up to seven business days.

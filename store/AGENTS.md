@@ -15,6 +15,7 @@ behind them in [development.md → Publishing to the stores](../docs/development
 | `translations.json` | per language, hashes of the English each key and listing was translated from | `dev/translations.mjs --mark` only |
 | `cws-listing.json` | per language, a hash of the description last put in the Chrome dashboard | `dev/cws-listing-fill.mjs` / `cws-publish.mjs listing --done` only |
 | `amo-screenshots.json` | a hash of each picture last uploaded to AMO, read by `amo-screenshots.mjs --check` in `dev/release.mjs` | `dev/amo-screenshots.mjs` / `--done` only |
+| `edge-dashboard.txt` | every Partner Center field for the Microsoft Edge Add-ons store, in the form's order: the account, the package, the texts it shares with the Chrome dashboard, pictures, search terms, the notes for certification, the publish API. Not submitted yet | hand / agent |
 | `appstore.txt` | every App Store Connect field for the iPhone and iPad app: name, subtitle, keywords, promotional text and description in English and Finnish, URLs, categories, the privacy label, the age-rating answers, export compliance, the review notes, the screenshot plan | hand / agent |
 
 `_locales/` (the manifest's translated name and summary) and `dist/listings/`

@@ -81,6 +81,7 @@ does what a page cannot there. The page knows which by its address
 | `docs/` | GitHub Pages (`index.html` generated from README, the guides from `docs/pages/`, privacy, terms) and the long docs |
 | `.github/`, `SECURITY.md` | the workflows (`.github/workflows/ci.yml` is the tests) and the steps they share (`.github/actions/`), Dependabot, and the security policy; `dev/AGENTS.md` has the pipeline |
 | `store/chrome-dashboard.txt` | the Chrome Web Store dashboard fields and the store procedures |
+| `store/edge-dashboard.txt` | the Microsoft Edge Add-ons store's Partner Center fields; the texts it shares are the Chrome dashboard's |
 | `store/appstore.txt` | every App Store Connect field for the iPhone and iPad app: texts in English and Finnish, privacy and age answers, review notes |
 
 Long-form documentation: [user guide](docs/user-guide.md),

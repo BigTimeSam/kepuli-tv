@@ -5,7 +5,7 @@ Excluded from the release packages (`dev/package.mjs` packs an allowlist).
 | Path | What |
 | --- | --- |
 | `tv-master-1024.png`, `tv-full.png`, `tv-compact.png`, `tv-master-prompt.txt` | the icon's master art: a retro CRT television in the app's palette (purple `#7c5cff`, screen `#22d3ee`, knobs `#ffc857`) |
-| `store-icon-128.png`, `promo-small-440x280.png`, `promo-marquee-1400x560.png`, `promo.py` | the Chrome Web Store's icon and promo tiles; `uv run --with pillow python3 brand/promo.py` remakes the tiles |
+| `store-icon-128.png`, `store-icon-300.png`, `promo-small-440x280.png`, `promo-marquee-1400x560.png`, `promo.py` | the Chrome Web Store's icon, the Edge Add-ons store's logo and the promo tiles both take; `uv run --with pillow python3 brand/promo.py` remakes the tiles |
 | `guide-art-prompt.txt` | how the guides' illustrations in `docs/img/guides/` were made: the shared style prompt, each page's subject, the commands |
 | `android-tv-banner-1280x720.png`, `android-tv-banner-prompt.txt` | the Android TV app's launcher banner (also Google Play's TV banner), and how Codex made it from the icon's master |
 | `screenshots/0N-*.png` | the Chrome Web Store set: five 1280×800 24-bit PNGs without alpha |
