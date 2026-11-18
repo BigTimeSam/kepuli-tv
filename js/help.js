@@ -6,9 +6,8 @@
 // builds, from js/state.js.
 
 import { $ } from './dom.js';
-import { ios } from './host.js';
 import { t } from './i18n.js';
-import { inApp, remote } from './caret.js';
+import { inApp, ios, remote } from './platform.js';
 
 /**
  * The shortcuts, the few that nearly everyone needs first — the picture,

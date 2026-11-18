@@ -4,7 +4,7 @@
 // player open or not, and by an open player in view in its own message
 // strip as well, with Watch.
 //
-// In the app for the iPhone and the iPad (js/host.js) there is no
+// In the app for the iPhone and the iPad (js/platform.js) there is no
 // background.js: the app is handed the reminders still ahead and schedules
 // each as a notification of the system's, which is said with the app
 // closed too; one tapped comes back as `reminder.open`.
@@ -14,7 +14,9 @@
 
 import { api } from './browser.js';
 import { $, el } from './dom.js';
-import { ios, on, reminderItems, request, send } from './host.js';
+import { ios } from './platform.js';
+import { on, request, send } from './host.js';
+import { reminderItems } from './iosapp.js';
 import { clock } from './format.js';
 import { reminderDelay } from './epggrid.js';
 import { t } from './i18n.js';

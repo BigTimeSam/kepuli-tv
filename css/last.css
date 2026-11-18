@@ -147,7 +147,7 @@ input[type="search"], input[type="text"], input[type="url"], input:not([type]) {
   .side-scroll.compact .side-scroll-arrow.next { right: -8px; }
 }
 
-/* The app for the iPhone and the iPad (js/host.js; the page opened with
+/* The app for the iPhone and the iPad (js/iosapp.js; the page opened with
    ?ios=1). What the app cannot answer or does not offer is left out: the
    page is the whole screen already, the app grants a provider's host
    itself, there is no browser's Back to explain, and nothing is recorded
@@ -250,7 +250,7 @@ html.ios :is(input, textarea, .detail-plot, .plot, .epgdesc, .epgv-desc) { -webk
 .app #help #help-keys { grid-template-columns: max-content 1fr; }
 .app #help #help-keys dt { white-space: normal; max-width: 9rem; }
 /* The app as a small window over other apps (picture in picture, .pip set
-   by js/remote.js when the app says so): the picture and its subtitles
+   by js/androidapp.js when the app says so): the picture and its subtitles
    fill the window. Nothing in it can be pressed, so what is drawn over the
    picture for pressing is left out, and a dialog that was open waits out
    of sight. The phone's layout keeps the player's pane hidden while the

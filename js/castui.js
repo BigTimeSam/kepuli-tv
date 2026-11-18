@@ -102,7 +102,7 @@ export function redrawCasting(foundOnly = false) {
 
 /**
  * Whether a Chromecast plays for this page, so that nothing plays here:
- * the app is told that nothing is on (js/remote.js), or its notification
+ * the app is told that nothing is on (js/androidapp.js), or its notification
  * and the small window would stand for a picture that is on a television.
  */
 export const castingNow = () => Boolean(casting);

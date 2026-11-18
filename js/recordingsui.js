@@ -18,7 +18,7 @@ import { updateSetupActions } from './setupui.js';
 import { cancelAutoNext } from './nextepisode.js';
 import { renderAudio, renderSubtitles, sizePicture } from './tracksui.js';
 import { channelKey, itemAddress, newPlayRun, playItem, renderNowLogo, renderNowSub, startPlayback } from './playing.js';
-import { ios } from './host.js';
+import { ios } from './platform.js';
 import { toast } from './toast.js';
 import { $, el } from './dom.js';
 import { emptyState, icon } from './rows.js';

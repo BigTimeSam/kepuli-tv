@@ -172,7 +172,7 @@ dialog::backdrop { background: var(--backdrop); backdrop-filter: blur(2px); }
 .setup-actions .armed { color: #fff; background: var(--danger); border-color: var(--danger); }
 
 /* A keyboard up over a window that keeps its height (an upright iPad in
-   the app; js/host.js says so with html.kb, what is in sight as --vvh and
+   the app; js/iosapp.js says so with html.kb, what is in sight as --vvh and
    where it begins as --vvt): a dialog stands at the top of what is in
    sight, no higher than it, and scrolls as one, its buttons with its
    fields, as in a low window (css/narrow.css). Centred in the whole

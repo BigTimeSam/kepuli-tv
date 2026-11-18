@@ -14,7 +14,7 @@
 import { $ } from './dom.js';
 import { send } from './host.js';
 import { t } from './i18n.js';
-import { remote } from './caret.js';
+import { remote } from './platform.js';
 
 export const THEMES = ['dark', 'light', 'system'];
 const KEY = 'kepuli-theme';

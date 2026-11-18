@@ -26,21 +26,17 @@
 // desktop browser. Nothing here runs for a viewer with a keyboard.
 //
 // The Android app on a phone or a tablet opens player.html?app=1 instead:
-// touch drives the player there as it does in Firefox for Android, and the
-// one thing taken from here is Back, which that app sends as Escape too.
+// touch drives the player there as it does in Firefox for Android, and its
+// Back, which that app sends as Escape too, is js/androidapp.js's.
 
-import { api } from './browser.js';
 import { $, el } from './dom.js';
 import { state, vlist } from './state.js';
 import { scrubStep, towards } from './listnavigation.js';
 import { gridColumns } from './coversui.js';
 import { enterFullscreen, togglePause } from './playercontrols.js';
-import { inApp, remote } from './caret.js';
-import { castingNow } from './castui.js';
-import { appPort } from './host.js';
+import { remote } from './platform.js';
 import { dismissToast } from './toast.js';
 
-export { remote };
 
 const ARROWS = { ArrowLeft: [-1, 0], ArrowRight: [1, 0], ArrowUp: [0, -1], ArrowDown: [0, 1] };
 // What the focus may go to. The stars and the menus inside rows are left
@@ -66,14 +62,6 @@ let held = null;
  */
 export function wireRemote(app) {
   hooks = app;
-  // On the window, ahead of every handler of the page's own: a menu that
-  // closed itself first left nothing open to be seen here, and the same
-  // Back went on to leave the app.
-  if (inApp) {
-    document.documentElement.classList.add('app');
-    window.addEventListener('keydown', onAppBack, true);
-    talkWithApp();
-  }
   if (!remote) return;
   document.documentElement.classList.add('tv');
   document.addEventListener('keydown', onKeyDown, true);
@@ -92,81 +80,9 @@ export function wireRemote(app) {
   document.addEventListener('fullscreenchange', () => { showBanner(); if (!document.fullscreenElement) { endScrub(false); focusList(); } });
 }
 
-/** Whether the page is the Android app's on a phone or a tablet. */
-
-/**
- * The page's line to the Android app around it ("kepuli", answered by
- * the app's PlayerActivity; only the app's copy of the manifest lets the
- * page open it). The app says when it has become a small window over
- * other apps (picture in picture), where the page is to be the picture
- * and nothing else, and which channel a reminder's notification asked
- * for when the app had not been running to hear of it, and what was
- * pressed on its playback notification, a headset or the lock screen.
- * The page says the picture's shape, which the small window takes, and
- * what is on and whether it plays: the app keeps the sound going out of
- * sight on that word. (The engine has a media session of its own for
- * this, but it never came to life for the app, GeckoView 160.)
- */
-function talkWithApp() {
-  // The one line to the app (js/host.js), which the cast session's words
-  // share: these have no type, and those are told apart by theirs.
-  const port = appPort();
-  if (!port) return;
-  port.onMessage.addListener((message) => {
-    if (typeof message?.pip === 'boolean') document.documentElement.classList.toggle('pip', message.pip);
-    const press = message?.press;
-    if (press === 'next' || press === 'previous') hooks.zap(press === 'next' ? 1 : -1);
-    else if ((press === 'play' && el.video.paused) || (press === 'pause' && !el.video.paused)) togglePause();
-    // The same word background.js leaves of a clicked notification
-    // (js/remindersui.js plays it). The app may have been started by the
-    // press: the word waits for the lists, as it is thrown away unplayed
-    // when it comes before the account is known.
-    if (message?.watch) connected().then(() => api.storage.local.set({ watchAsked: { ...message.watch, at: Date.now() } }));
-  });
-  let told = '';
-  const tell = () => {
-    const metadata = navigator.mediaSession?.metadata;
-    const now = {
-      on: Boolean(state.playing) && !castingNow(), playing: Boolean(state.playing) && !el.video.paused && !el.video.ended,
-      title: metadata?.title || '', artist: metadata?.artist || '', live: state.playing?.k === 0,
-    };
-    const text = JSON.stringify(now);
-    if (text !== told) port.postMessage({ now });
-    told = text;
-  };
-  // The time's ticks carry a change of programme, which is no event of
-  // the picture's.
-  for (const event of ['play', 'playing', 'pause', 'ended', 'emptied', 'timeupdate']) el.video.addEventListener(event, tell);
-  const shape = () => { if (el.video.videoWidth) port.postMessage({ shape: [el.video.videoWidth, el.video.videoHeight] }); };
-  el.video.addEventListener('loadedmetadata', shape);
-  el.video.addEventListener('resize', shape);
-}
-
-/** Resolves when an account's lists are in, or after two minutes without. */
-async function connected() {
-  for (let waited = 0; !state.lib && waited < 120e3; waited += 300) await new Promise((done) => setTimeout(done, 300));
-}
-
-/**
- * A phone's Back in the Android app. Whatever is open closes itself on
- * Escape, and a field with text in it gives the text up; with nothing
- * open Back leaves the player's pane for the list, or a series' page, and
- * from the list the app (window.close(), which the app answers by
- * stepping back).
- */
-function onAppBack(e) {
-  if (e.key !== 'Escape' || document.fullscreenElement || layer() !== document.body || !el.listProgress.hidden) return;
-  // The guide has an Escape of its own: its sheet, its search, then itself.
-  if (el.main.classList.contains('guide-sheet') || hooks.guideRow() >= 0) return;
-  const active = document.activeElement;
-  if (active instanceof HTMLInputElement && active.value && isText(active)) return;
-  swallow(e);
-  if (!hooks.back()) window.close();
-}
-
 // A field being handed to the television's keyboard, in onKeyDown.
 let typing = false;
-const isText = (node) => node instanceof HTMLTextAreaElement
+export const isText = (node) => node instanceof HTMLTextAreaElement
   || (node instanceof HTMLInputElement && !['checkbox', 'radio', 'range', 'button', 'submit', 'file', 'color'].includes(node.type));
 
 // What a folded section holds still has a box (content-visibility), and
@@ -176,7 +92,7 @@ const listShown = () => visible(el.list);
 const focusList = () => { if (listShown()) el.list.focus({ preventScroll: true }); };
 
 /** The layer the focus is kept in: the topmost menu or dialog, else the page. */
-function layer() {
+export function layer() {
   const pops = document.querySelectorAll(':popover-open');
   if (pops.length) return pops[pops.length - 1];
   for (const pop of [el.morePop, el.sublookPop, document.getElementById('topmenu-pop')]) if (pop && !pop.hidden) return pop;
@@ -348,7 +264,7 @@ function endScrub(jump) {
   if (jump && Number.isFinite(el.video.duration)) el.video.currentTime = target;
 }
 
-const swallow = (e) => { e.preventDefault(); e.stopPropagation(); };
+export const swallow = (e) => { e.preventDefault(); e.stopPropagation(); };
 
 function onKeyDown(e) {
   if (e.ctrlKey || e.metaKey || e.altKey) return;

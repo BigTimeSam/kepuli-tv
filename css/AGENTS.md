@@ -19,7 +19,7 @@ classes: plain CSS with custom properties.
 | `narrow.css` | the breakpoints that reshape the page's columns (1180, 980, 900, 600 px; 760 px for the guide in a phone's width), and the low window (a height of 440 px or less: a phone lying down) |
 | `pickers.css` | the selectors' chevron, the drop-down lists, the search fields' magnifier |
 | `recordings.css` | accounts and recordings |
-| `last.css` | what must win over everything above: optical alignment, the phone guide, what the iOS app leaves out (`.ios`, set by `js/host.js`), forced colours |
+| `last.css` | what must win over everything above: optical alignment, the phone guide, what the iOS app leaves out (`.ios`, set by `js/iosapp.js`), forced colours |
 
 A rule goes into the file of what it styles. One that has to override a
 rule of a later file goes after it (`narrow.css`, `last.css`): the order of
@@ -108,7 +108,7 @@ the page links them.
   beside it (a low window, where `narrow.css` puts the panel over the
   list).
 - **A keyboard over a window that keeps its height** (an upright iPad in
-  the app): `js/host.js` sets `html.kb` with `--vvh` (what is in sight) and
+  the app): `js/iosapp.js` sets `html.kb` with `--vvh` (what is in sight) and
   `--vvt` (where it begins), and a dialog stands at the top of that and
   scrolls as one (`dialogs.css`), its buttons kept at the foot of what is
   in sight where that is 300 px or more (`html.kb-tall`). An iPhone's

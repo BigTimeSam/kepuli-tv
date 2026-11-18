@@ -69,7 +69,7 @@ import java.util.regex.Pattern;
 public class PlayerActivity extends EngineActivity {
     private static final int PICK_FILE = 1;
     private static final int ASK_NOTIFICATIONS = 2;
-    /** The name the extension's two ends know the app by (background.js, js/remote.js). */
+    /** The name the extension's two ends know the app by (background.js, js/host.js). */
     private static final String LINE = "kepuli";
 
     private FrameLayout frame;
@@ -642,7 +642,7 @@ public class PlayerActivity extends EngineActivity {
     /**
      * The app opened from a notification. The extension hears of the press
      * when the notification was its own; for one the alarm showed, what to
-     * play was kept by the alarm, and the page is told (js/remote.js).
+     * play was kept by the alarm, and the page is told (js/androidapp.js).
      */
     private void pressed(Intent intent) {
         String id = intent == null ? null : intent.getStringExtra(Reminders.EXTRA_ID);
@@ -672,7 +672,7 @@ public class PlayerActivity extends EngineActivity {
     /* ---------------------------------------------------------- playback */
 
     /**
-     * What is on, as the page says it whenever it changes (js/remote.js):
+     * What is on, as the page says it whenever it changes (js/androidapp.js):
      * whether there is anything, whether it plays, its name, and whether
      * it is a channel, which has a next and a previous one.
      */
@@ -773,7 +773,7 @@ public class PlayerActivity extends EngineActivity {
         return window.build();
     }
 
-    /** The picture's size, as the page says it (js/remote.js). */
+    /** The picture's size, as the page says it (js/androidapp.js). */
     private void shape(int width, int height) {
         if (width <= 0 || height <= 0) return;
         // Android refuses a window narrower or wider than 2.39 to 1.

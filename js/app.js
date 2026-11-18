@@ -31,7 +31,9 @@ import { requestAccess, hasAccess, hasAccessEverywhere, requestAccessEverywhere,
 
 import { createCast, supported as castSupported } from './cast.js';
 import { renderCasting, sessionFound } from './castui.js';
-import { ios } from './host.js';
+import { ios, remote } from './platform.js';
+import './iosapp.js';
+import { wireAndroidApp } from './androidapp.js';
 import { caretWelcome } from './caret.js';
 import { warmCache, probeCacheTtl } from './probe.js';
 
@@ -40,7 +42,7 @@ import { pickEncoder } from './transcode.js';
 import * as store from './config.js';
 import { applyTheme, earlyTheme, onSystemTheme, renderTheme } from './theme.js';
 import { wirePickers } from './picker.js';
-import { remote, wireRemote } from './remote.js';
+import { wireRemote } from './remote.js';
 import { nf } from './format.js';
 import { t, applyStatic, setLanguage, loadLanguage } from './i18n.js';
 import { askRecordingConsent, closeRecordingConsent, loadRecordingList, openRecordings, retryPlayback, toggleRecordNow } from './recordingsui.js';
@@ -2351,7 +2353,9 @@ if (ios) {
   // that are not hidden (js/topmenu.js).
   $('btn-screen').hidden = true;
 }
-wireRemote({
+// What a television's remote control and the Android app's Back and
+// notification ask of the player (js/remote.js, js/androidapp.js).
+const driven = {
   open: () => { if (state.rows[state.cursor]) openItem(state.rows[state.cursor]); },
   first: () => moveCursor(1),
   group: moveGroupCursor,
@@ -2370,7 +2374,9 @@ wireRemote({
     return false;
   },
   guideRow: () => (guideOpen ? grid.cursorRow : -1),
-});
+};
+wireRemote(driven);
+wireAndroidApp(driven);
 
 async function init() {
   state.accounts = await store.loadAccounts();

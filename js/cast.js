@@ -33,7 +33,8 @@
 //    says what the device can be handed, and the session on the page is
 //    js/castui.js.
 
-import { native, on, request, send } from './host.js';
+import { native } from './platform.js';
+import { on, request, send } from './host.js';
 
 /**
  * Whether the browser can cast at all. Firefox has no API. The iPhone's

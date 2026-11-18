@@ -8381,7 +8381,7 @@ async function handoff(page) {
 }
 
 /**
- * The page in the app for the iPhone and the iPad (js/host.js), opened in
+ * The page in the app for the iPhone and the iPad (js/platform.js), opened in
  * this browser as player.html?ios=1 with the app's side of the port played
  * by the scenario: what a browser offers and the app does not is gone, the
  * words and the help are an app's, the screen is kept on by the app, VLC
@@ -9205,7 +9205,7 @@ async function iosappCourse(page, plain) {
   await evaluate(page, `document.getElementById('btn-home').click()`, { gesture: true });
 
   /* A press on a dialog's button while a field has the keyboard up is the
-     button's press, and the field keeps the focus (js/host.js): WebKit
+     button's press, and the field keeps the focus (js/iosapp.js): WebKit
      moved the focus first, the dialog moved under the finger as the
      keyboard went, and no click came. A touch here, as a finger makes it. */
   await page.call('Emulation.setDeviceMetricsOverride', { width: 402, height: 778, deviceScaleFactor: 1, mobile: true });
@@ -9433,7 +9433,7 @@ async function iosappTurned(page, assert) {
     assert(dialog, `${width} × ${height}: Settings does not fit the window`);
     if (width === 750) {
       // The device turned with the keyboard up: the field that has the
-      // focus is brought back into what is left of the window (js/host.js).
+      // focus is brought back into what is left of the window (js/iosapp.js).
       await evaluate(page, `(() => { document.querySelector('#setup .setup').scrollTop = 0; document.getElementById('f-password').focus(); return true; })()`);
       await size(750, 170);
       await sleep(500);
@@ -9579,7 +9579,7 @@ async function appcast(page, { target }) {
 }
 
 /**
- * Back in the Android app on a phone or a tablet (js/remote.js): the page
+ * Back in the Android app on a phone or a tablet (js/androidapp.js): the page
  * opened as player.html?app=1, as that app opens it, and Back sent as
  * Escape. With a drop-down open Back closes it and nothing else; from the
  * player's pane of the narrow layout it shows the list again; with nothing

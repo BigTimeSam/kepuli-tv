@@ -2326,10 +2326,12 @@ check('VLC for iOS is handed the stream address, encoded whole',
   check('nothing was reported as a failure while the stream came back', failed, null);
 }
 
-/* ------------------- the app around the page (iOS, Android): js/host.js */
+/* -- the app around the page: js/platform.js, js/host.js, js/iosapp.js */
 {
-  const { attach, on, request, send, ios, native, reminderItems } = await import('../js/host.js');
-  check('outside the apps the page is not told it is in one', [ios, native], [false, false]);
+  const { attach, on, request, send } = await import('../js/host.js');
+  const { ios, native, inApp, remote } = await import('../js/platform.js');
+  const { reminderItems } = await import('../js/iosapp.js');
+  check('outside the apps the page is not told it is in one', [ios, native, inApp, remote], [false, false, false, false]);
   // A port as runtime.connectNative gives one, with the app's side played here.
   const fakePort = () => {
     const port = { sent: [], listeners: [], closed: [],
@@ -2390,7 +2392,7 @@ check('VLC for iOS is handed the stream address, encoded whole',
 
   // The app's sound goes on behind another app: which pause is WebKit's
   // for leaving, to be answered with play(), and which the viewer's.
-  const { pausedByLeaving } = await import('../js/host.js');
+  const { pausedByLeaving } = await import('../js/iosapp.js');
   check('a pause 0.4 s before the page was hidden is WebKit\'s for leaving (measured on iOS 26.5)', pausedByLeaving(10000, 10400, 2000), true);
   check('and so is one just after the page was hidden', pausedByLeaving(10300, 10000, 2000), true);
   check('a pause long after the page was hidden is the viewer\'s, from the lock screen', pausedByLeaving(40000, 10000, 2000), false);
@@ -2484,7 +2486,7 @@ check('VLC for iOS is handed the stream address, encoded whole',
 
 /* ------------------------- i18n.js: words that are untrue in the iOS app */
 {
-  // The page is also an App Store app (js/host.js), where "the browser",
+  // The page is also an App Store app (js/platform.js), where "the browser",
   // "this tab" or "Chrome" is wrong text. A sentence shown there is worded
   // to be true in both places; one that still names a browser must be
   // listed here with why the app never shows it. A new string of the kind

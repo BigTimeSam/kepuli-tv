@@ -38,7 +38,7 @@ public class PlaybackService extends Service {
     private static final String TAG = "KepuliTV";
     private static final String CHANNEL = "playback";
     private static final int NOTIFICATION = 1;
-    /** What can be pressed, by the names the page knows (js/remote.js). */
+    /** What can be pressed, by the names the page knows (js/androidapp.js). */
     static final String PLAY = "play";
     static final String PAUSE = "pause";
     static final String NEXT = "next";

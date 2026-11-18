@@ -400,7 +400,7 @@ last position. `CHROMECAST.md` has the messages and the reasons.
 ### The app's port
 
 The page learns that it runs in the app from its address
-(`player.html?ios=1`), read once in `js/host.js`, which then opens one port
+(`player.html?ios=1`), read once in `js/platform.js`; `js/host.js` then opens one port
 with `runtime.connectNative` and puts `ios` on the `<html>` element. A
 message is `{ type, id?, …fields }` and a reply `{ re: id, ok, error?,
 …fields }`; `send` is fire and forget, `request` waits for the reply, and

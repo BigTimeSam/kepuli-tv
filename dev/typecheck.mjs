@@ -42,7 +42,7 @@ const TYPESCRIPT = 'typescript@5.9';
 const TYPED = ['js/config.js', 'js/library.js', 'js/api.js', 'js/sidescroll.js', 'js/svg.js',
   'js/playback.js', 'js/liveloader.js', 'js/wakelock.js', 'js/browser.js', 'js/channelprefs.js', 'js/db.js',
   'js/dom.js', 'js/ebml.js', 'js/epg.js', 'js/epggrid.js', 'js/fetchtext.js',
-  'js/format.js', 'js/guide.js', 'js/help.js', 'js/host.js', 'js/i18n.js',
+  'js/format.js', 'js/guide.js', 'js/help.js', 'js/host.js', 'js/platform.js', 'js/iosapp.js', 'js/androidapp.js', 'js/i18n.js',
   'js/international.js', 'js/lang.js', 'js/listorder.js', 'js/logos.js',
   'js/m3u.js', 'js/m3usource.js', 'js/mediafilters.js', 'js/mkv.js',
   'js/mp4.js', 'js/mp4file.js', 'js/mp4play.js', 'js/name.js',

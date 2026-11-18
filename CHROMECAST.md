@@ -209,7 +209,7 @@ The page draws two buttons and an overlay; every dialog is Google's.
 
 | Piece | What |
 | --- | --- |
-| `js/host.js` | the port to the app; `ios` is true under `player.html?ios=1` |
+| `js/platform.js`, `js/host.js` | which app is around the page (`ios` under `player.html?ios=1`, `inApp` under `?app=1`, `native` for either), and the port to it |
 | `js/cast.js` | `createCast()` gives `NativeCast` in the app and `Cast` elsewhere, the same shape to `js/app.js`; `castMedia(spec)` is the pure rule of what a device can be handed |
 | `js/castui.js` | the session: `castNative` (the menu item, the Cast mark on the top bar, `c`), `castOrPlay` (every start of playback goes through it), `renderCasting` (acts on each change of state), `castingLeft` |
 
@@ -306,7 +306,7 @@ app and searches by itself, and the Cast mark stands on the top bar once
 a device is found, in every layout. The press is passed on a second after the SDK's start,
 as Google's own assertion ended the app when it came at once, and a
 press that still meets the assertion is caught and made again
-(`ios/AGENTS.md`).
+(`ios/MEASURED.md`).
 
 ### Tested without a device
 

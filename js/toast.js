@@ -8,7 +8,7 @@ import { duration } from './format.js';
 import { el } from './dom.js';
 import { t } from './i18n.js';
 import { state } from './state.js';
-import { remote } from './caret.js';
+import { remote } from './platform.js';
 
 let toastTimer = null;
 // A message that came while the viewer was on the strip's button (Undo,

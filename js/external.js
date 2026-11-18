@@ -37,7 +37,7 @@
 // sensitive as the account itself. The intent and the iOS link leave no
 // file behind.
 
-import { ios } from './host.js';
+import { ios } from './platform.js';
 
 const VLC_PACKAGE = 'org.videolan.vlc';
 const VLC_STORE = `https://play.google.com/store/apps/details?id=${VLC_PACKAGE}`;
@@ -53,7 +53,7 @@ export function onAndroid() {
 /**
  * Whether it runs in the iPhone's WebKit (Orion), whose user agent claims a
  * Mac: told by ManagedMediaSource without MediaSource, as cast.js does. Or
- * in the app (js/host.js), on the iPad as well, which has MediaSource: a
+ * in the app (js/platform.js), on the iPad as well, which has MediaSource: a
  * downloaded playlist means nothing in an app, and VLC takes the address
  * there as on the iPhone.
  */

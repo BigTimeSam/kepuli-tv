@@ -11,13 +11,14 @@
 // hidden; it is asked for again when the page comes back while the picture
 // still plays.
 //
-// The app for the iPhone and the iPad (js/host.js) refuses the Wake Lock in
+// The app for the iPhone and the iPad (js/platform.js) refuses the Wake Lock in
 // its web view altogether, tap or no tap. There the page says when a
 // picture plays and the app holds the screen on itself. Nothing plays here
 // while a Chromecast does, so a phone that is then a remote control may
 // sleep; nor is the screen held on an app left on its list.
 
-import { ios, send } from './host.js';
+import { ios } from './platform.js';
+import { send } from './host.js';
 
 /** @type {any} */
 let lock = null;

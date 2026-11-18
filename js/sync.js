@@ -26,7 +26,7 @@
 // not go at all.
 
 import { api } from './browser.js';
-import { ios } from './host.js';
+import { ios } from './platform.js';
 import { accountKey, PERSONAL, isConfigured } from './config.js';
 import { shortHash } from './m3u.js';
 
@@ -37,7 +37,7 @@ const SLOW_MS = 60000;          // the history and the resume points
 const KEEP = { recents: 25, resume: 100, seen: 500 };
 const QUOTA = 100 * 1024;
 
-// Not in the app for the iPhone and the iPad (js/host.js): its web view
+// Not in the app for the iPhone and the iPad (js/platform.js): its web view
 // has a storage.sync, but one that stays on the device and syncs nowhere,
 // so the box in Settings would promise what does not happen.
 const area = () => (ios ? undefined : api.storage.sync);

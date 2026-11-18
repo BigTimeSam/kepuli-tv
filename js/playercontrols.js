@@ -6,7 +6,9 @@
 // builds, from js/state.js.
 
 import { $, el } from './dom.js';
-import { ios, on, pausedByLeaving, send } from './host.js';
+import { ios } from './platform.js';
+import { on, send } from './host.js';
+import { pausedByLeaving } from './iosapp.js';
 import { isFavorite } from './collections.js';
 import { isGecko } from './browser.js';
 import { shortLanguage } from './lang.js';

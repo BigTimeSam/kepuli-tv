@@ -219,7 +219,7 @@ abstract class EngineActivity extends Activity {
      * Back is the player's Escape: it closes the dialog, the menu or the
      * full screen that is open, as Escape does on a keyboard. Android would
      * end the activity instead, and the picture with it. With nothing left
-     * to close the player asks to be closed (js/remote.js), and
+     * to close the player asks to be closed (js/remote.js, js/androidapp.js), and
      * onCloseRequest steps back to the launcher.
      */
     protected void back() {
