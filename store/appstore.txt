@@ -118,7 +118,7 @@ Privacy policy URL   https://bigtimesam.github.io/kepuli-tv/privacy/
 --- VERSION INFORMATION -----------------------------------------------------
 
 Version: the manifest's, as "node ios/release.mjs status" prints it at its
-top (1.13.0 for the first submission). A new app record starts with a
+top (1.14.0 for the first submission). A new app record starts with a
 version of its own making (1.0): change it on the version's page before
 the build is chosen. The build picker is expected to offer only builds of
 the version's own number, so the uploaded build would not show under 1.0;
