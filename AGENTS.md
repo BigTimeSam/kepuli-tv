@@ -8,9 +8,17 @@ next to the files you change.
 Kepuli-TV is a Manifest V3 browser extension for Chrome and Firefox that plays
 the user's own IPTV subscription (Xtream Codes, M3U/XMLTV, Stalker portals) in
 a tab. One shared source runs in both browsers; `firefox/` holds only the
-Firefox manifest and its tooling. The same page is also the app for the
-iPhone and the iPad: `ios/` holds a native shell that shows it and does
-what a page cannot there (see `ios/AGENTS.md`).
+Firefox manifest and its tooling.
+
+The same page is also three apps, each a native shell that shows it and
+does what a page cannot there. The page knows which by its address
+(`js/platform.js`), and there is no second copy of the player anywhere.
+
+| App | Shell | The page is opened as |
+| --- | --- | --- |
+| iPhone and iPad | `ios/`: a WebKit web view hosting the extension, Swift | `player.html?ios=1` |
+| Android phone and tablet | `android/`, the `mobile` package: GeckoView with the Firefox package built in, Java | `player.html?app=1` |
+| Android TV | `android/`, the `tv` package: the same, driven by a remote control | `player.html?tv=1` |
 
 ## Ground rules
 
@@ -29,13 +37,13 @@ what a page cannot there (see `ios/AGENTS.md`).
    before regenerating files and before committing. Do not revert or
    overwrite changes you did not make; ask.
 4. **No build step, no dependencies.** The files in the repo are what the
-   browser runs (the Android apps in `android/` wrap them with Gradle and
-   GeckoView, and are the one exception, kept to that directory). Tooling is plain Node 22+ with no npm packages; the few Python
-   helpers run with `uv run` and declare their own dependencies. Do not add a
-   bundler, a framework or `package.json` dependencies. The one exception is
-   confined to `ios/`: the app is built with Xcode and xcodegen and links
-   Google's Cast SDK, all generated or fetched there and never committed,
-   and none of it touches what the browsers run.
+   browser runs. Tooling is plain Node 22+ with no npm packages; the few
+   Python helpers run with `uv run` and declare their own dependencies. Do
+   not add a bundler, a framework or `package.json` dependencies. The two
+   exceptions are confined to the apps' own directories and touch nothing
+   the browsers run: `ios/` is built with Xcode and xcodegen and links
+   Google's Cast SDK, `android/` with Gradle, GeckoView and Google's Cast
+   sender; what they generate or fetch is never committed.
 5. **Leave the owner's browsers alone.** The owner's development Chrome uses
    port 9222 and `~/.cache/kepuli-tv-dev`, Firefox 2828 and
    `~/.cache/kepuli-tv-firefox`. Never reload, navigate or reset them. Use your
@@ -51,7 +59,7 @@ what a page cannot there (see `ios/AGENTS.md`).
 | Path | What |
 | --- | --- |
 | `manifest.json`, `firefox/manifest.json` | the two manifests; version and shared keys must agree (`node dev/package.mjs --check`) |
-| `android/` | the Android apps (a television's, and a phone's and tablet's): the Firefox package inside GeckoView (a branch in progress) |
+| `android/` | the Android apps (a television's, and a phone's and tablet's): the Firefox package inside GeckoView, their Gradle build, the permissions check |
 | `background.js` | toolbar click opens the player; uninstall URL; update notice |
 | `player.html`, `css/*.css` | the whole interface on one page; thirteen stylesheets linked in cascade order (`css/AGENTS.md`) |
 | `js/app.js` | the player's UI and state (large; search before reading) |
@@ -63,7 +71,7 @@ what a page cannot there (see `ios/AGENTS.md`).
 | `js/i18n.js`, `js/locales/*.js` | English and Finnish; the other 28 languages |
 | `vendor/` | hls.js, mpegts.js, the FFmpeg audio build (`dev/wasm/`) |
 | `ios/` | the app for the iPhone and the iPad: the native shell around `player.html?ios=1`, its build, its simulator driver and scenarios, its packages and what is missing before the App Store |
-| `js/host.js`, `js/castui.js` | the page's side of the app: the port to the native code, and a cast session |
+| `js/platform.js`, `js/host.js`, `js/iosapp.js`, `js/androidapp.js`, `js/remote.js`, `js/castui.js` | the page's side of the apps: which app is around the page, the port to its native code, what the page does in the iPhone and iPad app, in the Android phone app and under a television's remote control, and a cast session |
 | `dev/` | every tool: tests, mock server, packaging, store publishing, screenshots, video |
 | `store/listings/*.txt` | store texts in 31 languages; `_locales/` is generated from them |
 | `brand/` | icon sources, store screenshots (`screenshots/` Chrome, `firefox-screenshots/` AMO) |
@@ -97,7 +105,8 @@ Long-form documentation: [user guide](docs/user-guide.md),
 | Ready to release? | `node dev/release.mjs [--quick]` |
 | Release packages | `node dev/package.mjs --zip`, `node firefox/amo-source.mjs` |
 | What Chrome serves | `node dev/cws-publish.mjs verify` |
-| The page as the iPhone and iPad app sees it, in desktop Chrome | `node dev/playcheck.mjs iosapp` |
+| The page as each app sees it, in desktop Chrome | `node dev/playcheck.mjs iosapp` (iPhone and iPad), `appback appcast` (Android phone), `remote remotescrub` (Android TV) |
+| The Android apps built, and what they ask Android to allow | `cd android && ./gradlew assembleMobileDebug assembleTvDebug` (needs `ANDROID_HOME`), then `node android/permissions.mjs` |
 | The iPhone and iPad app built for the simulator, its XCTest target | `node ios/build.mjs --simulator`, `node ios/build.mjs --test` |
 | The app in a simulator: install, launch, state, run code in the page | `node ios/sim.mjs install`, `launch`, `status`, `eval '<code>'` (see `ios/AGENTS.md`) |
 | The app's scenarios in its simulators against a mock of their own on 8841 (about eleven minutes) | `node ios/simcheck.mjs [scenario …]` |
@@ -135,12 +144,23 @@ Long-form documentation: [user guide](docs/user-guide.md),
   contain one (`js/name.js`, `js/picks.js`) is another matter.
 - **Both browsers.** The code is shared; when you touch playback, storage,
   permissions or the manifest, run the relevant scenario in Firefox too.
-- **And the app.** The same files run in the iPhone and iPad app with
-  `?ios=1` (`js/host.js` exports `ios`). A string that names a browser, a
-  tab or a computer is untrue there: write it so that it holds in both, or
-  keep it out of the app's reach, and the guard in `dev/unitcheck.mjs` lists
-  the exceptions with their reasons. `node dev/playcheck.mjs iosapp` runs
-  the app's branches without a simulator.
+- **And the apps.** The same files run in the three apps (`js/platform.js`
+  exports `ios`, `inApp`, `remote` and `native`). What differs in an app is
+  a branch on one of those in the module concerned, a rule under `.ios`,
+  `.app` or `.tv` in `css/last.css`, or the app's own page module
+  (`js/iosapp.js`, `js/androidapp.js`, `js/remote.js`): never a copy of a
+  module, and never a test of the engine. A string that names a browser, a
+  tab or a computer is untrue in an app: write it so that it holds in
+  both, or keep it out of the app's reach, and the guard in
+  `dev/unitcheck.mjs` lists the exceptions with their reasons. When you
+  touch something an app shares (the bridge `js/host.js`, casting, the
+  help, touch sizes, the pickers), run that app's scenarios above; they
+  need no simulator or emulator.
+- **Apps live on main.** The apps were once three long branches that grew
+  apart in 44 files and took a day to bring together. Work on an app goes
+  to main in small steps like everything else; an experiment that is not
+  for release stays on its own branch and says so (`android-tv` holds the
+  television's own player for live channels).
 
 ## Commits
 
@@ -168,7 +188,7 @@ Long-form documentation: [user guide](docs/user-guide.md),
   the ones `ios/sim.mjs` created (`kepuli-ios-*`), always by UDID, and its
   mock on 8841. WebKit drops a native message sent before the page's
   listener is registered, and forgets host grants between launches; both
-  are handled in `ios/App/` and explained in `ios/AGENTS.md`.
+  are handled in `ios/App/` and explained in `ios/MEASURED.md`.
 - Twice the Firefox zip went to the Chrome store. The zips are named per store
   and the publish tools check the manifest; still verify the published CRX
   after approval (see [Release](#release)).
@@ -191,7 +211,7 @@ the store screenshots.
 | [`dev/AGENTS.md`](dev/AGENTS.md) | every tool, the tests, ports and profiles, writing scenarios, looking at UI changes |
 | [`dev/mock/AGENTS.md`](dev/mock/AGENTS.md) | the invented provider: fiction, determinism, fault switches |
 | [`firefox/AGENTS.md`](firefox/AGENTS.md) | the Firefox manifest and tooling, reviewer notes, testing in Firefox |
-| [`ios/AGENTS.md`](ios/AGENTS.md) | the iPhone and iPad app: the shell, the permanent identifiers, the build, the simulator driver and its scenarios, what was measured, the App Store procedure and the device checklist |
+| [`ios/AGENTS.md`](ios/AGENTS.md) | the iPhone and iPad app: the shell, the permanent identifiers, the build, the simulator driver and its scenarios. Beside it, read when needed: [`ios/MEASURED.md`](ios/MEASURED.md) (what was found by running the app, and must not be undone) and [`ios/RELEASE.md`](ios/RELEASE.md) (packages, the App Store procedure, the device checklist) |
 | [`android/AGENTS.md`](android/AGENTS.md) | the Android apps for a television and for a phone or a tablet: the Firefox package inside GeckoView, building, the emulators, driving them |
 | [`store/AGENTS.md`](store/AGENTS.md) | listings, translation records, Chrome Web Store and AMO tools, limits and timing, screenshots, the demo video, the App Store's texts |
 | [`brand/AGENTS.md`](brand/AGENTS.md) | icon art, promo tiles, the store screenshot sets and captions |
@@ -200,7 +220,9 @@ the store screenshots.
 
 ## Release
 
-Only on the owner's explicit go (rule 2). `node dev/release.mjs` answers
+Only on the owner's explicit go (rule 2). This section is the browsers'
+release; the apps have their own: `ios/RELEASE.md` for the App Store and
+"Release packages and Google Play" in `android/AGENTS.md`. `node dev/release.mjs` answers
 whether the commit may be released (clean and pushed, CI green on it, a new
 version, texts in step, reviewer notes within AMO's form, every code and
 visual check); run it before asking for the go. The order that has worked:

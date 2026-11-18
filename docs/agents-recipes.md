@@ -126,4 +126,4 @@ the two differ. Every change ends the same way, so it is said once here:
 6. The App Store's two sets, when the views changed in the app as well:
    `KEPULI_SHOTS_DIR=<scratch> node ios/screenshots.mjs`, look at all ten,
    then without the variable into `brand/ios-screenshots/`
-   (`ios/AGENTS.md`).
+   (`ios/RELEASE.md`).

@@ -22,7 +22,7 @@
 //
 // What a simulator cannot show is not here: a Cast session, a notification
 // on the lock screen, VLC, the Files picker, picture in picture on an
-// iPhone, the lock screen's controls, a public http host. Those are the device checklist of ios/AGENTS.md. Nor a
+// iPhone, the lock screen's controls, a public http host. Those are the device checklist of ios/RELEASE.md. Nor a
 // finger: a press is the page's own click() and a swipe its pointer events.
 
 import { execFileSync } from 'node:child_process';

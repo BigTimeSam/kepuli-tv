@@ -150,7 +150,7 @@ targets:
         NSLocalNetworkUsageDescription: $(KEPULI_LOCAL_NETWORK)
         # The sound of what plays goes on when the app leaves the front
         # (js/playercontrols.js), and Apple's condition for picture in
-        # picture (ios/AGENTS.md, Sound and picture behind another app).
+        # picture (ios/MEASURED.md, the sound behind another app).
         # If the device checklist's lines on it fail, the key goes before
         # anything is submitted (store/appstore.txt).
         UIBackgroundModes:

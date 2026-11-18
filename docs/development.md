@@ -123,9 +123,32 @@ and the app reaches it as `127.0.0.1`; `ios/simcheck.mjs` starts its own
 there and refuses when the port is taken. The page's side of the app is tested
 in desktop Chrome without a simulator: `node dev/playcheck.mjs iosapp`
 opens `player.html?ios=1` against a fake port. The identifiers that must
-never change, the driver's verbs and what was measured are in
-[`ios/AGENTS.md`](../ios/AGENTS.md); the App Store's texts and answers are
-in `store/appstore.txt`.
+never change and the driver's verbs are in
+[`ios/AGENTS.md`](../ios/AGENTS.md), what was measured in
+[`ios/MEASURED.md`](../ios/MEASURED.md) and the way to the App Store in
+[`ios/RELEASE.md`](../ios/RELEASE.md); the App Store's texts and answers
+are in `store/appstore.txt`.
+
+### The Android apps
+
+Two packages of one application, both the Firefox package run by GeckoView
+inside an app (`android/`): `mobile` for a phone or a tablet, which opens
+`player.html?app=1`, and `tv` for a television, which opens
+`player.html?tv=1` and is driven by a remote control.
+
+```
+export ANDROID_HOME=$HOME/Library/Android/sdk
+cd android && ./gradlew assembleMobileDebug assembleTvDebug
+node android/permissions.mjs          # what each package asks Android to allow
+```
+
+JDK 21 and the Android SDK's platform `android-37.2` are needed. The
+page's side is tested in desktop Chrome without an emulator:
+`node dev/playcheck.mjs appback appcast` for the phone's Back and its cast
+session, `remote remotescrub` for the television's remote control. The
+emulators, driving a debug build with `firefox/android.mjs`, the release
+packages and Google Play are in
+[`android/AGENTS.md`](../android/AGENTS.md).
 
 ### The checks
 

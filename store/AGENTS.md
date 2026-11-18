@@ -147,7 +147,7 @@ by the owner, after the go.
 The App Store's two sets (`brand/ios-screenshots/`) are taken by
 `node ios/screenshots.mjs` in the app's own simulators, and uploaded by
 hand in App Store Connect on the owner's go: no tool reaches that store
-yet (`brand/AGENTS.md`, `ios/AGENTS.md`).
+yet (`brand/AGENTS.md`, `ios/RELEASE.md`).
 
 Retake them whenever a release changes what the five views look like.
 

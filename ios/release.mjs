@@ -12,13 +12,13 @@
 //                                    answers, whether the App Store texts are clean, within their limits and
 //                                    name what the privacy report lists, whether the store's pictures are
 //                                    there and its three pages answer, and the device checklist of
-//                                    ios/AGENTS.md; exit 1 while anything is missing
+//                                    ios/RELEASE.md; exit 1 while anything is missing
 //   --build <n>                      the build number's last part (or KEPULI_IOS_BUILD; default 1)
 //
 // Nothing here signs, uploads or submits, and nothing needs the owner's
 // account: the machine has no signing identity, team or API key. The steps
 // that need them (a device build, the signed archive, the export, the
-// upload) are written out in ios/AGENTS.md as commands that have never been
+// upload) are written out in ios/RELEASE.md as commands that have never been
 // run, and become verbs here once each has succeeded once: code that has
 // never run is not release tooling. The upload itself waits for the owner's
 // go (AGENTS.md, rule 2).
@@ -38,7 +38,7 @@ import { NUTRITION, VERSION as CAST } from './vendor.mjs';
 const OUT = join(ROOT, 'dist', 'ios');
 const CONFIG = join(homedir(), '.config', 'kepuli-tv', 'ios');
 const STORE_TEXTS = join(ROOT, 'store', 'appstore.txt');
-const GUIDE = join(IOS, 'AGENTS.md');
+const GUIDE = join(IOS, 'RELEASE.md');
 const short = (path) => relative(ROOT, path);
 const run = (command, args) => execFileSync(command, args, { encoding: 'utf8', maxBuffer: 256 << 20, stdio: ['ignore', 'pipe', 'pipe'] });
 const plist = (file) => JSON.parse(run('plutil', ['-convert', 'json', '-o', '-', file]));
@@ -49,7 +49,7 @@ const outputs = (marketing) => ({
   started: join(OUT, 'release-started.json'),
   archive: join(OUT, `KepuliTV-${marketing}.xcarchive`),
   privacy: join(OUT, 'privacy-report.txt'),
-  // Made by the owner's procedure in ios/AGENTS.md, not by this tool: the
+  // Made by the owner's procedure in ios/RELEASE.md, not by this tool: the
   // signed archive, and the package exported from it.
   signed: join(OUT, `KepuliTV-${marketing}-signed.xcarchive`),
   ipa: join(OUT, `kepuli-tv-ios-${marketing}.ipa`),
@@ -109,7 +109,7 @@ function releaseApp(app, { marketing, build }) {
 
 /**
  * The one package that is uploaded, held to what the other two are held
- * to. It is made by hand (ios/AGENTS.md), round this tool, and status took
+ * to. It is made by hand (ios/RELEASE.md), round this tool, and status took
  * any file of its name: one exported last week, of build 1 when 2 is due,
  * or from a Debug archive. It is dated by the signed archive it was
  * exported from, as its own time is the export's: a source saved between
@@ -119,7 +119,7 @@ function releaseApp(app, { marketing, build }) {
  * @returns {[boolean, string]}
  */
 function signedPackage({ ipa, signed }, numbers, made) {
-  if (!existsSync(ipa)) return [false, `${short(ipa)} comes from the owner's procedure in ios/AGENTS.md, which has never been run`];
+  if (!existsSync(ipa)) return [false, `${short(ipa)} comes from the owner's procedure in ios/RELEASE.md, which has never been run`];
   const info = join(signed, 'Info.plist');
   if (!existsSync(info)) return [false, `${short(ipa)} is there, but not ${short(signed)} it was exported from: whether it is of the source as it stands cannot be told`];
   const archived = Date.parse(run('plutil', ['-extract', 'CreationDate', 'raw', '-o', '-', info]).trim()) || statSync(signed).mtimeMs;
@@ -519,13 +519,13 @@ async function status(build) {
   say(existsSync(local) && !named, 'the app\'s guide as rendered here names no other platform', existsSync(local) ? (named ? `${short(local)} says "${named[0]}"` : short(local)) : `${short(local)} is not there: node dev/site.mjs`);
 
   // A gate: nothing is submitted with a line open. Ticked by hand in
-  // ios/AGENTS.md ("- [x]") once seen on a device.
-  console.log('\nThe device checklist, ios/AGENTS.md');
+  // ios/RELEASE.md ("- [x]") once seen on a device.
+  console.log('\nThe device checklist, ios/RELEASE.md');
   const list = (/^## Device checklist\n([\s\S]*?)(?=^## |(?![\s\S]))/m.exec(readFileSync(GUIDE, 'utf8')) || ['', ''])[1];
   const items = [...list.matchAll(/^- \[( |x)\] (.+(?:\n {2}.+)*)/gm)].map(([, tick, text]) => ({ done: tick === 'x', text: text.replace(/\n\s+/g, ' ') }));
   for (const item of items) console.log(`${item.done ? 'done   ' : 'open   '}  ${item.text}`);
   const open = items.filter((item) => !item.done).length;
-  say(items.length > 0 && open === 0, 'every line seen on a device', items.length ? `${open} of ${items.length} open` : 'ios/AGENTS.md has no "## Device checklist"');
+  say(items.length > 0 && open === 0, 'every line seen on a device', items.length ? `${open} of ${items.length} open` : 'ios/RELEASE.md has no "## Device checklist"');
 
   console.log(missing.length ? `\nNot ready for the App Store: ${missing.length} missing.` : '\nNothing is missing here. The upload and the submission wait for the owner\'s go.');
   return missing.length === 0;

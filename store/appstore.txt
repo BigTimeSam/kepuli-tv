@@ -17,7 +17,7 @@ Three rules for every text below, each from a guideline:
   • It is true of this app (2.3.1). What the app does not do is not
     promised: no saving of streams, no sync between devices, and nothing
     that only a device can confirm (picture in picture, sound in the
-    background) until the device checklist in ios/AGENTS.md has ticked it.
+    background) until the device checklist in ios/RELEASE.md has ticked it.
     The listing's texts promise neither. The review notes describe both,
     as a declared background mode has to be explained to the reviewer, and
     for them the rule is hard: if the checklist's lines on sound behind

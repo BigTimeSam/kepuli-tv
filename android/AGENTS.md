@@ -28,7 +28,7 @@ is not needed, and a Chromebook without one may have the app.)
 
 The remote control is the player's: `js/remote.js`, on with `?tv=1`, tested
 in a desktop browser by `node dev/playcheck.mjs remote`. The phone's Back is
-there too, on with `?app=1` (`node dev/playcheck.mjs appback`): it closes
+the page's too (`js/androidapp.js`), on with `?app=1` (`node dev/playcheck.mjs appback`): it closes
 what is open, leaves the player's pane for the list, and from the list
 leaves the app.
 
@@ -39,7 +39,7 @@ The phone's copy of the extension's manifest has `nativeMessaging` and
 browsers' packages and the television's do not), and the app answers to
 the name `kepuli` from both of the extension's ends:
 
-- **The page** (`talkWithApp` in `js/remote.js`) opens a line when it is
+- **The page** (`talkWithApp` in `js/androidapp.js`) opens a line when it is
   opened with `?app=1`. It says what is on and whether it plays, and the
   picture's shape; it hears `pip` (the app has become the small window: the
   page shows the picture alone, `.pip` in `css/last.css`), `press` (play,
@@ -89,7 +89,7 @@ Matroska).
   above: `cast.prompt`, `cast.load`, `cast.stop`, `cast.end`,
   `cast.controls` from the page; `cast.state` and `cast.media` from the
   app. The same messages are spoken by the app for the iPhone and the iPad
-  (branch `ios`), so the page's side is one.
+  (`ios/`), so the page's side is one.
 - **`CastService`** answers them. Google's sender is not started before
   the viewer first asks to cast, and starts with the app after that
   (preference `cast`/`used`): an app whose viewer never casts says nothing
@@ -102,7 +102,7 @@ Matroska).
 - **One connection.** The page stops the picture before it hands the
   address over and plays on here when the device cannot, fails or lets go;
   while a device plays for the page, the page tells the app that nothing
-  is on (`castingNow` in `js/remote.js`), so neither the media
+  is on (`castingNow` in `js/castui.js`, asked by `js/androidapp.js`), so neither the media
   notification nor the small window stands for a picture that is on a
   television.
 - **Testing.** The emulator finds the Cast devices of the host's network
@@ -123,7 +123,11 @@ covered by the browser job's `remote`, `appback` and `appcast` scenarios.
 ## Building and running
 
 JDK 21, the Android SDK with platform `android-37.2` (GeckoView 160 asks for
-it) and Node on the PATH. The Gradle wrapper is 9.8.0, the plugin 9.4.1.
+it) and Node on the PATH. Gradle finds the SDK by `ANDROID_HOME`
+(`export ANDROID_HOME=$HOME/Library/Android/sdk` on this machine) or by
+`sdk.dir` in a git-ignored `android/local.properties`; without either the
+build stops with "SDK location not found". The Gradle wrapper is 9.8.0,
+the plugin 9.4.1.
 
 ```
 cd android && ./gradlew assembleTvDebug assembleMobileDebug   # app/build/outputs/apk/<tv|mobile>/debug/
