@@ -194,6 +194,16 @@ dependencies {
     // (CastService): a television is what is cast to. It brings AndroidX's
     // media router and AppCompat, whose dialogs it shows.
     mobileImplementation 'com.google.android.gms:play-services-cast-framework:23.0.0'
+    // Not used here by name: the Cast sender's media libraries bring
+    // Guava, and brought 33.3.1, which has a known fault (memory taken
+    // without limit when one of its maps is read from a serialised
+    // form; GitHub's alert of 2026-11-18). Nothing here reads such a
+    // form, but the package carries the library, so it carries the
+    // corrected one. Take the line away once the Cast sender asks for
+    // this version or a newer one by itself.
+    constraints {
+        mobileImplementation('com.google.guava:guava:33.7.2-android')
+    }
     // The phone's pure rules are tested on the build machine
     // (src/testMobile, ./gradlew testMobileDebugUnitTest).
     testImplementation 'junit:junit:4.13.2'
