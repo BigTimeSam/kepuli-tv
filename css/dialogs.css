@@ -182,8 +182,22 @@ html.kb dialog:modal > :is(.setup, .help-content, .choice-content) { max-height:
 /* Its buttons stay at the foot of what is in sight meanwhile, where that
    is 300 px or more (not a phone lying down, whose keyboard leaves 170):
    Connect was a scroll away under the keys, behind a keyboard that a
-   press beside it closes. */
-html.kb-tall dialog:modal .modal-actions { position: sticky; bottom: 0; z-index: 1; margin-bottom: -12px; padding-bottom: 12px; background: var(--panel); }
+   press beside it closes. The bar is opaque: the panel's own ground lets
+   a third of what is under it through. */
+html.kb-tall dialog:modal .modal-actions { position: sticky; bottom: 0; z-index: 1; margin-bottom: -12px; padding-bottom: 12px; background: var(--panel-solid); }
+/* Settings has fields, and a field under a pinned bar was drawn over it
+   on an iPhone (17 Pro Max, iOS 26.7.3): the focused field's sides stood
+   in the bar as two upright lines, with the bar opaque and on z-index 1,
+   and with the section's own scrolling taken away as well. So nothing of
+   Settings goes under its bar: the dialog keeps the frame it has without
+   a keyboard, as high as what is in sight, the section alone scrolls, and
+   the buttons stand under it. Measured there with 480 px in sight: the
+   heading, the sections' strip, a section of 213 px and the buttons, and
+   the field being typed into inside the section. */
+html.kb-tall #setup:modal { overflow: hidden; }
+html.kb-tall #setup:modal > .setup { max-height: calc(var(--vvh, 100dvh) - 18px); overflow: hidden; }
+html.kb-tall #setup:modal .setup-panel:not([hidden]) { height: auto; flex: 1 1 auto; overflow-y: auto; }
+html.kb-tall #setup:modal .modal-actions { position: static; margin-bottom: 0; padding-bottom: 0; background: none; }
 
 /* A stable frame keeps navigation and the shared save action in place. */
 #setup { width: min(760px, calc(100vw - 32px)); max-height: calc(100dvh - 32px); }

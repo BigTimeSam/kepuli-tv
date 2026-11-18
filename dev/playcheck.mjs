@@ -9471,6 +9471,39 @@ async function iosappTurned(page, assert) {
     document.getElementById('toast').hidden = true;
     return { left: Math.round(box.left), right: Math.round(box.right), height: Math.round(box.height), button: Math.round(button.right), window: innerWidth }; })()`);
   assert(strip.left >= 0 && strip.right <= strip.window && strip.button < strip.right && strip.height <= 70, `a reminder's message with its button at 390 px: ${JSON.stringify(strip)}`);
+  // A field of a dialog that WebKit scrolls the page to: on an iPhone the
+  // account's form went up with the page and only its buttons were in
+  // sight. The page is made taller than the window here, as the app's is
+  // with the keyboard up, and scrolled as WebKit scrolls it.
+  const typed = await evaluate(page, `(async () => { const pause = (ms) => new Promise((r) => setTimeout(r, ms)), $ = (id) => document.getElementById(id);
+    $('btn-settings').click(); await pause(400);
+    const root = document.documentElement, was = [root.style.cssText, document.body.style.cssText];
+    root.style.overflow = 'auto'; root.style.height = 'auto'; document.body.style.height = (innerHeight + 400) + 'px'; document.body.style.overflow = 'visible';
+    const field = $('f-name'); field.focus({ preventScroll: true });
+    scrollTo(0, 300); await pause(300);
+    const box = field.getBoundingClientRect(), dialog = $('setup').getBoundingClientRect();
+    const seen = { could: root.scrollHeight > innerHeight, scrollY, field: [Math.round(box.top), Math.round(box.bottom)], dialog: Math.round(dialog.top), window: innerHeight, focus: document.activeElement.id };
+    root.style.cssText = was[0]; document.body.style.cssText = was[1]; scrollTo(0, 0);
+    // With the keyboard up and 300 px or more in sight, Settings keeps its
+    // frame in what is in sight: the section alone scrolls and the
+    // buttons stand under it, so that no field can lie under them (one
+    // was drawn over a pinned bar on an iPhone).
+    // (The page's own measure of the keyboard runs once more after the
+    // scroll back above, and would take the class away again.)
+    await pause(400);
+    root.classList.add('kb', 'kb-tall'); root.style.setProperty('--vvh', '480px');
+    await pause(100);
+    const sheet = $('setup'), bar = sheet.querySelector('.modal-actions'), panel = $('panel-connection');
+    const low = [...panel.querySelectorAll('input:not([type=hidden])')].filter((n) => n.getClientRects().length).pop();
+    low.focus(); await pause(300);
+    const at = (n) => { const r = n.getBoundingClientRect(); return [Math.round(r.top), Math.round(r.bottom)]; };
+    seen.frame = { sheet: at(sheet), fixed: sheet.scrollHeight <= sheet.clientHeight + 1, bar: at(bar), pinned: getComputedStyle(bar).position, panel: at(panel), scrolls: panel.scrollHeight > panel.clientHeight + 1, field: at(low), id: low.id };
+    root.classList.remove('kb', 'kb-tall'); root.style.removeProperty('--vvh'); $('setup').close();
+    return seen; })()`, { gesture: true });
+  const frame = typed.frame;
+  assert(frame.fixed && frame.pinned === 'static' && frame.sheet[1] <= 480 && frame.bar[1] <= frame.sheet[1] && frame.panel[1] <= frame.bar[0] && frame.scrolls,
+    `Settings' frame with a keyboard up: ${JSON.stringify(frame)}`);
+  assert(frame.field[0] >= frame.panel[0] && frame.field[1] <= frame.panel[1], `the field the focus reached in Settings with a keyboard up: ${JSON.stringify(frame)}`);
   const seen = [];
   for (const [width, height] of [[750, 380], [870, 400]]) {
     await size(width, height);

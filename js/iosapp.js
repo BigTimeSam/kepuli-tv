@@ -95,9 +95,30 @@ if (ios) {
   // a field under the keyboard. Scrolled past a field at the window's top
   // (the search, while the guide was open on a phone lying down), it left
   // the field being typed into out of sight above it.
+  //
+  // A field of a dialog is another matter. On an iPhone (17 Pro Max, iOS
+  // 26.7.3, the account's form in Settings, the provider's name tapped)
+  // WebKit scrolled the page by 354 px to the field, the dialog went up
+  // with the page, and what was in sight was its Cancel and Save at the
+  // top of the screen over an empty backdrop: the field was cut off by the
+  // dialog's own edge, and nothing typed could be seen. A dialog stands in
+  // what the keyboard leaves (css/dialogs.css) and scrolls inside itself,
+  // so the page is put back and the field brought into sight by the
+  // dialog's own boxes; measured on that phone, the field then stood at
+  // 220 px of the 480 in sight and stayed. Should those boxes not reach
+  // it, the scroll WebKit makes next is left alone.
+  let brought = 0;
   addEventListener('scroll', () => {
     const field = document.activeElement;
-    if (scrollY > 0 && field instanceof HTMLElement && field.matches('input, textarea') && field.getBoundingClientRect().top < 0) scrollTo(0, 0);
+    if (scrollY <= 0 || !(field instanceof HTMLElement) || !field.matches('input, textarea, select')) return;
+    if (field.closest('dialog[open]')) {
+      if (performance.now() - brought < 400) return;
+      brought = performance.now();
+      scrollTo(0, 0);
+      field.scrollIntoView({ block: 'center' });
+      return;
+    }
+    if (!field.matches('select') && field.getBoundingClientRect().top < 0) scrollTo(0, 0);
   }, { passive: true });
   let settled = 0;
   viewport?.addEventListener('resize', () => {
@@ -108,7 +129,7 @@ if (ios) {
       if (!(field instanceof HTMLElement) || !field.matches('input, textarea, select')) return;
       const hidden = () => { const box = field.getBoundingClientRect(); return box.top < 0 || box.bottom > room ? box.top - Math.max(8, (room - box.height) / 2) : 0; };
       if (hidden()) field.scrollIntoView({ block: 'center' });
-      if (hidden()) window.scrollBy(0, hidden());
+      if (hidden() && !field.closest('dialog[open]')) window.scrollBy(0, hidden());
     }, 300);
   });
   // A press on a dialog's button while one of its fields has the keyboard

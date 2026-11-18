@@ -194,6 +194,27 @@ file is the working guide; `RELEASE.md` is the way to the App Store.
   more its buttons stay at the foot of it (`html.kb-tall`), which is also
   what keeps Cancel and Save whole after the device was turned and
   turned back with the keyboard up (seen).
+- **On a device WebKit scrolls the page itself to a dialog's field**
+  (iPhone 17 Pro Max, iOS 26.7.3, 2026-11-19; no simulator did it). The
+  account's form in Settings, the provider's name tapped: `innerHeight`
+  506 with a document of 860, `scrollY` 354, the dialog at -346 and only
+  its Cancel and Save in sight at the top of the screen, the field cut
+  off by the dialog's edge. The page is put back and the field brought
+  into sight inside the dialog (`js/iosapp.js`, the page's `scroll`
+  listener); run on that phone with the keyboard up, the dialog stood at
+  8 to 472 px and the field at 220 of the 480 in sight, and stayed.
+  Tapped anew after that, the field went under the dialog's pinned
+  buttons and its sides showed in the bar as two upright lines. That
+  stayed with the bar made opaque (its ground had been the panel's, a
+  third transparent) and with the section's own scrolling taken away:
+  the field under the bar was drawn over it, though the bar is
+  positioned on `z-index: 1` and takes the press there. Why WebKit draws
+  it so was not found. Settings therefore lets nothing under its bar
+  with a keyboard up: the frame it has without one, as high as what is
+  in sight, the section alone scrolling (`css/dialogs.css`,
+  `html.kb-tall #setup`); set on that phone as it stood, 480 px in
+  sight held the heading, the sections' strip, 213 px of the section
+  with the field in it, and the buttons.
 - **A dialog opened by a real tap ringed its cross**: the dialog takes
   the focus itself under a finger (`js/modal.js`, the dialog's own
   `autofocus`, which WebKit reads; seen with a real tap).
