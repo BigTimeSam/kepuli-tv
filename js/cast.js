@@ -37,15 +37,19 @@ import { native } from './platform.js';
 import { on, request, send } from './host.js';
 
 /**
- * Whether the browser can cast at all. Firefox has no API. The iPhone's
- * WebKit (Orion) has one, but for AirPlay alone: no Chromecast is reachable
- * from it, and its prompt() did nothing visible when pressed (2026-11-10).
- * AirPlay is in the iPhone's own player controls, in full screen. That
- * WebKit is the one with ManagedMediaSource and no MediaSource. The apps
- * cast through their own sender, on the iPhone and the iPad alike.
+ * Whether the browser can cast at all. Firefox has no API. WebKit has
+ * one, but for AirPlay alone: no Chromecast is reachable from it. On the
+ * iPhone (Orion) its prompt() did nothing visible when pressed
+ * (2026-11-10); in Safari on the Mac the menu offered "Cast to a
+ * Chromecast" for what could only ever be AirPlay (2026-11-18). AirPlay is
+ * in the picture's own controls there. WebKit is told by
+ * ManagedMediaSource, which it alone has: the iPhone's has it without
+ * MediaSource, the Mac's beside it, Chrome and Edge not at all (measured in
+ * 157). The apps cast through their own sender, on the iPhone and the
+ * iPad alike.
  */
-const iosWebKit = typeof globalThis.MediaSource === 'undefined' && 'ManagedMediaSource' in globalThis;
-export const supported = native || (typeof HTMLMediaElement !== 'undefined' && 'remote' in HTMLMediaElement.prototype && !iosWebKit);
+const webKit = 'ManagedMediaSource' in globalThis;
+export const supported = native || (typeof HTMLMediaElement !== 'undefined' && 'remote' in HTMLMediaElement.prototype && !webKit);
 
 /**
  * The way to a Chromecast where the page runs: the app's sender in the

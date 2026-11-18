@@ -8,7 +8,9 @@ next to the files you change.
 Kepuli-TV is a Manifest V3 browser extension for Chrome and Firefox that plays
 the user's own IPTV subscription (Xtream Codes, M3U/XMLTV, Stalker portals) in
 a tab. One shared source runs in both browsers; `firefox/` holds only the
-Firefox manifest and its tooling.
+Firefox manifest and its tooling. Edge runs the Chrome package as it is,
+and `safari/` builds the Firefox package into a Safari extension for the
+Mac; neither is in a store yet.
 
 The same page is also three apps, each a native shell that shows it and
 does what a page cannot there. The page knows which by its address
@@ -59,6 +61,7 @@ does what a page cannot there. The page knows which by its address
 | Path | What |
 | --- | --- |
 | `manifest.json`, `firefox/manifest.json` | the two manifests; version and shared keys must agree (`node dev/package.mjs --check`) |
+| `safari/` | the Safari extension on the Mac: built from the Firefox package by Apple's converter, its own driver and scenarios |
 | `android/` | the Android apps (a television's, and a phone's and tablet's): the Firefox package inside GeckoView, their Gradle build, the permissions check |
 | `background.js` | toolbar click opens the player; uninstall URL; update notice |
 | `player.html`, `css/*.css` | the whole interface on one page; thirteen stylesheets linked in cascade order (`css/AGENTS.md`) |
@@ -210,6 +213,7 @@ the store screenshots.
 | [`css/AGENTS.md`](css/AGENTS.md) | the stylesheet: rem sizing, theme variables, layouts, breakpoints, alignment |
 | [`dev/AGENTS.md`](dev/AGENTS.md) | every tool, the tests, ports and profiles, writing scenarios, looking at UI changes |
 | [`dev/mock/AGENTS.md`](dev/mock/AGENTS.md) | the invented provider: fiction, determinism, fault switches |
+| [`safari/AGENTS.md`](safari/AGENTS.md) | the Safari extension on the Mac: its build, what differs in Safari, driving it by AppleScript, traps |
 | [`firefox/AGENTS.md`](firefox/AGENTS.md) | the Firefox manifest and tooling, reviewer notes, testing in Firefox |
 | [`ios/AGENTS.md`](ios/AGENTS.md) | the iPhone and iPad app: the shell, the permanent identifiers, the build, the simulator driver and its scenarios. Beside it, read when needed: [`ios/MEASURED.md`](ios/MEASURED.md) (what was found by running the app, and must not be undone) and [`ios/RELEASE.md`](ios/RELEASE.md) (packages, the App Store procedure, the device checklist) |
 | [`android/AGENTS.md`](android/AGENTS.md) | the Android apps for a television and for a phone or a tablet: the Firefox package inside GeckoView, building, the emulators, driving them |

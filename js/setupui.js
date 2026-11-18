@@ -19,7 +19,7 @@ import { applySubtitleLook, chooseSubtitleLook, lookOf, showSubtitleSize, toggle
 import { autoNext, renderStatBadge } from './nextepisode.js';
 import { cacheClear, storageEstimate, wipeStorage } from './db.js';
 import { canRecord, renderRecordingState } from './recordingsui.js';
-import { forgetNotifications, notifying, showRefusal } from './remindersui.js';
+import { canNotify, forgetNotifications, notifying, showRefusal } from './remindersui.js';
 import { clock, dateFmt, dateTimeFmt, megabytes, nf } from './format.js';
 import { normalizeMac, normalizePortal } from './stalker.js';
 import { parsePlaylistUrl, parseServer, pastedKind } from './xtream.js';
@@ -74,6 +74,8 @@ export function openSetup({ section, adding = false } = {}) {
   $('f-home-recent').checked = state.settings.homeRecent !== false;
   $('f-record').disabled = !canRecord;
   $('f-notify').checked = notifying;
+  // Not offered where it can never be turned on (Safari; js/remindersui.js).
+  $('f-notify').closest('.toggle').hidden = !canNotify;
   // What an earlier press of the switch was answered is not said again.
   showRefusal(false);
   $('f-international').checked = state.settings.showInternational;

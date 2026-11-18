@@ -16,7 +16,7 @@
 
 import { spawn, spawnSync } from 'node:child_process';
 import { createHash } from 'node:crypto';
-import { existsSync, readFileSync, unlinkSync, writeFileSync } from 'node:fs';
+import { existsSync, mkdirSync, readFileSync, unlinkSync, writeFileSync } from 'node:fs';
 import { homedir } from 'node:os';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -120,6 +120,18 @@ export async function ensureChrome(extraArgs = []) {
   // build of branded Chrome left them blank.
   const binary = [process.env.KEPULI_CHROME, ...CHROMES].filter(Boolean).find(existsSync);
   if (!binary) throw new Error('Chrome not found; start node dev/dev.mjs by hand first.');
+  // KEPULI_LANGUAGES: what navigator.languages says in a new profile, e.g.
+  // "en-GB,en-US,en". Chrome on a Mac set to English (Finland) says en-GB,
+  // and the scenarios were written against that; Edge says en-FI, as the
+  // system does, and the player then takes Finland for the viewer's country
+  // (measured: catchup, listerror and iosapp failed in Edge for that alone).
+  // The browser reads the list from its profile, so it is written there
+  // before the first start; a profile that exists is left as it is.
+  const preferences = join(PROFILE, 'Default', 'Preferences');
+  if (process.env.KEPULI_LANGUAGES && !existsSync(preferences)) {
+    mkdirSync(dirname(preferences), { recursive: true });
+    writeFileSync(preferences, JSON.stringify({ intl: { accept_languages: process.env.KEPULI_LANGUAGES, selected_languages: process.env.KEPULI_LANGUAGES } }));
+  }
   // --enable-unsafe-extension-debugging: newer Chromes answer the DevTools
   // protocol's Extensions.loadUnpacked only with it (the macOS build here
   // did without; the Linux one on the CI runner did not load the extension).

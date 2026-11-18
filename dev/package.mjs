@@ -6,6 +6,8 @@
 //                                         kepuli-tv-firefox-<version>.zip in the project root,
 //                                         older zips moved into dist/releases/
 //   node dev/package.mjs chrome --zip     one browser only
+//   node dev/package.mjs --zip --edge     … and kepuli-tv-edge-<version>.zip, the Chrome package under
+//                                         Microsoft's store's name
 //   node dev/package.mjs --ref v1.0.4     from that commit or tag instead of HEAD
 //   node dev/package.mjs --worktree       from the checkout as it is, uncommitted changes included
 //   node dev/package.mjs --check          the manifest comparison and the permissions alone
@@ -35,7 +37,7 @@
 // system's own zip.
 
 import { execFileSync } from 'node:child_process';
-import { cpSync, existsSync, mkdirSync, readdirSync, readFileSync, renameSync, rmSync, statSync } from 'node:fs';
+import { copyFileSync, cpSync, existsSync, mkdirSync, readdirSync, readFileSync, renameSync, rmSync, statSync } from 'node:fs';
 import { dirname, join, relative, resolve } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 import { check as checkListings, CHROME_UNSUPPORTED } from './listings.mjs';
@@ -281,7 +283,7 @@ export const RELEASES = join(DIST, 'releases');
 // kepuli-tv-chrome-1.6.3.zip, kepuli-tv-firefox-1.6.3-amo-source.zip,
 // kepuli-tv-firefox-1.6.3-dev.zip (firefox/build.mjs), and the Chrome
 // packages of 1.0.1–1.0.4, which were kepuli-tv-<version>.zip.
-const ZIP_NAME = /^kepuli-tv-(?:(chrome|firefox)-)?(\d+(?:\.\d+){1,3})(-amo-source|-dev)?\.zip$/;
+const ZIP_NAME = /^kepuli-tv-(?:(chrome|firefox|edge)-)?(\d+(?:\.\d+){1,3})(-amo-source|-dev)?\.zip$/;
 
 /** What a release zip's name says: its browser, version and kind, or null for any other file. */
 export function zipName(name) {
@@ -338,6 +340,21 @@ export function shelveOlderZips(version, root = ROOT, releases = join(root, 'dis
   return { moved, kept };
 }
 
+/**
+ * The Chrome package under the Edge Add-ons store's name. Edge is Chromium
+ * and runs the Chrome package as it is (every scenario passes in Edge 157,
+ * dev/AGENTS.md), so there is no Edge manifest and no Edge build: the zip
+ * is the Chrome zip, byte for byte. It has a name of its own because a
+ * package has twice gone to the wrong store, and the name is what the
+ * publishing step checks.
+ */
+export function edgeZip(version) {
+  const from = join(ROOT, `kepuli-tv-chrome-${version}.zip`);
+  const name = `kepuli-tv-edge-${version}.zip`;
+  copyFileSync(from, join(ROOT, name));
+  return { name, bytes: statSync(from).size };
+}
+
 /** dist/<target>/ zipped into the project root, and compared with the last one. */
 export function zip({ target, dir, files, version }) {
   const name = `kepuli-tv-${target}-${version}.zip`;
@@ -363,7 +380,7 @@ if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) 
   const flag = (f) => args.includes(f);
   const ref = args.includes('--ref') ? args[args.indexOf('--ref') + 1] : 'HEAD';
   const targets = args.filter((a) => TARGETS[a]);
-  const unknown = args.filter((a, i) => !TARGETS[a] && !['--zip', '--check', '--worktree', '--ref'].includes(a) && args[i - 1] !== '--ref');
+  const unknown = args.filter((a, i) => !TARGETS[a] && !['--zip', '--edge', '--check', '--worktree', '--ref'].includes(a) && args[i - 1] !== '--ref');
   try {
     if (unknown.length) throw new Error(`unknown argument ${unknown.join(' ')}`);
     const source = flag('--worktree') ? worktreeSource() : gitSource(ref);
@@ -392,6 +409,10 @@ if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) 
         let vs = z.previous ? `  vs ${z.previous}: ` : '';
         if (z.previous) vs += [...z.added.map((f) => '+' + f), ...z.removed.map((f) => '-' + f)].join(' ') || 'same files';
         console.log(`${''.padEnd(8)} ${z.name}  ${kb(z.bytes)}${vs}`);
+        if (target === 'chrome' && flag('--edge')) {
+          const e = edgeZip(built.version);
+          console.log(`${''.padEnd(8)} ${e.name}  ${kb(e.bytes)}  the same bytes, for the Edge Add-ons store`);
+        }
       }
     }
     if (flag('--zip')) {

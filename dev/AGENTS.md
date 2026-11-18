@@ -57,6 +57,30 @@ export KEPULI_DEV_PORT=9333 KEPULI_DEV_PROFILE=/tmp/kepuli-agent-profile KEPULI_
 node dev/playcheck.mjs
 ```
 
+**Microsoft Edge** runs the Chrome package and the same tools:
+
+```
+export KEPULI_CHROME="/Applications/Microsoft Edge.app/Contents/MacOS/Microsoft Edge" KEPULI_LANGUAGES=en-GB,en-US,en
+export KEPULI_DEV_PORT=9358 KEPULI_DEV_PROFILE=/tmp/kepuli-edge-profile KEPULI_HEADLESS=1
+node dev/playcheck.mjs && node dev/uicheck.mjs
+```
+
+`KEPULI_LANGUAGES` is what `navigator.languages` says in a profile the
+tools create (it is written into the profile before the first start; one
+that exists is left alone). Edge needs it: on a Mac set to English
+(Finland) Edge says `en-FI` where Chrome says `en-GB`, the player takes
+Finland for the viewer's country, and the scenarios that expect the mock's
+first country (catchup, listerror, iosapp, the UI check) fail for that
+alone. Every scenario passes in Edge 157 with it (2026-11-18).
+
+A Chromium browser on macOS does not look for Cast devices until its Cast
+dialog is opened: `watchAvailability` says false before that, in a new
+profile above all. The DevTools protocol's `Cast.enable` starts the search
+and reports the devices (`Cast.sinksUpdated`), `Cast.setSinkToUse` chooses
+one for the next `remote.prompt()`, and `Cast.stopCasting` ends it: that is
+how a cast is tested without the dialog. Casting takes over somebody's
+television: ask first.
+
 The suite resets the extension's settings and lists in that profile to demo
 data, so never point it at a profile someone uses.
 
