@@ -75,6 +75,9 @@ input[type="search"], input[type="text"], input[type="url"], input:not([type]) {
   /* A message while the sheet is up stands at the top of the window: at
      the bottom it lay over the sheet's title and its two buttons. */
   body:has(main.guide-sheet) .toast { top: 12px; bottom: auto; }
+  /* Under a keyboard that lies over a window of full height, what is in
+     sight begins lower (js/iosapp.js). */
+  html.kb body:has(main.guide-sheet) .toast { top: calc(12px + var(--vvt, 0px)); }
 }
 @media (max-width: 600px) and (prefers-reduced-motion: reduce) {
   main.guide > .epgview, main.guide.guide-sheet > .epgview { transition: none; }
@@ -117,7 +120,7 @@ input[type="search"], input[type="text"], input[type="url"], input:not([type]) {
   .icon-button:not(.labelled), .modal-close, .epg-search-toggle, .epgv-close { width: 2.5rem; }
   /* A mark without one keeps its place and its look, and takes the press
      around it: the box grows into a margin of the same size taken back. */
-  .row-star, .row-star:hover, .row-more { width: 2.5rem; height: 2.5rem; margin: -4px; }
+  .row-star, .row-star:hover, .row-more, .row-x, .row-x:hover { width: 2.5rem; height: 2.5rem; margin: -4px; }
   button.group-star, button.group-star:hover, .group.active .group-star:hover { width: 2.5rem; height: 2.5rem; padding: 11px; margin: -11px; }
   button.series-favorite { width: 2.5rem; height: 2.5rem; margin: -4px; }
   .hint-btn { width: 2.5rem; height: 2.5rem; min-height: 0; margin: -11px; border-width: 11px; }

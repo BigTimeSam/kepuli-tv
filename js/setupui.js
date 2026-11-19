@@ -900,6 +900,14 @@ export function wireSetup() {
   });
   el.setup.querySelector('form').addEventListener('submit', async (event) => {
     event.preventDefault();
+    // A portal's address typed into the playlist's field and then Save:
+    // the field's `change` comes before that press in a browser, but not
+    // in the iPhone and iPad app, where a press on a dialog's button with
+    // the keyboard up is made without the field losing the focus
+    // (js/iosapp.js), and the portal would be saved as a playlist. Asked
+    // here as well; the viewer is then at the portal's form, where the MAC
+    // address is wanted.
+    if (toPortal($('f-paste'))) return;
     if (setupSaving || (configured() && !setupAdding && !setupDirty())) return;
     const other = editingOther();
     const connectionEdited = setupConnectionChanged() || !configured() || setupAdding;

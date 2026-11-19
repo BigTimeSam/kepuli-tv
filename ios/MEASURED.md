@@ -215,6 +215,21 @@ file is the working guide; `RELEASE.md` is the way to the App Store.
   `html.kb-tall #setup`); set on that phone as it stood, 480 px in
   sight held the heading, the sections' strip, 213 px of the section
   with the field in it, and the buttons.
+- **Changed after that evening by reading the code, not yet seen on a
+  device** (2026-11-19, before the first iPad): a finger held for half a
+  second on a row or a cover opens its menu (`js/rows.js`: WebKit sends
+  no `contextmenu` for a finger, and a cover has no ⋯); a result of the
+  guide's search that is not on now opens the sheet on a phone, and the
+  sheet takes the keyboard down; History's × takes a press of 40 px; a
+  picker's list is placed in what a keyboard over a full window leaves
+  in sight (`inSight` in `js/picker.js`); a portal's address typed into
+  the playlist's field is still taken for a portal when Save is pressed
+  with the field in the focus, which is how the app makes that press;
+  the message strip stands above such a keyboard, and goes by itself
+  after being touched; the topics' handle takes a finger's drag from a
+  band of 24 px. Each has its test in `dev/playcheck.mjs` or
+  `dev/unitcheck.mjs`; what a real finger and a real keyboard do with
+  them is the device checklist's.
 - **A dialog opened by a real tap ringed its cross**: the dialog takes
   the focus itself under a finger (`js/modal.js`, the dialog's own
   `autofocus`, which WebKit reads; seen with a real tap).

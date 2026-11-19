@@ -24,6 +24,12 @@
   background: var(--panel); border-bottom: 1px solid var(--border); outline: none;
 }
 .subcats-grip[hidden] { display: none; }
+/* Dragged up and down (js/topicbar.js): under a finger the drag is the
+   handle's, not the page's scroll, which would take it away at once. */
+.subcats-grip { touch-action: none; }
+/* Eight pixels are a pointer's target, not a finger's: where nothing
+   hovers the handle takes the press from a band of 24 px about it. */
+@media (hover: none) { .subcats-grip::before { content: ''; position: absolute; inset: -8px 0; } }
 /* The handle is drawn at its full 46 px and held short until the pointer
    arrives. Growing it by its width would lay the element out again on
    every frame of the transition; scaling it is the compositor's work

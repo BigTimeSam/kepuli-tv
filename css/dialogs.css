@@ -193,10 +193,12 @@ html.kb-tall dialog:modal .modal-actions { position: sticky; bottom: 0; z-index:
    a keyboard, as high as what is in sight, the section alone scrolls, and
    the buttons stand under it. Measured there with 480 px in sight: the
    heading, the sections' strip, a section of 213 px and the buttons, and
-   the field being typed into inside the section. */
+   the field being typed into inside the section. The section keeps the
+   height it has without a keyboard where that fits (an iPad), and gives
+   way where it does not. */
 html.kb-tall #setup:modal { overflow: hidden; }
 html.kb-tall #setup:modal > .setup { max-height: calc(var(--vvh, 100dvh) - 18px); overflow: hidden; }
-html.kb-tall #setup:modal .setup-panel:not([hidden]) { height: auto; flex: 1 1 auto; overflow-y: auto; }
+html.kb-tall #setup:modal .setup-panel:not([hidden]) { flex: 0 1 auto; overflow-y: auto; }
 html.kb-tall #setup:modal .modal-actions { position: static; margin-bottom: 0; padding-bottom: 0; background: none; }
 
 /* A stable frame keeps navigation and the shared save action in place. */
@@ -308,6 +310,11 @@ html.kb-tall #setup:modal .modal-actions { position: static; margin-bottom: 0; p
 /* It can be swiped away (js/toast.js): the drag is the strip's, not the
    page's scroll or a selection of its text. */
 .toast { touch-action: none; user-select: none; -webkit-user-select: none; }
+/* A keyboard up over a window that keeps its height (an upright iPad in
+   the app): the window's foot is under the keys, and the strip with it.
+   It stands at the foot of what is in sight instead (js/iosapp.js says
+   where that is). */
+html.kb .toast { bottom: calc(100dvh - var(--vvt, 0px) - var(--vvh, 100dvh) + 18px); }
 /* The switch the message is asking for, inside the message. */
 .toast-action {
   flex: none; margin-left: 4px; padding: 4px 10px; cursor: pointer;

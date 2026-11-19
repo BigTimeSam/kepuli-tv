@@ -9,6 +9,52 @@ import { ratingText } from './rating.js';
 import { nameHasYear } from './titlemeta.js';
 import { svg } from './svg.js';
 
+// A finger held on a row or a cover opens its menu. A right click and a
+// long press are the browser's `contextmenu`, but WebKit on the iPhone and
+// the iPad sends none for a finger: a cover, which has no ⋯ of its own,
+// had no way to its menu there (Mark as watched, the second picture). One
+// watch for the whole page, as rows are built on every scroll frame: a
+// row says what its menu is (`menus`), and a finger that rests on it for
+// half a second without moving opens it where it rests. Where the engine
+// does send `contextmenu` for the same press (Android), whichever comes
+// second is dropped.
+/** @type {WeakMap<Element, (at: { x: number, y: number }) => void>} */
+const menus = new WeakMap();
+const HOLD_MS = 550, HOLD_SLACK = 10;
+if (typeof document !== 'undefined') {
+  let timer = 0, opened = 0;
+  /** @type {{ x: number, y: number, node: Element } | null} */
+  let held = null;
+  const stop = () => { clearTimeout(timer); timer = 0; held = null; };
+  document.addEventListener('pointerdown', (e) => {
+    stop();
+    const node = e.pointerType === 'touch' && e.target instanceof Element ? e.target.closest('.row') : null;
+    // On one of the row's own buttons the press is the button's.
+    if (!node || !menus.has(node) || /** @type {Element} */ (e.target).closest('button, a[href]')) return;
+    held = { x: e.clientX, y: e.clientY, node };
+    timer = window.setTimeout(() => {
+      const press = held;
+      stop();
+      const menu = press && menus.get(press.node);
+      if (!press || !menu || !press.node.isConnected) return;
+      opened = performance.now();
+      // The lift of this press is not a press of the row: its click is
+      // taken, once, and the watch goes with the next press at the latest.
+      const swallow = (/** @type {Event} */ click) => { click.preventDefault(); click.stopPropagation(); done(); };
+      const done = () => { removeEventListener('click', swallow, true); removeEventListener('pointerdown', done, true); };
+      addEventListener('click', swallow, true);
+      addEventListener('pointerdown', done, true);
+      menu({ x: press.x, y: press.y });
+    }, HOLD_MS);
+  }, true);
+  document.addEventListener('pointermove', (e) => { if (held && Math.hypot(e.clientX - held.x, e.clientY - held.y) > HOLD_SLACK) stop(); }, true);
+  for (const type of ['pointerup', 'pointercancel']) document.addEventListener(type, stop, true);
+  document.addEventListener('contextmenu', (e) => {
+    stop();
+    if (performance.now() - opened < 1000) { e.preventDefault(); e.stopPropagation(); }
+  }, true);
+}
+
 const el = (tag, cls, text) => {
   const node = document.createElement(tag);
   if (cls) node.className = cls;
@@ -174,6 +220,7 @@ export function itemRow(item, ctx) {
   if (ctx.onMenu) {
     row.appendChild(quiet(more(ctx.onMenu)));
     row.addEventListener('contextmenu', (e) => { e.preventDefault(); ctx.onMenu({ x: e.clientX, y: e.clientY }); });
+    menus.set(row, ctx.onMenu);
   }
 
   row.addEventListener('click', ctx.onOpen);
@@ -235,7 +282,10 @@ export function posterCard(item, ctx) {
   nameOption(card, [ctx.label || item.n, ctx.favorite ? t('favs.title') : null, genre, bits.join(', '),
     flag ? flag[2] : null]);
 
-  if (ctx.onMenu) card.addEventListener('contextmenu', (e) => { e.preventDefault(); ctx.onMenu({ x: e.clientX, y: e.clientY }); });
+  if (ctx.onMenu) {
+    card.addEventListener('contextmenu', (e) => { e.preventDefault(); ctx.onMenu({ x: e.clientX, y: e.clientY }); });
+    menus.set(card, ctx.onMenu);
+  }
   card.addEventListener('click', ctx.onOpen);
   return card;
 }

@@ -54,6 +54,9 @@ export function wirePickers(root = document) {
   // iPhone), and nothing could be typed into it.
   let width = innerWidth;
   addEventListener('resize', () => { if (innerWidth !== width) { width = innerWidth; close(); } }, { passive: true });
+  // The keyboard coming up or going changes what is in sight under a
+  // list that is open (its filter field was tapped): placed again.
+  window.visualViewport?.addEventListener('resize', place, { passive: true });
   root.addEventListener('scroll', (e) => {
     if (!open || open.pop.contains(/** @type {Node} */ (e.target)) || open.pop.contains(document.activeElement)) return;
     close();
@@ -220,14 +223,29 @@ function show(select, typed = '') {
   }
 }
 
+/**
+ * What of the window is in sight, from its top: `[from, to]`. All of it
+ * but under a keyboard that lies over a window of full height (an upright
+ * iPad in the app, at times an iPhone), where a list opened downwards
+ * from a field in the window's lower half had its options under the keys.
+ * A window that the keyboard has shrunk, and one enlarged by two fingers,
+ * are measured as they are.
+ */
+export function inSight(height, viewport) {
+  if (!viewport || viewport.scale > 1.01 || height - viewport.height <= 120) return [0, height];
+  const from = Math.max(0, Math.min(viewport.offsetTop, height - viewport.height));
+  return [from, from + viewport.height];
+}
+
 function place() {
   if (!open) return;
   const { select, pop } = open;
   const rect = select.getBoundingClientRect();
   pop.style.minWidth = `${Math.round(rect.width)}px`;
   pop.style.maxWidth = `${Math.max(rect.width, Math.min(420, innerWidth - 2 * MARGIN))}px`;
-  const below = innerHeight - rect.bottom - GAP - MARGIN;
-  const above = rect.top - GAP - MARGIN;
+  const [from, to] = inSight(innerHeight, window.visualViewport);
+  const below = to - rect.bottom - GAP - MARGIN;
+  const above = rect.top - from - GAP - MARGIN;
   const downward = below >= Math.min(280, pop.scrollHeight) || below >= above;
   const room = Math.max(120, downward ? below : above);
   pop.style.maxHeight = `${Math.min(room, 360)}px`;

@@ -3708,6 +3708,20 @@ async function polish(page) {
       return out;`);
     assert(port.said.every((text) => text === port.expected) && port.focus === 'f-port' && port.open && port.stored === String(MOCK_PORT), `ports that cannot be: ${JSON.stringify(port)}`);
     assert(port.twice === port.exists && port.accounts <= 1, `the same account added a second time: ${JSON.stringify({ said: port.twice, accounts: port.accounts })}`);
+    /* A portal's address typed into the playlist's field, and Save pressed
+       with the field still in the focus, as the iPhone and iPad app makes
+       that press: the form goes to the portal's fields and saves nothing. */
+    const portal = await run(`$('btn-settings').click(); await pause(300); document.querySelector('#setup [data-panel="connection"]').click(); await pause(200);
+      $('f-add-account').click(); await pause(300);
+      document.querySelector('input[name="source"][value="m3u"]').click(); await pause(100);
+      const before = ((await chrome.storage.local.get('accounts')).accounts || []).length;
+      $('f-paste').focus(); $('f-paste').value = 'http://portal.example.test/stalker_portal/c/'; $('f-paste').dispatchEvent(new Event('input', { bubbles: true })); await pause(100);
+      $('f-save').click(); await pause(400);
+      const out = { mode: document.querySelector('input[name="source"]:checked').value, portal: $('f-portal').value, paste: $('f-paste').value, focus: document.activeElement.id,
+        accounts: ((await chrome.storage.local.get('accounts')).accounts || []).length - before, open: $('setup').open };
+      $('f-done').click(); await pause(200); $('f-discard')?.click(); await pause(200); if ($('setup').open) $('setup').close();
+      return out;`);
+    assert(portal.mode === 'stalker' && /stalker_portal/.test(portal.portal) && portal.paste === '' && portal.accounts === 0 && portal.open, `a portal's address in the playlist's field, saved without leaving it: ${JSON.stringify(portal)}`);
     /* The guide: the older days' menu beside the strip and not in it; a
        search that leaves no channel says so in the grid's place, with the
        way out; a name on two lines in the narrower column. */
@@ -3759,6 +3773,22 @@ async function polish(page) {
       return item ? item.querySelector('span').textContent : null;`);
     assert(link && !link.includes('↗'), `the menu's link out reads "${link}"`);
     await run(`$('btn-home').click(); return true;`);
+    /* A finger held on a film opens its menu, as a right click does: WebKit
+       sends no contextmenu for a finger, and a cover has no ⋯ of its own.
+       A press that moves is a scroll, a short one is a tap, and the lift
+       of the one that opened the menu plays nothing. */
+    const hold = await run(`document.querySelector('[data-tab="movie"]').click(); await pause(1500);
+      const { closeRowMenu } = await import('./js/rowmenu.js'); const { state } = await import('./js/state.js');
+      const card = document.querySelector('#list .row'), r = card.getBoundingClientRect(), x = r.left + r.width / 2, y = r.top + r.height / 2;
+      const fire = (type, dx = 0) => card.dispatchEvent(new PointerEvent(type, { bubbles: true, pointerId: 11, pointerType: 'touch', clientX: x + dx, clientY: y, button: 0 }));
+      const menu = () => Boolean(document.querySelector('.row-menu')), was = state.playingSpec;
+      const seen = { cover: card.classList.contains('card') };
+      fire('pointerdown'); fire('pointermove', 30); await pause(800); seen.moved = menu(); fire('pointerup');
+      fire('pointerdown'); await pause(200); fire('pointerup'); await pause(600); seen.short = menu();
+      fire('pointerdown'); await pause(800); seen.held = menu(); fire('pointerup'); card.click(); await pause(400);
+      seen.kept = menu(); seen.played = state.playingSpec !== was || !$('detail').hidden;
+      closeRowMenu(); $('btn-home').click(); return seen;`);
+    assert(!hold.moved && !hold.short && hold.held && hold.kept && !hold.played, `a finger held on a film: ${JSON.stringify(hold)}`);
     /* The message strip is swiped away, and its button keeps its press. A
        reminder's lay over the bar under the picture for a minute, with its
        button the only way of being rid of it. */
@@ -3778,6 +3808,21 @@ async function polish(page) {
     assert(strip.slip && strip.sideways && strip.downwards && strip.upwards, `the strip under a swipe: ${JSON.stringify(strip)}`);
     assert(strip.followed && strip.followed !== '0px' && strip.left, `the strip follows the finger and is left as it was: ${JSON.stringify(strip)}`);
     assert(strip.swipedOnButton && strip.press, `the strip's button under a swipe and a press: ${JSON.stringify(strip)}`);
+    /* Where nothing hovers, a strip that was touched goes by itself all
+       the same: WebKit keeps :hover on what was touched last, and the
+       strip waited for a pointer to leave it that was never there. */
+    await page.call('Emulation.setTouchEmulationEnabled', { enabled: true, maxTouchPoints: 5 });
+    try {
+      const where = await run(`const { toast } = await import('./js/toast.js'); toast('Touched and left', { duration: 400 }); await pause(50);
+        const r = $('toast').getBoundingClientRect(); return { x: r.left + r.width / 2, y: r.top + r.height / 2 };`);
+      await page.call('Input.dispatchMouseEvent', { type: 'mouseMoved', x: where.x, y: where.y });
+      await sleep(1900);
+      const touched = await run(`const bar = $('toast'); const seen = { hovered: bar.matches(':hover'), coarse: matchMedia('(hover: none)').matches, gone: bar.hidden }; bar.hidden = true; return seen;`);
+      assert(touched.coarse && touched.gone, `a strip that was touched, where nothing hovers: ${JSON.stringify(touched)}`);
+    } finally {
+      await page.call('Emulation.setTouchEmulationEnabled', { enabled: false }).catch(() => {});
+      await page.call('Input.dispatchMouseEvent', { type: 'mouseMoved', x: 5, y: 5 }).catch(() => {});
+    }
     return { ok: true, detail: `Settings opens at its beginning in a low window, and on its last section with that section's name in sight; "${port.expected}" for abc, 99999 and 0, "${port.exists}" for an account added twice; the message strip is swiped away sideways and downwards and its button keeps its press; the older days' menu ${older.width} px wide beside the strip, today whole in it; a search with no channel says "${empty.title}" in the guide with ${empty.button}; a picture ${narrow.width} × ${narrow.height} in a pane 320 px wide; the bar under the picture drops the format's words alone at ${step.width} px, and a phone's reads "${phone.label}" for "${phone.text}"; the menu's link reads "${link}"` };
   } finally {
     await page.call('Emulation.setEmulatedMedia', { features: [] }).catch(() => {});
@@ -7440,7 +7485,17 @@ async function phoneguide(page) {
     await evaluate(page, `document.getElementById('epg-search').click()`);
     const searching = await evaluate(page, `({ form: document.getElementById('programme-query').offsetParent !== null, focus: document.activeElement.id })`);
     assert(searching.form && searching.focus === 'programme-query', `the search behind its mark: ${JSON.stringify(searching)}`);
-    return { ok: true, detail: `${look.chans} channels under a ${look.top} px top; a tap opened the sheet with ${sheet.actions} actions and played nothing, a message lay over it, Escape closed it; Now floated away from now; the search opened focused` };
+    // A result that is not on now opens the sheet too: its tap filled the
+    // sheet without showing it, and a finger had no other way in.
+    await evaluate(page, `document.getElementById('programme-query').value = 'News'; document.getElementById('programme-scope').value = 'all'; document.getElementById('programme-form').requestSubmit()`);
+    await waitFor(page, `document.querySelectorAll('#programme-results .psr-when').length > 2`, 'the search results', 20000);
+    const later = await evaluate(page, `(async () => { const rows = [...document.querySelectorAll('#programme-results .psr-when')].map((n) => n.parentElement);
+      const row = rows.find((r) => !r.querySelector('.psr-now, .live, [class*="now"]')) || rows[rows.length - 1];
+      const title = row.querySelector('strong').textContent; row.click(); await new Promise((r) => setTimeout(r, 400));
+      return { rows: rows.length, sheet: document.getElementById('main').classList.contains('guide-sheet'), title, shown: document.getElementById('epg-preview').textContent.includes(title) }; })()`);
+    assert(later.sheet && later.shown, `a search result that is not on now, tapped on a phone: ${JSON.stringify(later)}`);
+    await evaluate(page, `document.getElementById('epgv-close').click()`);
+    return { ok: true, detail: `${look.chans} channels under a ${look.top} px top; a tap opened the sheet with ${sheet.actions} actions and played nothing, a message lay over it, Escape closed it; Now floated away from now; the search opened focused, and a result of it that is not on now opened the sheet` };
   } finally {
     await evaluate(page, `document.getElementById('epg-close')?.click()`).catch(() => {});
     await page.call('Emulation.clearDeviceMetricsOverride').catch(() => {});
@@ -9497,9 +9552,16 @@ async function iosappTurned(page, assert) {
     const low = [...panel.querySelectorAll('input:not([type=hidden])')].filter((n) => n.getClientRects().length).pop();
     low.focus(); await pause(300);
     const at = (n) => { const r = n.getBoundingClientRect(); return [Math.round(r.top), Math.round(r.bottom)]; };
+    // The message strip stands in what is in sight: where the window
+    // keeps its height (an upright iPad) its foot is under the keys.
+    root.style.setProperty('--vvt', '0px'); root.style.setProperty('--vvh', '480px');
+    const { toast, hideToast } = await import('./js/toast.js'); toast('A message with the keyboard up'); await pause(100);
+    seen.strip = { bottom: Math.round($('toast').getBoundingClientRect().bottom), window: innerHeight }; hideToast();
+    root.style.removeProperty('--vvt');
     seen.frame = { sheet: at(sheet), fixed: sheet.scrollHeight <= sheet.clientHeight + 1, bar: at(bar), pinned: getComputedStyle(bar).position, panel: at(panel), scrolls: panel.scrollHeight > panel.clientHeight + 1, field: at(low), id: low.id };
     root.classList.remove('kb', 'kb-tall'); root.style.removeProperty('--vvh'); $('setup').close();
     return seen; })()`, { gesture: true });
+  assert(typed.strip.window > 600 && typed.strip.bottom <= 480 && typed.strip.bottom >= 400, `the message strip with a keyboard over the window's foot: ${JSON.stringify(typed.strip)}`);
   const frame = typed.frame;
   assert(frame.fixed && frame.pinned === 'static' && frame.sheet[1] <= 480 && frame.bar[1] <= frame.sheet[1] && frame.panel[1] <= frame.bar[0] && frame.scrolls,
     `Settings' frame with a keyboard up: ${JSON.stringify(frame)}`);

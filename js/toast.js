@@ -124,8 +124,12 @@ export function toast(text, { long = false, kind = 'info', action = null, durati
   // with something in it to press. A strip that holds the pointer or the
   // focus stays until they leave it: seven seconds were too short to reach
   // Undo with the keyboard or a screen reader (WCAG 2.2.1).
+  // Under a finger there is no pointer to leave it: WebKit keeps :hover on
+  // what was touched last until something else is, so a strip that had
+  // been touched (a swipe that fell short) never went by itself.
+  const held = () => el.toast.matches(':focus-within') || (matchMedia('(hover: hover)').matches && el.toast.matches(':hover'));
   const hide = () => {
-    if (el.toast.matches(':hover, :focus-within')) toastTimer = setTimeout(hide, 1000);
+    if (held()) toastTimer = setTimeout(hide, 1000);
     else { el.toast.hidden = true; next(); }
   };
   toastTimer = setTimeout(hide, duration ?? (long || action ? 7000 : 2800));

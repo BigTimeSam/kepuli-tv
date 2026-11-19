@@ -2624,6 +2624,16 @@ check('VLC for iOS is handed the stream address, encoded whole',
     [true, true, true, false]);
 }
 
+/* ---------------------------------------------------- js/picker.js */
+
+{
+  const { inSight } = await import('../js/picker.js');
+  check('a list is placed in what a keyboard over a full window leaves in sight, and in the whole window otherwise',
+    [inSight(1128, { height: 811, offsetTop: 0, scale: 1 }), inSight(778, { height: 436, offsetTop: 400, scale: 1 }), inSight(506, { height: 480, offsetTop: 354, scale: 1 }),
+      inSight(800, { height: 400, offsetTop: 100, scale: 2 }), inSight(800, null)],
+    [[0, 811], [342, 778], [0, 506], [0, 800], [0, 800]]);
+}
+
 /* ----------------------------------------------------- js/toast.js */
 
 {

@@ -30,7 +30,13 @@ import { sideScroll } from './sidescroll.js';
 const PHONE = '(max-width: 600px)';
 const phone = () => matchMedia(PHONE).matches;
 const PHONE_ZOOM = 1;
-function openSheet() { el.main.classList.add('guide-sheet'); }
+function openSheet() {
+  el.main.classList.add('guide-sheet');
+  // The search's field would keep the keyboard up over the sheet, which
+  // stands at the window's foot: under a finger the field gives it up.
+  const field = document.activeElement;
+  if (field instanceof HTMLElement && field.matches('input') && matchMedia('(hover: none)').matches) field.blur();
+}
 export function closeSheet() { el.main.classList.remove('guide-sheet'); }
 
 export const grid = new EpgGrid({
@@ -70,7 +76,10 @@ export const programmeSearch = new ProgrammeSearch({
   },
   limit: () => searchLimit('live'),
   onLeave: () => focusGrid(),
-  onSelect: renderGuidePreview,
+  // On a phone the panel is the sheet, closed until asked for: a result
+  // that is not on now only filled it, and the tap showed nothing (a
+  // double click, which a finger does not make, was the other way in).
+  onSelect: (channel, programme) => { renderGuidePreview(channel, programme); if (phone()) openSheet(); },
   onActivate: activateProgramme,
   onPick: (channel, programme) => (phone() ? openSheet() : pickProgramme(channel, programme)),
   onMode: (searching) => {
