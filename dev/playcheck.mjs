@@ -3881,12 +3881,13 @@ async function polish(page) {
     for (const [what, pick] of [['a film', '#list .row .card-star'], ['a category', '#groups button.group-star']]) {
       const at = await run(`document.querySelector('[data-tab="movie"]').click(); await pause(1200);
         const star = document.querySelector(${JSON.stringify(pick)}); star.scrollIntoView({ block: 'center' }); if (!star.classList.contains('on')) star.click(); await pause(400);
-        const now = document.querySelector(${JSON.stringify(pick + '.on')}), r = now.getBoundingClientRect(); return { x: r.left + r.width / 2, y: r.top + r.height / 2 };`);
+        const now = document.querySelector(${JSON.stringify(pick + '.on')}), r = now.getBoundingClientRect(); return { x: r.left + r.width / 2, y: r.top + r.height / 2, colour: getComputedStyle(now).color };`);
       await page.call('Input.dispatchMouseEvent', { type: 'mouseMoved', x: at.x, y: at.y });
       await sleep(300);
       const star = await run(`const now = document.querySelector(${JSON.stringify(pick + '.on')}); const out = { hover: now.matches(':hover'), colour: getComputedStyle(now).color }; now.click(); await pause(300); return out;`);
       await page.call('Input.dispatchMouseEvent', { type: 'mouseMoved', x: 2, y: 2 });
-      assert(star.hover && star.colour === 'rgb(255, 200, 87)', `the star of ${what} in the favourites, under the pointer: ${JSON.stringify(star)}`);
+      // The colour it has at rest, whichever theme the browser's system gives (gold is another in the light one).
+      assert(star.hover && star.colour === at.colour && !/^rgb\((\d+), \1, \1\)$/.test(star.colour), `the star of ${what} in the favourites, under the pointer: ${JSON.stringify(star)}, at rest ${at.colour}`);
     }
     await run(`$('btn-home').click(); return true;`);
     /* The message strip is swiped away, and its button keeps its press. A
