@@ -139,6 +139,12 @@ shares.
   and `player.track` when the viewer chooses a track. The app says
   `host` with `player: true` as the page connects, which is what makes
   the page hand anything over.
+- **Only the web's addresses.** The page's address must be http or https
+  (`Rules.playable`), and the player is built with an http source alone,
+  so that a playlist of the provider's cannot name a file, a `content:`
+  address or an asset of the app's for it to read. A redirect between
+  http and https is followed, as the engine follows it for the page:
+  the source speaks nothing else. Keep it so when the source is changed.
 - **The view** is Media3's `PlayerView` with its own controls
   (`res/layout/native_player.xml`), in a layer added to the activity's
   frame over the engine's view, at the box the page says: the box in the

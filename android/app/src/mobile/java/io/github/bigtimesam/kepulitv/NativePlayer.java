@@ -22,7 +22,9 @@ import androidx.media3.common.Player;
 import androidx.media3.common.TrackSelectionParameters;
 import androidx.media3.common.Tracks;
 import androidx.media3.common.VideoSize;
+import androidx.media3.datasource.DefaultHttpDataSource;
 import androidx.media3.exoplayer.ExoPlayer;
+import androidx.media3.exoplayer.source.DefaultMediaSourceFactory;
 import androidx.media3.ui.PlayerView;
 
 import org.json.JSONArray;
@@ -127,7 +129,16 @@ final class NativePlayer {
         text = null;
         said = "";
 
-        player = new ExoPlayer.Builder(activity).build();
+        // Everything the player fetches comes over http or https: the
+        // stream itself and whatever a playlist of the provider's names in
+        // it. Media3's usual source also reads files, content: addresses
+        // and the app's assets, which a provider's playlist could then have
+        // pointed at. A redirect from http to https or back is followed, as
+        // the engine follows it for the page's own picture (providers send
+        // a stream on to another of their servers that way): this source
+        // speaks nothing but the two, so a redirect leads nowhere else.
+        DefaultHttpDataSource.Factory web = new DefaultHttpDataSource.Factory().setAllowCrossProtocolRedirects(true);
+        player = new ExoPlayer.Builder(activity).setMediaSourceFactory(new DefaultMediaSourceFactory(web)).build();
         TrackSelectionParameters.Builder wanted = player.getTrackSelectionParameters().buildUpon();
         String audioLang = word.optString("audioLang", "auto");
         if (!audioLang.isEmpty() && !audioLang.equals("auto")) wanted.setPreferredAudioLanguage(audioLang);
