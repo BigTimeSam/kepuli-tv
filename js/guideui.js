@@ -214,6 +214,20 @@ function guideChannels() {
   return guideFavorites ? favoriteChannels() : state.rows.filter((it) => it.k === 0);
 }
 
+/**
+ * The switch stands beside the search field, and in the bar, before the
+ * search's mark, where the field waits behind that mark and would take
+ * the switch out of sight with it: the layouts of css/last.css (a phone)
+ * and css/narrow.css (a low window).
+ */
+const searchFolded = matchMedia('(max-width: 600px), (max-height: 440px) and (min-width: 601px)');
+function placeGuideFavorites() {
+  if (searchFolded.matches) $('epg-search').before($('epg-favs'));
+  else $('programme-form').append($('epg-favs'));
+}
+searchFolded.addEventListener('change', placeGuideFavorites);
+placeGuideFavorites();
+
 function renderGuideFavorites() {
   const button = $('epg-favs');
   button.setAttribute('aria-pressed', String(guideFavorites));

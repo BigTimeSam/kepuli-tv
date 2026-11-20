@@ -403,6 +403,8 @@ async function guide(d) {
     if (!await until(() => $('main').classList.contains('guide') && document.querySelectorAll('.epg-prog').length > 0)) return { open: false };
     await pause(500);
     const { t } = await import('./js/i18n.js');
+    // The panel beside the grid, with nothing playing: its picks are no wider than it.
+    const panel = $('overlay'), panelFits = panel.scrollWidth <= panel.clientWidth + 1;
     // An upcoming programme's own page: where a browser offers to record it.
     const ahead = [...document.querySelectorAll('.epg-prog[data-start]')].find((n) => Number(n.dataset.start) > Date.now() + 5 * 60000);
     if (ahead) ahead.click();
@@ -411,8 +413,9 @@ async function guide(d) {
     const words = [t('rec.start'), t('rec.title')];
     const recording = [...document.querySelectorAll('button, [role="menuitem"], a')].filter((n) => seen(n) && words.some((w) => n.textContent.trim().startsWith(w))).map((n) => n.id || n.textContent.trim());
     return { open: true, programmes: document.querySelectorAll('.epg-prog').length, actions, remind: t('guide.remind'), recording,
-      buttons: [seen($('btn-record')), seen($('btn-recordings-menu'))], canRecord: (await import('./js/recordingsui.js')).canRecord, fits: fits() };`);
+      buttons: [seen($('btn-record')), seen($('btn-recordings-menu'))], canRecord: (await import('./js/recordingsui.js')).canRecord, fits: fits(), panelFits };`);
   assert(grid && grid.open && grid.programmes > 0 && grid.fits, `the guide: ${JSON.stringify(grid)}`);
+  assert(grid.panelFits, 'the panel beside the guide scrolls sideways');
   assert(grid.canRecord === false && grid.recording.length === 0 && !grid.buttons[0] && !grid.buttons[1], `something of recording is offered: ${JSON.stringify(grid)}`);
   assert(grid.actions.includes(grid.remind), `an upcoming programme offers ${grid.actions.join(', ') || 'nothing'}`);
   await d.shot('guide');

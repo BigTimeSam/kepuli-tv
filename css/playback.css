@@ -318,7 +318,10 @@ body[data-substyle="contrast"] { --cue-back: #000; }
 @media (hover: none) { .idle-forget, .idle-star { opacity: 1; } }
 /* The picks (js/picks.js): a programme per card, its channel's logo beside
    it. One row of them, as many as the window is wide for (fitIdleHome). */
-.idle-picks { display: grid; grid-template-columns: repeat(auto-fill, minmax(15rem, 1fr)); gap: 10px; }
+/* A card is no wider than the column: in the guide on an upright iPad the
+   panel is 210 px inside its padding, and a card held to 15rem made the
+   whole panel scroll sideways. */
+.idle-picks { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(15rem, 100%), 1fr)); gap: 10px; }
 .idle-pick[hidden] { display: none; }
 .idle-pick {
   position: relative; display: flex; align-items: flex-start; gap: 10px; min-width: 0; padding: 10px 12px 12px;

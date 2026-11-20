@@ -436,8 +436,6 @@
   <section class="epg" id="epg" hidden>
     <div class="epg-bar">
       <select id="epg-group" class="epg-select" data-i18n-title="guide.group.title"></select>
-      <!-- The favourite channels alone, whatever group they are in. -->
-      <button type="button" id="epg-favs" class="ghost epg-favs" aria-pressed="false" data-i18n-title="guide.favs.title"><svg viewBox="0 0 20 20" aria-hidden="true"><path d="m10 2.8 2.2 4.5 5 .7-3.6 3.5.9 4.9L10 14.1l-4.5 2.3.9-4.9L2.8 8l5-.7z"/></svg><span data-i18n="tab.fav">Favourites</span></button>
       <!-- On a phone the programme search waits behind this, the bar
            keeping two rows (js/guideui.js); elsewhere it is not shown. -->
       <button type="button" id="epg-search" class="ghost icon epg-search-toggle" aria-expanded="false" aria-controls="programme-form" data-i18n-title="programmes.search" data-i18n-label="programmes.search"><svg viewBox="0 0 20 20" aria-hidden="true"><circle cx="9" cy="9" r="6"/><path d="M13.5 13.5 18 18"/></svg></button>
@@ -460,6 +458,11 @@
       <span class="search-field"><svg viewBox="0 0 20 20" aria-hidden="true"><circle cx="9" cy="9" r="6"/><path d="M13.5 13.5 18 18"/></svg>
         <input id="programme-query" type="search" data-i18n-placeholder="programmes.placeholder" data-i18n-label="programmes.placeholder" autocomplete="off">
       </span>
+      <!-- The favourite channels alone, whatever group they are in: beside
+           the search, where there is room for its words. Where the search
+           waits behind its mark (a phone, a low window) it is moved into
+           the bar as a star alone (js/guideui.js placeGuideFavorites). -->
+      <button type="button" id="epg-favs" class="ghost epg-favs" aria-pressed="false" data-i18n-title="guide.favs.title"><svg viewBox="0 0 20 20" aria-hidden="true"><path d="m10 2.8 2.2 4.5 5 .7-3.6 3.5.9 4.9L10 14.1l-4.5 2.3.9-4.9L2.8 8l5-.7z"/></svg><span data-i18n="filters.favs">Show only favourites</span></button>
     </form>
     <section id="programme-panel" class="programme-panel" hidden data-i18n-label="programmes.results">
       <!-- As the list's loading strip (#list-progress): while it searches, the
