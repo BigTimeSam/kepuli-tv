@@ -176,6 +176,10 @@ input[type="search"], input[type="text"], input[type="url"], input:not([type]) {
 .ios #btn-screen, .ios #setup-grant-note, .ios .help-note[data-i18n="help.back"], .ios .setup-group[aria-labelledby="group-record"] { display: none; }
 /* The help's keys are all behind its fold there (js/help.js). */
 .ios #help h3, .ios #help-keys { display: none; }
+/* The app's controls lie over the page's own picture (js/nativeplayer.js):
+   full screen is in their bar, and the page's button under them could not
+   be pressed. */
+.ios .videowrap.appbars .full-btn { display: none; }
 html:not(.ios) .ios-only { display: none; }
 /* The guide's days under a finger, in a window wider than a phone's:
    the strip has all of the bar's row that the selector and the marks

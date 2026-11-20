@@ -110,7 +110,7 @@ Long-form documentation: [user guide](docs/user-guide.md),
 | Ready to release? | `node dev/release.mjs [--quick]` |
 | Release packages | `node dev/package.mjs --zip`, `node firefox/amo-source.mjs` |
 | What Chrome serves | `node dev/cws-publish.mjs verify` |
-| The page as each app sees it, in desktop Chrome | `node dev/playcheck.mjs iosapp appplayer` (iPhone and iPad, and the app's own player on the `native-player` branch), `appback appcast` (Android phone), `remote remotescrub` (Android TV) |
+| The page as each app sees it, in desktop Chrome | `node dev/playcheck.mjs iosapp appplayer` (iPhone and iPad, and the app's own player), `appback appcast` (Android phone), `remote remotescrub` (Android TV) |
 | The Android apps built, and what they ask Android to allow | `cd android && ./gradlew assembleMobileDebug assembleTvDebug` (needs `ANDROID_HOME`), then `node android/permissions.mjs` |
 | The iPhone and iPad app built for the simulator, its XCTest target | `node ios/build.mjs --simulator`, `node ios/build.mjs --test` |
 | The app in a simulator: install, launch, state, run code in the page | `node ios/sim.mjs install`, `launch`, `status`, `eval '<code>'` (see `ios/AGENTS.md`) |

@@ -388,13 +388,19 @@ file is the working guide; `RELEASE.md` is the way to the App Store.
   at once, as `kill` holds. No page that dies at its start was there to
   try it with.
 - **The app's own player is a view in the web view's scroll view**
-  (`App/Player`, `js/nativeplayer.js`; an experiment on the
-  `native-player` branch). Laid there, over the page's content, it moves
+  (`App/Player`, `js/nativeplayer.js`). Laid there, over the page's content, it moves
   with the page by itself, and the page says only where the picture's box
   is. Measured in the simulators (an iPad (A16) and an iPhone 17, iOS
   26.5): the box said by the page and the view's frame agree to the
   point, upright, lying down and in the app's full screen, which is
   still the page's to lay out.
+- **AVPlayer's picture needs a view of its own under the controls.** With
+  AVPlayerLayer as the layer of the view that also held the controls, a
+  film's picture was drawn over them on the iPad (A16, iPadOS 26.2): the
+  capsules showed for a moment and went under the picture. The layer adds
+  its picture as a sublayer when the item is ready, after the controls'
+  layers. The simulator (iOS 26.5) never showed it, and the frame and the
+  state it reported were right throughout: only the owner's eyes found it.
 - **The page's box may end between two pixels**, 376.875 points high on
   the iPad: the row the view half covered showed as a hairline across a
   dialog cut out of it. The frame is rounded to whole pixels and a hole

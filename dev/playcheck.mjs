@@ -10296,12 +10296,26 @@ async function appplayer(page, { target }) {
     assert(fell.engine && fell.at >= 74, `the film in the page after the app's failure: ${JSON.stringify(fell)}`);
     await playFilm(`(f) => String(f.id) === '5000'`, 10);
     await waitFor(page, PLAYING, 'the film in the page again', 30000);
-    assert((await sent('player.load')).length === 1, 'a film the app failed on was handed to it again');
+    const toApp = async () => (await sent('player.load')).filter((m) => m.url);
+    assert((await toApp()).length === 1, 'a film the app failed on was handed to it again');
+
+    // What the page plays itself lies under the app's controls: the app
+    // is told so with no address, WebKit's controls are off the picture,
+    // the picture's place is said, and the controls' presses are done.
+    const own = (await sent('player.load')).at(-1);
+    await waitFor(page, `window.__sent.some((m) => m.type === 'player.page' && m.id === ${own.id} && m.state === 'playing' && m.position > 0 && m.duration > 0)`, 'the page\'s own picture said to the app\'s controls', 10000);
+    const bare = await evaluate(page, `!document.getElementById('video').controls`);
+    assert(own.page === true && bare, `the page's own picture under the app's controls: ${JSON.stringify(own)}, WebKit's controls ${bare ? 'off' : 'on'}`);
+    await say({ type: 'player.command', id: own.id, what: 'pause' });
+    await waitFor(page, `document.getElementById('video').paused && window.__sent.filter((m) => m.type === 'player.page').at(-1).state === 'paused'`, 'the page\'s picture paused from the app\'s controls', 5000);
+    await say({ type: 'player.command', id: own.id, what: 'seek', to: 40 });
+    await say({ type: 'player.command', id: own.id, what: 'play' });
+    await waitFor(page, `(() => { const v = document.getElementById('video'); return !v.paused && v.currentTime >= 40; })()`, 'the page\'s picture moved and started from the app\'s controls', 10000);
 
     // Another film, seen to its end in the app: the player is empty and its place is gone.
     const other = await playFilm(`(f) => String(f.id) !== '5000' && f.ext === 'mp4'`, 0);
-    await count('player.load', 2, 'the second film handed to the app');
-    const second = (await sent('player.load')).at(-1);
+    await waitFor(page, `window.__sent.filter((m) => m.type === 'player.load' && m.url).length === 2`, 'the second film handed to the app', 10000);
+    const second = (await toApp()).at(-1);
     await say({ type: 'player.state', id: second.id, state: 'playing', position: 60, duration: 120 });
     await sleep(200);
     const mid = await evaluate(page, HERE);
@@ -10309,6 +10323,7 @@ async function appplayer(page, { target }) {
     await waitFor(page, `import('./js/state.js').then((m) => !m.state.playing)`, 'the player empty after the film\'s end', 10000);
     const after = await evaluate(page, `import('./js/state.js').then((m) => m.state.resume.has('1:${other}'))`);
     assert(mid.engine === null && mid.resume === 60 && after === false, `the second film: in the app ${JSON.stringify(mid)}, its place kept after the end: ${after}`);
+    assert(await evaluate(page, `document.getElementById('video').controls`), 'the page\'s picture is left without WebKit\'s controls after the app\'s are gone');
 
     // A channel goes over by its HLS address, and leaving it stops the app's player.
     await evaluate(page, `document.querySelector('#tabs [data-tab="live"]').click()`, { gesture: true });

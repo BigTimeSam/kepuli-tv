@@ -8,15 +8,38 @@ import UIKit
 /// so nothing has to be laid over the picture from outside: full screen,
 /// the Chromecast, AirPlay and picture in picture sit in the bars.
 ///
+/// The same controls lie over what the page plays in its own <video>
+/// (Matroska, MPEG-TS without an HLS address, a recording, the archive):
+/// then nothing is drawn here but the controls, the page's picture shows
+/// through, and the controls' presses are words to the page (`onPage`),
+/// which says where its picture is (`setPage`). One player to the viewer,
+/// whichever of the two plays.
+///
 /// It draws and plays; what is played, and what follows from it, is
 /// NativePlayer's and the page's.
 final class NativePlayerView: UIView, AVPictureInPictureControllerDelegate, UIGestureRecognizerDelegate {
-    override class var layerClass: AnyClass { AVPlayerLayer.self }
-    private var playerLayer: AVPlayerLayer { layer as! AVPlayerLayer }
+    /// AVPlayer's picture, in a view of its own under the controls. It was
+    /// this view's own layer at first, and on an iPad the controls then
+    /// lay under a film's picture: AVPlayerLayer adds the picture as a
+    /// sublayer of itself when the item is ready, after the controls'
+    /// layers and so above them. The simulator did not show it.
+    private final class Picture: UIView {
+        override class var layerClass: AnyClass { AVPlayerLayer.self }
+    }
+    private let picture = Picture()
+    private var playerLayer: AVPlayerLayer { picture.layer as! AVPlayerLayer }
 
     /// The full-screen and the Cast buttons were pressed.
     var onFull: (() -> Void)?
     var onCast: (() -> Void)?
+    /// A press meant for the page's own picture: play, pause, pip, or
+    /// seek with the second to go to.
+    var onPage: ((String, Double?) -> Void)?
+    /// Whether the picture under the controls is the page's, and where the page says it is.
+    private var page = false
+    private var pagePaused = false
+    private var pageNow = 0.0
+    private var pageDuration: Double?
 
     let player = AVPlayer()
     private var pip: AVPictureInPictureController?
@@ -52,6 +75,10 @@ final class NativePlayerView: UIView, AVPictureInPictureControllerDelegate, UIGe
         super.init(frame: frame)
         backgroundColor = .black
         clipsToBounds = true
+        picture.frame = bounds
+        picture.autoresizingMask = [.flexibleWidth, .flexibleHeight]
+        picture.isUserInteractionEnabled = false
+        addSubview(picture)
         playerLayer.player = player
         playerLayer.videoGravity = .resizeAspect
         player.allowsExternalPlayback = true
@@ -329,15 +356,21 @@ final class NativePlayerView: UIView, AVPictureInPictureControllerDelegate, UIGe
 
     /// The page's words for what plays and for the controls, in the
     /// viewer's language: `labels` has full, leave, cast, play, pause, subtitles, off, audio and live.
-    func show(title: String, subtitle: String, live: Bool, labels: [String: String]) {
-        self.live = live
+    func show(title: String, subtitle: String, live: Bool, labels: [String: String], page: Bool = false) {
+        self.page = page
+        pagePaused = false
+        pageNow = 0
+        pageDuration = nil
+        // The page's picture shows through; AirPlay is AVPlayer's alone,
+        // and the page's tracks are chosen in the page.
+        backgroundColor = page ? .clear : .black
+        picture.isHidden = page
+        routeButton.isHidden = page
         self.labels = labels
         titleLabel.text = title
         subtitleLabel.text = subtitle
-        for view in [elapsed, slider, remaining, backButton, forwardButton] as [UIView] { view.isHidden = live }
-        liveBadge.isHidden = !live
-        liveSpace.isHidden = !live
         liveBadge.text = labels["live"].map { "  ● \($0.uppercased())  " } ?? "  ●  "
+        setLive(live)
         castButton.accessibilityLabel = labels["cast"]
         slider.value = 0
         elapsed.text = Self.clock(0)
@@ -345,6 +378,40 @@ final class NativePlayerView: UIView, AVPictureInPictureControllerDelegate, UIGe
         setFull(full)
         tick()
         show()
+    }
+
+    /// A time line, or the mark of a live channel in its place.
+    private func setLive(_ live: Bool) {
+        self.live = live
+        for view in [elapsed, slider, remaining, backButton, forwardButton] as [UIView] { view.isHidden = live }
+        liveBadge.isHidden = !live
+        liveSpace.isHidden = !live
+    }
+
+    /// Where the page's own picture is: the controls follow it as they
+    /// follow AVPlayer. A picture with no length is live, whatever it was
+    /// started as (a recording in the making, a channel's archive).
+    func setPage(paused: Bool, position: Double, duration: Double?) {
+        guard page else { return }
+        let was = pagePaused
+        pagePaused = paused
+        pageNow = position
+        pageDuration = duration
+        if live != (duration == nil) { setLive(duration == nil) }
+        tick()
+        // Paused from elsewhere (the page's key, the lock screen): the controls say so.
+        if paused != was { show() }
+    }
+
+    private var isPaused: Bool { page ? pagePaused : player.timeControlStatus == .paused }
+    private var nowSeconds: Double { page ? pageNow : player.currentTime().seconds }
+    private var lengthSeconds: Double? {
+        let length = page ? pageDuration : player.currentItem?.duration.seconds
+        guard let length, length.isFinite, length > 0 else { return nil }
+        return length
+    }
+    private func seek(to seconds: Double) {
+        if page { pageNow = seconds; onPage?("seek", seconds) } else { player.seek(to: CMTime(seconds: seconds, preferredTimescale: 600)) }
     }
 
     private var labels: [String: String] = [:]
@@ -364,7 +431,7 @@ final class NativePlayerView: UIView, AVPictureInPictureControllerDelegate, UIGe
     /// of the top bar; no button without anything to choose.
     func setTracks(_ menu: UIMenu?) {
         tracksButton.menu = menu
-        tracksButton.isHidden = menu == nil
+        tracksButton.isHidden = menu == nil || page
         tracksButton.accessibilityLabel = labels["subtitles"]
     }
 
@@ -398,12 +465,11 @@ final class NativePlayerView: UIView, AVPictureInPictureControllerDelegate, UIGe
     }
 
     private func tick() {
-        let paused = player.timeControlStatus == .paused
+        let paused = isPaused
         symbol(playButton, paused ? "play.fill" : "pause.fill", size: 38, weight: .bold)
         playButton.accessibilityLabel = labels[paused ? "play" : "pause"]
-        guard !live, !scrubbing, let item = player.currentItem else { return }
-        let duration = item.duration.seconds, now = item.currentTime().seconds
-        guard duration.isFinite, duration > 0 else { return }
+        guard !live, !scrubbing, let duration = lengthSeconds else { return }
+        let now = nowSeconds
         slider.value = Float(now / duration)
         elapsed.text = Self.clock(now)
         remaining.text = "-" + Self.clock(duration - now)
@@ -412,25 +478,27 @@ final class NativePlayerView: UIView, AVPictureInPictureControllerDelegate, UIGe
     // MARK: The controls
 
     @objc private func togglePlay() {
-        if player.timeControlStatus == .paused { player.play() } else { player.pause() }
+        if page {
+            // Shown at once; the page's word follows and settles it.
+            onPage?(pagePaused ? "play" : "pause", nil)
+            pagePaused.toggle()
+        } else if player.timeControlStatus == .paused { player.play() } else { player.pause() }
         tick(); show()
     }
     @objc private func back() { skip(-10) }
     @objc private func forward() { skip(10) }
     private func skip(_ by: Double) {
-        player.seek(to: CMTime(seconds: max(0, player.currentTime().seconds + by), preferredTimescale: 600))
+        seek(to: max(0, min(nowSeconds + by, lengthSeconds ?? .greatestFiniteMagnitude)))
         show()
     }
     @objc private func scrubStart() { scrubbing = true; hideTimer?.invalidate() }
     @objc private func scrubMove() {
-        guard let duration = player.currentItem?.duration.seconds, duration.isFinite else { return }
+        guard let duration = lengthSeconds else { return }
         elapsed.text = Self.clock(Double(slider.value) * duration)
         remaining.text = "-" + Self.clock((1 - Double(slider.value)) * duration)
     }
     @objc private func scrubEnd() {
-        if let duration = player.currentItem?.duration.seconds, duration.isFinite {
-            player.seek(to: CMTime(seconds: Double(slider.value) * duration, preferredTimescale: 600))
-        }
+        if let duration = lengthSeconds { seek(to: Double(slider.value) * duration) }
         scrubbing = false
         show()
     }
@@ -438,6 +506,7 @@ final class NativePlayerView: UIView, AVPictureInPictureControllerDelegate, UIGe
     @objc private func castPressed() { onCast?(); show() }
     /// Out into picture in picture, or back: the button's, and the page's menu's.
     @objc func togglePip() {
+        if page { onPage?("pip", nil); return }
         guard let pip else { return }
         if pip.isPictureInPictureActive { pip.stopPictureInPicture() } else { pip.startPictureInPicture() }
     }
@@ -461,7 +530,7 @@ final class NativePlayerView: UIView, AVPictureInPictureControllerDelegate, UIGe
     }
 
     @objc private func tapped() {
-        if controlsShown { hide() } else { show() }
+        if controlsShown { hide(asked: true) } else { show() }
     }
 
     func show() {
@@ -470,9 +539,11 @@ final class NativePlayerView: UIView, AVPictureInPictureControllerDelegate, UIGe
         hideTimer = Timer.scheduledTimer(withTimeInterval: 4, repeats: false) { [weak self] _ in self?.hide() }
     }
 
-    private func hide() {
-        // A paused picture keeps its controls, as WebKit's did.
-        guard player.timeControlStatus != .paused else { return }
+    private func hide(asked: Bool = false) {
+        // A paused picture keeps its controls when their time is up, as
+        // WebKit's did; a tap on the picture still puts them away, to
+        // look at the still picture without them.
+        guard asked || !isPaused else { return }
         UIView.animate(withDuration: 0.3) { self.controls.alpha = 0; self.placeCaption(high: false) }
     }
 }
