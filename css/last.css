@@ -183,6 +183,15 @@ input[type="search"], input[type="text"], input[type="url"], input:not([type]) {
    full screen is in their bar, and the page's button under them could not
    be pressed. */
 .ios .videowrap.appbars .full-btn { display: none; }
+/* In the app the picture is as tall as its shape whatever the details
+   under it hold: they take what the column has left and scroll there.
+   With the details' own height as their share (css/details.css) the
+   picture gave way to them, so it changed size as the technical details
+   were opened, and the app's picture over it followed a moment later.
+   Not in a low window, whose own rule this is already (css/narrow.css). */
+@media (min-height: 441px) {
+  .ios main:not(.guide) .stage:has(> .videowrap.sized:not(:fullscreen, .full)) > .infostrip { flex: 1 1 0; }
+}
 html:not(.ios) .ios-only { display: none; }
 /* The guide's days under a finger, in a window wider than a phone's:
    the strip has all of the bar's row that the selector and the marks

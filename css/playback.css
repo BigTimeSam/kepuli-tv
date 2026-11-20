@@ -521,7 +521,7 @@ main:not(.guide) .stage:has(> .videowrap.sized:not(:fullscreen, .full)) .info-co
 .playback-warning { color: var(--gold); font-size: var(--fs-xs); }
 /* The format, the picture, the bit rate, the size and the way it plays,
    folded under the audio and the subtitles (playbackFacts). */
-.tech-facts { margin: -2px 0 8px; }
+.tech-facts { margin: 8px 0; }
 .tech-toggle { display: inline-flex; align-items: center; gap: 4px; list-style: none; color: var(--muted); font-size: var(--fs-xs); cursor: pointer; border-radius: 4px; }
 .tech-toggle::-webkit-details-marker { display: none; }
 .tech-toggle:hover { color: var(--text); }

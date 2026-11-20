@@ -8518,6 +8518,7 @@ async function filmfacts(page) {
     return { open: fold?.open, audio: fact('audio'), audioInSight: !inFold('audio'), subtitlesInSight: Boolean(document.querySelector('#infostrip .playback-fact-subtitles')) && !inFold('subtitles'),
       video: fact('video'), size: fact('size'), playback: fact('playback'), format: fact('format'), formatFolded: inFold('format'),
       similar: [...document.querySelectorAll('#infostrip .related h4')].map((h) => h.textContent),
+      foldPlace: [fold?.previousElementSibling?.className, fold?.nextElementSibling?.className],
       tmdb: document.getElementById('more-tmdb').hidden ? null : document.getElementById('more-tmdb').href }; })()`);
   const first = await strip();
   assert(first.open === false && first.audioInSight && first.subtitlesInSight && first.formatFolded, `the fold and what is in sight: ${JSON.stringify(first)}`);
@@ -8525,6 +8526,8 @@ async function filmfacts(page) {
     `the technical details: ${JSON.stringify(first)}`);
   assert(new RegExp(`^https://www\\.themoviedb\\.org/movie/${900000 + Number(mkv)}$`).test(first.tmdb || ''), `TMDb in the menu: ${first.tmdb}`);
   assert(first.similar.includes('Similar'), `titles alike under the film: ${JSON.stringify(first.similar)}`);
+  // The fold is under what is said of the title and above the titles alike, not between the facts and the plot.
+  assert(first.foldPlace.join() === 'title-credits,related', `the technical details lie between ${first.foldPlace.join(' and ')}`);
   // The fold opened stays open over the strip's repaints and a reload.
   await evaluate(page, `(() => { const fold = document.querySelector('#infostrip .tech-facts'); fold.open = true; fold.dispatchEvent(new Event('toggle')); return true; })()`);
   await sleep(600);

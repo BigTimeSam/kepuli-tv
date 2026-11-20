@@ -401,6 +401,11 @@ file is the working guide; `RELEASE.md` is the way to the App Store.
   its picture as a sublayer when the item is ready, after the controls'
   layers. The simulator (iOS 26.5) never showed it, and the frame and the
   state it reported were right throughout: only the owner's eyes found it.
+- **A picture whose box follows the details' height flashes.** The page
+  gave the picture what the details left (css/details.css), so opening
+  "Technical details" resized it, and the app's view followed up to a
+  quarter of a second later. In the app the picture keeps its shape's
+  height and the details scroll (css/last.css).
 - **The page's box may end between two pixels**, 376.875 points high on
   the iPad: the row the view half covered showed as a hairline across a
   dialog cut out of it. The frame is rounded to whole pixels and a hole

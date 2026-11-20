@@ -156,7 +156,7 @@ function renderFirstDetails() {
   const named = (track) => track?.language && shortLanguage(track.language) !== 'und';
   const audio = heard && !named(heard) && named(info?.audio) ? { ...heard, language: info.audio.language } : heard;
   const subtitles = subtitleDetails(item, probed);
-  body.appendChild(playbackFacts({
+  const facts = playbackFacts({
     ext: item.ext,
     video,
     audio,
@@ -171,7 +171,13 @@ function renderFirstDetails() {
       audio: !audio && !header && state.playbackInfoLoading,
       subtitles: !subtitles && state.playbackInfoLoading,
     },
-  }));
+  });
+  // The audio and the subtitles stay up here, with what the title is; the
+  // fold of technical details goes under everything said of the title,
+  // where it does not part the facts from the plot.
+  const tech = facts.querySelector('.tech-facts');
+  tech?.remove();
+  body.appendChild(facts);
   if (info && info.plot) {
     const plot = document.createElement('div');
     plot.className = 'plot';
@@ -179,6 +185,7 @@ function renderFirstDetails() {
     body.appendChild(plot);
   }
   add(titleCredits(info, { title: item.n }));
+  if (tech) body.appendChild(tech);
   if (item.k === 1 || item.k === 2) add(relatedPart(item));
   box.appendChild(body);
   el.infostrip.replaceChildren(box);
