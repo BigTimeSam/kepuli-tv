@@ -255,6 +255,11 @@ main.guide .overlay:has(.idle-home:not([hidden])) { padding: 12px 14px; }
   scroll-snap-type: x proximity; scroll-padding: 0 3px; scrollbar-width: none;
   padding: 3px; margin: -3px;
 }
+/* Under a finger the row scrolls freely: with the snapping on, WebKit
+   held it at its far end (the last cover has no place to snap to there,
+   and a drag back was pulled to the end again), and the row opened at its
+   end beside the guide. The snap is for the arrows' steps and a wheel. */
+@media (hover: none) { .idle-cards { scroll-snap-type: none; } }
 .idle-cards::-webkit-scrollbar { display: none; }
 .idle-cards > .idle-card-wrap { flex: none; width: var(--idle-card); scroll-snap-align: start; }
 /* A row that scrolls sideways, with its ‹ and › (js/sidescroll.js): over
@@ -282,6 +287,9 @@ main.guide .overlay:has(.idle-home:not([hidden])) { padding: 12px 14px; }
    ring under the arrow, wherever the days do not all fit (the CI's fonts
    at 760 px, a longer language). */
 .side-scroll.compact > :not(.side-scroll-arrow) { scroll-padding-inline: 28px; }
+/* A row that scrolls sideways cuts what is drawn outside it, a focus ring
+   among it: the ring of what is in such a row is drawn inside its box. */
+.side-scroll.compact > :not(.side-scroll-arrow) > :focus-visible { outline: 2px solid var(--accent-ink); outline-offset: -2px; }
 .side-scroll.compact .side-scroll-arrow svg { width: 13px; height: 13px; }
 /* A film's rows of tiles reach the strip's edge: the arrows stay inside it. */
 .related .side-scroll-arrow.prev { left: 2px; }
@@ -330,18 +338,8 @@ main.guide .overlay:has(.idle-home:not([hidden])) { padding: 12px 14px; }
 .idle-forget:active { background-color: rgba(200, 40, 50, .92); }
 /* Pressed once: red, and in sight, until the second press or four seconds (js/idlehome.js). */
 .idle-forget.armed, .idle-forget.armed:hover { opacity: 1; background-color: rgba(200, 40, 50, .92); border-color: transparent; }
-/* The card's star across from its ✕, alike in shape; a favourite's stays
-   in sight. */
-.idle-star {
-  position: absolute; top: 12px; left: 12px; width: 28px; height: 28px; padding: 0;
-  display: grid; place-items: center; border-radius: 999px; cursor: pointer; font-size: 15px; line-height: 1;
-  border: 1px solid rgba(255, 255, 255, .25); background: rgba(10, 12, 18, .78); color: #fff;
-  opacity: 0; transition: opacity .12s;
-}
-.idle-card-wrap:hover .idle-star, .idle-star:focus-visible, .idle-star.on { opacity: 1; }
-.idle-star.on { color: #ffc857; }
-.idle-forget:focus-visible, .idle-star:focus-visible { outline: 2px solid var(--accent-ink); outline-offset: 2px; }
-@media (hover: none) { .idle-forget, .idle-star { opacity: 1; } }
+.idle-forget:focus-visible { outline: 2px solid var(--accent-ink); outline-offset: 2px; }
+@media (hover: none) { .idle-forget { opacity: 1; } }
 /* The picks (js/picks.js): a programme per card, its channel's logo beside
    it. One row of them, as many as the window is wide for (fitIdleHome). */
 /* A card is no wider than the column: in the guide on an upright iPad the

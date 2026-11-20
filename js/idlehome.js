@@ -13,8 +13,7 @@ import { bindTile } from './tilekeys.js';
 import { guideOpen } from './guideui.js';
 import { poster } from './poster.js';
 import { renderIdleOverlay } from './languageui.js';
-import { shownName, toggleFavorite } from './coversui.js';
-import { setStar, star } from './rows.js';
+import { shownName } from './coversui.js';
 import { episodeCode } from './format.js';
 import { t } from './i18n.js';
 import { toast } from './toast.js';
@@ -52,13 +51,6 @@ export function watchInterest() {
 // end alike. The channels are as many as fitIdleHome finds room for.
 const IDLE_CONTINUE = 10;
 const IDLE_CHANNELS = 24;
-
-/** The cards' stars as the favourites stand, after one changed elsewhere. */
-export function paintIdleStars() {
-  for (const button of el.idleHome.querySelectorAll('.idle-star[data-fav]')) {
-    setStar(/** @type {HTMLElement} */ (button), state.favorites.has(/** @type {HTMLElement} */ (button).dataset.fav));
-  }
-}
 
 /**
  * The empty player's own page. The picture's place was 60 % of the window
@@ -110,18 +102,11 @@ export function renderIdleHome() {
       wrap.className = 'idle-card-wrap';
       const forget = forgetButton(t('player.idle.forget', { title: name.textContent }), name.textContent, () => forgetUnfinished(item, name.textContent));
       wrap.append(card, forget);
-      // The star in the other corner: the film, or the series an episode
-      // belongs to, as the lists star them; s on the card stars the same.
+      // No star on the card: with the cross in the other corner it made the
+      // row heavy, and a title is starred in its list. s on the card still
+      // stars it: the film, or the series an episode belongs to.
       const favorite = item.k === 3 ? (item.seriesId ? { k: 2, id: item.seriesId, n: item.seriesName || '', logo: item.seriesCover } : null) : item;
-      if (favorite) {
-        const key = store.itemKey(favorite);
-        const button = star(state.favorites.has(key), () => toggleFavorite(favorite), 'idle-star', item.k === 3 ? item.seriesName || name.textContent : name.textContent);
-        button.tabIndex = 0;
-        // The favourite it stands for, for paintIdleStars.
-        button.dataset.fav = key;
-        wrap.append(button);
-      }
-      bindTile(card, favorite || item, { remove: () => forgetUnfinished(item, name.textContent), also: [forget, ...wrap.querySelectorAll('.idle-star')] });
+      bindTile(card, favorite || item, { remove: () => forgetUnfinished(item, name.textContent), also: [forget] });
       return wrap;
     })));
     sideScroll(home.lastElementChild.querySelector('.idle-cards'));

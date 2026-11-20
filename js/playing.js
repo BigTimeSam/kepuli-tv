@@ -29,6 +29,7 @@ import { streamUrl } from './xtream.js';
 import { t } from './i18n.js';
 import * as store from './config.js';
 import { cast, groupOfType, noteChannel, offerAccess, playerLayout, refreshRows, renderSidebar, state, tabType, updateAddress, updatePlayerLayout, vlist } from './state.js';
+import { svg } from './svg.js';
 import { cancelAutoNext } from './nextepisode.js';
 import { closeSecond, firstPlays } from './secondui.js';
 import { leavePlayback, renderAudio, renderSubtitles, sizePicture } from './tracksui.js';
@@ -173,9 +174,10 @@ function onPlaybackState(s) {
     // address is in the ☰ menu. A provider without the file (s.content)
     // leaves nothing a retry or an external player could fetch, and a track
     // the browser cannot play (s.canSilent) fails the same way again.
+    /** @type {{ label: string, onClick: () => any, mark?: () => Node }[]} */
     const actions = s.content ? [] : [
-      ...(s.canSilent ? [] : [{ label: t('player.retry'), onClick: retryPlayback }]),
-      { label: t(externalLabel()), onClick: playExternal },
+      ...(s.canSilent ? [] : [{ label: t('player.retry'), mark: () => svg('<path d="M15.6 7.2A6 6 0 1 0 16 12"/><path d="M16 3.5v4h-4"/>'), onClick: retryPlayback }]),
+      { label: t(externalLabel()), mark: () => svg('<path d="M11 3h6v6M17 3l-8 8M8 4H4a1 1 0 0 0-1 1v11a1 1 0 0 0 1 1h11a1 1 0 0 0 1-1v-4"/>'), onClick: playExternal },
     ];
     // The picture will do but the audio track will not: silent playback is
     // on offer, not the default.
@@ -495,7 +497,10 @@ function renderBuffering(s) {
   } else {
     el.overlay.hidden = false;
     el.overlay.classList.add('loading');
-    const pct = s.total ? percent(s.loaded / s.total) : null;
+    // A share only once something has arrived: while the server has sent
+    // nothing the step's "0,0 %" stood still for as long as the wait
+    // lasted, and read as a count that did not work.
+    const pct = s.total && s.loaded > 0 ? percent(s.loaded / s.total) : null;
     const title = !pct ? t('player.buffering')
       : s.stage === 'index' ? t('player.index.pct', { pct })
         : t('player.buffering.pct', { pct });
@@ -520,7 +525,7 @@ function renderLoadView() {
   const rate = f && f.bitrate && f.speed != null;
   const parts = [];
   if (f) {
-    if (f.total) parts.push(`${amount(f.loaded)} / ${amount(f.total)}`);
+    if (f.total && f.loaded > 0) parts.push(`${amount(f.loaded)} / ${amount(f.total)}`);
     else if (f.loaded > 0) parts.push(amount(f.loaded));
     if (f.speed != null && !rate) parts.push(speedText(f.speed));
     if (f.loaded == null && f.ahead > 0.05) parts.push(t('player.buffered', { seconds: secondsText(f.ahead) }));
@@ -528,7 +533,7 @@ function renderLoadView() {
   el.overlayFigures.textContent = parts.join(', ');
   el.overlayFigures.hidden = !parts.length;
   const slow = Boolean(f && f.slow);
-  const share = f && f.total ? Math.min(1, f.loaded / f.total)
+  const share = f && f.total && f.loaded > 0 ? Math.min(1, f.loaded / f.total)
     : rate ? Math.min(1, (f.speed * 8) / f.bitrate) : null;
   el.overlayBar.hidden = share == null;
   el.overlayBar.classList.toggle('slow', share != null && !f.total && slow);

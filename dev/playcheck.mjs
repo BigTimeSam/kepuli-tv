@@ -5070,10 +5070,11 @@ async function programmes(page, { requests }) {
   // is asked at once. One letter asks nothing, an emptied field puts the
   // guide back.
   const type = (text) => evaluate(page, `(() => { const f = document.getElementById('programme-query'); f.value = ${JSON.stringify(text)}; f.dispatchEvent(new Event('input', { bubbles: true })); return true; })()`);
-  const form = await evaluate(page, `({ controls: [...document.querySelectorAll('#programme-form select, #programme-form button')].length,
+  const form = await evaluate(page, `({ controls: [...document.querySelectorAll('#programme-form select, #programme-form button')].map((n) => n.id).join(),
     foot: [...document.querySelectorAll('#programme-panel .programme-foot select')].map((n) => n.id), period: document.getElementById('programme-period').options[0].value })`);
   await evaluate(page, `(document.getElementById('programme-period').value = 'upcoming', true)`);
-  assert(form.controls === 0 && form.foot.join() === 'programme-scope,programme-period' && form.period === 'upcoming', `the search's row and foot: ${JSON.stringify(form)}`);
+  // (beside the field only the guide's favourites switch, which is not the search's)
+  assert(form.controls === 'epg-favs' && form.foot.join() === 'programme-scope,programme-period' && form.period === 'upcoming', `the search's row and foot: ${JSON.stringify(form)}`);
   await type('N');
   await sleep(700);
   assert(await evaluate(page, `document.getElementById('programme-panel').hidden`), 'one letter searched');
@@ -5510,9 +5511,11 @@ async function catalogUi(page) {
   await sleep(400);
   await evaluate(page, `document.querySelector('#list .row').click()`, {gesture:true});
   await waitFor(page, PLAYING, 'native movie playback');
-  // The IMDb link is in the ☰ menu while the film plays, not under the details.
+  // The IMDb link is in the ☰ menu while the film plays, and under the
+  // details' credits as a series' page has it.
   await waitFor(page, `!document.getElementById('more-imdb').hidden && document.querySelector('#infostrip .playback-facts')`, 'movie facts and the menu\'s IMDb item');
-  assert(await evaluate(page, `document.getElementById('more-imdb').href.startsWith('https://www.imdb.com/') && !document.querySelector('#infostrip .title-links')`), 'IMDb link in the menu only');
+  assert(await evaluate(page, `document.getElementById('more-imdb').href.startsWith('https://www.imdb.com/')
+    && [...document.querySelectorAll('#infostrip .title-links a')].some((a) => a.href.startsWith('https://www.imdb.com/'))`), 'IMDb link in the menu and under the details');
   await playEpisode(page);
   await waitFor(page, `document.querySelector('#detail .detail-cover.loaded:not(:disabled)')`, 'series cover');
   await evaluate(page, `document.querySelector('#detail .detail-cover').click()`);
@@ -5586,7 +5589,7 @@ async function nextepisode(page) {
   await evaluate(page, `document.getElementById('list').focus()`);
   await pressKey(page, 'n', 'KeyN', 78);
   // The demo's episode names repeat, so the number tells them apart.
-  await waitFor(page, `/\\bE3\\b/.test(document.getElementById('now-sub').textContent)`, 'n to the third episode', 15000);
+  await waitFor(page, `/episode 3$/.test(document.getElementById('now-sub').textContent)`, 'n to the third episode', 15000);
   const third = await evaluate(page, `${NOW_TITLE} + ' ' + document.getElementById('now-sub').textContent`);
   return { ok: stayed, detail: `"${countdown}"; ${first} → ${second}, Cancel stayed: ${stayed}; n from the channels: ${third}` };
 }
@@ -7775,6 +7778,9 @@ const MEASURE_OVERFLOW = `(() => {
     let need = 0, have = el.clientWidth, text = '';
     if (el.tagName === 'SELECT') {
       const o = el.selectedOptions[0]; if (!o) continue;
+      // A select that is its mark alone (the list's order) draws its name
+      // in no colour: there is no text to be cut.
+      if (s.webkitTextFillColor === 'rgba(0, 0, 0, 0)') continue;
       text = o.textContent;
       // The app's selects draw their arrow in their right padding; a native
       // one takes about 20 px of the box for it.
@@ -8399,13 +8405,8 @@ async function tilekeys(page) {
     const starred = await evaluate(page, `(async () => { const { state } = ${app}; return { film: state.favorites.has('1:' + ${JSON.stringify(films[1])}), row: state.favorites.has(${JSON.stringify(before.key)}),
       focus: document.activeElement?.className }; })()`);
     assert(starred.film && starred.row === before.starred, `s on a card: ${JSON.stringify(starred)}`);
-    // The card's own star says so, and a click on another card's stars its
-    // film; a second click takes it away.
-    const marks = await evaluate(page, `[...document.querySelectorAll('.idle-cards .idle-card-wrap')].map((w) => Boolean(w.querySelector('.idle-star.on')))`);
-    assert(marks[1] && !marks[0], `the cards' stars after s: ${JSON.stringify(marks)}`);
-    const clickStar = () => evaluate(page, `(async () => { document.querySelectorAll('.idle-cards .idle-star')[0].click(); await new Promise((r) => setTimeout(r, 300));
-      const { state } = ${app}; return state.favorites.has('1:' + ${JSON.stringify(films[0])}); })()`);
-    assert(await clickStar() && !(await clickStar()), 'the star on a card did not star and unstar its film');
+    // The card carries no star of its own: it made the row heavy beside the cross.
+    assert(await evaluate(page, `document.querySelectorAll('.idle-cards .idle-star').length`) === 0, 'a card of Continue watching still has a star');
     // Counted before, not taken for three: one card fewer is what Delete does.
     const cards = await evaluate(page, `document.querySelectorAll('.idle-cards .idle-card').length`);
     await evaluate(page, `document.querySelectorAll('.idle-cards .idle-card')[1].focus()`);
@@ -8413,13 +8414,6 @@ async function tilekeys(page) {
     await waitFor(page, `document.querySelectorAll('.idle-cards .idle-card').length === ${cards - 1}`, `the card forgotten (${cards} before)`);
     const after = await evaluate(page, `(async () => { const { state } = ${app}; return { recents: state.recents.map((r) => String(r.id)), cursor: state.cursor, row: state.rows[state.cursor].k + ':' + state.rows[state.cursor].id }; })()`);
     assert(!after.recents.includes(films[1]) && after.recents.includes(films[0]) && after.cursor === before.cursor && after.row === before.key, `Delete on a card: ${JSON.stringify(after)}`);
-    // A star given elsewhere (a list, the player) shows on the card too.
-    const fromList = await evaluate(page, `(async () => { const { toggleFavorite } = await import('./js/coversui.js'); const { state } = ${app};
-      toggleFavorite(state.recents.find((r) => String(r.id) === ${JSON.stringify(films[0])}));
-      const on = Boolean(document.querySelectorAll('.idle-cards .idle-card-wrap')[0].querySelector('.idle-star.on'));
-      toggleFavorite(state.recents.find((r) => String(r.id) === ${JSON.stringify(films[0])}));
-      return on && !document.querySelectorAll('.idle-cards .idle-card-wrap')[0].querySelector('.idle-star.on'); })()`);
-    assert(fromList, 'a star given outside the card did not show on it');
     return { ok: true, detail: `the arrows stepped between the cards with the list's cursor kept at ${before.cursor}; s starred the card's film, not ${before.key}; Delete forgot the card` };
   } finally {
     await evaluate(page, `(async () => { const { state } = ${app}; for (const id of ${JSON.stringify(films)}) { state.favorites.delete('1:' + id); state.resume.delete('1:' + id); }
@@ -8661,7 +8655,10 @@ async function filmfacts(page) {
   assert(new RegExp(`^https://www\\.themoviedb\\.org/movie/${900000 + Number(mkv)}$`).test(first.tmdb || ''), `TMDb in the menu: ${first.tmdb}`);
   assert(first.similar.includes('Similar'), `titles alike under the film: ${JSON.stringify(first.similar)}`);
   // The fold is under what is said of the title and above the titles alike, not between the facts and the plot.
-  assert(first.foldPlace.join() === 'title-credits,related', `the technical details lie between ${first.foldPlace.join(' and ')}`);
+  // (after the film's links elsewhere, which are in sight under the credits as a series' are on its page)
+  assert(first.foldPlace.join() === 'title-links,related', `the technical details lie between ${first.foldPlace.join(' and ')}`);
+  const elsewhere = await evaluate(page, `[...document.querySelectorAll('#infostrip .title-links a')].map((a) => new URL(a.href).host)`);
+  assert(elsewhere.some((host) => /imdb\.com$/.test(host)) && elsewhere.some((host) => /themoviedb\.org$/.test(host)), `the film's links under its credits: ${JSON.stringify(elsewhere)}`);
   // The fold opened stays open over the strip's repaints and a reload.
   await evaluate(page, `(() => { const fold = document.querySelector('#infostrip .tech-facts'); fold.open = true; fold.dispatchEvent(new Event('toggle')); return true; })()`);
   await sleep(600);
@@ -10482,6 +10479,16 @@ async function appplayer(page, { target }) {
     await say({ type: 'player.command', id: own.id, what: 'seek', to: 40 });
     await say({ type: 'player.command', id: own.id, what: 'play' });
     await waitFor(page, `(() => { const v = document.getElementById('video'); return !v.paused && v.currentTime >= 40; })()`, 'the page\'s picture moved and started from the app\'s controls', 10000);
+    // While the page says something in the picture's place (a wait with
+    // its Cancel, a failure) the app's controls give way: the box said to
+    // the app is empty, so that the page's buttons take the press. With
+    // the picture back, so is the box.
+    const lastBox = `window.__sent.filter((m) => m.type === 'player.frame').at(-1)`;
+    await waitFor(page, `${lastBox}.width > 0`, 'the app\'s controls over the page\'s picture', 5000);
+    await evaluate(page, `(() => { const o = document.getElementById('overlay'); o.hidden = false; o.classList.add('loading'); return true; })()`);
+    await waitFor(page, `${lastBox}.width === 0`, 'the app\'s controls out of the way of the page\'s wait', 5000);
+    await evaluate(page, `(() => { const o = document.getElementById('overlay'); o.hidden = true; o.classList.remove('loading'); return true; })()`);
+    await waitFor(page, `${lastBox}.width > 0`, 'the app\'s controls back over the picture', 5000);
 
     // Another film, seen to its end in the app: the player is empty and its place is gone.
     const other = await playFilm(`(f) => String(f.id) !== '5000' && f.ext === 'mp4'`, 0);

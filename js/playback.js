@@ -200,7 +200,7 @@ const RECONNECT_MAX_MS = 8000;
 // measured, and how much of that span has to have passed before the speed
 // is set against the film's bit rate — the first second of a download says
 // little about the rest.
-const METER_MS = 500;
+const METER_MS = 250;
 const SPEED_WINDOW_MS = 4000;
 const SLOW_AFTER_MS = 3000;
 // A picture that stops for less than this is not worth an overlay: a seek

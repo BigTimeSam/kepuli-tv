@@ -72,7 +72,7 @@ import { cancelProgress, hideProgress, progressCtrl, progressSignal, showProgres
 import { openHelp } from './help.js';
 import { copyUrl, toast } from './toast.js';
 import { applyLocale, renderIdleOverlay } from './languageui.js';
-import { fitIdleHome, paintIdleStars, watchInterest } from './idlehome.js';
+import { fitIdleHome, watchInterest } from './idlehome.js';
 import { accountProblem, addOverlayAction, playItem, playback, renderNowSub, showOverlayActions, tabs } from './playing.js';
 import { applySubtitleLook, chooseAudio, chooseSubtitle, cycleAudio, goHome, leavePlayback, stepSubtitleSize, toggleSubtitleLook } from './tracksui.js';
 import { nextEpisode, playEpisode, showInPlace } from './nextepisode.js';
@@ -1087,7 +1087,6 @@ function favouriteChanged(item) {
   const copyAway = item && (item.k === 1 || item.k === 2) && !state.rowIndex.has(store.itemKey(item))
     && state.titleRows.some((row) => row.k === item.k && String(row.id) === String(item.id));
   if (mediaFilters.favouritesOnly || (channelsByFavourite() && state.tab === 'live') || copyAway) refreshRows({ keepScroll: true });
-  paintIdleStars();
   renderSeriesFavorite();
   // The guide's favourites view follows as well (js/guideui.js).
   favoritesChanged();

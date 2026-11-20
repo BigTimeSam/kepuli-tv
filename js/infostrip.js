@@ -10,7 +10,7 @@ import { audioDetails, badge, subtitleSummary, verdict } from './probe.js';
 import * as store from './config.js';
 import { clock, progressOf } from './format.js';
 import { relatedTitles, titleWithoutYear, versionLabels } from './titlemeta.js';
-import { playbackFacts, titleCredits, titleFacts } from './titleinfo.js';
+import { externalLinks, playbackFacts, titleCredits, titleFacts } from './titleinfo.js';
 import { titleLinks } from './titlelinks.js';
 import { poster } from './poster.js';
 import { shortLanguage } from './lang.js';
@@ -27,6 +27,8 @@ import { sideScroll } from './sidescroll.js';
 // The technical details' fold, open or shut as the viewer left it, over
 // the strip's repaints and over reloads (the ui state).
 let techOpen = false;
+/** The title whose details the strip last drew, as its kind and id. */
+let stripTitle = '';
 store.loadUiState().then((ui) => { techOpen = Boolean(ui.techOpen); });
 const keepTechOpen = (open) => { techOpen = open; store.saveUiState({ techOpen: open }); };
 
@@ -198,10 +200,18 @@ function renderFirstDetails() {
   const credits = titleCredits(info, { title: item.n });
   if (subtitled) credits.append(subtitled);
   add(credits);
+  // The title elsewhere (IMDb, TMDb, its trailer), in sight as a series'
+  // page has them: for a film they were only in the player's menu.
+  add(externalLinks(item, info));
   if (tech) body.appendChild(tech);
   if (item.k === 1 || item.k === 2) add(relatedPart(item));
   box.appendChild(body);
   el.infostrip.replaceChildren(box);
+  // Another title's details begin at their top: chosen from the titles
+  // alike at the foot of the last one's, the new film's were shown from
+  // wherever the old ones had been scrolled to.
+  const drawn = `${item.k}:${item.id}`;
+  if (drawn !== stripTitle) { stripTitle = drawn; el.infostrip.scrollTop = 0; }
 }
 
 /**

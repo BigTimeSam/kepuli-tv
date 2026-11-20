@@ -1,8 +1,8 @@
 {
  "ui": {
   "bg": {
-   "account.busy": "10dc40d520ab",
-   "account.busy.waited": "1ac89c5e7bb8",
+   "account.busy": "956336a4d0d5",
+   "account.busy.waited": "20379904f32e",
    "account.cache": "02e8108a515c",
    "account.channels": "e7f00b81329f",
    "account.connections.label": "dc799e1d4169",
@@ -767,8 +767,8 @@
    "view.list": "15a115803f08"
   },
   "cs": {
-   "account.busy": "10dc40d520ab",
-   "account.busy.waited": "1ac89c5e7bb8",
+   "account.busy": "956336a4d0d5",
+   "account.busy.waited": "20379904f32e",
    "account.cache": "02e8108a515c",
    "account.channels": "e7f00b81329f",
    "account.connections.label": "dc799e1d4169",
@@ -1533,8 +1533,8 @@
    "view.list": "15a115803f08"
   },
   "da": {
-   "account.busy": "10dc40d520ab",
-   "account.busy.waited": "1ac89c5e7bb8",
+   "account.busy": "956336a4d0d5",
+   "account.busy.waited": "20379904f32e",
    "account.cache": "02e8108a515c",
    "account.channels": "e7f00b81329f",
    "account.connections.label": "dc799e1d4169",
@@ -2299,8 +2299,8 @@
    "view.list": "15a115803f08"
   },
   "de": {
-   "account.busy": "10dc40d520ab",
-   "account.busy.waited": "1ac89c5e7bb8",
+   "account.busy": "956336a4d0d5",
+   "account.busy.waited": "20379904f32e",
    "account.cache": "02e8108a515c",
    "account.channels": "e7f00b81329f",
    "account.connections.label": "dc799e1d4169",
@@ -3065,8 +3065,8 @@
    "view.list": "15a115803f08"
   },
   "el": {
-   "account.busy": "10dc40d520ab",
-   "account.busy.waited": "1ac89c5e7bb8",
+   "account.busy": "956336a4d0d5",
+   "account.busy.waited": "20379904f32e",
    "account.cache": "02e8108a515c",
    "account.channels": "e7f00b81329f",
    "account.connections.label": "dc799e1d4169",
@@ -3831,8 +3831,8 @@
    "view.list": "15a115803f08"
   },
   "es": {
-   "account.busy": "10dc40d520ab",
-   "account.busy.waited": "1ac89c5e7bb8",
+   "account.busy": "956336a4d0d5",
+   "account.busy.waited": "20379904f32e",
    "account.cache": "02e8108a515c",
    "account.channels": "e7f00b81329f",
    "account.connections.label": "dc799e1d4169",
@@ -4597,8 +4597,8 @@
    "view.list": "15a115803f08"
   },
   "et": {
-   "account.busy": "10dc40d520ab",
-   "account.busy.waited": "1ac89c5e7bb8",
+   "account.busy": "956336a4d0d5",
+   "account.busy.waited": "20379904f32e",
    "account.cache": "02e8108a515c",
    "account.channels": "e7f00b81329f",
    "account.connections.label": "dc799e1d4169",
@@ -5363,8 +5363,8 @@
    "view.list": "15a115803f08"
   },
   "fi": {
-   "account.busy": "10dc40d520ab",
-   "account.busy.waited": "1ac89c5e7bb8",
+   "account.busy": "956336a4d0d5",
+   "account.busy.waited": "20379904f32e",
    "account.cache": "02e8108a515c",
    "account.channels": "e7f00b81329f",
    "account.connections.label": "dc799e1d4169",
@@ -6129,8 +6129,8 @@
    "view.list": "15a115803f08"
   },
   "fr": {
-   "account.busy": "10dc40d520ab",
-   "account.busy.waited": "1ac89c5e7bb8",
+   "account.busy": "956336a4d0d5",
+   "account.busy.waited": "20379904f32e",
    "account.cache": "02e8108a515c",
    "account.channels": "e7f00b81329f",
    "account.connections.label": "dc799e1d4169",
@@ -6895,8 +6895,8 @@
    "view.list": "15a115803f08"
   },
   "hr": {
-   "account.busy": "10dc40d520ab",
-   "account.busy.waited": "1ac89c5e7bb8",
+   "account.busy": "956336a4d0d5",
+   "account.busy.waited": "20379904f32e",
    "account.cache": "02e8108a515c",
    "account.channels": "e7f00b81329f",
    "account.connections.label": "dc799e1d4169",
@@ -7661,8 +7661,8 @@
    "view.list": "15a115803f08"
   },
   "hu": {
-   "account.busy": "10dc40d520ab",
-   "account.busy.waited": "1ac89c5e7bb8",
+   "account.busy": "956336a4d0d5",
+   "account.busy.waited": "20379904f32e",
    "account.cache": "02e8108a515c",
    "account.channels": "e7f00b81329f",
    "account.connections.label": "dc799e1d4169",
@@ -8427,8 +8427,8 @@
    "view.list": "15a115803f08"
   },
   "id": {
-   "account.busy": "10dc40d520ab",
-   "account.busy.waited": "1ac89c5e7bb8",
+   "account.busy": "956336a4d0d5",
+   "account.busy.waited": "20379904f32e",
    "account.cache": "02e8108a515c",
    "account.channels": "e7f00b81329f",
    "account.connections.label": "dc799e1d4169",
@@ -9193,8 +9193,8 @@
    "view.list": "15a115803f08"
   },
   "it": {
-   "account.busy": "10dc40d520ab",
-   "account.busy.waited": "1ac89c5e7bb8",
+   "account.busy": "956336a4d0d5",
+   "account.busy.waited": "20379904f32e",
    "account.cache": "02e8108a515c",
    "account.channels": "e7f00b81329f",
    "account.connections.label": "dc799e1d4169",
@@ -9959,8 +9959,8 @@
    "view.list": "15a115803f08"
   },
   "lt": {
-   "account.busy": "10dc40d520ab",
-   "account.busy.waited": "1ac89c5e7bb8",
+   "account.busy": "956336a4d0d5",
+   "account.busy.waited": "20379904f32e",
    "account.cache": "02e8108a515c",
    "account.channels": "e7f00b81329f",
    "account.connections.label": "dc799e1d4169",
@@ -10725,8 +10725,8 @@
    "view.list": "15a115803f08"
   },
   "lv": {
-   "account.busy": "10dc40d520ab",
-   "account.busy.waited": "1ac89c5e7bb8",
+   "account.busy": "956336a4d0d5",
+   "account.busy.waited": "20379904f32e",
    "account.cache": "02e8108a515c",
    "account.channels": "e7f00b81329f",
    "account.connections.label": "dc799e1d4169",
@@ -11491,8 +11491,8 @@
    "view.list": "15a115803f08"
   },
   "nb": {
-   "account.busy": "10dc40d520ab",
-   "account.busy.waited": "1ac89c5e7bb8",
+   "account.busy": "956336a4d0d5",
+   "account.busy.waited": "20379904f32e",
    "account.cache": "02e8108a515c",
    "account.channels": "e7f00b81329f",
    "account.connections.label": "dc799e1d4169",
@@ -12257,8 +12257,8 @@
    "view.list": "15a115803f08"
   },
   "nl": {
-   "account.busy": "10dc40d520ab",
-   "account.busy.waited": "1ac89c5e7bb8",
+   "account.busy": "956336a4d0d5",
+   "account.busy.waited": "20379904f32e",
    "account.cache": "02e8108a515c",
    "account.channels": "e7f00b81329f",
    "account.connections.label": "dc799e1d4169",
@@ -13023,8 +13023,8 @@
    "view.list": "15a115803f08"
   },
   "pl": {
-   "account.busy": "10dc40d520ab",
-   "account.busy.waited": "1ac89c5e7bb8",
+   "account.busy": "956336a4d0d5",
+   "account.busy.waited": "20379904f32e",
    "account.cache": "02e8108a515c",
    "account.channels": "e7f00b81329f",
    "account.connections.label": "dc799e1d4169",
@@ -13789,8 +13789,8 @@
    "view.list": "15a115803f08"
   },
   "pt": {
-   "account.busy": "10dc40d520ab",
-   "account.busy.waited": "1ac89c5e7bb8",
+   "account.busy": "956336a4d0d5",
+   "account.busy.waited": "20379904f32e",
    "account.cache": "02e8108a515c",
    "account.channels": "e7f00b81329f",
    "account.connections.label": "dc799e1d4169",
@@ -14555,8 +14555,8 @@
    "view.list": "15a115803f08"
   },
   "ro": {
-   "account.busy": "10dc40d520ab",
-   "account.busy.waited": "1ac89c5e7bb8",
+   "account.busy": "956336a4d0d5",
+   "account.busy.waited": "20379904f32e",
    "account.cache": "02e8108a515c",
    "account.channels": "e7f00b81329f",
    "account.connections.label": "dc799e1d4169",
@@ -15321,8 +15321,8 @@
    "view.list": "15a115803f08"
   },
   "ru": {
-   "account.busy": "10dc40d520ab",
-   "account.busy.waited": "1ac89c5e7bb8",
+   "account.busy": "956336a4d0d5",
+   "account.busy.waited": "20379904f32e",
    "account.cache": "02e8108a515c",
    "account.channels": "e7f00b81329f",
    "account.connections.label": "dc799e1d4169",
@@ -16087,8 +16087,8 @@
    "view.list": "15a115803f08"
   },
   "sk": {
-   "account.busy": "10dc40d520ab",
-   "account.busy.waited": "1ac89c5e7bb8",
+   "account.busy": "956336a4d0d5",
+   "account.busy.waited": "20379904f32e",
    "account.cache": "02e8108a515c",
    "account.channels": "e7f00b81329f",
    "account.connections.label": "dc799e1d4169",
@@ -16853,8 +16853,8 @@
    "view.list": "15a115803f08"
   },
   "sl": {
-   "account.busy": "10dc40d520ab",
-   "account.busy.waited": "1ac89c5e7bb8",
+   "account.busy": "956336a4d0d5",
+   "account.busy.waited": "20379904f32e",
    "account.cache": "02e8108a515c",
    "account.channels": "e7f00b81329f",
    "account.connections.label": "dc799e1d4169",
@@ -17619,8 +17619,8 @@
    "view.list": "15a115803f08"
   },
   "sq": {
-   "account.busy": "10dc40d520ab",
-   "account.busy.waited": "1ac89c5e7bb8",
+   "account.busy": "956336a4d0d5",
+   "account.busy.waited": "20379904f32e",
    "account.cache": "02e8108a515c",
    "account.channels": "e7f00b81329f",
    "account.connections.label": "dc799e1d4169",
@@ -18385,8 +18385,8 @@
    "view.list": "15a115803f08"
   },
   "sr": {
-   "account.busy": "10dc40d520ab",
-   "account.busy.waited": "1ac89c5e7bb8",
+   "account.busy": "956336a4d0d5",
+   "account.busy.waited": "20379904f32e",
    "account.cache": "02e8108a515c",
    "account.channels": "e7f00b81329f",
    "account.connections.label": "dc799e1d4169",
@@ -19151,8 +19151,8 @@
    "view.list": "15a115803f08"
   },
   "sv": {
-   "account.busy": "10dc40d520ab",
-   "account.busy.waited": "1ac89c5e7bb8",
+   "account.busy": "956336a4d0d5",
+   "account.busy.waited": "20379904f32e",
    "account.cache": "02e8108a515c",
    "account.channels": "e7f00b81329f",
    "account.connections.label": "dc799e1d4169",
@@ -19917,8 +19917,8 @@
    "view.list": "15a115803f08"
   },
   "tr": {
-   "account.busy": "10dc40d520ab",
-   "account.busy.waited": "1ac89c5e7bb8",
+   "account.busy": "956336a4d0d5",
+   "account.busy.waited": "20379904f32e",
    "account.cache": "02e8108a515c",
    "account.channels": "e7f00b81329f",
    "account.connections.label": "dc799e1d4169",
@@ -20683,8 +20683,8 @@
    "view.list": "15a115803f08"
   },
   "uk": {
-   "account.busy": "10dc40d520ab",
-   "account.busy.waited": "1ac89c5e7bb8",
+   "account.busy": "956336a4d0d5",
+   "account.busy.waited": "20379904f32e",
    "account.cache": "02e8108a515c",
    "account.channels": "e7f00b81329f",
    "account.connections.label": "dc799e1d4169",
@@ -21449,8 +21449,8 @@
    "view.list": "15a115803f08"
   },
   "vi": {
-   "account.busy": "10dc40d520ab",
-   "account.busy.waited": "1ac89c5e7bb8",
+   "account.busy": "956336a4d0d5",
+   "account.busy.waited": "20379904f32e",
    "account.cache": "02e8108a515c",
    "account.channels": "e7f00b81329f",
    "account.connections.label": "dc799e1d4169",

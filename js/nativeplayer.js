@@ -150,10 +150,12 @@ function sayFrame() {
   // The <video>'s own box, not its wrapper's: beside a second picture it
   // is the wrapper's left half (js/secondui.js).
   const box = el.video.getBoundingClientRect();
-  // Over the page's own picture the controls give way to what the page
-  // says in its place (a failure and its buttons, the next episode's
-  // count), which lies under them and could not be pressed.
-  const away = showing?.page && ((!el.overlay.hidden && !el.overlay.classList.contains('loading')) || el.video.ended);
+  // Over the page's own picture the controls give way to whatever the
+  // page says in its place (a wait with its Cancel, a failure and its
+  // buttons, the next episode's count), which lies under them and could
+  // not be pressed: "Buffering…" kept the controls over it, and its Cancel
+  // did nothing under a finger.
+  const away = showing?.page && (!el.overlay.hidden || el.video.ended);
   const holes = box.width > 0 && box.height > 0 && !away ? coverings(box) : [];
   const frame = { x: box.left + scrollX, y: box.top + scrollY, width: away ? 0 : box.width, height: away ? 0 : box.height };
   const now = [...Object.values(frame), ...holes.flatMap((hole) => Object.values(hole))].map((n) => Math.round(n * 2) / 2).join(' ');
@@ -468,7 +470,10 @@ if (ios) {
     // The menu's own item, with its answer when WebKit refuses.
     else if (word.what === 'pip') document.getElementById('btn-pip')?.click();
   });
-  for (const type of ['play', 'pause', 'playing', 'waiting', 'timeupdate', 'durationchange', 'seeked', 'emptied']) el.video.addEventListener(type, sayPage);
+  for (const type of ['play', 'pause', 'playing', 'waiting', 'timeupdate', 'durationchange', 'seeked', 'emptied']) {
+    el.video.addEventListener(type, sayPage);
+    video2.addEventListener(type, sayPageBeside);
+  }
   on('player.track', choseTrack);
   on('host', (host) => { offered = Boolean(host.player); });
   on('player.state', heard);

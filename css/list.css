@@ -191,7 +191,7 @@ button.group-star, button.group-star:hover, .group.active .group-star:hover { wi
 .row.card.playing { background: none; box-shadow: none; }
 .row.card.playing .card-poster { box-shadow: 0 0 0 2px var(--accent); }
 .card-poster .row-progress { position: absolute; left: 6px; right: 6px; bottom: 6px; width: auto; margin: 0; background: rgba(10, 12, 17, .7); }
-/* The star on a cover is the start page's (.idle-star, css/playback.css):
+/* The star on a cover is the one the start page's cards had:
    a small disc with a hairline, where it was a dark square as large as
    the press under touch. One star on every cover. */
 .card-star { position: absolute; top: 5px; left: 5px; }
