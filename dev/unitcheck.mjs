@@ -26,6 +26,7 @@ import { subtitleLook, stepScale, pictureHeight, STYLES, MIN_SCALE, MAX_SCALE, D
 import { describe, describeAll, label, preferred, route } from '../js/audio.js';
 import { languageSummary, orderedLanguageNames, trackLanguage } from '../js/lang.js';
 import { GENRE_TABLE, genreName, genreNames } from '../js/genres.js';
+import { groupStartBefore, noteKeyTime } from '../js/remux.js';
 import { LANGUAGES, LOCALES, keysOf, setLanguage, setRegion, regionalTag, localeTag, loadLanguage, supportedLanguage, t, pseudoText } from '../js/i18n.js';
 import { setLocale, calendarDate, episodeCode, megabytes, amount, wholePercent, fileSize } from '../js/format.js';
 import { pictureSize } from '../js/titleinfo.js';
@@ -583,6 +584,16 @@ check('the picture without its bars: a film on a 16:10 screen', Math.round(pictu
 check('the picture fills a box of its own shape', pictureHeight(1280, 720, 1280, 720), 720);
 check('a box narrower than the picture: the height is the box\'s', pictureHeight(800, 1000, 1920, 1080), 450);
 check('no picture yet: taken as 16:9', pictureHeight(1920, 1200, 0, 0), 1080);
+// The watched picture goes from the buffer by whole groups of pictures
+// (js/remux.js): a removal reaches no further than a group's start.
+{
+  const keys = [];
+  for (const time of [0, 10.385, 20.812, 31.24, 5.2, 10.385]) noteKeyTime(keys, time);
+  check('group starts are kept in order, each once', keys, [0, 5.2, 10.385, 20.812, 31.24]);
+  check('a removal ends at the group begun before it', [groupStartBefore([0, 10.385, 20.812], 3.3), groupStartBefore([0, 10.385, 20.812], 15), groupStartBefore([0, 10.385, 20.812], 20.812)], [0, 10.385, 20.812]);
+  check('with no group begun yet nothing is removed', [groupStartBefore([], 12), groupStartBefore([10.385], 3)], [null, null]);
+}
+
 // A title's genres in the viewer's language (js/genres.js): every
 // language of the interface names every genre, a name is known in
 // whichever language it was written, and an unknown one stays as it is.
