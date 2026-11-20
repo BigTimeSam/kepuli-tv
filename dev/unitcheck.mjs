@@ -30,13 +30,13 @@ import { setLocale, calendarDate, episodeCode, megabytes, amount, wholePercent, 
 import { pictureSize } from '../js/titleinfo.js';
 import { ratingText } from '../js/rating.js';
 import { channelPreferences, visibilityFilter, sortChannels, CHANNEL_SORTS } from '../js/channelprefs.js';
-import { catchupAvailable, archiveDays, reminderDelay, sameChannels } from '../js/epggrid.js';
+import { catchupAvailable, archiveDays, hourZoom, pinchStep, reminderDelay, sameChannels } from '../js/epggrid.js';
 import { searchProgrammes, mergeSorted, searchableChannels, groupResults } from '../js/programmesearch.js';
 import { Epg } from '../js/epg.js';
 import { probeCacheTtl } from '../js/probe.js';
 import { formatRoute, parseRoute } from '../js/route.js';
 import { neighbourTile, scrubStep, towards } from '../js/listnavigation.js';
-import { LIST_ORDERS, ORDER_MARKS, ORDER_SETTINGS, listOrder, orderTitles, pressedOrder } from '../js/listorder.js';
+import { LIST_ORDERS, ORDER_SETTINGS, listOrder, orderTitles } from '../js/listorder.js';
 import { titleWithoutYear, nameHasYear, nameTags, versionLabels, franchiseKey, relatedTitles, isNew, oneCopyEach } from '../js/titlemeta.js';
 import { audioSpecificConfig, boxHeader, parseMoov } from '../js/mp4file.js';
 import { parseM3u, parseExtinf, classify, dividerTitle, episodeOf, isDivider, nameCode, shortHash, xtreamPanel, fillCatchup, catchupAddress, playlistAddress } from '../js/m3u.js';
@@ -1330,14 +1330,12 @@ check('the history may hold a series', parseRoute('#/recent?series=5'), { tab: '
     [listOrder({}, 'live'), listOrder({ channelSort: 'za' }, 'live'), listOrder({ favoritesSort: 'added' }, 'fav'), listOrder({ favoritesSort: 'num' }, 'fav'),
       listOrder({}, 'movie'), listOrder({ seriesSort: 'rating' }, 'series'), listOrder({}, 'recent'), listOrder({ historySort: 'za' }, 'recent')],
     ['az', 'za', 'added', 'az', 'az', 'rating', 'watched', 'za']);
-  check('every list keeps its order in a setting of its own, and every order has a mark',
-    Object.keys(LIST_ORDERS).every((list) => ORDER_SETTINGS[list] && ORDER_MARKS[list].flat().sort().join() === [...LIST_ORDERS[list]].sort().join()), true);
-  // The name's mark turns A–Z to Z–A and back; the channels' once stayed
-  // at A–Z lit while Z–A was set, and a press did nothing.
-  const name = ORDER_MARKS.live[0];
-  check('a press on the lit name mark turns the order round, and back', [pressedOrder(name, 'az'), pressedOrder(name, 'za')], ['za', 'az']);
-  check('a press on a mark not lit takes its first order', [pressedOrder(name, 'num'), pressedOrder(['newest', 'oldest'], 'az'), pressedOrder(['rating'], 'za')], ['az', 'newest', 'rating']);
-  check('a lit mark of one order stays at it', pressedOrder(['num'], 'num'), 'num');
+  check('the guide opens at the widest zoom that leaves the hour before now a third of its width, and never wider than the usual one',
+    [hourZoom(390), hourZoom(656), hourZoom(900), hourZoom(2400), hourZoom(200)], [0, 1, 2, 2, 0]);
+  check('a pinch steps the guide\'s zoom once the fingers are a third further apart or a quarter closer, and not for a hand that trembles',
+    [pinchStep(1.1), pinchStep(0.9), pinchStep(1.33), pinchStep(2), pinchStep(0.75), pinchStep(0.4)], [0, 0, 1, 1, -1, -1]);
+  check('every list keeps its order in a setting of its own',
+    Object.keys(LIST_ORDERS).every((list) => ORDER_SETTINGS[list] && LIST_ORDERS[list].length > 1), true);
   const films = [{ id: 'a', n: 'Alpha', added: 3 }, { id: 'b', n: 'Beta', added: 0 }, { id: 'c', n: 'Gamma', added: 9 }, { id: 'd', n: 'Delta', added: 5 }];
   const facts = { a: { year: 2020, rating: 8 }, b: { year: 1999, rating: 6 }, c: { year: 2024, rating: 0 }, d: { year: 0, rating: 9 } };
   const order = (o) => orderTitles(films, o, (item) => facts[item.id]).map((f) => f.id);

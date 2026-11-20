@@ -74,7 +74,7 @@ the page links them.
 - **Touch screens** (`@media (hover: none)`, never `.ios`: a phone's
   browser gains too, and a mouse sees none of it): everything that takes
   a press is 40 px (2.5rem) high and wide at the least (the marks of
-  the list's foot 36 px wide, with the gap between them). One block near
+  the view at the list's foot 36 px wide, with the gap between them). One block near
   the end of `last.css` has it all: what has a box of its own (a button,
   a field, a selector, a fold, a menu's row, a choice) grows to the size;
   a mark in a frame is a square of it; a mark without a frame (a row's
@@ -95,10 +95,10 @@ the page links them.
   the zoom, and its search waits behind a mark, as in a low window.
   `node dev/playcheck.mjs touchsizes` measures every control in sight,
   view by view, in a tablet's window, an upright phone's and a phone's
-  lying down: a new view gains its line there. The list's foot keeps its
-  count whole there: the category, then the tab's mark and, in a column
-  of 320px or less, the count's word give way (`list.css`, container
-  queries).
+  lying down: a new view gains its line there. The list's foot keeps the
+  tab's mark and its count whole in every column ("15 channels"): the
+  category gives way first, then the order's name inside its selector
+  (`list.css`).
 - **Subtitles lifted clear of controls** (`.videowrap.controls`,
   `.looking` in `playback.css`) never leave the picture: the lift is capped
   at the picture's height less two lines, as a phone's picture is lower
@@ -136,6 +136,9 @@ the page links them.
 - **Optical alignment** of icons beside labels is gathered in a block in
   `last.css`; align by measuring (icon centre against the text's visual
   centre), not by eye, and keep the rule there.
+- **A hover style is a pointer's.** Under a finger `js/nohover.js` takes
+  `:hover` out of every selector when the page loads, as a tap leaves the
+  hover on what it touched. What a press should show is `:active`.
 - Hover-only affordances (a ✕ on a card, an empty star) must also show on
   keyboard focus and on touch (`hover: none`).
 

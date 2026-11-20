@@ -2271,7 +2271,7 @@ async function a11yLooks(page) {
         const f = document.getElementById(id);
         out.text['placeholder ' + id] = textContrast(f, getComputedStyle(f, '::placeholder').color);
       }
-      for (const sel of ['#tab-live', '#btn-refresh', '#btn-settings', '#search', '#category-filter', '.chip-main', '#btn-guide', '#btn-countries']) {
+      for (const sel of ['#tab-live', '#btn-help', '#btn-settings', '#search', '#category-filter', '.chip-main', '#btn-guide', '#btn-countries']) {
         const node = document.querySelector(sel);
         if (!node || !node.getClientRects().length) continue;
         node.focus();
@@ -2921,8 +2921,10 @@ async function headline(page) {
     for (const size of [16, 17.6, 20]) {
       await evaluate(page, `document.documentElement.style.fontSize = '${size}px'`);
       await sleep(400);
-      const [tools, head] = await evaluate(page, `['.channel-tools', '.stagehead'].map((s) => +document.querySelector(s).getBoundingClientRect().bottom.toFixed(2))`);
-      assert(Math.abs(tools - head) < 0.05, `at ${size} px the guide's strip ends at ${tools} and the header at ${head}`);
+      // The fold's heading and the line under it (its box's, 1 px) against the header with its own line.
+      const [fold, head] = await evaluate(page, `['#channel-filters > summary', '.stagehead'].map((s) => +document.querySelector(s).getBoundingClientRect().bottom.toFixed(2))`);
+      const tools = +(fold + 1).toFixed(2);
+      assert(Math.abs(tools - head) < 0.05, `at ${size} px the list's fold ends at ${tools} and the header at ${head}`);
       seen.push(`${size} px: ${tools}`);
     }
   } finally {
@@ -3022,6 +3024,10 @@ async function topmenu(page) {
   const width = async (w) => { await page.call('Emulation.setDeviceMetricsOverride', { width: w, height: 1000, deviceScaleFactor: 1, mobile: false }); await sleep(400); return evaluate(page, bar); };
   const seen = [];
   try {
+    // Over the channels, where the bar has the guide's button too: over
+    // the films the bar is a button shorter and fits at this width.
+    await evaluate(page, `(document.querySelector('#tabs [data-tab="live"]').click(), true)`);
+    await sleep(800);
     const wide = await width(1280);
     assert(!wide.compact && wide.rows === 1 && !wide.menu && wide.settings, `1280 px: ${JSON.stringify(wide)}`);
     const upright = await width(905);
@@ -3031,9 +3037,9 @@ async function topmenu(page) {
     await mouseClick(page, '#btn-topmenu');
     await sleep(300);
     const menu = await evaluate(page, `(() => { const pop = document.getElementById('topmenu-pop'), r = pop.getBoundingClientRect();
-      return { open: !pop.hidden, tall: r.height > 150, items: [...pop.querySelectorAll('.popitem')].map((i) => i.textContent.trim()), inside: r.right <= innerWidth && r.left >= 0,
+      return { open: !pop.hidden, tall: r.height > 90, items: [...pop.querySelectorAll('.popitem')].map((i) => i.textContent.trim()), inside: r.right <= innerWidth && r.left >= 0,
         focus: document.activeElement === pop.querySelector('.popitem'), expanded: document.getElementById('btn-topmenu').getAttribute('aria-expanded') }; })()`);
-    assert(menu.open && menu.tall && menu.items.length === 5 && menu.items.at(-1) === 'Settings' && menu.items.includes('Full screen') && menu.inside && menu.focus && menu.expanded === 'true', `the menu: ${JSON.stringify(menu)}`);
+    assert(menu.open && menu.tall && menu.items.length === 3 && menu.items.at(-1) === 'Settings' && menu.items.includes('Full screen') && menu.inside && menu.focus && menu.expanded === 'true', `the menu: ${JSON.stringify(menu)}`);
     if (process.env.KEPULI_TOPMENU_SHOT) {
       const fs = await import('node:fs');
       const { data } = await page.call('Page.captureScreenshot', { format: 'png' });
@@ -3046,15 +3052,14 @@ async function topmenu(page) {
     await sleep(150);
     const closed = await evaluate(page, `({ hidden: document.getElementById('topmenu-pop').hidden, focus: document.activeElement.id })`);
     assert(second === menu.items[1] && closed.hidden && closed.focus === 'btn-topmenu', `the keys: second ${second}, after Esc ${JSON.stringify(closed)}`);
-    // The theme from the menu is the theme button's own press.
-    const before = await evaluate(page, `document.documentElement.dataset.theme || 'dark'`);
-    await mouseClick(page, '#btn-topmenu');
-    await sleep(200);
-    await evaluate(page, `[...document.querySelectorAll('#topmenu-pop .popitem')].find((i) => /theme/.test(i.textContent)).click()`);
-    await sleep(300);
-    const after = await evaluate(page, `document.documentElement.dataset.theme`);
-    assert(after && after !== before && await evaluate(page, `document.getElementById('topmenu-pop').hidden`), `the theme from the menu: ${before} → ${after}`);
-    await evaluate(page, `document.getElementById('btn-theme').click()`);
+    // The guide's button and the Cast mark stay on the bar beside the menu.
+    const kept = await evaluate(page, `['btn-guide', 'btn-topmenu'].map((id) => document.getElementById(id).getClientRects().length > 0)`);
+    assert(kept.every(Boolean), `on the bar beside the menu: the guide ${kept[0]}, the menu ${kept[1]}`);
+    // The guide is the channels' view: over the films its button is gone.
+    const tabs = await evaluate(page, `(async () => { const shown = () => document.getElementById('btn-guide').getClientRects().length > 0, out = {};
+      for (const tab of ['movie', 'live']) { document.querySelector('#tabs [data-tab="' + tab + '"]').click(); await new Promise((r) => setTimeout(r, 700)); out[tab] = shown(); }
+      return out; })()`);
+    assert(tabs.live && !tabs.movie, `the guide's button by tab: ${JSON.stringify(tabs)}`);
     // Settings from the menu opens the dialog.
     await mouseClick(page, '#btn-topmenu');
     await sleep(200);
@@ -3062,7 +3067,7 @@ async function topmenu(page) {
     await waitFor(page, `document.getElementById('setup').open`, 'Settings from the menu');
     await evaluate(page, `document.getElementById('f-done').click()`);
     await waitFor(page, `!document.getElementById('setup').open`, 'settings closed');
-    seen.push(`the menu's ${menu.items.length} items, the arrows and Esc, the theme ${before} → ${after} and Settings work`);
+    seen.push(`the menu's ${menu.items.length} items, the arrows and Esc and Settings work, the guide's button beside it`);
 
     // German has the longest tab names.
     await evaluate(page, `chrome.storage.local.get('settings').then(({ settings }) => chrome.storage.local.set({ settings: { ...settings, lang: 'de' } }))`);
@@ -3145,6 +3150,11 @@ async function scrollbars(page) {
   return { ok: true, detail: 'a bar over the details under the picture that follows their scroll; none over the list or the help; none beside Chrome\'s own bars' };
 }
 
+// The list's order at its foot: the selector's choices with the one in
+// force starred, and a choice made as its list makes it.
+const ORDER_CHOICES = `[...(document.getElementById('list-order')?.options || [])].map((o) => o.value + (o.selected ? '*' : ''))`;
+const ORDER_PICK = (order) => `(() => { const s = document.getElementById('list-order'); s.value = ${JSON.stringify(order)}; s.dispatchEvent(new Event('change', { bubbles: true })); return true; })()`;
+
 /**
  * The order of a channel list from its foot, as the films' list or covers
  * is chosen there: by name or by channel number, the mark lit for the one
@@ -3155,35 +3165,48 @@ async function channelorder(page) {
   const assert = (ok, detail) => { if (!ok) throw new Error(detail); };
   await openLiveList(page, 3);
   const read = () => evaluate(page, `(async () => { const { settings } = await chrome.storage.local.get('settings');
-    const marks = [...document.querySelectorAll('#listinfo .view-toggle button')];
-    return { marks: marks.map((b) => b.getAttribute('aria-label')), pressed: marks.findIndex((b) => b.getAttribute('aria-pressed') === 'true'),
+    const select = document.getElementById('list-order'), mark = document.querySelector('#listinfo .order-pick svg');
+    return { choices: [...select.options].map((o) => o.textContent), shown: select.selectedOptions[0].textContent, mark: Boolean(mark), label: select.getAttribute('aria-label'),
       names: [...document.querySelectorAll('#list .row .row-name')].map((n) => n.textContent.trim()), stored: settings && settings.channelSort }; })()`);
   const byName = await read();
-  assert(byName.marks.length === 2 && byName.marks[0] === 'Name (A–Z)' && byName.marks[1] === 'Channel number' && byName.pressed === 0, `the marks: ${JSON.stringify(byName)}`);
+  assert(JSON.stringify(byName.choices) === JSON.stringify(['Name (A–Z)', 'Name (Z–A)', 'Channel number']) && byName.shown === 'Name (A–Z)' && byName.mark && byName.label === 'Channel order',
+    `the order's selector: ${JSON.stringify(byName)}`);
   const sorted = [...byName.names].sort((a, b) => a.localeCompare(b));
   assert(JSON.stringify(byName.names) === JSON.stringify(sorted), `by name the rows are ${byName.names.join(', ')}`);
-  // The name mark turns A–Z to Z–A and back; it once stayed at A–Z, lit
-  // while Z–A was set, and a press did nothing.
-  await evaluate(page, `document.querySelectorAll('#listinfo .view-toggle button')[0].click()`);
-  await waitFor(page, `document.querySelector('#listinfo .view-toggle button')?.dataset.order === 'za'`, 'Z–A from the name mark');
+  await evaluate(page, ORDER_PICK('za'));
+  await waitFor(page, `document.getElementById('list-order')?.value === 'za' && document.querySelector('#list .row .row-name')?.textContent.trim() !== ${JSON.stringify(byName.names[0])}`, 'Z–A from the selector');
   const backwards = await read();
   const descending = [...backwards.names].sort((a, b) => b.localeCompare(a));
-  assert(backwards.stored === 'za' && backwards.pressed === 0 && backwards.marks[0] === 'Name (Z–A)'
+  assert(backwards.stored === 'za' && backwards.shown === 'Name (Z–A)'
     && JSON.stringify(backwards.names) === JSON.stringify(descending) && backwards.names[0] !== byName.names[0], `Z–A: ${JSON.stringify(backwards)}`);
-  await evaluate(page, `document.querySelectorAll('#listinfo .view-toggle button')[0].click()`);
-  await waitFor(page, `document.querySelector('#listinfo .view-toggle button')?.dataset.order === 'az'`, 'A–Z again from the name mark');
-  await evaluate(page, `document.querySelectorAll('#listinfo .view-toggle button')[1].click()`);
-  await waitFor(page, `document.querySelectorAll('#listinfo .view-toggle button')[1]?.getAttribute('aria-pressed') === 'true'`, 'the number order');
+  await evaluate(page, ORDER_PICK('num'));
+  await waitFor(page, `chrome.storage.local.get('settings').then((d) => d.settings.channelSort === 'num') && document.getElementById('list-order')?.value === 'num'`, 'the number order');
+  await sleep(400);
   const byNumber = await read();
   assert(byNumber.stored === 'num' && JSON.stringify(byNumber.names) !== JSON.stringify(byName.names), `by number: ${JSON.stringify(byNumber)}`);
-  await evaluate(page, `document.querySelectorAll('#listinfo .view-toggle button')[0].click()`);
-  await waitFor(page, `document.querySelectorAll('#listinfo .view-toggle button')[0]?.getAttribute('aria-pressed') === 'true'`, 'the name order');
+  await evaluate(page, ORDER_PICK('az'));
+  await waitFor(page, `chrome.storage.local.get('settings').then((d) => d.settings.channelSort === 'az') && document.getElementById('list-order')?.value === 'az'`, 'the name order');
+  await sleep(400);
   const back = await read();
   // The virtual list draws as many rows as fit, one more or less after a
   // scroll: the rows both drawings share are compared.
   const shared = Math.min(back.names.length, byName.names.length);
   assert(back.stored === 'az' && JSON.stringify(back.names.slice(0, shared)) === JSON.stringify(byName.names.slice(0, shared)), `back by name: ${JSON.stringify(back)}`);
-  return { ok: true, detail: `by name ${byName.names.slice(0, 3).join(', ')}…; by number ${byNumber.names.slice(0, 3).join(', ')}…, stored and shown in Settings; and back` };
+  // The selector opens the page's own list (js/picker.js), as "Playback
+  // mode" does, upwards from the foot; and the foot begins with the tab's
+  // mark and the count with its word, whole. Six marks a fingertip wide
+  // had left an iPad's column "15".
+  const box = await evaluate(page, `(() => { const r = document.getElementById('list-order').getBoundingClientRect(); return { x: r.left + r.width / 2, y: r.top + r.height / 2, top: r.top }; })()`);
+  await page.call('Input.dispatchMouseEvent', { type: 'mousePressed', x: box.x, y: box.y, button: 'left', clickCount: 1 });
+  await page.call('Input.dispatchMouseEvent', { type: 'mouseReleased', x: box.x, y: box.y, button: 'left', clickCount: 1 });
+  await sleep(300);
+  const opened = await evaluate(page, `(() => { const pop = document.querySelector('.picker-pop'), count = document.querySelector('.listinfo-count'), first = document.getElementById('listinfo').firstElementChild;
+    const out = { options: pop ? [...pop.querySelectorAll('.picker-option')].map((o) => o.textContent.trim()) : null, above: pop ? pop.getBoundingClientRect().bottom <= ${box.top} + 1 : false,
+      count: count.textContent, whole: count.scrollWidth <= count.clientWidth + 1, mark: first.matches('svg.tab-icon') && first.getBoundingClientRect().width > 0 };
+    document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true })); document.activeElement?.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true })); return out; })()`);
+  assert(JSON.stringify(opened.options) === JSON.stringify(['Name (A–Z)', 'Name (Z–A)', 'Channel number']) && opened.above && /^\d+ channels$/.test(opened.count) && opened.whole && opened.mark,
+    `the selector's list and the foot's count: ${JSON.stringify(opened)}`);
+  return { ok: true, detail: `by name ${byName.names.slice(0, 3).join(', ')}…; by number ${byNumber.names.slice(0, 3).join(', ')}…, stored and shown in Settings; and back; the order's list opens upwards beside "${opened.count}"` };
 }
 
 /**
@@ -3200,7 +3223,7 @@ async function lengthfilter(page) {
   await waitFor(page, `document.querySelectorAll('#list .row').length > 1 && document.getElementById('list-progress').hidden`, 'movie rows');
   await evaluate(page, `document.getElementById('media-filters').open = true`);
   await waitFor(page, `!document.querySelector('.length-filter').hidden`, 'the length slider once lengths are known', 20000);
-  // "Show only favourites" at the foot of "Filter titles": the starred
+  // "Show only favourites" at the foot of "Filter movies": the starred
   // film alone, its chip and Reset beside it, and back.
   // A star changes the card where it is: repainting the list for it
   // rebuilt every card and loaded its picture again, a flash of the list.
@@ -3285,6 +3308,8 @@ async function lengthfilter(page) {
   // Under a finger: WebKit gives a handle no press of its own, so a drag
   // along the track moves the nearer handle (on an iPhone neither moved),
   // and both handles lie on the line (they stood 3 px above it there).
+  // Chrome alone: Firefox's driver has no touch emulation.
+  if (DEVTOOLS_PORT) {
   await page.call('Emulation.setTouchEmulationEnabled', { enabled: true, maxTouchPoints: 5 });
   try {
     await sleep(300);
@@ -3307,6 +3332,7 @@ async function lengthfilter(page) {
     await evaluate(page, `[...document.querySelectorAll('.filter-chip')].find((c) => /Duration/.test(c.textContent)).click()`);
   } finally {
     await page.call('Emulation.setTouchEmulationEnabled', { enabled: false }).catch(() => {});
+  }
   }
   // At rest, or out of sight where no lengths are known (the category above).
   await waitFor(page, `![...document.querySelectorAll('.filter-chip')].some((c) => /Duration/.test(c.textContent))
@@ -3555,7 +3581,7 @@ async function touchsizes(page, { target }) {
     await page.call('Emulation.setEmulatedMedia', { features: on ? [{ name: 'pointer', value: 'coarse' }, { name: 'hover', value: 'none' }] : [] });
     await sleep(600);
   };
-  let measured = 0;
+  let measured = 0, barsSeen = '';
   // Everything in sight that takes a press: 40 px high and wide at the
   // least (css/last.css), the marks of the list's foot 36 px wide with
   // the gap between them. A choice and a switch are pressed by their row.
@@ -3611,6 +3637,38 @@ async function touchsizes(page, { target }) {
     await pane('browse');
     await guide();
     await hold(`${where}, the guide`);
+    // The guide's bar under a finger: no row of steps and zoom (a swipe
+    // and a pinch are theirs), and the days' strip has the row to its
+    // end. An iPad lying down had the strip's arrow and then 59 px of
+    // nothing, and a second row under it. (A phone lying down keeps its
+    // two short rows: its bar is the corner player's width.)
+    const bar = await evaluate(page, `(() => { const shown = (id) => document.getElementById(id).getClientRects().length > 0, box = (n) => n.getBoundingClientRect();
+      const bar = box(document.querySelector('.epg-bar')), days = box(document.querySelector('.epg-daybar')), first = box(document.getElementById('epg-group'));
+      return { steps: ['epg-prev', 'epg-next', 'epg-in', 'epg-out'].filter(shown), gap: Math.round(bar.right - days.right), rows: Math.round(bar.height / first.height * 10) / 10, wide: innerWidth > 600 && innerHeight > 440 }; })()`);
+    assert(!bar.wide || (!bar.steps.length && bar.gap <= 20 && bar.rows < 2), `${where}, the guide's bar: ${JSON.stringify(bar)}`);
+    // The days' left arrow shows only for a scroll longer than itself: for
+    // less it hides more of the strip than it leads back to. A scroll of
+    // 34 px showed the 40 px arrow of an iPad lying down.
+    const arrow = await evaluate(page, `(async () => { const strip = document.getElementById('epg-days'), back = strip.parentElement.querySelector(':scope > .side-scroll-arrow.prev'), out = [];
+      const was = strip.scrollLeft;
+      for (const left of [34, 30, 60, 10]) { strip.scrollLeft = left; await new Promise((r) => setTimeout(r, 120)); out.push([Math.round(strip.scrollLeft), back.hidden ? 0 : Math.round(back.getBoundingClientRect().width)]); }
+      strip.scrollLeft = was; return out; })()`);
+    assert(arrow.every(([left, width]) => !width || left > width), `${where}: the days' left arrow over a scroll shorter than itself: ${JSON.stringify(arrow)}`);
+    // A television's bar keeps the zoom: its remote control has no pinch.
+    const tv = await evaluate(page, `(() => { const html = document.documentElement, shown = () => document.getElementById('epg-in').getClientRects().length > 0;
+      html.classList.add('tv'); const on = shown(); html.classList.remove('tv'); return on; })()`);
+    assert(!bar.wide || tv, `${where}: a television's guide has no zoom buttons`);
+    // A pinch steps the zoom: fingers drawn apart make an hour wider, and
+    // together narrower again.
+    const pinch = await evaluate(page, `(async () => { const scroll = document.getElementById('epg-scroll'), r = scroll.getBoundingClientRect(), y = r.top + 80, mid = r.left + r.width / 2;
+      const hour = () => parseFloat(getComputedStyle(document.getElementById('epg-canvas')).getPropertyValue('--hour'));
+      const fire = (type, gap) => { const touches = gap ? [-1, 1].map((side, i) => new Touch({ identifier: i, target: scroll, clientX: mid + side * gap / 2, clientY: y })) : [];
+        scroll.dispatchEvent(new TouchEvent(type, { bubbles: true, cancelable: true, touches, targetTouches: touches, changedTouches: touches })); };
+      const out = { before: hour() };
+      fire('touchstart', 100); fire('touchmove', 110); out.still = hour(); fire('touchmove', 140); out.wider = hour(); fire('touchend', 0);
+      fire('touchstart', 200); fire('touchmove', 140); out.back = hour(); fire('touchend', 0);
+      return out; })()`);
+    assert(pinch.still === pinch.before && pinch.wider > pinch.before && pinch.back === pinch.before, `${where}, a pinch on the guide: ${JSON.stringify(pinch)}`);
     await run(`$('epg-close').click(); await pause(300)`);
     await series();
     await hold(`${where}, a series' page`);
@@ -3632,9 +3690,27 @@ async function touchsizes(page, { target }) {
     // A film's facts and credits under its picture, and the start page after it.
     await run(`document.querySelector('#tabs [data-tab="movie"]').click(); await pause(600)`);
     await hold(`${where}, the films`);
+    // No ring round the cover the list's cursor stands on: back from a
+    // film's page it read as a choice. The keys' ring comes with the keys.
+    const ring = await evaluate(page, `(() => { const card = document.querySelector('#list .row.card'); if (!card) return null;
+      const other = document.querySelector('#list .row.card.selected'); if (other) other.classList.remove('selected');
+      const look = () => getComputedStyle(card.querySelector('.card-poster')).boxShadow, plain = look(); card.classList.add('selected');
+      const marked = look(); card.classList.remove('selected'); if (other) other.classList.add('selected'); return { plain, marked }; })()`);
+    assert(ring === null || ring.plain === ring.marked, `${where}: the cursor's ring round a cover under a finger: ${JSON.stringify(ring)}`);
     await run(`document.querySelector('#list .row, #list .card').click()`);
     await waitFor(page, PLAYING, 'the film');
     await waitFor(page, `document.querySelector('.tech-toggle') && document.querySelector('.title-credits a.person')`, 'the film\'s facts and credits', 15000);
+    // The three columns' bars, where all three stand side by side: the
+    // feet end on one line at one height, and the heads (the categories'
+    // search, the films' fold, the film's name) are one height too. On an
+    // iPad they were 44, 53 and 51 px, and the fold 41 beside 57.
+    const bars = await evaluate(page, `(() => { const h = (node) => { const r = node && node.getBoundingClientRect(); return r && r.height ? Math.round(r.height) : null; };
+      const q = (s) => document.querySelector(s);
+      return { feet: [h(q('#btn-countries')), h(q('#listinfo')), h(q('.nowbar'))], heads: [h(q('#groups-filter')), h(q('#media-filters > summary')) + 1 /* the fold's own line under it */, h(q('.stagehead'))], high: innerHeight > 440 }; })()`);
+    if (bars.high && [...bars.feet, ...bars.heads].every(Boolean)) {
+      assert(new Set(bars.feet).size === 1 && new Set(bars.heads).size === 1, `${where}, the columns' bars are not one height: ${JSON.stringify(bars)}`);
+      barsSeen = `, the columns' feet ${bars.feet[0]} px and heads ${bars.heads[0]} px`;
+    }
     await hold(`${where}, a film's details`);
     await sleep(5500);
     await run(`$('btn-home').click(); await pause(800)`);
@@ -3649,9 +3725,17 @@ async function touchsizes(page, { target }) {
       await sleep(1000);
       await waitFor(page, CONNECTED, `the connection in ${where}`);
       assert(await evaluate(page, `matchMedia('(hover: none)').matches`), 'the emulation left a pointer that hovers');
+      // Nothing is styled as hovered here: a tap leaves the hover on what
+      // it touched, and a star stayed white, a cross red and a fold grey.
+      const brand = await evaluate(page, `(() => { const r = document.querySelector('.brand').getBoundingClientRect(); return { x: r.left + r.width / 2, y: r.top + r.height / 2 }; })()`);
+      await page.call('Input.dispatchMouseEvent', { type: 'mouseMoved', x: brand.x, y: brand.y });
+      await sleep(300);
+      const hovered = await evaluate(page, `(() => { const b = document.querySelector('.brand'); return { hover: b.matches(':hover'), colour: getComputedStyle(b).backgroundColor }; })()`);
+      await page.call('Input.dispatchMouseEvent', { type: 'mouseMoved', x: 1, y: 300 });
+      assert(hovered.hover && hovered.colour === 'rgba(0, 0, 0, 0)', `${where}: the logo under the hover a finger leaves: ${JSON.stringify(hovered)}`);
       await views(where, { panes });
     }
-    return { ok: true, detail: `${measured} controls measured where nothing hovers, in a tablet's window, an upright phone's and a phone's lying down, over the channels, a row's menu, the player and its menu, a note, the guide, a series, the history, every section of Settings, Filter countries, the help, the films, a film's details and the start page: none under 40 × 40 px; a dialog opened by a finger has the focus itself` };
+    return { ok: true, detail: `${measured} controls measured where nothing hovers, in a tablet's window, an upright phone's and a phone's lying down, over the channels, a row's menu, the player and its menu, a note, the guide, a series, the history, every section of Settings, Filter countries, the help, the films, a film's details and the start page: none under 40 × 40 px${barsSeen}; a dialog opened by a finger has the focus itself` };
   } finally {
     await touch(1280, 800, false);
     await page.call('Page.navigate', { url: bare(target.url) }).catch(() => {});
@@ -3789,6 +3873,20 @@ async function polish(page) {
       seen.kept = menu(); seen.played = state.playingSpec !== was || !$('detail').hidden;
       closeRowMenu(); $('btn-home').click(); return seen;`);
     assert(!hold.moved && !hold.short && hold.held && hold.kept && !hold.played, `a finger held on a film: ${JSON.stringify(hold)}`);
+    /* A favourite's star is gold under the pointer too. A finger leaves
+       the hover on what it tapped: a film starred on an iPad kept a white
+       star, and so did a category's in the sidebar. */
+    for (const [what, pick] of [['a film', '#list .row .card-star'], ['a category', '#groups button.group-star']]) {
+      const at = await run(`document.querySelector('[data-tab="movie"]').click(); await pause(1200);
+        const star = document.querySelector(${JSON.stringify(pick)}); star.scrollIntoView({ block: 'center' }); if (!star.classList.contains('on')) star.click(); await pause(400);
+        const now = document.querySelector(${JSON.stringify(pick + '.on')}), r = now.getBoundingClientRect(); return { x: r.left + r.width / 2, y: r.top + r.height / 2 };`);
+      await page.call('Input.dispatchMouseEvent', { type: 'mouseMoved', x: at.x, y: at.y });
+      await sleep(300);
+      const star = await run(`const now = document.querySelector(${JSON.stringify(pick + '.on')}); const out = { hover: now.matches(':hover'), colour: getComputedStyle(now).color }; now.click(); await pause(300); return out;`);
+      await page.call('Input.dispatchMouseEvent', { type: 'mouseMoved', x: 2, y: 2 });
+      assert(star.hover && star.colour === 'rgb(255, 200, 87)', `the star of ${what} in the favourites, under the pointer: ${JSON.stringify(star)}`);
+    }
+    await run(`$('btn-home').click(); return true;`);
     /* The message strip is swiped away, and its button keeps its press. A
        reminder's lay over the bar under the picture for a minute, with its
        button the only way of being rid of it. */
@@ -3896,6 +3994,22 @@ async function home(page) {
   const { shown, hover } = await evaluate(page, `(() => { const b = document.querySelector('.idle-forget');
     return { shown: b ? getComputedStyle(b).opacity : null, hover: matchMedia('(hover: hover)').matches }; })()`);
   assert(shown === (hover ? '0' : '1'), `the ✕ ${hover ? 'shows without hover' : 'is hidden where there is no hover'}: ${shown}`);
+  // Under a finger the cross is red only while pressed: the hover a tap
+  // leaves behind kept it red, and made the next card's red as that card
+  // slid into the removed one's place. Chrome alone: Firefox's driver has
+  // no touch emulation.
+  if (DEVTOOLS_PORT) {
+  await page.call('Emulation.setTouchEmulationEnabled', { enabled: true, maxTouchPoints: 5 });
+  await page.call('Emulation.setEmulatedMedia', { features: [{ name: 'pointer', value: 'coarse' }, { name: 'hover', value: 'none' }] });
+  const spot = await evaluate(page, `(() => { const r = document.querySelector('.idle-forget').getBoundingClientRect(); return { x: r.left + r.width / 2, y: r.top + r.height / 2 }; })()`);
+  await page.call('Input.dispatchMouseEvent', { type: 'mouseMoved', x: spot.x, y: spot.y });
+  await sleep(400);
+  const left = await evaluate(page, `(() => { const b = document.querySelector('.idle-forget'); return { hover: b.matches(':hover'), none: matchMedia('(hover: none)').matches, active: b.matches(':active'), colour: getComputedStyle(b).backgroundColor }; })()`);
+  await page.call('Input.dispatchMouseEvent', { type: 'mouseMoved', x: 2, y: 2 });
+  await page.call('Emulation.setEmulatedMedia', { features: [] });
+  await page.call('Emulation.setTouchEmulationEnabled', { enabled: false });
+  assert(left.none && left.hover && !/200, 40, 50/.test(left.colour), `the cross of a card under the hover a finger left: ${JSON.stringify(left)}`);
+  }
   const points = () => evaluate(page, `chrome.storage.local.get(null).then((d) => Object.entries(d).filter(([k]) => k.startsWith('resume')).reduce((n, [, v]) => n + Object.keys(v || {}).length, 0))`);
   const pointsBefore = await points();
   for (let left = (await cards()).length; left > 0; left--) {
@@ -4506,7 +4620,7 @@ async function channels(page) {
   // the last word over it.
   const setSort = async (value) => {
     for (let i = 0; i < 3 && await evaluate(page, `chrome.storage.local.get('settings').then((d) => d.settings?.channelSort || 'az')`) !== value; i++) {
-      await evaluate(page, `document.querySelectorAll('#listinfo .view-toggle button')[${value === 'num' ? 1 : 0}].click()`);
+      await evaluate(page, ORDER_PICK(value));
       await sleep(300);
     }
     await waitFor(page, `chrome.storage.local.get('settings').then((d) => (d.settings?.channelSort || 'az') === ${JSON.stringify(value)})`, `the channel order (${value})`);
@@ -4916,6 +5030,30 @@ async function programmes(page, { requests }) {
   await waitFor(page, `document.querySelector('#epgv-slot b')`, 'search result detail');
   await evaluate(page, `document.getElementById('programme-clear').click()`);
   assert(await evaluate(page, `!document.getElementById('epg-body').hidden && document.getElementById('programme-panel').hidden`), 'return to guide failed');
+  // The field has the row to itself and searches as it is typed into: no
+  // button, and the two choices are at the results' foot, where a change
+  // is asked at once. One letter asks nothing, an emptied field puts the
+  // guide back.
+  const type = (text) => evaluate(page, `(() => { const f = document.getElementById('programme-query'); f.value = ${JSON.stringify(text)}; f.dispatchEvent(new Event('input', { bubbles: true })); return true; })()`);
+  const form = await evaluate(page, `({ controls: [...document.querySelectorAll('#programme-form select, #programme-form button')].length,
+    foot: [...document.querySelectorAll('#programme-panel .programme-foot select')].map((n) => n.id), period: document.getElementById('programme-period').options[0].value })`);
+  await evaluate(page, `(document.getElementById('programme-period').value = 'upcoming', true)`);
+  assert(form.controls === 0 && form.foot.join() === 'programme-scope,programme-period' && form.period === 'upcoming', `the search's row and foot: ${JSON.stringify(form)}`);
+  await type('N');
+  await sleep(700);
+  assert(await evaluate(page, `document.getElementById('programme-panel').hidden`), 'one letter searched');
+  await evaluate(page, `document.getElementById('programme-panel').dataset.state = ''`);
+  await type('News');
+  await waitFor(page, `!document.getElementById('programme-panel').hidden && document.getElementById('programme-panel').dataset.state === 'done' && document.querySelectorAll('.psr-row').length > 0`, 'a search as it is typed');
+  const upcoming = await evaluate(page, `document.getElementById('programme-status').textContent`);
+  await evaluate(page, `(() => { const panel = document.getElementById('programme-panel'), s = document.getElementById('programme-period'); panel.dataset.state = ''; s.value = 'past'; s.dispatchEvent(new Event('change', { bubbles: true })); return true; })()`);
+  await waitFor(page, `document.getElementById('programme-panel').dataset.state === 'done'`, 'the search again for the past');
+  const past = await evaluate(page, `document.getElementById('programme-status').textContent`);
+  assert(past !== upcoming, `a change of period at the foot searched nothing anew: "${upcoming}" and "${past}"`);
+  await type('');
+  await sleep(300);
+  assert(await evaluate(page, `!document.getElementById('epg-body').hidden && document.getElementById('programme-panel').hidden`), 'an emptied field left the results up');
+  await evaluate(page, `(document.getElementById('programme-period').value = 'upcoming', true)`);
   return { ok: true, detail: `archive-length guide; title/description search by channel (${grouped.heads} channels, ${grouped.rows} programmes), cached repeat, empty results with the notice, the channel "${channelName}" by its name, a search for "a" (${wide.count} results in ${took} ms, ${wide.heads} channels painted, ${wide.dom} rows in the DOM) with Show all and the fold, past results and return to grid` };
 }
 
@@ -5289,7 +5427,7 @@ async function catalogUi(page) {
   assert(arrows.imgs > 0 && arrows.kept === arrows.imgs && arrows.cursor >= 1, `the covers after two arrows: ${JSON.stringify(arrows)}`);
   await evaluate(page, `document.querySelector('.view-toggle button[aria-pressed="false"]').click()`);
   await waitFor(page, `!document.getElementById('list').classList.contains('covers') && document.querySelector('#list .row-duration')`, 'movie duration metadata');
-  assert(await evaluate(page, `!document.getElementById('media-filters').hidden && document.getElementById('channel-tools').hidden`), 'the films\' filters in place of the channels\' tools');
+  assert(await evaluate(page, `!document.getElementById('media-filters').hidden && document.getElementById('channel-filters').hidden`), 'the films\' filters in place of the channels\' tools');
   // Settings ends the bar, or the hamburger does where the bar does not fit
   // on one row: which depends on the fonts' widths, and the Linux runner's
   // differ from this machine's.
@@ -5301,16 +5439,18 @@ async function catalogUi(page) {
   assert(await evaluate(page, String.raw`[...document.querySelectorAll('#list .row-sub')].every(n => Number(n.textContent.match(/★\s*([\d.]+)/)?.[1]) >= 8)`), 'low rating leaked into filtered movies');
   // The order is the list's foot's, not one of the filters: Reset leaves it.
   assert(await evaluate(page, `!document.querySelector('#media-filters [name="sort"]')`), 'an order among the filters');
-  await evaluate(page, `document.querySelector('#listinfo [data-order="rating"]').click()`);
-  await waitFor(page, `document.querySelector('#listinfo [data-order="rating"]')?.getAttribute('aria-pressed') === 'true'`, 'the rating order');
+  await evaluate(page, ORDER_PICK('rating'));
+  await waitFor(page, `chrome.storage.local.get('settings').then((s) => s.settings.movieSort === 'rating') && document.getElementById('list-order')?.value === 'rating'`, 'the rating order');
+  await sleep(400);
   const values = await evaluate(page, String.raw`[...document.querySelectorAll('#list .row-sub')].map(n=>Number(n.textContent.match(/★\s*([\d.]+)/)?.[1]))`);
   assert(values.every((v,i)=>!i || values[i-1]>=v), 'rating sort order');
   // Reset is with the chips of what is in force.
   await evaluate(page, `document.querySelector('#active-media-filters .media-filter-reset').click()`);
   await waitFor(page, `document.querySelectorAll('#list .row').length > 1`, 'filter reset');
-  assert(await evaluate(page, `chrome.storage.local.get('settings').then((s) => s.settings.movieSort === 'rating' && document.querySelector('#listinfo [data-order="rating"]')?.getAttribute('aria-pressed') === 'true')`), 'Reset took the order with it');
-  await evaluate(page, `document.querySelector('#listinfo [data-order="az"]').click()`);
-  await waitFor(page, `document.querySelector('#listinfo [data-order="az"]')?.getAttribute('aria-pressed') === 'true'`, 'the name order again');
+  assert(await evaluate(page, `chrome.storage.local.get('settings').then((s) => s.settings.movieSort === 'rating' && document.getElementById('list-order')?.value === 'rating')`), 'Reset took the order with it');
+  await evaluate(page, ORDER_PICK('az'));
+  await waitFor(page, `chrome.storage.local.get('settings').then((s) => s.settings.movieSort === 'az') && document.getElementById('list-order')?.value === 'az'`, 'the name order again');
+  await sleep(400);
   await evaluate(page, `document.querySelector('#list .row').click()`, {gesture:true});
   await waitFor(page, PLAYING, 'native movie playback');
   // The IMDb link is in the ☰ menu while the film plays, not under the details.
@@ -5334,7 +5474,7 @@ async function catalogUi(page) {
   assert(await evaluate(page, `[...document.querySelectorAll('#cover-check svg')].every(svg=>getComputedStyle(svg).visibility==='visible')`), 'channel placeholder hidden');
   await evaluate(page, `document.getElementById('cover-check').remove()`);
   await openLiveList(page);
-  assert(await evaluate(page, `!document.getElementById('channel-tools').hidden && document.getElementById('media-filters').hidden`), 'channel navigation');
+  assert(await evaluate(page, `!document.getElementById('channel-filters').hidden && document.getElementById('media-filters').hidden`), 'channel navigation');
   await evaluate(page, `document.getElementById('btn-guide').click()`);
   await waitFor(page, `document.getElementById('main').classList.contains('guide')`, 'guide entry');
   await mouseClick(page, '#epg-close');
@@ -6839,7 +6979,7 @@ async function searchlimit(page) {
 }
 
 /**
- * "Filter channels" and "Filter titles" are open the first time and say
+ * "Filter channels", "Filter movies" and "Filter series" are open the first time and say
  * their state the same way: the name, a dot while they narrow the list,
  * and "shown / total".
  */
@@ -6931,7 +7071,7 @@ async function focusrings(page) {
       await js(`document.querySelector('#list .row').click(), true`);
       await sleep(1500);
       await look(`${width} a channel playing`);
-      await js(`(document.querySelector('.channel-guide:not([hidden])') || document.getElementById('btn-guide')).click(), true`);
+      await js(`document.getElementById('btn-guide').click(), true`);
       await waitFor(page, `document.querySelector('main.guide')`, 'the guide');
       await sleep(800);
       await look(`${width} the guide`);
@@ -7022,7 +7162,13 @@ async function filterfolds(page) {
   await evaluate(page, `document.querySelector('#tabs [data-tab="movie"]').click()`);
   await waitFor(page, `!document.getElementById('media-filters').hidden && document.querySelector('#media-filters .section-count')?.textContent`, 'the films');
   const films = await fold('media-filters');
-  assert(films.open && films.label === 'Filter titles' && /^\d+ \/ \d+$/.test(films.count), `"Filter titles" at first: ${JSON.stringify(films)}`);
+  assert(films.open && films.label === 'Filter movies' && /^\d+ \/ \d+$/.test(films.count), `"Filter movies" at first: ${JSON.stringify(films)}`);
+  // Each fold is named for what its view lists: it was "Filter titles"
+  // over the films and the series alike, beside "Filter channels".
+  await evaluate(page, `document.querySelector('#tabs [data-tab="series"]').click()`);
+  await waitFor(page, `document.querySelector('#media-filters .section-label')?.textContent === 'Filter series'`, '"Filter series" over the series');
+  await evaluate(page, `document.querySelector('#tabs [data-tab="movie"]').click()`);
+  await waitFor(page, `document.querySelector('#media-filters .section-label')?.textContent === 'Filter movies'`, '"Filter movies" again');
   // The choices outlast a reload: a rating and "Show only favourites" for
   // the films, "Show only favourites" for the channels.
   await evaluate(page, `(() => { const f = document.querySelector('#media-filters [name="rating"]'); f.value = '7'; f.dispatchEvent(new Event('change')); document.querySelector('#media-filters .media-filter-favs input').click(); document.getElementById('channel-favs').click(); return true; })()`);
@@ -7451,9 +7597,9 @@ async function phoneguide(page) {
       const shown = (id) => { const n = document.getElementById(id); return Boolean(n && n.offsetParent !== null); };
       const top = document.getElementById('epg-scroll').getBoundingClientRect().top;
       const chans = [...document.querySelectorAll('.epg-chan')].filter((c) => { const r = c.getBoundingClientRect(); return r.top >= top && r.bottom <= innerHeight; }).length;
-      return { chans, top: Math.round(top), clock: shown('epg-clock'), prev: shown('epg-prev'), zoom: shown('epg-in'), now: shown('epg-now'),
+      return { chans, top: Math.round(top), clock: shown('epg-clock'), prev: shown('epg-prev'), zoom: shown('epg-in'),
         search: shown('epg-search'), form: shown('programme-query'), sheet: getComputedStyle(document.getElementById('epg-preview')).visibility }; })()`);
-    assert(look.chans >= 9 && !look.clock && !look.prev && !look.zoom && !look.now && look.search && !look.form && look.sheet === 'hidden', `the phone's guide: ${JSON.stringify(look)}`);
+    assert(look.chans >= 9 && !look.clock && !look.prev && !look.zoom && look.search && !look.form && look.sheet === 'hidden', `the phone's guide: ${JSON.stringify(look)}`);
     await evaluate(page, `document.querySelector('.epg-prog').click()`);
     await sleep(400);
     const sheet = await evaluate(page, `({ open: document.getElementById('main').classList.contains('guide-sheet'), shown: getComputedStyle(document.getElementById('epg-preview')).visibility, played: Boolean(document.getElementById('video').currentSrc), actions: document.querySelectorAll('#epgv-actions button').length })`);
@@ -7479,9 +7625,18 @@ async function phoneguide(page) {
     const after = await evaluate(page, `({ sheet: document.getElementById('main').classList.contains('guide-sheet'), guide: !document.getElementById('epg').hidden })`);
     assert(!after.sheet && after.guide, `Escape on the sheet: ${JSON.stringify(after)}`);
     await evaluate(page, `document.getElementById('epg-scroll').scrollLeft += 1500`);
-    await waitFor(page, `document.getElementById('epg-now').offsetParent !== null`, 'Now, once the time is scrolled away', 5000);
-    await evaluate(page, `document.getElementById('epg-now').click()`);
-    await waitFor(page, `document.getElementById('epg-now').offsetParent === null`, 'Now gone again at now', 5000);
+    // Today's button, with its clock, is the one way back to the present,
+    // and the hour before is in sight there (a third of the width at most).
+    const NOW_AT = `(() => { const scroll = document.getElementById('epg-scroll'), line = document.querySelector('.epg-nowline');
+      const at = parseFloat(line.style.left) - scroll.scrollLeft, hour = parseFloat(getComputedStyle(document.getElementById('epg-canvas')).getPropertyValue('--hour'));
+      return { at: Math.round(at), view: scroll.clientWidth, hour }; })()`;
+    const awayAt = await evaluate(page, NOW_AT);
+    await evaluate(page, `document.querySelector('#epg-days .epg-day.today').click()`);
+    await sleep(500);
+    const backAt = await evaluate(page, NOW_AT);
+    const today = await evaluate(page, `(() => { const b = document.querySelector('#epg-days .epg-day.today'); return { mark: Boolean(b.querySelector('svg')), now: Boolean(document.getElementById('epg-now')) }; })()`);
+    const lead = Math.min(backAt.view / 3, backAt.hour);
+    assert(awayAt.at < 0 && Math.abs(backAt.at - lead) <= 3 && today.mark && !today.now, `today's button from ${JSON.stringify(awayAt)} to ${JSON.stringify(backAt)}, the lead ${Math.round(lead)}: ${JSON.stringify(today)}`);
     await evaluate(page, `document.getElementById('epg-search').click()`);
     const searching = await evaluate(page, `({ form: document.getElementById('programme-query').offsetParent !== null, focus: document.activeElement.id })`);
     assert(searching.form && searching.focus === 'programme-query', `the search behind its mark: ${JSON.stringify(searching)}`);
@@ -7495,7 +7650,7 @@ async function phoneguide(page) {
       return { rows: rows.length, sheet: document.getElementById('main').classList.contains('guide-sheet'), title, shown: document.getElementById('epg-preview').textContent.includes(title) }; })()`);
     assert(later.sheet && later.shown, `a search result that is not on now, tapped on a phone: ${JSON.stringify(later)}`);
     await evaluate(page, `document.getElementById('epgv-close').click()`);
-    return { ok: true, detail: `${look.chans} channels under a ${look.top} px top; a tap opened the sheet with ${sheet.actions} actions and played nothing, a message lay over it, Escape closed it; Now floated away from now; the search opened focused, and a result of it that is not on now opened the sheet` };
+    return { ok: true, detail: `${look.chans} channels under a ${look.top} px top; a tap opened the sheet with ${sheet.actions} actions and played nothing, a message lay over it, Escape closed it; today's button led back to now with the hour before in sight; the search opened focused, and a result of it that is not on now opened the sheet` };
   } finally {
     await evaluate(page, `document.getElementById('epg-close')?.click()`).catch(() => {});
     await page.call('Emulation.clearDeviceMetricsOverride').catch(() => {});
@@ -8043,18 +8198,16 @@ async function favorder(page) {
   const sorted = [...byName].sort((a, b) => a.localeCompare(b, 'en', { numeric: true, sensitivity: 'base' }));
   assert(JSON.stringify(byName) === JSON.stringify(sorted), `by name: ${JSON.stringify(byName)}`);
   try {
-    await evaluate(page, `document.querySelector('#listinfo [data-order="added"]').click()`);
-    await waitFor(page, `document.querySelector('#listinfo [data-order="added"]')?.getAttribute('aria-pressed') === 'true'`, 'the latest added first');
+    await evaluate(page, ORDER_PICK('added'));
+    await waitFor(page, `chrome.storage.local.get('settings').then((s) => s.settings.favoritesSort === 'added') && document.getElementById('list-order')?.value === 'added'`, 'the latest added first');
+    await sleep(400);
     const added = await names();
     const expected = await evaluate(page, `(async () => { const { state } = ${app}; return [...state.favorites.values()].sort((a, b) => b.addedAt - a.addedAt).map((f) => f.displayName || f.n); })()`);
     const saved = await evaluate(page, `chrome.storage.local.get('settings').then((s) => s.settings.favoritesSort)`);
     assert(added.length === 3 && added.every((n, i) => expected[i].endsWith(n) || expected[i] === n) && saved === 'added', `latest added first: ${JSON.stringify({ added, expected, saved })}`);
-    // The name mark: A–Z first, a second press Z–A, and the A turned to a Z.
-    const nameMark = `document.querySelector('#listinfo .order-toggle button')`;
-    await evaluate(page, `${nameMark}.click()`);
-    await waitFor(page, `${nameMark}?.dataset.order === 'az' && ${nameMark}.getAttribute('aria-pressed') === 'true'`, 'A–Z from the name mark');
-    await evaluate(page, `${nameMark}.click()`);
-    await waitFor(page, `${nameMark}?.dataset.order === 'za'`, 'Z–A from the name mark');
+    await evaluate(page, ORDER_PICK('za'));
+    await waitFor(page, `chrome.storage.local.get('settings').then((s) => s.settings.favoritesSort === 'za') && document.getElementById('list-order')?.value === 'za'`, 'Z–A from the selector');
+    await sleep(400);
     const backwards = await names();
     const zaSaved = await evaluate(page, `chrome.storage.local.get('settings').then((s) => s.settings.favoritesSort)`);
     assert(JSON.stringify(backwards) === JSON.stringify([...byName].reverse()) && zaSaved === 'za', `Z–A: ${JSON.stringify({ backwards, zaSaved })}`);
@@ -8064,27 +8217,28 @@ async function favorder(page) {
       state.favorites.set('c:live:g:' + g, { k: 'c', id: 'live:g:' + g, t: 'live', c: null, g, n: g }); await refreshRows(); })()`);
     await waitFor(page, `[...document.querySelectorAll('#list .row')].some((r) => r.textContent.includes(${JSON.stringify(group)}))`, 'the favourite category');
     await evaluate(page, `(async () => { const { state } = ${app}; const { openFavCategory } = await import('./js/collections.js'); await openFavCategory(state.favorites.get('c:live:g:' + ${JSON.stringify(group)})); })()`);
-    await waitFor(page, `document.querySelectorAll('#list .row').length > 1 && document.querySelector('#listinfo .order-toggle')`, 'the order at the category\'s foot', 20000);
-    const inCategory = await evaluate(page, `[...document.querySelectorAll('#listinfo .order-toggle button')].map((b) => b.dataset.order + (b.getAttribute('aria-pressed') === 'true' ? '*' : ''))`);
-    assert(JSON.stringify(inCategory) === JSON.stringify(['az*', 'num']), `the marks in the favourite category: ${JSON.stringify(inCategory)}`);
+    await waitFor(page, `document.querySelectorAll('#list .row').length > 1 && document.getElementById('list-order')`, 'the order at the category\'s foot', 20000);
+    const inCategory = await evaluate(page, ORDER_CHOICES);
+    assert(JSON.stringify(inCategory) === JSON.stringify(['az*', 'za', 'num']), `the orders in the favourite category: ${JSON.stringify(inCategory)}`);
     // The history: the latest watched first, by name from its mark, and the
     // same choice in Settings.
     await evaluate(page, `(async () => { const { state } = ${app}; const rows = [...state.favorites.values()].filter((r) => r.k === 0);
       const now = Date.now(); state.recents = [rows[1], rows[0], rows[2]].map((r, i) => ({ ...r, watchedAt: now - i * 60000 })); })()`);
     await evaluate(page, `document.querySelector('#tabs [data-tab="recent"]').click()`);
-    await waitFor(page, `document.querySelectorAll('#list .row').length === 3 && document.querySelector('#listinfo .order-toggle')`, 'the history');
-    const history = await evaluate(page, `[...document.querySelectorAll('#listinfo .order-toggle button')].map((b) => b.dataset.order + (b.getAttribute('aria-pressed') === 'true' ? '*' : ''))`);
+    await waitFor(page, `document.querySelectorAll('#list .row').length === 3 && document.getElementById('list-order')`, 'the history');
+    const history = await evaluate(page, ORDER_CHOICES);
     const watched = await names();
     const expectedWatched = await evaluate(page, `(async () => { const { state } = ${app}; return state.recents.map((r) => r.displayName || r.n); })()`);
-    assert(JSON.stringify(history) === JSON.stringify(['watched*', 'az']) && watched.every((n, i) => expectedWatched[i].endsWith(n) || expectedWatched[i] === n),
+    assert(JSON.stringify(history) === JSON.stringify(['watched*', 'az', 'za']) && watched.every((n, i) => expectedWatched[i].endsWith(n) || expectedWatched[i] === n),
       `the history at first: ${JSON.stringify({ history, watched, expectedWatched })}`);
-    await evaluate(page, `document.querySelector('#listinfo [data-order="az"]').click()`);
-    await waitFor(page, `document.querySelector('#listinfo [data-order="az"]')?.getAttribute('aria-pressed') === 'true'`, 'the history by name');
+    await evaluate(page, ORDER_PICK('az'));
+    await waitFor(page, `chrome.storage.local.get('settings').then((s) => s.settings.historySort === 'az') && document.getElementById('list-order')?.value === 'az'`, 'the history by name');
+    await sleep(400);
     const historyByName = await names();
     const stored = await evaluate(page, `chrome.storage.local.get('settings').then((d) => [d.settings.favoritesSort, d.settings.historySort])`);
     assert(JSON.stringify(historyByName) === JSON.stringify(byName) && stored.join() === 'za,az',
       `the history by name, and the orders kept: ${JSON.stringify({ historyByName, byName, stored })}`);
-    return { ok: true, detail: `by name ${JSON.stringify(byName)}; latest added first ${JSON.stringify(added)}; Z–A ${JSON.stringify(backwards)}; the channels' marks in a favourite category; the history latest first, then by name; each kept as a setting` };
+    return { ok: true, detail: `by name ${JSON.stringify(byName)}; latest added first ${JSON.stringify(added)}; Z–A ${JSON.stringify(backwards)}; the channels' orders in a favourite category; the history latest first, then by name; each kept as a setting` };
   } finally {
     await evaluate(page, `(async () => { const { state } = ${app}; const config = await import('./js/config.js'); state.settings = await config.saveSettings({ favoritesSort: 'az', historySort: 'watched' });
       for (const key of [...state.favorites.keys()]) if (key.startsWith('c:live:g:')) state.favorites.delete(key); })()`);
@@ -8615,7 +8769,7 @@ async function iosappCourse(page, plain) {
     $('help').close();
     return { ios: document.documentElement.classList.contains('ios'), screen: gone($('btn-screen')), record, sync, grant, back, help,
       recordButtons: gone($('btn-record')) && gone($('btn-recordings-menu')),
-      canRecord: (await import('./js/recordingsui.js')).canRecord, castItem: !$('btn-cast').hidden, castTop: gone($('btn-cast-top')),
+      canRecord: (await import('./js/recordingsui.js')).canRecord, castItem: !$('btn-cast').hidden, castTop: !gone($('btn-cast-top')),
       browser: texts.join(' | ').match(/[^.|]*\\b(browser|Chrome|Firefox)\\b[^.|]*/i)?.[0] || null, setupHelp, links }; })()`);
   assert(shown.ios && shown.screen && shown.record && shown.sync && shown.grant && shown.back && shown.recordButtons && shown.canRecord === false,
     `what the app does not offer is still there: ${JSON.stringify(shown)}`);
@@ -8634,7 +8788,7 @@ async function iosappCourse(page, plain) {
   const GUIDE = 'https://bigtimesam.github.io/kepuli-tv/iptv-app-iphone-ipad/';
   assert(shown.setupHelp === GUIDE && shown.links[0] === GUIDE && shown.links.includes('https://bigtimesam.github.io/kepuli-tv/privacy/')
     && shown.links.includes('https://bigtimesam.github.io/kepuli-tv/licences/'), `the help's links in the app: ${shown.setupHelp}, ${shown.links.join(', ')}`);
-  assert(shown.castItem && shown.castTop, `before a device is known the menu has Cast and the bar has not: ${JSON.stringify(shown)}`);
+  assert(shown.castItem && shown.castTop, `before a device is known the menu has Cast and the bar its mark, to ask for one: ${JSON.stringify(shown)}`);
 
   /* A press outside a row's menu closes the menu and nothing more. On a
      phone nearly everything outside it is a row, and the press that closed
@@ -8784,8 +8938,8 @@ async function iosappCourse(page, plain) {
     $('setup').close();
     // The page's theme setting goes to the app, for the keyboard and the
     // dialogs the system draws.
-    const { renderTheme } = await import('./js/theme.js'); const { state } = await import('./js/state.js');
-    renderTheme('dark'); renderTheme(state.settings.theme);
+    const { applyTheme } = await import('./js/theme.js'); const { state } = await import('./js/state.js');
+    applyTheme('dark'); applyTheme(state.settings.theme);
     out.themes = window.__sent.filter((m) => m.type === 'screen.theme').slice(-2).map((m) => m.theme);
     return out; })()`, { gesture: true });
   assert(refused.asked === true && refused.checked === false && refused.quiet && refused.hint === notifyDenied && refused.read && refused.toasts === 0, `notifications refused by the system: ${JSON.stringify(refused)}`);
@@ -9510,13 +9664,17 @@ async function iosappTurned(page, assert) {
     return { fits: document.documentElement.scrollWidth <= innerWidth, t: v.currentTime, restarts: window.__restarts,
       rows: [...document.querySelectorAll('#list .row')].filter((r) => { const b = r.getBoundingClientRect(); return b.height && b.bottom > list.top + 8 && b.top < list.bottom - 8; }).length,
       marked: at ? at.height > 0 && at.bottom > list.top && at.top < list.bottom : null, name: row ? row.querySelector('.row-name').title : null,
-      picture: [Math.round(wrap.width), Math.round(wrap.height)], whole: wrap.top >= 0 && wrap.right <= innerWidth + 1 && wrap.bottom <= bar.top + 1 && bar.bottom <= innerHeight + 1,
-      guideRow: Math.round(Math.abs(box('btn-guide').top - box('group-select').top)) }; })()`;
+      picture: [Math.round(wrap.width), Math.round(wrap.height)], whole: wrap.top >= 0 && wrap.right <= innerWidth + 1 && wrap.bottom <= bar.top + 1 && bar.bottom <= innerHeight + 1, }; })()`;
   await size(390, 844);
   await evaluate(page, `(() => { window.__restarts = 0; for (const type of ['emptied', 'loadstart']) document.getElementById('video').addEventListener(type, () => window.__restarts++); return true; })()`);
   const playing = await evaluate(page, NOW_TITLE);
   const upright = await evaluate(page, LOOK);
   assert(upright.fits, `upright the page is wider than the window`);
+  // A finger held on a cover or a logo is the menu's, never the start of
+  // a drag: an iPad lifted the picture and threw it to the window's corner.
+  const drag = await evaluate(page, `(() => { const event = new DragEvent('dragstart', { bubbles: true, cancelable: true });
+    (document.querySelector('#list img') || document.getElementById('list')).dispatchEvent(event); return event.defaultPrevented; })()`);
+  assert(drag, 'a picture of the page can be lifted for a drag in the app');
   // The message strip with its button, on an upright phone: placed by its
   // middle it had half the window, six lines, and the button out of its side.
   const strip = await evaluate(page, `(async () => { const { toast } = await import('./js/toast.js');
@@ -9574,7 +9732,6 @@ async function iosappTurned(page, assert) {
     assert(lying.fits && lying.restarts === 0 && lying.t > upright.t + 1, `${width} × ${height}: the page ${lying.fits ? 'fits' : 'is wider than the window'}, the stream started again ${lying.restarts} time(s), the picture went from ${upright.t.toFixed(1)} to ${lying.t.toFixed(1)} s`);
     assert(lying.marked && lying.name === playing && lying.rows >= 3, `${width} × ${height}: ${lying.rows} row(s) of the list in sight, the playing one ${lying.marked ? 'among them' : 'not'} (${lying.name}, playing ${playing})`);
     assert(lying.whole && lying.picture[1] >= 180 && Math.abs(lying.picture[0] / lying.picture[1] - 16 / 9) < 0.35, `${width} × ${height}: the picture's box is ${lying.picture.join(' × ')}, ${lying.whole ? 'whole with its bar under it' : 'cut, or its bar out of sight'}`);
-    if (width <= 900) assert(lying.guideRow <= 6, `${width} × ${height}: the guide's button stands ${lying.guideRow} px off the countries' row`);
     // The top bar's own menu, made from its buttons: the app's has no full screen.
     const top = await evaluate(page, `(async () => { const button = document.getElementById('btn-topmenu'), { t } = await import('./js/i18n.js');
       if (!button.getClientRects().length) return null;
@@ -9582,7 +9739,7 @@ async function iosappTurned(page, assert) {
       const items = [...document.querySelectorAll('#topmenu-pop .popitem')].map((item) => item.textContent.trim());
       button.click();
       return { items, screen: [t('screen.enter'), t('screen.leave')] }; })()`, { gesture: true });
-    assert(top && top.items.length >= 3 && !top.items.some((item) => top.screen.includes(item)), `${width} × ${height}: the top bar's menu in the app holds ${top ? top.items.join(', ') : 'nothing: no menu button'}`);
+    assert(top && top.items.length >= 2 && !top.items.some((item) => top.screen.includes(item)), `${width} × ${height}: the top bar's menu in the app holds ${top ? top.items.join(', ') : 'nothing: no menu button'}`);
     await evaluate(page, `document.getElementById('btn-more').click()`, { gesture: true });
     await sleep(200);
     const menu = await evaluate(page, `(() => { const r = document.getElementById('more-pop').getBoundingClientRect(); return { top: Math.round(r.top), bottom: Math.round(r.bottom), height: innerHeight, pip: !document.getElementById('btn-pip').hidden }; })()`);
@@ -9690,11 +9847,12 @@ async function appcast(page, { target }) {
     const MARK = `(() => { const b = document.getElementById('btn-cast-top'); return { shown: b.getClientRects().length > 0, on: b.classList.contains('on') }; })()`;
     const before = await evaluate(page, MARK);
 
-    // A device near puts the mark on the bar; the dialog is the app's.
+    // The mark is on the bar before any device is known, to ask for one;
+    // the dialog is the app's.
     await say({ type: 'cast.state', state: 'disconnected', device: null, devices: 1 });
     await evaluate(page, `document.getElementById('btn-cast-top').click()`, { gesture: true });
     const mark = await evaluate(page, MARK);
-    assert(!before.shown && mark.shown && !mark.on && (await sent('cast.prompt')).length === 1,
+    assert(before.shown && mark.shown && !mark.on && (await sent('cast.prompt')).length === 1,
       `the Cast mark: before any device ${JSON.stringify(before)}, with one near ${JSON.stringify(mark)}, ${(await sent('cast.prompt')).length} prompt(s)`);
 
     // A film playing here goes over when the device connects, from its position.

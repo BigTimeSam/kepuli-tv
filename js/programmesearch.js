@@ -131,6 +131,8 @@ const $ = (id) => document.getElementById(id);
 // A channel's heading and a programme's row, in pixels; .psr-head and
 // .psr-row in css/guide.css are as tall.
 const HEAD_H = 52, ROW_H = 60, MORE_H = 44;
+// How long the field waits after a key before it searches.
+const TYPING_MS = 350;
 
 export class ProgrammeSearch {
   constructor({ getChannels, getEpg, onSelect, onActivate, onMode, onPick = () => {}, label = (channel) => channel.n, limit = () => null, onLeave = () => {} }) {
@@ -172,13 +174,24 @@ export class ProgrammeSearch {
       e.preventDefault();
       this.focusAt(first);
     });
-    for (const id of ['programme-query', 'programme-scope', 'programme-period']) {
-      $(id).addEventListener('input', () => {
-        this.cancel();
-        this.offerAll(null);
-        if (this.status?.kind === 'many') { this.status = null; this.renderStatus(); }
-      });
-    }
+    // The field searches as it is typed into, once the hand rests: a
+    // moment after the last key, from two letters on. What is asked of the
+    // provider is each channel's programme table once (searchProgrammes),
+    // so the letters after the first search cost nothing. Enter does not
+    // wait, and an emptied field puts the guide back.
+    let typed = 0;
+    $('programme-query').addEventListener('input', () => {
+      clearTimeout(typed);
+      this.cancel();
+      this.offerAll(null);
+      if (this.status?.kind === 'many') { this.status = null; this.renderStatus(); }
+      const length = $('programme-query').value.trim().length;
+      if (!length) this.clear();
+      else if (length >= 2) typed = window.setTimeout(() => this.search(), TYPING_MS);
+    });
+    $('programme-form').addEventListener('submit', () => clearTimeout(typed));
+    // A choice at the results' foot is asked at once.
+    for (const id of ['programme-scope', 'programme-period']) $(id).addEventListener('change', () => this.search());
   }
 
   /** Whether a search is on show, or typed and not yet cleared: Escape clears it before it closes the guide. */

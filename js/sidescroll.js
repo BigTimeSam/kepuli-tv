@@ -73,6 +73,8 @@ export function sideScroll(list, { compact = false, className = '', centreOn = '
     return button;
   };
   const prev = arrow(-1), next = arrow(1);
+  // The left arrow's width, as last measured while it showed.
+  let prevWidth = 24;
   box.append(prev, list, next);
   const sync = () => {
     // The arrows stand at the middle of what the row shows, its scrollbar
@@ -90,7 +92,15 @@ export function sideScroll(list, { compact = false, className = '', centreOn = '
     // scroll shorter than itself it would hide more than it leads back
     // to. The guide's days, moved 7 px to clear today of the other arrow,
     // had "Earlier" read "lier" under it.
-    prev.hidden = list.scrollLeft <= (compact ? prev.offsetWidth || 24 : 1);
+    prev.hidden = list.scrollLeft <= (compact ? prev.offsetWidth || prevWidth : 1);
+    // A hidden arrow has no width to ask: once it shows, its real one is
+    // asked and kept. Under a finger it is 40 px wide, not the 24 guessed
+    // for it, and a scroll of 34 px showed it over the days it led back
+    // to (the guide of an iPad lying down).
+    if (compact && !prev.hidden && prev.offsetWidth) {
+      prevWidth = prev.offsetWidth;
+      prev.hidden = list.scrollLeft <= prevWidth;
+    }
     next.hidden = list.scrollLeft >= max - 1;
   };
   list.addEventListener('scroll', sync, { passive: true });

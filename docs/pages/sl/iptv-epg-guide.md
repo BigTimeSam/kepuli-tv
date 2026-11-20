@@ -21,7 +21,7 @@ cel vodič s časom vodoravno in kanali navpično.
 
 ## Vodič
 
-**Programski vodič** nad seznamom kanalov ali tipka `g` spremeni okno v
+**Programski vodič** v zgornji vrstici ali tipka `g` spremeni okno v
 mrežo: kanali so vrstice, čas teče po vodoravni osi, premična črta pa kaže
 zdajšnji trenutek. Kanal se v kotu predvaja naprej.
 

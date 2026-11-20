@@ -70,7 +70,6 @@
 .choice-modes { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 18px; padding: 2px 0 10px; }
 .choice-modes-label { flex-basis: 100%; color: var(--muted); font-size: var(--fs-m); }
 .choice-mode { display: flex; align-items: center; gap: 7px; cursor: pointer; }
-.choice-mode > input { margin: 0; accent-color: var(--accent); }
 #countries:not(.choosing) #countries-all-row, #countries:not(.choosing) .choice-list { opacity: .55; }
 #countries:not(.choosing) .choice-list:is(:hover, :focus-within), #countries:not(.choosing) #countries-all-row:is(:hover, :focus-within) { opacity: .8; }
 .choice-filter { position: relative; }
@@ -88,7 +87,6 @@
 .choice-row[hidden] { display: none; }
 div.choice-row { cursor: default; }
 label.choice-row:hover { background: var(--row-hover); }
-.choice-row input:not([type="checkbox"]) { accent-color: var(--accent); flex: none; width: 16px; height: 16px; }
 .choice-name { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .choice-count { color: var(--muted); font-size: var(--fs-m); font-variant-numeric: tabular-nums; flex: none; }
 .choice-tag { color: var(--accent-ink); font-size: var(--fs-xs); font-weight: 600; border: 1px solid currentColor; border-radius: 5px; padding: 0 5px; flex: none; }
@@ -112,6 +110,10 @@ label.choice-row:hover { background: var(--row-hover); }
 .psr-failed { color: var(--warn); }
 .programme-results { flex: 1; min-height: 0; overflow-y: auto; }
 .programme-results[hidden] { display: none; }
+/* The search's two choices at the results' foot, as a list's order is at
+   its own: the same height, the selectors at its right end. */
+.programme-foot { flex: none; display: flex; align-items: center; justify-content: flex-end; gap: 8px; flex-wrap: wrap; min-height: var(--foot-h); padding: 4px 10px; border-top: 1px solid var(--border); background: var(--panel); }
+.programme-foot select { min-width: 0; padding: 6px 28px 6px 9px; background-color: var(--panel-2); border: 1px solid var(--border); border-radius: 8px; color: var(--text); font: inherit; font-size: var(--fs-s); text-overflow: ellipsis; }
 /* Nothing found: the list's own empty notice, a size up, in the middle of
    where the results would be, under its mark in the accent's circle as
    the player's own page has it. */
@@ -181,6 +183,9 @@ button.psr-head:focus-visible, .psr-more:focus-visible { outline-offset: -2px; }
   padding: 4px 9px; cursor: pointer; color: var(--muted); white-space: nowrap;
 }
 .epg-day:hover { color: var(--text); background: var(--panel-2); }
+.epg-day.today { display: inline-flex; align-items: center; gap: 5px; color: var(--accent-2); }
+.epg-day.today > svg { width: 14px; height: 14px; flex: none; fill: none; stroke: currentColor; stroke-width: 1.7; stroke-linecap: round; stroke-linejoin: round; }
+.epg-day.today.active { color: var(--accent-2); border-color: var(--accent-2); }
 .epg-day.active { background: var(--panel-2); border-color: var(--border); color: var(--text); }
 /* Inside the day, as the strip scrolls sideways and cuts whatever passes
    its edges: a ring outside lost its top and bottom. */
@@ -248,7 +253,7 @@ select.epg-earlier { font: inherit; padding-right: 26px; background-position: ri
 .epg-chan-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 0.78125rem; }
 .epg-chan-rec { flex: none; font-size: var(--fs-xs); color: var(--accent-2); border: 1px solid var(--archive-line); border-radius: 5px; padding: 0 4px; }
 
-.epg-scroll { grid-area: 2 / 2; overflow: auto; outline: none; }
+.epg-scroll { grid-area: 2 / 2; overflow: auto; outline: none; touch-action: pan-x pan-y; }
 /* The keyboard's whereabouts: the container that takes the arrows shows it. */
 .epg-scroll:focus-visible { outline: 2px solid var(--accent-ink); outline-offset: -2px; }
 /* Inside the ring, a row's own mark at the left edge steps in beside it

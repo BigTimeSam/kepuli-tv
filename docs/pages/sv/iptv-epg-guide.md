@@ -21,7 +21,7 @@ med tiden vågrätt och kanalerna lodrätt.
 
 ## Guiden
 
-**Programguide** ovanför kanallistan, eller tangenten `g`, gör fönstret till
+**Programguide** i översta raden, eller tangenten `g`, gör fönstret till
 ett rutnät: kanalerna som rader, tiden på den vågräta axeln och en linje som
 följer klockan. Kanalen fortsätter att spelas i hörnet.
 

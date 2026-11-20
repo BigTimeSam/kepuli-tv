@@ -22,7 +22,7 @@ verticaal.
 
 ## De gids
 
-**Programmagids** boven de zenderlijst, of de toets `g`, maakt van het
+**Programmagids** in de bovenste balk, of de toets `g`, maakt van het
 venster een raster: zenders als rijen, de tijd op de horizontale as en een
 lijn die meeloopt met nu. De zender speelt verder in de hoek.
 

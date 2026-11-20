@@ -21,7 +21,7 @@ oppaana, jossa aika kulkee vaakaan ja kanavat ovat allekkain.
 
 ## Opas
 
-Kanavalistan yläpuolella oleva **Ohjelmaopas** tai näppäin `g` muuttaa
+Yläpalkin **Ohjelmaopas** tai näppäin `g` muuttaa
 ikkunan ruudukoksi: kanavat ovat riveinä, aika vaaka-akselilla, ja liikkuva
 viiva näyttää nykyhetken. Kanavan toisto jatkuu nurkassa.
 

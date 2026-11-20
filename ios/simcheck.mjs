@@ -539,11 +539,11 @@ async function settings(d) {
   // mode had a light keyboard. Automatic leaves the device its say.
   const themes = [];
   for (const theme of ['dark', 'light', 'system']) {
-    const page = await d.page(`(await import('./js/theme.js')).renderTheme('${theme}'); await pause(700);
+    const page = await d.page(`(await import('./js/theme.js')).applyTheme('${theme}'); await pause(700);
       return { dark: matchMedia('(prefers-color-scheme: dark)').matches, shown: document.documentElement.dataset.theme };`);
     themes.push({ theme, ...page, window: (await d.state()).interfaceStyle });
   }
-  await d.page(`const { state } = await import('./js/state.js'); (await import('./js/theme.js')).renderTheme(state.settings.theme); return true;`);
+  await d.page(`const { state } = await import('./js/state.js'); (await import('./js/theme.js')).applyTheme(state.settings.theme); return true;`);
   assert(themes.map((at) => at.window).join() === 'dark,light,system' && themes[0].dark && themes[0].shown === 'dark' && !themes[1].dark && themes[1].shown === 'light',
     `the window's appearance under the page's theme: ${JSON.stringify(themes)}`);
   return `the help says ${help.version}, what a finger does and the keys behind their fold, and links to the app's guide, the privacy policy and the licences; no sync, recording or full-screen button; the switch is on with the leave given, turns the app's off and on, and with the leave refused stays off and says under itself "${refused.said}"; the window takes the page's dark and light theme and none for Automatic; Settings fits upright and at ${lying.size.join(' × ')}`;
@@ -764,7 +764,9 @@ async function cast(d) {
     return { played: true, said, item, top, load };`);
   assert(page.played, 'no channel played');
   assert(page.said && page.said.state === 'disconnected' && page.said.devices === -1 && page.said.device === null, `cast.state as the page heard it: ${JSON.stringify(page.said)}`);
-  assert(page.item && !page.top, `with no device known the menu ${page.item ? 'has' : 'lacks'} Cast and the bar ${page.top ? 'has' : 'lacks'} the mark`);
+  // The mark is on the bar before any device is known: its press is what
+  // asks for the local network and looks for one.
+  assert(page.item && page.top, `with no device known the menu ${page.item ? 'has' : 'lacks'} Cast and the bar ${page.top ? 'has' : 'lacks'} the mark`);
   assert(page.load === 'no-session', `cast.load without a session was answered "${page.load}"`);
   await d.page(`(await import('./js/host.js')).send('cast.prompt'); return true;`);
   // The button is pressed a second after the SDK's start (CastService.swift).
@@ -784,7 +786,7 @@ async function cast(d) {
   assert(leaked.length === 0 && !/username=|password=/.test(text) && /cast\.load/.test(text), `the debug log ${leaked.length ? `holds ${leaked.join(', ')}` : 'holds credentials or no cast.load'}`);
   // The note has no button a script can press; a launch takes it away.
   await d.launch();
-  return `the menu has Cast, the bar has no mark yet; cast.state arrived disconnected with devices -1; cast.load answered no-session; cast.prompt started the SDK ${state.cast.sdk} and put ${presented} on the screen with no search begun; the log names the message's type and none of its address, title or subtitle`;
+  return `the menu has Cast, the bar its mark before any device is known; cast.state arrived disconnected with devices -1; cast.load answered no-session; cast.prompt started the SDK ${state.cast.sdk} and put ${presented} on the screen with no search begun; the log names the message's type and none of its address, title or subtitle`;
 }
 
 async function links(d) {

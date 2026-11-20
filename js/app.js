@@ -1,4 +1,5 @@
 import './testclock.js';
+import './nohover.js';
 import { XtreamApi, ApiError } from './api.js';
 import { M3uSource } from './m3usource.js';
 import { StalkerSource, clearPortalRules } from './stalker.js';
@@ -40,7 +41,7 @@ import { warmCache, probeCacheTtl } from './probe.js';
 import { SubtitleDisplay } from './subdisplay.js';
 import { pickEncoder } from './transcode.js';
 import * as store from './config.js';
-import { applyTheme, earlyTheme, onSystemTheme, renderTheme } from './theme.js';
+import { applyTheme, earlyTheme, onSystemTheme } from './theme.js';
 import { wirePickers } from './picker.js';
 import { wireRemote } from './remote.js';
 import { nf } from './format.js';
@@ -62,7 +63,7 @@ import { categoryCountsFor, collectionItems, favCategoryEntry, isFavorite, isUnf
 import { renderSecondItem, secondFor, secondOffered } from './secondui.js';
 import { clickPicture, enterFullscreen, moreItems, pictureFull, renderScreenButton, renderSeriesFavorite, toggleFullscreen, toggleMoreMenu, togglePause, toggleScreen, wireMediaSession } from './playercontrols.js';
 import { reveal } from './sidescroll.js';
-import { wireTopMenu } from './topmenu.js';
+import { fitTopBar, wireTopMenu } from './topmenu.js';
 import { wireScrollHints } from './scrollhint.js';
 import { channelsByFavourite, filterChannels, placeListFilters, wireListFilters } from './listfilters.js';
 import { oneCopyEach, titleKey } from './titlemeta.js';
@@ -135,6 +136,7 @@ async function connect({ silent = false } = {}) {
     state.account = account;
     const lib = new Library(source, store.accountKey(config));
     state.lib = lib;
+    showGuideButton();
     // Which audio encoder the browser has is asked now, so that the answer
     // is in by the time the first list paints: a row whose AC-3 track the
     // player can decode is marked playable only where the decoded audio
@@ -231,6 +233,19 @@ async function warmGuide(source) {
 }
 
 /**
+ * The guide's button stands on the top bar where the guide belongs: over
+ * the channels, once there is a connection. Before one it would only say
+ * so, and over the films it led away from them.
+ */
+function showGuideButton() {
+  const button = $('btn-guide'), hidden = state.tab !== 'live' || !state.lib;
+  if (button.hidden === hidden) return;
+  button.hidden = hidden;
+  // The bar has a button more or less: whether it fits is measured again.
+  fitTopBar();
+}
+
+/**
  * Everything on screen belongs to the account that is going away, so it goes
  * with it — the same reason the list is emptied with the tab, one level up.
  *
@@ -243,7 +258,7 @@ async function warmGuide(source) {
  */
 function dropConnectedView() {
   state.lib = null;
-  $('channel-tools').hidden = true;
+  showGuideButton();
   state.epg = null;
   state.account = null;
   state.detail = null;
@@ -878,8 +893,7 @@ async function activateTab(tab, { restore = false, keepPane = false } = {}) {
   // it by. Which came first was a matter of milliseconds.
   if (!keepPane) playerLayout.showBrowse();
   state.tab = tab;
-  // The guide needs a connection: before one, its button would only say so.
-  $('channel-tools').hidden = tab !== 'live' || !state.lib;
+  showGuideButton();
   markTabs(tab);
   state.detail = null;
   state.cursor = -1;
@@ -1861,19 +1875,19 @@ function showCastHint() {
 /**
  * The menu item: hidden without the API, lit while the device plays. The
  * hamburger is lit with it — the item's own colour is behind a press, and
- * casting is worth seeing without one. In the app the Cast mark itself
- * stands on the top bar once a device is near or in use, as Google's
- * terms want it in sight, and is the one lit; the session is drawn by
- * js/castui.js.
+ * casting is worth seeing without one. The Cast mark itself stands on
+ * the top bar wherever casting is possible.
  */
 function renderCastState() {
   el.cast.hidden = !castSupported;
   el.cast.classList.toggle('on', cast.connected);
   el.more.classList.toggle('on', cast.connected && !cast.native);
-  // In the app the Cast mark itself stands on the top bar once a device
-  // is near or in use, as Google's terms want it in sight, and is the one
-  // lit; the session is drawn by js/castui.js.
-  $('btn-cast-top').hidden = !(cast.native && (cast.available || cast.busy));
+  // The Cast mark itself stands on the top bar wherever a picture can be
+  // sent to a television, as Google's terms want it in sight, and is the
+  // one lit; in the apps the session is drawn by js/castui.js. It waited
+  // for a device to be found, and an app that had not yet looked for one
+  // (the first press is what asks for the local network) showed none.
+  $('btn-cast-top').hidden = !castSupported;
   $('btn-cast-top').classList.toggle('on', cast.connected);
   renderCasting();
   // The engine line carries the device; before anything plays it says "Not
@@ -2096,7 +2110,12 @@ function wireUi() {
     filterTimer = setTimeout(() => { state.categoryFilter = el.categoryFilter.value; renderCategories(); }, 120);
   });
 
-  $('btn-refresh').addEventListener('click', () => (state.lib ? refreshCatalogue() : connect()));
+  // In Settings' Connection section: the dialog gives way to the list's
+  // progress, unless something in it is still unsaved.
+  $('btn-refresh').addEventListener('click', () => {
+    if ($('setup').open && !setupDirty()) $('setup').close();
+    return state.lib ? refreshCatalogue() : connect();
+  });
   document.addEventListener('visibilitychange', refreshWhenStale);
 
   $('btn-settings').addEventListener('click', openSetup);
@@ -2105,15 +2124,7 @@ function wireUi() {
   $('btn-countries').addEventListener('click', () => (tabType() === 'live' ? openCountryPicker() : openCategoryPicker(tabType())));
   $('f-countries').addEventListener('click', () => openCountryPicker());
   new ResizeObserver(() => fitIdleHome()).observe(el.overlay);
-  onSystemTheme(() => { renderTheme(state.settings.theme); renderThemeAuto(); });
-  // The button turns what is on screen into the other one, and so leaves
-  // "the system's" for a choice of its own; Settings has the way back.
-  $('btn-theme').addEventListener('click', async () => {
-    const theme = document.documentElement.dataset.theme === 'light' ? 'dark' : 'light';
-    state.settings = { ...state.settings, theme };
-    renderTheme(theme);
-    state.settings = await store.saveSettings({ theme });
-  });
+  onSystemTheme(() => { applyTheme(state.settings.theme); renderThemeAuto(); });
   $('btn-screen').addEventListener('click', toggleScreen);
   wireTopMenu();
   wireScrollHints();
@@ -2137,7 +2148,6 @@ function wireUi() {
   $('btn-guide').addEventListener('click', toggleGuide);
   $('epg-close').addEventListener('click', closeGuide);
   wirePhoneGuide();
-  $('epg-now').addEventListener('click', () => { grid.goNow(); focusGrid(); });
   $('epg-prev').addEventListener('click', () => { grid.nudge(-30); focusGrid(); });
   $('epg-next').addEventListener('click', () => { grid.nudge(30); focusGrid(); });
   $('epg-in').addEventListener('click', () => { grid.zoomBy(1); focusGrid(); });
@@ -2389,7 +2399,7 @@ async function init() {
   await store.migrateAccountKeys(state.config);
   store.useAccount(state.config);
   state.settings = await store.loadSettings();
-  renderTheme(state.settings.theme);
+  applyTheme(state.settings.theme);
   const lang = store.interfaceLanguage(state.settings);
   await loadLanguage(lang);
   setLanguage(lang);
@@ -2455,7 +2465,7 @@ async function init() {
   if (start.group !== undefined) state.lastGroup[state.tab] = start.group;
   if (start.kind !== undefined) state.lastKind[state.tab] = start.kind;
   storedSub = start.sub ?? null;
-  $('channel-tools').hidden = state.tab !== 'live' || !state.lib;
+  showGuideButton();
   if (typeof ui.subcatsHeight === 'number') state.subcatsHeight = ui.subcatsHeight;
   restoreListView(ui.listView);
   watchGridWidth();

@@ -22,7 +22,7 @@ untereinander.
 
 ## Die Übersicht
 
-**Programmübersicht** über der Kanalliste oder die Taste `g` macht aus dem
+**Programmübersicht** in der oberen Leiste oder die Taste `g` macht aus dem
 Fenster ein Raster: Kanäle als Zeilen, die Zeit auf der waagerechten Achse
 und eine wandernde Linie beim Jetzt. Der Kanal läuft in der Ecke weiter.
 

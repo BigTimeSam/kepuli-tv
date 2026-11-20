@@ -22,7 +22,7 @@ chaînes à la verticale.
 
 ## Le guide
 
-**Guide des programmes**, au-dessus de la liste des chaînes, ou la touche
+**Guide des programmes**, dans la barre supérieure, ou la touche
 `g`, transforme la fenêtre en grille : les chaînes en lignes, le temps sur
 l’axe horizontal et un trait qui avance avec l’heure. La chaîne continue de
 se lire dans le coin.

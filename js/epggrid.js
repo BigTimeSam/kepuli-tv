@@ -16,16 +16,40 @@ import { clock, shortDay, stampFmt, progressOf } from './format.js';
 import { t } from './i18n.js';
 import { cssPixels } from './vlist.js';
 import { poster } from './poster.js';
+import { svg } from './svg.js';
 
 // --epg-row in the CSS, in rem so that it grows with the reader's font
 // setting; the pixels are the browser's answer rather than a number here.
 let ROW_H = 48;
 const ZOOMS = [2, 3, 5, 8];    // pixels per minute
+
+/**
+ * What a pinch asks of the zoom: a step in once the fingers are a third
+ * further apart than at the last step, a step out once they are a quarter
+ * closer, nothing in between (a hand is not still).
+ * @param {number} ratio the fingers' distance over what it was
+ * @returns {-1 | 0 | 1}
+ */
+/**
+ * The zoom a grid of this width opens at: the widest at which the hour
+ * before now fits in the third of the width the present leaves for it,
+ * and no wider than the usual one. An upright iPad's 390 px showed 26
+ * minutes of the past at the usual zoom, a lying one's 656 px 44.
+ * @param {number} view the grid's width in pixels
+ * @returns {number} an index of ZOOMS
+ */
+export function hourZoom(view) {
+  let index = 0;
+  for (let i = 1; i <= 2; i++) if (LEAD_MIN * ZOOMS[i] <= view / 3) index = i;
+  return index;
+}
+
+export const pinchStep = (ratio) => (ratio >= 1.33 ? 1 : ratio <= 0.75 ? -1 : 0);
 const PAST_DAYS = 2;
 const FUTURE_DAYS = 5;
 const SLOT_MIN = 30;
 const MARGIN_MIN = 90;         // buffer painted outside the visible area
-const LEAD_MIN = 15;           // how much of the past shows at the "Now" position
+const LEAD_MIN = 60;           // how much of the past shows at the present's position
 const TICK_MS = 20e3;
 
 // A day: well inside the 2^31-1 ms a timer takes before it fires at once.
@@ -63,6 +87,10 @@ export class EpgGrid {
     this.pastDays = PAST_DAYS;
     this.playingId = null;
     this.zoomIndex = 2;
+    // Set by a step of the viewer's (zoomBy), and by a caller that has a
+    // zoom of its own for the window (a phone's guide).
+    this.zoomChosen = false;
+    this.zoomFixed = false;
     this.origin = 0;
     this.end = 0;
     this.width = 0;
@@ -92,6 +120,24 @@ export class EpgGrid {
     this.nowHead.className = 'epg-nowhead';
 
     this.el.scroll.addEventListener('scroll', () => this.schedule(), { passive: true });
+    // Two fingers drawn apart or together step the zoom, as the bar's +
+    // and − do where a pointer has them: under a finger the bar leaves
+    // them out (css/narrow.css). The fingers' distance is measured from
+    // the last step, so a long pinch takes several.
+    let apart = 0;
+    const spread = (/** @type {TouchEvent} */ e) => Math.hypot(e.touches[0].clientX - e.touches[1].clientX, e.touches[0].clientY - e.touches[1].clientY);
+    this.el.scroll.addEventListener('touchstart', (e) => { apart = e.touches.length === 2 ? spread(e) : 0; }, { passive: true });
+    this.el.scroll.addEventListener('touchmove', (e) => {
+      if (e.touches.length !== 2 || !apart) return;
+      // The two fingers are the zoom's, not a scroll's.
+      e.preventDefault();
+      const step = pinchStep(spread(e) / apart);
+      if (!step) return;
+      apart = spread(e);
+      const middle = (e.touches[0].clientX + e.touches[1].clientX) / 2 - this.el.scroll.getBoundingClientRect().left;
+      this.zoomBy(step, Math.max(0, middle));
+    }, { passive: false });
+    this.el.scroll.addEventListener('touchend', () => { apart = 0; }, { passive: true });
     this.resizeObserver = new ResizeObserver(() => this.paint());
     this.resizeObserver.observe(this.el.scroll);
     this.el.canvas.addEventListener('click', (e) => this.pick(e, false));
@@ -170,7 +216,7 @@ export class EpgGrid {
   renderDays() {
     const frag = document.createDocumentFragment();
     this.dayButtons = [];
-    const yesterday = startOfDay(new Date().setHours(0, 0, 0, 0), -1);
+    const today = new Date().setHours(0, 0, 0, 0), yesterday = startOfDay(today, -1);
     this.earlier = null;
     if (this.origin < yesterday) {
       const select = document.createElement('select');
@@ -187,7 +233,13 @@ export class EpgGrid {
       const button = document.createElement('button');
       button.type = 'button';
       button.className = 'epg-day';
-      button.textContent = shortDay(day);
+      // Today's is the way back to what is on now (goDay), from another
+      // day or another hour of this one: a clock before its name and the
+      // now line's colour say so.
+      if (day === today) {
+        button.classList.add('today');
+        button.append(svg('<circle cx="10" cy="10" r="6.5"/><path d="M10 6.2V10l2.7 1.7"/>'), document.createTextNode(shortDay(day)));
+      } else button.textContent = shortDay(day);
       button.addEventListener('click', () => this.goDay(day));
       this.dayButtons.push({ at: day, node: button });
       frag.appendChild(button);
@@ -220,20 +272,21 @@ export class EpgGrid {
     this.paintChannels(first, last);
     this.paintBlocks(first, last, scrollLeft, clientWidth);
     this.moveNow();
-    // Now is offered where the time on screen does not hold it (a phone's
-    // guide floats the button only then, css/last.css).
-    const nowX = this.x(Date.now());
-    this.el.scroll.closest('.epg')?.classList.toggle('away-from-now', nowX < scrollLeft || nowX > scrollLeft + clientWidth);
 
     this.el.corner.textContent = shortDay(from);
+    // The day in view is the day of the moment the present stands at when
+    // the grid is at now (scrollToTime's lead), not of the left edge: with
+    // the hour before in sight, the first hour of every day marked
+    // yesterday.
+    const at = this.timeAt(scrollLeft + Math.min(clientWidth / 3, LEAD_MIN * this.zoom));
     for (const day of this.dayButtons) {
-      day.node.classList.toggle('active', from >= day.at && from < startOfDay(day.at, 1));
+      day.node.classList.toggle('active', at >= day.at && at < startOfDay(day.at, 1));
     }
     if (this.earlier) {
       const { select, before } = this.earlier;
-      const shown = from < before ? String(startOfDay(new Date(from).setHours(0, 0, 0, 0), 0)) : '';
+      const shown = at < before ? String(startOfDay(new Date(at).setHours(0, 0, 0, 0), 0)) : '';
       if (select.value !== shown && [...select.options].some((o) => o.value === shown)) select.value = shown;
-      select.classList.toggle('active', from < before);
+      select.classList.toggle('active', at < before);
     }
 
     const key = `${first}:${last}:${Math.round(from / 6e5)}:${Math.round(to / 6e5)}`;
@@ -441,14 +494,17 @@ export class EpgGrid {
   /* ------------------------------------------------------------ movement */
 
   /**
-   * align 'lead' leaves a moment of the past in view, so that the programme
-   * on air does not start right at the edge of the screen. The short lead
-   * is deliberate: every visible minute of the past means epg.js has to
-   * fetch the channel's whole programme table instead of the short list.
+   * align 'lead' leaves the hour before in view, in a third of the grid's
+   * width at the most: what was on just now is what a viewer looks back
+   * for, and the programme on air does not start at the screen's edge.
+   * It was a quarter of an hour, kept short because a past in view that
+   * the short list does not reach makes epg.js fetch the channel's whole
+   * programme table; the owner chose the hour, and the tables are kept
+   * (js/epg.js).
    */
   scrollToTime(ms, { align = 'left' } = {}) {
     const view = this.el.scroll.clientWidth;
-    const lead = align === 'lead' ? Math.min(view * 0.2, LEAD_MIN * this.zoom) : 0;
+    const lead = align === 'lead' ? Math.min(view / 3, LEAD_MIN * this.zoom) : 0;
     const left = this.x(ms) - lead;
     this.el.scroll.scrollLeft = Math.max(0, Math.min(this.width - view, left));
     this.schedule();
@@ -497,13 +553,22 @@ export class EpgGrid {
     this.scrollToTime(this.timeAt(this.el.scroll.scrollLeft) + minutes * 60000);
   }
 
-  zoomBy(delta) {
+  /**
+   * A step in or out. The moment `at` px from the grid's left edge stays
+   * where it is: the edge itself for the keys, the place between two
+   * fingers for a pinch.
+   * @param {number} delta
+   * @param {number} [at]
+   */
+  zoomBy(delta, at = 0) {
     const next = Math.max(0, Math.min(ZOOMS.length - 1, this.zoomIndex + delta));
     if (next === this.zoomIndex) return;
-    const anchor = this.timeAt(this.el.scroll.scrollLeft);
+    // The viewer's own zoom from here on: show() leaves it alone.
+    this.zoomChosen = true;
+    const anchor = this.timeAt(this.el.scroll.scrollLeft + at);
     this.zoomIndex = next;
     this.layout();
-    this.scrollToTime(anchor);
+    this.scrollToTime(anchor - (at / this.zoom) * 60000);
     this.paint();
   }
 
@@ -631,6 +696,7 @@ export class EpgGrid {
     this.open = true;
     // The reader's font setting may have moved since the guide was last open.
     ROW_H = cssPixels('--epg-row', ROW_H);
+    if (!this.zoomChosen && !this.zoomFixed) this.zoomIndex = hourZoom(this.el.scroll.clientWidth);
     this.layout();
     this.goNow();
     this.paint();

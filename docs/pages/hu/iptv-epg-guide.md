@@ -21,7 +21,7 @@ teljes műsorfüzetként, vízszintesen az idővel, függőlegesen a csatornákk
 
 ## A műsorfüzet
 
-A csatornalista fölötti **Műsorfüzet** gomb vagy a `g` billentyű ráccsá
+A felső sávban lévő **Műsorfüzet** gomb vagy a `g` billentyű ráccsá
 alakítja az ablakot: a csatornák a sorok, az idő a vízszintes tengely, a
 mostani pillanatot pedig egy mozgó vonal jelzi. A csatorna a sarokban megy
 tovább.

@@ -22,7 +22,7 @@ verticale.
 
 ## La guida
 
-**Guida programmi** sopra l'elenco dei canali, o il tasto `g`, trasforma la
+**Guida programmi** nella barra superiore, o il tasto `g`, trasforma la
 finestra in una griglia: i canali come righe, il tempo sull'asse
 orizzontale e una linea che si sposta sull'ora attuale. Il canale continua
 a essere riprodotto nell'angolo.

@@ -21,7 +21,7 @@ panduan penuh dengan waktu mendatar dan saluran menurun.
 
 ## Panduan
 
-**Panduan acara** di atas daftar saluran, atau tombol `g`, mengubah jendela
+**Panduan acara** di bilah atas, atau tombol `g`, mengubah jendela
 menjadi kisi: saluran sebagai baris, waktu di sumbu mendatar, dan garis yang
 bergerak di waktu sekarang. Saluran terus diputar di sudut.
 

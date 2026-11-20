@@ -104,7 +104,6 @@ dialog::backdrop { background: var(--backdrop); backdrop-filter: blur(2px); }
   background: var(--panel-2); color: var(--muted);
 }
 .radio:hover { color: var(--text); border-color: var(--border-strong); }
-.radio input { accent-color: var(--accent); width: 15px; height: 15px; margin: 0; }
 .radio:has(input:checked) { border-color: var(--accent); color: var(--text); }
 
 /* The subtitle look, with a preview: the choice is judged by eye, and the
@@ -260,6 +259,13 @@ html.kb-tall #setup:modal .modal-actions { position: static; margin-bottom: 0; p
 .setup-error { margin: 0; color: var(--danger); font-size: 0.8125rem; }
 .setup > .grant-note { margin: 0; flex-shrink: 0; }
 .setup > .grant-note[hidden] { display: none; }
+/* The lists' refresh under the accounts (Settings, Connection): the
+   button and what it does beside it. */
+.setup-refresh { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.setup-refresh[hidden] { display: none; }
+.setup-refresh button { display: inline-flex; align-items: center; gap: 7px; }
+.setup-refresh svg { width: 16px; height: 16px; flex: none; fill: none; stroke: currentColor; stroke-width: 1.6; stroke-linecap: round; stroke-linejoin: round; }
+.setup-refresh-note { color: var(--muted); font-size: var(--fs-s); }
 .setup-discard { padding: 12px; border: 1px solid var(--border); border-radius: 9px; background: var(--panel-2); }
 .setup-discard p { margin: 0 0 10px; }
 /* 1 px away, inside the rail's 3 px of padding: in a phone's width the

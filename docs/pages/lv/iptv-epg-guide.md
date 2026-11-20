@@ -21,7 +21,7 @@ ceļvedi ar laiku pa horizontāli un kanāliem pa vertikāli.
 
 ## Ceļvedis
 
-**Programmas ceļvedis** virs kanālu saraksta vai taustiņš `g` pārvērš logu
+**Programmas ceļvedis** augšējā joslā vai taustiņš `g` pārvērš logu
 režģī: kanāli ir rindas, laiks iet pa horizontālo asi, un pašreizējo brīdi
 rāda kustīga līnija. Kanāls turpina atskaņoties stūrī.
 

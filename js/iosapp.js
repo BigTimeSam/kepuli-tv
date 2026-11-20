@@ -52,6 +52,14 @@ if (ios) {
   // The stylesheets hide under .ios what the app cannot answer or does not
   // offer (css/last.css).
   document.documentElement.classList.add('ios');
+
+  // Nothing on the page is carried anywhere. An iPad lifts a picture or a
+  // link under a finger held still, as the start of a drag: a cover held
+  // for its menu flickered, shrank and flew to the window's corner as the
+  // menu opened, and a channel's row flickered with its logo (the owner's
+  // iPad, iPadOS 26.2). An iPhone has no drag between apps and showed
+  // nothing of it.
+  document.addEventListener('dragstart', (event) => event.preventDefault(), true);
   // A field being typed into stays in sight when the window changes under
   // it. WebKit brings a field above the keyboard when it takes the focus,
   // and not when the device is turned with the keyboard up: the field was

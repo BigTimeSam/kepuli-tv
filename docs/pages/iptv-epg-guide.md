@@ -24,7 +24,7 @@ and as a full guide with time across and channels down.
 
 ## The guide
 
-**Programme guide** above the channel list, or the `g` key, turns the
+**Programme guide** in the top bar, or the `g` key, turns the
 window into a grid: channels as rows, time on the horizontal axis and a
 moving line at now. The channel goes on playing in the corner.
 

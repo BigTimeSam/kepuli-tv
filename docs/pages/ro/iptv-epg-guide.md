@@ -21,7 +21,7 @@ ca ghid complet, cu timpul pe orizontală și canalele pe verticală.
 
 ## Ghidul
 
-**Ghid de programe** de deasupra listei de canale, sau tasta `g`, transformă
+**Ghid de programe** din bara de sus, sau tasta `g`, transformă
 fereastra într-o grilă: canalele ca rânduri, timpul pe axa orizontală și o
 linie care se mișcă în dreptul momentului de acum. Canalul continuă să
 ruleze în colț.

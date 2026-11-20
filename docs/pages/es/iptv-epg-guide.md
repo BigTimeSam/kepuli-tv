@@ -21,7 +21,7 @@ guía completa, con el tiempo en horizontal y los canales en vertical.
 
 ## La guía
 
-**Guía de programación**, encima de la lista de canales, o la tecla `g`,
+**Guía de programación**, en la barra superior, o la tecla `g`,
 convierte la ventana en una parrilla: los canales en filas, el tiempo en el
 eje horizontal y una línea que avanza con la hora actual. El canal sigue
 reproduciéndose en la esquina.

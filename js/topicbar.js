@@ -10,7 +10,7 @@ import { emptyState } from './rows.js';
 import { nf } from './format.js';
 import { t } from './i18n.js';
 import { viewToggle } from './coversui.js';
-import { LIST_ORDERS, ORDER_MARKS, ORDER_SETTINGS, listOrder, pressedOrder } from './listorder.js';
+import { LIST_ORDERS, ORDER_SETTINGS, listOrder } from './listorder.js';
 import * as store from './config.js';
 import { activateTab, catalogueSearch, isAbort, isCollection, kindLabel, mediaFilters, openHiddenList, refreshRows, renderSidebar, searchesEveryGroup, searchLimit, showListCancelled, showListError, state, tabType, unit } from './state.js';
 import { hideProgress, progressSignal, showProgress, updateProgress } from './progressdialog.js';
@@ -18,6 +18,7 @@ import { clearHistory } from './collections.js';
 import { $, el } from './dom.js';
 import { configured, openSetup } from './setupui.js';
 import { svg } from './svg.js';
+import { caretWelcome } from './caret.js';
 
 // A chip row advances 30.6 px and the bar's own padding adds 16, so one row
 // comes to 47 px and eight to 261. The fixed 144 px this used to have for
@@ -330,8 +331,6 @@ export function renderListInfo() {
   const head = document.createElement('span');
   head.className = 'listinfo-count';
   head.textContent = parts[0];
-  // The number alone, for a foot with no room for its word (css/list.css).
-  head.dataset.n = nf.format(count);
   const rest = document.createElement('span');
   rest.className = 'listinfo-rest';
   rest.textContent = parts.length > 1 ? `, ${parts.slice(1).join(', ')}` : '';
@@ -358,7 +357,7 @@ export function renderListInfo() {
     spacer.className = 'spacer';
     el.listinfo.append(spacer, viewToggle());
   }
-  // The list's order at its foot, the same marks on every list that has
+  // The list's order at its foot, the same selector on every list that has
   // an order of its own to choose: the channels, the favourites, the films
   // and the series, the history, and a favourite category of any of them.
   // A search keeps the order of its hits, and a series' episodes theirs.
@@ -384,7 +383,7 @@ export function orderList() {
   return state.lib && LIST_ORDERS[state.tab] ? state.tab : null;
 }
 
-// The marks, a picture for each order: a letter with the arrow down the
+// The selector's mark, a picture for each order: a letter with the arrow down the
 // alphabet (A for A–Z, Z for Z–A), a #, a calendar with the arrow of the
 // years, a star, a clock for what was added lately, and the history's
 // clock turning back for what was watched lately.
@@ -402,7 +401,7 @@ const ORDER_ICONS = {
   watched: '<path d="M4.2 10a5.8 5.8 0 1 0 1.7-4.1M3.8 3.4v3h3"/><path d="M10 6.8V10l2.4 1.5"/>',
 };
 
-/** What each order is called, on its mark. */
+/** What each order is called, in the selector. */
 export function orderName(order) {
   switch (order) {
     case 'az': case 'za': case 'num': return t(`setup.channelsort.${order}`);
@@ -411,34 +410,34 @@ export function orderName(order) {
   }
 }
 
-// The name of each list's order, for its group of marks.
+// The name of each list's order, for its selector.
 const ORDER_LABELS = { live: 'setup.channelsort', fav: 'favs.sort', movie: 'setup.moviesort', series: 'setup.seriessort', recent: 'setup.historysort' };
 
 /**
- * The marks for a list's order, the one in force lit. A mark that stands
- * for two orders shows the one it is at: pressing a lit A–Z turns it to
- * Z–A and the A to a Z, and pressing it again turns it back. The channel
- * list's mark once showed A–Z lit while Z–A was set and did nothing.
+ * The list's order as a selector with its mark, the same part as the
+ * player's "Playback mode": the order in force is its text, and the
+ * others open as its list (js/picker.js). It was a row of marks, one or
+ * two orders each: six of them a fingertip wide left an iPad's column
+ * room for "15" and not for "15 channels", and a mark alone did not say
+ * what it orders by.
  */
 function listOrderToggle(list) {
   const current = listOrder(state.settings, list);
-  const box = document.createElement('span');
-  box.className = 'view-toggle order-toggle';
-  box.setAttribute('role', 'group');
-  box.setAttribute('aria-label', t(ORDER_LABELS[list]));
-  for (const orders of ORDER_MARKS[list]) {
-    const lit = orders.includes(current);
-    const shown = lit ? current : orders[0];
-    const button = document.createElement('button');
-    button.type = 'button';
-    button.title = orderName(shown);
-    button.dataset.order = shown;
-    button.setAttribute('aria-label', orderName(shown));
-    button.setAttribute('aria-pressed', String(lit));
-    button.append(svg(ORDER_ICONS[shown]));
-    button.addEventListener('click', () => setListOrder(list, pressedOrder(orders, listOrder(state.settings, list))));
-    box.appendChild(button);
+  const box = document.createElement('label');
+  box.className = 'select-mark order-pick';
+  const select = document.createElement('select');
+  select.id = 'list-order';
+  select.title = t(ORDER_LABELS[list]);
+  select.setAttribute('aria-label', t(ORDER_LABELS[list]));
+  for (const order of LIST_ORDERS[list]) {
+    const option = document.createElement('option');
+    option.value = order;
+    option.textContent = orderName(order);
+    select.append(option);
   }
+  select.value = current;
+  select.addEventListener('change', () => setListOrder(list, select.value));
+  box.append(svg(ORDER_ICONS[current]), select);
   return box;
 }
 
@@ -448,10 +447,10 @@ async function setListOrder(list, order) {
   state.settings = await store.saveSettings({ [ORDER_SETTINGS[list]]: order });
   state.cursor = -1;
   await refreshRows();
-  // The press rebuilt the marks: the focus goes to the one standing where
-  // the pressed one was, so that a second press turns the order back.
-  const at = ORDER_MARKS[list].findIndex((orders) => orders.includes(order));
-  if (focused && at >= 0) el.listinfo.querySelectorAll('.order-toggle button')[at]?.focus();
+  // The choice rebuilt the foot: the focus goes back to the selector, for
+  // the keys. Not after a finger, whose focus opens the device's own list
+  // on an iPhone (js/caret.js).
+  if (focused && caretWelcome()) $('list-order')?.focus();
 }
 
 /**

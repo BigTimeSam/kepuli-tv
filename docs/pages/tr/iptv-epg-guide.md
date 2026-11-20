@@ -21,7 +21,7 @@ yatay, kanalların dikey dizildiği tam bir rehber olarak.
 
 ## Rehber
 
-Kanal listesinin üstündeki **Program rehberi** ya da `g` tuşu pencereyi bir
+Üst çubuktaki **Program rehberi** ya da `g` tuşu pencereyi bir
 tabloya çevirir: kanallar satırlarda, saat yatay eksende ve şimdiki anı
 gösteren, ilerleyen bir çizgi. Kanal köşede oynamaya devam eder.
 

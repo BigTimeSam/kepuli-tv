@@ -12,7 +12,7 @@
    more set them visibly below the placeholder (measured at 2x: the ring's
    centre 2 px under the letters' with it, level without). */
 .search svg { top: 50%; translate: 0 -50%; }
-.tab-icon, .icon-button.labelled > svg, .groups-foot svg, .channel-guide > svg, .section-icon { translate: 0 -.5px; }
+.tab-icon, .icon-button.labelled > svg, .groups-foot svg, .section-icon { translate: 0 -.5px; }
 .toggle input, .choice-row > input, .choice-mode > input { translate: 0 .5px; }
 
 /* A field's hint longer than the field (a long language, a narrow window)
@@ -50,9 +50,6 @@ input[type="search"], input[type="text"], input[type="url"], input:not([type]) {
   .epg-search-toggle { display: inline-flex; }
   .programme-form { display: none; }
   .epg.searching .programme-form, .epg:has(#programme-panel:not([hidden])) .programme-form { display: flex; }
-  .epg-nav:has(#epg-now) { position: absolute; right: 14px; bottom: 16px; z-index: 4; }
-  .epg:not(.away-from-now) .epg-nav:has(#epg-now) { display: none; }
-  .epg-bar #epg-now { padding: 8px 16px; border: 0; border-radius: 999px; background: var(--accent); color: #fff; box-shadow: 0 4px 14px rgba(0, 0, 0, .35); }
   :root { --epg-chan-w: 6.5rem; }
   .epg-chan { gap: 6px; padding: 0 6px; }
   .epg-chan-logo { width: 26px; height: 20px; }
@@ -90,7 +87,6 @@ input[type="search"], input[type="text"], input[type="url"], input:not([type]) {
   .epg-daybar { flex: 1 0 100%; max-width: none; }
   .epg-daybar > .epg-days-scroll { flex: 1 1 0; }
   .programme-form .search-field { flex: 1 1 140px; min-width: 140px; }
-  .programme-form:not(:focus-within, :has(#programme-query:not(:placeholder-shown), select[aria-expanded="true"])) select { display: none; }
 }
 
 /* A touch screen: everything that takes a press is 40 px high and wide
@@ -118,6 +114,7 @@ input[type="search"], input[type="text"], input[type="url"], input:not([type]) {
   .chip-main, .season, .crumbs button, .epg-day, .now-actions > button { min-width: 2.5rem; flex-shrink: 0; }
   .icon-button, .modal-close, .epg-search-toggle, .epgv-close { height: 2.5rem; }
   .icon-button:not(.labelled), .modal-close, .epg-search-toggle, .epgv-close { width: 2.5rem; }
+  .topbar.compact .guide-button { width: 2.5rem; }
   /* A mark without one keeps its place and its look, and takes the press
      around it: the box grows into a margin of the same size taken back. */
   .row-star, .row-star:hover, .row-more, .row-x, .row-x:hover { width: 2.5rem; height: 2.5rem; margin: -4px; }
@@ -130,14 +127,10 @@ input[type="search"], input[type="text"], input[type="url"], input:not([type]) {
   .search-clear { width: 2.5rem; height: 2.5rem; right: 0; }
   .field-reveal button { width: 2.5rem; right: 0; }
   .field-reveal input { padding-right: 2.5rem; }
-  /* The foot's marks stand six in a row in a column of 319 px (an iPad
-     lying down, the series): they are 36 px wide there, with the gap
-     between them a finger's margin, and the row's full height. Should a
-     column be narrower still, the order's marks scroll inside the foot
-     and none leaves it. */
+  /* The foot's two marks of the view are 36 px wide, with the gap between
+     them a finger's margin, and the row's full height. */
   .listinfo .view-toggle { gap: 4px; }
   .listinfo .view-toggle button { flex: none; width: 2.25rem; height: 2.5rem; }
-  .listinfo .order-toggle { flex: 0 1 auto; min-width: 0; overflow-x: auto; scrollbar-width: none; }
   .help-foot > .setup-help { padding-block: 11px; margin-block: -11px; }
   /* A start page card's star and its cross, and the arrows of a row that
      scrolls sideways: the disc as it was, in a transparent border that
@@ -152,6 +145,23 @@ input[type="search"], input[type="text"], input[type="url"], input:not([type]) {
   .side-scroll.compact .side-scroll-arrow { border-width: 8px; outline-offset: -9px; }
   .side-scroll.compact .side-scroll-arrow.prev { left: -8px; }
   .side-scroll.compact .side-scroll-arrow.next { right: -8px; }
+}
+/* Under a finger the list's cursor is not drawn round a cover: back from
+   a film's page, the film last opened stood ringed as if chosen (the
+   owner's iPad). The ring is the keys' place in the grid, so it shows
+   when the list has the focus from a keyboard, and always under a
+   television's remote control. */
+@media (hover: none) {
+  html:not(.tv) #list:not(:focus-visible) .row.card.selected:not(.playing) .card-poster { box-shadow: inset 0 0 0 1px var(--border); }
+}
+/* Under a finger the three columns' bars end and begin on one line
+   again. Their 40 px controls had made each bar as tall as its own
+   padding left it: 44, 53 and 51 px at the foot of an iPad's columns,
+   and the films' fold 41 px beside the 57 of the categories' search. The
+   feet take the tallest's height and the heads the search's. Not in a
+   low window, which has measures of its own (css/narrow.css). */
+@media (hover: none) and (min-height: 441px) {
+  :root { --foot-h: 3.3125rem; --head-h: 3.5625rem; }
 }
 
 /* The app for the iPhone and the iPad (js/iosapp.js; the page opened with
@@ -168,11 +178,26 @@ input[type="search"], input[type="text"], input[type="url"], input:not([type]) {
 .ios #help h3, .ios #help-keys { display: none; }
 html:not(.ios) .ios-only { display: none; }
 /* The guide's days under a finger, in a window wider than a phone's:
-   the strip keeps its third of the window and the older days' menu stands
-   outside it. Sharing the third (css/guide.css), the strip of an iPad
-   lying down was so short that today stood under its arrow. */
+   the strip has all of the bar's row that the selector and the marks
+   before it leave. It kept a third of the window, and an iPad lying down
+   showed its arrow with a stretch of nothing after it. The bar's row of
+   steps and zoom is gone there (css/narrow.css), a swipe and a pinch
+   being theirs (js/epggrid.js), and today's button leads back to now. */
 @media (hover: none) and (min-width: 601px) {
   .epg-daybar { max-width: none; }
+  /* A television keeps the zoom's two buttons: a remote control has no
+     pinch, and its + and − are not on every remote. */
+  .tv .epg-bar .epg-nav:has(#epg-in) { display: flex; }
+}
+@media (hover: none) and (min-width: 601px) and (min-height: 441px) {
+  .epg-daybar { flex: 1 1 0; }
+  .epg-daybar > .epg-days-scroll { flex: 1 1 0; }
+}
+/* In a low window (a phone lying down) the strip keeps the third it had:
+   its bar is one row with five things on it, and a strip that takes what
+   is left was narrower than the day it shows (css/narrow.css has the
+   bar's basis). */
+@media (hover: none) and (min-width: 601px) and (max-height: 440px) {
   .epg-days { max-width: 34vw; }
 }
 /* An iPad keeps a phone's sizes. Its text was an eighth larger for a
@@ -180,6 +205,9 @@ html:not(.ios) .ios-only { display: none; }
    the owner found everything large and the three columns tight beside
    the same page on an Android tablet. */
 html.ios { -webkit-touch-callout: none; -webkit-user-select: none; user-select: none; }
+/* Nor is a picture or a link lifted for a drag by a finger held on it
+   (js/iosapp.js refuses the drag too; this keeps the lift from starting). */
+html.ios :is(img, a) { -webkit-user-drag: none; }
 /* What is read and may be wanted elsewhere stays selectable: what a
    field holds, and a film's, an episode's or a programme's description. */
 html.ios :is(input, textarea, .detail-plot, .plot, .epgdesc, .epgv-desc) { -webkit-user-select: text; user-select: text; }
