@@ -10,7 +10,7 @@ import UIKit
 ///
 /// It draws and plays; what is played, and what follows from it, is
 /// NativePlayer's and the page's.
-final class NativePlayerView: UIView, AVPictureInPictureControllerDelegate {
+final class NativePlayerView: UIView, AVPictureInPictureControllerDelegate, UIGestureRecognizerDelegate {
     override class var layerClass: AnyClass { AVPlayerLayer.self }
     private var playerLayer: AVPlayerLayer { layer as! AVPlayerLayer }
 
@@ -56,7 +56,20 @@ final class NativePlayerView: UIView, AVPictureInPictureControllerDelegate {
         playerLayer.videoGravity = .resizeAspect
         player.allowsExternalPlayback = true
         build()
-        addGestureRecognizer(UITapGestureRecognizer(target: self, action: #selector(tapped)))
+        // As on the page's own picture: a tap shows or hides the
+        // controls, a double tap is full screen and back, and a swipe
+        // down leaves full screen. The tap waits for the double tap to
+        // fail, a third of a second, as the page's click does.
+        let tap = UITapGestureRecognizer(target: self, action: #selector(tapped))
+        let double = UITapGestureRecognizer(target: self, action: #selector(doubleTapped))
+        double.numberOfTapsRequired = 2
+        tap.require(toFail: double)
+        let swipe = UISwipeGestureRecognizer(target: self, action: #selector(swipedDown))
+        swipe.direction = .down
+        for gesture in [tap, double, swipe] as [UIGestureRecognizer] {
+            gesture.delegate = self
+            addGestureRecognizer(gesture)
+        }
         ticking = player.addPeriodicTimeObserver(forInterval: CMTime(value: 1, timescale: 2), queue: .main) { [weak self] _ in
             self?.tick()
         }
@@ -433,6 +446,19 @@ final class NativePlayerView: UIView, AVPictureInPictureControllerDelegate {
 
     /// Whether the controls are in sight (the debug bridge's state).
     var controlsShown: Bool { controls.alpha > 0.5 }
+
+    @objc private func doubleTapped() { onFull?() }
+    @objc private func swipedDown() { if full { onFull?() } }
+
+    /// Not on a control: a button's own press, and the time line under a finger, are theirs.
+    func gestureRecognizer(_ gesture: UIGestureRecognizer, shouldReceive touch: UITouch) -> Bool {
+        var view = touch.view
+        while let now = view, now !== self {
+            if now is UIControl { return false }
+            view = now.superview
+        }
+        return true
+    }
 
     @objc private func tapped() {
         if controlsShown { hide() } else { show() }
