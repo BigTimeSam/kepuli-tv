@@ -264,6 +264,7 @@ export default {
  "player.subs.look": "Вид на субтитрите",
  "player.subs.title": "Субтитри",
  "player.subs.off": "Без субтитри",
+ "player.live": "На живо",
  "player.reload.title": "Зареди потока отново",
  "player.more": "Още действия",
  "player.pip.title": "Картина в картината",

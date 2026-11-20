@@ -198,7 +198,7 @@ export function nativeOrPlay(item, spec) {
     title: el.nowTitle.textContent, subtitle: nowPlace(),
     labels: {
       full: t('screen.enter'), leave: t('screen.leave'), cast: t('cast.title'), play: t('rec.play'), pause: t('app.pause'),
-      subtitles: t('player.subs.title'), off: t('player.subs.off'), audio: t('player.audio.title'),
+      live: t('player.live'), subtitles: t('player.subs.title'), off: t('player.subs.off'), audio: t('player.audio.title'),
     },
     // The languages kept from the files before (js/tracksui.js): the app
     // picks the stream's own tracks by them.

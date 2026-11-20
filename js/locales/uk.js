@@ -280,6 +280,7 @@ export default {
  "player.subs.look": "Вигляд субтитрів",
  "player.subs.title": "Субтитри",
  "player.subs.off": "Без субтитрів",
+ "player.live": "Наживо",
  "player.reload.title": "Завантажити потік знову",
  "player.more": "Більше дій",
  "player.pip.title": "Картинка в картинці",

@@ -286,7 +286,7 @@ final class NativePlayerView: UIView, AVPictureInPictureControllerDelegate {
     // MARK: What plays
 
     /// The page's words for what plays and for the controls, in the
-    /// viewer's language: `labels` has full, leave, cast, play, pause, subtitles, off and audio, and live when the page has a word for it.
+    /// viewer's language: `labels` has full, leave, cast, play, pause, subtitles, off, audio and live.
     func show(title: String, subtitle: String, live: Bool, labels: [String: String]) {
         self.live = live
         self.labels = labels
@@ -295,7 +295,6 @@ final class NativePlayerView: UIView, AVPictureInPictureControllerDelegate {
         for view in [elapsed, slider, remaining, backButton, forwardButton] as [UIView] { view.isHidden = live }
         liveBadge.isHidden = !live
         liveSpace.isHidden = !live
-        // The page has no word for it yet: the red mark alone says it.
         liveBadge.text = labels["live"].map { "  ● \($0.uppercased())  " } ?? "  ●  "
         castButton.accessibilityLabel = labels["cast"]
         slider.value = 0

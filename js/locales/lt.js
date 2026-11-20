@@ -280,6 +280,7 @@ export default {
  "player.subs.look": "Subtitrų išvaizda",
  "player.subs.title": "Subtitrai",
  "player.subs.off": "Be subtitrų",
+ "player.live": "Tiesiogiai",
  "player.reload.title": "Iš naujo įkelti srautą",
  "player.more": "Daugiau veiksmų",
  "player.pip.title": "Vaizdas vaizde",

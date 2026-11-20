@@ -264,6 +264,7 @@ export default {
  "player.subs.look": "Uiterlijk ondertitels",
  "player.subs.title": "Ondertitels",
  "player.subs.off": "Geen ondertitels",
+ "player.live": "Live",
  "player.reload.title": "Stream opnieuw laden",
  "player.more": "Meer acties",
  "player.pip.title": "Beeld-in-beeld",

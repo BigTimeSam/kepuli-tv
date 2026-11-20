@@ -272,6 +272,7 @@ export default {
  "player.subs.look": "Aspectul subtitrării",
  "player.subs.title": "Subtitrări",
  "player.subs.off": "Fără subtitrare",
+ "player.live": "Live",
  "player.reload.title": "Reîncarcă fluxul",
  "player.more": "Mai multe acțiuni",
  "player.pip.title": "Imagine în imagine",

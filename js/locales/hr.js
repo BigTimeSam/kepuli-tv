@@ -272,6 +272,7 @@ export default {
  "player.subs.look": "Izgled titlova",
  "player.subs.title": "Titlovi",
  "player.subs.off": "Bez titlova",
+ "player.live": "Uživo",
  "player.reload.title": "Ponovno učitaj tok",
  "player.more": "Više radnji",
  "player.pip.title": "Slika u slici",

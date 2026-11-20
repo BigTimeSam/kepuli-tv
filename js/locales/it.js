@@ -264,6 +264,7 @@ export default {
  "player.subs.look": "Aspetto dei sottotitoli",
  "player.subs.title": "Sottotitoli",
  "player.subs.off": "Nessun sottotitolo",
+ "player.live": "In diretta",
  "player.reload.title": "Ricarica lo stream",
  "player.more": "Altre azioni",
  "player.pip.title": "Picture in picture",

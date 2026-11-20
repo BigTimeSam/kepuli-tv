@@ -256,6 +256,7 @@ export default {
  "player.subs.look": "Kiểu phụ đề",
  "player.subs.title": "Phụ đề",
  "player.subs.off": "Tắt phụ đề",
+ "player.live": "Trực tiếp",
  "player.reload.title": "Tải lại luồng",
  "player.more": "Thêm thao tác",
  "player.pip.title": "Hình trong hình",
