@@ -33,7 +33,7 @@ Xtream-Codes-Konto oder das Stalker-Portal mit, das du schon hast.
 
 ## Auf einen Chromecast streamen
 
-- Wähle **Auf einen Chromecast streamen** im ☰-Menü des Players und dann das
+- Wähle **Auf einen Chromecast streamen** in der oberen Leiste und dann das
   Gerät. Beim ersten Mal fragt das System, ob Kepuli-TV Geräte in deinem
   lokalen Netzwerk finden darf: Erlaube es. Davor zeigt Google einen eigenen
   Hinweis. Nach beidem erscheinen die Geräte, sobald eines gefunden wurde.

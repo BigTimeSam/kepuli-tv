@@ -29,7 +29,7 @@ portal koji već imaš.
 
 ## Prebaci na Chromecast
 
-- Izaberi **Prebaci na Chromecast** u meniju ☰ plejera i izaberi uređaj. Prvi
+- Izaberi **Prebaci na Chromecast** na gornjoj traci i izaberi uređaj. Prvi
   put sistem pita da li Kepuli-TV sme da traži uređaje u tvojoj lokalnoj
   mreži: dozvoli. Pre toga Google prikazuje svoje obaveštenje. Posle oba,
   uređaji se prikazuju čim se neki pronađe. Ako se za pola minuta ne pronađe

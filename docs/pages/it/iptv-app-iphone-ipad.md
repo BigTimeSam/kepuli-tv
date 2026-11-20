@@ -30,7 +30,7 @@ Stalker che hai già.
 
 ## Trasmettere a un Chromecast
 
-- Scegli **Trasmetti a un Chromecast** nel menu ☰ del lettore e seleziona il
+- Scegli **Trasmetti a un Chromecast** nella barra superiore e seleziona il
   dispositivo. La prima volta il sistema chiede se Kepuli-TV può cercare
   dispositivi nella tua rete locale: consentilo. Prima, Google mostra un
   proprio avviso. Dopo entrambi, i dispositivi compaiono non appena ne viene

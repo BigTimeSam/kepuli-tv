@@ -8774,7 +8774,7 @@ async function iosappCourse(page, plain) {
     $('help').close();
     return { ios: document.documentElement.classList.contains('ios'), screen: gone($('btn-screen')), record, sync, grant, back, help,
       recordButtons: gone($('btn-record')) && gone($('btn-recordings-menu')),
-      canRecord: (await import('./js/recordingsui.js')).canRecord, castItem: !$('btn-cast').hidden, castTop: !gone($('btn-cast-top')),
+      canRecord: (await import('./js/recordingsui.js')).canRecord, castItem: Boolean($('btn-cast')), castTop: !gone($('btn-cast-top')),
       browser: texts.join(' | ').match(/[^.|]*\\b(browser|Chrome|Firefox)\\b[^.|]*/i)?.[0] || null, setupHelp, links }; })()`);
   assert(shown.ios && shown.screen && shown.record && shown.sync && shown.grant && shown.back && shown.recordButtons && shown.canRecord === false,
     `what the app does not offer is still there: ${JSON.stringify(shown)}`);
@@ -8793,7 +8793,7 @@ async function iosappCourse(page, plain) {
   const GUIDE = 'https://bigtimesam.github.io/kepuli-tv/iptv-app-iphone-ipad/';
   assert(shown.setupHelp === GUIDE && shown.links[0] === GUIDE && shown.links.includes('https://bigtimesam.github.io/kepuli-tv/privacy/')
     && shown.links.includes('https://bigtimesam.github.io/kepuli-tv/licences/'), `the help's links in the app: ${shown.setupHelp}, ${shown.links.join(', ')}`);
-  assert(shown.castItem && shown.castTop, `before a device is known the menu has Cast and the bar its mark, to ask for one: ${JSON.stringify(shown)}`);
+  assert(!shown.castItem && shown.castTop, `before a device is known the bar has the Cast mark, to ask for one, and the menu no second one: ${JSON.stringify(shown)}`);
 
   /* A press outside a row's menu closes the menu and nothing more. On a
      phone nearly everything outside it is a row, and the press that closed

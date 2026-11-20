@@ -211,7 +211,7 @@ The page draws two buttons and an overlay; every dialog is Google's.
 | --- | --- |
 | `js/platform.js`, `js/host.js` | which app is around the page (`ios` under `player.html?ios=1`, `inApp` under `?app=1`, `native` for either), and the port to it |
 | `js/cast.js` | `createCast()` gives `NativeCast` in the app and `Cast` elsewhere, the same shape to `js/app.js`; `castMedia(spec)` is the pure rule of what a device can be handed |
-| `js/castui.js` | the session: `castNative` (the menu item, the Cast mark on the top bar, `c`), `castOrPlay` (every start of playback goes through it), `renderCasting` (acts on each change of state), `castingLeft` |
+| `js/castui.js` | the session: `castNative` (the Cast mark on the top bar, `c`), `castOrPlay` (every start of playback goes through it), `renderCasting` (acts on each change of state), `castingLeft` |
 
 Messages, page to app: `cast.prompt` (Google's dialog: the devices, or the
 session when connected), `cast.load` (`url`, `contentType`, `live`, `hls?`,

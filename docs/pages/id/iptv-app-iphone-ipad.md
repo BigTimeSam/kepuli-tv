@@ -31,7 +31,7 @@ Xtream Codes, atau portal Stalker yang sudah kamu miliki.
 
 ## Kirim ke Chromecast
 
-- Pilih **Kirim ke Chromecast** di menu ☰ pemutar, lalu pilih perangkatnya.
+- Pilih **Kirim ke Chromecast** di bilah atas, lalu pilih perangkatnya.
   Pertama kali, sistem menanyakan apakah Kepuli-TV boleh mencari perangkat di
   jaringan lokalmu: izinkan. Sebelum itu, Google menampilkan catatannya
   sendiri. Setelah keduanya, perangkat ditampilkan begitu ada yang ditemukan.

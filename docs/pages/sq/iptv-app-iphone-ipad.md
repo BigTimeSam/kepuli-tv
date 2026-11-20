@@ -30,7 +30,7 @@ Stalker që e ke tashmë.
 
 ## Transmeto në Chromecast
 
-- Zgjidh **Transmeto në Chromecast** te menyja ☰ e luajtësit dhe zgjidh
+- Zgjidh **Transmeto në Chromecast** te shiriti i sipërm dhe zgjidh
   pajisjen. Herën e parë sistemi pyet nëse Kepuli-TV mund të gjejë pajisje në
   rrjetin tënd lokal: lejoje. Para kësaj, Google shfaq një njoftim të vetin.
   Pas të dyjave, pajisjet shfaqen sapo gjendet ndonjë. Nëse brenda gjysmë

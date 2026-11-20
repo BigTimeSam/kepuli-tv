@@ -760,9 +760,7 @@ async function cast(d) {
     let said = null; h.on('cast.state', (s) => { said = s; });
     await until(() => said, 3000);
     if (!await playChannel()) return { played: false };
-    $('btn-more').click(); await pause(300);
-    const item = seen($('btn-cast')) && !$('btn-cast').hidden, top = seen($('btn-cast-top'));
-    $('btn-more').click();
+    const item = Boolean($('btn-cast')), top = seen($('btn-cast-top'));
     const load = await h.request('cast.load', { url: 'https://example.org/${marks.address}.mp4?username=demo&password=demo', contentType: 'video/mp4', live: false, startAt: 0,
       title: '${marks.title}', subtitle: '${marks.subtitle}' }).then(() => 'accepted', (err) => err.message);
     h.send('cast.stop'); h.send('cast.controls');
@@ -771,7 +769,7 @@ async function cast(d) {
   assert(page.said && page.said.state === 'disconnected' && page.said.devices === -1 && page.said.device === null, `cast.state as the page heard it: ${JSON.stringify(page.said)}`);
   // The mark is on the bar before any device is known: its press is what
   // asks for the local network and looks for one.
-  assert(page.item && page.top, `with no device known the menu ${page.item ? 'has' : 'lacks'} Cast and the bar ${page.top ? 'has' : 'lacks'} the mark`);
+  assert(!page.item && page.top, `with no device known the menu ${page.item ? 'has' : 'lacks'} Cast and the bar ${page.top ? 'has' : 'lacks'} the mark`);
   assert(page.load === 'no-session', `cast.load without a session was answered "${page.load}"`);
   await d.page(`(await import('./js/host.js')).send('cast.prompt'); return true;`);
   // The button is pressed a second after the SDK's start (CastService.swift).
@@ -791,7 +789,7 @@ async function cast(d) {
   assert(leaked.length === 0 && !/username=|password=/.test(text) && /cast\.load/.test(text), `the debug log ${leaked.length ? `holds ${leaked.join(', ')}` : 'holds credentials or no cast.load'}`);
   // The note has no button a script can press; a launch takes it away.
   await d.launch();
-  return `the menu has Cast, the bar its mark before any device is known; cast.state arrived disconnected with devices -1; cast.load answered no-session; cast.prompt started the SDK ${state.cast.sdk} and put ${presented} on the screen with no search begun; the log names the message's type and none of its address, title or subtitle`;
+  return `the bar has the Cast mark before any device is known, the menu none; cast.state arrived disconnected with devices -1; cast.load answered no-session; cast.prompt started the SDK ${state.cast.sdk} and put ${presented} on the screen with no search begun; the log names the message's type and none of its address, title or subtitle`;
 }
 
 async function links(d) {

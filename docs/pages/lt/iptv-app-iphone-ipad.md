@@ -30,7 +30,7 @@ arba Stalker portalą, kurį jau turi.
 
 ## Transliuoti į Chromecast
 
-- Grotuvo ☰ meniu pasirink **Transliuoti į Chromecast** ir nurodyk įrenginį.
+- Viršutinėje juostoje pasirink **Transliuoti į Chromecast** ir nurodyk įrenginį.
   Pirmą kartą sistema klausia, ar Kepuli-TV gali ieškoti įrenginių tavo
   vietiniame tinkle: leisk. Prieš tai Google parodo savo pranešimą. Po abiejų
   įrenginiai parodomi, kai tik kuris nors randamas. Jei per pusę minutės

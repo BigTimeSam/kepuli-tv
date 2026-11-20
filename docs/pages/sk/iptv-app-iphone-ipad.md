@@ -30,7 +30,7 @@ Codes alebo portál Stalker, ktorý už máš.
 
 ## Prenášať na Chromecast
 
-- V ponuke ☰ prehrávača zvoľ **Prenášať na Chromecast** a vyber zariadenie.
+- Na hornej lište zvoľ **Prenášať na Chromecast** a vyber zariadenie.
   Prvýkrát sa systém spýta, či smie Kepuli-TV hľadať zariadenia v tvojej
   lokálnej sieti: povoľ to. Predtým Google zobrazí vlastné upozornenie. Po
   oboch sa zariadenia zobrazia, len čo sa nejaké nájde. Ak sa do pol minúty

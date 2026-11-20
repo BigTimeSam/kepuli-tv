@@ -20,7 +20,7 @@ export const el = {
   overlaySpeed: $('overlay-speed'), overlayNeed: $('overlay-need'),
   idleHome: $('idle-home'),
   infostrip: $('infostrip'), nowTitle: $('now-title'), nowSub: $('now-sub'), mode: /** @type {HTMLSelectElement} */ ($('mode')),
-  subs: /** @type {HTMLSelectElement} */ ($('subs')), audio: /** @type {HTMLSelectElement} */ ($('audio')), cast: $('btn-cast'),
+  subs: /** @type {HTMLSelectElement} */ ($('subs')), audio: /** @type {HTMLSelectElement} */ ($('audio')),
   setup: /** @type {HTMLDialogElement} */ ($('setup')), setupTabs: $('setup-tabs'), setupNote: $('setup-note'), setupNoteText: $('setup-note-text'),
   sublook: $('btn-sublook'), sublookPop: $('sublook-pop'),
   more: $('btn-more'), morePop: $('more-pop'),

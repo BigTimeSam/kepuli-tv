@@ -361,7 +361,7 @@ worth deleting.
 
 ### Chromecast
 
-**Cast to a Chromecast** in the player's `☰` menu (or `c`) works in two ways, and
+**Cast to a Chromecast**, the mark on the top bar (or `c`), works in two ways, and
 `CHROMECAST.md` holds the assessment behind them.
 
 A file the browser plays natively — `.mp4`, `.m4v`, `.mov`, `.webm` — goes to

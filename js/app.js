@@ -1874,15 +1874,11 @@ function showCastHint() {
 }
 
 /**
- * The menu item: hidden without the API, lit while the device plays. The
- * hamburger is lit with it — the item's own colour is behind a press, and
- * casting is worth seeing without one. The Cast mark itself stands on
- * the top bar wherever casting is possible.
+ * The Cast mark: hidden without the API, lit while the device plays. The
+ * player's menu had a line that did the same; with the mark always on the
+ * top bar it was a second way to one thing, and it is gone.
  */
 function renderCastState() {
-  el.cast.hidden = !castSupported;
-  el.cast.classList.toggle('on', cast.connected);
-  el.more.classList.toggle('on', cast.connected && !cast.native);
   // The Cast mark itself stands on the top bar wherever a picture can be
   // sent to a television, as Google's terms want it in sight, and is the
   // one lit; in the apps the session is drawn by js/castui.js. It waited
@@ -2171,7 +2167,6 @@ function wireUi() {
   $('rec-consent-cancel').addEventListener('click', () => closeRecordingConsent(false));
   wireModal($('rec-consent'), () => closeRecordingConsent(false));
   wireModal($('recordings'), () => $('recordings').close());
-  el.cast.addEventListener('click', castCurrent);
   $('btn-cast-top').addEventListener('click', castCurrent);
   $('btn-pip').addEventListener('click', async () => {
     // The app's own player has the picture (js/nativeplayer.js): it takes it out itself.

@@ -189,8 +189,7 @@ What differs:
 - **If the system has had to start the player again**, it returns to the
   list and the channel you were on and plays nothing until you choose it.
 - **The screen stays on** while a picture plays and may sleep otherwise.
-- **Cast to a Chromecast** (the `☰` menu, `c`, or the Cast mark that stands
-  at the top of the screen once a Chromecast has been found) opens Google's
+- **Cast to a Chromecast** (the Cast mark at the top of the screen, or `c`) opens Google's
   own device dialog. The Chromecast then fetches the stream by itself from
   the address it is handed, and the picture stops here first, as an account
   commonly allows one connection. Over the player stands **Playing on** and
@@ -835,7 +834,7 @@ remaining player controls are below the picture:
 The menu holds what is wanted now and then rather than during every programme:
 **Reload the stream** (from the point it stopped at, for a stream stuck without
 an error), **Picture in picture** (where the browser or the device can put the
-picture in one), **Cast to a Chromecast**, **Copy the stream
+picture in one), **Copy the stream
 address** and **Open in an external player**. Buttons that said what they did in
 two letters and an arrow are lines that say it in words, and the row keeps only
 what a viewer reaches for while watching. After a failed playback the message

@@ -33,7 +33,7 @@ Codes fiókot vagy a Stalker portált, amely már megvan.
 
 ## Átküldés Chromecastra
 
-- Válaszd a lejátszó ☰ menüjében az **Átküldés Chromecastra** elemet, majd az
+- Válaszd a felső sávon az **Átküldés Chromecastra** elemet, majd az
   eszközt. Első alkalommal a rendszer megkérdezi, kereshet-e a Kepuli-TV
   eszközöket a helyi hálózatodon: engedélyezd. Előtte a Google megjelenít egy
   saját értesítést. Mindkettő után az eszközök megjelennek, amint a rendszer

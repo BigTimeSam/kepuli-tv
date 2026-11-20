@@ -31,7 +31,7 @@ Stalker-portaalin, joka sinulla jo on.
 
 ## Lähetä Chromecastiin
 
-- Valitse soittimen ☰-valikosta **Lähetä Chromecastiin** ja valitse laite.
+- Valitse yläpalkista **Lähetä Chromecastiin** ja valitse laite.
   Ensimmäisellä kerralla järjestelmä kysyy, saako Kepuli-TV etsiä laitteita
   lähiverkostasi: salli se. Sitä ennen Google näyttää oman huomautuksensa.
   Näiden jälkeen laitteet tulevat näkyviin heti, kun jokin löytyy. Jos yhtään

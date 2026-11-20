@@ -30,7 +30,7 @@ hesabını ya da Stalker portalını sen getirirsin.
 
 ## Chromecast’e yansıt
 
-- Oynatıcının ☰ menüsünden **Chromecast’e yansıt** öğesini ve ardından cihazı
+- Üst çubuktan **Chromecast’e yansıt** öğesini ve ardından cihazı
   seç. İlk seferde sistem, Kepuli-TV’nin yerel ağındaki cihazları bulup
   bulamayacağını sorar: izin ver. Bundan önce Google kendi notunu gösterir.
   İkisinden sonra, bir cihaz bulunur bulunmaz cihazlar listelenir. Yarım

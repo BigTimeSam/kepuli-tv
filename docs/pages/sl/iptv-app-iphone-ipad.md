@@ -30,7 +30,7 @@ ali portal Stalker, ki ga že imaš.
 
 ## Predvajaj na Chromecast
 
-- V meniju ☰ predvajalnika izberi **Predvajaj na Chromecast** in izberi
+- V zgornji vrstici izberi **Predvajaj na Chromecast** in izberi
   napravo. Prvič sistem vpraša, ali sme Kepuli-TV iskati naprave v tvojem
   lokalnem omrežju: dovoli. Pred tem Google prikaže svoje obvestilo. Po obojem
   se naprave prikažejo, takoj ko je katera najdena. Če v pol minute ni najdena
