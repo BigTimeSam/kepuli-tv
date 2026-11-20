@@ -262,6 +262,7 @@ export default {
  "player.subs.look": "Altyazı görünümü",
  "player.subs.title": "Altyazılar",
  "player.subs.off": "Altyazı yok",
+ "player.live": "Canlı",
  "player.reload.title": "Yayını yeniden yükle",
  "player.more": "Diğer işlemler",
  "player.pip.title": "Resim içinde resim",

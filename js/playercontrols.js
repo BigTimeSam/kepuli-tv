@@ -15,6 +15,7 @@ import { shortLanguage } from './lang.js';
 import { shownName } from './coversui.js';
 import { t } from './i18n.js';
 import * as store from './config.js';
+import { nativeToggle } from './nativeplayer.js';
 import { playRelative, playerLayout, state } from './state.js';
 import { toggleSubtitleLook } from './tracksui.js';
 
@@ -273,6 +274,8 @@ export function clickPicture(e) {
 }
 
 export function togglePause() {
+  // The app's own player has the picture (js/nativeplayer.js).
+  if (nativeToggle()) return;
   if (el.video.paused) el.video.play().catch(() => {});
   else el.video.pause();
 }

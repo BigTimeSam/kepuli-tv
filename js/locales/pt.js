@@ -262,6 +262,7 @@ export default {
  "player.subs.look": "Aparência da legenda",
  "player.subs.title": "Legendas",
  "player.subs.off": "Sem legendas",
+ "player.live": "Ao vivo",
  "player.reload.title": "Recarregar a transmissão",
  "player.more": "Mais ações",
  "player.pip.title": "Imagem em imagem",

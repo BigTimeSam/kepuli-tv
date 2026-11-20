@@ -372,6 +372,7 @@
 //                                     on with its own duration for
 //                                     KEPULI_LONG_SECS; skipped without it
 //   node dev/playcheck.mjs appcast    the cast session in the Android app
+//   node dev/playcheck.mjs appplayer  the app's own player in the iPhone and iPad app, as the page meets it
 //                                     (player.html?app=1, the app's side
 //                                     of the line played here): the mark
 //                                     with a device near, a film handed
@@ -10200,11 +10201,138 @@ async function remote(page, { target }) {
   }
 }
 
+/**
+ * The app's own player as the page meets it (js/nativeplayer.js), in the
+ * page of the app for the iPhone and the iPad with the app's side of the
+ * port played here: the app says in its greeting that it has a player,
+ * and the page hands it a film and a channel instead of playing them. A
+ * film handed over from its place with the picture's box, the place kept
+ * from what the app says, what lies over the picture said as holes, pause
+ * and picture in picture sent to the app, a film the app fails on played
+ * by the page and not handed over again, a film's end, and leaving.
+ */
+async function appplayer(page, { target }) {
+  const plain = bare(target.url).split('?')[0];
+  const assert = (ok, message) => { if (!ok) throw new Error(message); };
+  const sent = (type) => evaluate(page, `window.__sent.filter((m) => m.type === ${JSON.stringify(type)})`);
+  const say = (message) => evaluate(page, `(window.__say(${JSON.stringify(message)}), true)`);
+  const count = (type, n, what) => waitFor(page, `window.__sent.filter((m) => m.type === ${JSON.stringify(type)}).length >= ${n}`, what, 15000);
+  const playFilm = (pick, startAt = 0) => evaluate(page, `(async () => { const { state } = await import('./js/state.js'); const { playItem } = await import('./js/playing.js');
+    const film = (await state.lib.ensureFull('movie')).find(${pick}); playItem(film, { startAt: ${startAt} }); return String(film.id); })()`, { gesture: true });
+  const HERE = `(async () => { const { state } = await import('./js/state.js'); const v = document.getElementById('video'); const b = v.getBoundingClientRect();
+    return { engine: (await import('./js/playing.js')).playback.engineKey, src: v.currentSrc, title: document.getElementById('now-title').textContent,
+      box: [b.left + scrollX, b.top + scrollY, b.width, b.height].map(Math.round), playing: state.playing ? String(state.playing.id) : null,
+      ratio: document.getElementById('videowrap').style.getPropertyValue('--pic-ratio'),
+      resume: state.playing ? state.resume.get(state.playing.k + ':' + state.playing.id)?.position ?? null : null }; })()`;
+  try {
+    await evaluate(page, `(document.documentElement.dataset.before = '1', true)`);
+    await page.call('Page.navigate', { url: `${plain}?ios=1` });
+    await sleep(1000);
+    await waitFor(page, `!document.documentElement.dataset.before && ${CONNECTED}`, 'the connection in the app\'s page');
+    await evaluate(page, `document.querySelector('dialog[open]')?.close()`);
+    await evaluate(page, `(async () => {
+      const listeners = [];
+      window.__sent = [];
+      window.__say = (message) => listeners.forEach((l) => l(message));
+      (await import('./js/host.js')).attach({
+        postMessage(m) { window.__sent.push(m); },
+        onMessage: { addListener: (l) => listeners.push(l) }, onDisconnect: { addListener() {} } });
+      // The place is kept only with the setting on, which the suite's profile may have off.
+      const { state } = await import('./js/state.js');
+      state.settings = { ...state.settings, resumeEnabled: true };
+      window.__say({ type: 'host', v: 1, idiom: 'pad', version: '1.14.0', build: '11400.1', debug: true, simulator: true, player: true });
+      window.__say({ type: 'cast.state', state: 'disconnected', device: null, devices: -1 });
+      return true; })()`);
+
+    // A film goes to the app from its place, and nothing plays in the page.
+    await playFilm(`(f) => String(f.id) === '5000'`, 42);
+    await count('player.load', 1, 'the film handed to the app');
+    // The box settles as the film's details arrive: the last one said is the picture's.
+    await waitFor(page, `(() => { const f = window.__sent.filter((m) => m.type === 'player.frame').at(-1), b = document.getElementById('video').getBoundingClientRect();
+      return Boolean(f) && Math.abs(f.height - b.height) < 1 && Math.abs(f.width - b.width) < 1; })()`, 'the picture\'s box said to the app', 15000);
+    await sleep(600);
+    const [load] = await sent('player.load');
+    const handed = await evaluate(page, HERE);
+    const frame = (await sent('player.frame')).at(-1);
+    assert(/\/movie\/demo\/demo\/5000\.mp4$/.test(load.url) && load.live === false && load.startAt === 42 && load.title === handed.title && typeof load.id === 'number'
+      && load.labels.live && load.labels.cast && load.labels.off, `the film handed to the app: ${JSON.stringify({ ...load, url: load.url.replace(/^.*\/movie/, '…/movie') })}`);
+    assert(handed.engine === null && !handed.src, `the page still plays beside the app's player: ${JSON.stringify(handed)}`);
+    assert([frame.x, frame.y, frame.width, frame.height].map(Math.round).join() === handed.box.join() && frame.width > 200 && frame.height > 100 && Array.isArray(frame.holes),
+      `the box said to the app ${JSON.stringify(frame)}, the picture's ${handed.box}`);
+
+    // What the app says of the picture: its place is kept, and its shape taken.
+    await say({ type: 'player.state', id: load.id, state: 'playing', position: 70, duration: 120, width: 1920, height: 800 });
+    await sleep(300);
+    const kept = await evaluate(page, HERE);
+    assert(kept.resume === 70 && kept.ratio === '1920 / 800', `the place and the shape from the app: ${JSON.stringify(kept)}`);
+
+    // A dialog of the page over the picture is said as a hole in it.
+    await evaluate(page, `document.getElementById('btn-help').click()`, { gesture: true });
+    await waitFor(page, `window.__sent.filter((m) => m.type === 'player.frame').at(-1).holes.length > 0`, 'the dialog said as a hole in the picture', 5000);
+    const hole = (await sent('player.frame')).at(-1).holes[0];
+    const dialog = await evaluate(page, `(() => { const d = document.getElementById('help').getBoundingClientRect(), v = document.getElementById('video').getBoundingClientRect();
+      return [d.left - v.left, d.top - v.top, d.width, d.height].map(Math.round); })()`);
+    assert([hole.x, hole.y, hole.width, hole.height].map(Math.round).join() === dialog.join() && hole.radius > 0, `the hole ${JSON.stringify(hole)}, the dialog ${dialog}`);
+    await evaluate(page, `document.getElementById('help').close()`);
+    await waitFor(page, `window.__sent.filter((m) => m.type === 'player.frame').at(-1).holes.length === 0`, 'the hole gone with the dialog', 5000);
+
+    // Pause and play, and the menu's picture in picture, are the app's.
+    await evaluate(page, `import('./js/playercontrols.js').then((m) => (m.togglePause(), true))`);
+    await say({ type: 'player.state', id: load.id, state: 'paused', position: 71, duration: 120, width: 1920, height: 800 });
+    await evaluate(page, `import('./js/playercontrols.js').then((m) => (m.togglePause(), true))`);
+    await evaluate(page, `document.getElementById('btn-more').click()`, { gesture: true });
+    const offered = await evaluate(page, `!document.getElementById('btn-pip').hidden`);
+    await evaluate(page, `document.getElementById('btn-pip').click()`, { gesture: true });
+    await sleep(200);
+    assert((await sent('player.pause')).length === 1 && (await sent('player.play')).length === 1 && offered && (await sent('player.pip')).length === 1,
+      `pause, play and picture in picture: ${(await sent('player.pause')).length}, ${(await sent('player.play')).length}, ${(await sent('player.pip')).length}, the item ${offered ? 'offered' : 'hidden'}`);
+    await evaluate(page, `document.getElementById('more-pop').hidden || document.getElementById('btn-more').click()`);
+
+    // The app fails on it: the page's own player takes it from that place, and it is not handed over again.
+    await say({ type: 'player.state', id: load.id, state: 'idle', reason: 'error', position: 75 });
+    await waitFor(page, PLAYING, 'the film in the page after the app failed on it', 30000);
+    const fell = await evaluate(page, `(async () => ({ engine: (await import('./js/playing.js')).playback.engineKey, at: document.getElementById('video').currentTime }))()`);
+    assert(fell.engine && fell.at >= 74, `the film in the page after the app's failure: ${JSON.stringify(fell)}`);
+    await playFilm(`(f) => String(f.id) === '5000'`, 10);
+    await waitFor(page, PLAYING, 'the film in the page again', 30000);
+    assert((await sent('player.load')).length === 1, 'a film the app failed on was handed to it again');
+
+    // Another film, seen to its end in the app: the player is empty and its place is gone.
+    const other = await playFilm(`(f) => String(f.id) !== '5000' && f.ext === 'mp4'`, 0);
+    await count('player.load', 2, 'the second film handed to the app');
+    const second = (await sent('player.load')).at(-1);
+    await say({ type: 'player.state', id: second.id, state: 'playing', position: 60, duration: 120 });
+    await sleep(200);
+    const mid = await evaluate(page, HERE);
+    await say({ type: 'player.state', id: second.id, state: 'idle', reason: 'finished', position: 120 });
+    await waitFor(page, `import('./js/state.js').then((m) => !m.state.playing)`, 'the player empty after the film\'s end', 10000);
+    const after = await evaluate(page, `import('./js/state.js').then((m) => m.state.resume.has('1:${other}'))`);
+    assert(mid.engine === null && mid.resume === 60 && after === false, `the second film: in the app ${JSON.stringify(mid)}, its place kept after the end: ${after}`);
+
+    // A channel goes over by its HLS address, and leaving it stops the app's player.
+    await evaluate(page, `document.querySelector('#tabs [data-tab="live"]').click()`, { gesture: true });
+    await waitFor(page, `document.querySelectorAll('#list .row').length > 1`, 'the channels');
+    await evaluate(page, `document.querySelector('#list .row').click()`, { gesture: true });
+    await count('player.load', 3, 'the channel handed to the app');
+    const channel = (await sent('player.load')).at(-1);
+    const stops = (await sent('player.stop')).length;
+    await evaluate(page, `document.getElementById('btn-home').click()`, { gesture: true });
+    await waitFor(page, `window.__sent.filter((m) => m.type === 'player.stop').length > ${stops}`, 'the app\'s player stopped when the channel was left', 5000);
+    assert(channel.live === true && /\.m3u8$/.test(channel.url) && channel.startAt === 0, `the channel handed to the app: ${JSON.stringify({ ...channel, url: channel.url.replace(/^.*\/live/, '…/live') })}`);
+    return { ok: true, detail: 'a film went to the app from 42 s with the picture\'s box; its place (70 s) and shape came from the app; a dialog over the picture was said as a hole; pause, play and picture in picture went to the app; the film it failed on played in the page from 75 s and was not handed over again; a film\'s end emptied the player; a channel went over as HLS and leaving it stopped the app\'s player' };
+  } catch (err) {
+    return { ok: false, detail: err.message };
+  } finally {
+    await page.call('Page.navigate', { url: plain }).catch(() => {});
+    await sleep(500);
+  }
+}
+
 const SCENARIOS = { buffering, livebuffering, filmbuffering, emptyfile, tsasmp4, refusedfile, badgateway, livebadgateway, channelrefused, noanswer, longfilm, catalogUi, setupClarity, welcome, fullscreenControl, blockedplay, clickpause, pickers, touchcaret, touchsizes, screenbutton, topmenu, scrollbars, channelorder, lengthfilter, nowlogo, channels, home, resumemkv, restore, programmes, catchup, seek, death, cancel, timeout, search, paste, keys, switching, resume, connections, livezap, livequiet, reconnect, accounts, listerror, a11y, subtitles, audio, wasmaudio, settings,
   lastchannel, nextepisode, continuewatching, reminders, update, seeklag, cuesretry, quota, catchupfreeze, catchupfull, twotabs, switchstop, resettabs,
   refresh, restorenav, guidekeep, removeaccount, m3u, sync, holes, picks, flakyserver, accountform, stalker, record, guidefavs, guidenames, categories, homecountry, noleak, perf, pseudo, startup, soak, phone, headline, accountnow, onerow, nowbarfit, subsize, arrowmiddle, idlelight, iossubs, starquiet, phonestar, pickertouch, pickerkeyboard, phonescroll, menutap, wakelock, livecut, episodenames, gotochannel, filmdetails, favorder, countryfilter, tilekeys, routes, programmekeys, searchlimit, filterfolds, focusrings, xtreamoffer, guideclick, filmaddress, filmfacts, playlistfile, perflive, perfplaylist, remoteimages, phoneguide, handoff, closedplan, secondpicture, liverewind, upcoming,
   polish, iosapp,
-  remote, remotescrub, appback, appcast };
+  remote, remotescrub, appback, appcast, appplayer };
 
 // The mock's whole-list answers stall for these, longer than the request limit.
 const SLOW_LIST_MS = { cancel: 60000, timeout: 60000 };

@@ -262,6 +262,7 @@ export default {
  "player.subs.look": "Pamja e titrave",
  "player.subs.title": "Titrat",
  "player.subs.off": "Pa titra",
+ "player.live": "Drejtpërdrejt",
  "player.reload.title": "Ngarko transmetimin përsëri",
  "player.more": "Më shumë veprime",
  "player.pip.title": "Figurë në figurë",

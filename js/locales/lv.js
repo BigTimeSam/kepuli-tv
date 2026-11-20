@@ -270,6 +270,7 @@ export default {
  "player.subs.look": "Subtitru izskats",
  "player.subs.title": "Subtitri",
  "player.subs.off": "Bez subtitriem",
+ "player.live": "Tiešraide",
  "player.reload.title": "Vēlreiz ielādēt straumi",
  "player.more": "Citas darbības",
  "player.pip.title": "Attēls attēlā",

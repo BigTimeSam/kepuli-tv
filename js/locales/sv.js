@@ -262,6 +262,7 @@ export default {
  "player.subs.look": "Undertextens utseende",
  "player.subs.title": "Undertexter",
  "player.subs.off": "Inga undertexter",
+ "player.live": "Direkt",
  "player.reload.title": "Ladda om strömmen",
  "player.more": "Fler åtgärder",
  "player.pip.title": "Bild i bild",

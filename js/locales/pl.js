@@ -278,6 +278,7 @@ export default {
  "player.subs.look": "Wygląd napisów",
  "player.subs.title": "Napisy",
  "player.subs.off": "Bez napisów",
+ "player.live": "Na żywo",
  "player.reload.title": "Wczytaj strumień ponownie",
  "player.more": "Więcej działań",
  "player.pip.title": "Obraz w obrazie",

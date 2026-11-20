@@ -262,6 +262,7 @@ export default {
  "player.subs.look": "Undertekstens utseende",
  "player.subs.title": "Undertekster",
  "player.subs.off": "Ingen undertekster",
+ "player.live": "Direkte",
  "player.reload.title": "Last strømmen på nytt",
  "player.more": "Flere handlinger",
  "player.pip.title": "Bilde-i-bilde",

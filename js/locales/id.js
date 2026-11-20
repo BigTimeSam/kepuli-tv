@@ -254,6 +254,7 @@ export default {
  "player.subs.look": "Tampilan subtitel",
  "player.subs.title": "Subtitel",
  "player.subs.off": "Tanpa subtitel",
+ "player.live": "Langsung",
  "player.reload.title": "Muat ulang siaran",
  "player.more": "Aksi lainnya",
  "player.pip.title": "Picture-in-picture",

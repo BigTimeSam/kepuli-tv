@@ -278,6 +278,7 @@ export default {
  "player.subs.look": "Vzhled titulků",
  "player.subs.title": "Titulky",
  "player.subs.off": "Bez titulků",
+ "player.live": "Živě",
  "player.reload.title": "Znovu načíst stream",
  "player.more": "Další akce",
  "player.pip.title": "Obraz v obraze",

@@ -476,7 +476,7 @@ Without a Chromecast on the network, Google's dialog opens and finds nothing, an
 PERMISSIONS AND KEYS
 • Local network: asked when the viewer first casts (to find Chromecast devices), or earlier when the viewer's own provider is at an address on their home network.
 • Notifications: asked when the viewer sets a first reminder, or turns Show reminders as notifications on in Settings.
-• NSAllowsArbitraryLoadsInWebContent: the viewer types the address of their own provider, and many providers serve plain http. Settings warns that an http connection is unencrypted and recommends https. No other transport exception is set.
+• NSAllowsArbitraryLoadsInWebContent and NSAllowsArbitraryLoadsForMedia: the viewer types the address of their own provider, and many providers serve plain http, for the page and for the player alike. Settings warns that an http connection is unencrypted and recommends https. No other transport exception is set.
 • Background mode "audio": Kepuli-TV is a video player, and what plays goes on sounding when the app leaves the front. To see it:
 1. Play a channel.
 2. Swipe home, or lock the screen: the sound continues. The lock screen and Control Centre name the programme, and pause and resume it.
@@ -554,4 +554,4 @@ the rules above, and the device checklist.
   DESCRIPTION fi             3021 of 4000
   WHAT'S NEW en-GB             46 of 4000
   WHAT'S NEW fi                41 of 4000
-  REVIEW NOTES               3852 of 4000
+  REVIEW NOTES               3926 of 4000

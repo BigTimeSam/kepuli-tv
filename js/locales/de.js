@@ -262,6 +262,7 @@ export default {
  "player.subs.look": "Untertitel-Darstellung",
  "player.subs.title": "Untertitel",
  "player.subs.off": "Keine Untertitel",
+ "player.live": "Live",
  "player.reload.title": "Stream neu laden",
  "player.more": "Weitere Aktionen",
  "player.pip.title": "Bild-in-Bild",

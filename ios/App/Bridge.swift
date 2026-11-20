@@ -62,6 +62,17 @@ final class Bridge {
 
     var connected: Bool { ready }
 
+    /// Whether the page is offered the app's own player. KEPULI_PLAYER=page
+    /// in the Debug build keeps the picture in the page, for the scenarios
+    /// that are about the page's own player (ios/simcheck.mjs): it still
+    /// plays what AVPlayer does not, and what AVPlayer fails on.
+    static var offersPlayer: Bool {
+        #if DEBUG
+        if ProcessInfo.processInfo.environment["KEPULI_PLAYER"] == "page" { return false }
+        #endif
+        return true
+    }
+
     func register(_ service: NativeService) { services.append(service) }
 
     /// A page opened its port. It replaces an earlier one: after a reload
@@ -119,6 +130,9 @@ final class Bridge {
             "build": info["CFBundleVersion"] as? String ?? "",
             "debug": debug,
             "simulator": simulator,
+            // The app has a player of its own (NativePlayer), which the
+            // page then hands what it can play.
+            "player": Self.offersPlayer,
         ])
         // Through `send`, which notes when each was said: a page that
         // dies at its start has not heard them either (`pageGone`).

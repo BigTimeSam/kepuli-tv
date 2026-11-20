@@ -262,6 +262,7 @@ export default {
  "player.subs.look": "Feliratok megjelenése",
  "player.subs.title": "Feliratok",
  "player.subs.off": "Felirat nélkül",
+ "player.live": "Élő",
  "player.reload.title": "Adás újratöltése",
  "player.more": "További műveletek",
  "player.pip.title": "Kép a képben",

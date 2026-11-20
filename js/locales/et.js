@@ -262,6 +262,7 @@ export default {
  "player.subs.look": "Subtiitrite välimus",
  "player.subs.title": "Subtiitrid",
  "player.subs.off": "Subtiitreid pole",
+ "player.live": "Otse",
  "player.reload.title": "Laadi voog uuesti",
  "player.more": "Veel toiminguid",
  "player.pip.title": "Pilt pildis",

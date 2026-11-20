@@ -33,6 +33,7 @@ import { cancelAutoNext } from './nextepisode.js';
 import { closeSecond, firstPlays } from './secondui.js';
 import { leavePlayback, renderAudio, renderSubtitles, sizePicture } from './tracksui.js';
 import { castOrPlay, castingLeft } from './castui.js';
+import { nativeLeft, nativeOrPlay, nativePlace } from './nativeplayer.js';
 
 export const playback = new Playback(el.video, onPlaybackState);
 
@@ -608,8 +609,12 @@ export const channelKey = (config, item) => `${store.accountKey(config)}|${item.
  * @param {import('./playback.js').PlaySpec} spec the one in state.playingSpec
  */
 export function startPlayback(item, spec) {
-  if (!cast.native || !cast.connected) { playback.play(spec); return; }
-  castOrPlay(item, spec).then((taken) => { if (!taken && state.playingSpec === spec) playback.play(spec); });
+  // The app's own player takes what it can play, where the app has one
+  // (js/nativeplayer.js); with a cast session on, the Chromecast is asked
+  // first and the app's player lets go of what it had.
+  if (!cast.native || !cast.connected) { if (!nativeOrPlay(item, spec)) playback.play(spec); return; }
+  nativeLeft();
+  castOrPlay(item, spec).then((taken) => { if (!taken && state.playingSpec === spec && !nativeOrPlay(item, spec)) playback.play(spec); });
 }
 
 /**
@@ -725,7 +730,7 @@ export function renderNowTitle() {
 export function renderNowSub() {
   renderRecordingState();
   // Nothing plays: a Chromecast still showing what was left lets go of it.
-  if (!state.playing) { el.nowSub.textContent = t('player.idle'); castingLeft(); return; }
+  if (!state.playing) { el.nowSub.textContent = t('player.idle'); castingLeft(); nativeLeft(); return; }
   el.nowSub.textContent = [nowPlace(), cast.showing ? t('cast.playing') : ''].filter(Boolean).join(', ') || '—';
 }
 
@@ -738,8 +743,10 @@ export function renderNowSub() {
  * @param {{live?: boolean, startAt?: number}} spec
  */
 export function placeReached(spec) {
-  const at = spec.live ? 0 : Math.floor(el.video.currentTime || spec.startAt || 0);
-  const length = el.video.duration;
+  // The app's own player has the picture (js/nativeplayer.js): its place.
+  const held = nativePlace();
+  const at = spec.live ? 0 : Math.floor((held ? held.position : el.video.currentTime) || spec.startAt || 0);
+  const length = held ? held.duration ?? NaN : el.video.duration;
   return Number.isFinite(length) && at > length - 10 ? 0 : at;
 }
 

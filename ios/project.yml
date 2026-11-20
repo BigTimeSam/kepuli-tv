@@ -142,6 +142,9 @@ targets:
         # NSAllowsArbitraryLoads beside it would silently disable it.
         NSAppTransportSecurity:
           NSAllowsArbitraryLoadsInWebContent: true
+          # The app's own player (App/Player) fetches a provider's stream
+          # as the web view did, and most providers serve plain http.
+          NSAllowsArbitraryLoadsForMedia: true
         NSBonjourServices:
           - _googlecast._tcp
           - _CC1AD845._googlecast._tcp

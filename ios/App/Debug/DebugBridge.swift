@@ -177,7 +177,7 @@ final class DebugBridge: NSObject, WKScriptMessageHandler {
         }
         // What the other services report of themselves; left out when it is
         // not JSON, so that one bad value does not cost the whole answer.
-        for (key, value) in [("cast", Services.cast.debugState), ("reminders", Services.reminders.debugState)] where JSONSerialization.isValidJSONObject(value) {
+        for (key, value) in [("cast", Services.cast.debugState), ("reminders", Services.reminders.debugState), ("player", Services.player.debugState)] where JSONSerialization.isValidJSONObject(value) {
             state[key] = value
         }
         state["links"] = LinkOpener.shared.recorded

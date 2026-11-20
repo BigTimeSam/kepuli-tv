@@ -262,6 +262,7 @@ export default {
  "player.subs.look": "Εμφάνιση υποτίτλων",
  "player.subs.title": "Υπότιτλοι",
  "player.subs.off": "Χωρίς υπότιτλους",
+ "player.live": "Ζωντανά",
  "player.reload.title": "Νέα φόρτωση της ροής",
  "player.more": "Περισσότερες ενέργειες",
  "player.pip.title": "Εικόνα σε εικόνα",

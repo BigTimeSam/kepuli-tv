@@ -387,4 +387,40 @@ file is the working guide; `RELEASE.md` is the way to the App Store.
   process would otherwise be started without pause. The first reload is
   at once, as `kill` holds. No page that dies at its start was there to
   try it with.
-
+- **The app's own player is a view in the web view's scroll view**
+  (`App/Player`, `js/nativeplayer.js`; an experiment on the
+  `native-player` branch). Laid there, over the page's content, it moves
+  with the page by itself, and the page says only where the picture's box
+  is. Measured in the simulators (an iPad (A16) and an iPhone 17, iOS
+  26.5): the box said by the page and the view's frame agree to the
+  point, upright, lying down and in the app's full screen, which is
+  still the page's to lay out.
+- **The page's box may end between two pixels**, 376.875 points high on
+  the iPad: the row the view half covered showed as a hairline across a
+  dialog cut out of it. The frame is rounded to whole pixels and a hole
+  is cut half a point wider than the page said.
+- **What of the page lies over the picture is cut out of the view**, by a
+  mask, and `hitTest` leaves a touch there to the page: the `☰` menu, a
+  dialog and a toast show over the picture. The glass of the controls
+  (`UIGlassEffect`) is cut with the rest. A menu's box is its own, not
+  that of the bar it hangs from: asked for the outermost element that
+  does not hold the picture, the page named the bar, which lies beside
+  the picture, and the menu's top stayed under it.
+- **AVPlayer needs `NSAllowsArbitraryLoadsForMedia`** for a provider's
+  plain http, as the web view needs `NSAllowsArbitraryLoadsInWebContent`;
+  the two stand side by side in `project.yml` and in the review notes.
+- **An MP4's second sound track and second subtitle are not offered**
+  when the file does not mark them as alternatives of one another
+  (ffmpeg's default does not): AVFoundation then makes a group of one.
+  An HLS playlist's renditions are offered whole: of two sound tracks
+  and two subtitle tracks, with Finnish kept for both, the Finnish ones
+  were chosen.
+- **AVPlayer draws a subtitle at the picture's foot**, under the bar
+  with the time line. The text is taken with `AVPlayerItemLegibleOutput`
+  (`suppressesPlayerRendering`) and drawn by the view, above the bar
+  while the controls show.
+- **A script cannot touch the view**: the simulator takes no tap from
+  `simctl`, so the controls are driven by the page's words
+  (`player.pause`, `player.seek`), and a finger on them, the track menu
+  opened, AirPlay, picture in picture, the lock screen and a Chromecast
+  from the view's button are the device checklist's.

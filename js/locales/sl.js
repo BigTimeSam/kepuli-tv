@@ -278,6 +278,7 @@ export default {
  "player.subs.look": "Videz podnapisov",
  "player.subs.title": "Podnapisi",
  "player.subs.off": "Brez podnapisov",
+ "player.live": "V živo",
  "player.reload.title": "Ponovno naloži pretok",
  "player.more": "Več dejanj",
  "player.pip.title": "Slika v sliki",

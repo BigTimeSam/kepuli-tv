@@ -169,6 +169,14 @@ What differs:
   shows the track's subtitles in the system's style and not the player's
   messages. The header's full-screen button is not there: the app has no
   browser frame to leave.
+- **The app's own player** shows a channel that has an HLS address and a
+  film or an episode in MP4: its controls are the app's, shown by a tap
+  and gone four seconds later. The bar at the top has subtitles and
+  sound tracks (when the stream brings its own), picture in picture,
+  AirPlay and the Chromecast; the one at the bottom the time line, or
+  that the channel is live, and full screen. What that player does not
+  play (a channel with no HLS address, Matroska, the archive) plays as
+  before, with the system's video controls.
 - **Two channels side by side** are offered on the iPad, as on any
   tablet, and not on the iPhone.
 - **On an upright iPhone** the start page (Continue watching, the picks)
