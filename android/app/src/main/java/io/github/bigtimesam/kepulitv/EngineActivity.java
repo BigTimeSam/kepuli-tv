@@ -244,6 +244,13 @@ abstract class EngineActivity extends Activity {
             + "  extensions.getAddons.cache.enabled: false\n"
             + "  app.normandy.enabled: false\n"
             + "  dom.push.enabled: false\n"
+            // Not for quiet, and the one line here that is not: the full
+            // screen button of the app's own controls (PlayerControls) is
+            // pressed in the app, and its word reaches the page as a
+            // message, which the engine does not take for the viewer's own
+            // press; it refused the page's full screen for want of one. The
+            // engine shows nothing but the player's own page.
+            + "  full-screen-api.allow-trusted-requests-only: false\n"
             // A released engine takes another address for the settings
             // service only with this beside it.
             + "env:\n"

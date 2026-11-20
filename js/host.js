@@ -17,7 +17,7 @@
 // js/androidapp.js.
 
 import { api } from './browser.js';
-import { ios, native } from './platform.js';
+import { ios, native, remote } from './platform.js';
 
 /** The name each app's bridge answers to (ios/App/Bridge.swift; PlayerActivity's LINE). */
 const APPLICATION = ios ? 'io.github.bigtimesam.kepulitv' : 'kepuli';
@@ -118,7 +118,9 @@ export function on(type, listener) {
   return () => { set.delete(listener); };
 }
 
-if (native) {
+// A television's app is on the line for its own player alone
+// (js/nativeplayer.js); the rest of what the apps answer is not asked there.
+if (native || remote) {
   // A browser asked to open player.html?ios=1 or ?app=1 (the tests) has no
   // native application to connect to, or no such function at all.
   try {

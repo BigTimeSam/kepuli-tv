@@ -119,62 +119,109 @@ Matroska).
   `10.0.2.2`: give the account the host's own address on the network.
   Casting takes over somebody's television: ask first.
 
-## The app's own player (an experiment on the `android-native-player` branch)
+## The app's own player
 
-Not on main and not released: the branch is `android-native-player`, made
-over the iPhone's and the iPad's `native-player`, whose page side it
-shares.
+Both apps play what they can in a player of their own, Media3's
+ExoPlayer, as the app for the iPhone and the iPad plays it in AVPlayer:
+one player to the viewer on every device. The page's side is
+`js/nativeplayer.js`, shared with that app, and the words are the ones
+listed at the head of `ios/App/Player/NativePlayer.swift`.
 
 - **What it plays.** What `js/nativeplayer.js` hands it: HLS and the MP4
   family (what a Chromecast takes, `castMedia` in `js/cast.js`, without
   WebM). Matroska, MPEG-TS without an HLS address, a recording and the
   archive stay in the page, and so does whatever the app's player fails
   on, from where it had got to.
-- **`NativePlayer`** (the phone's package alone) answers the page's
-  `player.*` words on the same line as `cast.*`, the ones the iPhone's
-  app answers: `player.load`, `player.frame`, `player.play`,
-  `player.pause`, `player.seek`, `player.pip`, `player.stop`; it says
-  `player.state` (loading, playing, paused; idle with `finished` or
-  `error`) when it changes and every two seconds while the picture runs,
-  and `player.track` when the viewer chooses a track. The app says
-  `host` with `player: true` as the page connects, which is what makes
-  the page hand anything over.
+- **`NativePlayer`** (`src/main`, both packages) answers the page's
+  `player.*` words: `player.load`, `player.page`, `player.frame`,
+  `player.sound`, `player.play`, `player.pause`, `player.seek`,
+  `player.pip`, `player.stop`; it says `player.state` (loading, playing,
+  paused; idle with `finished` or `error`) when it changes and every two
+  seconds while the picture runs, `player.track` when the viewer chooses
+  a track, and `player.command` for a press that is the page's to do. The
+  app says `host` with `player: true` as the page connects, which is what
+  makes the page hand anything over. It is two slots, as in the iPhone's
+  app: every word names its `slot`, 2 for the second of two pictures side
+  by side.
+- **`PlayerControls`** are the controls, drawn as the iPhone's app draws
+  them: what plays and where the picture goes at the top (the speaker
+  beside a second picture, the stream's tracks, the small window, the
+  Cast mark; on the second picture the swap and the close), the transport
+  in the middle, the time line or the live mark with full screen at the
+  foot, each group in a dark capsule. A tap shows and hides them, four
+  seconds put them away, a paused picture keeps them, a double tap is
+  full screen, and the transport is away while the waiting wheel turns.
+  The marks are vectors in `src/main/res/drawable/player_*.xml`.
+- **The page's own picture has the same controls.** `player.load` with
+  `page: true` and no address lays the controls alone over the page's
+  `<video>` (the layer draws nothing else); `player.page` says where that
+  picture is, and play, pause, seek and the small window go back as
+  `player.command` for the page to do.
+- **Full screen is the page's**, whichever picture it is: the button and
+  the double tap say `player.command {what: "full"}`, the page asks the
+  engine for full screen, and the box it then says (`full: true` in
+  `player.frame`) is the whole window. The press is made in the app, so
+  the engine does not see it as the viewer's: the one preference in
+  `EngineActivity.QUIET` that is not for quiet
+  (`full-screen-api.allow-trusted-requests-only`) lets the page's request
+  through. Back leaves full screen as it leaves the page's own.
+- **On a television** the app shows the picture and the waiting wheel and
+  nothing else (`controls: false` in `player.load`): the remote drives
+  the page (`js/remote.js`), whose pause and seek go to the app's player
+  (`nativeToggle`, `nativeSeek`), and what the page draws in the picture
+  (the channel's banner, the bar of a seek, a wait or a failure) is said
+  as holes in the app's view. The page pauses the app's picture when the
+  app goes to the background and starts it again, as the engine does for
+  the page's own. The television's extension has the two permissions of
+  the phone's for the line (`syncManifests` in `app/build.gradle`), and
+  the television's `PlayerActivity` answers `player.*` alone.
 - **Only the web's addresses.** The page's address must be http or https
   (`Rules.playable`), and the player is built with an http source alone,
   so that a playlist of the provider's cannot name a file, a `content:`
   address or an asset of the app's for it to read. A redirect between
   http and https is followed, as the engine follows it for the page:
   the source speaks nothing else. Keep it so when the source is changed.
-- **The view** is Media3's `PlayerView` with its own controls
-  (`res/layout/native_player.xml`), in a layer added to the activity's
-  frame over the engine's view, at the box the page says: the box in the
-  window (`left`, `top`) times `ratio`, the screen's pixels to one of the
-  page's. Where the page draws something of its own over the picture (a
-  menu, a message: `holes`) the layer draws nothing and takes no touch,
-  which is why the view is a texture and not a surface.
-- **Full screen** is the controls' own button: the layer takes the whole
-  frame and the activity hides the bars; Back leaves it first. **The
-  small window** shows the layer as it lies in the page, without its
-  controls. **Sound out of sight** and the notification are as before:
-  the page tells the app what is on from the app's own `player.state`.
+- **The view** is Media3's `PlayerView` without its controls
+  (`res/layout/native_player.xml`), under `PlayerControls` in a layer
+  added to the activity's frame over the engine's view, at the box the
+  page says: the box in the window (`left`, `top`) times `ratio`, the
+  screen's pixels to one of the page's. Where the page draws something of
+  its own over the picture (a menu, a message: `holes`) the layer draws
+  nothing and takes no touch, which is why the view is a texture and not
+  a surface. The television's picture is therefore the same texture: the
+  surface of its own that the earlier experiment gave it for a sharper
+  picture (tag `archive/android-tv-native-player-spike`) cannot be cut
+  open for the page's marks, and is the thing to try next if the picture
+  on a real television is no better than the engine's.
+- **Under a dialog** of the page's the pictures are dimmed with the
+  dialog's backdrop and take no touch (`player.shade`, the page's word
+  for what the iPhone's app hears as `screen.shade`).
+- **The small window** shows the layer as it lies in the page, without
+  its controls. **Sound out of sight** and the notification are as
+  before: the page tells the app what is on from the app's own
+  `player.state`.
 - **The libraries.** `media3-exoplayer` and `media3-exoplayer-hls` are
-  the ones the engine brings already (1.11.1), named for the phone's
-  package; `media3-ui` is the one more. The package grew by 0.4 MB and
-  asks Android for nothing new (`node android/permissions.mjs`).
-- **Seen** on the phone's emulator (Android 16, the mock, 2026-11-20): an
-  MP4 film from 20 s and an HLS channel played in the page's box with the
-  page's own picture empty; the controls came at a tap; the page's ☰ menu
-  showed whole over the picture's lower edge; the full screen button
-  filled the screen and Back returned; the logo emptied the player; the
-  media session stayed the app's. **Not seen:** anything on a real
-  device (sound, speed, a provider's real streams, the screen off), the
-  small window, a track chosen in the controls, a tablet's wide layout,
-  a stream the player fails on (the page's side of that is the
-  `androidplayer` scenario's), and a dialog's backdrop is not dimmed over
-  the app's picture as the iPhone's app does it (`screen.shade`).
+  the ones the engine brings already (1.11.1); `media3-ui` is the one
+  more, for the picture's view. Neither package asks Android for anything
+  new (`node android/permissions.mjs`).
+- **Seen** (2026-11-20, the mock): on the phone's emulator (Android 16) a
+  channel and an MP4 film in the app's player and a Matroska film in the
+  page under the same controls, pause and play, the time line, full
+  screen from the button with the title over the picture, two channels
+  side by side with the speaker moved, the sides swapped and the second
+  closed from its bar; on a Galaxy Tab S8 a channel, and two side by side
+  with both pictures' controls; on the television's emulator (Android 14)
+  a channel and a film in the app's player in the page's box and full
+  screen, the banner and the seek's bar showing through, OK pausing and
+  playing, three presses of Right taking the film from 50 s to 62 s, and
+  Home pausing the picture until the app came back. **Not seen:** a real
+  television (the picture's quality, which is the reason for a player
+  there, and a real remote), a provider's real streams and sound on a
+  device, the small window, a track chosen in the menu, the Cast mark's
+  press and the screen off.
 - **Tests.** `Rules` has the player's pure rules with their JUnit cases;
   `node dev/playcheck.mjs androidplayer` plays the app's side of the line
-  in a desktop browser.
+  in a desktop browser, for the phone's page and the television's.
 
 ## Checks
 

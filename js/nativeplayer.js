@@ -1,8 +1,10 @@
 // @ts-check
-// The app's own player, in the app for the iPhone and the iPad: what
-// AVPlayer plays by itself (HLS, and the MP4 family) is shown by the app
-// in a view of its own, laid over the place of the page's picture, with
-// controls that are the app's (ios/App/Player): full screen, the
+// The app's own player, in the app for the iPhone and the iPad and in the
+// Android apps (Media3's ExoPlayer there, android/…/NativePlayer.java):
+// what the app's player plays by itself (HLS, and the MP4 family) is
+// shown by the app in a view of its own, laid over the place of the
+// page's picture, with controls that are the app's (ios/App/Player,
+// android/…/PlayerControls.java): full screen, the
 // Chromecast, AirPlay and picture in picture sit in its bars, where the
 // page's <video> had WebKit's controls and buttons laid over them. The
 // rest (MPEG-TS with no HLS address, Matroska, a recording, the archive)
@@ -20,6 +22,12 @@
 // is (`player.frame`) whenever it moves, and what of the page lies over
 // it: the app's view is above the page, and cuts those out of itself.
 //
+// On a television the app has the picture and nothing else: the remote
+// drives the page (js/remote.js), whose own marks over the picture (the
+// channel's banner, the bar of a seek, a wait or a failure) are said to
+// the app as holes in its view, and what the app cannot play is the
+// page's as it always was.
+//
 // In a browser, and in an app without the player, nothing here runs: the
 // app says in its greeting whether it has one.
 
@@ -30,7 +38,7 @@ import { t } from './i18n.js';
 import { renderInfoStrip } from './infostrip.js';
 import { shortLanguage } from './lang.js';
 import { noteEnded, notePlace, startAutoNext } from './nextepisode.js';
-import { native } from './platform.js';
+import { ios, native, remote } from './platform.js';
 import { nowPlace, playback } from './playing.js';
 import { playRelative, state } from './state.js';
 import * as store from './config.js';
@@ -87,6 +95,19 @@ export const nativeRunning = () => (showing ? showing.running : null);
  */
 export const nativePlace = () => { const now = held(); return now ? { position: now.position, duration: now.duration } : null; };
 
+/**
+ * The app's picture taken to a second of its length, at the remote's
+ * word (js/remote.js): true when the app's player has the picture.
+ * @param {number} to
+ */
+export function nativeSeek(to) {
+  const now = held();
+  if (!now) return false;
+  now.position = to;
+  send('player.seek', { to });
+  return true;
+}
+
 /** How far apart the picture's box is asked what lies over it, in CSS pixels: closer than a toast is tall. */
 const STEP = 32;
 
@@ -133,6 +154,21 @@ function coverings(box) {
 }
 
 /**
+ * What the page itself draws inside the picture on a television: the
+ * channel's banner, the bar of a seek, a wait or a failure. With a touch
+ * screen these are the app's controls' to say; under a remote the page
+ * says them, under the app's view, which is cut open where they are.
+ * @param {DOMRect} box
+ */
+function marks(box) {
+  if (!remote) return [];
+  return [...el.videowrap.querySelectorAll('#zap, #scrub, #overlay')].filter((mark) => !(/** @type {HTMLElement} */ (mark)).hidden && mark.getClientRects().length).map((mark) => {
+    const r = mark.getBoundingClientRect();
+    return { x: r.left - box.left, y: r.top - box.top, width: r.width, height: r.height, radius: 0 };
+  });
+}
+
+/**
  * The shape of the app's picture, once the app has said it, for the box
  * the page gives it (js/tracksui.js sizePicture); null when the picture
  * is the page's, or not known yet.
@@ -174,13 +210,15 @@ function sayFrame() {
   // not be pressed: "Buffering…" kept the controls over it, and its Cancel
   // did nothing under a finger.
   const away = showing?.page && (!el.overlay.hidden || el.video.ended);
-  const holes = box.width > 0 && box.height > 0 && !away ? coverings(box) : [];
+  const holes = box.width > 0 && box.height > 0 && !away ? [...coverings(box), ...marks(box)] : [];
   const frame = { x: box.left + scrollX, y: box.top + scrollY, width: away ? 0 : box.width, height: away ? 0 : box.height };
   // The same box in the window, and how many of the screen's pixels one
   // of the page's is: the Android app's view lies over the engine's, not
   // in the page's own scrolling, and is laid out in the screen's pixels.
-  const window = { left: box.left, top: box.top, ratio: devicePixelRatio };
-  const now = [...Object.values(frame), ...Object.values(window), ...holes.flatMap((hole) => Object.values(hole))].map((n) => Math.round(n * 2) / 2).join(' ');
+  // And whether the picture fills the screen, which the Android app's
+  // controls show (the iPhone's app makes its full screen itself).
+  const window = { left: box.left, top: box.top, ratio: devicePixelRatio, full: Boolean(document.fullscreenElement) };
+  const now = [...Object.values(frame), ...Object.values(window), ...holes.flatMap((hole) => Object.values(hole))].map((n) => Math.round(Number(n) * 2) / 2).join(' ');
   if (now === said) return;
   said = now;
   send('player.frame', { ...frame, ...window, holes });
@@ -238,7 +276,8 @@ const labels = () => ({
  * @param {import('./playback.js').PlaySpec} spec
  */
 function underControls(item, spec) {
-  if (!offered) return;
+  // Not on a television: the page's picture has the remote's own marks.
+  if (!offered || remote) return;
   showing = { item, spec, id: nextId++, page: true, position: 0, duration: null, running: false, width: 0, height: 0 };
   el.video.controls = false;
   el.videowrap.classList.add('appbars');
@@ -302,10 +341,11 @@ export function secondOrPlay(spec, title) {
   if (!offered) return false;
   const media = failed.has(spec.url) ? null : castMedia(spec);
   const own = !media || media.contentType === 'video/webm';
+  if (remote && own) return false;
   beside = { id: nextId++, spec, page: own };
   video2.controls = false;
   pane2.classList.add('appbars');
-  send('player.load', { slot: 2, id: beside.id, live: true, title, subtitle: '', labels: labels(), ...(own ? { page: true } : { url: media.url, startAt: 0 }) });
+  send('player.load', { slot: 2, id: beside.id, live: true, title, subtitle: '', labels: labels(), controls: !remote, ...(own ? { page: true } : { url: media.url, startAt: 0 }) });
   watch();
   sayPictureSound();
   return !own;
@@ -337,8 +377,8 @@ function sayFrameBeside() {
   const holes = box.width > 0 && box.height > 0 && !away ? coverings(box) : [];
   const frame = { x: box.left + scrollX, y: box.top + scrollY, width: away ? 0 : box.width, height: away ? 0 : box.height };
   // In the window too, as the first picture's box is said (sayFrame).
-  const window = { left: box.left, top: box.top, ratio: devicePixelRatio };
-  const now = [...Object.values(frame), ...Object.values(window), ...holes.flatMap((hole) => Object.values(hole))].map((n) => Math.round(n * 2) / 2).join(' ');
+  const window = { left: box.left, top: box.top, ratio: devicePixelRatio, full: Boolean(document.fullscreenElement) };
+  const now = [...Object.values(frame), ...Object.values(window), ...holes.flatMap((hole) => Object.values(hole))].map((n) => Math.round(Number(n) * 2) / 2).join(' ');
   if (now === saidBeside) return;
   saidBeside = now;
   send('player.frame', { slot: 2, ...frame, ...window, holes });
@@ -362,7 +402,7 @@ function heardBeside(word) {
 /** A press in the second picture's bar, or of its controls over the page's own picture. */
 function commandBeside(word) {
   if (!beside || word.id !== beside.id) return;
-  if (['sound', 'swap', 'close'].includes(word.what)) side?.command(word.what, 2);
+  if (['sound', 'swap', 'close', 'full'].includes(word.what)) side?.command(word.what, 2);
   else if (!beside.page) return;
   else if (word.what === 'play') video2.play().catch(() => {});
   else if (word.what === 'pause') video2.pause();
@@ -390,6 +430,8 @@ export function nativeOrPlay(item, spec) {
   send('player.load', {
     id: showing.id, url: media.url, live: media.live, startAt: media.live ? 0 : spec.startAt || 0,
     title: el.nowTitle.textContent, subtitle: nowPlace(), labels: labels(),
+    // A television's remote drives the page: the app shows the picture alone.
+    controls: !remote,
     // The languages kept from the files before (js/tracksui.js): the app
     // picks the stream's own tracks by them.
     subtitleLang: spec.subtitleLang || 'off', audioLang: spec.audioLang || 'auto',
@@ -478,9 +520,10 @@ async function choseTrack(word) {
   state.settings = await store.saveSettings({ [key]: language });
 }
 
-if (native) {
-  // Either app (the iPhone's and the iPad's, Android's on a phone or a
-  // tablet) may have a player and says so in its greeting.
+if (native || remote) {
+  // Any of the apps (the iPhone's and the iPad's, Android's on a phone or
+  // a tablet and on a television) may have a player and says so in its
+  // greeting.
   // The lock screen's and the headphones' next and previous, which the app hears for its own picture.
   // And what the controls over the page's own picture ask of it.
   on('player.command', (word) => {
@@ -488,6 +531,9 @@ if (native) {
     if (!showing || word.id !== showing.id) return;
     // The speaker beside a second picture: the sound is the page's to move.
     if (word.what === 'sound') { side?.command('sound', 1); return; }
+    // The Android app's full screen button and double tap: the page's
+    // full screen, which the picture's box and the app's view follow.
+    if (word.what === 'full') { side?.command('full', 1); return; }
     if (word.what === 'next' || word.what === 'previous') playRelative(word.what === 'previous' ? -1 : 1);
     else if (!showing.page) return;
     else if (word.what === 'play') el.video.play().catch(() => {});
@@ -501,6 +547,26 @@ if (native) {
     video2.addEventListener(type, sayPageBeside);
   }
   on('player.track', choseTrack);
+  // A modal dialog dims the page behind it, and the Android apps' picture
+  // lies over the page: the app is told the backdrop's colour while a
+  // dialog is open, dims its pictures with it and lets no touch through
+  // them. The iPhone's app hears the same of its whole screen
+  // (`screen.shade`, js/iosapp.js); a dialog opened over another lays
+  // its backdrop over the first one's.
+  if (!ios) {
+    let shade = '0 null';
+    new MutationObserver(() => {
+      if (!offered) return;
+      const dialogs = document.querySelectorAll('dialog:modal');
+      const rgba = dialogs.length ? (getComputedStyle(dialogs[0], '::backdrop').backgroundColor.match(/[\d.]+/g) || []).map(Number) : null;
+      // Opaque when the colour names three numbers.
+      if (rgba && rgba.length === 3) rgba.push(1);
+      if (rgba && rgba.length === 4) rgba[3] = 1 - (1 - rgba[3]) ** dialogs.length;
+      if (`${dialogs.length} ${rgba}` === shade) return;
+      shade = `${dialogs.length} ${rgba}`;
+      send('player.shade', { rgba: rgba && rgba.length === 4 ? rgba : null, open: dialogs.length > 0 });
+    }).observe(document.documentElement, { subtree: true, attributes: true, attributeFilter: ['open', 'data-theme'] });
+  }
   on('host', (host) => { offered = Boolean(host.player); });
   on('player.state', heard);
 }

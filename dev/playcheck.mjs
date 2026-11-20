@@ -10602,7 +10602,10 @@ const FRAME_BOUND = process.env.CI ? 100 : 50;
  * page's, what is on is told to the app from the app's own word of its
  * picture (no event of the page's <video> comes), the notification's
  * pause reaches the app's player, and a film the app fails on is played
- * by the page from where it had got to.
+ * by the page from where it had got to, under the app's controls, whose
+ * presses the page does. Then the television's page: the app gets the
+ * picture alone, the remote's seek goes to the app's player, and the bar
+ * the page draws for it is said as a hole in the app's view.
  */
 async function androidplayer(page, { target }) {
   const plain = bare(target.url).split('?')[0];
@@ -10641,6 +10644,7 @@ async function androidplayer(page, { target }) {
     const frame = (await sent('player.frame')).at(-1);
     assert(/\/movie\/demo\/demo\/5000\.mp4$/.test(load.url) && load.live === false && load.startAt === 42, `the film handed to the app: ${JSON.stringify({ ...load, url: load.url.replace(/^.*\/movie/, '…/movie') })}`);
     assert(here.engine === null && !here.src, `the page still plays beside the app's player: ${JSON.stringify(here)}`);
+    assert(load.controls === true && frame.full === false, `the app's controls asked for, the box not full: ${JSON.stringify({ controls: load.controls, full: frame.full })}`);
     assert([frame.left, frame.top, frame.width, frame.height].map(Math.round).join() === here.box.join() && frame.ratio === here.ratio && Array.isArray(frame.holes),
       `the box in the window said to the app ${JSON.stringify(frame)}, the picture's ${here.box} at ${here.ratio}`);
     // What is on is told from the app's word of its own picture.
@@ -10658,9 +10662,46 @@ async function androidplayer(page, { target }) {
     // A failure: the page plays the film itself, from where the app had got to.
     await say({ type: 'player.state', id: load.id, state: 'idle', reason: 'error', position: 61 });
     await waitFor(page, `document.getElementById('video').currentSrc && document.getElementById('video').currentTime >= 60`, 'the film in the page from the app\'s place', 30000);
-    const after = await evaluate(page, `({ at: Math.floor(document.getElementById('video').currentTime), loads: window.__sent.filter((m) => m.type === 'player.load').length })`);
-    assert(after.at >= 60 && after.at < 75 && after.loads === 1, `after the app's failure: ${JSON.stringify(after)}`);
-    return { ok: true, detail: `a film handed to the Android app from 42 s with its box in the window (${here.box.join(', ')} at ${here.ratio}); what is on, its shape and a pause told from the app's own word; after a failure the page played on from ${after.at} s` };
+    const after = await evaluate(page, `({ at: Math.floor(document.getElementById('video').currentTime), loads: window.__sent.filter((m) => m.type === 'player.load' && m.url).length,
+      own: window.__sent.filter((m) => m.type === 'player.load' && m.page === true).at(-1), controls: document.getElementById('video').controls })`);
+    assert(after.at >= 60 && after.at < 75 && after.loads === 1 && after.own && !after.controls, `after the app's failure: ${JSON.stringify(after)}`);
+    // The app's controls over the page's own picture: their presses are the page's to do.
+    await count('player.page', 1, 'the page\'s own picture said to the app\'s controls');
+    await say({ type: 'player.command', slot: 1, id: after.own.id, what: 'pause' });
+    await waitFor(page, `document.getElementById('video').paused`, 'the controls\' pause done by the page', 5000);
+    await say({ type: 'player.command', slot: 1, id: after.own.id, what: 'seek', to: 20 });
+    await waitFor(page, `Math.abs(document.getElementById('video').currentTime - 20) < 3`, 'the controls\' seek done by the page', 10000);
+
+    // A television: the same player with the picture alone, driven by the remote through the page.
+    await evaluate(page, `(document.documentElement.dataset.before = '1', true)`);
+    await page.call('Page.navigate', { url: `${plain}?tv=1#/movie` });
+    await sleep(1000);
+    await waitFor(page, `!document.documentElement.dataset.before && location.search === '?tv=1' && ${CONNECTED}`, 'the connection in the television\'s page');
+    await evaluate(page, `document.querySelector('dialog[open]')?.close()`);
+    await evaluate(page, `(async () => {
+      const listeners = [];
+      window.__sent = [];
+      window.__say = (message) => listeners.forEach((l) => l(message));
+      (await import('./js/host.js')).attach({
+        postMessage(m) { window.__sent.push(m); },
+        onMessage: { addListener: (l) => listeners.push(l) }, onDisconnect: { addListener() {} } });
+      window.__say({ type: 'host', v: 1, player: true });
+      const { state } = await import('./js/state.js'); const { playItem } = await import('./js/playing.js');
+      const film = (await state.lib.ensureFull('movie')).find((f) => String(f.id) === '5000'); playItem(film, { startAt: 0 }); return true; })()`, { gesture: true });
+    await count('player.load', 1, 'the film handed to the television\'s app');
+    const tv = (await sent('player.load')).at(-1);
+    assert(tv.controls === false && /\.mp4$/.test(tv.url), `the television's app gets the picture alone: ${JSON.stringify({ controls: tv.controls })}`);
+    await say({ type: 'player.state', id: tv.id, state: 'playing', position: 10, duration: 120, width: 1280, height: 720 });
+    await page.call('Runtime.evaluate', { expression: `document.getElementById('videowrap').requestFullscreen()`, userGesture: true, awaitPromise: true });
+    await waitFor(page, `document.fullscreenElement?.id === 'videowrap'`, 'the television\'s picture full screen', 5000);
+    for (let i = 0; i < 3; i++) { await pressKey(page, 'ArrowRight', 'ArrowRight', 39); await sleep(150); }
+    await waitFor(page, `(() => { const f = window.__sent.filter((m) => m.type === 'player.frame').at(-1); return Boolean(f) && f.full === true && f.holes.length > 0; })()`, 'the seek\'s bar said as a hole in the app\'s view', 5000);
+    await count('player.seek', 1, 'the remote\'s seek sent to the app\'s player');
+    const sought = (await sent('player.seek')).at(-1);
+    const untouched = await evaluate(page, `!document.getElementById('video').currentSrc`);
+    assert(sought.to > 20 && sought.to < 119 && untouched, `the remote's seek: ${JSON.stringify({ to: sought.to, untouched })}`);
+    await evaluate(page, `document.fullscreenElement && document.exitFullscreen()`).catch(() => {});
+    return { ok: true, detail: `the television's app got the picture alone and the remote's seek to ${Math.round(sought.to)} s, with its bar a hole in the app's view; a film handed to the Android app from 42 s with its box in the window (${here.box.join(', ')} at ${here.ratio}); what is on, its shape and a pause told from the app's own word; after a failure the page played on from ${after.at} s` };
   } finally {
     await page.call('Page.navigate', { url: plain }).catch(() => {});
     await sleep(800);

@@ -320,6 +320,9 @@ $('second-close').addEventListener('click', closeSecond);
 onSecondPicture({
   fail: (spec) => { if (showing && showing.spec === spec) { secondOrPlay(spec, showing.item.displayName || showing.item.n || ''); second.play(spec); } },
   command: (what, slot) => {
+    // Full screen is the one press that needs no second picture: the
+    // Android app's controls ask it of the first picture alone as well.
+    if (what === 'full') { toggleFullscreen(); return; }
     if (!showing) return;
     if (what === 'close') closeSecond();
     else if (what === 'swap') setSwapped(!el.videowrap.classList.contains('swapped'));

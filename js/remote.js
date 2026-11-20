@@ -34,6 +34,7 @@ import { state, vlist } from './state.js';
 import { scrubStep, towards } from './listnavigation.js';
 import { gridColumns } from './coversui.js';
 import { enterFullscreen, togglePause } from './playercontrols.js';
+import { nativePlace, nativePlaying, nativeRunning, nativeSeek } from './nativeplayer.js';
 import { remote } from './platform.js';
 import { dismissToast } from './toast.js';
 
@@ -71,10 +72,13 @@ export function wireRemote(app) {
   // The app sent to the background stops the picture (the television's
   // Home, or Back from the list); brought back, it goes on by itself, as a
   // television does, rather than standing still until OK is found.
+  // The app's own picture (js/nativeplayer.js) does not stop with the
+  // page as the page's does: it is paused here, and goes on the same way.
   let wasPlaying = false;
+  const running = () => nativeRunning() ?? !el.video.paused;
   document.addEventListener('visibilitychange', () => {
-    if (document.hidden) wasPlaying = !el.video.paused;
-    else if (wasPlaying && el.video.paused) togglePause();
+    if (document.hidden) { wasPlaying = running(); if (wasPlaying && nativePlaying()) togglePause(); }
+    else if (wasPlaying && !running()) togglePause();
   });
   // Out of full screen the keys go back to the list the channel came from.
   document.addEventListener('fullscreenchange', () => { showBanner(); if (!document.fullscreenElement) { endScrub(false); focusList(); } });
@@ -228,18 +232,24 @@ const stamp = (s) => {
   return `${Math.floor(whole / 3600)}:${two(Math.floor(whole / 60) % 60)}:${two(whole % 60)}`;
 };
 
+/** Where the picture is and how long it is: the app's own player's (js/nativeplayer.js), else the page's. */
+function place() {
+  const held = nativePlace();
+  return held ? { now: held.position, length: held.duration ?? NaN } : { now: el.video.currentTime, length: el.video.duration };
+}
+
 function paintScrub() {
-  const { video } = el;
+  const { now, length } = place();
   $('scrub-time').textContent = stamp(scrub.target);
-  $('scrub-length').textContent = stamp(video.duration);
-  $('scrub-fill').style.width = `${(scrub.target / video.duration) * 100}%`;
-  $('scrub-now').style.left = `${(video.currentTime / video.duration) * 100}%`;
+  $('scrub-length').textContent = stamp(length);
+  $('scrub-fill').style.width = `${(scrub.target / length) * 100}%`;
+  $('scrub-now').style.left = `${(now / length) * 100}%`;
   $('scrub').hidden = false;
 }
 
 /** One step towards the end (1) or the start (-1); `steps` for the remote's own winding keys. */
 function seek(way, steps = 1) {
-  const { video } = el;
+  const video = { currentTime: place().now, duration: place().length };
   if (!Number.isFinite(video.duration) || !video.duration) return;
   const now = performance.now();
   // A key held down repeats faster than the eye follows the bar.
@@ -261,7 +271,7 @@ function endScrub(jump) {
   const { target } = scrub;
   scrub = null;
   $('scrub').hidden = true;
-  if (jump && Number.isFinite(el.video.duration)) el.video.currentTime = target;
+  if (jump && !nativeSeek(target) && Number.isFinite(el.video.duration)) el.video.currentTime = target;
 }
 
 export const swallow = (e) => { e.preventDefault(); e.stopPropagation(); };

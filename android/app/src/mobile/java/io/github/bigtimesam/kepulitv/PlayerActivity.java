@@ -316,18 +316,23 @@ public class PlayerActivity extends EngineActivity {
                 }
 
                 @Override
-                public void fullScreen(boolean on) {
-                    PlayerActivity.this.fullScreen(on);
-                }
-
-                @Override
-                public void smallWindow() {
-                    if (pip || !small()) return;
+                public boolean smallWindow(boolean go) {
+                    if (!go) return small();
+                    if (pip || !small()) return false;
                     try {
                         enterPictureInPictureMode(window());
+                        return true;
                     } catch (IllegalStateException e) {
                         Log.i(TAG, "no picture in picture", e);
+                        return false;
                     }
+                }
+
+                // The same as the page's own Cast button: Google's dialogs.
+                @Override
+                public boolean cast(boolean go) {
+                    if (go) cast.handle("cast.prompt", new JSONObject());
+                    return true;
                 }
             });
         }
@@ -390,9 +395,7 @@ public class PlayerActivity extends EngineActivity {
     /** Back leaves the full screen first; the rest is the player's Escape. */
     @Override
     protected void back() {
-        // The app's own picture filling the screen is left first, as the page's is.
-        if (player != null && player.full()) player.setFull(false);
-        else if (fullScreen) session.exitFullScreen();
+        if (fullScreen) session.exitFullScreen();
         else super.back();
     }
 
