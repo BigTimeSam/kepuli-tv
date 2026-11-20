@@ -119,6 +119,57 @@ Matroska).
   `10.0.2.2`: give the account the host's own address on the network.
   Casting takes over somebody's television: ask first.
 
+## The app's own player (an experiment on the `android-native-player` branch)
+
+Not on main and not released: the branch is `android-native-player`, made
+over the iPhone's and the iPad's `native-player`, whose page side it
+shares.
+
+- **What it plays.** What `js/nativeplayer.js` hands it: HLS and the MP4
+  family (what a Chromecast takes, `castMedia` in `js/cast.js`, without
+  WebM). Matroska, MPEG-TS without an HLS address, a recording and the
+  archive stay in the page, and so does whatever the app's player fails
+  on, from where it had got to.
+- **`NativePlayer`** (the phone's package alone) answers the page's
+  `player.*` words on the same line as `cast.*`, the ones the iPhone's
+  app answers: `player.load`, `player.frame`, `player.play`,
+  `player.pause`, `player.seek`, `player.pip`, `player.stop`; it says
+  `player.state` (loading, playing, paused; idle with `finished` or
+  `error`) when it changes and every two seconds while the picture runs,
+  and `player.track` when the viewer chooses a track. The app says
+  `host` with `player: true` as the page connects, which is what makes
+  the page hand anything over.
+- **The view** is Media3's `PlayerView` with its own controls
+  (`res/layout/native_player.xml`), in a layer added to the activity's
+  frame over the engine's view, at the box the page says: the box in the
+  window (`left`, `top`) times `ratio`, the screen's pixels to one of the
+  page's. Where the page draws something of its own over the picture (a
+  menu, a message: `holes`) the layer draws nothing and takes no touch,
+  which is why the view is a texture and not a surface.
+- **Full screen** is the controls' own button: the layer takes the whole
+  frame and the activity hides the bars; Back leaves it first. **The
+  small window** shows the layer as it lies in the page, without its
+  controls. **Sound out of sight** and the notification are as before:
+  the page tells the app what is on from the app's own `player.state`.
+- **The libraries.** `media3-exoplayer` and `media3-exoplayer-hls` are
+  the ones the engine brings already (1.11.1), named for the phone's
+  package; `media3-ui` is the one more. The package grew by 0.4 MB and
+  asks Android for nothing new (`node android/permissions.mjs`).
+- **Seen** on the phone's emulator (Android 16, the mock, 2026-11-20): an
+  MP4 film from 20 s and an HLS channel played in the page's box with the
+  page's own picture empty; the controls came at a tap; the page's ☰ menu
+  showed whole over the picture's lower edge; the full screen button
+  filled the screen and Back returned; the logo emptied the player; the
+  media session stayed the app's. **Not seen:** anything on a real
+  device (sound, speed, a provider's real streams, the screen off), the
+  small window, a track chosen in the controls, a tablet's wide layout,
+  a stream the player fails on (the page's side of that is the
+  `androidplayer` scenario's), and a dialog's backdrop is not dimmed over
+  the app's picture as the iPhone's app does it (`screen.shade`).
+- **Tests.** `Rules` has the player's pure rules with their JUnit cases;
+  `node dev/playcheck.mjs androidplayer` plays the app's side of the line
+  in a desktop browser.
+
 ## Checks
 
 `node android/permissions.mjs`, after a build of both debug packages, lists

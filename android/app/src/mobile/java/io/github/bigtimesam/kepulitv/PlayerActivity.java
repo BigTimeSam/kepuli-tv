@@ -90,6 +90,8 @@ public class PlayerActivity extends EngineActivity {
     private JSONObject waiting;
     /** The Chromecast sender behind the page's cast.* messages. */
     private CastService cast;
+    /** The app's own player behind the page's player.* messages. */
+    private NativePlayer player;
 
     @Override
     protected String page() { return "player.html?app=1"; }
@@ -272,6 +274,7 @@ public class PlayerActivity extends EngineActivity {
                         JSONObject word = (JSONObject) message;
                         String type = word.optString("type", "");
                         if (type.startsWith("cast.")) cast.handle(type, word);
+                        else if (type.startsWith("player.")) player().handle(type, word);
                         else if (type.equals("app.now")) now(word);
                         else if (type.equals("app.shape")) shape(word.optInt("width"), word.optInt("height"));
                         else if (type.equals("app.art")) art(word.optString("png", ""));
@@ -282,9 +285,17 @@ public class PlayerActivity extends EngineActivity {
                     public void onDisconnect(WebExtension.Port from) {
                         if (page != from) return;
                         page = null;
+                        if (player != null) player.stop();
                         nothing();
                     }
                 });
+                // Who the app is, as the iPhone's and the iPad's says it: the
+                // page hands a player of the app's own what it can play.
+                try {
+                    port.postMessage(new JSONObject().put("type", "host").put("v", 1).put("player", true));
+                } catch (JSONException e) {
+                    Log.w(TAG, "the app not named to the page", e);
+                }
                 if (pip) tell("app.pip", "on", true);
                 cast.pageConnected();
                 if (waiting != null) port.postMessage(waiting);
@@ -293,6 +304,34 @@ public class PlayerActivity extends EngineActivity {
         };
         extension.setMessageDelegate(line, LINE);
         session.getWebExtensionController().setMessageDelegate(extension, line, LINE);
+    }
+
+    /** The app's own player, made when the page first hands it something. */
+    private NativePlayer player() {
+        if (player == null) {
+            player = new NativePlayer(this, frame, new NativePlayer.Host() {
+                @Override
+                public void say(JSONObject word) {
+                    if (page != null) page.postMessage(word);
+                }
+
+                @Override
+                public void fullScreen(boolean on) {
+                    PlayerActivity.this.fullScreen(on);
+                }
+
+                @Override
+                public void smallWindow() {
+                    if (pip || !small()) return;
+                    try {
+                        enterPictureInPictureMode(window());
+                    } catch (IllegalStateException e) {
+                        Log.i(TAG, "no picture in picture", e);
+                    }
+                }
+            });
+        }
+        return player;
     }
 
     /** A word to the page, of a type and one field; one that comes before the page is there is not kept. */
@@ -351,7 +390,9 @@ public class PlayerActivity extends EngineActivity {
     /** Back leaves the full screen first; the rest is the player's Escape. */
     @Override
     protected void back() {
-        if (fullScreen) session.exitFullScreen();
+        // The app's own picture filling the screen is left first, as the page's is.
+        if (player != null && player.full()) player.setFull(false);
+        else if (fullScreen) session.exitFullScreen();
         else super.back();
     }
 
@@ -775,6 +816,7 @@ public class PlayerActivity extends EngineActivity {
 
     @Override
     protected void onDestroy() {
+        if (player != null) player.stop();
         PlaybackService.controls = null;
         PlaybackService.stop(this);
         super.onDestroy();
@@ -830,6 +872,7 @@ public class PlayerActivity extends EngineActivity {
     public void onPictureInPictureModeChanged(boolean small, Configuration configuration) {
         super.onPictureInPictureModeChanged(small, configuration);
         pip = small;
+        if (player != null) player.small(small);
         tell("app.pip", "on", small);
         frame.requestApplyInsets();
         if (!small && !started) press(PlaybackService.PAUSE);

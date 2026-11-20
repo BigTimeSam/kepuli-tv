@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- The app's own player (NativePlayer): Media3's view with its own
+     controls. A texture, not a surface: the layer it lies in cuts holes
+     in itself where the page draws a menu or a message over the picture,
+     and a surface is not cut by its parent's drawing. -->
+<androidx.media3.ui.PlayerView xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:id="@+id/native_player"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@android:color/black"
+    app:surface_type="texture_view"
+    app:show_buffering="when_playing"
+    app:use_controller="true"
+    app:auto_show="true"
+    app:show_timeout="3000"
+    app:resize_mode="fit" />

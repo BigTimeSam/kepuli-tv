@@ -194,6 +194,14 @@ dependencies {
     // (CastService): a television is what is cast to. It brings AndroidX's
     // media router and AppCompat, whose dialogs it shows.
     mobileImplementation 'com.google.android.gms:play-services-cast-framework:23.0.0'
+    // The app's own player (NativePlayer, an experiment on this branch),
+    // in the phone's and the tablet's app alone. The player and its HLS
+    // part are the ones the engine brings already, named here at the
+    // engine's version so that the two stay one; the view with its
+    // controls is the one library more.
+    mobileImplementation 'androidx.media3:media3-exoplayer:1.11.1'
+    mobileImplementation 'androidx.media3:media3-exoplayer-hls:1.11.1'
+    mobileImplementation 'androidx.media3:media3-ui:1.11.1'
     // Not used here by name: the engine's media libraries (AndroidX
     // Media3) bring Guava into both packages, and brought 33.3.1, which
     // has a known fault (memory taken without limit when one of its maps

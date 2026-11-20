@@ -1,5 +1,6 @@
 package io.github.bigtimesam.kepulitv;
 
+import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
@@ -59,5 +60,40 @@ public class RulesTest {
         assertEquals(16f / 9, Rules.ratio(1920, 1080), 0.001f);
         assertEquals(2.39f, Rules.ratio(4000, 100), 0.001f);
         assertEquals(1 / 2.39f, Rules.ratio(100, 4000), 0.001f);
+    }
+
+    @Test
+    public void theAppsPlayerTakesTheWebsAddressesAlone() {
+        assertTrue(Rules.playable("http://provider.example/live/1.m3u8"));
+        assertTrue(Rules.playable("HTTPS://provider.example/movie/1.mp4"));
+        assertFalse(Rules.playable("file:///sdcard/film.mp4"));
+        assertFalse(Rules.playable("intent://film#Intent;end"));
+        assertFalse(Rules.playable(null));
+    }
+
+    @Test
+    public void thePagesBoxInTheScreensPixels() {
+        assertArrayEquals(new int[] { 26, 420, 1050, 591 }, Rules.pixels(10, 160, 400, 225, 2.625));
+        // Two boxes that touch in the page touch on the screen: 10.4 + 100.3 is where the next begins.
+        int[] first = Rules.pixels(10.4, 0, 100.3, 50, 2.625), second = Rules.pixels(110.7, 0, 40, 50, 2.625);
+        assertEquals(first[0] + first[2], second[0]);
+        assertArrayEquals(new int[] { 0, 0, 0, 0 }, Rules.pixels(0, 0, -5, 0, 3));
+    }
+
+    @Test
+    public void thePicturesStateAsThePageHearsIt() {
+        assertEquals("loading", Rules.state(false, false));
+        assertEquals("loading", Rules.state(false, true));
+        assertEquals("playing", Rules.state(true, true));
+        assertEquals("paused", Rules.state(true, false));
+    }
+
+    @Test
+    public void aTouchInAHoleIsThePages() {
+        assertTrue(Rules.within(15, 15, 10, 10, 20, 20));
+        assertFalse(Rules.within(20, 15, 10, 10, 20, 20));
+        assertFalse(Rules.within(5, 15, 10, 10, 20, 20));
+        assertTrue(Rules.same(null, ""));
+        assertFalse(Rules.same("fi", null));
     }
 }

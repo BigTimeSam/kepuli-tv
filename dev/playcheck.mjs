@@ -373,6 +373,7 @@
 //                                     KEPULI_LONG_SECS; skipped without it
 //   node dev/playcheck.mjs appcast    the cast session in the Android app
 //   node dev/playcheck.mjs appplayer  the app's own player in the iPhone and iPad app, as the page meets it
+//   node dev/playcheck.mjs androidplayer  the Android app's own player, as the page meets it
 //                                     (player.html?app=1, the app's side
 //                                     of the line played here): the mark
 //                                     with a device near, a film handed
@@ -10332,7 +10333,7 @@ const SCENARIOS = { buffering, livebuffering, filmbuffering, emptyfile, tsasmp4,
   lastchannel, nextepisode, continuewatching, reminders, update, seeklag, cuesretry, quota, catchupfreeze, catchupfull, twotabs, switchstop, resettabs,
   refresh, restorenav, guidekeep, removeaccount, m3u, sync, holes, picks, flakyserver, accountform, stalker, record, guidefavs, guidenames, categories, homecountry, noleak, perf, pseudo, startup, soak, phone, headline, accountnow, onerow, nowbarfit, subsize, arrowmiddle, idlelight, iossubs, starquiet, phonestar, pickertouch, pickerkeyboard, phonescroll, menutap, wakelock, livecut, episodenames, gotochannel, filmdetails, favorder, countryfilter, tilekeys, routes, programmekeys, searchlimit, filterfolds, focusrings, xtreamoffer, guideclick, filmaddress, filmfacts, playlistfile, perflive, perfplaylist, remoteimages, phoneguide, handoff, closedplan, secondpicture, liverewind, upcoming,
   polish, iosapp,
-  remote, remotescrub, appback, appcast, appplayer };
+  remote, remotescrub, appback, appcast, appplayer, androidplayer };
 
 // The mock's whole-list answers stall for these, longer than the request limit.
 const SLOW_LIST_MS = { cancel: 60000, timeout: 60000 };
@@ -10358,6 +10359,80 @@ if (unknown.length) { console.error(`unknown scenario ${unknown.join(' ')}; the 
 // frames of 67 ms in perfplaylist and perf alike, a run in three. Twice
 // that still catches a list that stops being virtual.
 const FRAME_BOUND = process.env.CI ? 100 : 50;
+
+/**
+ * The Android app's own player as the page meets it (js/nativeplayer.js,
+ * android/…/NativePlayer.java), in the page of the Android app on a phone
+ * or a tablet with the app's side of the port played here: the app says
+ * in its greeting that it has a player, a film is handed to it with the
+ * picture's box in the window and the screen's pixels to one of the
+ * page's, what is on is told to the app from the app's own word of its
+ * picture (no event of the page's <video> comes), the notification's
+ * pause reaches the app's player, and a film the app fails on is played
+ * by the page from where it had got to.
+ */
+async function androidplayer(page, { target }) {
+  const plain = bare(target.url).split('?')[0];
+  const assert = (ok, message) => { if (!ok) throw new Error(message); };
+  const sent = (type) => evaluate(page, `window.__sent.filter((m) => m.type === ${JSON.stringify(type)})`);
+  const say = (message) => evaluate(page, `(window.__say(${JSON.stringify(message)}), true)`);
+  const count = (type, n, what) => waitFor(page, `window.__sent.filter((m) => m.type === ${JSON.stringify(type)}).length >= ${n}`, what, 15000);
+  try {
+    await evaluate(page, `(document.documentElement.dataset.before = '1', true)`);
+    await page.call('Page.navigate', { url: `${plain}?app=1` });
+    await sleep(1000);
+    await waitFor(page, `!document.documentElement.dataset.before && ${CONNECTED}`, 'the connection in the app\'s page');
+    await evaluate(page, `document.querySelector('dialog[open]')?.close()`);
+    await evaluate(page, `(async () => {
+      const listeners = [];
+      window.__sent = [];
+      window.__say = (message) => listeners.forEach((l) => l(message));
+      (await import('./js/host.js')).attach({
+        postMessage(m) { window.__sent.push(m); },
+        onMessage: { addListener: (l) => listeners.push(l) }, onDisconnect: { addListener() {} } });
+      const { state } = await import('./js/state.js');
+      state.settings = { ...state.settings, resumeEnabled: true };
+      window.__say({ type: 'host', v: 1, player: true });
+      window.__say({ type: 'cast.state', state: 'disconnected', device: null, devices: -1 });
+      return true; })()`);
+    await evaluate(page, `(async () => { const { state } = await import('./js/state.js'); const { playItem } = await import('./js/playing.js');
+      const film = (await state.lib.ensureFull('movie')).find((f) => String(f.id) === '5000'); playItem(film, { startAt: 42 }); return true; })()`, { gesture: true });
+    await count('player.load', 1, 'the film handed to the Android app');
+    await waitFor(page, `(() => { const f = window.__sent.filter((m) => m.type === 'player.frame').at(-1), b = document.getElementById('video').getBoundingClientRect();
+      return Boolean(f) && Math.abs(f.height - b.height) < 1 && Math.abs(f.width - b.width) < 1; })()`, 'the picture\'s box said to the app', 15000);
+    // The box settles as the film's details arrive: the last one said is the picture's.
+    await sleep(1200);
+    const [load] = await sent('player.load');
+    const here = await evaluate(page, `(async () => { const v = document.getElementById('video'), b = v.getBoundingClientRect();
+      return { engine: (await import('./js/playing.js')).playback.engineKey, src: v.currentSrc, box: [b.left, b.top, b.width, b.height].map(Math.round), ratio: devicePixelRatio }; })()`);
+    const frame = (await sent('player.frame')).at(-1);
+    assert(/\/movie\/demo\/demo\/5000\.mp4$/.test(load.url) && load.live === false && load.startAt === 42, `the film handed to the app: ${JSON.stringify({ ...load, url: load.url.replace(/^.*\/movie/, '…/movie') })}`);
+    assert(here.engine === null && !here.src, `the page still plays beside the app's player: ${JSON.stringify(here)}`);
+    assert([frame.left, frame.top, frame.width, frame.height].map(Math.round).join() === here.box.join() && frame.ratio === here.ratio && Array.isArray(frame.holes),
+      `the box in the window said to the app ${JSON.stringify(frame)}, the picture's ${here.box} at ${here.ratio}`);
+    // What is on is told from the app's word of its own picture.
+    await say({ type: 'player.state', id: load.id, state: 'playing', position: 43, duration: 6000, width: 1280, height: 720 });
+    await waitFor(page, `window.__sent.filter((m) => m.type === 'app.now').at(-1)?.playing === true`, 'what plays told to the app');
+    const shape = (await sent('app.shape')).at(-1);
+    assert(shape && shape.width === 1280 && shape.height === 720, `the picture's shape told to the app: ${JSON.stringify(shape)}`);
+    // Pause from the notification goes to the app's player, and the app's word of it back to the notification.
+    await say({ type: 'app.press', what: 'pause' });
+    await count('player.pause', 1, 'the notification\'s pause sent to the app\'s player');
+    await say({ type: 'player.state', id: load.id, state: 'paused', position: 50, duration: 6000, width: 1280, height: 720 });
+    await waitFor(page, `window.__sent.filter((m) => m.type === 'app.now').at(-1)?.playing === false`, 'the pause told to the app');
+    await say({ type: 'app.press', what: 'play' });
+    await count('player.play', 1, 'the notification\'s play sent to the app\'s player');
+    // A failure: the page plays the film itself, from where the app had got to.
+    await say({ type: 'player.state', id: load.id, state: 'idle', reason: 'error', position: 61 });
+    await waitFor(page, `document.getElementById('video').currentSrc && document.getElementById('video').currentTime >= 60`, 'the film in the page from the app\'s place', 30000);
+    const after = await evaluate(page, `({ at: Math.floor(document.getElementById('video').currentTime), loads: window.__sent.filter((m) => m.type === 'player.load').length })`);
+    assert(after.at >= 60 && after.at < 75 && after.loads === 1, `after the app's failure: ${JSON.stringify(after)}`);
+    return { ok: true, detail: `a film handed to the Android app from 42 s with its box in the window (${here.box.join(', ')} at ${here.ratio}); what is on, its shape and a pause told from the app's own word; after a failure the page played on from ${after.at} s` };
+  } finally {
+    await page.call('Page.navigate', { url: plain }).catch(() => {});
+    await sleep(800);
+  }
+}
 
 /**
  * One player tab before each scenario, in front. A planned recording that

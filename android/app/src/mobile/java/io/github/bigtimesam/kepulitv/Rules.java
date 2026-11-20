@@ -86,4 +86,43 @@ final class Rules {
     static float ratio(int width, int height) {
         return Math.max(100f / 239, Math.min(239f / 100, (float) width / height));
     }
+
+    /* ------------------------------------------- the app's own player */
+
+    /**
+     * Whether the app's player is handed this address at all: one of the
+     * web's, as a provider's are. Anything else (a file, a content: or an
+     * intent: address) is not the page's to hand over.
+     */
+    static boolean playable(String url) {
+        if (url == null) return false;
+        String lower = url.toLowerCase(Locale.ROOT);
+        return lower.startsWith("http://") || lower.startsWith("https://");
+    }
+
+    /**
+     * A box of the page's, in its own pixels, as the screen's: left, top,
+     * width, height. The edges are rounded each by itself, so that two
+     * boxes that touch in the page touch on the screen.
+     */
+    static int[] pixels(double left, double top, double width, double height, double ratio) {
+        int x = (int) Math.round(left * ratio), y = (int) Math.round(top * ratio);
+        int right = (int) Math.round((left + width) * ratio), bottom = (int) Math.round((top + height) * ratio);
+        return new int[] { x, y, Math.max(0, right - x), Math.max(0, bottom - y) };
+    }
+
+    /** What the page is told of the picture: loading until it can play, then playing or paused. */
+    static String state(boolean ready, boolean playing) {
+        return !ready ? "loading" : playing ? "playing" : "paused";
+    }
+
+    /** Whether a point lies in a box given by its edges. */
+    static boolean within(float x, float y, float left, float top, float right, float bottom) {
+        return x >= left && x < right && y >= top && y < bottom;
+    }
+
+    /** Two languages of a track, where none (subtitles off) is the same as the empty one. */
+    static boolean same(String a, String b) {
+        return (a == null ? "" : a).equals(b == null ? "" : b);
+    }
 }

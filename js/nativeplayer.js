@@ -26,7 +26,7 @@ import { t } from './i18n.js';
 import { renderInfoStrip } from './infostrip.js';
 import { shortLanguage } from './lang.js';
 import { noteEnded, notePlace, startAutoNext } from './nextepisode.js';
-import { ios } from './platform.js';
+import { native } from './platform.js';
 import { nowPlace, playback } from './playing.js';
 import { playRelative, state } from './state.js';
 import * as store from './config.js';
@@ -65,6 +65,14 @@ function playable(spec) {
 export const nativePlaying = () => Boolean(showing);
 
 /**
+ * Whether the app's picture runs, for what the page tells the Android
+ * app of what is on (js/androidapp.js); null when the picture is the
+ * page's, whose <video> answers.
+ * @returns {boolean | null}
+ */
+export const nativeRunning = () => (showing ? showing.running : null);
+
+/**
  * Where the app's picture has got to, for handing the stream on (a
  * Chromecast, another player); null when the picture is the page's.
  * @returns {{ position: number, duration: number | null } | null}
@@ -86,8 +94,18 @@ const STEP = 32;
  */
 function coverings(box) {
   const found = new Map();
-  for (let y = box.top + STEP / 2; y < box.bottom; y += STEP) {
-    for (let x = box.left + STEP / 2; x < box.right; x += STEP) {
+  // The grid, and the box's last row and column by themselves: a menu
+  // that hangs from the bar under the picture lies over its last 12 px
+  // only, between two of the grid's rows, and stood cut off by the
+  // picture (the Android app on a phone).
+  const along = (/** @type {number} */ from, /** @type {number} */ to) => {
+    const at = [];
+    for (let v = from + STEP / 2; v < to; v += STEP) at.push(v);
+    if (to - from > 2) at.push(from + 1, to - 1);
+    return at;
+  };
+  for (const y of along(box.top, box.bottom)) {
+    for (const x of along(box.left, box.right)) {
       let layer = document.elementFromPoint(x, y);
       if (!layer || el.videowrap.contains(layer) || layer.contains(el.videowrap)) continue;
       // The box that is drawn there: the nearest one laid out of the
@@ -143,10 +161,14 @@ function sayFrame() {
   const box = el.video.getBoundingClientRect();
   const holes = box.width > 0 && box.height > 0 ? coverings(box) : [];
   const frame = { x: box.left + scrollX, y: box.top + scrollY, width: box.width, height: box.height };
-  const now = [...Object.values(frame), ...holes.flatMap((hole) => Object.values(hole))].map((n) => Math.round(n * 2) / 2).join(' ');
+  // The same box in the window, and how many of the screen's pixels one
+  // of the page's is: the Android app's view lies over the engine's, not
+  // in the page's own scrolling, and is laid out in the screen's pixels.
+  const window = { left: box.left, top: box.top, ratio: devicePixelRatio };
+  const now = [...Object.values(frame), ...Object.values(window), ...holes.flatMap((hole) => Object.values(hole))].map((n) => Math.round(n * 2) / 2).join(' ');
   if (now === said) return;
   said = now;
-  send('player.frame', { ...frame, holes });
+  send('player.frame', { ...frame, ...window, holes });
 }
 
 /** A press or a key may have opened or closed something over the picture: looked at when the page has drawn it. */
@@ -282,7 +304,9 @@ async function choseTrack(word) {
   state.settings = await store.saveSettings({ [key]: language });
 }
 
-if (ios) {
+if (native) {
+  // Either app (the iPhone's and the iPad's, Android's on a phone or a
+  // tablet) may have a player and says so in its greeting.
   // The lock screen's and the headphones' next and previous, which the app hears for its own picture.
   on('player.command', (word) => { if (showing && word.id === showing.id) playRelative(word.what === 'previous' ? -1 : 1); });
   on('player.track', choseTrack);

@@ -12,6 +12,7 @@ import { state } from './state.js';
 import { togglePause } from './playercontrols.js';
 import { inApp } from './platform.js';
 import { castingNow } from './castui.js';
+import { nativeRunning } from './nativeplayer.js';
 import { on, send } from './host.js';
 import { isText, layer, swallow } from './remote.js';
 
@@ -56,10 +57,13 @@ export function wireAndroidApp(app) {
  * from the cast session's by that; they are of one kind now.
  */
 function talkWithApp() {
+  // Whether the picture runs: the app's own player's, where it has the
+  // picture (js/nativeplayer.js), else the page's.
+  const running = () => nativeRunning() ?? (!el.video.paused && !el.video.ended);
   on('app.pip', (said) => document.documentElement.classList.toggle('pip', Boolean(said.on)));
   on('app.press', ({ what }) => {
     if (what === 'next' || what === 'previous') hooks.zap(what === 'next' ? 1 : -1);
-    else if ((what === 'play' && el.video.paused) || (what === 'pause' && !el.video.paused)) togglePause();
+    else if ((what === 'play' && !running()) || (what === 'pause' && running())) togglePause();
   });
   // The same word background.js leaves of a clicked notification
   // (js/remindersui.js plays it). The app may have been started by the
@@ -70,7 +74,7 @@ function talkWithApp() {
   const tell = () => {
     const metadata = navigator.mediaSession?.metadata;
     const now = {
-      on: Boolean(state.playing) && !castingNow(), playing: Boolean(state.playing) && !el.video.paused && !el.video.ended,
+      on: Boolean(state.playing) && !castingNow(), playing: Boolean(state.playing) && running(),
       title: metadata?.title || '', artist: metadata?.artist || '', live: state.playing?.k === 0,
     };
     const text = JSON.stringify(now);
@@ -85,6 +89,14 @@ function talkWithApp() {
   const shape = () => { if (el.video.videoWidth) send('app.shape', { width: el.video.videoWidth, height: el.video.videoHeight }); };
   el.video.addEventListener('loadedmetadata', shape);
   el.video.addEventListener('resize', shape);
+  // The app's own player says where its picture stands, and no event of
+  // the page's <video> comes with it: what is on is told again, after
+  // js/nativeplayer.js has heard the same word, and the picture's shape
+  // is the app's own to know.
+  on('player.state', (word) => {
+    setTimeout(tell);
+    if (word.width > 0 && word.height > 0) send('app.shape', { width: word.width, height: word.height });
+  });
 }
 
 const ART_PX = 192;
