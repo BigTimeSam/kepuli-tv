@@ -39,6 +39,7 @@ import { renderInfoStrip } from './infostrip.js';
 import { openSetup } from './setupui.js';
 import { Library } from './library.js';
 import { matchChannel } from './name.js';
+import { onSecondPicture, sayPictureSound, secondLeft, secondOrPlay } from './nativeplayer.js';
 
 const pane = $('second');
 const video = /** @type {HTMLVideoElement} */ ($('video2'));
@@ -186,7 +187,11 @@ export async function playSecond(item, config = state.config) {
   renderSound();
   renderHead();
   renderInfoStrip();
-  second.play(spec);
+  // The app's own player takes it where the app has one and can play it
+  // (js/nativeplayer.js); otherwise it plays here, under the app's
+  // controls in the app.
+  if (secondOrPlay(spec, item.displayName || item.n || '')) second.stop();
+  else second.play(spec);
 }
 
 /** The second picture let go of, and the sound back where it was. */
@@ -195,6 +200,7 @@ export function closeSecond() {
   if (!showing) return;
   showing = null;
   second.stop();
+  secondLeft();
   if (!video.muted) el.video.muted = false;
   video.muted = true;
   pane.hidden = true;
@@ -284,6 +290,8 @@ export function firstPlays(item) {
 function renderSound() {
   soundButton.setAttribute('aria-pressed', String(!video.muted));
   pane.classList.toggle('sound', !video.muted);
+  // The app's own pictures follow: the one heard, and each one's speaker.
+  sayPictureSound();
 }
 
 function moveSound(toSecond) {
@@ -306,6 +314,18 @@ video.addEventListener('volumechange', () => {
   renderSound();
 });
 $('second-close').addEventListener('click', closeSecond);
+// The same from the app's own bars over the pictures (js/nativeplayer.js):
+// a speaker pressed takes the sound to its picture, or gives it to the
+// other when it had it; a picture the app fails on plays here.
+onSecondPicture({
+  fail: (spec) => { if (showing && showing.spec === spec) { secondOrPlay(spec, showing.item.displayName || showing.item.n || ''); second.play(spec); } },
+  command: (what, slot) => {
+    if (!showing) return;
+    if (what === 'close') closeSecond();
+    else if (what === 'swap') setSwapped(!el.videowrap.classList.contains('swapped'));
+    else if (what === 'sound') moveSound(slot === 2 ? video.muted : !el.video.muted);
+  },
+});
 
 // A click on the picture does not pause it, as it does not pause the first
 // picture's live channel (clickPicture in js/playercontrols.js): there is

@@ -32,6 +32,8 @@ final class NativePlayerView: UIView, AVPictureInPictureControllerDelegate, UIGe
     /// The full-screen and the Cast buttons were pressed.
     var onFull: (() -> Void)?
     var onCast: (() -> Void)?
+    /// The speaker, or the second picture's swap or close, was pressed: "sound", "swap", "close".
+    var onSide: ((String) -> Void)?
     /// A press meant for the page's own picture: play, pause, pip, or
     /// seek with the second to go to.
     var onPage: ((String, Double?) -> Void)?
@@ -64,12 +66,18 @@ final class NativePlayerView: UIView, AVPictureInPictureControllerDelegate, UIGe
     private let tracksButton = UIButton(type: .system)
     private let pipButton = UIButton(type: .system)
     private let castButton = UIButton(type: .system)
+    private let soundButton = UIButton(type: .system)
+    private let swapButton = UIButton(type: .system)
+    private let closeButton = UIButton(type: .system)
+    /// The second of two pictures side by side: its bar has the speaker, the swap and the close, and nothing that is the first picture's alone.
+    private var second = false
     private let routeButton = AVRoutePickerView()
     private let waiting = UIActivityIndicatorView(style: .large)
     private let caption = PaddedLabel()
     private var captionLow: NSLayoutConstraint?
     private var captionHigh: NSLayoutConstraint?
     private var centre: UIView?
+    private var targets: UIView?
 
     override init(frame: CGRect) {
         super.init(frame: frame)
@@ -216,8 +224,20 @@ final class NativePlayerView: UIView, AVPictureInPictureControllerDelegate, UIGe
         castButton.setImage(Self.castMark(), for: .normal)
         castButton.tintColor = .white
         castButton.addTarget(self, action: #selector(castPressed), for: .touchUpInside)
-        for view in [tracksButton, pipButton, routeButton, castButton] as [UIView] { sized(view, 40) }
-        let targets = glass([tracksButton, pipButton, routeButton, castButton])
+        // Beside a second picture: which of the two is heard, and on the
+        // second the two things done to it.
+        symbol(soundButton, "speaker.slash.fill", size: 17)
+        soundButton.addTarget(self, action: #selector(soundPressed), for: .touchUpInside)
+        soundButton.isHidden = true
+        symbol(swapButton, "arrow.left.arrow.right", size: 17)
+        swapButton.addTarget(self, action: #selector(swapPressed), for: .touchUpInside)
+        swapButton.isHidden = true
+        symbol(closeButton, "xmark", size: 17)
+        closeButton.addTarget(self, action: #selector(closePressed), for: .touchUpInside)
+        closeButton.isHidden = true
+        for view in [soundButton, swapButton, closeButton, tracksButton, pipButton, routeButton, castButton] as [UIView] { sized(view, 40) }
+        let targets = glass([soundButton, tracksButton, pipButton, routeButton, castButton, swapButton, closeButton])
+        self.targets = targets
         targets.setContentCompressionResistancePriority(.required, for: .horizontal)
 
         let top = UIStackView(arrangedSubviews: [titles, UIView(), targets])
@@ -365,7 +385,8 @@ final class NativePlayerView: UIView, AVPictureInPictureControllerDelegate, UIGe
         // and the page's tracks are chosen in the page.
         backgroundColor = page ? .clear : .black
         picture.isHidden = page
-        routeButton.isHidden = page
+        routeButton.isHidden = page || second
+        pipButton.isHidden = second || pip == nil
         self.labels = labels
         titleLabel.text = title
         subtitleLabel.text = subtitle
@@ -427,11 +448,33 @@ final class NativePlayerView: UIView, AVPictureInPictureControllerDelegate, UIGe
         subtitleLabel.isHidden = !on
     }
 
+    /// The second of two pictures: no picture in picture, AirPlay, Cast or
+    /// tracks, which are the first picture's, and a swap and a close of
+    /// its own. Its name shows over it always, as nothing else says which
+    /// channel the half is.
+    func setSecond(_ on: Bool) {
+        second = on
+        swapButton.isHidden = !on
+        closeButton.isHidden = !on
+        castButton.isHidden = on
+        if on { pipButton.isHidden = true; routeButton.isHidden = true; tracksButton.isHidden = true }
+    }
+
+    /// Whether this picture is the one heard, and whether it shows its
+    /// speaker at all (only beside another picture).
+    func setSound(on: Bool, offered: Bool) {
+        player.isMuted = !on
+        soundButton.isHidden = !offered
+        symbol(soundButton, on ? "speaker.wave.2.fill" : "speaker.slash.fill", size: 17)
+        // A bar with nothing in it is not drawn.
+        targets?.isHidden = [soundButton, tracksButton, pipButton, routeButton, castButton, swapButton, closeButton].allSatisfy(\.isHidden)
+    }
+
     /// The stream's own subtitles and sound tracks, as a menu on a button
     /// of the top bar; no button without anything to choose.
     func setTracks(_ menu: UIMenu?) {
         tracksButton.menu = menu
-        tracksButton.isHidden = menu == nil || page
+        tracksButton.isHidden = menu == nil || page || second
         tracksButton.accessibilityLabel = labels["subtitles"]
     }
 
@@ -503,6 +546,9 @@ final class NativePlayerView: UIView, AVPictureInPictureControllerDelegate, UIGe
         show()
     }
     @objc private func fullPressed() { onFull?(); show() }
+    @objc private func soundPressed() { onSide?("sound"); show() }
+    @objc private func swapPressed() { onSide?("swap"); show() }
+    @objc private func closePressed() { onSide?("close") }
     @objc private func castPressed() { onCast?(); show() }
     /// Out into picture in picture, or back: the button's, and the page's menu's.
     @objc func togglePip() {

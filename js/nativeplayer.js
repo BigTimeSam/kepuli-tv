@@ -164,9 +164,9 @@ function sayFrame() {
 
 /** A press or a key may have opened or closed something over the picture: looked at when the page has drawn it. */
 function soon() {
-  if (!showing) return;
-  requestAnimationFrame(sayFrame);
-  setTimeout(sayFrame, 120);
+  if (!showing && !beside) return;
+  requestAnimationFrame(sayFrames);
+  setTimeout(sayFrames, 120);
 }
 
 /**
@@ -178,13 +178,22 @@ function soon() {
  */
 function watch() {
   said = '';
-  sayFrame();
+  saidBeside = '';
+  sayFrames();
   if (watching) return;
-  watching = setInterval(sayFrame, 250);
+  watching = setInterval(sayFrames, 250);
   for (const type of ['click', 'keydown', 'toggle']) document.addEventListener(type, soon, true);
 }
 
+/** Both pictures' boxes, each said when it has changed. */
+function sayFrames() {
+  if (showing) sayFrame();
+  if (beside) sayFrameBeside();
+}
+
 function unwatch() {
+  // One of the two pictures still has the app's player over it.
+  if (showing || beside) return;
   if (watching) clearInterval(watching);
   watching = null;
   for (const type of ['click', 'keydown', 'toggle']) document.removeEventListener(type, soon, true);
@@ -211,6 +220,7 @@ function underControls(item, spec) {
   el.videowrap.classList.add('appbars');
   send('player.load', { id: showing.id, page: true, live: Boolean(spec.live), title: el.nowTitle.textContent, subtitle: nowPlace(), labels: labels() });
   watch();
+  sayPictureSound();
 }
 
 /** Where the page's own picture is, said to the app's controls over it. */
@@ -221,6 +231,115 @@ function sayPage() {
     id: showing.id, state: paused ? 'paused' : readyState < 3 ? 'loading' : 'playing', position: currentTime || 0,
     ...(Number.isFinite(duration) && duration > 0 ? { duration } : {}),
   });
+}
+
+/* ------------------------------------------------- the second picture */
+
+// The second of two pictures side by side (js/secondui.js) has the app's
+// player too, its second slot: a channel the app can play (HLS) plays in
+// a view of the app's over the second picture's box, and one it cannot
+// plays in the page's second <video> under the same controls. The first
+// picture had the app's controls and the second WebKit's, two players in
+// one box. The second's bar is the app's as well: its speaker, its swap
+// and its close come back as words (player.command), and the page does
+// them, as it knows both pictures. The sound is from one picture at a
+// time, and the page says which (player.sound).
+
+const video2 = /** @type {HTMLVideoElement} */ (document.getElementById('video2'));
+const pane2 = /** @type {HTMLElement} */ (document.getElementById('second'));
+/**
+ * What the app shows for the second picture: the number it says back,
+ * its spec, and `page` when the picture is the page's own.
+ * @type {{ id: number, spec: any, page: boolean } | null}
+ */
+let beside = null;
+let saidBeside = '';
+/**
+ * What js/secondui.js does at the app's word: a picture it must play
+ * itself, and a press of the bar. A `var` with no value given here: that
+ * module and this one load in a circle, and it hands these over before
+ * this line is reached, where a `let` would not exist yet and the whole
+ * page stopped at its start.
+ * @type {{ fail: (spec: any) => void, command: (what: string, slot: number) => void } | undefined}
+ */
+// eslint-disable-next-line no-var
+var side;
+export function onSecondPicture(handlers) { side = handlers; }
+
+/**
+ * The second picture handed to the app's player, if it can play it: true
+ * when it was. False leaves it to the page's own player, under the app's
+ * controls where the app has a player at all.
+ * @param {any} spec the second picture's
+ * @param {string} title its channel's name
+ */
+export function secondOrPlay(spec, title) {
+  secondLeft();
+  if (!offered) return false;
+  const media = failed.has(spec.url) ? null : castMedia(spec);
+  const own = !media || media.contentType === 'video/webm';
+  beside = { id: nextId++, spec, page: own };
+  video2.controls = false;
+  pane2.classList.add('appbars');
+  send('player.load', { slot: 2, id: beside.id, live: true, title, subtitle: '', labels: labels(), ...(own ? { page: true } : { url: media.url, startAt: 0 }) });
+  watch();
+  sayPictureSound();
+  return !own;
+}
+
+/** The app lets go of the second picture. */
+export function secondLeft() {
+  if (!beside) return;
+  beside = null;
+  video2.controls = true;
+  pane2.classList.remove('appbars');
+  send('player.stop', { slot: 2 });
+  unwatch();
+  sayPictureSound();
+}
+
+/** Which of the two pictures is heard, said to each one the app has; the speaker shows only while there are two. */
+export function sayPictureSound() {
+  if (showing) send('player.sound', { slot: 1, on: !el.video.muted, offered: Boolean(beside) });
+  if (beside) send('player.sound', { slot: 2, on: !video2.muted, offered: true });
+}
+
+function sayFrameBeside() {
+  const box = video2.getBoundingClientRect();
+  // The page's word over its own second picture (connecting, a failure
+  // and its Try again) is under the controls, which give way to it.
+  const note = document.getElementById('second-note');
+  const away = beside?.page && note && !note.hidden;
+  const holes = box.width > 0 && box.height > 0 && !away ? coverings(box) : [];
+  const frame = { x: box.left + scrollX, y: box.top + scrollY, width: away ? 0 : box.width, height: away ? 0 : box.height };
+  const now = [...Object.values(frame), ...holes.flatMap((hole) => Object.values(hole))].map((n) => Math.round(n * 2) / 2).join(' ');
+  if (now === saidBeside) return;
+  saidBeside = now;
+  send('player.frame', { slot: 2, ...frame, holes });
+}
+
+/** Where the page's own second picture is, for the app's controls over it. */
+function sayPageBeside() {
+  if (!beside?.page) return;
+  send('player.page', { slot: 2, id: beside.id, state: video2.paused ? 'paused' : video2.readyState < 3 ? 'loading' : 'playing', position: video2.currentTime || 0 });
+}
+
+/** The app's word of the second picture: one it fails on is the page's to play, and is not handed over again. */
+function heardBeside(word) {
+  if (!beside || beside.page || word.id !== beside.id || word.state !== 'idle') return;
+  const { spec } = beside;
+  if (word.reason === 'error') failed.add(spec.url);
+  secondLeft();
+  side?.fail(spec);
+}
+
+/** A press in the second picture's bar, or of its controls over the page's own picture. */
+function commandBeside(word) {
+  if (!beside || word.id !== beside.id) return;
+  if (['sound', 'swap', 'close'].includes(word.what)) side?.command(word.what, 2);
+  else if (!beside.page) return;
+  else if (word.what === 'play') video2.play().catch(() => {});
+  else if (word.what === 'pause') video2.pause();
 }
 
 /**
@@ -250,6 +369,7 @@ export function nativeOrPlay(item, spec) {
     subtitleLang: spec.subtitleLang || 'off', audioLang: spec.audioLang || 'auto',
   });
   watch();
+  sayPictureSound();
   return true;
 }
 
@@ -275,6 +395,7 @@ const shownHere = (/** @type {NonNullable<typeof showing>} */ left) => state.pla
  * @param {Record<string, any>} word
  */
 function heard(word) {
+  if (word.slot === 2) { heardBeside(word); return; }
   if (!showing || showing.page || word.id !== showing.id) return;
   const { item, spec } = showing;
   if (word.state !== 'idle') {
@@ -322,7 +443,7 @@ function heard(word) {
  * @param {Record<string, any>} word
  */
 async function choseTrack(word) {
-  if (!showing || showing.page || word.id !== showing.id) return;
+  if (word.slot === 2 || !showing || showing.page || word.id !== showing.id) return;
   const language = word.language ? shortLanguage(word.language) : 'off';
   if (language === 'und') return;
   const key = word.kind === 'audio' ? 'audioLang' : 'subtitleLang';
@@ -335,7 +456,10 @@ if (ios) {
   // The lock screen's and the headphones' next and previous, which the app hears for its own picture.
   // And what the controls over the page's own picture ask of it.
   on('player.command', (word) => {
+    if (word.slot === 2) { commandBeside(word); return; }
     if (!showing || word.id !== showing.id) return;
+    // The speaker beside a second picture: the sound is the page's to move.
+    if (word.what === 'sound') { side?.command('sound', 1); return; }
     if (word.what === 'next' || word.what === 'previous') playRelative(word.what === 'previous' ? -1 : 1);
     else if (!showing.page) return;
     else if (word.what === 'play') el.video.play().catch(() => {});

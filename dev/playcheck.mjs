@@ -10506,6 +10506,44 @@ async function appplayer(page, { target }) {
     await evaluate(page, `document.getElementById('btn-home').click()`, { gesture: true });
     await waitFor(page, `window.__sent.filter((m) => m.type === 'player.stop').length > ${stops}`, 'the app\'s player stopped when the channel was left', 5000);
     assert(channel.live === true && /\.m3u8$/.test(channel.url) && channel.startAt === 0, `the channel handed to the app: ${JSON.stringify({ ...channel, url: channel.url.replace(/^.*\/live/, '…/live') })}`);
+
+    // Two pictures side by side are two of the app's players: the second
+    // channel goes to the app's second slot by its HLS address, the sound
+    // is the first picture's until a speaker is pressed and each picture
+    // is told which is heard, a channel the app fails on plays in the
+    // page's second picture under the app's controls, and the bar's close
+    // ends it. The second picture used to be WebKit's beside the app's.
+    const handedBefore = (await toApp()).length;
+    await evaluate(page, `document.querySelector('#tabs [data-tab="live"]').click()`, { gesture: true });
+    await waitFor(page, `document.querySelectorAll('#list .row').length > 1`, 'the channels again');
+    await evaluate(page, `document.querySelector('#list .row').click()`, { gesture: true });
+    await waitFor(page, `window.__sent.filter((m) => m.type === 'player.load' && m.url && m.slot !== 2).length > ${handedBefore}`, 'the channel handed to the app again', 10000);
+    const first = (await sent('player.load')).filter((m) => m.url && m.slot !== 2).at(-1);
+    await evaluate(page, `(async () => { const { state } = await import('./js/state.js'); const u = await import('./js/secondui.js');
+      await u.playSecond(state.rows.filter((r) => r.k === 0)[1]); return true; })()`);
+    await waitFor(page, `window.__sent.some((m) => m.type === 'player.load' && m.slot === 2 && m.url)`, 'the second channel handed to the app\'s second slot', 10000);
+    const beside = (await sent('player.load')).filter((m) => m.slot === 2).at(-1);
+    const heardFrom = () => evaluate(page, `({ first: window.__sent.filter((m) => m.type === 'player.sound' && m.slot === 1).at(-1), second: window.__sent.filter((m) => m.type === 'player.sound' && m.slot === 2).at(-1),
+      page: !document.getElementById('video2').paused, bar: getComputedStyle(document.querySelector('#second .second-bar')).display })`);
+    await sleep(300);
+    const quiet = await heardFrom();
+    assert(beside.live === true && /\.m3u8$/.test(beside.url) && quiet.first.on && quiet.first.offered && !quiet.second.on && quiet.second.offered && !quiet.page && quiet.bar === 'none',
+      `the second picture in the app: ${JSON.stringify({ live: beside.live, hls: /\.m3u8$/.test(beside.url), ...quiet })}`);
+    await say({ type: 'player.command', slot: 2, id: beside.id, what: 'sound' });
+    await sleep(300);
+    const moved = await heardFrom();
+    await say({ type: 'player.command', slot: 1, id: first.id, what: 'sound' });
+    await sleep(300);
+    const back = await heardFrom();
+    assert(!moved.first.on && moved.second.on && back.first.on && !back.second.on, `the sound moved by the speakers: ${JSON.stringify({ moved, back })}`);
+    await say({ type: 'player.state', slot: 2, id: beside.id, state: 'idle', reason: 'error', position: 0 });
+    await waitFor(page, `window.__sent.some((m) => m.type === 'player.load' && m.slot === 2 && m.page === true) && !document.getElementById('video2').paused && document.getElementById('video2').currentTime > 0`,
+      'the second channel in the page\'s own picture under the app\'s controls', 40000);
+    const inPage = (await sent('player.load')).filter((m) => m.slot === 2).at(-1);
+    await say({ type: 'player.command', slot: 2, id: inPage.id, what: 'close' });
+    await waitFor(page, `document.getElementById('second').hidden && window.__sent.filter((m) => m.type === 'player.stop' && m.slot === 2).length > 0`, 'the second picture closed from the app\'s bar', 5000);
+    const alone = await heardFrom();
+    assert(alone.first.on && !alone.first.offered, `the first picture alone again: ${JSON.stringify(alone.first)}`);
     return { ok: true, detail: 'a film went to the app from 42 s with the picture\'s box; its place (70 s) and shape came from the app; a dialog over the picture was said as a hole; pause, play and picture in picture went to the app; the film it failed on played in the page from 75 s and was not handed over again; a film\'s end emptied the player; a channel went over as HLS and leaving it stopped the app\'s player' };
   } catch (err) {
     return { ok: false, detail: err.message };

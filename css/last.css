@@ -189,6 +189,8 @@ input[type="search"], input[type="text"], input[type="url"], input:not([type]) {
    full screen is in their bar, and the page's button under them could not
    be pressed. */
 .ios .videowrap.appbars .full-btn { display: none; }
+/* And over the second picture: its own bar of buttons is under the app's. */
+.ios #second.appbars .second-bar { display: none; }
 /* In the app the picture is as tall as its shape whatever the details
    under it hold: they take what the column has left and scroll there.
    With the details' own height as their share (css/details.css) the
