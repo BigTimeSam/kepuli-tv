@@ -491,9 +491,12 @@ final class NativePlayerView: UIView, AVPictureInPictureControllerDelegate, UIGe
         layoutIfNeeded()
     }
 
-    /// The wheel over the picture while nothing moves yet.
+    /// The wheel over the picture while nothing moves yet. It stands where
+    /// the transport does, and the two drawn over each other were a muddle
+    /// of marks on a phone: the transport is away while the wheel turns.
     func setWaiting(_ on: Bool) {
         if on { waiting.startAnimating() } else { waiting.stopAnimating() }
+        centre?.isHidden = on
     }
 
     /// The Cast mark in the accent's colour while a session is on.
