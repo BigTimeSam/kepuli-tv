@@ -25,6 +25,7 @@ import { cueText, label as subtitleLabel } from '../js/subs.js';
 import { subtitleLook, stepScale, pictureHeight, STYLES, MIN_SCALE, MAX_SCALE, DEFAULT_SCALE, SCALE_STEP, SIZE_SHARE, MIN_PX, MIN_LIFT, MAX_LIFT, DEFAULT_LIFT } from '../js/subdisplay.js';
 import { describe, describeAll, label, preferred, route } from '../js/audio.js';
 import { languageSummary, orderedLanguageNames, trackLanguage } from '../js/lang.js';
+import { GENRE_TABLE, genreName, genreNames } from '../js/genres.js';
 import { LANGUAGES, LOCALES, keysOf, setLanguage, setRegion, regionalTag, localeTag, loadLanguage, supportedLanguage, t, pseudoText } from '../js/i18n.js';
 import { setLocale, calendarDate, episodeCode, megabytes, amount, wholePercent, fileSize } from '../js/format.js';
 import { pictureSize } from '../js/titleinfo.js';
@@ -582,6 +583,24 @@ check('the picture without its bars: a film on a 16:10 screen', Math.round(pictu
 check('the picture fills a box of its own shape', pictureHeight(1280, 720, 1280, 720), 720);
 check('a box narrower than the picture: the height is the box\'s', pictureHeight(800, 1000, 1920, 1080), 450);
 check('no picture yet: taken as 16:9', pictureHeight(1920, 1200, 0, 0), 1080);
+// A title's genres in the viewer's language (js/genres.js): every
+// language of the interface names every genre, a name is known in
+// whichever language it was written, and an unknown one stays as it is.
+{
+  const count = GENRE_TABLE.keys.length;
+  for (const lang of Object.keys(LANGUAGES)) {
+    const names = (GENRE_TABLE.names[lang] || '').split('|');
+    check(`genres: ${lang} names all ${count}`, names.length === count && names.every((name) => name.trim() === name && name.length > 0), true);
+  }
+  check('genres: no language of the table is outside the interface', Object.keys(GENRE_TABLE.names).every((lang) => lang in LANGUAGES), true);
+  check('genres: Kids in Finnish', genreName('Kids', 'fi'), 'Lapset');
+  check('genres: a list, each once', genreNames('Drama, Sci-Fi & Fantasy / drama', 'fi'), 'Draama, Scifi ja fantasia');
+  check('genres: French in, Finnish out', genreNames('Comédie, Science-Fiction & Fantastique', 'fi'), 'Komedia, Scifi ja fantasia');
+  check('genres: Danish and Arabic in, English out', genreNames('Virkelighed, دراما', 'en'), 'Reality, Drama');
+  check('genres: an unknown one as written', genreNames('Turks Action, Anime', 'fi'), 'Turks Action, Anime');
+  check('genres: nothing from nothing', genreNames('', 'fi'), '');
+}
+
 // Every look has a rule in the stylesheet and an option in the menu, in the
 // same order; the slider's bounds are the module's.
 {

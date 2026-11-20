@@ -1,4 +1,5 @@
 // @ts-check
+import { genreNames } from './genres.js';
 import { t, localeTag } from './i18n.js';
 import { duration, fileSize, nf } from './format.js';
 import { personUrl, titleLinks } from './titlelinks.js';
@@ -29,7 +30,7 @@ export function titleFacts(info, { episodes, seasons, duration: withDuration = f
     list.append(group);
   };
   add('year', String(info.releaseDate || info.year || '').match(/\b(?:19|20)\d{2}\b/)?.[0]);
-  add('genre', info.genre);
+  add('genre', genreNames(info.genre));
   const rating = ratingText(info);
   if (rating) add('rating', rating, t('title.ratingSource'));
   if (episodes != null) {

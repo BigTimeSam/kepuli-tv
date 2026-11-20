@@ -1,4 +1,5 @@
 // @ts-check
+import { genreName } from './genres.js';
 import { t, localeTag } from './i18n.js';
 import { ratingValue } from './rating.js';
 import { isPicking } from './picker.js';
@@ -432,7 +433,7 @@ export class MediaFilters {
     const genres = type === 'series' ? [...new Set(entries.flatMap(e => e.facts.genres))].sort((a, b) => a.localeCompare(b, localeTag())) : [];
     const options = {
       year: [['', t('filters.allYears')], ...decades.map(y => [`${y}:${y + 9}`, `${y}–${y + 9}`]), ...years.map(y => [String(y), String(y)]), ['missing', t('filters.missing')]],
-      genre: [['', t('filters.allGenres')], ...genres.map(g => [g, g.charAt(0).toLocaleUpperCase() + g.slice(1)]), ['missing', t('filters.missing')]],
+      genre: [['', t('filters.allGenres')], ...genres.map(g => { const name = genreName(g); return [g, name.charAt(0).toLocaleUpperCase() + name.slice(1)]; }), ['missing', t('filters.missing')]],
       rating: [['', t('filters.anyRating')], ...[6, 7, 8, 9].map(n => [String(n), `≥ ${nf.format(n)} / 10`]), ['missing', t('filters.missing')]],
     };
     for (const [key, field] of Object.entries(this.fields)) {

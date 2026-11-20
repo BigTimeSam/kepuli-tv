@@ -3,6 +3,7 @@
 
 import { clock, progressOf, duration, calendarDate, episodeCode, nf } from './format.js';
 import { badge as probeBadge } from './probe.js';
+import { genreName } from './genres.js';
 import { t } from './i18n.js';
 import { poster } from './poster.js';
 import { ratingText } from './rating.js';
@@ -313,7 +314,7 @@ export const HISTORY_ICONS = {
 };
 
 /** The first of a title's genres, from the list or from its details once read. */
-const firstGenre = (item) => String(item.genre || item.details?.genre || '').split(',')[0].trim();
+const firstGenre = (item) => genreName(String(item.genre || item.details?.genre || '').split(',')[0]);
 
 function subLine(item, ctx) {
   if (ctx.compact && item.k !== 0) return compactLine(item, ctx);
@@ -355,7 +356,7 @@ function compactLine(item, ctx) {
   const rating = ratingText(item.details) || ratingText(item);
   if (item.k === 3) bits.push(episodeCode(item.season, item.episode));
   if ((item.k === 1 || item.k === 2) && item.year && !nameHasYear(ctx.label || item.n, item.year)) bits.push(item.year);
-  if (item.k === 2 && item.genre) bits.push(item.genre.split(',')[0].trim());
+  if (item.k === 2 && item.genre) bits.push(genreName(item.genre.split(',')[0]));
   if (rating && item.k !== 3) bits.push(rating);
   const seconds = item.k === 1 ? item.details?.durationSec || item.durationSec || ctx.resume?.duration
     : item.k === 3 ? item.durationSec : 0;
