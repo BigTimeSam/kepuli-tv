@@ -29,7 +29,8 @@
 // KEPULI_NOTIFY=fake|fake-granted|fake-denied (the system's leave unasked,
 // given or refused, with nothing asked of the system) or quiet (the system's
 // own notifications by a provisional leave, which asks nobody),
-// KEPULI_LINKS=record, KEPULI_SAVES=record, KEPULI_FAIL=1 (the first start fails).
+// KEPULI_LINKS=record, KEPULI_SAVES=record, KEPULI_FAIL=1 (the first start fails),
+// KEPULI_PLAYER=page (the app does not offer its own player: the picture is the page's).
 //
 // Only the simulators this tool created are ever touched, and always by
 // UDID: another session may have a device of the same name, and killing or

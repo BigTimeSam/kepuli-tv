@@ -40,7 +40,9 @@ const PLAYER = 'webkit-extension://kepuli-tv/player.html?ios=1';
 const SITE = 'https://bigtimesam.github.io/kepuli-tv/';
 // Nothing leaves the app and nothing is asked of the system in a scenario:
 // links and saved files are recorded, the notifier is the app's stand-in.
-const RECORD = { KEPULI_LINKS: 'record', KEPULI_SAVES: 'record', KEPULI_NOTIFY: 'fake' };
+// The picture is the page's own in every scenario but `player`: what they
+// say of the page's <video> holds for what the app's player does not take.
+const RECORD = { KEPULI_LINKS: 'record', KEPULI_SAVES: 'record', KEPULI_NOTIFY: 'fake', KEPULI_PLAYER: 'page' };
 const XTREAM = { type: 'xtream', scheme: 'http', host: '127.0.0.1', port: String(MOCK_PORT), username: 'demo', password: 'demo', name: 'Demo server', id: 'pxt', sourceMode: 'xtream', streamMode: 'auto' };
 
 const sleep = (ms) => new Promise((done) => setTimeout(done, ms));
@@ -1087,11 +1089,53 @@ async function banner(d) {
   return 'with the system\'s own notifications a reminder due while Settings is open is shown by the system, though the page\'s list without it came 0.3 s before its moment; with the player in sight the system shows nothing';
 }
 
+/**
+ * The app's own player (ios/App/Player, js/nativeplayer.js): a channel
+ * and a film are the app's to play, in the place of the page's picture;
+ * the page's <video> stays empty; a film's place is kept from what the
+ * app says and its end empties the player.
+ */
+async function player(d) {
+  await connected(d, { KEPULI_PLAYER: 'app' });
+  const BOX = `(() => { const b = video.getBoundingClientRect(); return [b.left + scrollX, b.top + scrollY, b.width, b.height].map(Math.round); })()`;
+  const channel = await d.page(`const n = await import('./js/nativeplayer.js'); const { playback } = await import('./js/playing.js');
+    if (!await openTab('live', 2)) return null; rows()[0].click();
+    if (!await until(() => n.nativePlaying() && n.nativePlace().position > 1, 40000)) return { played: false, engine: playback.engineKey };
+    const from = n.nativePlace().position; await pause(4500);
+    return { played: true, advanced: n.nativePlace().position - from, engine: playback.engineKey, src: video.currentSrc, box: ${BOX}, title: title() };`);
+  assert(channel?.played, `no channel played in the app's player: ${JSON.stringify(channel)}`);
+  assert(channel.advanced >= 3 && channel.engine === null && !channel.src, `the channel in the app's player: ${JSON.stringify(channel)}`);
+  const on = await d.state();
+  const near = (a, b) => a.every((value, i) => Math.abs(value - b[i]) <= 1);
+  assert(on.player.on && on.player.state === 'playing' && on.player.live && !on.player.hidden && near(on.player.frame, channel.box) && on.idleTimerDisabled === true,
+    `the app's player on a channel: ${JSON.stringify(on.player)}, the page's box ${channel.box}, the idle timer ${on.idleTimerDisabled ? 'off' : 'on'}`);
+  await d.shot('player-live');
+
+  // A film: its place is kept, and its end empties the player.
+  const film = await d.page(`const n = await import('./js/nativeplayer.js'); const { state } = await import('./js/state.js'); const host = await import('./js/host.js');
+    $('btn-home').click(); await pause(400);
+    if (!await openTab('movie')) return null;
+    await press('#groups', 'Nordic'); await pause(500); await press('#list', 'Northern Lights');
+    if (!await until(() => n.nativePlaying() && n.nativePlace().duration > 0, 40000)) return { played: false };
+    const key = state.playing.k + ':' + state.playing.id;
+    host.send('player.seek', { to: 60 });
+    const kept = await until(() => state.resume.get(key)?.position >= 60 && state.resume.get(key).position, 15000);
+    host.send('player.seek', { to: n.nativePlace().duration - 3 });
+    const ended = await until(() => !state.playing, 20000);
+    return { played: true, kept, ended, placeAfter: state.resume.has(key), native: n.nativePlaying() };`);
+  assert(film?.played, `no film played in the app's player: ${JSON.stringify(film)}`);
+  assert(film.kept >= 60 && film.ended && !film.placeAfter && !film.native, `the film in the app's player: ${JSON.stringify(film)}`);
+  const off = await d.state();
+  assert(off.player.on === false && off.idleTimerDisabled === false, `after the film's end the app's player is ${JSON.stringify(off.player)} and the idle timer ${off.idleTimerDisabled ? 'off' : 'on'}`);
+  return `${channel.title} advanced ${channel.advanced.toFixed(1)} s in 4.5 s in the app's player, in the page's box, with the page's own picture empty; a film's place was kept at ${Math.round(film.kept)} s and its end emptied the player`;
+}
+
 const SCENARIOS = {
   boot: { run: bootScenario }, firstrun: { run: firstrun }, channels: { run: channels }, live: { run: live }, film: { run: film }, mkv: { run: mkv },
   guide: { run: guide }, settings: { run: settings }, persist: { run: persist }, fullscreen: { run: fullscreen },
   split: { run: split, only: 'pad' }, rotate: { run: rotateScenario }, cast: { run: cast }, links: { run: links }, save: { run: save },
   reminder: { run: reminder }, banner: { run: banner }, stalker: { run: stalker }, kill: { run: kill }, background: { run: background },
+  player: { run: player },
 };
 // The last two are the app's minimum, run when asked for by KEPULI_IOS_DEVICE.
 const DEVICES = { 'kepuli-ios-iphone': 'phone', 'kepuli-ios-ipad': 'pad', 'kepuli-ios-iphone-26-0': 'phone', 'kepuli-ios-ipad-26-0': 'pad' };
