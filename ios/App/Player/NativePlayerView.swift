@@ -43,6 +43,10 @@ final class NativePlayerView: UIView, AVPictureInPictureControllerDelegate {
     private let castButton = UIButton(type: .system)
     private let routeButton = AVRoutePickerView()
     private let waiting = UIActivityIndicatorView(style: .large)
+    private let caption = PaddedLabel()
+    private var captionLow: NSLayoutConstraint?
+    private var captionHigh: NSLayoutConstraint?
+    private var centre: UIView?
 
     override init(frame: CGRect) {
         super.init(frame: frame)
@@ -189,6 +193,7 @@ final class NativePlayerView: UIView, AVPictureInPictureControllerDelegate {
         forwardButton.addTarget(self, action: #selector(forward), for: .touchUpInside)
         sized(backButton, 56); sized(playButton, 76); sized(forwardButton, 56)
         let centre = glass([backButton, playButton, forwardButton], spacing: 18, inset: 4)
+        self.centre = centre
 
         // Bottom: the time line, or that the channel is live, and full screen.
         for label in [elapsed, remaining] {
@@ -215,6 +220,25 @@ final class NativePlayerView: UIView, AVPictureInPictureControllerDelegate {
             view.translatesAutoresizingMaskIntoConstraints = false
             controls.addSubview(view)
         }
+        // The subtitle's line, drawn here and not by AVPlayer, which
+        // draws it at the picture's foot, under the bottom bar: it sits
+        // above the bar while the controls show and at the foot otherwise.
+        caption.numberOfLines = 0
+        caption.textAlignment = .center
+        caption.textColor = .white
+        caption.backgroundColor = UIColor.black.withAlphaComponent(0.6)
+        caption.layer.cornerRadius = 6
+        caption.layer.masksToBounds = true
+        caption.isHidden = true
+        caption.translatesAutoresizingMaskIntoConstraints = false
+        insertSubview(caption, belowSubview: controls)
+        captionLow = caption.bottomAnchor.constraint(equalTo: safeAreaLayoutGuide.bottomAnchor, constant: -12)
+        captionHigh = caption.bottomAnchor.constraint(equalTo: line.topAnchor, constant: -8)
+        NSLayoutConstraint.activate([
+            caption.centerXAnchor.constraint(equalTo: centerXAnchor),
+            caption.widthAnchor.constraint(lessThanOrEqualTo: widthAnchor, multiplier: 0.86),
+            captionHigh!,
+        ])
         dim.isHidden = true
         dim.isUserInteractionEnabled = false
         dim.frame = bounds
@@ -242,6 +266,11 @@ final class NativePlayerView: UIView, AVPictureInPictureControllerDelegate {
         shade.frame = bounds
         CATransaction.commit()
         cut()
+        // A phone's upright picture is some 226 points high: the
+        // transport at its full size covered half of it.
+        let small = bounds.height < 280
+        centre?.transform = small ? CGAffineTransform(scaleX: 0.72, y: 0.72) : .identity
+        caption.font = .systemFont(ofSize: max(13, min(22, bounds.height / 22)), weight: .semibold)
     }
 
     // MARK: Under the page's menus and dialogs
@@ -326,6 +355,19 @@ final class NativePlayerView: UIView, AVPictureInPictureControllerDelegate {
         tracksButton.accessibilityLabel = labels["subtitles"]
     }
 
+    /// The subtitle to show now, or nothing (NativePlayer hears them from the stream).
+    func setCaption(_ text: String) {
+        caption.text = text
+        caption.isHidden = text.isEmpty
+    }
+
+    private func placeCaption(high: Bool) {
+        guard captionHigh?.isActive != high else { return }
+        captionLow?.isActive = !high
+        captionHigh?.isActive = high
+        layoutIfNeeded()
+    }
+
     /// The wheel over the picture while nothing moves yet.
     func setWaiting(_ on: Bool) {
         if on { waiting.startAnimating() } else { waiting.stopAnimating() }
@@ -397,7 +439,7 @@ final class NativePlayerView: UIView, AVPictureInPictureControllerDelegate {
     }
 
     func show() {
-        UIView.animate(withDuration: 0.2) { self.controls.alpha = 1 }
+        UIView.animate(withDuration: 0.2) { self.controls.alpha = 1; self.placeCaption(high: true) }
         hideTimer?.invalidate()
         hideTimer = Timer.scheduledTimer(withTimeInterval: 4, repeats: false) { [weak self] _ in self?.hide() }
     }
@@ -405,6 +447,23 @@ final class NativePlayerView: UIView, AVPictureInPictureControllerDelegate {
     private func hide() {
         // A paused picture keeps its controls, as WebKit's did.
         guard player.timeControlStatus != .paused else { return }
-        UIView.animate(withDuration: 0.3) { self.controls.alpha = 0 }
+        UIView.animate(withDuration: 0.3) { self.controls.alpha = 0; self.placeCaption(high: false) }
+    }
+}
+
+/// A label with room around its words, for the subtitle's dark ground.
+final class PaddedLabel: UILabel {
+    private let room = UIEdgeInsets(top: 3, left: 9, bottom: 3, right: 9)
+
+    override func drawText(in rect: CGRect) { super.drawText(in: rect.inset(by: room)) }
+
+    override var intrinsicContentSize: CGSize {
+        let size = super.intrinsicContentSize
+        return CGSize(width: size.width + room.left + room.right, height: size.height + room.top + room.bottom)
+    }
+
+    override func textRect(forBounds bounds: CGRect, limitedToNumberOfLines lines: Int) -> CGRect {
+        let inner = super.textRect(forBounds: bounds.inset(by: room), limitedToNumberOfLines: lines)
+        return CGRect(x: inner.minX - room.left, y: inner.minY - room.top, width: inner.width + room.left + room.right, height: inner.height + room.top + room.bottom)
     }
 }

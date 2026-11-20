@@ -24,7 +24,7 @@ import UIKit
 /// and player.command {id, what} for the lock screen's next and previous.
 ///
 /// As with the cast session, nothing here logs an address or a title.
-final class NativePlayer: NSObject, NativeService {
+final class NativePlayer: NSObject, NativeService, AVPlayerItemLegibleOutputPushDelegate {
     let prefix = "player."
 
     private var view: NativePlayerView?
@@ -108,6 +108,14 @@ final class NativePlayer: NSObject, NativeService {
         // app's.
         try? AVAudioSession.sharedInstance().setActive(true)
         let item = AVPlayerItem(url: url)
+        // The subtitles come here as text and the view draws them
+        // (NativePlayerView.setCaption): AVPlayer's own are at the
+        // picture's foot, under the bottom bar while the controls show.
+        let texts = AVPlayerItemLegibleOutput()
+        texts.suppressesPlayerRendering = true
+        texts.setDelegate(self, queue: .main)
+        item.add(texts)
+        view.setCaption("")
         let player = view.player
         player.replaceCurrentItem(with: item)
         if let startAt = body["startAt"] as? Double, startAt > 0, !live {
@@ -135,6 +143,12 @@ final class NativePlayer: NSObject, NativeService {
         beat = Timer.scheduledTimer(withTimeInterval: 2, repeats: true) { [weak self] _ in self?.say(again: true) }
         player.play()
         say()
+    }
+
+    func legibleOutput(_ output: AVPlayerItemLegibleOutput, didOutputAttributedStrings strings: [NSAttributedString],
+                       nativeSampleBuffers: [Any], forItemTime itemTime: CMTime) {
+        guard view?.player.currentItem?.outputs.contains(output) == true else { return }
+        view?.setCaption(strings.map(\.string).joined(separator: "\n").trimmingCharacters(in: .whitespacesAndNewlines))
     }
 
     private var labels: [String: String] = [:]
@@ -203,6 +217,7 @@ final class NativePlayer: NSObject, NativeService {
     private func choose(_ option: AVMediaSelectionOption?, in group: AVMediaSelectionGroup, kind: String) {
         guard let id, let item = view?.player.currentItem else { return }
         item.select(option, in: group)
+        if kind == "subtitle" { view?.setCaption("") }
         showTracks()
         var body: [String: Any] = ["id": id, "kind": kind]
         if let option { body["language"] = Self.language(option) }
@@ -357,6 +372,7 @@ final class NativePlayer: NSObject, NativeService {
         guard id != nil else { return }
         id = nil
         view?.player.replaceCurrentItem(with: nil)
+        view?.setCaption("")
         view?.setWaiting(false)
         view?.isHidden = true
         dropCommands()
