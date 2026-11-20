@@ -28,9 +28,9 @@ import { shortLanguage } from './lang.js';
 import { noteEnded, notePlace, startAutoNext } from './nextepisode.js';
 import { ios } from './platform.js';
 import { nowPlace, playback } from './playing.js';
-import { state } from './state.js';
+import { playRelative, state } from './state.js';
 import * as store from './config.js';
-import { leavePlayback } from './tracksui.js';
+import { leavePlayback, sizePicture } from './tracksui.js';
 
 /** Whether the app around the page has a player of its own (its greeting says). */
 let offered = false;
@@ -38,7 +38,7 @@ let offered = false;
  * What the app plays for this page: the item and its spec as they were
  * started here, the number the app says back, and where the picture has
  * got to.
- * @type {{ item: any, spec: import('./playback.js').PlaySpec, id: number, position: number, duration: number | null, running: boolean } | null}
+ * @type {{ item: any, spec: import('./playback.js').PlaySpec, id: number, position: number, duration: number | null, running: boolean, width: number, height: number } | null}
  */
 let showing = null;
 let nextId = 1;
@@ -107,13 +107,40 @@ function coverings(box) {
 }
 
 /**
+ * The shape of the app's picture, once the app has said it, for the box
+ * the page gives it (js/tracksui.js sizePicture); null when the picture
+ * is the page's, or not known yet.
+ * @returns {{ width: number, height: number } | null}
+ */
+export const nativeSize = () => (showing && showing.width > 0 && showing.height > 0 ? { width: showing.width, height: showing.height } : null);
+
+/**
+ * Pause and play at the page's word (the space bar, a media key, a
+ * double tap's first): true when the app's player has the picture.
+ */
+export function nativeToggle() {
+  if (!showing) return false;
+  send(showing.running ? 'player.pause' : 'player.play');
+  return true;
+}
+
+/** Picture in picture from the page's menu: true when the app's player has the picture, which then takes it out or back. */
+export function nativePip() {
+  if (!showing) return false;
+  send('player.pip');
+  return true;
+}
+
+/**
  * The picture's box in the page and what lies over it, said to the app
  * when either has changed. In the document's points, not the window's:
  * the app's view lies in the web view's scroll view and moves with the
  * page.
  */
 function sayFrame() {
-  const box = el.videowrap.getBoundingClientRect();
+  // The <video>'s own box, not its wrapper's: beside a second picture it
+  // is the wrapper's left half (js/secondui.js).
+  const box = el.video.getBoundingClientRect();
   const holes = box.width > 0 && box.height > 0 ? coverings(box) : [];
   const frame = { x: box.left + scrollX, y: box.top + scrollY, width: box.width, height: box.height };
   const now = [...Object.values(frame), ...holes.flatMap((hole) => Object.values(hole))].map((n) => Math.round(n * 2) / 2).join(' ');
@@ -165,7 +192,7 @@ export function nativeOrPlay(item, spec) {
   renderInfoStrip();
   el.overlay.hidden = true;
   el.overlay.classList.remove('loading');
-  showing = { item, spec, id: nextId++, position: spec.startAt || 0, duration: null, running: false };
+  showing = { item, spec, id: nextId++, position: spec.startAt || 0, duration: null, running: false, width: 0, height: 0 };
   send('player.load', {
     id: showing.id, url: media.url, live: media.live, startAt: media.live ? 0 : spec.startAt || 0,
     title: el.nowTitle.textContent, subtitle: nowPlace(),
@@ -205,6 +232,11 @@ function heard(word) {
   if (word.state !== 'idle') {
     showing.running = word.state === 'playing';
     showing.duration = word.duration ?? null;
+    if (word.width > 0 && word.height > 0 && (word.width !== showing.width || word.height !== showing.height)) {
+      showing.width = word.width;
+      showing.height = word.height;
+      sizePicture();
+    }
     // The place only from a picture that runs or has got somewhere: one
     // still loading says zero (js/castui.js notePosition).
     if (word.position > 0 || ['playing', 'paused'].includes(word.state)) showing.position = word.position;
@@ -250,6 +282,8 @@ async function choseTrack(word) {
 }
 
 if (ios) {
+  // The lock screen's and the headphones' next and previous, which the app hears for its own picture.
+  on('player.command', (word) => { if (showing && word.id === showing.id) playRelative(word.what === 'previous' ? -1 : 1); });
   on('player.track', choseTrack);
   on('host', (host) => { offered = Boolean(host.player); });
   on('player.state', heard);

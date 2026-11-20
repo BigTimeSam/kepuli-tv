@@ -31,6 +31,7 @@ import { requestAccess, hasAccess, hasAccessEverywhere, requestAccessEverywhere,
 
 import { createCast, supported as castSupported } from './cast.js';
 import { renderCasting, sessionFound } from './castui.js';
+import { nativePip, nativePlaying } from './nativeplayer.js';
 import { ios, remote } from './platform.js';
 import './iosapp.js';
 import { wireAndroidApp } from './androidapp.js';
@@ -2163,6 +2164,8 @@ function wireUi() {
   el.cast.addEventListener('click', castCurrent);
   $('btn-cast-top').addEventListener('click', castCurrent);
   $('btn-pip').addEventListener('click', async () => {
+    // The app's own player has the picture (js/nativeplayer.js): it takes it out itself.
+    if (nativePip()) return;
     try {
       if (document.pictureInPictureElement) await document.exitPictureInPicture();
       else await el.video.requestPictureInPicture();
@@ -2183,7 +2186,7 @@ function wireUi() {
     // Picture in picture only where the picture can be put in one: asked
     // as the menu opens, since WebKit's answer is the playing source's.
     // The item used to stand there and answer with an error.
-    $('btn-pip').hidden = !(document.pictureInPictureEnabled || el.video.webkitSupportsPresentationMode?.('picture-in-picture'));
+    $('btn-pip').hidden = !(nativePlaying() || document.pictureInPictureEnabled || el.video.webkitSupportsPresentationMode?.('picture-in-picture'));
     toggleMoreMenu();
   });
   // The item's own handler has run by the time the click reaches the menu,

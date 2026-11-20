@@ -382,7 +382,8 @@ final class NativePlayerView: UIView, AVPictureInPictureControllerDelegate {
     }
     @objc private func fullPressed() { onFull?(); show() }
     @objc private func castPressed() { onCast?(); show() }
-    @objc private func togglePip() {
+    /// Out into picture in picture, or back: the button's, and the page's menu's.
+    @objc func togglePip() {
         guard let pip else { return }
         if pip.isPictureInPictureActive { pip.stopPictureInPicture() } else { pip.startPictureInPicture() }
     }

@@ -23,6 +23,7 @@ import { homeGroup } from './name.js';
 import { toast } from './toast.js';
 import * as store from './config.js';
 import { activateTab, browserTags, chosenCountries, mediaFilters, playerLayout, renderSidebar, selectGroup, state, updateAddress, updatePlayerLayout, visibleGroups, vlist } from './state.js';
+import { nativeSize } from './nativeplayer.js';
 import { cancelAutoNext, renderStatBadge } from './nextepisode.js';
 import { closeSecond } from './secondui.js';
 
@@ -195,7 +196,9 @@ export async function chooseSubtitleLook(form) {
  * css/playback.css). Back to filling the column when nothing plays.
  */
 export function sizePicture() {
-  const { videoWidth: w, videoHeight: h } = el.video;
+  // The app's own player has the picture (js/nativeplayer.js): its shape.
+  const held = nativeSize();
+  const w = held ? held.width : el.video.videoWidth, h = held ? held.height : el.video.videoHeight;
   // Two pictures side by side are twice as wide as one (js/secondui.js).
   const across = el.videowrap.classList.contains('split') ? 2 : 1;
   el.videowrap.classList.toggle('sized', Boolean(state.playing));

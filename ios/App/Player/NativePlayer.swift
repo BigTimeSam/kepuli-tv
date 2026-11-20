@@ -1,4 +1,5 @@
 import AVFoundation
+import MediaPlayer
 import UIKit
 
 /// The app's own player behind the page's player.* messages
@@ -14,11 +15,13 @@ import UIKit
 /// view, so it moves with the page; and what of the page lies over the
 /// box, each {x, y, width, height, radius} within it, cut out of the view), player.stop, player.play, player.pause and
 /// player.seek {to}.
-/// The app says player.state {id, state, reason?, position, duration}:
+/// The app says player.state {id, state, reason?, position, duration,
+/// width, height}:
 /// loading, playing, paused, or idle with why (finished, error); at every
 /// change, and every two seconds while the picture runs; and
 /// player.track {id, kind, language?} when the viewer chose subtitles or
-/// a sound track from the stream's own, for the page to keep the language.
+/// a sound track from the stream's own, for the page to keep the language;
+/// and player.command {id, what} for the lock screen's next and previous.
 ///
 /// As with the cast session, nothing here logs an address or a title.
 final class NativePlayer: NSObject, NativeService {
@@ -59,6 +62,7 @@ final class NativePlayer: NSObject, NativeService {
         // paused from elsewhere says so.
         case "player.play": view?.player.play(); view?.show()
         case "player.pause": view?.player.pause(); view?.show()
+        case "player.pip": view?.togglePip()
         case "player.seek":
             if let to = (body["to"] as? NSNumber)?.doubleValue, !live {
                 view?.player.seek(to: CMTime(seconds: max(0, to), preferredTimescale: 600))
@@ -122,6 +126,9 @@ final class NativePlayer: NSObject, NativeService {
             centre.addObserver(forName: AVPlayerItem.didPlayToEndTimeNotification, object: item, queue: .main) { [weak self] _ in self?.finish("finished") },
             centre.addObserver(forName: AVPlayerItem.failedToPlayToEndTimeNotification, object: item, queue: .main) { [weak self] _ in self?.finish("error") },
         ]
+        title = body["title"] as? String ?? ""
+        subtitle = body["subtitle"] as? String ?? ""
+        takeCommands()
         labels = body["labels"] as? [String: String] ?? [:]
         view.setTracks(nil)
         findTracks(item, id: id, subtitles: body["subtitleLang"] as? String ?? "off", audio: body["audioLang"] as? String ?? "auto")
@@ -260,7 +267,13 @@ final class NativePlayer: NSObject, NativeService {
         UIApplication.shared.isIdleTimerDisabled = now != "paused"
         var body: [String: Any] = ["id": id, "state": now, "position": position]
         if let duration = view.player.currentItem?.duration.seconds, duration.isFinite, duration > 0 { body["duration"] = duration }
+        // The picture's shape, for the box the page gives it.
+        if let size = view.player.currentItem?.presentationSize, size.width > 0, size.height > 0 {
+            body["width"] = size.width
+            body["height"] = size.height
+        }
         Bridge.shared.send("player.state", body)
+        sayNowPlaying()
     }
 
     /// The picture came to its end or could not be played: the page is
@@ -271,6 +284,64 @@ final class NativePlayer: NSObject, NativeService {
         debugLog("player: \(reason)")
         stop()
         Bridge.shared.send("player.state", ["id": id, "state": "idle", "reason": reason, "position": at])
+    }
+
+    // MARK: The lock screen and Control Centre
+
+    private var title = ""
+    private var subtitle = ""
+    private var commands: [(MPRemoteCommand, Any)] = []
+
+    /// What plays, for the system's own controls. WebKit published this
+    /// from the page's Media Session for the page's picture
+    /// (ios/MEASURED.md); this picture is not WebKit's.
+    private func sayNowPlaying() {
+        guard id != nil, let player = view?.player else { return }
+        var info: [String: Any] = [
+            MPMediaItemPropertyTitle: title, MPMediaItemPropertyArtist: subtitle, MPMediaItemPropertyAlbumTitle: "Kepuli-TV",
+            MPNowPlayingInfoPropertyIsLiveStream: live,
+            MPNowPlayingInfoPropertyPlaybackRate: player.timeControlStatus == .paused ? 0.0 : 1.0,
+        ]
+        if !live {
+            info[MPNowPlayingInfoPropertyElapsedPlaybackTime] = position
+            if let duration = player.currentItem?.duration.seconds, duration.isFinite, duration > 0 { info[MPMediaItemPropertyPlaybackDuration] = duration }
+        }
+        MPNowPlayingInfoCenter.default().nowPlayingInfo = info
+    }
+
+    /// The system's commands for this picture: play and pause here, a
+    /// place on the time line of a film, and next and previous, which are
+    /// the page's to answer (it knows the list).
+    private func takeCommands() {
+        guard commands.isEmpty else { return }
+        let centre = MPRemoteCommandCenter.shared()
+        let add = { [weak self] (command: MPRemoteCommand, act: @escaping (NativePlayer, MPRemoteCommandEvent) -> Void) in
+            command.isEnabled = true
+            let token = command.addTarget { [weak self] event in
+                guard let self, self.id != nil else { return .noActionableNowPlayingItem }
+                act(self, event)
+                return .success
+            }
+            self?.commands.append((command, token))
+        }
+        add(centre.playCommand) { player, _ in player.view?.player.play() }
+        add(centre.pauseCommand) { player, _ in player.view?.player.pause() }
+        add(centre.togglePlayPauseCommand) { player, _ in
+            guard let now = player.view?.player else { return }
+            if now.timeControlStatus == .paused { now.play() } else { now.pause() }
+        }
+        add(centre.changePlaybackPositionCommand) { player, event in
+            guard !player.live, let to = (event as? MPChangePlaybackPositionCommandEvent)?.positionTime else { return }
+            player.view?.player.seek(to: CMTime(seconds: to, preferredTimescale: 600))
+        }
+        add(centre.nextTrackCommand) { player, _ in Bridge.shared.send("player.command", ["id": player.id ?? 0, "what": "next"]) }
+        add(centre.previousTrackCommand) { player, _ in Bridge.shared.send("player.command", ["id": player.id ?? 0, "what": "previous"]) }
+    }
+
+    private func dropCommands() {
+        for (command, token) in commands { command.removeTarget(token) }
+        commands = []
+        MPNowPlayingInfoCenter.default().nowPlayingInfo = nil
     }
 
     private func unwatch() {
@@ -288,6 +359,7 @@ final class NativePlayer: NSObject, NativeService {
         view?.player.replaceCurrentItem(with: nil)
         view?.setWaiting(false)
         view?.isHidden = true
+        dropCommands()
         UIApplication.shared.isIdleTimerDisabled = false
     }
 }
