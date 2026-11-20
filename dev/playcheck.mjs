@@ -10705,9 +10705,18 @@ async function androidplayer(page, { target }) {
     const tv = (await sent('player.load')).at(-1);
     assert(tv.controls === false && /\.mp4$/.test(tv.url), `the television's app gets the picture alone: ${JSON.stringify({ controls: tv.controls })}`);
     await say({ type: 'player.state', id: tv.id, state: 'playing', position: 10, duration: 120, width: 1280, height: 720 });
-    await evaluate(page, `(document.getElementById('list').focus(), true)`);
+    // Why a full screen was refused is kept for the failure's words: CI's
+    // windowed Chrome refused it here and nowhere else.
+    await evaluate(page, `(() => { const ask = Element.prototype.requestFullscreen; window.__full = [];
+      Element.prototype.requestFullscreen = function (...a) { const p = ask.apply(this, a); p.then(() => window.__full.push('granted ' + this.id), (e) => window.__full.push('refused ' + this.id + ': ' + e.message)); return p; };
+      document.getElementById('list').focus(); return true; })()`);
     await pressKey(page, 'Enter', 'Enter', 13);
-    await waitFor(page, `document.fullscreenElement?.id === 'videowrap'`, 'the television\'s picture full screen', 8000);
+    await waitFor(page, `document.fullscreenElement?.id === 'videowrap'`, 'the television\'s picture full screen', 8000).catch(async (err) => {
+      const why = await evaluate(page, `(async () => { const { state } = await import('./js/state.js'); return JSON.stringify({ asked: window.__full, full: document.fullscreenElement?.id || null, focus: document.hasFocus(), seen: document.visibilityState,
+        active: document.activeElement?.id || document.activeElement?.tagName, dialogs: [...document.querySelectorAll('dialog[open]')].map((d) => d.id), playing: Boolean(state.playing), cursor: state.cursor,
+        loads: window.__sent.filter((m) => m.type === 'player.load').length, size: [innerWidth, innerHeight, screen.width, screen.height] }); })()`).catch((e) => String(e));
+      throw new Error(`${err.message}: ${why}`);
+    });
     for (let i = 0; i < 3; i++) { await pressKey(page, 'ArrowRight', 'ArrowRight', 39); await sleep(150); }
     await waitFor(page, `(() => { const f = window.__sent.filter((m) => m.type === 'player.frame').at(-1); return Boolean(f) && f.full === true && f.holes.length > 0; })()`, 'the seek\'s bar said as a hole in the app\'s view', 5000);
     await count('player.seek', 1, 'the remote\'s seek sent to the app\'s player');
