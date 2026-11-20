@@ -189,7 +189,10 @@ button.group-star, button.group-star:hover, .group.active .group-star:hover { wi
 .row.card.playing { background: none; box-shadow: none; }
 .row.card.playing .card-poster { box-shadow: 0 0 0 2px var(--accent); }
 .card-poster .row-progress { position: absolute; left: 6px; right: 6px; bottom: 6px; width: auto; margin: 0; background: rgba(10, 12, 17, .7); }
-.card-star { position: absolute; top: 5px; left: 5px; background: rgba(10, 12, 17, .72); }
+/* The star on a cover is the start page's (.idle-star, css/playback.css):
+   a small disc with a hairline, where it was a dark square as large as
+   the press under touch. One star on every cover. */
+.card-star { position: absolute; top: 5px; left: 5px; }
 /* Seen to the end, or new from the provider: the cover's top right corner,
    the star having the left. */
 .card-flag { position: absolute; top: 6px; right: 6px; padding: 2px 7px; border-radius: 999px; font-size: var(--fs-xs); font-weight: 650; line-height: 1.4; pointer-events: none; }
@@ -203,9 +206,12 @@ button.group-star, button.group-star:hover, .group.active .group-star:hover { wi
    colours: the light theme's grey was 2.2:1 on it, and its gold darker
    still. Three classes, to outlast the row star's colours in either
    theme and under more contrast. */
-.row .row-star.card-star { color: #a3abc0; }
+.row .row-star.card-star, .row .row-star.card-star:hover {
+  width: 28px; height: 28px; padding: 0; margin: 0; border: 1px solid rgba(255, 255, 255, .25); border-radius: 999px;
+  background: rgba(10, 12, 18, .78); background-clip: border-box; color: #fff; font-size: 15px; line-height: 1;
+}
 .row .row-star.card-star.on { color: #ffc857; }
-.row .row-star.card-star:hover { background: rgba(10, 12, 17, .9); color: #fff; }
+.row .row-star.card-star:hover { background: rgba(10, 12, 18, .92); }
 /* A favourite's star stays gold under the pointer. A finger leaves the
    hover on what it tapped, so a film just starred on an iPad had a white
    star until something else was touched. */

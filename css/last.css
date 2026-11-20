@@ -118,6 +118,11 @@ input[type="search"], input[type="text"], input[type="url"], input:not([type]) {
   /* A mark without one keeps its place and its look, and takes the press
      around it: the box grows into a margin of the same size taken back. */
   .row-star, .row-star:hover, .row-more, .row-x, .row-x:hover { width: 2.5rem; height: 2.5rem; margin: -4px; }
+  /* A cover's star keeps its disc of 28 px inside the press of 40, as the
+     start page's does below: the border is the press, the outline the
+     disc's hairline. */
+  .row .row-star.card-star, .row .row-star.card-star:hover { width: 2.5rem; height: 2.5rem; margin: -6px; border: 6px solid transparent; background-clip: padding-box; }
+  .row .row-star.card-star:not(:focus-visible) { outline: 1px solid rgba(255, 255, 255, .25); outline-offset: -7px; }
   button.group-star, button.group-star:hover, .group.active .group-star:hover { width: 2.5rem; height: 2.5rem; padding: 11px; margin: -11px; }
   /* The title's star is centred on the title's first line (1.45 of its
      1rem), however many lines the title takes; the margins still take
