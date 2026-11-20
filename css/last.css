@@ -119,7 +119,10 @@ input[type="search"], input[type="text"], input[type="url"], input:not([type]) {
      around it: the box grows into a margin of the same size taken back. */
   .row-star, .row-star:hover, .row-more, .row-x, .row-x:hover { width: 2.5rem; height: 2.5rem; margin: -4px; }
   button.group-star, button.group-star:hover, .group.active .group-star:hover { width: 2.5rem; height: 2.5rem; padding: 11px; margin: -11px; }
-  button.series-favorite { width: 2.5rem; height: 2.5rem; margin: -4px; }
+  /* The title's star is centred on the title's first line (1.45 of its
+     1rem), however many lines the title takes; the margins still take
+     back the eight points the box grew by, so nothing under it moves. */
+  button.series-favorite { width: 2.5rem; height: 2.5rem; margin: calc(0.725rem - 1.25rem) -4px calc(1.25rem - 0.725rem - 8px); }
   .hint-btn { width: 2.5rem; height: 2.5rem; min-height: 0; margin: -11px; border-width: 11px; }
   .chip { min-height: 2rem; }
   .chip-main, .chip-star { margin-block: -4px; }
