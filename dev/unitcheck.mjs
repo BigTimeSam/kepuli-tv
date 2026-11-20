@@ -2568,6 +2568,33 @@ check('VLC for iOS is handed the stream address, encoded whole',
   }
   setLanguage('en');
   check('every excuse on that list is still needed', Object.keys(NEVER_IN_THE_APP).filter((name) => !needed.has(name)), []);
+  // And a key: a phone, a tablet in the hand and a television have no
+  // keyboard, and "star it with s" in the empty favourites told an iPad's
+  // owner to press one. A sentence the apps can show names no key; one
+  // that does is listed with why it is not shown there.
+  const NAMES_A_KEY = {
+    en: /\b(keys?|keyboard|shortcuts?|PgUp|PgDn|Esc|Backspace)\b|\((g|f|m|s|c|x|l|a|n|p)\)|\bpress [a-z]\b|\bwith [a-z][.,]/i,
+    fi: /näppäi|pikanäpp|PgUp|PgDn|\bEsc\b|\((g|f|m|s|c|x|l|a|n|p)\)|\bpaina [a-zäö]\b/i,
+  };
+  const NO_KEYBOARD_THERE = {
+    'help.guide.keys': 'in the fold of keys, which an app shows only with a keyboard joined (js/help.js)',
+    'help.back': 'hidden in every app (css/last.css)',
+    'help.shortcuts': 'that fold\'s name',
+    'help.more': 'that fold\'s name in a browser',
+    'btn.help.title': 'a tooltip, taken off in the apps (js/app.js)',
+    'btn.guide.title': 'a tooltip, taken off in the apps (js/app.js)',
+    'cast.tab': 'the app\'s own sender answers before the tab-casting hint (js/app.js castCurrent)',
+  };
+  const keyExcused = (key) => Object.keys(NO_KEYBOARD_THERE).find((name) => key === name || key.startsWith(`${name}.`));
+  const keyNeeded = new Set();
+  for (const [lang, names] of Object.entries(NAMES_A_KEY)) {
+    setLanguage(lang);
+    const naming = keysOf(lang).filter((key) => names.test(t(key)));
+    check(`no sentence an app can show names a key (${lang})`, naming.filter((key) => !keyExcused(key)), []);
+    for (const key of naming) keyNeeded.add(keyExcused(key));
+  }
+  setLanguage('en');
+  check('every excuse for a key is still needed', Object.keys(NO_KEYBOARD_THERE).filter((name) => !keyNeeded.has(name)), []);
   const css = stylesheets();
   const html = readFileSync(new URL('../player.html', import.meta.url), 'utf8');
   check('what the list calls hidden under .ios is hidden there, and is in the page',

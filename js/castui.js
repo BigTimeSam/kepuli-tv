@@ -28,6 +28,7 @@ import { noteEnded, notePlace, startAutoNext } from './nextepisode.js';
 import { nowPlace, placeReached, playItem, playback, showOverlayActions } from './playing.js';
 import { retryPlayback } from './recordingsui.js';
 import { cast, state, updatePlayerLayout } from './state.js';
+import { svg } from './svg.js';
 import { toast } from './toast.js';
 import { leavePlayback } from './tracksui.js';
 
@@ -117,9 +118,11 @@ function showCasting() {
   el.overlay.classList.remove('loading');
   el.overlayTitle.textContent = t('cast.on', { device: cast.device || 'Chromecast' });
   el.overlayText.textContent = t('cast.on.text');
+  // Each with its mark, and the one that ends the session in the colour
+  // of an ending: two grey buttons alike said nothing of which is which.
   showOverlayActions([
-    { label: t('cast.controls'), onClick: () => cast.controls() },
-    { label: t('cast.stop'), onClick: () => cast.end() },
+    { label: t('cast.controls'), mark: () => svg('<rect x="6.5" y="2.5" width="7" height="15" rx="2.2"/><circle cx="10" cy="6.6" r="1.5"/><path d="M10 11.2v.01M10 14.2v.01"/>'), onClick: () => cast.controls() },
+    { label: t('cast.stop'), danger: true, mark: () => svg('<rect x="5.2" y="5.2" width="9.6" height="9.6" rx="1.8"/>'), onClick: () => cast.end() },
   ]);
 }
 

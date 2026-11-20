@@ -55,8 +55,8 @@ const REMOTE_KEYS = [
 /**
  * The Android app on a phone or a tablet is driven by touch, and a list of
  * keys said nothing there about what a finger does that a mouse does not,
- * or about what the app does when it is left. The keys stay behind the
- * fold, for a tablet with a keyboard.
+ * or about what the app does when it is left. The keys are behind the
+ * fold, and there only for a tablet with a keyboard joined to it.
  */
 const APP_HELP = [
   ['help.app.hold', 'help.app.menu'],
@@ -95,7 +95,12 @@ export function openHelp() {
     const label = /** @type {HTMLElement} */ (fold.querySelector('.section-label'));
     label.dataset.i18n = 'help.shortcuts';
     label.textContent = t('help.shortcuts');
-    if (!dialog.open) fold.open = matchMedia('(any-hover: hover)').matches;
+    // And only where something hovers: with no keyboard joined, a phone, a
+    // tablet in the hand or a television has no use for a list of keys,
+    // and the owner asked that none be named there.
+    const keyboard = matchMedia('(any-hover: hover)').matches;
+    fold.hidden = !keyboard;
+    if (!dialog.open) fold.open = keyboard;
   }
   if (!dialog.open) dialog.showModal();
 }

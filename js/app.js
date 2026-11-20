@@ -33,7 +33,7 @@ import { requestAccess, hasAccess, hasAccessEverywhere, requestAccessEverywhere,
 import { createCast, supported as castSupported } from './cast.js';
 import { renderCasting, sessionFound } from './castui.js';
 import { nativePip, nativePlaying } from './nativeplayer.js';
-import { ios, remote } from './platform.js';
+import { ios, native, remote } from './platform.js';
 import './iosapp.js';
 import { wireAndroidApp } from './androidapp.js';
 import { caretWelcome } from './caret.js';
@@ -2358,9 +2358,6 @@ if (ios) {
   // In the app the help leads to the app's own guide: the README and the
   // user guide the two links name otherwise are about browsers.
   for (const link of document.querySelectorAll('a.setup-help:not(.ios-only)')) link.href = 'https://bigtimesam.github.io/kepuli-tv/iptv-app-iphone-ipad/';
-  // The Help button's name there is Help: its longer one speaks of keys,
-  // which an iPhone has none of.
-  $('btn-help').dataset.i18nTitle = 'btn.help';
   // The page is the app's whole screen already. Hidden as an attribute,
   // not by the stylesheet alone: the top bar's menu is made of the buttons
   // that are not hidden (js/topmenu.js).
@@ -2403,6 +2400,13 @@ async function init() {
   setLanguage(lang);
   nameExternalItem();
   applyLocale();
+  // The tooltips that name keys ("Programme guide and catch-up (g)",
+  // "Keyboard shortcuts…") say the buttons' plain names in the apps:
+  // nothing brings a tooltip up there, but a screen reader read it out.
+  if (native || remote) {
+    $('btn-guide').dataset.i18nTitle = 'btn.guide';
+    for (const node of document.querySelectorAll('#btn-help, a.setup-help[data-i18n-title]')) /** @type {HTMLElement} */ (node).dataset.i18nTitle = 'btn.help';
+  }
   applyStatic();
   catalogueSearch.render();
   updatePlayerLayout();
