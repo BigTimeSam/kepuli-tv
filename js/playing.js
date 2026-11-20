@@ -140,7 +140,11 @@ function onPlaybackState(s) {
     // for longer than the half minute allowed for. On an account of one
     // connection an episode chosen again from the start page was refused,
     // said to have failed, and played at Try again.
-    const title = state.playing && state.playing.k !== 0 && !state.catchup;
+    // Only one that never started: a picture that broke on its way has
+    // been resumed several times already (js/playback.js), and started
+    // again it would say "did not start" in place of where and why it
+    // stopped (the server gone under an episode, the death scenario).
+    const title = state.playing && state.playing.k !== 0 && !state.catchup && !(s.position > 0);
     if (!s.checked && !s.content && !s.reachable && state.playingSpec && !state.playingSpec.awaitedRelease && (playback.followedRelease || title)) {
       checkBeforeFailing(s);
       return;
