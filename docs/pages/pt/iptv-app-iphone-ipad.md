@@ -32,7 +32,7 @@ portal Stalker que já tem.
 
 ## Transmitir para um Chromecast
 
-- Escolha **Transmitir para um Chromecast** no menu ☰ do player e selecione o
+- Escolha **Transmitir para um Chromecast** na barra superior e selecione o
   dispositivo. Na primeira vez, o sistema pergunta se o Kepuli-TV pode
   encontrar dispositivos na sua rede local: permita. Antes disso, o Google
   mostra um aviso próprio. Depois dos dois, os dispositivos aparecem assim que

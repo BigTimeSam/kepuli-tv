@@ -30,7 +30,7 @@ Xtream Codes hoặc cổng Stalker mà bạn đã có.
 
 ## Truyền sang Chromecast
 
-- Chọn **Truyền sang Chromecast** trong menu ☰ của trình phát rồi chọn thiết
+- Chọn **Truyền sang Chromecast** trên thanh trên cùng rồi chọn thiết
   bị. Lần đầu, hệ thống hỏi Kepuli-TV có được tìm thiết bị trong mạng cục bộ
   của bạn không: hãy cho phép. Trước đó, Google hiển thị một thông báo riêng.
   Sau cả hai, các thiết bị sẽ hiện ra ngay khi tìm thấy một thiết bị. Nếu

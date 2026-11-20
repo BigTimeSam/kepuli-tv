@@ -403,6 +403,8 @@ async function guide(d) {
     if (!await until(() => $('main').classList.contains('guide') && document.querySelectorAll('.epg-prog').length > 0)) return { open: false };
     await pause(500);
     const { t } = await import('./js/i18n.js');
+    // The panel beside the grid, with nothing playing: its picks are no wider than it.
+    const panel = $('overlay'), panelFits = panel.scrollWidth <= panel.clientWidth + 1;
     // An upcoming programme's own page: where a browser offers to record it.
     const ahead = [...document.querySelectorAll('.epg-prog[data-start]')].find((n) => Number(n.dataset.start) > Date.now() + 5 * 60000);
     if (ahead) ahead.click();
@@ -411,8 +413,9 @@ async function guide(d) {
     const words = [t('rec.start'), t('rec.title')];
     const recording = [...document.querySelectorAll('button, [role="menuitem"], a')].filter((n) => seen(n) && words.some((w) => n.textContent.trim().startsWith(w))).map((n) => n.id || n.textContent.trim());
     return { open: true, programmes: document.querySelectorAll('.epg-prog').length, actions, remind: t('guide.remind'), recording,
-      buttons: [seen($('btn-record')), seen($('btn-recordings-menu'))], canRecord: (await import('./js/recordingsui.js')).canRecord, fits: fits() };`);
+      buttons: [seen($('btn-record')), seen($('btn-recordings-menu'))], canRecord: (await import('./js/recordingsui.js')).canRecord, fits: fits(), panelFits };`);
   assert(grid && grid.open && grid.programmes > 0 && grid.fits, `the guide: ${JSON.stringify(grid)}`);
+  assert(grid.panelFits, 'the panel beside the guide scrolls sideways');
   assert(grid.canRecord === false && grid.recording.length === 0 && !grid.buttons[0] && !grid.buttons[1], `something of recording is offered: ${JSON.stringify(grid)}`);
   assert(grid.actions.includes(grid.remind), `an upcoming programme offers ${grid.actions.join(', ') || 'nothing'}`);
   await d.shot('guide');
@@ -757,9 +760,7 @@ async function cast(d) {
     let said = null; h.on('cast.state', (s) => { said = s; });
     await until(() => said, 3000);
     if (!await playChannel()) return { played: false };
-    $('btn-more').click(); await pause(300);
-    const item = seen($('btn-cast')) && !$('btn-cast').hidden, top = seen($('btn-cast-top'));
-    $('btn-more').click();
+    const item = Boolean($('btn-cast')), top = seen($('btn-cast-top'));
     const load = await h.request('cast.load', { url: 'https://example.org/${marks.address}.mp4?username=demo&password=demo', contentType: 'video/mp4', live: false, startAt: 0,
       title: '${marks.title}', subtitle: '${marks.subtitle}' }).then(() => 'accepted', (err) => err.message);
     h.send('cast.stop'); h.send('cast.controls');
@@ -768,7 +769,7 @@ async function cast(d) {
   assert(page.said && page.said.state === 'disconnected' && page.said.devices === -1 && page.said.device === null, `cast.state as the page heard it: ${JSON.stringify(page.said)}`);
   // The mark is on the bar before any device is known: its press is what
   // asks for the local network and looks for one.
-  assert(page.item && page.top, `with no device known the menu ${page.item ? 'has' : 'lacks'} Cast and the bar ${page.top ? 'has' : 'lacks'} the mark`);
+  assert(!page.item && page.top, `with no device known the menu ${page.item ? 'has' : 'lacks'} Cast and the bar ${page.top ? 'has' : 'lacks'} the mark`);
   assert(page.load === 'no-session', `cast.load without a session was answered "${page.load}"`);
   await d.page(`(await import('./js/host.js')).send('cast.prompt'); return true;`);
   // The button is pressed a second after the SDK's start (CastService.swift).
@@ -788,7 +789,7 @@ async function cast(d) {
   assert(leaked.length === 0 && !/username=|password=/.test(text) && /cast\.load/.test(text), `the debug log ${leaked.length ? `holds ${leaked.join(', ')}` : 'holds credentials or no cast.load'}`);
   // The note has no button a script can press; a launch takes it away.
   await d.launch();
-  return `the menu has Cast, the bar its mark before any device is known; cast.state arrived disconnected with devices -1; cast.load answered no-session; cast.prompt started the SDK ${state.cast.sdk} and put ${presented} on the screen with no search begun; the log names the message's type and none of its address, title or subtitle`;
+  return `the bar has the Cast mark before any device is known, the menu none; cast.state arrived disconnected with devices -1; cast.load answered no-session; cast.prompt started the SDK ${state.cast.sdk} and put ${presented} on the screen with no search begun; the log names the message's type and none of its address, title or subtitle`;
 }
 
 async function links(d) {

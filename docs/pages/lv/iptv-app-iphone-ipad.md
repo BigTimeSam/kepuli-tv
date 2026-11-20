@@ -30,7 +30,7 @@ vai Stalker portālu, kas tev jau ir.
 
 ## Pārraidīt uz Chromecast
 
-- Atskaņotāja ☰ izvēlnē izvēlies **Pārraidīt uz Chromecast** un norādi ierīci.
+- Augšējā joslā izvēlies **Pārraidīt uz Chromecast** un norādi ierīci.
   Pirmajā reizē sistēma jautā, vai Kepuli-TV drīkst meklēt ierīces tavā
   lokālajā tīklā: atļauj. Pirms tam Google parāda savu paziņojumu. Pēc abiem
   ierīces tiek parādītas, tiklīdz kāda ir atrasta. Ja pusminūtes laikā neviena

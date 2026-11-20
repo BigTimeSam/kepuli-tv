@@ -21,16 +21,71 @@ import UIKit
 /// change, and every two seconds while the picture runs; and
 /// player.track {id, kind, language?} when the viewer chose subtitles or
 /// a sound track from the stream's own, for the page to keep the language;
-/// and player.command {id, what} for the lock screen's next and previous.
+/// and player.command {id, what, to?} for the lock screen's next and previous.
+///
+/// What the page plays itself has the same controls over it: the page
+/// sends player.load {id, page: true, live, title, subtitle, labels} with
+/// no address, and player.page {id, state, position, duration?} as its own
+/// picture goes; the controls' presses come back as player.command
+/// {id, what: play | pause | seek | pip, to?}. Nothing plays here then, and
+/// the lock screen is WebKit's, as it was.
+///
+/// Two pictures side by side (js/secondui.js) are two of these: every
+/// message names its `slot`, 1 the picture and 2 the second beside it
+/// (none said is 1). Sound comes from one at a time, at the page's word:
+/// player.sound {slot, on, offered} says whether a slot is heard and
+/// whether it shows its speaker, and a press of the speaker, of the
+/// second's swap or of its close comes back as player.command
+/// {slot, what: sound | swap | close}. The lock screen, picture in
+/// picture, AirPlay, the Cast mark and the tracks are the first slot's.
 ///
 /// As with the cast session, nothing here logs an address or a title.
-final class NativePlayer: NSObject, NativeService, AVPlayerItemLegibleOutputPushDelegate {
+final class NativePlayer: NSObject, NativeService {
     let prefix = "player."
+
+    private let slots = [1: PlayerSlot(number: 1), 2: PlayerSlot(number: 2)]
+
+    /// What the debug bridge says of the player (ios/sim.mjs status): the
+    /// first picture's state, and the second's under `second`.
+    var debugState: [String: Any] {
+        var state = slots[1]?.debugState ?? ["on": false]
+        state["second"] = slots[2]?.debugState ?? ["on": false]
+        return state
+    }
+
+    func handle(_ type: String, _ body: [String: Any], reply: @escaping ([String: Any]) -> Void) {
+        guard let slot = slots[(body["slot"] as? NSNumber)?.intValue ?? 1] else { reply(["ok": false, "error": "bad-request"]); return }
+        slot.handle(type, body, reply: reply)
+    }
+
+    /// A page that has just loaded plays nothing, whatever the one before
+    /// it had on; nor does one whose process ended.
+    func pageConnected() { for slot in slots.values { slot.stop() } }
+    func pageGone() { for slot in slots.values { slot.stop() } }
+
+    /// A dialog of the page is open, with this backdrop (Screen).
+    func setShade(_ rgba: [Double]?, open: Bool) { for slot in slots.values { slot.setShade(rgba, open: open) } }
+}
+
+/// One picture of the app's own, and what the page says to it.
+final class PlayerSlot: NSObject, AVPlayerItemLegibleOutputPushDelegate {
+    /// 1 the picture, 2 the second beside it.
+    let number: Int
+    init(number: Int) { self.number = number }
+
+    /// To the page, with the slot it is from.
+    private func send(_ type: String, _ body: [String: Any]) {
+        var word = body
+        word["slot"] = number
+        Bridge.shared.send(type, word)
+    }
 
     private var view: NativePlayerView?
     /// The page's number for what plays, said back with every state.
     private var id: NSNumber?
     private var live = false
+    /// The picture is the page's own, and only the controls are here.
+    private var page = false
     private var observations: [NSKeyValueObservation] = []
     private var ended: [NSObjectProtocol] = []
     private var beat: Timer?
@@ -44,7 +99,7 @@ final class NativePlayer: NSObject, NativeService, AVPlayerItemLegibleOutputPush
         let chosen = view.player.currentItem?.currentMediaSelection
         let subtitle = legible.flatMap { chosen?.selectedMediaOption(in: $0) }.map(Self.language) ?? "off"
         let sound = audible.flatMap { chosen?.selectedMediaOption(in: $0) }.map(Self.language) ?? "none"
-        return ["on": true, "state": state, "subtitle": subtitle, "audio": sound,
+        return ["on": true, "page": page, "state": state, "subtitle": subtitle, "audio": sound,
                 "subtitles": legible.map { texts($0).count } ?? 0, "audios": audible?.options.count ?? 0, "live": live, "hidden": view.isHidden, "controls": view.controlsShown,
                 "position": position, "frame": [view.frame.minX, view.frame.minY, view.frame.width, view.frame.height]]
     }
@@ -52,11 +107,21 @@ final class NativePlayer: NSObject, NativeService, AVPlayerItemLegibleOutputPush
     func handle(_ type: String, _ body: [String: Any], reply: @escaping ([String: Any]) -> Void) {
         switch type {
         case "player.load":
-            guard let address = body["url"] as? String, let url = URL(string: address), let id = body["id"] as? NSNumber else {
+            let own = body["page"] as? Bool ?? false
+            guard let id = body["id"] as? NSNumber, let url = own ? URL(string: "about:blank") : (body["url"] as? String).flatMap(URL.init(string:)) else {
                 reply(["ok": false, "error": "bad-request"]); return
             }
-            load(url, id: id, body)
+            load(own ? nil : url, id: id, body)
+        case "player.page":
+            if page, let said = body["id"] as? NSNumber, said == id {
+                view?.setPage(paused: body["state"] as? String == "paused", position: (body["position"] as? NSNumber)?.doubleValue ?? 0,
+                              duration: (body["duration"] as? NSNumber)?.doubleValue)
+            }
         case "player.frame": place(body)
+        case "player.sound":
+            heard = body["on"] as? Bool ?? true
+            speaker = body["offered"] as? Bool ?? false
+            view?.setSound(on: heard, offered: speaker)
         case "player.stop": stop()
         // At the page's word the controls show, as at a touch: what was
         // paused from elsewhere says so.
@@ -73,12 +138,8 @@ final class NativePlayer: NSObject, NativeService, AVPlayerItemLegibleOutputPush
         reply([:])
     }
 
-    /// A page that has just loaded plays nothing, whatever the one before
-    /// it had on; nor does one whose process ended.
-    func pageConnected() { stop() }
-    func pageGone() { stop() }
-
-    private func load(_ url: URL, id: NSNumber, _ body: [String: Any]) {
+    /// `url` is nil for what the page plays itself: the controls alone.
+    private func load(_ url: URL?, id: NSNumber, _ body: [String: Any]) {
         guard let webView = host?.host.webView else { return }
         let view = self.view ?? NativePlayerView()
         if self.view == nil {
@@ -89,6 +150,13 @@ final class NativePlayer: NSObject, NativeService, AVPlayerItemLegibleOutputPush
             }
             // The same as the page's own Cast button: Google's dialogs.
             view.onCast = { Services.cast.handle("cast.prompt", [:]) { _ in } }
+            // The speaker, and the second picture's swap and close: the
+            // page's to do, as it knows both pictures.
+            view.onSide = { [weak self] what in
+                guard let self, let id = self.id else { return }
+                self.send("player.command", ["id": id, "what": what])
+            }
+            view.setSecond(number == 2)
             webView.scrollView.addSubview(view)
             view.setShade(shade.0, open: shade.1)
             self.view = view
@@ -97,9 +165,26 @@ final class NativePlayer: NSObject, NativeService, AVPlayerItemLegibleOutputPush
         self.id = id
         live = body["live"] as? Bool ?? false
         said = ""
+        page = url == nil
         view.show(title: body["title"] as? String ?? "", subtitle: body["subtitle"] as? String ?? "", live: live,
-                  labels: body["labels"] as? [String: String] ?? [:])
+                  labels: body["labels"] as? [String: String] ?? [:], page: page)
         view.setFull(host?.full ?? false)
+        view.setSound(on: heard, offered: speaker)
+        guard let url else {
+            // The page's picture: nothing of AVPlayer's stays on, and the
+            // system's commands are WebKit's again.
+            view.player.replaceCurrentItem(with: nil)
+            view.setCaption("")
+            view.setTracks(nil)
+            view.setWaiting(false)
+            dropCommands()
+            view.onPage = { [weak self] what, to in
+                var word: [String: Any] = ["id": id, "what": what]
+                if let to { word["to"] = to }
+                self?.send("player.command", word)
+            }
+            return
+        }
         view.setWaiting(true)
 
         // The sound plays with the ring switch off and goes on behind
@@ -221,7 +306,7 @@ final class NativePlayer: NSObject, NativeService, AVPlayerItemLegibleOutputPush
         showTracks()
         var body: [String: Any] = ["id": id, "kind": kind]
         if let option { body["language"] = Self.language(option) }
-        Bridge.shared.send("player.track", body)
+        send("player.track", body)
     }
 
     /// The picture's box in the page. Nothing of it in sight (another pane
@@ -254,6 +339,9 @@ final class NativePlayer: NSObject, NativeService, AVPlayerItemLegibleOutputPush
     }
 
     private var shade: ([Double]?, Bool) = (nil, false)
+    /// Whether this slot is the one heard, and whether it shows its speaker (player.sound).
+    private lazy var heard = number == 1
+    private var speaker = false
 
     private var position: Double {
         let seconds = view?.player.currentTime().seconds ?? 0
@@ -272,14 +360,14 @@ final class NativePlayer: NSObject, NativeService, AVPlayerItemLegibleOutputPush
     /// Where the picture stands, for the page: at a change, and `again`
     /// with the beat while it runs.
     private func say(again: Bool = false) {
-        guard let id, let view else { return }
+        guard let id, let view, !page else { return }
         let now = state
         guard now != said || (again && now == "playing") else { return }
         said = now
         view.setWaiting(now == "loading")
         // The screen stays on while the picture runs (KeepAwake does this
         // for the page's own picture, at the page's word).
-        UIApplication.shared.isIdleTimerDisabled = now != "paused"
+        if number == 1 { UIApplication.shared.isIdleTimerDisabled = now != "paused" }
         var body: [String: Any] = ["id": id, "state": now, "position": position]
         if let duration = view.player.currentItem?.duration.seconds, duration.isFinite, duration > 0 { body["duration"] = duration }
         // The picture's shape, for the box the page gives it.
@@ -287,7 +375,7 @@ final class NativePlayer: NSObject, NativeService, AVPlayerItemLegibleOutputPush
             body["width"] = size.width
             body["height"] = size.height
         }
-        Bridge.shared.send("player.state", body)
+        send("player.state", body)
         sayNowPlaying()
     }
 
@@ -298,7 +386,7 @@ final class NativePlayer: NSObject, NativeService, AVPlayerItemLegibleOutputPush
         let at = position
         debugLog("player: \(reason)")
         stop()
-        Bridge.shared.send("player.state", ["id": id, "state": "idle", "reason": reason, "position": at])
+        send("player.state", ["id": id, "state": "idle", "reason": reason, "position": at])
     }
 
     // MARK: The lock screen and Control Centre
@@ -311,7 +399,7 @@ final class NativePlayer: NSObject, NativeService, AVPlayerItemLegibleOutputPush
     /// from the page's Media Session for the page's picture
     /// (ios/MEASURED.md); this picture is not WebKit's.
     private func sayNowPlaying() {
-        guard id != nil, let player = view?.player else { return }
+        guard number == 1, id != nil, let player = view?.player else { return }
         var info: [String: Any] = [
             MPMediaItemPropertyTitle: title, MPMediaItemPropertyArtist: subtitle, MPMediaItemPropertyAlbumTitle: "Kepuli-TV",
             MPNowPlayingInfoPropertyIsLiveStream: live,
@@ -328,9 +416,9 @@ final class NativePlayer: NSObject, NativeService, AVPlayerItemLegibleOutputPush
     /// place on the time line of a film, and next and previous, which are
     /// the page's to answer (it knows the list).
     private func takeCommands() {
-        guard commands.isEmpty else { return }
+        guard number == 1, commands.isEmpty else { return }
         let centre = MPRemoteCommandCenter.shared()
-        let add = { [weak self] (command: MPRemoteCommand, act: @escaping (NativePlayer, MPRemoteCommandEvent) -> Void) in
+        let add = { [weak self] (command: MPRemoteCommand, act: @escaping (PlayerSlot, MPRemoteCommandEvent) -> Void) in
             command.isEnabled = true
             let token = command.addTarget { [weak self] event in
                 guard let self, self.id != nil else { return .noActionableNowPlayingItem }
@@ -349,11 +437,13 @@ final class NativePlayer: NSObject, NativeService, AVPlayerItemLegibleOutputPush
             guard !player.live, let to = (event as? MPChangePlaybackPositionCommandEvent)?.positionTime else { return }
             player.view?.player.seek(to: CMTime(seconds: to, preferredTimescale: 600))
         }
-        add(centre.nextTrackCommand) { player, _ in Bridge.shared.send("player.command", ["id": player.id ?? 0, "what": "next"]) }
-        add(centre.previousTrackCommand) { player, _ in Bridge.shared.send("player.command", ["id": player.id ?? 0, "what": "previous"]) }
+        add(centre.nextTrackCommand) { player, _ in player.send("player.command", ["id": player.id ?? 0, "what": "next"]) }
+        add(centre.previousTrackCommand) { player, _ in player.send("player.command", ["id": player.id ?? 0, "what": "previous"]) }
     }
 
     private func dropCommands() {
+        // The system's commands and what it shows as playing are the first picture's.
+        guard number == 1 else { return }
         for (command, token) in commands { command.removeTarget(token) }
         commands = []
         MPNowPlayingInfoCenter.default().nowPlayingInfo = nil
@@ -367,7 +457,7 @@ final class NativePlayer: NSObject, NativeService, AVPlayerItemLegibleOutputPush
         beat = nil
     }
 
-    private func stop() {
+    func stop() {
         unwatch()
         guard id != nil else { return }
         id = nil
@@ -376,6 +466,8 @@ final class NativePlayer: NSObject, NativeService, AVPlayerItemLegibleOutputPush
         view?.setWaiting(false)
         view?.isHidden = true
         dropCommands()
-        UIApplication.shared.isIdleTimerDisabled = false
+        // The page's own picture keeps the screen on at the page's word (KeepAwake).
+        if !page, number == 1 { UIApplication.shared.isIdleTimerDisabled = false }
+        page = false
     }
 }

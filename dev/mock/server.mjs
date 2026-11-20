@@ -1116,6 +1116,15 @@ function sendMedia(req, res, path, ext) {
   // KEPULI_MOCK_EMPTY: every film and episode is answered the way a real
   // provider answers a title it has no file for — "200 OK", text/html and
   // not one byte, where a playable title is a redirect and a 206.
+  // KEPULI_MOCK_FILM_FAILS, a number: that many requests for a film or an
+  // episode are refused as a connection over the limit is (a 400 with a
+  // line of text) and the number counts down, so that the next one plays:
+  // a provider still counting a stream it was asked to end, which a second
+  // try gets past. The account itself says it has room throughout.
+  if (Number(process.env.KEPULI_MOCK_FILM_FAILS) > 0) {
+    process.env.KEPULI_MOCK_FILM_FAILS = String(Number(process.env.KEPULI_MOCK_FILM_FAILS) - 1);
+    return send(res, 400, 'every connection is in use', 'text/plain');
+  }
   // KEPULI_MOCK_REFUSED_FILE: every film and episode is let through and
   // redirected, and the "file server" behind the redirect refuses it with
   // a 400 — what a real provider does with a title whose file it cannot

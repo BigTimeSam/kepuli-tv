@@ -33,7 +33,7 @@ import { requestAccess, hasAccess, hasAccessEverywhere, requestAccessEverywhere,
 import { createCast, supported as castSupported } from './cast.js';
 import { renderCasting, sessionFound } from './castui.js';
 import { nativePip, nativePlaying } from './nativeplayer.js';
-import { ios, remote } from './platform.js';
+import { ios, native, remote } from './platform.js';
 import './iosapp.js';
 import { wireAndroidApp } from './androidapp.js';
 import { caretWelcome } from './caret.js';
@@ -55,12 +55,12 @@ import { applyListLayout, gridColumns, isWatched, nameCleanerFor, onEpgUpdated, 
 import { closeDetail, crumbLabel, episodesOfSeason, openItem, openSeries, renderDetail } from './seriesui.js';
 import { closeGuide, favoritesChanged, focusGrid, grid, guideFavorites, guideOpen, openGuide, programmeSearch, renderGuideGroups, restoreGuideFavorites, setGridChannels, setGuideFavorites, toggleGuide, wirePhoneGuide } from './guideui.js';
 
-import { ensureFull, orderList, renderEmptyState, renderListInfo, wireSubcatsKeys, wireSubcatsResize } from './topicbar.js';
+import { armClearHistory, ensureFull, orderList, renderEmptyState, renderListInfo, wireSubcatsKeys, wireSubcatsResize } from './topicbar.js';
 import { askExternal, nameExternalItem, playExternal } from './externalui.js';
 import { keepScreenOnWhilePlaying } from './wakelock.js';
 import { $, el } from './dom.js';
 import { state, TYPE_KIND, unit, kindLabel, KIND_ORDER, KIND_INDEX, kindGroup, ROW_H, setRowHeight, listNavigation, isCollection, tabType, isAbort, same, resetting, startReset, connecting, setConnecting, provide } from './state.js';
-import { categoryCountsFor, collectionItems, favCategoryEntry, isFavorite, isUnfinished, kindIndex, loadGroupItems, openFavCategory, refreshCatalogue, refreshWhenStale, removeFromHistory, removeUpcoming, renderSubcats, upcomingCount, sectionsFor, toggleFavCategory } from './collections.js';
+import { categoryCountsFor, collectionItems, favCategoryEntry, historyToClear, isFavorite, isUnfinished, kindIndex, loadGroupItems, openFavCategory, refreshCatalogue, refreshWhenStale, removeFromHistory, removeUpcoming, renderSubcats, upcomingCount, sectionsFor, toggleFavCategory } from './collections.js';
 import { renderSecondItem, secondFor, secondOffered } from './secondui.js';
 import { clickPicture, enterFullscreen, moreItems, pictureFull, renderScreenButton, renderSeriesFavorite, toggleFullscreen, toggleMoreMenu, togglePause, toggleScreen, wireMediaSession } from './playercontrols.js';
 import { reveal } from './sidescroll.js';
@@ -72,10 +72,10 @@ import { cancelProgress, hideProgress, progressCtrl, progressSignal, showProgres
 import { openHelp } from './help.js';
 import { copyUrl, toast } from './toast.js';
 import { applyLocale, renderIdleOverlay } from './languageui.js';
-import { fitIdleHome, paintIdleStars, watchInterest } from './idlehome.js';
+import { fitIdleHome, watchInterest } from './idlehome.js';
 import { accountProblem, addOverlayAction, playItem, playback, renderNowSub, showOverlayActions, tabs } from './playing.js';
 import { applySubtitleLook, chooseAudio, chooseSubtitle, cycleAudio, goHome, leavePlayback, stepSubtitleSize, toggleSubtitleLook } from './tracksui.js';
-import { nextEpisode, playEpisode } from './nextepisode.js';
+import { nextEpisode, playEpisode, showInPlace } from './nextepisode.js';
 import { adoptSyncedAccount, configured, offerUpdate, openSetup, renderSyncBox, setupDirty, showStoredSettings, sync, wireSetup, renderThemeAuto } from './setupui.js';
 
 // Live channels are read through js/streamhub.js, so that a recording of
@@ -1087,7 +1087,6 @@ function favouriteChanged(item) {
   const copyAway = item && (item.k === 1 || item.k === 2) && !state.rowIndex.has(store.itemKey(item))
     && state.titleRows.some((row) => row.k === item.k && String(row.id) === String(item.id));
   if (mediaFilters.favouritesOnly || (channelsByFavourite() && state.tab === 'live') || copyAway) refreshRows({ keepScroll: true });
-  paintIdleStars();
   renderSeriesFavorite();
   // The guide's favourites view follows as well (js/guideui.js).
   favoritesChanged();
@@ -1142,6 +1141,19 @@ function renderSidebar() {
   else renderCategories();
   markGroups();
   renderCountriesButton();
+  renderClearHistoryButton();
+}
+
+/**
+ * "Clear history" at the sidebar's foot, under the history's kinds: there
+ * while the kind chosen has something to clear (js/collections.js
+ * historyToClear), and back at its first tap whenever the kinds are drawn
+ * again, as a second tap would then clear something else.
+ */
+let restClearHistory = () => {};
+function renderClearHistoryButton() {
+  restClearHistory();
+  $('btn-clear-history').hidden = state.tab !== 'recent' || !historyToClear().length;
 }
 
 // The sidebar's old "Show favourites only" box, as stored before "Filter
@@ -1739,6 +1751,8 @@ function openItemMenu(item, at) {
   const items = [];
   // A film's ✓ by hand: one seen elsewhere, or one stopped near the end.
   if (item.k === 1) items.push({ label: t(isWatched(`1:${id}`) ? 'row.seen.unmark' : 'row.seen.mark'), onClick: () => toggleWatched(item) });
+  // An episode met outside its series' page: the way to the page, and the other episodes.
+  if (item.k === 3 && item.seriesId != null && isCollection() && !state.detail) items.push({ label: t('row.series'), onClick: () => showInPlace(item) });
   if (state.tab === 'recent' && !state.detail) items.push({ label: t('row.remove.history'), onClick: () => removeFromHistory(item) });
   if (secondOffered(item)) items.push({ label: t('row.second'), onClick: () => secondFor(item, at) });
   if (item.k === 0) {
@@ -1874,15 +1888,11 @@ function showCastHint() {
 }
 
 /**
- * The menu item: hidden without the API, lit while the device plays. The
- * hamburger is lit with it — the item's own colour is behind a press, and
- * casting is worth seeing without one. The Cast mark itself stands on
- * the top bar wherever casting is possible.
+ * The Cast mark: hidden without the API, lit while the device plays. The
+ * player's menu had a line that did the same; with the mark always on the
+ * top bar it was a second way to one thing, and it is gone.
  */
 function renderCastState() {
-  el.cast.hidden = !castSupported;
-  el.cast.classList.toggle('on', cast.connected);
-  el.more.classList.toggle('on', cast.connected && !cast.native);
   // The Cast mark itself stands on the top bar wherever a picture can be
   // sent to a television, as Google's terms want it in sight, and is the
   // one lit; in the apps the session is drawn by js/castui.js. It waited
@@ -2111,7 +2121,7 @@ function wireUi() {
     filterTimer = setTimeout(() => { state.categoryFilter = el.categoryFilter.value; renderCategories(); }, 120);
   });
 
-  // In Settings' Connection section: the dialog gives way to the list's
+  // In Settings, among the stored data: the dialog gives way to the list's
   // progress, unless something in it is still unsaved.
   $('btn-refresh').addEventListener('click', () => {
     if ($('setup').open && !setupDirty()) $('setup').close();
@@ -2122,6 +2132,7 @@ function wireUi() {
   $('btn-settings').addEventListener('click', openSetup);
   $('btn-help').addEventListener('click', openHelp);
   $('btn-home').addEventListener('click', goHome);
+  restClearHistory = armClearHistory($('btn-clear-history'), $('btn-clear-history-text'));
   $('btn-countries').addEventListener('click', () => (tabType() === 'live' ? openCountryPicker() : openCategoryPicker(tabType())));
   $('f-countries').addEventListener('click', () => openCountryPicker());
   new ResizeObserver(() => fitIdleHome()).observe(el.overlay);
@@ -2171,7 +2182,6 @@ function wireUi() {
   $('rec-consent-cancel').addEventListener('click', () => closeRecordingConsent(false));
   wireModal($('rec-consent'), () => closeRecordingConsent(false));
   wireModal($('recordings'), () => $('recordings').close());
-  el.cast.addEventListener('click', castCurrent);
   $('btn-cast-top').addEventListener('click', castCurrent);
   $('btn-pip').addEventListener('click', async () => {
     // The app's own player has the picture (js/nativeplayer.js): it takes it out itself.
@@ -2363,9 +2373,6 @@ if (ios) {
   // In the app the help leads to the app's own guide: the README and the
   // user guide the two links name otherwise are about browsers.
   for (const link of document.querySelectorAll('a.setup-help:not(.ios-only)')) link.href = 'https://bigtimesam.github.io/kepuli-tv/iptv-app-iphone-ipad/';
-  // The Help button's name there is Help: its longer one speaks of keys,
-  // which an iPhone has none of.
-  $('btn-help').dataset.i18nTitle = 'btn.help';
   // The page is the app's whole screen already. Hidden as an attribute,
   // not by the stylesheet alone: the top bar's menu is made of the buttons
   // that are not hidden (js/topmenu.js).
@@ -2408,6 +2415,13 @@ async function init() {
   setLanguage(lang);
   nameExternalItem();
   applyLocale();
+  // The tooltips that name keys ("Programme guide and catch-up (g)",
+  // "Keyboard shortcuts…") say the buttons' plain names in the apps:
+  // nothing brings a tooltip up there, but a screen reader read it out.
+  if (native || remote) {
+    $('btn-guide').dataset.i18nTitle = 'btn.guide';
+    for (const node of document.querySelectorAll('#btn-help, a.setup-help[data-i18n-title]')) /** @type {HTMLElement} */ (node).dataset.i18nTitle = 'btn.help';
+  }
   applyStatic();
   catalogueSearch.render();
   updatePlayerLayout();

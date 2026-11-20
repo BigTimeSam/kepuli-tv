@@ -30,7 +30,7 @@ Stalker portal koji već imaš.
 
 ## Prebaci na Chromecast
 
-- Odaberi **Prebaci na Chromecast** u izborniku ☰ reproduktora i odaberi
+- Odaberi **Prebaci na Chromecast** na gornjoj traci i odaberi
   uređaj. Prvi put sustav pita smije li Kepuli-TV tražiti uređaje u tvojoj
   lokalnoj mreži: dopusti. Prije toga Google prikazuje vlastitu obavijest.
   Nakon obojega uređaji se prikazuju čim se neki pronađe. Ako se u pola minute

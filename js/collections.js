@@ -280,9 +280,22 @@ export async function forgetUnfinished(item, label) {
   await refreshRows({ keepScroll: true });
 }
 
+/**
+ * What "Clear history" takes: the kind chosen in the sidebar (the films
+ * alone under Films; a series' episodes are the series' kind), or all of
+ * it under All. Never the reminders (Upcoming), which are not history.
+ */
+export function historyToClear() {
+  if (state.kind === 'r') return [];
+  return state.kind == null ? state.recents : state.recents.filter((r) => kindGroup(r.k) === state.kind);
+}
+
 export async function clearHistory() {
-  if (!(await store.clearRecents())) return;
-  state.recents = [];
+  const gone = historyToClear();
+  if (!gone.length) return;
+  const recents = gone.length === state.recents.length ? await store.clearRecents() : await store.removeRecents(gone.map((r) => store.itemKey(r)));
+  if (!recents) return;
+  state.recents = recents;
   if (!state.playing && !el.idleHome.hidden) renderIdleOverlay();
   state.kind = null;
   state.lastKind.recent = null;

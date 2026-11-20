@@ -32,7 +32,7 @@ Codes-account of het Stalker-portal mee dat je al hebt.
 
 ## Casten naar een Chromecast
 
-- Kies **Casten naar een Chromecast** in het ☰-menu van de speler en kies het
+- Kies **Casten naar een Chromecast** in de bovenste balk en kies het
   apparaat. De eerste keer vraagt het systeem of Kepuli-TV apparaten in je
   lokale netwerk mag zoeken: sta dat toe. Daarvoor toont Google een eigen
   melding. Na beide verschijnen de apparaten zodra er een is gevonden. Wordt

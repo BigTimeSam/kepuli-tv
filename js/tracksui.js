@@ -9,7 +9,7 @@
 import { resetChannelFilters } from './listfilters.js';
 import { caretWelcome } from './caret.js';
 import { $, el } from './dom.js';
-import { DEFAULT_LIFT, DEFAULT_SCALE, SCALE_BASE, stepScale, subtitleLook } from './subdisplay.js';
+import { SCALE_BASE, stepScale, subtitleLook } from './subdisplay.js';
 import { label as audioLabel } from './audio.js';
 import { closeGuide, grid, guideOpen } from './guideui.js';
 import { duration, wholePercent } from './format.js';
@@ -154,10 +154,8 @@ const sizeText = (scale) => wholePercent(scale / 100);
 export function showSubtitleSize(form, look) {
   $(`${form}-subsize`).value = String(look.scale);
   $(`${form}-subsize-value`).textContent = sizeText(look.scale);
-  $(`${form}-subsize-reset`).hidden = look.scale === DEFAULT_SCALE;
   $(`${form}-sublift`).value = String(look.lift);
   $(`${form}-sublift-value`).textContent = sizeText(look.lift);
-  $(`${form}-sublift-reset`).hidden = look.lift === DEFAULT_LIFT;
 }
 
 /** The look as one form's controls hold it. */

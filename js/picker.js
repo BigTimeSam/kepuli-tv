@@ -31,6 +31,14 @@ export const FILTER_FROM = 7;
 const GAP = 4;
 const MARGIN = 8;
 
+/**
+ * The mark an option shows before its name in the list, for a select
+ * that shows a mark alone when closed (the list's order, js/topicbar.js):
+ * what draws it, as the caller knows its own marks.
+ * @type {WeakMap<HTMLOptionElement, () => Node>}
+ */
+export const optionMarks = new WeakMap();
+
 let open = null;   // { select, pop, input, list, items, active }
 let uid = 0;
 // Whether the last press was a finger or a pen. The iPhone's WebKit opens
@@ -182,6 +190,8 @@ function show(select, typed = '') {
     li.className = 'picker-option';
     li.setAttribute('role', 'option');
     li.textContent = option.textContent;
+    const mark = optionMarks.get(option);
+    if (mark) { li.classList.add('marked'); li.prepend(mark()); }
     if (option.title) li.title = option.title;
     const chosen = option.value === select.value && option.selected;
     li.setAttribute('aria-selected', String(chosen));

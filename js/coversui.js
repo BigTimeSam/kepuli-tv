@@ -19,7 +19,7 @@ import { favCategorySubtitle, openFavCategory, removeFromHistory, toggleFavCateg
 import { el } from './dom.js';
 import { pickIds, refreshIdleSoon } from './picksui.js';
 import { grid, guideChannel, guideOpen, showGuideChannel } from './guideui.js';
-import { openItem } from './seriesui.js';
+import { episodeHeading, openItem } from './seriesui.js';
 import { svg } from './svg.js';
 
 // Films and series as covers rather than rows. A cover is what a film is
@@ -149,8 +149,14 @@ export function toggleWatched(item) {
   refreshIdleSoon();
 }
 
-/** The marks of one film or series: seen, new. */
+/**
+ * The marks of one film, series or episode: seen, new. An episode seen to
+ * its end has the film's mark in its season's list (one half seen has its
+ * bar, js/rows.js): the end was recorded all along and shown nowhere, so
+ * a season of twelve did not say which episode comes next.
+ */
 function coverFacts(item, key) {
+  if (item.k === 3) return { watched: isWatched(key) };
   if (item.k !== 1 && item.k !== 2) return {};
   const watched = item.k === 1 && isWatched(key);
   // A length chosen and this film's not known yet: the card says so (it is
@@ -193,7 +199,10 @@ export function renderRow(index) {
     onOpen: () => { state.cursor = index; openFavCategory(item); },
     onFavorite: () => toggleFavCategory(item),
   }) : itemRow(item, {
-    label: state.cleanName ? state.cleanName(item.n, item) : null,
+    // An episode among the favourites or in the history says its series:
+    // its own row there read as the provider wrote it ("Friends (US) -
+    // S01E02 - The One with…"), the code said again in the line under it.
+    label: item.k === 3 && isCollection() && !state.detail ? episodeHeading(item) : state.cleanName ? state.cleanName(item.n, item) : null,
     playing: state.playing && `${state.playing.k}:${state.playing.id}` === key,
     selected: index === state.cursor,
     domId: rowDomId(index),

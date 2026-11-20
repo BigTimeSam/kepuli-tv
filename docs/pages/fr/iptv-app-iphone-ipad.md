@@ -34,7 +34,7 @@ le compte Xtream Codes ou le portail Stalker que vous avez déjà.
 
 ## Diffuser sur un Chromecast
 
-- Choisissez **Diffuser sur un Chromecast** dans le menu ☰ du lecteur, puis
+- Choisissez **Diffuser sur un Chromecast** dans la barre supérieure, puis
   l’appareil. La première fois, le système demande si Kepuli-TV peut
   rechercher des appareils sur votre réseau local : autorisez-le. Avant cela,
   Google affiche un message qui lui est propre. Après les deux, les appareils

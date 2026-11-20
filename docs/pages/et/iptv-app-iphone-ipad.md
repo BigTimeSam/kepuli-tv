@@ -29,7 +29,7 @@ Stalkeri portaali, mis sul juba on.
 
 ## Edasta Chromecastile
 
-- Vali mängija ☰-menüüst **Edasta Chromecastile** ja vali seade. Esimesel
+- Vali ülaribalt **Edasta Chromecastile** ja vali seade. Esimesel
   korral küsib süsteem, kas Kepuli-TV tohib sinu kohtvõrgust seadmeid otsida:
   luba. Enne seda näitab Google oma teadet. Pärast mõlemat ilmuvad seadmed
   nähtavale kohe, kui mõni leitakse. Kui poole minuti jooksul ühtegi ei leita,

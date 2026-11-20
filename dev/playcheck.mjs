@@ -1830,18 +1830,12 @@ async function secondpicture(page, { target, requests }) {
   try {
     // One connection, one account: nothing to offer.
     await reload('the account of one connection');
-    // The row's menu has no item, and nothing hints at one. The ☰ menu's
-    // item is there all the same, and says what it would take, with the
-    // way to it: Add account opens the form for a new one.
+    // The row's menu has no item, the ☰ menu has none either, and nothing
+    // hints at one: a line that could not be used said at a press what it
+    // would take, and is hidden instead.
     const alone = { row: await rowMenu(1), hint: await evaluate(page, `document.getElementById('toast').hidden ? null : document.getElementById('toast-text').textContent`), more: await moreItem() };
-    assert(!alone.row.includes('Play alongside') && alone.more === 'Side by side' && !/side by side/.test(alone.hint || ''), `on one connection: ${JSON.stringify(alone)}`);
-    await evaluate(page, `document.getElementById('btn-second').click()`);
-    await waitFor(page, `!document.getElementById('toast').hidden && document.querySelector('#toast .toast-action')`, 'what a second picture would take');
-    const need = await evaluate(page, `[document.getElementById('toast-text').textContent, document.querySelector('#toast .toast-action').textContent]`);
-    assert(/^This account allows one stream at a time\. Add another account/.test(need[0]) && need[1] === 'Add account', `said on one connection: ${JSON.stringify(need)}`);
-    await evaluate(page, `document.querySelector('#toast .toast-action').click()`, { gesture: true });
-    await waitFor(page, `document.getElementById('setup').open && document.getElementById('tab-connection').getAttribute('aria-selected') === 'true'`, 'Settings open on Connection for the new account');
-    await evaluate(page, `document.getElementById('setup').close()`);
+    assert(!alone.row.includes('Play alongside') && alone.more === null && !/side by side/.test(alone.hint || ''), `on one connection: ${JSON.stringify(alone)}`);
+    await evaluate(page, `document.getElementById('more-pop').hidden || document.getElementById('btn-more').click()`);
 
     // A phone has no room for it: not in the row's menu nor in the ☰ menu
     // there, though the account allows two streams. Chrome's emulation
@@ -2023,7 +2017,7 @@ async function secondpicture(page, { target, requests }) {
     assert(await moreItem() === 'Close side by side', 'the ☰ menu while the second picture is on');
     await evaluate(page, `document.getElementById('btn-second').click()`);
     await waitFor(page, `document.getElementById('second').hidden`, 'the second picture closed from the menu');
-    return { ok: true, detail: `on one connection the ☰ menu says another account is needed and opens the form for one; on two a hint once; on two, ${split.name} beside the first as a second stream, sound moved and back, sides swapped and back without a new stream, both full screen from its button, closed by the same channel; on one connection and three accounts the row's menu asks which (${asked.slice(1).join(', ')}) and plays ${through} through the one chosen, and the ☰ menu plays its own ${offered[0]}${ciNote}` };
+    return { ok: true, detail: `on one connection neither menu offers it; on two a hint once; on two, ${split.name} beside the first as a second stream, sound moved and back, sides swapped and back without a new stream, both full screen from its button, closed by the same channel; on one connection and three accounts the row's menu asks which (${asked.slice(1).join(', ')}) and plays ${through} through the one chosen, and the ☰ menu plays its own ${offered[0]}${ciNote}` };
   } finally {
     process.env.KEPULI_MOCK_LIVE_TS = '';
     process.env.KEPULI_MOCK_LIMIT = '';
@@ -3785,6 +3779,8 @@ async function polish(page) {
       type('f-port', kept);
       $('f-add-account').click(); await pause(300);
       document.querySelector('input[name="source"][value="xtream"]').click();
+      // The kind of connection is a ring beside its words, not a field's width.
+      out.rings = [...document.querySelectorAll('input[name="source"]')].map((ring) => Math.round(ring.getBoundingClientRect().width));
       const { state } = await import('./js/state.js');
       for (const f of ['host', 'port', 'username', 'password']) type('f-' + f, state.config[f]);
       $('f-save').click(); await pause(300);
@@ -3794,6 +3790,7 @@ async function polish(page) {
       return out;`);
     assert(port.said.every((text) => text === port.expected) && port.focus === 'f-port' && port.open && port.stored === String(MOCK_PORT), `ports that cannot be: ${JSON.stringify(port)}`);
     assert(port.twice === port.exists && port.accounts <= 1, `the same account added a second time: ${JSON.stringify({ said: port.twice, accounts: port.accounts })}`);
+    assert(port.rings.length === 3 && port.rings.every((width) => width === 16), `the rings of the connection's kind are ${port.rings.join(', ')} px wide`);
     /* A portal's address typed into the playlist's field, and Save pressed
        with the field still in the focus, as the iPhone and iPad app makes
        that press: the form goes to the portal's fields and saves nothing. */
@@ -3954,7 +3951,7 @@ async function home(page) {
   const at = await evaluate(page, `({ group: document.querySelector('#groups .group[aria-selected="true"] .group-name')?.textContent, query: document.getElementById('search').value,
     top: document.getElementById('list').scrollTop, playing: Boolean(document.getElementById('video').currentSrc && !document.getElementById('video').paused), title: document.getElementById('now-title')?.textContent || '',
     label: document.getElementById('btn-home').getAttribute('aria-label'), idle: !document.getElementById('idle-home').hidden,
-    watched: [...document.querySelectorAll('.idle-channel:not([hidden]) .idle-name')].map((n) => n.textContent) })`);
+    watched: [...document.querySelectorAll('.idle-channel-wrap:not([hidden]) .idle-name')].map((n) => n.textContent) })`);
   assert(at.group && !at.query && at.top === 0 && !at.playing && !at.title && at.idle && at.watched[0] === playing && at.label === 'Kepuli-TV, to the start page', `the start: ${JSON.stringify(at)}`);
   // Asked for where the list and the start page stand side by side, the
   // start page is in sight and the request is not kept: the viewer went
@@ -4015,12 +4012,39 @@ async function home(page) {
   }
   const points = () => evaluate(page, `chrome.storage.local.get(null).then((d) => Object.entries(d).filter(([k]) => k.startsWith('resume')).reduce((n, [, v]) => n + Object.keys(v || {}).length, 0))`);
   const pointsBefore = await points();
+  // Two presses take a card off: the first turns the cross red and takes
+  // nothing, so a finger that missed a cover removes no title.
+  const cardsBefore = (await cards()).length;
+  await evaluate(page, `document.querySelector('.idle-forget').click()`);
+  await sleep(300);
+  const once = { cards: (await cards()).length, armed: await evaluate(page, `document.querySelector('.idle-forget').classList.contains('armed')`), said: await evaluate(page, `document.querySelector('.idle-forget').title`) };
+  assert(once.cards === cardsBefore && once.armed && /^Press again to remove/.test(once.said), `after one press of the cross: ${JSON.stringify(once)}`);
   for (let left = (await cards()).length; left > 0; left--) {
-    await evaluate(page, `document.querySelector('.idle-forget').click()`);
+    await evaluate(page, `(() => { const b = document.querySelector('.idle-forget'); if (!b.classList.contains('armed')) b.click(); b.click(); })()`);
     await waitFor(page, `document.querySelectorAll('.idle-cards .idle-name').length === ${left - 1}`, 'the card taken off');
   }
   const after = { heading: await evaluate(page, `[...document.querySelectorAll('#idle-home h3')].map((h) => h.textContent)`), before: pointsBefore, points: await points() };
   assert(!after.heading.includes('Continue watching') && after.points <= after.before, `after taking every card off: ${JSON.stringify(after)}`);
+  // A tile of History has the same cross at its right: one press takes
+  // nothing, the second takes the channel out of the history.
+  const tiles = () => evaluate(page, `[...document.querySelectorAll('.idle-channel-wrap .idle-name')].map((n) => n.textContent)`);
+  // A second channel in the history first, so that the section outlasts the one taken out.
+  await evaluate(page, `(async () => { const { state } = await import('./js/state.js'); const config = await import('./js/config.js');
+    const other = state.rows.find((r) => r.k === 0 && !state.recents.some((x) => x.k === 0 && String(x.id) === String(r.id)));
+    state.recents = await config.pushRecent(other); (await import('./js/languageui.js')).renderIdleOverlay(); return true; })()`);
+  // The page is drawn again as its picks arrive: the press comes after that.
+  await sleep(2000);
+  const tilesBefore = await tiles();
+  const stored = () => evaluate(page, `import('./js/state.js').then((m) => m.state.recents.length)`);
+  const storedBefore = await stored();
+  const pressed = await evaluate(page, `(() => { const cross = document.querySelector('.idle-channel-wrap .idle-forget'); cross.click();
+    return { tiles: document.querySelectorAll('.idle-channel-wrap .idle-name').length, armed: cross.classList.contains('armed'), said: cross.title }; })()`);
+  assert(tilesBefore.length > 0 && pressed.tiles === tilesBefore.length && pressed.armed && /^Press again to remove/.test(pressed.said), `after one press of a History tile's cross: ${JSON.stringify(pressed)}`);
+  await evaluate(page, `document.querySelector('.idle-channel-wrap .idle-forget.armed').click()`);
+  await waitFor(page, `![...document.querySelectorAll('.idle-channel-wrap .idle-name')].some((n) => n.textContent === ${JSON.stringify(tilesBefore[0])})`, 'the tile taken out of History');
+  assert(await stored() === storedBefore - 1, `the history after a tile was taken out: ${await stored()} entries, ${storedBefore} before`);
+  const said = await evaluate(page, `document.getElementById('toast').hidden ? null : document.getElementById('toast-text').textContent`);
+  assert(said === `${tilesBefore[0]} removed from history`, `said after a tile was taken out of History: "${said}"`);
   // The History section turned off in Settings goes from the page at once, and comes back on.
   const headings = () => evaluate(page, `[...document.querySelectorAll('#idle-home h3')].map((h) => h.textContent)`);
   assert((await headings()).includes('History'), 'no History section to turn off');
@@ -4041,6 +4065,15 @@ async function home(page) {
   await waitFor(page, `document.querySelector('main').classList.contains('guide') && !document.getElementById('idle-home').hidden`, 'the guide over the empty player\'s page');
   await evaluate(page, `document.querySelector('.idle-channel').click()`, { gesture: true });
   await waitFor(page, `!document.querySelector('main').classList.contains('guide') && location.hash.startsWith('#/live') && ${PLAYING}`, 'the channel played in its list', 40000);
+  await mouseClick(page, '#btn-home');
+  // And with no guide open: a channel chosen on the page from the films'
+  // tab is played in the channels' list, its row the one chosen there.
+  await evaluate(page, `(async () => { (await import('./js/tracksui.js')).leavePlayback(); document.querySelector('#tabs [data-tab="movie"]').click(); return true; })()`);
+  await waitFor(page, `location.hash.startsWith('#/movie') && !document.getElementById('idle-home').hidden && document.querySelector('.idle-channel')`, 'the start page beside the films');
+  const chosen = await evaluate(page, `(() => { const tile = document.querySelector('.idle-channel'); const name = tile.querySelector('.idle-name').textContent; tile.click(); return name; })()`, { gesture: true });
+  await waitFor(page, `location.hash.startsWith('#/live') && ${PLAYING}`, 'the channel of the start page played in the channels\' list', 40000);
+  const inList = await evaluate(page, `document.querySelector('#list .row.selected .row-name')?.textContent.trim() || null`);
+  assert(inList === chosen, `a channel chosen on the start page: "${chosen}" plays, the list's chosen row is "${inList}"`);
   await mouseClick(page, '#btn-home');
   return { ok: true, detail: `from a series page and the guide to the channels of ${at.group}, the top of the list and the empty player's page, ${playing} stopped and first under History; a playing film stopped, under Continue watching, and taken off it with the ✕ until the heading went; History off and on again from Settings; from the guide's column a channel played in its own list` };
 }
@@ -5038,10 +5071,11 @@ async function programmes(page, { requests }) {
   // is asked at once. One letter asks nothing, an emptied field puts the
   // guide back.
   const type = (text) => evaluate(page, `(() => { const f = document.getElementById('programme-query'); f.value = ${JSON.stringify(text)}; f.dispatchEvent(new Event('input', { bubbles: true })); return true; })()`);
-  const form = await evaluate(page, `({ controls: [...document.querySelectorAll('#programme-form select, #programme-form button')].length,
+  const form = await evaluate(page, `({ controls: [...document.querySelectorAll('#programme-form select, #programme-form button')].map((n) => n.id).join(),
     foot: [...document.querySelectorAll('#programme-panel .programme-foot select')].map((n) => n.id), period: document.getElementById('programme-period').options[0].value })`);
   await evaluate(page, `(document.getElementById('programme-period').value = 'upcoming', true)`);
-  assert(form.controls === 0 && form.foot.join() === 'programme-scope,programme-period' && form.period === 'upcoming', `the search's row and foot: ${JSON.stringify(form)}`);
+  // (beside the field only the guide's favourites switch, which is not the search's)
+  assert(form.controls === 'epg-favs' && form.foot.join() === 'programme-scope,programme-period' && form.period === 'upcoming', `the search's row and foot: ${JSON.stringify(form)}`);
   await type('N');
   await sleep(700);
   assert(await evaluate(page, `document.getElementById('programme-panel').hidden`), 'one letter searched');
@@ -5246,7 +5280,29 @@ async function setupClarity(page) {
   await press('f-done');
   await press('btn-settings');
   await evaluate(page, `document.querySelector('#setup-tabs [data-panel="subs"]').click()`);
+  // Nothing moves or changes size when the hint opens or a slider moves:
+  // the hint took its line from the preview, which was drawn again
+  // narrower. And the size is the viewer's share below 100 % too: a floor
+  // of 14 px held 50 % at the size of 100 % in a preview this small.
+  const STILL = `(() => { const box = (n) => { const r = n.getBoundingClientRect(); return [r.left, r.top, r.width, r.height].map(Math.round).join(' '); };
+    return [document.querySelector('.sublook-preview'), document.getElementById('f-subsize'), document.getElementById('f-subsize-value')].map(box).join(' | '); })()`;
+  await sleep(300);
+  const rest = await evaluate(page, STILL);
+  await evaluate(page, `document.querySelector('#panel-subs .hint-btn').click()`);
+  await sleep(300);
+  const hinted = { at: await evaluate(page, STILL), shown: await evaluate(page, `!document.getElementById('subs-hint').hidden`) };
   await change('f-subsize', '250');
+  await sleep(300);
+  const moved = { at: await evaluate(page, STILL) };
+  const CUE = `parseFloat(getComputedStyle(document.querySelector('.sublook-preview .cue')).fontSize)`;
+  await change('f-subsize', '100');
+  const whole = await evaluate(page, CUE);
+  await change('f-subsize', '50');
+  const half = await evaluate(page, CUE);
+  assert(Math.abs(half - whole / 2) < 0.6, `subtitles at 50 % are ${half} px where 100 % is ${whole} px`);
+  await change('f-subsize', '250');
+  await evaluate(page, `document.querySelector('#panel-subs .hint-btn').click()`);
+  assert(hinted.shown && hinted.at === rest && moved.at === rest, `the subtitles' controls moved: at rest ${rest}, with the hint ${hinted.at}, with the slider moved ${moved.at}`);
   for (const [width,height] of [[1280,800],[390,844],[320,568],[640,420]]) {
     await page.call('Emulation.setDeviceMetricsOverride', {width,height,deviceScaleFactor:1,mobile:false});
     for (const style of ['shadow','box','contrast']) {
@@ -5456,9 +5512,11 @@ async function catalogUi(page) {
   await sleep(400);
   await evaluate(page, `document.querySelector('#list .row').click()`, {gesture:true});
   await waitFor(page, PLAYING, 'native movie playback');
-  // The IMDb link is in the ☰ menu while the film plays, not under the details.
+  // The IMDb link is in the ☰ menu while the film plays, and under the
+  // details' credits as a series' page has it.
   await waitFor(page, `!document.getElementById('more-imdb').hidden && document.querySelector('#infostrip .playback-facts')`, 'movie facts and the menu\'s IMDb item');
-  assert(await evaluate(page, `document.getElementById('more-imdb').href.startsWith('https://www.imdb.com/') && !document.querySelector('#infostrip .title-links')`), 'IMDb link in the menu only');
+  assert(await evaluate(page, `document.getElementById('more-imdb').href.startsWith('https://www.imdb.com/')
+    && [...document.querySelectorAll('#infostrip .title-links a')].some((a) => a.href.startsWith('https://www.imdb.com/'))`), 'IMDb link in the menu and under the details');
   await playEpisode(page);
   await waitFor(page, `document.querySelector('#detail .detail-cover.loaded:not(:disabled)')`, 'series cover');
   await evaluate(page, `document.querySelector('#detail .detail-cover').click()`);
@@ -5532,7 +5590,7 @@ async function nextepisode(page) {
   await evaluate(page, `document.getElementById('list').focus()`);
   await pressKey(page, 'n', 'KeyN', 78);
   // The demo's episode names repeat, so the number tells them apart.
-  await waitFor(page, `/\\bE3\\b/.test(document.getElementById('now-sub').textContent)`, 'n to the third episode', 15000);
+  await waitFor(page, `/episode 3$/.test(document.getElementById('now-sub').textContent)`, 'n to the third episode', 15000);
   const third = await evaluate(page, `${NOW_TITLE} + ' ' + document.getElementById('now-sub').textContent`);
   return { ok: stayed, detail: `"${countdown}"; ${first} → ${second}, Cancel stayed: ${stayed}; n from the channels: ${third}` };
 }
@@ -6303,7 +6361,7 @@ async function picks(page, { target }) {
   const next = await evaluate(page, `fetch('http://127.0.0.1:${MOCK_PORT}/player_api.php?username=demo&password=demo&action=get_short_epg&stream_id=1002&limit=3').then((r) => r.json()).then((d) => (d.epg_listings || []).map((p) => decodeURIComponent(escape(atob(p.title)))))`);
   const later = next.find((title, i) => i > 0);
   const interests = { [later.toLowerCase().replace(/\s*[·:]\s*episode.*$/, '').replace(/[^\p{L}\p{N}]+/gu, ' ').trim()]: { t: later, n: 2, at: Date.now() - 86400e3 } };
-  await evaluate(page, `chrome.storage.local.set({ ui: { tab: 'live' }, ${JSON.stringify('favorites:' + key)}: [${JSON.stringify(ch(1000, 'Aurora One', 'auroraone.demo'))}], ${JSON.stringify('recents:' + key)}: [${JSON.stringify({ ...ch(1002, 'Aurora News 24', 'auroranews24.demo'), watchedAt: Date.now() - 3600e3 })}], ${JSON.stringify('interests:' + key)}: ${JSON.stringify(interests)} })`);
+  await evaluate(page, `chrome.storage.local.set({ ui: { tab: 'live' }, ${JSON.stringify('favorites:' + key)}: [${JSON.stringify(ch(1000, 'Aurora One', 'auroraone.demo'))}, ${JSON.stringify(ch(1002, 'Aurora News 24', 'auroranews24.demo'))}], ${JSON.stringify('recents:' + key)}: [${JSON.stringify({ ...ch(1002, 'Aurora News 24', 'auroranews24.demo'), watchedAt: Date.now() - 3600e3 })}], ${JSON.stringify('interests:' + key)}: ${JSON.stringify(interests)} })`);
   // The page's clock (js/testclock.js) two minutes into the programme Aurora
   // One shows at the mock's now, so that a programme on now has the ten
   // minutes left a pick needs whatever the time of the run: near the end of
@@ -6326,7 +6384,17 @@ async function picks(page, { target }) {
   await waitFor(page, `${stored}.then((n) => n === 1)`, 'the reminder stored', 10000).catch(() => {});
   const reminders = await evaluate(page, stored);
   assert(reminders === 1, `the reminder was not stored: ${reminders}`);
-  return { ok: true, detail: `${cards.length} picks, "${cards[0].text}" first; one on now; a click on a later one set its reminder` };
+  // "Your channels" are the favourite ones: with none starred the page
+  // offers no picks, though channels have been watched.
+  const unstarred = await evaluate(page, `(async () => { const { state } = await import('./js/state.js'); const kept = new Map(state.favorites);
+    for (const [key, item] of kept) if (item.k === 0) state.favorites.delete(key);
+    (await import('./js/languageui.js')).renderIdleOverlay();
+    const out = { picks: document.querySelectorAll('#idle-home .idle-pick').length, watched: state.recents.filter((r) => r.k === 0).length };
+    for (const [key, item] of kept) state.favorites.set(key, item);
+    (await import('./js/languageui.js')).renderIdleOverlay();
+    return out; })()`);
+  assert(unstarred.picks === 0 && unstarred.watched > 0, `with no favourite channel the page shows ${unstarred.picks} picks (${unstarred.watched} channels watched)`);
+  return { ok: true, detail: `${cards.length} picks, "${cards[0].text}" first; one on now; a click on a later one set its reminder; none without a favourite channel` };
 }
 
 
@@ -7711,6 +7779,9 @@ const MEASURE_OVERFLOW = `(() => {
     let need = 0, have = el.clientWidth, text = '';
     if (el.tagName === 'SELECT') {
       const o = el.selectedOptions[0]; if (!o) continue;
+      // A select that is its mark alone (the list's order) draws its name
+      // in no colour: there is no text to be cut.
+      if (s.webkitTextFillColor === 'rgba(0, 0, 0, 0)') continue;
       text = o.textContent;
       // The app's selects draw their arrow in their right padding; a native
       // one takes about 20 px of the box for it.
@@ -8015,7 +8086,9 @@ async function episodenames(page) {
     await waitFor(page, `!document.getElementById('detail').hidden && document.querySelectorAll('#list .row').length > 2`, 'the episodes');
     const rows = await evaluate(page, `[...document.querySelectorAll('#list .row')].slice(0, 3).map((r) => ({ name: r.querySelector('.row-name')?.textContent, code: r.querySelector('.row-ep')?.textContent }))`);
     assert(rows.every((r) => !/Silent Fjord/.test(r.name)), `the series' name is still on the rows: ${JSON.stringify(rows)}`);
-    assert(rows[0].name === 'Episode 1' && rows[0].code === 'S01E01', `an episode with no title of its own: ${JSON.stringify(rows[0])}`);
+    // No code at the row's end: the season is the chip chosen above the rows and the number is in the name.
+    // (== null: what is undefined in the page comes from Firefox's driver as null.)
+    assert(rows[0].name === 'Episode 1' && rows.every((r) => r.code == null), `an episode with no title of its own: ${JSON.stringify(rows)}`);
     assert(rows[1].name === "Episode 2: Winter's End" && !/S01E02/.test(rows[1].name), `an episode with a title: ${JSON.stringify(rows[1])}`);
     // Over the picture an episode is named with its series, and "Episode 1"
     // follows the interface language: it stayed English after a change to
@@ -8033,8 +8106,40 @@ async function episodenames(page) {
     await waitFor(page, `document.getElementById('now-title').textContent.includes('Winter')`, 'the titled episode over the picture');
     const titled = await title();
     assert(untitled === 'Silent Fjord – Episode 1' && finnish === 'Silent Fjord – Jakso 1', `the untitled episode over the picture: "${untitled}", in Finnish "${finnish}"`);
-    assert(titled === "Silent Fjord – Episode 2: Winter's End", `the titled episode over the picture: "${titled}"`);
-    return { ok: true, detail: `${rows.map((r) => `${r.code} "${r.name}"`).join(', ')}; over the picture "${untitled}", "${finnish}" in Finnish, "${titled}"` };
+    assert(titled === "Silent Fjord – Winter's End", `the titled episode over the picture: "${titled}"`);
+    // The number it lost is in the line under it, in words.
+    const place = await evaluate(page, `document.getElementById('now-sub').textContent`);
+    assert(/Season 1, episode 2$/.test(place), `under the titled episode: "${place}"`);
+    // In the history the episode says its series and its own name, not
+    // the provider's whole line with the code in it, and its menu leads
+    // to the series' page, at the episode's season, with nothing started.
+    const inHistory = await evaluate(page, `(async () => { const { state } = await import('./js/state.js'); const pause = (ms) => new Promise((done) => setTimeout(done, ms));
+      (await import('./js/tracksui.js')).leavePlayback(); await pause(300);
+      document.querySelector('#tabs [data-tab="recent"]').click(); await pause(900);
+      const index = state.rows.findIndex((r) => r.k === 3 && r.episode === 2), row = document.getElementById('row-' + index) || document.querySelectorAll('#list .row')[index];
+      const name = row.querySelector('.row-name').textContent.trim();
+      row.querySelector('.row-more').click(); await pause(400);
+      const items = [...document.querySelectorAll('.row-menu button')];
+      const menu = items.map((b) => b.textContent.trim());
+      items.find((b) => b.textContent.trim() === 'Show the series')?.click(); await pause(2500);
+      return { name, menu, tab: state.tab, view: state.detail?.view, series: state.detail?.item?.n, season: state.detail?.season, playing: Boolean(state.playing),
+        selected: document.querySelector('#list .row.selected .row-name')?.textContent.trim() }; })()`);
+    assert(inHistory.name === "Silent Fjord – Winter's End" && inHistory.menu.includes('Show the series'), `the episode in the history: ${JSON.stringify(inHistory)}`);
+    assert(inHistory.tab === 'series' && inHistory.view === 'series' && inHistory.season === 1 && !inHistory.playing && /Winter's End/.test(inHistory.selected || ''), `Show the series from the history: ${JSON.stringify(inHistory)}`);
+    // The season chosen is the one the page opens on the next time, here and after a reload.
+    const seasonKept = await evaluate(page, `(async () => { const { state } = await import('./js/state.js'); const pause = (ms) => new Promise((done) => setTimeout(done, ms));
+      const chips = () => [...document.querySelectorAll('.season')];
+      if (chips().length < 2) return { seasons: chips().length };
+      const series = state.detail.item;
+      chips()[1].click(); await pause(600);
+      const chosen = document.querySelector('.season.active').textContent;
+      document.querySelector('#tabs [data-tab="live"]').click(); await pause(500);
+      document.querySelector('#tabs [data-tab="series"]').click(); await pause(500);
+      await (await import('./js/seriesui.js')).openSeries(series); await pause(800);
+      const stored = (await chrome.storage.local.get('ui')).ui?.seasons || {};
+      return { seasons: chips().length, chosen, again: document.querySelector('.season.active')?.textContent, stored: Object.values(stored) }; })()`);
+    assert(seasonKept.seasons >= 2 && seasonKept.chosen === 'Season 2' && seasonKept.again === 'Season 2' && seasonKept.stored.includes(2), `the season kept for the next visit: ${JSON.stringify(seasonKept)}`);
+    return { ok: true, detail: `${rows.map((r) => `"${r.name}"`).join(', ')}; over the picture "${untitled}", "${finnish}" in Finnish, "${titled}"` };
   } finally {
     process.env.KEPULI_MOCK_EPISODE_NAMES = '';
     await evaluate(page, `import('./js/languageui.js').then((m) => m.applyLanguage('en'))`).catch(() => {});
@@ -8241,7 +8346,26 @@ async function favorder(page) {
     const stored = await evaluate(page, `chrome.storage.local.get('settings').then((d) => [d.settings.favoritesSort, d.settings.historySort])`);
     assert(JSON.stringify(historyByName) === JSON.stringify(byName) && stored.join() === 'za,az',
       `the history by name, and the orders kept: ${JSON.stringify({ historyByName, byName, stored })}`);
-    return { ok: true, detail: `by name ${JSON.stringify(byName)}; latest added first ${JSON.stringify(added)}; Z–A ${JSON.stringify(backwards)}; the channels' orders in a favourite category; the history latest first, then by name; each kept as a setting` };
+    // "Clear history" stands at the sidebar's foot and takes the kind
+    // chosen: the films alone under Films, everything under All.
+    const cleared = await evaluate(page, `(async () => { const { state } = ${app}; const config = await import('./js/config.js');
+      const pause = (ms) => new Promise((done) => setTimeout(done, ms));
+      const channels = [...state.favorites.values()].filter((r) => r.k === 0).slice(0, 2);
+      await config.clearRecents();
+      for (const item of [...channels, { k: 1, id: 'cleared-film', n: 'A film to clear', t: 'movie' }]) state.recents = await config.pushRecent(item);
+      document.querySelector('#tabs [data-tab="live"]').click(); await pause(300);
+      document.querySelector('#tabs [data-tab="recent"]').click(); await pause(600);
+      const foot = document.getElementById('btn-clear-history'), kinds = () => [...document.querySelectorAll('#groups .group')].map((g) => g.textContent.trim());
+      const out = { foot: !foot.hidden && foot.closest('#groups-col') !== null, inList: Boolean(document.querySelector('#listinfo .clear-history')?.getClientRects().length), before: kinds() };
+      [...document.querySelectorAll('#groups .group')].at(-1).click(); await pause(500);
+      foot.click(); await pause(100); out.armed = foot.classList.contains('armed'); foot.click(); await pause(900);
+      out.afterFilms = state.recents.map((r) => r.k); out.stored = (await config.loadRecents()).map((r) => r.k); out.kinds = kinds();
+      foot.click(); await pause(100); foot.click(); await pause(900);
+      out.afterAll = state.recents.length; out.gone = foot.hidden;
+      return out; })()`);
+    assert(cleared.foot && !cleared.inList && cleared.armed && cleared.afterFilms.join() === '0,0' && cleared.stored.join() === '0,0' && cleared.afterAll === 0 && cleared.gone,
+      `Clear history at the sidebar's foot, by the kind chosen: ${JSON.stringify(cleared)}`);
+    return { ok: true, detail: `by name ${JSON.stringify(byName)}; latest added first ${JSON.stringify(added)}; Z–A ${JSON.stringify(backwards)}; the channels' orders in a favourite category; the history latest first, then by name; each kept as a setting; Clear history took the films alone under their kind and the rest under All` };
   } finally {
     await evaluate(page, `(async () => { const { state } = ${app}; const config = await import('./js/config.js'); state.settings = await config.saveSettings({ favoritesSort: 'az', historySort: 'watched' });
       for (const key of [...state.favorites.keys()]) if (key.startsWith('c:live:g:')) state.favorites.delete(key); })()`);
@@ -8283,13 +8407,8 @@ async function tilekeys(page) {
     const starred = await evaluate(page, `(async () => { const { state } = ${app}; return { film: state.favorites.has('1:' + ${JSON.stringify(films[1])}), row: state.favorites.has(${JSON.stringify(before.key)}),
       focus: document.activeElement?.className }; })()`);
     assert(starred.film && starred.row === before.starred, `s on a card: ${JSON.stringify(starred)}`);
-    // The card's own star says so, and a click on another card's stars its
-    // film; a second click takes it away.
-    const marks = await evaluate(page, `[...document.querySelectorAll('.idle-cards .idle-card-wrap')].map((w) => Boolean(w.querySelector('.idle-star.on')))`);
-    assert(marks[1] && !marks[0], `the cards' stars after s: ${JSON.stringify(marks)}`);
-    const clickStar = () => evaluate(page, `(async () => { document.querySelectorAll('.idle-cards .idle-star')[0].click(); await new Promise((r) => setTimeout(r, 300));
-      const { state } = ${app}; return state.favorites.has('1:' + ${JSON.stringify(films[0])}); })()`);
-    assert(await clickStar() && !(await clickStar()), 'the star on a card did not star and unstar its film');
+    // The card carries no star of its own: it made the row heavy beside the cross.
+    assert(await evaluate(page, `document.querySelectorAll('.idle-cards .idle-star').length`) === 0, 'a card of Continue watching still has a star');
     // Counted before, not taken for three: one card fewer is what Delete does.
     const cards = await evaluate(page, `document.querySelectorAll('.idle-cards .idle-card').length`);
     await evaluate(page, `document.querySelectorAll('.idle-cards .idle-card')[1].focus()`);
@@ -8297,13 +8416,6 @@ async function tilekeys(page) {
     await waitFor(page, `document.querySelectorAll('.idle-cards .idle-card').length === ${cards - 1}`, `the card forgotten (${cards} before)`);
     const after = await evaluate(page, `(async () => { const { state } = ${app}; return { recents: state.recents.map((r) => String(r.id)), cursor: state.cursor, row: state.rows[state.cursor].k + ':' + state.rows[state.cursor].id }; })()`);
     assert(!after.recents.includes(films[1]) && after.recents.includes(films[0]) && after.cursor === before.cursor && after.row === before.key, `Delete on a card: ${JSON.stringify(after)}`);
-    // A star given elsewhere (a list, the player) shows on the card too.
-    const fromList = await evaluate(page, `(async () => { const { toggleFavorite } = await import('./js/coversui.js'); const { state } = ${app};
-      toggleFavorite(state.recents.find((r) => String(r.id) === ${JSON.stringify(films[0])}));
-      const on = Boolean(document.querySelectorAll('.idle-cards .idle-card-wrap')[0].querySelector('.idle-star.on'));
-      toggleFavorite(state.recents.find((r) => String(r.id) === ${JSON.stringify(films[0])}));
-      return on && !document.querySelectorAll('.idle-cards .idle-card-wrap')[0].querySelector('.idle-star.on'); })()`);
-    assert(fromList, 'a star given outside the card did not show on it');
     return { ok: true, detail: `the arrows stepped between the cards with the list's cursor kept at ${before.cursor}; s starred the card's film, not ${before.key}; Delete forgot the card` };
   } finally {
     await evaluate(page, `(async () => { const { state } = ${app}; for (const id of ${JSON.stringify(films)}) { state.favorites.delete('1:' + id); state.resume.delete('1:' + id); }
@@ -8519,13 +8631,36 @@ async function filmfacts(page) {
     return { open: fold?.open, audio: fact('audio'), audioInSight: !inFold('audio'), subtitlesInSight: Boolean(document.querySelector('#infostrip .playback-fact-subtitles')) && !inFold('subtitles'),
       video: fact('video'), size: fact('size'), playback: fact('playback'), format: fact('format'), formatFolded: inFold('format'),
       similar: [...document.querySelectorAll('#infostrip .related h4')].map((h) => h.textContent),
+      foldPlace: [fold?.previousElementSibling?.className, fold?.nextElementSibling?.className],
       tmdb: document.getElementById('more-tmdb').hidden ? null : document.getElementById('more-tmdb').href }; })()`);
+  // The cover's bar follows the film as it plays: it came only when the
+  // list was drawn again for something else. The bar arrives with the
+  // first place kept and then moves on the cover that is there, which is
+  // not drawn again (a new picture blinks).
+  const BAR = `(() => { const card = document.querySelector('#list .row.card.playing'), fill = card?.querySelector('.row-progress.resume > i');
+    return fill ? { width: parseFloat(fill.style.width), same: !window.__cover || card.querySelector('img') === window.__cover } : null; })()`;
+  const RESUME = (on) => `(async () => { const { state } = await import('./js/state.js'); const config = await import('./js/config.js'); state.settings = await config.saveSettings({ resumeEnabled: ${on} }); return true; })()`;
+  await evaluate(page, RESUME(true));
+  assert(await evaluate(page, BAR) === null, 'a film just started has a bar on its cover already');
+  await evaluate(page, `(() => { const v = document.getElementById('video'); v.currentTime = Math.min(30, v.duration * 0.3); return true; })()`);
+  await waitFor(page, `${BAR} !== null`, 'the bar on the playing film\'s cover', 12000);
+  const early = await evaluate(page, `(() => { window.__cover = document.querySelector('#list .row.card.playing img'); return ${BAR}; })()`);
+  await evaluate(page, `(() => { const v = document.getElementById('video'); v.currentTime = v.duration * 0.7; return true; })()`);
+  await waitFor(page, `${BAR}?.width > ${early.width} + 20`, 'the bar moved with the film', 12000);
+  const later = await evaluate(page, BAR);
+  assert(later.same && Math.abs(later.width - 70) < 12, `the bar on the playing film's cover: ${JSON.stringify({ early, later })}`);
+  await evaluate(page, RESUME(false));
   const first = await strip();
-  assert(first.open === false && first.audioInSight && first.subtitlesInSight && first.formatFolded, `the fold and what is in sight: ${JSON.stringify(first)}`);
+  assert(first.open === false && !first.audioInSight && first.subtitlesInSight && first.formatFolded, `the fold and what is in sight: ${JSON.stringify(first)}`);
   assert(/\d+×\d+, (4K|1080p|720p)/.test(first.video || '') && /(GB|MB|kB)$/.test(first.size || '') && first.playback && /^[25]\.[01]|^[0-9]\.[0-9]/.test((first.audio || '').replace(/^[A-Z0-9-]+ \(/, '')),
     `the technical details: ${JSON.stringify(first)}`);
   assert(new RegExp(`^https://www\\.themoviedb\\.org/movie/${900000 + Number(mkv)}$`).test(first.tmdb || ''), `TMDb in the menu: ${first.tmdb}`);
   assert(first.similar.includes('Similar'), `titles alike under the film: ${JSON.stringify(first.similar)}`);
+  // The fold is under what is said of the title and above the titles alike, not between the facts and the plot.
+  // (after the film's links elsewhere, which are in sight under the credits as a series' are on its page)
+  assert(first.foldPlace.join() === 'title-links,related', `the technical details lie between ${first.foldPlace.join(' and ')}`);
+  const elsewhere = await evaluate(page, `[...document.querySelectorAll('#infostrip .title-links a')].map((a) => new URL(a.href).host)`);
+  assert(elsewhere.some((host) => /imdb\.com$/.test(host)) && elsewhere.some((host) => /themoviedb\.org$/.test(host)), `the film's links under its credits: ${JSON.stringify(elsewhere)}`);
   // The fold opened stays open over the strip's repaints and a reload.
   await evaluate(page, `(() => { const fold = document.querySelector('#infostrip .tech-facts'); fold.open = true; fold.dispatchEvent(new Event('toggle')); return true; })()`);
   await sleep(600);
@@ -8573,6 +8708,40 @@ async function filmfacts(page) {
   await sleep(300);
   const warned = await evaluate(page, `(async () => (await ${cardOf(avi)})?.querySelector('.card-flag.warn')?.textContent || null)()`);
   assert(warned, 'the card of a film that does not play here says nothing of it');
+  // A provider's passing failure: the film's first three requests, a
+  // whole start's worth, are refused as a connection over the limit is,
+  // and the next ones answered. The player tries once more by itself, and
+  // the film plays without "Playback failed" ever showing; it was shown,
+  // with Try again, which then played.
+  const WATCH = `(() => { window.__failed = 0; clearInterval(window.__watch);
+    window.__watch = setInterval(() => { const o = document.getElementById('overlay');
+      if (!o.hidden && !o.classList.contains('loading') && document.getElementById('overlay-title').textContent === 'Playback failed') window.__failed += 1; }, 50); return true; })()`;
+  // A film each, never played before: one that has played comes from the browser's cache and asks the server nothing.
+  const third = await evaluate(page, `(async () => { const { state } = ${app}; return String(state.rows.find((x) => x.ext === 'mp4' && ![${JSON.stringify(mkv)}, ${JSON.stringify(other)}].includes(String(x.id)))?.id); })()`);
+  const startOther = async (fails, film = other) => {
+    await evaluate(page, `Promise.all([import('./js/tracksui.js')]).then(([u]) => u.leavePlayback())`);
+    await sleep(500);
+    await evaluate(page, WATCH);
+    process.env.KEPULI_MOCK_FILM_FAILS = String(fails);
+    await evaluate(page, `(async () => (await ${cardOf(film)}).click())()`, { gesture: true });
+  };
+  try {
+    await startOther(3);
+    await waitFor(page, PLAYING, 'the film after its first start was refused', 40000);
+    const passed = { shown: await evaluate(page, `window.__failed`), left: process.env.KEPULI_MOCK_FILM_FAILS };
+    assert(passed.shown === 0 && passed.left === '0', `a film refused at its first start: the failure shown for ${passed.shown} looks, ${passed.left} refusals left`);
+    // One that goes on failing is said to have failed once the second try
+    // has failed too, and is not tried for ever.
+    await startOther(50, third);
+    await waitFor(page, `window.__failed > 0`, 'the failure of a film that keeps failing', 60000);
+    const asked = 50 - Number(process.env.KEPULI_MOCK_FILM_FAILS);
+    await sleep(4000);
+    const later = 50 - Number(process.env.KEPULI_MOCK_FILM_FAILS);
+    assert(asked >= 5 && later === asked, `a film that keeps failing was asked for ${asked} times before the failure was shown, and ${later - asked} times after it`);
+  } finally {
+    delete process.env.KEPULI_MOCK_FILM_FAILS;
+    await evaluate(page, `clearInterval(window.__watch)`).catch(() => {});
+  }
   return { ok: true, detail: `audio "${first.audio}", video "${first.video}", ${first.size}, "${first.playback}", folded and kept open; TMDb ${first.tmdb}; ${first.similar.join(', ')}; watched and unwatched from the menu; a film that does not play "${warned}"` };
 }
 
@@ -8772,7 +8941,7 @@ async function iosappCourse(page, plain) {
     $('help').close();
     return { ios: document.documentElement.classList.contains('ios'), screen: gone($('btn-screen')), record, sync, grant, back, help,
       recordButtons: gone($('btn-record')) && gone($('btn-recordings-menu')),
-      canRecord: (await import('./js/recordingsui.js')).canRecord, castItem: !$('btn-cast').hidden, castTop: !gone($('btn-cast-top')),
+      canRecord: (await import('./js/recordingsui.js')).canRecord, castItem: Boolean($('btn-cast')), castTop: !gone($('btn-cast-top')),
       browser: texts.join(' | ').match(/[^.|]*\\b(browser|Chrome|Firefox)\\b[^.|]*/i)?.[0] || null, setupHelp, links }; })()`);
   assert(shown.ios && shown.screen && shown.record && shown.sync && shown.grant && shown.back && shown.recordButtons && shown.canRecord === false,
     `what the app does not offer is still there: ${JSON.stringify(shown)}`);
@@ -8791,7 +8960,7 @@ async function iosappCourse(page, plain) {
   const GUIDE = 'https://bigtimesam.github.io/kepuli-tv/iptv-app-iphone-ipad/';
   assert(shown.setupHelp === GUIDE && shown.links[0] === GUIDE && shown.links.includes('https://bigtimesam.github.io/kepuli-tv/privacy/')
     && shown.links.includes('https://bigtimesam.github.io/kepuli-tv/licences/'), `the help's links in the app: ${shown.setupHelp}, ${shown.links.join(', ')}`);
-  assert(shown.castItem && shown.castTop, `before a device is known the menu has Cast and the bar its mark, to ask for one: ${JSON.stringify(shown)}`);
+  assert(!shown.castItem && shown.castTop, `before a device is known the bar has the Cast mark, to ask for one, and the menu no second one: ${JSON.stringify(shown)}`);
 
   /* A press outside a row's menu closes the menu and nothing more. On a
      phone nearly everything outside it is a row, and the press that closed
@@ -10297,12 +10466,36 @@ async function appplayer(page, { target }) {
     assert(fell.engine && fell.at >= 74, `the film in the page after the app's failure: ${JSON.stringify(fell)}`);
     await playFilm(`(f) => String(f.id) === '5000'`, 10);
     await waitFor(page, PLAYING, 'the film in the page again', 30000);
-    assert((await sent('player.load')).length === 1, 'a film the app failed on was handed to it again');
+    const toApp = async () => (await sent('player.load')).filter((m) => m.url);
+    assert((await toApp()).length === 1, 'a film the app failed on was handed to it again');
+
+    // What the page plays itself lies under the app's controls: the app
+    // is told so with no address, WebKit's controls are off the picture,
+    // the picture's place is said, and the controls' presses are done.
+    const own = (await sent('player.load')).at(-1);
+    await waitFor(page, `window.__sent.some((m) => m.type === 'player.page' && m.id === ${own.id} && m.state === 'playing' && m.position > 0 && m.duration > 0)`, 'the page\'s own picture said to the app\'s controls', 10000);
+    const bare = await evaluate(page, `!document.getElementById('video').controls`);
+    assert(own.page === true && bare, `the page's own picture under the app's controls: ${JSON.stringify(own)}, WebKit's controls ${bare ? 'off' : 'on'}`);
+    await say({ type: 'player.command', id: own.id, what: 'pause' });
+    await waitFor(page, `document.getElementById('video').paused && window.__sent.filter((m) => m.type === 'player.page').at(-1).state === 'paused'`, 'the page\'s picture paused from the app\'s controls', 5000);
+    await say({ type: 'player.command', id: own.id, what: 'seek', to: 40 });
+    await say({ type: 'player.command', id: own.id, what: 'play' });
+    await waitFor(page, `(() => { const v = document.getElementById('video'); return !v.paused && v.currentTime >= 40; })()`, 'the page\'s picture moved and started from the app\'s controls', 10000);
+    // While the page says something in the picture's place (a wait with
+    // its Cancel, a failure) the app's controls give way: the box said to
+    // the app is empty, so that the page's buttons take the press. With
+    // the picture back, so is the box.
+    const lastBox = `window.__sent.filter((m) => m.type === 'player.frame').at(-1)`;
+    await waitFor(page, `${lastBox}.width > 0`, 'the app\'s controls over the page\'s picture', 5000);
+    await evaluate(page, `(() => { const o = document.getElementById('overlay'); o.hidden = false; o.classList.add('loading'); return true; })()`);
+    await waitFor(page, `${lastBox}.width === 0`, 'the app\'s controls out of the way of the page\'s wait', 5000);
+    await evaluate(page, `(() => { const o = document.getElementById('overlay'); o.hidden = true; o.classList.remove('loading'); return true; })()`);
+    await waitFor(page, `${lastBox}.width > 0`, 'the app\'s controls back over the picture', 5000);
 
     // Another film, seen to its end in the app: the player is empty and its place is gone.
     const other = await playFilm(`(f) => String(f.id) !== '5000' && f.ext === 'mp4'`, 0);
-    await count('player.load', 2, 'the second film handed to the app');
-    const second = (await sent('player.load')).at(-1);
+    await waitFor(page, `window.__sent.filter((m) => m.type === 'player.load' && m.url).length === 2`, 'the second film handed to the app', 10000);
+    const second = (await toApp()).at(-1);
     await say({ type: 'player.state', id: second.id, state: 'playing', position: 60, duration: 120 });
     await sleep(200);
     const mid = await evaluate(page, HERE);
@@ -10310,6 +10503,7 @@ async function appplayer(page, { target }) {
     await waitFor(page, `import('./js/state.js').then((m) => !m.state.playing)`, 'the player empty after the film\'s end', 10000);
     const after = await evaluate(page, `import('./js/state.js').then((m) => m.state.resume.has('1:${other}'))`);
     assert(mid.engine === null && mid.resume === 60 && after === false, `the second film: in the app ${JSON.stringify(mid)}, its place kept after the end: ${after}`);
+    assert(await evaluate(page, `document.getElementById('video').controls`), 'the page\'s picture is left without WebKit\'s controls after the app\'s are gone');
 
     // A channel goes over by its HLS address, and leaving it stops the app's player.
     await evaluate(page, `document.querySelector('#tabs [data-tab="live"]').click()`, { gesture: true });
@@ -10321,6 +10515,44 @@ async function appplayer(page, { target }) {
     await evaluate(page, `document.getElementById('btn-home').click()`, { gesture: true });
     await waitFor(page, `window.__sent.filter((m) => m.type === 'player.stop').length > ${stops}`, 'the app\'s player stopped when the channel was left', 5000);
     assert(channel.live === true && /\.m3u8$/.test(channel.url) && channel.startAt === 0, `the channel handed to the app: ${JSON.stringify({ ...channel, url: channel.url.replace(/^.*\/live/, '…/live') })}`);
+
+    // Two pictures side by side are two of the app's players: the second
+    // channel goes to the app's second slot by its HLS address, the sound
+    // is the first picture's until a speaker is pressed and each picture
+    // is told which is heard, a channel the app fails on plays in the
+    // page's second picture under the app's controls, and the bar's close
+    // ends it. The second picture used to be WebKit's beside the app's.
+    const handedBefore = (await toApp()).length;
+    await evaluate(page, `document.querySelector('#tabs [data-tab="live"]').click()`, { gesture: true });
+    await waitFor(page, `document.querySelectorAll('#list .row').length > 1`, 'the channels again');
+    await evaluate(page, `document.querySelector('#list .row').click()`, { gesture: true });
+    await waitFor(page, `window.__sent.filter((m) => m.type === 'player.load' && m.url && m.slot !== 2).length > ${handedBefore}`, 'the channel handed to the app again', 10000);
+    const first = (await sent('player.load')).filter((m) => m.url && m.slot !== 2).at(-1);
+    await evaluate(page, `(async () => { const { state } = await import('./js/state.js'); const u = await import('./js/secondui.js');
+      await u.playSecond(state.rows.filter((r) => r.k === 0)[1]); return true; })()`);
+    await waitFor(page, `window.__sent.some((m) => m.type === 'player.load' && m.slot === 2 && m.url)`, 'the second channel handed to the app\'s second slot', 10000);
+    const beside = (await sent('player.load')).filter((m) => m.slot === 2).at(-1);
+    const heardFrom = () => evaluate(page, `({ first: window.__sent.filter((m) => m.type === 'player.sound' && m.slot === 1).at(-1), second: window.__sent.filter((m) => m.type === 'player.sound' && m.slot === 2).at(-1),
+      page: !document.getElementById('video2').paused, bar: getComputedStyle(document.querySelector('#second .second-bar')).display })`);
+    await sleep(300);
+    const quiet = await heardFrom();
+    assert(beside.live === true && /\.m3u8$/.test(beside.url) && quiet.first.on && quiet.first.offered && !quiet.second.on && quiet.second.offered && !quiet.page && quiet.bar === 'none',
+      `the second picture in the app: ${JSON.stringify({ live: beside.live, hls: /\.m3u8$/.test(beside.url), ...quiet })}`);
+    await say({ type: 'player.command', slot: 2, id: beside.id, what: 'sound' });
+    await sleep(300);
+    const moved = await heardFrom();
+    await say({ type: 'player.command', slot: 1, id: first.id, what: 'sound' });
+    await sleep(300);
+    const back = await heardFrom();
+    assert(!moved.first.on && moved.second.on && back.first.on && !back.second.on, `the sound moved by the speakers: ${JSON.stringify({ moved, back })}`);
+    await say({ type: 'player.state', slot: 2, id: beside.id, state: 'idle', reason: 'error', position: 0 });
+    await waitFor(page, `window.__sent.some((m) => m.type === 'player.load' && m.slot === 2 && m.page === true) && !document.getElementById('video2').paused && document.getElementById('video2').currentTime > 0`,
+      'the second channel in the page\'s own picture under the app\'s controls', 40000);
+    const inPage = (await sent('player.load')).filter((m) => m.slot === 2).at(-1);
+    await say({ type: 'player.command', slot: 2, id: inPage.id, what: 'close' });
+    await waitFor(page, `document.getElementById('second').hidden && window.__sent.filter((m) => m.type === 'player.stop' && m.slot === 2).length > 0`, 'the second picture closed from the app\'s bar', 5000);
+    const alone = await heardFrom();
+    assert(alone.first.on && !alone.first.offered, `the first picture alone again: ${JSON.stringify(alone.first)}`);
     return { ok: true, detail: 'a film went to the app from 42 s with the picture\'s box; its place (70 s) and shape came from the app; a dialog over the picture was said as a hole; pause, play and picture in picture went to the app; the film it failed on played in the page from 75 s and was not handed over again; a film\'s end emptied the player; a channel went over as HLS and leaving it stopped the app\'s player' };
   } catch (err) {
     return { ok: false, detail: err.message };

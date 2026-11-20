@@ -93,8 +93,12 @@ main:has(.videowrap.full) :not(.videowrap, .videowrap *) { overflow: hidden; }
   pointer-events: none; text-align: center;
   font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
   /* A share of the picture's height (js/subdisplay.js): --pic-h is the
-     picture without its bars, --sub-scale the viewer's size, 1 at 100 %. */
-  font-size: max(14px, calc(var(--pic-h, 450px) * var(--sub-scale, 1) * 0.0425)); font-weight: 500; line-height: 1.3;
+     picture without its bars, --sub-scale the viewer's size, 1 at 100 %.
+     The floor of 14 px, for a small picture, is the viewer's share too
+     below 100 %: with a fixed floor the slider did nothing from 100 % down
+     in a picture under some 330 px high (the preview in Settings, a film
+     beside its details), where 100 % is the floor already. */
+  font-size: max(calc(14px * min(1, var(--sub-scale, 1))), calc(var(--pic-h, 450px) * var(--sub-scale, 1) * 0.0425)); font-weight: 500; line-height: 1.3;
   transition: bottom .2s ease;
 }
 /* Above the browser's controls while they are likely on show, see wake()
@@ -205,15 +209,26 @@ body[data-substyle="contrast"] { --cue-back: #000; }
 .overlay-title { font-size: 1.0625rem; font-weight: 650; letter-spacing: -0.005em; }
 .overlay-text { color: var(--muted); }
 .overlay-actions { margin-top: 14px; display: flex; gap: 8px; justify-content: center; }
+.overlay-actions button:has(> svg) { display: inline-flex; align-items: center; gap: 7px; }
+.overlay-actions button > svg { width: 16px; height: 16px; flex: none; fill: none; stroke: currentColor; stroke-width: 1.6; stroke-linecap: round; stroke-linejoin: round; }
 .now-title:empty { display: none; }
 
 /* The empty player's page: covers to carry on with, then channels. */
 /* The whole of the player's area, rather than a column down its middle;
    what does not fit is hidden by fitIdleHome in js/app.js, and the overlay
    scrolls for a window too low for even one row. */
-/* The heading has as much room above it as below it, down to the line
-   that closes it off (--idle-gap, both ends): it stands in its own band. */
-.overlay:has(.idle-home:not([hidden])) { --idle-gap: clamp(20px, 4.5vh, 44px); overflow-y: auto; place-items: start center; padding: var(--idle-gap) clamp(16px, 3vw, 40px) clamp(16px, 5vh, 48px); }
+/* With something to offer the page begins with it: "Nothing playing" and
+   the line under it said what the empty picture already shows, and took
+   the room of a row of picks. They are still said to a screen reader
+   (the live region), and still seen when there is nothing to offer. */
+.overlay:has(.idle-home:not([hidden])) { --idle-gap: clamp(20px, 4.5vh, 44px); overflow-y: auto; place-items: start center; padding: 14px 14px 16px; }
+.overlay-inner:has(.idle-home:not([hidden])) .overlay-said { position: absolute; width: 1px; height: 1px; margin: -1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+.overlay-inner:has(.idle-home:not([hidden])) .idle-home { margin-top: 0; }
+/* The page's margins are the 14 px of the panels around it (the list's
+   rows, the guide's programme panel): up to 40 px at the sides and 48 px
+   under it were wider than anything else on the page. Beside the guide
+   it stands under that panel, and takes its 12 px above as well. */
+main.guide .overlay:has(.idle-home:not([hidden])) { padding: 12px 14px; }
 .overlay-inner:has(.idle-home:not([hidden])) { max-width: 1200px; width: 100%; }
 /* The page's own heading, set apart by a mark rather than by size: a
    television in the accent's soft circle over the title, and a hairline
@@ -240,6 +255,11 @@ body[data-substyle="contrast"] { --cue-back: #000; }
   scroll-snap-type: x proximity; scroll-padding: 0 3px; scrollbar-width: none;
   padding: 3px; margin: -3px;
 }
+/* Under a finger the row scrolls freely: with the snapping on, WebKit
+   held it at its far end (the last cover has no place to snap to there,
+   and a drag back was pulled to the end again), and the row opened at its
+   end beside the guide. The snap is for the arrows' steps and a wheel. */
+@media (hover: none) { .idle-cards { scroll-snap-type: none; } }
 .idle-cards::-webkit-scrollbar { display: none; }
 .idle-cards > .idle-card-wrap { flex: none; width: var(--idle-card); scroll-snap-align: start; }
 /* A row that scrolls sideways, with its ‹ and › (js/sidescroll.js): over
@@ -267,12 +287,21 @@ body[data-substyle="contrast"] { --cue-back: #000; }
    ring under the arrow, wherever the days do not all fit (the CI's fonts
    at 760 px, a longer language). */
 .side-scroll.compact > :not(.side-scroll-arrow) { scroll-padding-inline: 28px; }
+/* A row that scrolls sideways cuts what is drawn outside it, a focus ring
+   among it: the ring of what is in such a row is drawn inside its box. */
+.side-scroll.compact > :not(.side-scroll-arrow) > :focus-visible { outline: 2px solid var(--accent-ink); outline-offset: -2px; }
 .side-scroll.compact .side-scroll-arrow svg { width: 13px; height: 13px; }
 /* A film's rows of tiles reach the strip's edge: the arrows stay inside it. */
 .related .side-scroll-arrow.prev { left: 2px; }
 .related .side-scroll-arrow.next { right: 2px; }
 .idle-channels { display: grid; grid-template-columns: repeat(auto-fill, minmax(12.5rem, 1fr)); gap: 8px; }
-.idle-card[hidden], .idle-channel[hidden] { display: none; }
+.idle-card[hidden], .idle-channel[hidden], .idle-channel-wrap[hidden] { display: none; }
+/* A tile of the history with its cross at the right, in the middle of the
+   tile's height; the name keeps clear of it. */
+.idle-channel-wrap { position: relative; display: flex; min-width: 0; }
+.idle-channel-wrap > .idle-channel { flex: 1; min-width: 0; padding-right: 44px; }
+.idle-channel-wrap > .idle-forget { top: 50%; right: 8px; translate: 0 -50%; }
+.idle-channel-wrap:hover .idle-forget { opacity: 1; }
 .idle-card, .idle-channel {
   display: flex; min-width: 0; border: 1px solid var(--border); background: var(--panel); color: var(--text);
   font: inherit; text-align: left; cursor: pointer; border-radius: 9px;
@@ -302,23 +331,21 @@ body[data-substyle="contrast"] { --cue-back: #000; }
    finger leaves the hover where it tapped: the cross stayed a red disc,
    and with its card gone the next card's cross slid under the same spot
    and turned red untouched (the owner's iPad). */
-@media (hover: hover) { .idle-forget:hover { background: rgba(200, 40, 50, .92); border-color: transparent; } }
-.idle-forget:active { background: rgba(200, 40, 50, .92); }
-/* The card's star across from its ✕, alike in shape; a favourite's stays
-   in sight. */
-.idle-star {
-  position: absolute; top: 12px; left: 12px; width: 28px; height: 28px; padding: 0;
-  display: grid; place-items: center; border-radius: 999px; cursor: pointer; font-size: 15px; line-height: 1;
-  border: 1px solid rgba(255, 255, 255, .25); background: rgba(10, 12, 18, .78); color: #fff;
-  opacity: 0; transition: opacity .12s;
-}
-.idle-card-wrap:hover .idle-star, .idle-star:focus-visible, .idle-star.on { opacity: 1; }
-.idle-star.on { color: #ffc857; }
-.idle-forget:focus-visible, .idle-star:focus-visible { outline: 2px solid var(--accent-ink); outline-offset: 2px; }
-@media (hover: none) { .idle-forget, .idle-star { opacity: 1; } }
+@media (hover: hover) { .idle-forget:hover { background-color: rgba(200, 40, 50, .92); border-color: transparent; } }
+/* The colour alone, not the shorthand: that put back the clip the touch
+   size sets (css/last.css), and the red filled the whole 40 px of the
+   press instead of the disc of 28. */
+.idle-forget:active { background-color: rgba(200, 40, 50, .92); }
+/* Pressed once: red, and in sight, until the second press or four seconds (js/idlehome.js). */
+.idle-forget.armed, .idle-forget.armed:hover { opacity: 1; background-color: rgba(200, 40, 50, .92); border-color: transparent; }
+.idle-forget:focus-visible { outline: 2px solid var(--accent-ink); outline-offset: 2px; }
+@media (hover: none) { .idle-forget { opacity: 1; } }
 /* The picks (js/picks.js): a programme per card, its channel's logo beside
    it. One row of them, as many as the window is wide for (fitIdleHome). */
-.idle-picks { display: grid; grid-template-columns: repeat(auto-fill, minmax(15rem, 1fr)); gap: 10px; }
+/* A card is no wider than the column: in the guide on an upright iPad the
+   panel is 210 px inside its padding, and a card held to 15rem made the
+   whole panel scroll sideways. */
+.idle-picks { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(15rem, 100%), 1fr)); gap: 10px; }
 .idle-pick[hidden] { display: none; }
 .idle-pick {
   position: relative; display: flex; align-items: flex-start; gap: 10px; min-width: 0; padding: 10px 12px 12px;
@@ -521,21 +548,31 @@ main:not(.guide) .stage:has(> .videowrap.sized:not(:fullscreen, .full)) .info-co
 .playback-warning { color: var(--gold); font-size: var(--fs-xs); }
 /* The format, the picture, the bit rate, the size and the way it plays,
    folded under the audio and the subtitles (playbackFacts). */
-.tech-facts { margin: -2px 0 8px; }
+.tech-facts { margin: 8px 0; }
 .tech-toggle { display: inline-flex; align-items: center; gap: 4px; list-style: none; color: var(--muted); font-size: var(--fs-xs); cursor: pointer; border-radius: 4px; }
 .tech-toggle::-webkit-details-marker { display: none; }
 .tech-toggle:hover { color: var(--text); }
 .tech-toggle:focus-visible { outline: 2px solid var(--accent-ink); outline-offset: 2px; }
 .tech-facts[open] > .tech-toggle .section-chevron { rotate: 180deg; }
-.tech-facts > .playback-facts { margin: 8px 0 0; padding-top: 0; border-top: 0; }
+/* Its facts are lines of a name and a value, as the credits above them
+   are (.title-credits), in a first column of the same least width so
+   that the two groups' values begin together. They stood side by side,
+   each name over its value, the one group of the details laid out so. */
+.tech-facts > .playback-facts { display: grid; grid-template-columns: minmax(7rem, max-content) minmax(0, 1fr); gap: 5px 14px; margin: 8px 0 0; padding-top: 0; border-top: 0; font-size: var(--fs-s); }
+.tech-facts > .playback-facts > div { display: contents; }
+.tech-facts > .playback-facts dt { margin: 0; font-size: inherit; }
+.tech-facts > .playback-facts dd { font-size: inherit; }
 .vodinfo .plot { color: var(--muted); font-size: var(--fs-m); }
 /* Who made it, under the plot (titleCredits in js/titleinfo.js): the
    label in a narrow column and the names beside it, line by line. */
-.title-credits { display: grid; grid-template-columns: max-content minmax(0, 1fr); gap: 5px 14px; margin: 12px 0 0; padding-top: 10px; border-top: 1px solid var(--border); font-size: var(--fs-s); }
+.title-credits { display: grid; grid-template-columns: minmax(7rem, max-content) minmax(0, 1fr); gap: 5px 14px; margin: 12px 0 0; padding-top: 10px; border-top: 1px solid var(--border); font-size: var(--fs-s); }
 .title-credits:empty { display: none; }
 .title-credits > div { display: contents; }
 .title-credits dt { color: var(--muted); }
 .title-credits dd { margin: 0; color: var(--text); overflow-wrap: anywhere; }
+/* The subtitles' line among them (js/infostrip.js): its wait and its warning as the file's facts have them. */
+.title-credits dd.playback-pending { display: flex; align-items: center; gap: 6px; color: var(--muted); }
+.title-credits .playback-warning { margin-left: 6px; }
 
 /* Three selectors and seven buttons do not fit beside the title in a
    narrow player column — 1280 px of window leaves it about 675 — and a

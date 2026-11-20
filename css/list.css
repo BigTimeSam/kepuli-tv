@@ -72,7 +72,6 @@
 .row-badge.warn { color: var(--warn); border-color: var(--warn-line); }
 .row-time { display: inline-flex; align-items: center; gap: 4px; }
 .row-time svg { width: 13px; height: 13px; flex: none; fill: none; stroke: currentColor; stroke-width: 1.5; stroke-linecap: round; stroke-linejoin: round; }
-.row-ep { font-size: var(--fs-xs); color: var(--muted); font-variant-numeric: tabular-nums; white-space: nowrap; flex: none; }
 .row-chevron { color: var(--chevron); flex: none; }
 
 /* Dimmer than the star beside it — it is the rarer gesture and must not
@@ -146,11 +145,14 @@ button.group-star, button.group-star:hover, .group.active .group-star:hover { wi
 .listinfo .view-toggle button:focus-visible { outline-offset: -2px; }
 .listinfo .view-toggle svg { width: 14px; height: 14px; fill: none; stroke: currentColor; stroke-width: 1.6; stroke-linecap: round; stroke-linejoin: round; }
 /* The list's order: the selector with its mark, as the player's bar has
-   them (.select-mark in css/playback.css; js/topicbar.js). It takes what
-   the foot has left and cuts a long order's name short ("Year (newest
-   first)" beside the films' two marks); its list has every name whole. */
+   them (.select-mark in css/playback.css; js/topicbar.js), and the mark
+   alone: the order's name was cut short in most columns ("Recently
+   watc…"), so it is left to the list, which has every name whole beside
+   its mark, and the selector is as wide as its mark and its chevron. The
+   name is still the select's text, drawn in no colour: the first sliver
+   of its first letter showed beside the mark of the longer names. */
 .listinfo .order-pick { flex: 0 1 auto; min-width: 0; color: var(--text); }
-.listinfo .order-pick select { min-width: 0; max-width: 100%; padding: 6px 28px 6px 29px; background-color: var(--panel-2); border: 1px solid var(--border); border-radius: 8px; color: var(--text); font: inherit; text-overflow: ellipsis; }
+.listinfo .order-pick select { width: 3.75rem; min-width: 0; max-width: 100%; padding: 6px 28px 6px 29px; background-color: var(--panel-2); border: 1px solid var(--border); border-radius: 8px; color: transparent; -webkit-text-fill-color: transparent; font: inherit; text-overflow: clip; }
 /* The count is what the foot is for: the tab's mark and "15 channels"
    stay whole in every column, and what stands beside them gives way: the
    category first (above), then the order's name inside its selector. It
@@ -189,7 +191,10 @@ button.group-star, button.group-star:hover, .group.active .group-star:hover { wi
 .row.card.playing { background: none; box-shadow: none; }
 .row.card.playing .card-poster { box-shadow: 0 0 0 2px var(--accent); }
 .card-poster .row-progress { position: absolute; left: 6px; right: 6px; bottom: 6px; width: auto; margin: 0; background: rgba(10, 12, 17, .7); }
-.card-star { position: absolute; top: 5px; left: 5px; background: rgba(10, 12, 17, .72); }
+/* The star on a cover is the one the start page's cards had:
+   a small disc with a hairline, where it was a dark square as large as
+   the press under touch. One star on every cover. */
+.card-star { position: absolute; top: 5px; left: 5px; }
 /* Seen to the end, or new from the provider: the cover's top right corner,
    the star having the left. */
 .card-flag { position: absolute; top: 6px; right: 6px; padding: 2px 7px; border-radius: 999px; font-size: var(--fs-xs); font-weight: 650; line-height: 1.4; pointer-events: none; }
@@ -203,9 +208,12 @@ button.group-star, button.group-star:hover, .group.active .group-star:hover { wi
    colours: the light theme's grey was 2.2:1 on it, and its gold darker
    still. Three classes, to outlast the row star's colours in either
    theme and under more contrast. */
-.row .row-star.card-star { color: #a3abc0; }
+.row .row-star.card-star, .row .row-star.card-star:hover {
+  width: 28px; height: 28px; padding: 0; margin: 0; border: 1px solid rgba(255, 255, 255, .25); border-radius: 999px;
+  background: rgba(10, 12, 18, .78); background-clip: border-box; color: #fff; font-size: 15px; line-height: 1;
+}
 .row .row-star.card-star.on { color: #ffc857; }
-.row .row-star.card-star:hover { background: rgba(10, 12, 17, .9); color: #fff; }
+.row .row-star.card-star:hover { background: rgba(10, 12, 18, .92); }
 /* A favourite's star stays gold under the pointer. A finger leaves the
    hover on what it tapped, so a film just starred on an iPad had a white
    star until something else was touched. */

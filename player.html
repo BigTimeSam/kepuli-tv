@@ -118,6 +118,13 @@
       <svg class="foot-categories" viewBox="0 0 20 20" aria-hidden="true"><path d="M3 5h14M5.5 10h9M8 15h4"/></svg>
       <span id="btn-countries-text" data-i18n="countries.button">Filter countries</span>
     </button>
+    <!-- The history emptied, under its kinds: all of it under All, the kind
+         chosen alone under a kind. It was a word at the list's foot, where
+         it left the order's menu no room. -->
+    <button type="button" id="btn-clear-history" class="groups-foot" hidden>
+      <svg viewBox="0 0 20 20" aria-hidden="true"><path d="M4 6h12M8 6V4h4v2M5.5 6l.7 10.5h7.6L14.5 6M8.5 9v4.5M11.5 9v4.5"/></svg>
+      <span id="btn-clear-history-text" data-i18n="history.clear">Clear history</span>
+    </button>
   </aside>
 
   <section class="listcol" id="listcol" role="tabpanel" aria-labelledby="tab-live">
@@ -311,13 +318,13 @@
           </select>
         </label>
         <label class="field">
-          <span class="range-label"><span data-i18n="setup.subs.size">Size</span><output id="p-subsize-value" for="p-subsize">100 %</output><button type="button" id="p-subsize-reset" class="range-reset" data-i18n="subs.size.reset" data-i18n-title="subs.size.reset.title" hidden>Default</button></span>
+          <span class="range-label"><span data-i18n="setup.subs.size">Size</span><output id="p-subsize-value" for="p-subsize">100 %</output></span>
           <input id="p-subsize" type="range" min="50" max="250" step="5" value="100" data-i18n-label="setup.subs.size">
         </label>
         <!-- How high the lowest line stands, a share of the picture above its
              bottom edge; the bounds are MIN_LIFT and MAX_LIFT in js/subdisplay.js. -->
         <label class="field">
-          <span class="range-label"><span data-i18n="setup.subs.lift">Height</span><output id="p-sublift-value" for="p-sublift">6 %</output><button type="button" id="p-sublift-reset" class="range-reset" data-i18n="subs.size.reset" data-i18n-title="subs.lift.reset.title" hidden>Default</button></span>
+          <span class="range-label"><span data-i18n="setup.subs.lift">Height</span><output id="p-sublift-value" for="p-sublift">6 %</output></span>
           <input id="p-sublift" type="range" min="0" max="30" step="1" value="6" data-i18n-label="setup.subs.lift">
         </label>
       </div>
@@ -344,10 +351,6 @@
         <button type="button" role="menuitem" id="btn-second" class="popitem" hidden>
           <svg viewBox="0 0 20 20" aria-hidden="true"><rect x="2" y="5" width="7.2" height="10" rx="1.5"/><rect x="10.8" y="5" width="7.2" height="10" rx="1.5"/></svg>
           <span data-i18n="second.open">Side by side</span>
-        </button>
-        <button type="button" role="menuitem" id="btn-cast" class="popitem">
-          <svg viewBox="0 0 20 20" aria-hidden="true"><path d="M2.5 6.5V5a1.5 1.5 0 0 1 1.5-1.5h12A1.5 1.5 0 0 1 17.5 5v10a1.5 1.5 0 0 1-1.5 1.5h-4.5M2.5 13.5a3 3 0 0 1 3 3M2.5 10a6.5 6.5 0 0 1 6.5 6.5"/><circle cx="3" cy="16.4" r=".9" fill="currentColor" stroke="none"/></svg>
-          <span data-i18n="cast.title">Cast to a Chromecast</span>
         </button>
         <button type="button" role="menuitem" id="btn-copy" class="popitem">
           <svg viewBox="0 0 20 20" aria-hidden="true"><rect x="7" y="7" width="10.5" height="10.5" rx="2"/><path d="M13 4.5A2 2 0 0 0 11 2.5H4.5a2 2 0 0 0-2 2V11a2 2 0 0 0 2 2"/></svg>
@@ -436,8 +439,6 @@
   <section class="epg" id="epg" hidden>
     <div class="epg-bar">
       <select id="epg-group" class="epg-select" data-i18n-title="guide.group.title"></select>
-      <!-- The favourite channels alone, whatever group they are in. -->
-      <button type="button" id="epg-favs" class="ghost epg-favs" aria-pressed="false" data-i18n-title="guide.favs.title"><svg viewBox="0 0 20 20" aria-hidden="true"><path d="m10 2.8 2.2 4.5 5 .7-3.6 3.5.9 4.9L10 14.1l-4.5 2.3.9-4.9L2.8 8l5-.7z"/></svg><span data-i18n="tab.fav">Favourites</span></button>
       <!-- On a phone the programme search waits behind this, the bar
            keeping two rows (js/guideui.js); elsewhere it is not shown. -->
       <button type="button" id="epg-search" class="ghost icon epg-search-toggle" aria-expanded="false" aria-controls="programme-form" data-i18n-title="programmes.search" data-i18n-label="programmes.search"><svg viewBox="0 0 20 20" aria-hidden="true"><circle cx="9" cy="9" r="6"/><path d="M13.5 13.5 18 18"/></svg></button>
@@ -460,6 +461,11 @@
       <span class="search-field"><svg viewBox="0 0 20 20" aria-hidden="true"><circle cx="9" cy="9" r="6"/><path d="M13.5 13.5 18 18"/></svg>
         <input id="programme-query" type="search" data-i18n-placeholder="programmes.placeholder" data-i18n-label="programmes.placeholder" autocomplete="off">
       </span>
+      <!-- The favourite channels alone, whatever group they are in: beside
+           the search, where there is room for its words. Where the search
+           waits behind its mark (a phone, a low window) it is moved into
+           the bar as a star alone (js/guideui.js placeGuideFavorites). -->
+      <button type="button" id="epg-favs" class="ghost epg-favs" aria-pressed="false" data-i18n-title="guide.favs.title"><svg viewBox="0 0 20 20" aria-hidden="true"><path d="m10 2.8 2.2 4.5 5 .7-3.6 3.5.9 4.9L10 14.1l-4.5 2.3.9-4.9L2.8 8l5-.7z"/></svg><span data-i18n="filters.favs">Show only favourites</span></button>
     </form>
     <section id="programme-panel" class="programme-panel" hidden data-i18n-label="programmes.results">
       <!-- As the list's loading strip (#list-progress): while it searches, the
@@ -624,11 +630,11 @@
     </div>
 
     <div class="tabs setup-tabs" id="setup-tabs" role="tablist" data-i18n-label="setup.sections">
-      <button type="button" role="tab" id="tab-connection" class="active" aria-selected="true" aria-controls="panel-connection" data-panel="connection" data-i18n="setup.tab.connection">Connection</button>
-      <button type="button" role="tab" id="tab-general" tabindex="-1" aria-selected="false" aria-controls="panel-general" data-panel="general" data-i18n="setup.tab.general">Viewing</button>
-      <button type="button" role="tab" id="tab-playback" tabindex="-1" aria-selected="false" aria-controls="panel-playback" data-panel="playback" data-i18n="setup.tab.playback">Playback</button>
-      <button type="button" role="tab" id="tab-subs" tabindex="-1" aria-selected="false" aria-controls="panel-subs" data-panel="subs" data-i18n="setup.tab.subs">Subtitles</button>
-      <button type="button" role="tab" id="tab-account" tabindex="-1" aria-selected="false" aria-controls="panel-account" data-panel="account" data-i18n="setup.tab.account">Account & data</button>
+      <button type="button" role="tab" id="tab-connection" class="active" aria-selected="true" aria-controls="panel-connection" data-panel="connection"><svg class="tab-icon" viewBox="0 0 20 20" aria-hidden="true"><circle cx="10" cy="10" r="7.2"/><path d="M2.8 10h14.4M10 2.8c2.4 2.6 2.4 11.8 0 14.4M10 2.8c-2.4 2.6-2.4 11.8 0 14.4"/></svg><span data-i18n="setup.tab.connection">Connection</span></button>
+      <button type="button" role="tab" id="tab-general" tabindex="-1" aria-selected="false" aria-controls="panel-general" data-panel="general"><svg class="tab-icon" viewBox="0 0 20 20" aria-hidden="true"><path d="M2 10s3-5.5 8-5.5S18 10 18 10s-3 5.5-8 5.5S2 10 2 10z"/><circle cx="10" cy="10" r="2.4"/></svg><span data-i18n="setup.tab.general">Viewing</span></button>
+      <button type="button" role="tab" id="tab-playback" tabindex="-1" aria-selected="false" aria-controls="panel-playback" data-panel="playback"><svg class="tab-icon" viewBox="0 0 20 20" aria-hidden="true"><circle cx="10" cy="10" r="7.2"/><path d="m8.3 6.9 4.9 3.1-4.9 3.1z"/></svg><span data-i18n="setup.tab.playback">Playback</span></button>
+      <button type="button" role="tab" id="tab-subs" tabindex="-1" aria-selected="false" aria-controls="panel-subs" data-panel="subs"><svg class="tab-icon" viewBox="0 0 20 20" aria-hidden="true"><rect x="2.5" y="4.5" width="15" height="11" rx="1.8"/><path d="M5.5 12.5h4M11.5 12.5h3M5.5 9.5h2M9.5 9.5h5"/></svg><span data-i18n="setup.tab.subs">Subtitles</span></button>
+      <button type="button" role="tab" id="tab-account" tabindex="-1" aria-selected="false" aria-controls="panel-account" data-panel="account"><svg class="tab-icon" viewBox="0 0 20 20" aria-hidden="true"><circle cx="10" cy="7" r="3.2"/><path d="M3.8 17c.6-3.2 3.1-5 6.2-5s5.6 1.8 6.2 5"/></svg><span data-i18n="setup.tab.account">Account & data</span></button>
     </div>
 
     <section class="setup-panel" id="panel-general" role="tabpanel" aria-labelledby="tab-general" hidden>
@@ -735,8 +741,10 @@
       <div class="group-head">
         <h3 data-i18n="setup.theme">Appearance</h3>
         <button type="button" class="hint-btn" aria-expanded="false" aria-controls="subs-hint" data-i18n-label="btn.help">?</button>
+        <!-- In the heading's own row: a line under it took its height from
+             the preview, which was drawn again narrower as the hint opened. -->
+        <p class="field-hint" id="subs-hint" data-i18n="setup.subs.intro" hidden>The preview scales to fit. Playback uses your selected text size.</p>
       </div>
-      <p class="field-hint" id="subs-hint" data-i18n="setup.subs.intro" hidden>The preview scales to fit. Playback uses your selected text size.</p>
       <div class="sublook">
         <div class="sublook-fields">
           <label class="field"><span data-i18n="setup.subs.style">Style</span>
@@ -752,13 +760,13 @@
                picture asks for; the bounds are MIN_SCALE and MAX_SCALE in
                js/subdisplay.js. -->
           <label class="field">
-            <span class="range-label"><span data-i18n="setup.subs.size">Size</span><output id="f-subsize-value" for="f-subsize">100 %</output><button type="button" id="f-subsize-reset" class="range-reset" data-i18n="subs.size.reset" data-i18n-title="subs.size.reset.title" hidden>Default</button></span>
+            <span class="range-label"><span data-i18n="setup.subs.size">Size</span><output id="f-subsize-value" for="f-subsize">100 %</output></span>
             <input id="f-subsize" type="range" min="50" max="250" step="5" value="100" data-i18n-label="setup.subs.size">
           </label>
           <!-- How high the lowest line stands, a share of the picture above its
                bottom edge; the bounds are MIN_LIFT and MAX_LIFT in js/subdisplay.js. -->
           <label class="field">
-            <span class="range-label"><span data-i18n="setup.subs.lift">Height</span><output id="f-sublift-value" for="f-sublift">6 %</output><button type="button" id="f-sublift-reset" class="range-reset" data-i18n="subs.size.reset" data-i18n-title="subs.lift.reset.title" hidden>Default</button></span>
+            <span class="range-label"><span data-i18n="setup.subs.lift">Height</span><output id="f-sublift-value" for="f-sublift">6 %</output></span>
             <input id="f-sublift" type="range" min="0" max="30" step="1" value="6" data-i18n-label="setup.subs.lift">
           </label>
         </div>
@@ -784,13 +792,6 @@ before the storm closes the road.</div></div>
           <button type="button" id="f-add-account" class="ghost" data-i18n="accounts.add">Add account</button>
         </div>
         <ul class="account-list" id="account-list"></ul>
-      </div>
-      <!-- The lists fetched again from the server. It was a mark on the top
-           bar; the lists refresh themselves when they are stale, so it is
-           wanted seldom, and here it stands beside the account it asks. -->
-      <div class="setup-refresh" id="setup-refresh" hidden>
-        <button type="button" id="btn-refresh" class="ghost"><svg viewBox="0 0 20 20" aria-hidden="true"><path d="M15.6 7.2A6 6 0 1 0 16 12"/><path d="M16 3.5v4h-4"/></svg><span data-i18n="btn.refresh">Refresh lists</span></button>
-        <span class="setup-refresh-note" data-i18n="btn.refresh.title">Fetch the lists again from the server</span>
       </div>
       <!-- The link rides on the end of the explanation rather than taking a
            row of its own: the dialog is modal, so the top bar's Help cannot
@@ -931,6 +932,14 @@ before the storm closes the road.</div></div>
       <section class="setup-group" aria-labelledby="group-data">
         <h3 id="group-data" data-i18n="setup.maintenance">Manage stored data</h3>
         <div class="danger-rows">
+          <!-- The lists fetched again from the server. They refresh themselves
+               when they are stale, so it is wanted seldom: it was a mark on
+               the top bar, then the first thing under the accounts, and is
+               now a row of the data's own, above the two that take data away. -->
+          <div class="danger-row" id="setup-refresh" hidden>
+            <span data-i18n="btn.refresh.title">Fetch the lists again from the server</span>
+            <button type="button" id="btn-refresh" class="ghost" data-i18n="btn.refresh">Refresh lists</button>
+          </div>
           <div class="danger-row">
             <span data-i18n="setup.clear.desc">Categories, lists, covers and programme data are fetched again. Favourites and history stay.</span>
             <button type="button" id="f-clear" class="ghost danger" data-i18n="setup.clear">Clear cache</button>

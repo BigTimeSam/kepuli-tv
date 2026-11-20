@@ -30,7 +30,7 @@ eller den Stalker-portal med, som du allerede har.
 
 ## Cast til en Chromecast
 
-- Vælg **Cast til en Chromecast** i afspillerens ☰-menu, og vælg enheden.
+- Vælg **Cast til en Chromecast** i den øverste bjælke, og vælg enheden.
   Første gang spørger systemet, om Kepuli-TV må finde enheder på dit lokale
   netværk: tillad det. Før det viser Google en meddelelse. Efter begge dele
   vises enhederne, så snart en er fundet. Hvis ingen er fundet inden for et

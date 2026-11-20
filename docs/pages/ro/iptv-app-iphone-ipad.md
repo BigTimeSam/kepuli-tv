@@ -29,7 +29,7 @@ Stalker pe care îl ai deja.
 
 ## Transmite pe un Chromecast
 
-- Alege **Transmite pe un Chromecast** în meniul ☰ al playerului și selectează
+- Alege **Transmite pe un Chromecast** în bara de sus și selectează
   dispozitivul. Prima dată sistemul întreabă dacă Kepuli-TV poate căuta
   dispozitive în rețeaua ta locală: permite. Înainte de asta, Google afișează
   o notă proprie. După amândouă, dispozitivele apar de îndată ce este găsit

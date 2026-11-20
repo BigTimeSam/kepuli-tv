@@ -189,8 +189,7 @@ What differs:
 - **If the system has had to start the player again**, it returns to the
   list and the channel you were on and plays nothing until you choose it.
 - **The screen stays on** while a picture plays and may sleep otherwise.
-- **Cast to a Chromecast** (the `☰` menu, `c`, or the Cast mark that stands
-  at the top of the screen once a Chromecast has been found) opens Google's
+- **Cast to a Chromecast** (the Cast mark at the top of the screen, or `c`) opens Google's
   own device dialog. The Chromecast then fetches the stream by itself from
   the address it is handed, and the picture stops here first, as an account
   commonly allows one connection. Over the player stands **Playing on** and
@@ -459,7 +458,7 @@ interrupted channel-list load restores the previous list.
 
 ## If something goes wrong
 
-- **Refresh lists** (in **Settings › Connection**, under the accounts) fetches the content
+- **Refresh lists** (in **Settings › Account & data**, under **Manage stored data**) fetches the content
   lists again from the server, including the countries and categories
   already opened, and shows the new list where you were. A tab left open
   checks by itself when you come back to it, once its lists are older than
@@ -505,7 +504,7 @@ interrupted channel-list load restores the previous list.
 - **An empty player** offers what was left halfway, as covers, and the
   channels watched lately, as logos — each a click from playing
 - **On your channels now and soon** on the empty player's page: what is on now and in the
-  next hours on the favourite and recently watched channels, a programme
+  next hours on your favourite channels (with no favourite channel there are no picks), a programme
   watched before first, each with the reason it was picked; one on now starts
   with a click, a later one sets its reminder (`js/picks.js`). What was
   watched is learnt from the programmes watched for five minutes or more, kept
@@ -569,8 +568,9 @@ interrupted channel-list load restores the previous list.
   you gave them. On the same server under another user name the channel is
   the same one; on another server it is the channel of the same name in
   that account's list, and when it has none the player says so.
-  **Side by side** in the player's `☰` menu reaches what the list on
-  screen does not hold: another account's own favourite and recently
+  **Side by side** in the player's `☰` menu, there only when a second
+  picture can be had (the account allows two streams, or there is another
+  account), reaches what the list on screen does not hold: another account's own favourite and recently
   watched channels, the account asked first when there are several. The
   second picture is silent until the speaker in its corner is pressed,
   which moves the sound to it and mutes the first; unmuting the first moves
@@ -810,7 +810,7 @@ under it stay dark in either, and the choice is kept with the settings and
 copied to `localStorage`, so a light theme does not flash dark at start
 (`js/theme.js`);
 in a window 600px wide or less, Settings is a cog alone and the three share
-the brand's row. **Refresh lists**, in Settings > Connection, fetches the categories and
+the brand's row. **Refresh lists**, in Settings > Account & data, fetches the categories and
 the lists already loaded from the server again — the whole lists, and the
 categories and groups opened this session, which used to stay as first
 fetched until a reload — drops the series' episode lists, and empties the
@@ -835,7 +835,7 @@ remaining player controls are below the picture:
 The menu holds what is wanted now and then rather than during every programme:
 **Reload the stream** (from the point it stopped at, for a stream stuck without
 an error), **Picture in picture** (where the browser or the device can put the
-picture in one), **Cast to a Chromecast**, **Copy the stream
+picture in one), **Copy the stream
 address** and **Open in an external player**. Buttons that said what they did in
 two letters and an arrow are lines that say it in words, and the row keeps only
 what a viewer reaches for while watching. After a failed playback the message
@@ -860,12 +860,14 @@ While a film or an episode plays, its IMDb page (or an IMDb search) and its
 trailer, where the provider names one, are in the player's ☰ menu. The director's and the cast's names search IMDb for
 the person; the original title shows when the provider gives one that differs,
 and the sound names its language when the file or the provider does
-(**AAC (5.1, Finnish)**). The audio and the subtitles are in sight;
-**Technical details** folds away how the file plays here (**Directly,
-without conversion**, **Audio decoded by the player**, **Without sound**,
-**Cannot be played here**), its format, the picture's size (**1920×800, 1080p**,
-measured from the picture once it plays), the bit rate and the file's size
-where the header read gave it, and stays open or shut as you left it.
+(**AAC (5.1, Finnish)**). The subtitles are in sight, and so is a sound track
+the player cannot play; **Description** heads what the title is about; and
+**Technical details**, under the credits, folds away how the file plays here
+(**Directly, without conversion**, **Audio decoded by the player**, **Without
+sound**, **Cannot be played here**), its format, the picture's size
+(**1920×800, 1080p**, measured from the picture once it plays), the sound, the
+bit rate and the file's size where the header read gave it, and stays open or
+shut as you left it.
 TMDb is in the ☰ menu beside IMDb when the provider names the film's TMDb
 id. Under them, **Other versions** lists the other
 copies of the same film, each named by what tells it apart (where it is

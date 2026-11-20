@@ -96,6 +96,26 @@ const AAC_FRAME_LENGTHS = [960, 1024, 1920, 2048];
 const MAX_SILENT_RESUMES = 20;
 
 
+/**
+ * The start of the last group of pictures that begins at or before a
+ * time, or null with none: the furthest a removal of watched picture may
+ * reach without cutting a group in two.
+ * @param {number[]} keys the groups' starts, in order
+ * @param {number} time
+ */
+export function groupStartBefore(keys, time) {
+  let found = null;
+  for (const key of keys) { if (key > time) break; found = key; }
+  return found;
+}
+
+/** A group's start noted in its place; a seek back brings earlier ones after later. */
+export function noteKeyTime(keys, time) {
+  let at = keys.length;
+  while (at > 0 && keys[at - 1] > time) at--;
+  if (keys[at - 1] !== time) keys.splice(at, 0, time);
+}
+
 export class Remuxer {
   /**
    * @param {HTMLVideoElement} video
@@ -162,6 +182,8 @@ export class Remuxer {
     this.rate = { bytes: 0, seconds: 0 };
     this.quotaAhead = Infinity;   // the read-ahead the buffer turned out to hold, once it was full
     this.quotaWaits = 0;          // appends waiting for the buffer to make room
+    /** @type {number[]} */
+    this.keyTimes = [];           // where the video's groups of pictures begin, in seconds, in order
     this.queued = 0;              // bytes in the append queues
     this.stream = null;
     this.started = false;
@@ -835,9 +857,15 @@ export class Remuxer {
   evictable(kind, aggressive = false) {
     const ranges = timeRanges(this.buffers[kind]);
     if (!ranges) return null;
-    const keepFrom = Math.max(0, this.video.currentTime - (aggressive ? MIN_BEHIND : this.readAhead().behind));
+    const behind = Math.max(0, this.video.currentTime - (aggressive ? MIN_BEHIND : this.readAhead().behind));
+    // The picture goes by whole groups: a removal that ends inside one
+    // takes the rest of it with it, as its frames lean on the one that
+    // went, and with keyframes ten seconds apart that was the group being
+    // played. The film stopped at 8 s with a hole under it (measured: a
+    // film of 10 Mbit/s, the buffer full at 53 s ahead).
+    const keepFrom = kind === 'video' && this.keyTimes.length ? groupStartBefore(this.keyTimes, behind) : behind;
     const start = ranges.start(0);
-    return keepFrom - start < (aggressive ? 1 : 5) ? null : [start, keepFrom];
+    return keepFrom == null || keepFrom - start < (aggressive ? 1 : 5) ? null : [start, keepFrom];
   }
 
   /* ------------------------------------------------------------------ pump */
@@ -944,6 +972,7 @@ export class Remuxer {
         this.state.pending = bytes.available;
         this.state.lastPts = frame.pts / 1e9;
 
+        if (frame.track === videoNumber && frame.keyframe) noteKeyTime(this.keyTimes, frame.pts / 1e9);
         if (frame.track === videoNumber && awaitKey) {
           if (!frame.keyframe) continue;
           awaitKey = false;

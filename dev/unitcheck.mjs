@@ -25,6 +25,8 @@ import { cueText, label as subtitleLabel } from '../js/subs.js';
 import { subtitleLook, stepScale, pictureHeight, STYLES, MIN_SCALE, MAX_SCALE, DEFAULT_SCALE, SCALE_STEP, SIZE_SHARE, MIN_PX, MIN_LIFT, MAX_LIFT, DEFAULT_LIFT } from '../js/subdisplay.js';
 import { describe, describeAll, label, preferred, route } from '../js/audio.js';
 import { languageSummary, orderedLanguageNames, trackLanguage } from '../js/lang.js';
+import { GENRE_TABLE, genreName, genreNames } from '../js/genres.js';
+import { groupStartBefore, noteKeyTime } from '../js/remux.js';
 import { LANGUAGES, LOCALES, keysOf, setLanguage, setRegion, regionalTag, localeTag, loadLanguage, supportedLanguage, t, pseudoText } from '../js/i18n.js';
 import { setLocale, calendarDate, episodeCode, megabytes, amount, wholePercent, fileSize } from '../js/format.js';
 import { pictureSize } from '../js/titleinfo.js';
@@ -582,13 +584,41 @@ check('the picture without its bars: a film on a 16:10 screen', Math.round(pictu
 check('the picture fills a box of its own shape', pictureHeight(1280, 720, 1280, 720), 720);
 check('a box narrower than the picture: the height is the box\'s', pictureHeight(800, 1000, 1920, 1080), 450);
 check('no picture yet: taken as 16:9', pictureHeight(1920, 1200, 0, 0), 1080);
+// The watched picture goes from the buffer by whole groups of pictures
+// (js/remux.js): a removal reaches no further than a group's start.
+{
+  const keys = [];
+  for (const time of [0, 10.385, 20.812, 31.24, 5.2, 10.385]) noteKeyTime(keys, time);
+  check('group starts are kept in order, each once', keys, [0, 5.2, 10.385, 20.812, 31.24]);
+  check('a removal ends at the group begun before it', [groupStartBefore([0, 10.385, 20.812], 3.3), groupStartBefore([0, 10.385, 20.812], 15), groupStartBefore([0, 10.385, 20.812], 20.812)], [0, 10.385, 20.812]);
+  check('with no group begun yet nothing is removed', [groupStartBefore([], 12), groupStartBefore([10.385], 3)], [null, null]);
+}
+
+// A title's genres in the viewer's language (js/genres.js): every
+// language of the interface names every genre, a name is known in
+// whichever language it was written, and an unknown one stays as it is.
+{
+  const count = GENRE_TABLE.keys.length;
+  for (const lang of Object.keys(LANGUAGES)) {
+    const names = (GENRE_TABLE.names[lang] || '').split('|');
+    check(`genres: ${lang} names all ${count}`, names.length === count && names.every((name) => name.trim() === name && name.length > 0), true);
+  }
+  check('genres: no language of the table is outside the interface', Object.keys(GENRE_TABLE.names).every((lang) => lang in LANGUAGES), true);
+  check('genres: Kids in Finnish', genreName('Kids', 'fi'), 'Lapset');
+  check('genres: a list, each once', genreNames('Drama, Sci-Fi & Fantasy / drama', 'fi'), 'Draama, Scifi ja fantasia');
+  check('genres: French in, Finnish out', genreNames('Comédie, Science-Fiction & Fantastique', 'fi'), 'Komedia, Scifi ja fantasia');
+  check('genres: Danish and Arabic in, English out', genreNames('Virkelighed, دراما', 'en'), 'Reality, Drama');
+  check('genres: an unknown one as written', genreNames('Turks Action, Anime', 'fi'), 'Turks Action, Anime');
+  check('genres: nothing from nothing', genreNames('', 'fi'), '');
+}
+
 // Every look has a rule in the stylesheet and an option in the menu, in the
 // same order; the slider's bounds are the module's.
 {
   const html = (await import('node:fs')).readFileSync(new URL('../player.html', import.meta.url), 'utf8');
   const sheet = stylesheets();
   check('playback.css sizes the layer with the module\'s share', sheet.includes(`* var(--sub-scale, 1) * ${SIZE_SHARE})`), true);
-  check('playback.css keeps the module\'s floor under the subtitles', sheet.includes(`font-size: max(${MIN_PX}px,`), true);
+  check('playback.css keeps the module\'s floor under the subtitles', sheet.includes(`font-size: max(calc(${MIN_PX}px * min(1, var(--sub-scale, 1))),`), true);
   for (const style of STYLES) {
     check(`playback.css draws the look "${style}"`, sheet.includes(`body[data-substyle="${style}"] .videowrap .subdisplay .cue`), true);
   }
@@ -2549,6 +2579,33 @@ check('VLC for iOS is handed the stream address, encoded whole',
   }
   setLanguage('en');
   check('every excuse on that list is still needed', Object.keys(NEVER_IN_THE_APP).filter((name) => !needed.has(name)), []);
+  // And a key: a phone, a tablet in the hand and a television have no
+  // keyboard, and "star it with s" in the empty favourites told an iPad's
+  // owner to press one. A sentence the apps can show names no key; one
+  // that does is listed with why it is not shown there.
+  const NAMES_A_KEY = {
+    en: /\b(keys?|keyboard|shortcuts?|PgUp|PgDn|Esc|Backspace)\b|\((g|f|m|s|c|x|l|a|n|p)\)|\bpress [a-z]\b|\bwith [a-z][.,]/i,
+    fi: /näppäi|pikanäpp|PgUp|PgDn|\bEsc\b|\((g|f|m|s|c|x|l|a|n|p)\)|\bpaina [a-zäö]\b/i,
+  };
+  const NO_KEYBOARD_THERE = {
+    'help.guide.keys': 'in the fold of keys, which an app shows only with a keyboard joined (js/help.js)',
+    'help.back': 'hidden in every app (css/last.css)',
+    'help.shortcuts': 'that fold\'s name',
+    'help.more': 'that fold\'s name in a browser',
+    'btn.help.title': 'a tooltip, taken off in the apps (js/app.js)',
+    'btn.guide.title': 'a tooltip, taken off in the apps (js/app.js)',
+    'cast.tab': 'the app\'s own sender answers before the tab-casting hint (js/app.js castCurrent)',
+  };
+  const keyExcused = (key) => Object.keys(NO_KEYBOARD_THERE).find((name) => key === name || key.startsWith(`${name}.`));
+  const keyNeeded = new Set();
+  for (const [lang, names] of Object.entries(NAMES_A_KEY)) {
+    setLanguage(lang);
+    const naming = keysOf(lang).filter((key) => names.test(t(key)));
+    check(`no sentence an app can show names a key (${lang})`, naming.filter((key) => !keyExcused(key)), []);
+    for (const key of naming) keyNeeded.add(keyExcused(key));
+  }
+  setLanguage('en');
+  check('every excuse for a key is still needed', Object.keys(NO_KEYBOARD_THERE).filter((name) => !keyNeeded.has(name)), []);
   const css = stylesheets();
   const html = readFileSync(new URL('../player.html', import.meta.url), 'utf8');
   check('what the list calls hidden under .ios is hidden there, and is in the page',

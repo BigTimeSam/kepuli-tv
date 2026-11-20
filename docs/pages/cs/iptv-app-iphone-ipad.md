@@ -29,7 +29,7 @@ nebo portál Stalker, který už máš.
 
 ## Odeslat na Chromecast
 
-- V nabídce ☰ přehrávače zvol **Odeslat na Chromecast** a vyber zařízení.
+- Na horní liště zvol **Odeslat na Chromecast** a vyber zařízení.
   Poprvé se systém zeptá, zda smí Kepuli-TV hledat zařízení v místní síti:
   povol to. Předtím Google zobrazí vlastní upozornění. Po obojím se zařízení
   zobrazí, jakmile se nějaké najde. Pokud se do půl minuty žádné nenajde, zvol

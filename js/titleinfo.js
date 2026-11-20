@@ -1,4 +1,5 @@
 // @ts-check
+import { genreNames } from './genres.js';
 import { t, localeTag } from './i18n.js';
 import { duration, fileSize, nf } from './format.js';
 import { personUrl, titleLinks } from './titlelinks.js';
@@ -29,7 +30,7 @@ export function titleFacts(info, { episodes, seasons, duration: withDuration = f
     list.append(group);
   };
   add('year', String(info.releaseDate || info.year || '').match(/\b(?:19|20)\d{2}\b/)?.[0]);
-  add('genre', info.genre);
+  add('genre', genreNames(info.genre));
   const rating = ratingText(info);
   if (rating) add('rating', rating, t('title.ratingSource'));
   if (episodes != null) {
@@ -146,11 +147,13 @@ const LAYOUT = { 1: '1.0', 2: '2.0', 3: '2.1', 6: '5.1', 7: '6.1', 8: '7.1' };
 const channelLayout = (n) => LAYOUT[n] || t('audio.channels', { count: n, n });
 
 /**
- * The file's facts. The audio and the subtitles are in sight, as they
- * decide whether one can follow the film; the format, the picture, the
- * bit rate, the size and the way it plays are under "Technical details",
- * folded unless the viewer opened it (`open`, kept by the caller through
- * `onToggle`).
+ * The file's facts. The subtitles are in sight, as they decide whether
+ * one can follow the film, and so is an audio track the player cannot
+ * play, with its warning; the way it plays, the format, the picture, the
+ * audio, the bit rate and the size are under "Technical details", folded
+ * unless the viewer opened it (`open`, kept by the caller through
+ * `onToggle`). The audio stood in sight always, alone above the fold,
+ * until the owner asked why one technical fact was apart from the rest.
  */
 export function playbackFacts({ ext, video, audio, subtitles, bitrate = 0, size = 0, playback = null, loading = {}, open = false, onToggle = null }) {
   const out = document.createDocumentFragment();
@@ -189,7 +192,8 @@ export function playbackFacts({ ext, video, audio, subtitles, bitrate = 0, size 
   // provider names one: "AAC (5.1, Finnish)".
   const spoken = audio && audio.language && shortLanguage(audio.language) !== 'und' ? languageName(shortLanguage(audio.language)) : null;
   const audioDetail = [audio?.channels ? channelLayout(audio.channels) : '', spoken || ''].filter(Boolean).join(', ');
-  add('audio', audio && qualified(audio.codec?.toUpperCase(), audioDetail), { unsupported: audio?.supported === false });
+  const heard = () => add('audio', audio && qualified(audio.codec?.toUpperCase(), audioDetail), { unsupported: audio?.supported === false, into: audio?.supported === false ? list : tech });
+  if (audio?.supported === false) heard();
   if (subtitles) {
     const { total, shown } = subtitles;
     // Bitmap tracks are counted but never named, and an mp4's tracks are
@@ -205,6 +209,7 @@ export function playbackFacts({ ext, video, audio, subtitles, bitrate = 0, size 
   if (playback) add('playback', playback.text, { title: playback.title, into: tech });
   if (ext) add('format', ext.toUpperCase(), { into: tech });
   add('video', video && qualified(video.codec?.toUpperCase(), pictureSize(video)), { into: tech });
+  if (audio?.supported !== false) heard();
   if (bitrate > 0) add('bitrate', t('info.bitrate.value', { n: nf.format(Math.round(bitrate)) }), { into: tech });
   if (size > 0) add('size', fileSize(size), { into: tech });
   out.append(list);

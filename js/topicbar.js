@@ -14,8 +14,9 @@ import { LIST_ORDERS, ORDER_SETTINGS, listOrder } from './listorder.js';
 import * as store from './config.js';
 import { activateTab, catalogueSearch, isAbort, isCollection, kindLabel, mediaFilters, openHiddenList, refreshRows, renderSidebar, searchesEveryGroup, searchLimit, showListCancelled, showListError, state, tabType, unit } from './state.js';
 import { hideProgress, progressSignal, showProgress, updateProgress } from './progressdialog.js';
-import { clearHistory } from './collections.js';
+import { clearHistory, historyToClear } from './collections.js';
 import { $, el } from './dom.js';
+import { optionMarks } from './picker.js';
 import { configured, openSetup } from './setupui.js';
 import { svg } from './svg.js';
 import { caretWelcome } from './caret.js';
@@ -347,10 +348,16 @@ export function renderListInfo() {
     button.addEventListener('click', openHiddenList);
     el.listinfo.append(spacer, button);
   }
-  if (state.tab === 'recent' && state.recents.length) {
+  // Where the sidebar is a menu at the list's top (css/narrow.css) and has
+  // no foot for it; with a sidebar the button is its foot (css/layout.css).
+  if (state.tab === 'recent' && historyToClear().length) {
     const spacer = document.createElement('span');
     spacer.className = 'spacer';
-    el.listinfo.append(spacer, clearHistoryButton());
+    const button = document.createElement('button');
+    button.type = 'button';
+    button.className = 'clear-history';
+    armClearHistory(button, button);
+    el.listinfo.append(spacer, button);
   }
   if ((state.tab === 'movie' || state.tab === 'series') && !state.detail && state.lib) {
     const spacer = document.createElement('span');
@@ -414,12 +421,13 @@ export function orderName(order) {
 const ORDER_LABELS = { live: 'setup.channelsort', fav: 'favs.sort', movie: 'setup.moviesort', series: 'setup.seriessort', recent: 'setup.historysort' };
 
 /**
- * The list's order as a selector with its mark, the same part as the
- * player's "Playback mode": the order in force is its text, and the
- * others open as its list (js/picker.js). It was a row of marks, one or
- * two orders each: six of them a fingertip wide left an iPad's column
- * room for "15" and not for "15 channels", and a mark alone did not say
- * what it orders by.
+ * The list's order as a selector: the mark of the order in force, and
+ * the orders open as its list, each with its mark and its name
+ * (js/picker.js optionMarks). It was a row of marks, one or two orders
+ * each: six of them a fingertip wide left an iPad's column room for "15"
+ * and not for "15 channels". Then the selector carried the order's name,
+ * which a column seldom had room for ("Recently watc…"): the name is in
+ * the list, where it says what each mark orders by, and in the tooltip.
  */
 function listOrderToggle(list) {
   const current = listOrder(state.settings, list);
@@ -427,12 +435,13 @@ function listOrderToggle(list) {
   box.className = 'select-mark order-pick';
   const select = document.createElement('select');
   select.id = 'list-order';
-  select.title = t(ORDER_LABELS[list]);
+  select.title = `${t(ORDER_LABELS[list])}: ${orderName(current)}`;
   select.setAttribute('aria-label', t(ORDER_LABELS[list]));
   for (const order of LIST_ORDERS[list]) {
     const option = document.createElement('option');
     option.value = order;
     option.textContent = orderName(order);
+    optionMarks.set(option, () => svg(ORDER_ICONS[order]));
     select.append(option);
   }
   select.value = current;
@@ -468,22 +477,27 @@ function renderListHeading() {
  * Clearing the history cannot be undone, so it takes a second tap. A dialog
  * of its own would be too much for something of this weight.
  */
-function clearHistoryButton() {
-  const button = document.createElement('button');
-  button.type = 'button';
-  button.textContent = t('history.clear');
+/**
+ * @param {HTMLElement} button the one pressed
+ * @param {HTMLElement} label where its words are (the button itself, or a span in it)
+ * @returns {() => void} back to the first tap, for when what it would clear has changed
+ */
+export function armClearHistory(button, label) {
+  label.textContent = t('history.clear');
   let armed = false;
   let timer = null;
+  const rest = () => {
+    clearTimeout(timer);
+    armed = false;
+    label.textContent = t('history.clear');
+    button.classList.remove('armed');
+  };
   button.addEventListener('click', () => {
-    if (armed) { clearTimeout(timer); clearHistory(); return; }
+    if (armed) { rest(); clearHistory(); return; }
     armed = true;
-    button.textContent = t('history.clear.confirm');
+    label.textContent = t('history.clear.confirm');
     button.classList.add('armed');
-    timer = setTimeout(() => {
-      armed = false;
-      button.textContent = t('history.clear');
-      button.classList.remove('armed');
-    }, 4000);
+    timer = setTimeout(rest, 4000);
   });
-  return button;
+  return rest;
 }

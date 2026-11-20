@@ -10,7 +10,7 @@
 // in.
 
 import { titleWithoutYear } from './titlemeta.js';
-import { episodeLabel } from './seriesui.js';
+import { episodeHeading } from './seriesui.js';
 import { $, el } from './dom.js';
 import { poster } from './poster.js';
 import { ApiError } from './api.js';
@@ -29,6 +29,7 @@ import { streamUrl } from './xtream.js';
 import { t } from './i18n.js';
 import * as store from './config.js';
 import { cast, groupOfType, noteChannel, offerAccess, playerLayout, refreshRows, renderSidebar, state, tabType, updateAddress, updatePlayerLayout, vlist } from './state.js';
+import { svg } from './svg.js';
 import { cancelAutoNext } from './nextepisode.js';
 import { closeSecond, firstPlays } from './secondui.js';
 import { leavePlayback, renderAudio, renderSubtitles, sizePicture } from './tracksui.js';
@@ -103,6 +104,7 @@ function onPlaybackState(s) {
     // new one, and the server may be counting our own stream again, so it
     // is worth a wait of its own.
     if (state.playingSpec) state.playingSpec.awaitedRelease = false;
+    triedAgain = null;
   } else if (s.status === 'probing') {
     state.playbackInfoLoading = true;
     renderInfoStrip();
@@ -133,10 +135,32 @@ function onPlaybackState(s) {
     // is shown, and a release waited for rather than reported.
     // An answer with nothing in it (s.content) is the provider having no
     // file for the title: neither a wait nor the account would change it.
-    if (!s.checked && !s.content && !s.reachable && state.playingSpec && !state.playingSpec.awaitedRelease && playback.followedRelease) {
+    // A film or an episode is asked about whenever it fails, not only
+    // soon after a release this page made: the stream let go may have been
+    // the app's own player's or a Chromecast's, or the provider counted it
+    // for longer than the half minute allowed for. On an account of one
+    // connection an episode chosen again from the start page was refused,
+    // said to have failed, and played at Try again.
+    // Only one that never started: a picture that broke on its way has
+    // been resumed several times already (js/playback.js), and started
+    // again it would say "did not start" in place of where and why it
+    // stopped (the server gone under an episode, the death scenario).
+    const title = state.playing && state.playing.k !== 0 && !state.catchup && !(s.position > 0);
+    if (!s.checked && !s.content && !s.reachable && state.playingSpec && !state.playingSpec.awaitedRelease && (playback.followedRelease || title)) {
       checkBeforeFailing(s);
       return;
     }
+    // And whatever the account says, a film or an episode that fails is
+    // tried once more by itself before the failure is shown: what the
+    // viewer did next was press Try again, and it played. Not where
+    // another try cannot differ (no file, a track that cannot be played),
+    // nor after a wait for a release, which was a second try already.
+    if (title && !s.content && !s.canSilent && state.playingSpec && triedAgain !== titleKey() && !state.playingSpec.awaitedRelease) {
+      tryAgainOnce();
+      return;
+    }
+    // Shown: the viewer's own Try again gets a second try of its own.
+    triedAgain = null;
     state.playbackInfoLoading = false;
     renderInfoStrip();
     el.overlay.hidden = false;
@@ -150,9 +174,10 @@ function onPlaybackState(s) {
     // address is in the ☰ menu. A provider without the file (s.content)
     // leaves nothing a retry or an external player could fetch, and a track
     // the browser cannot play (s.canSilent) fails the same way again.
+    /** @type {{ label: string, onClick: () => any, mark?: () => Node }[]} */
     const actions = s.content ? [] : [
-      ...(s.canSilent ? [] : [{ label: t('player.retry'), onClick: retryPlayback }]),
-      { label: t(externalLabel()), onClick: playExternal },
+      ...(s.canSilent ? [] : [{ label: t('player.retry'), mark: () => svg('<path d="M15.6 7.2A6 6 0 1 0 16 12"/><path d="M16 3.5v4h-4"/>'), onClick: retryPlayback }]),
+      { label: t(externalLabel()), mark: () => svg('<path d="M11 3h6v6M17 3l-8 8M8 4H4a1 1 0 0 0-1 1v11a1 1 0 0 0 1 1h11a1 1 0 0 0 1-1v-4"/>'), onClick: playExternal },
     ];
     // The picture will do but the audio track will not: silent playback is
     // on offer, not the default.
@@ -326,6 +351,24 @@ async function awaitRelease(spec, failure, figures) {
 // that asks for the connection ends it.
 let releaseWait = null;
 
+const TRY_AGAIN_MS = 1500;
+/** The title tried again by itself since it last played or failed in sight, as its kind and id. */
+let triedAgain = null;
+const titleKey = () => (state.playing ? `${state.playing.k}:${state.playing.id}` : null);
+
+/**
+ * The same thing once more after a moment, the wait still on screen; a
+ * second failure is shown as it is.
+ */
+function tryAgainOnce() {
+  const spec = state.playingSpec;
+  // Kept by the title, not on the spec: every start makes a spec of its
+  // own, and a mark on the old one let a title that keeps failing be
+  // tried for ever.
+  triedAgain = titleKey();
+  setTimeout(() => { if (state.playingSpec === spec) retryPlayback(); }, TRY_AGAIN_MS);
+}
+
 /** The same thing again, without a second wait should it fail the same way. */
 function replay() {
   retryPlayback();
@@ -454,7 +497,10 @@ function renderBuffering(s) {
   } else {
     el.overlay.hidden = false;
     el.overlay.classList.add('loading');
-    const pct = s.total ? percent(s.loaded / s.total) : null;
+    // A share only once something has arrived: while the server has sent
+    // nothing the step's "0,0 %" stood still for as long as the wait
+    // lasted, and read as a count that did not work.
+    const pct = s.total && s.loaded > 0 ? percent(s.loaded / s.total) : null;
     const title = !pct ? t('player.buffering')
       : s.stage === 'index' ? t('player.index.pct', { pct })
         : t('player.buffering.pct', { pct });
@@ -479,7 +525,7 @@ function renderLoadView() {
   const rate = f && f.bitrate && f.speed != null;
   const parts = [];
   if (f) {
-    if (f.total) parts.push(`${amount(f.loaded)} / ${amount(f.total)}`);
+    if (f.total && f.loaded > 0) parts.push(`${amount(f.loaded)} / ${amount(f.total)}`);
     else if (f.loaded > 0) parts.push(amount(f.loaded));
     if (f.speed != null && !rate) parts.push(speedText(f.speed));
     if (f.loaded == null && f.ahead > 0.05) parts.push(t('player.buffered', { seconds: secondsText(f.ahead) }));
@@ -487,7 +533,7 @@ function renderLoadView() {
   el.overlayFigures.textContent = parts.join(', ');
   el.overlayFigures.hidden = !parts.length;
   const slow = Boolean(f && f.slow);
-  const share = f && f.total ? Math.min(1, f.loaded / f.total)
+  const share = f && f.total && f.loaded > 0 ? Math.min(1, f.loaded / f.total)
     : rate ? Math.min(1, (f.speed * 8) / f.bitrate) : null;
   el.overlayBar.hidden = share == null;
   el.overlayBar.classList.toggle('slow', share != null && !f.total && slow);
@@ -570,9 +616,11 @@ export function showOverlayActions(actions) {
 export function addOverlayAction(action, { first = false } = {}) {
   const button = document.createElement('button');
   button.type = 'button';
-  button.className = action.primary ? 'primary' : 'ghost';
+  button.className = action.primary ? 'primary' : action.danger ? 'ghost danger' : 'ghost';
   if (action.id) button.id = action.id;
   button.textContent = action.label;
+  // A mark before the words, drawn by whoever offers the action.
+  if (action.mark) button.prepend(action.mark());
   if (action.title) button.title = action.title;
   button.addEventListener('click', action.onClick);
   if (first) el.overlayActions.prepend(button); else el.overlayActions.appendChild(button);
@@ -718,8 +766,10 @@ export async function playItem(item, { startAt, allowSilent } = {}) {
  */
 function nowTitle(item) {
   if (item.k !== 3) return item.displayName || item.n;
-  const { label } = episodeLabel(item.n, item.episode, [item.seriesName || '']);
-  return item.seriesName ? `${item.seriesName} – ${label}` : label;
+  // The episode's own name where it has one; its number is in the line
+  // under the title ("Season 1, episode 2"), and "Episode 2:" before the
+  // name said it twice.
+  return episodeHeading(item);
 }
 
 /** The title again in a new interface language; only an episode's changes. */
@@ -765,7 +815,8 @@ export function nowPlace() {
     const group = type === 'live' ? null : item.cats.map((cat) => groupOfType(type).get(cat)).find(Boolean);
     bits.push(group || state.lib.categoryName(type, item.cats[0]));
   }
-  if (item.k === 3) bits.push(episodeCode(item.season, item.episode));
+  // In words: the short code ("S1 E2") is for a row, where there is no room.
+  if (item.k === 3) bits.push(item.season != null && item.episode != null ? t('episode.place', { season: item.season, episode: item.episode }) : episodeCode(item.season, item.episode));
   return bits.filter(Boolean).join(', ');
 }
 

@@ -13,7 +13,9 @@ import { beginListLoad, catalogueSearch, listNavigation, mediaFilters, refreshRo
 import { playItem } from './playing.js';
 import { renderSeriesFavorite } from './playercontrols.js';
 import { openFavCategory } from './collections.js';
+import * as store from './config.js';
 import { el } from './dom.js';
+import { sideScroll } from './sidescroll.js';
 
 export async function openItem(item) {
   if (!item) return;
@@ -73,7 +75,9 @@ export async function openSeries(item) {
       })),
     };
     const seasons = seasonNumbers(info.episodes);
-    state.detail.season = seasons[0] ?? null;
+    // The season chosen on the last visit, where the series still has it.
+    const kept = seasonsChosen[seasonKey(item)];
+    state.detail.season = seasons.includes(kept) ? kept : seasons[0] ?? null;
     renderDetail();
     await refreshRows();
   } catch (err) {
@@ -97,6 +101,39 @@ export function episodeLabel(name, number, series) {
   const titled = own && !genericEpisode(own, number) ? own : null;
   const word = t('api.episode', { number: number || '' });
   return { titled, label: !titled ? word : number ? `${word}: ${titled}` : titled };
+}
+
+/**
+ * An episode named where its series' page is not around it (over the
+ * picture, in the history): the series, then the episode's own name, or
+ * "Episode 2" where it has none. Its number is not said twice: the line
+ * under the name has the season and the episode.
+ * @param {any} item
+ */
+export function episodeHeading(item) {
+  const { titled, label } = episodeLabel(item.n, item.episode, [item.seriesName || '']);
+  return item.seriesName ? `${item.seriesName} – ${titled || label}` : label;
+}
+
+/**
+ * The season last chosen on each series' page, kept from one visit to the
+ * next and over a restart (ui.seasons, by account and series): a viewer at
+ * the ninth season of ten was shown the first every time the page opened.
+ * The two hundred series chosen last.
+ * @type {Record<string, number>}
+ */
+let seasonsChosen = {};
+store.loadUiState().then((ui) => { seasonsChosen = ui.seasons || {}; });
+const SEASONS_KEPT = 200;
+const seasonKey = (/** @type {{ id: any }} */ item) => `${store.accountKey(state.config)}|${item.id}`;
+
+function rememberSeason(item, season) {
+  const key = seasonKey(item);
+  // Taken out and put back, so that the keys stay in the order chosen.
+  delete seasonsChosen[key];
+  seasonsChosen[key] = season;
+  for (const old of Object.keys(seasonsChosen).slice(0, -SEASONS_KEPT)) delete seasonsChosen[old];
+  store.saveUiState({ seasons: seasonsChosen });
 }
 
 function seasonNumbers(episodes) {
@@ -166,9 +203,13 @@ export function renderDetail() {
     plot.textContent = info.plot || detail.item.plot;
     body.appendChild(plot);
   }
-  body.appendChild(externalLinks(detail.item, info));
+  const links = externalLinks(detail.item, info);
+  body.appendChild(links);
   main.appendChild(body);
   el.detail.replaceChildren(main);
+  // One line that scrolls sideways, as the seasons under it: three links
+  // took two rows of the column the episodes need.
+  if (links.childElementCount) sideScroll(links, { compact: true, className: 'title-links-scroll' });
   renderSeriesFavorite();
 
   if (info) {
@@ -183,15 +224,17 @@ export function renderDetail() {
         chip.textContent = t('season', { season });
         chip.addEventListener('click', () => {
           detail.season = season;
+          rememberSeason(detail.item, season);
           renderDetail();
           refreshRows();
         });
         bar.appendChild(chip);
       }
       el.detail.appendChild(bar);
-      // On one line that scrolls sideways (a low window, css/narrow.css)
-      // the bar is drawn anew from its start at every choice.
-      if (bar.scrollWidth > bar.clientWidth) bar.querySelector('.active')?.scrollIntoView({ block: 'nearest', inline: 'center' });
+      // One line that scrolls sideways, with the season chosen in sight:
+      // ten seasons wrapped into three rows above the episodes they are
+      // there to choose. The bar is drawn anew at every choice.
+      sideScroll(bar, { compact: true, className: 'seasons-scroll', follow: '.season.active' });
     }
   }
 }
