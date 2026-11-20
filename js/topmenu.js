@@ -22,7 +22,7 @@ import { $ } from './dom.js';
 import { sideScroll } from './sidescroll.js';
 
 // The buttons that go into the menu, in the bar's order.
-const MOVED = ['btn-refresh', 'btn-help', 'btn-theme', 'btn-screen', 'btn-settings'];
+const MOVED = ['btn-help', 'btn-screen', 'btn-settings'];
 const PHONE = '(max-width: 600px)';
 
 let bar;

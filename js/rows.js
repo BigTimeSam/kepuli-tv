@@ -22,7 +22,10 @@ import { svg } from './svg.js';
 const menus = new WeakMap();
 const HOLD_MS = 550, HOLD_SLACK = 10;
 if (typeof document !== 'undefined') {
-  let timer = 0, opened = 0;
+  // When a held press last opened a menu. Never, to begin with: at 0 a
+  // right click in the page's first second was taken for the second word
+  // of a press that had just opened one, and no menu came (filmfacts).
+  let timer = 0, opened = -Infinity;
   /** @type {{ x: number, y: number, node: Element } | null} */
   let held = null;
   const stop = () => { clearTimeout(timer); timer = 0; held = null; };

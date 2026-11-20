@@ -2,7 +2,7 @@
 //
 // The list column used to stack up to three bands above the rows: the
 // topic chips, the films' filters and the favourites strip, each taking
-// height of its own. Now the films and the series have "Filter titles"
+// height of its own. Now the films and the series have "Filter movies" and "Filter series"
 // (with "Show only favourites" in it, js/mediafilters.js), and the
 // channels "Filter channels" holding the country's topics, at their full
 // height, as the fold itself is what gives the list its room back.
@@ -89,7 +89,7 @@ function moveInto(node, parent) {
 
 /**
  * Both folds wired from what was stored: open or folded, and their choices
- * ("Filter titles"' through its MediaFilters, js/mediafilters.js).
+ * ("Filter movies"' through its MediaFilters, js/mediafilters.js).
  * @param {Record<string, any>} ui
  * @param {import('./mediafilters.js').MediaFilters} mediaFilters
  */
@@ -108,7 +108,7 @@ export function wireListFilters(ui, mediaFilters) {
   count = $('channel-filters-count');
   caption = $('channel-filters-label');
   for (const node of [el.subcats, el.subcatsGrip]) remember(node);
-  // Open the first time, as "Filter titles": the topics were always in
+  // Open the first time, as "Filter movies": the topics were always in
   // sight, and a viewer who has not folded them away should find them
   // where they were.
   panel.open = foldOpen(ui.channelFiltersOpen, narrow);

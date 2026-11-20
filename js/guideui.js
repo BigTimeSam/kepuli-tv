@@ -124,7 +124,8 @@ export async function openGuide() {
   grid.epg = state.epg;
   grid.setPlaying(state.playing && state.playing.k === 0 ? state.playing.id : null);
   setGridChannels(channels);
-  if (phone()) grid.zoomIndex = PHONE_ZOOM;
+  grid.zoomFixed = phone();
+  if (phone() && !grid.zoomChosen) grid.zoomIndex = PHONE_ZOOM;
   grid.show();
   if (state.playing && state.playing.k === 0) grid.focusChannel(state.playing.id);
   focusGrid();

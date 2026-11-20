@@ -27,7 +27,7 @@ import { playback, tabs } from './playing.js';
 import { playlistAddress } from './m3u.js';
 import { importPlaylistFile } from './m3usource.js';
 import { refreshGuidePreview } from './guideui.js';
-import { THEMES, renderTheme, resolveTheme } from './theme.js';
+import { THEMES, applyTheme, resolveTheme } from './theme.js';
 import { renderAccountList } from './accountsui.js';
 import { hasAccess, requestAccess, requestAccessFor } from './permissions.js';
 import { toast } from './toast.js';
@@ -551,7 +551,7 @@ export async function showStoredSettings(next) {
   const settings = await store.loadSettings();
   if (same(settings, before)) return;
   state.settings = settings;
-  if (settings.theme !== before.theme) renderTheme(settings.theme);
+  if (settings.theme !== before.theme) applyTheme(settings.theme);
   if (settings.lang !== before.lang || settings.clock !== before.clock) await applyLanguage(store.interfaceLanguage(settings));
   applySubtitleLook(settings);
   renderStatBadge();
@@ -998,7 +998,7 @@ export function wireSetup() {
       renderRecordingState();
       refreshGuidePreview();
       if (!state.playing && !el.overlay.hidden && el.overlayTitle.textContent === t('player.idle')) renderIdleOverlay();
-      if (settingsPatch.theme) renderTheme(state.settings.theme);
+      if (settingsPatch.theme) applyTheme(state.settings.theme);
       if (settingsPatch.lang || settingsPatch.clock) await applyLanguage(store.interfaceLanguage(state.settings));
       // The international channels shown or hidden repaint the channel
       // list where it stands; a changed connection is about to load it

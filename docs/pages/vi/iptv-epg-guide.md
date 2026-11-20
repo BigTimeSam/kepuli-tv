@@ -21,7 +21,7 @@ bạn chọn thứ để xem: trên dòng của mỗi kênh, dưới hình, và 
 
 ## Lịch phát sóng
 
-**Lịch phát sóng** phía trên danh sách kênh, hoặc phím `g`, biến cửa sổ
+**Lịch phát sóng** trên thanh trên cùng, hoặc phím `g`, biến cửa sổ
 thành một lưới: kênh là các hàng, thời gian trên trục ngang và một vạch di
 chuyển ở thời điểm hiện tại. Kênh vẫn tiếp tục phát ở góc.
 

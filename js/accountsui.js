@@ -41,6 +41,8 @@ export function renderAccountList() {
   const list = $('account-list');
   const accounts = state.accounts || [];
   box.hidden = !configured() || !accounts.length;
+  // The lists can be fetched again once there is an account to ask.
+  $('setup-refresh').hidden = box.hidden;
   list.replaceChildren();
   $('f-add-account').hidden = setupAdding;
   // The connection's explanation is the first run's; beside a list of

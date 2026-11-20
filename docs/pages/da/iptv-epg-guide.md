@@ -21,7 +21,7 @@ hel guide med tiden vandret og kanalerne lodret.
 
 ## Guiden
 
-**Programguide** over kanallisten, eller tasten `g`, gør vinduet til et
+**Programguide** i den øverste bjælke, eller tasten `g`, gør vinduet til et
 gitter: kanaler som rækker, tiden på den vandrette akse og en linje, der
 følger klokken. Kanalen spiller videre i hjørnet.
 

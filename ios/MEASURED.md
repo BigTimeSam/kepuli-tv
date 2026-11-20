@@ -230,6 +230,36 @@ file is the working guide; `RELEASE.md` is the way to the App Store.
   band of 24 px. Each has its test in `dev/playcheck.mjs` or
   `dev/unitcheck.mjs`; what a real finger and a real keyboard do with
   them is the device checklist's.
+- **The first evening on an iPad** (2026-11-19 and 20, an iPad (A16) on
+  iPadOS 26.2, a debug build, the hosted demo; the owner's hands, the
+  page read over the debug bridge). Held: the keyboard in Settings, the
+  field in sight upright and lying down, nothing showing through the
+  buttons' bar; the duration's two handles; a finger held on a cover or a
+  row opens its menu. What it showed, and what was changed for it:
+  - A finger held on a picture or a link starts a drag on an iPad (not
+    on an iPhone): the cover flickered, shrank and flew to the window's
+    corner as its menu opened. The page refuses every `dragstart`
+    (`js/iosapp.js`) and its pictures and links are not draggable
+    (`css/last.css`).
+  - A tap leaves `:hover` on what it touched until something else is
+    touched. A favourite's star stayed white, the cross of a start page
+    card red (and the next card's turned red as it slid into the removed
+    one's place), a fold's heading grey, a cover lifted. `js/nohover.js`
+    takes `:hover` out of every selector where nothing hovers: 77
+    selectors on that iPad, none left.
+  - WebKit's own radio button there is a disc of a pale accent with a
+    white dot; the page draws its own (`css/player.css`).
+  - The three columns' bars were 44, 53 and 51 px at the foot and the
+    folds 41 px beside 57: one height each now, measured there at 53 and
+    57.
+  - The guide: its bar is one row (54 px, where it was 102 with a row of
+    steps and zoom), the days' strip has the row to its end, a pinch
+    steps the zoom (written and tested with made-up touches; the owner's
+    own pinch is not yet reported), today's button leads back to now with
+    the hour before in sight (60 minutes measured lying down, at the zoom
+    chosen for the width).
+  - Not yet seen there: the Chromecast, picture in picture, full screen,
+    the lock screen and the rest of the device checklist.
 - **A dialog opened by a real tap ringed its cross**: the dialog takes
   the focus itself under a finger (`js/modal.js`, the dialog's own
   `autofocus`, which WebKit reads; seen with a real tap).

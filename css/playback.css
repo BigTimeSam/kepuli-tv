@@ -298,7 +298,12 @@ body[data-substyle="contrast"] { --cue-back: #000; }
 }
 .idle-forget svg { width: 14px; height: 14px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; }
 .idle-card-wrap:hover .idle-forget, .idle-forget:focus-visible { opacity: 1; }
-.idle-forget:hover { background: rgba(200, 40, 50, .92); border-color: transparent; }
+/* Red under a pointer, and under a finger only while it presses. A
+   finger leaves the hover where it tapped: the cross stayed a red disc,
+   and with its card gone the next card's cross slid under the same spot
+   and turned red untouched (the owner's iPad). */
+@media (hover: hover) { .idle-forget:hover { background: rgba(200, 40, 50, .92); border-color: transparent; } }
+.idle-forget:active { background: rgba(200, 40, 50, .92); }
 /* The card's star across from its ✕, alike in shape; a favourite's stays
    in sight. */
 .idle-star {

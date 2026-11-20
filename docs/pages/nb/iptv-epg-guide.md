@@ -21,7 +21,7 @@ full guide med tiden bortover og kanalene nedover.
 
 ## Guiden
 
-**Programguide** over kanallisten, eller tasten `g`, gjør vinduet om til et
+**Programguide** i topplinjen, eller tasten `g`, gjør vinduet om til et
 rutenett: kanalene som rader, tiden på den vannrette aksen og en linje som
 flytter seg med klokken. Kanalen fortsetter å spille i hjørnet.
 

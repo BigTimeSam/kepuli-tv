@@ -21,7 +21,7 @@ si udhëzues i plotë me kohën horizontalisht dhe kanalet vertikalisht.
 
 ## Udhëzuesi
 
-**Udhëzuesi i programeve** sipër listës së kanaleve, ose tasti `g`, e kthen
+**Udhëzuesi i programeve** në shiritin e sipërm, ose tasti `g`, e kthen
 dritaren në një rrjetë: kanalet si rreshta, koha në boshtin horizontal dhe
 një vijë që lëviz te çasti i tanishëm. Kanali vazhdon të luhet në qoshe.
 

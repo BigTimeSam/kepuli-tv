@@ -21,7 +21,7 @@ sa vremenom vodoravno i kanalima uspravno.
 
 ## Vodič
 
-**Vodič kroz program** iznad liste kanala, ili taster `g`, pretvara prozor u
+**Vodič kroz program** u gornjoj traci, ili taster `g`, pretvara prozor u
 mrežu: kanali su redovi, vreme je na vodoravnoj osi, a pokretna linija
 pokazuje sadašnji trenutak. Kanal nastavlja da se reprodukuje u uglu.
 

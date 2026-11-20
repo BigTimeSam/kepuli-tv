@@ -21,7 +21,7 @@ kus aeg jookseb vasakult paremale ja kanalid ülalt alla.
 
 ## Saatekava
 
-Nupp **Saatekava** kanaliloendi kohal või klahv `g` muudab akna
+Nupp **Saatekava** ülaribal või klahv `g` muudab akna
 ruudustikuks: kanalid ridadena, aeg horisontaalteljel ja praegust hetke
 näitav liikuv joon. Kanal mängib nurgas edasi.
 

@@ -110,7 +110,7 @@ const CAPTIONS = {
       accounts: 'Add several accounts, Xtream Codes, an M3U playlist or a Stalker portal, and switch between them in a click.',
       sync: 'With sync on, your accounts, favourites and history follow you to your other computers.',
       keys: 'Everything works from the keyboard. Press the question mark to see the shortcuts.',
-      theme: 'Prefer it light? Switch themes in a click.',
+      theme: 'Prefer it light? Choose your theme in Settings.',
       languages: 'Kepuli-TV speaks thirty languages, with a twelve- or twenty-four-hour clock.',
       fullscreen: 'And for the big picture, just double-click.',
       outro: 'Kepuli-TV is free on the Chrome Web Store and Firefox Add-ons. It comes with no channels of its own, so bring your own subscription.',
@@ -175,7 +175,7 @@ const CAPTIONS = {
       accounts: 'Lisää useita tilejä, Xtream Codes, M3U-soittolista tai Stalker-portaali, ja vaihda niiden välillä yhdellä klikkauksella.',
       sync: 'Kun synkronointi on päällä, tilisi, suosikkisi ja historiasi seuraavat sinua muille tietokoneillesi.',
       keys: 'Kaikki toimii näppäimistöltä. Paina kysymysmerkkiä nähdäksesi pikanäppäimet.',
-      theme: 'Pidätkö vaaleammasta? Vaihda teemaa yhdellä klikkauksella.',
+      theme: 'Pidätkö vaaleammasta? Valitse teema asetuksista.',
       languages: 'Kepuli-TV puhuu kolmeakymmentä kieltä, kahdentoista tai kahdenkymmenenneljän tunnin kellolla.',
       fullscreen: 'Ja isoon kuvaan riittää kaksoisklikkaus.',
       outro: 'Kepuli-TV on ilmainen Chrome Web Storessa ja Firefoxin lisäosissa. Siinä ei ole omia kanavia, joten tuo oma tilauksesi.',
@@ -842,8 +842,11 @@ async function walk() {
   // The theme, shown on the start page.
   await scene('theme', 'left');
   await click(`document.getElementById('btn-home')`, { pause: 1200 });
-  await click(`document.getElementById('btn-theme')`, { pause: 3200 });
-  await click(`document.getElementById('btn-theme')`, { pause: 900 });
+  // The theme is chosen in Settings; the scene shows the two, not the way there.
+  await evaluate(`import('./js/theme.js').then((m) => m.applyTheme('light'))`);
+  await sleep(3200);
+  await evaluate(`import('./js/theme.js').then((m) => m.applyTheme('dark'))`);
+  await sleep(900);
 
   // Languages and the clock.
   await scene('languages', 'bottom', 3200);

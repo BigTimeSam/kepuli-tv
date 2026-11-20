@@ -21,7 +21,7 @@ em um guia completo, com o tempo na horizontal e os canais na vertical.
 
 ## O guia
 
-**Guia de programação**, acima da lista de canais, ou a tecla `g` transforma
+**Guia de programação**, na barra superior, ou a tecla `g` transforma
 a janela em uma grade: os canais nas linhas, o tempo no eixo horizontal e uma
 linha que acompanha o momento atual. O canal continua tocando no canto.
 

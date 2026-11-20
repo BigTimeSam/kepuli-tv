@@ -191,13 +191,13 @@
     --panel-2: #1b2130;
     --row-hover: rgba(255, 255, 255, .14);
   }
-  :root:not([data-theme="light"]) :is(.row-star, .row-x, .group-star, .chip-star) { color: #97a1ba; }
+  :root:not([data-theme="light"]) :is(.row-star, .row-x, .group-star, .chip-star):not(.on) { color: #97a1ba; }
   :root[data-theme="light"] {
     --border: #8b93a7;
     --muted: #3f4657;
     --dim: #434a5b;
   }
-  :root[data-theme="light"] :is(.row-star, .row-x, .group-star, .chip-star) { color: #5d6579; }
+  :root[data-theme="light"] :is(.row-star, .row-x, .group-star, .chip-star):not(.on) { color: #5d6579; }
   .row { border-bottom-color: var(--border); }
 }
 
@@ -272,7 +272,7 @@ button, input, select { font: inherit; color: inherit; }
 /* One check box everywhere, drawn here rather than by the browser. The
    browser's own came in three sizes with and without the accent, and
    standing on a fraction of a pixel — as rem-sized rows put it — its top
-   edge was drawn fainter than its bottom (Filter titles in a narrow
+   edge was drawn fainter than its bottom (Filter movies in a narrow
    window). A box of the page's own is laid on whole pixels. Under forced
    colours the system's own box stays, as it is the one that follows them. */
 input[type="checkbox"] {
@@ -293,8 +293,22 @@ input[type="checkbox"]:indeterminate {
 input[type="checkbox"]:hover:not(:disabled) { border-color: var(--accent); }
 input[type="checkbox"]:focus-visible { outline: 2px solid var(--accent-ink); outline-offset: 2px; }
 input[type="checkbox"]:disabled { opacity: .5; cursor: default; }
+/* A choice of one: the page's own ring, the checkbox's size and line, with
+   a dot of the accent when chosen. The engines' own differ: WebKit on an
+   iPhone and an iPad filled the whole disc with a pale tint of the accent
+   and set a white dot in it, which read as another product's. */
+input[type="radio"] {
+  -webkit-appearance: none; appearance: none; flex: none; box-sizing: border-box;
+  width: 16px; height: 16px; margin: 0; vertical-align: middle;
+  border: 1.5px solid var(--border-strong); border-radius: 50%;
+  background: var(--panel-2); cursor: pointer;
+}
+input[type="radio"]:checked { border-color: var(--accent); background: radial-gradient(circle, var(--accent) 0 3.5px, var(--panel-2) 4.5px); }
+input[type="radio"]:hover:not(:disabled) { border-color: var(--accent); }
+input[type="radio"]:focus-visible { outline: 2px solid var(--accent-ink); outline-offset: 2px; }
+input[type="radio"]:disabled { opacity: .5; cursor: default; }
 @media (forced-colors: active) {
-  input[type="checkbox"] { -webkit-appearance: auto; appearance: auto; }
+  input[type="checkbox"], input[type="radio"] { -webkit-appearance: auto; appearance: auto; }
 }
 
 /* One focus ring for every control: the accent's text colour, 2px, a

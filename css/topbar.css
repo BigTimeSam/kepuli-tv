@@ -62,21 +62,31 @@
 .icon-button:not(.labelled) { padding: 0; width: 34px; }
 .icon-button svg { width: 17px; height: 17px; flex: none; fill: none; stroke: currentColor; stroke-width: 1.6; stroke-linecap: round; stroke-linejoin: round; }
 .icon-button .button-label { color: var(--text); }
+/* The guide's mark in the second accent, as the guide's own marks are:
+   it leads to a view, where its neighbours do something or open a dialog. */
+.guide-button > svg { stroke: var(--accent-2); }
+.guide-button[aria-expanded="true"] { background: var(--row-hover); border-color: var(--border-strong); }
 /* The full screen button shows where a press leads: corners out, or in. */
 .screen-button .screen-leave, .screen-button.on .screen-enter { display: none; }
 .screen-button.on .screen-leave { display: block; }
-.theme-button[data-next="light"] .theme-moon, .theme-button[data-next="dark"] .theme-sun { display: none; }
-/* Where the bar does not fit on one row (js/topmenu.js), its five buttons
+/* Where the bar does not fit on one row (js/topmenu.js), three of its buttons
    go behind the hamburger, and the search may grow into their room. */
 .topmenu-button { display: none; }
 .topbar.compact .topmenu-button { display: inline-flex; }
-.topbar.compact :is(#btn-refresh, #btn-help, #btn-theme, #btn-screen, #btn-settings) { display: none; }
+.topbar.compact :is(#btn-help, #btn-screen, #btn-settings) { display: none; }
 /* The tighter gaps and the narrower search keep the bar on one row down
    to some 680 px in English: at 700 px the hamburger was 4 px short. A row
    wraps by the flex basis, not the minimum, so the basis comes down too;
    the search still grows into whatever is left. */
 .topbar.compact { column-gap: 10px; }
 .topbar.compact .search { max-width: none; min-width: 100px; flex-basis: 100px; }
+/* The guide's button is its mark alone there, its name kept for a screen
+   reader: with the name the short bar of a phone lying down took two rows. */
+.topbar.compact .guide-button { padding: 0; width: 34px; }
+.topbar.compact .guide-button .button-label {
+  position: absolute; width: 1px; height: 1px; margin: -1px; padding: 0;
+  overflow: hidden; clip-path: inset(50%); white-space: nowrap; border: 0;
+}
 #btn-topmenu[aria-expanded="true"] { color: var(--text); background: var(--row-hover); border-color: var(--border-strong); }
 /* Below the bar rather than above it, as the player's menu opens upward.
    Two classes, because .pop further down sets the bottom edge and would

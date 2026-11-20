@@ -21,7 +21,7 @@ oraz jako pełny przewodnik z czasem w poziomie i kanałami w pionie.
 
 ## Przewodnik
 
-**Przewodnik po programach** nad listą kanałów albo klawisz `g` zamienia
+**Przewodnik po programach** na górnym pasku albo klawisz `g` zamienia
 okno w siatkę: kanały w wierszach, czas na osi poziomej i ruchoma linia w
 miejscu „teraz”. Kanał gra dalej w rogu.
 

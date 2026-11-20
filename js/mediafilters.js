@@ -5,7 +5,7 @@ import { isPicking } from './picker.js';
 import { duration, nf } from './format.js';
 
 /**
- * The list's filter folds ("Filter channels", "Filter titles") say their
+ * The list's filter folds ("Filter channels", "Filter movies", "Filter series") say their
  * state one way: the name, a dot while something in them narrows the list,
  * and how many rows of how many are left. They used to say it three ways
  * (a topic's name, a bare count, "n / total").
@@ -461,7 +461,7 @@ export class MediaFilters {
     this.favs.checked = Boolean(filters.favs);
     this.favsText.textContent = t('filters.favs');
     const active = Object.values(filters).some(Boolean);
-    foldSummary(this.caption, this.count, { label: t('filters.title'), shown: results.length, total: rows.length, active });
+    foldSummary(this.caption, this.count, { label: t(type === 'series' ? 'filters.series' : 'filters.movies'), shown: results.length, total: rows.length, active });
     this.spinner.hidden = !this.reading;
     this.reset.textContent = t('filters.reset');
     this.renderActive(filters);

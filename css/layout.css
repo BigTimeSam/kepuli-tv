@@ -140,6 +140,8 @@ main.guide #btn-copy { display: none; }
    div, and no highlight may light up behind which there is no button. */
 button.group-star:hover { color: var(--text); background: var(--track); }
 .group-star.on { color: var(--gold); }
+/* Gold under the pointer too, and so under the hover a finger leaves. */
+button.group-star.on:hover { color: var(--gold); }
 .group.active .group-star { color: rgba(255, 255, 255, .6); }
 .group.active .group-star:hover { background: rgba(0, 0, 0, .18); color: #fff; }
 .group.active .group-star.on { color: #ffd884; }
@@ -148,12 +150,6 @@ button.group-star:hover { color: var(--text); background: var(--track); }
 /* As tall as the header over the picture beside it, at every text size:
    one measure for both, borders included. The button's own height made it
    0.4 px taller at 16 px and 8 px shorter at 20. */
-.channel-tools { flex: none; box-sizing: border-box; min-height: var(--head-h); display: flex; flex-direction: column; justify-content: center; padding: 8px 10px; border-bottom: 1px solid var(--border); background: var(--panel); }
-.channel-guide { display: flex; align-items: center; gap: 9px; width: 100%; padding: 8px 10px; border: 1px solid var(--border); border-radius: 7px; background: var(--panel-2); color: var(--text); font-weight: 550; text-align: left; cursor: pointer; }
-.channel-guide > svg { width: 18px; height: 18px; flex: none; fill: none; stroke: var(--accent-2); stroke-width: 1.5; stroke-linecap: round; stroke-linejoin: round; }
-.channel-guide-arrow { margin-left: auto; color: var(--muted); font-size: 1.125rem; line-height: 1; }
-.channel-guide:hover { border-color: var(--accent); background: var(--row-hover); }
-.channel-guide:focus-visible { outline: 2px solid var(--accent-ink); outline-offset: 2px; }
 /* The folding headings over the list, "Filter channels" and "Filter
    titles": the same mark, gap, type and fold, so that they read as one. */
 .section-toggle {
@@ -172,6 +168,11 @@ button.group-star:hover { color: var(--text); background: var(--track); }
 
 .media-filters { flex: none; border-bottom: 1px solid var(--border); background: var(--panel); }
 .media-filters[hidden] { display: none; }
+/* The fold's heading is as tall as the other columns' heads (the
+   categories' search, the player's name), so that the three begin on one
+   line: the fold's own line under it is the last pixel. Not in a low
+   window, where every bar is paid for in rows (css/narrow.css). */
+@media (min-height: 441px) { .media-filters > summary { min-height: calc(var(--head-h) - 1px); } }
 .media-filters[open] { padding-bottom: 10px; }
 .media-filters > :not(summary) { margin-inline: 12px; }
 .media-filters[open] > summary { margin-bottom: 6px; }

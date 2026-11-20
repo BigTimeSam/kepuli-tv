@@ -21,7 +21,7 @@ visą gidą, kur laikas eina skersai, o kanalai žemyn.
 
 ## Gidas
 
-**Programų gidas** virš kanalų sąrašo arba klavišas `g` paverčia langą
+**Programų gidas** viršutinėje juostoje arba klavišas `g` paverčia langą
 tinkleliu: kanalai eilutėmis, laikas horizontalioje ašyje ir judanti linija
 ties dabartimi. Kanalas toliau groja kampe.
 

@@ -21,7 +21,7 @@ vodič s vremenom vodoravno i kanalima okomito.
 
 ## Vodič
 
-**TV vodič** iznad popisa kanala, ili tipka `g`, pretvara prozor u mrežu:
+**TV vodič** u gornjoj traci, ili tipka `g`, pretvara prozor u mrežu:
 kanali su redci, vrijeme je na vodoravnoj osi, a pomična crta označava
 sadašnji trenutak. Kanal se i dalje reproducira u kutu.
 

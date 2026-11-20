@@ -21,7 +21,7 @@ kde si vyberáš, čo pozerať: v riadku každého kanála, pod obrazom a ako
 
 ## Sprievodca
 
-**Programový sprievodca** nad zoznamom kanálov alebo kláves `g` zmení okno
+**Programový sprievodca** v hornej lište alebo kláves `g` zmení okno
 na mriežku: kanály v riadkoch, čas na vodorovnej osi a pohyblivá čiara pri
 aktuálnom čase. Kanál hrá ďalej v rohu.
 

@@ -145,25 +145,22 @@ button.group-star, button.group-star:hover, .group.active .group-star:hover { wi
    outside them ran under the neighbour and past the frame. */
 .listinfo .view-toggle button:focus-visible { outline-offset: -2px; }
 .listinfo .view-toggle svg { width: 14px; height: 14px; fill: none; stroke: currentColor; stroke-width: 1.6; stroke-linecap: round; stroke-linejoin: round; }
-/* On a touch screen the order's and the view's marks are a fingertip
-   wide (css/last.css), and the foot keeps its count whole beside them. */
+/* The list's order: the selector with its mark, as the player's bar has
+   them (.select-mark in css/playback.css; js/topicbar.js). It takes what
+   the foot has left and cuts a long order's name short ("Year (newest
+   first)" beside the films' two marks); its list has every name whole. */
+.listinfo .order-pick { flex: 0 1 auto; min-width: 0; color: var(--text); }
+.listinfo .order-pick select { min-width: 0; max-width: 100%; padding: 6px 28px 6px 29px; background-color: var(--panel-2); border: 1px solid var(--border); border-radius: 8px; color: var(--text); font: inherit; text-overflow: ellipsis; }
+/* The count is what the foot is for: the tab's mark and "15 channels"
+   stay whole in every column, and what stands beside them gives way: the
+   category first (above), then the order's name inside its selector. It
+   once read "5 ser…" on a phone and "15" in a tablet's column. */
+.listinfo-count { flex-shrink: 0; }
 @media (hover: none) {
-  /* The count is what the foot is for, and with the wider marks it was
-     the part that gave way: "5 ser…" on a phone, "6…" in a tablet's
-     column. It keeps its width, and what stands beside it goes instead:
-     the category first, then the tab's mark, and in the narrowest column
-     (a tablet lying down) the count's word: six marks and "6 movies"
-     were wider than an iPad's 359 px column. The widths are in em, the
-     foot's own text size (a rem in a container's query is 16 px in
-     WebKit whatever the page's is). */
-  .listinfo-count { flex-shrink: 0; }
+  /* Under a finger the marks are wider (css/last.css), so the category
+     goes sooner. In em, the foot's own text size (a rem in a container's
+     query is 16 px in WebKit whatever the page's is). */
   @container (max-width: 42em) { .listinfo-rest { display: none; } }
-  @container (max-width: 35em) { .listinfo > .tab-icon { display: none; } }
-  @container (max-width: 30em) {
-    /* The number alone (js/topicbar.js); the words stay for a screen reader. */
-    .listinfo-count { font-size: 0; }
-    .listinfo-count::before { content: attr(data-n); content: attr(data-n) / ""; font-size: var(--fs-s); }
-  }
 }
 
 /* ------------------------------------------------------------ covers */
@@ -181,7 +178,10 @@ button.group-star, button.group-star:hover, .group.active .group-star:hover { wi
 }
 .row.card:hover { background: none; }
 .card-poster { width: 100%; aspect-ratio: 2 / 3; border-radius: 7px; transition: box-shadow .12s, transform .12s; }
-.row.card:hover .card-poster { box-shadow: inset 0 0 0 1px var(--border), 0 6px 18px rgba(0, 0, 0, .45); transform: translateY(-2px); }
+/* The cover rises under a pointer. Not under a finger: the hover a touch
+   starts made the cover jump as it was pressed, before its menu opened or
+   its film did, and it read as a fault (the owner's iPad). */
+@media (hover: hover) { .row.card:hover .card-poster { box-shadow: inset 0 0 0 1px var(--border), 0 6px 18px rgba(0, 0, 0, .45); transform: translateY(-2px); } }
 .row.card.selected { box-shadow: none; background: none; }
 /* The cover alone is marked, not its name and facts: a ring a little away
    from it, as every focus ring on the page is drawn. */
@@ -206,6 +206,10 @@ button.group-star, button.group-star:hover, .group.active .group-star:hover { wi
 .row .row-star.card-star { color: #a3abc0; }
 .row .row-star.card-star.on { color: #ffc857; }
 .row .row-star.card-star:hover { background: rgba(10, 12, 17, .9); color: #fff; }
+/* A favourite's star stays gold under the pointer. A finger leaves the
+   hover on what it tapped, so a film just starred on an iPad had a white
+   star until something else was touched. */
+.row .row-star.card-star.on:hover { color: #ffc857; }
 .card-name { margin-top: 7px; font-size: var(--fs-m); }
 .card-meta { font-size: var(--fs-xs); color: var(--dim); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 @media (prefers-reduced-motion: reduce) { .card-poster { transition: none; } .row.card:hover .card-poster { transform: none; } }

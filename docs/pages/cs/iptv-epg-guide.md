@@ -21,7 +21,7 @@ jako celého průvodce s časem vodorovně a kanály pod sebou.
 
 ## Průvodce
 
-**Programový průvodce** nad seznamem kanálů nebo klávesa `g` promění okno
+**Programový průvodce** v horní liště nebo klávesa `g` promění okno
 v mřížku: kanály jako řádky, čas na vodorovné ose a pohyblivá čára
 u aktuálního času. Kanál hraje dál v rohu.
 

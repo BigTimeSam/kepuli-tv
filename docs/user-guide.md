@@ -311,8 +311,8 @@ the player actually arrives.
 - Choose **Channels**, **Movies** or **Series** in the top bar, then narrow
   the list using the categories on the left. The search field finds titles
   within the selected content type.
-- Above the list, **Filter channels** holds a country's topics, and the
-  films' and series' **Filter titles** their filters; both have **Show only
+- Above the list, **Filter channels** holds a country's topics, and
+  **Filter movies** and **Filter series** their filters; each has **Show only
   favourites** at their foot. What is in force shows as chips under the
   fold, each with a × to take it away, and **Reset** after them; the
   choices are kept over a reload or a closed player until Reset or the
@@ -353,15 +353,14 @@ the player actually arrives.
   tv-logos, a public collection on GitHub, because many providers' logo
   addresses lead nowhere; GitHub then sees which logo files are loaded (see
   the privacy policy).
-- Every list has the marks for its order at its foot, and the choice is
-  remembered: the
-  channels by name or by the provider's channel number (#); the favourites
-  by name or the latest added first (a clock); the movies and the series by
-  name, by release year (a calendar), by rating (a star) or what the
-  provider added lately first (a clock); the history the latest watched
-  first (a clock turning back) or by name. The name mark shows an A for A–Z;
-  pressed again it turns the list round to Z–A and shows a Z, and the year
-  mark turns from the newest to the oldest the same way. A favourite
+- Every list has its order at its foot, a selector like the player's
+  **Playback mode** that names the order in force, and the choice is
+  remembered: the channels by name (A–Z or Z–A) or by the provider's
+  channel number; the favourites by name or the latest added first; the
+  movies and the series by name, by release year (newest or oldest
+  first), by rating or what the provider added lately first; the history
+  the latest watched first or by name. Before it the foot says how many
+  the list holds, with the tab's mark: "15 channels". A favourite
   category has the order of its own type at its foot. A search keeps the
   order of its hits. The history by name is headed by type, as the
   favourites are, rather than by day.
@@ -394,7 +393,7 @@ the player actually arrives.
   before waits for the next category. Filters use the available metadata, so some
   titles may be missing particular details. Active filters remain visible as
   removable chips even when the filter form is collapsed.
-- **Programme guide**, above the channel list on the **Channels** tab, opens
+- **Programme guide**, in the top bar while the **Channels** tab is on show, opens
   the TV programme guide. Catch-up playback is available
   when your provider supports recordings for that channel.
 - The star button adds an item to **Favourites**. With a mouse, an empty star
@@ -460,7 +459,7 @@ interrupted channel-list load restores the previous list.
 
 ## If something goes wrong
 
-- **Refresh lists** (the circular arrow in the top bar) fetches the content
+- **Refresh lists** (in **Settings › Connection**, under the accounts) fetches the content
   lists again from the server, including the countries and categories
   already opened, and shows the new list where you were. A tab left open
   checks by itself when you come back to it, once its lists are older than
@@ -610,8 +609,8 @@ interrupted channel-list load restores the previous list.
   the version running, with the update's button when one is waiting
 - **Favourites** and **history** as tabs of their own — a whole category can be
   a favourite too, see below. The favourites are in alphabetical order to
-  begin with and the history the latest first; the marks at the foot of
-  either list choose another order, and the choice is remembered
+  begin with and the history the latest first; the selector at the foot of
+  either list chooses another order, and the choice is remembered
 - **Thirty languages**, switched in the settings without a page reload
 - **M3U playlists and XMLTV guides** as well as Xtream servers, a playlist
   by its address or as a file: its channels, films and series, its
@@ -796,24 +795,22 @@ the grid, the next closes the guide.
 
 ## The buttons
 
-The top bar starts with the logo, which goes back to the start — the channels, the first country chosen, the top of its list — closing the search, the guide and any page opened from the list, and stops what is playing for the empty player's page: a film's place is kept under **Continue watching** and a channel heads **History**, each a click from playing again. Continue watching shows the ten films and series watched last — left halfway or seen to the end; a series seen to the end of its last episode goes on with the next — newest at the left, in one row that scrolls sideways — with the ‹ and › at its ends, the trackpad or the keyboard — a series as one card; the ✕ in a cover's corner, on hover, forgets where it was left and takes it out of the history — every episode of a series — and the heading goes with the last card. The ☆ in the other corner stars the film, or the series of an episode, as the lists do, and stays in sight on a favourite. **Settings › Viewing** turns each of the page's sections off: **On your channels now and soon**, **Continue watching** and **History**, all on to begin with. Then the five tabs, each with its mark before its name (the marks step aside between 600 and 1100 px, where they would push the buttons onto a second row), the search box, **Refresh lists** (a
-circular arrow), **Help** (a question mark), the theme — a sun in the dark
-theme switches to the light one and a moon in the light theme back — then
+The top bar starts with the logo, which goes back to the start — the channels, the first country chosen, the top of its list — closing the search, the guide and any page opened from the list, and stops what is playing for the empty player's page: a film's place is kept under **Continue watching** and a channel heads **History**, each a click from playing again. Continue watching shows the ten films and series watched last — left halfway or seen to the end; a series seen to the end of its last episode goes on with the next — newest at the left, in one row that scrolls sideways — with the ‹ and › at its ends, the trackpad or the keyboard — a series as one card; the ✕ in a cover's corner, on hover, forgets where it was left and takes it out of the history — every episode of a series — and the heading goes with the last card. The ☆ in the other corner stars the film, or the series of an episode, as the lists do, and stays in sight on a favourite. **Settings › Viewing** turns each of the page's sections off: **On your channels now and soon**, **Continue watching** and **History**, all on to begin with. Then the five tabs, each with its mark before its name (the marks step aside between 600 and 1100 px, where they would push the buttons onto a second row), the search box, **Programme guide** (over the channels), the **Cast** mark where a picture can be sent to a television, **Help** (a question mark), then
 **Full screen** (four corners) and **Settings** at the far right. Full screen
 takes the whole player out of the browser's address bar and tabs, and on a
 phone or a tablet out of the system's bars too, for a quarter more height on
 a tablet; the corners turn inward, and a press on them, `Esc` or Android's
 back gesture returns. `f` still takes the picture alone full screen, and
 leaving it returns to the player still full screen. Where the bar does not fit on one row
-— a tablet held upright, a window at half a screen — Refresh, Help, the theme,
-Full screen and Settings go behind a hamburger (☰) at its right end, the
+— a tablet held upright, a window at half a screen — Help,
+Full screen and Settings go behind a hamburger (☰) at its right end, the guide's button is its mark alone, the
 search takes the room that is left, and the bar stays on one row. Whether it fits is measured,
-so a language with longer tab names makes the switch at a wider window. The sun and moon is the quick switch; Settings > Viewing > Appearance starts on *Automatic*, named with the theme it comes to now (*Automatic (dark)*), which follows the operating system's light or dark mode while the player is open (in the Android TV app *Automatic* is dark); a press of the switch picks the other of what is on screen and keeps it. The picture and the bar
+so a language with longer tab names makes the switch at a wider window. The theme is chosen in Settings > Viewing > Appearance, which starts on *Automatic*, named with the theme it comes to now (*Automatic (dark)*) and following the operating system's light or dark mode while the player is open (in the Android TV app *Automatic* is dark). The picture and the bar
 under it stay dark in either, and the choice is kept with the settings and
 copied to `localStorage`, so a light theme does not flash dark at start
 (`js/theme.js`);
 in a window 600px wide or less, Settings is a cog alone and the three share
-the brand's row. **Refresh lists** fetches the categories and
+the brand's row. **Refresh lists**, in Settings > Connection, fetches the categories and
 the lists already loaded from the server again — the whole lists, and the
 categories and groups opened this session, which used to stay as first
 fetched until a reload — drops the series' episode lists, and empties the
@@ -996,7 +993,7 @@ above it take the slack instead, because a long description is the thing that
 actually grows. The rule that shapes it excludes `:fullscreen`, or the ratio
 would follow the picture there and letterbox it against the screen.
 
-**Programme guide**, above the channel list on the **Channels** tab (or `g`),
+**Programme guide**, in the top bar (or `g`),
 turns the whole window into a grid view: channels as rows,
 time on the horizontal axis and a moving now line. The video continues in the
 top right corner and the selected programme shows on the left with its
@@ -1011,8 +1008,8 @@ from the favourite mode of **Filter countries**.
 On a phone (a window 600 px or narrower) the guide keeps to two rows of
 controls, the way back (←), the group, the favourites' star and the
 search's magnifier, then the days, and gives the rest to the grid: some
-ten channels on a Pixel 7 where four showed. Swipe to move in time; **Now**
-floats in the corner once the time on screen no longer holds it. A tap on a
+ten channels on a Pixel 7 where four showed. Swipe to move in time and pinch to zoom; today's button in the days' strip,
+marked with a clock, leads back to what is on now, with the hour before it in sight. A tap on a
 programme opens its details as a sheet from the bottom, with **Start from
 the beginning**, **Go to channel** or **Remind me**, and plays nothing until
 you choose; swipe it down, or press its ✕, to close it. The search hides
@@ -1079,14 +1076,13 @@ depends on the service; the archive may stop at its latest available moment.
 its end does not trigger the live reconnection loop. Reload and Retry keep the
 archive programme selected. This is provider catch-up, not a local DVR buffer.
 
-The guide's separate **Search programmes** form searches channel names,
+The guide's **Search programmes** field searches channel names,
 programme titles and descriptions: every word must be in one of them, so
-"Liiga 7" finds that channel's programmes and "Liiga 7 final" its final. It searches the shown channels by default; **All visible channels**
+"Liiga 7" finds that channel's programmes and "Liiga 7 final" its final. It searches as you type, a moment after the last key and from two letters on, and an emptied field puts the guide back. Two selectors at the foot of the results say which programmes: **Now and upcoming** (to begin with), **Past programmes** or both; and **This category's channels** (to begin with: the ones the guide shows) or **All channels**, which
 loads the full channel catalogue and excludes personal hidden channels and
-categories. Only channels with programme identifiers can be searched. The
-period selector includes upcoming programmes, past programmes or both.
-Search is explicit rather than triggered by every keystroke, makes at most four
-search requests in parallel, and reuses full programme tables in the guide cache.
+categories. Only channels with programme identifiers can be searched.
+A search makes at most four
+requests in parallel and reuses full programme tables in the guide cache, so the letters typed after the first search ask the provider nothing more.
 That cache keeps the 200 most recently fetched full tables and programme data
 for 5,000 channels at most, so a search of thousands of channels does not keep
 every table it read. A search of all channels when more than 500 of them have
