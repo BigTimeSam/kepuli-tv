@@ -8,7 +8,7 @@
 import { currentPicks, pickCard, tickIdlePage } from './picksui.js';
 import { el } from './dom.js';
 import { sideScroll } from './sidescroll.js';
-import { forgetUnfinished, isUnfinished } from './collections.js';
+import { forgetUnfinished, isUnfinished, removeFromHistory } from './collections.js';
 import { bindTile } from './tilekeys.js';
 import { guideOpen } from './guideui.js';
 import { poster } from './poster.js';
@@ -17,6 +17,7 @@ import { shownName, toggleFavorite } from './coversui.js';
 import { setStar, star } from './rows.js';
 import { episodeCode } from './format.js';
 import { t } from './i18n.js';
+import { toast } from './toast.js';
 import * as store from './config.js';
 import { state } from './state.js';
 import { nextEpisode, playInPlace } from './nextepisode.js';
@@ -107,13 +108,7 @@ export function renderIdleHome() {
       // rather than in it: a button inside a button is not one.
       const wrap = document.createElement('div');
       wrap.className = 'idle-card-wrap';
-      const forget = document.createElement('button');
-      forget.type = 'button';
-      forget.className = 'idle-forget';
-      forget.title = t('player.idle.forget', { title: name.textContent });
-      forget.setAttribute('aria-label', forget.title);
-      forget.append(svg('<path d="m6 6 8 8M14 6l-8 8"/>'));
-      forget.addEventListener('click', (event) => { event.stopPropagation(); forgetUnfinished(item, name.textContent); });
+      const forget = forgetButton(t('player.idle.forget', { title: name.textContent }), name.textContent, () => forgetUnfinished(item, name.textContent));
       wrap.append(card, forget);
       // The star in the other corner: the film, or the series an episode
       // belongs to, as the lists star them; s on the card stars the same.
@@ -138,8 +133,14 @@ export function renderIdleHome() {
       name.className = 'idle-name';
       name.textContent = shownName(item);
       tile.append(poster('idle-logo', item.logo, 'channel'), name);
-      bindTile(tile, item);
-      return tile;
+      // Out of the history from here too, by the same cross and its two
+      // presses as a card of Continue watching.
+      const forget = forgetButton(t('row.remove.history'), name.textContent, () => removeFromHistory(item).then(() => toast(t('row.removed.history', { name: name.textContent }))));
+      const wrap = document.createElement('div');
+      wrap.className = 'idle-channel-wrap';
+      wrap.append(tile, forget);
+      bindTile(tile, item, { remove: () => removeFromHistory(item), also: [forget] });
+      return wrap;
     })));
   }
   home.hidden = !home.childElementCount;
@@ -204,7 +205,40 @@ async function playCard(item) {
 }
 
 /** A tile of the empty player's page: played there, or — from the guide's column — where it lives. */
-export const playFromHome = (item) => (guideOpen ? playInPlace(item) : playItem(item));
+// A channel chosen on the page is played where it lives, its row chosen
+// in its country's list: played from the page alone, the list beside the
+// picture stayed where it was and showed nothing of what was on. A film or
+// an episode stays on the page it was started from, unless the guide is
+// open (playInPlace says why).
+export const playFromHome = (item) => (guideOpen || item.k === 0 ? playInPlace(item) : playItem(item));
+
+/**
+ * The cross that takes something off the page, in two presses: the first
+ * turns it red and says what the second does, for four seconds. One press
+ * took a title off its row, and a finger that missed the cover beside it
+ * did so unasked.
+ * @param {string} label what the cross does, for its tooltip and a screen reader
+ * @param {string} title the thing's name, for the words of the second press
+ * @param {() => void} onConfirm
+ */
+function forgetButton(label, title, onConfirm) {
+  const forget = document.createElement('button');
+  forget.type = 'button';
+  forget.className = 'idle-forget';
+  forget.append(svg('<path d="m6 6 8 8M14 6l-8 8"/>'));
+  let armed = 0;
+  const say = (/** @type {string} */ text) => { forget.title = text; forget.setAttribute('aria-label', text); };
+  const rest = () => { clearTimeout(armed); armed = 0; forget.classList.remove('armed'); say(label); };
+  say(label);
+  forget.addEventListener('click', (event) => {
+    event.stopPropagation();
+    if (armed) { rest(); onConfirm(); return; }
+    forget.classList.add('armed');
+    say(t('player.idle.forget.confirm', { title }));
+    armed = setTimeout(rest, 4000);
+  });
+  return forget;
+}
 
 function idleTile(className, item, onClick) {
   const tile = document.createElement('button');

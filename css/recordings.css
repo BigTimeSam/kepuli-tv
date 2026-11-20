@@ -13,6 +13,10 @@
 .account-main {
   display: flex; flex-direction: column; min-width: 0; margin-right: auto; flex: 1;
   border: 0; background: none; color: inherit; font: inherit; text-align: left; padding: 0; cursor: pointer;
+  /* The two lines in the middle of the button's height: under touch the
+     button is 40 px high for 34 px of words, which stood at its top, six
+     points nearer the row's upper edge than its lower. */
+  justify-content: center;
 }
 .account-main:focus-visible { outline: 2px solid var(--accent-ink); outline-offset: 3px; border-radius: 4px; }
 .account-main b { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }

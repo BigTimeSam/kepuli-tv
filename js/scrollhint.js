@@ -20,7 +20,9 @@
 /** The boxes beside the player that keep a bar in sight. */
 // The guide's programme panel itself scrolls in a low window, beside the
 // corner picture (css/narrow.css): the bar is drawn only where a box does.
-export const SCROLLERS = '.infostrip, .epgv-desc, .epgv-next, .epgview';
+// And a series' plot above its episodes, three lines of it in sight: on
+// an iPad nothing said that it went on.
+export const SCROLLERS = '.infostrip, .epgv-desc, .epgv-next, .epgview, .detail-plot';
 
 const MIN_THUMB = 24;
 const EDGE = 2;         // the bar's gap from the box's right edge, in px

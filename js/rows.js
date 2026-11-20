@@ -443,10 +443,6 @@ function badges(item, ctx) {
       out.push([explained(el('div', `row-badge ${known.level}`, known.text), known.title), known.title]);
     }
   }
-  if (item.k === 3) {
-    const code = `S${String(item.season).padStart(2, '0')}E${String(item.episode).padStart(2, '0')}`;
-    out.push([el('div', 'row-ep', code), code]);
-  }
   if (ctx.tag) {
     const node = el('div', 'row-badge', ctx.tag.text);
     if (ctx.tag.icon === 'clock') {

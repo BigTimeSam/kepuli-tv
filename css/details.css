@@ -38,6 +38,11 @@ button.series-favorite.on { color: var(--gold); }
 .title-fact-rating dd { color: var(--gold); font-variant-numeric: tabular-nums; }
 .row-duration { flex: none; color: var(--muted); font-size: var(--fs-xs); font-variant-numeric: tabular-nums; white-space: nowrap; }
 .title-links { display: flex; align-items: flex-start; flex-wrap: wrap; gap: 6px; margin-top: 12px; }
+/* A series' links on one line that scrolls sideways (js/seriesui.js). */
+.title-links-scroll { margin-top: 12px; }
+.title-links-scroll > .title-links { margin-top: 0; flex-wrap: nowrap; overflow-x: auto; scrollbar-width: none; }
+.title-links-scroll > .title-links::-webkit-scrollbar { display: none; }
+.title-links-scroll > .title-links a { flex: none; white-space: nowrap; }
 .title-links a { display: inline-flex; align-items: center; gap: 6px; padding: 5px 8px; border: 1px solid var(--border); border-radius: 6px; font-size: var(--fs-xs); line-height: 1.4; color: var(--text); background: var(--panel-2); text-decoration: none; cursor: pointer; }
 .title-links a > span { color: var(--muted); }
 .title-links a:hover { border-color: var(--accent); color: var(--text); }
@@ -55,6 +60,7 @@ button.series-favorite.on { color: var(--gold); }
 }
 /* The other copies and the other parts of a series of films, as small covers in a row. */
 .related { display: grid; gap: 8px; margin-top: 4px; }
+.vodinfo .plot-head { margin: 0 0 4px; color: var(--muted); font-size: var(--fs-xs); font-weight: 600; letter-spacing: .06em; text-transform: uppercase; }
 .related h4 { margin: 6px 0 0; color: var(--muted); font-size: var(--fs-xs); font-weight: 600; letter-spacing: .06em; text-transform: uppercase; }
 .related-row { display: flex; gap: 12px; overflow-x: auto; padding-bottom: 4px; }
 .related-tile { flex: none; width: 6rem; display: flex; flex-direction: column; gap: 3px; padding: 0; border: 0; background: transparent; color: var(--text); text-align: left; cursor: pointer; font: inherit; }
@@ -96,7 +102,12 @@ main:not(.guide) .stage:has(> .videowrap.sized:not(:fullscreen, .full)) > .infos
 .vodinfo .meta:empty { display: none; }
 
 .detail-plot { color: var(--muted); font-size: var(--fs-m); max-height: 4.125rem; overflow-y: auto; }
-.seasons { display: flex; gap: 5px; padding: 0 12px 10px; flex-wrap: wrap; }
-.season { background: var(--panel-2); border: 1px solid var(--border); border-radius: 7px; padding: 3px 10px; cursor: pointer; color: var(--muted); }
+/* The seasons on one line that scrolls sideways between its arrows
+   (js/sidescroll.js), the line's inset on its box so that the arrows
+   stand inside it. */
+.seasons-scroll { margin: 0 12px 10px; }
+.seasons { display: flex; gap: 5px; flex-wrap: nowrap; overflow-x: auto; scrollbar-width: none; }
+.seasons::-webkit-scrollbar { display: none; }
+.season { flex: none; background: var(--panel-2); border: 1px solid var(--border); border-radius: 7px; padding: 3px 10px; cursor: pointer; color: var(--muted); }
 .season:hover { color: var(--text); }
 .season.active { background: var(--accent); border-color: var(--accent); color: #fff; }

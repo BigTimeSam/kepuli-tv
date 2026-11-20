@@ -146,6 +146,7 @@ input[type="search"], input[type="text"], input[type="url"], input:not([type]) {
   .idle-star, .idle-forget { width: 2.5rem; height: 2.5rem; top: 4px; border: 6px solid transparent; background-clip: padding-box; outline: 1px solid rgba(255, 255, 255, .25); outline-offset: -7px; }
   .idle-star { left: 4px; }
   .idle-forget { right: 4px; }
+  .idle-channel-wrap > .idle-forget { top: 50%; right: 2px; }
   .side-scroll-arrow, .side-scroll.compact .side-scroll-arrow { width: 2.5rem; height: 2.5rem; min-height: 0; background-clip: padding-box; box-shadow: none; outline: 1px solid var(--border-strong); }
   .side-scroll-arrow { border: 3px solid transparent; outline-offset: -4px; }
   .side-scroll-arrow.prev { left: -17px; }

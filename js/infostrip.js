@@ -177,14 +177,27 @@ function renderFirstDetails() {
   // where it does not part the facts from the plot.
   const tech = facts.querySelector('.tech-facts');
   tech?.remove();
+  // The subtitles are the last line of what is said of the title, under
+  // the director, the cast and the age: alone above the plot they were a
+  // group of one.
+  const subtitled = facts.querySelector('.playback-fact-subtitles');
+  subtitled?.remove();
   body.appendChild(facts);
   if (info && info.plot) {
+    // What the title is about, under its own heading as the titles alike
+    // have theirs.
+    const head = document.createElement('h4');
+    head.className = 'plot-head';
+    head.textContent = t('info.plot');
+    body.appendChild(head);
     const plot = document.createElement('div');
     plot.className = 'plot';
     plot.textContent = info.plot;
     body.appendChild(plot);
   }
-  add(titleCredits(info, { title: item.n }));
+  const credits = titleCredits(info, { title: item.n });
+  if (subtitled) credits.append(subtitled);
+  add(credits);
   if (tech) body.appendChild(tech);
   if (item.k === 1 || item.k === 2) add(relatedPart(item));
   box.appendChild(body);

@@ -201,6 +201,7 @@ const STRINGS = {
     'row.fav.add.named': 'Add to favourites: {title}',
     'row.fav.remove.named': 'Remove from favourites: {title}',
     'row.remove.history': 'Remove from history',
+    'row.series': 'Show the series',
     'row.removed.history': '{name} removed from history',
     'row.watched': 'Watched {stamp}',
     'row.archive': '{days} d',
@@ -267,6 +268,7 @@ const STRINGS = {
     'api.timeout': 'The server did not answer within {seconds} seconds. Try again; if it keeps happening, the server is overloaded or the address is wrong.',
     'api.episode': 'Episode {number}',
     'episode.code': 'S{season} E{episode}',
+    'episode.place': 'Season {season}, episode {episode}',
 
     /* ---------------------------------------------------------- player */
     'player.idle': 'Nothing playing',
@@ -274,6 +276,7 @@ const STRINGS = {
     'player.idle.home': 'Carry on where you left off, or pick something from the list.',
     'player.idle.continue': 'Continue watching',
     'player.idle.forget': 'Remove “{title}” from Continue watching',
+    'player.idle.forget.confirm': 'Press again to remove “{title}”',
     'player.idle.forgotten': '“{title}” removed from Continue watching',
     'player.idle.channels': 'History',
     'player.idle.picks': 'On your channels now and soon',
@@ -406,6 +409,7 @@ const STRINGS = {
     'info.format': 'Format',
     'info.video': 'Video',
     'info.audio': 'Audio',
+    'info.plot': 'Description',
     'info.subtitles': 'Subtitles',
     'info.tech': "Technical details",
     'info.playback': "Playback",
@@ -1020,6 +1024,7 @@ const STRINGS = {
     'row.fav.add.named': 'Lisää suosikkeihin: {title}',
     'row.fav.remove.named': 'Poista suosikeista: {title}',
     'row.remove.history': 'Poista historiasta',
+    'row.series': 'Näytä sarja',
     'row.removed.history': '{name} poistettiin historiasta',
     'row.watched': 'Katsottu {stamp}',
     'row.archive': '{days} vrk',
@@ -1086,6 +1091,7 @@ const STRINGS = {
     'api.timeout': 'Palvelin ei vastannut {seconds} sekunnissa. Yritä uudelleen; jos tämä toistuu, palvelin on ylikuormittunut tai osoite on väärä.',
     'api.episode': 'Jakso {number}',
     'episode.code': 'K{season} J{episode}',
+    'episode.place': 'Kausi {season}, jakso {episode}',
 
     /* ---------------------------------------------------------- player */
     'player.idle': 'Ei toistoa',
@@ -1093,6 +1099,7 @@ const STRINGS = {
     'player.idle.home': 'Jatka siitä, mihin jäit, tai valitse jotain listalta.',
     'player.idle.continue': 'Jatka katselua',
     'player.idle.forget': 'Poista ”{title}” Jatka katselua -listalta',
+    'player.idle.forget.confirm': 'Poista ”{title}” painamalla uudelleen',
     'player.idle.forgotten': '”{title}” poistettiin Jatka katselua -listalta',
     'player.idle.channels': 'Historia',
     'player.idle.picks': 'Nyt ja pian kanavillasi',
@@ -1221,6 +1228,7 @@ const STRINGS = {
     'info.format': 'Tiedostomuoto',
     'info.video': 'Video',
     'info.audio': 'Ääni',
+    'info.plot': 'Kuvaus',
     'info.subtitles': 'Tekstitykset',
     'info.tech': "Tekniset tiedot",
     'info.playback': "Toisto",

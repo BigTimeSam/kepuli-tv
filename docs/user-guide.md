@@ -504,7 +504,7 @@ interrupted channel-list load restores the previous list.
 - **An empty player** offers what was left halfway, as covers, and the
   channels watched lately, as logos — each a click from playing
 - **On your channels now and soon** on the empty player's page: what is on now and in the
-  next hours on the favourite and recently watched channels, a programme
+  next hours on your favourite channels (with no favourite channel there are no picks), a programme
   watched before first, each with the reason it was picked; one on now starts
   with a click, a later one sets its reminder (`js/picks.js`). What was
   watched is learnt from the programmes watched for five minutes or more, kept
@@ -568,8 +568,9 @@ interrupted channel-list load restores the previous list.
   you gave them. On the same server under another user name the channel is
   the same one; on another server it is the channel of the same name in
   that account's list, and when it has none the player says so.
-  **Side by side** in the player's `☰` menu reaches what the list on
-  screen does not hold: another account's own favourite and recently
+  **Side by side** in the player's `☰` menu, there only when a second
+  picture can be had (the account allows two streams, or there is another
+  account), reaches what the list on screen does not hold: another account's own favourite and recently
   watched channels, the account asked first when there are several. The
   second picture is silent until the speaker in its corner is pressed,
   which moves the sound to it and mutes the first; unmuting the first moves
@@ -859,12 +860,14 @@ While a film or an episode plays, its IMDb page (or an IMDb search) and its
 trailer, where the provider names one, are in the player's ☰ menu. The director's and the cast's names search IMDb for
 the person; the original title shows when the provider gives one that differs,
 and the sound names its language when the file or the provider does
-(**AAC (5.1, Finnish)**). The audio and the subtitles are in sight;
-**Technical details** folds away how the file plays here (**Directly,
-without conversion**, **Audio decoded by the player**, **Without sound**,
-**Cannot be played here**), its format, the picture's size (**1920×800, 1080p**,
-measured from the picture once it plays), the bit rate and the file's size
-where the header read gave it, and stays open or shut as you left it.
+(**AAC (5.1, Finnish)**). The subtitles are in sight, and so is a sound track
+the player cannot play; **Description** heads what the title is about; and
+**Technical details**, under the credits, folds away how the file plays here
+(**Directly, without conversion**, **Audio decoded by the player**, **Without
+sound**, **Cannot be played here**), its format, the picture's size
+(**1920×800, 1080p**, measured from the picture once it plays), the sound, the
+bit rate and the file's size where the header read gave it, and stays open or
+shut as you left it.
 TMDb is in the ☰ menu beside IMDb when the provider names the film's TMDb
 id. Under them, **Other versions** lists the other
 copies of the same film, each named by what tells it apart (where it is

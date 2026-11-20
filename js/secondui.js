@@ -344,12 +344,14 @@ retry.addEventListener('click', () => {
 /* The ☰ menu's item, and the choice it opens. */
 
 /**
- * The item as the menu opens: there whenever something plays, also where
- * no second picture can be had — its press then says what it would take,
- * which a hidden item never told anyone.
+ * The item as the menu opens: there while something plays and a second
+ * picture can be had, from this account where it allows more than one
+ * connection or from another account. It used to stand there without
+ * either, and say at a press what it would take; the owner found a line
+ * that cannot be used worse than no line.
  */
 export function renderSecondItem() {
-  menuItem.hidden = !showing && !(state.playing && roomForSecond());
+  menuItem.hidden = !showing && !(state.playing && sources().length > 0);
   const key = showing ? 'second.close' : 'second.open';
   const label = menuItem.querySelector('span');
   label.dataset.i18n = key;

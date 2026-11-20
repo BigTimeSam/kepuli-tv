@@ -53,8 +53,19 @@ export async function nextEpisode(item) {
  * with the row under the cursor, as if picked from that list.
  */
 export async function playInPlace(item) {
+  if (await showInPlace(item)) await playItem(item);
+  else { closeGuide(); await playItem(item); }
+}
+
+/**
+ * The list an item lives in, opened with the item's row under the cursor
+ * and nothing started: an episode of the history on its series' page, at
+ * its own season, where the other episodes are. False where it has no
+ * place to show.
+ */
+export async function showInPlace(item) {
   const tab = item.k === 0 ? 'live' : item.k === 1 ? 'movie' : item.k === 3 ? 'series' : null;
-  if (!tab || !state.lib) { closeGuide(); await playItem(item); return; }
+  if (!tab || !state.lib) return false;
   const series = item.k === 3 && item.seriesId != null
     ? (state.lib.full.series || []).find((s) => String(s.id) === String(item.seriesId)) || null : null;
   const cats = (item.k === 3 ? series?.cats : item.cats) || [];
@@ -74,7 +85,7 @@ export async function playInPlace(item) {
   }
   const index = state.rowIndex.get(`${item.k}:${item.id}`);
   if (index != null) { state.cursor = index; vlist.scrollToIndex(index); }
-  await playItem(item);
+  return true;
 }
 
 export async function playEpisode(episode) {
@@ -171,6 +182,26 @@ export function notePlace(item, position, duration, save = true) {
   if (end) state.resume.delete(key);
   else state.resume.set(key, { position, duration, at: Date.now() });
   store.setResume(key, state.resume.get(key) || null);
+  showPlace(item, end ? null : position / duration);
+}
+
+/**
+ * The place just kept, shown on the title's row or cover while it plays:
+ * the bar stood still, or was not there at all, until the list was drawn
+ * again for another reason. A bar already there is moved where it is;
+ * the row is drawn again only when the bar is to come or to go (the first
+ * place kept, the end), as a cover drawn again is a new picture that
+ * blinks.
+ * @param {{ k: number, id: string }} item
+ * @param {number | null} share how far it has got, or null at its end
+ */
+function showPlace(item, share) {
+  const index = state.rows.findIndex((row) => row.k === item.k && String(row.id) === String(item.id));
+  const node = index < 0 ? null : vlist.nodes.get(index);
+  if (!node) return;
+  const fill = /** @type {HTMLElement | null} */ (node.querySelector('.row-progress.resume > i'));
+  if (fill && share != null) fill.style.width = `${Math.round(Math.min(1, share) * 100)}%`;
+  else if (Boolean(fill) !== (share != null)) vlist.refreshRow(index);
 }
 el.video.addEventListener('ended', () => noteEnded(state.playing));
 el.video.addEventListener('timeupdate', () => {

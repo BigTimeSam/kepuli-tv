@@ -72,7 +72,6 @@
 .row-badge.warn { color: var(--warn); border-color: var(--warn-line); }
 .row-time { display: inline-flex; align-items: center; gap: 4px; }
 .row-time svg { width: 13px; height: 13px; flex: none; fill: none; stroke: currentColor; stroke-width: 1.5; stroke-linecap: round; stroke-linejoin: round; }
-.row-ep { font-size: var(--fs-xs); color: var(--muted); font-variant-numeric: tabular-nums; white-space: nowrap; flex: none; }
 .row-chevron { color: var(--chevron); flex: none; }
 
 /* Dimmer than the star beside it — it is the rarer gesture and must not
@@ -146,11 +145,14 @@ button.group-star, button.group-star:hover, .group.active .group-star:hover { wi
 .listinfo .view-toggle button:focus-visible { outline-offset: -2px; }
 .listinfo .view-toggle svg { width: 14px; height: 14px; fill: none; stroke: currentColor; stroke-width: 1.6; stroke-linecap: round; stroke-linejoin: round; }
 /* The list's order: the selector with its mark, as the player's bar has
-   them (.select-mark in css/playback.css; js/topicbar.js). It takes what
-   the foot has left and cuts a long order's name short ("Year (newest
-   first)" beside the films' two marks); its list has every name whole. */
+   them (.select-mark in css/playback.css; js/topicbar.js), and the mark
+   alone: the order's name was cut short in most columns ("Recently
+   watc…"), so it is left to the list, which has every name whole beside
+   its mark, and the selector is as wide as its mark and its chevron. The
+   name is still the select's text, drawn in no colour: the first sliver
+   of its first letter showed beside the mark of the longer names. */
 .listinfo .order-pick { flex: 0 1 auto; min-width: 0; color: var(--text); }
-.listinfo .order-pick select { min-width: 0; max-width: 100%; padding: 6px 28px 6px 29px; background-color: var(--panel-2); border: 1px solid var(--border); border-radius: 8px; color: var(--text); font: inherit; text-overflow: ellipsis; }
+.listinfo .order-pick select { width: 3.75rem; min-width: 0; max-width: 100%; padding: 6px 28px 6px 29px; background-color: var(--panel-2); border: 1px solid var(--border); border-radius: 8px; color: transparent; -webkit-text-fill-color: transparent; font: inherit; text-overflow: clip; }
 /* The count is what the foot is for: the tab's mark and "15 channels"
    stay whole in every column, and what stands beside them gives way: the
    category first (above), then the order's name inside its selector. It

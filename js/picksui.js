@@ -32,16 +32,21 @@ export function tickIdlePage(redraw) {
   idleTicker = redraw ? setInterval(() => { if (!redraw()) clearInterval(idleTicker); }, 60e3) : null;
 }
 
+/**
+ * The channels the picks are drawn from: the favourite ones, each with
+ * its place among those watched lately. "Your channels" are the ones the
+ * viewer starred: channels merely watched lately were among them, and a
+ * viewer with no favourite at all was shown picks from channels they had
+ * only tried, under that heading.
+ */
 function pickChannels() {
   const out = new Map();
   for (const item of state.favorites.values()) if (item.k === 0) out.set(String(item.id), { item, favorite: true, rank: null });
   let rank = 0;
   for (const item of state.recents) {
     if (item.k !== 0) continue;
-    const id = String(item.id);
-    const had = out.get(id);
-    if (had) { if (had.rank == null) had.rank = rank; }
-    else if (rank < PICK_RECENT) out.set(id, { item, favorite: false, rank });
+    const had = out.get(String(item.id));
+    if (had && had.rank == null) had.rank = rank;
     rank++;
   }
   return [...out.values()].slice(0, PICK_CHANNELS);

@@ -10,7 +10,7 @@
 // in.
 
 import { titleWithoutYear } from './titlemeta.js';
-import { episodeLabel } from './seriesui.js';
+import { episodeHeading } from './seriesui.js';
 import { $, el } from './dom.js';
 import { poster } from './poster.js';
 import { ApiError } from './api.js';
@@ -757,8 +757,10 @@ export async function playItem(item, { startAt, allowSilent } = {}) {
  */
 function nowTitle(item) {
   if (item.k !== 3) return item.displayName || item.n;
-  const { label } = episodeLabel(item.n, item.episode, [item.seriesName || '']);
-  return item.seriesName ? `${item.seriesName} – ${label}` : label;
+  // The episode's own name where it has one; its number is in the line
+  // under the title ("Season 1, episode 2"), and "Episode 2:" before the
+  // name said it twice.
+  return episodeHeading(item);
 }
 
 /** The title again in a new interface language; only an episode's changes. */
@@ -804,7 +806,8 @@ export function nowPlace() {
     const group = type === 'live' ? null : item.cats.map((cat) => groupOfType(type).get(cat)).find(Boolean);
     bits.push(group || state.lib.categoryName(type, item.cats[0]));
   }
-  if (item.k === 3) bits.push(episodeCode(item.season, item.episode));
+  // In words: the short code ("S1 E2") is for a row, where there is no room.
+  if (item.k === 3) bits.push(item.season != null && item.episode != null ? t('episode.place', { season: item.season, episode: item.episode }) : episodeCode(item.season, item.episode));
   return bits.filter(Boolean).join(', ');
 }
 

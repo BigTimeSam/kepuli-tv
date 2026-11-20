@@ -130,9 +130,8 @@
   .detail-cover { width: 28px; height: 42px; border-radius: 4px; }
   .detail-heading { align-items: center; margin: 0; }
   .detail-title { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-  .detail .title-facts, .detail-plot, .detail .title-links { display: none; }
-  .seasons { flex-wrap: nowrap; overflow-x: auto; padding-bottom: 6px; scrollbar-width: none; }
-  .season { flex: none; }
+  .detail .title-facts, .detail-plot, .detail .title-links-scroll { display: none; }
+  .seasons-scroll { margin-bottom: 6px; }
   /* What plays, on one line: the name, then where it sits. */
   .stagehead { padding-block: 3px; }
   .now { display: flex; align-items: baseline; gap: 8px; }

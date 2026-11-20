@@ -104,6 +104,10 @@ main.guide #btn-copy { display: none; }
   color: var(--muted); font: inherit; font-size: var(--fs-m); text-align: left; cursor: pointer;
 }
 .groups-foot[hidden] { display: none; }
+.groups-foot.armed, .groups-foot.armed:hover { color: var(--danger); }
+/* "Clear history" at the list's foot only where there is no sidebar to
+   hold it (css/narrow.css). */
+@media (min-width: 901px) { .listinfo .clear-history { display: none; } }
 .groups-foot[data-kind="categories"] .foot-countries, .groups-foot:not([data-kind="categories"]) .foot-categories { display: none; }
 .groups-foot:hover { color: var(--text); background: var(--row-hover); }
 .groups-foot:focus-visible { outline: 2px solid var(--accent-ink); outline-offset: -2px; }
