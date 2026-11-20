@@ -691,6 +691,12 @@ async function livebuffering(page) {
   // is followed by a stall long enough to be shown.
   process.env.KEPULI_MOCK_TS_PACE = '0.4';
   try {
+    // From nothing playing: the scenario is the first of its step in CI's
+    // full run, where the page before it had left the first channel on,
+    // and a press on the row of what already plays starts nothing. It saw
+    // no wait at all and failed on every count (two full runs of three).
+    await evaluate(page, `(document.getElementById('btn-home').click(), true)`, { gesture: true });
+    await sleep(500);
     await openLiveList(page, 2);
     await evaluate(page, `document.querySelectorAll('#list .row')[0].click()`, { gesture: true });
     const seen = [];
@@ -10686,14 +10692,22 @@ async function androidplayer(page, { target }) {
         postMessage(m) { window.__sent.push(m); },
         onMessage: { addListener: (l) => listeners.push(l) }, onDisconnect: { addListener() {} } });
       window.__say({ type: 'host', v: 1, player: true });
-      const { state } = await import('./js/state.js'); const { playItem } = await import('./js/playing.js');
-      const film = (await state.lib.ensureFull('movie')).find((f) => String(f.id) === '5000'); playItem(film, { startAt: 0 }); return true; })()`, { gesture: true });
+      return true; })()`);
+    // The film is started from its row and taken to full screen with OK,
+    // as a remote does both: a windowed Chrome grants the page's full
+    // screen to a key it saw pressed, and refused the request made for
+    // it from here ("not granted", CI's full run).
+    await evaluate(page, `document.querySelector('#tabs [data-tab="movie"]').click()`);
+    await waitFor(page, `document.querySelectorAll('#list .row').length > 1`, 'the television\'s film rows');
+    await evaluate(page, `(async () => { const { state } = await import('./js/state.js');
+      const at = state.rows.findIndex((r) => (r.ext || r.container) === 'mp4'); document.querySelectorAll('#list .row')[at].click(); return at; })()`, { gesture: true });
     await count('player.load', 1, 'the film handed to the television\'s app');
     const tv = (await sent('player.load')).at(-1);
     assert(tv.controls === false && /\.mp4$/.test(tv.url), `the television's app gets the picture alone: ${JSON.stringify({ controls: tv.controls })}`);
     await say({ type: 'player.state', id: tv.id, state: 'playing', position: 10, duration: 120, width: 1280, height: 720 });
-    await page.call('Runtime.evaluate', { expression: `document.getElementById('videowrap').requestFullscreen()`, userGesture: true, awaitPromise: true });
-    await waitFor(page, `document.fullscreenElement?.id === 'videowrap'`, 'the television\'s picture full screen', 5000);
+    await evaluate(page, `(document.getElementById('list').focus(), true)`);
+    await pressKey(page, 'Enter', 'Enter', 13);
+    await waitFor(page, `document.fullscreenElement?.id === 'videowrap'`, 'the television\'s picture full screen', 8000);
     for (let i = 0; i < 3; i++) { await pressKey(page, 'ArrowRight', 'ArrowRight', 39); await sleep(150); }
     await waitFor(page, `(() => { const f = window.__sent.filter((m) => m.type === 'player.frame').at(-1); return Boolean(f) && f.full === true && f.holes.length > 0; })()`, 'the seek\'s bar said as a hole in the app\'s view', 5000);
     await count('player.seek', 1, 'the remote\'s seek sent to the app\'s player');
