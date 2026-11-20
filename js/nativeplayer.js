@@ -251,7 +251,8 @@ function heard(word) {
     // the address is not handed to the app again.
     failed.add(spec.url);
     if (!shownHere(left)) return;
-    if (!spec.live) spec.startAt = Math.floor(left.position || 0);
+    // Where the app says it stopped; else the place last heard, up to two seconds older.
+    if (!spec.live) spec.startAt = Math.floor((word.position > 0 ? word.position : left.position) || 0);
     playback.play(spec);
     return;
   }
