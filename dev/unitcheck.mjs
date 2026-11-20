@@ -588,7 +588,7 @@ check('no picture yet: taken as 16:9', pictureHeight(1920, 1200, 0, 0), 1080);
   const html = (await import('node:fs')).readFileSync(new URL('../player.html', import.meta.url), 'utf8');
   const sheet = stylesheets();
   check('playback.css sizes the layer with the module\'s share', sheet.includes(`* var(--sub-scale, 1) * ${SIZE_SHARE})`), true);
-  check('playback.css keeps the module\'s floor under the subtitles', sheet.includes(`font-size: max(${MIN_PX}px,`), true);
+  check('playback.css keeps the module\'s floor under the subtitles', sheet.includes(`font-size: max(calc(${MIN_PX}px * min(1, var(--sub-scale, 1))),`), true);
   for (const style of STYLES) {
     check(`playback.css draws the look "${style}"`, sheet.includes(`body[data-substyle="${style}"] .videowrap .subdisplay .cue`), true);
   }

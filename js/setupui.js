@@ -10,7 +10,7 @@
 
 import { $, el } from './dom.js';
 import { caretWelcome } from './caret.js';
-import { DEFAULT_LIFT, DEFAULT_SCALE, SCALE_BASE, pictureHeight, subtitleLook } from './subdisplay.js';
+import { SCALE_BASE, pictureHeight, subtitleLook } from './subdisplay.js';
 import { LANGUAGES, localeTag, t } from './i18n.js';
 import { Sync, loadSyncInfo, syncAvailable } from './sync.js';
 import { api } from './browser.js';
@@ -779,26 +779,10 @@ export function wireSetup() {
   $('p-substyle').addEventListener('change', () => chooseSubtitleLook('p'));
   $('p-sublift').addEventListener('input', () => applySubtitleLook(lookOf('p')));
   $('p-sublift').addEventListener('change', () => chooseSubtitleLook('p'));
-  $('p-sublift-reset').addEventListener('click', () => { $('p-sublift').value = String(DEFAULT_LIFT); chooseSubtitleLook('p'); $('p-sublift').focus(); });
-  $('f-sublift-reset').addEventListener('click', () => {
-    const slider = $('f-sublift');
-    slider.value = String(DEFAULT_LIFT);
-    slider.dispatchEvent(new Event('input', { bubbles: true }));
-    slider.focus();
-  });
   $('p-subsize').addEventListener('input', () => applySubtitleLook({
     subtitleStyle: $('p-substyle').value, subtitleScale: Number($('p-subsize').value), subtitleScaleBase: SCALE_BASE, subtitleLift: Number($('p-sublift').value),
   }));
   $('p-subsize').addEventListener('change', () => chooseSubtitleLook('p'));
-  // Back to the size the picture asks for: in the player at once, in the
-  // settings as part of the draft, like the slider beside it.
-  $('p-subsize-reset').addEventListener('click', () => { $('p-subsize').value = String(DEFAULT_SCALE); chooseSubtitleLook('p'); $('p-subsize').focus(); });
-  $('f-subsize-reset').addEventListener('click', () => {
-    const slider = $('f-subsize');
-    slider.value = String(DEFAULT_SCALE);
-    slider.dispatchEvent(new Event('input', { bubbles: true }));
-    slider.focus();
-  });
   el.sublook.addEventListener('click', () => toggleSubtitleLook());
 
   for (const radio of document.querySelectorAll('input[name="source"]')) {

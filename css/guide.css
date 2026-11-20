@@ -37,7 +37,7 @@
 /* Personal channel list and programme search share the player's controls. */
 /* The help, which is mostly a two-column list of keys and what they do. */
 #help { width: min(560px, calc(100vw - 32px)); max-height: calc(100dvh - 32px); }
-.help-content { padding: 24px; display: flex; flex-direction: column; gap: 12px; max-height: calc(100dvh - 34px); overflow-y: auto; }
+.help-content { padding: 16px; display: flex; flex-direction: column; gap: 12px; max-height: calc(100dvh - 34px); overflow-y: auto; }
 .help-content h3 { margin: 4px 0 0; font-size: var(--fs-m); font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
 /* One width for the key column in both lists, folded or not, so that they
    read as one: the widest key, ↑ ↓ PgUp PgDn, fits. */
@@ -56,7 +56,7 @@
 /* The countries the viewer watches and what they have hidden
    (js/channelchoices.js). */
 #countries, #hidden { width: min(560px, calc(100vw - 32px)); max-height: calc(100dvh - 32px); }
-.choice-content { padding: 24px; display: flex; flex-direction: column; gap: 14px; max-height: calc(100dvh - 34px); }
+.choice-content { padding: 16px; display: flex; flex-direction: column; gap: 14px; max-height: calc(100dvh - 34px); }
 .editor-help { margin: 0; color: var(--muted); line-height: 1.5; }
 .editor-help[hidden] { display: none; }
 .programme-form { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }

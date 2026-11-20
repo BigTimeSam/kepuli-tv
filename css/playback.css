@@ -93,8 +93,12 @@ main:has(.videowrap.full) :not(.videowrap, .videowrap *) { overflow: hidden; }
   pointer-events: none; text-align: center;
   font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
   /* A share of the picture's height (js/subdisplay.js): --pic-h is the
-     picture without its bars, --sub-scale the viewer's size, 1 at 100 %. */
-  font-size: max(14px, calc(var(--pic-h, 450px) * var(--sub-scale, 1) * 0.0425)); font-weight: 500; line-height: 1.3;
+     picture without its bars, --sub-scale the viewer's size, 1 at 100 %.
+     The floor of 14 px, for a small picture, is the viewer's share too
+     below 100 %: with a fixed floor the slider did nothing from 100 % down
+     in a picture under some 330 px high (the preview in Settings, a film
+     beside its details), where 100 % is the floor already. */
+  font-size: max(calc(14px * min(1, var(--sub-scale, 1))), calc(var(--pic-h, 450px) * var(--sub-scale, 1) * 0.0425)); font-weight: 500; line-height: 1.3;
   transition: bottom .2s ease;
 }
 /* Above the browser's controls while they are likely on show, see wake()

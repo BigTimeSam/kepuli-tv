@@ -39,6 +39,9 @@ dialog::backdrop { background: var(--backdrop); backdrop-filter: blur(2px); }
    over two lines (Russian "Аккаунт и данные" in a window of 600) made one
    tab twice as tall as the rest. */
 .setup-tabs button { flex: 1 0 auto; justify-content: center; text-align: center; white-space: nowrap; }
+/* Each section's mark, at every width: the top bar's tabs drop theirs
+   between 601 and 1099 px (css/topbar.css), where its row is full. */
+.setup-tabs .tab-icon { display: block; }
 /* One section at a time; only its contents scroll in a short window. */
 .setup-panel { display: flex; flex-direction: column; gap: 14px; }
 .setup-panel[hidden] { display: none; }
@@ -60,7 +63,11 @@ dialog::backdrop { background: var(--backdrop); backdrop-filter: blur(2px); }
 .field[hidden] { display: none; }        /* an explicit display beats [hidden], see .crumbs */
 .field span code { background: var(--panel-2); padding: 1px 4px; border-radius: 4px; }
 .field span { color: var(--muted); font-size: var(--fs-s); }
-.field input, .field select { background: var(--panel-2); border: 1px solid var(--border); border-radius: 8px; padding: 7px 9px; width: 100%; }
+/* Not a choice of one: with the page's own ring (css/player.css) the
+   engine's fixed size is gone, and the kind of connection in Settings
+   was a ring as wide as its label's box, its words pushed out of it. In
+   :where(), so that the rule weighs what it did. */
+.field input:where(:not([type="radio"])), .field select { background: var(--panel-2); border: 1px solid var(--border); border-radius: 8px; padding: 7px 9px; width: 100%; }
 
 /* The password and the eye that shows it, in one field-shaped box. */
 .field-reveal { position: relative; display: block; }
@@ -147,9 +154,6 @@ dialog::backdrop { background: var(--backdrop); backdrop-filter: blur(2px); }
 .radios { flex-wrap: wrap; }
 .range-label { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; }
 .range-label > span:first-child { flex: 1; }
-/* Back to 100 %: a word beside the number, there only when it is not 100. */
-.range-reset { border: 0; background: none; padding: 0; font: inherit; font-size: var(--fs-m); color: var(--accent-ink); cursor: pointer; text-decoration: underline; text-underline-offset: 2px; }
-.range-reset[hidden] { display: none; }
 .range-label output { font-variant-numeric: tabular-nums; }
 .field input[type="range"] { padding: 0; border: 0; background: none; height: 33px; accent-color: var(--accent); cursor: pointer; }
 
@@ -202,7 +206,9 @@ html.kb-tall #setup:modal .modal-actions { position: static; margin-bottom: 0; p
 
 /* A stable frame keeps navigation and the shared save action in place. */
 #setup { width: min(760px, calc(100vw - 32px)); max-height: calc(100dvh - 32px); }
-.setup { width: 100%; max-height: calc(100dvh - 34px); padding: 24px; gap: 20px; }
+/* Sixteen points to the dialog's edge, as the other dialogs have: with
+   twenty-four the frame was looser than anything in the page behind it. */
+.setup { width: 100%; max-height: calc(100dvh - 34px); padding: 16px; gap: 14px; }
 .setup-head, .setup-tabs-scroll, .setup > .setup-actions { flex-shrink: 0; }
 .setup-tabs-scroll { align-self: stretch; }
 .setup-tabs-scroll:has(> .setup-tabs[hidden]) { display: none; }
@@ -232,6 +238,10 @@ html.kb-tall #setup:modal .modal-actions { position: static; margin-bottom: 0; p
 .setup-group .field-hint { margin: 0; }
 /* A setting's explanation waits behind a ? beside it, and opens under it. */
 .toggle-line, .group-head { display: flex; align-items: center; gap: 6px; }
+/* The subtitles' hint beside its heading, in a row high enough for its
+   line whether it shows or not; in a narrow dialog it wraps under. */
+#panel-subs > .group-head { flex-wrap: wrap; min-height: 1.5rem; }
+#panel-subs > .group-head > .field-hint { flex: 1 1 14rem; min-width: 0; margin: 0 0 0 6px; }
 .hint-btn {
   /* The mark stays small; what takes a press is 24 px, as WCAG 2.5.8 asks:
      a transparent 3 px border round the drawn ring, taken back by the
@@ -259,13 +269,6 @@ html.kb-tall #setup:modal .modal-actions { position: static; margin-bottom: 0; p
 .setup-error { margin: 0; color: var(--danger); font-size: 0.8125rem; }
 .setup > .grant-note { margin: 0; flex-shrink: 0; }
 .setup > .grant-note[hidden] { display: none; }
-/* The lists' refresh under the accounts (Settings, Connection): the
-   button and what it does beside it. */
-.setup-refresh { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
-.setup-refresh[hidden] { display: none; }
-.setup-refresh button { display: inline-flex; align-items: center; gap: 7px; }
-.setup-refresh svg { width: 16px; height: 16px; flex: none; fill: none; stroke: currentColor; stroke-width: 1.6; stroke-linecap: round; stroke-linejoin: round; }
-.setup-refresh-note { color: var(--muted); font-size: var(--fs-s); }
 .setup-discard { padding: 12px; border: 1px solid var(--border); border-radius: 9px; background: var(--panel-2); }
 .setup-discard p { margin: 0 0 10px; }
 /* 1 px away, inside the rail's 3 px of padding: in a phone's width the

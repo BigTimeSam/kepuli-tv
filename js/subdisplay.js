@@ -49,7 +49,9 @@ export const DEFAULT_STYLE = 'shadow';
 // a size too large. Since 2026-11-10 100 % is 4.25 %, the owner's measured
 // choice (85 % of the 5 %), and the slider still starts at 100 %. It runs
 // from half of it to two and a half times it. Below 14 px a line stops
-// being readable, whatever the window: that is the floor.
+// being readable, whatever the window: that is the floor at 100 % and
+// over. A viewer who chooses less gets that share of it (css/playback.css):
+// held at 14 px, the slider did nothing below 100 % in a small picture.
 export const SIZE_SHARE = 0.0425;
 // The share 100 % stood for until then: a size saved on that scale is
 // turned into the same size on this one (subtitleLook).

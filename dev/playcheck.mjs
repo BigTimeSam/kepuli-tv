@@ -3784,6 +3784,8 @@ async function polish(page) {
       type('f-port', kept);
       $('f-add-account').click(); await pause(300);
       document.querySelector('input[name="source"][value="xtream"]').click();
+      // The kind of connection is a ring beside its words, not a field's width.
+      out.rings = [...document.querySelectorAll('input[name="source"]')].map((ring) => Math.round(ring.getBoundingClientRect().width));
       const { state } = await import('./js/state.js');
       for (const f of ['host', 'port', 'username', 'password']) type('f-' + f, state.config[f]);
       $('f-save').click(); await pause(300);
@@ -3793,6 +3795,7 @@ async function polish(page) {
       return out;`);
     assert(port.said.every((text) => text === port.expected) && port.focus === 'f-port' && port.open && port.stored === String(MOCK_PORT), `ports that cannot be: ${JSON.stringify(port)}`);
     assert(port.twice === port.exists && port.accounts <= 1, `the same account added a second time: ${JSON.stringify({ said: port.twice, accounts: port.accounts })}`);
+    assert(port.rings.length === 3 && port.rings.every((width) => width === 16), `the rings of the connection's kind are ${port.rings.join(', ')} px wide`);
     /* A portal's address typed into the playlist's field, and Save pressed
        with the field still in the focus, as the iPhone and iPad app makes
        that press: the form goes to the portal's fields and saves nothing. */
@@ -5245,7 +5248,29 @@ async function setupClarity(page) {
   await press('f-done');
   await press('btn-settings');
   await evaluate(page, `document.querySelector('#setup-tabs [data-panel="subs"]').click()`);
+  // Nothing moves or changes size when the hint opens or a slider moves:
+  // the hint took its line from the preview, which was drawn again
+  // narrower. And the size is the viewer's share below 100 % too: a floor
+  // of 14 px held 50 % at the size of 100 % in a preview this small.
+  const STILL = `(() => { const box = (n) => { const r = n.getBoundingClientRect(); return [r.left, r.top, r.width, r.height].map(Math.round).join(' '); };
+    return [document.querySelector('.sublook-preview'), document.getElementById('f-subsize'), document.getElementById('f-subsize-value')].map(box).join(' | '); })()`;
+  await sleep(300);
+  const rest = await evaluate(page, STILL);
+  await evaluate(page, `document.querySelector('#panel-subs .hint-btn').click()`);
+  await sleep(300);
+  const hinted = { at: await evaluate(page, STILL), shown: await evaluate(page, `!document.getElementById('subs-hint').hidden`) };
   await change('f-subsize', '250');
+  await sleep(300);
+  const moved = { at: await evaluate(page, STILL) };
+  const CUE = `parseFloat(getComputedStyle(document.querySelector('.sublook-preview .cue')).fontSize)`;
+  await change('f-subsize', '100');
+  const whole = await evaluate(page, CUE);
+  await change('f-subsize', '50');
+  const half = await evaluate(page, CUE);
+  assert(Math.abs(half - whole / 2) < 0.6, `subtitles at 50 % are ${half} px where 100 % is ${whole} px`);
+  await change('f-subsize', '250');
+  await evaluate(page, `document.querySelector('#panel-subs .hint-btn').click()`);
+  assert(hinted.shown && hinted.at === rest && moved.at === rest, `the subtitles' controls moved: at rest ${rest}, with the hint ${hinted.at}, with the slider moved ${moved.at}`);
   for (const [width,height] of [[1280,800],[390,844],[320,568],[640,420]]) {
     await page.call('Emulation.setDeviceMetricsOverride', {width,height,deviceScaleFactor:1,mobile:false});
     for (const style of ['shadow','box','contrast']) {

@@ -2107,7 +2107,7 @@ function wireUi() {
     filterTimer = setTimeout(() => { state.categoryFilter = el.categoryFilter.value; renderCategories(); }, 120);
   });
 
-  // In Settings' Connection section: the dialog gives way to the list's
+  // In Settings, among the stored data: the dialog gives way to the list's
   // progress, unless something in it is still unsaved.
   $('btn-refresh').addEventListener('click', () => {
     if ($('setup').open && !setupDirty()) $('setup').close();

@@ -458,7 +458,7 @@ interrupted channel-list load restores the previous list.
 
 ## If something goes wrong
 
-- **Refresh lists** (in **Settings › Connection**, under the accounts) fetches the content
+- **Refresh lists** (in **Settings › Account & data**, under **Manage stored data**) fetches the content
   lists again from the server, including the countries and categories
   already opened, and shows the new list where you were. A tab left open
   checks by itself when you come back to it, once its lists are older than
@@ -809,7 +809,7 @@ under it stay dark in either, and the choice is kept with the settings and
 copied to `localStorage`, so a light theme does not flash dark at start
 (`js/theme.js`);
 in a window 600px wide or less, Settings is a cog alone and the three share
-the brand's row. **Refresh lists**, in Settings > Connection, fetches the categories and
+the brand's row. **Refresh lists**, in Settings > Account & data, fetches the categories and
 the lists already loaded from the server again — the whole lists, and the
 categories and groups opened this session, which used to stay as first
 fetched until a reload — drops the series' episode lists, and empties the
