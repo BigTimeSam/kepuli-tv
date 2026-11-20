@@ -8086,7 +8086,8 @@ async function episodenames(page) {
     const rows = await evaluate(page, `[...document.querySelectorAll('#list .row')].slice(0, 3).map((r) => ({ name: r.querySelector('.row-name')?.textContent, code: r.querySelector('.row-ep')?.textContent }))`);
     assert(rows.every((r) => !/Silent Fjord/.test(r.name)), `the series' name is still on the rows: ${JSON.stringify(rows)}`);
     // No code at the row's end: the season is the chip chosen above the rows and the number is in the name.
-    assert(rows[0].name === 'Episode 1' && rows.every((r) => r.code === undefined), `an episode with no title of its own: ${JSON.stringify(rows)}`);
+    // (== null: what is undefined in the page comes from Firefox's driver as null.)
+    assert(rows[0].name === 'Episode 1' && rows.every((r) => r.code == null), `an episode with no title of its own: ${JSON.stringify(rows)}`);
     assert(rows[1].name === "Episode 2: Winter's End" && !/S01E02/.test(rows[1].name), `an episode with a title: ${JSON.stringify(rows[1])}`);
     // Over the picture an episode is named with its series, and "Episode 1"
     // follows the interface language: it stayed English after a change to
