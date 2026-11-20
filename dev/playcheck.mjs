@@ -722,6 +722,14 @@ async function livebuffering(page) {
     // that is longer than the scenario looks.
     const between = seen.findIndex((v, i) => i > 0 && !v.overlay && seen.slice(0, i).some((w) => w.stall));
     if (between < 0 && process.env.KEPULI_BROWSER !== 'firefox') problems.push('the overlay never left between the stalls');
+    // What was seen instead, when nothing of the above was: the failure
+    // in CI's full run said only what was missing.
+    if (problems.length) {
+      const how = await evaluate(page, `(async () => { const { state } = await import('./js/state.js'); const { playback } = await import('./js/playing.js'); const v = document.getElementById('video');
+        return JSON.stringify({ engine: playback.engineKey, playing: Boolean(state.playing), kind: state.playing?.k, live: state.playingSpec?.live, mode: state.settings.streamMode, src: (v.currentSrc || '').slice(0, 5), paused: v.paused, t: Math.round(v.currentTime),
+          rows: document.querySelectorAll('#list .row').length, tab: document.querySelector('#tabs .active')?.dataset.tab, native: document.getElementById('videowrap').className }); })()`).catch((e) => String(e));
+      problems.push(`seen: ${[...new Set(seen.map((v) => `${v.overlay ? '' : '(hidden) '}${v.title} | ${v.figures}`))].slice(0, 6).join(' / ')}; ${how}`);
+    }
     return { ok: !problems.length, detail: problems.length ? problems.join('; ') : `start "${start.at(-1)?.figures}", ${stalled.length / 4} s stalled, said "${stalled.at(-1)?.slow}"` };
   } finally {
     process.env.KEPULI_MOCK_LIVE_TS = '';
@@ -10705,25 +10713,21 @@ async function androidplayer(page, { target }) {
     const tv = (await sent('player.load')).at(-1);
     assert(tv.controls === false && /\.mp4$/.test(tv.url), `the television's app gets the picture alone: ${JSON.stringify({ controls: tv.controls })}`);
     await say({ type: 'player.state', id: tv.id, state: 'playing', position: 10, duration: 120, width: 1280, height: 720 });
-    // Why a full screen was refused is kept for the failure's words: CI's
-    // windowed Chrome refused it here and nowhere else.
-    await evaluate(page, `(() => { const ask = Element.prototype.requestFullscreen; window.__full = [];
-      Element.prototype.requestFullscreen = function (...a) { const p = ask.apply(this, a); p.then(() => window.__full.push('granted ' + this.id), (e) => window.__full.push('refused ' + this.id + ': ' + e.message)); return p; };
-      document.getElementById('list').focus(); return true; })()`);
-    await pressKey(page, 'Enter', 'Enter', 13);
-    await waitFor(page, `document.fullscreenElement?.id === 'videowrap'`, 'the television\'s picture full screen', 8000).catch(async (err) => {
-      const why = await evaluate(page, `(async () => { const { state } = await import('./js/state.js'); return JSON.stringify({ asked: window.__full, full: document.fullscreenElement?.id || null, focus: document.hasFocus(), seen: document.visibilityState,
-        active: document.activeElement?.id || document.activeElement?.tagName, dialogs: [...document.querySelectorAll('dialog[open]')].map((d) => d.id), playing: Boolean(state.playing), cursor: state.cursor,
-        loads: window.__sent.filter((m) => m.type === 'player.load').length, size: [innerWidth, innerHeight, screen.width, screen.height] }); })()`).catch((e) => String(e));
-      throw new Error(`${err.message}: ${why}`);
-    });
+    // The picture is said to be full screen without asking the browser for
+    // it: in CI's full run its windowed Chrome refuses this scenario's
+    // request ("not granted", with the page focused, in sight and nothing
+    // open; alone it grants it), and the remote's own way into full screen
+    // is the remote scenario's. What is looked at here is what the remote
+    // does with the app's player once the picture fills the screen.
+    await evaluate(page, `(() => { const wrap = document.getElementById('videowrap');
+      Object.defineProperty(document, 'fullscreenElement', { configurable: true, get: () => wrap });
+      document.dispatchEvent(new Event('fullscreenchange')); wrap.focus(); return true; })()`);
     for (let i = 0; i < 3; i++) { await pressKey(page, 'ArrowRight', 'ArrowRight', 39); await sleep(150); }
     await waitFor(page, `(() => { const f = window.__sent.filter((m) => m.type === 'player.frame').at(-1); return Boolean(f) && f.full === true && f.holes.length > 0; })()`, 'the seek\'s bar said as a hole in the app\'s view', 5000);
     await count('player.seek', 1, 'the remote\'s seek sent to the app\'s player');
     const sought = (await sent('player.seek')).at(-1);
     const untouched = await evaluate(page, `!document.getElementById('video').currentSrc`);
     assert(sought.to > 20 && sought.to < 119 && untouched, `the remote's seek: ${JSON.stringify({ to: sought.to, untouched })}`);
-    await evaluate(page, `document.fullscreenElement && document.exitFullscreen()`).catch(() => {});
     return { ok: true, detail: `the television's app got the picture alone and the remote's seek to ${Math.round(sought.to)} s, with its bar a hole in the app's view; a film handed to the Android app from 42 s with its box in the window (${here.box.join(', ')} at ${here.ratio}); what is on, its shape and a pause told from the app's own word; after a failure the page played on from ${after.at} s` };
   } finally {
     await page.call('Page.navigate', { url: plain }).catch(() => {});
