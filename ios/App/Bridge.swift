@@ -119,6 +119,8 @@ final class Bridge {
             "build": info["CFBundleVersion"] as? String ?? "",
             "debug": debug,
             "simulator": simulator,
+            // The app has a player of its own (NativePlayer).
+            "player": true,
         ])
         // Through `send`, which notes when each was said: a page that
         // dies at its start has not heard them either (`pageGone`).

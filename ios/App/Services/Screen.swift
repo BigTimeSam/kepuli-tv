@@ -19,6 +19,7 @@ final class Screen: NativeService {
         case "screen.shade":
             let rgba = (body["rgba"] as? [NSNumber])?.map(\.doubleValue)
             player?.setShade(rgba, open: body["open"] as? Bool ?? (rgba != nil))
+            Services.player.setShade(rgba, open: body["open"] as? Bool ?? (rgba != nil))
         case "screen.theme": player?.setTheme(body["theme"] as? String)
         default: reply(["ok": false, "error": "unknown"]); return
         }
@@ -31,6 +32,7 @@ final class Screen: NativeService {
     func pageConnected() {
         player?.setFull(false)
         player?.setShade(nil, open: false)
+        Services.player.setShade(nil, open: false)
     }
 
     /// The same at once when the page's process ended: the bars stayed

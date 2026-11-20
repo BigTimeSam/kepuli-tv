@@ -23,6 +23,7 @@ import { HLS_TYPE, castMedia } from './cast.js';
 import { el } from './dom.js';
 import { t } from './i18n.js';
 import { renderInfoStrip } from './infostrip.js';
+import { nativeLeft } from './nativeplayer.js';
 import { noteEnded, notePlace, startAutoNext } from './nextepisode.js';
 import { nowPlace, placeReached, playItem, playback, showOverlayActions } from './playing.js';
 import { retryPlayback } from './recordingsui.js';
@@ -132,6 +133,8 @@ async function handOver(item, spec, startAt) {
   const media = castable(spec);
   if (!media) { toast(t('cast.cannot'), { kind: 'warn', long: true }); return false; }
   playback.stop();
+  // The app's own player had the picture (js/nativeplayer.js): it lets go too.
+  nativeLeft();
   state.playbackInfoLoading = false;
   renderInfoStrip();
   casting = { item, spec, startAt, position: startAt, origin: media.contentType === HLS_TYPE ? new URL(media.url).origin : null, loading: true };
