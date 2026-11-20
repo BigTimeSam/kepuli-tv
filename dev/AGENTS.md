@@ -181,7 +181,7 @@ data, so never point it at a profile someone uses.
 
 Mock behaviour is switched by environment variables read per request, e.g.
 `KEPULI_MOCK_LIVE_TS=1` (live as MPEG-TS, needed for recording),
-`KEPULI_MOCK_THROTTLE`, `KEPULI_MOCK_BAD_GATEWAY`, `KEPULI_MOCK_LIMIT`; grep
+`KEPULI_MOCK_THROTTLE`, `KEPULI_MOCK_BAD_GATEWAY`, `KEPULI_MOCK_FILM_FAILS`, `KEPULI_MOCK_LIMIT`; grep
 `process.env.KEPULI_MOCK` in `dev/mock/server.mjs` for the full set, and add
 one there when a scenario needs a new kind of misbehaving server.
 

@@ -8600,6 +8600,40 @@ async function filmfacts(page) {
   await sleep(300);
   const warned = await evaluate(page, `(async () => (await ${cardOf(avi)})?.querySelector('.card-flag.warn')?.textContent || null)()`);
   assert(warned, 'the card of a film that does not play here says nothing of it');
+  // A provider's passing failure: the film's first three requests, a
+  // whole start's worth, are refused as a connection over the limit is,
+  // and the next ones answered. The player tries once more by itself, and
+  // the film plays without "Playback failed" ever showing; it was shown,
+  // with Try again, which then played.
+  const WATCH = `(() => { window.__failed = 0; clearInterval(window.__watch);
+    window.__watch = setInterval(() => { const o = document.getElementById('overlay');
+      if (!o.hidden && !o.classList.contains('loading') && document.getElementById('overlay-title').textContent === 'Playback failed') window.__failed += 1; }, 50); return true; })()`;
+  // A film each, never played before: one that has played comes from the browser's cache and asks the server nothing.
+  const third = await evaluate(page, `(async () => { const { state } = ${app}; return String(state.rows.find((x) => x.ext === 'mp4' && ![${JSON.stringify(mkv)}, ${JSON.stringify(other)}].includes(String(x.id)))?.id); })()`);
+  const startOther = async (fails, film = other) => {
+    await evaluate(page, `Promise.all([import('./js/tracksui.js')]).then(([u]) => u.leavePlayback())`);
+    await sleep(500);
+    await evaluate(page, WATCH);
+    process.env.KEPULI_MOCK_FILM_FAILS = String(fails);
+    await evaluate(page, `(async () => (await ${cardOf(film)}).click())()`, { gesture: true });
+  };
+  try {
+    await startOther(3);
+    await waitFor(page, PLAYING, 'the film after its first start was refused', 40000);
+    const passed = { shown: await evaluate(page, `window.__failed`), left: process.env.KEPULI_MOCK_FILM_FAILS };
+    assert(passed.shown === 0 && passed.left === '0', `a film refused at its first start: the failure shown for ${passed.shown} looks, ${passed.left} refusals left`);
+    // One that goes on failing is said to have failed once the second try
+    // has failed too, and is not tried for ever.
+    await startOther(50, third);
+    await waitFor(page, `window.__failed > 0`, 'the failure of a film that keeps failing', 60000);
+    const asked = 50 - Number(process.env.KEPULI_MOCK_FILM_FAILS);
+    await sleep(4000);
+    const later = 50 - Number(process.env.KEPULI_MOCK_FILM_FAILS);
+    assert(asked >= 5 && later === asked, `a film that keeps failing was asked for ${asked} times before the failure was shown, and ${later - asked} times after it`);
+  } finally {
+    delete process.env.KEPULI_MOCK_FILM_FAILS;
+    await evaluate(page, `clearInterval(window.__watch)`).catch(() => {});
+  }
   return { ok: true, detail: `audio "${first.audio}", video "${first.video}", ${first.size}, "${first.playback}", folded and kept open; TMDb ${first.tmdb}; ${first.similar.join(', ')}; watched and unwatched from the menu; a film that does not play "${warned}"` };
 }
 

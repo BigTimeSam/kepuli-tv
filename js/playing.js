@@ -103,6 +103,7 @@ function onPlaybackState(s) {
     // new one, and the server may be counting our own stream again, so it
     // is worth a wait of its own.
     if (state.playingSpec) state.playingSpec.awaitedRelease = false;
+    triedAgain = null;
   } else if (s.status === 'probing') {
     state.playbackInfoLoading = true;
     renderInfoStrip();
@@ -133,10 +134,28 @@ function onPlaybackState(s) {
     // is shown, and a release waited for rather than reported.
     // An answer with nothing in it (s.content) is the provider having no
     // file for the title: neither a wait nor the account would change it.
-    if (!s.checked && !s.content && !s.reachable && state.playingSpec && !state.playingSpec.awaitedRelease && playback.followedRelease) {
+    // A film or an episode is asked about whenever it fails, not only
+    // soon after a release this page made: the stream let go may have been
+    // the app's own player's or a Chromecast's, or the provider counted it
+    // for longer than the half minute allowed for. On an account of one
+    // connection an episode chosen again from the start page was refused,
+    // said to have failed, and played at Try again.
+    const title = state.playing && state.playing.k !== 0 && !state.catchup;
+    if (!s.checked && !s.content && !s.reachable && state.playingSpec && !state.playingSpec.awaitedRelease && (playback.followedRelease || title)) {
       checkBeforeFailing(s);
       return;
     }
+    // And whatever the account says, a film or an episode that fails is
+    // tried once more by itself before the failure is shown: what the
+    // viewer did next was press Try again, and it played. Not where
+    // another try cannot differ (no file, a track that cannot be played),
+    // nor after a wait for a release, which was a second try already.
+    if (title && !s.content && !s.canSilent && state.playingSpec && triedAgain !== titleKey() && !state.playingSpec.awaitedRelease) {
+      tryAgainOnce();
+      return;
+    }
+    // Shown: the viewer's own Try again gets a second try of its own.
+    triedAgain = null;
     state.playbackInfoLoading = false;
     renderInfoStrip();
     el.overlay.hidden = false;
@@ -325,6 +344,24 @@ async function awaitRelease(spec, failure, figures) {
 // it will take one when it ends: to the other tabs it is holding, and one
 // that asks for the connection ends it.
 let releaseWait = null;
+
+const TRY_AGAIN_MS = 1500;
+/** The title tried again by itself since it last played or failed in sight, as its kind and id. */
+let triedAgain = null;
+const titleKey = () => (state.playing ? `${state.playing.k}:${state.playing.id}` : null);
+
+/**
+ * The same thing once more after a moment, the wait still on screen; a
+ * second failure is shown as it is.
+ */
+function tryAgainOnce() {
+  const spec = state.playingSpec;
+  // Kept by the title, not on the spec: every start makes a spec of its
+  // own, and a mark on the old one let a title that keeps failing be
+  // tried for ever.
+  triedAgain = titleKey();
+  setTimeout(() => { if (state.playingSpec === spec) retryPlayback(); }, TRY_AGAIN_MS);
+}
 
 /** The same thing again, without a second wait should it fail the same way. */
 function replay() {
