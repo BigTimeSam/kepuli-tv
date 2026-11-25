@@ -10342,8 +10342,13 @@ async function remote(page, { target }) {
     await evaluate(page, `document.getElementById('list').focus()`);
 
     // OK held down: the row's menu, beginning with the star.
+    // A remote control repeats the key for as long as it is down: the
+    // repeats after the menu opened must not press its first choice.
+    const again = () => page.call('Input.dispatchKeyEvent', { type: 'keyDown', key: 'Enter', code: 'Enter', windowsVirtualKeyCode: 13, text: '\r', autoRepeat: true });
     await enter('keyDown');
     await sleep(900);
+    await again();
+    await again();
     await enter('keyUp');
     await sleep(200);
     const menu = await evaluate(page, `[...document.querySelectorAll('.row-menu button')].map((b) => b.textContent)`);
@@ -10353,12 +10358,106 @@ async function remote(page, { target }) {
     await sleep(200);
     const menuShut = !(await evaluate(page, `Boolean(document.querySelector('.row-menu'))`));
 
-    // Back from the list, with nothing open, asks for the window to be closed.
+    // OK held down on a country stars it, and the ring stays on that row:
+    // the star draws the sidebar again, and the new rows had no cursor.
+    await evaluate(page, `document.getElementById('groups').focus()`);
+    await arrow('ArrowDown');
+    const country = () => evaluate(page, `(() => { const row = document.querySelector('#groups .group.cursor');
+      return row ? { at: [...row.parentElement.children].indexOf(row), on: row.querySelector('.group-star')?.classList.contains('on') ?? null } : null; })()`);
+    const countryBefore = await country();
+    const countryProblems = [];
+    for (const turn of ['starred', 'unstarred']) {
+      await enter('keyDown');
+      await sleep(900);
+      await enter('keyUp');
+      await sleep(300);
+      const now = await country();
+      if (!(now && now.at === countryBefore.at && now.on === (turn === 'starred' ? !countryBefore.on : countryBefore.on) && (await focus()) === 'groups')) {
+        countryProblems.push(`a country ${turn} with OK held down left the cursor at ${JSON.stringify(now)}, from ${JSON.stringify(countryBefore)}, the focus on ${await focus()}`);
+      }
+    }
+    // A country chosen with OK: the cursor is on the first of its rows.
+    await evaluate(page, `document.getElementById('groups').focus()`);
+    await ok();
+    await sleep(800);
+    const onRows = await evaluate(page, `({ focus: document.activeElement.id, first: document.querySelector('#list .row.selected') === document.querySelector('#list .row') })`);
+    if (onRows.focus !== 'list' || !onRows.first) countryProblems.push(`a country chosen with OK left ${JSON.stringify(onRows)}`);
+
+    // A topic chosen with OK: its fold closes and the cursor is on the
+    // first of its channels. The focus used to be on nothing afterwards.
+    const topicAt = () => evaluate(page, `({ open: document.getElementById('channel-filters').open, focus: document.activeElement.id || document.activeElement.nodeName,
+      first: document.querySelector('#list .row.selected') === document.querySelector('#list .row'), chosen: document.querySelector('#subcats .chip.active .chip-main')?.textContent ?? '' })`);
+    for (const pick of [1, 0]) {
+      const name = await evaluate(page, `(() => { document.getElementById('channel-filters').open = true; const chip = document.querySelectorAll('#subcats .chip-main')[${pick}]; chip?.focus(); return chip?.textContent ?? null; })()`);
+      if (name == null) break;
+      await ok();
+      await sleep(600);
+      const at = await topicAt();
+      if (at.open || at.focus !== 'list' || !at.first || at.chosen !== name) countryProblems.push(`the topic ${name} chosen with OK left ${JSON.stringify(at)}`);
+    }
+    await evaluate(page, `document.getElementById('channel-filters').open = true`);
+    await evaluate(page, `document.getElementById('list').focus()`);
+
+    // The hidden channels' list is the remote's too: a channel hidden from
+    // the row's menu, the list opened from the foot of the channels, the
+    // arrows on its buttons and OK showing the channel again.
+    await evaluate(page, `document.getElementById('list').focus()`);
+    await enter('keyDown');
+    await sleep(900);
+    await enter('keyUp');
+    await sleep(200);
+    await arrow('ArrowDown');
+    await ok();
+    await sleep(500);
+    const hiddenButton = await evaluate(page, `(() => { const b = document.getElementById('btn-hidden'); b?.focus(); return Boolean(b); })()`);
+    await ok();
+    await sleep(500);
+    const where = () => evaluate(page, `(() => { const a = document.activeElement; return (a.closest('#hidden') ? 'hidden: ' : 'outside: ') + (a.id || a.textContent.trim() || a.className || a.nodeName); })()`);
+    const hiddenStops = [await where()];
+    for (const key of ['ArrowDown', 'ArrowDown', 'ArrowUp']) { await arrow(key); hiddenStops.push(await where()); }
+    await ok();
+    await sleep(500);
+    const hiddenLeft = await evaluate(page, `({ button: Boolean(document.getElementById('btn-hidden')) })`);
+    await evaluate(page, `document.getElementById('hidden').close()`);
+    await evaluate(page, `document.getElementById('list').focus()`);
+    // A list drawn again keeps the logos it has shown: each went back to
+    // its placeholder until loaded anew, and on a television the list
+    // flashed whenever a channel was chosen.
+    const logos = await evaluate(page, `(async () => { const { vlist } = await import('./js/state.js'); const count = () => document.querySelectorAll('#list .poster.loaded').length;
+      const before = count(); vlist.refresh(); return { before, after: count() }; })()`);
+
+    // On a film's card the menu opens beside the card, level with it:
+    // under the card it lay over the next line's cards.
+    await evaluate(page, `document.getElementById('tab-movie').click()`);
+    await waitFor(page, `document.querySelector('#list .row.card')`, 'the films as cards');
+    await evaluate(page, `document.getElementById('list').focus()`);
+    await arrow('ArrowDown');
+    await enter('keyDown');
+    await sleep(900);
+    await enter('keyUp');
+    await sleep(200);
+    const beside = await evaluate(page, `(() => { const box = (n) => { const r = n?.getBoundingClientRect(); return r && { left: Math.round(r.left), right: Math.round(r.right), top: Math.round(r.top), bottom: Math.round(r.bottom) }; };
+      return { menu: box(document.querySelector('.row-menu')), card: box(document.querySelector('#list .row.card.selected')) }; })()`);
+    await back();
+    await sleep(200);
+    await evaluate(page, `document.getElementById('tab-live').click()`);
+    await waitFor(page, `document.querySelector('#list .row:not(.card)')`, 'the channels again');
+    await evaluate(page, `document.getElementById('list').focus()`);
+
+    // Back from the list, with nothing open, says what a second one does,
+    // and only the second asks for the window to be closed.
+    await back();
+    await sleep(200);
+    const closedAtOnce = await evaluate(page, `({ closed: window.__closed, said: !document.getElementById('toast').hidden && document.getElementById('toast').textContent.trim() })`);
     await back();
     await sleep(200);
     const closed = await evaluate(page, `window.__closed`);
 
-    const problems = [];
+    // What does nothing on a television is not offered there.
+    const idle = await evaluate(page, `['#mode-pick', '#btn-pip', '#btn-copy', '#btn-ext', '#sync-box', '.toggle:has(#f-notify)', '.setup-group[aria-labelledby="group-trouble"]'].filter((pick) => getComputedStyle(document.querySelector(pick)).display !== 'none')`);
+    const problems = [...countryProblems];
+    if (idle.length) problems.push(`offered on a television with nothing to do there: ${idle.join(', ')}`);
+    if (closedAtOnce.closed || !closedAtOnce.said) problems.push(`one Back from the list: ${JSON.stringify(closedAtOnce)}, not a message and the app still open`);
     if (!marked) problems.push('the page is not marked .tv');
     if (second !== 'row-1' || first !== 'row-0') problems.push(`the arrows moved the list to ${second} then ${first}, not row-1 then row-0`);
     if (above === 'list' || above === 'BODY') problems.push('Up from the first row stayed in the list');
@@ -10369,6 +10468,10 @@ async function remote(page, { target }) {
     if (!one || one === two) problems.push(`Down in full screen stayed on "${one}"`);
     if (!named || !banner.includes(named)) problems.push(`the banner over the full-screen picture says "${banner}", not "${named}"`);
     if (after !== 'list') problems.push(`out of full screen the focus is on ${after}`);
+    if (!hiddenButton || !hiddenStops[1].startsWith('hidden: ') || hiddenStops[1] === hiddenStops[0] || hiddenStops[2] === hiddenStops[1] || hiddenLeft.button) problems.push(`the hidden channels' list under the arrows: ${JSON.stringify({ hiddenButton, hiddenStops, hiddenLeft })}`);
+    if (!beside.menu || !beside.card || beside.menu.top < beside.card.top - 2 || beside.menu.top > beside.card.bottom - 40
+      || !(Math.abs(beside.menu.left - beside.card.right) <= 6 || Math.abs(beside.card.left - beside.menu.right) <= 6)) problems.push(`a film's menu away from its card: ${JSON.stringify(beside)}`);
+    if (!logos.before || logos.after !== logos.before) problems.push(`a list drawn again showed ${logos.after} of its ${logos.before} logos at once`);
     if (!star.includes(menu[0])) problems.push(`OK held down opened ${menu.length ? `a menu beginning with "${menu[0]}"` : 'no menu'}`);
     if (!stillPlaying) problems.push('OK held down also pressed the row');
     if (!stops.length) problems.push('no topic with a star to walk past');
@@ -10685,6 +10788,22 @@ async function androidplayer(page, { target }) {
     await waitFor(page, `document.getElementById('video').paused`, 'the controls\' pause done by the page', 5000);
     await say({ type: 'player.command', slot: 1, id: after.own.id, what: 'seek', to: 20 });
     await waitFor(page, `Math.abs(document.getElementById('video').currentTime - 20) < 3`, 'the controls\' seek done by the page', 10000);
+
+    // A film in Matroska is the app's too: its player reads the container
+    // itself, and the page's own filled a television's memory with one.
+    const matroska = await evaluate(page, `(async () => { const { state } = await import('./js/state.js'); const { playItem } = await import('./js/playing.js');
+      const film = (state.lib.full.movie || state.rows).find((x) => x.k === 1 && x.ext === 'mkv'); if (film) playItem(film); return Boolean(film); })()`);
+    assert(matroska, 'no film in Matroska in the mock\'s list');
+    await waitFor(page, `/\\.mkv$/.test(window.__sent.filter((m) => m.type === 'player.load' && m.url).at(-1)?.url || '')`, 'a Matroska film handed to the Android app', 15000);
+
+    // The archive too: the page's own player is what a television must
+    // not be left with, and Media3 reads the archive's MPEG-TS.
+    const archive = await evaluate(page, `(async () => { const { state } = await import('./js/state.js'); const { playCatchup } = await import('./js/recordingsui.js');
+      const { XtreamApi } = await import('./js/api.js');
+      const channel = (await new XtreamApi(state.config).streams('live')).find((x) => x.archive > 0);
+      if (channel) playCatchup(channel, { start: Date.now() - 50 * 60000, stop: Date.now() - 20 * 60000, title: 'Earlier' }); return Boolean(channel); })()`);
+    assert(archive, 'no channel with an archive in the mock\'s list');
+    await waitFor(page, `/timeshift/.test(window.__sent.filter((m) => m.type === 'player.load' && m.url).at(-1)?.url || '')`, 'a programme from the archive handed to the Android app', 15000);
 
     // A television: the same player with the picture alone, driven by the remote through the page.
     await evaluate(page, `(document.documentElement.dataset.before = '1', true)`);

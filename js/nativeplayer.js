@@ -35,6 +35,7 @@ import { castMedia } from './cast.js';
 import { el } from './dom.js';
 import { on, send } from './host.js';
 import { t } from './i18n.js';
+import { toast } from './toast.js';
 import { renderInfoStrip } from './infostrip.js';
 import { shortLanguage } from './lang.js';
 import { noteEnded, notePlace, startAutoNext } from './nextepisode.js';
@@ -66,15 +67,27 @@ let said = '';
 let watching = null;
 
 /**
- * What the app's player can be handed of a stream, or null: what a
- * Chromecast takes (js/cast.js), as both fetch the address by themselves
- * and play HLS and the files a browser plays natively.
+ * What the app's player can be handed of a stream, or null. Both players
+ * fetch the address by themselves. The iPhone's plays what a Chromecast
+ * takes (js/cast.js): HLS and the files a browser plays natively. The
+ * Android apps' reads the container from the stream itself, Matroska,
+ * AVI and MPEG-TS among them, so every address is its own to try: a film
+ * in Matroska played by the page filled a television's memory in forty
+ * seconds (the app's process from 350 MB to 990 MB, measured on a Bravia
+ * with 3 GB) and the whole set stood still. What it fails on, a sound it
+ * has no decoder for included, comes back to the page (failed).
  * @param {import('./playback.js').PlaySpec} spec
  */
 function playable(spec) {
-  if (!offered || spec.recording || spec.catchup || state.catchup || failed.has(spec.url)) return null;
+  if (!offered || spec.recording || failed.has(spec.url)) return null;
+  // The archive is MPEG-TS, which the iPhone's player does not read. The
+  // Android apps' does, and the page's own is what a television must not
+  // be left with.
+  if (ios && (spec.catchup || state.catchup)) return null;
   const media = castMedia(spec);
-  return media && media.contentType !== 'video/webm' ? media : null;
+  if (media) return media.contentType !== 'video/webm' ? media : null;
+  if (ios || spec.relink || !/^https?:\/\//i.test(spec.url || '')) return null;
+  return { url: spec.url, live: Boolean(spec.live) };
 }
 
 /** Whether the app's player has this page's picture, so that nothing plays in the page. */
@@ -489,7 +502,9 @@ function heard(word) {
     failed.add(spec.url);
     if (!shownHere(left)) return;
     // Where the app says it stopped; else the place last heard, up to two seconds older.
-    if (!spec.live) spec.startAt = Math.floor((word.position > 0 ? word.position : left.position) || 0);
+    // Not in the archive: its address names the minute it starts at, and
+    // the page's player starts the programme there.
+    if (!spec.live && !spec.catchup) spec.startAt = Math.floor((word.position > 0 ? word.position : left.position) || 0);
     underControls(item, spec);
     playback.play(spec);
     return;
@@ -497,6 +512,8 @@ function heard(word) {
   if (word.reason !== 'finished') return;
   if (item.k !== 0) noteEnded(item);
   if (!shownHere(left)) return;
+  // As the page says of a programme it played to the end itself (js/nextepisode.js).
+  if (state.catchup) toast(t('guide.archiveended'), { long: true });
   // An episode seen to its end is followed by the next, as one that
   // ended in the page is: the picture's own `ended` never comes.
   const next = item.k === 3 && state.settings.autoNext && !state.catchup;

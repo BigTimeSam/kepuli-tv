@@ -135,7 +135,12 @@ export function towards(from, boxes, [dx, dy]) {
     if (centre <= 0 || ahead < -4) return;
     // How far off the line: nothing while the two overlap across it.
     const aside = dx ? Math.max(0, box.top - from.bottom, from.top - box.bottom) : Math.max(0, box.left - from.right, from.left - box.right);
-    const score = Math.max(0, ahead) + (aside ? 100000 + aside * 3 : 0);
+    // In line is a real overlap, not a brush: the topics' rows on a
+    // television lie 1.7 px over each other (40 px tall, 38.3 px apart),
+    // and Left went to a topic in the row above that ended nearer.
+    const [a0, a1, b0, b1] = dx ? [from.top, from.bottom, box.top, box.bottom] : [from.left, from.right, box.left, box.right];
+    const inLine = Math.min(a1, b1) - Math.max(a0, b0) > Math.min(a1 - a0, b1 - b0) / 4;
+    const score = Math.max(0, ahead) + (inLine ? 0 : 100000 + aside * 3);
     if (score < bestScore) { bestScore = score; best = i; }
   });
   return best;

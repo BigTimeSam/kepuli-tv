@@ -44,7 +44,7 @@ import { pickEncoder } from './transcode.js';
 import * as store from './config.js';
 import { applyTheme, earlyTheme, onSystemTheme } from './theme.js';
 import { wirePickers } from './picker.js';
-import { wireRemote } from './remote.js';
+import { listChosen, wireRemote } from './remote.js';
 import { nf } from './format.js';
 import { t, applyStatic, setLanguage, loadLanguage } from './i18n.js';
 import { askRecordingConsent, closeRecordingConsent, loadRecordingList, openRecordings, retryPlayback, toggleRecordNow } from './recordingsui.js';
@@ -168,7 +168,6 @@ async function connect({ silent = false } = {}) {
     const problem = accountProblem(state.account);
     if (problem) toast(problem, { long: true, kind: 'warn' });
     if (!state.playing && !el.overlay.hidden) renderIdleOverlay();
-    askCountriesOnce();
     if (playlist) warmGuide(source);
     if (playlist && !problem) offerXtream(source.catalogue?.xtream).catch(() => {});
     // A reminder's notification may be what opened this player, or was
@@ -1137,9 +1136,8 @@ function showRows(rows, { keepScroll = false, loading = false } = {}) {
  * of leaving the column empty.
  */
 function renderSidebar() {
-  if (isCollection()) renderKinds();
+  if (isCollection()) { renderKinds(); markGroups(); }
   else renderCategories();
-  markGroups();
   renderCountriesButton();
   renderClearHistoryButton();
 }
@@ -1213,6 +1211,9 @@ function moveGroupCursor(to) {
   rows[state.groupCursor].scrollIntoView({ block: 'nearest' });
 }
 
+/** A sidebar row's choice, after which a remote's cursor is on the rows it lists (js/remote.js). */
+const toRows = (select) => (id) => listChosen(select(id));
+
 function renderKinds() {
   el.groupsFilter.hidden = true;
   $('groups-empty').hidden = true;
@@ -1236,14 +1237,14 @@ function renderKinds() {
   const frag = document.createDocumentFragment();
   frag.appendChild(categoryRow(
     { id: null, name: t('groups.all'), count: items.length, active: state.kind == null, all: true, icon: KIND_ICONS.all },
-    selectKind,
+    toRows(selectKind),
   ));
   // The reminders set in the guide, a kind of the history's own: first
   // under All, as they are first in the list.
   if (upcoming) {
     frag.appendChild(categoryRow(
       { id: 'r', name: kindLabel('r'), count: upcoming, active: state.kind === 'r', icon: HISTORY_ICONS.upcoming },
-      selectKind,
+      toRows(selectKind),
     ));
   }
   for (const kind of KIND_ORDER) {
@@ -1251,7 +1252,7 @@ function renderKinds() {
     if (count === 0) continue;
     frag.appendChild(categoryRow(
       { id: kind, name: kindLabel(kind), count, active: state.kind === kind, icon: KIND_ICONS[kind] },
-      selectKind,
+      toRows(selectKind),
     ));
   }
   el.groups.replaceChildren(frag);
@@ -1369,7 +1370,7 @@ function renderCategories() {
     const total = visible ? visible.length : null;
     const all = categoryRow(
       { id: null, name: t('groups.all'), count: total, active: state.group == null, all: true, indent: true },
-      selectGroup,
+      toRows(selectGroup),
     );
     if (total == null) all.title = t('groups.all.title');
     frag.appendChild(all);
@@ -1384,7 +1385,7 @@ function renderCategories() {
       active: state.group === group.name,
       favorite: isFavorite(entry),
       onFavorite: () => toggleFavCategory(entry),
-    }, selectGroup));
+    }, toRows(selectGroup)));
   }
   el.groups.replaceChildren(frag);
   // A filter that leaves nothing says so, rather than an empty column.
@@ -1394,6 +1395,10 @@ function renderCategories() {
   const starred = new Set(visibleGroups(type).filter((g) => isFavorite(favCategoryEntry(type, g.name, null))).map((g) => g.name));
   fillGroupPicker(visibleGroups(type).map((g) => [g.name, g.name]), state.group ?? '', starred, t(genres ? 'groups.genres.aria' : 'groups.aria'));
   paintGroupPickerStar(type);
+  // Here and not only in renderSidebar: a star and the filter above draw
+  // the rows again by this function alone, and the new rows had no cursor.
+  // On a television the row starred with OK held down lost its ring.
+  markGroups();
 }
 
 /**
@@ -1657,7 +1662,7 @@ function browserTags() {
   return viewerTags(state.settings?.lang, navigator.languages?.length ? navigator.languages : [navigator.language || '']);
 }
 
-function openCountryPicker({ first = false } = {}) {
+function openCountryPicker() {
   if (!state.lib) return;
   const codes = homeCountryCodes(browserTags());
   const suggested = state.lib.groups.live.filter((g) => labelCodes(g.name).some((c) => codes.includes(c))).map((g) => g.name);
@@ -1665,12 +1670,9 @@ function openCountryPicker({ first = false } = {}) {
     groups: state.lib.groups.live,
     counts: state.lib.groupCounts('live'),
     chosen: state.channelPrefs.countries,
-    // The first time starts at all of them, the browser's own countries
-    // ticked below as a suggestion: a tick chooses them, Save keeps all.
-    mode: first ? 'all' : groupFilterMode('live'),
+    mode: groupFilterMode('live'),
     favorites: favoriteGroups('live'),
     suggested,
-    first,
   });
 }
 
@@ -1692,29 +1694,6 @@ function openCategoryPicker(type) {
 /** The groups of a type with a star, or holding a starred topic, by name. */
 function favoriteGroups(type) {
   return [...new Set([...state.favorites.values()].filter((f) => f.k === 'c' && f.t === type).map((f) => f.g))];
-}
-
-/**
- * Asked once per account, after the first connection, when the provider
- * has so many countries that a list of all of them is in the way. The
- * answer — or Cancel — is not asked for again; the sidebar keeps the way
- * back in.
- */
-const ASK_COUNTRIES_FROM = 20;
-async function askCountriesOnce() {
-  if (!state.lib || state.channelPrefs.countries.length) return;
-  if (state.lib.groups.live.length < ASK_COUNTRIES_FROM) return;
-  const asked = (await store.loadUiState()).countriesAsked || [];
-  // The account as the rest of the player names it (js/config.js), so that
-  // "example.tv" and "Example.TV:80" are asked once between them. The
-  // older form, host:port/user as typed, still counts as asked: a viewer
-  // who answered under it is not asked again by an update.
-  const account = store.accountKey(state.config);
-  const typed = `${state.config.host}:${state.config.port}/${state.config.username}`;
-  if (asked.includes(account) || asked.includes(typed)) return;
-  await store.saveUiState({ countriesAsked: [...asked, account] });
-  if (document.querySelector('dialog[open]')) return;
-  openCountryPicker({ first: true });
 }
 
 async function openHiddenList() {

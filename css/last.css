@@ -298,6 +298,14 @@ html.ios :is(input, textarea, .detail-plot, .plot, .epgdesc, .epgv-desc) { -webk
    browser to open a link in and no file picker, and it grants a provider's
    host itself, so the note about the browser's question would be untrue. */
 .tv a[target="_blank"], .tv #f-file-pick, .tv #setup-grant-note { display: none; }
+/* Nor what would do nothing there. The playback mode chooses among the
+   page's own players, and the app's plays nearly everything on a
+   television; the statistics are drawn by the page's player too. A
+   television's app has no small window, no clipboard to paste from, no
+   downloads for another player to open, nothing to sync with and no
+   notifications of the system's. */
+.tv #mode-pick, .tv #btn-pip, .tv #btn-copy, .tv #btn-ext, .tv #sync-box,
+.tv .toggle:has(#f-notify), .tv .setup-group[aria-labelledby="group-trouble"] { display: none; }
 /* The Android app on a phone or a tablet (the page opened with ?app=1)
    grants a provider's host itself as well. */
 .app #setup-grant-note { display: none; }

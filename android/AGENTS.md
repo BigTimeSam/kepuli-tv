@@ -127,11 +127,26 @@ one player to the viewer on every device. The page's side is
 `js/nativeplayer.js`, shared with that app, and the words are the ones
 listed at the head of `ios/App/Player/NativePlayer.swift`.
 
-- **What it plays.** What `js/nativeplayer.js` hands it: HLS and the MP4
-  family (what a Chromecast takes, `castMedia` in `js/cast.js`, without
-  WebM). Matroska, MPEG-TS without an HLS address, a recording and the
-  archive stay in the page, and so does whatever the app's player fails
-  on, from where it had got to.
+- **What it plays.** Every address `js/nativeplayer.js` can hand it
+  (`playable`): HLS, the MP4 family, and whatever else Media3 reads from
+  the stream itself, Matroska, AVI and MPEG-TS with no HLS address among
+  them, and the archive (catch-up), which is MPEG-TS. A recording, a
+  Stalker link and WebM stay in the
+  page, and so does whatever the app's player fails on, from where it had
+  got to: an address it cannot read, and a picture or a sound the device
+  has no decoder for (AC-3 on many phones), which it would otherwise play
+  without.
+- **Why Matroska is not the page's** (measured on a Bravia VH22, 3 GB,
+  2026-11-21). A 1080p Matroska film played by the page took the app's
+  main process from 350 MB to 990 MB in forty seconds and the set's free
+  memory from 850 MB to 200 MB; left alone, Android's low-memory killer
+  ran out of things to kill, the remote stopped answering and the app
+  died three minutes later. The same film in the app's player: 410 MB,
+  level, for as long as it was watched. The player's buffer is capped at
+  64 MB whatever the bitrate. `adb shell ps -A -o RSS,NAME | grep kepulitv`
+  beside `MemAvailable` in `/proc/meminfo`, every few seconds while a
+  film plays, is the measurement to repeat after a change to either
+  player.
 - **`NativePlayer`** (`src/main`, both packages) answers the page's
   `player.*` words: `player.load`, `player.page`, `player.frame`,
   `player.sound`, `player.play`, `player.pause`, `player.seek`,
@@ -206,7 +221,8 @@ listed at the head of `ios/App/Player/NativePlayer.swift`.
   new (`node android/permissions.mjs`).
 - **Seen** (2026-11-20, the mock): on the phone's emulator (Android 16) a
   channel and an MP4 film in the app's player and a Matroska film in the
-  page under the same controls, pause and play, the time line, full
+  page under the same controls (Matroska has been the app's player's
+  since 2026-11-21), pause and play, the time line, full
   screen from the button with the title over the picture, two channels
   side by side with the speaker moved, the sides swapped and the second
   closed from its bar; on a Galaxy Tab S8 a channel, and two side by side

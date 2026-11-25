@@ -134,9 +134,10 @@ stored is the mode and the list of what to show, not of what to hide, so a
 country the provider adds later does not turn up uninvited, and the list is
 kept while another mode is on (js/app.js, groupFilter). Before the modes, a
 list meant the third and the sidebar's old "Show favourites only" box the
-second; a stored view from then is read that way. The question is asked by
-itself once per account, after the first connection, when the provider has
-twenty groups or more.
+second; a stored view from then is read that way. The dialog opens only from the
+sidebar's foot and from Settings: it once opened by itself after an
+account's first connection, and was in the way of the first look at the
+channels.
 
 **Filter categories**, in the same place on the films and the series, does the
 same for their categories, each tab its own mode and choice: what the

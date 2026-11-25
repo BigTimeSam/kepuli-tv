@@ -690,11 +690,15 @@ and **Back** alone:
 | Key | Action |
 | --- | --- |
 | arrows | move the focus to the nearest control that way; in the list, the sidebar and the programme guide they move its cursor, and leave it from its edge |
-| **OK** | press what has the focus; on a row, play it; on the row already playing, fill the screen; on a text field, bring up the television's keyboard |
+| **OK** | press what has the focus; on a row, play it; on the row already playing, fill the screen; on a text field, bring up the television's keyboard; on a country, a genre or a topic, show it and move to the first of its rows (a topic's fold closes) |
 | **OK** held down | the row's menu, which begins with **Add to favourites**; on a country, a topic or a card of the start page, its star (the stars are not stops of their own) |
-| **Back** | close what is open (the keyboard, a menu, a dialog, the full screen, the guide, a series' page), then return to the list, and from the list leave the app |
+| **Back** | close what is open (the keyboard, a menu, a dialog, the full screen, the guide, a series' page), then return to the list; from the list a first press says so and a second within three seconds leaves the app |
 | in full screen | up and down change the channel, left and right move ten seconds in a film or an episode, **OK** pauses |
 | play/pause, rewind, fast forward, channel up and down | the same, where the remote has them |
+
+What would do nothing on a television is not shown there: the playback
+mode, picture in picture, copying the stream's address, an external
+player, sync, the system's notifications and the stream statistics.
 
 ### In the Android app on a phone or a tablet
 

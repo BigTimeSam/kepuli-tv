@@ -28,6 +28,7 @@ import androidx.media3.common.TrackSelectionParameters;
 import androidx.media3.common.Tracks;
 import androidx.media3.common.VideoSize;
 import androidx.media3.datasource.DefaultHttpDataSource;
+import androidx.media3.exoplayer.DefaultLoadControl;
 import androidx.media3.exoplayer.ExoPlayer;
 import androidx.media3.exoplayer.source.DefaultMediaSourceFactory;
 import androidx.media3.ui.PlayerView;
@@ -277,7 +278,12 @@ final class NativePlayer {
             // a stream on to another of their servers that way): this source
             // speaks nothing but the two, so a redirect leads nowhere else.
             DefaultHttpDataSource.Factory web = new DefaultHttpDataSource.Factory().setAllowCrossProtocolRedirects(true);
-            player = new ExoPlayer.Builder(activity).setMediaSourceFactory(new DefaultMediaSourceFactory(web)).build();
+            // No more than 64 MB of the stream held ahead, whatever its
+            // bitrate: a television has little memory to spare, and the
+            // player's own measure by time alone lets a 4K film take twice that.
+            DefaultLoadControl load = new DefaultLoadControl.Builder()
+                .setTargetBufferBytes(64 * 1024 * 1024).setPrioritizeTimeOverSizeThresholds(false).build();
+            player = new ExoPlayer.Builder(activity).setMediaSourceFactory(new DefaultMediaSourceFactory(web)).setLoadControl(load).build();
             TrackSelectionParameters.Builder wanted = player.getTrackSelectionParameters().buildUpon();
             String audioLang = word.optString("audioLang", "auto");
             if (!audioLang.isEmpty() && !audioLang.equals("auto")) wanted.setPreferredAudioLanguage(audioLang);
@@ -319,6 +325,17 @@ final class NativePlayer {
 
                 @Override
                 public void onTracksChanged(Tracks tracks) {
+                    // A picture or a sound the device has no decoder for (AC-3
+                    // on many phones): the player would go on without it, a
+                    // film with no sound. The page's own player has decoders
+                    // of its own and takes the address instead.
+                    for (int type : new int[] { C.TRACK_TYPE_VIDEO, C.TRACK_TYPE_AUDIO }) {
+                        if (tracks.containsType(type) && !tracks.isTypeSupported(type)) {
+                            Log.w(TAG, "the app's player has no decoder for " + (type == C.TRACK_TYPE_VIDEO ? "the picture" : "the sound"));
+                            finish("error");
+                            return;
+                        }
+                    }
                     chosen(tracks);
                 }
             });

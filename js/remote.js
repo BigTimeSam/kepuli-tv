@@ -36,7 +36,8 @@ import { gridColumns } from './coversui.js';
 import { enterFullscreen, togglePause } from './playercontrols.js';
 import { nativePlace, nativePlaying, nativeRunning, nativeSeek } from './nativeplayer.js';
 import { remote } from './platform.js';
-import { dismissToast } from './toast.js';
+import { dismissToast, toast } from './toast.js';
+import { t } from './i18n.js';
 
 
 const ARROWS = { ArrowLeft: [-1, 0], ArrowRight: [1, 0], ArrowUp: [0, -1], ArrowDown: [0, 1] };
@@ -51,6 +52,12 @@ const BANNER_MS = 5000;
 let hooks = null;
 // OK going down on a row, until it comes up or has been held long enough.
 let held = null;
+
+// Back from the list leaves the app only when pressed again within this
+// time: Back is pressed several times in a row to get out of the picture
+// or a menu, and one press too many put the viewer out of the app.
+const LEAVE_MS = 3000;
+let leaving = 0;
 
 /**
  * @param {object} app what the remote asks of the player:
@@ -94,6 +101,23 @@ export const isText = (node) => node instanceof HTMLTextAreaElement
 const visible = (node) => node.getClientRects().length > 0 && node.checkVisibility({ visibilityProperty: true });
 const listShown = () => visible(el.list);
 const focusList = () => { if (listShown()) el.list.focus({ preventScroll: true }); };
+
+/**
+ * A country, a genre or a topic was chosen with the remote: the cursor
+ * stands on the first row of what it lists, since the rows are what a
+ * viewer wants next. The topics are drawn again by the choice, so the
+ * focus was on nothing at all afterwards; their fold closes as well.
+ * @param {Promise<unknown>} listed the list being drawn
+ * @param {boolean} [fold] the choice was made in the channels' fold
+ */
+export async function listChosen(listed, fold = false) {
+  if (!remote) return;
+  await listed;
+  if (fold) $('channel-filters').open = false;
+  if (!listShown()) return;
+  focusList();
+  if (state.cursor < 0) hooks.first();
+}
 
 /** The layer the focus is kept in: the topmost menu or dialog, else the page. */
 export function layer() {
@@ -174,7 +198,13 @@ function move(active, zone, way) {
   const reachable = (box) => (box.bottom > 0 && box.top < innerHeight && box.right > 0 && box.left < innerWidth)
     || (dx ? box.bottom > from.top && box.top < from.bottom : box.right > from.left && box.left < from.right);
   const nodes = controls(layer(), active).filter((node) => reachable(node.getBoundingClientRect()));
-  const next = nodes[towards(from, nodes.map((node) => node.getBoundingClientRect()), way)];
+  // A dialog that took the focus itself as it opened (js/modal.js) has
+  // every control inside its own box and none in any direction from it:
+  // the hidden channels' list could not be entered with a remote at all.
+  // The first arrow there lands on its first control, the cross last.
+  const next = active instanceof HTMLDialogElement
+    ? nodes.find((node) => !node.matches('.modal-close')) || nodes[0]
+    : nodes[towards(from, nodes.map((node) => node.getBoundingClientRect()), way)];
   if (!next) return false;
   if (isText(next)) next.inputMode = 'none';
   // A list just filled has no row chosen, and OK would press nothing.
@@ -323,11 +353,17 @@ function onKeyDown(e) {
     swallow(e);
     if (hooks.back()) return;
     if (zone !== 'list' && listShown()) focusList();
-    else window.close();
+    else if (Date.now() - leaving < LEAVE_MS) window.close();
+    else { leaving = Date.now(); toast(t('remote.back.again'), { duration: LEAVE_MS }); }
     return;
   }
 
   if (e.key === 'Enter') {
+    // A key still down after it was held: a remote control repeats it, and
+    // the menu it opened has its first choice in the focus by then. On a
+    // television the menu flashed and the channel was starred by the one
+    // press. Nothing more comes of the press until it is let go.
+    if (held) { swallow(e); return; }
     // The star that stands beside what has the focus (a start page's card).
     const beside = active.parentElement?.querySelector(':scope > .idle-star');
     const holdable = zone === 'list' || zone === 'groups' || active.matches('.chip-main') || Boolean(beside);
@@ -342,7 +378,7 @@ function onKeyDown(e) {
       typing = false;
     } else if (holdable) {
       swallow(e);
-      if (e.repeat || held) return;
+      if (e.repeat) return;
       held = { active, zone, timer: setTimeout(() => { held.timer = 0; if (zone === 'list') hooks.menu(); else if (beside) beside.click(); else hooks.star(); }, HOLD_MS) };
     } else if (active.matches('input[type="checkbox"], input[type="radio"]')) {
       // A remote has no Space, which is the key these answer to.

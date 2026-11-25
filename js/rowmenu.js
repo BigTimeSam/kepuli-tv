@@ -65,15 +65,28 @@ export function closeRowMenu({ focus = false } = {}) {
   if (focus && returnFocus?.isConnected) returnFocus.focus({ preventScroll: true });
 }
 
+// Taller than any row or button: a card.
+const TALL = 120;
+
 function place(pop, at) {
   const margin = 8;
   const box = pop.getBoundingClientRect();
   let x, y;
   if (at instanceof Element) {
     const r = at.getBoundingClientRect();
-    x = r.right - box.width;
-    y = r.bottom + 4;
-    if (y + box.height > innerHeight - margin) y = r.top - box.height - 4;
+    if (r.height > TALL) {
+      // A film's card, which has no menu button of its own (a remote's OK
+      // held down, the menu key): beside the card, level with its top,
+      // on the other side where the window ends. Under it, as under a
+      // row's button, the menu lay a cover's height away, over the cards
+      // of the next line.
+      x = r.right + 4 + box.width <= innerWidth - margin ? r.right + 4 : r.left - box.width - 4;
+      y = r.top;
+    } else {
+      x = r.right - box.width;
+      y = r.bottom + 4;
+      if (y + box.height > innerHeight - margin) y = r.top - box.height - 4;
+    }
   } else {
     ({ x, y } = at);
     if (y + box.height > innerHeight - margin) y -= box.height;

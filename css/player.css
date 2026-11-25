@@ -303,7 +303,11 @@ input[type="radio"] {
   border: 1.5px solid var(--border-strong); border-radius: 50%;
   background: var(--panel-2); cursor: pointer;
 }
-input[type="radio"]:checked { border-color: var(--accent); background: radial-gradient(circle, var(--accent) 0 3.5px, var(--panel-2) 4.5px); }
+/* The dot is a tile of its own in the middle and never reaches the ring: a
+   gradient over the whole disc left one lit pixel at the box's corner in
+   the television's engine (GeckoView at 1.5x) once the focus ring had
+   been on the button and gone. */
+input[type="radio"]:checked { border-color: var(--accent); background: radial-gradient(circle, var(--accent) 0 3.5px, transparent 4.5px) center / 10px 10px no-repeat var(--panel-2); }
 input[type="radio"]:hover:not(:disabled) { border-color: var(--accent); }
 input[type="radio"]:focus-visible { outline: 2px solid var(--accent-ink); outline-offset: 2px; }
 input[type="radio"]:disabled { opacity: .5; cursor: default; }

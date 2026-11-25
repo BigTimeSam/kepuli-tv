@@ -16,6 +16,7 @@ import { svg } from './svg.js';
 // either the cover keeps its fallback, as before.
 const UPGRADED = /^http:\/\/(?!(?:127\.\d+\.\d+\.\d+|localhost|\[::1\])(?::\d+)?\/)/i;
 const MAX_BLOBS = 400;
+const MAX_SHOWN = 2000;
 // isGecko() of js/browser.js, asked here: importing that module from this one
 // set it up before the unit tests' stand-in for the extension API.
 const gecko = () => typeof CSS !== 'undefined' && CSS.supports('-moz-appearance', 'none');
@@ -34,12 +35,22 @@ function viaFetch(url) {
     if (blobs.size > MAX_BLOBS) {
       const [oldest, old] = blobs.entries().next().value;
       blobs.delete(oldest);
+      shown.delete(oldest);
       // A picture showing it is drawn already; a new row fetches again.
       old.then((u) => { if (u) setTimeout(() => URL.revokeObjectURL(u), 60e3); });
     }
   }
   return made;
 }
+
+// The addresses whose picture has been shown, each with the source that
+// drew it. A list is rebuilt whole when a channel starts, at every half
+// minute for the programmes' bars and at each star, and every logo then
+// went back to its placeholder until its picture had loaded again: on a
+// television the whole list flashed. A picture seen before is drawn at
+// once, with no placeholder in between.
+/** @type {Map<string, string>} */
+const shown = new Map();
 
 const ICONS = {
   channel: '<rect x="3" y="6" width="18" height="14" rx="3"/><path d="m8 2 4 4 4-4M7 10h7v6H7zM17 11h.01M17 15h.01"/>',
@@ -67,19 +78,35 @@ export function poster(className, src, kind = 'movie', { expand = false, title =
   img.alt = '';
   img.loading = 'lazy';
   img.decoding = 'async';
-  frame.classList.add('loading');
-  img.addEventListener('load', () => {
+  const ready = () => {
     frame.classList.remove('loading');
     frame.classList.add('loaded');
     if (frame instanceof HTMLButtonElement) frame.disabled = false;
+  };
+  img.addEventListener('load', () => {
+    ready();
+    if (shown.size >= MAX_SHOWN) shown.delete(shown.keys().next().value);
+    shown.set(url, img.src);
   }, { once: true });
   const fail = () => {
+    shown.delete(url);
     frame.classList.remove('loading', 'loaded');
     img.remove();
   };
   img.addEventListener('error', fail, { once: true });
-  if (gecko() && UPGRADED.test(url)) viaFetch(url).then((blob) => { if (blob) img.src = blob; else fail(); });
-  else img.src = url;
+  const seen = shown.get(url);
+  if (seen) {
+    // Decoded with the row, not after it: a lazy, asynchronous picture
+    // left one empty frame even when the browser still held it.
+    img.loading = 'eager';
+    img.decoding = 'sync';
+    img.src = seen;
+    ready();
+  } else {
+    frame.classList.add('loading');
+    if (gecko() && UPGRADED.test(url)) viaFetch(url).then((blob) => { if (blob) img.src = blob; else fail(); });
+    else img.src = url;
+  }
   frame.appendChild(img);
   if (interactive) frame.addEventListener('click', () => showPoster(img, title));
   return frame;

@@ -7,6 +7,7 @@
 
 import { HISTORY_ICONS, KIND_ICONS, chipRow } from './rows.js';
 import { applySubcatsHeight, selectSub } from './topicbar.js';
+import { listChosen } from './remote.js';
 import { dayLabel, nf } from './format.js';
 import { el } from './dom.js';
 import { renderDetail } from './seriesui.js';
@@ -442,7 +443,7 @@ export function renderSubcats() {
   // buttons for the same favourite would blur both.
   frag.appendChild(chipRow({
     label: t('subcats.all'), count: nf.format(visibleItems.length), active: state.sub == null,
-  }, () => selectSub(null)));
+  }, () => listChosen(selectSub(null), true)));
   for (const cat of cats) {
     const count = counts.get(cat.id) || 0;
     if (count === 0) continue;
@@ -451,7 +452,7 @@ export function renderSubcats() {
       label: topicLabel(cat), count: nf.format(count), active: state.sub === cat.id, title: cat.name,
       favorite: isFavorite(entry),
       onFavorite: () => toggleFavCategory(entry),
-    }, () => selectSub(cat.id)));
+    }, () => listChosen(selectSub(cat.id), true)));
   }
   el.subcats.replaceChildren(frag);
   // One Tab stop for the whole bar, on the chosen chip (wireSubcatsKeys).

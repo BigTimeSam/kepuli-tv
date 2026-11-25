@@ -70,10 +70,9 @@ export class CountryPicker {
    * @param {Map<string, number> | null} counts channels per group, when known
    * @param {string[]} chosen the groups chosen now
    * @param {string[]} suggested groups to offer first: the browser's country
-   * @param {boolean} first the first time, when the suggestion is ticked
-   *        (the mode the caller gives is then all, so it is only offered)
+   *        or countries, ticked as an offer while nothing has been chosen
    */
-  show({ groups, counts, chosen, mode = 'chosen', favorites = [], suggested = [], first = false, onSave = null, texts = null }) {
+  show({ groups, counts, chosen, mode = 'chosen', favorites = [], suggested = [], onSave = null, texts = null }) {
     // The same dialog chooses the films' and the series' categories: their
     // own words and their own place to save, the countries' otherwise.
     this.save = onSave;
@@ -87,7 +86,7 @@ export class CountryPicker {
     this.groups = groups;
     this.counts = counts;
     this.suggested = new Set(suggested.filter((name) => groups.some((g) => g.name === name)));
-    this.chosen = new Set(chosen.length || !first ? chosen : this.suggested);
+    this.chosen = new Set(chosen.length ? chosen : this.suggested);
     $('countries-filter').value = '';
     $('countries-status').textContent = '';
     this.render();

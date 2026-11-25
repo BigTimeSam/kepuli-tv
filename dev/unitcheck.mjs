@@ -1397,6 +1397,8 @@ check('the history may hold a series', parseRoute('#/recent?series=5'), { tab: '
   check('a box in line beats a nearer one off to the side', towards(box(0, 0), [box(1, 1), box(3, 0)], [1, 0]), 1);
   check('a tall box beside this one is not above it', towards(box(1, 2), [{ left: 0, right: 100, top: 0, bottom: 400 }, box(1, 0)], [0, -1]), 1);
   check('with none in line the arrow still finds the one off to the side', towards(box(0, 0), [box(1, 1)], [1, 0]), 0);
+  // Measured on a television: the topics' rows overlap by under two pixels.
+  check('a row brushing this one from above is not in line with it', towards({ left: 367, right: 430, top: 232.3, bottom: 272.3 }, [{ left: 237, right: 362, top: 194, bottom: 234 }, { left: 237, right: 329, top: 232.3, bottom: 272.3 }], [-1, 0]), 1);
   check('nothing that way is no box', [towards(grid[0], grid, [-1, 0]), towards(grid[6], grid, [0, 1])], [-1, -1]);
   check('a wide box under a narrow one is reached from it, and the box it holds too', towards(box(1, 0), [{ left: 0, right: 320, top: 60, bottom: 400 }], [0, 1]), 0);
   check('other keys lead nowhere', neighbourTile(grid, 0, 'Enter'), -1);
