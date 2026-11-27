@@ -384,6 +384,9 @@
 //                                     it closes the drop-down that is open,
 //                                     leaves the player's pane for the list,
 //                                     and only then leaves the app
+//   node dev/playcheck.mjs appturn    in an app, a phone laid on its side
+//                                     with a channel on takes the picture
+//                                     full screen, and stood up leaves it
 //   node dev/playcheck.mjs remotescrub  left and right in a film on a
 //                                     television aim at a place on a bar
 //                                     and jump once when the keys rest;
@@ -10188,6 +10191,87 @@ async function appback(page, { target }) {
 }
 
 /**
+ * A turn of the device in an app (js/playercontrols.js): with a channel
+ * on, the phone laid on its side asks for the picture's full screen, and
+ * stood up again leaves it; with nothing on, with a dialog open over the
+ * page or with the list in the picture's place, a turn asks for nothing. The page is opened as the Android
+ * app opens it and the screen's orientation is the emulated one. Chrome
+ * allows full screen only on a press, which a turn is not (the app's
+ * engine is set to allow it), so the request is counted here, and the
+ * full screen that the upright turn leaves is entered as by a press.
+ */
+async function appturn(page, { target }) {
+  const plain = bare(target.url).split('?')[0];
+  const turn = async (lying) => {
+    await page.call('Emulation.setDeviceMetricsOverride', {
+      width: lying ? 844 : 390, height: lying ? 390 : 844, deviceScaleFactor: 1, mobile: true,
+      screenOrientation: lying ? { type: 'landscapePrimary', angle: 90 } : { type: 'portraitPrimary', angle: 0 },
+    });
+    await sleep(400);
+  };
+  const asked = () => evaluate(page, `window.__full`);
+  try {
+    await turn(false);
+    await page.call('Page.navigate', { url: `${plain}?app=1#/live` });
+    await sleep(1000);
+    await waitFor(page, `location.search === '?app=1' && ${CONNECTED}`, 'the connection');
+    await evaluate(page, `document.querySelector('dialog[open]')?.close()`);
+    await evaluate(page, `(window.__full = 0, window.__real = document.getElementById('videowrap').requestFullscreen, document.getElementById('videowrap').requestFullscreen = () => { window.__full++; return Promise.resolve(); })`);
+    const upright = await evaluate(page, `screen.orientation.type`);
+
+    await turn(true);
+    const idle = await asked();
+    await turn(false);
+
+    await evaluate(page, `document.getElementById('tab-live').click()`);
+    await waitFor(page, `document.querySelectorAll('#list .row').length > 0`, 'the channels');
+    await evaluate(page, `document.querySelector('#list .row').click()`);
+    await waitFor(page, `document.getElementById('main').classList.contains('has-playback')`, 'the channel');
+
+    await evaluate(page, `document.getElementById('btn-settings').click()`);
+    await waitFor(page, `Boolean(document.querySelector('dialog[open]'))`, 'the settings');
+    await turn(true);
+    const under = await asked();
+    await turn(false);
+    await evaluate(page, `document.querySelector('dialog[open]')?.close()`);
+
+    // The list in the player's place, as Back leaves it on a phone.
+    await pressKey(page, 'Escape', 'Escape', 27);
+    await sleep(300);
+    await turn(true);
+    const behind = await asked();
+    await turn(false);
+    await evaluate(page, `document.getElementById('compact-player').click()`);
+
+    await turn(true);
+    const lying = await asked();
+
+    // Really full screen now, as the app's engine would have made it, and
+    // upright again.
+    await evaluate(page, `document.getElementById('videowrap').requestFullscreen = window.__real`);
+    await page.call('Runtime.evaluate', { expression: `document.getElementById('videowrap').requestFullscreen()`, userGesture: true, awaitPromise: true });
+    await waitFor(page, `document.fullscreenElement?.id === 'videowrap'`, 'the picture full screen', 5000);
+    await turn(false);
+    const left = await waitFor(page, `!document.fullscreenElement`, 'the full screen left', 3000).then(() => true, () => false);
+
+    const problems = [];
+    if (!String(upright).startsWith('portrait')) problems.push(`the emulated screen stood as ${upright}`);
+    if (idle) problems.push(`a turn with nothing on asked for full screen ${idle} time(s)`);
+    if (under !== idle) problems.push('a turn with the settings open asked for full screen');
+    if (behind !== under) problems.push('a turn with the list in the playing channel\'s place asked for full screen');
+    if (lying !== behind + 1) problems.push(`the turn with a channel on asked for full screen ${lying - behind} time(s), not once`);
+    if (!left) problems.push('the picture stayed full screen when the phone was stood up');
+    if (problems.length) return { ok: false, detail: problems.join('; ') };
+    return { ok: true, detail: 'laid on its side with a channel on, the phone asked for full screen once, and stood up it left it; with nothing on, the settings open or the list where the picture was a turn asked for nothing' };
+  } finally {
+    await evaluate(page, `document.fullscreenElement && document.exitFullscreen()`).catch(() => {});
+    await page.call('Emulation.clearDeviceMetricsOverride').catch(() => {});
+    await page.call('Page.navigate', { url: plain }).catch(() => {});
+    await sleep(500);
+  }
+}
+
+/**
  * Left and right in a film on a television aim before they jump: a jump
  * for every press made the picture stop to buffer each time, and a key
  * held down got nowhere. The place aimed at shows on a bar, the picture
@@ -10683,7 +10767,7 @@ const SCENARIOS = { buffering, livebuffering, filmbuffering, emptyfile, tsasmp4,
   lastchannel, nextepisode, continuewatching, reminders, update, seeklag, cuesretry, quota, catchupfreeze, catchupfull, twotabs, switchstop, resettabs,
   refresh, restorenav, guidekeep, removeaccount, m3u, sync, holes, picks, flakyserver, accountform, stalker, record, guidefavs, guidenames, categories, homecountry, noleak, perf, pseudo, startup, soak, phone, headline, accountnow, onerow, nowbarfit, subsize, arrowmiddle, idlelight, iossubs, starquiet, phonestar, pickertouch, pickerkeyboard, phonescroll, menutap, wakelock, livecut, episodenames, gotochannel, filmdetails, favorder, countryfilter, tilekeys, routes, programmekeys, searchlimit, filterfolds, focusrings, xtreamoffer, guideclick, filmaddress, filmfacts, playlistfile, perflive, perfplaylist, remoteimages, phoneguide, handoff, closedplan, secondpicture, liverewind, upcoming,
   polish, iosapp,
-  remote, remotescrub, appback, appcast, appplayer, androidplayer };
+  remote, remotescrub, appback, appturn, appcast, appplayer, androidplayer };
 
 // The mock's whole-list answers stall for these, longer than the request limit.
 const SLOW_LIST_MS = { cancel: 60000, timeout: 60000 };

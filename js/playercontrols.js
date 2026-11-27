@@ -6,9 +6,11 @@
 // builds, from js/state.js.
 
 import { $, el } from './dom.js';
-import { ios } from './platform.js';
+import { ios, native } from './platform.js';
 import { on, send } from './host.js';
 import { pausedByLeaving } from './iosapp.js';
+import { castingNow } from './castui.js';
+import { layer } from './remote.js';
 import { isFavorite } from './collections.js';
 import { isGecko } from './browser.js';
 import { shortLanguage } from './lang.js';
@@ -154,6 +156,35 @@ if (ios) {
   el.video.addEventListener('emptied', () => { held = false; });
   document.addEventListener('visibilitychange', () => {
     if (document.hidden) { hiddenAt = performance.now(); goOn(); } else shownAt = performance.now();
+  });
+}
+
+// A phone or a tablet turned on its side with something on gives the
+// picture the whole screen, and turned upright again gives it back: the
+// turn is the sign, as it is in every video app, and the full screen
+// button is a small target for it. Only the turn itself does it, so the
+// picture taken out of full screen by its button stays out while the
+// device lies, and a stream started lying down starts in its box.
+//
+// The screen's own orientation is followed and not the window's shape:
+// Android's small window over other apps is wide whichever way the phone
+// is held, and becoming it is no turn. A turn while the page is that
+// window changes nothing either. Nor is the picture laid over a menu, a
+// dialog or the guide the viewer has open, or brought up for what plays on
+// a Chromecast, or from behind the list a phone shows in its place: there
+// the turn is for a wider list. A phone is told by its shorter side, which
+// is the same before the turn and after it, as the turn's word and the
+// window's new size come in no promised order.
+if (native && screen.orientation) {
+  const lies = () => screen.orientation.type.startsWith('landscape');
+  let lying = lies();
+  screen.orientation.addEventListener('change', () => {
+    if (lying === lies()) return;
+    lying = lies();
+    if (document.documentElement.classList.contains('pip')) return;
+    if (!lying) { if (pictureFull()) toggleFullscreen(); return; }
+    const behindList = Math.min(innerWidth, innerHeight) <= 600 && !playerLayout.watching;
+    if (state.playing && !castingNow() && layer() === document.body && !el.main.classList.contains('guide') && !behindList) enterFullscreen();
   });
 }
 

@@ -145,7 +145,10 @@ What differs:
 
 - **The app follows the way the device is held**, upright or on its side,
   on the iPhone and the iPad, in full screen too; the device's own rotation
-  lock decides, and turning it does not interrupt what plays. On the iPad
+  lock decides, and turning it does not interrupt what plays. Laid on its
+  side with something on, the device gives the picture the whole screen,
+  and stood up again the picture is back in its place; a menu, a dialog,
+  the guide or, on an iPhone, the list in front is left as it is. On the iPad
   it also runs beside another app, and takes the one-pane layout when its
   share of the screen is narrow.
 - **Everything that takes a press is at least 40 points high and wide**,
@@ -704,7 +707,10 @@ player, sync, the system's notifications and the stream statistics.
 
 The app is the same player as in Firefox for Android, with the whole screen
 to itself. It follows the way the device is held, upright or lying down, in
-full screen too. Android's **Back** closes what is open (the keyboard, a
+full screen too: laid on its side with something on, it gives the picture
+the whole screen, and stood up again the picture is back in its place (a
+menu, a dialog, the guide or, on a phone, the list in front is left as it
+is). Android's **Back** closes what is open (the keyboard, a
 menu, a dialog, the full screen, the guide), then shows the list again when
 the player's pane is in front, and from the list leaves the app with the
 player as it was. A file the player saves (a recording, a playlist for

@@ -33,7 +33,10 @@ The remote control is the player's: `js/remote.js`, on with `?tv=1`, tested
 in a desktop browser by `node dev/playcheck.mjs remote`. The phone's Back is
 the page's too (`js/androidapp.js`), on with `?app=1` (`node dev/playcheck.mjs appback`): it closes
 what is open, leaves the player's pane for the list, and from the list
-leaves the app.
+leaves the app. A turn of the device is the page's as well
+(`js/playercontrols.js`, `node dev/playcheck.mjs appturn`): lying down
+with something on, the picture goes full screen, and upright it comes
+back; the activity only follows the sensor, as before.
 
 ## The phone's app and the extension talk
 

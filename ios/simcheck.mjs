@@ -660,9 +660,11 @@ async function fullscreen(d) {
   await held('landscape', false, 'left lying down');
   await screen(d, true, `(await import('./js/playercontrols.js')).toggleFullscreen()`);
   await held('landscape', true, 'full screen lying down');
+  // Stood up, the device leaves full screen by itself (js/playercontrols.js).
   await d.turn('portrait');
-  await sleep(800);
-  await held('portrait', true, 'full screen turned upright');
+  await screen(d, false, 'await pause(800)');
+  await held('portrait', false, 'stood up');
+  await screen(d, true, `$('btn-full').click()`);
   await d.page(`video.pause(); await pause(700); return true;`);
   await d.shot('fullscreen-portrait-controls');
   await d.page(`await video.play(); return true;`);
@@ -676,7 +678,7 @@ async function fullscreen(d) {
   assert(after.fullscreen === 'no' && !after.statusBarHidden && after.webView.height === after.view.height - after.safeArea.top - after.safeArea.bottom,
     `after the page was loaded again in full screen the app says "${after.fullscreen}", the status bar ${after.statusBarHidden ? 'hidden' : 'showing'}`);
   await d.page(`$('btn-home').click(); return true;`);
-  return `the app's own full screen entered by the button and left by a swipe down lying down, entered there and left by the button upright, turned inside it both ways, nothing forced, never WebKit's own, the channel playing throughout (${(end.t - start.t).toFixed(0)} s), the bars back after a reload; ${seenSizes.join(', ')}`;
+  return `the app's own full screen entered by the button and left by a swipe down lying down, entered there and left by standing the device up, entered and left by the button upright, nothing forced, never WebKit's own, the channel playing throughout (${(end.t - start.t).toFixed(0)} s), the bars back after a reload; ${seenSizes.join(', ')}`;
 }
 
 async function split(d) {
@@ -718,16 +720,21 @@ async function rotateScenario(d) {
       columns: !matchMedia('(max-width: 600px)').matches,
       rows: rows().filter((r) => { const b = box(r); return b.height && b.bottom > list.top + 8 && b.top < list.bottom - 8; }).length,
       marked: Boolean(at) && at.height > 0 && at.bottom > list.top && at.top < list.bottom,
+      full: $('videowrap').classList.contains('full'),
       picture: [Math.round(wrap.width), Math.round(wrap.height)], whole: wrap.width > 0 && wrap.top >= 0 && wrap.left >= 0 && wrap.right <= innerWidth + 1 && wrap.bottom <= bar.top + 1 && bar.bottom <= innerHeight + 1 };`);
   const held = [];
   const check = (now, before, what) => {
     assert(now.fits, `${what} (${now.size.join(' × ')}): the page is wider than the window`);
     assert(!now.paused && now.restarts === 0 && (!before || now.t > before.t + 1), `${what}: the stream ${now.restarts ? `started again ${now.restarts} time(s)` : now.paused ? 'is paused' : `stands at ${now.t.toFixed(1)} s (${before && before.t.toFixed(1)} s before)`}`);
     assert(now.title === (before || now).title && now.name === now.title && now.route === (before || now).route, `${what}: playing ${now.title}, marked ${now.name}, at ${now.route}`);
-    assert(now.whole && Math.abs(now.picture[0] / now.picture[1] - 16 / 9) < 0.35, `${what}: the picture's box is ${now.picture.join(' × ')}, ${now.whole ? 'whole' : 'cut, or its bar out of sight'}`);
+    // Lying down the picture has the whole screen, by the turn alone
+    // (js/playercontrols.js); upright it is back in its box.
+    const lies = now.size[0] > now.size[1];
+    assert(now.full === lies, `${what}: the picture is ${now.full ? 'full screen' : 'in its box'}`);
+    if (!lies) assert(now.whole && Math.abs(now.picture[0] / now.picture[1] - 16 / 9) < 0.35, `${what}: the picture's box is ${now.picture.join(' × ')}, ${now.whole ? 'whole' : 'cut, or its bar out of sight'}`);
     // With the list beside the picture, the list keeps its place.
-    if (now.columns) assert(now.rows >= 3 && now.marked, `${what}: ${now.rows} row(s) of the list in sight, the playing one ${now.marked ? 'among them' : 'not'}`);
-    held.push(`${what} ${now.size.join(' × ')}, picture ${now.picture.join(' × ')}${now.columns ? `, ${now.rows} rows` : ''}`);
+    if (now.columns && !lies) assert(now.rows >= 3 && now.marked, `${what}: ${now.rows} row(s) of the list in sight, the playing one ${now.marked ? 'among them' : 'not'}`);
+    held.push(`${what} ${now.size.join(' × ')}, picture ${now.picture.join(' × ')}${lies ? ', full screen' : now.columns ? `, ${now.rows} rows` : ''}`);
   };
   const first = await look();
   check(first, null, 'upright');
@@ -742,7 +749,7 @@ async function rotateScenario(d) {
   check(again, lying, 'upright again');
   assert(again.size.join() === first.size.join(), `upright again the page is ${again.size.join(' × ')}, it was ${first.size.join(' × ')}`);
   await d.page(`$('btn-home').click(); return true;`);
-  return `${first.title} played on through both turns without a new start (${(again.t - first.t).toFixed(0)} s), the same channel marked; ${held.join('; ')}`;
+  return `${first.title} played on through both turns without a new start, full screen lying down and back in its box upright (${(again.t - first.t).toFixed(0)} s), the same channel marked; ${held.join('; ')}`;
 }
 
 async function cast(d) {
