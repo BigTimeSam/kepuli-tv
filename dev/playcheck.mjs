@@ -10235,9 +10235,11 @@ async function appturn(page, { target }) {
     await turn(false);
     await evaluate(page, `document.querySelector('dialog[open]')?.close()`);
 
-    // The list in the player's place, as Back leaves it on a phone.
-    await pressKey(page, 'Escape', 'Escape', 27);
-    await sleep(300);
+    // The list in the player's place, as Back leaves it on a phone. The
+    // pane is waited for: on CI's runner the turn came before a Back with
+    // a fixed wait had been answered.
+    await evaluate(page, `document.getElementById('compact-browse').click()`);
+    await waitFor(page, `!document.getElementById('main').classList.contains('compact-watch')`, 'the list in front');
     await turn(true);
     const behind = await asked();
     await turn(false);
