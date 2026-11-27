@@ -11,6 +11,8 @@
 //   node dev/amo-publish.mjs disable V…   versions not yet reviewed taken out of the queue
 //                                         (is_disabled): a release replaced by the next
 //                                         before review, so that it is not published
+//   node dev/amo-publish.mjs notes        the release notes and the notes to reviewer sent
+//                                         again to the version already on AMO
 //   node dev/amo-publish.mjs captions     the five screenshots' captions in every language
 //                                         of brand/firefox-screenshots/README.md, sent
 //                                         where AMO's differ; --dry as above
@@ -58,7 +60,7 @@ const POLL_MS = 3000;
 const VALIDATION_WAIT_MS = 5 * 60 * 1000;
 
 const args = process.argv.slice(2);
-const command = ['status', 'check', 'validate', 'listing', 'captions', 'disable'].includes(args[0]) ? args[0] : 'publish';
+const command = ['status', 'check', 'validate', 'listing', 'captions', 'disable', 'notes'].includes(args[0]) ? args[0] : 'publish';
 
 const fail = (message) => { console.error(`amo-publish: ${message}`); process.exit(1); };
 
@@ -132,7 +134,14 @@ function checkedFiles() {
   if (counted > MAX_NOTES) fail(`the notes to reviewer are ${counted} characters with CRLF line breaks; AMO takes ${MAX_NOTES}`);
   if (!notes.includes(version)) console.warn(`amo-publish: the notes to reviewer do not mention ${version} — are they this version's?`);
 
-  return { version, zip, source, notes, release: releaseNotes(version) };
+  // The release notes have the same limit, and it is met here, before a
+  // version is made: 1.15.0's were 3,300 characters, and AMO refused them
+  // after it had made the version, which then stood without any.
+  const release = releaseNotes(version);
+  const releaseCounted = release.replace(/\n/g, '\r\n').length;
+  if (releaseCounted > MAX_NOTES) fail(`the release notes are ${releaseCounted} characters with CRLF line breaks; AMO takes ${MAX_NOTES}: shorten the GitHub release's text above "Packages"`);
+
+  return { version, zip, source, notes, release };
 }
 
 /** The GitHub release's text of the version, up to its package list, as plain text. */
@@ -291,6 +300,14 @@ const creds = key();
 const versions = await status(creds);
 if (command === 'status' || command === 'check') process.exit(0);
 if (command === 'publish' && versions.some((v) => v.version === files.version)) fail(`${files.version} is on AMO already`);
+if (command === 'notes') {
+  const made = versions.find((v) => v.version === files.version);
+  if (!made) fail(`${files.version} is not on AMO: publish it first`);
+  await call(creds, 'PATCH', `${addon}/versions/${made.id}/`, { json: { release_notes: { [LOCALE]: files.release }, approval_notes: files.notes } });
+  const now = await call(creds, 'GET', `${addon}/versions/${made.id}/?lang=${LOCALE}`);
+  console.log(`${now.version}: release notes ${now.release_notes && now.release_notes[LOCALE] ? 'set' : 'MISSING'}, notes to reviewer ${(now.approval_notes || '').length} characters`);
+  process.exit(0);
+}
 
 console.log('uploading the package…');
 const form = new FormData();
