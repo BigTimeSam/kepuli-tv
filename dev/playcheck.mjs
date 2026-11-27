@@ -10784,6 +10784,7 @@ const CHROME_ONLY = {
   a11y: 'reads the accessibility tree through Chrome\'s DevTools protocol, which Marionette has no counterpart of',
   focusrings: 'takes a screenshot of a part of the page through Chrome\'s DevTools protocol for every element it focuses',
   iosapp: 'shows the page as the app for the iPhone and the iPad does, with touch emulation throughout, which the Marionette driver does not offer',
+  appturn: 'turns the screen through Chrome\'s DevTools protocol, which Marionette has no counterpart of; the Android app\'s engine was turned in its emulator instead',
 };
 const unknown = process.argv.slice(2).filter((a) => !SCENARIOS[a]);
 if (unknown.length) { console.error(`unknown scenario ${unknown.join(' ')}; the choices are ${Object.keys(SCENARIOS).join(' and ')}`); process.exit(1); }
