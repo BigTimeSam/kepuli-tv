@@ -194,6 +194,19 @@ the device's own player. If demand appears, this is how:
   Receiver is a page the device loads from Google, but the media URL goes only
   to the device.
 
+### Asked for again, and put off (2026-11-27)
+
+With the apps casting through Google's own sender, the owner asked whether
+the extension could have the same in Chrome, Firefox and Edge. The apps'
+players themselves (Media3's ExoPlayer, AVPlayer) are native code and cannot
+be part of an extension; what could be built is the route above, in Chrome
+and Edge alone, as Firefox has no Cast at all. The owner chose to come back
+to it later. Before building, measure on a real account how much would play
+on the device: the share of films that are `.mp4`, and whether the
+provider's HLS channels play there without CORS headers, as one device
+played one channel (fact 2). MPEG-TS channels and Matroska stay with
+Chrome's Cast tab whatever is built.
+
 ## The iPhone and iPad app: Google's sender, natively
 
 On iOS `video.remote` is AirPlay and nothing mirrors a tab, so the app
